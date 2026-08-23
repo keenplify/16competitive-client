@@ -1,0 +1,19 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+  "include": [
+    "src/renderer/src/env.d.ts",
+    "src/renderer/src/**/*",
+    "src/preload/*.d.ts",
+    "src/shared/**/*",
+    "src/shared/*.ts"
+  ],
+  "exclude": [
+    "src/renderer/src/libs/web-hlmv/**/__tests__/**",
+    "src/renderer/src/libs/web-hlmv/webpack.config.ts"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "react-jsx",
+    "ignoreDeprecations": "5.0"
+  }
+}

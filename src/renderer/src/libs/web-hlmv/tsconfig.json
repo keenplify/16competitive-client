@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "es2025",
+    "module": "commonjs",
+    "lib": ["dom", "es7"],
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "jsx": "react"
+  }
+}

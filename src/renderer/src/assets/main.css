@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+@import '@fontsource/audiowide';
+
+@theme {
+  /* 2. Create the variable. This generates the 'font-audiowide' class */
+  --font-audiowide: 'Audiowide', sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    margin: 0;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    overflow: auto;
+    background: #0a0a0a;
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  input {
+    user-select: text;
+  }
+}
+
+.nav-active-bg {
+  height: 100%;
+
+  background: linear-gradient(to top, rgb(59 130 246 / 30%), rgb(59 130 246 / 10%), transparent);
+
+  transform-origin: bottom;
+
+  /*
+   * 300ms delay = wait for the blue bar
+   * to finish sliding.
+   *
+   * 250ms = background grow animation.
+   */
+  animation: nav-bg-grow 250ms ease-out 300ms both;
+}
+
+@keyframes nav-bg-grow {
+  from {
+    transform: scaleY(0);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
