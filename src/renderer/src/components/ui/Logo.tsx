@@ -11,7 +11,7 @@ export function Logo({
         className
       )}
     >
-      <span>1.6</span>
+      <img src="./favicon.svg" alt="1.6 Competitive" className="w-full h-full object-contain" />
     </div>
   )
 }

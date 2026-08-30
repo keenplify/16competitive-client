@@ -35,6 +35,7 @@ export function ModelViewer({
     sourceKey: string
     buffer: ArrayBuffer
   } | null>(null)
+  const [failedSource, setFailedSource] = useState<string | null>(null)
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -53,13 +54,17 @@ export function ModelViewer({
         : Promise.reject(new Error('ModelViewer requires modelUrl or modelPath'))
 
     void modelRequest
-      .then((buffer) => setLoadedModel({ sourceKey: requestedSourceKey, buffer }))
+      .then((buffer) => {
+        setLoadedModel({ sourceKey: requestedSourceKey, buffer })
+        setFailedSource(null)
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
         }
 
         console.error('[HLMV] ModelViewer model load failed', { modelUrl, modelPath, error })
+        setFailedSource(requestedSourceKey)
       })
 
     return () => abortController.abort()
@@ -78,6 +83,15 @@ export function ModelViewer({
           setModelController={() => undefined}
           setModelData={() => undefined}
         />
+      )}
+      {failedSource !== sourceKey && loadedModel?.sourceKey !== sourceKey && (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          role="status"
+          aria-label="Loading model"
+        >
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-sky-400" />
+        </div>
       )}
     </div>
   )

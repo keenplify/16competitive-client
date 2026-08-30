@@ -115,7 +115,14 @@ export type MatchmakingServerMessage =
       reason: 'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED'
       message: string
     }
-  | { type: 'match_finished'; matchId: string; winner: 1 | 2; teamAScore: number; teamBScore: number; players: { id: string; username: string; kills: number; deaths: number; assists: number }[] }
+  | {
+      type: 'match_finished'
+      matchId: string
+      winner: 1 | 2
+      teamAScore: number
+      teamBScore: number
+      players: { id: string; username: string; kills: number; deaths: number; assists: number }[]
+    }
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }
   | { type: 'pong' }

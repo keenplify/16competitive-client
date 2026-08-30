@@ -11,18 +11,47 @@ const configPath = (): string => join(app.getPath('userData'), 'game-settings.js
 
 const detectCs16Executable = async (): Promise<string | null> => {
   const home = process.env.HOME ?? ''
-  const candidates = process.platform === 'win32'
-    ? [
-        join(process.env.LOCALAPPDATA ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe'),
-        join(process.env.PROGRAMFILES ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe'),
-        join(process.env.PROGRAMFILES ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe'),
-        join(process.env['PROGRAMFILES(X86)'] ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe')
-      ]
-    : [
-        join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-        join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-        join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
-      ]
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          join(
+            process.env.LOCALAPPDATA ?? '',
+            'Steam',
+            'steamapps',
+            'common',
+            'Half-Life',
+            'hl.exe'
+          ),
+          join(
+            process.env.PROGRAMFILES ?? '',
+            'Steam',
+            'steamapps',
+            'common',
+            'Half-Life',
+            'hl.exe'
+          ),
+          join(
+            process.env.PROGRAMFILES ?? '',
+            'Steam',
+            'steamapps',
+            'common',
+            'Half-Life',
+            'hl.exe'
+          ),
+          join(
+            process.env['PROGRAMFILES(X86)'] ?? '',
+            'Steam',
+            'steamapps',
+            'common',
+            'Half-Life',
+            'hl.exe'
+          )
+        ]
+      : [
+          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+          join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
+        ]
   for (const candidate of candidates) {
     if (!isAbsolute(candidate)) continue
     const metadata = await stat(candidate).catch(() => null)

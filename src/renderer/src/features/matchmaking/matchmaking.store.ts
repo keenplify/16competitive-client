@@ -5,6 +5,7 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
+import { usePartyStore } from '../party/party.store'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'reconnecting' | 'authenticating' | 'ready'
 type QueueStatus =
@@ -23,7 +24,12 @@ interface FoundMatch {
   mapId: string
   teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
 }
-export interface CompletedMatch extends FoundMatch { winner: 1 | 2; teamAScore: number; teamBScore: number; players: { id: string; username: string; kills: number; deaths: number; assists: number }[] }
+export interface CompletedMatch extends FoundMatch {
+  winner: 1 | 2
+  teamAScore: number
+  teamBScore: number
+  players: { id: string; username: string; kills: number; deaths: number; assists: number }[]
+}
 
 interface MatchmakingState {
   connectionStatus: ConnectionStatus
@@ -155,7 +161,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'match_finished':
         set((state) => ({
           queueStatus: 'idle',
-          completedMatch: state.match ? { ...state.match, winner: event.winner, teamAScore: event.teamAScore, teamBScore: event.teamBScore, players: event.players } : null,
+          completedMatch: state.match
+            ? {
+                ...state.match,
+                winner: event.winner,
+                teamAScore: event.teamAScore,
+                teamBScore: event.teamBScore,
+                players: event.players
+              }
+            : null,
           match: null,
           connectionDetails: null,
           error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
@@ -270,6 +284,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     joinQueue: async () => {
       const { connectionStatus, selectedMapId, selectedMode } = get()
       if (connectionStatus !== 'ready') return
+      const partySize = usePartyStore.getState().party?.members.length ?? 1
+      if (selectedMode === '3v3' && partySize > 3) {
+        set({ error: '3v3 matchmaking supports parties of up to 3 players.' })
+        return
+      }
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
         set({

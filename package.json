@@ -31,6 +31,7 @@
     "electron-updater": "^6.3.9",
     "fast-dataview": "^0.3.3",
     "gl-matrix": "^3.4.4",
+    "lucide-react": "^1.37.0",
     "multi-array-view": "^0.1.7",
     "ramda": "^0.32.0",
     "react-color": "^2.19.3",

@@ -2,6 +2,7 @@ import { Logo } from '../Logo'
 import { ReactNode, type JSX, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
+import { ChevronLeft } from 'lucide-react'
 
 const pages = [
   { id: 'play', label: 'Play' },
@@ -65,11 +66,22 @@ export function LobbyNavigation({
     >
       <button
         type="button"
-        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-400"
+        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
         aria-label="Open party lobby"
         onClick={() => onNavigate('lobby')}
       >
         <Logo />
+      </button>
+      <button
+        type="button"
+        className={twMerge(
+          'shrink-0 px-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase cursor-pointer transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 sm:px-3 flex items-center gap-2',
+          activePage !== 'lobby' ? 'opacity-0' : 'opacity-100'
+        )}
+        aria-label="Back to Lobby"
+        onClick={() => onNavigate('lobby')}
+      >
+        <ChevronLeft size="1.25em" /> Back to Lobby
       </button>
 
       <ul
@@ -77,8 +89,9 @@ export function LobbyNavigation({
         className="relative ml-auto flex min-w-0 gap-0 overflow-x-auto capitalize sm:gap-2"
       >
         {/* Moving blue bar + glow */}
-        <div
-          className="
+        {pages.some((p) => p.id === activePage) && (
+          <div
+            className="
             pointer-events-none
             absolute bottom-0
             z-20
@@ -89,11 +102,12 @@ export function LobbyNavigation({
             duration-300
             ease-out
           "
-          style={{
-            left: indicator.left,
-            width: indicator.width
-          }}
-        />
+            style={{
+              left: indicator.left,
+              width: indicator.width
+            }}
+          />
+        )}
 
         {pages.map(({ id, label }) => (
           <PageButton
@@ -138,6 +152,8 @@ function PageButton({ children, page, active, onClick }: PageButtonProps): JSX.E
         sm:text-xl
         font-bold
         ${active ? 'text-blue-400' : 'text-white'}
+        hover:text-blue-100
+        active:text-blue-200
       `}
     >
       {active && (

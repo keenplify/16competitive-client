@@ -6,6 +6,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useMatchmakingStore } from './matchmaking.store'
+import dust2Preview from '../../assets/dust2.jpg'
 import { TeamRoster } from './TeamRoster'
 
 const connectionLabels = {
@@ -36,16 +37,17 @@ function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Eleme
       onClick={onSelect}
     >
       <div className="relative flex aspect-[16/8] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.24),transparent_38%),linear-gradient(135deg,#172033,#0a0a0a)]">
-        {map.previewUrl ? (
-          <img className="h-full w-full object-cover" src={map.previewUrl} alt="" />
+        {map.previewUrl || map.id === 'de_dust2' ? (
+          <img
+            className="h-full w-full object-cover"
+            src={map.previewUrl ?? (map.id === 'de_dust2' ? dust2Preview : '')}
+            alt=""
+          />
         ) : (
           <span className="font-audiowide text-3xl text-white/20 uppercase">
             {map.id.slice(0, 2)}
           </span>
         )}
-        <span className="absolute top-2 right-2 rounded bg-black/60 px-2 py-1 text-[10px] font-bold tracking-wide text-neutral-300 uppercase">
-          Placeholder
-        </span>
       </div>
       <div className="p-4">
         <p className="font-semibold">{map.displayName}</p>
@@ -110,8 +112,10 @@ export function PlayPage(): JSX.Element {
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   const isLeader = !party || party.leaderId === player.id
+  const partySize = party?.members.length ?? 1
   const isConnected = connectionStatus === 'ready'
   const isQueued = queueStatus === 'queued' || queueStatus === 'leaving'
+  const canQueueSelectedMode = selectedMode !== '3v3' || partySize <= 3
   const progress = playersRequired > 0 ? (queuedPlayers / playersRequired) * 100 : 0
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
   const selectedMap = maps.find((map) => map.id === selectedMapId)
@@ -301,7 +305,7 @@ export function PlayPage(): JSX.Element {
                         ? 'border border-sky-400/50 bg-sky-400/10 text-sky-300'
                         : 'border border-white/10 bg-neutral-900'
                     }
-                    disabled={!isLeader}
+                    disabled={!isLeader || (mode === '3v3' && partySize > 3)}
                     onClick={() => selectMode(mode)}
                   >
                     {mode}
@@ -339,6 +343,7 @@ export function PlayPage(): JSX.Element {
                   !isConnected ||
                   !selectedMapId ||
                   !gameExecutablePath ||
+                  !canQueueSelectedMode ||
                   queueStatus === 'joining'
                 }
                 onClick={() => void joinQueue()}
@@ -357,6 +362,12 @@ export function PlayPage(): JSX.Element {
               {isLeader && !gameExecutablePath && (
                 <p className="text-sm text-amber-300">
                   Choose and save your Counter-Strike executable in Settings first.
+                </p>
+              )}
+              {isLeader && !canQueueSelectedMode && (
+                <p className="text-sm text-amber-300">
+                  3v3 matchmaking supports parties of up to 3 players. Select 5v5 or leave the
+                  party.
                 </p>
               )}
             </div>

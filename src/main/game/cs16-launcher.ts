@@ -38,10 +38,15 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
       try {
         process.kill(pid, 'SIGTERM')
         terminated++
-      } catch { /* process already exited */ }
+      } catch {
+        /* process already exited */
+      }
     }
   }
-  console.info('[GameLaunch] completed-game Linux processes terminated', { gameDirectory, terminated })
+  console.info('[GameLaunch] completed-game Linux processes terminated', {
+    gameDirectory,
+    terminated
+  })
 }
 
 export const launchCounterStrikeForMatch = async (input: {
@@ -91,7 +96,9 @@ export const launchCounterStrikeForMatch = async (input: {
   }
 
   const configuredDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
-  const configuredGameDirectory = configuredDirectory ? resolve(configuredDirectory) : dirname(executable)
+  const configuredGameDirectory = configuredDirectory
+    ? resolve(configuredDirectory)
+    : dirname(executable)
   const cwd = await realpath(configuredGameDirectory).catch(() => configuredGameDirectory)
   launchedGameDirectory = cwd
   console.info('[GameLaunch] starting Counter-Strike', {

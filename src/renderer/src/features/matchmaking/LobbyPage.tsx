@@ -14,6 +14,7 @@ import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.s
 import { SettingsPage } from '../settings/SettingsPage'
 import { MatchHistoryPage } from '../profile/MatchHistoryPage'
 import { MatchResultsPage } from './MatchResultsPage'
+import { NewsPage } from '../news/NewsPage'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
@@ -48,13 +49,21 @@ export function LobbyPage(): JSX.Element {
   useEffect(() => {
     let active = true
     const check = () => {
-      void window.api.gameSettings.get().then((settings) => {
-        if (active) setInstallationReady(Boolean(settings.cs16ExecutablePath))
-      }).catch(() => { if (active) setInstallationReady(false) })
+      void window.api.gameSettings
+        .get()
+        .then((settings) => {
+          if (active) setInstallationReady(Boolean(settings.cs16ExecutablePath))
+        })
+        .catch(() => {
+          if (active) setInstallationReady(false)
+        })
     }
     check()
     const timer = window.setInterval(check, 1500)
-    return () => { active = false; window.clearInterval(timer) }
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [])
 
   useEffect(() => {
@@ -77,38 +86,41 @@ export function LobbyPage(): JSX.Element {
   }
   const members = party?.members ?? [currentPlayer]
 
-  const content = completedMatch ? <MatchResultsPage match={completedMatch} onClose={dismissCompletedMatch} /> :
-    page === 'play' ? (
-      <PlayPage />
-    ) : page === 'settings' ? (
-      <SettingsPage />
-    ) : page === 'profile' ? (
-      <MatchHistoryPage />
-    ) : page === 'lobby' ? (
-      <div className="flex min-h-[calc(100vh-4rem)] flex-col sm:min-h-[calc(100vh-5rem)]">
-        <PartyPanel playerId={player.id} />
-        <section className="flex flex-1 flex-wrap justify-center">
-          {members.map((member, index) => (
-            <PartyPlayerSlot
-              key={member.id}
-              slot={index}
-              member={member}
-              isLeader={party?.leaderId === member.id}
-              isCurrentPlayer={member.id === player.id}
-            />
-          ))}
-        </section>
+  const content = completedMatch ? (
+    <MatchResultsPage match={completedMatch} onClose={dismissCompletedMatch} />
+  ) : page === 'play' ? (
+    <PlayPage />
+  ) : page === 'settings' ? (
+    <SettingsPage />
+  ) : page === 'profile' ? (
+    <MatchHistoryPage />
+  ) : page === 'news' ? (
+    <NewsPage />
+  ) : page === 'lobby' ? (
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col sm:min-h-[calc(100vh-5rem)]">
+      <PartyPanel playerId={player.id} />
+      <section className="flex flex-1 flex-wrap justify-center">
+        {members.map((member, index) => (
+          <PartyPlayerSlot
+            key={member.id}
+            slot={index}
+            member={member}
+            isLeader={party?.leaderId === member.id}
+            isCurrentPlayer={member.id === player.id}
+          />
+        ))}
+      </section>
+    </div>
+  ) : (
+    <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
+      <div className="text-center">
+        <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
+          {pageLabels[page]}
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
       </div>
-    ) : (
-      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
-        <div className="text-center">
-          <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
-            {pageLabels[page]}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
-        </div>
-      </main>
-    )
+    </main>
+  )
 
   return (
     <main
