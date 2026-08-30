@@ -2,11 +2,26 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { authenticate, clearSessionToken } from './auth'
+import { authenticate, clearSessionToken, restoreSession } from './auth'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import { WINDOW_CHANNELS } from '../shared/window'
+import { MODEL_CHANNELS } from '../shared/models'
+import { readCounterStrikeModel } from './models'
+import { getMatchmakingMaps } from './matchmaking-maps'
+import { getMatchHistory } from './match-history'
+import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
+import { PARTY_CHANNELS } from '../shared/party'
+import {
+  getParty,
+  getPartyInvitations,
+  inviteToParty,
+  leaveParty,
+  respondToPartyInvitation
+} from './party'
+import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
+import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
 
 let mainWindow
 
@@ -67,6 +82,7 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     authenticate('register', credentials)
   )
+  ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
     matchmakingConnection.disconnect()
     clearSessionToken()
@@ -74,11 +90,30 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
     matchmakingConnection.connect(event.sender)
   )
-  ipcMain.handle(MATCHMAKING_CHANNELS.joinQueue, (_, mode: unknown) =>
-    matchmakingConnection.joinQueue(mode)
+  ipcMain.handle(MATCHMAKING_CHANNELS.joinQueue, (_, mode: unknown, mapId: unknown) =>
+    matchmakingConnection.joinQueue(mode, mapId)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
+  ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
+  ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
+    matchmakingConnection.respondReady(matchId, accepted)
+  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
+    readCounterStrikeModel(relativePath)
+  )
+  ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
+  ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())
+  ipcMain.handle(PARTY_CHANNELS.invite, (_, username: unknown) => inviteToParty(username))
+  ipcMain.handle(PARTY_CHANNELS.respond, (_, invitationId: unknown, decision: unknown) =>
+    respondToPartyInvitation(invitationId, decision)
+  )
+  ipcMain.handle(PARTY_CHANNELS.leave, () => leaveParty())
+  ipcMain.handle(PARTY_CHANNELS.sendMessage, (_, message: unknown) =>
+    matchmakingConnection.sendPartyMessage(message)
+  )
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
     if (!mainWindow || mainWindow.isDestroyed()) return
 
@@ -86,6 +121,11 @@ app.whenReady().then(() => {
       mainWindow.maximize()
     }
   })
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, (_, executablePath: unknown) =>
+    saveGameSettings(executablePath)
+  )
 
   createWindow()
 

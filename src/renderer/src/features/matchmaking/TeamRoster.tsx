@@ -5,10 +5,16 @@ import { twMerge } from 'tailwind-merge'
 interface TeamRosterProps {
   name: string
   players: QueuedPlayer[]
+  readyPlayerIds?: string[]
   className?: string
 }
 
-export function TeamRoster({ className, name, players }: TeamRosterProps): JSX.Element {
+export function TeamRoster({
+  className,
+  name,
+  players,
+  readyPlayerIds = []
+}: TeamRosterProps): JSX.Element {
   return (
     <section className={twMerge('rounded-xl border border-white/10 bg-neutral-900 p-5', className)}>
       <h3 className="mb-4 text-xs font-bold tracking-[0.18em] text-neutral-500 uppercase">
@@ -21,7 +27,18 @@ export function TeamRoster({ className, name, players }: TeamRosterProps): JSX.E
             className="flex items-center justify-between rounded-md bg-black/20 px-3 py-2"
           >
             <span className="text-sm font-medium text-neutral-200">{player.username}</span>
-            <span className="text-xs text-neutral-500">{player.mmr} MMR</span>
+            <span className="flex items-center gap-3 text-xs">
+              <span className="text-neutral-500">{player.mmr} MMR</span>
+              {readyPlayerIds.length > 0 && (
+                <span
+                  className={
+                    readyPlayerIds.includes(player.id) ? 'text-emerald-300' : 'text-neutral-600'
+                  }
+                >
+                  {readyPlayerIds.includes(player.id) ? 'READY' : 'PENDING'}
+                </span>
+              )}
+            </span>
           </li>
         ))}
       </ul>

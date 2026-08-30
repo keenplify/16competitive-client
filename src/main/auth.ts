@@ -1,5 +1,8 @@
 import type { AuthCredentials, AuthSession, RegistrationCredentials } from '../shared/auth'
 import { API_BASE_URL } from './config'
+import { app, safeStorage } from 'electron'
+import { readFile, unlink, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,32}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -14,10 +17,20 @@ interface BackendErrorResponse {
 }
 
 let sessionToken: string | null = null
+let sessionUsername: string | null = null
+const tokenPath = () => join(app.getPath('userData'), 'session-token.bin')
+const persistToken = async (token: string) => {
+  if (safeStorage.isEncryptionAvailable()) {
+    await writeFile(tokenPath(), safeStorage.encryptString(token), { mode: 0o600 })
+  }
+}
 
 export const getSessionToken = (): string | null => sessionToken
+export const getSessionUsername = (): string | null => sessionUsername
 export const clearSessionToken = (): void => {
   sessionToken = null
+  sessionUsername = null
+  void unlink(tokenPath()).catch(() => undefined)
 }
 
 const validateCredentials = (
@@ -111,9 +124,41 @@ export const authenticate = async (
   }
 
   sessionToken = body.token
+  sessionUsername = body.player.username
+  await persistToken(sessionToken)
 
   return {
     expiresAt: body.expiresAt,
     player: body.player
   }
+}
+
+export const restoreSession = async (): Promise<AuthSession | null> => {
+  if (!safeStorage.isEncryptionAvailable()) return null
+  let token: string
+  try {
+    token = safeStorage.decryptString(await readFile(tokenPath()))
+  } catch {
+    return null
+  }
+  const response = await fetch(`${API_BASE_URL}/auth/session`, {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(5_000)
+  }).catch(() => null)
+  // Keep the encrypted token when the backend is temporarily unreachable so a
+  // later launch can retry restoration. Only discard it when the server
+  // explicitly rejects the session.
+  if (!response) return null
+  if (!response.ok) {
+    if (response.status !== 401) return null
+    clearSessionToken()
+    return null
+  }
+  const body: unknown = await response.json().catch(() => null)
+  if (typeof body !== 'object' || body === null) return null
+  if (!isAuthResponse({ ...(body as Record<string, unknown>), token })) return null
+  const restored = body as AuthSession
+  sessionToken = token
+  sessionUsername = restored.player.username
+  return { expiresAt: restored.expiresAt, player: restored.player }
 }

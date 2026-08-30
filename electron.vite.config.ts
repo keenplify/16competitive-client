@@ -3,17 +3,45 @@ import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const developmentContentSecurityPolicy =
+  "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http: ws:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:"
+
+const developmentCsp = {
+  name: 'development-csp',
+  transformIndexHtml(html: string, context: { server?: unknown }): string {
+    if (!context.server) {
+      return html
+    }
+
+    return html.replace(
+      "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:",
+      developmentContentSecurityPolicy
+    )
+  }
+}
+
 export default defineConfig({
   main: {},
   preload: {},
   renderer: {
     resolve: {
       extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'],
+      // web-hlmv was vendored with an old React 16 dependency tree. Resolve
+      // these packages once from the launcher to avoid mixing React runtimes
+      // and stale Vite-optimized dependency modules in the renderer.
+      dedupe: ['react', 'react-dom', 'styled-components', 'three', 'react-dropzone'],
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        // Three checks objects with instanceof internally. Every viewer module
+        // must therefore receive this exact module instance.
+        three: resolve('node_modules/three/build/three.module.js')
       }
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [developmentCsp, react(), tailwindcss()],
+    // Do not prebundle a second copy that can bypass the explicit alias above.
+    optimizeDeps: {
+      exclude: ['three']
+    },
     assetsInclude: ['**/*.mdl']
   }
 })

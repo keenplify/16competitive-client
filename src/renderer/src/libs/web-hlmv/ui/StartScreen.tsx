@@ -12,6 +12,7 @@ export const StartScreen = (props: Props) => (
     <a
       href="#"
       onClick={(event) => {
+        console.info('[HLMV] Local model picker requested')
         if (props.selectFile) {
           props.selectFile(event)
         }
@@ -26,6 +27,7 @@ export const StartScreen = (props: Props) => (
     <a
       href="#"
       onClick={(event) => {
+        console.info('[HLMV] Demo model requested', { url: props.demoFileUrl })
         props.setFileUrl(props.demoFileUrl)
         event.preventDefault()
       }}

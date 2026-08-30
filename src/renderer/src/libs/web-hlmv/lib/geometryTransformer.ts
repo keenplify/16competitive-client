@@ -125,41 +125,6 @@ export const getBonePositions = (
 
   for (let axis = 0; axis < 3; axis++) {
     position[axis] = bone.value[axis] // default;
-
-    // TOD: fix this part
-
-    // if (animOffset[axis] != 0) {
-    //   const getTotal = (index: number) => animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.TOTAL)
-    //   const getValue = (index: number) => animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.VALUE)
-    //   const getValid = (index: number) => animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.VALID)
-
-    //   let i = 0
-    //   let k = frame
-
-    //   // find span of values that includes the frame we want
-    //   while (getTotal(i) <= k) {
-    //     k -= getTotal(i)
-    //     i += getValid(i) + 1
-    //   }
-
-    //   // if we're inside the span
-    //   if (getValid(i) > k) {
-    //     // and there's more data in the span
-    //     if (getValid(i) > k + 1) {
-    //       position[axis] += (getValue(i + k + 1) * (1.0 - s) + s * getValue(i + k + 2)) * bone.scale[axis]
-    //     } else {
-    //       position[axis] += getValue(i + k + 1) * bone.scale[axis]
-    //     }
-    //   } else {
-    //     // are we at the end of the repeating values section and there's another section with data?
-    //     if (getTotal(i) <= k + 1) {
-    //       position[axis]
-    //         += (getValue(i + getValid(i)) * (1.0 - s) + s * getValue(i + getValid(i) + 2)) * bone.scale[axis]
-    //     } else {
-    //       position[axis] += getValue(i + getValid(i)) * bone.scale[axis]
-    //     }
-    //   }
-    // }
   }
 
   return position

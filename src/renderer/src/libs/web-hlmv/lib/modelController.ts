@@ -1,4 +1,4 @@
-import * as THREE from 'three'
+import THREE from './three'
 import * as R from 'ramda'
 import { ModelData } from './modelDataParser'
 import { MeshRenderData } from './modelRenderer'
@@ -65,7 +65,8 @@ export const createMeshController = (
   let previousAction: THREE.AnimationAction | undefined
 
   const initialMorphTargets = meshRenderData.geometryBuffers[0]
-  mesh.geometry.morphAttributes.position = initialMorphTargets
+  const geometry = mesh.geometry as THREE.BufferGeometry
+  geometry.morphAttributes.position = initialMorphTargets
   const initialMorphTargetDictionary: Record<string, number> = {}
   initialMorphTargets.forEach((_, index) => {
     initialMorphTargetDictionary[String(index)] = index
@@ -124,7 +125,7 @@ export const createMeshController = (
       }
 
       // Update mesh morph targets
-      const geometry = mesh.geometry
+      const geometry = mesh.geometry as THREE.BufferGeometry
       const morphTargets = meshRenderData.geometryBuffers[sequenceIndex]
       geometry.morphAttributes.position = morphTargets
       const morphTargetDictionary: Record<string, number> = {}

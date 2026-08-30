@@ -81,6 +81,7 @@ export const FileContainer = (props: Props): React.JSX.Element => {
 
   React.useEffect(() => {
     if (typeof fileUrl === 'string') {
+      console.info('[HLMV] Model URL state changed; starting load', { fileUrl })
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadingDemo(fileUrl)
     }

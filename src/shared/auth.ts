@@ -1,7 +1,8 @@
 export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
-  logout: 'auth:logout'
+  logout: 'auth:logout',
+  restore: 'auth:restore'
 } as const
 
 export interface AuthCredentials {
@@ -29,5 +30,6 @@ export interface AuthSession {
 export interface AuthApi {
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
+  restore(): Promise<AuthSession | null>
   logout(): Promise<void>
 }

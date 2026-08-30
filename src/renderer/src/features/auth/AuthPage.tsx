@@ -17,7 +17,15 @@ export function AuthPage(): JSX.Element {
   const setEmail = useAuthStore((state) => state.setEmail)
   const setPassword = useAuthStore((state) => state.setPassword)
   const submit = useAuthStore((state) => state.submit)
+  const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
+  const restoreStarted = useRef(false)
+
+  useEffect(() => {
+    if (restoreStarted.current) return
+    restoreStarted.current = true
+    void restore()
+  }, [restore])
 
   useEffect(() => {
     if (status === 'authenticated' && session && !hasMaximized.current) {
@@ -31,11 +39,16 @@ export function AuthPage(): JSX.Element {
     }
   }, [session, status])
 
-  // REmove after
-  return <LobbyPage />
-
   if ((status === 'authenticated' || status === 'logging_out') && session) {
     return <LobbyPage />
+  }
+
+  if (status === 'restoring') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-sm text-neutral-400">
+        Restoring your session…
+      </main>
+    )
   }
 
   const isLogin = mode === 'login'
@@ -45,6 +58,12 @@ export function AuthPage(): JSX.Element {
     event.preventDefault()
     void submit()
   }
+
+  // // Temporary development preview for the lobby/model viewer. Keeping this after
+  // // hook and handler declarations avoids leaving the rest of the component unreachable.
+  // if (import.meta.env.DEV) {
+  //   return <LobbyPage />
+  // }
 
   return (
     <main className="grid min-h-screen grid-cols-1 bg-neutral-950 text-white md:grid-cols-[1.1fr_0.9fr]">

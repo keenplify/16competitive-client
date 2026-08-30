@@ -1,5 +1,7 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import THREE from './three'
+import orbitControlsCreator from 'three-orbit-controls'
+
+const OrbitControls = orbitControlsCreator(THREE)
 
 /**
  * Creates orbit controller
@@ -76,7 +78,7 @@ export const createCamera = (initDistance: number = 80) => {
 /**
  * Creates a timer object
  */
-export const createTimer = () => new THREE.Timer()
+export const createTimer = () => new THREE.Clock()
 
 /**
  * Creates a scene object

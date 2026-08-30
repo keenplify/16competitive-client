@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { AuthSession } from '../../../../shared/auth'
 
 type AuthMode = 'login' | 'register'
-type AuthStatus = 'idle' | 'submitting' | 'authenticated' | 'logging_out'
+type AuthStatus = 'idle' | 'restoring' | 'submitting' | 'authenticated' | 'logging_out'
 
 interface AuthState {
   mode: AuthMode
@@ -17,6 +17,7 @@ interface AuthState {
   setEmail: (email: string) => void
   setPassword: (password: string) => void
   submit: () => Promise<void>
+  restore: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -38,6 +39,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'idle',
   error: null,
   session: null,
+
+  restore: async () => {
+    if (get().status !== 'idle') return
+    set({ status: 'restoring', error: null })
+    try {
+      const session = await window.api.auth.restore()
+      set(session ? { session, status: 'authenticated' } : { session: null, status: 'idle' })
+    } catch {
+      set({ session: null, status: 'idle' })
+    }
+  },
 
   setMode: (mode) => set({ mode, error: null, password: '' }),
   setUsername: (username) => set({ username, error: null }),

@@ -1,16 +1,28 @@
 import { Logo } from '../Logo'
 import { ReactNode, type JSX, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import type { LobbyPageId } from '../../../features/navigation/navigation.store'
 
-const pages = ['Play', 'Leaderboard', 'Store', 'News', 'Settings', 'Profile']
+const pages = [
+  { id: 'play', label: 'Play' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+  { id: 'store', label: 'Store' },
+  { id: 'news', label: 'News' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'profile', label: 'Profile' }
+] as const satisfies ReadonlyArray<{ id: Exclude<LobbyPageId, 'lobby'>; label: string }>
 
 interface LobbyNavigationProps {
+  activePage: LobbyPageId
+  onNavigate: (page: LobbyPageId) => void
   className?: string
 }
 
-export function LobbyNavigation({ className }: LobbyNavigationProps): JSX.Element {
-  const [activePage, setActivePage] = useState('Play')
-
+export function LobbyNavigation({
+  activePage,
+  onNavigate,
+  className
+}: LobbyNavigationProps): JSX.Element {
   const navRef = useRef<HTMLUListElement>(null)
 
   const [indicator, setIndicator] = useState({
@@ -39,14 +51,31 @@ export function LobbyNavigation({ className }: LobbyNavigationProps): JSX.Elemen
 
     if (activeElement) {
       updateIndicator(activeElement)
+    } else {
+      setIndicator((current) => ({ left: current.left, width: 0 }))
     }
   }, [activePage])
 
   return (
-    <nav className={twMerge('flex bg-gray-500/20', className)}>
-      <Logo />
+    <nav
+      className={twMerge(
+        'flex h-16 w-full overflow-hidden bg-gray-950/70 backdrop-blur-md sm:h-20',
+        className
+      )}
+    >
+      <button
+        type="button"
+        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-400"
+        aria-label="Open party lobby"
+        onClick={() => onNavigate('lobby')}
+      >
+        <Logo />
+      </button>
 
-      <ul ref={navRef} className="relative ml-auto flex gap-2 capitalize">
+      <ul
+        ref={navRef}
+        className="relative ml-auto flex min-w-0 gap-0 overflow-x-auto capitalize sm:gap-2"
+      >
         {/* Moving blue bar + glow */}
         <div
           className="
@@ -66,16 +95,17 @@ export function LobbyNavigation({ className }: LobbyNavigationProps): JSX.Elemen
           }}
         />
 
-        {pages.map((page) => (
+        {pages.map(({ id, label }) => (
           <PageButton
-            key={page}
-            active={activePage === page}
+            key={id}
+            page={id}
+            active={activePage === id}
             onClick={(element) => {
-              setActivePage(page)
+              onNavigate(id)
               updateIndicator(element)
             }}
           >
-            {page}
+            {label}
           </PageButton>
         ))}
       </ul>
@@ -83,13 +113,13 @@ export function LobbyNavigation({ className }: LobbyNavigationProps): JSX.Elemen
   )
 }
 
-function PageButton({ children, active, onClick }: PageButtonProps): JSX.Element {
+function PageButton({ children, page, active, onClick }: PageButtonProps): JSX.Element {
   const buttonRef = useRef<HTMLLIElement>(null)
 
   return (
     <li
       ref={buttonRef}
-      data-page={children}
+      data-page={page}
       onClick={() => {
         if (buttonRef.current) {
           onClick?.(buttonRef.current)
@@ -101,9 +131,11 @@ function PageButton({ children, active, onClick }: PageButtonProps): JSX.Element
         cursor-pointer
         items-center
         justify-center
-        px-6
+        px-3
+        sm:px-6
         py-2
-        text-xl
+        text-sm
+        sm:text-xl
         font-bold
         ${active ? 'text-blue-400' : 'text-white'}
       `}
@@ -119,6 +151,7 @@ function PageButton({ children, active, onClick }: PageButtonProps): JSX.Element
 
 interface PageButtonProps {
   children: ReactNode
+  page: Exclude<LobbyPageId, 'lobby'>
   active?: boolean
   onClick?: (element: HTMLElement) => void
 }
