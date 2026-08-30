@@ -17,12 +17,14 @@ interface LobbyNavigationProps {
   activePage: LobbyPageId
   onNavigate: (page: LobbyPageId) => void
   className?: string
+  showBackToLobby?: boolean
 }
 
 export function LobbyNavigation({
   activePage,
   onNavigate,
-  className
+  className,
+  showBackToLobby = true
 }: LobbyNavigationProps): JSX.Element {
   const navRef = useRef<HTMLUListElement>(null)
 
@@ -72,42 +74,35 @@ export function LobbyNavigation({
       >
         <Logo />
       </button>
-      <button
-        type="button"
-        className={twMerge(
-          'shrink-0 px-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase cursor-pointer transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 sm:px-3 flex items-center gap-2',
-          activePage !== 'lobby' ? 'opacity-0' : 'opacity-100'
-        )}
-        aria-label="Back to Lobby"
-        onClick={() => onNavigate('lobby')}
-      >
-        <ChevronLeft size="1.25em" /> Back to Lobby
-      </button>
+      {showBackToLobby && (
+        <button
+          type="button"
+          className={twMerge(
+            'shrink-0 px-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase cursor-pointer transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 sm:px-3 flex items-center gap-2',
+            activePage !== 'lobby' ? 'opacity-100' : 'opacity-0'
+          )}
+          aria-label="Back to Lobby"
+          onClick={() => onNavigate('lobby')}
+        >
+          <ChevronLeft size="1.25em" /> Back to Lobby
+        </button>
+      )}
 
       <ul
         ref={navRef}
         className="relative ml-auto flex min-w-0 gap-0 overflow-x-auto capitalize sm:gap-2"
       >
         {/* Moving blue bar + glow */}
-        {pages.some((p) => p.id === activePage) && (
-          <div
-            className="
-            pointer-events-none
-            absolute bottom-0
-            z-20
-            h-0.5
-            bg-blue-400
-            shadow-[0_0_6px_2px_rgba(59,130,246,0.8)]
-            transition-all
-            duration-300
-            ease-out
-          "
-            style={{
-              left: indicator.left,
-              width: indicator.width
-            }}
-          />
-        )}
+        <div
+          className={twMerge(
+            'pointer-events-none absolute bottom-0 z-20 h-0.5 bg-blue-400 shadow-[0_0_6px_2px_rgba(59,130,246,0.8)] transition-all duration-300 ease-out',
+            pages.some((p) => p.id === activePage) ? 'opacity-100' : 'opacity-0'
+          )}
+          style={{
+            left: indicator.left,
+            width: indicator.width
+          }}
+        />
 
         {pages.map(({ id, label }) => (
           <PageButton

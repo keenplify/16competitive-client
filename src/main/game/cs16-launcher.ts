@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { copyFile, readFile, readdir, readlink, realpath, stat, writeFile } from 'node:fs/promises'
+import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable } from './game-settings'
 import { getSessionUsername } from '../auth'
@@ -10,6 +10,8 @@ const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 let gameProcess: ChildProcess | null = null
 let launchedMatchId: string | null = null
 let launchedGameDirectory: string | null = null
+let launchedViaSteam = false
+let launchedMatchConfigPath: string | null = null
 
 export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (launchedMatchId !== matchId) return
@@ -19,6 +21,10 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
   }
   launchedGameDirectory = null
+  launchedViaSteam = false
+  const matchConfigPath = launchedMatchConfigPath
+  launchedMatchConfigPath = null
+  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
 }
 
 const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<void> => {
@@ -69,7 +75,12 @@ export const launchCounterStrikeForMatch = async (input: {
   }
   if (!SAFE_PASSWORD.test(input.password)) throw new Error('Invalid game server password')
   if (!/^[A-Za-z0-9_-]{32,64}$/.test(input.joinToken)) throw new Error('Invalid match join token')
-  if (launchedMatchId === input.matchId && gameProcess?.exitCode === null) return
+  if (
+    launchedMatchId === input.matchId &&
+    (gameProcess?.exitCode === null || launchedViaSteam)
+  ) {
+    return
+  }
 
   const configuredExecutable =
     (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
@@ -100,94 +111,76 @@ export const launchCounterStrikeForMatch = async (input: {
     ? resolve(configuredDirectory)
     : dirname(executable)
   const cwd = await realpath(configuredGameDirectory).catch(() => configuredGameDirectory)
-  launchedGameDirectory = cwd
-  console.info('[GameLaunch] starting Counter-Strike', {
-    executable: process.platform === 'linux' ? 'steam' : executable,
-    cwd,
-    args: [
-      '-game',
-      'cstrike',
-      '+password',
-      '[redacted]',
-      '+name',
-      playerName,
-      '+setinfo',
-      '_16c',
-      '[redacted]',
-      '+exec',
-      '16competitive.cfg',
-      '+connect',
-      `${input.host}:${input.port}`
-    ]
-  })
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
-  const competitiveConfigPath = join(cwd, 'cstrike', '16competitive.cfg')
+  // Let Steam launch the installed client on Linux. GoldSrc's direct binary
+  // startup differs across Steam builds and can crash before the client
+  // initializes; Steam owns the supported runtime selection for app 10.
+  const launchViaSteam = process.platform === 'linux'
+  const launchExecutable = launchViaSteam ? 'steam' : executable
+  const matchConfigName = '16competitive-match.cfg'
+  const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
+  const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.tmp`
+  // Use engine console commands for the password and connection. Unlike
+  // `+password`, this is reliably applied when Steam forwards launch options
+  // to different GoldSrc client builds.
   await writeFile(
-    competitiveConfigPath,
-    `name "${playerName}"\nsetinfo "_16c" "${input.joinToken}"\n`,
-    { mode: 0o600 }
+    temporaryMatchConfigPath,
+    [
+      `name "${playerName}"`,
+      `setinfo "_16c" "${input.joinToken}"`,
+      `password "${input.password}"`,
+      `connect "${input.host}:${input.port}"`,
+      ''
+    ].join('\n'),
+    { encoding: 'utf8', mode: 0o600 }
   )
-  const gameConfigPath = join(cwd, 'cstrike', 'config.cfg')
-  const gameConfig = await readFile(gameConfigPath, 'utf8').catch(() => '')
-  const nameCommand = `name "${playerName}"`
-  const updatedGameConfig = /^name\s+.*$/im.test(gameConfig)
-    ? gameConfig.replace(/^name\s+.*$/im, nameCommand)
-    : `${gameConfig.trimEnd()}\n${nameCommand}\n`
-  if (updatedGameConfig !== gameConfig) {
-    await copyFile(gameConfigPath, `${gameConfigPath}.16competitive-backup`).catch(() => undefined)
-    await writeFile(gameConfigPath, updatedGameConfig, { mode: 0o600 })
-  }
-
+  await rename(temporaryMatchConfigPath, matchConfigPath)
+  launchedMatchConfigPath = matchConfigPath
+  // Keep connection commands on the command line as well: some Steam/GoldSrc
+  // builds ignore `+exec` during URL parameter processing and otherwise stop
+  // at the main menu without ever attempting the server connection.
+  const gameArgs = [
+    '-game',
+    'cstrike',
+    '+password',
+    input.password,
+    '+name',
+    playerName,
+    '+setinfo',
+    '_16c',
+    input.joinToken,
+    '+exec',
+    matchConfigName,
+    '+connect',
+    `${input.host}:${input.port}`
+  ]
+  // Steam forwards the remaining app arguments directly to hl.sh. Do not add
+  // `--`: Steam passes it through to GoldSrc as an actual engine argument.
+  const launchArgs = launchViaSteam ? ['-applaunch', '10', ...gameArgs] : gameArgs
+  launchedGameDirectory = cwd
+  console.info('[GameLaunch] starting Counter-Strike', {
+    executable: launchExecutable,
+    cwd,
+    args: launchArgs.map((argument, index) =>
+      launchArgs[index - 1] === '+password' || launchArgs[index - 1] === '_16c'
+        ? '[redacted]'
+        : argument
+    )
+  })
   const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
-    const useSteamLauncher = process.platform === 'linux'
-    const launchExecutable = useSteamLauncher ? 'steam' : executable
-    const launchArgs =
-      process.platform === 'linux'
-        ? [
-            '-applaunch',
-            '10',
-            '-game',
-            'cstrike',
-            '+password',
-            input.password,
-            '+name',
-            playerName,
-            '+setinfo',
-            '_16c',
-            input.joinToken,
-            '+exec',
-            '16competitive.cfg',
-            '+connect',
-            `${input.host}:${input.port}`
-          ]
-        : [
-            '-game',
-            'cstrike',
-            '+password',
-            input.password,
-            '+name',
-            playerName,
-            '+setinfo',
-            '_16c',
-            input.joinToken,
-            '+exec',
-            '16competitive.cfg',
-            '+connect',
-            `${input.host}:${input.port}`
-          ]
     const child = spawn(launchExecutable, launchArgs, {
       cwd,
       shell: false,
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        // hl.sh sets this before invoking hl_linux. Without it the Steam
-        // runtime libraries are not found and the client can exit cleanly.
-        LD_LIBRARY_PATH: !useSteamLauncher
-          ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
-          : process.env.LD_LIBRARY_PATH
+        // The non-Steam fallback needs the same libraries as hl.sh.
+        LD_LIBRARY_PATH:
+          process.platform === 'linux' && !launchViaSteam
+            ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
+            : process.env.LD_LIBRARY_PATH
       }
     })
     child.once('error', reject)
@@ -195,14 +188,37 @@ export const launchCounterStrikeForMatch = async (input: {
   })
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
+  launchedViaSteam = launchViaSteam
   console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: gameProcess.pid })
+  let gameOutput = ''
+  const appendGameOutput = (chunk: Buffer): void => {
+    gameOutput = `${gameOutput}${chunk.toString('utf8')}`.slice(-8_000)
+  }
+  gameProcess.stdout?.on('data', appendGameOutput)
+  gameProcess.stderr?.on('data', appendGameOutput)
   spawnedProcess.once('exit', (code, signal) => {
+    if (launchViaSteam) {
+      // The Steam CLI intentionally exits after handing the request to the
+      // running Steam client. Its lifecycle is not the game's lifecycle.
+      console.info('[GameLaunch] Steam handoff completed', { matchId: input.matchId, code, signal })
+      if (gameProcess === spawnedProcess) gameProcess = null
+      return
+    }
     console.info('[GameLaunch] process exited', {
       matchId: input.matchId,
       code,
       signal
     })
+    if (gameOutput.trim()) {
+      const safeOutput = gameOutput
+        .replaceAll(input.password, '[redacted]')
+        .replaceAll(input.joinToken, '[redacted]')
+      console.error('[GameLaunch] native client output', { matchId: input.matchId, output: safeOutput })
+    }
     if (gameProcess === spawnedProcess) gameProcess = null
+    const matchConfigPath = launchedMatchConfigPath
+    launchedMatchConfigPath = null
+    if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
     input.onExit?.({ code, signal })
   })
 }

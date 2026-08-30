@@ -13,6 +13,7 @@ import { closeCounterStrikeForMatch, launchCounterStrikeForMatch } from './game/
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_DELAY_MS = 2_000
+const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '3v3' || value === '5v5'
 const isMapId = (value: unknown): value is string =>
@@ -197,6 +198,7 @@ class MatchmakingConnection {
   private manuallyDisconnected = false
   private authenticated = false
   private lastConnection: MatchConnection | null = null
+  private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   connect(renderer: WebContents): void {
     this.renderer = renderer
@@ -339,8 +341,17 @@ class MatchmakingConnection {
             message: error instanceof Error ? error.message : 'Could not launch Counter-Strike.'
           })
         })
-      } else if (parsed.type === 'match_finished') {
-        closeCounterStrikeForMatch(parsed.matchId)
+      } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
+        const timer = setTimeout(() => {
+          this.matchEndTimers.delete(parsed.matchId)
+          closeCounterStrikeForMatch(parsed.matchId)
+          const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
+          if (!window || window.isDestroyed()) return
+          if (window.isMinimized()) window.restore()
+          window.show()
+          window.focus()
+        }, MATCH_RESULT_GRACE_PERIOD_MS)
+        this.matchEndTimers.set(parsed.matchId, timer)
       }
 
       this.notify(parsed)

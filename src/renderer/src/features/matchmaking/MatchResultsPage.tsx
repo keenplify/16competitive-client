@@ -1,12 +1,6 @@
 import type { CompletedMatch } from './matchmaking.store'
 
-export function MatchResultsPage({
-  match,
-  onClose
-}: {
-  match: CompletedMatch
-  onClose: () => void
-}): React.JSX.Element {
+export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const winners = match.winner === 1 ? match.teams.teamA : match.teams.teamB
   const losers = match.winner === 1 ? match.teams.teamB : match.teams.teamA
   const score =
@@ -22,9 +16,6 @@ export function MatchResultsPage({
       </p>
       <Team label="Winners" players={winners} stats={match.players} />
       <Team label="Opponents" players={losers} stats={match.players} />
-      <button onClick={onClose} className="mt-8 bg-sky-500 px-6 py-3 text-sm font-bold uppercase">
-        Back to lobby
-      </button>
     </section>
   )
 }
