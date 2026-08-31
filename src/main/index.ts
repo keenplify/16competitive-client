@@ -10,7 +10,7 @@ import { WINDOW_CHANNELS } from '../shared/window'
 import { MODEL_CHANNELS } from '../shared/models'
 import { readCounterStrikeModel } from './models'
 import { getMatchmakingMaps } from './matchmaking-maps'
-import { getMatchHistory } from './match-history'
+import { getMatchHistory, getMatchSummary, getPlayerProfile } from './match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import { PARTY_CHANNELS } from '../shared/party'
 import {
@@ -97,6 +97,12 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())
   ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) =>
+    getMatchSummary(matchId)
+  )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
+    getPlayerProfile(playerId)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
   )

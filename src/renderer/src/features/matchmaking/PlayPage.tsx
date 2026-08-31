@@ -9,12 +9,6 @@ import { useMatchmakingStore } from './matchmaking.store'
 import dust2Preview from '../../assets/dust2.jpg'
 import { TeamRoster } from './TeamRoster'
 
-function formatQueueDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-}
-
 const connectionLabels = {
   disconnected: 'Offline',
   connecting: 'Connecting',
@@ -72,10 +66,6 @@ export function PlayPage(): JSX.Element {
   const maps = useMatchmakingStore((state) => state.maps)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapId = useMatchmakingStore((state) => state.selectedMapId)
-  const queuedPlayers = useMatchmakingStore((state) => state.queuedPlayers)
-  const playersRequired = useMatchmakingStore((state) => state.playersRequired)
-  const position = useMatchmakingStore((state) => state.position)
-  const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
   const match = useMatchmakingStore((state) => state.match)
   const readyDeadline = useMatchmakingStore((state) => state.readyDeadline)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
@@ -83,19 +73,16 @@ export function PlayPage(): JSX.Element {
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const countdown = useMatchmakingStore((state) => state.countdown)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
-  const gameExited = useMatchmakingStore((state) => state.gameExited)
   const error = useMatchmakingStore((state) => state.error)
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
-  const leaveQueue = useMatchmakingStore((state) => state.leaveQueue)
   const respondReady = useMatchmakingStore((state) => state.respondReady)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
   const gameExecutablePath = useGameSettingsStore((state) => state.savedPath)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
-  const [queueElapsedSeconds, setQueueElapsedSeconds] = useState(0)
 
   useEffect(() => {
     void loadMaps()
@@ -117,30 +104,14 @@ export function PlayPage(): JSX.Element {
     return () => window.clearInterval(timer)
   }, [queueStatus, readyDeadline])
 
-  useEffect(() => {
-    if ((queueStatus !== 'queued' && queueStatus !== 'leaving') || !queueStartedAt) {
-      setQueueElapsedSeconds(0)
-      return
-    }
-
-    const update = (): void => {
-      setQueueElapsedSeconds(Math.max(0, Math.floor((Date.now() - queueStartedAt) / 1_000)))
-    }
-    update()
-    const timer = window.setInterval(update, 1_000)
-    return () => window.clearInterval(timer)
-  }, [queueStartedAt, queueStatus])
-
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   const isLeader = !party || party.leaderId === player.id
   const partySize = party?.members.length ?? 1
   const isConnected = connectionStatus === 'ready'
-  const isQueued = queueStatus === 'queued' || queueStatus === 'leaving'
+  const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const canQueueSelectedMode = selectedMode !== '3v3' || partySize <= 3
-  const progress = playersRequired > 0 ? (queuedPlayers / playersRequired) * 100 : 0
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
-  const selectedMap = maps.find((map) => map.id === selectedMapId)
 
   if (
     match &&
@@ -227,7 +198,7 @@ export function PlayPage(): JSX.Element {
             </div>
           )}
 
-          {gameExited && (
+          {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">
               <Button variant="ghost" onClick={() => void reconnectGame()}>
                 Reconnect to match
@@ -287,120 +258,90 @@ export function PlayPage(): JSX.Element {
           </div>
         </header>
 
-        {isQueued ? (
-          <section className="mt-8 rounded-xl border border-white/10 bg-neutral-900/90 p-6 sm:p-8">
-            <p className="text-xs font-bold tracking-[0.18em] text-amber-400 uppercase">
-              Searching · {selectedMap?.displayName ?? selectedMapId} · {selectedMode}
+        <>
+          <section className="mt-8">
+            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              Team size
             </p>
-            <h2 className="mt-3 text-3xl font-semibold">
-              {queuedPlayers} / {playersRequired} players
-            </h2>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-neutral-800">
-              <div
-                className="h-full rounded-full bg-amber-400 transition-[width]"
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
+            <div className="mt-3 flex gap-3">
+              {(['3v3', '5v5'] as const).map((mode) => (
+                <Button
+                  key={mode}
+                  variant="ghost"
+                  className={
+                    selectedMode === mode
+                      ? 'border border-sky-400/50 bg-sky-400/10 text-sky-300'
+                      : 'border border-white/10 bg-neutral-900'
+                  }
+                  disabled={isSearching || !isLeader || (mode === '3v3' && partySize > 3)}
+                  onClick={() => selectMode(mode)}
+                >
+                  {mode}
+                </Button>
+              ))}
             </div>
-            <p className="mt-3 text-sm text-neutral-500">Queue position: {position}</p>
-            <p className="mt-1 text-sm text-neutral-500">
-              Time in queue:{' '}
-              <span className="font-mono tabular-nums text-neutral-300">
-                {formatQueueDuration(queueElapsedSeconds)}
-              </span>
-            </p>
-            <Button
-              className="mt-8 w-full sm:w-auto"
-              variant="ghost"
-              disabled={queueStatus === 'leaving' || !isConnected}
-              onClick={() => void leaveQueue()}
-            >
-              {queueStatus === 'leaving' ? 'Leaving queue…' : 'Leave queue'}
-            </Button>
           </section>
-        ) : (
-          <>
-            <section className="mt-8">
-              <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                Team size
-              </p>
-              <div className="mt-3 flex gap-3">
-                {(['3v3', '5v5'] as const).map((mode) => (
-                  <Button
-                    key={mode}
-                    variant="ghost"
-                    className={
-                      selectedMode === mode
-                        ? 'border border-sky-400/50 bg-sky-400/10 text-sky-300'
-                        : 'border border-white/10 bg-neutral-900'
-                    }
-                    disabled={!isLeader || (mode === '3v3' && partySize > 3)}
-                    onClick={() => selectMode(mode)}
-                  >
-                    {mode}
-                  </Button>
-                ))}
-              </div>
-            </section>
 
-            <section className="mt-8">
-              <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
-              {mapsStatus === 'loading' && (
-                <p className="mt-4 text-sm text-neutral-400">Loading maps…</p>
-              )}
-              {mapsStatus === 'ready' && availableMaps.length === 0 && (
-                <p className="mt-4 text-sm text-neutral-400">No maps support {selectedMode}.</p>
-              )}
-              <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {availableMaps.map((map) => (
-                  <MapCard
-                    key={map.id}
-                    map={map}
-                    selected={selectedMapId === map.id}
-                    disabled={!isLeader}
-                    onSelect={() => selectMap(map.id)}
-                  />
-                ))}
-              </div>
-            </section>
+          <section className="mt-8">
+            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
+            {mapsStatus === 'loading' && (
+              <p className="mt-4 text-sm text-neutral-400">Loading maps…</p>
+            )}
+            {mapsStatus === 'ready' && availableMaps.length === 0 && (
+              <p className="mt-4 text-sm text-neutral-400">No maps support {selectedMode}.</p>
+            )}
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {availableMaps.map((map) => (
+                <MapCard
+                  key={map.id}
+                  map={map}
+                  selected={selectedMapId === map.id}
+                  disabled={isSearching || !isLeader}
+                  onSelect={() => selectMap(map.id)}
+                />
+              ))}
+            </div>
+          </section>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-white/10 pt-6">
-              <Button
-                className="min-w-44"
-                disabled={
-                  !isLeader ||
-                  !isConnected ||
-                  !selectedMapId ||
-                  !gameExecutablePath ||
-                  !canQueueSelectedMode ||
-                  queueStatus === 'joining'
-                }
-                onClick={() => void joinQueue()}
-              >
-                {queueStatus === 'joining'
+          <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-white/10 pt-6">
+            <Button
+              className="min-w-44"
+              disabled={
+                !isLeader ||
+                !isConnected ||
+                !selectedMapId ||
+                !gameExecutablePath ||
+                !canQueueSelectedMode ||
+                isSearching ||
+                queueStatus === 'joining'
+              }
+              onClick={() => void joinQueue()}
+            >
+              {isSearching
+                ? 'Searching…'
+                : queueStatus === 'joining'
                   ? 'Joining queue…'
                   : isLeader
                     ? 'Find match'
                     : 'Waiting for leader'}
-              </Button>
-              {!isLeader && (
-                <p className="text-sm text-neutral-500">
-                  You’ll be moved into the queue when your leader starts matchmaking.
-                </p>
-              )}
-              {isLeader && !gameExecutablePath && (
-                <p className="text-sm text-amber-300">
-                  Choose and save your Counter-Strike executable in Settings first.
-                </p>
-              )}
-              {isLeader && !canQueueSelectedMode && (
-                <p className="text-sm text-amber-300">
-                  3v3 matchmaking supports parties of up to 3 players. Select 5v5 or leave the
-                  party.
-                </p>
-              )}
-            </div>
-          </>
-        )}
+            </Button>
+            {!isLeader && (
+              <p className="text-sm text-neutral-500">
+                You’ll be moved into the queue when your leader starts matchmaking.
+              </p>
+            )}
+            {isLeader && !gameExecutablePath && (
+              <p className="text-sm text-amber-300">
+                Choose and save your Counter-Strike executable in Settings first.
+              </p>
+            )}
+            {isLeader && !canQueueSelectedMode && (
+              <p className="text-sm text-amber-300">
+                3v3 matchmaking supports parties of up to 3 players. Select 5v5 or leave the party.
+              </p>
+            )}
+          </div>
+        </>
 
         <div className="mt-4 min-h-5" aria-live="polite">
           {error && <p className="text-sm text-red-400">{error}</p>}

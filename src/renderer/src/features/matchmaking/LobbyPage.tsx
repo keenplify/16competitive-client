@@ -6,6 +6,7 @@ import { PartyPanel } from '../party/PartyPanel'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
 import { PartyPlayerSlot } from '../party/PartyPlayerSlot'
+import { LobbySocialSidebar } from '../party/LobbySocialSidebar'
 import { usePartyStore } from '../party/party.store'
 import type { AuthPlayer } from '../../../../shared/auth'
 import type { Party, PartyMember } from '../../../../shared/party'
@@ -44,7 +45,8 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   return (
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
       <PartyPanel playerId={player.id} />
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 md:pr-72">
+        {members.length < 4 && <LobbyNewsPanel />}
         <section className="flex flex-1 flex-wrap justify-center">
           {members.map((member, index) => (
             <PartyPlayerSlot
@@ -56,7 +58,6 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
             />
           ))}
         </section>
-        {members.length <= 3 && <LobbyNewsPanel />}
       </div>
     </div>
   )
@@ -73,6 +74,12 @@ export function LobbyPage(): JSX.Element {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const dismissCompletedMatch = useMatchmakingStore((state) => state.dismissCompletedMatch)
+  const showSocialSidebar = ![
+    'ready_check',
+    'countdown',
+    'starting_server',
+    'server_ready'
+  ].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const handleNavigate = (nextPage: LobbyPageId): void => {
     if (completedMatch) dismissCompletedMatch()
@@ -116,7 +123,7 @@ export function LobbyPage(): JSX.Element {
     if (queueStatus !== 'idle' && queueStatus !== 'joining' && queueStatus !== 'leaving') {
       navigate('play')
     }
-    if (queueStatus === 'queued') navigate('play')
+    if (queueStatus === 'queued') navigate('lobby')
   }, [navigate, queueStatus])
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
@@ -156,8 +163,13 @@ export function LobbyPage(): JSX.Element {
       />
       <PartyInvitationModal />
       <PartyChat />
+      <LobbySocialSidebar playerId={player.id} />
       {content && (
-        <div className="relative z-10 min-h-screen pt-16 backdrop-blur-md sm:pt-20">{content}</div>
+        <div
+          className={`relative z-10 min-h-screen pt-16 backdrop-blur-md sm:pt-20 ${showSocialSidebar ? 'md:pr-72' : ''}`}
+        >
+          {content}
+        </div>
       )}
     </main>
   )

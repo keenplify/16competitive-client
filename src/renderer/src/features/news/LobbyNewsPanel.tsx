@@ -1,8 +1,13 @@
 import { useEffect, type JSX } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { readableNewsContent } from './news.api'
 import { useNewsStore } from './news.store'
 
-export function LobbyNewsPanel(): JSX.Element {
+interface LobbyNewsPanelProps {
+  className?: string
+}
+
+export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element {
   const posts = useNewsStore((state) => state.posts)
   const status = useNewsStore((state) => state.status)
   const loadPreview = useNewsStore((state) => state.loadPreview)
@@ -12,8 +17,13 @@ export function LobbyNewsPanel(): JSX.Element {
   }, [loadPreview])
 
   return (
-    <aside className="absolute top-0 right-0 bottom-0 z-10 hidden w-72 overflow-y-auto border-white/10 p-4 md:block">
-      <div className="mt-3 space-y-2">
+    <aside
+      className={twMerge(
+        'hidden w-64 shrink-0 overflow-y-auto border-r border-white/10 p-4 md:block',
+        className
+      )}
+    >
+      <div className="space-y-2">
         {status === 'loading' && <p className="text-xs text-neutral-400">Loading news…</p>}
         {status === 'error' && <p className="text-xs text-neutral-500">News is unavailable.</p>}
         {status === 'ready' && posts.length === 0 && (

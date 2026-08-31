@@ -63,7 +63,10 @@ const gameSettings: GameSettingsApi = {
 }
 
 const matchHistory: MatchHistoryApi = {
-  get: () => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.get)
+  get: () => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.get),
+  getSummary: (matchId) => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getSummary, matchId),
+  getPlayerProfile: (playerId) =>
+    ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getPlayerProfile, playerId)
 }
 
 const api = { auth, gameSettings, matchmaking, matchHistory, models, party, window: windowApi }

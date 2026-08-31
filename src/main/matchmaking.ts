@@ -197,6 +197,7 @@ class MatchmakingConnection {
   private desiredMapId: string | null = null
   private manuallyDisconnected = false
   private authenticated = false
+  private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
   private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -217,6 +218,10 @@ class MatchmakingConnection {
   disconnect(): void {
     this.manuallyDisconnected = true
     this.authenticated = false
+    this.recoveryStatusPending = false
+    this.desiredMode = null
+    this.desiredMapId = null
+    this.lastConnection = null
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.socket?.close()
@@ -302,6 +307,8 @@ class MatchmakingConnection {
         return
       } else if (parsed.type === 'authenticated') {
         this.authenticated = true
+        this.recoveryStatusPending = true
+        socket.send(JSON.stringify({ type: 'get_queue_status' }))
         if (this.desiredMode && this.desiredMapId) {
           socket.send(
             JSON.stringify({
@@ -311,6 +318,8 @@ class MatchmakingConnection {
             })
           )
         }
+      } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
+        this.recoveryStatusPending = false
       } else if (parsed.type === 'queue_joined') {
         this.desiredMode = parsed.mode
         this.desiredMapId = parsed.mapId
@@ -323,24 +332,28 @@ class MatchmakingConnection {
           window?.focus()
         }
       } else if (parsed.type === 'match_connect') {
+        const isRecoveredConnection = this.recoveryStatusPending
+        this.recoveryStatusPending = false
         this.lastConnection = parsed
         console.info('[Matchmaking] match_connect received', {
           matchId: parsed.matchId,
           host: parsed.host,
           port: parsed.port
         })
-        void launchCounterStrikeForMatch({
-          ...parsed,
-          onExit: ({ code, signal }) =>
-            this.notify({ type: 'game_process_exited', matchId: parsed.matchId, code, signal })
-        }).catch((error: unknown) => {
-          console.error('[GameLaunch] failed', error)
-          this.notify({
-            type: 'error',
-            code: 'GAME_LAUNCH_FAILED',
-            message: error instanceof Error ? error.message : 'Could not launch Counter-Strike.'
+        if (!isRecoveredConnection) {
+          void launchCounterStrikeForMatch({
+            ...parsed,
+            onExit: ({ code, signal }) =>
+              this.notify({ type: 'game_process_exited', matchId: parsed.matchId, code, signal })
+          }).catch((error: unknown) => {
+            console.error('[GameLaunch] failed', error)
+            this.notify({
+              type: 'error',
+              code: 'GAME_LAUNCH_FAILED',
+              message: error instanceof Error ? error.message : 'Could not launch Counter-Strike.'
+            })
           })
-        })
+        }
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
         const timer = setTimeout(() => {
           this.matchEndTimers.delete(parsed.matchId)
@@ -352,6 +365,9 @@ class MatchmakingConnection {
           window.focus()
         }, MATCH_RESULT_GRACE_PERIOD_MS)
         this.matchEndTimers.set(parsed.matchId, timer)
+      } else if (parsed.type === 'error' && this.recoveryStatusPending) {
+        this.recoveryStatusPending = false
+        if (parsed.code === 'NOT_QUEUED') return
       }
 
       this.notify(parsed)
@@ -361,6 +377,7 @@ class MatchmakingConnection {
       if (this.socket !== socket) return
       this.socket = null
       this.authenticated = false
+      this.recoveryStatusPending = false
       this.notify({ type: 'connection_state', state: 'disconnected' })
 
       if (!this.manuallyDisconnected && this.renderer && !this.renderer.isDestroyed()) {
