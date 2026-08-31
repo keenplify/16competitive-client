@@ -9,6 +9,12 @@ import { useMatchmakingStore } from './matchmaking.store'
 import dust2Preview from '../../assets/dust2.jpg'
 import { TeamRoster } from './TeamRoster'
 
+function formatQueueDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
 const connectionLabels = {
   disconnected: 'Offline',
   connecting: 'Connecting',
@@ -69,6 +75,7 @@ export function PlayPage(): JSX.Element {
   const queuedPlayers = useMatchmakingStore((state) => state.queuedPlayers)
   const playersRequired = useMatchmakingStore((state) => state.playersRequired)
   const position = useMatchmakingStore((state) => state.position)
+  const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
   const match = useMatchmakingStore((state) => state.match)
   const readyDeadline = useMatchmakingStore((state) => state.readyDeadline)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
@@ -88,6 +95,7 @@ export function PlayPage(): JSX.Element {
   const gameExecutablePath = useGameSettingsStore((state) => state.savedPath)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
+  const [queueElapsedSeconds, setQueueElapsedSeconds] = useState(0)
 
   useEffect(() => {
     void loadMaps()
@@ -108,6 +116,20 @@ export function PlayPage(): JSX.Element {
     const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
   }, [queueStatus, readyDeadline])
+
+  useEffect(() => {
+    if ((queueStatus !== 'queued' && queueStatus !== 'leaving') || !queueStartedAt) {
+      setQueueElapsedSeconds(0)
+      return
+    }
+
+    const update = (): void => {
+      setQueueElapsedSeconds(Math.max(0, Math.floor((Date.now() - queueStartedAt) / 1_000)))
+    }
+    update()
+    const timer = window.setInterval(update, 1_000)
+    return () => window.clearInterval(timer)
+  }, [queueStartedAt, queueStatus])
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
@@ -280,6 +302,12 @@ export function PlayPage(): JSX.Element {
               />
             </div>
             <p className="mt-3 text-sm text-neutral-500">Queue position: {position}</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Time in queue:{' '}
+              <span className="font-mono tabular-nums text-neutral-300">
+                {formatQueueDuration(queueElapsedSeconds)}
+              </span>
+            </p>
             <Button
               className="mt-8 w-full sm:w-auto"
               variant="ghost"

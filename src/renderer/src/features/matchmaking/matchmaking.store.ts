@@ -41,6 +41,7 @@ interface MatchmakingState {
   queuedPlayers: number
   playersRequired: number
   position: number
+  queueStartedAt: number | null
   match: FoundMatch | null
   completedMatch: CompletedMatch | null
   readyDeadline: string | null
@@ -84,23 +85,25 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ connectionStatus: 'ready', error: null })
         break
       case 'queue_joined':
-        set({
+        set((state) => ({
           queueStatus: 'queued',
           selectedMode: event.mode,
           selectedMapId: event.mapId,
+          queueStartedAt: state.queueStartedAt ?? Date.now(),
           error: null
-        })
+        }))
         break
       case 'queue_status':
-        set({
+        set((state) => ({
           queueStatus: 'queued',
           selectedMode: event.mode,
           selectedMapId: event.mapId,
           queuedPlayers: event.queuedPlayers,
           playersRequired: event.playersRequired,
           position: event.position,
+          queueStartedAt: state.queueStartedAt ?? Date.now(),
           error: null
-        })
+        }))
         break
       case 'queue_left':
         set({
@@ -108,6 +111,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           queuedPlayers: 0,
           playersRequired: 0,
           position: 0,
+          queueStartedAt: null,
           error: null
         })
         break
@@ -161,6 +165,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'match_finished':
         set((state) => ({
           queueStatus: 'idle',
+          queueStartedAt: null,
           completedMatch: state.match
             ? {
                 ...state.match,
@@ -178,6 +183,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'match_cancelled':
         set({
           queueStatus: 'idle',
+          queueStartedAt: null,
           match: null,
           readyDeadline: null,
           acceptedPlayerIds: [],
@@ -190,7 +196,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'error':
         set({
-          ...(event.code === 'NOT_QUEUED' ? { queueStatus: 'idle' as const } : {}),
+          ...(event.code === 'NOT_QUEUED'
+            ? { queueStatus: 'idle' as const, queueStartedAt: null }
+            : {}),
           error: event.message
         })
         break
@@ -213,6 +221,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     queuedPlayers: 0,
     playersRequired: 0,
     position: 0,
+    queueStartedAt: null,
     match: null,
     completedMatch: null,
     readyDeadline: null,
@@ -305,7 +314,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       try {
         await window.api.matchmaking.joinQueue(selectedMode, selectedMapId)
       } catch (error) {
-        set({ queueStatus: 'idle', error: readableError(error) })
+        set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })
       }
     },
 
@@ -353,6 +362,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         queuedPlayers: 0,
         playersRequired: 0,
         position: 0,
+        queueStartedAt: null,
         match: null,
         completedMatch: null,
         readyDeadline: null,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, type FormEvent, type JSX } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from './auth.store'
@@ -45,8 +46,12 @@ export function AuthPage(): JSX.Element {
 
   if (status === 'restoring') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-sm text-neutral-400">
-        Restoring your session…
+      <main
+        className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-neutral-950"
+        aria-label="Restoring your session"
+        role="status"
+      >
+        <LoaderCircle className="size-8 animate-spin text-amber-400" aria-hidden="true" />
       </main>
     )
   }

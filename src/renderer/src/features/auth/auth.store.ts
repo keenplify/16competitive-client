@@ -36,12 +36,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   username: '',
   email: '',
   password: '',
-  status: 'idle',
+  status: 'restoring',
   error: null,
   session: null,
 
   restore: async () => {
-    if (get().status !== 'idle') return
+    if (get().status !== 'idle' && get().status !== 'restoring') return
     set({ status: 'restoring', error: null })
     try {
       const session = await window.api.auth.restore()
