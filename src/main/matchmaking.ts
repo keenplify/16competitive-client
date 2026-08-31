@@ -29,6 +29,17 @@ const isPlayer = (value: unknown): value is QueuedPlayer => {
   )
 }
 
+const isTeams = (value: unknown): value is { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] } => {
+  if (typeof value !== 'object' || value === null) return false
+  const teams = value as Record<string, unknown>
+  return (
+    Array.isArray(teams.teamA) &&
+    teams.teamA.every(isPlayer) &&
+    Array.isArray(teams.teamB) &&
+    teams.teamB.every(isPlayer)
+  )
+}
+
 const isMatchPlayerStats = (value: unknown): boolean => {
   if (typeof value !== 'object' || value === null) return false
   const player = value as Record<string, unknown>
@@ -168,6 +179,9 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'match_finished':
       return (
         typeof message.matchId === 'string' &&
+        isMode(message.mode) &&
+        isMapId(message.mapId) &&
+        isTeams(message.teams) &&
         (message.winner === 1 || message.winner === 2) &&
         typeof message.teamAScore === 'number' &&
         typeof message.teamBScore === 'number' &&

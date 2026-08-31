@@ -163,22 +163,23 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ gameExited: true })
         break
       case 'match_finished':
-        set((state) => ({
+        set({
           queueStatus: 'idle',
           queueStartedAt: null,
-          completedMatch: state.match
-            ? {
-                ...state.match,
-                winner: event.winner,
-                teamAScore: event.teamAScore,
-                teamBScore: event.teamBScore,
-                players: event.players
-              }
-            : null,
+          completedMatch: {
+            matchId: event.matchId,
+            mode: event.mode,
+            mapId: event.mapId,
+            teams: event.teams,
+            winner: event.winner,
+            teamAScore: event.teamAScore,
+            teamBScore: event.teamBScore,
+            players: event.players
+          },
           match: null,
           connectionDetails: null,
           error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
-        }))
+        })
         break
       case 'match_cancelled':
         set({

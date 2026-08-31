@@ -118,6 +118,9 @@ export type MatchmakingServerMessage =
   | {
       type: 'match_finished'
       matchId: string
+      mode: MatchmakingMode
+      mapId: string
+      teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
       winner: 1 | 2
       teamAScore: number
       teamBScore: number
