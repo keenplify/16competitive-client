@@ -23,7 +23,13 @@ const auth: AuthApi = {
 
 const matchmaking: MatchmakingApi = {
   connect: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.connect),
-  joinQueue: (mode, mapId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinQueue, mode, mapId),
+  getNodes: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getNodes),
+  selectNode: (nodeId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.selectNode, nodeId),
+  getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
+  setAllowRegionExpansion: (value) =>
+    ipcRenderer.invoke(MATCHMAKING_CHANNELS.setAllowRegionExpansion, value),
+  joinQueue: (mode, mapId, allowRegionExpansion) =>
+    ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinQueue, mode, mapId, allowRegionExpansion),
   leaveQueue: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveQueue),
   getQueueStatus: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getQueueStatus),
   getMaps: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getMaps),

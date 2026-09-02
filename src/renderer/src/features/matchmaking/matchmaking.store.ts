@@ -2,12 +2,14 @@ import {
   MatchmakingEvent,
   MatchmakingMap,
   MatchmakingMode,
+  MatchmakingNode,
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
 import { usePartyStore } from '../party/party.store'
 
-type ConnectionStatus = 'disconnected' | 'connecting' | 'reconnecting' | 'authenticating' | 'ready'
+type ConnectionStatus =
+  'disconnected' | 'connecting' | 'reconnecting' | 'handoff' | 'authenticating' | 'ready'
 type QueueStatus =
   | 'idle'
   | 'joining'
@@ -22,9 +24,11 @@ interface FoundMatch {
   matchId: string
   mode: MatchmakingMode
   mapId: string
+  region: string
+  hostApiUrl: string
   teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
 }
-export interface CompletedMatch extends FoundMatch {
+export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'> {
   winner: 1 | 2
   teamAScore: number
   teamBScore: number
@@ -38,6 +42,12 @@ interface MatchmakingState {
   maps: MatchmakingMap[]
   mapsStatus: 'idle' | 'loading' | 'ready' | 'error'
   selectedMapId: string | null
+  nodes: MatchmakingNode[]
+  selectedNodeId: string | null
+  activeRegion: string | null
+  activeApiUrl: string | null
+  websocketUrl: string | null
+  allowRegionExpansion: boolean
   queuedPlayers: number
   playersRequired: number
   position: number
@@ -54,6 +64,9 @@ interface MatchmakingState {
   error: string | null
   connect: () => Promise<void>
   loadMaps: () => Promise<void>
+  loadRegions: () => Promise<void>
+  selectNode: (nodeId: string | null) => Promise<void>
+  setAllowRegionExpansion: (value: boolean) => Promise<void>
   selectMode: (mode: MatchmakingMode) => void
   selectMap: (mapId: string) => void
   joinQueue: () => Promise<void>
@@ -78,6 +91,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'connection_state':
         set({ connectionStatus: event.state })
         break
+      case 'connection_endpoint':
+        set({ activeApiUrl: event.apiUrl, websocketUrl: event.websocketUrl })
+        break
       case 'connected':
         set({ connectionStatus: 'authenticating', error: null })
         break
@@ -89,6 +105,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           queueStatus: 'queued',
           selectedMode: event.mode,
           selectedMapId: event.mapId,
+          activeRegion: event.region,
+          allowRegionExpansion: event.allowRegionExpansion,
           queueStartedAt: state.queueStartedAt ?? Date.now(),
           error: null
         }))
@@ -101,6 +119,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           queuedPlayers: event.queuedPlayers,
           playersRequired: event.playersRequired,
           position: event.position,
+          activeRegion: event.region,
+          allowRegionExpansion: event.allowRegionExpansion,
           queueStartedAt: state.queueStartedAt ?? Date.now(),
           error: null
         }))
@@ -121,8 +141,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             matchId: event.matchId,
             mode: event.mode,
             mapId: event.mapId,
+            region: event.region,
+            hostApiUrl: event.hostApiUrl,
             teams: event.teams
           },
+          activeRegion: event.region,
           error: null
         })
         break
@@ -219,6 +242,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     maps: [],
     mapsStatus: 'idle',
     selectedMapId: null,
+    nodes: [],
+    selectedNodeId: null,
+    activeRegion: null,
+    activeApiUrl: null,
+    websocketUrl: null,
+    allowRegionExpansion: true,
     queuedPlayers: 0,
     playersRequired: 0,
     position: 0,
@@ -267,6 +296,41 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       }
     },
 
+    loadRegions: async () => {
+      try {
+        const [nodes, preferences] = await Promise.all([
+          window.api.matchmaking.getNodes(),
+          window.api.matchmaking.getPreferences()
+        ])
+        set({
+          nodes,
+          selectedNodeId: preferences.selectedNodeId,
+          allowRegionExpansion: preferences.allowRegionExpansion
+        })
+      } catch (error) {
+        set({ error: readableError(error) })
+      }
+    },
+
+    selectNode: async (selectedNodeId) => {
+      try {
+        const preferences = await window.api.matchmaking.selectNode(selectedNodeId)
+        set({ selectedNodeId: preferences.selectedNodeId })
+      } catch (error) {
+        set({ error: readableError(error) })
+      }
+    },
+
+    setAllowRegionExpansion: async (allowRegionExpansion) => {
+      try {
+        const preferences =
+          await window.api.matchmaking.setAllowRegionExpansion(allowRegionExpansion)
+        set({ allowRegionExpansion: preferences.allowRegionExpansion })
+      } catch (error) {
+        set({ error: readableError(error) })
+      }
+    },
+
     selectMode: (selectedMode) => {
       const { maps, selectedMapId } = get()
       const selectedMapIsAvailable = maps.some(
@@ -292,7 +356,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     joinQueue: async () => {
-      const { connectionStatus, selectedMapId, selectedMode } = get()
+      const { connectionStatus, selectedMapId, selectedMode, allowRegionExpansion } = get()
       if (connectionStatus !== 'ready') return
       const partySize = usePartyStore.getState().party?.members.length ?? 1
       if (selectedMode === '3v3' && partySize > 3) {
@@ -313,7 +377,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
       set({ queueStatus: 'joining', error: null })
       try {
-        await window.api.matchmaking.joinQueue(selectedMode, selectedMapId)
+        await window.api.matchmaking.joinQueue(selectedMode, selectedMapId, allowRegionExpansion)
       } catch (error) {
         set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })
       }
@@ -360,6 +424,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         maps: [],
         mapsStatus: 'idle',
         selectedMapId: null,
+        nodes: [],
+        selectedNodeId: null,
+        activeRegion: null,
+        activeApiUrl: null,
+        websocketUrl: null,
+        allowRegionExpansion: true,
         queuedPlayers: 0,
         playersRequired: 0,
         position: 0,

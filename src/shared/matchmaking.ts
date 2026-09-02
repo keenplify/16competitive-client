@@ -1,5 +1,9 @@
 export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
+  getNodes: 'matchmaking:get-nodes',
+  selectNode: 'matchmaking:select-node',
+  getPreferences: 'matchmaking:get-preferences',
+  setAllowRegionExpansion: 'matchmaking:set-allow-region-expansion',
   joinQueue: 'matchmaking:join-queue',
   leaveQueue: 'matchmaking:leave-queue',
   getQueueStatus: 'matchmaking:get-queue-status',
@@ -23,6 +27,21 @@ export interface MatchmakingMap {
   game: string
   previewUrl: string | null
   supportedModes: MatchmakingMode[]
+}
+
+export interface MatchmakingNode {
+  id: string
+  region: string
+  publicApiUrl: string
+  capacity: number
+  activeConnections: number
+  activeMatches: number
+  available: boolean
+}
+
+export interface MatchmakingPreferences {
+  selectedNodeId: string | null
+  allowRegionExpansion: boolean
 }
 
 export type PartyChatNotificationCode =
@@ -64,7 +83,13 @@ export type PartyChatEvent =
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
   | { type: 'authenticated'; player: QueuedPlayer }
-  | { type: 'queue_joined'; mode: MatchmakingMode; mapId: string }
+  | {
+      type: 'queue_joined'
+      mode: MatchmakingMode
+      mapId: string
+      region: string
+      allowRegionExpansion: boolean
+    }
   | {
       type: 'queue_status'
       mode: MatchmakingMode
@@ -72,6 +97,8 @@ export type MatchmakingServerMessage =
       queuedPlayers: number
       playersRequired: number
       position: number
+      region: string
+      allowRegionExpansion: boolean
     }
   | { type: 'queue_left'; mode: MatchmakingMode; mapId: string }
   | { type: 'party_invitation_received' }
@@ -84,6 +111,8 @@ export type MatchmakingServerMessage =
       matchId: string
       mode: MatchmakingMode
       mapId: string
+      region: string
+      hostApiUrl: string
       teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
     }
   | {
@@ -132,14 +161,19 @@ export type MatchmakingServerMessage =
 
 export type MatchmakingEvent =
   | MatchmakingServerMessage
+  | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }
   | {
       type: 'connection_state'
-      state: 'connecting' | 'reconnecting' | 'disconnected'
+      state: 'connecting' | 'reconnecting' | 'disconnected' | 'handoff'
     }
 
 export interface MatchmakingApi {
   connect(): Promise<void>
-  joinQueue(mode: MatchmakingMode, mapId: string): Promise<void>
+  getNodes(): Promise<MatchmakingNode[]>
+  selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
+  getPreferences(): Promise<MatchmakingPreferences>
+  setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>
+  joinQueue(mode: MatchmakingMode, mapId: string, allowRegionExpansion: boolean): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMap[]>

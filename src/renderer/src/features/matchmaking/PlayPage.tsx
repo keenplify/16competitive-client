@@ -13,6 +13,7 @@ const connectionLabels = {
   disconnected: 'Offline',
   connecting: 'Connecting',
   reconnecting: 'Reconnecting',
+  handoff: 'Connecting to match region',
   authenticating: 'Authenticating',
   ready: 'Connected'
 } as const
@@ -66,6 +67,9 @@ export function PlayPage(): JSX.Element {
   const maps = useMatchmakingStore((state) => state.maps)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapId = useMatchmakingStore((state) => state.selectedMapId)
+  const nodes = useMatchmakingStore((state) => state.nodes)
+  const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
+  const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
   const match = useMatchmakingStore((state) => state.match)
   const readyDeadline = useMatchmakingStore((state) => state.readyDeadline)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
@@ -75,6 +79,9 @@ export function PlayPage(): JSX.Element {
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
   const error = useMatchmakingStore((state) => state.error)
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
+  const loadRegions = useMatchmakingStore((state) => state.loadRegions)
+  const selectNode = useMatchmakingStore((state) => state.selectNode)
+  const setAllowRegionExpansion = useMatchmakingStore((state) => state.setAllowRegionExpansion)
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
@@ -87,6 +94,10 @@ export function PlayPage(): JSX.Element {
   useEffect(() => {
     void loadMaps()
   }, [loadMaps])
+
+  useEffect(() => {
+    void loadRegions()
+  }, [loadRegions])
 
   useEffect(() => {
     void loadGameSettings()
@@ -280,6 +291,40 @@ export function PlayPage(): JSX.Element {
                 </Button>
               ))}
             </div>
+          </section>
+
+          <section className="mt-8 border-t border-white/10 pt-6">
+            <label
+              className="block text-xs font-semibold tracking-wide text-neutral-500 uppercase"
+              htmlFor="matchmaking-region"
+            >
+              Preferred region
+            </label>
+            <select
+              id="matchmaking-region"
+              className="mt-3 w-full max-w-sm border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-60"
+              value={selectedNodeId ?? ''}
+              disabled={isSearching}
+              onChange={(event) => void selectNode(event.target.value || null)}
+            >
+              <option value="">Automatic (healthy region)</option>
+              {nodes.map((node) => (
+                <option key={node.id} value={node.id} disabled={!node.available}>
+                  {node.region.toUpperCase()} · {node.id}
+                  {node.available ? '' : ' (unavailable)'}
+                </option>
+              ))}
+            </select>
+            <label className="mt-4 flex max-w-xl cursor-pointer items-center gap-3 text-sm text-neutral-300">
+              <input
+                type="checkbox"
+                className="size-4 accent-sky-400"
+                checked={allowRegionExpansion}
+                disabled={isSearching}
+                onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
+              />
+              Expand search to other regions after 90 seconds
+            </label>
           </section>
 
           <section className="mt-8">

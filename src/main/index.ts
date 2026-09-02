@@ -5,6 +5,11 @@ import icon from '../../resources/icon.png?asset'
 import { authenticate, clearSessionToken, restoreSession } from './auth'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
+import {
+  getMatchmakingNodes,
+  getMatchmakingPreferences,
+  saveMatchmakingPreferences
+} from './matchmaking-regions'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import { WINDOW_CHANNELS } from '../shared/window'
 import { MODEL_CHANNELS } from '../shared/models'
@@ -90,8 +95,22 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
     matchmakingConnection.connect(event.sender)
   )
-  ipcMain.handle(MATCHMAKING_CHANNELS.joinQueue, (_, mode: unknown, mapId: unknown) =>
-    matchmakingConnection.joinQueue(mode, mapId)
+  ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
+  ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
+  ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, (_, nodeId: unknown) => {
+    if (nodeId !== null && (typeof nodeId !== 'string' || nodeId.length > 80)) {
+      throw new Error('Invalid matchmaking region')
+    }
+    return saveMatchmakingPreferences({ selectedNodeId: nodeId })
+  })
+  ipcMain.handle(MATCHMAKING_CHANNELS.setAllowRegionExpansion, (_, value: unknown) => {
+    if (typeof value !== 'boolean') throw new Error('Invalid regional search preference')
+    return saveMatchmakingPreferences({ allowRegionExpansion: value })
+  })
+  ipcMain.handle(
+    MATCHMAKING_CHANNELS.joinQueue,
+    (_, mode: unknown, mapId: unknown, allowRegionExpansion: unknown) =>
+      matchmakingConnection.joinQueue(mode, mapId, allowRegionExpansion)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())

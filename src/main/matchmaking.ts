@@ -9,15 +9,32 @@ import type {
 } from '../shared/matchmaking'
 import { getSessionToken } from './auth'
 import { MATCHMAKING_WS_URL } from './config'
+import {
+  getMatchmakingNodes,
+  getMatchmakingPreferences,
+  toMatchmakingWsUrl
+} from './matchmaking-regions'
 import { closeCounterStrikeForMatch, launchCounterStrikeForMatch } from './game/cs16-launcher'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
-const RECONNECT_DELAY_MS = 2_000
+const RECONNECT_BASE_DELAY_MS = 1_000
+const RECONNECT_MAX_DELAY_MS = 30_000
+const PING_INTERVAL_MS = 20_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '3v3' || value === '5v5'
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
+
+const isHttpUrl = (value: unknown): value is string => {
+  if (typeof value !== 'string') return false
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password
+  } catch {
+    return false
+  }
+}
 
 const isPlayer = (value: unknown): value is QueuedPlayer => {
   if (typeof value !== 'object' || value === null) return false
@@ -81,6 +98,12 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'authenticated':
       return isPlayer(message.player)
     case 'queue_joined':
+      return (
+        isMode(message.mode) &&
+        isMapId(message.mapId) &&
+        typeof message.region === 'string' &&
+        typeof message.allowRegionExpansion === 'boolean'
+      )
     case 'queue_left':
       return isMode(message.mode) && isMapId(message.mapId)
     case 'queue_status':
@@ -89,7 +112,9 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         isMapId(message.mapId) &&
         typeof message.queuedPlayers === 'number' &&
         typeof message.playersRequired === 'number' &&
-        typeof message.position === 'number'
+        typeof message.position === 'number' &&
+        typeof message.region === 'string' &&
+        typeof message.allowRegionExpansion === 'boolean'
       )
     case 'party_invitation_received':
     case 'party_updated':
@@ -124,6 +149,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         typeof message.matchId !== 'string' ||
         !isMode(message.mode) ||
         !isMapId(message.mapId) ||
+        typeof message.region !== 'string' ||
+        !isHttpUrl(message.hostApiUrl) ||
         typeof message.teams !== 'object' ||
         message.teams === null
       ) {
@@ -207,8 +234,14 @@ class MatchmakingConnection {
   private socket: WebSocket | null = null
   private renderer: WebContents | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private pingTimer: ReturnType<typeof setInterval> | null = null
   private desiredMode: MatchmakingMode | null = null
   private desiredMapId: string | null = null
+  private desiredAllowRegionExpansion = true
+  private activeApiUrl: string | null = null
+  private hostApiUrl: string | null = null
+  private reconnectAttempt = 0
+  private seenMatchEvents = new Set<string>()
   private manuallyDisconnected = false
   private authenticated = false
   private recoveryStatusPending = false
@@ -236,19 +269,27 @@ class MatchmakingConnection {
     this.desiredMode = null
     this.desiredMapId = null
     this.lastConnection = null
+    this.activeApiUrl = null
+    this.hostApiUrl = null
+    this.reconnectAttempt = 0
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
+    if (this.pingTimer) clearInterval(this.pingTimer)
+    this.pingTimer = null
     this.socket?.close()
     this.socket = null
     this.renderer = null
   }
 
-  joinQueue(mode: unknown, mapId: unknown): void {
+  joinQueue(mode: unknown, mapId: unknown, allowRegionExpansion: unknown): void {
     if (!isMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapId(mapId)) throw new Error('A valid matchmaking map is required')
+    if (typeof allowRegionExpansion !== 'boolean')
+      throw new Error('Invalid regional search preference')
     this.desiredMode = mode
     this.desiredMapId = mapId
-    this.send({ type: 'join_queue', mode, mapId })
+    this.desiredAllowRegionExpansion = allowRegionExpansion
+    this.send({ type: 'join_queue', mode, mapId, allowRegionExpansion })
   }
 
   leaveQueue(): void {
@@ -286,21 +327,35 @@ class MatchmakingConnection {
     })
   }
 
-  private openSocket(reconnecting: boolean): void {
+  private openSocket(reconnecting: boolean, apiUrl?: string, handoff = false): void {
     const token = getSessionToken()
     if (!token) throw new Error('Sign in before connecting to matchmaking')
-
     this.notify({
       type: 'connection_state',
-      state: reconnecting ? 'reconnecting' : 'connecting'
+      state: handoff ? 'handoff' : reconnecting ? 'reconnecting' : 'connecting'
     })
+    void this.createSocket(token, apiUrl, handoff)
+  }
 
-    const socket = new WebSocket(MATCHMAKING_WS_URL)
-    this.socket = socket
+  private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
+    let targetApiUrl = apiUrl ?? this.hostApiUrl
+    if (!targetApiUrl) {
+      try {
+        const [nodes, preferences] = await Promise.all([
+          getMatchmakingNodes(),
+          getMatchmakingPreferences()
+        ])
+        targetApiUrl = await this.selectApiUrl(nodes, preferences.selectedNodeId)
+      } catch {
+        // A bootstrap node may be the only node during development or an outage.
+      }
+    }
+    const websocketUrl = targetApiUrl ? toMatchmakingWsUrl(targetApiUrl) : MATCHMAKING_WS_URL
+    const socket = new WebSocket(websocketUrl)
+    if (!handoff) this.socket = socket
 
     socket.addEventListener('message', (event) => {
-      if (this.socket !== socket || typeof event.data !== 'string') return
-
+      if ((!handoff && this.socket !== socket) || typeof event.data !== 'string') return
       let parsed: unknown
       try {
         parsed = JSON.parse(event.data)
@@ -308,67 +363,91 @@ class MatchmakingConnection {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
-
       if (!isServerMessage(parsed)) {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
-
+      if (
+        parsed.type === 'match_found' &&
+        this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)
+      ) {
+        return
+      }
       if (parsed.type === 'connected') {
         socket.send(JSON.stringify({ type: 'authenticate', token }))
-      } else if (parsed.type === 'party_presence_ping') {
+        return
+      }
+      if (parsed.type === 'party_presence_ping') {
         socket.send(JSON.stringify({ type: 'party_presence_pong', nonce: parsed.nonce }))
         return
-      } else if (parsed.type === 'authenticated') {
-        this.authenticated = true
-        this.recoveryStatusPending = true
-        socket.send(JSON.stringify({ type: 'get_queue_status' }))
-        if (this.desiredMode && this.desiredMapId) {
-          socket.send(
-            JSON.stringify({
-              type: 'join_queue',
-              mode: this.desiredMode,
-              mapId: this.desiredMapId
-            })
-          )
+      }
+      if (parsed.type === 'authenticated') {
+        if (handoff) {
+          const oldSocket = this.socket
+          this.socket = socket
+          this.hostApiUrl = targetApiUrl ?? null
+          this.activeApiUrl = targetApiUrl ?? null
+          this.authenticated = true
+          oldSocket?.close()
+        } else {
+          this.authenticated = true
+          this.activeApiUrl = targetApiUrl ?? null
+          this.reconnectAttempt = 0
+          this.recoveryStatusPending = true
+          socket.send(JSON.stringify({ type: 'get_queue_status' }))
+          if (this.desiredMode && this.desiredMapId) {
+            socket.send(
+              JSON.stringify({
+                type: 'join_queue',
+                mode: this.desiredMode,
+                mapId: this.desiredMapId,
+                allowRegionExpansion: this.desiredAllowRegionExpansion
+              })
+            )
+          }
         }
+        this.startPing()
+        this.notify({ type: 'connection_endpoint', apiUrl: this.activeApiUrl, websocketUrl })
       } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
         this.recoveryStatusPending = false
       } else if (parsed.type === 'queue_joined') {
         this.desiredMode = parsed.mode
         this.desiredMapId = parsed.mapId
-      } else if (parsed.type === 'queue_left' || parsed.type === 'match_found') {
+        this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
+      } else if (parsed.type === 'queue_left') {
         this.desiredMode = null
         this.desiredMapId = null
-        if (parsed.type === 'match_found' && this.renderer) {
+      } else if (parsed.type === 'match_found') {
+        this.desiredMode = null
+        this.desiredMapId = null
+        if (this.renderer) {
           const window = BrowserWindow.fromWebContents(this.renderer)
           window?.show()
           window?.focus()
+        }
+        if (parsed.hostApiUrl !== this.activeApiUrl) {
+          this.authenticated = false
+          this.hostApiUrl = parsed.hostApiUrl
+          this.openSocket(false, parsed.hostApiUrl, true)
         }
       } else if (parsed.type === 'match_connect') {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
-        console.info('[Matchmaking] match_connect received', {
-          matchId: parsed.matchId,
-          host: parsed.host,
-          port: parsed.port
-        })
-        if (!isRecoveredConnection) {
+        if (!isRecoveredConnection)
           void launchCounterStrikeForMatch({
             ...parsed,
             onExit: ({ code, signal }) =>
               this.notify({ type: 'game_process_exited', matchId: parsed.matchId, code, signal })
-          }).catch((error: unknown) => {
-            console.error('[GameLaunch] failed', error)
+          }).catch((error: unknown) =>
             this.notify({
               type: 'error',
               code: 'GAME_LAUNCH_FAILED',
               message: error instanceof Error ? error.message : 'Could not launch Counter-Strike.'
             })
-          })
-        }
+          )
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
+        this.hostApiUrl = null
         const timer = setTimeout(() => {
           this.matchEndTimers.delete(parsed.matchId)
           closeCounterStrikeForMatch(parsed.matchId)
@@ -383,24 +462,89 @@ class MatchmakingConnection {
         this.recoveryStatusPending = false
         if (parsed.code === 'NOT_QUEUED') return
       }
-
+      const key = 'matchId' in parsed ? `${parsed.type}:${parsed.matchId}` : null
+      if (key && this.seenMatchEvents.has(key)) return
+      if (key) this.seenMatchEvents.add(key)
       this.notify(parsed)
     })
-
     socket.addEventListener('close', () => {
+      if (handoff && this.socket !== socket) {
+        if (!this.manuallyDisconnected) {
+          this.notify({
+            type: 'error',
+            code: 'HOST_HANDOFF_FAILED',
+            message: 'Could not connect to the match region. Retrying…'
+          })
+          this.socket?.close()
+        }
+        return
+      }
       if (this.socket !== socket) return
       this.socket = null
       this.authenticated = false
       this.recoveryStatusPending = false
+      this.activeApiUrl = null
+      if (this.pingTimer) clearInterval(this.pingTimer)
+      this.pingTimer = null
       this.notify({ type: 'connection_state', state: 'disconnected' })
-
-      if (!this.manuallyDisconnected && this.renderer && !this.renderer.isDestroyed()) {
-        this.reconnectTimer = setTimeout(() => {
-          this.reconnectTimer = null
-          this.openSocket(true)
-        }, RECONNECT_DELAY_MS)
-      }
+      this.scheduleReconnect()
     })
+  }
+
+  private async selectApiUrl(
+    nodes: Awaited<ReturnType<typeof getMatchmakingNodes>>,
+    selectedNodeId: string | null
+  ): Promise<string | null> {
+    const selected = nodes.find((node) => node.id === selectedNodeId && node.available)
+    if (selected) return selected.publicApiUrl
+    const available = nodes.filter((node) => node.available)
+    if (available.length === 0) return null
+    const measurements = await Promise.all(
+      available.map(async (node) => {
+        const startedAt = performance.now()
+        try {
+          await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
+          return { node, latency: performance.now() - startedAt }
+        } catch {
+          return null
+        }
+      })
+    )
+    return (
+      measurements
+        .filter(
+          (measurement): measurement is { node: (typeof available)[number]; latency: number } =>
+            Boolean(measurement)
+        )
+        .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
+      available[0].publicApiUrl
+    )
+  }
+
+  private startPing(): void {
+    if (this.pingTimer) clearInterval(this.pingTimer)
+    this.pingTimer = setInterval(() => {
+      if (this.socket?.readyState === WebSocket.OPEN && this.authenticated)
+        this.socket.send(JSON.stringify({ type: 'ping' }))
+    }, PING_INTERVAL_MS)
+  }
+
+  private scheduleReconnect(): void {
+    if (
+      this.manuallyDisconnected ||
+      this.reconnectTimer ||
+      !this.renderer ||
+      this.renderer.isDestroyed()
+    )
+      return
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt++,
+      RECONNECT_MAX_DELAY_MS
+    )
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.openSocket(true, this.hostApiUrl ?? undefined)
+    }, delay)
   }
 
   private send(message: object): void {

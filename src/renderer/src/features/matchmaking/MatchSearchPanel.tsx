@@ -19,6 +19,11 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const selectedMapId = useMatchmakingStore((state) => state.selectedMapId)
+  const activeRegion = useMatchmakingStore((state) => state.activeRegion)
+  const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
+  const queuedPlayers = useMatchmakingStore((state) => state.queuedPlayers)
+  const playersRequired = useMatchmakingStore((state) => state.playersRequired)
+  const position = useMatchmakingStore((state) => state.position)
   const maps = useMatchmakingStore((state) => state.maps)
   const leaveQueue = useMatchmakingStore((state) => state.leaveQueue)
   const [now, setNow] = useState(() => Date.now())
@@ -37,6 +42,12 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
     ? Math.max(0, Math.floor((now - queueStartedAt) / 1_000))
     : 0
   const selectedMap = maps.find((map) => map.id === selectedMapId)
+  const searchScope =
+    elapsedSeconds >= 180
+      ? 'Waiting for players or bot autofill'
+      : elapsedSeconds >= 90 && allowRegionExpansion
+        ? 'Searching other regions'
+        : `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
 
   return (
     <aside
@@ -76,6 +87,12 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
             {formatQueueDuration(elapsedSeconds)}
           </span>
         </div>
+        <p className="mt-2 text-[11px] text-emerald-200/80">{searchScope}</p>
+        {playersRequired > 0 && (
+          <p className="mt-1 text-[11px] text-neutral-400">
+            {queuedPlayers} / {playersRequired} players queued · Position {position}
+          </p>
+        )}
         <Button
           className="mt-3 h-8 w-full rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white"
           variant="ghost"
