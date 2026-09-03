@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import type { QueuedPlayer } from '../../../../shared/matchmaking'
 import dust2Preview from '../../assets/dust2.jpg'
 import { Button } from '../../components/ui/Button'
+import { AssetPreparation, MatchAssetPreparation } from './MatchAssetPreparation'
 
 interface MatchFoundReadyCheckProps {
   acceptedPlayerIds: string[]
@@ -15,6 +16,7 @@ interface MatchFoundReadyCheckProps {
   playersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   secondsRemaining: number
+  assetPreparation: AssetPreparation
   onAccept: () => void
   onDecline: () => void
 }
@@ -43,6 +45,7 @@ export function MatchFoundReadyCheck({
   playersRequired,
   readyResponse,
   secondsRemaining,
+  assetPreparation,
   onAccept,
   onDecline
 }: MatchFoundReadyCheckProps): JSX.Element {
@@ -70,8 +73,10 @@ export function MatchFoundReadyCheck({
             </p>
           </header>
 
+          <MatchAssetPreparation className="mt-6" preparation={assetPreparation} />
+
           <div
-            className="mt-10 flex flex-wrap justify-center gap-2.5 sm:gap-3"
+            className="mt-8 flex flex-wrap justify-center gap-2.5 sm:gap-3"
             role="list"
             aria-label="Player ready status"
           >

@@ -21,6 +21,12 @@ interface MatchAssetsResponse {
   assets: MatchAsset[]
 }
 
+export interface MatchAssetPreloadProgress {
+  status: 'checking' | 'downloading' | 'ready'
+  completedFiles: number
+  totalFiles: number
+}
+
 const preloads = new Map<string, Promise<void>>()
 
 const isMatchAsset = (value: unknown): value is MatchAsset => {
@@ -163,7 +169,11 @@ const loadManifest = async (manifestUrl: URL, token: string): Promise<MatchAsset
   throw new Error('Could not load required match assets.')
 }
 
-const preload = async (matchId: string, hostApiUrl: string): Promise<void> => {
+const preload = async (
+  matchId: string,
+  hostApiUrl: string,
+  onProgress?: (progress: MatchAssetPreloadProgress) => void
+): Promise<void> => {
   if (!/^[a-z0-9-]{36}$/i.test(matchId)) throw new Error('Invalid match ID for asset download.')
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before downloading match assets.')
@@ -173,6 +183,7 @@ const preload = async (matchId: string, hostApiUrl: string): Promise<void> => {
   }
   const assetRoot = join(await getGameDirectory(), 'cstrike')
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
+  onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })
   const payload = await loadManifest(manifestUrl, token)
 
   const uniqueAssets = new Map<string, MatchAsset>()
@@ -184,18 +195,28 @@ const preload = async (matchId: string, hostApiUrl: string): Promise<void> => {
     uniqueAssets.set(asset.path, asset)
   }
   console.info('[MatchAssets] preparing match assets', { matchId, count: uniqueAssets.size })
+  let completedFiles = 0
+  const totalFiles = uniqueAssets.size
+  onProgress?.({ status: 'downloading', completedFiles, totalFiles })
   await runWithConcurrency(
-    [...uniqueAssets.values()].map(
-      (asset) => () => downloadAsset(apiUrl, matchId, asset, token, assetRoot)
-    )
+    [...uniqueAssets.values()].map((asset) => async () => {
+      await downloadAsset(apiUrl, matchId, asset, token, assetRoot)
+      completedFiles += 1
+      onProgress?.({ status: 'downloading', completedFiles, totalFiles })
+    })
   )
   console.info('[MatchAssets] match assets ready', { matchId, count: uniqueAssets.size })
+  onProgress?.({ status: 'ready', completedFiles: totalFiles, totalFiles })
 }
 
-export const startMatchAssetPreload = (matchId: string, hostApiUrl: string): Promise<void> => {
+export const startMatchAssetPreload = (
+  matchId: string,
+  hostApiUrl: string,
+  onProgress?: (progress: MatchAssetPreloadProgress) => void
+): Promise<void> => {
   const current = preloads.get(matchId)
   if (current) return current
-  const task = preload(matchId, hostApiUrl)
+  const task = preload(matchId, hostApiUrl, onProgress)
   preloads.set(matchId, task)
   return task
 }

@@ -7,6 +7,7 @@ import {
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
 import { usePartyStore } from '../party/party.store'
+import type { AssetPreparation } from './MatchAssetPreparation'
 
 type ConnectionStatus =
   'disconnected' | 'connecting' | 'reconnecting' | 'handoff' | 'authenticating' | 'ready'
@@ -59,6 +60,7 @@ interface MatchmakingState {
   readyPlayersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   countdown: number | null
+  assetPreparation: AssetPreparation
   connectionDetails: { host: string; port: number; password: string } | null
   gameExited: boolean
   error: string | null
@@ -145,9 +147,23 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             hostApiUrl: event.hostApiUrl,
             teams: event.teams
           },
+          assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
           activeRegion: event.region,
           error: null
         })
+        break
+      case 'match_assets_progress':
+        set((state) =>
+          state.match?.matchId === event.matchId
+            ? {
+                assetPreparation: {
+                  status: event.status,
+                  completedFiles: event.completedFiles,
+                  totalFiles: event.totalFiles
+                }
+              }
+            : {}
+        )
         break
       case 'match_ready_check':
         set((state) => ({
@@ -200,6 +216,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             players: event.players
           },
           match: null,
+          assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
           connectionDetails: null,
           error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
         })
@@ -214,6 +231,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           readyPlayersRequired: 0,
           readyResponse: 'pending',
           countdown: null,
+          assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
           connectionDetails: null,
           error: event.message
         })
@@ -259,6 +277,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     readyPlayersRequired: 0,
     readyResponse: 'pending',
     countdown: null,
+    assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
     connectionDetails: null,
     gameExited: false,
     error: null,
@@ -441,6 +460,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         readyPlayersRequired: 0,
         readyResponse: 'pending',
         countdown: null,
+        assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
         connectionDetails: null,
         gameExited: false,
         error: null

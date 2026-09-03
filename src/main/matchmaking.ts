@@ -435,7 +435,9 @@ class MatchmakingConnection {
           this.hostApiUrl = parsed.hostApiUrl
           this.openSocket(false, parsed.hostApiUrl, true)
         }
-        void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl).catch((error: unknown) =>
+        void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl, (progress) =>
+          this.notify({ type: 'match_assets_progress', matchId: parsed.matchId, ...progress })
+        ).catch((error: unknown) =>
           this.notify({
             type: 'error',
             code: 'MATCH_ASSET_PRELOAD_FAILED',

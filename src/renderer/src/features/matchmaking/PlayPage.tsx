@@ -8,6 +8,7 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import dust2Preview from '../../assets/dust2.jpg'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
+import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
 
 const connectionLabels = {
@@ -77,6 +78,7 @@ export function PlayPage(): JSX.Element {
   const readyPlayersRequired = useMatchmakingStore((state) => state.readyPlayersRequired)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const countdown = useMatchmakingStore((state) => state.countdown)
+  const assetPreparation = useMatchmakingStore((state) => state.assetPreparation)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
   const error = useMatchmakingStore((state) => state.error)
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
@@ -133,6 +135,7 @@ export function PlayPage(): JSX.Element {
         playersRequired={readyPlayersRequired}
         readyResponse={readyResponse}
         secondsRemaining={secondsToAccept}
+        assetPreparation={assetPreparation}
         onAccept={() => void respondReady(true)}
         onDecline={() => void respondReady(false)}
       />
@@ -164,6 +167,10 @@ export function PlayPage(): JSX.Element {
             {queueStatus === 'starting_server' && (
               <p className="mt-5 text-sm text-neutral-400">Waiting for the GoldSrc server…</p>
             )}
+            <MatchAssetPreparation
+              className="mx-auto mt-5 max-w-md"
+              preparation={assetPreparation}
+            />
             {queueStatus === 'server_ready' && connectionDetails && (
               <div className="mx-auto mt-5 max-w-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-200">
                 Server ready at {connectionDetails.host}:{connectionDetails.port}. The launcher will

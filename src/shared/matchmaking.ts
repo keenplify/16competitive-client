@@ -161,6 +161,13 @@ export type MatchmakingServerMessage =
 
 export type MatchmakingEvent =
   | MatchmakingServerMessage
+  | {
+      type: 'match_assets_progress'
+      matchId: string
+      status: 'checking' | 'downloading' | 'ready'
+      completedFiles: number
+      totalFiles: number
+    }
   | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }
   | {
       type: 'connection_state'
