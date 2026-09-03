@@ -1,0 +1,74 @@
+name: Release desktop client
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Ensure the tag matches the calendar version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          node -e "const tag=process.env.RELEASE_TAG.slice(1); const version=require('./package.json').version; if (!/^\\d{4}\\.(?:[1-9]|1[0-2])\\.(?:[1-9]|[12]\\d|3[01])$/.test(tag) || tag !== version) throw new Error('Tag must be vYYYY.M.D and match package.json (' + version + ')')"
+      - run: npm run typecheck
+      - run: npm run lint
+
+  package:
+    needs: verify-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: npm run build:win
+            artifact: windows-release
+          - os: ubuntu-latest
+            command: npm run build:linux
+            artifact: linux-release
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: ${{ matrix.command }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.snap
+            dist/latest*.yml
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create GitHub Release and upload updater metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" release-assets/* --title "$RELEASE_TAG" --generate-notes

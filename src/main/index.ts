@@ -36,6 +36,7 @@ import {
   unequipSkin,
   unlockSkin
 } from './skins'
+import { checkForAppUpdates } from './updater'
 
 let mainWindow
 
@@ -175,6 +176,7 @@ app.whenReady().then(() => {
   )
 
   createWindow()
+  checkForAppUpdates()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

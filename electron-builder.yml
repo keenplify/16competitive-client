@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: 16competitive-client
+appId: com.keenplify.16competitive
+productName: 1.6 Competitive
 directories:
   buildResources: build
 files:
@@ -42,7 +42,8 @@ appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: keenplify
+  repo: 16competitive-client
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

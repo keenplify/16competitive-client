@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { defineConfig } from 'electron-vite'
+import { defineConfig, loadEnv } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -20,10 +20,20 @@ const developmentCsp = {
   }
 }
 
-export default defineConfig({
-  main: {},
-  preload: {},
-  renderer: {
+export default defineConfig(({ mode }) => {
+  // API endpoints are compiled into the trusted main-process bundle only.
+  // They intentionally do not use VITE_* and are unavailable to the renderer.
+  const env = loadEnv(mode, process.cwd(), '')
+  const mainProcessEnv = Object.fromEntries(
+    ['API_BASE_URL', 'MATCHMAKING_WS_URL']
+      .filter((name) => env[name] !== undefined)
+      .map((name) => [`process.env.${name}`, JSON.stringify(env[name])])
+  )
+
+  return {
+    main: { define: mainProcessEnv },
+    preload: {},
+    renderer: {
     resolve: {
       extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'],
       // web-hlmv was vendored with an old React 16 dependency tree. Resolve
@@ -43,5 +53,6 @@ export default defineConfig({
       exclude: ['three']
     },
     assetsInclude: ['**/*.mdl']
+    }
   }
 })
