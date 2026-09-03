@@ -6,7 +6,7 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
-import { usePartyStore } from '../party/party.store'
+import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
 
 type ConnectionStatus =
@@ -220,6 +220,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           connectionDetails: null,
           error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
         })
+        if (event.mode === '5v5') {
+          window.setTimeout(() => void useAuthStore.getState().refreshSession(), 500)
+        }
         break
       case 'match_cancelled':
         set({
@@ -301,13 +304,20 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       try {
         const maps = await window.api.matchmaking.getMaps()
         const { selectedMapId, selectedMode } = get()
-        const selectedMapIsAvailable = maps.some(
-          (map) => map.id === selectedMapId && map.supportedModes.includes(selectedMode)
+        const advertisedModes = Array.from(
+          new Set<MatchmakingMode>(maps.flatMap((map) => map.supportedModes))
         )
-        const defaultMap = maps.find((map) => map.supportedModes.includes(selectedMode))
+        const nextMode = advertisedModes.includes(selectedMode)
+          ? selectedMode
+          : (advertisedModes[0] ?? selectedMode)
+        const selectedMapIsAvailable = maps.some(
+          (map) => map.id === selectedMapId && map.supportedModes.includes(nextMode)
+        )
+        const defaultMap = maps.find((map) => map.supportedModes.includes(nextMode))
         set({
           maps,
           mapsStatus: 'ready',
+          selectedMode: nextMode,
           selectedMapId: selectedMapIsAvailable ? selectedMapId : (defaultMap?.id ?? null)
         })
       } catch (error) {
@@ -377,11 +387,6 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     joinQueue: async () => {
       const { connectionStatus, selectedMapId, selectedMode, allowRegionExpansion } = get()
       if (connectionStatus !== 'ready') return
-      const partySize = usePartyStore.getState().party?.members.length ?? 1
-      if (selectedMode === '3v3' && partySize > 3) {
-        set({ error: '3v3 matchmaking supports parties of up to 3 players.' })
-        return
-      }
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
         set({

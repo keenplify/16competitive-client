@@ -2,6 +2,7 @@ import { ChevronLeft, LoaderCircle, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import type { PlayerProfile } from '../../../../shared/match-history'
+import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
@@ -71,6 +72,9 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       </h1>
       <p className="mt-2 text-3xl font-bold">
         {score[0]} <span className="text-neutral-500">—</span> {score[1]}
+      </p>
+      <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-400 uppercase">
+        {getMatchmakingModeLabel(match.mode)} · {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
       </p>
       <Team
         label="Winners"

@@ -27,7 +27,7 @@ const RECONNECT_MAX_DELAY_MS = 30_000
 const PING_INTERVAL_MS = 20_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
-const isMode = (value: unknown): value is MatchmakingMode => value === '3v3' || value === '5v5'
+const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
 

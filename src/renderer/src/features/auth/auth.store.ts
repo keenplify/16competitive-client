@@ -18,6 +18,7 @@ interface AuthState {
   setPassword: (password: string) => void
   submit: () => Promise<void>
   restore: () => Promise<void>
+  refreshSession: () => Promise<void>
   logout: () => Promise<void>
   setPoints: (points: number) => void
 }
@@ -49,6 +50,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set(session ? { session, status: 'authenticated' } : { session: null, status: 'idle' })
     } catch {
       set({ session: null, status: 'idle' })
+    }
+  },
+
+  refreshSession: async () => {
+    if (!get().session) return
+    try {
+      const session = await window.api.auth.restore()
+      if (session) set({ session })
+    } catch {
+      // A transient refresh failure must not sign out an active player.
     }
   },
 

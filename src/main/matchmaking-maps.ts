@@ -3,7 +3,7 @@ import { API_BASE_URL } from './config'
 import type { MatchmakingMap, MatchmakingMode } from '../shared/matchmaking'
 
 const MAP_ID_PATTERN = /^[a-z0-9_]{1,64}$/
-const isMode = (value: unknown): value is MatchmakingMode => value === '3v3' || value === '5v5'
+const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 

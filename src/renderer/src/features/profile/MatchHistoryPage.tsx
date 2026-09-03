@@ -8,6 +8,7 @@ import type {
   MatchSummaryPlayer,
   PlayerProfile
 } from '../../../../shared/match-history'
+import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 
 const teamName = (team: string): string => (team === 'team_1' ? 'Team A' : 'Team B')
 
@@ -206,7 +207,11 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                   Match complete
                 </p>
                 <h1 className="mt-2 text-3xl font-semibold uppercase">
-                  {summary.mapId} <span className="text-neutral-500">· {summary.mode}</span>
+                  {summary.mapId}{' '}
+                  <span className="text-neutral-500">
+                    · {getMatchmakingModeLabel(summary.mode)}
+                    {summary.mode === 'casual' ? ' · Unranked' : ''}
+                  </span>
                 </h1>
                 <p className="mt-3 text-5xl font-black tabular-nums">{summary.score}</p>
                 <p className="mt-2 text-sm text-neutral-400">
@@ -310,7 +315,11 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                 onClick={() => openSummary(match)}
               >
                 <span className="font-medium uppercase">
-                  {match.mapId} <span className="text-xs text-neutral-500">{match.mode}</span>
+                  {match.mapId}{' '}
+                  <span className="text-xs text-neutral-500">
+                    {getMatchmakingModeLabel(match.mode)}
+                    {match.mode === 'casual' ? ' · Unranked' : ''}
+                  </span>
                 </span>
                 <span className={match.result === 'win' ? 'text-emerald-400' : 'text-rose-300'}>
                   {match.result.toUpperCase()}{' '}

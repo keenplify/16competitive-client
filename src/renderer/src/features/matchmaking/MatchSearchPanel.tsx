@@ -2,6 +2,7 @@ import { LoaderCircle, Search } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useMatchmakingStore } from './matchmaking.store'
 
 interface MatchSearchPanelProps {
@@ -78,7 +79,8 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="truncate text-neutral-400">
-            {selectedMap?.displayName ?? selectedMapId ?? 'Selected map'} · {selectedMode}
+            {selectedMap?.displayName ?? selectedMapId ?? 'Selected map'} ·{' '}
+            {getMatchmakingModeLabel(selectedMode)}
           </span>
           <span className="shrink-0 font-mono tabular-nums text-neutral-200">
             {formatQueueDuration(elapsedSeconds)}

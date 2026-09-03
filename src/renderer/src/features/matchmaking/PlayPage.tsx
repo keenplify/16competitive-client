@@ -1,6 +1,10 @@
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
-import type { MatchmakingMap } from '../../../../shared/matchmaking'
+import {
+  getMatchmakingModeLabel,
+  type MatchmakingMap,
+  type MatchmakingMode
+} from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
@@ -121,10 +125,11 @@ export function PlayPage(): JSX.Element {
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   const isLeader = !party || party.leaderId === player.id
-  const partySize = party?.members.length ?? 1
   const isConnected = connectionStatus === 'ready'
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
-  const canQueueSelectedMode = selectedMode !== '3v3' || partySize <= 3
+  const availableModes = Array.from(
+    new Set<MatchmakingMode>(maps.flatMap((map) => map.supportedModes))
+  )
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
 
   if (match && queueStatus === 'ready_check') {
@@ -156,7 +161,7 @@ export function PlayPage(): JSX.Element {
             </p>
             <h1 className="mt-2 text-3xl font-semibold">
               {maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} ·{' '}
-              {match.mode}
+              {getMatchmakingModeLabel(match.mode)}
             </h1>
             {queueStatus === 'countdown' && (
               <>
@@ -254,11 +259,9 @@ export function PlayPage(): JSX.Element {
 
         <>
           <section className="mt-8">
-            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Team size
-            </p>
+            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Mode</p>
             <div className="mt-3 flex gap-3">
-              {(['3v3', '5v5'] as const).map((mode) => (
+              {availableModes.map((mode) => (
                 <Button
                   key={mode}
                   variant="ghost"
@@ -267,10 +270,10 @@ export function PlayPage(): JSX.Element {
                       ? 'border border-sky-400/50 bg-sky-400/10 text-sky-300'
                       : 'border border-white/10 bg-neutral-900'
                   }
-                  disabled={isSearching || !isLeader || (mode === '3v3' && partySize > 3)}
+                  disabled={isSearching || !isLeader}
                   onClick={() => selectMode(mode)}
                 >
-                  {mode}
+                  {getMatchmakingModeLabel(mode)}
                 </Button>
               ))}
             </div>
@@ -316,7 +319,9 @@ export function PlayPage(): JSX.Element {
               <p className="mt-4 text-sm text-neutral-400">Loading maps…</p>
             )}
             {mapsStatus === 'ready' && availableMaps.length === 0 && (
-              <p className="mt-4 text-sm text-neutral-400">No maps support {selectedMode}.</p>
+              <p className="mt-4 text-sm text-neutral-400">
+                No maps support {getMatchmakingModeLabel(selectedMode)}.
+              </p>
             )}
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {availableMaps.map((map) => (
@@ -339,7 +344,6 @@ export function PlayPage(): JSX.Element {
                 !isConnected ||
                 !selectedMapId ||
                 !gameExecutablePath ||
-                !canQueueSelectedMode ||
                 isSearching ||
                 queueStatus === 'joining'
               }
@@ -361,11 +365,6 @@ export function PlayPage(): JSX.Element {
             {isLeader && !gameExecutablePath && (
               <p className="text-sm text-amber-300">
                 Choose and save your Counter-Strike executable in Settings first.
-              </p>
-            )}
-            {isLeader && !canQueueSelectedMode && (
-              <p className="text-sm text-amber-300">
-                3v3 matchmaking supports parties of up to 3 players. Select 5v5 or leave the party.
               </p>
             )}
           </div>

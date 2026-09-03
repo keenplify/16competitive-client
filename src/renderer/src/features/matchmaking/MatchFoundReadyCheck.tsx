@@ -1,7 +1,11 @@
 import { Info, UserRound } from 'lucide-react'
 import type { JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
-import type { QueuedPlayer } from '../../../../shared/matchmaking'
+import {
+  getMatchmakingModeLabel,
+  type MatchmakingMode,
+  type QueuedPlayer
+} from '../../../../shared/matchmaking'
 import dust2Preview from '../../assets/dust2.jpg'
 import { Button } from '../../components/ui/Button'
 import { AssetPreparation, MatchAssetPreparation } from './MatchAssetPreparation'
@@ -10,7 +14,7 @@ interface MatchFoundReadyCheckProps {
   acceptedPlayerIds: string[]
   match: {
     mapId: string
-    mode: string
+    mode: MatchmakingMode
     teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
   }
   playersRequired: number
@@ -69,7 +73,7 @@ export function MatchFoundReadyCheck({
               YOUR MATCH IS READY!
             </h1>
             <p className="mt-3 text-sm font-medium text-emerald-200/85">
-              Competitive · {mapDisplayName} · {match.mode}
+              {getMatchmakingModeLabel(match.mode)} · {mapDisplayName}
             </p>
           </header>
 
