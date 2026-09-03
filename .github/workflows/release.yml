@@ -28,6 +28,9 @@ jobs:
 
   package:
     needs: verify-version
+    env:
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      MATCHMAKING_WS_URL: ${{ vars.MATCHMAKING_WS_URL }}
     strategy:
       fail-fast: false
       matrix:
@@ -71,4 +74,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" release-assets/* --title "$RELEASE_TAG" --generate-notes
+        run: >-
+          gh release create "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY"
+          --title "$RELEASE_TAG" --generate-notes

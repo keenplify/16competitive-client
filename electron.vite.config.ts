@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const mainProcessEnv = Object.fromEntries(
     ['API_BASE_URL', 'MATCHMAKING_WS_URL']
-      .filter((name) => env[name] !== undefined)
+      .filter((name) => Boolean(env[name]))
       .map((name) => [`process.env.${name}`, JSON.stringify(env[name])])
   )
 
