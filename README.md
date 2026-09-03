@@ -28,8 +28,9 @@ Copy `.env.example` to `.env` for local main-process configuration. `.env` is
 ignored by Git; `API_BASE_URL` and `MATCHMAKING_WS_URL` are compiled into the
 main-process bundle at build time and are not exposed to the renderer. Do not
 put secrets in any `VITE_*` value: those variables are compiled into and visible
-to the renderer. Use GitHub Actions Secrets for build or release credentials
-instead.
+to the renderer. Production packages default to the public 1.6 Competitive API;
+the optional `Prod` GitHub Actions variables override those public endpoints.
+Use GitHub Actions Secrets for build or release credentials instead.
 
 ## Counter-Strike launch configuration
 

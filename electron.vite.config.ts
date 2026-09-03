@@ -20,14 +20,24 @@ const developmentCsp = {
   }
 }
 
+const mainProcessEnvNames = ['API_BASE_URL', 'MATCHMAKING_WS_URL'] as const
+const productionMainProcessEnv = {
+  API_BASE_URL: 'https://45.77.240.100.sslip.io',
+  MATCHMAKING_WS_URL: 'wss://45.77.240.100.sslip.io/matchmaking/ws'
+} satisfies Record<(typeof mainProcessEnvNames)[number], string>
+
 export default defineConfig(({ mode }) => {
   // API endpoints are compiled into the trusted main-process bundle only.
   // They intentionally do not use VITE_* and are unavailable to the renderer.
+  // Public release builds have safe production defaults so a missing optional
+  // GitHub environment override cannot silently package the localhost API.
   const env = loadEnv(mode, process.cwd(), '')
   const mainProcessEnv = Object.fromEntries(
-    ['API_BASE_URL', 'MATCHMAKING_WS_URL']
-      .filter((name) => Boolean(env[name]))
-      .map((name) => [`process.env.${name}`, JSON.stringify(env[name])])
+    mainProcessEnvNames.flatMap((name) => {
+      const value = env[name] || (mode === 'production' ? productionMainProcessEnv[name] : '')
+
+      return value ? [[`process.env.${name}`, JSON.stringify(value)]] : []
+    })
   )
 
   return {

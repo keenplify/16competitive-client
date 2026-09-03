@@ -51,6 +51,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: ${{ matrix.command }}
+      - name: Reject localhost backend in release bundle
+        shell: bash
+        run: >-
+          node -e "const bundle=require('node:fs').readFileSync('out/main/index.js','utf8');
+          if (bundle.includes('http://127.0.0.1:3000'))
+          throw new Error('Release bundle targets the local development backend')"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
