@@ -10,8 +10,13 @@ export function ProfilePage(): JSX.Element {
   const tab = useNavigationStore((state) => state.profileTab)
   const setTab = useNavigationStore((state) => state.setProfileTab)
   return (
-    <main className="min-h-[calc(100vh-5rem)] w-full bg-black/60 p-6 text-white sm:p-10">
-      <div className="mx-auto w-full max-w-5xl">
+    <main
+      className={twMerge(
+        'min-h-[calc(100vh-5rem)] w-full p-6 text-white sm:p-10',
+        tab === 'skins' ? 'bg-[#07090d]' : 'bg-black/60'
+      )}
+    >
+      <div className={twMerge('mx-auto w-full', tab === 'skins' ? 'max-w-[90rem]' : 'max-w-5xl')}>
         <header className="border-b border-white/10 pb-0">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
           <h1 className="mt-2 text-3xl font-semibold">{player?.username ?? 'Player'}</h1>

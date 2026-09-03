@@ -6,12 +6,25 @@ import type { OwnedSkin, Skin } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 
-const weapons = [
-  { key: '', label: 'All weapons' },
-  { key: 'ak47', label: 'AK-47' },
-  { key: 'm4a1', label: 'M4A1' },
-  { key: 'awp', label: 'AWP' },
-  { key: 'deagle', label: 'Deagle' }
+type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
+
+const weaponCategory = (key: string): WeaponCategory => {
+  if (['glock18', 'usp', 'p228', 'deagle', 'elite', 'fiveseven'].includes(key)) return 'pistols'
+  if (['tmp', 'mac10', 'mp5navy', 'ump45', 'p90'].includes(key)) return 'smgs'
+  if (['galil', 'famas', 'ak47', 'm4a1', 'aug', 'sg552'].includes(key)) return 'rifles'
+  if (['scout', 'awp', 'sg550', 'g3sg1'].includes(key)) return 'snipers'
+  if (key === 'knife') return 'knives'
+  return 'heavy'
+}
+
+const weaponCategories: Array<{ id: WeaponCategory; label: string }> = [
+  { id: 'all', label: 'All weapons' },
+  { id: 'pistols', label: 'Pistols' },
+  { id: 'smgs', label: 'SMGs' },
+  { id: 'rifles', label: 'Rifles' },
+  { id: 'snipers', label: 'Snipers' },
+  { id: 'heavy', label: 'Machine gun' },
+  { id: 'knives', label: 'Knife' }
 ] as const
 
 const errorDetails = (reason: unknown): { message: string; code?: string } => {
@@ -22,7 +35,7 @@ const errorDetails = (reason: unknown): { message: string; code?: string } => {
 export function ShopPage(): JSX.Element {
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
-  const [weaponKey, setWeaponKey] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory>('all')
   const [skins, setSkins] = useState<Skin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +48,7 @@ export function ShopPage(): JSX.Element {
   const load = useCallback((): void => {
     setStatus('loading')
     setError(null)
-    void Promise.all([window.api.skins.list(weaponKey || undefined), window.api.skins.mine()])
+    void Promise.all([window.api.skins.list(), window.api.skins.mine()])
       .then(([catalog, inventory]) => {
         setSkins(catalog)
         setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
@@ -45,15 +58,22 @@ export function ShopPage(): JSX.Element {
         setError(errorDetails(reason).message)
         setStatus('error')
       })
-  }, [weaponKey])
+  }, [])
 
   useEffect(() => {
     void Promise.resolve().then(load)
   }, [load])
 
   const catalogLabel = useMemo(
-    () => weapons.find((weapon) => weapon.key === weaponKey)?.label ?? 'All weapons',
-    [weaponKey]
+    () => weaponCategories.find((category) => category.id === selectedCategory)?.label ?? 'All weapons',
+    [selectedCategory]
+  )
+  const filteredSkins = useMemo(
+    () =>
+      selectedCategory === 'all'
+        ? skins
+        : skins.filter((skin) => weaponCategory(skin.weaponKey) === selectedCategory),
+    [selectedCategory, skins]
   )
 
   const unlock = (skin: Skin): void => {
@@ -91,7 +111,7 @@ export function ShopPage(): JSX.Element {
   }
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] w-full bg-black/60 p-6 text-white sm:p-10">
+    <main className="min-h-[calc(100vh-5rem)] w-full bg-neutral-950/75 p-6 text-white sm:p-10">
       <div className="mx-auto w-full max-w-6xl">
         <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6">
           <div>
@@ -111,14 +131,14 @@ export function ShopPage(): JSX.Element {
           </div>
         </header>
         <div className="mt-6 flex flex-wrap gap-2" aria-label="Filter skins by weapon">
-          {weapons.map((weapon) => (
+          {weaponCategories.map((category) => (
             <Button
-              key={weapon.key}
+              key={category.id}
               className="h-9 px-3 text-xs"
-              variant={weapon.key === weaponKey ? 'primary' : 'ghost'}
-              onClick={() => setWeaponKey(weapon.key)}
+              variant={category.id === selectedCategory ? 'primary' : 'ghost'}
+              onClick={() => setSelectedCategory(category.id)}
             >
-              {weapon.label}
+              {category.label}
             </Button>
           ))}
         </div>
@@ -137,14 +157,14 @@ export function ShopPage(): JSX.Element {
             Retry catalog
           </Button>
         ) : null}
-        {status === 'ready' && skins.length === 0 ? (
+        {status === 'ready' && filteredSkins.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-white/15 p-10 text-center text-neutral-400">
             No {catalogLabel.toLowerCase()} skins are currently on sale.
           </div>
         ) : null}
-        {status === 'ready' && skins.length > 0 ? (
+        {status === 'ready' && filteredSkins.length > 0 ? (
           <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {skins.map((skin) => {
+            {filteredSkins.map((skin) => {
               const owned = ownedSkins.get(skin.id)
               const buying = buyingId === skin.id
               return (
@@ -237,7 +257,7 @@ export function SkinCardPreview({
           modelBuffer={model}
           modelKey={skin.id}
           presentationRotation={[90, 0, 190]}
-          camera={{ distanceMultiplier: 0.9 }}
+          camera={{ distanceMultiplier: 0.5 }}
           animation="idle1"
           maxFrameRate={20}
           cameraLocked
@@ -295,9 +315,6 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
       <section className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-white/15 bg-neutral-950 shadow-2xl">
         <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.16em] text-sky-400 uppercase">
-              Third-person model
-            </p>
             <h2 className="mt-1 text-lg font-semibold">{skin.name}</h2>
           </div>
           <Button

@@ -1,5 +1,7 @@
+import { LogOut } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
+import { useAuthStore } from '../auth/auth.store'
 import { useGameSettingsStore } from './game-settings.store'
 
 export function SettingsPage(): JSX.Element {
@@ -12,6 +14,8 @@ export function SettingsPage(): JSX.Element {
   const load = useGameSettingsStore((state) => state.load)
   const choose = useGameSettingsStore((state) => state.choose)
   const save = useGameSettingsStore((state) => state.save)
+  const authStatus = useAuthStore((state) => state.status)
+  const logout = useAuthStore((state) => state.logout)
 
   useEffect(() => {
     void load()
@@ -60,6 +64,24 @@ export function SettingsPage(): JSX.Element {
               Saved locally in: <span className="font-mono">{configFilePath}</span>
             </p>
           )}
+        </section>
+
+        <section className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-rose-400/15 bg-rose-400/5 p-5 sm:p-7">
+          <div>
+            <h2 className="text-lg font-semibold">Account</h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Sign out of this launcher on this computer.
+            </p>
+          </div>
+          <Button
+            className="border border-rose-400/35 bg-transparent text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
+            variant="ghost"
+            disabled={authStatus === 'logging_out'}
+            onClick={() => void logout()}
+          >
+            <LogOut className="mr-2 size-4" />
+            {authStatus === 'logging_out' ? 'Signing out…' : 'Log out'}
+          </Button>
         </section>
       </div>
     </main>

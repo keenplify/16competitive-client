@@ -18,13 +18,15 @@ interface LobbyNavigationProps {
   onNavigate: (page: LobbyPageId) => void
   className?: string
   showBackToLobby?: boolean
+  locked?: boolean
 }
 
 export function LobbyNavigation({
   activePage,
   onNavigate,
   className,
-  showBackToLobby = true
+  showBackToLobby = true,
+  locked = false
 }: LobbyNavigationProps): JSX.Element {
   const navRef = useRef<HTMLUListElement>(null)
 
@@ -63,8 +65,10 @@ export function LobbyNavigation({
     <nav
       className={twMerge(
         'flex h-16 w-full overflow-hidden bg-gray-950/70 backdrop-blur-md sm:h-20',
+        locked && 'pointer-events-none',
         className
       )}
+      aria-disabled={locked}
     >
       <button
         type="button"

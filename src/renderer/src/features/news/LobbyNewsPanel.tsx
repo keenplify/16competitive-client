@@ -17,19 +17,14 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
   }, [loadPreview])
 
   return (
-    <aside
-      className={twMerge(
-        'hidden w-64 shrink-0 overflow-y-auto border-r border-white/10 p-4 md:block',
-        className
-      )}
-    >
+    <aside className={twMerge('hidden w-64 shrink-0 overflow-y-auto p-4 md:block', className)}>
       <div className="space-y-2">
         {status === 'loading' && <p className="text-xs text-neutral-400">Loading news…</p>}
         {status === 'error' && <p className="text-xs text-neutral-500">News is unavailable.</p>}
         {status === 'ready' && posts.length === 0 && (
           <p className="text-xs text-neutral-500">No news posts yet.</p>
         )}
-        {posts.slice(0, 3).map((post) => {
+        {posts.slice(0, 4).map((post, index) => {
           const title = readableNewsContent(post.content).split('\n').find(Boolean)
           return (
             <a
@@ -37,7 +32,10 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className="block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80"
+              className={twMerge(
+                'block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80',
+                index === 3 && 'hidden [@media(min-height:1100px)]:block'
+              )}
             >
               {post.mediaUrl && (
                 <img

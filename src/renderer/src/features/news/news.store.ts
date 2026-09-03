@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { fetchNewsPosts, type NewsPost } from './news.api'
+import { fetchLobbyNewsPosts, fetchNewsPosts, type NewsPost } from './news.api'
 
 type NewsStatus = 'idle' | 'loading' | 'ready' | 'refreshing' | 'error'
 
@@ -17,13 +17,10 @@ export const useNewsStore = create<NewsState>((set, get) => ({
   status: 'idle',
 
   loadPreview: async () => {
-    const { status } = get()
-    if (status === 'loading' || status === 'refreshing' || status === 'ready') return
-
     const request = ++latestNewsRequest
     set({ status: 'loading' })
     try {
-      const posts = await fetchNewsPosts(3, new AbortController().signal)
+      const posts = await fetchLobbyNewsPosts(new AbortController().signal)
       if (request === latestNewsRequest) set({ posts, status: 'ready' })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return

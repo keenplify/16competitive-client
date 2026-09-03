@@ -34,10 +34,36 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     user-select: none;
+    scrollbar-color: rgb(71 85 105) rgb(8 10 14);
+    scrollbar-width: thin;
   }
 
   input {
     user-select: text;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgb(8 10 14);
+    border-left: 1px solid rgb(255 255 255 / 7%);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgb(71 85 105), rgb(30 41 59));
+    border: 2px solid rgb(8 10 14);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgb(56 189 248), rgb(37 99 235));
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: rgb(8 10 14);
   }
 }
 

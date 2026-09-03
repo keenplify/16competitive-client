@@ -81,8 +81,15 @@ export function LobbyPage(): JSX.Element {
     'starting_server',
     'server_ready'
   ].includes(queueStatus)
+  const matchNavigationLocked = [
+    'ready_check',
+    'countdown',
+    'starting_server',
+    'server_ready'
+  ].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const handleNavigate = (nextPage: LobbyPageId): void => {
+    if (matchNavigationLocked) return
     if (completedMatch) dismissCompletedMatch()
     navigate(nextPage)
   }
@@ -161,7 +168,8 @@ export function LobbyPage(): JSX.Element {
       <LobbyNavigation
         activePage={page}
         onNavigate={handleNavigate}
-        showBackToLobby={!completedMatch}
+        showBackToLobby={!completedMatch && !matchNavigationLocked}
+        locked={matchNavigationLocked}
         className="fixed top-0 left-0 z-30"
       />
       <PartyInvitationModal />

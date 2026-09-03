@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -44,6 +44,8 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    resizable: false,
+    fullscreenable: false,
     show: false,
     autoHideMenuBar: true,
     title: '1.6 Competitive',
@@ -157,9 +159,14 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
     if (!mainWindow || mainWindow.isDestroyed()) return
 
-    if (!mainWindow.isMaximized()) {
-      mainWindow.maximize()
-    }
+    // Some Linux window managers ignore Electron's maximize hint for a
+    // non-resizable window. Applying the active display's work area gives the
+    // launcher the same result reliably, then keeps it locked in that size.
+    const display = screen.getDisplayMatching(mainWindow.getBounds())
+    mainWindow.setResizable(true)
+    mainWindow.maximize()
+    mainWindow.setBounds(display.workArea)
+    mainWindow.setResizable(false)
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
