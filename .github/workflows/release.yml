@@ -22,7 +22,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: >-
-          node -e "const tag=process.env.RELEASE_TAG.slice(1); const version=require('./package.json').version; if (!/^\\d{4}\\.(?:[1-9]|1[0-2])\\.(?:[1-9]|[12]\\d|3[01])$/.test(tag) || tag !== version) throw new Error('Tag must be vYYYY.M.D and match package.json (' + version + ')')"
+          node -e "const tag=process.env.RELEASE_TAG.slice(1); const version=require('./package.json').version; if (!/^\\d{4}\\.(?:\\d{1,2}\\.\\d{1,2}|\\d{3,4}\\.\\d+)$/.test(tag) || tag !== version) throw new Error('Tag must use a supported calendar version and match package.json (' + version + ')')"
       - run: npm run typecheck
       - run: npm run lint
 

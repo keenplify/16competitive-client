@@ -3,13 +3,20 @@ import { resolve } from 'node:path'
 
 const suppliedVersion = process.argv[2]
 const now = new Date()
-const version =
-  suppliedVersion ?? `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}`
-const match = /^(\d{4})\.(\d{1,2})\.(\d{1,2})$/.exec(version)
+const todayDateCode = Number(
+  `${String(now.getUTCMonth() + 1).padStart(2, '0')}${String(now.getUTCDate()).padStart(2, '0')}`
+)
+const version = suppliedVersion ?? `${now.getUTCFullYear()}.${todayDateCode}.1`
+const match = /^(\d{4})\.(\d{3,4})\.(\d+)$/.exec(version)
 
-if (!match) throw new Error('Version must use YYYY.M.D format, for example 2026.9.3.')
+if (!match) throw new Error('Version must use YYYY.MMDD.REVISION format, for example 2026.903.1.')
 
-const [, year, month, day] = match.map(Number)
+const [, year, rawDateCode, revision] = match.map(Number)
+if (revision < 1) throw new Error('Release revision must be at least 1.')
+
+const dateCode = String(rawDateCode).padStart(4, '0')
+const month = Number(dateCode.slice(0, 2))
+const day = Number(dateCode.slice(2, 4))
 const parsed = new Date(Date.UTC(year, month - 1, day))
 if (
   parsed.getUTCFullYear() !== year ||

@@ -22,16 +22,22 @@ try {
   const branch = git('branch', '--show-current')
   if (!branch) fail('Refusing to release from a detached HEAD.')
 
-  const now = new Date()
-  const version = `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}`
-  const tag = `v${version}`
+  git('fetch', '--tags', '--quiet', 'origin')
 
-  try {
-    git('rev-parse', '--verify', '--quiet', `refs/tags/${tag}`)
-    fail(`Tag ${tag} already exists. Calendar versioning permits one release per UTC day.`)
-  } catch (error) {
-    if (error?.status !== 1) throw error
-  }
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(now.getUTCDate()).padStart(2, '0')
+  const dateCode = Number(`${month}${day}`)
+  const versionPrefix = `${year}.${dateCode}`
+  const existingTags = git('tag', '--list', `v${versionPrefix}.*`).split('\n')
+  const revisionPattern = new RegExp(`^v${year}\\.${dateCode}\\.(\\d+)$`)
+  const latestRevision = Math.max(
+    0,
+    ...existingTags.map((existingTag) => Number(revisionPattern.exec(existingTag)?.[1]) || 0)
+  )
+  const version = `${versionPrefix}.${latestRevision + 1}`
+  const tag = `v${version}`
 
   const packagePath = resolve('package.json')
   const lockPath = resolve('package-lock.json')

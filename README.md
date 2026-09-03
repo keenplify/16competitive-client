@@ -2,17 +2,19 @@
 
 ## Releases and automatic updates
 
-Releases use calendar SemVer: `YYYY.M.D` (for example, `2026.9.3`). Run
-`npm run release` to create today's UTC version, commit it, tag it, and push it
-to GitHub. The command requires a clean, checked-out branch and permits one
-release per UTC day. The pushed tag starts the GitHub Release workflow.
+Releases use calendar SemVer: `YYYY.MMDD.REVISION` (for example,
+`2026.903.1`). Run `npm run release` to create today's UTC version, increment
+its release revision, commit it, tag it, and push it to GitHub. Running it again
+today produces `2026.903.2`. The command requires a clean, checked-out branch.
+The pushed tag starts the GitHub Release workflow.
 
-For a manually selected date, run `npm run release:date -- 2026.9.3`, commit
-the changed `package.json` and `package-lock.json`, then push its matching tag:
+For a manually selected version, run `npm run release:date -- 2026.903.1`,
+commit the changed `package.json` and `package-lock.json`, then push its
+matching tag:
 
 ```bash
-git tag v2026.9.3
-git push origin v2026.9.3
+git tag v2026.903.1
+git push origin v2026.903.1
 ```
 
 GitHub Actions verifies that the tag and package version match, builds Windows
