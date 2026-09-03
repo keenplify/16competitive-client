@@ -28,6 +28,7 @@ jobs:
 
   package:
     needs: verify-version
+    environment: Prod
     env:
       API_BASE_URL: ${{ vars.API_BASE_URL }}
       MATCHMAKING_WS_URL: ${{ vars.MATCHMAKING_WS_URL }}
