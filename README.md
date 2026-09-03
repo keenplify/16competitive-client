@@ -1,78 +1,116 @@
-# 16competitive-client
+# 1.6 Competitive
 
-## Releases and automatic updates
+<div align="center">
+  <img src="src/renderer/public/favicon.svg" alt="1.6 Competitive logo" width="150" />
 
-Releases use calendar SemVer: `YYYY.MMDD.REVISION` (for example,
-`2026.903.1`). Run `npm run release` to create today's UTC version, increment
-its release revision, commit it, tag it, and push it to GitHub. Running it again
-today produces `2026.903.2`. The command requires a clean, checked-out branch.
-The pushed tag starts the GitHub Release workflow.
+  <p><strong>Classic aim. Modern competition.</strong></p>
 
-For a manually selected version, run `npm run release:date -- 2026.903.1`,
-commit the changed `package.json` and `package-lock.json`, then push its
-matching tag:
+  <p>A modern matchmaking launcher for Counter-Strike 1.6.<br />Find your squad, customize your loadout, and get into the action.</p>
+</div>
 
-```bash
-git tag v2026.903.1
-git push origin v2026.903.1
+<p align="center">
+  <a href="../../releases">Download the latest build</a>
+  ·
+  <a href="../../issues">Report an issue</a>
+</p>
+
+## Built for the 1.6 player
+
+Counter-Strike 1.6 is still one of the most satisfying competitive shooters ever made. 1.6 Competitive gives that timeless gameplay a focused home: a clean desktop launcher, matchmaking features, player progression, and a simple path from lobby to server.
+
+<p align="center">
+  <img src="docs/screenshots/lobby.png" alt="1.6 Competitive lobby with party and friends panels" width="900" />
+</p>
+
+### Bring your party
+
+Create a party, invite players by username, and keep an eye on your group from the lobby. The launcher is designed to make getting a game together feel quick and familiar.
+
+<p align="center">
+  <img src="docs/screenshots/skins.png" alt="1.6 Competitive skins loadout page" width="900" />
+</p>
+
+### Make the loadout yours
+
+Browse your weapon collection and equip skins for Terrorist or Counter-Terrorist loadouts. Cosmetic assets are handled by the launcher and prepared before you connect to a match.
+
+## What’s coming together
+
+- **Matchmaking** — Find and follow competitive matches from the Play screen.
+- **Parties and friends** — Invite players and prepare to queue together.
+- **Profiles and match history** — Keep your player identity and past games in one place.
+- **Weapon skins** — Browse collections and manage active loadouts.
+- **A smoother launch flow** — Select your game installation and launch into assigned servers when they are ready.
+- **Windows and Linux support** — Built for both platforms from the start. macOS support is planned for the future.
+
+## Match flow
+
+```text
+PLAY → Join Queue → Match Found → Prepare Assets → Server Ready → Connect
 ```
 
-GitHub Actions verifies that the tag and package version match, builds Windows
-and Linux packages, and creates the GitHub Release with the updater metadata.
-Packaged Windows and Linux AppImage installs check that release feed at startup,
-download updates automatically, and install them when the app exits.
+The backend remains authoritative for matchmaking, player identity, inventory, results, and server assignment. The launcher keeps your local setup ready and makes each state easy to understand.
 
-## Environment variables
+## Project status
 
-Copy `.env.example` to `.env` for local main-process configuration. `.env` is
-ignored by Git; `API_BASE_URL` and `MATCHMAKING_WS_URL` are compiled into the
-main-process bundle at build time and are not exposed to the renderer. Do not
-put secrets in any `VITE_*` value: those variables are compiled into and visible
-to the renderer. Production packages default to the public 1.6 Competitive API;
-the optional `Prod` GitHub Actions variables override those public endpoints.
-Use GitHub Actions Secrets for build or release credentials instead.
+1.6 Competitive is under active development. This public repository contains the Electron desktop client and its launcher UI. Features and visuals will continue to evolve as the platform approaches wider release.
 
-## Counter-Strike launch configuration
+## Download
 
-The launcher automatically starts Counter-Strike after the backend reports that
-the assigned match server is ready. Choose `hl_linux` or `hl.exe` from the
-Settings tab. The validated absolute path is stored in Electron's per-user
-configuration directory, whose location is shown in Settings.
+Visit the repository’s **[Releases](../../releases)** page for the latest Windows and Linux builds.
 
-The working directory defaults to the executable's directory. Server address
-and password are validated and passed as process arguments; no shell command is
-constructed. `CS16_CLIENT_EXECUTABLE_PATH` remains available as a development
-fallback when no path has been saved through the UI.
+> Counter-Strike 1.6 is required to play. Select and validate your local game executable from the launcher’s Settings tab before joining a match.
 
-An Electron application with React and TypeScript
+## Run locally
 
-## Recommended IDE Setup
+### Requirements
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-
-## Project Setup
-
-### Install
+- Node.js and npm
+- A Counter-Strike 1.6 installation for end-to-end game testing
 
 ```bash
-$ npm install
+npm install
+npm run dev
 ```
 
-### Development
+To use local API or WebSocket endpoints, copy `.env.example` to `.env` and adjust the development values:
 
 ```bash
-$ npm run dev
+cp .env.example .env
 ```
 
-### Build
+### Build packages
 
 ```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
+npm run build:win    # Windows
+npm run build:linux  # Linux
 ```
+
+macOS support is planned for a future release.
+
+Before opening a pull request:
+
+```bash
+npm run typecheck
+npm run lint
+```
+
+## Releases and updates
+
+Releases use calendar SemVer in the format `YYYY.MMDD.REVISION`, for example `2026.903.1`.
+
+```bash
+npm run release
+```
+
+GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
+
+## Contributing
+
+Issues, feedback, and pull requests are welcome. Please keep the backend authoritative and preserve the secure Electron boundary: filesystem access and game launching belong in the main process, while the renderer receives only narrow, validated APIs.
+
+See [AGENTS.md](AGENTS.md) for the architecture, security expectations, and development guidelines.
+
+## License
+
+License details will be added as the project approaches its first public release.
