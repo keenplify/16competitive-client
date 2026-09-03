@@ -15,6 +15,11 @@ import {
   toMatchmakingWsUrl
 } from './matchmaking-regions'
 import { closeCounterStrikeForMatch, launchCounterStrikeForMatch } from './game/cs16-launcher'
+import {
+  clearMatchAssetPreload,
+  startMatchAssetPreload,
+  waitForMatchAssetPreload
+} from './game/match-assets'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_BASE_DELAY_MS = 1_000
@@ -430,23 +435,48 @@ class MatchmakingConnection {
           this.hostApiUrl = parsed.hostApiUrl
           this.openSocket(false, parsed.hostApiUrl, true)
         }
+        void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl).catch((error: unknown) =>
+          this.notify({
+            type: 'error',
+            code: 'MATCH_ASSET_PRELOAD_FAILED',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Could not prepare the required match assets.'
+          })
+        )
       } else if (parsed.type === 'match_connect') {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
         if (!isRecoveredConnection)
-          void launchCounterStrikeForMatch({
-            ...parsed,
-            onExit: ({ code, signal }) =>
-              this.notify({ type: 'game_process_exited', matchId: parsed.matchId, code, signal })
-          }).catch((error: unknown) =>
-            this.notify({
-              type: 'error',
-              code: 'GAME_LAUNCH_FAILED',
-              message: error instanceof Error ? error.message : 'Could not launch Counter-Strike.'
-            })
-          )
+          void waitForMatchAssetPreload(parsed.matchId)
+            .then(() =>
+              launchCounterStrikeForMatch({
+                ...parsed,
+                onExit: ({ code, signal }) =>
+                  this.notify({
+                    type: 'game_process_exited',
+                    matchId: parsed.matchId,
+                    code,
+                    signal
+                  })
+              })
+            )
+            .catch((error: unknown) =>
+              this.notify({
+                type: 'error',
+                code: 'MATCH_PREPARATION_FAILED',
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not prepare match assets or launch Counter-Strike.'
+              })
+            )
+      } else if (parsed.type === 'match_cancelled') {
+        clearMatchAssetPreload(parsed.matchId)
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
+        clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
         const timer = setTimeout(() => {
           this.matchEndTimers.delete(parsed.matchId)
@@ -462,9 +492,11 @@ class MatchmakingConnection {
         this.recoveryStatusPending = false
         if (parsed.code === 'NOT_QUEUED') return
       }
-      const key = 'matchId' in parsed ? `${parsed.type}:${parsed.matchId}` : null
-      if (key && this.seenMatchEvents.has(key)) return
-      if (key) this.seenMatchEvents.add(key)
+      // Only match_found is replayed during a host handoff. Countdown and ready-state
+      // events intentionally repeat for the same match and must reach the renderer.
+      if (parsed.type === 'match_found') {
+        this.seenMatchEvents.add(`${parsed.type}:${parsed.matchId}`)
+      }
       this.notify(parsed)
     })
     socket.addEventListener('close', () => {

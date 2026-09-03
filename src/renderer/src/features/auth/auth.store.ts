@@ -19,6 +19,7 @@ interface AuthState {
   submit: () => Promise<void>
   restore: () => Promise<void>
   logout: () => Promise<void>
+  setPoints: (points: number) => void
 }
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
@@ -55,6 +56,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUsername: (username) => set({ username, error: null }),
   setEmail: (email) => set({ email, error: null }),
   setPassword: (password) => set({ password, error: null }),
+  setPoints: (points) =>
+    set((state) =>
+      state.session
+        ? { session: { ...state.session, player: { ...state.session.player, points } } }
+        : state
+    ),
 
   submit: async () => {
     const { email, mode, password, status, username } = get()

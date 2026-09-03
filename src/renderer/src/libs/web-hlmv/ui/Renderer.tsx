@@ -30,6 +30,10 @@ export type WindowSize = {
 export type ModelViewerCamera = {
   position?: readonly [number, number, number]
   target?: readonly [number, number, number]
+  /** Direction from the model center when automatically framing a model. */
+  direction?: readonly [number, number, number]
+  /** Framing scale; values below 1 move the initial camera closer. */
+  distanceMultiplier?: number
   fov?: number
   near?: number
   far?: number
@@ -117,6 +121,12 @@ type Props = {
   cameraLocked?: boolean
   animation?: string | number
   maxFrameRate?: number
+  presentationRotation?: readonly [number, number, number]
+  disableZoom?: boolean
+  lockCameraDistance?: boolean
+  /** Restricts orbit around the initial face by this many radians on each side. */
+  orbitAngleLimit?: number
+  rotateSpeed?: number
   className?: string
 }
 
@@ -127,6 +137,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
   const hasRenderedFirstFrame = React.useRef(false)
   const lastSlowFrameLogAt = React.useRef(0)
   const lastRenderAt = React.useRef(0)
+  const orbitDistance = React.useRef<number | null>(null)
   const canvasRef = React.useCallback((element: HTMLCanvasElement | null) => {
     setCanvas(element)
   }, [])
@@ -153,8 +164,21 @@ export const Renderer = (props: Props): React.JSX.Element => {
       return null
     }
 
-    return createOrbitControls(camera, canvas)
-  }, [camera, canvas, props.cameraLocked])
+    return createOrbitControls(
+      camera,
+      canvas,
+      props.disableZoom,
+      props.orbitAngleLimit !== undefined,
+      props.rotateSpeed
+    )
+  }, [
+    camera,
+    canvas,
+    props.cameraLocked,
+    props.disableZoom,
+    props.orbitAngleLimit,
+    props.rotateSpeed
+  ])
 
   // Scene lights
   // Note: you can pass lights color to arguments
@@ -307,7 +331,10 @@ export const Renderer = (props: Props): React.JSX.Element => {
   }, [animationIndex, meshes, meshesRenderData, modelData])
 
   // Mesh container
-  const container = React.useMemo(() => createContainer(meshes), [meshes])
+  const container = React.useMemo(
+    () => createContainer(meshes, props.presentationRotation),
+    [meshes, props.presentationRotation]
+  )
 
   // Renderer-native static fallback for legacy material/morph pipelines that
   // fail to issue draw calls in modern module-based builds.
@@ -429,23 +456,33 @@ export const Renderer = (props: Props): React.JSX.Element => {
     }
 
     const fieldOfViewRadians = THREE.Math.degToRad(camera.fov)
-    const distance = (radius / Math.tan(fieldOfViewRadians / 2)) * 1.35
+    const distance =
+      (radius / Math.tan(fieldOfViewRadians / 2)) * (props.camera?.distanceMultiplier ?? 1.35)
 
     camera.near = props.camera?.near ?? Math.max(distance / 1_000, 0.01)
     camera.far = props.camera?.far ?? Math.max(distance * 10, 1_000)
 
     const target = props.camera?.target ? new THREE.Vector3(...props.camera.target) : center
+    const direction = props.camera?.direction
+      ? new THREE.Vector3(...props.camera.direction).normalize()
+      : new THREE.Vector3(0, 0, 1)
     const position = props.camera?.position
       ? new THREE.Vector3(...props.camera.position)
-      : new THREE.Vector3(center.x, center.y, center.z + distance)
+      : center.clone().add(direction.multiplyScalar(distance))
 
     camera.position.copy(position)
     camera.lookAt(target)
     camera.updateProjectionMatrix()
+    orbitDistance.current = camera.position.distanceTo(target)
 
     if (orbitControls) {
       orbitControls.target.copy(target)
       orbitControls.update()
+      if (props.orbitAngleLimit !== undefined) {
+        const initialAzimuth = orbitControls.getAzimuthalAngle()
+        orbitControls.minAzimuthAngle = Math.max(-Math.PI, initialAzimuth - props.orbitAngleLimit)
+        orbitControls.maxAzimuthAngle = Math.min(Math.PI, initialAzimuth + props.orbitAngleLimit)
+      }
     }
 
     console.info('[HLMV] Model framed in camera', {
@@ -458,7 +495,15 @@ export const Renderer = (props: Props): React.JSX.Element => {
       distance: Math.round(distance * 100) / 100,
       cameraPosition: camera.position.toArray()
     })
-  }, [camera, container, fallbackContainer, orbitControls, props.camera, usesFixedSequenceFallback])
+  }, [
+    camera,
+    container,
+    fallbackContainer,
+    orbitControls,
+    props.camera,
+    props.orbitAngleLimit,
+    usesFixedSequenceFallback
+  ])
 
   // Updating animation frame
   useAnimationFrame(() => {
@@ -470,6 +515,14 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
     if (orbitControls) {
       orbitControls.update()
+      if (props.lockCameraDistance && orbitDistance.current) {
+        const offset = camera.position.clone().sub(orbitControls.target)
+        if (offset.lengthSq() > 0) {
+          camera.position.copy(
+            orbitControls.target.clone().add(offset.setLength(orbitDistance.current))
+          )
+        }
+      }
     }
 
     const delta = timer.getDelta()

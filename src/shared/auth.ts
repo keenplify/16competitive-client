@@ -19,6 +19,7 @@ export interface AuthPlayer {
   username: string
   email: string
   mmr: number
+  points: number
   createdAt: string
 }
 

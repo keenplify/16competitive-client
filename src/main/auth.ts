@@ -78,6 +78,7 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     typeof (player as Record<string, unknown>).username === 'string' &&
     typeof (player as Record<string, unknown>).email === 'string' &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
+    typeof (player as Record<string, unknown>).points === 'number' &&
     typeof (player as Record<string, unknown>).createdAt === 'string'
   )
 }

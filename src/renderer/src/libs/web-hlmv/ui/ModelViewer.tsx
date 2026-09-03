@@ -3,6 +3,10 @@ import { twMerge } from 'tailwind-merge'
 import { Renderer, type ModelViewerCamera } from './Renderer'
 
 type ModelViewerProps = {
+  /** Model bytes obtained through a narrow, authenticated API. */
+  modelBuffer?: ArrayBuffer
+  /** Stable identity for a model buffer, used when changing previews. */
+  modelKey?: string
   /** A renderer-accessible HTTP(S) or imported asset URL. */
   modelUrl?: string
   /** An MDL path relative to Counter-Strike's models directory. */
@@ -13,6 +17,16 @@ type ModelViewerProps = {
   animation?: string | number
   /** Caps canvas rendering while keeping the animation time in sync. */
   maxFrameRate?: number
+  /** Rotation in degrees that affects only this model's initial presentation. */
+  presentationRotation?: readonly [number, number, number]
+  /** Turns off dolly/scroll zoom while retaining the viewer's normal drag controls. */
+  disableZoom?: boolean
+  /** Keeps a preview's orbit radius fixed while dragging. */
+  lockCameraDistance?: boolean
+  /** Limits horizontal orbit around the initial face; use for constrained previews. */
+  orbitAngleLimit?: number
+  /** Multiplier for drag rotation speed. */
+  rotateSpeed?: number
   className?: string
 }
 
@@ -22,15 +36,26 @@ type ModelViewerProps = {
  * Electron main process and be exposed through a narrow preload API first.
  */
 export function ModelViewer({
+  modelBuffer,
+  modelKey,
   modelUrl,
   modelPath,
   camera,
   cameraLocked = false,
   animation,
   maxFrameRate,
+  presentationRotation,
+  disableZoom = false,
+  lockCameraDistance = false,
+  orbitAngleLimit,
+  rotateSpeed,
   className
 }: ModelViewerProps): JSX.Element {
-  const sourceKey = modelPath ? `path:${modelPath}` : `url:${modelUrl ?? ''}`
+  const sourceKey = modelBuffer
+    ? `buffer:${modelKey ?? 'default'}`
+    : modelPath
+      ? `path:${modelPath}`
+      : `url:${modelUrl ?? ''}`
   const [loadedModel, setLoadedModel] = useState<{
     sourceKey: string
     buffer: ArrayBuffer
@@ -39,19 +64,25 @@ export function ModelViewer({
 
   useEffect(() => {
     const abortController = new AbortController()
-    const requestedSourceKey = modelPath ? `path:${modelPath}` : `url:${modelUrl ?? ''}`
+    const requestedSourceKey = modelBuffer
+      ? `buffer:${modelKey ?? 'default'}`
+      : modelPath
+        ? `path:${modelPath}`
+        : `url:${modelUrl ?? ''}`
 
-    const modelRequest = modelPath
-      ? window.api.models.read(modelPath)
-      : modelUrl
-        ? fetch(modelUrl, { signal: abortController.signal }).then((response) => {
-            if (!response.ok) {
-              throw new Error(`Could not load model (${response.status})`)
-            }
+    const modelRequest = modelBuffer
+      ? Promise.resolve(modelBuffer)
+      : modelPath
+        ? window.api.models.read(modelPath)
+        : modelUrl
+          ? fetch(modelUrl, { signal: abortController.signal }).then((response) => {
+              if (!response.ok) {
+                throw new Error(`Could not load model (${response.status})`)
+              }
 
-            return response.arrayBuffer()
-          })
-        : Promise.reject(new Error('ModelViewer requires modelUrl or modelPath'))
+              return response.arrayBuffer()
+            })
+          : Promise.reject(new Error('ModelViewer requires modelUrl or modelPath'))
 
     void modelRequest
       .then((buffer) => {
@@ -68,7 +99,7 @@ export function ModelViewer({
       })
 
     return () => abortController.abort()
-  }, [modelPath, modelUrl])
+  }, [modelBuffer, modelKey, modelPath, modelUrl])
 
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>
@@ -79,6 +110,11 @@ export function ModelViewer({
           cameraLocked={cameraLocked}
           animation={animation}
           maxFrameRate={maxFrameRate}
+          presentationRotation={presentationRotation}
+          disableZoom={disableZoom}
+          lockCameraDistance={lockCameraDistance}
+          orbitAngleLimit={orbitAngleLimit}
+          rotateSpeed={rotateSpeed}
           className="h-full w-full"
           setModelController={() => undefined}
           setModelData={() => undefined}

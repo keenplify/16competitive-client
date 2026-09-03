@@ -11,7 +11,7 @@ import type {
 
 const teamName = (team: string): string => (team === 'team_1' ? 'Team A' : 'Team B')
 
-export function MatchHistoryPage(): JSX.Element {
+export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }): JSX.Element {
   const player = useAuthStore((state) => state.session?.player)
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -268,14 +268,20 @@ export function MatchHistoryPage(): JSX.Element {
   }
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] w-full bg-black/60 p-6 text-white sm:p-10">
-      <div className="mx-auto w-full max-w-5xl">
-        <header className="border-b border-white/10 pb-6">
-          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
-          <h1 className="mt-2 text-3xl font-semibold">{player?.username ?? 'Player'}</h1>
-          <p className="mt-2 text-sm text-neutral-400">Match history</p>
-        </header>
-        <section className="mt-8 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
+    <main
+      className={
+        showHeader ? 'min-h-[calc(100vh-5rem)] w-full bg-black/60 p-6 text-white sm:p-10' : 'w-full'
+      }
+    >
+      <div className={showHeader ? 'mx-auto w-full max-w-5xl' : 'w-full'}>
+        {showHeader && (
+          <header className="border-b border-white/10 pb-6">
+            <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
+            <h1 className="mt-2 text-3xl font-semibold">{player?.username ?? 'Player'}</h1>
+            <p className="mt-2 text-sm text-neutral-400">Match history</p>
+          </header>
+        )}
+        <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
           <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-bold tracking-wide text-neutral-500 uppercase">
             <span>Match</span>
             <span>Result</span>

@@ -130,6 +130,9 @@ export const launchCounterStrikeForMatch = async (input: {
     [
       `name "${playerName}"`,
       `setinfo "_16c" "${input.joinToken}"`,
+      'cl_allowdownload "1"',
+      'cl_download_ingame "1"',
+      'cl_downloadfilter "all"',
       `password "${input.password}"`,
       // This GoldSrc build retains quotes around the connect argument and then
       // rejects the otherwise valid endpoint as a bad server address.
@@ -140,7 +143,20 @@ export const launchCounterStrikeForMatch = async (input: {
   )
   await rename(temporaryMatchConfigPath, matchConfigPath)
   launchedMatchConfigPath = matchConfigPath
-  const gameArgs = ['-game', 'cstrike', '+exec', matchConfigName]
+  // Some Steam/Linux builds do not execute a freshly-created +exec file
+  // before their first server handshake. Pass the identity directly as well;
+  // the config remains the source for password/connect and Windows fallback.
+  const gameArgs = [
+    '-game',
+    'cstrike',
+    '+setinfo',
+    '_16c',
+    input.joinToken,
+    '+gl_max_size',
+    '1024',
+    '+exec',
+    matchConfigName
+  ]
   // Steam forwards the remaining app arguments directly to hl.sh. Do not add
   // `--`: Steam passes it through to GoldSrc as an actual engine argument.
   const launchArgs = launchViaSteam ? ['-applaunch', '10', ...gameArgs] : gameArgs
@@ -148,7 +164,7 @@ export const launchCounterStrikeForMatch = async (input: {
   console.info('[GameLaunch] starting Counter-Strike', {
     executable: launchExecutable,
     cwd,
-    args: launchArgs
+    args: launchArgs.map((argument) => (argument === input.joinToken ? '[redacted]' : argument))
   })
   const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
     const child = spawn(launchExecutable, launchArgs, {

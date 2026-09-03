@@ -7,14 +7,22 @@ const OrbitControls = orbitControlsCreator(THREE)
  * Creates orbit controller
  * @param domElement HTML canvas element
  */
-export const createOrbitControls = (camera: THREE.Camera, domElement?: HTMLElement) => {
+export const createOrbitControls = (
+  camera: THREE.Camera,
+  domElement?: HTMLElement,
+  disableZoom = false,
+  disablePan = false,
+  rotateSpeed?: number
+) => {
   if (!domElement) {
     throw new Error('Orbit controls require a DOM element')
   }
 
   const orbit = new OrbitControls(camera, domElement)
 
-  orbit.enableZoom = true
+  orbit.enableZoom = !disableZoom
+  orbit.enablePan = !disablePan
+  if (rotateSpeed !== undefined) orbit.rotateSpeed = rotateSpeed
 
   return orbit
 }

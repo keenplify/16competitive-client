@@ -14,7 +14,8 @@ import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
 import { SettingsPage } from '../settings/SettingsPage'
-import { MatchHistoryPage } from '../profile/MatchHistoryPage'
+import { ProfilePage } from '../profile/ProfilePage'
+import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
@@ -135,7 +136,9 @@ export function LobbyPage(): JSX.Element {
   ) : page === 'settings' ? (
     <SettingsPage />
   ) : page === 'profile' ? (
-    <MatchHistoryPage />
+    <ProfilePage />
+  ) : page === 'store' ? (
+    <ShopPage />
   ) : page === 'news' ? (
     <NewsPage />
   ) : page === 'lobby' ? null : (

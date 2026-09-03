@@ -7,6 +7,7 @@ import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import dust2Preview from '../../assets/dust2.jpg'
+import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { TeamRoster } from './TeamRoster'
 
 const connectionLabels = {
@@ -124,37 +125,36 @@ export function PlayPage(): JSX.Element {
   const canQueueSelectedMode = selectedMode !== '3v3' || partySize <= 3
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
 
-  if (
-    match &&
-    ['ready_check', 'countdown', 'starting_server', 'server_ready'].includes(queueStatus)
-  ) {
+  if (match && queueStatus === 'ready_check') {
+    return (
+      <MatchFoundReadyCheck
+        acceptedPlayerIds={acceptedPlayerIds}
+        match={match}
+        playersRequired={readyPlayersRequired}
+        readyResponse={readyResponse}
+        secondsRemaining={secondsToAccept}
+        onAccept={() => void respondReady(true)}
+        onDecline={() => void respondReady(false)}
+      />
+    )
+  }
+
+  if (match && ['countdown', 'starting_server', 'server_ready'].includes(queueStatus)) {
     return (
       <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/95 p-5 text-white sm:p-10">
         <div className="w-full max-w-5xl">
           <div className="text-center">
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
-              {queueStatus === 'ready_check'
-                ? 'Match found'
-                : queueStatus === 'countdown'
-                  ? 'All players ready'
-                  : queueStatus === 'starting_server'
-                    ? 'Preparing server'
-                    : 'Server ready'}
+              {queueStatus === 'countdown'
+                ? 'All players ready'
+                : queueStatus === 'starting_server'
+                  ? 'Preparing server'
+                  : 'Server ready'}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">
               {maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} ·{' '}
               {match.mode}
             </h1>
-            {queueStatus === 'ready_check' && (
-              <>
-                <p className="mt-4 text-6xl font-black tabular-nums text-white">
-                  {secondsToAccept}
-                </p>
-                <p className="mt-2 text-sm text-neutral-400">
-                  {acceptedPlayerIds.length} / {readyPlayersRequired} players ready
-                </p>
-              </>
-            )}
             {queueStatus === 'countdown' && (
               <>
                 <p className="mt-4 text-7xl font-black tabular-nums text-sky-300">{countdown}</p>
@@ -184,30 +184,6 @@ export function PlayPage(): JSX.Element {
               readyPlayerIds={acceptedPlayerIds}
             />
           </div>
-
-          {queueStatus === 'ready_check' && (
-            <div className="mt-8 flex justify-center gap-3">
-              <Button
-                className="min-w-40 bg-emerald-500 hover:bg-emerald-400"
-                disabled={readyResponse !== 'pending'}
-                onClick={() => void respondReady(true)}
-              >
-                {readyResponse === 'accepted'
-                  ? 'Ready ✓'
-                  : readyResponse === 'sending'
-                    ? 'Sending…'
-                    : 'Accept'}
-              </Button>
-              <Button
-                className="min-w-32"
-                variant="ghost"
-                disabled={readyResponse !== 'pending'}
-                onClick={() => void respondReady(false)}
-              >
-                Decline
-              </Button>
-            </div>
-          )}
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">

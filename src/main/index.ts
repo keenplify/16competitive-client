@@ -27,6 +27,15 @@ import {
 } from './party'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
+import { SKIN_CHANNELS } from '../shared/skins'
+import {
+  equipSkin,
+  getOwnedSkins,
+  getSkinPreviewModel,
+  listSkins,
+  unequipSkin,
+  unlockSkin
+} from './skins'
 
 let mainWindow
 
@@ -122,6 +131,12 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
     getPlayerProfile(playerId)
   )
+  ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
+  ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
+  ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown) => unlockSkin(skinId))
+  ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
+  ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
+  ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown) => getSkinPreviewModel(skinId))
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
   )

@@ -13,6 +13,8 @@ import type { GameSettingsApi } from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
+import type { SkinsApi } from '../shared/skins'
+import { SKIN_CHANNELS } from '../shared/skins'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -75,7 +77,25 @@ const matchHistory: MatchHistoryApi = {
     ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getPlayerProfile, playerId)
 }
 
-const api = { auth, gameSettings, matchmaking, matchHistory, models, party, window: windowApi }
+const skins: SkinsApi = {
+  list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
+  mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
+  unlock: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId),
+  equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
+  unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
+  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId)
+}
+
+const api = {
+  auth,
+  gameSettings,
+  matchmaking,
+  matchHistory,
+  models,
+  party,
+  skins,
+  window: windowApi
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

@@ -329,7 +329,10 @@ export const createModelMeshes = (
 /**
  * Creates THREE.js object to render
  */
-export const createContainer = (meshes: THREE.Mesh[][][]) => {
+export const createContainer = (
+  meshes: THREE.Mesh[][][],
+  presentationRotation?: readonly [number, number, number]
+) => {
   const container = new THREE.Group()
 
   // Adding meshes to the container
@@ -347,6 +350,13 @@ export const createContainer = (meshes: THREE.Mesh[][][]) => {
   // Sets to display the front of the model
   container.rotation.x = THREE.Math.degToRad(-90)
   container.rotation.z = THREE.Math.degToRad(-90)
+
+  if (presentationRotation) {
+    const [x, y, z] = presentationRotation.map((degrees) => THREE.Math.degToRad(degrees))
+    container.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), x)
+    container.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), y)
+    container.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), z)
+  }
 
   // Sets to display model on the center of camera
   const boundingBox = new THREE.Box3().setFromObject(container)
