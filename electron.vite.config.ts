@@ -34,25 +34,25 @@ export default defineConfig(({ mode }) => {
     main: { define: mainProcessEnv },
     preload: {},
     renderer: {
-    resolve: {
-      extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'],
-      // web-hlmv was vendored with an old React 16 dependency tree. Resolve
-      // these packages once from the launcher to avoid mixing React runtimes
-      // and stale Vite-optimized dependency modules in the renderer.
-      dedupe: ['react', 'react-dom', 'styled-components', 'three', 'react-dropzone'],
-      alias: {
-        '@renderer': resolve('src/renderer/src'),
-        // Three checks objects with instanceof internally. Every viewer module
-        // must therefore receive this exact module instance.
-        three: resolve('node_modules/three/build/three.module.js')
-      }
-    },
-    plugins: [developmentCsp, react(), tailwindcss()],
-    // Do not prebundle a second copy that can bypass the explicit alias above.
-    optimizeDeps: {
-      exclude: ['three']
-    },
-    assetsInclude: ['**/*.mdl']
+      resolve: {
+        extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'],
+        // web-hlmv was vendored with an old React 16 dependency tree. Resolve
+        // these packages once from the launcher to avoid mixing React runtimes
+        // and stale Vite-optimized dependency modules in the renderer.
+        dedupe: ['react', 'react-dom', 'styled-components', 'three', 'react-dropzone'],
+        alias: {
+          '@renderer': resolve('src/renderer/src'),
+          // Three checks objects with instanceof internally. Every viewer module
+          // must therefore receive this exact module instance.
+          three: resolve('node_modules/three/build/three.module.js')
+        }
+      },
+      plugins: [developmentCsp, react(), tailwindcss()],
+      // Do not prebundle a second copy that can bypass the explicit alias above.
+      optimizeDeps: {
+        exclude: ['three']
+      },
+      assetsInclude: ['**/*.mdl']
     }
   }
 })
