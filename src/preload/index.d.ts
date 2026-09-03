@@ -6,6 +6,7 @@ import type { PartyApi } from '../shared/party'
 import type { GameSettingsApi } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
+import type { UpdaterApi } from '../shared/updater'
 
 declare global {
   interface Window {
@@ -17,6 +18,7 @@ declare global {
       skins: SkinsApi
       models: ModelApi
       party: PartyApi
+      updater: UpdaterApi
       window: WindowApi
     }
   }

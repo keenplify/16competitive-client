@@ -37,6 +37,8 @@ import {
   unlockSkin
 } from './skins'
 import { checkForAppUpdates } from './updater'
+import { getAppUpdateStatus, restartAndInstallUpdate } from './updater'
+import { UPDATE_CHANNELS } from '../shared/updater'
 
 let mainWindow
 
@@ -174,6 +176,8 @@ app.whenReady().then(() => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.save, (_, executablePath: unknown) =>
     saveGameSettings(executablePath)
   )
+  ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
+  ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
 
   createWindow()
   checkForAppUpdates()

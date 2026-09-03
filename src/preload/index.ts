@@ -15,6 +15,8 @@ import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
 import { SKIN_CHANNELS } from '../shared/skins'
+import type { UpdaterApi } from '../shared/updater'
+import { UPDATE_CHANNELS } from '../shared/updater'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -86,6 +88,19 @@ const skins: SkinsApi = {
   previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId)
 }
 
+const updater: UpdaterApi = {
+  getStatus: () => ipcRenderer.invoke(UPDATE_CHANNELS.getStatus),
+  restartAndInstall: () => ipcRenderer.invoke(UPDATE_CHANNELS.restartAndInstall),
+  onStatus: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      status: Parameters<typeof listener>[0]
+    ): void => listener(status)
+    ipcRenderer.on(UPDATE_CHANNELS.status, handler)
+    return () => ipcRenderer.removeListener(UPDATE_CHANNELS.status, handler)
+  }
+}
+
 const api = {
   auth,
   gameSettings,
@@ -94,6 +109,7 @@ const api = {
   models,
   party,
   skins,
+  updater,
   window: windowApi
 }
 
