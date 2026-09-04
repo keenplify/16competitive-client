@@ -3,6 +3,7 @@ import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'no
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable } from './game-settings'
 import { getSessionUsername } from '../auth'
+import { resolveCs16LaunchTarget } from './cs16-installation'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -109,11 +110,7 @@ export const launchCounterStrikeForMatch = async (input: {
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
-  // Let Steam launch the installed client on Linux. GoldSrc's direct binary
-  // startup differs across Steam builds and can crash before the client
-  // initializes; Steam owns the supported runtime selection for app 10.
-  const launchViaSteam = process.platform === 'linux'
-  const launchExecutable = launchViaSteam ? 'steam' : executable
+  const launchTarget = await resolveCs16LaunchTarget(executable)
   // GoldSrc reparses Steam's forwarded command line and treats hyphens as
   // launch-option boundaries, even when they occur inside a single argv item.
   // Keep the exec filename option-safe and put all secrets in this mode-0600
@@ -130,6 +127,7 @@ export const launchCounterStrikeForMatch = async (input: {
     [
       `name "${playerName}"`,
       `setinfo "_16c" "${input.joinToken}"`,
+      `gl_max_size "${launchTarget.textureSize}"`,
       'cl_allowdownload "1"',
       'cl_download_ingame "1"',
       'cl_downloadfilter "all"',
@@ -146,28 +144,39 @@ export const launchCounterStrikeForMatch = async (input: {
   // Some Steam/Linux builds do not execute a freshly-created +exec file
   // before their first server handshake. Pass the identity directly as well;
   // the config remains the source for password/connect and Windows fallback.
-  const gameArgs = [
-    '-game',
-    'cstrike',
-    '+setinfo',
-    '_16c',
-    input.joinToken,
-    '+gl_max_size',
-    '1024',
-    '+exec',
-    matchConfigName
-  ]
-  // Steam forwards the remaining app arguments directly to hl.sh. Do not add
-  // `--`: Steam passes it through to GoldSrc as an actual engine argument.
-  const launchArgs = launchViaSteam ? ['-applaunch', '10', ...gameArgs] : gameArgs
+  const gameArgs =
+    launchTarget.distribution === 'standalone'
+      ? [
+          '-game',
+          'cstrike',
+          '-noforcemparms',
+          '-noforcemaccel',
+          '+exec',
+          matchConfigName
+        ]
+      : [
+          '-game',
+          'cstrike',
+          '+setinfo',
+          '_16c',
+          input.joinToken,
+          '+gl_max_size',
+          launchTarget.textureSize,
+          '+exec',
+          matchConfigName
+        ]
+  // Steam forwards the remaining app arguments directly to GoldSrc. Do not
+  // add `--`: Steam passes it through as an actual engine argument.
+  const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
   console.info('[GameLaunch] starting Counter-Strike', {
-    executable: launchExecutable,
+    distribution: launchTarget.distribution,
+    executable: launchTarget.executable,
     cwd,
     args: launchArgs.map((argument) => (argument === input.joinToken ? '[redacted]' : argument))
   })
   const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
-    const child = spawn(launchExecutable, launchArgs, {
+    const child = spawn(launchTarget.executable, launchArgs, {
       cwd,
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -175,7 +184,7 @@ export const launchCounterStrikeForMatch = async (input: {
         ...process.env,
         // The non-Steam fallback needs the same libraries as hl.sh.
         LD_LIBRARY_PATH:
-          process.platform === 'linux' && !launchViaSteam
+          process.platform === 'linux' && !launchTarget.usesLauncherHandoff
             ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
             : process.env.LD_LIBRARY_PATH
       }
@@ -193,10 +202,15 @@ export const launchCounterStrikeForMatch = async (input: {
   gameProcess.stdout?.on('data', appendGameOutput)
   gameProcess.stderr?.on('data', appendGameOutput)
   spawnedProcess.once('exit', (code, signal) => {
-    if (launchViaSteam) {
-      // The Steam CLI intentionally exits after handing the request to the
-      // running Steam client. Its lifecycle is not the game's lifecycle.
-      console.info('[GameLaunch] Steam handoff completed', { matchId: input.matchId, code, signal })
+    if (launchTarget.usesLauncherHandoff) {
+      // Steam and some standalone launchers exit after starting the actual
+      // GoldSrc process. Keep the match config in place for that child process.
+      console.info('[GameLaunch] launcher handoff completed', {
+        matchId: input.matchId,
+        distribution: launchTarget.distribution,
+        code,
+        signal
+      })
       if (gameProcess === spawnedProcess) gameProcess = null
       return
     }
