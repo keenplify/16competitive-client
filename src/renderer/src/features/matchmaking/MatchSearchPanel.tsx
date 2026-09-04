@@ -42,7 +42,7 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const selectedMap = maps.find((map) => map.id === selectedMapId)
   const searchScope =
     elapsedSeconds >= 180
-      ? 'Waiting for players or bot autofill'
+      ? 'Waiting for players'
       : elapsedSeconds >= 90 && allowRegionExpansion
         ? 'Searching other regions'
         : `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
