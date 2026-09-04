@@ -74,10 +74,14 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+      - name: Extract release notes from changelog
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/extract-release-notes.mjs "$RELEASE_TAG" > release-notes.md
       - name: Create GitHub Release and upload updater metadata
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: >-
           gh release create "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY"
-          --title "$RELEASE_TAG" --generate-notes
+          --title "$RELEASE_TAG" --notes-file release-notes.md
