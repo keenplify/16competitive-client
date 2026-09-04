@@ -12,6 +12,11 @@ import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 
 const teamName = (team: string): string => (team === 'team_1' ? 'Team A' : 'Team B')
 
+const formatMmr = (before: number | null, after: number | null, change: number | null): string => {
+  if (before === null || after === null || change === null || before === after) return 'Unranked'
+  return `${before} → ${after} (${change >= 0 ? '+' : ''}${change})`
+}
+
 export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }): JSX.Element {
   const player = useAuthStore((state) => state.session?.player)
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([])
@@ -228,20 +233,34 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                     <h2 className="border-b border-white/10 px-5 py-3 text-sm font-semibold">
                       {teamName(id)}
                     </h2>
-                    <div className="grid grid-cols-[1fr_auto] gap-4 px-5 py-2 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+                    <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-5 py-2 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
                       <span>Player</span>
                       <span>K / A / D</span>
+                      <span>MMR</span>
                     </div>
                     {players.map((entry) => (
                       <div
                         key={entry.id}
-                        className="grid cursor-context-menu grid-cols-[1fr_auto] gap-4 border-t border-white/10 px-5 py-3 text-sm transition hover:bg-white/5"
+                        className="grid cursor-context-menu grid-cols-[1fr_auto_auto] gap-4 border-t border-white/10 px-5 py-3 text-sm transition hover:bg-white/5"
                         onContextMenu={(event) => showPlayerMenu(event, entry)}
                         title="Right-click to view profile"
                       >
                         <span className="font-medium">{entry.username}</span>
                         <span className="font-mono tabular-nums text-neutral-300">
                           {entry.kills} / {entry.assists} / {entry.deaths}
+                        </span>
+                        <span
+                          className={`font-mono text-xs font-semibold tabular-nums ${
+                            entry.mmrChange && entry.mmrChange > 0
+                              ? 'text-emerald-400'
+                              : entry.mmrChange && entry.mmrChange < 0
+                                ? 'text-rose-300'
+                                : 'text-neutral-400'
+                          }`}
+                        >
+                          {summary.mode === 'casual'
+                            ? 'Unranked'
+                            : formatMmr(entry.mmrBefore, entry.mmrAfter, entry.mmrChange)}
                         </span>
                       </div>
                     ))}
@@ -287,10 +306,11 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
           </header>
         )}
         <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
-          <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-bold tracking-wide text-neutral-500 uppercase">
+          <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.7fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-bold tracking-wide text-neutral-500 uppercase">
             <span>Match</span>
             <span>Result</span>
             <span>Score</span>
+            <span>MMR</span>
             <span>Date</span>
           </div>
           {status === 'loading' ? (
@@ -311,7 +331,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
               <button
                 key={match.id}
                 type="button"
-                className="grid w-full grid-cols-[1fr_0.8fr_0.8fr_0.8fr] gap-4 border-b border-white/10 px-5 py-4 text-left text-sm transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none last:border-0"
+                className="grid w-full grid-cols-[1fr_0.8fr_0.8fr_0.7fr_0.8fr] gap-4 border-b border-white/10 px-5 py-4 text-left text-sm transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none last:border-0"
                 onClick={() => openSummary(match)}
               >
                 <span className="font-medium uppercase">
@@ -328,6 +348,21 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                   </span>
                 </span>
                 <span>{match.score}</span>
+                <span
+                  className={
+                    match.mode === 'casual' || match.mmrChange === null
+                      ? 'text-neutral-500'
+                      : match.mmrChange > 0
+                        ? 'font-mono font-semibold text-emerald-400'
+                        : match.mmrChange < 0
+                          ? 'font-mono font-semibold text-rose-300'
+                          : 'font-mono text-neutral-400'
+                  }
+                >
+                  {match.mode === 'casual' || match.mmrChange === null
+                    ? '—'
+                    : `${match.mmrChange >= 0 ? '+' : ''}${match.mmrChange}`}
+                </span>
                 <span className="text-neutral-400">
                   {new Date(match.completedAt).toLocaleDateString()}
                 </span>

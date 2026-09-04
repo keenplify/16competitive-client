@@ -161,7 +161,16 @@ export type MatchmakingServerMessage =
       winner: 1 | 2
       teamAScore: number
       teamBScore: number
-      players: { id: string; username: string; kills: number; deaths: number; assists: number }[]
+      players: {
+        id: string
+        username: string
+        kills: number
+        deaths: number
+        assists: number
+        mmrBefore: number
+        mmrAfter: number
+        mmrChange: number
+      }[]
     }
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }

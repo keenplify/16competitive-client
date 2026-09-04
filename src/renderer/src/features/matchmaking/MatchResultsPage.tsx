@@ -181,6 +181,7 @@ function Team({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {players.map((p) => {
           const playerStats = stats.find((item) => item.id === p.id)
+          const ratedMatch = playerStats && playerStats.mmrBefore !== playerStats.mmrAfter
           return (
             <article
               key={p.id}
@@ -194,6 +195,22 @@ function Team({
                 {playerStats
                   ? `${playerStats.kills} / ${playerStats.assists} / ${playerStats.deaths}`
                   : '— / — / —'}
+              </p>
+              <p className="mt-3 text-xs text-neutral-500">MMR</p>
+              <p
+                className={`font-mono text-sm font-semibold tabular-nums ${
+                  ratedMatch
+                    ? playerStats.mmrChange > 0
+                      ? 'text-emerald-400'
+                      : 'text-rose-300'
+                    : 'text-neutral-400'
+                }`}
+              >
+                {playerStats
+                  ? ratedMatch
+                    ? `${playerStats.mmrBefore} → ${playerStats.mmrAfter} (${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange})`
+                    : 'Unranked'
+                  : '—'}
               </p>
               <p className="mt-3 text-xs text-neutral-500">HS% — · ADR —</p>
               <p className="mt-4 text-xs text-neutral-400">Award pending</p>

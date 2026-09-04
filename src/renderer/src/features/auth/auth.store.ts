@@ -20,6 +20,7 @@ interface AuthState {
   restore: () => Promise<void>
   refreshSession: () => Promise<void>
   logout: () => Promise<void>
+  setMmr: (mmr: number) => void
   setPoints: (points: number) => void
 }
 
@@ -71,6 +72,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set((state) =>
       state.session
         ? { session: { ...state.session, player: { ...state.session.player, points } } }
+        : state
+    ),
+  setMmr: (mmr) =>
+    set((state) =>
+      state.session
+        ? { session: { ...state.session, player: { ...state.session.player, mmr } } }
         : state
     ),
 

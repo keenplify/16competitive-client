@@ -16,6 +16,9 @@ export interface MatchHistoryEntry {
   kills: number
   deaths: number
   assists: number
+  mmrBefore: number | null
+  mmrAfter: number | null
+  mmrChange: number | null
 }
 
 export interface MatchSummaryPlayer {
@@ -26,6 +29,9 @@ export interface MatchSummaryPlayer {
   kills: number
   deaths: number
   assists: number
+  mmrBefore: number | null
+  mmrAfter: number | null
+  mmrChange: number | null
 }
 
 export interface MatchSummary {

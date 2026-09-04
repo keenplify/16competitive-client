@@ -33,7 +33,16 @@ export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'
   winner: 1 | 2
   teamAScore: number
   teamBScore: number
-  players: { id: string; username: string; kills: number; deaths: number; assists: number }[]
+  players: {
+    id: string
+    username: string
+    kills: number
+    deaths: number
+    assists: number
+    mmrBefore: number
+    mmrAfter: number
+    mmrChange: number
+  }[]
 }
 
 interface MatchmakingState {
@@ -204,6 +213,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ gameExited: true })
         break
       case 'match_finished':
+        {
+          const currentPlayerId = useAuthStore.getState().session?.player.id
+          const currentPlayer = event.players.find((player) => player.id === currentPlayerId)
+          if (currentPlayer) useAuthStore.getState().setMmr(currentPlayer.mmrAfter)
+        }
         set({
           queueStatus: 'idle',
           queueStartedAt: null,
@@ -222,9 +236,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           connectionDetails: null,
           error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
         })
-        if (event.mode === '5v5') {
-          window.setTimeout(() => void useAuthStore.getState().refreshSession(), 500)
-        }
+        window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
       case 'match_cancelled':
         set({

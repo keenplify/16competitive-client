@@ -70,7 +70,10 @@ const isMatchPlayerStats = (value: unknown): boolean => {
     typeof player.username === 'string' &&
     typeof player.kills === 'number' &&
     typeof player.deaths === 'number' &&
-    typeof player.assists === 'number'
+    typeof player.assists === 'number' &&
+    Number.isInteger(player.mmrBefore) &&
+    Number.isInteger(player.mmrAfter) &&
+    Number.isInteger(player.mmrChange)
   )
 }
 
