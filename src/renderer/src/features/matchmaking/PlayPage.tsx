@@ -225,9 +225,14 @@ export function PlayPage(): JSX.Element {
           <p className="mt-3 text-sm text-emerald-100/70">
             The game server is available at {connectionDetails.host}:{connectionDetails.port}.
           </p>
+          <MatchAssetPreparation
+            className="mx-auto mt-5 max-w-md text-left"
+            preparation={assetPreparation}
+          />
           <Button className="mt-6" onClick={() => void reconnectGame()}>
-            Reconnect to match
+            {assetPreparation.status === 'ready' ? 'Reconnect to match' : 'Prepare and reconnect'}
           </Button>
+          {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
         </section>
       </main>
     )

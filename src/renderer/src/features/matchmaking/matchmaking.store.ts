@@ -61,7 +61,7 @@ interface MatchmakingState {
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   countdown: number | null
   assetPreparation: AssetPreparation
-  connectionDetails: { host: string; port: number; password: string } | null
+  connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
   error: string | null
   connect: () => Promise<void>
@@ -154,7 +154,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'match_assets_progress':
         set((state) =>
-          state.match?.matchId === event.matchId
+          state.match?.matchId === event.matchId ||
+          state.connectionDetails?.matchId === event.matchId
             ? {
                 assetPreparation: {
                   status: event.status,
@@ -191,6 +192,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({
           queueStatus: 'server_ready',
           connectionDetails: {
+            matchId: event.matchId,
             host: event.host,
             port: event.port,
             password: event.password

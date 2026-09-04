@@ -141,30 +141,10 @@ export const launchCounterStrikeForMatch = async (input: {
   )
   await rename(temporaryMatchConfigPath, matchConfigPath)
   launchedMatchConfigPath = matchConfigPath
-  // Some Steam/Linux builds do not execute a freshly-created +exec file
-  // before their first server handshake. Pass the identity directly as well;
-  // the config remains the source for password/connect and Windows fallback.
   const gameArgs =
     launchTarget.distribution === 'standalone'
-      ? [
-          '-game',
-          'cstrike',
-          '-noforcemparms',
-          '-noforcemaccel',
-          '+exec',
-          matchConfigName
-        ]
-      : [
-          '-game',
-          'cstrike',
-          '+setinfo',
-          '_16c',
-          input.joinToken,
-          '+gl_max_size',
-          launchTarget.textureSize,
-          '+exec',
-          matchConfigName
-        ]
+      ? ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel', '+exec', matchConfigName]
+      : ['+exec', matchConfigName]
   // Steam forwards the remaining app arguments directly to GoldSrc. Do not
   // add `--`: Steam passes it through as an actual engine argument.
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]

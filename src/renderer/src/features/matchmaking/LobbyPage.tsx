@@ -89,7 +89,7 @@ export function LobbyPage(): JSX.Element {
   ].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const handleNavigate = (nextPage: LobbyPageId): void => {
-    if (matchNavigationLocked) return
+    if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     navigate(nextPage)
   }
@@ -128,10 +128,11 @@ export function LobbyPage(): JSX.Element {
   }, [installationReady, navigate, page])
 
   useEffect(() => {
+    const currentPage = useNavigationStore.getState().page
     if (queueStatus !== 'idle' && queueStatus !== 'joining' && queueStatus !== 'leaving') {
-      navigate('play')
+      if (currentPage !== 'settings') navigate('play')
     }
-    if (queueStatus === 'queued') navigate('lobby')
+    if (queueStatus === 'queued' && currentPage !== 'settings') navigate('lobby')
   }, [navigate, queueStatus])
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />

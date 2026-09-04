@@ -65,15 +65,14 @@ export function LobbyNavigation({
     <nav
       className={twMerge(
         'flex h-16 w-full overflow-hidden bg-gray-950/70 backdrop-blur-md sm:h-20',
-        locked && 'pointer-events-none',
         className
       )}
-      aria-disabled={locked}
     >
       <button
         type="button"
-        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label="Open party lobby"
+        disabled={locked}
         onClick={() => onNavigate('lobby')}
       >
         <Logo />
@@ -86,6 +85,7 @@ export function LobbyNavigation({
             activePage !== 'lobby' ? 'opacity-100' : 'opacity-0'
           )}
           aria-label="Back to Lobby"
+          disabled={locked}
           onClick={() => onNavigate('lobby')}
         >
           <ChevronLeft size="1.25em" /> Back to Lobby
@@ -113,6 +113,7 @@ export function LobbyNavigation({
             key={id}
             page={id}
             active={activePage === id}
+            disabled={locked && id !== 'settings' && id !== 'play'}
             onClick={(element) => {
               onNavigate(id)
               updateIndicator(element)
@@ -126,40 +127,28 @@ export function LobbyNavigation({
   )
 }
 
-function PageButton({ children, page, active, onClick }: PageButtonProps): JSX.Element {
+function PageButton({ children, page, active, disabled, onClick }: PageButtonProps): JSX.Element {
   const buttonRef = useRef<HTMLLIElement>(null)
 
   return (
-    <li
-      ref={buttonRef}
-      data-page={page}
-      onClick={() => {
-        if (buttonRef.current) {
-          onClick?.(buttonRef.current)
-        }
-      }}
-      className={`
-        relative
-        flex
-        cursor-pointer
-        items-center
-        justify-center
-        px-3
-        sm:px-6
-        py-2
-        text-sm
-        sm:text-xl
-        font-bold
-        ${active ? 'text-blue-400' : 'text-white'}
-        hover:text-blue-100
-        active:text-blue-200
-      `}
-    >
-      {active && (
-        <span className="nav-active-bg pointer-events-none absolute inset-x-0 bottom-0 z-0" />
-      )}
+    <li ref={buttonRef} data-page={page} className="relative flex">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (buttonRef.current) onClick?.(buttonRef.current)
+        }}
+        className={twMerge(
+          'relative flex cursor-pointer items-center justify-center px-3 py-2 text-sm font-bold text-white hover:text-blue-100 active:text-blue-200 disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:text-xl',
+          active && 'text-blue-400'
+        )}
+      >
+        {active && (
+          <span className="nav-active-bg pointer-events-none absolute inset-x-0 bottom-0 z-0" />
+        )}
 
-      <span className="relative z-10">{children}</span>
+        <span className="relative z-10">{children}</span>
+      </button>
     </li>
   )
 }
@@ -168,5 +157,6 @@ interface PageButtonProps {
   children: ReactNode
   page: Exclude<LobbyPageId, 'lobby'>
   active?: boolean
+  disabled?: boolean
   onClick?: (element: HTMLElement) => void
 }

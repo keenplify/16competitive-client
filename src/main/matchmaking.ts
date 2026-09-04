@@ -325,11 +325,27 @@ class MatchmakingConnection {
   async reconnectGame(): Promise<void> {
     if (!this.lastConnection) throw new Error('No previous match connection is available')
     const connection = this.lastConnection
+    try {
+      await waitForMatchAssetPreload(connection.matchId)
+    } catch {
+      // Recovery after a launcher restart has no in-memory preload. A previous
+      // attempt may also have failed, so replace it with a fresh verified run.
+      clearMatchAssetPreload(connection.matchId)
+      await this.prepareMatchAssets(connection.matchId)
+    }
     await launchCounterStrikeForMatch({
       ...connection,
       onExit: ({ code, signal }) =>
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
     })
+  }
+
+  private prepareMatchAssets(matchId: string): Promise<void> {
+    const hostApiUrl = this.activeApiUrl ?? this.hostApiUrl
+    if (!hostApiUrl) throw new Error('The match asset server is unavailable.')
+    return startMatchAssetPreload(matchId, hostApiUrl, (progress) =>
+      this.notify({ type: 'match_assets_progress', matchId, ...progress })
+    )
   }
 
   private openSocket(reconnecting: boolean, apiUrl?: string, handoff = false): void {
@@ -451,7 +467,18 @@ class MatchmakingConnection {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
-        if (!isRecoveredConnection)
+        if (isRecoveredConnection) {
+          void this.prepareMatchAssets(parsed.matchId).catch((error: unknown) =>
+            this.notify({
+              type: 'error',
+              code: 'MATCH_ASSET_PRELOAD_FAILED',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Could not prepare the required match assets.'
+            })
+          )
+        } else {
           void waitForMatchAssetPreload(parsed.matchId)
             .then(() =>
               launchCounterStrikeForMatch({
@@ -475,6 +502,7 @@ class MatchmakingConnection {
                     : 'Could not prepare match assets or launch Counter-Strike.'
               })
             )
+        }
       } else if (parsed.type === 'match_cancelled') {
         clearMatchAssetPreload(parsed.matchId)
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
