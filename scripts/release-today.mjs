@@ -39,6 +39,8 @@ try {
   const version = `${versionPrefix}.${latestRevision + 1}`
   const tag = `v${version}`
 
+  execFileSync('node', ['scripts/generate-changelog.mjs', version], { stdio: 'inherit' })
+
   const packagePath = resolve('package.json')
   const lockPath = resolve('package-lock.json')
   const packageJson = JSON.parse(await readFile(packagePath, 'utf8'))
@@ -51,7 +53,7 @@ try {
   await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
   await writeFile(lockPath, `${JSON.stringify(lockJson, null, 2)}\n`)
 
-  git('add', 'package.json', 'package-lock.json')
+  git('add', 'package.json', 'package-lock.json', 'CHANGELOG.md')
   git('commit', '-m', `Release ${tag}`)
   git('tag', '-a', tag, '-m', `Release ${tag}`)
   git('push', 'origin', branch)
