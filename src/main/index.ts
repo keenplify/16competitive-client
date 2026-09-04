@@ -39,6 +39,8 @@ import {
 import { checkForAppUpdates } from './updater'
 import { getAppUpdateStatus, restartAndInstallUpdate } from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
+import { getTopMmrLeaderboard } from './leaderboard'
+import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 
 let mainWindow
 
@@ -178,6 +180,7 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
+  ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
 
   createWindow()
   checkForAppUpdates()

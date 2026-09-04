@@ -20,6 +20,12 @@ export function restartAndInstallUpdate(): void {
   autoUpdater.quitAndInstall()
 }
 
+function forceRestartAndInstall(): void {
+  // Give the renderer a moment to display the blocking restart state before
+  // handing control to the platform updater.
+  setTimeout(() => autoUpdater.quitAndInstall(), 500)
+}
+
 /** Checks public GitHub Releases in packaged, self-updatable installations. */
 export function checkForAppUpdates(): void {
   if (!app.isPackaged) return
@@ -28,7 +34,7 @@ export function checkForAppUpdates(): void {
   if (process.platform === 'linux' && !process.env.APPIMAGE) return
 
   autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.on('checking-for-update', () => setStatus({ state: 'checking' }))
   autoUpdater.on('update-available', (info) =>
     setStatus({ state: 'available', version: info.version })
@@ -41,9 +47,10 @@ export function checkForAppUpdates(): void {
       percent: Math.round(progress.percent)
     })
   })
-  autoUpdater.on('update-downloaded', (info) =>
+  autoUpdater.on('update-downloaded', (info) => {
     setStatus({ state: 'downloaded', version: info.version })
-  )
+    forceRestartAndInstall()
+  })
   autoUpdater.on('error', (error) => {
     console.warn('Automatic update check failed:', error.message)
     setStatus({ state: 'error', message: 'Could not check for launcher updates.' })

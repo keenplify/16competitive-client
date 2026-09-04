@@ -17,6 +17,8 @@ import type { SkinsApi } from '../shared/skins'
 import { SKIN_CHANNELS } from '../shared/skins'
 import type { UpdaterApi } from '../shared/updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
+import type { LeaderboardApi } from '../shared/leaderboard'
+import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -101,9 +103,14 @@ const updater: UpdaterApi = {
   }
 }
 
+const leaderboard: LeaderboardApi = {
+  getTopMmr: () => ipcRenderer.invoke(LEADERBOARD_CHANNELS.getTopMmr)
+}
+
 const api = {
   auth,
   gameSettings,
+  leaderboard,
   matchmaking,
   matchHistory,
   models,

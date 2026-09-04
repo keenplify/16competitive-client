@@ -19,6 +19,7 @@ import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
+import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
@@ -149,6 +150,8 @@ export function LobbyPage(): JSX.Element {
     <ShopPage />
   ) : page === 'news' ? (
     <NewsPage />
+  ) : page === 'leaderboard' ? (
+    <LeaderboardPage />
   ) : page === 'lobby' ? null : (
     <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
       <div className="text-center">

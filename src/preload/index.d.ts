@@ -7,12 +7,14 @@ import type { GameSettingsApi } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
 import type { UpdaterApi } from '../shared/updater'
+import type { LeaderboardApi } from '../shared/leaderboard'
 
 declare global {
   interface Window {
     api: {
       auth: AuthApi
       gameSettings: GameSettingsApi
+      leaderboard: LeaderboardApi
       matchmaking: MatchmakingApi
       matchHistory: MatchHistoryApi
       skins: SkinsApi
