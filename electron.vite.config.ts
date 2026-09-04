@@ -22,8 +22,8 @@ const developmentCsp = {
 
 const mainProcessEnvNames = ['API_BASE_URL', 'MATCHMAKING_WS_URL'] as const
 const productionMainProcessEnv = {
-  API_BASE_URL: 'https://45.77.240.100.sslip.io',
-  MATCHMAKING_WS_URL: 'wss://45.77.240.100.sslip.io/matchmaking/ws'
+  API_BASE_URL: 'https://16competitive.papamo.dev',
+  MATCHMAKING_WS_URL: 'wss://16competitive.papamo.dev/matchmaking/ws'
 } satisfies Record<(typeof mainProcessEnvNames)[number], string>
 
 export default defineConfig(({ mode }) => {
