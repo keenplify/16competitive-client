@@ -30,3 +30,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Party Chat
 
 - Improved party chat usability and reliability.
+
+## v2026.905.2 — 2026-09-05
+
+### Linux
+
+- Improved Linux packaging reliability.
