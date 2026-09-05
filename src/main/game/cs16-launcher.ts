@@ -7,6 +7,7 @@ import { resolveCs16LaunchTarget } from './cs16-installation'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
+const MATCH_IDENTITY_WAIT_FRAMES = 20
 
 let gameProcess: ChildProcess | null = null
 let launchedMatchId: string | null = null
@@ -111,26 +112,29 @@ export const launchCounterStrikeForMatch = async (input: {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  // GoldSrc reparses Steam's forwarded command line and treats hyphens as
-  // launch-option boundaries, even when they occur inside a single argv item.
-  // Keep the exec filename option-safe and put all secrets in this mode-0600
-  // config instead of exposing them through Steam's process logs.
   const matchConfigName = '16competitive_match.cfg'
   const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.tmp`
   await unlink(join(cwd, 'cstrike', '16competitive-match.cfg')).catch(() => undefined)
-  // Use engine console commands for the password and connection. Unlike
-  // `+password`, this is reliably applied when Steam forwards launch options
-  // to different GoldSrc client builds.
+
+  const identityCommands = [
+    `name "${playerName}"`,
+    `setinfo "_16c" "${input.joinToken}"`
+  ]
+
   await writeFile(
     temporaryMatchConfigPath,
     [
-      `name "${playerName}"`,
-      `setinfo "_16c" "${input.joinToken}"`,
+      ...identityCommands,
       `gl_max_size "${launchTarget.textureSize}"`,
       'cl_allowdownload "1"',
       'cl_download_ingame "1"',
       'cl_downloadfilter "all"',
+      `password "${input.password}"`,
+      // GoldSrc can process its normal user config after +exec during startup.
+      // Wait a few frames, then reassert match identity immediately before connecting.
+      ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
+      ...identityCommands,
       `password "${input.password}"`,
       // This GoldSrc build retains quotes around the connect argument and then
       // rejects the otherwise valid endpoint as a bad server address.
@@ -141,10 +145,31 @@ export const launchCounterStrikeForMatch = async (input: {
   )
   await rename(temporaryMatchConfigPath, matchConfigPath)
   launchedMatchConfigPath = matchConfigPath
+
   const gameArgs =
     launchTarget.distribution === 'standalone'
-      ? ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel', '+exec', matchConfigName]
-      : ['+exec', matchConfigName]
+      ? [
+          '-game',
+          'cstrike',
+          '-noforcemparms',
+          '-noforcemaccel',
+          '+name',
+          playerName,
+          '+setinfo',
+          '_16c',
+          input.joinToken,
+          '+exec',
+          matchConfigName
+        ]
+      : [
+          '+name',
+          playerName,
+          '+setinfo',
+          '_16c',
+          input.joinToken,
+          '+exec',
+          matchConfigName
+        ]
   // Steam forwards the remaining app arguments directly to GoldSrc. Do not
   // add `--`: Steam passes it through as an actual engine argument.
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
@@ -153,7 +178,9 @@ export const launchCounterStrikeForMatch = async (input: {
     distribution: launchTarget.distribution,
     executable: launchTarget.executable,
     cwd,
-    args: launchArgs.map((argument) => (argument === input.joinToken ? '[redacted]' : argument))
+    args: launchArgs.map((argument) => (argument === input.joinToken ? '[redacted]' : argument)),
+    playerName,
+    joinTokenPresent: true
   })
   const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
     const child = spawn(launchTarget.executable, launchArgs, {
