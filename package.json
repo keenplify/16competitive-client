@@ -21,7 +21,7 @@
     "build:unpack": "npm run build && electron-builder --dir --publish never",
     "build:win": "npm run build && electron-builder --win --publish never",
     "build:mac": "electron-vite build && electron-builder --mac --publish never",
-    "build:linux": "electron-vite build && electron-builder --linux --publish never",
+    "build:linux": "electron-vite build && electron-builder --linux AppImage --publish never && electron-builder --linux snap --publish never && electron-builder --linux deb --publish never",
     "release:date": "node scripts/set-date-version.mjs",
     "release:notes": "node scripts/generate-changelog.mjs",
     "release": "node scripts/release-today.mjs"
