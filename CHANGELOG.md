@@ -47,3 +47,8 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed the launcher getting stuck in fullscreen while closing for an update.
 - Prevented duplicate update installation attempts.
+
+## v2026.905.4 — 2026-09-05
+
+- expand map pool
+- Fix CS 1.6 match identity launch reliability
