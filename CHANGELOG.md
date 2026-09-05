@@ -52,3 +52,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - expand map pool
 - Fix CS 1.6 match identity launch reliability
+
+## v2026.905.5 — 2026-09-05
+
+- Fix CS 1.6 reconnect identity persistence
