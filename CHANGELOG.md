@@ -36,3 +36,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Improved Linux packaging reliability.
+
+## v2026.905.3 — 2026-09-05
+
+### Updates
+
+- Improved launcher update installation and restart reliability.
+
+### Fixes
+
+- Fixed the launcher getting stuck in fullscreen while closing for an update.
+- Prevented duplicate update installation attempts.
