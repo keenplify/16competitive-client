@@ -48,14 +48,21 @@ const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/Co
 
 let mainWindow
 let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
+let isShuttingDown = false
+
+function stopFullScreenRecovery(): void {
+  isShuttingDown = true
+  if (fullScreenRecoveryTimer) clearTimeout(fullScreenRecoveryTimer)
+  fullScreenRecoveryTimer = null
+}
 
 function lockWindowFullScreen(): void {
-  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return
+  if (isShuttingDown || !mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return
   mainWindow.setFullScreen(true)
 }
 
 function scheduleFullScreenRecovery(): void {
-  if (fullScreenRecoveryTimer) return
+  if (isShuttingDown || fullScreenRecoveryTimer) return
   fullScreenRecoveryTimer = setTimeout(() => {
     fullScreenRecoveryTimer = null
     lockWindowFullScreen()
@@ -69,6 +76,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function createWindow(): void {
+  isShuttingDown = false
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
@@ -94,9 +103,11 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // Closing a fullscreen window can emit leave-full-screen. Do not force the
+  // window back into fullscreen while Electron is quitting for an update.
+  mainWindow.on('close', stopFullScreenRecovery)
   mainWindow.on('closed', () => {
-    if (fullScreenRecoveryTimer) clearTimeout(fullScreenRecoveryTimer)
-    fullScreenRecoveryTimer = null
+    stopFullScreenRecovery()
     matchmakingConnection.disconnect()
   })
   mainWindow.on('leave-full-screen', scheduleFullScreenRecovery)
@@ -234,6 +245,8 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+app.on('before-quit', stopFullScreenRecovery)
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.

@@ -3,6 +3,10 @@ import { autoUpdater } from 'electron-updater'
 import { type AppUpdateStatus, UPDATE_CHANNELS } from '../shared/updater'
 
 let status: AppUpdateStatus = { state: 'idle' }
+let installStarted = false
+let forcedExitTimer: ReturnType<typeof setTimeout> | null = null
+
+const INSTALL_QUIT_TIMEOUT_MS = 2_000
 
 function setStatus(nextStatus: AppUpdateStatus): void {
   status = nextStatus
@@ -17,13 +21,21 @@ export function getAppUpdateStatus(): AppUpdateStatus {
 
 export function restartAndInstallUpdate(): void {
   if (status.state !== 'downloaded') throw new Error('No downloaded update is available.')
+  if (installStarted) return
+
+  installStarted = true
   autoUpdater.quitAndInstall()
+
+  // The platform installer waits for this process to exit. If a window or
+  // third-party listener ever prevents the graceful quit, do not leave the
+  // launcher visibly stuck with the installer waiting behind it.
+  forcedExitTimer = setTimeout(() => app.exit(0), INSTALL_QUIT_TIMEOUT_MS)
 }
 
 function forceRestartAndInstall(): void {
   // Give the renderer a moment to display the blocking restart state before
   // handing control to the platform updater.
-  setTimeout(() => autoUpdater.quitAndInstall(), 500)
+  setTimeout(restartAndInstallUpdate, 500)
 }
 
 /** Checks public GitHub Releases in packaged, self-updatable installations. */
@@ -32,6 +44,11 @@ export function checkForAppUpdates(): void {
 
   // electron-updater supports Linux self-updates only for AppImage packages.
   if (process.platform === 'linux' && !process.env.APPIMAGE) return
+
+  app.once('will-quit', () => {
+    if (forcedExitTimer) clearTimeout(forcedExitTimer)
+    forcedExitTimer = null
+  })
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
