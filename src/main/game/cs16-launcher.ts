@@ -1,5 +1,14 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import {
+  readFile,
+  readdir,
+  readlink,
+  realpath,
+  rename,
+  stat,
+  unlink,
+  writeFile
+} from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable } from './game-settings'
 import { getSessionUsername } from '../auth'
@@ -8,11 +17,16 @@ import { resolveCs16LaunchTarget } from './cs16-installation'
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
+const RELAUNCH_SETTLE_MS = 500
 
 let gameProcess: ChildProcess | null = null
 let launchedMatchId: string | null = null
 let launchedGameDirectory: string | null = null
+let launchedExecutablePath: string | null = null
 let launchedMatchConfigPath: string | null = null
+
+const delay = (milliseconds: number): Promise<void> =>
+  new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
 export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (launchedMatchId !== matchId) return
@@ -21,7 +35,11 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
   }
+  if (process.platform === 'win32' && launchedExecutablePath) {
+    void closeWindowsCounterStrikeProcesses(launchedExecutablePath)
+  }
   launchedGameDirectory = null
+  launchedExecutablePath = null
   const matchConfigPath = launchedMatchConfigPath
   launchedMatchConfigPath = null
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
@@ -55,6 +73,77 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
   })
 }
 
+const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<void> => {
+  const script = [
+    "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
+    '$matches = @(Get-CimInstance Win32_Process -Filter "Name=\'hl.exe\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
+    '$matches | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
+    'Write-Output $matches.Count'
+  ].join('; ')
+
+  const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+    (resolveResult) => {
+      const child = spawn(
+        process.env.SystemRoot ? join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : 'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', script],
+        {
+          shell: false,
+          windowsHide: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: { ...process.env, CS16_TARGET_EXE: executablePath }
+        }
+      )
+      let stdout = ''
+      let stderr = ''
+      child.stdout?.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString('utf8')
+      })
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString('utf8')
+      })
+      child.once('error', (error) => {
+        resolveResult({ code: null, stdout, stderr: error.message })
+      })
+      child.once('exit', (code) => resolveResult({ code, stdout, stderr }))
+    }
+  )
+
+  if (result.code !== 0) {
+    console.warn('[GameLaunch] could not terminate existing Windows Counter-Strike process', {
+      code: result.code,
+      detail: result.stderr.trim() || 'PowerShell process lookup failed'
+    })
+    return
+  }
+
+  const terminated = Number(result.stdout.trim()) || 0
+  console.info('[GameLaunch] Windows Counter-Strike processes terminated', { terminated })
+}
+
+const synchronizeUserConfigIdentity = async (
+  gameDirectory: string,
+  playerName: string,
+  joinToken: string
+): Promise<void> => {
+  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const existing = await readFile(configPath, 'utf8').catch(() => '')
+  const eol = existing.includes('\r\n') ? '\r\n' : '\n'
+  const lines = existing
+    .split(/\r?\n/)
+    .filter(
+      (line) =>
+        !/^\s*name(?:\s|$)/i.test(line) &&
+        !/^\s*setinfo\s+"?_16c"?(?:\s|$)/i.test(line)
+    )
+  while (lines.length > 0 && lines.at(-1)?.trim() === '') lines.pop()
+  lines.push(`name "${playerName}"`, `setinfo "_16c" "${joinToken}"`, '')
+  await writeFile(configPath, lines.join(eol), { encoding: 'utf8' })
+  console.info('[GameLaunch] synchronized Counter-Strike identity config', {
+    playerName,
+    joinTokenPresent: true
+  })
+}
+
 export const launchCounterStrikeForMatch = async (input: {
   matchId: string
   host: string
@@ -79,6 +168,7 @@ export const launchCounterStrikeForMatch = async (input: {
     return
   }
 
+  const relaunchingSameMatch = launchedMatchId === input.matchId
   const configuredExecutable =
     (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
   console.info('[GameLaunch] executable configuration', {
@@ -111,7 +201,21 @@ export const launchCounterStrikeForMatch = async (input: {
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
+
+  if (relaunchingSameMatch) {
+    console.info('[GameLaunch] restarting Counter-Strike for match reconnect', {
+      matchId: input.matchId,
+      platform: process.platform
+    })
+    if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
+    if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
+    gameProcess = null
+    await delay(RELAUNCH_SETTLE_MS)
+  }
+
   const launchTarget = await resolveCs16LaunchTarget(executable)
+  await synchronizeUserConfigIdentity(cwd, playerName, input.joinToken)
+
   const matchConfigName = '16competitive_match.cfg'
   const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.tmp`
@@ -146,41 +250,41 @@ export const launchCounterStrikeForMatch = async (input: {
   await rename(temporaryMatchConfigPath, matchConfigPath)
   launchedMatchConfigPath = matchConfigPath
 
+  // Keep the cfg path as a complete fallback, then reassert identity and connect
+  // directly after +exec. This is important when Steam forwards launch parameters
+  // to an already-running GoldSrc process through OnNewUrlLaunchParameters.
+  const directMatchArgs = [
+    '+exec',
+    matchConfigName,
+    '+name',
+    playerName,
+    '+setinfo',
+    '_16c',
+    input.joinToken,
+    '+password',
+    input.password,
+    '+connect',
+    `${input.host}:${input.port}`
+  ]
   const gameArgs =
     launchTarget.distribution === 'standalone'
-      ? [
-          '-game',
-          'cstrike',
-          '-noforcemparms',
-          '-noforcemaccel',
-          '+name',
-          playerName,
-          '+setinfo',
-          '_16c',
-          input.joinToken,
-          '+exec',
-          matchConfigName
-        ]
-      : [
-          '+name',
-          playerName,
-          '+setinfo',
-          '_16c',
-          input.joinToken,
-          '+exec',
-          matchConfigName
-        ]
+      ? ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel', ...directMatchArgs]
+      : directMatchArgs
   // Steam forwards the remaining app arguments directly to GoldSrc. Do not
   // add `--`: Steam passes it through as an actual engine argument.
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
+  launchedExecutablePath = executable
   console.info('[GameLaunch] starting Counter-Strike', {
     distribution: launchTarget.distribution,
     executable: launchTarget.executable,
     cwd,
-    args: launchArgs.map((argument) => (argument === input.joinToken ? '[redacted]' : argument)),
+    args: launchArgs.map((argument) =>
+      argument === input.joinToken || argument === input.password ? '[redacted]' : argument
+    ),
     playerName,
-    joinTokenPresent: true
+    joinTokenPresent: true,
+    relaunchingSameMatch
   })
   const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
     const child = spawn(launchTarget.executable, launchArgs, {
