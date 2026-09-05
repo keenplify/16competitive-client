@@ -19,3 +19,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Casual matches remain unranked.
 - Historic matches without MMR snapshots are displayed as unranked.
+
+## v2026.905.1 — 2026-09-05
+
+### Launcher
+
+- Improved navigation between launcher sections.
+- Refined the in-launcher news experience.
+
+### Party Chat
+
+- Improved party chat usability and reliability.
