@@ -1,46 +1,54 @@
 import { create } from 'zustand'
-import { fetchLobbyNewsPosts, fetchNewsPosts, type NewsPost } from './news.api'
+import type { NewsPost } from '../../../../shared/news'
 
 type NewsStatus = 'idle' | 'loading' | 'ready' | 'refreshing' | 'error'
 
 interface NewsState {
-  posts: NewsPost[]
-  status: NewsStatus
+  previewPosts: NewsPost[]
+  previewStatus: NewsStatus
+  allPosts: NewsPost[]
+  allStatus: NewsStatus
   loadPreview: () => Promise<void>
   loadAll: () => Promise<void>
 }
 
-let latestNewsRequest = 0
+let latestPreviewRequest = 0
+let latestAllRequest = 0
 
 export const useNewsStore = create<NewsState>((set, get) => ({
-  posts: [],
-  status: 'idle',
+  previewPosts: [],
+  previewStatus: 'idle',
+  allPosts: [],
+  allStatus: 'idle',
 
   loadPreview: async () => {
-    const request = ++latestNewsRequest
-    set({ status: 'loading' })
+    if (get().previewStatus === 'loading') return
+    const request = ++latestPreviewRequest
+    set({ previewStatus: 'loading' })
     try {
-      const posts = await fetchLobbyNewsPosts(new AbortController().signal)
-      if (request === latestNewsRequest) set({ posts, status: 'ready' })
+      const previewPosts = await window.api.news.getPreview()
+      if (request === latestPreviewRequest) set({ previewPosts, previewStatus: 'ready' })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
       console.error('[News] failed to load posts', error)
-      if (request === latestNewsRequest) set({ status: 'error' })
+      if (request === latestPreviewRequest) set({ previewStatus: 'error' })
     }
   },
 
   loadAll: async () => {
-    const { posts, status } = get()
-    if (status === 'refreshing') return
+    const { allPosts, allStatus } = get()
+    if (allStatus === 'loading' || allStatus === 'refreshing') return
 
-    const request = ++latestNewsRequest
-    set({ status: posts.length > 0 ? 'refreshing' : 'loading' })
+    const request = ++latestAllRequest
+    set({ allStatus: allPosts.length > 0 ? 'refreshing' : 'loading' })
     try {
-      const nextPosts = await fetchNewsPosts(20, new AbortController().signal)
-      if (request === latestNewsRequest) set({ posts: nextPosts, status: 'ready' })
+      const nextPosts = await window.api.news.getAll()
+      if (request === latestAllRequest) set({ allPosts: nextPosts, allStatus: 'ready' })
     } catch (error) {
       console.error('[News] failed to load all posts', error)
-      if (request === latestNewsRequest) set({ status: posts.length > 0 ? 'ready' : 'error' })
+      if (request === latestAllRequest) {
+        set({ allStatus: allPosts.length > 0 ? 'ready' : 'error' })
+      }
     }
   }
 }))

@@ -7,6 +7,7 @@ import type {
   MatchmakingServerMessage,
   QueuedPlayer
 } from '../shared/matchmaking'
+import type { GlobalChatMessage } from '../shared/matchmaking'
 import { getSessionToken } from './auth'
 import { MATCHMAKING_WS_URL } from './config'
 import {
@@ -74,6 +75,23 @@ const isMatchPlayerStats = (value: unknown): boolean => {
     Number.isInteger(player.mmrBefore) &&
     Number.isInteger(player.mmrAfter) &&
     Number.isInteger(player.mmrChange)
+  )
+}
+
+const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
+  if (typeof value !== 'object' || value === null) return false
+  const message = value as Record<string, unknown>
+  return (
+    message.type === 'global_chat_message' &&
+    typeof message.id === 'string' &&
+    typeof message.message === 'string' &&
+    message.message.length >= 1 &&
+    message.message.length <= 300 &&
+    typeof message.sentAt === 'string' &&
+    typeof message.sender === 'object' &&
+    message.sender !== null &&
+    typeof (message.sender as Record<string, unknown>).id === 'string' &&
+    typeof (message.sender as Record<string, unknown>).username === 'string'
   )
 }
 
@@ -151,6 +169,14 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         partyNotificationCodes.has(message.code) &&
         typeof message.message === 'string' &&
         typeof message.sentAt === 'string'
+      )
+    case 'global_chat_message':
+      return isGlobalChatMessage(message)
+    case 'global_chat_history':
+      return (
+        Array.isArray(message.messages) &&
+        message.messages.length <= 100 &&
+        message.messages.every(isGlobalChatMessage)
       )
     case 'match_found': {
       if (
@@ -315,6 +341,13 @@ class MatchmakingConnection {
       throw new Error('Party messages must contain 1–300 characters')
     }
     this.send({ type: 'party_chat_send', message: message.trim() })
+  }
+
+  sendGlobalMessage(message: unknown): void {
+    if (typeof message !== 'string' || message.trim().length === 0 || message.length > 300) {
+      throw new Error('Global messages must contain 1â€“300 characters')
+    }
+    this.send({ type: 'global_chat_send', message: message.trim() })
   }
 
   respondReady(matchId: unknown, accepted: unknown): void {

@@ -8,6 +8,7 @@ import type { MatchHistoryApi } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
 import type { UpdaterApi } from '../shared/updater'
 import type { LeaderboardApi } from '../shared/leaderboard'
+import type { NewsApi } from '../shared/news'
 
 declare global {
   interface Window {
@@ -17,6 +18,7 @@ declare global {
       leaderboard: LeaderboardApi
       matchmaking: MatchmakingApi
       matchHistory: MatchHistoryApi
+      news: NewsApi
       skins: SkinsApi
       models: ModelApi
       party: PartyApi

@@ -213,7 +213,6 @@ function Team({
                   : '—'}
               </p>
               <p className="mt-3 text-xs text-neutral-500">HS% — · ADR —</p>
-              <p className="mt-4 text-xs text-neutral-400">Award pending</p>
             </article>
           )
         })}

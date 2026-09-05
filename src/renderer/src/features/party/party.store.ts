@@ -4,9 +4,10 @@ import type {
   PartyInvitationDecision,
   PendingPartyInvitation
 } from '../../../../shared/party'
-import type { PartyChatEvent } from '../../../../shared/matchmaking'
+import type { GlobalChatMessage, PartyChatEvent } from '../../../../shared/matchmaking'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
+export type ChatTab = 'party' | 'global'
 
 interface PartyState {
   party: Party | null
@@ -19,6 +20,11 @@ interface PartyState {
   chatDraft: string
   chatSending: boolean
   chatError: string | null
+  chatTab: ChatTab
+  globalChatEntries: GlobalChatMessage[]
+  globalChatDraft: string
+  globalChatSending: boolean
+  globalChatError: string | null
   start: () => void
   stop: () => void
   refresh: () => Promise<void>
@@ -29,6 +35,9 @@ interface PartyState {
   setChatDraft: (message: string) => void
   sendChat: () => Promise<void>
   clearChat: () => void
+  setChatTab: (tab: ChatTab) => void
+  setGlobalChatDraft: (message: string) => void
+  sendGlobalChat: () => Promise<void>
   reset: () => void
 }
 
@@ -38,6 +47,17 @@ const MAX_CHAT_ENTRIES = 100
 const appendChatEntry = (entries: PartyChatEvent[], entry: PartyChatEvent): PartyChatEvent[] => {
   if (entries.some(({ id }) => id === entry.id)) return entries
   return [...entries, entry].slice(-MAX_CHAT_ENTRIES)
+}
+
+const mergeGlobalChatEntries = (
+  entries: GlobalChatMessage[],
+  incoming: GlobalChatMessage[]
+): GlobalChatMessage[] => {
+  const messages = new Map(entries.map((entry) => [entry.id, entry]))
+  for (const entry of incoming) messages.set(entry.id, entry)
+  return [...messages.values()]
+    .sort((left, right) => left.sentAt.localeCompare(right.sentAt))
+    .slice(-MAX_CHAT_ENTRIES)
 }
 
 const readableError = (error: unknown): string => {
@@ -57,6 +77,11 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   chatDraft: '',
   chatSending: false,
   chatError: null,
+  chatTab: 'global',
+  globalChatEntries: [],
+  globalChatDraft: '',
+  globalChatSending: false,
+  globalChatError: null,
 
   start: () => {
     if (removePartyEventListener) return
@@ -64,6 +89,16 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     removePartyEventListener = window.api.matchmaking.onEvent((event) => {
       if (event.type === 'party_chat_message' || event.type === 'party_chat_notification') {
         set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, event) }))
+      }
+      if (event.type === 'global_chat_message') {
+        set((state) => ({
+          globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event])
+        }))
+      }
+      if (event.type === 'global_chat_history') {
+        set((state) => ({
+          globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, event.messages)
+        }))
       }
       if (event.type === 'match_found') {
         const partyId = get().party?.id
@@ -157,7 +192,16 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   stop: () => {
     removePartyEventListener?.()
     removePartyEventListener = null
-    set({ chatEntries: [], chatDraft: '', chatSending: false, chatError: null })
+    set({
+      chatEntries: [],
+      chatDraft: '',
+      chatSending: false,
+      chatError: null,
+      globalChatEntries: [],
+      globalChatDraft: '',
+      globalChatSending: false,
+      globalChatError: null
+    })
   },
 
   refresh: async () => {
@@ -261,6 +305,23 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   clearChat: () => set({ chatEntries: [], chatDraft: '', chatError: null }),
 
+  setChatTab: (chatTab) => set({ chatTab }),
+
+  setGlobalChatDraft: (globalChatDraft) =>
+    set({ globalChatDraft: globalChatDraft.slice(0, 300), globalChatError: null }),
+
+  sendGlobalChat: async () => {
+    const message = get().globalChatDraft.trim()
+    if (!message || get().globalChatSending) return
+    set({ globalChatSending: true, globalChatError: null })
+    try {
+      await window.api.party.sendGlobalMessage(message)
+      set({ globalChatDraft: '', globalChatSending: false })
+    } catch (error) {
+      set({ globalChatSending: false, globalChatError: readableError(error) })
+    }
+  },
+
   reset: () => {
     get().stop()
     set({
@@ -273,7 +334,12 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatEntries: [],
       chatDraft: '',
       chatSending: false,
-      chatError: null
+      chatError: null,
+      chatTab: 'global',
+      globalChatEntries: [],
+      globalChatDraft: '',
+      globalChatSending: false,
+      globalChatError: null
     })
   }
 }))

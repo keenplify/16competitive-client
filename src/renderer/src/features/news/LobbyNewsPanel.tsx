@@ -8,8 +8,8 @@ interface LobbyNewsPanelProps {
 }
 
 export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element {
-  const posts = useNewsStore((state) => state.posts)
-  const status = useNewsStore((state) => state.status)
+  const posts = useNewsStore((state) => state.previewPosts)
+  const status = useNewsStore((state) => state.previewStatus)
   const loadPreview = useNewsStore((state) => state.loadPreview)
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
         {status === 'ready' && posts.length === 0 && (
           <p className="text-xs text-neutral-500">No news posts yet.</p>
         )}
-        {posts.slice(0, 4).map((post, index) => {
+        {posts.slice(0, 2).map((post) => {
           const title = readableNewsContent(post.content).split('\n').find(Boolean)
           return (
             <a
@@ -32,10 +32,7 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
               href={post.url}
               target="_blank"
               rel="noreferrer"
-              className={twMerge(
-                'block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80',
-                index === 3 && 'hidden [@media(min-height:1100px)]:block'
-              )}
+              className="block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80"
             >
               {post.mediaUrl && (
                 <img

@@ -3,8 +3,8 @@ import { readableNewsContent } from './news.api'
 import { useNewsStore } from './news.store'
 
 export function NewsPage(): JSX.Element {
-  const posts = useNewsStore((state) => state.posts)
-  const status = useNewsStore((state) => state.status)
+  const posts = useNewsStore((state) => state.allPosts)
+  const status = useNewsStore((state) => state.allStatus)
   const loadAll = useNewsStore((state) => state.loadAll)
 
   useEffect(() => {

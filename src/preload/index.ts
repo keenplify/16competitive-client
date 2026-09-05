@@ -19,6 +19,8 @@ import type { UpdaterApi } from '../shared/updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
 import type { LeaderboardApi } from '../shared/leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
+import type { NewsApi } from '../shared/news'
+import { NEWS_CHANNELS } from '../shared/news'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -51,7 +53,10 @@ const matchmaking: MatchmakingApi = {
 }
 
 const windowApi: WindowApi = {
-  maximize: () => ipcRenderer.invoke(WINDOW_CHANNELS.maximize)
+  maximize: () => ipcRenderer.invoke(WINDOW_CHANNELS.maximize),
+  openCounterStrikeSteamStore: () =>
+    ipcRenderer.invoke(WINDOW_CHANNELS.openCounterStrikeSteamStore),
+  exit: () => ipcRenderer.invoke(WINDOW_CHANNELS.exit)
 }
 
 const models: ModelApi = {
@@ -65,7 +70,8 @@ const party: PartyApi = {
   respond: (invitationId, decision) =>
     ipcRenderer.invoke(PARTY_CHANNELS.respond, invitationId, decision),
   leave: () => ipcRenderer.invoke(PARTY_CHANNELS.leave),
-  sendMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendMessage, message)
+  sendMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendMessage, message),
+  sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message)
 }
 
 const gameSettings: GameSettingsApi = {
@@ -107,6 +113,11 @@ const leaderboard: LeaderboardApi = {
   getTopMmr: () => ipcRenderer.invoke(LEADERBOARD_CHANNELS.getTopMmr)
 }
 
+const news: NewsApi = {
+  getPreview: () => ipcRenderer.invoke(NEWS_CHANNELS.getPreview),
+  getAll: () => ipcRenderer.invoke(NEWS_CHANNELS.getAll)
+}
+
 const api = {
   auth,
   gameSettings,
@@ -114,6 +125,7 @@ const api = {
   matchmaking,
   matchHistory,
   models,
+  news,
   party,
   skins,
   updater,

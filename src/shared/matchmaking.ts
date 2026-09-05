@@ -88,6 +88,19 @@ export type PartyChatEvent =
       sentAt: string
     }
 
+export interface GlobalChatMessage {
+  type: 'global_chat_message'
+  id: string
+  sender: { id: string; username: string }
+  message: string
+  sentAt: string
+}
+
+export interface GlobalChatHistory {
+  type: 'global_chat_history'
+  messages: GlobalChatMessage[]
+}
+
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
   | { type: 'authenticated'; player: QueuedPlayer }
@@ -114,6 +127,8 @@ export type MatchmakingServerMessage =
   | { type: 'party_disbanded' }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
+  | GlobalChatMessage
+  | GlobalChatHistory
   | {
       type: 'match_found'
       matchId: string

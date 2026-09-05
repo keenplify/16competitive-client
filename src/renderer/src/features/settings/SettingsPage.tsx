@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react'
+import { Download, LogOut, Power } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
@@ -32,6 +32,20 @@ export function SettingsPage(): JSX.Element {
           <p className="mt-2 text-sm text-neutral-400">
             Choose the executable the launcher should start when a match server is ready.
           </p>
+
+          {status !== 'loading' && !executablePath && (
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/5 p-4">
+              <p className="text-sm text-neutral-300">Counter-Strike is not installed yet?</p>
+              <Button
+                variant="ghost"
+                className="border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
+                onClick={() => void window.api.window.openCounterStrikeSteamStore()}
+              >
+                <Download className="mr-2 size-4" aria-hidden="true" />
+                Download on Steam
+              </Button>
+            </div>
+          )}
 
           <label className="mt-6 block text-xs font-semibold tracking-wide text-neutral-400 uppercase">
             Executable path
@@ -81,6 +95,21 @@ export function SettingsPage(): JSX.Element {
           >
             <LogOut className="mr-2 size-4" />
             {authStatus === 'logging_out' ? 'Signing out…' : 'Log out'}
+          </Button>
+        </section>
+
+        <section className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+          <div>
+            <h2 className="text-lg font-semibold">Desktop</h2>
+            <p className="mt-1 text-sm text-neutral-400">Close the launcher and return to desktop.</p>
+          </div>
+          <Button
+            variant="ghost"
+            className="border border-white/15 text-neutral-300 hover:bg-white/10 hover:text-white"
+            onClick={() => void window.api.window.exit()}
+          >
+            <Power className="mr-2 size-4" aria-hidden="true" />
+            Exit to desktop
           </Button>
         </section>
       </div>

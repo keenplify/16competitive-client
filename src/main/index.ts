@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -41,16 +41,43 @@ import { getAppUpdateStatus, restartAndInstallUpdate } from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
 import { getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
+import { NEWS_CHANNELS } from '../shared/news'
+import { getLobbyNewsPosts, getNewsPosts } from './news'
+
+const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
 let mainWindow
+let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
+
+function lockWindowFullScreen(): void {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return
+  mainWindow.setFullScreen(true)
+}
+
+function scheduleFullScreenRecovery(): void {
+  if (fullScreenRecoveryTimer) return
+  fullScreenRecoveryTimer = setTimeout(() => {
+    fullScreenRecoveryTimer = null
+    lockWindowFullScreen()
+  }, 0)
+}
+
+// A second shortcut launch is a separate Electron process. Acquire this lock
+// before creating any windows so that process exits without showing anything.
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+}
 
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    frame: false,
+    fullscreen: true,
     resizable: false,
-    fullscreenable: false,
+    movable: false,
+    maximizable: false,
     show: false,
     autoHideMenuBar: true,
     title: '1.6 Competitive',
@@ -67,7 +94,12 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  mainWindow.on('closed', () => matchmakingConnection.disconnect())
+  mainWindow.on('closed', () => {
+    if (fullScreenRecoveryTimer) clearTimeout(fullScreenRecoveryTimer)
+    fullScreenRecoveryTimer = null
+    matchmakingConnection.disconnect()
+  })
+  mainWindow.on('leave-full-screen', scheduleFullScreenRecovery)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -81,6 +113,8 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  lockWindowFullScreen()
 }
 
 // This method will be called when Electron has finished
@@ -161,18 +195,16 @@ app.whenReady().then(() => {
   ipcMain.handle(PARTY_CHANNELS.sendMessage, (_, message: unknown) =>
     matchmakingConnection.sendPartyMessage(message)
   )
+  ipcMain.handle(PARTY_CHANNELS.sendGlobalMessage, (_, message: unknown) =>
+    matchmakingConnection.sendGlobalMessage(message)
+  )
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return
-
-    // Some Linux window managers ignore Electron's maximize hint for a
-    // non-resizable window. Applying the active display's work area gives the
-    // launcher the same result reliably, then keeps it locked in that size.
-    const display = screen.getDisplayMatching(mainWindow.getBounds())
-    mainWindow.setResizable(true)
-    mainWindow.maximize()
-    mainWindow.setBounds(display.workArea)
-    mainWindow.setResizable(false)
+    lockWindowFullScreen()
   })
+  ipcMain.handle(WINDOW_CHANNELS.openCounterStrikeSteamStore, () =>
+    shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)
+  )
+  ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.save, (_, executablePath: unknown) =>
@@ -181,6 +213,8 @@ app.whenReady().then(() => {
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
+  ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
+  ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
 
   createWindow()
   checkForAppUpdates()

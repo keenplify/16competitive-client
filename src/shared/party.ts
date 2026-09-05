@@ -4,7 +4,8 @@ export const PARTY_CHANNELS = {
   invite: 'party:invite',
   respond: 'party:respond',
   leave: 'party:leave',
-  sendMessage: 'party:send-message'
+  sendMessage: 'party:send-message',
+  sendGlobalMessage: 'party:send-global-message'
 } as const
 
 export interface PartyMember {
@@ -50,4 +51,5 @@ export interface PartyApi {
   respond(invitationId: string, decision: PartyInvitationDecision): Promise<PartyInvitationResponse>
   leave(): Promise<PartyLeaveResponse>
   sendMessage(message: string): Promise<void>
+  sendGlobalMessage(message: string): Promise<void>
 }

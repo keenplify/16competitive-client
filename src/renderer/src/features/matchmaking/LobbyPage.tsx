@@ -105,6 +105,18 @@ export function LobbyPage(): JSX.Element {
   }, [connectMatchmaking])
 
   useEffect(() => {
+    const openSettings = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      if (useMatchmakingStore.getState().completedMatch) dismissCompletedMatch()
+      navigate('settings')
+    }
+
+    window.addEventListener('keydown', openSettings, true)
+    return () => window.removeEventListener('keydown', openSettings, true)
+  }, [dismissCompletedMatch, navigate])
+
+  useEffect(() => {
     let active = true
     const check = () => {
       void window.api.gameSettings
