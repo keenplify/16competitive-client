@@ -31,6 +31,12 @@ const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
+const isMapIds = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.length <= 32 &&
+  value.every(isMapId) &&
+  new Set(value).size === value.length
 
 const isHttpUrl = (value: unknown): value is string => {
   if (typeof value !== 'string') return false
@@ -126,16 +132,16 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'queue_joined':
       return (
         isMode(message.mode) &&
-        isMapId(message.mapId) &&
+        isMapIds(message.mapIds) &&
         typeof message.region === 'string' &&
         typeof message.allowRegionExpansion === 'boolean'
       )
     case 'queue_left':
-      return isMode(message.mode) && isMapId(message.mapId)
+      return isMode(message.mode) && isMapIds(message.mapIds)
     case 'queue_status':
       return (
         isMode(message.mode) &&
-        isMapId(message.mapId) &&
+        isMapIds(message.mapIds) &&
         typeof message.queuedPlayers === 'number' &&
         typeof message.playersRequired === 'number' &&
         typeof message.position === 'number' &&
@@ -270,7 +276,7 @@ class MatchmakingConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private desiredMode: MatchmakingMode | null = null
-  private desiredMapId: string | null = null
+  private desiredMapIds: string[] = []
   private desiredAllowRegionExpansion = true
   private activeApiUrl: string | null = null
   private hostApiUrl: string | null = null
@@ -301,7 +307,7 @@ class MatchmakingConnection {
     this.authenticated = false
     this.recoveryStatusPending = false
     this.desiredMode = null
-    this.desiredMapId = null
+    this.desiredMapIds = []
     this.lastConnection = null
     this.activeApiUrl = null
     this.hostApiUrl = null
@@ -315,20 +321,20 @@ class MatchmakingConnection {
     this.renderer = null
   }
 
-  joinQueue(mode: unknown, mapId: unknown, allowRegionExpansion: unknown): void {
+  joinQueue(mode: unknown, mapIds: unknown, allowRegionExpansion: unknown): void {
     if (!isMode(mode)) throw new Error('Unsupported matchmaking mode')
-    if (!isMapId(mapId)) throw new Error('A valid matchmaking map is required')
+    if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
     if (typeof allowRegionExpansion !== 'boolean')
       throw new Error('Invalid regional search preference')
     this.desiredMode = mode
-    this.desiredMapId = mapId
+    this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
-    this.send({ type: 'join_queue', mode, mapId, allowRegionExpansion })
+    this.send({ type: 'join_queue', mode, mapIds, allowRegionExpansion })
   }
 
   leaveQueue(): void {
     this.desiredMode = null
-    this.desiredMapId = null
+    this.desiredMapIds = []
     this.send({ type: 'leave_queue' })
   }
 
@@ -452,12 +458,12 @@ class MatchmakingConnection {
           this.reconnectAttempt = 0
           this.recoveryStatusPending = true
           socket.send(JSON.stringify({ type: 'get_queue_status' }))
-          if (this.desiredMode && this.desiredMapId) {
+          if (this.desiredMode && this.desiredMapIds.length > 0) {
             socket.send(
               JSON.stringify({
                 type: 'join_queue',
                 mode: this.desiredMode,
-                mapId: this.desiredMapId,
+                mapIds: this.desiredMapIds,
                 allowRegionExpansion: this.desiredAllowRegionExpansion
               })
             )
@@ -469,14 +475,20 @@ class MatchmakingConnection {
         this.recoveryStatusPending = false
       } else if (parsed.type === 'queue_joined') {
         this.desiredMode = parsed.mode
-        this.desiredMapId = parsed.mapId
+        this.desiredMapIds = [...parsed.mapIds]
         this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
       } else if (parsed.type === 'queue_left') {
         this.desiredMode = null
-        this.desiredMapId = null
+        this.desiredMapIds = []
+      } else if (
+        parsed.type === 'error' &&
+        (parsed.code === 'MAP_NOT_FOUND' || parsed.code === 'MAP_MODE_UNSUPPORTED')
+      ) {
+        this.desiredMode = null
+        this.desiredMapIds = []
       } else if (parsed.type === 'match_found') {
         this.desiredMode = null
-        this.desiredMapId = null
+        this.desiredMapIds = []
         if (this.renderer) {
           const window = BrowserWindow.fromWebContents(this.renderer)
           window?.show()

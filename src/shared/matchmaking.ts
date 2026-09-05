@@ -107,21 +107,21 @@ export type MatchmakingServerMessage =
   | {
       type: 'queue_joined'
       mode: MatchmakingMode
-      mapId: string
+      mapIds: string[]
       region: string
       allowRegionExpansion: boolean
     }
   | {
       type: 'queue_status'
       mode: MatchmakingMode
-      mapId: string
+      mapIds: string[]
       queuedPlayers: number
       playersRequired: number
       position: number
       region: string
       allowRegionExpansion: boolean
     }
-  | { type: 'queue_left'; mode: MatchmakingMode; mapId: string }
+  | { type: 'queue_left'; mode: MatchmakingMode; mapIds: string[] }
   | { type: 'party_invitation_received' }
   | { type: 'party_updated' }
   | { type: 'party_disbanded' }
@@ -212,7 +212,7 @@ export interface MatchmakingApi {
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>
-  joinQueue(mode: MatchmakingMode, mapId: string, allowRegionExpansion: boolean): Promise<void>
+  joinQueue(mode: MatchmakingMode, mapIds: string[], allowRegionExpansion: boolean): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMap[]>

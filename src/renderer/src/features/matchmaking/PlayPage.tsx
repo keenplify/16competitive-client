@@ -1,16 +1,14 @@
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
-import {
-  getMatchmakingModeLabel,
-  type MatchmakingMap,
-  type MatchmakingMode
-} from '../../../../shared/matchmaking'
+import { getMatchmakingModeLabel, type MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import dust2Preview from '../../assets/dust2.jpg'
+import infernoPreview from '../../assets/inferno.jpg'
+import nukePreview from '../../assets/nuke.jpg'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
@@ -31,6 +29,12 @@ interface MapCardProps {
   onSelect: () => void
 }
 
+const localMapPreviews: Readonly<Record<string, string>> = {
+  de_dust2: dust2Preview,
+  de_inferno: infernoPreview,
+  de_nuke: nukePreview
+}
+
 function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Element {
   return (
     <button
@@ -44,11 +48,20 @@ function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Eleme
       onClick={onSelect}
     >
       <div className="relative flex aspect-[16/8] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.24),transparent_38%),linear-gradient(135deg,#172033,#0a0a0a)]">
-        {map.previewUrl || map.id === 'de_dust2' ? (
+        {map.previewUrl || localMapPreviews[map.id] ? (
           <img
             className="h-full w-full object-cover"
-            src={map.previewUrl ?? (map.id === 'de_dust2' ? dust2Preview : '')}
+            src={map.previewUrl ?? localMapPreviews[map.id]}
             alt=""
+            onError={(event) => {
+              const localPreview = localMapPreviews[map.id]
+              event.currentTarget.onerror = null
+              if (localPreview && event.currentTarget.src !== localPreview) {
+                event.currentTarget.src = localPreview
+              } else {
+                event.currentTarget.hidden = true
+              }
+            }}
           />
         ) : (
           <span className="font-audiowide text-3xl text-white/20 uppercase">
@@ -69,10 +82,9 @@ export function PlayPage(): JSX.Element {
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
-  const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const maps = useMatchmakingStore((state) => state.maps)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
-  const selectedMapId = useMatchmakingStore((state) => state.selectedMapId)
+  const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
@@ -89,7 +101,6 @@ export function PlayPage(): JSX.Element {
   const loadRegions = useMatchmakingStore((state) => state.loadRegions)
   const selectNode = useMatchmakingStore((state) => state.selectNode)
   const setAllowRegionExpansion = useMatchmakingStore((state) => state.setAllowRegionExpansion)
-  const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
   const respondReady = useMatchmakingStore((state) => state.respondReady)
@@ -127,10 +138,8 @@ export function PlayPage(): JSX.Element {
   const isLeader = !party || party.leaderId === player.id
   const isConnected = connectionStatus === 'ready'
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
-  const availableModes = Array.from(
-    new Set<MatchmakingMode>(maps.flatMap((map) => map.supportedModes))
-  )
-  const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
+  const availableMaps = maps.filter((map) => map.supportedModes.includes('5v5'))
+  const hasSelectedMaps = selectedMapIds.length > 0
 
   if (match && queueStatus === 'ready_check') {
     return (
@@ -247,8 +256,8 @@ export function PlayPage(): JSX.Element {
             <h1 className="mt-2 text-3xl font-semibold">Choose your battlefield</h1>
             <p className="mt-2 text-sm text-neutral-400">
               {isLeader
-                ? 'Select a mode and map for your whole party.'
-                : 'Your party leader chooses the mode and map.'}
+                ? "Toggle any 5v5 Competitive maps to build your party's search pool."
+                : 'Your party leader chooses the Competitive map pool.'}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-400">
@@ -263,27 +272,6 @@ export function PlayPage(): JSX.Element {
         </header>
 
         <>
-          <section className="mt-8">
-            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Mode</p>
-            <div className="mt-3 flex gap-3">
-              {availableModes.map((mode) => (
-                <Button
-                  key={mode}
-                  variant="ghost"
-                  className={
-                    selectedMode === mode
-                      ? 'border border-sky-400/50 bg-sky-400/10 text-sky-300'
-                      : 'border border-white/10 bg-neutral-900'
-                  }
-                  disabled={isSearching || !isLeader}
-                  onClick={() => selectMode(mode)}
-                >
-                  {getMatchmakingModeLabel(mode)}
-                </Button>
-              ))}
-            </div>
-          </section>
-
           <section className="mt-8 border-t border-white/10 pt-6">
             <label
               className="block text-xs font-semibold tracking-wide text-neutral-500 uppercase"
@@ -319,13 +307,20 @@ export function PlayPage(): JSX.Element {
           </section>
 
           <section className="mt-8">
-            <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
+              {availableMaps.length > 0 && (
+                <p className="text-xs text-neutral-500">
+                  {selectedMapIds.length} of {availableMaps.length} selected
+                </p>
+              )}
+            </div>
             {mapsStatus === 'loading' && (
               <p className="mt-4 text-sm text-neutral-400">Loading maps…</p>
             )}
             {mapsStatus === 'ready' && availableMaps.length === 0 && (
               <p className="mt-4 text-sm text-neutral-400">
-                No maps support {getMatchmakingModeLabel(selectedMode)}.
+                Competitive matchmaking is temporarily unavailable.
               </p>
             )}
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -333,7 +328,7 @@ export function PlayPage(): JSX.Element {
                 <MapCard
                   key={map.id}
                   map={map}
-                  selected={selectedMapId === map.id}
+                  selected={selectedMapIds.includes(map.id)}
                   disabled={isSearching || !isLeader}
                   onSelect={() => selectMap(map.id)}
                 />
@@ -347,7 +342,8 @@ export function PlayPage(): JSX.Element {
               disabled={
                 !isLeader ||
                 !isConnected ||
-                !selectedMapId ||
+                mapsStatus !== 'ready' ||
+                !hasSelectedMaps ||
                 !gameExecutablePath ||
                 isSearching ||
                 queueStatus === 'joining'

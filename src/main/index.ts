@@ -170,8 +170,8 @@ app.whenReady().then(() => {
   })
   ipcMain.handle(
     MATCHMAKING_CHANNELS.joinQueue,
-    (_, mode: unknown, mapId: unknown, allowRegionExpansion: unknown) =>
-      matchmakingConnection.joinQueue(mode, mapId, allowRegionExpansion)
+    (_, mode: unknown, mapIds: unknown, allowRegionExpansion: unknown) =>
+      matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())

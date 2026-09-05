@@ -51,7 +51,7 @@ interface MatchmakingState {
   selectedMode: MatchmakingMode
   maps: MatchmakingMap[]
   mapsStatus: 'idle' | 'loading' | 'ready' | 'error'
-  selectedMapId: string | null
+  selectedMapIds: string[]
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
   activeRegion: string | null
@@ -115,7 +115,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set((state) => ({
           queueStatus: 'queued',
           selectedMode: event.mode,
-          selectedMapId: event.mapId,
+          selectedMapIds: event.mapIds,
           activeRegion: event.region,
           allowRegionExpansion: event.allowRegionExpansion,
           queueStartedAt: state.queueStartedAt ?? Date.now(),
@@ -126,7 +126,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set((state) => ({
           queueStatus: 'queued',
           selectedMode: event.mode,
-          selectedMapId: event.mapId,
+          selectedMapIds: event.mapIds,
           queuedPlayers: event.queuedPlayers,
           playersRequired: event.playersRequired,
           position: event.position,
@@ -139,6 +139,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'queue_left':
         set({
           queueStatus: 'idle',
+          selectedMode: event.mode,
+          selectedMapIds: event.mapIds,
           queuedPlayers: 0,
           playersRequired: 0,
           position: 0,
@@ -148,6 +150,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'match_found':
         set({
+          selectedMode: event.mode,
+          selectedMapIds: [event.mapId],
           match: {
             matchId: event.matchId,
             mode: event.mode,
@@ -254,6 +258,31 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         break
       case 'error':
+        if (event.code === 'MAP_NOT_FOUND') {
+          set({
+            queueStatus: 'idle',
+            queueStartedAt: null,
+            selectedMapIds: [],
+            error: 'That map is no longer available. Refreshing maps—please select one again.'
+          })
+          void get()
+            .loadMaps()
+            .then(() => {
+              if (get().mapsStatus === 'ready') {
+                set({ error: 'That map is no longer available. Please select a map again.' })
+              }
+            })
+          break
+        }
+        if (event.code === 'MAP_MODE_UNSUPPORTED') {
+          set({
+            queueStatus: 'idle',
+            queueStartedAt: null,
+            selectedMapIds: [],
+            error: 'That map is not available for 5v5. Please select another map.'
+          })
+          break
+        }
         set({
           ...(event.code === 'NOT_QUEUED'
             ? { queueStatus: 'idle' as const, queueStartedAt: null }
@@ -276,7 +305,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     selectedMode: '5v5',
     maps: [],
     mapsStatus: 'idle',
-    selectedMapId: null,
+    selectedMapIds: [],
     nodes: [],
     selectedNodeId: null,
     activeRegion: null,
@@ -317,25 +346,21 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       set({ mapsStatus: 'loading', error: null })
       try {
         const maps = await window.api.matchmaking.getMaps()
-        const { selectedMapId, selectedMode } = get()
-        const advertisedModes = Array.from(
-          new Set<MatchmakingMode>(maps.flatMap((map) => map.supportedModes))
+        const { selectedMapIds } = get()
+        const availableMapIds = new Set(
+          maps.filter((map) => map.supportedModes.includes('5v5')).map((map) => map.id)
         )
-        const nextMode = advertisedModes.includes(selectedMode)
-          ? selectedMode
-          : (advertisedModes[0] ?? selectedMode)
-        const selectedMapIsAvailable = maps.some(
-          (map) => map.id === selectedMapId && map.supportedModes.includes(nextMode)
-        )
-        const defaultMap = maps.find((map) => map.supportedModes.includes(nextMode))
         set({
           maps,
           mapsStatus: 'ready',
-          selectedMode: nextMode,
-          selectedMapId: selectedMapIsAvailable ? selectedMapId : (defaultMap?.id ?? null)
+          selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId))
         })
       } catch (error) {
-        set({ mapsStatus: 'error', error: readableError(error) })
+        const message = readableError(error)
+        set({ mapsStatus: 'error', maps: [], selectedMapIds: [], error: message })
+        if (message.includes('MATCHMAKING_MAPS_UNAUTHORIZED')) {
+          void useAuthStore.getState().logout()
+        }
       }
     },
 
@@ -375,31 +400,32 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     selectMode: (selectedMode) => {
-      const { maps, selectedMapId } = get()
-      const selectedMapIsAvailable = maps.some(
-        (map) => map.id === selectedMapId && map.supportedModes.includes(selectedMode)
+      const { maps, selectedMapIds } = get()
+      const availableMapIds = new Set(
+        maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
       )
       set({
         selectedMode,
-        selectedMapId: selectedMapIsAvailable
-          ? selectedMapId
-          : (maps.find((map) => map.supportedModes.includes(selectedMode))?.id ?? null),
+        selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId)),
         error: null
       })
     },
 
     selectMap: (selectedMapId) => {
-      const { maps, selectedMode } = get()
-      if (
-        !maps.some((map) => map.id === selectedMapId && map.supportedModes.includes(selectedMode))
-      ) {
+      const { maps } = get()
+      if (!maps.some((map) => map.id === selectedMapId && map.supportedModes.includes('5v5'))) {
         return
       }
-      set({ selectedMapId, error: null })
+      set((state) => ({
+        selectedMapIds: state.selectedMapIds.includes(selectedMapId)
+          ? state.selectedMapIds.filter((mapId) => mapId !== selectedMapId)
+          : [...state.selectedMapIds, selectedMapId],
+        error: null
+      }))
     },
 
     joinQueue: async () => {
-      const { connectionStatus, selectedMapId, selectedMode, allowRegionExpansion } = get()
+      const { connectionStatus, maps, mapsStatus, selectedMapIds, allowRegionExpansion } = get()
       if (connectionStatus !== 'ready') return
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
@@ -408,14 +434,24 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         return
       }
-      if (!selectedMapId) {
-        set({ error: 'Select an available map before joining matchmaking.' })
+      if (mapsStatus !== 'ready' || selectedMapIds.length === 0) {
+        set({ error: 'Select at least one available map before joining matchmaking.' })
+        return
+      }
+      const availableMapIds = new Set(
+        maps.filter((map) => map.supportedModes.includes('5v5')).map((map) => map.id)
+      )
+      if (selectedMapIds.some((mapId) => !availableMapIds.has(mapId))) {
+        set({
+          selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId)),
+          error: 'One or more selected maps are no longer available for 5v5. Review your map pool.'
+        })
         return
       }
 
       set({ queueStatus: 'joining', error: null })
       try {
-        await window.api.matchmaking.joinQueue(selectedMode, selectedMapId, allowRegionExpansion)
+        await window.api.matchmaking.joinQueue('5v5', selectedMapIds, allowRegionExpansion)
       } catch (error) {
         set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })
       }
@@ -461,7 +497,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         selectedMode: '5v5',
         maps: [],
         mapsStatus: 'idle',
-        selectedMapId: null,
+        selectedMapIds: [],
         nodes: [],
         selectedNodeId: null,
         activeRegion: null,

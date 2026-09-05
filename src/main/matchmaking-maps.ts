@@ -1,4 +1,4 @@
-import { getSessionToken } from './auth'
+import { clearSessionToken, getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import type { MatchmakingMap, MatchmakingMode } from '../shared/matchmaking'
 
@@ -30,7 +30,6 @@ const isMap = (value: unknown): value is MatchmakingMap =>
   value.game.length <= 32 &&
   isPreviewUrl(value.previewUrl) &&
   Array.isArray(value.supportedModes) &&
-  value.supportedModes.length > 0 &&
   value.supportedModes.every(isMode)
 
 export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
@@ -40,7 +39,7 @@ export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
   let response: Response
   try {
     response = await fetch(`${API_BASE_URL}/matchmaking/maps`, {
-      headers: { authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(10_000)
     })
   } catch (error) {
@@ -52,6 +51,10 @@ export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
 
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
+    if (response.status === 401) {
+      clearSessionToken()
+      throw new Error('MATCHMAKING_MAPS_UNAUTHORIZED')
+    }
     const message = isObject(body) && typeof body.message === 'string' ? body.message : null
     throw new Error(message ?? `Could not load matchmaking maps (${response.status})`)
   }

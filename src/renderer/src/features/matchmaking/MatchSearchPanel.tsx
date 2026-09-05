@@ -19,7 +19,7 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
-  const selectedMapId = useMatchmakingStore((state) => state.selectedMapId)
+  const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const activeRegion = useMatchmakingStore((state) => state.activeRegion)
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
   const maps = useMatchmakingStore((state) => state.maps)
@@ -39,7 +39,9 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const elapsedSeconds = queueStartedAt
     ? Math.max(0, Math.floor((now - queueStartedAt) / 1_000))
     : 0
-  const selectedMap = maps.find((map) => map.id === selectedMapId)
+  const selectedMapNames = selectedMapIds.map(
+    (mapId) => maps.find((map) => map.id === mapId)?.displayName ?? mapId
+  )
   const searchScope =
     elapsedSeconds >= 180
       ? 'Waiting for players'
@@ -79,7 +81,7 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="truncate text-neutral-400">
-            {selectedMap?.displayName ?? selectedMapId ?? 'Selected map'} ·{' '}
+            {selectedMapNames.join(', ') || 'Selected maps'} ·{' '}
             {getMatchmakingModeLabel(selectedMode)}
           </span>
           <span className="shrink-0 font-mono tabular-nums text-neutral-200">
