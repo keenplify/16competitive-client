@@ -73,3 +73,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Fixed fullscreen behavior.
+
+## v2026.906.3 — 2026-09-06
+
+### Skin Preview
+
+- Faster skin preview loading.
+- Improved preview performance with cached model thumbnails.
+- Added a new Elite pistols preview asset.
+
+### Skins
+
+- Overhauled the skins popup experience.
+- Improved skin browsing and model presentation.
+- Updated skin shop and skins page layouts.
+- Added clearer skin previews in party and profile views.
