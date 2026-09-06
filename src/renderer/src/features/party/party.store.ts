@@ -95,6 +95,11 @@ export const usePartyStore = create<PartyState>((set, get) => ({
           globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event])
         }))
       }
+      if (event.type === 'global_chat_message_deleted') {
+        set((state) => ({
+          globalChatEntries: state.globalChatEntries.filter((entry) => entry.id !== event.id)
+        }))
+      }
       if (event.type === 'global_chat_history') {
         set((state) => ({
           globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, event.messages)

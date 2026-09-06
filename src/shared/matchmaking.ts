@@ -101,6 +101,11 @@ export interface GlobalChatHistory {
   messages: GlobalChatMessage[]
 }
 
+export interface GlobalChatMessageDeleted {
+  type: 'global_chat_message_deleted'
+  id: string
+}
+
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
   | { type: 'authenticated'; player: QueuedPlayer }
@@ -129,6 +134,7 @@ export type MatchmakingServerMessage =
   | PartyChatEvent
   | GlobalChatMessage
   | GlobalChatHistory
+  | GlobalChatMessageDeleted
   | {
       type: 'match_found'
       matchId: string

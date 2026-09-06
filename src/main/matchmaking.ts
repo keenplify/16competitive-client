@@ -7,7 +7,7 @@ import type {
   MatchmakingServerMessage,
   QueuedPlayer
 } from '../shared/matchmaking'
-import type { GlobalChatMessage } from '../shared/matchmaking'
+import type { GlobalChatMessage, GlobalChatMessageDeleted } from '../shared/matchmaking'
 import { getSessionToken } from './auth'
 import { MATCHMAKING_WS_URL } from './config'
 import {
@@ -101,6 +101,12 @@ const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
   )
 }
 
+const isGlobalChatMessageDeleted = (value: unknown): value is GlobalChatMessageDeleted => {
+  if (typeof value !== 'object' || value === null) return false
+  const message = value as Record<string, unknown>
+  return message.type === 'global_chat_message_deleted' && typeof message.id === 'string'
+}
+
 const partyNotificationCodes = new Set([
   'MEMBER_CONNECTED',
   'MEMBER_DISCONNECTED',
@@ -178,6 +184,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       )
     case 'global_chat_message':
       return isGlobalChatMessage(message)
+    case 'global_chat_message_deleted':
+      return isGlobalChatMessageDeleted(message)
     case 'global_chat_history':
       return (
         Array.isArray(message.messages) &&
