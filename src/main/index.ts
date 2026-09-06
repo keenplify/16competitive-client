@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -80,16 +80,19 @@ if (!app.requestSingleInstanceLock()) {
 function createWindow(): void {
   isShuttingDown = false
 
+  const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    x: displayBounds.x,
+    y: displayBounds.y,
+    width: displayBounds.width,
+    height: displayBounds.height,
     frame: false,
-    fullscreen: true,
-    // A fullscreen BrowserWindow still needs to be resizable so Electron can
-    // expand its native content surface from the fallback size to the display
-    // bounds. Some Windows and Linux window managers otherwise leave the
-    // 900x670 surface centered on a black fullscreen background.
+    // Enter fullscreen after the display-sized window has been mapped. Some
+    // Linux window managers otherwise keep Electron's initial content surface
+    // at its fallback size and center it on a black fullscreen background.
+    fullscreen: false,
     resizable: true,
     movable: false,
     maximizable: false,
@@ -106,7 +109,9 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    mainWindow.setBounds(displayBounds)
     mainWindow.show()
+    lockWindowFullScreen()
   })
 
   // Closing a fullscreen window can emit leave-full-screen. Do not force the
@@ -130,8 +135,6 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-
-  lockWindowFullScreen()
 }
 
 // This method will be called when Electron has finished
