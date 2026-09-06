@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Renderer, type ModelViewerCamera } from './Renderer'
 
@@ -29,6 +29,11 @@ type ModelViewerProps = {
   orbitAngleLimit?: number
   /** Multiplier for drag rotation speed. */
   rotateSpeed?: number
+  /** Content shown when the requested model cannot be loaded. */
+  fallback?: ReactNode
+  /** Called immediately after the first successful WebGL frame. */
+  onFirstFrame?: (canvas: HTMLCanvasElement) => void
+  onLoadError?: (error: unknown) => void
   className?: string
 }
 
@@ -52,6 +57,9 @@ export function ModelViewer({
   lockCameraDistance = false,
   orbitAngleLimit,
   rotateSpeed,
+  fallback,
+  onFirstFrame,
+  onLoadError,
   className
 }: ModelViewerProps): JSX.Element {
   const revision = sourceRevision === undefined ? '' : `@${sourceRevision}`
@@ -96,10 +104,11 @@ export function ModelViewer({
 
         console.error('[HLMV] ModelViewer model load failed', { modelUrl, modelPath, error })
         setFailedSource(requestedSourceKey)
+        onLoadError?.(error)
       })
 
     return () => abortController.abort()
-  }, [modelBuffer, modelPath, modelUrl, sourceKey])
+  }, [modelBuffer, modelPath, modelUrl, onLoadError, sourceKey])
 
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>
@@ -115,6 +124,7 @@ export function ModelViewer({
           lockCameraDistance={lockCameraDistance}
           orbitAngleLimit={orbitAngleLimit}
           rotateSpeed={rotateSpeed}
+          onFirstFrame={onFirstFrame}
           className="h-full w-full"
           setModelController={() => undefined}
           setModelData={() => undefined}
@@ -128,6 +138,9 @@ export function ModelViewer({
         >
           <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-sky-400" />
         </div>
+      )}
+      {failedSource === sourceKey && fallback && (
+        <div className="absolute inset-0 flex items-center justify-center">{fallback}</div>
       )}
     </div>
   )

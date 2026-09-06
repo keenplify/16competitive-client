@@ -8,7 +8,13 @@ import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
 import { getCachedSkinModel } from './skin-model-cache'
-import { getSkinPresentationRotation } from './skin-model-presentation'
+import {
+  getSkinCameraDistanceMultiplier,
+  getSkinCameraTarget,
+  getSkinPresentationRotation
+} from './skin-model-presentation'
+import { SkinModelThumbnail } from './SkinModelThumbnail'
+import elitePistolsImage from '../../assets/elite-pistols.png'
 
 type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
 
@@ -268,24 +274,6 @@ export function SkinCardPreview({
   owned: boolean
   onOpen: () => void
 }): JSX.Element {
-  const [model, setModel] = useState<ArrayBuffer | null>(null)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    void getCachedSkinModel(skin.id).then(
-      (bytes) => {
-        if (active) setModel(bytes)
-      },
-      () => {
-        if (active) setError(true)
-      }
-    )
-    return () => {
-      active = false
-    }
-  }, [skin.id])
-
   return (
     <button
       type="button"
@@ -293,28 +281,14 @@ export function SkinCardPreview({
       aria-label={`Open ${skin.name} 3D preview`}
       onClick={onOpen}
     >
-      {model && (
-        <ModelViewer
-          modelBuffer={model}
-          modelKey={skin.id}
-          presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
-          camera={{ distanceMultiplier: 0.5 }}
-          animation="idle1"
-          maxFrameRate={20}
-          cameraLocked
-          className="pointer-events-none absolute inset-0"
-        />
-      )}
-      {!model && !error && (
-        <span className="absolute inset-0 flex items-center justify-center" role="status">
-          <LoaderCircle className="size-5 animate-spin text-sky-300" />
-        </span>
-      )}
-      {error && (
-        <span className="absolute inset-0 flex items-center justify-center text-xs text-neutral-500">
-          Preview unavailable
-        </span>
-      )}
+      <SkinModelThumbnail
+        cacheKey={`skin-card:v3:${skin.id}`}
+        skinId={skin.id}
+        modelKey={skin.id}
+        weaponKey={skin.weaponKey}
+        fallback={<span className="text-xs text-neutral-500">Preview unavailable</span>}
+        className="pointer-events-none absolute inset-0"
+      />
       {!owned && (
         <span className="absolute top-3 right-3 flex items-center gap-1 rounded bg-black/65 px-2 py-1 text-[10px] font-bold tracking-wide text-neutral-200 uppercase backdrop-blur">
           <LockKeyhole className="size-3" /> Locked
@@ -334,6 +308,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
   const creatorUrl = safeExternalUrl(skin.creatorUrl)
 
   useEffect(() => {
+    if (skin.weaponKey === 'elite') return
     let active = true
     void getCachedSkinModel(skin.id).then(
       (bytes) => {
@@ -346,7 +321,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
     return () => {
       active = false
     }
-  }, [skin.id])
+  }, [skin.id, skin.weaponKey])
 
   return (
     <div
@@ -396,12 +371,22 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
           </Button>
         </header>
         <div className="relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
-          {model && (
+          {skin.weaponKey === 'elite' ? (
+            <img
+              className="h-full w-full object-contain p-6"
+              src={elitePistolsImage}
+              alt={`${skin.name} Elite pistols`}
+              draggable={false}
+            />
+          ) : model ? (
             <ModelViewer
               modelBuffer={model}
               modelKey={skin.id}
               presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
-              camera={{ distanceMultiplier: 0.9 }}
+              camera={{
+                distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
+                target: getSkinCameraTarget(skin.weaponKey)
+              }}
               animation="idle1"
               maxFrameRate={30}
               disableZoom
@@ -410,18 +395,18 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
               rotateSpeed={0.45}
               className="absolute inset-0"
             />
-          )}
-          {!model && !error && (
+          ) : null}
+          {skin.weaponKey !== 'elite' && !model && !error && (
             <div className="flex h-full items-center justify-center" role="status">
               <LoaderCircle className="size-7 animate-spin text-sky-300" />
             </div>
           )}
-          {error && (
+          {skin.weaponKey !== 'elite' && error && (
             <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
               {error}
             </div>
           )}
-          {model && (
+          {skin.weaponKey !== 'elite' && model && (
             <span className="pointer-events-none absolute bottom-3 left-4 rounded bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
               Drag to rotate
             </span>

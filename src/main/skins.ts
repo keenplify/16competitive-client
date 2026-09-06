@@ -3,6 +3,9 @@ import { API_BASE_URL } from './config'
 import type { OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
+// Temporarily bypass persistent model caching while preview rendering is being tuned.
+const PREVIEW_MODEL_CACHE_ENABLED = false
+
 const skinIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const weaponKeyPattern = /^[a-z0-9_]+$/
 
@@ -132,8 +135,10 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
   const validatedSkinId = validateSkinId(skinId)
-  const cached = await readCachedSkinPreview(validatedSkinId)
-  if (cached) return cached
+  if (PREVIEW_MODEL_CACHE_ENABLED) {
+    const cached = await readCachedSkinPreview(validatedSkinId)
+    if (cached) return cached
+  }
 
   const response = await fetch(`${API_BASE_URL}/skins/${validatedSkinId}/preview-model`, {
     headers: { authorization: `Bearer ${token}` },
@@ -163,8 +168,10 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   if (model.byteLength === 0 || model.byteLength > 32 * 1024 * 1024) {
     throw makeError('The preview model is an unsupported size.')
   }
-  await writeCachedSkinPreview(validatedSkinId, model).catch((error: unknown) => {
-    console.warn('Could not cache skin preview model', { skinId: validatedSkinId, error })
-  })
+  if (PREVIEW_MODEL_CACHE_ENABLED) {
+    await writeCachedSkinPreview(validatedSkinId, model).catch((error: unknown) => {
+      console.warn('Could not cache skin preview model', { skinId: validatedSkinId, error })
+    })
+  }
   return model
 }

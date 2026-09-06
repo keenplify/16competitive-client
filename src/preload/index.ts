@@ -62,7 +62,10 @@ const windowApi: WindowApi = {
 }
 
 const models: ModelApi = {
-  read: (relativePath) => ipcRenderer.invoke(MODEL_CHANNELS.read, relativePath)
+  read: (relativePath) => ipcRenderer.invoke(MODEL_CHANNELS.read, relativePath),
+  readThumbnail: (cacheKey) => ipcRenderer.invoke(MODEL_CHANNELS.readThumbnail, cacheKey),
+  writeThumbnail: (cacheKey, png) =>
+    ipcRenderer.invoke(MODEL_CHANNELS.writeThumbnail, cacheKey, png)
 }
 
 const party: PartyApi = {

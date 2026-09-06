@@ -50,11 +50,15 @@ export const createLights = (color: number = 0xffffff): THREE.Light[] => {
  * Creates webgl renderer
  * @param canvas The html canvas node
  */
-export const createRenderer = (canvas: HTMLCanvasElement): THREE.WebGLRenderer => {
+export const createRenderer = (
+  canvas: HTMLCanvasElement,
+  preserveDrawingBuffer = false
+): THREE.WebGLRenderer => {
   const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     antialias: true,
-    alpha: true
+    alpha: true,
+    preserveDrawingBuffer
   })
 
   // Clear color

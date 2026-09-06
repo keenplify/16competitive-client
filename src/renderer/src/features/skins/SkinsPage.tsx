@@ -4,11 +4,10 @@ import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
-import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
-import { getCachedSkinModel } from './skin-model-cache'
-import { getSkinPresentationRotation } from './skin-model-presentation'
+import { SkinModelThumbnail } from './SkinModelThumbnail'
 
 type Team = 'ct' | 't'
 type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'knives'
@@ -65,6 +64,9 @@ const displayWeapon = (key: string): string =>
     .replace('Sg550', 'SG 550')
     .replace('G3sg1', 'G3/SG-1')
     .replace('M249', 'M249')
+
+const defaultPlayerModelPath = (weaponKey: string): string =>
+  `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
 
 const categories: Array<{ id: WeaponCategory; label: string }> = [
   { id: 'all', label: 'All weapons' },
@@ -397,7 +399,11 @@ function LoadoutWeaponCard({
       aria-pressed={selected}
       onClick={onSelect}
     >
-      <LoadoutThumbnail key={equipped?.skin.id ?? weaponKey} equipped={equipped} />
+      <LoadoutThumbnail
+        key={equipped?.skin.id ?? weaponKey}
+        weaponKey={weaponKey}
+        equipped={equipped}
+      />
       <span className="block w-full min-w-0 px-1 py-1.5">
         <span className="block truncate text-center text-xs font-bold tracking-wide text-neutral-300">
           {equipped?.skin.name ?? displayWeapon(weaponKey)}
@@ -407,46 +413,37 @@ function LoadoutWeaponCard({
   )
 }
 
-function LoadoutThumbnail({ equipped }: { equipped: OwnedSkin | undefined }): JSX.Element {
-  const [model, setModel] = useState<ArrayBuffer | null>(null)
+function LoadoutThumbnail({
+  weaponKey,
+  equipped
+}: {
+  weaponKey: string
+  equipped: OwnedSkin | undefined
+}): JSX.Element {
   const skinId = equipped?.skin.id
-
-  useEffect(() => {
-    let active = true
-    if (!skinId)
-      return () => {
-        active = false
-      }
-    void getCachedSkinModel(skinId).then(
-      (bytes) => {
-        if (active) setModel(bytes)
-      },
-      () => undefined
-    )
-    return () => {
-      active = false
-    }
-  }, [skinId])
+  const installationPath = useGameSettingsStore((state) => state.savedPath)
+  const cacheKey = skinId
+    ? `skin-loadout:v3:${skinId}`
+    : `default-loadout:v3:${installationPath ?? 'auto'}:${weaponKey}`
 
   return (
     <span className="relative flex h-20 w-full shrink-0 items-center justify-center overflow-hidden bg-slate-950/75">
-      {model ? (
-        <ModelViewer
-          modelBuffer={model}
-          modelKey={`loadout-${equipped?.skin.id ?? ''}`}
-          presentationRotation={getSkinPresentationRotation(equipped?.skin.weaponKey ?? '')}
-          camera={{ distanceMultiplier: 0.5 }}
-          animation="idle1"
-          maxFrameRate={20}
-          cameraLocked
-          className="pointer-events-none absolute inset-0"
-        />
-      ) : (
-        <Crosshair
-          className={twMerge('size-5', equipped ? 'text-sky-300/70' : 'text-neutral-600')}
-          aria-hidden="true"
-        />
-      )}
+      <SkinModelThumbnail
+        key={cacheKey}
+        cacheKey={cacheKey}
+        skinId={skinId}
+        modelPath={skinId ? undefined : defaultPlayerModelPath(weaponKey)}
+        sourceRevision={installationPath ?? 'unloaded'}
+        modelKey={skinId ? `loadout-${skinId}` : undefined}
+        weaponKey={weaponKey}
+        fallback={
+          <Crosshair
+            className={skinId ? 'size-5 text-sky-300/70' : 'size-5 text-neutral-600'}
+            aria-hidden="true"
+          />
+        }
+        className="pointer-events-none absolute inset-0"
+      />
     </span>
   )
 }

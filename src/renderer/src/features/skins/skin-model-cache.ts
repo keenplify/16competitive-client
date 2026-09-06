@@ -1,4 +1,7 @@
 const MAX_MODEL_CACHE_BYTES = 64 * 1024 * 1024
+// Temporarily disabled while preview rendering is being tuned. Re-enable once
+// model orientation and loading behavior are confirmed.
+const PREVIEW_MODEL_CACHE_ENABLED = true
 
 const modelBuffers = new Map<string, ArrayBuffer>()
 const pendingModels = new Map<string, Promise<ArrayBuffer>>()
@@ -23,6 +26,8 @@ const cacheModel = (skinId: string, buffer: ArrayBuffer): void => {
 }
 
 export const getCachedSkinModel = (skinId: string): Promise<ArrayBuffer> => {
+  if (!PREVIEW_MODEL_CACHE_ENABLED) return window.api.skins.previewModel(skinId)
+
   const cached = modelBuffers.get(skinId)
   if (cached) {
     // Refresh insertion order so the bounded cache evicts the least recently

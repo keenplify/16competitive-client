@@ -14,6 +14,7 @@ import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import { WINDOW_CHANNELS } from '../shared/window'
 import { MODEL_CHANNELS } from '../shared/models'
 import { readCounterStrikeModel } from './models'
+import { readModelThumbnail, writeModelThumbnail } from './model-thumbnail-cache'
 import { getMatchmakingMaps } from './matchmaking-maps'
 import { getMatchHistory, getMatchSummary, getPlayerProfile } from './match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
@@ -204,6 +205,12 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
   ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
     readCounterStrikeModel(relativePath)
+  )
+  ipcMain.handle(MODEL_CHANNELS.readThumbnail, (_, cacheKey: unknown) =>
+    readModelThumbnail(cacheKey)
+  )
+  ipcMain.handle(MODEL_CHANNELS.writeThumbnail, (_, cacheKey: unknown, png: unknown) =>
+    writeModelThumbnail(cacheKey, png)
   )
   ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
   ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())

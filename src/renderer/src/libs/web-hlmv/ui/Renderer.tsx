@@ -127,6 +127,7 @@ type Props = {
   /** Restricts orbit around the initial face by this many radians on each side. */
   orbitAngleLimit?: number
   rotateSpeed?: number
+  onFirstFrame?: (canvas: HTMLCanvasElement) => void
   className?: string
 }
 
@@ -155,8 +156,8 @@ export const Renderer = (props: Props): React.JSX.Element => {
     }
 
     console.info('[HLMV] Creating WebGL renderer')
-    return createRenderer(canvas)
-  }, [canvas])
+    return createRenderer(canvas, Boolean(props.onFirstFrame))
+  }, [canvas, props.onFirstFrame])
 
   // Orbit controller
   const orbitControls: THREE.OrbitControls | null = React.useMemo(() => {
@@ -179,6 +180,15 @@ export const Renderer = (props: Props): React.JSX.Element => {
     props.orbitAngleLimit,
     props.rotateSpeed
   ])
+
+  React.useEffect(
+    () => () => {
+      orbitControls?.dispose()
+      renderer?.dispose()
+      renderer?.forceContextLoss()
+    },
+    [orbitControls, renderer]
+  )
 
   // Scene lights
   // Note: you can pass lights color to arguments
@@ -562,6 +572,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
       if (!hasRenderedFirstFrame.current) {
         hasRenderedFirstFrame.current = true
+        props.onFirstFrame?.(canvas)
         console.info('[HLMV] First WebGL frame rendered', {
           calls: renderer.info.render.calls,
           triangles: renderer.info.render.triangles,
