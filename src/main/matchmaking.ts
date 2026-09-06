@@ -459,6 +459,8 @@ class MatchmakingConnection {
           this.hostApiUrl = targetApiUrl ?? null
           this.activeApiUrl = targetApiUrl ?? null
           this.authenticated = true
+          this.recoveryStatusPending = true
+          socket.send(JSON.stringify({ type: 'get_queue_status' }))
           oldSocket?.close()
         } else {
           this.authenticated = true
