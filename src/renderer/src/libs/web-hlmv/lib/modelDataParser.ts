@@ -271,3 +271,15 @@ export const parseModel = (modelBuffer: ArrayBuffer) => {
  * Type of model parsing result
  */
 export type ModelData = ReturnType<typeof parseModel>
+
+const parsedModelCache = new WeakMap<ArrayBuffer, ModelData>()
+
+/** Reuses parsed model data while its source buffer remains in memory. */
+export const parseModelCached = (modelBuffer: ArrayBuffer): ModelData => {
+  const cached = parsedModelCache.get(modelBuffer)
+  if (cached) return cached
+
+  const parsed = parseModel(modelBuffer)
+  parsedModelCache.set(modelBuffer, parsed)
+  return parsed
+}

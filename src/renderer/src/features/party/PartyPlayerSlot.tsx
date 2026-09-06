@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { PartyMember } from '../../../../shared/party'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 
 const PLAYER_MODELS = [
   'player/arctic/arctic.mdl',
@@ -36,6 +37,8 @@ export function PartyPlayerSlot({
   isCurrentPlayer,
   className
 }: PartyPlayerSlotProps): JSX.Element {
+  const installationPath = useGameSettingsStore((state) => state.savedPath)
+
   return (
     <article
       className={twMerge(
@@ -45,6 +48,7 @@ export function PartyPlayerSlot({
     >
       <ModelViewer
         modelPath={modelForSlot(slot, member)}
+        sourceRevision={installationPath ?? 'unloaded'}
         animation="idle1"
         maxFrameRate={30}
         cameraLocked

@@ -7,6 +7,8 @@ type ModelViewerProps = {
   modelBuffer?: ArrayBuffer
   /** Stable identity for a model buffer, used when changing previews. */
   modelKey?: string
+  /** Changes whenever the backing source of an otherwise identical path changes. */
+  sourceRevision?: string | number
   /** A renderer-accessible HTTP(S) or imported asset URL. */
   modelUrl?: string
   /** An MDL path relative to Counter-Strike's models directory. */
@@ -38,6 +40,7 @@ type ModelViewerProps = {
 export function ModelViewer({
   modelBuffer,
   modelKey,
+  sourceRevision,
   modelUrl,
   modelPath,
   camera,
@@ -51,11 +54,12 @@ export function ModelViewer({
   rotateSpeed,
   className
 }: ModelViewerProps): JSX.Element {
+  const revision = sourceRevision === undefined ? '' : `@${sourceRevision}`
   const sourceKey = modelBuffer
-    ? `buffer:${modelKey ?? 'default'}`
+    ? `buffer:${modelKey ?? 'default'}${revision}`
     : modelPath
-      ? `path:${modelPath}`
-      : `url:${modelUrl ?? ''}`
+      ? `path:${modelPath}${revision}`
+      : `url:${modelUrl ?? ''}${revision}`
   const [loadedModel, setLoadedModel] = useState<{
     sourceKey: string
     buffer: ArrayBuffer
@@ -64,11 +68,7 @@ export function ModelViewer({
 
   useEffect(() => {
     const abortController = new AbortController()
-    const requestedSourceKey = modelBuffer
-      ? `buffer:${modelKey ?? 'default'}`
-      : modelPath
-        ? `path:${modelPath}`
-        : `url:${modelUrl ?? ''}`
+    const requestedSourceKey = sourceKey
 
     const modelRequest = modelBuffer
       ? Promise.resolve(modelBuffer)
@@ -99,7 +99,7 @@ export function ModelViewer({
       })
 
     return () => abortController.abort()
-  }, [modelBuffer, modelKey, modelPath, modelUrl])
+  }, [modelBuffer, modelPath, modelUrl, sourceKey])
 
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>

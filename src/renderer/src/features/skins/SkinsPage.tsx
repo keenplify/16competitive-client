@@ -7,6 +7,8 @@ import { ModalPortal } from '../../components/ui/ModalPortal'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
+import { getCachedSkinModel } from './skin-model-cache'
+import { getSkinPresentationRotation } from './skin-model-presentation'
 
 type Team = 'ct' | 't'
 type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'knives'
@@ -415,7 +417,7 @@ function LoadoutThumbnail({ equipped }: { equipped: OwnedSkin | undefined }): JS
       return () => {
         active = false
       }
-    void window.api.skins.previewModel(skinId).then(
+    void getCachedSkinModel(skinId).then(
       (bytes) => {
         if (active) setModel(bytes)
       },
@@ -432,7 +434,7 @@ function LoadoutThumbnail({ equipped }: { equipped: OwnedSkin | undefined }): JS
         <ModelViewer
           modelBuffer={model}
           modelKey={`loadout-${equipped?.skin.id ?? ''}`}
-          presentationRotation={[90, 0, 190]}
+          presentationRotation={getSkinPresentationRotation(equipped?.skin.weaponKey ?? '')}
           camera={{ distanceMultiplier: 0.5 }}
           animation="idle1"
           maxFrameRate={20}

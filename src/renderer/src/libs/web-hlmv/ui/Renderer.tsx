@@ -3,7 +3,7 @@
 // @ts-nocheck bad types
 
 import * as React from 'react'
-import { ModelData, parseModel } from '../lib/modelDataParser'
+import { ModelData, parseModelCached } from '../lib/modelDataParser'
 import { buildTexture } from '../lib/textureBuilder'
 import {
   prepareRenderData,
@@ -212,7 +212,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     const startedAt = performance.now()
     console.info('[HLMV] Parsing model', { bytes: props.modelBuffer.byteLength })
     try {
-      const parsedModel = parseModel(props.modelBuffer)
+      const parsedModel = parseModelCached(props.modelBuffer)
       console.info('[HLMV] Model parsed', {
         milliseconds: Math.round(performance.now() - startedAt),
         sequences: parsedModel.sequences.length,

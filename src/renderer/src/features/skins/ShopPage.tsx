@@ -7,6 +7,8 @@ import type { OwnedSkin, Skin } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
+import { getCachedSkinModel } from './skin-model-cache'
+import { getSkinPresentationRotation } from './skin-model-presentation'
 
 type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
 
@@ -271,7 +273,7 @@ export function SkinCardPreview({
 
   useEffect(() => {
     let active = true
-    void window.api.skins.previewModel(skin.id).then(
+    void getCachedSkinModel(skin.id).then(
       (bytes) => {
         if (active) setModel(bytes)
       },
@@ -295,7 +297,7 @@ export function SkinCardPreview({
         <ModelViewer
           modelBuffer={model}
           modelKey={skin.id}
-          presentationRotation={[90, 0, 190]}
+          presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
           camera={{ distanceMultiplier: 0.5 }}
           animation="idle1"
           maxFrameRate={20}
@@ -333,7 +335,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
 
   useEffect(() => {
     let active = true
-    void window.api.skins.previewModel(skin.id).then(
+    void getCachedSkinModel(skin.id).then(
       (bytes) => {
         if (active) setModel(bytes)
       },
@@ -398,7 +400,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
             <ModelViewer
               modelBuffer={model}
               modelKey={skin.id}
-              presentationRotation={[90, 0, 190]}
+              presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
               camera={{ distanceMultiplier: 0.9 }}
               animation="idle1"
               maxFrameRate={30}
