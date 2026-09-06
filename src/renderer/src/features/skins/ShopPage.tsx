@@ -1,10 +1,11 @@
-import { LoaderCircle, LockKeyhole, ShoppingBag, X } from 'lucide-react'
+import { LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import type { OwnedSkin, Skin } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
+import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
 
 type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
 
@@ -42,6 +43,7 @@ export function ShopPage(): JSX.Element {
   const [ownedSkins, setOwnedSkins] = useState<Map<string, OwnedSkin>>(new Map())
   const [buyingId, setBuyingId] = useState<string | null>(null)
   const [previewSkin, setPreviewSkin] = useState<Skin | null>(null)
+  const [showRedeemCode, setShowRedeemCode] = useState(false)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
 
@@ -110,6 +112,11 @@ export function ShopPage(): JSX.Element {
     navigate('profile')
   }
 
+  const refreshOwnedSkins = useCallback(async (): Promise<void> => {
+    const inventory = await window.api.skins.mine()
+    setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
+  }, [])
+
   return (
     <main className="min-h-[calc(100vh-5rem)] w-full bg-neutral-950/75 p-6 text-white sm:p-10">
       <div className="mx-auto w-full max-w-6xl">
@@ -121,13 +128,19 @@ export function ShopPage(): JSX.Element {
               Choose a weapon, then unlock a skin for a future match.
             </p>
           </div>
-          <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-right">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-amber-200 uppercase">
-              Available points
-            </p>
-            <p className="mt-1 text-xl font-bold tabular-nums text-amber-300">
-              {points.toLocaleString()}
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => setShowRedeemCode(true)}>
+              <Ticket className="mr-2 size-4" aria-hidden="true" />
+              Redeem Code
+            </Button>
+            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-right">
+              <p className="text-[10px] font-bold tracking-[0.16em] text-amber-200 uppercase">
+                Available points
+              </p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-amber-300">
+                {points.toLocaleString()}
+              </p>
+            </div>
           </div>
         </header>
         <div className="mt-6 flex flex-wrap gap-2" aria-label="Filter skins by weapon">
@@ -213,6 +226,9 @@ export function ShopPage(): JSX.Element {
       </div>
       {previewSkin && (
         <SkinPreview key={previewSkin.id} skin={previewSkin} onClose={() => setPreviewSkin(null)} />
+      )}
+      {showRedeemCode && (
+        <RedeemCodeModal onClose={() => setShowRedeemCode(false)} onRedeemed={refreshOwnedSkins} />
       )}
     </main>
   )

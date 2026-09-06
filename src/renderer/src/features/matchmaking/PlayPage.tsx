@@ -6,12 +6,10 @@ import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useMatchmakingStore } from './matchmaking.store'
-import dust2Preview from '../../assets/dust2.jpg'
-import infernoPreview from '../../assets/inferno.jpg'
-import nukePreview from '../../assets/nuke.jpg'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
+import { localMapPreviews } from './map-previews'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -27,12 +25,6 @@ interface MapCardProps {
   selected: boolean
   disabled: boolean
   onSelect: () => void
-}
-
-const localMapPreviews: Readonly<Record<string, string>> = {
-  de_dust2: dust2Preview,
-  de_inferno: infernoPreview,
-  de_nuke: nukePreview
 }
 
 function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Element {

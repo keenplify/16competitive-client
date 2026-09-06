@@ -43,6 +43,8 @@ import { getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
+import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
+import { redeemCode } from './redeem-codes'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -84,7 +86,11 @@ function createWindow(): void {
     height: 670,
     frame: false,
     fullscreen: true,
-    resizable: false,
+    // A fullscreen BrowserWindow still needs to be resizable so Electron can
+    // expand its native content surface from the fallback size to the display
+    // bounds. Some Windows and Linux window managers otherwise leave the
+    // 900x670 surface centered on a black fullscreen background.
+    resizable: true,
     movable: false,
     maximizable: false,
     show: false,
@@ -226,6 +232,7 @@ app.whenReady().then(() => {
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
+  ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   createWindow()
   checkForAppUpdates()

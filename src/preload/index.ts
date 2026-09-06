@@ -21,6 +21,8 @@ import type { LeaderboardApi } from '../shared/leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import type { NewsApi } from '../shared/news'
 import { NEWS_CHANNELS } from '../shared/news'
+import type { RedeemCodesApi } from '../shared/redeem-codes'
+import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -118,6 +120,10 @@ const news: NewsApi = {
   getAll: () => ipcRenderer.invoke(NEWS_CHANNELS.getAll)
 }
 
+const redeemCodes: RedeemCodesApi = {
+  redeem: (code) => ipcRenderer.invoke(REDEEM_CODE_CHANNELS.redeem, code)
+}
+
 const api = {
   auth,
   gameSettings,
@@ -127,6 +133,7 @@ const api = {
   models,
   news,
   party,
+  redeemCodes,
   skins,
   updater,
   window: windowApi
