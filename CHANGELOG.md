@@ -67,3 +67,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Chat
 
 - Deleted global chat messages are now removed.
+
+## v2026.906.2 — 2026-09-06
+
+### Linux
+
+- Fixed fullscreen behavior.
