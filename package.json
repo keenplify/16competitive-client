@@ -1,6 +1,6 @@
 {
   "name": "16competitive-client",
-  "version": "2026.905.5",
+  "version": "2026.906.1",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",

@@ -56,3 +56,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.905.5 — 2026-09-05
 
 - Fix CS 1.6 reconnect identity persistence
+
+## v2026.906.1 — 2026-09-06
+
+### Redeem Codes
+
+- Added support for redeeming player codes.
+- Added a redeem code flow in the client.
+
+### Chat
+
+- Deleted global chat messages are now removed.
