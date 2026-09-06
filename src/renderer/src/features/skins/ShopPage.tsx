@@ -1,6 +1,7 @@
-import { LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 'lucide-react'
+import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
+import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
 import type { OwnedSkin, Skin } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
@@ -31,6 +32,16 @@ const weaponCategories: Array<{ id: WeaponCategory; label: string }> = [
 const errorDetails = (reason: unknown): { message: string; code?: string } => {
   if (!(reason instanceof Error)) return { message: 'Could not complete this shop request.' }
   return { message: reason.message, code: (reason as Error & { code?: string }).code }
+}
+
+const safeExternalUrl = (value: string | null): string | null => {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 export function ShopPage(): JSX.Element {
@@ -67,7 +78,8 @@ export function ShopPage(): JSX.Element {
   }, [load])
 
   const catalogLabel = useMemo(
-    () => weaponCategories.find((category) => category.id === selectedCategory)?.label ?? 'All weapons',
+    () =>
+      weaponCategories.find((category) => category.id === selectedCategory)?.label ?? 'All weapons',
     [selectedCategory]
   )
   const filteredSkins = useMemo(
@@ -225,10 +237,21 @@ export function ShopPage(): JSX.Element {
         ) : null}
       </div>
       {previewSkin && (
-        <SkinPreview key={previewSkin.id} skin={previewSkin} onClose={() => setPreviewSkin(null)} />
+        <ModalPortal>
+          <SkinPreview
+            key={previewSkin.id}
+            skin={previewSkin}
+            onClose={() => setPreviewSkin(null)}
+          />
+        </ModalPortal>
       )}
       {showRedeemCode && (
-        <RedeemCodeModal onClose={() => setShowRedeemCode(false)} onRedeemed={refreshOwnedSkins} />
+        <ModalPortal>
+          <RedeemCodeModal
+            onClose={() => setShowRedeemCode(false)}
+            onRedeemed={refreshOwnedSkins}
+          />
+        </ModalPortal>
       )}
     </main>
   )
@@ -305,6 +328,8 @@ export function SkinCardPreview({
 export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
   const [model, setModel] = useState<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const sourceUrl = safeExternalUrl(skin.sourceUrl)
+  const creatorUrl = safeExternalUrl(skin.creatorUrl)
 
   useEffect(() => {
     let active = true
@@ -331,7 +356,33 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
       <section className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-white/15 bg-neutral-950 shadow-2xl">
         <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
-            <h2 className="mt-1 text-lg font-semibold">{skin.name}</h2>
+            <h2 className="mt-1 text-lg font-semibold text-white">{skin.name}</h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-400">
+              {sourceUrl && (
+                <a
+                  className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                  Source
+                </a>
+              )}
+              {creatorUrl ? (
+                <a
+                  className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
+                  href={creatorUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                  {skin.creatorName}
+                </a>
+              ) : (
+                <span>By {skin.creatorName}</span>
+              )}
+            </div>
           </div>
           <Button
             className="size-9 px-0"

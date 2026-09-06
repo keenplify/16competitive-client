@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
+import { ModalPortal } from '../../components/ui/ModalPortal'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
@@ -318,7 +319,13 @@ export function SkinsPage(): JSX.Element {
         )}
       </section>
       {previewSkin && (
-        <SkinPreview key={previewSkin.id} skin={previewSkin} onClose={() => setPreviewSkin(null)} />
+        <ModalPortal>
+          <SkinPreview
+            key={previewSkin.id}
+            skin={previewSkin}
+            onClose={() => setPreviewSkin(null)}
+          />
+        </ModalPortal>
       )}
     </section>
   )

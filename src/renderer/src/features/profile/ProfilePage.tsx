@@ -35,7 +35,7 @@ export function ProfilePage(): JSX.Element {
                 )}
                 onClick={() => setTab(id)}
               >
-                {id === 'matches' ? 'Match history' : 'Skins'}
+                {id === 'matches' ? 'Match history' : 'Loadout'}
               </button>
             ))}
           </div>
