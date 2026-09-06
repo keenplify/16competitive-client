@@ -88,3 +88,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved skin browsing and model presentation.
 - Updated skin shop and skins page layouts.
 - Added clearer skin previews in party and profile views.
+
+## v2026.906.4 — 2026-09-06
+
+### Matchmaking
+
+- Ready checks now recover after a host handoff.
