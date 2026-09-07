@@ -1,7 +1,7 @@
 {
   "name": "16competitive-client",
   "version": "2026.907.3",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
