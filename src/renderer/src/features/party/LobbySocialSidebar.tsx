@@ -23,6 +23,7 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
   const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
   const matchNeedsAttention = [
+    'match_found',
     'ready_check',
     'countdown',
     'starting_server',

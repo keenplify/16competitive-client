@@ -77,12 +77,14 @@ export function LobbyPage(): JSX.Element {
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const dismissCompletedMatch = useMatchmakingStore((state) => state.dismissCompletedMatch)
   const showSocialSidebar = ![
+    'match_found',
     'ready_check',
     'countdown',
     'starting_server',
     'server_ready'
   ].includes(queueStatus)
   const matchNavigationLocked = [
+    'match_found',
     'ready_check',
     'countdown',
     'starting_server',

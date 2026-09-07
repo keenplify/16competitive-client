@@ -92,9 +92,13 @@ export function SkinsPage(): JSX.Element {
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
   const [unequippingTeam, setUnequippingTeam] = useState(false)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
-  const loadoutLocked = ['ready_check', 'countdown', 'starting_server', 'server_ready'].includes(
-    queueStatus
-  )
+  const loadoutLocked = [
+    'match_found',
+    'ready_check',
+    'countdown',
+    'starting_server',
+    'server_ready'
+  ].includes(queueStatus)
 
   const refresh = (): void => {
     setStatus('loading')

@@ -133,6 +133,29 @@ export function PlayPage(): JSX.Element {
   const availableMaps = maps.filter((map) => map.supportedModes.includes('5v5'))
   const hasSelectedMaps = selectedMapIds.length > 0
 
+  if (match && queueStatus === 'match_found') {
+    return (
+      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/95 p-5 text-white sm:p-10">
+        <section className="w-full max-w-xl border border-sky-400/30 bg-sky-400/10 p-8 text-center">
+          <p className="text-xs font-bold tracking-[0.22em] text-sky-300 uppercase">Match found</p>
+          <h1 className="mt-3 text-3xl font-semibold">Preparing ready check</h1>
+          <p className="mt-3 text-sm text-sky-100/70">
+            {maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} ·{' '}
+            {getMatchmakingModeLabel(match.mode)}
+          </p>
+          <MatchAssetPreparation
+            className="mx-auto mt-5 max-w-md text-left"
+            preparation={assetPreparation}
+          />
+          <p className="mt-5 text-sm text-neutral-400">
+            Waiting for the server to open player acceptance…
+          </p>
+          {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+        </section>
+      </main>
+    )
+  }
+
   if (match && queueStatus === 'ready_check') {
     return (
       <MatchFoundReadyCheck

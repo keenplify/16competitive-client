@@ -38,6 +38,12 @@ const isMapIds = (value: unknown): value is string[] =>
   value.every(isMapId) &&
   new Set(value).size === value.length
 
+const isOptionalTimestamp = (value: unknown): value is string | undefined =>
+  value === undefined || (typeof value === 'string' && Number.isFinite(Date.parse(value)))
+
+const isOptionalSearchStage = (value: unknown): boolean =>
+  value === undefined || value === 'LOCAL' || value === 'EXPANDED' || value === 'BOT_FILL'
+
 const isHttpUrl = (value: unknown): value is string => {
   if (typeof value !== 'string') return false
   try {
@@ -140,7 +146,10 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         isMode(message.mode) &&
         isMapIds(message.mapIds) &&
         typeof message.region === 'string' &&
-        typeof message.allowRegionExpansion === 'boolean'
+        typeof message.allowRegionExpansion === 'boolean' &&
+        isOptionalTimestamp(message.queuedAt) &&
+        isOptionalTimestamp(message.autoFillAt) &&
+        isOptionalSearchStage(message.searchStage)
       )
     case 'queue_left':
       return isMode(message.mode) && isMapIds(message.mapIds)
@@ -152,7 +161,10 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         typeof message.playersRequired === 'number' &&
         typeof message.position === 'number' &&
         typeof message.region === 'string' &&
-        typeof message.allowRegionExpansion === 'boolean'
+        typeof message.allowRegionExpansion === 'boolean' &&
+        isOptionalTimestamp(message.queuedAt) &&
+        isOptionalTimestamp(message.autoFillAt) &&
+        isOptionalSearchStage(message.searchStage)
       )
     case 'party_invitation_received':
     case 'party_updated':
@@ -385,6 +397,7 @@ class MatchmakingConnection {
     }
     await launchCounterStrikeForMatch({
       ...connection,
+      forceRestart: true,
       onExit: ({ code, signal }) =>
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
     })
@@ -525,42 +538,36 @@ class MatchmakingConnection {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
-        if (isRecoveredConnection) {
-          void this.prepareMatchAssets(parsed.matchId).catch((error: unknown) =>
+        // A fresh launcher has no in-memory preload, while socket recovery in
+        // the same process may already have one. Both paths must continue into
+        // launch after verification; launchCounterStrikeForMatch makes replayed
+        // match_connect delivery idempotent within the current app process.
+        const assetsReady = isRecoveredConnection
+          ? this.prepareMatchAssets(parsed.matchId)
+          : waitForMatchAssetPreload(parsed.matchId)
+        void assetsReady
+          .then(() =>
+            launchCounterStrikeForMatch({
+              ...parsed,
+              onExit: ({ code, signal }) =>
+                this.notify({
+                  type: 'game_process_exited',
+                  matchId: parsed.matchId,
+                  code,
+                  signal
+                })
+            })
+          )
+          .catch((error: unknown) =>
             this.notify({
               type: 'error',
-              code: 'MATCH_ASSET_PRELOAD_FAILED',
+              code: 'MATCH_PREPARATION_FAILED',
               message:
                 error instanceof Error
                   ? error.message
-                  : 'Could not prepare the required match assets.'
+                  : 'Could not prepare match assets or launch Counter-Strike.'
             })
           )
-        } else {
-          void waitForMatchAssetPreload(parsed.matchId)
-            .then(() =>
-              launchCounterStrikeForMatch({
-                ...parsed,
-                onExit: ({ code, signal }) =>
-                  this.notify({
-                    type: 'game_process_exited',
-                    matchId: parsed.matchId,
-                    code,
-                    signal
-                  })
-              })
-            )
-            .catch((error: unknown) =>
-              this.notify({
-                type: 'error',
-                code: 'MATCH_PREPARATION_FAILED',
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : 'Could not prepare match assets or launch Counter-Strike.'
-              })
-            )
-        }
       } else if (parsed.type === 'match_cancelled') {
         clearMatchAssetPreload(parsed.matchId)
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {

@@ -84,7 +84,9 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
   const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
     (resolveResult) => {
       const child = spawn(
-        process.env.SystemRoot ? join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : 'powershell.exe',
+        process.env.SystemRoot
+          ? join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+          : 'powershell.exe',
         ['-NoProfile', '-NonInteractive', '-Command', script],
         {
           shell: false,
@@ -131,9 +133,7 @@ const synchronizeUserConfigIdentity = async (
   const lines = existing
     .split(/\r?\n/)
     .filter(
-      (line) =>
-        !/^\s*name(?:\s|$)/i.test(line) &&
-        !/^\s*setinfo\s+"?_16c"?(?:\s|$)/i.test(line)
+      (line) => !/^\s*name(?:\s|$)/i.test(line) && !/^\s*setinfo\s+"?_16c"?(?:\s|$)/i.test(line)
     )
   while (lines.length > 0 && lines.at(-1)?.trim() === '') lines.pop()
   lines.push(`name "${playerName}"`, `setinfo "_16c" "${joinToken}"`, '')
@@ -150,6 +150,7 @@ export const launchCounterStrikeForMatch = async (input: {
   port: number
   password: string
   joinToken: string
+  forceRestart?: boolean
   onExit?: (event: { code: number | null; signal: string | null }) => void
 }): Promise<void> => {
   console.info('[GameLaunch] match_connect received', {
@@ -164,11 +165,12 @@ export const launchCounterStrikeForMatch = async (input: {
   }
   if (!SAFE_PASSWORD.test(input.password)) throw new Error('Invalid game server password')
   if (!/^[A-Za-z0-9_-]{32,64}$/.test(input.joinToken)) throw new Error('Invalid match join token')
-  if (launchedMatchId === input.matchId && gameProcess?.exitCode === null) {
-    return
-  }
+  // match_connect is durable server state and may be delivered more than once
+  // during socket recovery or API-host handoff. Only the explicit Reconnect
+  // action is allowed to restart a match that this launcher already started.
+  if (launchedMatchId === input.matchId && !input.forceRestart) return
 
-  const relaunchingSameMatch = launchedMatchId === input.matchId
+  const relaunchingSameMatch = launchedMatchId === input.matchId && input.forceRestart === true
   const configuredExecutable =
     (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
   console.info('[GameLaunch] executable configuration', {
@@ -221,10 +223,7 @@ export const launchCounterStrikeForMatch = async (input: {
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.tmp`
   await unlink(join(cwd, 'cstrike', '16competitive-match.cfg')).catch(() => undefined)
 
-  const identityCommands = [
-    `name "${playerName}"`,
-    `setinfo "_16c" "${input.joinToken}"`
-  ]
+  const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
   await writeFile(
     temporaryMatchConfigPath,
@@ -250,28 +249,16 @@ export const launchCounterStrikeForMatch = async (input: {
   await rename(temporaryMatchConfigPath, matchConfigPath)
   launchedMatchConfigPath = matchConfigPath
 
-  // Keep the cfg path as a complete fallback, then reassert identity and connect
-  // directly after +exec. This is important when Steam forwards launch parameters
-  // to an already-running GoldSrc process through OnNewUrlLaunchParameters.
-  const directMatchArgs = [
-    '+exec',
-    matchConfigName,
-    '+name',
-    playerName,
-    '+setinfo',
-    '_16c',
-    input.joinToken,
-    '+password',
-    input.password,
-    '+connect',
-    `${input.host}:${input.port}`
-  ]
-  const gameArgs =
-    launchTarget.distribution === 'standalone'
-      ? ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel', ...directMatchArgs]
-      : directMatchArgs
-  // Steam forwards the remaining app arguments directly to GoldSrc. Do not
-  // add `--`: Steam passes it through as an actual engine argument.
+  // GoldSrc reparses command lines and can interpret a hyphen inside a secret as
+  // a new launch option. Keep the password and join token exclusively in the
+  // restricted config files so their complete values reach the engine and do
+  // not leak through the OS process list. The final connect remains a fallback
+  // when Steam forwards parameters to an already-running client.
+  const directMatchArgs = ['+exec', matchConfigName, '+connect', `${input.host}:${input.port}`]
+  const gameArgs = directMatchArgs
+  // Linux Steam forwards the remaining app arguments directly to GoldSrc. Do
+  // not add `--`: Steam passes it through as an actual engine argument. The
+  // Windows/direct and standalone targets consume the same argument array.
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
   launchedExecutablePath = executable

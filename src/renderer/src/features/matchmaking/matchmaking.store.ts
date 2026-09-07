@@ -3,6 +3,7 @@ import {
   MatchmakingMap,
   MatchmakingMode,
   MatchmakingNode,
+  MatchmakingSearchStage,
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
@@ -16,6 +17,7 @@ type QueueStatus =
   | 'joining'
   | 'queued'
   | 'leaving'
+  | 'match_found'
   | 'ready_check'
   | 'countdown'
   | 'starting_server'
@@ -61,6 +63,9 @@ interface MatchmakingState {
   queuedPlayers: number
   playersRequired: number
   position: number
+  queuedAt: string | null
+  autoFillAt: string | null
+  searchStage: MatchmakingSearchStage | null
   queueStartedAt: number | null
   match: FoundMatch | null
   completedMatch: CompletedMatch | null
@@ -96,6 +101,14 @@ const readableError = (error: unknown): string => {
   return remoteError?.[1] ?? error.message
 }
 
+const timestampMs = (value: string): number | null => {
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+const isMatchLifecycleStatus = (status: QueueStatus): boolean =>
+  ['match_found', 'ready_check', 'countdown', 'starting_server', 'server_ready'].includes(status)
+
 export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const handleEvent = (event: MatchmakingEvent): void => {
     switch (event.type) {
@@ -112,29 +125,43 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ connectionStatus: 'ready', error: null })
         break
       case 'queue_joined':
-        set((state) => ({
-          queueStatus: 'queued',
-          selectedMode: event.mode,
-          selectedMapIds: event.mapIds,
-          activeRegion: event.region,
-          allowRegionExpansion: event.allowRegionExpansion,
-          queueStartedAt: state.queueStartedAt ?? Date.now(),
-          error: null
-        }))
+        set((state) =>
+          isMatchLifecycleStatus(state.queueStatus)
+            ? {}
+            : {
+                queueStatus: 'queued',
+                selectedMode: event.mode,
+                selectedMapIds: event.mapIds,
+                activeRegion: event.region,
+                allowRegionExpansion: event.allowRegionExpansion,
+                queuedAt: event.queuedAt ?? state.queuedAt,
+                autoFillAt: event.autoFillAt ?? state.autoFillAt,
+                searchStage: event.searchStage ?? state.searchStage,
+                queueStartedAt: event.queuedAt ? timestampMs(event.queuedAt) : state.queueStartedAt,
+                error: null
+              }
+        )
         break
       case 'queue_status':
-        set((state) => ({
-          queueStatus: 'queued',
-          selectedMode: event.mode,
-          selectedMapIds: event.mapIds,
-          queuedPlayers: event.queuedPlayers,
-          playersRequired: event.playersRequired,
-          position: event.position,
-          activeRegion: event.region,
-          allowRegionExpansion: event.allowRegionExpansion,
-          queueStartedAt: state.queueStartedAt ?? Date.now(),
-          error: null
-        }))
+        set((state) =>
+          isMatchLifecycleStatus(state.queueStatus)
+            ? {}
+            : {
+                queueStatus: 'queued',
+                selectedMode: event.mode,
+                selectedMapIds: event.mapIds,
+                queuedPlayers: event.queuedPlayers,
+                playersRequired: event.playersRequired,
+                position: event.position,
+                activeRegion: event.region,
+                allowRegionExpansion: event.allowRegionExpansion,
+                queuedAt: event.queuedAt ?? state.queuedAt,
+                autoFillAt: event.autoFillAt ?? state.autoFillAt,
+                searchStage: event.searchStage ?? state.searchStage,
+                queueStartedAt: event.queuedAt ? timestampMs(event.queuedAt) : state.queueStartedAt,
+                error: null
+              }
+        )
         break
       case 'queue_left':
         set({
@@ -144,12 +171,23 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           queuedPlayers: 0,
           playersRequired: 0,
           position: 0,
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
           queueStartedAt: null,
+          readyDeadline: null,
+          acceptedPlayerIds: [],
+          readyPlayersRequired: 0,
+          readyResponse: 'pending',
+          countdown: null,
+          connectionDetails: null,
+          gameExited: false,
           error: null
         })
         break
       case 'match_found':
         set({
+          queueStatus: 'match_found',
           selectedMode: event.mode,
           selectedMapIds: [event.mapId],
           match: {
@@ -162,6 +200,17 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           },
           assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
           activeRegion: event.region,
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
+          queueStartedAt: null,
+          readyDeadline: null,
+          acceptedPlayerIds: [],
+          readyPlayersRequired: 0,
+          readyResponse: 'pending',
+          countdown: null,
+          connectionDetails: null,
+          gameExited: false,
           error: null
         })
         break
@@ -224,6 +273,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         }
         set({
           queueStatus: 'idle',
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
           queueStartedAt: null,
           completedMatch: {
             matchId: event.matchId,
@@ -245,6 +297,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'match_cancelled':
         set({
           queueStatus: 'idle',
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
           queueStartedAt: null,
           match: null,
           readyDeadline: null,
@@ -261,6 +316,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         if (event.code === 'MAP_NOT_FOUND') {
           set({
             queueStatus: 'idle',
+            queuedAt: null,
+            autoFillAt: null,
+            searchStage: null,
             queueStartedAt: null,
             selectedMapIds: [],
             error: 'That map is no longer available. Refreshing maps—please select one again.'
@@ -277,6 +335,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         if (event.code === 'MAP_MODE_UNSUPPORTED') {
           set({
             queueStatus: 'idle',
+            queuedAt: null,
+            autoFillAt: null,
+            searchStage: null,
             queueStartedAt: null,
             selectedMapIds: [],
             error: 'That map is not available for 5v5. Please select another map.'
@@ -285,7 +346,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         }
         set({
           ...(event.code === 'NOT_QUEUED'
-            ? { queueStatus: 'idle' as const, queueStartedAt: null }
+            ? {
+                queueStatus: 'idle' as const,
+                queuedAt: null,
+                autoFillAt: null,
+                searchStage: null,
+                queueStartedAt: null
+              }
             : {}),
           error: event.message
         })
@@ -315,6 +382,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     queuedPlayers: 0,
     playersRequired: 0,
     position: 0,
+    queuedAt: null,
+    autoFillAt: null,
+    searchStage: null,
     queueStartedAt: null,
     match: null,
     completedMatch: null,
@@ -449,7 +519,14 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         return
       }
 
-      set({ queueStatus: 'joining', error: null })
+      set({
+        queueStatus: 'joining',
+        queuedAt: null,
+        autoFillAt: null,
+        searchStage: null,
+        queueStartedAt: null,
+        error: null
+      })
       try {
         await window.api.matchmaking.joinQueue('5v5', selectedMapIds, allowRegionExpansion)
       } catch (error) {
@@ -507,6 +584,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         queuedPlayers: 0,
         playersRequired: 0,
         position: 0,
+        queuedAt: null,
+        autoFillAt: null,
+        searchStage: null,
         queueStartedAt: null,
         match: null,
         completedMatch: null,

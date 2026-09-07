@@ -106,6 +106,8 @@ export interface GlobalChatMessageDeleted {
   id: string
 }
 
+export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
+
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
   | { type: 'authenticated'; player: QueuedPlayer }
@@ -115,6 +117,9 @@ export type MatchmakingServerMessage =
       mapIds: string[]
       region: string
       allowRegionExpansion: boolean
+      queuedAt?: string
+      autoFillAt?: string
+      searchStage?: MatchmakingSearchStage
     }
   | {
       type: 'queue_status'
@@ -125,6 +130,9 @@ export type MatchmakingServerMessage =
       position: number
       region: string
       allowRegionExpansion: boolean
+      queuedAt?: string
+      autoFillAt?: string
+      searchStage?: MatchmakingSearchStage
     }
   | { type: 'queue_left'; mode: MatchmakingMode; mapIds: string[] }
   | { type: 'party_invitation_received' }

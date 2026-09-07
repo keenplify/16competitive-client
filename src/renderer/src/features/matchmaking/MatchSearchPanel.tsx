@@ -18,6 +18,8 @@ function formatQueueDuration(seconds: number): string {
 export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Element | null {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
+  const autoFillAt = useMatchmakingStore((state) => state.autoFillAt)
+  const searchStage = useMatchmakingStore((state) => state.searchStage)
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const activeRegion = useMatchmakingStore((state) => state.activeRegion)
@@ -42,12 +44,16 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const selectedMapNames = selectedMapIds.map(
     (mapId) => maps.find((map) => map.id === mapId)?.displayName ?? mapId
   )
-  const searchScope =
-    elapsedSeconds >= 180
-      ? 'Waiting for players'
-      : elapsedSeconds >= 90 && allowRegionExpansion
-        ? 'Searching other regions'
-        : `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
+  const autoFillTimestamp = autoFillAt ? Date.parse(autoFillAt) : Number.NaN
+  const isFillingRemainingSlots =
+    searchStage === 'BOT_FILL' || (Number.isFinite(autoFillTimestamp) && now >= autoFillTimestamp)
+  const searchScope = isFillingRemainingSlots
+    ? 'Filling remaining slots'
+    : searchStage === 'EXPANDED'
+      ? 'Searching other regions'
+      : searchStage === 'LOCAL' || !allowRegionExpansion
+        ? `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
+        : `Searching from ${activeRegion?.toUpperCase() ?? 'your region'} · Regional expansion enabled`
 
   return (
     <aside
@@ -85,7 +91,7 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
             {getMatchmakingModeLabel(selectedMode)}
           </span>
           <span className="shrink-0 font-mono tabular-nums text-neutral-200">
-            {formatQueueDuration(elapsedSeconds)}
+            {queueStartedAt ? formatQueueDuration(elapsedSeconds) : '--:--'}
           </span>
         </div>
         <p className="mt-2 text-[11px] text-emerald-200/80">{searchScope}</p>
