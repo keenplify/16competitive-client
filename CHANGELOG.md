@@ -122,3 +122,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - Improved version control.
+
+## v2026.907.4 — 2026-09-07
+
+### Fixes
+
+- Fixed issues affecting the gear lever.
+- Improved update handling and notifications.
+- Corrected update metadata.
