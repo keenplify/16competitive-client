@@ -106,3 +106,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Launching
 
 - Fixed Counter-Strike 1.6 installation and launch handling.
+
+## v2026.907.2 — 2026-09-07
+
+### Match Results
+
+- Fixed MMR display for completed matches.
+
+### Match History
+
+- Fixed MMR values shown for completed matches.
