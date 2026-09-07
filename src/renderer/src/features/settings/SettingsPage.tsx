@@ -2,6 +2,7 @@ import { Download, LogOut, Power } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
+import { useUpdaterStore } from '../updates/updater.store'
 import { useGameSettingsStore } from './game-settings.store'
 
 export function SettingsPage(): JSX.Element {
@@ -16,6 +17,7 @@ export function SettingsPage(): JSX.Element {
   const save = useGameSettingsStore((state) => state.save)
   const authStatus = useAuthStore((state) => state.status)
   const logout = useAuthStore((state) => state.logout)
+  const currentVersion = useUpdaterStore((state) => state.currentVersion)
 
   useEffect(() => {
     void load()
@@ -101,7 +103,13 @@ export function SettingsPage(): JSX.Element {
         <section className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
           <div>
             <h2 className="text-lg font-semibold">Desktop</h2>
-            <p className="mt-1 text-sm text-neutral-400">Close the launcher and return to desktop.</p>
+            <p className="mt-1 text-sm text-neutral-400">
+              Close the launcher and return to desktop.
+            </p>
+            <p className="mt-2 text-xs text-neutral-500">
+              Launcher version{' '}
+              <span className="font-mono text-neutral-400">{currentVersion ?? '…'}</span>
+            </p>
           </div>
           <Button
             variant="ghost"

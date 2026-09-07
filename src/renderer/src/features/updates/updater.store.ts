@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { AppUpdateStatus } from '../../../../shared/updater'
 
 interface UpdaterState {
+  currentVersion: string | null
   status: AppUpdateStatus
   stopListening: (() => void) | null
   startListening(): void
@@ -10,6 +11,7 @@ interface UpdaterState {
 }
 
 export const useUpdaterStore = create<UpdaterState>((set, get) => ({
+  currentVersion: null,
   status: { state: 'idle' },
   stopListening: null,
   startListening: () => {
@@ -17,6 +19,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
 
     const stopListening = window.api.updater.onStatus((status) => set({ status }))
     set({ stopListening })
+    void window.api.updater.getCurrentVersion().then((currentVersion) => set({ currentVersion }))
     void window.api.updater.getStatus().then((status) => set({ status }))
   },
   stopListeningToUpdates: () => {

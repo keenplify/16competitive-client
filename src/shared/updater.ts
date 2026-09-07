@@ -1,4 +1,5 @@
 export const UPDATE_CHANNELS = {
+  getCurrentVersion: 'updater:get-current-version',
   getStatus: 'updater:get-status',
   restartAndInstall: 'updater:restart-and-install',
   status: 'updater:status'
@@ -13,6 +14,7 @@ export type AppUpdateStatus =
   | { state: 'error'; message: string }
 
 export interface UpdaterApi {
+  getCurrentVersion(): Promise<string>
   getStatus(): Promise<AppUpdateStatus>
   restartAndInstall(): Promise<void>
   onStatus(listener: (status: AppUpdateStatus) => void): () => void

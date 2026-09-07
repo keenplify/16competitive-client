@@ -238,6 +238,7 @@ app.whenReady().then(() => {
     saveGameSettings(executablePath)
   )
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
+  ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
