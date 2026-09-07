@@ -46,6 +46,7 @@ import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { redeemCode } from './redeem-codes'
+import { configureGearLeverUpdates } from './gear-lever'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -246,6 +247,12 @@ app.whenReady().then(() => {
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   createWindow()
+  void configureGearLeverUpdates().catch((error: unknown) => {
+    console.warn(
+      'Could not configure Gear Lever updates:',
+      error instanceof Error ? error.message : String(error)
+    )
+  })
   checkForAppUpdates()
 
   app.on('activate', function () {

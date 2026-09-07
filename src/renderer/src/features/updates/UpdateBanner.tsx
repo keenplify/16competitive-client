@@ -1,5 +1,6 @@
 import { useEffect, useRef, type JSX } from 'react'
-import { Download, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Download, Power, RefreshCw } from 'lucide-react'
+import { Button } from '../../components/ui/Button'
 import { useUpdaterStore } from './updater.store'
 
 export function UpdateBanner(): JSX.Element | null {
@@ -14,7 +15,10 @@ export function UpdateBanner(): JSX.Element | null {
   }, [startListening, stopListening])
 
   const isBlocking =
-    status.state === 'available' || status.state === 'downloading' || status.state === 'downloaded'
+    status.state === 'available' ||
+    status.state === 'downloading' ||
+    status.state === 'downloaded' ||
+    (status.state === 'error' && Boolean(status.requiredVersion))
 
   useEffect(() => {
     if (!isBlocking) return
@@ -29,10 +33,14 @@ export function UpdateBanner(): JSX.Element | null {
     }
   }, [isBlocking])
 
-  if (status.state === 'idle' || status.state === 'checking' || status.state === 'error')
+  if (
+    status.state === 'idle' ||
+    status.state === 'checking' ||
+    (status.state === 'error' && !status.requiredVersion)
+  )
     return null
 
-  let content: { icon: JSX.Element; message: string }
+  let content: { icon: JSX.Element; message: string; failed?: boolean }
   switch (status.state) {
     case 'available':
       content = {
@@ -50,6 +58,13 @@ export function UpdateBanner(): JSX.Element | null {
       content = {
         icon: <RefreshCw className="size-4" aria-hidden="true" />,
         message: `Update ${status.version} is ready. Restarting launcher…`
+      }
+      break
+    case 'error':
+      content = {
+        icon: <AlertTriangle className="size-4" aria-hidden="true" />,
+        message: `Update ${status.requiredVersion} is required, but the launcher could not install it. Exit and update it through Gear Lever before continuing.`,
+        failed: true
       }
       break
   }
@@ -71,8 +86,16 @@ export function UpdateBanner(): JSX.Element | null {
           <h2 className="text-lg font-semibold">Launcher update required</h2>
           <p className="mt-2 text-sm text-neutral-300">{content.message}</p>
           <p className="mt-4 text-xs text-neutral-500">
-            The launcher will restart automatically when the update is ready.
+            {content.failed
+              ? 'This version can no longer be used.'
+              : 'The launcher will restart automatically when the update is ready.'}
           </p>
+          {content.failed && (
+            <Button className="mt-5" onClick={() => void window.api.window.exit()}>
+              <Power className="mr-2 size-4" aria-hidden="true" />
+              Exit launcher
+            </Button>
+          )}
         </div>
       </div>
     </aside>

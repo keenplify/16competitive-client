@@ -5,6 +5,7 @@ import { type AppUpdateStatus, UPDATE_CHANNELS } from '../shared/updater'
 let status: AppUpdateStatus = { state: 'idle' }
 let installStarted = false
 let forcedExitTimer: ReturnType<typeof setTimeout> | null = null
+let requiredUpdateVersion: string | null = null
 
 const INSTALL_QUIT_TIMEOUT_MS = 2_000
 
@@ -24,12 +25,11 @@ export function restartAndInstallUpdate(): void {
   if (installStarted) return
 
   installStarted = true
-  autoUpdater.quitAndInstall()
-
   // The platform installer waits for this process to exit. If a window or
   // third-party listener ever prevents the graceful quit, do not leave the
   // launcher visibly stuck with the installer waiting behind it.
   forcedExitTimer = setTimeout(() => app.exit(0), INSTALL_QUIT_TIMEOUT_MS)
+  autoUpdater.quitAndInstall()
 }
 
 function forceRestartAndInstall(): void {
@@ -53,9 +53,10 @@ export function checkForAppUpdates(): void {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.on('checking-for-update', () => setStatus({ state: 'checking' }))
-  autoUpdater.on('update-available', (info) =>
+  autoUpdater.on('update-available', (info) => {
+    requiredUpdateVersion = info.version
     setStatus({ state: 'available', version: info.version })
-  )
+  })
   autoUpdater.on('update-not-available', () => setStatus({ state: 'idle' }))
   autoUpdater.on('download-progress', (progress) => {
     setStatus({
@@ -69,8 +70,17 @@ export function checkForAppUpdates(): void {
     forceRestartAndInstall()
   })
   autoUpdater.on('error', (error) => {
-    console.warn('Automatic update check failed:', error.message)
-    setStatus({ state: 'error', message: 'Could not check for launcher updates.' })
+    if (forcedExitTimer) clearTimeout(forcedExitTimer)
+    forcedExitTimer = null
+    installStarted = false
+    console.warn('Automatic update failed:', error.message)
+    setStatus({
+      state: 'error',
+      message: requiredUpdateVersion
+        ? 'The required launcher update could not be installed.'
+        : 'Could not check for launcher updates.',
+      ...(requiredUpdateVersion ? { requiredVersion: requiredUpdateVersion } : {})
+    })
   })
   autoUpdater.checkForUpdates().catch((error: unknown) => {
     console.warn(
