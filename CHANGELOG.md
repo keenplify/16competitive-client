@@ -116,3 +116,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match History
 
 - Fixed MMR values shown for completed matches.
+
+## v2026.907.3 — 2026-09-07
+
+### Updates
+
+- Improved version control.
