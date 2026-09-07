@@ -13,8 +13,8 @@ import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 const teamName = (team: string): string => (team === 'team_1' ? 'Team A' : 'Team B')
 
 const formatMmr = (before: number | null, after: number | null, change: number | null): string => {
-  if (before === null || after === null || change === null || before === after) return 'Unranked'
-  return `${before} → ${after} (${change >= 0 ? '+' : ''}${change})`
+  if (before === null || after === null || change === null) return 'Unranked'
+  return `${change >= 0 ? '+' : ''}${change}`
 }
 
 export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }): JSX.Element {
@@ -235,8 +235,8 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                     </h2>
                     <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-5 py-2 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
                       <span>Player</span>
-                      <span>K / A / D</span>
-                      <span>MMR</span>
+                      <span className="text-right">K / A / D</span>
+                      <span className="min-w-10 text-right">MMR</span>
                     </div>
                     {players.map((entry) => (
                       <div
@@ -246,11 +246,11 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                         title="Right-click to view profile"
                       >
                         <span className="font-medium">{entry.username}</span>
-                        <span className="font-mono tabular-nums text-neutral-300">
+                        <span className="text-right font-mono tabular-nums text-neutral-300">
                           {entry.kills} / {entry.assists} / {entry.deaths}
                         </span>
                         <span
-                          className={`font-mono text-xs font-semibold tabular-nums ${
+                          className={`min-w-10 text-right font-mono text-xs font-semibold tabular-nums ${
                             entry.mmrChange && entry.mmrChange > 0
                               ? 'text-emerald-400'
                               : entry.mmrChange && entry.mmrChange < 0

@@ -80,12 +80,14 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         label="Winners"
         players={winners}
         stats={match.players}
+        ratedMatch={match.mode !== 'casual'}
         onPlayerContextMenu={showPlayerMenu}
       />
       <Team
         label="Opponents"
         players={losers}
         stats={match.players}
+        ratedMatch={match.mode !== 'casual'}
         onPlayerContextMenu={showPlayerMenu}
       />
       {contextMenu && (
@@ -166,11 +168,13 @@ function Team({
   label,
   players,
   stats,
+  ratedMatch,
   onPlayerContextMenu
 }: {
   label: string
   players: CompletedMatch['teams']['teamA']
   stats: CompletedMatch['players']
+  ratedMatch: boolean
   onPlayerContextMenu: (event: MouseEvent<HTMLElement>, playerId: string) => void
 }): React.JSX.Element {
   return (
@@ -181,7 +185,6 @@ function Team({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {players.map((p) => {
           const playerStats = stats.find((item) => item.id === p.id)
-          const ratedMatch = playerStats && playerStats.mmrBefore !== playerStats.mmrAfter
           return (
             <article
               key={p.id}
@@ -199,16 +202,18 @@ function Team({
               <p className="mt-3 text-xs text-neutral-500">MMR</p>
               <p
                 className={`font-mono text-sm font-semibold tabular-nums ${
-                  ratedMatch
+                  ratedMatch && playerStats
                     ? playerStats.mmrChange > 0
                       ? 'text-emerald-400'
-                      : 'text-rose-300'
+                      : playerStats.mmrChange < 0
+                        ? 'text-rose-300'
+                        : 'text-neutral-400'
                     : 'text-neutral-400'
                 }`}
               >
                 {playerStats
                   ? ratedMatch
-                    ? `${playerStats.mmrBefore} → ${playerStats.mmrAfter} (${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange})`
+                    ? `${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange}`
                     : 'Unranked'
                   : '—'}
               </p>
