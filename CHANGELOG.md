@@ -94,3 +94,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Ready checks now recover after a host handoff.
+
+## v2026.907.1 — 2026-09-07
+
+### Matchmaking
+
+- Fixed matchmaking flow and lobby state updates.
+- Improved match search and queue handling.
+- Improved party and lobby coordination.
+
+### Game Launching
+
+- Fixed Counter-Strike 1.6 installation and launch handling.
