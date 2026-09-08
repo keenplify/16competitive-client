@@ -148,3 +148,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Browse settings with smoother animated sections.
 - Find Sign out and Exit below the settings tabs.
+
+## v2026.908.2 — 2026-09-08
+
+### Matchmaking
+
+- Fixed issues affecting matchmaking flow and lobby state.
+- Improved match-found ready check handling.
+- Refined matchmaking status updates.
