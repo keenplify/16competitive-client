@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   Download,
+  Link2,
   LoaderCircle,
   LogOut,
   Power,
@@ -8,6 +9,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type JSX } from 'react'
+import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
@@ -17,7 +19,9 @@ const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'credentials'
 
 const readableError = (error: unknown): string =>
-  error instanceof Error ? error.message.replace(/^Error:\s*/, '') : 'Something went wrong. Please try again.'
+  error instanceof Error
+    ? error.message.replace(/^Error:\s*/, '')
+    : 'Something went wrong. Please try again.'
 
 export function SettingsPage(): JSX.Element {
   const scrollRef = useRef<HTMLElement>(null)
@@ -45,7 +49,9 @@ export function SettingsPage(): JSX.Element {
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
 
   const [newUsername, setNewUsername] = useState('')
-  const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const [availability, setAvailability] = useState<
+    'idle' | 'checking' | 'available' | 'taken'
+  >('idle')
   const [usernameNotice, setUsernameNotice] = useState<string | null>(null)
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -55,8 +61,19 @@ export function SettingsPage(): JSX.Element {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
 
+  const [socialConnections, setSocialConnections] = useState<SocialConnections | null>(null)
+  const [socialLoading, setSocialLoading] = useState(true)
+  const [connectingProvider, setConnectingProvider] = useState<SocialAuthProvider | null>(null)
+  const [socialError, setSocialError] = useState<string | null>(null)
+  const [socialNotice, setSocialNotice] = useState<string | null>(null)
+
   useEffect(() => {
     void load()
+    void window.api.auth
+      .getSocialConnections()
+      .then(setSocialConnections)
+      .catch((connectionError) => setSocialError(readableError(connectionError)))
+      .finally(() => setSocialLoading(false))
   }, [load])
 
   const updateActiveSection = (): void => {
@@ -162,6 +179,22 @@ export function SettingsPage(): JSX.Element {
     }
   }
 
+  const handleConnectSocial = async (provider: SocialAuthProvider): Promise<void> => {
+    if (connectingProvider) return
+    setConnectingProvider(provider)
+    setSocialError(null)
+    setSocialNotice(null)
+    try {
+      const connections = await window.api.auth.connectSocial(provider)
+      setSocialConnections(connections)
+      setSocialNotice(`${provider === 'google' ? 'Google' : 'Facebook'} connected.`)
+    } catch (connectionError) {
+      setSocialError(readableError(connectionError))
+    } finally {
+      setConnectingProvider(null)
+    }
+  }
+
   const cooldownLabel =
     usernameCooldownActive && usernameAvailableAt
       ? new Date(usernameAvailableAt).toLocaleString()
@@ -189,6 +222,58 @@ export function SettingsPage(): JSX.Element {
     )
   }
 
+  const socialProviderRow = (provider: SocialAuthProvider): JSX.Element => {
+    const connection = socialConnections?.[provider]
+    const connected = connection?.connected === true
+    const label = provider === 'google' ? 'Google' : 'Facebook'
+    const connecting = connectingProvider === provider
+
+    return (
+      <div className="flex flex-col gap-4 border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
+              provider === 'google' ? 'bg-white text-neutral-900' : 'bg-[#1877F2] text-white'
+            }`}
+            aria-hidden="true"
+          >
+            {provider === 'google' ? 'G' : 'f'}
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium text-neutral-100">{label}</p>
+            <p className="truncate text-xs text-neutral-500">
+              {socialLoading
+                ? 'Checking connection…'
+                : connected
+                  ? connection.email ?? 'Connected'
+                  : `Connect ${label} as another way to sign in.`}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          variant="ghost"
+          className={
+            connected
+              ? 'border border-emerald-400/20 text-emerald-300 hover:bg-transparent'
+              : 'border border-white/15 text-neutral-200 hover:bg-white/10'
+          }
+          disabled={socialLoading || connected || connectingProvider !== null}
+          onClick={() => void handleConnectSocial(provider)}
+        >
+          {connecting ? (
+            <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
+          ) : connected ? (
+            <CheckCircle2 className="mr-2 size-4" aria-hidden="true" />
+          ) : (
+            <Link2 className="mr-2 size-4" aria-hidden="true" />
+          )}
+          {connecting ? 'Connecting…' : connected ? 'Connected' : `Connect ${label}`}
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <main
       ref={scrollRef}
@@ -200,7 +285,7 @@ export function SettingsPage(): JSX.Element {
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
           <h1 className="mt-2 text-3xl font-semibold">Launcher settings</h1>
           <p className="mt-2 max-w-2xl text-sm text-neutral-500">
-            Configure the game client and manage the credentials tied to your account.
+            Configure the game client and manage your account credentials.
           </p>
         </div>
 
@@ -280,7 +365,9 @@ export function SettingsPage(): JSX.Element {
               <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <div>
                   <h3 className="text-lg font-semibold">Desktop</h3>
-                  <p className="mt-1 text-sm text-neutral-400">Close the launcher and return to desktop.</p>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Close the launcher and return to desktop.
+                  </p>
                   <p className="mt-2 text-xs text-neutral-500">
                     Launcher version{' '}
                     <span className="font-mono text-neutral-400">{currentVersion ?? '…'}</span>
@@ -306,7 +393,9 @@ export function SettingsPage(): JSX.Element {
                   Credentials
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Account credentials</h2>
-                <p className="mt-2 text-sm text-neutral-500">Manage the name and password used by your account.</p>
+                <p className="mt-2 text-sm text-neutral-500">
+                  Manage your username, sign-in methods, and password.
+                </p>
               </div>
 
               <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
@@ -355,11 +444,15 @@ export function SettingsPage(): JSX.Element {
                       {authStatus === 'changing_username' ? 'Saving…' : 'Change username'}
                     </Button>
                   </div>
-                  <p className="mt-2 text-xs text-neutral-500">3–32 characters: letters, numbers, and underscores.</p>
+                  <p className="mt-2 text-xs text-neutral-500">
+                    3–32 characters: letters, numbers, and underscores.
+                  </p>
 
                   <div className="mt-3 min-h-6 text-sm" aria-live="polite">
                     {cooldownLabel && (
-                      <p className="text-amber-300">You can change your username again on {cooldownLabel}.</p>
+                      <p className="text-amber-300">
+                        You can change your username again on {cooldownLabel}.
+                      </p>
                     )}
                     {!usernameCooldownActive && availability === 'checking' && (
                       <p className="flex items-center gap-2 text-neutral-400">
@@ -383,6 +476,23 @@ export function SettingsPage(): JSX.Element {
               </div>
 
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                <h3 className="text-lg font-semibold">Connected accounts</h3>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Connect Google or Facebook so either provider can authenticate this same player account.
+                </p>
+
+                <div className="mt-5 grid gap-3">
+                  {socialProviderRow('google')}
+                  {socialProviderRow('facebook')}
+                </div>
+
+                <div className="mt-3 min-h-6 text-sm" aria-live="polite">
+                  {socialError && <p className="text-red-400">{socialError}</p>}
+                  {socialNotice && <p className="text-emerald-300">{socialNotice}</p>}
+                </div>
+              </div>
+
+              <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <div className="flex items-start gap-3">
                   <ShieldCheck className="mt-0.5 size-5 text-sky-400" aria-hidden="true" />
                   <div>
@@ -391,16 +501,22 @@ export function SettingsPage(): JSX.Element {
                     </h3>
                     <p className="mt-1 text-sm text-neutral-400">
                       {session?.player.hasPassword
-                        ? 'Verify your current password before replacing it.'
-                        : 'Your social account does not have a password yet. Add one to enable username/password login.'}
+                        ? 'Verify your password before replacing it.'
+                        : 'Add a password to enable username/password login for this account.'}
                     </p>
                   </div>
                 </div>
 
-                <form className="mt-6 grid max-w-xl gap-4" onSubmit={(event) => void handlePasswordSubmit(event)}>
+                <form
+                  className="mt-6 grid max-w-xl gap-4"
+                  onSubmit={(event) => void handlePasswordSubmit(event)}
+                >
                   {session?.player.hasPassword && (
                     <div>
-                      <label htmlFor="verify-password" className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                      <label
+                        htmlFor="verify-password"
+                        className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                      >
                         Verify password
                       </label>
                       <input
@@ -414,8 +530,12 @@ export function SettingsPage(): JSX.Element {
                       />
                     </div>
                   )}
+
                   <div>
-                    <label htmlFor="new-password" className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                    <label
+                      htmlFor="new-password"
+                      className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                    >
                       New password
                     </label>
                     <input
@@ -430,8 +550,12 @@ export function SettingsPage(): JSX.Element {
                       className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
                     />
                   </div>
+
                   <div>
-                    <label htmlFor="confirm-password" className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                    <label
+                      htmlFor="confirm-password"
+                      className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                    >
                       Confirm new password
                     </label>
                     <input
@@ -467,12 +591,19 @@ export function SettingsPage(): JSX.Element {
               <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-rose-400/15 bg-rose-400/5 p-5 sm:p-7">
                 <div>
                   <h3 className="text-lg font-semibold">Sign out</h3>
-                  <p className="mt-1 text-sm text-neutral-400">Sign out of this launcher on this computer.</p>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Sign out of this launcher on this computer.
+                  </p>
                 </div>
                 <Button
                   className="border border-rose-400/35 bg-transparent text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
                   variant="ghost"
-                  disabled={authStatus === 'logging_out' || authStatus === 'changing_username' || passwordSaving}
+                  disabled={
+                    authStatus === 'logging_out' ||
+                    authStatus === 'changing_username' ||
+                    passwordSaving ||
+                    connectingProvider !== null
+                  }
                   onClick={() => void logout()}
                 >
                   <LogOut className="mr-2 size-4" />
