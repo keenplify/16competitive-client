@@ -173,3 +173,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.908.5 — 2026-09-08
 
 - Serialize reconnect launches and harden match config writes
+
+## v2026.908.6 — 2026-09-08
+
+### Matchmaking
+
+- Added clearer reconnect banners for matchmaking and match servers.
+- Improved recovery when matchmaking connections become unhealthy.
+- Hardened matchmaking recovery after temporary connection loss.
+
+### Match Preparation
+
+- Matchmaking now waits for required client updates.
+- Asset downloads automatically retry when they fail.
+- Improved handling of match events during reconnection.
