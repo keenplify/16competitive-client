@@ -113,7 +113,7 @@ export function AuthPage(): JSX.Element {
               {isLogin ? 'Welcome back' : 'Create an account'}
             </h2>
             <p className="mt-2 text-sm text-neutral-500">
-              {isLogin ? 'Sign in to continue to matchmaking.' : 'Choose your player credentials.'}
+              {isLogin ? 'Sign in to continue to matchmaking.' : 'Choose how you want to create your account.'}
             </p>
           </div>
 
@@ -136,61 +136,57 @@ export function AuthPage(): JSX.Element {
             </Button>
           </div>
 
-          {isLogin && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="ghost"
-                  className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
-                  disabled={isSubmitting}
-                  onClick={() => void loginWithSocial('google')}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="ghost"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              disabled={isSubmitting}
+              onClick={() => void loginWithSocial('google')}
+            >
+              {socialProvider === 'google' ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span
+                  className="grid size-5 place-items-center rounded-full bg-white text-xs font-bold text-neutral-900"
+                  aria-hidden="true"
                 >
-                  {socialProvider === 'google' ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <span
-                      className="grid size-5 place-items-center rounded-full bg-white text-xs font-bold text-neutral-900"
-                      aria-hidden="true"
-                    >
-                      G
-                    </span>
-                  )}
-                  Google
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
-                  disabled={isSubmitting}
-                  onClick={() => void loginWithSocial('facebook')}
-                >
-                  {socialProvider === 'facebook' ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <span
-                      className="grid size-5 place-items-center rounded-full bg-[#1877F2] text-sm font-bold text-white"
-                      aria-hidden="true"
-                    >
-                      f
-                    </span>
-                  )}
-                  Facebook
-                </Button>
-              </div>
-
-              {socialProvider && (
-                <p className="mt-3 text-center text-xs text-neutral-400" role="status">
-                  Finish signing in with {socialProvider === 'google' ? 'Google' : 'Facebook'} in
-                  your browser.
-                </p>
+                  G
+                </span>
               )}
+              Google
+            </Button>
+            <Button
+              variant="ghost"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              disabled={isSubmitting}
+              onClick={() => void loginWithSocial('facebook')}
+            >
+              {socialProvider === 'facebook' ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span
+                  className="grid size-5 place-items-center rounded-full bg-[#1877F2] text-sm font-bold text-white"
+                  aria-hidden="true"
+                >
+                  f
+                </span>
+              )}
+              Facebook
+            </Button>
+          </div>
 
-              <div className="my-5 flex items-center gap-3" aria-hidden="true">
-                <span className="h-px flex-1 bg-neutral-800" />
-                <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
-                <span className="h-px flex-1 bg-neutral-800" />
-              </div>
-            </>
+          {socialProvider && (
+            <p className="mt-3 text-center text-xs text-neutral-400" role="status">
+              Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
+              {socialProvider === 'google' ? 'Google' : 'Facebook'} in your browser.
+            </p>
           )}
+
+          <div className="my-5 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-neutral-800" />
+            <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
+            <span className="h-px flex-1 bg-neutral-800" />
+          </div>
 
           <form className="grid gap-5" onSubmit={handleSubmit}>
             <TextField
