@@ -134,6 +134,7 @@ function PageButton({ children, page, active, disabled, onClick }: PageButtonPro
     <li ref={buttonRef} data-page={page} className="relative flex">
       <button
         type="button"
+        data-audio-sfx="tab"
         disabled={disabled}
         onClick={() => {
           if (buttonRef.current) onClick?.(buttonRef.current)
