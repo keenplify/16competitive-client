@@ -3,7 +3,7 @@
   "version": "2026.908.16",
   "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "papamo.dev",
   "homepage": "https://electron-vite.org",
   "allowScripts": {
     "electron@39.8.10": true
