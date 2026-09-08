@@ -253,3 +253,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skin Assets
 
 - Skin asset download errors now explain whether the Counter-Strike folder needs permissions, an executable selection, or a connection check.
+
+## v2026.908.16 — 2026-09-08
+
+- Retry skin asset sync after saving game path
