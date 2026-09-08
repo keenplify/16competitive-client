@@ -40,6 +40,8 @@ import {
 } from './party'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
+import { startSkinAssetSync } from './game/match-assets'
+import { API_BASE_URL } from './config'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -263,8 +265,24 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, (_, executablePath: unknown) =>
-    saveGameSettings(executablePath)
+  ipcMain.handle(
+    GAME_SETTINGS_CHANNELS.save,
+    async (event, executablePath: unknown) => {
+      const settings = await saveGameSettings(executablePath)
+      void startSkinAssetSync(API_BASE_URL, (progress) => {
+        if (event.sender.isDestroyed()) return
+        event.sender.send(MATCHMAKING_CHANNELS.event, {
+          type: 'skin_assets_sync_progress',
+          ...progress
+        })
+      }).catch((error: unknown) => {
+        console.warn(
+          '[GameSettings] skin asset sync retry failed',
+          error instanceof Error ? error.message : String(error)
+        )
+      })
+      return settings
+    }
   )
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
