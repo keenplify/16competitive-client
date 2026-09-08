@@ -222,3 +222,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Improved recovery when the matchmaking server restarts.
+
+## v2026.908.11 — 2026-09-08
+
+### Match Stability
+
+- Counter-Strike now stays running when the API restarts.
