@@ -83,6 +83,46 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          gh release create "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY"
-          --title "$RELEASE_TAG" --notes-file release-notes.md
+        run: |
+          set -euo pipefail
+
+          assets=(release-assets/*)
+          if [[ ! -e "${assets[0]}" ]]; then
+            echo 'No release assets were downloaded.' >&2
+            exit 1
+          fi
+
+          # Keep release creation separate from asset uploads. GitHub can return
+          # HTTP 500 after creating the release, so check for an existing release
+          # before retrying and make uploads safe to repeat.
+          release_ready=false
+          for attempt in 1 2 3; do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              release_ready=true
+              break
+            fi
+            if gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md; then
+              release_ready=true
+              break
+            fi
+            echo "Release creation failed (attempt $attempt/3); retrying..." >&2
+            sleep 5
+          done
+
+          if [[ "$release_ready" != true ]]; then
+            echo "Could not create or find release $RELEASE_TAG." >&2
+            exit 1
+          fi
+
+          for attempt in 1 2 3; do
+            if gh release upload "$RELEASE_TAG" "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY" --clobber; then
+              exit 0
+            fi
+            echo "Release asset upload failed (attempt $attempt/3); retrying..." >&2
+            sleep 5
+          done
+
+          echo "Could not upload release assets for $RELEASE_TAG." >&2
+          exit 1
