@@ -8,9 +8,12 @@ const ASSET_PATH =
   /^models\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w)\.mdl$/
 const SHA256 = /^[a-f0-9]{64}$/
 const MAX_MODEL_SIZE = 20 * 1024 * 1024
-const DOWNLOAD_CONCURRENCY = 3
-const ASSET_DOWNLOAD_RETRY_COUNT = 3
-const ASSET_DOWNLOAD_TIMEOUT_MS = 30_000
+// Some players connect over high-latency or lossy routes.  Fetching the three
+// GoldSrc models at once made one request prone to stalling behind the others.
+// Keep the transfer small and give each model several bounded chances instead.
+const DOWNLOAD_CONCURRENCY = 1
+const ASSET_DOWNLOAD_RETRY_COUNT = 5
+const ASSET_DOWNLOAD_TIMEOUT_MS = 15_000
 const ASSET_DOWNLOAD_RETRY_DELAY_MS = 750
 const MANIFEST_RETRY_COUNT = 30
 const MANIFEST_RETRY_DELAY_MS = 1_000
