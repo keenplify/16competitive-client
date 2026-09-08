@@ -560,6 +560,11 @@ class MatchmakingConnection {
         this.recoveryStatusPending = false
         this.restartReconnectAtMs = Date.now() + parsed.retryAfterMs
         this.notify(parsed)
+        // Do not rely on the remote shutdown to deliver a close event. Some
+        // WebSocket implementations can remain closing while the server is
+        // already offline, which would leave the launcher disconnected with
+        // no reconnect timer.
+        this.handleSocketDisconnect(socket)
         socket.close()
         return
       }
@@ -808,7 +813,14 @@ class MatchmakingConnection {
         return
       }
 
-      socket.send(JSON.stringify({ type: 'ping' }))
+      try {
+        socket.send(JSON.stringify({ type: 'ping' }))
+      } catch {
+        console.warn('[Matchmaking] heartbeat send failed; reconnecting')
+        this.handleSocketDisconnect(socket)
+        socket.close()
+        return
+      }
       this.pongTimer = setTimeout(() => {
         if (this.socket !== socket || !this.authenticated) return
         console.warn('[Matchmaking] heartbeat timed out; reconnecting')
