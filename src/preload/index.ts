@@ -28,6 +28,8 @@ const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
+  checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
+  changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
@@ -65,8 +67,7 @@ const windowApi: WindowApi = {
 const models: ModelApi = {
   read: (relativePath) => ipcRenderer.invoke(MODEL_CHANNELS.read, relativePath),
   readThumbnail: (cacheKey) => ipcRenderer.invoke(MODEL_CHANNELS.readThumbnail, cacheKey),
-  writeThumbnail: (cacheKey, png) =>
-    ipcRenderer.invoke(MODEL_CHANNELS.writeThumbnail, cacheKey, png)
+  writeThumbnail: (cacheKey, png) => ipcRenderer.invoke(MODEL_CHANNELS.writeThumbnail, cacheKey, png)
 }
 
 const party: PartyApi = {
@@ -144,9 +145,6 @@ const api = {
   window: windowApi
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('api', api)
