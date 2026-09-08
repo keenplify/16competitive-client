@@ -283,3 +283,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Reduced stale matchmaking status and queue information.
 - Improved matchmaking state freshness and reliability.
+
+## v2026.908.21 — 2026-09-08
+
+### Matchmaking
+
+- Improved recovery when matchmaking services restart or connections are interrupted.
+- Automatically reconnects when the connection heartbeat fails.
