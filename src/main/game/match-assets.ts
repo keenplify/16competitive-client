@@ -13,7 +13,10 @@ const MAX_MODEL_SIZE = 20 * 1024 * 1024
 // Keep the transfer small and give each model several bounded chances instead.
 const DOWNLOAD_CONCURRENCY = 1
 const ASSET_DOWNLOAD_RETRY_COUNT = 5
-const ASSET_DOWNLOAD_TIMEOUT_MS = 15_000
+// The largest model is only a few hundred KB, but long-distance routes can
+// take longer than 15 seconds to receive its complete response. Keep a bounded
+// timeout without rejecting a usable slow connection.
+const ASSET_DOWNLOAD_TIMEOUT_MS = 90_000
 const ASSET_DOWNLOAD_RETRY_DELAY_MS = 750
 const MANIFEST_RETRY_COUNT = 30
 const MANIFEST_RETRY_DELAY_MS = 1_000
@@ -36,6 +39,7 @@ export interface MatchAssetPreloadProgress {
 class NonRetryableAssetError extends Error {}
 
 const preloads = new Map<string, Promise<void>>()
+const preloadControllers = new Map<string, AbortController>()
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -102,7 +106,8 @@ const fetchAssetBytes = async (
   matchId: string,
   asset: MatchAsset,
   token: string,
-  expectedHash: string
+  expectedHash: string,
+  signal: AbortSignal
 ): Promise<Buffer> => {
   const url = new URL(`/matches/${encodeURIComponent(matchId)}/assets/file`, apiUrl)
   url.searchParams.set('path', asset.path)
@@ -112,11 +117,12 @@ const fetchAssetBytes = async (
       const response = await fetch(url, {
         headers: { authorization: `Bearer ${token}` },
         redirect: 'error',
-        signal: AbortSignal.timeout(ASSET_DOWNLOAD_TIMEOUT_MS)
+        signal: AbortSignal.any([signal, AbortSignal.timeout(ASSET_DOWNLOAD_TIMEOUT_MS)])
       })
       if (!response.ok) {
         const error = new Error(`Could not download ${asset.path} (${response.status}).`)
-        if ([400, 401, 403].includes(response.status)) throw new NonRetryableAssetError(error.message)
+        if ([400, 401, 403].includes(response.status))
+          throw new NonRetryableAssetError(error.message)
         throw error
       }
       if (!response.headers.get('content-type')?.startsWith('application/octet-stream')) {
@@ -125,7 +131,10 @@ const fetchAssetBytes = async (
         )
       }
       const contentLength = Number(response.headers.get('content-length'))
-      if (Number.isFinite(contentLength) && (contentLength < 16 || contentLength > MAX_MODEL_SIZE)) {
+      if (
+        Number.isFinite(contentLength) &&
+        (contentLength < 16 || contentLength > MAX_MODEL_SIZE)
+      ) {
         throw new NonRetryableAssetError(`Match asset has an unsupported size: ${asset.path}`)
       }
 
@@ -143,6 +152,9 @@ const fetchAssetBytes = async (
       }
       return bytes
     } catch (error) {
+      if (signal.aborted) {
+        throw new NonRetryableAssetError('Match asset download was cancelled.')
+      }
       if (error instanceof NonRetryableAssetError || attempt === ASSET_DOWNLOAD_RETRY_COUNT) {
         throw error
       }
@@ -165,13 +177,14 @@ const downloadAsset = async (
   matchId: string,
   asset: MatchAsset,
   token: string,
-  assetRoot: string
+  assetRoot: string,
+  signal: AbortSignal
 ): Promise<void> => {
   const destination = destinationFor(assetRoot, asset.path)
   const expectedHash = expectedHashFor(asset)
   if (await hasExpectedHash(destination, expectedHash)) return
 
-  const bytes = await fetchAssetBytes(apiUrl, matchId, asset, token, expectedHash)
+  const bytes = await fetchAssetBytes(apiUrl, matchId, asset, token, expectedHash, signal)
   await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
   const temporary = `${destination}.${randomUUID()}.partial`
   try {
@@ -219,7 +232,8 @@ const loadManifest = async (manifestUrl: URL, token: string): Promise<MatchAsset
 const preload = async (
   matchId: string,
   hostApiUrl: string,
-  onProgress?: (progress: MatchAssetPreloadProgress) => void
+  onProgress: ((progress: MatchAssetPreloadProgress) => void) | undefined,
+  signal: AbortSignal
 ): Promise<void> => {
   if (!/^[a-z0-9-]{36}$/i.test(matchId)) throw new Error('Invalid match ID for asset download.')
   const token = getSessionToken()
@@ -247,7 +261,7 @@ const preload = async (
   onProgress?.({ status: 'downloading', completedFiles, totalFiles })
   await runWithConcurrency(
     [...uniqueAssets.values()].map((asset) => async () => {
-      await downloadAsset(apiUrl, matchId, asset, token, assetRoot)
+      await downloadAsset(apiUrl, matchId, asset, token, assetRoot, signal)
       completedFiles += 1
       onProgress?.({ status: 'downloading', completedFiles, totalFiles })
     })
@@ -263,8 +277,14 @@ export const startMatchAssetPreload = (
 ): Promise<void> => {
   const current = preloads.get(matchId)
   if (current) return current
-  const task = preload(matchId, hostApiUrl, onProgress)
+  const controller = new AbortController()
+  const task = preload(matchId, hostApiUrl, onProgress, controller.signal)
   preloads.set(matchId, task)
+  preloadControllers.set(matchId, controller)
+  void task.then(
+    () => preloadControllers.delete(matchId),
+    () => preloadControllers.delete(matchId)
+  )
   return task
 }
 
@@ -275,5 +295,7 @@ export const waitForMatchAssetPreload = async (matchId: string): Promise<void> =
 }
 
 export const clearMatchAssetPreload = (matchId: string): void => {
+  preloadControllers.get(matchId)?.abort()
+  preloadControllers.delete(matchId)
   preloads.delete(matchId)
 }
