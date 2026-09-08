@@ -42,6 +42,8 @@ interface PartyState {
 }
 
 let removePartyEventListener: (() => void) | null = null
+let partyRefreshInFlight: Promise<void> | null = null
+let partyRefreshQueued = false
 const MAX_CHAT_ENTRIES = 100
 
 const appendChatEntry = (entries: PartyChatEvent[], entry: PartyChatEvent): PartyChatEvent[] => {
@@ -139,30 +141,42 @@ export const usePartyStore = create<PartyState>((set, get) => ({
           switch (event.type) {
             case 'match_ready_check':
               return {
+                id: `match-ready-check:${event.matchId}:${event.deadline}`,
                 code: 'MATCH_READY' as const,
                 message: 'Match found. Waiting for players to accept.'
               }
             case 'match_ready_updated':
               return {
+                id: `match-ready-updated:${event.matchId}:${event.playersRequired}:${[...event.acceptedPlayerIds].sort().join(',')}`,
                 code: 'MATCH_READY' as const,
                 message: `${event.acceptedPlayerIds.length} / ${event.playersRequired} players ready.`
               }
             case 'match_countdown':
               return event.secondsRemaining > 0
                 ? {
+                    id: `match-countdown:${event.matchId}:${event.secondsRemaining}`,
                     code: 'MATCH_COUNTDOWN' as const,
                     message: `Game server starts in ${event.secondsRemaining} second${event.secondsRemaining === 1 ? '' : 's'}.`
                   }
                 : null
             case 'match_server_starting':
-              return { code: 'MATCH_SERVER' as const, message: 'Starting the game server…' }
+              return {
+                id: `match-server-starting:${event.matchId}`,
+                code: 'MATCH_SERVER' as const,
+                message: 'Starting the game server…'
+              }
             case 'match_connect':
               return {
+                id: `match-connect:${event.matchId}:${event.host}:${event.port}`,
                 code: 'MATCH_SERVER' as const,
                 message: `Game server ready at ${event.host}:${event.port}.`
               }
             case 'match_cancelled':
-              return { code: 'MATCH_CANCELLED' as const, message: event.message }
+              return {
+                id: `match-cancelled:${event.matchId}`,
+                code: 'MATCH_CANCELLED' as const,
+                message: event.message
+              }
             default:
               return null
           }
@@ -170,7 +184,6 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         if (notification) {
           const entry: PartyChatEvent = {
             type: 'party_chat_notification',
-            id: `${event.type}:${'matchId' in event ? event.matchId : crypto.randomUUID()}:${'secondsRemaining' in event ? event.secondsRemaining : Date.now()}`,
             partyId,
             ...notification,
             sentAt: new Date().toISOString()
@@ -210,25 +223,45 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   },
 
   refresh: async () => {
+    if (partyRefreshInFlight) {
+      partyRefreshQueued = true
+      return partyRefreshInFlight
+    }
     if (get().status !== 'idle') return
     if (!get().party) set({ status: 'loading' })
+
+    const operation = (async () => {
+      try {
+        do {
+          partyRefreshQueued = false
+          const [party, invitations] = await Promise.all([
+            window.api.party.get(),
+            window.api.party.getInvitations()
+          ])
+          set((state) => {
+            const chatPartyId = state.chatEntries.at(-1)?.partyId
+            return {
+              party,
+              invitations,
+              status: state.status === 'loading' ? 'idle' : state.status,
+              error: null,
+              chatEntries: party && chatPartyId && chatPartyId !== party.id ? [] : state.chatEntries
+            }
+          })
+        } while (partyRefreshQueued)
+      } catch (error) {
+        set((state) => ({
+          status: state.status === 'loading' ? 'idle' : state.status,
+          error: readableError(error)
+        }))
+      }
+    })()
+
+    partyRefreshInFlight = operation
     try {
-      const [party, invitations] = await Promise.all([
-        window.api.party.get(),
-        window.api.party.getInvitations()
-      ])
-      set((state) => {
-        const chatPartyId = state.chatEntries.at(-1)?.partyId
-        return {
-          party,
-          invitations,
-          status: 'idle',
-          error: null,
-          chatEntries: party && chatPartyId && chatPartyId !== party.id ? [] : state.chatEntries
-        }
-      })
-    } catch (error) {
-      set({ status: 'idle', error: readableError(error) })
+      await operation
+    } finally {
+      if (partyRefreshInFlight === operation) partyRefreshInFlight = null
     }
   },
 

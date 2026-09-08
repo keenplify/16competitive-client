@@ -313,6 +313,7 @@ class MatchmakingConnection {
   private reconnectAttempt = 0
   private seenMatchEvents = new Set<string>()
   private cancelledMatchIds = new Set<string>()
+  private finishedMatchIds = new Set<string>()
   private manuallyDisconnected = false
   private authenticated = false
   private recoveryStatusPending = false
@@ -465,8 +466,7 @@ class MatchmakingConnection {
       if (
         'matchId' in parsed &&
         typeof parsed.matchId === 'string' &&
-        parsed.type !== 'match_cancelled' &&
-        this.cancelledMatchIds.has(parsed.matchId)
+        (this.cancelledMatchIds.has(parsed.matchId) || this.finishedMatchIds.has(parsed.matchId))
       ) {
         return
       }
@@ -592,8 +592,11 @@ class MatchmakingConnection {
           )
       } else if (parsed.type === 'match_cancelled') {
         this.cancelledMatchIds.add(parsed.matchId)
+        this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
+        this.finishedMatchIds.add(parsed.matchId)
+        this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
         const timer = setTimeout(() => {
