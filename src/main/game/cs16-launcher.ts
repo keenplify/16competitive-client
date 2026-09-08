@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { app } from 'electron'
 import {
   readFile,
   readdir,
@@ -42,6 +43,7 @@ let gameProcessGeneration = 0
 let linuxMonitorGeneration = 0
 let launchQueue: Promise<void> = Promise.resolve()
 let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
+let steamExitWatchGeneration = 0
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -74,6 +76,51 @@ const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<n
   return processIds
 }
 
+const isSteamRunning = async (): Promise<boolean> => {
+  if (process.platform === 'linux') {
+    const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
+    const processNames = await Promise.all(
+      entries
+        .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+        .map(async (entry) => basename(await readlink(`/proc/${entry.name}/exe`).catch(() => '')))
+    )
+    return processNames.some((name) => name.toLowerCase() === 'steam')
+  }
+
+  if (process.platform === 'win32') {
+    return await new Promise<boolean>((resolveRunning) => {
+      const child = spawn('tasklist.exe', ['/FI', 'IMAGENAME eq steam.exe', '/NH'], {
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
+      let output = ''
+      child.stdout?.on('data', (chunk: Buffer) => {
+        output += chunk.toString('utf8')
+      })
+      child.once('error', () => resolveRunning(false))
+      child.once('exit', (code) =>
+        resolveRunning(code === 0 && /^steam\.exe\s+/im.test(output.trim()))
+      )
+    })
+  }
+
+  return true
+}
+
+const watchSteamExit = (matchId: string): void => {
+  const generation = ++steamExitWatchGeneration
+  const check = async (): Promise<void> => {
+    if (generation !== steamExitWatchGeneration) return
+    if (!(await isSteamRunning())) {
+      console.info('[GameLaunch] Steam exited after Counter-Strike; closing launcher', { matchId })
+      app.quit()
+      return
+    }
+    setTimeout(() => void check(), 2_000).unref?.()
+  }
+  void check()
+}
+
 const monitorLinuxCounterStrikeHandoff = async (
   matchId: string,
   gameDirectory: string,
@@ -102,6 +149,7 @@ const monitorLinuxCounterStrikeHandoff = async (
         })
         if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
           clearMatchConfig(matchConfigGeneration)
+          watchSteamExit(matchId)
           onExit?.({ code: null, signal: null })
         }
         return
@@ -110,6 +158,7 @@ const monitorLinuxCounterStrikeHandoff = async (
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
         clearMatchConfig(matchConfigGeneration)
+        watchSteamExit(matchId)
         onExit?.({ code: null, signal: null })
       }
       return
@@ -121,6 +170,7 @@ const monitorLinuxCounterStrikeHandoff = async (
 
 export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (launchedMatchId !== matchId) return
+  steamExitWatchGeneration++
   console.info('[GameLaunch] closing completed match', { matchId })
   gameProcessGeneration++
   linuxMonitorGeneration++
@@ -365,7 +415,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     const child = spawn(launchTarget.executable, launchArgs, {
       cwd,
       shell: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      // Steam remains running after handing off to GoldSrc. Do not keep the
+      // Electron process alive through Steam's stdout/stderr pipes.
+      stdio: launchTarget.usesLauncherHandoff
+        ? ['ignore', 'ignore', 'ignore']
+        : ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         // The non-Steam fallback needs the same libraries as hl.sh.
@@ -378,6 +432,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     child.once('error', reject)
     child.once('spawn', () => resolveProcess(child))
   })
+  if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
   const linuxHandoffMonitorGeneration =
@@ -437,6 +492,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       return
     }
     clearMatchConfig(matchConfigGeneration)
+    if (launchTarget.distribution === 'steam') watchSteamExit(input.matchId)
     input.onExit?.({ code, signal })
   })
 }
