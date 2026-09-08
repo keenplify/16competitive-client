@@ -38,10 +38,9 @@ export function AudioController(): JSX.Element | null {
     const handleClick = (event: MouseEvent): void => {
       const target = event.target
       if (!(target instanceof Element)) return
-      const button = target.closest('button')
-      if (!(button instanceof HTMLButtonElement) || button.disabled) return
-      if (button.dataset.audioSilent === 'true') return
-      launcherAudio.playSfx('button')
+      const tab = target.closest('[data-audio-sfx="tab"]')
+      if (!(tab instanceof HTMLButtonElement) || tab.disabled) return
+      launcherAudio.playSfx('tab')
     }
 
     const removeMatchmakingListener = window.api.matchmaking.onEvent((event) => {
