@@ -27,6 +27,12 @@ import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
+  social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
+  getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
+  connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
+  checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
+  changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
+  changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
@@ -143,9 +149,6 @@ const api = {
   window: windowApi
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('api', api)

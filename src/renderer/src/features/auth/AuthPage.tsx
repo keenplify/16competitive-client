@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from './auth.store'
+import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
 import { localMapPreviews } from '../matchmaking/map-previews'
 
@@ -15,6 +16,7 @@ export function AuthPage(): JSX.Element {
   const email = useAuthStore((state) => state.email)
   const password = useAuthStore((state) => state.password)
   const status = useAuthStore((state) => state.status)
+  const socialProvider = useAuthStore((state) => state.socialProvider)
   const error = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
   const setMode = useAuthStore((state) => state.setMode)
@@ -22,6 +24,7 @@ export function AuthPage(): JSX.Element {
   const setEmail = useAuthStore((state) => state.setEmail)
   const setPassword = useAuthStore((state) => state.setPassword)
   const submit = useAuthStore((state) => state.submit)
+  const loginWithSocial = useAuthStore((state) => state.loginWithSocial)
   const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
   const restoreStarted = useRef(false)
@@ -36,18 +39,33 @@ export function AuthPage(): JSX.Element {
   }, [restore])
 
   useEffect(() => {
-    if (status === 'authenticated' && session && !hasMaximized.current) {
+    if (
+      (status === 'authenticated' || status === 'changing_username') &&
+      session &&
+      !hasMaximized.current
+    ) {
       hasMaximized.current = true
       void window.api.window.maximize()
       return
     }
 
-    if (status !== 'authenticated' || !session) {
+    if ((status !== 'authenticated' && status !== 'changing_username') || !session) {
       hasMaximized.current = false
     }
   }, [session, status])
 
-  if ((status === 'authenticated' || status === 'logging_out') && session) {
+  if (
+    session &&
+    session.player.requiresUsernameSetup &&
+    (status === 'authenticated' || status === 'changing_username' || status === 'logging_out')
+  ) {
+    return <UsernameSetupPage />
+  }
+
+  if (
+    (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
+    session
+  ) {
     return <LobbyPage />
   }
 
@@ -70,12 +88,6 @@ export function AuthPage(): JSX.Element {
     event.preventDefault()
     void submit()
   }
-
-  // // Temporary development preview for the lobby/model viewer. Keeping this after
-  // // hook and handler declarations avoids leaving the rest of the component unreachable.
-  // if (import.meta.env.DEV) {
-  //   return <LobbyPage />
-  // }
 
   return (
     <main className="relative isolate grid min-h-screen grid-cols-3 overflow-hidden bg-neutral-950 text-white">
@@ -101,7 +113,7 @@ export function AuthPage(): JSX.Element {
               {isLogin ? 'Welcome back' : 'Create an account'}
             </h2>
             <p className="mt-2 text-sm text-neutral-500">
-              {isLogin ? 'Sign in to continue to matchmaking.' : 'Choose your player credentials.'}
+              {isLogin ? 'Sign in to continue to matchmaking.' : 'Choose how you want to create your account.'}
             </p>
           </div>
 
@@ -109,6 +121,7 @@ export function AuthPage(): JSX.Element {
             <Button
               variant="ghost"
               className={isLogin ? 'bg-neutral-800 text-white hover:bg-neutral-800' : undefined}
+              disabled={isSubmitting}
               onClick={() => setMode('login')}
             >
               Login
@@ -116,10 +129,63 @@ export function AuthPage(): JSX.Element {
             <Button
               variant="ghost"
               className={!isLogin ? 'bg-neutral-800 text-white hover:bg-neutral-800' : undefined}
+              disabled={isSubmitting}
               onClick={() => setMode('register')}
             >
               Register
             </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="ghost"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              disabled={isSubmitting}
+              onClick={() => void loginWithSocial('google')}
+            >
+              {socialProvider === 'google' ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span
+                  className="grid size-5 place-items-center rounded-full bg-white text-xs font-bold text-neutral-900"
+                  aria-hidden="true"
+                >
+                  G
+                </span>
+              )}
+              Google
+            </Button>
+            <Button
+              variant="ghost"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              disabled={isSubmitting}
+              onClick={() => void loginWithSocial('facebook')}
+            >
+              {socialProvider === 'facebook' ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span
+                  className="grid size-5 place-items-center rounded-full bg-[#1877F2] text-sm font-bold text-white"
+                  aria-hidden="true"
+                >
+                  f
+                </span>
+              )}
+              Facebook
+            </Button>
+          </div>
+
+          {socialProvider && (
+            <p className="mt-3 text-center text-xs text-neutral-400" role="status">
+              Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
+              {socialProvider === 'google' ? 'Google' : 'Facebook'} in your browser.
+            </p>
+          )}
+
+          <div className="my-5 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-neutral-800" />
+            <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
+            <span className="h-px flex-1 bg-neutral-800" />
           </div>
 
           <form className="grid gap-5" onSubmit={handleSubmit}>
@@ -132,6 +198,7 @@ export function AuthPage(): JSX.Element {
               pattern="[A-Za-z0-9_]+"
               autoComplete="username"
               autoFocus
+              disabled={isSubmitting}
               placeholder="player_name"
               hint="3–32 characters: letters, numbers, and underscores"
               onChange={(event) => setUsername(event.target.value)}
@@ -144,6 +211,7 @@ export function AuthPage(): JSX.Element {
                 value={email}
                 maxLength={254}
                 autoComplete="email"
+                disabled={isSubmitting}
                 placeholder="player@example.com"
                 onChange={(event) => setEmail(event.target.value)}
               />
@@ -156,6 +224,7 @@ export function AuthPage(): JSX.Element {
               minLength={8}
               maxLength={128}
               autoComplete={isLogin ? 'current-password' : 'new-password'}
+              disabled={isSubmitting}
               placeholder="At least 8 characters"
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -165,7 +234,7 @@ export function AuthPage(): JSX.Element {
             </div>
 
             <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting
+              {isSubmitting && !socialProvider
                 ? isLogin
                   ? 'Signing in…'
                   : 'Creating account…'
@@ -178,6 +247,7 @@ export function AuthPage(): JSX.Element {
           <Button
             className="mt-3 w-full"
             variant="ghost"
+            disabled={isSubmitting}
             onClick={() => void window.api.window.exit()}
           >
             Exit to desktop
