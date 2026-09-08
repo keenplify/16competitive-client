@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import {
   authenticate,
   authenticateWithSocial,
+  changePassword,
   changeUsername,
   checkUsername,
   clearSessionToken,
@@ -151,6 +152,9 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) => authenticateWithSocial(provider))
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
+    changePassword(credentials)
+  )
   ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
     matchmakingConnection.disconnect()
