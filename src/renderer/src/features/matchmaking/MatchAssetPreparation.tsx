@@ -36,20 +36,33 @@ export function MatchAssetPreparation({
       )}
       aria-live="polite"
     >
-      <p className="text-xs font-bold tracking-[0.14em] text-emerald-100 uppercase">{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-left text-xs font-bold tracking-[0.14em] text-emerald-100 uppercase">
+          {label}
+        </p>
+        {preparation.status === 'downloading' && hasKnownTotal && (
+          <span className="shrink-0 text-xs font-semibold text-emerald-200/80">{progress}%</span>
+        )}
+      </div>
       {preparation.status !== 'ready' && (
         <div
-          className="mt-2 h-1.5 overflow-hidden bg-black/40"
+          className="relative mt-2 h-1.5 overflow-hidden bg-black/40"
           role="progressbar"
           aria-label="Required skin download progress"
           aria-valuemin={0}
           aria-valuemax={hasKnownTotal ? preparation.totalFiles : undefined}
           aria-valuenow={hasKnownTotal ? preparation.completedFiles : undefined}
+          aria-valuetext={
+            preparation.status === 'downloading' && hasKnownTotal
+              ? `${progress}% downloaded`
+              : undefined
+          }
         >
           <div
             className={twMerge(
               'h-full bg-emerald-300 transition-[width] duration-300',
-              preparation.status === 'checking' && 'w-1/3 animate-pulse'
+              preparation.status === 'checking' && 'w-1/3 animate-pulse',
+              preparation.status === 'downloading' && 'animate-pulse'
             )}
             style={preparation.status === 'downloading' ? { width: `${progress}%` } : undefined}
           />

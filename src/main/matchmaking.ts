@@ -25,6 +25,7 @@ type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect'
 
 const RECONNECT_BASE_DELAY_MS = 1_000
 const RECONNECT_MAX_DELAY_MS = 30_000
+const CONNECTION_TIMEOUT_MS = 15_000
 const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
@@ -448,8 +449,29 @@ class MatchmakingConnection {
       }
     }
     const websocketUrl = targetApiUrl ? toMatchmakingWsUrl(targetApiUrl) : MATCHMAKING_WS_URL
-    const socket = new WebSocket(websocketUrl)
+    let socket: WebSocket
+    try {
+      socket = new WebSocket(websocketUrl)
+    } catch (error) {
+      console.warn('[Matchmaking] could not create WebSocket connection', error)
+      if (handoff) {
+        // Closing the current socket enters the normal reconnect path and
+        // avoids leaving the launcher stuck on an unreachable match host.
+        this.socket?.close()
+      } else {
+        this.notify({ type: 'connection_state', state: 'reconnecting' })
+        this.scheduleReconnect()
+      }
+      return
+    }
     if (!handoff) this.socket = socket
+    let socketAuthenticated = false
+    const connectionTimeout = setTimeout(() => {
+      if (socketAuthenticated || socket.readyState === WebSocket.CLOSED) return
+      console.warn('[Matchmaking] connection handshake timed out; reconnecting')
+      socket.close()
+    }, CONNECTION_TIMEOUT_MS)
+    connectionTimeout.unref?.()
 
     socket.addEventListener('message', (event) => {
       if ((!handoff && this.socket !== socket) || typeof event.data !== 'string') return
@@ -493,6 +515,8 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'authenticated') {
+        socketAuthenticated = true
+        clearTimeout(connectionTimeout)
         if (handoff) {
           const oldSocket = this.socket
           this.socket = socket
@@ -625,7 +649,13 @@ class MatchmakingConnection {
       }
       this.notify(parsed)
     })
+    socket.addEventListener('error', () => {
+      // Some network stacks only report an error for a failed TCP/TLS attempt.
+      // Explicitly closing guarantees that the close handler schedules recovery.
+      if (socket.readyState !== WebSocket.CLOSED) socket.close()
+    })
     socket.addEventListener('close', () => {
+      clearTimeout(connectionTimeout)
       if (handoff && this.socket !== socket) {
         if (!this.manuallyDisconnected) {
           this.notify({
