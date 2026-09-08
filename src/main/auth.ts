@@ -1,6 +1,8 @@
 import type {
   AuthCredentials,
   AuthSession,
+  PasswordChangeCredentials,
+  PasswordChangeResult,
   RegistrationCredentials,
   SocialAuthProvider,
   UsernameAvailability,
@@ -26,6 +28,7 @@ interface BackendAuthResponse {
     mmr: number
     points: number
     createdAt: string
+    hasPassword: boolean
   }
 }
 
@@ -95,6 +98,26 @@ const validateCredentials = (
   return { username: validUsername, password }
 }
 
+const validatePasswordChange = (value: unknown): PasswordChangeCredentials => {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('Invalid password change request')
+  }
+  const { currentPassword, newPassword } = value as Record<string, unknown>
+  if (
+    currentPassword !== undefined &&
+    (typeof currentPassword !== 'string' || currentPassword.length < 1 || currentPassword.length > 128)
+  ) {
+    throw new Error('Current password is invalid')
+  }
+  if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
+    throw new Error('New password must be 8–128 characters')
+  }
+  return {
+    ...(typeof currentPassword === 'string' ? { currentPassword } : {}),
+    newPassword
+  }
+}
+
 const validateSocialProvider = (value: unknown): SocialAuthProvider => {
   if (value !== 'google' && value !== 'facebook') {
     throw new Error('Invalid social login provider')
@@ -119,7 +142,8 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     typeof (player as Record<string, unknown>).email === 'string' &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
     typeof (player as Record<string, unknown>).points === 'number' &&
-    typeof (player as Record<string, unknown>).createdAt === 'string'
+    typeof (player as Record<string, unknown>).createdAt === 'string' &&
+    typeof (player as Record<string, unknown>).hasPassword === 'boolean'
   )
 }
 
@@ -322,6 +346,31 @@ export const changeUsername = async (untrustedUsername: unknown): Promise<Userna
   }
   sessionUsername = (body as UsernameChangeResult).username
   return body as UsernameChangeResult
+}
+
+export const changePassword = async (untrustedCredentials: unknown): Promise<PasswordChangeResult> => {
+  const credentials = validatePasswordChange(untrustedCredentials)
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/password`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(credentials),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    (body as Record<string, unknown>).hasPassword !== true
+  ) {
+    throw new Error('The server returned an invalid password change response')
+  }
+  return { hasPassword: true }
 }
 
 export const restoreSession = async (): Promise<AuthSession | null> => {
