@@ -30,6 +30,7 @@ const auth: AuthApi = {
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
+  changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
