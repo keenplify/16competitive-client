@@ -113,7 +113,9 @@ export function AuthPage(): JSX.Element {
               {isLogin ? 'Welcome back' : 'Create an account'}
             </h2>
             <p className="mt-2 text-sm text-neutral-500">
-              {isLogin ? 'Sign in to continue to matchmaking.' : 'Choose how you want to create your account.'}
+              {isLogin
+                ? 'Sign in to continue to matchmaking.'
+                : 'Choose how you want to create your account.'}
             </p>
           </div>
 

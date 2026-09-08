@@ -164,7 +164,9 @@ app.whenReady().then(() => {
     matchmakingConnection.disconnect()
     clearSessionToken()
   })
-  ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) => matchmakingConnection.connect(event.sender))
+  ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
+    matchmakingConnection.connect(event.sender)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
   ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, (_, nodeId: unknown) => {
@@ -186,7 +188,9 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())
   ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
-  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) => getMatchSummary(matchId))
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) =>
+    getMatchSummary(matchId)
+  )
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
     getPlayerProfile(playerId)
   )
@@ -200,8 +204,12 @@ app.whenReady().then(() => {
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
-  ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) => readCounterStrikeModel(relativePath))
-  ipcMain.handle(MODEL_CHANNELS.readThumbnail, (_, cacheKey: unknown) => readModelThumbnail(cacheKey))
+  ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
+    readCounterStrikeModel(relativePath)
+  )
+  ipcMain.handle(MODEL_CHANNELS.readThumbnail, (_, cacheKey: unknown) =>
+    readModelThumbnail(cacheKey)
+  )
   ipcMain.handle(MODEL_CHANNELS.writeThumbnail, (_, cacheKey: unknown, png: unknown) =>
     writeModelThumbnail(cacheKey, png)
   )

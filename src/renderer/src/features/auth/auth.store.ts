@@ -3,12 +3,7 @@ import type { AuthSession, SocialAuthProvider } from '../../../../shared/auth'
 
 type AuthMode = 'login' | 'register'
 type AuthStatus =
-  | 'idle'
-  | 'restoring'
-  | 'submitting'
-  | 'authenticated'
-  | 'changing_username'
-  | 'logging_out'
+  'idle' | 'restoring' | 'submitting' | 'authenticated' | 'changing_username' | 'logging_out'
 
 interface AuthState {
   mode: AuthMode
