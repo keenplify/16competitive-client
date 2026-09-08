@@ -699,11 +699,11 @@ class MatchmakingConnection {
       this.notify(parsed)
     })
     socket.addEventListener('error', () => {
-      // Node's WebSocket can dispatch `error` while undici is already unwinding
-      // its own connection-failure/close path. Calling close() from this handler
-      // re-enters that path and can overflow the stack when connectivity drops.
-      // The failed socket will emit `close`, which owns reconnect scheduling.
+      // Do not call socket.close() from this event. Node/undici may already be
+      // dispatching the failure from its close path, which makes close() here
+      // recursively re-enter the same error path and overflow the stack.
       console.warn('[Matchmaking] WebSocket connection error')
+      if (!handoff) this.handleSocketDisconnect(socket)
     })
     socket.addEventListener('close', () => {
       clearTimeout(connectionTimeout)
