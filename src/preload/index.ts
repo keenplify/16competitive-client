@@ -137,7 +137,9 @@ const redeemCodes: RedeemCodesApi = {
 }
 
 const diagnosticLogs: DiagnosticLogsApi = {
-  get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get)
+  get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
+  report: (description, rendererLogs) =>
+    ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs)
 }
 
 const api = {
