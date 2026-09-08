@@ -21,19 +21,35 @@ const RELAUNCH_SETTLE_MS = 500
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
 const LINUX_HANDOFF_POLL_MS = 1_000
 
+interface MatchLaunchInput {
+  matchId: string
+  host: string
+  port: number
+  password: string
+  joinToken: string
+  forceRestart?: boolean
+  onExit?: (event: { code: number | null; signal: string | null }) => void
+}
+
 let gameProcess: ChildProcess | null = null
 let launchedMatchId: string | null = null
 let launchedGameDirectory: string | null = null
 let launchedExecutablePath: string | null = null
 let launchedMatchConfigPath: string | null = null
+let launchedMatchConfigGeneration = 0
+let nextMatchConfigGeneration = 0
 let linuxMonitorGeneration = 0
+let launchQueue: Promise<void> = Promise.resolve()
+let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
-const clearMatchConfig = (): void => {
+const clearMatchConfig = (generation?: number): void => {
+  if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
   const matchConfigPath = launchedMatchConfigPath
   launchedMatchConfigPath = null
+  launchedMatchConfigGeneration = 0
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
 }
 
@@ -61,6 +77,7 @@ const monitorLinuxCounterStrikeHandoff = async (
   matchId: string,
   gameDirectory: string,
   generation: number,
+  matchConfigGeneration: number,
   onExit?: (event: { code: number | null; signal: string | null }) => void
 ): Promise<void> => {
   const discoveryDeadline = Date.now() + LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS
@@ -83,7 +100,7 @@ const monitorLinuxCounterStrikeHandoff = async (
           gameDirectory
         })
         if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
-          clearMatchConfig()
+          clearMatchConfig(matchConfigGeneration)
           onExit?.({ code: null, signal: null })
         }
         return
@@ -91,7 +108,7 @@ const monitorLinuxCounterStrikeHandoff = async (
     } else if (!processIds.includes(trackedPid)) {
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
-        clearMatchConfig()
+        clearMatchConfig(matchConfigGeneration)
         onExit?.({ code: null, signal: null })
       }
       return
@@ -207,15 +224,7 @@ const synchronizeUserConfigIdentity = async (
   })
 }
 
-export const launchCounterStrikeForMatch = async (input: {
-  matchId: string
-  host: string
-  port: number
-  password: string
-  joinToken: string
-  forceRestart?: boolean
-  onExit?: (event: { code: number | null; signal: string | null }) => void
-}): Promise<void> => {
+const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
   console.info('[GameLaunch] match_connect received', {
     matchId: input.matchId,
     host: input.host,
@@ -284,34 +293,46 @@ export const launchCounterStrikeForMatch = async (input: {
 
   const matchConfigName = '16competitive_match.cfg'
   const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
-  const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.tmp`
+  const matchConfigGeneration = ++nextMatchConfigGeneration
+  const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
   await unlink(join(cwd, 'cstrike', '16competitive-match.cfg')).catch(() => undefined)
 
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
-  await writeFile(
-    temporaryMatchConfigPath,
-    [
-      ...identityCommands,
-      `gl_max_size "${launchTarget.textureSize}"`,
-      'cl_allowdownload "1"',
-      'cl_download_ingame "1"',
-      'cl_downloadfilter "all"',
-      `password "${input.password}"`,
-      // GoldSrc can process its normal user config after +exec during startup.
-      // Wait a few frames, then reassert match identity immediately before connecting.
-      ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
-      ...identityCommands,
-      `password "${input.password}"`,
-      // This GoldSrc build retains quotes around the connect argument and then
-      // rejects the otherwise valid endpoint as a bad server address.
-      `connect ${input.host}:${input.port}`,
-      ''
-    ].join('\n'),
-    { encoding: 'utf8', mode: 0o600 }
-  )
-  await rename(temporaryMatchConfigPath, matchConfigPath)
+  try {
+    await writeFile(
+      temporaryMatchConfigPath,
+      [
+        ...identityCommands,
+        `gl_max_size "${launchTarget.textureSize}"`,
+        'cl_allowdownload "1"',
+        'cl_download_ingame "1"',
+        'cl_downloadfilter "all"',
+        `password "${input.password}"`,
+        // GoldSrc can process its normal user config after +exec during startup.
+        // Wait a few frames, then reassert match identity immediately before connecting.
+        ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
+        ...identityCommands,
+        `password "${input.password}"`,
+        // This GoldSrc build retains quotes around the connect argument and then
+        // rejects the otherwise valid endpoint as a bad server address.
+        `connect ${input.host}:${input.port}`,
+        ''
+      ].join('\n'),
+      { encoding: 'utf8', mode: 0o600 }
+    )
+    await rename(temporaryMatchConfigPath, matchConfigPath)
+  } catch (error) {
+    console.error('[GameLaunch] could not prepare match config', {
+      matchId: input.matchId,
+      error
+    })
+    throw new Error('Could not prepare the Counter-Strike match connection. Please try reconnecting.')
+  } finally {
+    await unlink(temporaryMatchConfigPath).catch(() => undefined)
+  }
   launchedMatchConfigPath = matchConfigPath
+  launchedMatchConfigGeneration = matchConfigGeneration
 
   // GoldSrc reparses command lines and can interpret a hyphen inside a secret as
   // a new launch option. Keep the password and join token exclusively in the
@@ -383,6 +404,7 @@ export const launchCounterStrikeForMatch = async (input: {
           input.matchId,
           cwd,
           linuxHandoffMonitorGeneration,
+          matchConfigGeneration,
           input.onExit
         )
       }
@@ -403,7 +425,29 @@ export const launchCounterStrikeForMatch = async (input: {
       })
     }
     if (gameProcess === spawnedProcess) gameProcess = null
-    clearMatchConfig()
+    clearMatchConfig(matchConfigGeneration)
     input.onExit?.({ code, signal })
   })
+}
+
+export const launchCounterStrikeForMatch = (input: MatchLaunchInput): Promise<void> => {
+  if (input.forceRestart && forcedLaunchInFlight?.matchId === input.matchId) {
+    return forcedLaunchInFlight.promise
+  }
+
+  const operation = launchQueue
+    .catch(() => undefined)
+    .then(() => performLaunchCounterStrikeForMatch(input))
+
+  // A failed launch must not poison the queue. Later reconnect attempts should
+  // still get a chance to prepare the config and spawn the game.
+  launchQueue = operation.catch(() => undefined)
+
+  if (!input.forceRestart) return operation
+
+  const trackedPromise = operation.finally(() => {
+    if (forcedLaunchInFlight?.promise === trackedPromise) forcedLaunchInFlight = null
+  })
+  forcedLaunchInFlight = { matchId: input.matchId, promise: trackedPromise }
+  return trackedPromise
 }
