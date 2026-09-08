@@ -3,8 +3,9 @@ import { API_BASE_URL } from './config'
 import type { OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
-// Temporarily bypass persistent model caching while preview rendering is being tuned.
-const PREVIEW_MODEL_CACHE_ENABLED = false
+// Keep downloaded preview models in the per-user cache so the store does not
+// fetch the same .mdl every time it renders a skin.
+const PREVIEW_MODEL_CACHE_ENABLED = true
 
 const skinIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const weaponKeyPattern = /^[a-z0-9_]+$/
