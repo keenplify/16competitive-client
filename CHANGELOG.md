@@ -193,3 +193,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - Fixed update handling.
+
+## v2026.908.8 — 2026-09-08
+
+### Matchmaking
+
+- Improved connection status visibility.
+- Made matchmaking lobby behavior more reliable.
