@@ -240,3 +240,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Prevented duplicate matchmaking connections.
+
+## v2026.908.14 — 2026-09-08
+
+### Skin Assets
+
+- Download skin assets in the background.
+- Cache skin preview models locally for faster loading.
