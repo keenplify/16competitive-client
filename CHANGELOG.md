@@ -257,3 +257,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.908.16 — 2026-09-08
 
 - Retry skin asset sync after saving game path
+
+## v2026.908.17 — 2026-09-08
+
+- fix author
