@@ -20,6 +20,7 @@ const ASSET_DOWNLOAD_TIMEOUT_MS = 90_000
 const ASSET_DOWNLOAD_RETRY_DELAY_MS = 750
 const MANIFEST_RETRY_COUNT = 30
 const MANIFEST_RETRY_DELAY_MS = 1_000
+const CATALOG_ASSET_PATH = /^models\/16competitive\/[a-zA-Z0-9_/-]+\.mdl$/
 
 interface MatchAsset {
   path: string
@@ -80,6 +81,15 @@ const destinationFor = (assetRoot: string, assetPath: string): string => {
   if (relative(assetRoot, destination).startsWith('..')) {
     throw new Error(`Match manifest asset escapes the game directory: ${assetPath}`)
   }
+  return destination
+}
+
+const catalogDestinationFor = (assetRoot: string, assetPath: string): string => {
+  if (!CATALOG_ASSET_PATH.test(assetPath) || assetPath.includes('..'))
+    throw new Error(`Skin catalog contains an unsafe asset path: ${assetPath}`)
+  const destination = resolve(assetRoot, assetPath)
+  if (relative(assetRoot, destination).startsWith('..'))
+    throw new Error(`Skin catalog asset escapes the game directory: ${assetPath}`)
   return destination
 }
 
@@ -193,6 +203,84 @@ const downloadAsset = async (
   } finally {
     await unlink(temporary).catch(() => undefined)
   }
+}
+
+export interface SkinAssetSyncProgress {
+  status: 'syncing' | 'ready' | 'error'
+  completedFiles: number
+  totalFiles: number
+}
+
+interface CatalogAsset { path: string }
+
+let skinSyncTask: Promise<void> | null = null
+
+const syncSkinAssets = async (
+  apiUrl: string,
+  onProgress: (progress: SkinAssetSyncProgress) => void
+): Promise<void> => {
+  const token = getSessionToken()
+  if (!token) return
+  const base = new URL(apiUrl)
+  const response = await fetch(new URL('/skins/assets', base), {
+    headers: { authorization: `Bearer ${token}` },
+    redirect: 'error',
+    signal: AbortSignal.timeout(30_000)
+  })
+  if (!response.ok) throw new Error(`Could not load skin asset catalog (${response.status}).`)
+  const payload: unknown = await response.json().catch(() => null)
+  const assets =
+    typeof payload === 'object' && payload !== null && Array.isArray((payload as { assets?: unknown }).assets)
+      ? (payload as { assets: unknown[] }).assets
+      : []
+  const catalog = assets.filter(
+    (asset): asset is CatalogAsset =>
+      typeof asset === 'object' && asset !== null && typeof (asset as { path?: unknown }).path === 'string'
+  )
+  const assetRoot = join(await getGameDirectory(), 'cstrike')
+  let completedFiles = 0
+  onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+  await runWithConcurrency(
+    catalog.map((asset) => async () => {
+      const destination = catalogDestinationFor(assetRoot, asset.path)
+      if (!(await hasExpectedHash(destination, ''))) {
+        const fileUrl = new URL('/skins/assets/file', base)
+        fileUrl.searchParams.set('path', asset.path)
+        const result = await fetch(fileUrl, {
+          headers: { authorization: `Bearer ${token}` },
+          redirect: 'error',
+          signal: AbortSignal.timeout(90_000)
+        })
+        if (!result.ok) throw new Error(`Could not download ${asset.path} (${result.status}).`)
+        const bytes = Buffer.from(await result.arrayBuffer())
+        if (bytes.length < 16 || bytes.length > MAX_MODEL_SIZE || bytes.subarray(0, 4).toString() !== 'IDST')
+          throw new Error(`Skin asset is not a valid GoldSrc model: ${asset.path}`)
+        await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
+        const temporary = `${destination}.${randomUUID()}.partial`
+        try {
+          await writeFile(temporary, bytes, { mode: 0o600 })
+          await rename(temporary, destination)
+        } finally {
+          await unlink(temporary).catch(() => undefined)
+        }
+      }
+      completedFiles += 1
+      onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+    })
+  )
+  onProgress({ status: 'ready', completedFiles: catalog.length, totalFiles: catalog.length })
+}
+
+export const startSkinAssetSync = (
+  apiUrl: string,
+  onProgress: (progress: SkinAssetSyncProgress) => void
+): Promise<void> => {
+  if (skinSyncTask) return skinSyncTask
+  skinSyncTask = syncSkinAssets(apiUrl, onProgress).catch((error: unknown) => {
+    onProgress({ status: 'error', completedFiles: 0, totalFiles: 0 })
+    throw error
+  }).finally(() => { skinSyncTask = null })
+  return skinSyncTask
 }
 
 const runWithConcurrency = async (tasks: Array<() => Promise<void>>): Promise<void> => {
