@@ -699,9 +699,11 @@ class MatchmakingConnection {
       this.notify(parsed)
     })
     socket.addEventListener('error', () => {
-      // Some network stacks only report an error for a failed TCP/TLS attempt.
-      // Explicitly closing guarantees that the close handler schedules recovery.
-      if (socket.readyState !== WebSocket.CLOSED) socket.close()
+      // Node's WebSocket can dispatch `error` while undici is already unwinding
+      // its own connection-failure/close path. Calling close() from this handler
+      // re-enters that path and can overflow the stack when connectivity drops.
+      // The failed socket will emit `close`, which owns reconnect scheduling.
+      console.warn('[Matchmaking] WebSocket connection error')
     })
     socket.addEventListener('close', () => {
       clearTimeout(connectionTimeout)
