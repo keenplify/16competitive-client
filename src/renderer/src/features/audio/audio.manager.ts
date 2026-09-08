@@ -1,24 +1,51 @@
-import { AUDIO_PATHS, type LauncherSfx } from './audio.paths'
+import {
+  DEFAULT_BGM_ID,
+  getLauncherBgmTrack,
+  AUDIO_PATHS,
+  type LauncherBgmId,
+  type LauncherSfx
+} from './audio.paths'
 
 const clampUnit = (value: number): number => Math.max(0, Math.min(1, value))
 const volumeToUnit = (value: number): number => clampUnit(value / 100)
 
 class LauncherAudioManager {
   private bgm: HTMLAudioElement | null = null
+  private bgmTrackId: LauncherBgmId = DEFAULT_BGM_ID
   private bgmVolume = 50
   private sfxVolume = 50
   private bgmSuppressed = false
   private fadeFrame: number | null = null
 
+  private createBgm(trackId: LauncherBgmId): HTMLAudioElement {
+    const bgm = new Audio(getLauncherBgmTrack(trackId).path)
+    bgm.loop = true
+    bgm.preload = 'none'
+    bgm.volume = volumeToUnit(this.bgmVolume)
+    return bgm
+  }
+
   private getBgm(): HTMLAudioElement {
-    if (!this.bgm) {
-      const bgm = new Audio(AUDIO_PATHS.bgm.launcher)
-      bgm.loop = true
-      bgm.preload = 'none'
-      bgm.volume = volumeToUnit(this.bgmVolume)
-      this.bgm = bgm
-    }
+    if (!this.bgm) this.bgm = this.createBgm(this.bgmTrackId)
     return this.bgm
+  }
+
+  setBgmTrack(trackId: LauncherBgmId): void {
+    if (trackId === this.bgmTrackId) return
+
+    if (this.fadeFrame !== null) {
+      cancelAnimationFrame(this.fadeFrame)
+      this.fadeFrame = null
+    }
+
+    this.bgm?.pause()
+    this.bgm = null
+    this.bgmTrackId = trackId
+
+    if (!this.bgmSuppressed && this.bgmVolume > 0) {
+      const bgm = this.getBgm()
+      void bgm.play().catch(() => undefined)
+    }
   }
 
   startBgm(): void {
