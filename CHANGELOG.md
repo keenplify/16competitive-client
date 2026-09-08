@@ -276,3 +276,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Matchmaking now reconnects after WebSocket network errors.
 - Improved stability when the network disconnects.
+
+## v2026.908.20 — 2026-09-08
+
+### Matchmaking
+
+- Reduced stale matchmaking status and queue information.
+- Improved matchmaking state freshness and reliability.
