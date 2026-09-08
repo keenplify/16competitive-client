@@ -225,6 +225,7 @@ export type MatchmakingEvent =
       status: 'syncing' | 'ready' | 'error'
       completedFiles: number
       totalFiles: number
+      message?: string
     }
   | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }
   | {

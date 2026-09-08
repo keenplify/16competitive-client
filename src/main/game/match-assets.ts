@@ -209,6 +209,7 @@ export interface SkinAssetSyncProgress {
   status: 'syncing' | 'ready' | 'error'
   completedFiles: number
   totalFiles: number
+  message?: string
 }
 
 interface CatalogAsset { path: string }
@@ -277,7 +278,15 @@ export const startSkinAssetSync = (
 ): Promise<void> => {
   if (skinSyncTask) return skinSyncTask
   skinSyncTask = syncSkinAssets(apiUrl, onProgress).catch((error: unknown) => {
-    onProgress({ status: 'error', completedFiles: 0, totalFiles: 0 })
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : ''
+    const message = code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
+      ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
+      : error instanceof Error && error.message.includes('Choose your Counter-Strike executable')
+        ? 'Choose your Counter-Strike executable in Settings to download skin assets.'
+        : 'Could not download skin assets. Check your connection and try again.'
+    onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })
     throw error
   }).finally(() => { skinSyncTask = null })
   return skinSyncTask
