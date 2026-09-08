@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   XCircle
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type FormEvent, type JSX } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
@@ -49,10 +49,11 @@ export function SettingsPage(): JSX.Element {
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
 
   const [newUsername, setNewUsername] = useState('')
-  const [availability, setAvailability] = useState<
-    'idle' | 'checking' | 'available' | 'taken'
-  >('idle')
+  const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
+    'idle'
+  )
   const [usernameNotice, setUsernameNotice] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -100,25 +101,26 @@ export function SettingsPage(): JSX.Element {
   }
 
   const usernameAvailableAt = session?.player.usernameChangeAvailableAt ?? null
-  const usernameCooldownActive = useMemo(() => {
+  const usernameCooldownActive = (() => {
     if (!usernameAvailableAt) return false
     const availableAt = Date.parse(usernameAvailableAt)
-    return Number.isFinite(availableAt) && availableAt > Date.now()
-  }, [usernameAvailableAt])
+    return Number.isFinite(availableAt) && availableAt > currentTime
+  })()
+  const usernameIsValid = usernamePattern.test(newUsername)
+  const usernameMatchesCurrent =
+    newUsername.toLocaleLowerCase('en-US') === session?.player.username.toLocaleLowerCase('en-US')
+  const displayedAvailability =
+    usernameCooldownActive || !usernameIsValid || usernameMatchesCurrent ? 'idle' : availability
 
   useEffect(() => {
-    setUsernameNotice(null)
-    if (
-      usernameCooldownActive ||
-      !usernamePattern.test(newUsername) ||
-      newUsername.toLocaleLowerCase('en-US') === session?.player.username.toLocaleLowerCase('en-US')
-    ) {
-      setAvailability('idle')
-      return
-    }
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (usernameCooldownActive || !usernameIsValid || usernameMatchesCurrent) return
 
     let cancelled = false
-    setAvailability('checking')
     const timer = setTimeout(() => {
       void checkUsername(newUsername).then((available) => {
         if (!cancelled) setAvailability(available ? 'available' : 'taken')
@@ -129,11 +131,11 @@ export function SettingsPage(): JSX.Element {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [checkUsername, newUsername, session?.player.username, usernameCooldownActive])
+  }, [checkUsername, newUsername, usernameCooldownActive, usernameIsValid, usernameMatchesCurrent])
 
   const handleUsernameSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (availability !== 'available' || authStatus === 'changing_username') return
+    if (displayedAvailability !== 'available' || authStatus === 'changing_username') return
     void changeUsername(newUsername).then((changed) => {
       if (changed) {
         setUsernameNotice('Username changed. You can change it again in 7 days.')
@@ -141,6 +143,16 @@ export function SettingsPage(): JSX.Element {
         setAvailability('idle')
       }
     })
+  }
+
+  const handleUsernameChange = (value: string): void => {
+    setNewUsername(value)
+    setUsernameNotice(null)
+    const matchesCurrent =
+      value.toLocaleLowerCase('en-US') === session?.player.username.toLocaleLowerCase('en-US')
+    setAvailability(
+      usernameCooldownActive || !usernamePattern.test(value) || matchesCurrent ? 'idle' : 'checking'
+    )
   }
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -245,7 +257,7 @@ export function SettingsPage(): JSX.Element {
               {socialLoading
                 ? 'Checking connection…'
                 : connected
-                  ? connection.email ?? 'Connected'
+                  ? (connection.email ?? 'Connected')
                   : `Connect ${label} as another way to sign in.`}
             </p>
           </div>
@@ -367,7 +379,11 @@ export function SettingsPage(): JSX.Element {
                     readOnly
                     placeholder="No Counter-Strike executable selected"
                   />
-                  <Button variant="ghost" disabled={status !== 'idle'} onClick={() => void choose()}>
+                  <Button
+                    variant="ghost"
+                    disabled={status !== 'idle'}
+                    onClick={() => void choose()}
+                  >
                     {status === 'choosing' ? 'Opening…' : 'Browse'}
                   </Button>
                   <Button
@@ -438,14 +454,14 @@ export function SettingsPage(): JSX.Element {
                       disabled={usernameCooldownActive || authStatus === 'changing_username'}
                       placeholder="player_name"
                       autoComplete="off"
-                      onChange={(event) => setNewUsername(event.target.value)}
+                      onChange={(event) => handleUsernameChange(event.target.value)}
                     />
                     <Button
                       type="submit"
                       disabled={
                         usernameCooldownActive ||
                         authStatus === 'changing_username' ||
-                        availability !== 'available'
+                        displayedAvailability !== 'available'
                       }
                     >
                       {authStatus === 'changing_username' ? 'Saving…' : 'Change username'}
@@ -461,17 +477,17 @@ export function SettingsPage(): JSX.Element {
                         You can change your username again on {cooldownLabel}.
                       </p>
                     )}
-                    {!usernameCooldownActive && availability === 'checking' && (
+                    {!usernameCooldownActive && displayedAvailability === 'checking' && (
                       <p className="flex items-center gap-2 text-neutral-400">
                         <LoaderCircle className="size-4 animate-spin" /> Checking availability…
                       </p>
                     )}
-                    {!usernameCooldownActive && availability === 'available' && (
+                    {!usernameCooldownActive && displayedAvailability === 'available' && (
                       <p className="flex items-center gap-2 text-emerald-300">
                         <CheckCircle2 className="size-4" /> Username is available
                       </p>
                     )}
-                    {!usernameCooldownActive && availability === 'taken' && (
+                    {!usernameCooldownActive && displayedAvailability === 'taken' && (
                       <p className="flex items-center gap-2 text-red-400">
                         <XCircle className="size-4" /> Username is already taken
                       </p>
@@ -485,7 +501,8 @@ export function SettingsPage(): JSX.Element {
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Connected accounts</h3>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Connect Google or Facebook so either provider can authenticate this same player account.
+                  Connect Google or Facebook so either provider can authenticate this same player
+                  account.
                 </p>
 
                 <div className="mt-5 grid gap-3">

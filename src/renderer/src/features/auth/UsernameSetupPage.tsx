@@ -15,16 +15,16 @@ export function UsernameSetupPage(): JSX.Element {
   const changeUsername = useAuthStore((state) => state.changeUsername)
   const logout = useAuthStore((state) => state.logout)
   const [username, setUsername] = useState('')
-  const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
+    'idle'
+  )
+  const usernameIsValid = usernamePattern.test(username)
+  const displayedAvailability = usernameIsValid ? availability : 'idle'
 
   useEffect(() => {
-    if (!usernamePattern.test(username)) {
-      setAvailability('idle')
-      return
-    }
+    if (!usernameIsValid) return
 
     let cancelled = false
-    setAvailability('checking')
     const timer = setTimeout(() => {
       void checkUsername(username).then((available) => {
         if (!cancelled) setAvailability(available ? 'available' : 'taken')
@@ -35,11 +35,11 @@ export function UsernameSetupPage(): JSX.Element {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [checkUsername, username])
+  }, [checkUsername, username, usernameIsValid])
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (availability !== 'available' || status === 'changing_username') return
+    if (displayedAvailability !== 'available' || status === 'changing_username') return
     void changeUsername(username)
   }
 
@@ -67,21 +67,25 @@ export function UsernameSetupPage(): JSX.Element {
             disabled={status === 'changing_username'}
             placeholder="player_name"
             hint="3–32 characters: letters, numbers, and underscores"
-            onChange={(event) => setUsername(event.target.value)}
+            onChange={(event) => {
+              const nextUsername = event.target.value
+              setUsername(nextUsername)
+              setAvailability(usernamePattern.test(nextUsername) ? 'checking' : 'idle')
+            }}
           />
 
           <div className="min-h-6 text-sm" aria-live="polite">
-            {availability === 'checking' && (
+            {displayedAvailability === 'checking' && (
               <p className="flex items-center gap-2 text-neutral-400">
                 <LoaderCircle className="size-4 animate-spin" /> Checking availability…
               </p>
             )}
-            {availability === 'available' && (
+            {displayedAvailability === 'available' && (
               <p className="flex items-center gap-2 text-emerald-300">
                 <CheckCircle2 className="size-4" /> Username is available
               </p>
             )}
-            {availability === 'taken' && (
+            {displayedAvailability === 'taken' && (
               <p className="flex items-center gap-2 text-red-400">
                 <XCircle className="size-4" /> Username is already taken
               </p>
@@ -89,7 +93,10 @@ export function UsernameSetupPage(): JSX.Element {
             {error && <p className="mt-2 text-red-400">{error}</p>}
           </div>
 
-          <Button type="submit" disabled={availability !== 'available' || status === 'changing_username'}>
+          <Button
+            type="submit"
+            disabled={displayedAvailability !== 'available' || status === 'changing_username'}
+          >
             {status === 'changing_username' ? 'Saving username…' : 'Continue'}
           </Button>
         </form>

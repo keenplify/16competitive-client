@@ -106,7 +106,9 @@ const validatePasswordChange = (value: unknown): PasswordChangeCredentials => {
   const { currentPassword, newPassword } = value as Record<string, unknown>
   if (
     currentPassword !== undefined &&
-    (typeof currentPassword !== 'string' || currentPassword.length < 1 || currentPassword.length > 128)
+    (typeof currentPassword !== 'string' ||
+      currentPassword.length < 1 ||
+      currentPassword.length > 128)
   ) {
     throw new Error('Verify password is invalid')
   }
@@ -269,14 +271,13 @@ export const authenticate = async (
   const body: unknown = await response.json().catch(() => null)
 
   if (!response.ok) throw new Error(getErrorMessage(body, response.status))
-  if (!isAuthResponse(body)) throw new Error('The authentication server returned an invalid response')
+  if (!isAuthResponse(body))
+    throw new Error('The authentication server returned an invalid response')
 
   return acceptAuthResponse(body)
 }
 
-export const authenticateWithSocial = async (
-  untrustedProvider: unknown
-): Promise<AuthSession> => {
+export const authenticateWithSocial = async (untrustedProvider: unknown): Promise<AuthSession> => {
   const provider = validateSocialProvider(untrustedProvider)
   const startResponse = await fetch(`${API_BASE_URL}/auth/social/start`, {
     method: 'POST',
@@ -400,7 +401,11 @@ export const checkUsername = async (untrustedUsername: unknown): Promise<Usernam
   if (!response) throw new Error('Could not reach the authentication server')
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) throw new Error(getErrorMessage(body, response.status))
-  if (typeof body !== 'object' || body === null || typeof (body as { available?: unknown }).available !== 'boolean') {
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    typeof (body as { available?: unknown }).available !== 'boolean'
+  ) {
     throw new Error('The server returned an invalid username availability response')
   }
   return body as UsernameAvailability
@@ -433,7 +438,9 @@ export const changeUsername = async (untrustedUsername: unknown): Promise<Userna
   return body as UsernameChangeResult
 }
 
-export const changePassword = async (untrustedCredentials: unknown): Promise<PasswordChangeResult> => {
+export const changePassword = async (
+  untrustedCredentials: unknown
+): Promise<PasswordChangeResult> => {
   const credentials = validatePasswordChange(untrustedCredentials)
   if (!sessionToken) throw new Error('Authentication required')
   const response = await fetch(`${API_BASE_URL}/auth/password`, {

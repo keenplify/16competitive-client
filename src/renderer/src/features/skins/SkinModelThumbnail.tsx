@@ -190,11 +190,12 @@ export function SkinModelThumbnail({
           className="absolute inset-0"
         />
       )}
-      {weaponKey !== 'elite' && (status === 'checking' || (status === 'rendering' && skinId && !modelBuffer)) && (
-        <span className="absolute inset-0 flex items-center justify-center" role="status">
-          <LoaderCircle className="size-5 animate-spin text-sky-300" />
-        </span>
-      )}
+      {weaponKey !== 'elite' &&
+        (status === 'checking' || (status === 'rendering' && skinId && !modelBuffer)) && (
+          <span className="absolute inset-0 flex items-center justify-center" role="status">
+            <LoaderCircle className="size-5 animate-spin text-sky-300" />
+          </span>
+        )}
       {weaponKey !== 'elite' && status === 'failed' && (
         <span className="absolute inset-0 flex items-center justify-center">{fallback}</span>
       )}
