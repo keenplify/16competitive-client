@@ -23,6 +23,8 @@ import type { NewsApi } from '../shared/news'
 import { NEWS_CHANNELS } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
+import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
+import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -134,6 +136,10 @@ const redeemCodes: RedeemCodesApi = {
   redeem: (code) => ipcRenderer.invoke(REDEEM_CODE_CHANNELS.redeem, code)
 }
 
+const diagnosticLogs: DiagnosticLogsApi = {
+  get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get)
+}
+
 const api = {
   auth,
   gameSettings,
@@ -146,7 +152,8 @@ const api = {
   redeemCodes,
   skins,
   updater,
-  window: windowApi
+  window: windowApi,
+  diagnosticLogs
 }
 
 if (process.contextIsolated) {
