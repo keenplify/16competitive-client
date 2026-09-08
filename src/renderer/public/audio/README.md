@@ -8,6 +8,7 @@ audio/
 │   └── launcher-bgm.mp3
 └── sfx/
     ├── button.mp3
+    ├── party-invitation.mp3
     ├── match-found.mp3
     ├── match-accepted.mp3
     ├── game-starting.mp3

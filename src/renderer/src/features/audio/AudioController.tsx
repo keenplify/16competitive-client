@@ -44,9 +44,14 @@ export function AudioController(): JSX.Element | null {
       launcherAudio.playSfx('button')
     }
 
+    const removeMatchmakingListener = window.api.matchmaking.onEvent((event) => {
+      if (event.type === 'party_invitation_received') launcherAudio.playSfx('partyInvitation')
+    })
+
     document.addEventListener('click', handleClick)
     return () => {
       document.removeEventListener('click', handleClick)
+      removeMatchmakingListener()
       window.removeEventListener('pointerdown', retry)
       window.removeEventListener('keydown', retry)
     }
