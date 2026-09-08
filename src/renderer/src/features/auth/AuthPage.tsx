@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from './auth.store'
+import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
 import { localMapPreviews } from '../matchmaking/map-previews'
 
@@ -38,18 +39,33 @@ export function AuthPage(): JSX.Element {
   }, [restore])
 
   useEffect(() => {
-    if (status === 'authenticated' && session && !hasMaximized.current) {
+    if (
+      (status === 'authenticated' || status === 'changing_username') &&
+      session &&
+      !hasMaximized.current
+    ) {
       hasMaximized.current = true
       void window.api.window.maximize()
       return
     }
 
-    if (status !== 'authenticated' || !session) {
+    if ((status !== 'authenticated' && status !== 'changing_username') || !session) {
       hasMaximized.current = false
     }
   }, [session, status])
 
-  if ((status === 'authenticated' || status === 'logging_out') && session) {
+  if (
+    session &&
+    session.player.requiresUsernameSetup &&
+    (status === 'authenticated' || status === 'changing_username' || status === 'logging_out')
+  ) {
+    return <UsernameSetupPage />
+  }
+
+  if (
+    (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
+    session
+  ) {
     return <LobbyPage />
   }
 
