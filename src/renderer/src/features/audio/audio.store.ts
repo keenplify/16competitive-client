@@ -1,4 +1,9 @@
 import { create } from 'zustand'
+import {
+  DEFAULT_BGM_ID,
+  isLauncherBgmId,
+  type LauncherBgmId
+} from './audio.paths'
 
 const STORAGE_KEY = '16competitive.audio-settings'
 const DEFAULT_BGM_VOLUME = 50
@@ -7,11 +12,13 @@ const DEFAULT_SFX_VOLUME = 50
 interface StoredAudioSettings {
   bgmVolume: number
   sfxVolume: number
+  selectedBgmId: LauncherBgmId
 }
 
 interface AudioSettingsState extends StoredAudioSettings {
   setBgmVolume: (value: number) => void
   setSfxVolume: (value: number) => void
+  setSelectedBgmId: (value: LauncherBgmId) => void
 }
 
 const clampVolume = (value: number): number => Math.max(0, Math.min(100, Math.round(value)))
@@ -20,7 +27,11 @@ const readStoredSettings = (): StoredAudioSettings => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) {
-      return { bgmVolume: DEFAULT_BGM_VOLUME, sfxVolume: DEFAULT_SFX_VOLUME }
+      return {
+        bgmVolume: DEFAULT_BGM_VOLUME,
+        sfxVolume: DEFAULT_SFX_VOLUME,
+        selectedBgmId: DEFAULT_BGM_ID
+      }
     }
 
     const parsed = JSON.parse(raw) as Partial<StoredAudioSettings>
@@ -32,10 +43,15 @@ const readStoredSettings = (): StoredAudioSettings => {
       sfxVolume:
         typeof parsed.sfxVolume === 'number'
           ? clampVolume(parsed.sfxVolume)
-          : DEFAULT_SFX_VOLUME
+          : DEFAULT_SFX_VOLUME,
+      selectedBgmId: isLauncherBgmId(parsed.selectedBgmId) ? parsed.selectedBgmId : DEFAULT_BGM_ID
     }
   } catch {
-    return { bgmVolume: DEFAULT_BGM_VOLUME, sfxVolume: DEFAULT_SFX_VOLUME }
+    return {
+      bgmVolume: DEFAULT_BGM_VOLUME,
+      sfxVolume: DEFAULT_SFX_VOLUME,
+      selectedBgmId: DEFAULT_BGM_ID
+    }
   }
 }
 
@@ -54,13 +70,30 @@ export const useAudioSettingsStore = create<AudioSettingsState>((set) => ({
   setBgmVolume: (value) =>
     set((state) => {
       const bgmVolume = clampVolume(value)
-      persistSettings({ bgmVolume, sfxVolume: state.sfxVolume })
+      persistSettings({
+        bgmVolume,
+        sfxVolume: state.sfxVolume,
+        selectedBgmId: state.selectedBgmId
+      })
       return { bgmVolume }
     }),
   setSfxVolume: (value) =>
     set((state) => {
       const sfxVolume = clampVolume(value)
-      persistSettings({ bgmVolume: state.bgmVolume, sfxVolume })
+      persistSettings({
+        bgmVolume: state.bgmVolume,
+        sfxVolume,
+        selectedBgmId: state.selectedBgmId
+      })
       return { sfxVolume }
+    }),
+  setSelectedBgmId: (selectedBgmId) =>
+    set((state) => {
+      persistSettings({
+        bgmVolume: state.bgmVolume,
+        sfxVolume: state.sfxVolume,
+        selectedBgmId
+      })
+      return { selectedBgmId }
     })
 }))
