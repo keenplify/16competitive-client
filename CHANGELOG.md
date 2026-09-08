@@ -290,3 +290,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved recovery when matchmaking services restart or connections are interrupted.
 - Automatically reconnects when the connection heartbeat fails.
+
+## v2026.908.22 — 2026-09-08
+
+### Diagnostics
+
+- Added comprehensive logging to help diagnose launcher issues.
+
+### Skin Assets
+
+- Improved visibility into skin asset synchronization status.
