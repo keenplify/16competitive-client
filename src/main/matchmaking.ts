@@ -322,6 +322,10 @@ class MatchmakingConnection {
   private cancelledMatchIds = new Set<string>()
   private finishedMatchIds = new Set<string>()
   private manuallyDisconnected = false
+  // A new launcher process must not silently resume a queue left behind by a
+  // previous process. Active matches are handled separately by the recovery
+  // status messages and are intentionally preserved.
+  private freshProcess = true
   private authenticated = false
   private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
@@ -359,6 +363,35 @@ class MatchmakingConnection {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.stopPing()
+    this.socket?.close()
+    this.socket = null
+    this.renderer = null
+  }
+
+  shutdown(): void {
+    this.manuallyDisconnected = true
+    this.authenticated = false
+    this.recoveryStatusPending = false
+    this.desiredMode = null
+    this.desiredMapIds = []
+    this.lastConnection = null
+    this.activeApiUrl = null
+    this.hostApiUrl = null
+    this.reconnectAttempt = 0
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+    this.stopPing()
+
+    // Best effort: explicitly remove a queued entry before the socket closes.
+    // This does not cancel an already-created match because the backend keeps
+    // queue membership separate from match membership.
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      try {
+        this.socket.send(JSON.stringify({ type: 'leave_queue' }))
+      } catch {
+        // The process is already shutting down; the disconnect fallback applies.
+      }
+    }
     this.socket?.close()
     this.socket = null
     this.renderer = null
@@ -592,7 +625,15 @@ class MatchmakingConnection {
         })
       } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
         this.recoveryStatusPending = false
+        if (parsed.type === 'match_ready_check') this.freshProcess = false
+        if (parsed.type === 'queue_status' && this.freshProcess) {
+          this.freshProcess = false
+          // A fresh process should never resume an old queue. Do this only
+          // after authoritative status confirms that the player is queued.
+          socket.send(JSON.stringify({ type: 'leave_queue' }))
+        }
       } else if (parsed.type === 'queue_joined') {
+        this.freshProcess = false
         this.desiredMode = parsed.mode
         this.desiredMapIds = [...parsed.mapIds]
         this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
@@ -606,6 +647,7 @@ class MatchmakingConnection {
         this.desiredMode = null
         this.desiredMapIds = []
       } else if (parsed.type === 'match_found') {
+        this.freshProcess = false
         this.desiredMode = null
         this.desiredMapIds = []
         if (this.renderer) {

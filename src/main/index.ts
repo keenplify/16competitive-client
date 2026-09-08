@@ -92,14 +92,7 @@ function scheduleFullScreenRecovery(): void {
 }
 
 function disconnectMatchmakingIntentionally(): void {
-  // Best-effort explicit cancellation distinguishes a real app exit/logout from
-  // a transient WebSocket drop. The backend still has a disconnect grace fallback.
-  try {
-    matchmakingConnection.leaveQueue()
-  } catch {
-    // There may be no authenticated socket or the player may already be matched.
-  }
-  matchmakingConnection.disconnect()
+  matchmakingConnection.shutdown()
 }
 
 async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
@@ -312,4 +305,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', stopFullScreenRecovery)
+app.on('before-quit', () => {
+  stopFullScreenRecovery()
+  disconnectMatchmakingIntentionally()
+})
