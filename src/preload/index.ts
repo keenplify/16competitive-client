@@ -28,6 +28,8 @@ const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
+  getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
+  connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
@@ -68,7 +70,8 @@ const windowApi: WindowApi = {
 const models: ModelApi = {
   read: (relativePath) => ipcRenderer.invoke(MODEL_CHANNELS.read, relativePath),
   readThumbnail: (cacheKey) => ipcRenderer.invoke(MODEL_CHANNELS.readThumbnail, cacheKey),
-  writeThumbnail: (cacheKey, png) => ipcRenderer.invoke(MODEL_CHANNELS.writeThumbnail, cacheKey, png)
+  writeThumbnail: (cacheKey, png) =>
+    ipcRenderer.invoke(MODEL_CHANNELS.writeThumbnail, cacheKey, png)
 }
 
 const party: PartyApi = {
