@@ -228,3 +228,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Stability
 
 - Counter-Strike now stays running when the API restarts.
+
+## v2026.908.12 — 2026-09-08
+
+### Match cancellations
+
+- Asset downloads now stop when a match is cancelled.
