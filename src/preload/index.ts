@@ -27,6 +27,7 @@ import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
+  social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
