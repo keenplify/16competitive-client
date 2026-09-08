@@ -19,8 +19,10 @@ import { closeCounterStrikeForMatch, launchCounterStrikeForMatch } from './game/
 import {
   clearMatchAssetPreload,
   startMatchAssetPreload,
+  startSkinAssetSync,
   waitForMatchAssetPreload
 } from './game/match-assets'
+import { API_BASE_URL } from './config'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_BASE_DELAY_MS = 1_000
@@ -583,6 +585,11 @@ class MatchmakingConnection {
         }
         this.startPing()
         this.notify({ type: 'connection_endpoint', apiUrl: this.activeApiUrl, websocketUrl })
+        void startSkinAssetSync(this.activeApiUrl ?? API_BASE_URL, (progress) =>
+          this.notify({ type: 'skin_assets_sync_progress', ...progress })
+        ).catch((error: unknown) => {
+          console.warn('[Matchmaking] background skin asset sync failed', error)
+        })
       } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
         this.recoveryStatusPending = false
       } else if (parsed.type === 'queue_joined') {

@@ -220,6 +220,12 @@ export type MatchmakingEvent =
       completedFiles: number
       totalFiles: number
     }
+  | {
+      type: 'skin_assets_sync_progress'
+      status: 'syncing' | 'ready' | 'error'
+      completedFiles: number
+      totalFiles: number
+    }
   | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }
   | {
       type: 'connection_state'
