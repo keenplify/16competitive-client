@@ -3,13 +3,29 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { useAuthStore } from '../auth/auth.store'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
+  const currentPlayerId = useAuthStore((state) => state.session?.player.id)
   const winners = match.winner === 1 ? match.teams.teamA : match.teams.teamB
   const losers = match.winner === 1 ? match.teams.teamB : match.teams.teamA
+  const currentPlayerTeam = match.teams.teamA.some((player) => player.id === currentPlayerId)
+    ? 1
+    : match.teams.teamB.some((player) => player.id === currentPlayerId)
+      ? 2
+      : null
+  const didWin = currentPlayerTeam !== null && currentPlayerTeam === match.winner
+  const resultLabel = didWin ? 'Victory' : 'Defeat'
+  const resultClassName = didWin ? 'text-emerald-400' : 'text-rose-400'
   const score =
-    match.winner === 1 ? [match.teamAScore, match.teamBScore] : [match.teamBScore, match.teamAScore]
+    currentPlayerTeam === 1
+      ? [match.teamAScore, match.teamBScore]
+      : currentPlayerTeam === 2
+        ? [match.teamBScore, match.teamAScore]
+        : match.winner === 1
+          ? [match.teamAScore, match.teamBScore]
+          : [match.teamBScore, match.teamAScore]
   const [contextMenu, setContextMenu] = useState<{
     playerId: string
     x: number
@@ -66,9 +82,9 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
 
   return (
     <section className="min-h-[calc(100vh-5rem)] bg-neutral-950/90 px-5 py-10 text-center">
-      <p className="text-xs font-bold tracking-[.3em] text-emerald-400 uppercase">Match complete</p>
-      <h1 className="mt-2 text-6xl font-black tracking-[.12em] text-emerald-400 uppercase">
-        Victory
+      <p className={`text-xs font-bold tracking-[.3em] uppercase ${resultClassName}`}>Match complete</p>
+      <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
+        {resultLabel}
       </h1>
       <p className="mt-2 text-3xl font-bold">
         {score[0]} <span className="text-neutral-500">—</span> {score[1]}
