@@ -300,3 +300,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skin Assets
 
 - Improved visibility into skin asset synchronization status.
+
+## v2026.908.23 — 2026-09-08
+
+### Reliability
+
+- Improved reliability when creating releases and uploading release assets, including retry handling.
