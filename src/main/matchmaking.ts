@@ -417,8 +417,10 @@ class MatchmakingConnection {
     await launchCounterStrikeForMatch({
       ...connection,
       forceRestart: true,
-      onExit: ({ code, signal }) =>
+      onExit: ({ code, signal }) => {
+        this.focusLauncher()
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
+      }
     })
   }
 
@@ -428,6 +430,14 @@ class MatchmakingConnection {
     return startMatchAssetPreload(matchId, hostApiUrl, (progress) =>
       this.notify({ type: 'match_assets_progress', matchId, ...progress })
     )
+  }
+
+  private focusLauncher(): void {
+    const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
+    if (!window || window.isDestroyed()) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
   }
 
   private openSocket(reconnecting: boolean, apiUrl?: string, handoff = false): void {
@@ -605,13 +615,15 @@ class MatchmakingConnection {
           .then(() =>
             launchCounterStrikeForMatch({
               ...parsed,
-              onExit: ({ code, signal }) =>
+              onExit: ({ code, signal }) => {
+                this.focusLauncher()
                 this.notify({
                   type: 'game_process_exited',
                   matchId: parsed.matchId,
                   code,
                   signal
                 })
+              }
             })
           )
           .catch((error: unknown) =>
