@@ -1,6 +1,9 @@
 import { Download, LogOut, Power } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
+import { BGM_TRACKS, isLauncherBgmId } from '../audio/audio.paths'
+import { useAudioSettingsStore } from '../audio/audio.store'
+import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { useGameSettingsStore } from './game-settings.store'
@@ -15,6 +18,12 @@ export function SettingsPage(): JSX.Element {
   const load = useGameSettingsStore((state) => state.load)
   const choose = useGameSettingsStore((state) => state.choose)
   const save = useGameSettingsStore((state) => state.save)
+  const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
+  const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
+  const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
+  const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
+  const setSfxVolume = useAudioSettingsStore((state) => state.setSfxVolume)
+  const setSelectedBgmId = useAudioSettingsStore((state) => state.setSelectedBgmId)
   const authStatus = useAuthStore((state) => state.status)
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
@@ -27,7 +36,7 @@ export function SettingsPage(): JSX.Element {
     <main className="min-h-[calc(100vh-5rem)] bg-neutral-950/92 p-5 text-white sm:p-8">
       <div className="mx-auto max-w-4xl">
         <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
-        <h1 className="mt-2 text-3xl font-semibold">Game installation</h1>
+        <h1 className="mt-2 text-3xl font-semibold">Launcher settings</h1>
 
         <section className="mt-8 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
           <h2 className="text-lg font-semibold">Counter-Strike 1.6</h2>
@@ -80,6 +89,49 @@ export function SettingsPage(): JSX.Element {
               Saved locally in: <span className="font-mono">{configFilePath}</span>
             </p>
           )}
+        </section>
+
+        <section className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+          <h2 className="text-lg font-semibold">Audio</h2>
+          <p className="mt-1 text-sm text-neutral-400">
+            Control launcher music and interface sounds. These preferences are saved on this device.
+          </p>
+
+          <label className="mt-6 block">
+            <span className="text-sm font-semibold text-neutral-200">Background music track</span>
+            <span className="mt-1 block text-xs text-neutral-500">
+              Choose one of the built-in launcher tracks. The selected track loops until you choose another one.
+            </span>
+            <select
+              className="mt-3 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400"
+              value={selectedBgmId}
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                if (isLauncherBgmId(value)) setSelectedBgmId(value)
+              }}
+            >
+              {BGM_TRACKS.map((track) => (
+                <option key={track.id} value={track.id}>
+                  {track.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <VolumeControl
+              label="Background music"
+              description="Launcher music volume. Music fades out when a match starts."
+              value={bgmVolume}
+              onChange={setBgmVolume}
+            />
+            <VolumeControl
+              label="Sound effects"
+              description="Navigation tabs, party invitations, matchmaking alerts, game-start, victory, and defeat sounds."
+              value={sfxVolume}
+              onChange={setSfxVolume}
+            />
+          </div>
         </section>
 
         <section className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-rose-400/15 bg-rose-400/5 p-5 sm:p-7">
