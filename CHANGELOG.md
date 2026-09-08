@@ -160,3 +160,12 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.908.3 — 2026-09-08
 
 - Fix client lint errors
+
+## v2026.908.4 — 2026-09-08
+
+- Merge pull request #3 from keenplify/fix/match-recovery-and-game-exit
+- Track Linux GoldSrc process after Steam handoff
+- Mount matchmaking search status in the lobby
+- Show matchmaking status while joining and searching
+- Fix recovered matches and duplicate results
+- Fix match result perspective
