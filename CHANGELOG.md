@@ -247,3 +247,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Download skin assets in the background.
 - Cache skin preview models locally for faster loading.
+
+## v2026.908.15 — 2026-09-08
+
+### Skin Assets
+
+- Skin asset download errors now explain whether the Counter-Strike folder needs permissions, an executable selection, or a connection check.
