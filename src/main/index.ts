@@ -47,8 +47,12 @@ import {
   unequipSkin,
   unlockSkin
 } from './skins'
-import { checkForAppUpdates } from './updater'
-import { getAppUpdateStatus, restartAndInstallUpdate } from './updater'
+import {
+  checkForAppUpdates,
+  ensureLatestClientForMatchmaking,
+  getAppUpdateStatus,
+  restartAndInstallUpdate
+} from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
 import { getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
@@ -81,6 +85,17 @@ function scheduleFullScreenRecovery(): void {
     fullScreenRecoveryTimer = null
     lockWindowFullScreen()
   }, 0)
+}
+
+function disconnectMatchmakingIntentionally(): void {
+  // Best-effort explicit cancellation distinguishes a real app exit/logout from
+  // a transient WebSocket drop. The backend still has a disconnect grace fallback.
+  try {
+    matchmakingConnection.leaveQueue()
+  } catch {
+    // There may be no authenticated socket or the player may already be matched.
+  }
+  matchmakingConnection.disconnect()
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -122,7 +137,7 @@ function createWindow(): void {
   mainWindow.on('close', stopFullScreenRecovery)
   mainWindow.on('closed', () => {
     stopFullScreenRecovery()
-    matchmakingConnection.disconnect()
+    disconnectMatchmakingIntentionally()
   })
   mainWindow.on('leave-full-screen', scheduleFullScreenRecovery)
 
@@ -161,7 +176,7 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
-    matchmakingConnection.disconnect()
+    disconnectMatchmakingIntentionally()
     clearSessionToken()
   })
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
@@ -181,8 +196,10 @@ app.whenReady().then(() => {
   })
   ipcMain.handle(
     MATCHMAKING_CHANNELS.joinQueue,
-    (_, mode: unknown, mapIds: unknown, allowRegionExpansion: unknown) =>
-      matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion)
+    async (_, mode: unknown, mapIds: unknown, allowRegionExpansion: unknown) => {
+      await ensureLatestClientForMatchmaking()
+      return matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion)
+    }
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())

@@ -9,6 +9,9 @@ const ASSET_PATH =
 const SHA256 = /^[a-f0-9]{64}$/
 const MAX_MODEL_SIZE = 20 * 1024 * 1024
 const DOWNLOAD_CONCURRENCY = 3
+const ASSET_DOWNLOAD_RETRY_COUNT = 3
+const ASSET_DOWNLOAD_TIMEOUT_MS = 30_000
+const ASSET_DOWNLOAD_RETRY_DELAY_MS = 750
 const MANIFEST_RETRY_COUNT = 30
 const MANIFEST_RETRY_DELAY_MS = 1_000
 
@@ -27,7 +30,12 @@ export interface MatchAssetPreloadProgress {
   totalFiles: number
 }
 
+class NonRetryableAssetError extends Error {}
+
 const preloads = new Map<string, Promise<void>>()
+
+const delay = (milliseconds: number): Promise<void> =>
+  new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
 const isMatchAsset = (value: unknown): value is MatchAsset => {
   if (typeof value !== 'object' || value === null) return false
@@ -86,6 +94,69 @@ const hasExpectedHash = async (destination: string, expectedHash: string): Promi
   return actualHash.startsWith(expectedHash)
 }
 
+const fetchAssetBytes = async (
+  apiUrl: URL,
+  matchId: string,
+  asset: MatchAsset,
+  token: string,
+  expectedHash: string
+): Promise<Buffer> => {
+  const url = new URL(`/matches/${encodeURIComponent(matchId)}/assets/file`, apiUrl)
+  url.searchParams.set('path', asset.path)
+
+  for (let attempt = 1; attempt <= ASSET_DOWNLOAD_RETRY_COUNT; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(ASSET_DOWNLOAD_TIMEOUT_MS)
+      })
+      if (!response.ok) {
+        const error = new Error(`Could not download ${asset.path} (${response.status}).`)
+        if ([400, 401, 403].includes(response.status)) throw new NonRetryableAssetError(error.message)
+        throw error
+      }
+      if (!response.headers.get('content-type')?.startsWith('application/octet-stream')) {
+        throw new NonRetryableAssetError(
+          `Match asset server returned an invalid content type for ${asset.path}.`
+        )
+      }
+      const contentLength = Number(response.headers.get('content-length'))
+      if (Number.isFinite(contentLength) && (contentLength < 16 || contentLength > MAX_MODEL_SIZE)) {
+        throw new NonRetryableAssetError(`Match asset has an unsupported size: ${asset.path}`)
+      }
+
+      const bytes = Buffer.from(await response.arrayBuffer())
+      if (
+        bytes.length < 16 ||
+        bytes.length > MAX_MODEL_SIZE ||
+        bytes.subarray(0, 4).toString() !== 'IDST'
+      ) {
+        throw new Error(`Match asset is not a valid GoldSrc model: ${asset.path}`)
+      }
+      const actualHash = createHash('sha256').update(bytes).digest('hex')
+      if (!actualHash.startsWith(expectedHash)) {
+        throw new Error(`Match asset integrity check failed: ${asset.path}`)
+      }
+      return bytes
+    } catch (error) {
+      if (error instanceof NonRetryableAssetError || attempt === ASSET_DOWNLOAD_RETRY_COUNT) {
+        throw error
+      }
+      console.warn('[MatchAssets] asset download failed; retrying', {
+        matchId,
+        path: asset.path,
+        attempt,
+        maxAttempts: ASSET_DOWNLOAD_RETRY_COUNT,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      await delay(ASSET_DOWNLOAD_RETRY_DELAY_MS * attempt)
+    }
+  }
+
+  throw new Error(`Could not download ${asset.path}.`)
+}
+
 const downloadAsset = async (
   apiUrl: URL,
   matchId: string,
@@ -97,34 +168,7 @@ const downloadAsset = async (
   const expectedHash = expectedHashFor(asset)
   if (await hasExpectedHash(destination, expectedHash)) return
 
-  const url = new URL(`/matches/${encodeURIComponent(matchId)}/assets/file`, apiUrl)
-  url.searchParams.set('path', asset.path)
-  const response = await fetch(url, {
-    headers: { authorization: `Bearer ${token}` },
-    redirect: 'error',
-    signal: AbortSignal.timeout(45_000)
-  })
-  if (!response.ok) throw new Error(`Could not download ${asset.path} (${response.status}).`)
-  if (!response.headers.get('content-type')?.startsWith('application/octet-stream')) {
-    throw new Error(`Match asset server returned an invalid content type for ${asset.path}.`)
-  }
-  const contentLength = Number(response.headers.get('content-length'))
-  if (Number.isFinite(contentLength) && (contentLength < 16 || contentLength > MAX_MODEL_SIZE)) {
-    throw new Error(`Match asset has an unsupported size: ${asset.path}`)
-  }
-  const bytes = Buffer.from(await response.arrayBuffer())
-  if (
-    bytes.length < 16 ||
-    bytes.length > MAX_MODEL_SIZE ||
-    bytes.subarray(0, 4).toString() !== 'IDST'
-  ) {
-    throw new Error(`Match asset is not a valid GoldSrc model: ${asset.path}`)
-  }
-  const actualHash = createHash('sha256').update(bytes).digest('hex')
-  if (!actualHash.startsWith(expectedHash)) {
-    throw new Error(`Match asset integrity check failed: ${asset.path}`)
-  }
-
+  const bytes = await fetchAssetBytes(apiUrl, matchId, asset, token, expectedHash)
   await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
   const temporary = `${destination}.${randomUUID()}.partial`
   try {
@@ -164,7 +208,7 @@ const loadManifest = async (manifestUrl: URL, token: string): Promise<MatchAsset
     if (response.status !== 404 || attempt === MANIFEST_RETRY_COUNT - 1) {
       throw new Error(`Could not load required match assets (${response.status}).`)
     }
-    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, MANIFEST_RETRY_DELAY_MS))
+    await delay(MANIFEST_RETRY_DELAY_MS)
   }
   throw new Error('Could not load required match assets.')
 }
