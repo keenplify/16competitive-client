@@ -3,7 +3,7 @@ export const AUDIO_PATHS = {
     launcher: 'audio/bgm/launcher-bgm.mp3'
   },
   sfx: {
-    button: 'audio/sfx/button.mp3',
+    tab: 'audio/sfx/tab.mp3',
     partyInvitation: 'audio/sfx/party-invitation.mp3',
     matchFound: 'audio/sfx/match-found.mp3',
     matchAccepted: 'audio/sfx/match-accepted.mp3',
