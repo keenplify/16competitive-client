@@ -132,7 +132,7 @@ export function SettingsPage(): JSX.Element {
     setPasswordNotice(null)
 
     if (session?.player.hasPassword && !currentPassword) {
-      setPasswordError('Enter your current password.')
+      setPasswordError('Enter your password to verify.')
       return
     }
     if (newPassword.length < 8 || newPassword.length > 128) {
@@ -391,7 +391,7 @@ export function SettingsPage(): JSX.Element {
                     </h3>
                     <p className="mt-1 text-sm text-neutral-400">
                       {session?.player.hasPassword
-                        ? 'Confirm your current password before replacing it.'
+                        ? 'Verify your current password before replacing it.'
                         : 'Your social account does not have a password yet. Add one to enable username/password login.'}
                     </p>
                   </div>
@@ -400,11 +400,11 @@ export function SettingsPage(): JSX.Element {
                 <form className="mt-6 grid max-w-xl gap-4" onSubmit={(event) => void handlePasswordSubmit(event)}>
                   {session?.player.hasPassword && (
                     <div>
-                      <label htmlFor="current-password" className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                        Current password
+                      <label htmlFor="verify-password" className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                        Verify password
                       </label>
                       <input
-                        id="current-password"
+                        id="verify-password"
                         type="password"
                         autoComplete="current-password"
                         value={currentPassword}
