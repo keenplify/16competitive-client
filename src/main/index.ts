@@ -2,7 +2,17 @@ import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { authenticate, clearSessionToken, restoreSession } from './auth'
+import {
+  authenticate,
+  authenticateWithSocial,
+  changePassword,
+  changeUsername,
+  checkUsername,
+  clearSessionToken,
+  connectSocial,
+  getSocialConnections,
+  restoreSession
+} from './auth'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
 import {
@@ -73,27 +83,20 @@ function scheduleFullScreenRecovery(): void {
   }, 0)
 }
 
-// A second shortcut launch is a separate Electron process. Acquire this lock
-// before creating any windows so that process exits without showing anything.
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
 
 function createWindow(): void {
   isShuttingDown = false
-
   const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
 
-  // Create the browser window.
   mainWindow = new BrowserWindow({
     x: displayBounds.x,
     y: displayBounds.y,
     width: displayBounds.width,
     height: displayBounds.height,
     frame: false,
-    // Enter fullscreen after the display-sized window has been mapped. Some
-    // Linux window managers otherwise keep Electron's initial content surface
-    // at its fallback size and center it on a black fullscreen background.
     fullscreen: false,
     resizable: true,
     movable: false,
@@ -116,8 +119,6 @@ function createWindow(): void {
     lockWindowFullScreen()
   })
 
-  // Closing a fullscreen window can emit leave-full-screen. Do not force the
-  // window back into fullscreen while Electron is quitting for an update.
   mainWindow.on('close', stopFullScreenRecovery)
   mainWindow.on('closed', () => {
     stopFullScreenRecovery()
@@ -130,8 +131,6 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -139,16 +138,9 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
@@ -159,14 +151,20 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     authenticate('register', credentials)
   )
+  ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) => authenticateWithSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
+  ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
+    changePassword(credentials)
+  )
   ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
     matchmakingConnection.disconnect()
     clearSessionToken()
   })
-  ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
-    matchmakingConnection.connect(event.sender)
-  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) => matchmakingConnection.connect(event.sender))
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
   ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, (_, nodeId: unknown) => {
@@ -188,9 +186,7 @@ app.whenReady().then(() => {
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())
   ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
-  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) =>
-    getMatchSummary(matchId)
-  )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) => getMatchSummary(matchId))
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
     getPlayerProfile(playerId)
   )
@@ -204,12 +200,8 @@ app.whenReady().then(() => {
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
-  ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
-    readCounterStrikeModel(relativePath)
-  )
-  ipcMain.handle(MODEL_CHANNELS.readThumbnail, (_, cacheKey: unknown) =>
-    readModelThumbnail(cacheKey)
-  )
+  ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) => readCounterStrikeModel(relativePath))
+  ipcMain.handle(MODEL_CHANNELS.readThumbnail, (_, cacheKey: unknown) => readModelThumbnail(cacheKey))
   ipcMain.handle(MODEL_CHANNELS.writeThumbnail, (_, cacheKey: unknown, png: unknown) =>
     writeModelThumbnail(cacheKey, png)
   )
@@ -256,15 +248,10 @@ app.whenReady().then(() => {
   checkForAppUpdates()
 
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -272,6 +259,3 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', stopFullScreenRecovery)
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

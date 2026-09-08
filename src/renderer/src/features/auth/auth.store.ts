@@ -1,8 +1,14 @@
 import { create } from 'zustand'
-import type { AuthSession } from '../../../../shared/auth'
+import type { AuthSession, SocialAuthProvider } from '../../../../shared/auth'
 
 type AuthMode = 'login' | 'register'
-type AuthStatus = 'idle' | 'restoring' | 'submitting' | 'authenticated' | 'logging_out'
+type AuthStatus =
+  | 'idle'
+  | 'restoring'
+  | 'submitting'
+  | 'authenticated'
+  | 'changing_username'
+  | 'logging_out'
 
 interface AuthState {
   mode: AuthMode
@@ -10,6 +16,7 @@ interface AuthState {
   email: string
   password: string
   status: AuthStatus
+  socialProvider: SocialAuthProvider | null
   error: string | null
   session: AuthSession | null
   setMode: (mode: AuthMode) => void
@@ -17,6 +24,9 @@ interface AuthState {
   setEmail: (email: string) => void
   setPassword: (password: string) => void
   submit: () => Promise<void>
+  loginWithSocial: (provider: SocialAuthProvider) => Promise<void>
+  checkUsername: (username: string) => Promise<boolean>
+  changeUsername: (username: string) => Promise<boolean>
   restore: () => Promise<void>
   refreshSession: () => Promise<void>
   logout: () => Promise<void>
@@ -29,7 +39,6 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Authentication failed. Please try again.'
-
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
 }
@@ -40,6 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   email: '',
   password: '',
   status: 'restoring',
+  socialProvider: null,
   error: null,
   session: null,
 
@@ -104,22 +114,75 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return
     }
 
-    set({ status: 'submitting', error: null })
+    set({ status: 'submitting', socialProvider: null, error: null })
 
     try {
       const session =
         mode === 'register'
           ? await window.api.auth.register({ username, email: normalizedEmail, password })
           : await window.api.auth.login({ username, password })
-      set({ session, status: 'authenticated', password: '' })
+      set({ session, status: 'authenticated', socialProvider: null, password: '' })
     } catch (error) {
-      set({ status: 'idle', error: readableError(error) })
+      set({ status: 'idle', socialProvider: null, error: readableError(error) })
+    }
+  },
+
+  loginWithSocial: async (provider) => {
+    if (get().status === 'submitting') return
+    set({ status: 'submitting', socialProvider: provider, error: null })
+
+    try {
+      const session = await window.api.auth.social(provider)
+      set({ session, status: 'authenticated', socialProvider: null, password: '' })
+    } catch (error) {
+      set({ status: 'idle', socialProvider: null, error: readableError(error) })
+    }
+  },
+
+  checkUsername: async (username) => {
+    if (!usernamePattern.test(username)) return false
+    try {
+      return (await window.api.auth.checkUsername(username)).available
+    } catch {
+      return false
+    }
+  },
+
+  changeUsername: async (username) => {
+    if (!usernamePattern.test(username)) {
+      set({ error: 'Username must be 3–32 characters using letters, numbers, or underscores.' })
+      return false
+    }
+    if (!get().session || get().status === 'changing_username') return false
+
+    set({ status: 'changing_username', error: null })
+    try {
+      const result = await window.api.auth.changeUsername(username)
+      set((state) => ({
+        status: 'authenticated',
+        error: null,
+        session: state.session
+          ? {
+              ...state.session,
+              player: {
+                ...state.session.player,
+                username: result.username,
+                requiresUsernameSetup: result.requiresUsernameSetup,
+                usernameChangeAvailableAt: result.usernameChangeAvailableAt
+              }
+            }
+          : state.session
+      }))
+      return true
+    } catch (error) {
+      set({ status: 'authenticated', error: readableError(error) })
+      return false
     }
   },
 
   logout: async () => {
     if (get().status === 'logging_out') return
-    set({ status: 'logging_out', error: null })
+    set({ status: 'logging_out', socialProvider: null, error: null })
 
     try {
       await window.api.auth.logout()
@@ -130,6 +193,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: '',
         password: '',
         status: 'idle',
+        socialProvider: null,
         error: null,
         session: null
       })
