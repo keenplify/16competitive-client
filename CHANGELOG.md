@@ -216,3 +216,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added launcher telemetry reporting after authentication.
 - Improved reporting of launcher client telemetry.
+
+## v2026.908.10 — 2026-09-08
+
+### Matchmaking
+
+- Improved recovery when the matchmaking server restarts.
