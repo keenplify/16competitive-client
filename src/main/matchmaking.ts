@@ -304,6 +304,7 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
 
 class MatchmakingConnection {
   private socket: WebSocket | null = null
+  private socketOpening = false
   private renderer: WebContents | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
@@ -442,13 +443,22 @@ class MatchmakingConnection {
   }
 
   private openSocket(reconnecting: boolean, apiUrl?: string, handoff = false): void {
+    if (this.socketOpening) return
     const token = getSessionToken()
     if (!token) throw new Error('Sign in before connecting to matchmaking')
+    this.socketOpening = true
     this.notify({
       type: 'connection_state',
       state: handoff ? 'handoff' : reconnecting ? 'reconnecting' : 'connecting'
     })
-    void this.createSocket(token, apiUrl, handoff)
+    void this.createSocket(token, apiUrl, handoff).then(
+      () => {
+        this.socketOpening = false
+      },
+      () => {
+        this.socketOpening = false
+      }
+    )
   }
 
   private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
