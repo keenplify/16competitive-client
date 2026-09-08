@@ -28,7 +28,9 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const leaveQueue = useMatchmakingStore((state) => state.leaveQueue)
   const [now, setNow] = useState(() => Date.now())
 
-  const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+  const isJoining = queueStatus === 'joining'
+  const isLeaving = queueStatus === 'leaving'
+  const isSearching = isJoining || queueStatus === 'queued' || isLeaving
 
   useEffect(() => {
     if (!isSearching) return
@@ -47,18 +49,27 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
   const autoFillTimestamp = autoFillAt ? Date.parse(autoFillAt) : Number.NaN
   const isFillingRemainingSlots =
     searchStage === 'BOT_FILL' || (Number.isFinite(autoFillTimestamp) && now >= autoFillTimestamp)
-  const searchScope = isFillingRemainingSlots
-    ? 'Filling remaining slots'
-    : searchStage === 'EXPANDED'
-      ? 'Searching other regions'
-      : searchStage === 'LOCAL' || !allowRegionExpansion
-        ? `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
-        : `Searching from ${activeRegion?.toUpperCase() ?? 'your region'} · Regional expansion enabled`
+  const searchScope = isJoining
+    ? 'Joining the matchmaking queue'
+    : isLeaving
+      ? 'Leaving the matchmaking queue'
+      : isFillingRemainingSlots
+        ? 'Filling remaining slots'
+        : searchStage === 'EXPANDED'
+          ? 'Searching other regions'
+          : searchStage === 'LOCAL' || !allowRegionExpansion
+            ? `Searching in ${activeRegion?.toUpperCase() ?? 'your region'}`
+            : `Searching from ${activeRegion?.toUpperCase() ?? 'your region'} · Regional expansion enabled`
+  const statusTitle = isJoining
+    ? 'Joining matchmaking'
+    : isLeaving
+      ? 'Cancelling search'
+      : 'Searching for a match'
 
   return (
     <aside
       className={twMerge(
-        'overflow-hidden border border-emerald-300/25 bg-neutral-950/90 text-white',
+        'overflow-hidden border border-emerald-300/25 bg-neutral-950/90 text-white shadow-2xl',
         className
       )}
       aria-label="Match search status"
@@ -75,7 +86,7 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
             <p className="text-[10px] font-bold tracking-[0.2em] text-emerald-300 uppercase">
               Matchmaking
             </p>
-            <h2 className="mt-0.5 truncate text-sm font-semibold">Searching for a match</h2>
+            <h2 className="mt-0.5 truncate text-sm font-semibold">{statusTitle}</h2>
           </div>
           <LoaderCircle
             className="size-4 shrink-0 animate-spin text-emerald-300"
@@ -98,10 +109,10 @@ export function MatchSearchPanel({ className }: MatchSearchPanelProps): JSX.Elem
         <Button
           className="mt-3 h-8 w-full rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white"
           variant="ghost"
-          disabled={queueStatus === 'leaving'}
+          disabled={isJoining || isLeaving}
           onClick={() => void leaveQueue()}
         >
-          {queueStatus === 'leaving' ? 'Cancelling…' : 'Cancel search'}
+          {isJoining ? 'Joining…' : isLeaving ? 'Cancelling…' : 'Cancel search'}
         </Button>
       </div>
     </aside>
