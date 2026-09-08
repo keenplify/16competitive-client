@@ -514,11 +514,6 @@ class MatchmakingConnection {
         this.desiredMapIds = []
         this.recoveryStatusPending = false
         this.restartReconnectAtMs = Date.now() + parsed.retryAfterMs
-        if (this.lastConnection) {
-          clearMatchAssetPreload(this.lastConnection.matchId)
-          closeCounterStrikeForMatch(this.lastConnection.matchId)
-          this.lastConnection = null
-        }
         this.notify(parsed)
         socket.close()
         return
