@@ -295,6 +295,34 @@ export function SettingsPage(): JSX.Element {
               {sectionButton('general', 'General')}
               {sectionButton('credentials', 'Credentials')}
             </nav>
+
+            <div className="mt-3 grid grid-cols-2 gap-1 lg:grid-cols-1">
+              <Button
+                variant="ghost"
+                className="justify-start border border-rose-400/20 bg-rose-400/5 text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
+                disabled={
+                  authStatus === 'logging_out' ||
+                  authStatus === 'changing_username' ||
+                  passwordSaving ||
+                  connectingProvider !== null
+                }
+                onClick={() => void logout()}
+              >
+                <LogOut className="mr-2 size-4" aria-hidden="true" />
+                {authStatus === 'logging_out' ? 'Signing out…' : 'Sign out'}
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start border border-white/10 text-neutral-400 hover:bg-white/5 hover:text-white"
+                onClick={() => void window.api.window.exit()}
+              >
+                <Power className="mr-2 size-4" aria-hidden="true" />
+                Exit to desktop
+              </Button>
+              <p className="col-span-2 px-3 pt-1 text-[11px] text-neutral-600 lg:col-span-1">
+                Launcher <span className="font-mono">{currentVersion ?? '…'}</span>
+              </p>
+            </div>
           </aside>
 
           <div className="min-w-0">
@@ -360,27 +388,6 @@ export function SettingsPage(): JSX.Element {
                     Saved locally in: <span className="font-mono">{configFilePath}</span>
                   </p>
                 )}
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                <div>
-                  <h3 className="text-lg font-semibold">Desktop</h3>
-                  <p className="mt-1 text-sm text-neutral-400">
-                    Close the launcher and return to desktop.
-                  </p>
-                  <p className="mt-2 text-xs text-neutral-500">
-                    Launcher version{' '}
-                    <span className="font-mono text-neutral-400">{currentVersion ?? '…'}</span>
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  className="border border-white/15 text-neutral-300 hover:bg-white/10 hover:text-white"
-                  onClick={() => void window.api.window.exit()}
-                >
-                  <Power className="mr-2 size-4" aria-hidden="true" />
-                  Exit to desktop
-                </Button>
               </div>
             </section>
 
@@ -586,29 +593,6 @@ export function SettingsPage(): JSX.Element {
                     </Button>
                   </div>
                 </form>
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-rose-400/15 bg-rose-400/5 p-5 sm:p-7">
-                <div>
-                  <h3 className="text-lg font-semibold">Sign out</h3>
-                  <p className="mt-1 text-sm text-neutral-400">
-                    Sign out of this launcher on this computer.
-                  </p>
-                </div>
-                <Button
-                  className="border border-rose-400/35 bg-transparent text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
-                  variant="ghost"
-                  disabled={
-                    authStatus === 'logging_out' ||
-                    authStatus === 'changing_username' ||
-                    passwordSaving ||
-                    connectingProvider !== null
-                  }
-                  onClick={() => void logout()}
-                >
-                  <LogOut className="mr-2 size-4" />
-                  {authStatus === 'logging_out' ? 'Signing out…' : 'Log out'}
-                </Button>
               </div>
             </section>
           </div>
