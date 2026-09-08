@@ -66,7 +66,7 @@ import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { redeemCode } from './redeem-codes'
 import { configureGearLeverUpdates } from './gear-lever'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
-import { getDiagnosticLogs, installDiagnosticLogCapture } from './diagnostic-logs'
+import { getDiagnosticLogs, installDiagnosticLogCapture, reportDiagnosticIssue } from './diagnostic-logs'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -172,6 +172,11 @@ app.whenReady().then(() => {
     withClientTelemetry(authenticate('login', credentials))
   )
   ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
+  ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.report, (_, description: unknown, rendererLogs: unknown) => {
+    if (typeof description !== 'string' || description.trim().length < 1 || description.length > 10_000) throw new Error('Issue description is invalid.')
+    if (!Array.isArray(rendererLogs) || rendererLogs.some((log) => typeof log !== 'string')) throw new Error('Diagnostic logs are invalid.')
+    return reportDiagnosticIssue(description.trim(), rendererLogs.slice(0, 2_000))
+  })
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('register', credentials))
   )
