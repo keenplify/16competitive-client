@@ -110,6 +110,12 @@ export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
 
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
+  | {
+      type: 'server_restarting'
+      message: string
+      restartInMs: number
+      retryAfterMs: number
+    }
   | { type: 'authenticated'; player: QueuedPlayer }
   | {
       type: 'queue_joined'

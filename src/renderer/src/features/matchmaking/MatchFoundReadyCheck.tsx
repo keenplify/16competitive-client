@@ -96,6 +96,9 @@ export function MatchFoundReadyCheck({
           <p className="mt-4 text-center text-sm font-medium text-emerald-200">
             {acceptedPlayerIds.length} / {playersRequired} Players Ready
           </p>
+          <p className="mt-1 text-center text-xs text-emerald-100/65">
+            Bot teammates confirm automatically while you decide.
+          </p>
 
           <div className="mt-6 text-center">
             <p className="font-mono text-3xl font-bold tabular-nums text-emerald-200">

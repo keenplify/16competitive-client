@@ -77,6 +77,7 @@ interface MatchmakingState {
   assetPreparation: AssetPreparation
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
+  serverRestarting: { message: string; retryAfterMs: number } | null
   error: string | null
   connect: () => Promise<void>
   loadMaps: () => Promise<void>
@@ -110,6 +111,8 @@ const isMatchLifecycleStatus = (status: QueueStatus): boolean =>
   ['match_found', 'ready_check', 'countdown', 'starting_server', 'server_ready'].includes(status)
 
 export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
+  const terminalMatchIds = new Set<string>()
+
   const handleEvent = (event: MatchmakingEvent): void => {
     switch (event.type) {
       case 'connection_state':
@@ -122,7 +125,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ connectionStatus: 'authenticating', error: null })
         break
       case 'authenticated':
-        set({ connectionStatus: 'ready', error: null })
+        set({ connectionStatus: 'ready', serverRestarting: null, error: null })
+        break
+      case 'server_restarting':
+        set({
+          serverRestarting: { message: event.message, retryAfterMs: event.retryAfterMs },
+          error: null
+        })
         break
       case 'queue_joined':
         set((state) =>
@@ -186,6 +195,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         break
       case 'match_found':
+        if (terminalMatchIds.has(event.matchId)) break
         set({
           queueStatus: 'match_found',
           selectedMode: event.mode,
@@ -229,38 +239,65 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'match_ready_check':
-        set((state) => ({
-          queueStatus: 'ready_check',
-          readyDeadline: event.deadline,
-          acceptedPlayerIds: event.acceptedPlayerIds,
-          readyPlayersRequired: event.playersRequired,
-          readyResponse: state.readyResponse === 'accepted' ? 'accepted' : 'pending',
-          error: null
-        }))
+        set((state) => {
+          const deadline = timestampMs(event.deadline)
+          if (
+            terminalMatchIds.has(event.matchId) ||
+            state.match?.matchId !== event.matchId ||
+            deadline === null ||
+            deadline <= Date.now()
+          ) {
+            return {}
+          }
+          return {
+            queueStatus: 'ready_check',
+            readyDeadline: event.deadline,
+            acceptedPlayerIds: event.acceptedPlayerIds,
+            readyPlayersRequired: event.playersRequired,
+            readyResponse: state.readyResponse === 'accepted' ? 'accepted' : 'pending',
+            error: null
+          }
+        })
         break
       case 'match_ready_updated':
-        set({
-          acceptedPlayerIds: event.acceptedPlayerIds,
-          readyPlayersRequired: event.playersRequired
-        })
+        set((state) =>
+          terminalMatchIds.has(event.matchId) || state.match?.matchId !== event.matchId
+            ? {}
+            : {
+                acceptedPlayerIds: event.acceptedPlayerIds,
+                readyPlayersRequired: event.playersRequired
+              }
+        )
         break
       case 'match_countdown':
-        set({ queueStatus: 'countdown', countdown: event.secondsRemaining, error: null })
+        set((state) =>
+          terminalMatchIds.has(event.matchId) || state.match?.matchId !== event.matchId
+            ? {}
+            : { queueStatus: 'countdown', countdown: event.secondsRemaining, error: null }
+        )
         break
       case 'match_server_starting':
-        set({ queueStatus: 'starting_server', countdown: 0, error: null })
+        set((state) =>
+          terminalMatchIds.has(event.matchId) || state.match?.matchId !== event.matchId
+            ? {}
+            : { queueStatus: 'starting_server', countdown: 0, error: null }
+        )
         break
       case 'match_connect':
-        set({
-          queueStatus: 'server_ready',
-          connectionDetails: {
-            matchId: event.matchId,
-            host: event.host,
-            port: event.port,
-            password: event.password
-          },
-          error: null
-        })
+        set((state) =>
+          terminalMatchIds.has(event.matchId) || state.match?.matchId !== event.matchId
+            ? {}
+            : {
+                queueStatus: 'server_ready',
+                connectionDetails: {
+                  matchId: event.matchId,
+                  host: event.host,
+                  port: event.port,
+                  password: event.password
+                },
+                error: null
+              }
+        )
         break
       case 'game_process_exited':
         set({ gameExited: true })
@@ -295,22 +332,27 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
       case 'match_cancelled':
-        set({
-          queueStatus: 'idle',
-          queuedAt: null,
-          autoFillAt: null,
-          searchStage: null,
-          queueStartedAt: null,
-          match: null,
-          readyDeadline: null,
-          acceptedPlayerIds: [],
-          readyPlayersRequired: 0,
-          readyResponse: 'pending',
-          countdown: null,
-          assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
-          connectionDetails: null,
-          error: event.message
-        })
+        terminalMatchIds.add(event.matchId)
+        set((state) =>
+          state.match && state.match.matchId !== event.matchId
+            ? {}
+            : {
+                queueStatus: 'idle',
+                queuedAt: null,
+                autoFillAt: null,
+                searchStage: null,
+                queueStartedAt: null,
+                match: null,
+                readyDeadline: null,
+                acceptedPlayerIds: [],
+                readyPlayersRequired: 0,
+                readyResponse: 'pending',
+                countdown: null,
+                assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+                connectionDetails: null,
+                error: event.message
+              }
+        )
         break
       case 'error':
         if (event.code === 'MAP_NOT_FOUND') {
@@ -396,6 +438,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
     connectionDetails: null,
     gameExited: false,
+    serverRestarting: null,
     error: null,
 
     connect: async () => {
@@ -598,6 +641,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
         connectionDetails: null,
         gameExited: false,
+        serverRestarting: null,
         error: null
       })
   }
