@@ -200,3 +200,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved connection status visibility.
 - Made matchmaking lobby behavior more reliable.
+
+## v2026.908.9 — 2026-09-08
+
+### Match Assets
+
+- Improved retry handling for match asset downloads.
+
+### Launcher
+
+- Fixed several launcher issues.
+- Improved launcher reliability.
+
+### Diagnostics
+
+- Added launcher telemetry reporting after authentication.
+- Improved reporting of launcher client telemetry.
