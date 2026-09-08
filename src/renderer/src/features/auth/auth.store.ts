@@ -2,7 +2,13 @@ import { create } from 'zustand'
 import type { AuthSession, SocialAuthProvider } from '../../../../shared/auth'
 
 type AuthMode = 'login' | 'register'
-type AuthStatus = 'idle' | 'restoring' | 'submitting' | 'authenticated' | 'logging_out'
+type AuthStatus =
+  | 'idle'
+  | 'restoring'
+  | 'submitting'
+  | 'authenticated'
+  | 'changing_username'
+  | 'logging_out'
 
 interface AuthState {
   mode: AuthMode
@@ -19,6 +25,8 @@ interface AuthState {
   setPassword: (password: string) => void
   submit: () => Promise<void>
   loginWithSocial: (provider: SocialAuthProvider) => Promise<void>
+  checkUsername: (username: string) => Promise<boolean>
+  changeUsername: (username: string) => Promise<boolean>
   restore: () => Promise<void>
   refreshSession: () => Promise<void>
   logout: () => Promise<void>
@@ -31,7 +39,6 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Authentication failed. Please try again.'
-
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
 }
@@ -129,6 +136,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session, status: 'authenticated', socialProvider: null, password: '' })
     } catch (error) {
       set({ status: 'idle', socialProvider: null, error: readableError(error) })
+    }
+  },
+
+  checkUsername: async (username) => {
+    if (!usernamePattern.test(username)) return false
+    try {
+      return (await window.api.auth.checkUsername(username)).available
+    } catch {
+      return false
+    }
+  },
+
+  changeUsername: async (username) => {
+    if (!usernamePattern.test(username)) {
+      set({ error: 'Username must be 3–32 characters using letters, numbers, or underscores.' })
+      return false
+    }
+    if (!get().session || get().status === 'changing_username') return false
+
+    set({ status: 'changing_username', error: null })
+    try {
+      const result = await window.api.auth.changeUsername(username)
+      set((state) => ({
+        status: 'authenticated',
+        error: null,
+        session: state.session
+          ? {
+              ...state.session,
+              player: {
+                ...state.session.player,
+                username: result.username,
+                requiresUsernameSetup: result.requiresUsernameSetup,
+                usernameChangeAvailableAt: result.usernameChangeAvailableAt
+              }
+            }
+          : state.session
+      }))
+      return true
+    } catch (error) {
+      set({ status: 'authenticated', error: readableError(error) })
+      return false
     }
   },
 
