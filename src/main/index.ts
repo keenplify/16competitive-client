@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { authenticate, clearSessionToken, restoreSession } from './auth'
+import { authenticate, authenticateWithSocial, clearSessionToken, restoreSession } from './auth'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
 import {
@@ -159,6 +159,7 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     authenticate('register', credentials)
   )
+  ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) => authenticateWithSocial(provider))
   ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
     matchmakingConnection.disconnect()
