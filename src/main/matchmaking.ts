@@ -314,6 +314,7 @@ class MatchmakingConnection {
   private activeApiUrl: string | null = null
   private hostApiUrl: string | null = null
   private reconnectAttempt = 0
+  private restartReconnectAtMs = 0
   private seenMatchEvents = new Set<string>()
   private cancelledMatchIds = new Set<string>()
   private finishedMatchIds = new Set<string>()
@@ -503,6 +504,23 @@ class MatchmakingConnection {
       }
       if (parsed.type === 'pong') {
         this.clearPongTimeout()
+        return
+      }
+      if (parsed.type === 'server_restarting') {
+        // A deployment explicitly cancels its queue and matches. Do not carry a
+        // desired queue over the reconnect, or the launcher could immediately
+        // requeue someone the deployment just removed.
+        this.desiredMode = null
+        this.desiredMapIds = []
+        this.recoveryStatusPending = false
+        this.restartReconnectAtMs = Date.now() + parsed.retryAfterMs
+        if (this.lastConnection) {
+          clearMatchAssetPreload(this.lastConnection.matchId)
+          closeCounterStrikeForMatch(this.lastConnection.matchId)
+          this.lastConnection = null
+        }
+        this.notify(parsed)
+        socket.close()
         return
       }
       if (
@@ -771,10 +789,11 @@ class MatchmakingConnection {
       this.renderer.isDestroyed()
     )
       return
-    const delay = Math.min(
+    const retryDelay = Math.min(
       RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempt++,
       RECONNECT_MAX_DELAY_MS
     )
+    const delay = Math.max(retryDelay, this.restartReconnectAtMs - Date.now(), 0)
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
       this.openSocket(true, this.hostApiUrl ?? this.activeApiUrl ?? undefined)
