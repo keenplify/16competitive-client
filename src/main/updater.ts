@@ -38,6 +38,16 @@ function requiredUpdateError(): Error {
   )
 }
 
+function hasPendingUpdate(): boolean {
+  const currentStatus = status
+  return (
+    requiredUpdateVersion !== null ||
+    currentStatus.state === 'available' ||
+    currentStatus.state === 'downloading' ||
+    currentStatus.state === 'downloaded'
+  )
+}
+
 function initializeUpdater(): void {
   if (updaterInitialized || !supportsSelfUpdate()) return
   updaterInitialized = true
@@ -156,12 +166,7 @@ export async function ensureLatestClientForMatchmaking(): Promise<void> {
   if (!supportsSelfUpdate()) return
   initializeUpdater()
 
-  if (
-    requiredUpdateVersion ||
-    status.state === 'available' ||
-    status.state === 'downloading' ||
-    status.state === 'downloaded'
-  ) {
+  if (hasPendingUpdate()) {
     throw requiredUpdateError()
   }
 
@@ -177,12 +182,7 @@ export async function ensureLatestClientForMatchmaking(): Promise<void> {
       })
     ])
   } catch {
-    if (
-      requiredUpdateVersion ||
-      status.state === 'available' ||
-      status.state === 'downloading' ||
-      status.state === 'downloaded'
-    ) {
+    if (hasPendingUpdate()) {
       throw requiredUpdateError()
     }
     throw new Error(
@@ -192,12 +192,7 @@ export async function ensureLatestClientForMatchmaking(): Promise<void> {
     if (timeout) clearTimeout(timeout)
   }
 
-  if (
-    requiredUpdateVersion ||
-    status.state === 'available' ||
-    status.state === 'downloading' ||
-    status.state === 'downloaded'
-  ) {
+  if (hasPendingUpdate()) {
     throw requiredUpdateError()
   }
   if (status.state === 'error') {
