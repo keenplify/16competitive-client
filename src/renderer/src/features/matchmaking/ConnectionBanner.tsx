@@ -1,10 +1,32 @@
 import { LoaderCircle, WifiOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useMatchmakingStore } from './matchmaking.store'
 
 export function ConnectionBanner(): React.JSX.Element | null {
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
+  const connect = useMatchmakingStore((state) => state.connect)
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
 
-  if (connectionStatus !== 'reconnecting') return null
+  useEffect(() => {
+    const handleOffline = (): void => setIsOnline(false)
+    const handleOnline = (): void => {
+      setIsOnline(true)
+      // If the socket is still healthy, leave it alone. Calling connect while
+      // the main process already has an open socket would otherwise leave the
+      // renderer displaying a permanent "connecting" state.
+      if (connectionStatus !== 'ready') void connect()
+    }
+
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('online', handleOnline)
+    return () => {
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [connect, connectionStatus])
+
+  const isReconnecting = connectionStatus === 'reconnecting'
+  if (isOnline && !isReconnecting) return null
 
   return (
     <aside
@@ -13,7 +35,11 @@ export function ConnectionBanner(): React.JSX.Element | null {
       aria-live="polite"
     >
       <WifiOff className="size-4" aria-hidden="true" />
-      <span>Disconnected from server. Reconnecting...</span>
+      <span>
+        {isOnline
+          ? 'Disconnected from server. Reconnecting...'
+          : 'No internet connection. Reconnecting when it returns...'}
+      </span>
       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
     </aside>
   )
