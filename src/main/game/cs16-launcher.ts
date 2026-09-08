@@ -38,6 +38,7 @@ let launchedExecutablePath: string | null = null
 let launchedMatchConfigPath: string | null = null
 let launchedMatchConfigGeneration = 0
 let nextMatchConfigGeneration = 0
+let gameProcessGeneration = 0
 let linuxMonitorGeneration = 0
 let launchQueue: Promise<void> = Promise.resolve()
 let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
@@ -121,6 +122,7 @@ const monitorLinuxCounterStrikeHandoff = async (
 export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (launchedMatchId !== matchId) return
   console.info('[GameLaunch] closing completed match', { matchId })
+  gameProcessGeneration++
   linuxMonitorGeneration++
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
@@ -276,6 +278,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
 
+  const processGeneration = ++gameProcessGeneration
   if (relaunchingSameMatch) {
     console.info('[GameLaunch] restarting Counter-Strike for match reconnect', {
       matchId: input.matchId,
@@ -425,6 +428,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       })
     }
     if (gameProcess === spawnedProcess) gameProcess = null
+    if (processGeneration !== gameProcessGeneration || launchedMatchId !== input.matchId) {
+      console.info('[GameLaunch] ignoring stale process exit', {
+        matchId: input.matchId,
+        processGeneration,
+        activeGeneration: gameProcessGeneration
+      })
+      return
+    }
     clearMatchConfig(matchConfigGeneration)
     input.onExit?.({ code, signal })
   })
