@@ -10,12 +10,14 @@ export function AudioController(): JSX.Element | null {
   const playerId = useAuthStore((state) => state.session?.player.id ?? null)
   const match = useMatchmakingStore((state) => state.match)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
-  const gameRunning = useMatchmakingStore((state) => state.gameRunning)
+  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const gameExited = useMatchmakingStore((state) => state.gameExited)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
+  const gameStarting = queueStatus === 'server_ready' && !gameExited
 
   const previousMatchId = useRef<string | null>(null)
   const previousReadyResponse = useRef(readyResponse)
-  const previousGameRunning = useRef(gameRunning)
+  const previousGameStarting = useRef(gameStarting)
   const previousCompletedMatchId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -64,14 +66,14 @@ export function AudioController(): JSX.Element | null {
   }, [readyResponse])
 
   useEffect(() => {
-    if (gameRunning && !previousGameRunning.current) {
+    if (gameStarting && !previousGameStarting.current) {
       launcherAudio.playSfx('gameStarting')
       launcherAudio.fadeBgmForGame()
-    } else if (!gameRunning && previousGameRunning.current && !completedMatch) {
+    } else if (!gameStarting && previousGameStarting.current && !completedMatch) {
       launcherAudio.restoreBgm()
     }
-    previousGameRunning.current = gameRunning
-  }, [gameRunning, completedMatch])
+    previousGameStarting.current = gameStarting
+  }, [gameStarting, completedMatch])
 
   useEffect(() => {
     if (!completedMatch || completedMatch.matchId === previousCompletedMatchId.current) return
