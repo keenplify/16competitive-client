@@ -604,14 +604,16 @@ class MatchmakingConnection {
         void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl, (progress) =>
           this.notify({ type: 'match_assets_progress', matchId: parsed.matchId, ...progress })
         ).catch((error: unknown) =>
-          this.notify({
-            type: 'error',
-            code: 'MATCH_ASSET_PRELOAD_FAILED',
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Could not prepare the required match assets.'
-          })
+          this.cancelledMatchIds.has(parsed.matchId)
+            ? undefined
+            : this.notify({
+                type: 'error',
+                code: 'MATCH_ASSET_PRELOAD_FAILED',
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'Could not prepare the required match assets.'
+              })
         )
       } else if (parsed.type === 'match_connect') {
         const isRecoveredConnection = this.recoveryStatusPending
@@ -736,7 +738,12 @@ class MatchmakingConnection {
 
     const ping = (): void => {
       const socket = this.socket
-      if (!socket || socket.readyState !== WebSocket.OPEN || !this.authenticated || this.pongTimer) {
+      if (
+        !socket ||
+        socket.readyState !== WebSocket.OPEN ||
+        !this.authenticated ||
+        this.pongTimer
+      ) {
         return
       }
 
