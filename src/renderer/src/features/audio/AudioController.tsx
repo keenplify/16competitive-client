@@ -7,6 +7,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 export function AudioController(): JSX.Element | null {
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
+  const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
   const playerId = useAuthStore((state) => state.session?.player.id ?? null)
   const match = useMatchmakingStore((state) => state.match)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
@@ -19,6 +20,10 @@ export function AudioController(): JSX.Element | null {
   const previousReadyResponse = useRef(readyResponse)
   const previousGameStarting = useRef(gameStarting)
   const previousCompletedMatchId = useRef<string | null>(null)
+
+  useEffect(() => {
+    launcherAudio.setBgmTrack(selectedBgmId)
+  }, [selectedBgmId])
 
   useEffect(() => {
     launcherAudio.setBgmVolume(bgmVolume)
