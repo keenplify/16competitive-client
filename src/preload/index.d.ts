@@ -10,6 +10,7 @@ import type { UpdaterApi } from '../shared/updater'
 import type { LeaderboardApi } from '../shared/leaderboard'
 import type { NewsApi } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
+import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
 
 declare global {
   interface Window {
@@ -26,6 +27,7 @@ declare global {
       party: PartyApi
       updater: UpdaterApi
       window: WindowApi
+      diagnosticLogs: DiagnosticLogsApi
     }
   }
 }

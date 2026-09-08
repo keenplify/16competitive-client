@@ -65,12 +65,16 @@ import { getLobbyNewsPosts, getNewsPosts } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { redeemCode } from './redeem-codes'
 import { configureGearLeverUpdates } from './gear-lever'
+import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
+import { getDiagnosticLogs, installDiagnosticLogCapture } from './diagnostic-logs'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
 let mainWindow
 let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
 let isShuttingDown = false
+
+installDiagnosticLogCapture()
 
 function stopFullScreenRecovery(): void {
   isShuttingDown = true
@@ -167,6 +171,7 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('login', credentials))
   )
+  ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('register', credentials))
   )
@@ -258,25 +263,22 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
-  ipcMain.handle(
-    GAME_SETTINGS_CHANNELS.save,
-    async (event, executablePath: unknown) => {
-      const settings = await saveGameSettings(executablePath)
-      void startSkinAssetSync(API_BASE_URL, (progress) => {
-        if (event.sender.isDestroyed()) return
-        event.sender.send(MATCHMAKING_CHANNELS.event, {
-          type: 'skin_assets_sync_progress',
-          ...progress
-        })
-      }).catch((error: unknown) => {
-        console.warn(
-          '[GameSettings] skin asset sync retry failed',
-          error instanceof Error ? error.message : String(error)
-        )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, executablePath: unknown) => {
+    const settings = await saveGameSettings(executablePath)
+    void startSkinAssetSync(API_BASE_URL, (progress) => {
+      if (event.sender.isDestroyed()) return
+      event.sender.send(MATCHMAKING_CHANNELS.event, {
+        type: 'skin_assets_sync_progress',
+        ...progress
       })
-      return settings
-    }
-  )
+    }).catch((error: unknown) => {
+      console.warn(
+        '[GameSettings] skin asset sync retry failed',
+        error instanceof Error ? error.message : String(error)
+      )
+    })
+    return settings
+  })
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
