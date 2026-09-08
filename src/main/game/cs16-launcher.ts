@@ -18,19 +18,93 @@ const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-F
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
 const RELAUNCH_SETTLE_MS = 500
+const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
+const LINUX_HANDOFF_POLL_MS = 1_000
 
 let gameProcess: ChildProcess | null = null
 let launchedMatchId: string | null = null
 let launchedGameDirectory: string | null = null
 let launchedExecutablePath: string | null = null
 let launchedMatchConfigPath: string | null = null
+let linuxMonitorGeneration = 0
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
+const clearMatchConfig = (): void => {
+  const matchConfigPath = launchedMatchConfigPath
+  launchedMatchConfigPath = null
+  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+}
+
+const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<number[]> => {
+  const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
+  const processIds: number[] = []
+
+  await Promise.all(
+    entries.map(async (entry) => {
+      if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) return
+      const pid = Number(entry.name)
+      if (pid === process.pid) return
+      const [cwd, executable] = await Promise.all([
+        readlink(`/proc/${pid}/cwd`).catch(() => ''),
+        readlink(`/proc/${pid}/exe`).catch(() => '')
+      ])
+      if (cwd === gameDirectory && basename(executable) === 'hl_linux') processIds.push(pid)
+    })
+  )
+
+  return processIds
+}
+
+const monitorLinuxCounterStrikeHandoff = async (
+  matchId: string,
+  gameDirectory: string,
+  generation: number,
+  onExit?: (event: { code: number | null; signal: string | null }) => void
+): Promise<void> => {
+  const discoveryDeadline = Date.now() + LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS
+  let trackedPid: number | null = null
+
+  while (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+    const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
+
+    if (trackedPid === null) {
+      if (processIds.length > 0) {
+        trackedPid = Math.max(...processIds)
+        console.info('[GameLaunch] tracking Linux GoldSrc process after launcher handoff', {
+          matchId,
+          pid: trackedPid,
+          gameDirectory
+        })
+      } else if (Date.now() >= discoveryDeadline) {
+        console.warn('[GameLaunch] Linux GoldSrc process was not found after launcher handoff', {
+          matchId,
+          gameDirectory
+        })
+        if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+          clearMatchConfig()
+          onExit?.({ code: null, signal: null })
+        }
+        return
+      }
+    } else if (!processIds.includes(trackedPid)) {
+      console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
+      if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+        clearMatchConfig()
+        onExit?.({ code: null, signal: null })
+      }
+      return
+    }
+
+    await delay(LINUX_HANDOFF_POLL_MS)
+  }
+}
+
 export const closeCounterStrikeForMatch = (matchId: string): void => {
   if (launchedMatchId !== matchId) return
   console.info('[GameLaunch] closing completed match', { matchId })
+  linuxMonitorGeneration++
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
@@ -40,33 +114,22 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   }
   launchedGameDirectory = null
   launchedExecutablePath = null
-  const matchConfigPath = launchedMatchConfigPath
-  launchedMatchConfigPath = null
-  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+  clearMatchConfig()
 }
 
 const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<void> => {
-  const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
+  const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
   let terminated = 0
-  for (const entry of entries) {
-    if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) continue
-    const pid = Number(entry.name)
-    if (pid === process.pid) continue
-    const [cwd, executable] = await Promise.all([
-      readlink(`/proc/${pid}/cwd`).catch(() => ''),
-      readlink(`/proc/${pid}/exe`).catch(() => '')
-    ])
-    // Never use a broad name-based kill. Only terminate a CS executable whose
-    // working directory is the exact installation selected in Settings.
-    if (cwd === gameDirectory && basename(executable) === 'hl_linux') {
-      try {
-        process.kill(pid, 'SIGTERM')
-        terminated++
-      } catch {
-        /* process already exited */
-      }
+
+  for (const pid of processIds) {
+    try {
+      process.kill(pid, 'SIGTERM')
+      terminated++
+    } catch {
+      /* process already exited */
     }
   }
+
   console.info('[GameLaunch] completed-game Linux processes terminated', {
     gameDirectory,
     terminated
@@ -209,6 +272,7 @@ export const launchCounterStrikeForMatch = async (input: {
       matchId: input.matchId,
       platform: process.platform
     })
+    linuxMonitorGeneration++
     if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
     gameProcess = null
@@ -292,6 +356,10 @@ export const launchCounterStrikeForMatch = async (input: {
   })
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
+  const linuxHandoffMonitorGeneration =
+    process.platform === 'linux' && launchTarget.usesLauncherHandoff
+      ? ++linuxMonitorGeneration
+      : linuxMonitorGeneration
   console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: gameProcess.pid })
   let gameOutput = ''
   const appendGameOutput = (chunk: Buffer): void => {
@@ -310,6 +378,14 @@ export const launchCounterStrikeForMatch = async (input: {
         signal
       })
       if (gameProcess === spawnedProcess) gameProcess = null
+      if (process.platform === 'linux') {
+        void monitorLinuxCounterStrikeHandoff(
+          input.matchId,
+          cwd,
+          linuxHandoffMonitorGeneration,
+          input.onExit
+        )
+      }
       return
     }
     console.info('[GameLaunch] process exited', {
@@ -327,9 +403,7 @@ export const launchCounterStrikeForMatch = async (input: {
       })
     }
     if (gameProcess === spawnedProcess) gameProcess = null
-    const matchConfigPath = launchedMatchConfigPath
-    launchedMatchConfigPath = null
-    if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+    clearMatchConfig()
     input.onExit?.({ code, signal })
   })
 }

@@ -285,7 +285,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'match_connect':
         set((state) =>
-          terminalMatchIds.has(event.matchId) || state.match?.matchId !== event.matchId
+          terminalMatchIds.has(event.matchId) ||
+          (state.match !== null && state.match.matchId !== event.matchId)
             ? {}
             : {
                 queueStatus: 'server_ready',
@@ -295,14 +296,25 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                   port: event.port,
                   password: event.password
                 },
+                gameExited: false,
                 error: null
               }
         )
         break
       case 'game_process_exited':
-        set({ gameExited: true })
+        set((state) =>
+          state.connectionDetails?.matchId === event.matchId
+            ? {
+                queueStatus: 'server_ready',
+                gameExited: true,
+                error: 'Counter-Strike closed. Reconnect to continue the match.'
+              }
+            : {}
+        )
         break
       case 'match_finished':
+        if (terminalMatchIds.has(event.matchId)) break
+        terminalMatchIds.add(event.matchId)
         {
           const currentPlayerId = useAuthStore.getState().session?.player.id
           const currentPlayer = event.players.find((player) => player.id === currentPlayerId)
@@ -327,7 +339,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           match: null,
           assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
           connectionDetails: null,
-          error: `Match finished: Team ${event.winner === 1 ? 'A' : 'B'} won ${event.teamAScore}-${event.teamBScore}.`
+          gameExited: false,
+          error: null
         })
         window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
@@ -350,6 +363,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 countdown: null,
                 assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
                 connectionDetails: null,
+                gameExited: false,
                 error: event.message
               }
         )
@@ -564,6 +578,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
       set({
         queueStatus: 'joining',
+        completedMatch: null,
         queuedAt: null,
         autoFillAt: null,
         searchStage: null,
