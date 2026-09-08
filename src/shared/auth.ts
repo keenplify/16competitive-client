@@ -2,6 +2,8 @@ export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
   social: 'auth:social',
+  socialConnections: 'auth:social-connections',
+  socialConnect: 'auth:social-connect',
   usernameCheck: 'auth:username-check',
   usernameChange: 'auth:username-change',
   passwordChange: 'auth:password-change',
@@ -56,10 +58,22 @@ export interface PasswordChangeResult {
   hasPassword: true
 }
 
+export interface SocialConnectionState {
+  connected: boolean
+  email: string | null
+}
+
+export interface SocialConnections {
+  google: SocialConnectionState
+  facebook: SocialConnectionState
+}
+
 export interface AuthApi {
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
   social(provider: SocialAuthProvider): Promise<AuthSession>
+  getSocialConnections(): Promise<SocialConnections>
+  connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
   checkUsername(username: string): Promise<UsernameAvailability>
   changeUsername(username: string): Promise<UsernameChangeResult>
   changePassword(credentials: PasswordChangeCredentials): Promise<PasswordChangeResult>
