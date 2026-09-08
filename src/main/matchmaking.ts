@@ -26,6 +26,7 @@ type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect'
 const RECONNECT_BASE_DELAY_MS = 1_000
 const RECONNECT_MAX_DELAY_MS = 30_000
 const PING_INTERVAL_MS = 20_000
+const PONG_TIMEOUT_MS = 10_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
@@ -305,6 +306,7 @@ class MatchmakingConnection {
   private renderer: WebContents | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
+  private pongTimer: ReturnType<typeof setTimeout> | null = null
   private desiredMode: MatchmakingMode | null = null
   private desiredMapIds: string[] = []
   private desiredAllowRegionExpansion = true
@@ -346,8 +348,7 @@ class MatchmakingConnection {
     this.reconnectAttempt = 0
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
-    if (this.pingTimer) clearInterval(this.pingTimer)
-    this.pingTimer = null
+    this.stopPing()
     this.socket?.close()
     this.socket = null
     this.renderer = null
@@ -376,14 +377,14 @@ class MatchmakingConnection {
 
   sendPartyMessage(message: unknown): void {
     if (typeof message !== 'string' || message.trim().length === 0 || message.length > 300) {
-      throw new Error('Party messages must contain 1–300 characters')
+      throw new Error('Party messages must contain 1-300 characters')
     }
     this.send({ type: 'party_chat_send', message: message.trim() })
   }
 
   sendGlobalMessage(message: unknown): void {
     if (typeof message !== 'string' || message.trim().length === 0 || message.length > 300) {
-      throw new Error('Global messages must contain 1â€“300 characters')
+      throw new Error('Global messages must contain 1-300 characters')
     }
     this.send({ type: 'global_chat_send', message: message.trim() })
   }
@@ -461,6 +462,10 @@ class MatchmakingConnection {
       }
       if (!isServerMessage(parsed)) {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
+        return
+      }
+      if (parsed.type === 'pong') {
+        this.clearPongTimeout()
         return
       }
       if (
@@ -632,15 +637,7 @@ class MatchmakingConnection {
         }
         return
       }
-      if (this.socket !== socket) return
-      this.socket = null
-      this.authenticated = false
-      this.recoveryStatusPending = false
-      this.activeApiUrl = null
-      if (this.pingTimer) clearInterval(this.pingTimer)
-      this.pingTimer = null
-      this.notify({ type: 'connection_state', state: 'disconnected' })
-      this.scheduleReconnect()
+      this.handleSocketDisconnect(socket)
     })
   }
 
@@ -675,11 +672,48 @@ class MatchmakingConnection {
   }
 
   private startPing(): void {
+    this.stopPing()
+
+    const ping = (): void => {
+      const socket = this.socket
+      if (!socket || socket.readyState !== WebSocket.OPEN || !this.authenticated || this.pongTimer) {
+        return
+      }
+
+      socket.send(JSON.stringify({ type: 'ping' }))
+      this.pongTimer = setTimeout(() => {
+        if (this.socket !== socket || !this.authenticated) return
+        console.warn('[Matchmaking] heartbeat timed out; reconnecting')
+        this.pongTimer = null
+        this.handleSocketDisconnect(socket)
+        socket.close()
+      }, PONG_TIMEOUT_MS)
+    }
+
+    ping()
+    this.pingTimer = setInterval(ping, PING_INTERVAL_MS)
+  }
+
+  private clearPongTimeout(): void {
+    if (this.pongTimer) clearTimeout(this.pongTimer)
+    this.pongTimer = null
+  }
+
+  private stopPing(): void {
     if (this.pingTimer) clearInterval(this.pingTimer)
-    this.pingTimer = setInterval(() => {
-      if (this.socket?.readyState === WebSocket.OPEN && this.authenticated)
-        this.socket.send(JSON.stringify({ type: 'ping' }))
-    }, PING_INTERVAL_MS)
+    this.pingTimer = null
+    this.clearPongTimeout()
+  }
+
+  private handleSocketDisconnect(socket: WebSocket): void {
+    if (this.socket !== socket) return
+    this.socket = null
+    this.authenticated = false
+    this.recoveryStatusPending = false
+    this.stopPing()
+    if (this.manuallyDisconnected) return
+    this.notify({ type: 'connection_state', state: 'reconnecting' })
+    this.scheduleReconnect()
   }
 
   private scheduleReconnect(): void {
@@ -696,7 +730,7 @@ class MatchmakingConnection {
     )
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
-      this.openSocket(true, this.hostApiUrl ?? undefined)
+      this.openSocket(true, this.hostApiUrl ?? this.activeApiUrl ?? undefined)
     }, delay)
   }
 
