@@ -169,3 +169,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Show matchmaking status while joining and searching
 - Fix recovered matches and duplicate results
 - Fix match result perspective
+
+## v2026.908.5 — 2026-09-08
+
+- Serialize reconnect launches and harden match config writes
