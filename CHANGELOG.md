@@ -234,3 +234,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match cancellations
 
 - Asset downloads now stop when a match is cancelled.
+
+## v2026.908.13 — 2026-09-08
+
+### Matchmaking
+
+- Prevented duplicate matchmaking connections.
