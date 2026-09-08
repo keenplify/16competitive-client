@@ -4,7 +4,7 @@
   "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
   "author": "papamo.dev",
-  "homepage": "https://electron-vite.org",
+  "homepage": "https://16competitive.papamo.dev",
   "allowScripts": {
     "electron@39.8.10": true
   },
