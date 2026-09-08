@@ -187,3 +187,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Matchmaking now waits for required client updates.
 - Asset downloads automatically retry when they fail.
 - Improved handling of match events during reconnection.
+
+## v2026.908.7 — 2026-09-08
+
+### Updates
+
+- Fixed update handling.
