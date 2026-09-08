@@ -156,3 +156,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Fixed issues affecting matchmaking flow and lobby state.
 - Improved match-found ready check handling.
 - Refined matchmaking status updates.
+
+## v2026.908.3 — 2026-09-08
+
+- Fix client lint errors
