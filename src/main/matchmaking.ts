@@ -327,6 +327,11 @@ class MatchmakingConnection {
     this.renderer = renderer
     this.manuallyDisconnected = false
 
+    // An explicit retry (for example, after the OS reports that the network
+    // is back) should replace any delayed exponential retry, not race it.
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+
     if (
       this.socket?.readyState === WebSocket.OPEN ||
       this.socket?.readyState === WebSocket.CONNECTING
