@@ -13,7 +13,7 @@ export function ConnectionBanner(): React.JSX.Element | null {
       aria-live="polite"
     >
       <WifiOff className="size-4" aria-hidden="true" />
-      <span>Disconnected from the server, reconnecting...</span>
+      <span>Disconnected from server. Reconnecting...</span>
       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
     </aside>
   )
