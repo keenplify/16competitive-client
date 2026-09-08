@@ -10,9 +10,11 @@ import {
   checkUsername,
   clearSessionToken,
   connectSocial,
+  getSessionToken,
   getSocialConnections,
   restoreSession
 } from './auth'
+import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
 import {
@@ -98,6 +100,13 @@ function disconnectMatchmakingIntentionally(): void {
   matchmakingConnection.disconnect()
 }
 
+async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
+  const result = await authentication
+  const token = getSessionToken()
+  if (token) void reportClientTelemetry(token)
+  return result
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
@@ -161,12 +170,14 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
-    authenticate('login', credentials)
+    withClientTelemetry(authenticate('login', credentials))
   )
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
-    authenticate('register', credentials)
+    withClientTelemetry(authenticate('register', credentials))
   )
-  ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) => authenticateWithSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) =>
+    withClientTelemetry(authenticateWithSocial(provider))
+  )
   ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
@@ -174,7 +185,7 @@ app.whenReady().then(() => {
   ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
     changePassword(credentials)
   )
-  ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
+  ipcMain.handle(AUTH_CHANNELS.restore, () => withClientTelemetry(restoreSession()))
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
     disconnectMatchmakingIntentionally()
     clearSessionToken()
