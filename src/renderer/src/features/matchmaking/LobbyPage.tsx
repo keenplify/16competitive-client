@@ -17,6 +17,7 @@ import { SettingsPage } from '../settings/SettingsPage'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
+import { MatchSearchPanel } from './MatchSearchPanel'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
@@ -84,6 +85,7 @@ export function LobbyPage(): JSX.Element {
     'starting_server',
     'server_ready'
   ].includes(queueStatus)
+  const showMatchSearch = ['joining', 'queued', 'leaving'].includes(queueStatus)
   const matchNavigationLocked = [
     'match_found',
     'ready_check',
@@ -145,10 +147,18 @@ export function LobbyPage(): JSX.Element {
 
   useEffect(() => {
     const currentPage = useNavigationStore.getState().page
-    if (queueStatus !== 'idle' && queueStatus !== 'joining' && queueStatus !== 'leaving') {
-      if (currentPage !== 'settings') navigate('play')
+    if (queueStatus === 'queued') {
+      if (currentPage !== 'settings') navigate('lobby')
+      return
     }
-    if (queueStatus === 'queued' && currentPage !== 'settings') navigate('lobby')
+    if (
+      queueStatus !== 'idle' &&
+      queueStatus !== 'joining' &&
+      queueStatus !== 'leaving' &&
+      currentPage !== 'settings'
+    ) {
+      navigate('play')
+    }
   }, [navigate, queueStatus])
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
@@ -214,6 +224,9 @@ export function LobbyPage(): JSX.Element {
       <PartyInvitationModal />
       <PartyChat />
       <LobbySocialSidebar playerId={player.id} />
+      {showMatchSearch && (
+        <MatchSearchPanel className="fixed bottom-5 left-5 z-30 w-[min(22rem,calc(100vw-2.5rem))] sm:bottom-6 sm:left-6" />
+      )}
       {content && (
         <div
           className={`relative z-10 min-h-screen pt-16 backdrop-blur-md sm:pt-20 ${showSocialSidebar ? 'md:pr-72' : ''}`}
