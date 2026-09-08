@@ -265,3 +265,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.908.18 — 2026-09-08
 
 - fix author
+
+## v2026.908.19 — 2026-09-08
+
+### Match Assets
+
+- Match asset downloads now recover after network outages.
+
+### Matchmaking
+
+- Matchmaking now reconnects after WebSocket network errors.
+- Improved stability when the network disconnects.
