@@ -2,6 +2,8 @@ export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
   social: 'auth:social',
+  usernameCheck: 'auth:username-check',
+  usernameChange: 'auth:username-change',
   logout: 'auth:logout',
   restore: 'auth:restore'
 } as const
@@ -24,6 +26,8 @@ export interface AuthPlayer {
   mmr: number
   points: number
   createdAt: string
+  requiresUsernameSetup: boolean
+  usernameChangeAvailableAt: string | null
 }
 
 export interface AuthSession {
@@ -31,10 +35,22 @@ export interface AuthSession {
   player: AuthPlayer
 }
 
+export interface UsernameAvailability {
+  available: boolean
+}
+
+export interface UsernameChangeResult {
+  username: string
+  requiresUsernameSetup: boolean
+  usernameChangeAvailableAt: string | null
+}
+
 export interface AuthApi {
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
   social(provider: SocialAuthProvider): Promise<AuthSession>
+  checkUsername(username: string): Promise<UsernameAvailability>
+  changeUsername(username: string): Promise<UsernameChangeResult>
   restore(): Promise<AuthSession | null>
   logout(): Promise<void>
 }
