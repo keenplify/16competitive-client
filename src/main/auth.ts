@@ -5,6 +5,7 @@ import type {
   PasswordChangeResult,
   RegistrationCredentials,
   SocialAuthProvider,
+  SocialConnections,
   UsernameAvailability,
   UsernameChangeResult
 } from '../shared/auth'
@@ -107,7 +108,7 @@ const validatePasswordChange = (value: unknown): PasswordChangeCredentials => {
     currentPassword !== undefined &&
     (typeof currentPassword !== 'string' || currentPassword.length < 1 || currentPassword.length > 128)
   ) {
-    throw new Error('Current password is invalid')
+    throw new Error('Verify password is invalid')
   }
   if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
     throw new Error('New password must be 8–128 characters')
@@ -158,6 +159,20 @@ const isSocialStartResponse = (value: unknown): value is BackendSocialStartRespo
   )
 }
 
+const isSocialConnections = (value: unknown): value is SocialConnections => {
+  if (typeof value !== 'object' || value === null) return false
+  const connections = value as Record<string, unknown>
+  return ['google', 'facebook'].every((provider) => {
+    const connection = connections[provider]
+    if (typeof connection !== 'object' || connection === null) return false
+    const state = connection as Record<string, unknown>
+    return (
+      typeof state.connected === 'boolean' &&
+      (state.email === null || typeof state.email === 'string')
+    )
+  })
+}
+
 const isUsernameStatus = (value: unknown): value is UsernameStatus => {
   if (typeof value !== 'object' || value === null) return false
   const status = value as Record<string, unknown>
@@ -203,6 +218,31 @@ const acceptAuthResponse = async (body: BackendAuthResponse): Promise<AuthSessio
 
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
+
+const validateAuthorizationUrl = (value: string): URL => {
+  let authorizationUrl: URL
+  try {
+    authorizationUrl = new URL(value)
+  } catch {
+    throw new Error('The authentication server returned an invalid authorization URL')
+  }
+  if (
+    authorizationUrl.protocol !== 'https:' ||
+    authorizationUrl.username ||
+    authorizationUrl.password
+  ) {
+    throw new Error('The authentication server returned an unsafe authorization URL')
+  }
+  return authorizationUrl
+}
+
+const socialDeadline = (expiresAt: string): number => {
+  const serverExpiry = Date.parse(expiresAt)
+  return Math.min(
+    Number.isFinite(serverExpiry) ? serverExpiry : Date.now() + SOCIAL_LOGIN_MAX_MS,
+    Date.now() + SOCIAL_LOGIN_MAX_MS
+  )
+}
 
 export const authenticate = async (
   action: 'login' | 'register',
@@ -253,27 +293,8 @@ export const authenticateWithSocial = async (
     throw new Error('The authentication server returned an invalid social login response')
   }
 
-  let authorizationUrl: URL
-  try {
-    authorizationUrl = new URL(startBody.authorizationUrl)
-  } catch {
-    throw new Error('The authentication server returned an invalid authorization URL')
-  }
-  if (
-    authorizationUrl.protocol !== 'https:' ||
-    authorizationUrl.username ||
-    authorizationUrl.password
-  ) {
-    throw new Error('The authentication server returned an unsafe authorization URL')
-  }
-
-  await shell.openExternal(authorizationUrl.toString())
-
-  const serverExpiry = Date.parse(startBody.expiresAt)
-  const deadline = Math.min(
-    Number.isFinite(serverExpiry) ? serverExpiry : Date.now() + SOCIAL_LOGIN_MAX_MS,
-    Date.now() + SOCIAL_LOGIN_MAX_MS
-  )
+  await shell.openExternal(validateAuthorizationUrl(startBody.authorizationUrl).toString())
+  const deadline = socialDeadline(startBody.expiresAt)
 
   while (Date.now() < deadline) {
     await delay(SOCIAL_POLL_INTERVAL_MS)
@@ -298,6 +319,70 @@ export const authenticateWithSocial = async (
   }
 
   throw new Error('Social login timed out. Please try again.')
+}
+
+export const getSocialConnections = async (): Promise<SocialConnections> => {
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/social/connections`, {
+    headers: { authorization: `Bearer ${sessionToken}` },
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (!isSocialConnections(body)) {
+    throw new Error('The server returned invalid social connection status')
+  }
+  return body
+}
+
+export const connectSocial = async (untrustedProvider: unknown): Promise<SocialConnections> => {
+  const provider = validateSocialProvider(untrustedProvider)
+  if (!sessionToken) throw new Error('Authentication required')
+
+  const startResponse = await fetch(`${API_BASE_URL}/auth/social/link/start`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ provider }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!startResponse) throw new Error('Could not reach the authentication server')
+
+  const startBody: unknown = await startResponse.json().catch(() => null)
+  if (!startResponse.ok) throw new Error(getErrorMessage(startBody, startResponse.status))
+  if (!isSocialStartResponse(startBody)) {
+    throw new Error('The authentication server returned an invalid social connection response')
+  }
+
+  await shell.openExternal(validateAuthorizationUrl(startBody.authorizationUrl).toString())
+  const deadline = socialDeadline(startBody.expiresAt)
+
+  while (Date.now() < deadline) {
+    await delay(SOCIAL_POLL_INTERVAL_MS)
+    const response = await fetch(`${API_BASE_URL}/auth/social/link/complete`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${sessionToken}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ pollToken: startBody.pollToken }),
+      signal: AbortSignal.timeout(10_000)
+    }).catch(() => null)
+
+    if (!response) continue
+    const body: unknown = await response.json().catch(() => null)
+    if (response.status === 202) continue
+    if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+    if (!isSocialConnections(body)) {
+      throw new Error('The server returned invalid social connection status')
+    }
+    return body
+  }
+
+  throw new Error('Connecting the social account timed out. Please try again.')
 }
 
 export const checkUsername = async (untrustedUsername: unknown): Promise<UsernameAvailability> => {
