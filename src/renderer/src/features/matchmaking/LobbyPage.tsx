@@ -74,6 +74,7 @@ export function LobbyPage(): JSX.Element {
   const navigate = useNavigationStore((state) => state.navigate)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const serverRestarting = useMatchmakingStore((state) => state.serverRestarting)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const dismissCompletedMatch = useMatchmakingStore((state) => state.dismissCompletedMatch)
   const showSocialSidebar = ![
@@ -151,6 +152,26 @@ export function LobbyPage(): JSX.Element {
   }, [navigate, queueStatus])
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
+
+  if (serverRestarting) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-neutral-950 p-6 text-center text-white">
+        <section className="w-full max-w-md border border-amber-300/40 bg-amber-300/10 p-8 shadow-2xl">
+          <p className="text-xs font-bold tracking-[0.22em] text-amber-300 uppercase">
+            Server update
+          </p>
+          <h1 className="mt-3 text-2xl font-semibold">Reconnecting shortly</h1>
+          <p className="mt-3 text-sm leading-relaxed text-amber-100/80">
+            {serverRestarting.message}
+          </p>
+          <p className="mt-5 text-xs text-neutral-400">
+            The launcher will reconnect automatically in about{' '}
+            {Math.ceil(serverRestarting.retryAfterMs / 1_000)} seconds.
+          </p>
+        </section>
+      </main>
+    )
+  }
 
   const content = completedMatch ? (
     <MatchResultsPage match={completedMatch} />

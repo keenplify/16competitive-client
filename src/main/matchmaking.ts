@@ -139,6 +139,16 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
   switch (message.type) {
     case 'connected':
       return message.authenticated === false
+    case 'server_restarting':
+      return (
+        typeof message.message === 'string' &&
+        typeof message.restartInMs === 'number' &&
+        Number.isInteger(message.restartInMs) &&
+        message.restartInMs >= 0 &&
+        typeof message.retryAfterMs === 'number' &&
+        Number.isInteger(message.retryAfterMs) &&
+        message.retryAfterMs >= 0
+      )
     case 'authenticated':
       return isPlayer(message.player)
     case 'queue_joined':
@@ -302,6 +312,7 @@ class MatchmakingConnection {
   private hostApiUrl: string | null = null
   private reconnectAttempt = 0
   private seenMatchEvents = new Set<string>()
+  private cancelledMatchIds = new Set<string>()
   private manuallyDisconnected = false
   private authenticated = false
   private recoveryStatusPending = false
@@ -452,6 +463,17 @@ class MatchmakingConnection {
         return
       }
       if (
+        'matchId' in parsed &&
+        typeof parsed.matchId === 'string' &&
+        parsed.type !== 'match_cancelled' &&
+        this.cancelledMatchIds.has(parsed.matchId)
+      ) {
+        return
+      }
+      if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) {
+        return
+      }
+      if (
         parsed.type === 'match_found' &&
         this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)
       ) {
@@ -569,6 +591,7 @@ class MatchmakingConnection {
             })
           )
       } else if (parsed.type === 'match_cancelled') {
+        this.cancelledMatchIds.add(parsed.matchId)
         clearMatchAssetPreload(parsed.matchId)
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
         clearMatchAssetPreload(parsed.matchId)
