@@ -9,6 +9,8 @@ import {
   changeUsername,
   checkUsername,
   clearSessionToken,
+  connectSocial,
+  getSocialConnections,
   restoreSession
 } from './auth'
 import { AUTH_CHANNELS } from '../shared/auth'
@@ -150,6 +152,8 @@ app.whenReady().then(() => {
     authenticate('register', credentials)
   )
   ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) => authenticateWithSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
+  ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
   ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
