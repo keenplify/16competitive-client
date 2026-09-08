@@ -130,3 +130,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Fixed issues affecting the gear lever.
 - Improved update handling and notifications.
 - Corrected update metadata.
+
+## v2026.908.1 — 2026-09-08
+
+### Sign-In
+
+- Sign in or register with Google or Facebook.
+- Connect social accounts from Settings.
+
+### Account
+
+- Set up a username before entering the lobby.
+- Change your username from Settings.
+- Update your password with verification.
+
+### Settings
+
+- Browse settings with smoother animated sections.
+- Find Sign out and Exit below the settings tabs.
