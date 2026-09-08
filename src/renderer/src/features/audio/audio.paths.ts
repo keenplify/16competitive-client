@@ -4,6 +4,7 @@ export const AUDIO_PATHS = {
   },
   sfx: {
     button: 'audio/sfx/button.mp3',
+    partyInvitation: 'audio/sfx/party-invitation.mp3',
     matchFound: 'audio/sfx/match-found.mp3',
     matchAccepted: 'audio/sfx/match-accepted.mp3',
     gameStarting: 'audio/sfx/game-starting.mp3',
