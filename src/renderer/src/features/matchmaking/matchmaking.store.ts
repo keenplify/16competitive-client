@@ -129,6 +129,24 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'server_restarting':
         set({
+          connectionStatus: 'reconnecting',
+          queueStatus: 'idle',
+          queuedPlayers: 0,
+          playersRequired: 0,
+          position: 0,
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
+          queueStartedAt: null,
+          match: null,
+          readyDeadline: null,
+          acceptedPlayerIds: [],
+          readyPlayersRequired: 0,
+          readyResponse: 'pending',
+          countdown: null,
+          assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+          connectionDetails: null,
+          gameExited: false,
           serverRestarting: { message: event.message, retryAfterMs: event.retryAfterMs },
           error: null
         })
