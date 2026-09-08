@@ -23,7 +23,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
       aria-live="polite"
     >
       {failed ? <Download className="size-4" aria-hidden="true" /> : <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
-      <span>{failed ? 'Asset download failed — retrying later' : `Downloading assets — ${percentage}%`}</span>
+      <span>{failed ? (progress.message ?? 'Could not download skin assets.') : `Downloading assets — ${percentage}%`}</span>
     </aside>
   )
 }
