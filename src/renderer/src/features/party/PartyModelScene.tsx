@@ -27,36 +27,126 @@ type WeaponTransform = {
   handOffset: readonly [number, number, number]
 }
 
-const AK47_WEAPON_TRANSFORM: WeaponTransform = {
+const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
   modelRotation: [0, 90, 90],
   handRotation: [0, 180, 0],
   handOffset: [21, 0, 4]
 }
 
-// Each ref_aim_* family gets its own transform so it can be calibrated
-// independently. Until a family is tuned, keep the known-good AK-47 transform.
-const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
-  carbine: {
-    modelRotation: [0, -90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [15, 0, 1]
-  },
-  onehanded: {
-    modelRotation: [0, 280, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
-  },
-  dualpistols: {
+// Weapon placement is intentionally independent from animation families so each
+// p_*.mdl can be calibrated without changing other guns that share ref_aim_*.
+const WEAPON_TRANSFORM: Record<string, WeaponTransform> = {
+  ak47: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
   },
-  rifle: {
+  m4a1: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
     handOffset: [15, 0, 3.5]
   },
-  mp5: {
+  galil: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  famas: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 1]
+  },
+  aug: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 1]
+  },
+  sg552: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  awp: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 3.5]
+  },
+  scout: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 3.5]
+  },
+  g3sg1: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  sg550: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 3.5]
+  },
+  mp5navy: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  tmp: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  mac10: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  ump45: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 1]
+  },
+  p90: {
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [15, 0, 1]
+  },
+  usp: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  glock18: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  p228: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  deagle: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  fiveseven: {
+    modelRotation: [0, 280, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [8, 1, 3]
+  },
+  elite: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  m3: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  xm1014: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
@@ -66,7 +156,7 @@ const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
   },
-  grenade: {
+  knife: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
@@ -76,28 +166,17 @@ const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
   },
-  knife: {
+  hegrenade: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
   },
-  ak47: AK47_WEAPON_TRANSFORM,
-  shieldgren: {
+  flashbang: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
   },
-  shieldknife: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
-  },
-  shieldgun: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
-  },
-  shielded: {
+  smokegrenade: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
@@ -157,10 +236,8 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
   return idleSequenceIndexFor(modelData)
 }
 
-const weaponTransformFor = (weaponKey: string): WeaponTransform => {
-  const family = WEAPON_ANIMATION_FAMILY[weaponKey]
-  return (family && WEAPON_FAMILY_TRANSFORM[family]) || AK47_WEAPON_TRANSFORM
-}
+const weaponTransformFor = (weaponKey: string): WeaponTransform =>
+  WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM
 
 const addMesh = (
   group: THREE.Group,
