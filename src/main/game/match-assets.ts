@@ -128,7 +128,7 @@ const hasExpectedHash = async (destination: string, expectedHash: string): Promi
   const valid = actualHash.startsWith(expectedHash)
   console.debug(`[MatchAssets] cache ${valid ? 'hit' : 'hash mismatch'}`, {
     destination,
-    expectedHash: expectedHash || '(any valid asset)',
+    expectedHash,
     actualHash
   })
   return valid
@@ -283,6 +283,23 @@ export interface SkinAssetSyncProgress {
 
 interface CatalogAsset {
   path: string
+  sha256: string
+}
+
+const isCatalogAsset = (value: unknown): value is CatalogAsset => {
+  if (typeof value !== 'object' || value === null) return false
+  const asset = value as Record<string, unknown>
+  if (
+    typeof asset.path !== 'string' ||
+    !CATALOG_ASSET_PATH.test(asset.path) ||
+    asset.path.includes('..') ||
+    typeof asset.sha256 !== 'string' ||
+    !SHA256.test(asset.sha256)
+  ) {
+    return false
+  }
+  const pathHash = ASSET_PATH.exec(asset.path)?.[1]
+  return !pathHash || asset.sha256.startsWith(pathHash)
 }
 
 let skinSyncTask: Promise<void> | null = null
@@ -295,7 +312,7 @@ const syncSkinAssets = async (
   if (!token) return
   console.info('[MatchAssets] catalog sync started', { apiUrl })
   const base = new URL(apiUrl)
-  const response = await fetch(new URL('/skins/assets', base), {
+  const response = await fetch(new URL('/skins/assets/manifest', base), {
     headers: { authorization: `Bearer ${token}` },
     redirect: 'error',
     signal: AbortSignal.timeout(30_000)
@@ -311,17 +328,14 @@ const syncSkinAssets = async (
     payload !== null &&
     Array.isArray((payload as { assets?: unknown }).assets)
       ? (payload as { assets: unknown[] }).assets
-      : []
-  const catalog = assets.filter(
-    (asset): asset is CatalogAsset =>
-      typeof asset === 'object' &&
-      asset !== null &&
-      typeof (asset as { path?: unknown }).path === 'string'
-  )
+      : null
+  if (!assets || !assets.every(isCatalogAsset)) {
+    throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
+  }
+  const catalog = assets as CatalogAsset[]
   const assetRoot = join(await getGameDirectory(), 'cstrike')
   console.info('[MatchAssets] catalog loaded', {
-    entries: assets.length,
-    validEntries: catalog.length,
+    entries: catalog.length,
     assetRoot
   })
   let completedFiles = 0
@@ -334,7 +348,7 @@ const syncSkinAssets = async (
     catalog.map((asset) => async () => {
       console.info('[MatchAssets] catalog asset started', { path: asset.path })
       const destination = catalogDestinationFor(assetRoot, asset.path)
-      if (!(await hasExpectedHash(destination, ''))) {
+      if (!(await hasExpectedHash(destination, asset.sha256))) {
         const fileUrl = new URL('/skins/assets/file', base)
         fileUrl.searchParams.set('path', asset.path)
         const result = await fetch(fileUrl, {
@@ -349,6 +363,9 @@ const syncSkinAssets = async (
           contentLength: result.headers.get('content-length')
         })
         if (!result.ok) throw new Error(`Could not download ${asset.path} (${result.status}).`)
+        if (!result.headers.get('content-type')?.startsWith('application/octet-stream')) {
+          throw new Error(`Skin asset server returned an invalid content type: ${asset.path}`)
+        }
         const bytes = Buffer.from(await result.arrayBuffer())
         console.info('[MatchAssets] catalog asset body received', {
           path: asset.path,
@@ -360,10 +377,17 @@ const syncSkinAssets = async (
           bytes.subarray(0, 4).toString() !== 'IDST'
         )
           throw new Error(`Skin asset is not a valid GoldSrc model: ${asset.path}`)
+        const actualHash = createHash('sha256').update(bytes).digest('hex')
+        if (actualHash !== asset.sha256) {
+          throw new Error(`Skin asset integrity check failed: ${asset.path}`)
+        }
         await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
         const temporary = `${destination}.${randomUUID()}.partial`
         try {
           await writeFile(temporary, bytes, { mode: 0o600 })
+          if (!(await hasExpectedHash(temporary, asset.sha256))) {
+            throw new Error(`Skin asset failed on-disk hash validation: ${asset.path}`)
+          }
           await rename(temporary, destination)
           console.info('[MatchAssets] catalog asset installed', {
             path: asset.path,
