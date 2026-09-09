@@ -540,7 +540,7 @@ export function PartyModelScene({
       const bounds = canvas.getBoundingClientRect()
       if (bounds.width <= 0) return
       const normalizedX = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-      targetCameraX = -45 + normalizedX * 90
+      targetCameraX = -11.25 + normalizedX * 22.5
     }
     window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
