@@ -324,3 +324,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Privacy & Terms
 
 - Added links to the Privacy Policy and Terms of Service on the sign-in screen.
+
+## v2026.909.3 — 2026-09-09
+
+### Authentication
+
+- Updated the authentication page.
