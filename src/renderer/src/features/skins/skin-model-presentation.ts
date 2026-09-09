@@ -12,7 +12,7 @@ export type SkinPresentationRotation = readonly [number, number, number]
  */
 export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
   // Pistols
-  glock18: 1.25,
+  glock18: 1.5,
   usp: 1,
   p228: 1,
   deagle: 1,
@@ -29,19 +29,19 @@ export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
   // Rifles
   galil: 1,
   famas: 1,
-  ak47: 1,
-  m4a1: 1,
+  ak47: 1.3,
+  m4a1: 1.3,
   aug: 1,
   sg552: 1,
 
   // Snipers
   scout: 1,
-  awp: 1,
+  awp: 1.25,
   sg550: 1,
   g3sg1: 1,
 
   // Heavy / shotguns
-  m3: 1.12,
+  m3: 1.3,
   xm1014: 1,
   m249: 1,
 
