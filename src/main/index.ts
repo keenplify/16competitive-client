@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -39,9 +39,14 @@ import {
   leaveParty,
   respondToPartyInvitation
 } from './party'
-import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
+import {
+  GAME_SETTINGS_CHANNELS,
+  type SkinAssetSyncMode,
+  type SkinAssetSyncProgress
+} from '../shared/game-settings'
 import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
+import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { API_BASE_URL } from './config'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
@@ -82,6 +87,11 @@ const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/Co
 let mainWindow
 let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
 let isShuttingDown = false
+let skinAssetSyncProgress: SkinAssetSyncProgress = {
+  status: 'idle',
+  completedFiles: 0,
+  totalFiles: 0
+}
 
 installDiagnosticLogCapture()
 
@@ -106,6 +116,40 @@ function scheduleFullScreenRecovery(): void {
 
 function disconnectMatchmakingIntentionally(): void {
   matchmakingConnection.shutdown()
+}
+
+function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSyncProgress): void {
+  skinAssetSyncProgress = progress
+  if (!sender.isDestroyed()) sender.send(GAME_SETTINGS_CHANNELS.assetSyncProgress, progress)
+}
+
+async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): Promise<void> {
+  publishSkinAssetSyncProgress(sender, {
+    status: 'syncing',
+    completedFiles: 0,
+    totalFiles: 0,
+    message: mode === 'repair' ? 'Repairing skin assets…' : 'Checking skin assets…'
+  })
+
+  try {
+    const onProgress = (progress: SkinAssetSyncProgress): void =>
+      publishSkinAssetSyncProgress(sender, progress)
+    if (mode === 'repair') {
+      await repairSkinAssets(API_BASE_URL, onProgress)
+    } else {
+      await startSkinAssetSync(API_BASE_URL, onProgress)
+    }
+  } catch (error) {
+    if (skinAssetSyncProgress.status !== 'error') {
+      publishSkinAssetSyncProgress(sender, {
+        status: 'error',
+        completedFiles: skinAssetSyncProgress.completedFiles,
+        totalFiles: skinAssetSyncProgress.totalFiles,
+        message: error instanceof Error ? error.message : 'Could not sync skin assets.'
+      })
+    }
+    throw error
+  }
 }
 
 async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
@@ -305,15 +349,14 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
+    if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
+    return runSkinAssetSync(event.sender, mode)
+  })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, executablePath: unknown) => {
     const settings = await saveGameSettings(executablePath)
-    void startSkinAssetSync(API_BASE_URL, (progress) => {
-      if (event.sender.isDestroyed()) return
-      event.sender.send(MATCHMAKING_CHANNELS.event, {
-        type: 'skin_assets_sync_progress',
-        ...progress
-      })
-    }).catch((error: unknown) => {
+    void runSkinAssetSync(event.sender, 'download').catch((error: unknown) => {
       console.warn(
         '[GameSettings] skin asset sync retry failed',
         error instanceof Error ? error.message : String(error)
