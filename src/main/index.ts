@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, dialog, ipcMain, screen, type WebContents } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -74,7 +74,6 @@ import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { redeemCode } from './redeem-codes'
-import { configureGearLeverUpdates, ensureGearLeverAvailable } from './gear-lever'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import {
   getDiagnosticLogs,
@@ -217,25 +216,6 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
-
-  try {
-    await ensureGearLeverAvailable()
-  } catch (error) {
-    console.error(
-      'Gear Lever is required when running the AppImage:',
-      error instanceof Error ? error.message : String(error)
-    )
-    await dialog.showMessageBox({
-      type: 'error',
-      title: 'Gear Lever is required',
-      message: 'Install Gear Lever before using the AppImage.',
-      detail:
-        '1.6 Competitive uses the Gear Lever Flatpak to install and update this AppImage. Install it from Flathub, then launch 1.6 Competitive again.\n\nhttps://flathub.org/apps/it.mijorus.gearlever',
-      buttons: ['Exit']
-    })
-    app.quit()
-    return
-  }
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -393,12 +373,6 @@ app.whenReady().then(async () => {
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   createWindow()
-  void configureGearLeverUpdates().catch((error: unknown) => {
-    console.warn(
-      'Could not configure Gear Lever updates:',
-      error instanceof Error ? error.message : String(error)
-    )
-  })
   checkForAppUpdates()
 
   app.on('activate', function () {
