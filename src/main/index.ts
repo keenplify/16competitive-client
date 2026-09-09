@@ -46,9 +46,13 @@ import { API_BASE_URL } from './config'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
+  getLobbyLoadout,
   getOwnedSkins,
   getSkinPreviewModel,
   listSkins,
+  setLobbyPlayerModel,
+  setLobbyWeapon,
+  setLobbyWeaponKey,
   unequipSkin,
   unlockSkin
 } from './skins'
@@ -248,10 +252,18 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
+  ipcMain.handle(SKIN_CHANNELS.getLobbyLoadout, () => getLobbyLoadout())
   ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown) => unlockSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown) => getSkinPreviewModel(skinId))
+  ipcMain.handle(SKIN_CHANNELS.setLobbyWeapon, (_, skinId: unknown) => setLobbyWeapon(skinId))
+  ipcMain.handle(SKIN_CHANNELS.setLobbyWeaponKey, (_, weaponKey: unknown) =>
+    setLobbyWeaponKey(weaponKey)
+  )
+  ipcMain.handle(SKIN_CHANNELS.setLobbyPlayerModel, (_, modelPath: unknown) =>
+    setLobbyPlayerModel(modelPath)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
   )

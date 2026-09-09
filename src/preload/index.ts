@@ -106,10 +106,15 @@ const matchHistory: MatchHistoryApi = {
 const skins: SkinsApi = {
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
   mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
+  getLobbyLoadout: () => ipcRenderer.invoke(SKIN_CHANNELS.getLobbyLoadout),
   unlock: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId),
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
   unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
-  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId)
+  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId),
+  setLobbyWeapon: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeapon, skinId),
+  setLobbyWeaponKey: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeaponKey, weaponKey),
+  setLobbyPlayerModel: (modelPath) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.setLobbyPlayerModel, modelPath)
 }
 
 const updater: UpdaterApi = {

@@ -1,4 +1,4 @@
-import { UserPlus, Users } from 'lucide-react'
+import { ChevronRight, LoaderCircle, Mail, UserPlus, Users } from 'lucide-react'
 import type { FormEvent, JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
@@ -8,11 +8,18 @@ import { usePartyStore } from './party.store'
 
 interface LobbySocialSidebarProps {
   playerId: string
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
-export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.Element | null {
+export function LobbySocialSidebar({
+  playerId,
+  collapsed,
+  onCollapsedChange
+}: LobbySocialSidebarProps): JSX.Element | null {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const party = usePartyStore((state) => state.party)
+  const invitations = usePartyStore((state) => state.invitations)
   const inviteUsername = usePartyStore((state) => state.inviteUsername)
   const status = usePartyStore((state) => state.status)
   const error = usePartyStore((state) => state.error)
@@ -33,6 +40,40 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
 
   if (matchNeedsAttention) return null
 
+  if (collapsed) {
+    return (
+      <aside
+        className="fixed top-0 right-0 z-20 flex h-screen w-11 flex-col items-center border border-r-0 border-white/10 bg-neutral-950/90 text-neutral-300 shadow-2xl backdrop-blur-md transition hover:bg-neutral-900 hover:text-white"
+        aria-label="Friends summary"
+        onFocusCapture={() => onCollapsedChange(false)}
+      >
+        <button
+          type="button"
+          className="mt-5 rounded p-2 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400"
+          aria-label="Expand Friends panel"
+          onClick={() => onCollapsedChange(false)}
+        >
+          <Users className="size-4" aria-hidden="true" />
+        </button>
+        <div className="mt-auto mb-5 flex flex-col items-center gap-4">
+          {isSearching && (
+            <span title="Finding match" aria-label="Finding match">
+              <LoaderCircle className="size-4 animate-spin text-sky-300" aria-hidden="true" />
+            </span>
+          )}
+          <span className="relative" title="Party invitations" aria-label="Party invitations">
+            <Mail className="size-4" aria-hidden="true" />
+            {invitations.length > 0 && (
+              <span className="absolute -top-2 -right-2 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
+                {invitations.length}
+              </span>
+            )}
+          </span>
+        </div>
+      </aside>
+    )
+  }
+
   const handleInvite = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     void invite()
@@ -52,18 +93,28 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
               {party ? `Party · ${party.members.length} / 5` : 'Friends'}
             </h2>
           </div>
-          {party ? (
-            <Button
-              variant="ghost"
-              className="h-7 px-2 text-[10px] tracking-[0.1em] uppercase"
-              disabled={status === 'leaving'}
-              onClick={() => void leave()}
+          <div className="flex items-center gap-1">
+            {party ? (
+              <Button
+                variant="ghost"
+                className="h-7 px-2 text-[10px] tracking-[0.1em] uppercase"
+                disabled={status === 'leaving'}
+                onClick={() => void leave()}
+              >
+                {status === 'leaving' ? 'Leaving…' : isLeader ? 'Disband' : 'Leave'}
+              </Button>
+            ) : (
+              <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
+            )}
+            <button
+              type="button"
+              className="rounded p-1 text-neutral-500 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+              aria-label="Collapse Friends panel"
+              onClick={() => onCollapsedChange(true)}
             >
-              {status === 'leaving' ? 'Leaving…' : isLeader ? 'Disband' : 'Leave'}
-            </Button>
-          ) : (
-            <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
-          )}
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         {isLeader && !isFull && !isSearching && (

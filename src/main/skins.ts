@@ -1,6 +1,6 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
-import type { OwnedSkin, Skin, UnlockResult } from '../shared/skins'
+import type { LobbyLoadout, OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 // Keep downloaded preview models in the per-user cache so the store does not
@@ -43,7 +43,8 @@ const isOwnedSkin = (value: unknown): value is OwnedSkin => {
     isSkin(owned.skin) &&
     typeof owned.acquiredAt === 'string' &&
     typeof owned.acquiredForPoints === 'number' &&
-    (typeof owned.equippedAt === 'string' || owned.equippedAt === null)
+    (typeof owned.equippedAt === 'string' || owned.equippedAt === null) &&
+    typeof owned.lobbySelected === 'boolean'
   )
 }
 
@@ -106,6 +107,27 @@ export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   return data
 }
 
+export const getLobbyLoadout = async (): Promise<LobbyLoadout> => {
+  const data = await playerRequest('/skins/lobby-loadout')
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    typeof (data as Record<string, unknown>).playerModel !== 'string' ||
+    !(
+      typeof (data as Record<string, unknown>).weaponSkinId === 'string' ||
+      (data as Record<string, unknown>).weaponSkinId === null
+    ) ||
+    typeof (data as Record<string, unknown>).weaponKey !== 'string' ||
+    !(
+      typeof (data as Record<string, unknown>).weaponModelPath === 'string' ||
+      (data as Record<string, unknown>).weaponModelPath === null
+    )
+  ) {
+    throw new Error('The server returned an invalid lobby loadout.')
+  }
+  return data as LobbyLoadout
+}
+
 const validateSkinId = (skinId: unknown): string => {
   if (typeof skinId !== 'string' || !skinIdPattern.test(skinId)) throw new Error('Invalid skin ID')
   return skinId
@@ -130,6 +152,32 @@ export const equipSkin = async (skinId: unknown): Promise<void> => {
 
 export const unequipSkin = async (skinId: unknown): Promise<void> => {
   await playerRequest(`/skins/${validateSkinId(skinId)}/unequip`, { method: 'POST' })
+}
+
+export const setLobbyWeapon = async (skinId: unknown): Promise<void> => {
+  await playerRequest(`/skins/${validateSkinId(skinId)}/lobby-weapon`, { method: 'POST' })
+}
+
+export const setLobbyWeaponKey = async (weaponKey: unknown): Promise<void> => {
+  if (typeof weaponKey !== 'string' || !weaponKeyPattern.test(weaponKey)) {
+    throw new Error('Invalid lobby weapon')
+  }
+  await playerRequest('/skins/lobby-weapon', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ weaponKey })
+  })
+}
+
+export const setLobbyPlayerModel = async (modelPath: unknown): Promise<void> => {
+  if (typeof modelPath !== 'string' || !/^player\/[a-z0-9_]+\/[a-z0-9_]+\.mdl$/i.test(modelPath)) {
+    throw new Error('Invalid lobby player model')
+  }
+  await playerRequest('/skins/lobby-player-model', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ modelPath })
+  })
 }
 
 export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer> => {
