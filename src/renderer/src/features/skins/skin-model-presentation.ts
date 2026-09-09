@@ -68,3 +68,15 @@ export const getSkinPresentationRotation = (weaponKey: string): SkinPresentation
       return [90, 0, 190]
   }
 }
+
+/**
+ * Stable signature for every setting that changes how a thumbnail is framed.
+ * Including this in the thumbnail/model key makes presentation tweaks refresh
+ * immediately instead of reusing an image captured with older camera values.
+ */
+export const getSkinPresentationRevision = (weaponKey: string): string => {
+  const zoom = SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1
+  const rotation = getSkinPresentationRotation(weaponKey).join('-')
+  const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
+  return `presentation-v2:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+}
