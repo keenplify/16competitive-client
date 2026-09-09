@@ -412,3 +412,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes were provided.
+
+## v2026.909.10 — 2026-09-09
+
+### Linux
+
+- Linux AppImage updates are now automated through Gear Lever.
