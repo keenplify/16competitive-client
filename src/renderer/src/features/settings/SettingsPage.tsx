@@ -17,7 +17,7 @@ import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { useGameSettingsStore } from './game-settings.store'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
-type SettingsSection = 'general' | 'credentials'
+type SettingsSection = 'general' | 'assets' | 'credentials'
 
 const readableError = (error: unknown): string =>
   error instanceof Error
@@ -27,6 +27,7 @@ const readableError = (error: unknown): string =>
 export function SettingsPage(): JSX.Element {
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
+  const assetsRef = useRef<HTMLElement>(null)
   const credentialsRef = useRef<HTMLElement>(null)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
 
@@ -80,13 +81,22 @@ export function SettingsPage(): JSX.Element {
 
   const updateActiveSection = (): void => {
     const container = scrollRef.current
+    const assets = assetsRef.current
     const credentials = credentialsRef.current
-    if (!container || !credentials) return
+    if (!container || !assets || !credentials) return
 
     const containerTop = container.getBoundingClientRect().top
+    const assetsTop = assets.getBoundingClientRect().top - containerTop
     const credentialsTop = credentials.getBoundingClientRect().top - containerTop
     const activationLine = Math.min(220, container.clientHeight * 0.3)
-    setActiveSection(credentialsTop <= activationLine ? 'credentials' : 'general')
+
+    if (credentialsTop <= activationLine) {
+      setActiveSection('credentials')
+    } else if (assetsTop <= activationLine) {
+      setActiveSection('assets')
+    } else {
+      setActiveSection('general')
+    }
   }
 
   useEffect(() => {
@@ -97,7 +107,12 @@ export function SettingsPage(): JSX.Element {
 
   const scrollToSection = (section: SettingsSection): void => {
     setActiveSection(section)
-    const target = section === 'general' ? generalRef.current : credentialsRef.current
+    const target =
+      section === 'general'
+        ? generalRef.current
+        : section === 'assets'
+          ? assetsRef.current
+          : credentialsRef.current
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -304,8 +319,9 @@ export function SettingsPage(): JSX.Element {
 
         <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
           <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-            <nav className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
+            <nav className="grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
+              {sectionButton('assets', 'Assets')}
               {sectionButton('credentials', 'Credentials')}
             </nav>
 
@@ -405,6 +421,21 @@ export function SettingsPage(): JSX.Element {
                     Saved locally in: <span className="font-mono">{configFilePath}</span>
                   </p>
                 )}
+              </div>
+            </section>
+
+            <section
+              ref={assetsRef}
+              className="min-h-[70vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+            >
+              <div className="mb-5">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+                  Assets
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">Assets & downloads</h2>
+                <p className="mt-2 text-sm text-neutral-500">
+                  Check, download, or repair the managed game assets used by 1.6 Competitive.
+                </p>
               </div>
 
               <AssetDownloadSettings />
