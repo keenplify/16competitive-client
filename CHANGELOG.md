@@ -418,3 +418,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Linux AppImage updates are now automated through Gear Lever.
+
+## v2026.909.11 — 2026-09-09
+
+### AppImage
+
+- AppImage runs now require Gear Lever.
