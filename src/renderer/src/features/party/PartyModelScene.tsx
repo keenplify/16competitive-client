@@ -30,6 +30,12 @@ type WeaponTransform = {
   handOffset: readonly [number, number, number]
 }
 
+type LoadedScene = {
+  actorKey: string
+  actors: PartySceneActor[]
+  buffers: ArrayBuffer[]
+}
+
 const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
   modelRotation: [0, 90, 90],
   handRotation: [0, 180, 0],
@@ -474,7 +480,7 @@ export function PartyModelScene({
 }: PartyModelSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const actorsRef = useRef(actors)
-  const [buffers, setBuffers] = useState<ArrayBuffer[] | null>(null)
+  const [loadedScene, setLoadedScene] = useState<LoadedScene | null>(null)
   const actorKey = actors
     .map(
       ({ member, modelPath, weaponPath, weaponKey, isCurrentPlayer, isLeader }) =>
@@ -488,15 +494,20 @@ export function PartyModelScene({
 
   useEffect(() => {
     let active = true
+    const loadKey = actorKey
+    const actorsSnapshot = [...actorsRef.current]
     void Promise.all([
-      ...actorsRef.current.flatMap((actor) => [
+      ...actorsSnapshot.flatMap((actor) => [
         window.api.models
           .read(actor.modelPath)
           .catch(() => window.api.models.read(actor.fallbackModelPath)),
         window.api.models.read(actor.weaponPath).catch(() => window.api.models.read('p_ak47.mdl'))
       ])
     ])
-      .then((loaded) => active && setBuffers(loaded))
+      .then((loaded) => {
+        if (!active) return
+        setLoadedScene({ actorKey: loadKey, actors: actorsSnapshot, buffers: loaded })
+      })
       .catch((error: unknown) => console.error('[Lobby] Could not load party scene models', error))
     return () => {
       active = false
@@ -505,14 +516,16 @@ export function PartyModelScene({
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !buffers) return
+    if (!canvas || !loadedScene || loadedScene.actorKey !== actorKey) return
+    if (loadedScene.buffers.length !== loadedScene.actors.length * 2) return
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 2000)
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     const ambient = new THREE.AmbientLight(0xffffff, 1.2)
     scene.add(ambient)
-    const sceneActors = actorsRef.current
+    const sceneActors = loadedScene.actors
+    const buffers = loadedScene.buffers
     const formation = [
       { x: 0, z: 24 },
       { x: 31, z: 2 },
@@ -522,7 +535,10 @@ export function PartyModelScene({
     ] as const
     const actorsToFade: THREE.Group[] = []
     sceneActors.forEach((actor, index) => {
-      const model = createActor(actor, buffers[index * 2], buffers[index * 2 + 1])
+      const playerBuffer = buffers[index * 2]
+      const weaponBuffer = buffers[index * 2 + 1]
+      if (!playerBuffer || !weaponBuffer) return
+      const model = createActor(actor, playerBuffer, weaponBuffer)
       setActorOpacity(model, 0)
       // GoldSrc player MDLs do not share a consistent local origin. Center a
       // solo actor from its actual geometry while leaving the tuned five-player
@@ -569,7 +585,7 @@ export function PartyModelScene({
       observer.disconnect()
       renderer.dispose()
     }
-  }, [actorKey, buffers, HOT_RENDER_REVISION])
+  }, [actorKey, loadedScene, HOT_RENDER_REVISION])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }
