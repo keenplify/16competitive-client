@@ -20,13 +20,42 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install --package-lock-only --ignore-scripts
-      - name: Commit lockfile
+      - name: Wire latency picker into Play page
         run: |
-          if git diff --quiet -- package-lock.json; then
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/renderer/src/features/matchmaking/PlayPage.tsx')
+          source = path.read_text()
+
+          old_import = "import { TeamRoster } from './TeamRoster'\n"
+          new_import = old_import + "import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'\n"
+          if "MatchmakingRegionSelect" not in source:
+              if old_import not in source:
+                  raise SystemExit('Could not find TeamRoster import')
+              source = source.replace(old_import, new_import, 1)
+
+          old_effect = """  useEffect(() => {\n    void loadRegions()\n  }, [loadRegions])\n"""
+          new_effect = """  useEffect(() => {\n    void loadRegions()\n    const timer = window.setInterval(() => void loadRegions(), 15_000)\n    return () => window.clearInterval(timer)\n  }, [loadRegions])\n"""
+          if old_effect in source:
+              source = source.replace(old_effect, new_effect, 1)
+
+          old_select = """            <select\n              id=\"matchmaking-region\"\n              className=\"mt-3 w-full max-w-sm border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-60\"\n              value={selectedNodeId ?? ''}\n              disabled={isSearching}\n              onChange={(event) => void selectNode(event.target.value || null)}\n            >\n              <option value=\"\">Automatic (healthy region)</option>\n              {nodes.map((node) => (\n                <option key={node.id} value={node.id} disabled={!node.available}>\n                  {node.region.toUpperCase()} · {node.id}\n                  {node.available ? '' : ' (unavailable)'}\n                </option>\n              ))}\n            </select>\n"""
+          new_select = """            <MatchmakingRegionSelect\n              nodes={nodes}\n              selectedNodeId={selectedNodeId}\n              disabled={isSearching}\n              onChange={(nodeId) => void selectNode(nodeId)}\n            />\n"""
+          if old_select in source:
+              source = source.replace(old_select, new_select, 1)
+          elif '<MatchmakingRegionSelect' not in source:
+              raise SystemExit('Could not find matchmaking region select')
+
+          path.write_text(source)
+          PY
+      - name: Commit generated dependency and picker wiring
+        run: |
+          if git diff --quiet -- package-lock.json src/renderer/src/features/matchmaking/PlayPage.tsx; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "Update lockfile for react-select"
+          git add package-lock.json src/renderer/src/features/matchmaking/PlayPage.tsx
+          git commit -m "Wire regional latency picker"
           git push origin HEAD:feature/region-latency-react-select
