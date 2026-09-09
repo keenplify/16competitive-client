@@ -56,14 +56,14 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [21, 0, 4]
   },
   famas: {
-    modelRotation: [0, -90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [15, 0, 1]
+    modelRotation: [0, 0, 180],
+    handRotation: [0, 0, 0],
+    handOffset: [15, 0, 1.5]
   },
   aug: {
-    modelRotation: [0, -90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [15, 0, 1]
+    modelRotation: [90, 0, 0],
+    handRotation: [0, 0, 0],
+    handOffset: [2, 0, 1.5]
   },
   sg552: {
     modelRotation: [0, 90, 90],
@@ -81,9 +81,9 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [15, 0, 3.5]
   },
   g3sg1: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [15, 0, 3.5]
   },
   sg550: {
     modelRotation: [0, -90, 90],
@@ -91,14 +91,14 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [15, 0, 3.5]
   },
   mp5navy: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    modelRotation: [0, -90, 90],
+    handRotation: [0, 180, 90],
+    handOffset: [0, 0, 4]
   },
   tmp: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [1, 1, 1]
   },
   mac10: {
     modelRotation: [0, 280, 90],
@@ -108,22 +108,22 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   ump45: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 1]
+    handOffset: [2, -1, 3]
   },
   p90: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 1]
+    handOffset: [2, -1, 3]
   },
   usp: {
-    modelRotation: [0, 280, 90],
+    modelRotation: [0, 290, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [7, 1, 3]
   },
   glock18: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [4, 0.5, 1.5]
   },
   p228: {
     modelRotation: [0, 280, 90],
@@ -143,15 +143,15 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   elite: [
     {
       hand: 'right',
-      modelRotation: [-120, 180, 0],
+      modelRotation: [-90, 180, 0],
       handRotation: [0, 180, 0],
-      handOffset: [4.5, 0, 4]
+      handOffset: [5, 0, 3.5]
     },
     {
       hand: 'left',
-      modelRotation: [-120, 180, 0],
+      modelRotation: [90, 180, 0],
       handRotation: [0, 180, 0],
-      handOffset: [4.5, 0, 4]
+      handOffset: [5, -1, -3.5]
     }
   ],
   m3: {
@@ -165,14 +165,14 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [21, 0, 4]
   },
   m249: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    modelRotation: [90, 0, 90],
+    handRotation: [0, 90, 0],
+    handOffset: [1, 2.5, 4]
   },
   knife: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [2, 1, 1]
   },
   c4: {
     modelRotation: [0, 90, 90],
@@ -249,9 +249,14 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
   return idleSequenceIndexFor(modelData)
 }
 
+const isWeaponTransformArray = (
+  value: WeaponTransform | readonly WeaponTransform[]
+): value is readonly WeaponTransform[] => Array.isArray(value)
+
 const weaponTransformsFor = (weaponKey: string): readonly WeaponTransform[] => {
   const configured = WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM
-  return Array.isArray(configured) ? configured : [configured]
+
+  return isWeaponTransformArray(configured) ? configured : [configured]
 }
 
 const addMesh = (
@@ -377,9 +382,7 @@ const createActor = (
       .applyMatrix4(handTransform)
       .sub(handOrigin)
     const weaponBoneMap = weapon.bones.map((bone) =>
-      weaponTransform.hand
-        ? handBone
-        : playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone
+      weaponTransform.hand ? handBone : (playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone)
     )
 
     weapon.meshes.forEach((bodyPart, bodyPartIndex) =>
@@ -519,7 +522,7 @@ export function PartyModelScene({
       scene.add(model)
       actorsToFade.push(model)
     })
-    camera.position.set(90, 22.5, 170)
+    camera.position.set(0, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
