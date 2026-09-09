@@ -20,6 +20,9 @@ const connectionLabels = {
   ready: 'Connected'
 } as const
 
+const serverReadyBackgroundClass =
+  'bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_30%,rgba(10,10,10,0.72)_62%,rgba(10,10,10,0.97)_100%)]'
+
 interface MapCardProps {
   map: MatchmakingMap
   selected: boolean
@@ -176,9 +179,7 @@ export function PlayPage(): JSX.Element {
       <main
         className={twMerge(
           'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
-          queueStatus === 'server_ready'
-            ? 'bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18)_0%,rgba(6,78,59,0.10)_24%,rgba(10,10,10,0.74)_55%,rgba(10,10,10,0.96)_100%)]'
-            : 'bg-neutral-950/95'
+          queueStatus === 'server_ready' ? serverReadyBackgroundClass : 'bg-neutral-950/95'
         )}
       >
         <div className="w-full max-w-5xl">
@@ -247,7 +248,12 @@ export function PlayPage(): JSX.Element {
   // usable instead of trying to read teams from a missing in-memory match.
   if (queueStatus === 'server_ready' && connectionDetails) {
     return (
-      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18)_0%,rgba(6,78,59,0.10)_24%,rgba(10,10,10,0.74)_55%,rgba(10,10,10,0.96)_100%)] p-5 text-white sm:p-10">
+      <main
+        className={twMerge(
+          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
+          serverReadyBackgroundClass
+        )}
+      >
         <section className="w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
           <p className="text-xs font-bold tracking-[0.22em] text-emerald-300 uppercase">
             Match ready
@@ -256,12 +262,8 @@ export function PlayPage(): JSX.Element {
           <p className="mt-3 text-sm text-emerald-100/70">
             The game server is available at {connectionDetails.host}:{connectionDetails.port}.
           </p>
-          <MatchAssetPreparation
-            className="mx-auto mt-5 max-w-md text-left"
-            preparation={assetPreparation}
-          />
           <Button className="mt-6" onClick={() => void reconnectGame()}>
-            {assetPreparation.status === 'ready' ? 'Reconnect to match' : 'Prepare and reconnect'}
+            Reconnect to match
           </Button>
           {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
         </section>
