@@ -13,26 +13,26 @@ export type SkinPresentationRotation = readonly [number, number, number]
 export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
   // Pistols
   glock18: 1.5,
-  usp: 1,
-  p228: 1,
-  deagle: 1,
+  usp: 1.5,
+  p228: 1.5,
+  deagle: 1.5,
   elite: 1,
-  fiveseven: 1,
+  fiveseven: 1.5,
 
   // SMGs
-  tmp: 1,
-  mac10: 1,
-  mp5navy: 1,
-  ump45: 1,
-  p90: 1,
+  tmp: 1.4,
+  mac10: 1.4,
+  mp5navy: 1.4,
+  ump45: 1.4,
+  p90: 1.4,
 
   // Rifles
-  galil: 1,
-  famas: 1,
+  galil: 1.2,
+  famas: 1.2,
   ak47: 1.3,
   m4a1: 1.3,
-  aug: 1,
-  sg552: 1,
+  aug: 1.2,
+  sg552: 1.2,
 
   // Snipers
   scout: 1,
@@ -42,11 +42,11 @@ export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
 
   // Heavy / shotguns
   m3: 1.3,
-  xm1014: 1,
-  m249: 1,
+  xm1014: 1.3,
+  m249: 1.3,
 
   // Melee
-  knife: 1
+  knife: 1.2
 }
 
 export const getSkinCameraDistanceMultiplier = (weaponKey: string, base: number): number =>

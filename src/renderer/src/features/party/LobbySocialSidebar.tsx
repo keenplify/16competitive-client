@@ -1,5 +1,5 @@
 import { ChevronRight, Mail, UserPlus, Users } from 'lucide-react'
-import type { FormEvent, JSX, KeyboardEvent } from 'react'
+import { useEffect, useRef, type FormEvent, type JSX, type KeyboardEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
@@ -10,13 +10,16 @@ interface LobbySocialSidebarProps {
   playerId: string
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
+  hoverOpenDisabledUntil?: number
 }
 
 export function LobbySocialSidebar({
   playerId,
   collapsed,
-  onCollapsedChange
+  onCollapsedChange,
+  hoverOpenDisabledUntil = 0
 }: LobbySocialSidebarProps): JSX.Element | null {
+  const hoverOpenTimer = useRef<number | null>(null)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const party = usePartyStore((state) => state.party)
   const invitations = usePartyStore((state) => state.invitations)
@@ -39,6 +42,12 @@ export function LobbySocialSidebar({
     'server_ready'
   ].includes(queueStatus)
 
+  useEffect(() => {
+    return () => {
+      if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
+    }
+  }, [])
+
   if (matchNeedsAttention) return null
 
   const handleInvite = (event: FormEvent<HTMLFormElement>): void => {
@@ -47,7 +56,26 @@ export function LobbySocialSidebar({
   }
 
   const expandCollapsedSidebar = (): void => {
+    if (hoverOpenTimer.current !== null) {
+      window.clearTimeout(hoverOpenTimer.current)
+      hoverOpenTimer.current = null
+    }
     if (collapsed) onCollapsedChange(false)
+  }
+
+  const handleMouseEnter = (): void => {
+    if (!collapsed || Date.now() < hoverOpenDisabledUntil) return
+    hoverOpenTimer.current = window.setTimeout(() => {
+      hoverOpenTimer.current = null
+      if (Date.now() >= hoverOpenDisabledUntil) onCollapsedChange(false)
+    }, 100)
+  }
+
+  const handleMouseLeave = (): void => {
+    if (hoverOpenTimer.current !== null) {
+      window.clearTimeout(hoverOpenTimer.current)
+      hoverOpenTimer.current = null
+    }
   }
 
   const handleCollapsedKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
@@ -79,6 +107,8 @@ export function LobbySocialSidebar({
         tabIndex={collapsed ? 0 : undefined}
         onClick={expandCollapsedSidebar}
         onKeyDown={handleCollapsedKeyDown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <div
           className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${
