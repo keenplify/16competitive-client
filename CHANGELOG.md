@@ -336,3 +336,29 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Sign-in
 
 - Facebook sign-in now brings the launcher back into focus when authentication completes.
+
+## v2026.909.5 — 2026-09-09
+
+- fixes
+- style and sharpen lobby nameplates
+- fix party model buffer race
+- reduce lobby camera sway range
+- add mouse-driven lobby camera movement
+- fix mapping
+- derive lobby weapon transform from model path
+- remember selected lobby weapon in loadout
+- hardcoded thigns
+- render Elite pistols on both hands
+- elite
+- add per-weapon lobby model transforms
+- WIP
+- fix duplicate models path in lobby model loader
+- test
+- rebuild lobby scene on hot refresh
+- enable hot reload for default local start
+- add per-family lobby weapon transforms
+- use correct lobby weapon animation sequences
+- fix lobby weapon loadout precedence
+- WIP - remade launcher
+- Refine lobby navigation and page styling
+- Improve social login focus flow
