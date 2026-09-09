@@ -406,3 +406,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - View regional latency when choosing a matchmaking region.
 - Sync assets through your preferred region.
+
+## v2026.909.9 — 2026-09-09
+
+### Changes
+
+- No player-facing changes were provided.
