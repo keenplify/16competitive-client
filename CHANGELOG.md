@@ -431,3 +431,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added regional latency selection.
 - Matchmaking nodes now measure latency to help inform region selection.
+
+## v2026.909.13 — 2026-09-09
+
+### Improvements
+
+- General improvements across matchmaking, party, settings, and skins.
