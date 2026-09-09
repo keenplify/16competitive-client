@@ -91,9 +91,6 @@ export function SkinModelThumbnail({
     if (weaponKey === 'elite') return
     let active = true
     mountedRef.current = true
-    setImageUrl(null)
-    setModelBuffer(undefined)
-    setStatus('checking')
 
     const readThumbnail = PREVIEW_THUMBNAIL_CACHE_ENABLED
       ? window.api.models.readThumbnail(presentationCacheKey)
