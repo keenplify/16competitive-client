@@ -21,6 +21,7 @@ import { matchmakingConnection } from './matchmaking'
 import {
   getMatchmakingNodes,
   getMatchmakingPreferences,
+  resolvePreferredMatchmakingApiUrl,
   saveMatchmakingPreferences
 } from './matchmaking-regions'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
@@ -47,7 +48,6 @@ import {
 import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
-import { API_BASE_URL } from './config'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -132,12 +132,13 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
   })
 
   try {
+    const apiUrl = await resolvePreferredMatchmakingApiUrl()
     const onProgress = (progress: SkinAssetSyncProgress): void =>
       publishSkinAssetSyncProgress(sender, progress)
     if (mode === 'repair') {
-      await repairSkinAssets(API_BASE_URL, onProgress)
+      await repairSkinAssets(apiUrl, onProgress)
     } else {
-      await startSkinAssetSync(API_BASE_URL, onProgress)
+      await startSkinAssetSync(apiUrl, onProgress)
     }
   } catch (error) {
     if (skinAssetSyncProgress.status !== 'error') {
