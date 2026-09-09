@@ -58,13 +58,16 @@ export function MatchFoundReadyCheck({
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
 
   return (
-    <main className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden bg-[#111820] px-5 py-12 text-white">
+    <main className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden bg-transparent px-5 py-12 text-white">
       <div
-        className="absolute inset-0 -z-20 bg-cover bg-center opacity-35 blur-[5px] scale-110"
+        className="absolute inset-0 -z-20 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
         style={{ backgroundImage: `url(${dust2Preview})` }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 -z-10 bg-slate-950/55" aria-hidden="true" />
+      <div
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgba(2,6,23,0.98)_0%,rgba(2,6,23,0.82)_36%,rgba(2,6,23,0.42)_68%,rgba(2,6,23,0.08)_88%,transparent_100%)]"
+        aria-hidden="true"
+      />
 
       <div className="w-full max-w-[46rem]">
         <section className="border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-6 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-9">
