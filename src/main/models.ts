@@ -11,9 +11,16 @@ const isSafeModelPath = (relativePath: unknown): relativePath is string =>
   !relativePath.includes('\0') &&
   relativePath.toLowerCase().endsWith('.mdl')
 
+const normalizeModelPath = (relativePath: string): string => {
+  const normalizedSeparators = relativePath.replace(/\\/g, '/')
+  const pathWithinModelsDirectory = normalizedSeparators.replace(/^models\//i, '')
+  return pathWithinModelsDirectory.split('/').join(sep)
+}
+
 /**
  * Reads only MDLs contained in Counter-Strike's models directory. The renderer
- * supplies a relative asset path and never receives filesystem access.
+ * supplies either a path relative to cstrike/models or a cstrike-relative path
+ * beginning with models/. It never receives filesystem access.
  */
 export const readCounterStrikeModel = async (relativePath: unknown): Promise<ArrayBuffer> => {
   if (!isSafeModelPath(relativePath)) {
@@ -25,7 +32,8 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
     throw new Error('Choose your Counter-Strike executable in Settings first')
   }
   const modelsDirectory = resolve(join(dirname(executable), 'cstrike', 'models'))
-  const resolvedPath = resolve(modelsDirectory, relativePath)
+  const modelPath = normalizeModelPath(relativePath)
+  const resolvedPath = resolve(modelsDirectory, modelPath)
   if (!resolvedPath.startsWith(`${modelsDirectory}${sep}`)) {
     throw new Error('Model path must stay inside the Counter-Strike models directory')
   }
