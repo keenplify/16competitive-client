@@ -42,9 +42,9 @@ const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
     handOffset: [21, 0, 4]
   },
   onehanded: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [5, 1, 1]
   },
   dualpistols: {
     modelRotation: [0, 90, 90],
@@ -261,9 +261,7 @@ const createActor = (
   )
   const playerBones = calcRotations(player, animationIndex, 0)
   const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(
-      ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
-    )
+    new THREE.Euler(...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees)))
   )
   const handTransform = new THREE.Matrix4().fromArray(
     playerBones[rightHandBone] as unknown as number[]
@@ -419,7 +417,7 @@ export function PartyModelScene({
       scene.add(model)
       actorsToFade.push(model)
     })
-    camera.position.set(0, 22.5, 170)
+    camera.position.set(90, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
