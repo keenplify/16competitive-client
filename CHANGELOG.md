@@ -388,3 +388,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved server-ready and reconnect backgrounds.
 - Extended server-ready visuals behind navigation.
 - Added a smoother transition from match-ready screens back to the lobby.
+
+## v2026.909.7 — 2026-09-09
+
+### Skins
+
+- Fixed an issue with skin thumbnail effects.
