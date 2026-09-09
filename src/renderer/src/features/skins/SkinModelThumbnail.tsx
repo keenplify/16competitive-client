@@ -7,6 +7,7 @@ import { getCachedSkinModel } from './skin-model-cache'
 import {
   getSkinCameraDistanceMultiplier,
   getSkinCameraTarget,
+  getSkinPresentationRevision,
   getSkinPresentationRotation
 } from './skin-model-presentation'
 
@@ -72,6 +73,8 @@ export function SkinModelThumbnail({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const releaseRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(true)
+  const presentationRevision = getSkinPresentationRevision(weaponKey)
+  const presentationCacheKey = `${cacheKey}:${presentationRevision}`
 
   const releaseRenderer = useCallback((): void => {
     releaseRef.current?.()
@@ -88,8 +91,12 @@ export function SkinModelThumbnail({
     if (weaponKey === 'elite') return
     let active = true
     mountedRef.current = true
+    setImageUrl(null)
+    setModelBuffer(undefined)
+    setStatus('checking')
+
     const readThumbnail = PREVIEW_THUMBNAIL_CACHE_ENABLED
-      ? window.api.models.readThumbnail(cacheKey)
+      ? window.api.models.readThumbnail(presentationCacheKey)
       : Promise.resolve(null)
     void readThumbnail.then(
       async (cached) => {
@@ -130,7 +137,7 @@ export function SkinModelThumbnail({
       mountedRef.current = false
       releaseRenderer()
     }
-  }, [cacheKey, fail, releaseRenderer, skinId, weaponKey])
+  }, [fail, presentationCacheKey, releaseRenderer, skinId, weaponKey])
 
   const capture = useCallback(
     (canvas: HTMLCanvasElement): void => {
@@ -144,7 +151,7 @@ export function SkinModelThumbnail({
           PREVIEW_THUMBNAIL_CACHE_ENABLED
             ? blob
                 .arrayBuffer()
-                .then((png) => window.api.models.writeThumbnail(cacheKey, png))
+                .then((png) => window.api.models.writeThumbnail(presentationCacheKey, png))
                 .catch((error: unknown) => console.warn('Could not persist model thumbnail', error))
             : Promise.resolve()
         ]).then(([source]) => {
@@ -155,7 +162,7 @@ export function SkinModelThumbnail({
         }, fail)
       }, 'image/png')
     },
-    [cacheKey, fail, releaseRenderer]
+    [fail, presentationCacheKey, releaseRenderer]
   )
 
   return (
@@ -173,8 +180,9 @@ export function SkinModelThumbnail({
       )}
       {weaponKey !== 'elite' && status === 'rendering' && (!skinId || modelBuffer) && (
         <ModelViewer
+          key={presentationRevision}
           modelBuffer={modelBuffer}
-          modelKey={modelKey ?? cacheKey}
+          modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
           modelPath={modelPath}
           sourceRevision={sourceRevision}
           presentationRotation={getSkinPresentationRotation(weaponKey)}
