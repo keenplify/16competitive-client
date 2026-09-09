@@ -83,6 +83,14 @@ function runGearLever(args: string[], options: RunGearLeverOptions = {}): Promis
   })
 }
 
+/** Verifies that the Gear Lever Flatpak is installed and callable. */
+export async function ensureGearLeverAvailable(): Promise<void> {
+  if (!getCurrentAppImagePath()) return
+
+  const output = await runGearLever(['--list-installed', '--json'])
+  parseInstalledApps(output)
+}
+
 export function getCurrentAppImagePath(): string | null {
   if (process.platform !== 'linux') return null
 

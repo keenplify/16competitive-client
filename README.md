@@ -61,6 +61,8 @@ Visit the repository’s **[Releases](../../releases)** page for the latest Wind
 
 > Counter-Strike 1.6 is required to play. Select and validate your local game executable from the launcher’s Settings tab before joining a match.
 
+On Linux, the AppImage requires [Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) for installation and launcher updates. DEB and Snap packages do not have this requirement.
+
 ## Run locally
 
 ### Requirements
