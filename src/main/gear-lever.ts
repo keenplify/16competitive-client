@@ -5,11 +5,17 @@ const GEAR_LEVER_APP_ID = 'it.mijorus.gearlever'
 const GITHUB_REPOSITORY = 'keenplify/16competitive-client'
 const GITHUB_RELEASE_FILE = '16competitive-client-*.AppImage'
 const COMMAND_TIMEOUT_MS = 15_000
+const UPDATE_COMMAND_TIMEOUT_MS = 30 * 60_000
 const MAX_OUTPUT_LENGTH = 1024 * 1024
 
 interface GearLeverApp {
   path: string
   manager: string | null
+}
+
+interface RunGearLeverOptions {
+  timeoutMs?: number
+  onStdout?: (output: string) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -29,7 +35,7 @@ function parseInstalledApps(output: string): GearLeverApp[] {
   })
 }
 
-function runGearLever(args: string[]): Promise<string> {
+function runGearLever(args: string[], options: RunGearLeverOptions = {}): Promise<string> {
   return new Promise((resolveOutput, reject) => {
     const child = spawn('flatpak', ['run', GEAR_LEVER_APP_ID, ...args], {
       stdio: ['ignore', 'pipe', 'pipe']
@@ -37,11 +43,13 @@ function runGearLever(args: string[]): Promise<string> {
     let stdout = ''
     let stderr = ''
     let settled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
 
     const finish = (error?: Error): void => {
       if (settled) return
       settled = true
-      clearTimeout(timer)
+      if (timer) clearTimeout(timer)
+      timer = null
       if (error) reject(error)
       else resolveOutput(stdout)
     }
@@ -57,6 +65,7 @@ function runGearLever(args: string[]): Promise<string> {
 
     child.stdout.on('data', (chunk: Buffer) => {
       stdout = appendOutput(stdout, chunk)
+      if (!settled) options.onStdout?.(stdout)
     })
     child.stderr.on('data', (chunk: Buffer) => {
       stderr = appendOutput(stderr, chunk)
@@ -67,19 +76,25 @@ function runGearLever(args: string[]): Promise<string> {
       else finish(new Error(stderr.trim() || `Gear Lever exited with code ${code ?? 'unknown'}.`))
     })
 
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       child.kill()
       finish(new Error('Gear Lever did not respond in time.'))
-    }, COMMAND_TIMEOUT_MS)
+    }, options.timeoutMs ?? COMMAND_TIMEOUT_MS)
   })
+}
+
+export function getCurrentAppImagePath(): string | null {
+  if (process.platform !== 'linux') return null
+
+  const appImagePath = process.env.APPIMAGE
+  if (!appImagePath || !isAbsolute(appImagePath) || appImagePath.includes('\0')) return null
+  return appImagePath
 }
 
 /** Adds the official update source when this AppImage is Gear Lever-managed but unconfigured. */
 export async function configureGearLeverUpdates(): Promise<void> {
-  if (process.platform !== 'linux') return
-
-  const appImagePath = process.env.APPIMAGE
-  if (!appImagePath || !isAbsolute(appImagePath) || appImagePath.includes('\0')) return
+  const appImagePath = getCurrentAppImagePath()
+  if (!appImagePath) return
 
   const output = await runGearLever(['--list-installed', '--json'])
   const managedApp = parseInstalledApps(output).find(
@@ -96,4 +111,35 @@ export async function configureGearLeverUpdates(): Promise<void> {
     `repo=${GITHUB_REPOSITORY}`,
     `repo_filename=${GITHUB_RELEASE_FILE}`
   ])
+}
+
+/** Replaces the running Linux AppImage through Gear Lever without requiring user interaction. */
+export async function updateCurrentAppImageWithGearLever(
+  onProgress?: (percent: number) => void
+): Promise<void> {
+  const appImagePath = getCurrentAppImagePath()
+  if (!appImagePath) throw new Error('The launcher is not running from a Linux AppImage.')
+
+  await configureGearLeverUpdates()
+
+  let lastProgress = -1
+  const output = await runGearLever(['--update', appImagePath, '--yes', '--force'], {
+    timeoutMs: UPDATE_COMMAND_TIMEOUT_MS,
+    onStdout: (currentOutput) => {
+      const matches = [...currentOutput.matchAll(/Status:\s*(\d+)%/g)]
+      const latest = matches.at(-1)?.[1]
+      if (!latest) return
+
+      const percent = Math.max(0, Math.min(100, Number.parseInt(latest, 10)))
+      if (!Number.isFinite(percent) || percent === lastProgress) return
+      lastProgress = percent
+      onProgress?.(percent)
+    }
+  })
+
+  if (!output.includes('updated successfully')) {
+    throw new Error('Gear Lever finished without updating this AppImage.')
+  }
+
+  if (lastProgress !== 100) onProgress?.(100)
 }

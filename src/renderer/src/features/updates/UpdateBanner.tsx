@@ -63,7 +63,7 @@ export function UpdateBanner(): JSX.Element | null {
     case 'error':
       content = {
         icon: <AlertTriangle className="size-4" aria-hidden="true" />,
-        message: `Update ${status.requiredVersion} is required, but the launcher could not install it. Exit and update it through Gear Lever before continuing.`,
+        message: status.message,
         failed: true
       }
       break
