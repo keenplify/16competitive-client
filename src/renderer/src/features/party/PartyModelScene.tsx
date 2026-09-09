@@ -25,11 +25,50 @@ const AK47_MODEL_ROTATION = [0, 90, 90] as const
 const AK47_HAND_ROTATION = [0, 180, 0] as const
 const AK47_HAND_OFFSET = [21, 0, 4] as const
 
+const WEAPON_ANIMATION_FAMILY: Record<string, string> = {
+  usp: 'onehanded',
+  glock18: 'onehanded',
+  p228: 'onehanded',
+  deagle: 'onehanded',
+  fiveseven: 'onehanded',
+  tmp: 'onehanded',
+  mac10: 'onehanded',
+  elite: 'dualpistols',
+  mp5navy: 'mp5',
+  sg552: 'mp5',
+  g3sg1: 'mp5',
+  p90: 'carbine',
+  ump45: 'carbine',
+  aug: 'carbine',
+  famas: 'carbine',
+  m4a1: 'rifle',
+  awp: 'rifle',
+  scout: 'rifle',
+  sg550: 'rifle',
+  ak47: 'ak47',
+  galil: 'ak47',
+  m249: 'm249',
+  knife: 'knife'
+}
+
 const sequenceIndexFor = (modelData: ModelData, label: string): number =>
-  Math.max(
-    0,
-    modelData.sequences.findIndex((sequence) => sequence.label.toLowerCase() === label)
-  )
+  modelData.sequences.findIndex((sequence) => sequence.label.toLowerCase() === label)
+
+const idleSequenceIndexFor = (modelData: ModelData): number => {
+  const idle1 = sequenceIndexFor(modelData, 'idle1')
+  if (idle1 >= 0) return idle1
+  const idle = sequenceIndexFor(modelData, 'idle')
+  return idle >= 0 ? idle : 0
+}
+
+const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
+  const family = WEAPON_ANIMATION_FAMILY[weaponKey]
+  if (family) {
+    const index = sequenceIndexFor(modelData, `ref_aim_${family}`)
+    if (index >= 0) return index
+  }
+  return idleSequenceIndexFor(modelData)
+}
 
 const addMesh = (
   group: THREE.Group,
@@ -97,13 +136,7 @@ const createActor = (
   weaponBuffer: ArrayBuffer
 ): THREE.Group => {
   const player = parseModelCached(playerBuffer)
-  const weaponAnimationIndex = player.sequences.findIndex(
-    (sequence) => sequence.label.toLowerCase() === `ref_aim_${actor.weaponKey}`
-  )
-  const animationIndex =
-    weaponAnimationIndex >= 0
-      ? weaponAnimationIndex
-      : sequenceIndexFor(player, 'ref_aim_ak47')
+  const animationIndex = weaponAnimationIndexFor(player, actor.weaponKey)
   const renderData = prepareRenderData(player, [animationIndex])
   const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
