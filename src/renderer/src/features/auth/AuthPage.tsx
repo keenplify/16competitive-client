@@ -33,6 +33,8 @@ export function AuthPage(): JSX.Element {
   const [backgroundPreview] = useState(
     () => mapPreviewSources[Math.floor(Math.random() * mapPreviewSources.length)]
   )
+  const isLogin = mode === 'login'
+  const isSubmitting = status === 'submitting'
 
   useEffect(() => {
     if (restoreStarted.current) return
@@ -83,8 +85,60 @@ export function AuthPage(): JSX.Element {
     )
   }
 
-  const isLogin = mode === 'login'
-  const isSubmitting = status === 'submitting'
+  if (socialPollToken && socialProvider === 'facebook') {
+    return (
+      <main className="grid min-h-screen place-items-center bg-neutral-950 p-6 text-white">
+        <section className="w-full max-w-md border border-white/10 bg-neutral-900/95 p-7 shadow-2xl sm:p-10">
+          <Logo className="mb-8 size-16" />
+          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Step 1 of 2</p>
+          <h1 className="mt-2 text-3xl font-semibold">Add your email</h1>
+          <p className="mt-3 text-sm leading-6 text-neutral-400">
+            Facebook did not share an email address. Add one to create your 1.6 Competitive account.
+            You’ll choose your username next.
+          </p>
+
+          <form
+            className="mt-7 grid gap-5"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submitSocialEmail()
+            }}
+          >
+            <TextField
+              id="facebook-email"
+              label="Email"
+              type="email"
+              value={email}
+              maxLength={254}
+              autoComplete="email"
+              autoFocus
+              disabled={isSubmitting}
+              placeholder="player@example.com"
+              hint="We use this to secure and identify your account."
+              onChange={(event) => setEmail(event.target.value)}
+            />
+
+            <div className="min-h-5" aria-live="polite">
+              {error && <p className="text-sm text-red-400">{error}</p>}
+            </div>
+
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Checking email…' : 'Continue'}
+            </Button>
+          </form>
+
+          <Button
+            className="mt-3 w-full"
+            variant="ghost"
+            disabled={isSubmitting}
+            onClick={() => setMode('login')}
+          >
+            Back to login
+          </Button>
+        </section>
+      </main>
+    )
+  }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
@@ -275,7 +329,9 @@ export function AuthPage(): JSX.Element {
             >
               Privacy Policy
             </a>
-            <span className="mx-2" aria-hidden="true">·</span>
+            <span className="mx-2" aria-hidden="true">
+              ·
+            </span>
             <a
               href="https://papamo.dev/terms"
               target="_blank"
