@@ -437,3 +437,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - General improvements across matchmaking, party, settings, and skins.
+
+## v2026.909.14 — 2026-09-09
+
+### Linux
+
+- Removed the Gear Lever dependency for Linux AppImage updates.
+- Updated documentation and package metadata to reflect the revised updater behavior.
