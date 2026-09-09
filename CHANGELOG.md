@@ -394,3 +394,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skins
 
 - Fixed an issue with skin thumbnail effects.
+
+## v2026.909.8 — 2026-09-09
+
+### Skin Assets
+
+- Repair only mismatched skin assets.
+- Verify skin asset integrity on the client.
+
+### Matchmaking
+
+- View regional latency when choosing a matchmaking region.
+- Sync assets through your preferred region.
