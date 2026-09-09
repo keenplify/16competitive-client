@@ -535,6 +535,14 @@ export function PartyModelScene({
     })
     camera.position.set(0, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
+    let targetCameraX = 0
+    const handlePointerMove = (event: PointerEvent): void => {
+      const bounds = canvas.getBoundingClientRect()
+      if (bounds.width <= 0) return
+      const normalizedX = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
+      targetCameraX = -45 + normalizedX * 90
+    }
+    window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
       camera.aspect = bounds.width / bounds.height
@@ -548,6 +556,8 @@ export function PartyModelScene({
     const fadeStartedAt = performance.now()
     const render = () => {
       frame = requestAnimationFrame(render)
+      camera.position.x += (targetCameraX - camera.position.x) * 0.06
+      camera.lookAt(new THREE.Vector3(0, 0, 0))
       const opacity = Math.min((performance.now() - fadeStartedAt) / 450, 1)
       actorsToFade.forEach((actor) => setActorOpacity(actor, opacity))
       renderer.render(scene, camera)
@@ -555,6 +565,7 @@ export function PartyModelScene({
     render()
     return () => {
       cancelAnimationFrame(frame)
+      window.removeEventListener('pointermove', handlePointerMove)
       observer.disconnect()
       renderer.dispose()
     }
