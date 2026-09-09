@@ -254,6 +254,26 @@ export function AuthPage(): JSX.Element {
           >
             Exit to desktop
           </Button>
+
+          <p className="mt-5 text-center text-xs text-neutral-500">
+            <a
+              href="https://papamo.dev/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-neutral-300 hover:underline"
+            >
+              Privacy Policy
+            </a>
+            <span className="mx-2" aria-hidden="true">·</span>
+            <a
+              href="https://papamo.dev/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-neutral-300 hover:underline"
+            >
+              Terms &amp; Conditions
+            </a>
+          </p>
         </div>
       </section>
     </main>
