@@ -19,6 +19,7 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
   const notice = usePartyStore((state) => state.notice)
   const setInviteUsername = usePartyStore((state) => state.setInviteUsername)
   const invite = usePartyStore((state) => state.invite)
+  const leave = usePartyStore((state) => state.leave)
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
@@ -39,7 +40,7 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
 
   return (
     <aside
-      className={`${isSearching ? 'flex' : 'hidden'} fixed right-0 bottom-0 z-20 max-h-[55vh] w-full flex-col border-t border-white/10 bg-neutral-950/90 text-white shadow-2xl backdrop-blur-md md:top-20 md:flex md:max-h-none md:w-72 md:border-t-0 md:border-l`}
+      className={`${isSearching ? 'flex' : 'hidden'} fixed right-0 bottom-0 z-20 max-h-[55vh] w-full flex-col border-t border-white/10 bg-neutral-950/90 text-white shadow-2xl backdrop-blur-md md:top-0 md:flex md:max-h-none md:w-72 md:border-t-0 md:border-l`}
     >
       <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
 
@@ -48,10 +49,21 @@ export function LobbySocialSidebar({ playerId }: LobbySocialSidebarProps): JSX.E
           <div className="flex items-center gap-2">
             <Users className="size-4 text-neutral-300" aria-hidden="true" />
             <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-200 uppercase">
-              Friends
+              {party ? `Party · ${party.members.length} / 5` : 'Friends'}
             </h2>
           </div>
-          <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
+          {party ? (
+            <Button
+              variant="ghost"
+              className="h-7 px-2 text-[10px] tracking-[0.1em] uppercase"
+              disabled={status === 'leaving'}
+              onClick={() => void leave()}
+            >
+              {status === 'leaving' ? 'Leaving…' : isLeader ? 'Disband' : 'Leave'}
+            </Button>
+          ) : (
+            <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
+          )}
         </header>
 
         {isLeader && !isFull && !isSearching && (

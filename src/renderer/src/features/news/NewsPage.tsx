@@ -12,11 +12,11 @@ export function NewsPage(): JSX.Element {
   }, [loadAll])
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] w-full bg-neutral-950/75 p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
-      <header className="mx-auto max-w-5xl border-b border-white/10 pb-6">
+    <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
+      <header className="mx-auto max-w-5xl border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Community</p>
         <h1 className="mt-2 text-3xl font-semibold">News</h1>
-        <p className="mt-2 text-sm text-neutral-400">Updates from 1.6 Competitive</p>
+        <p className="mt-2 text-sm text-neutral-200">Updates from 1.6 Competitive</p>
       </header>
       {status === 'loading' && posts.length === 0 && (
         <p className="py-16 text-center text-sm text-neutral-400">Loading news…</p>

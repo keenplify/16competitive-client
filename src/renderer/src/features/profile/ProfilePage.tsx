@@ -10,14 +10,9 @@ export function ProfilePage(): JSX.Element {
   const tab = useNavigationStore((state) => state.profileTab)
   const setTab = useNavigationStore((state) => state.setProfileTab)
   return (
-    <main
-      className={twMerge(
-        'min-h-[calc(100vh-5rem)] w-full p-6 text-white sm:p-10',
-        tab === 'skins' ? 'bg-[#07090d]' : 'bg-black/60'
-      )}
-    >
+    <main className="min-h-[calc(100vh-5rem)] w-full p-6 text-white sm:p-10">
       <div className={twMerge('mx-auto w-full', tab === 'skins' ? 'max-w-[90rem]' : 'max-w-5xl')}>
-        <header className="border-b border-white/10 pb-0">
+        <header className="border-b border-white/10 pb-0 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
           <h1 className="mt-2 text-3xl font-semibold">{player?.username ?? 'Player'}</h1>
           <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
@@ -31,7 +26,7 @@ export function ProfilePage(): JSX.Element {
                   'border-b-2 px-1 pb-3 text-sm font-semibold capitalize transition',
                   tab === id
                     ? 'border-sky-400 text-sky-300'
-                    : 'border-transparent text-neutral-500 hover:text-white'
+                    : 'border-transparent text-neutral-300 hover:text-white'
                 )}
                 onClick={() => setTab(id)}
               >
