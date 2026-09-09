@@ -124,22 +124,22 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform> = {
   p228: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [4, 1, 3]
   },
   deagle: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [4, 1, 3]
   },
   fiveseven: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [8, 1, 3]
+    handOffset: [3, 1, 3]
   },
   elite: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [-120, 180, 0],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [4.5, 0, 4]
   },
   m3: {
     modelRotation: [0, 90, 90],
@@ -494,7 +494,7 @@ export function PartyModelScene({
       scene.add(model)
       actorsToFade.push(model)
     })
-    camera.position.set(-90, 22.5, 170)
+    camera.position.set(90, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
