@@ -82,6 +82,51 @@ export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
   return body.nodes
 }
 
+export const selectMatchmakingApiUrl = async (
+  nodes: MatchmakingNode[],
+  selectedNodeId: string | null
+): Promise<string | null> => {
+  const selected = nodes.find((node) => node.id === selectedNodeId && node.available)
+  if (selected) return selected.publicApiUrl
+
+  const available = nodes.filter((node) => node.available)
+  if (available.length === 0) return null
+
+  const measurements = await Promise.all(
+    available.map(async (node) => {
+      const startedAt = performance.now()
+      try {
+        await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
+        return { node, latency: performance.now() - startedAt }
+      } catch {
+        return null
+      }
+    })
+  )
+
+  return (
+    measurements
+      .filter(
+        (measurement): measurement is { node: MatchmakingNode; latency: number } =>
+          Boolean(measurement)
+      )
+      .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
+    available[0].publicApiUrl
+  )
+}
+
+export const resolvePreferredMatchmakingApiUrl = async (): Promise<string> => {
+  try {
+    const [nodes, preferences] = await Promise.all([
+      getMatchmakingNodes(),
+      getMatchmakingPreferences()
+    ])
+    return (await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)) ?? API_BASE_URL
+  } catch {
+    return API_BASE_URL
+  }
+}
+
 export const toMatchmakingWsUrl = (apiUrl: string): string => {
   if (!isApiUrl(apiUrl)) throw new Error('Invalid regional matchmaking API URL')
   const url = new URL(apiUrl)
