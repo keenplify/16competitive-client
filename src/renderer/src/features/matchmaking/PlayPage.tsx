@@ -263,19 +263,19 @@ export function PlayPage(): JSX.Element {
   }
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] bg-neutral-950/92 p-5 text-white sm:p-8">
+    <main className="min-h-[calc(100vh-5rem)] p-5 text-white sm:p-8">
       <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="flex flex-wrap items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Matchmaking</p>
             <h1 className="mt-2 text-3xl font-semibold">Choose your battlefield</h1>
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-neutral-200">
               {isLeader
                 ? "Toggle any 5v5 Competitive maps to build your party's search pool."
                 : 'Your party leader chooses the Competitive map pool.'}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 text-xs text-neutral-200">
             <span
               className={twMerge(
                 'size-2 rounded-full bg-neutral-600',
@@ -289,7 +289,7 @@ export function PlayPage(): JSX.Element {
         <>
           <section className="mt-8 border-t border-white/10 pt-6">
             <label
-              className="block text-xs font-semibold tracking-wide text-neutral-500 uppercase"
+              className="block text-xs font-semibold tracking-wide text-neutral-200 uppercase"
               htmlFor="matchmaking-region"
             >
               Preferred region
@@ -323,9 +323,9 @@ export function PlayPage(): JSX.Element {
 
           <section className="mt-8">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
+              <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Maps</p>
               {availableMaps.length > 0 && (
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-200">
                   {selectedMapIds.length} of {availableMaps.length} selected
                 </p>
               )}

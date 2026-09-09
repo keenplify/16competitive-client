@@ -1,17 +1,19 @@
-import { Logo } from '../Logo'
-import { ReactNode, type JSX, useEffect, useRef, useState } from 'react'
+import type { JSX } from 'react'
+import { House, Newspaper, Play, Settings, ShoppingBag, Trophy, UserRound } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
-import { ChevronLeft } from 'lucide-react'
 
 const pages = [
-  { id: 'play', label: 'Play' },
-  { id: 'leaderboard', label: 'Leaderboard' },
-  { id: 'store', label: 'Store' },
-  { id: 'news', label: 'News' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'profile', label: 'Profile' }
-] as const satisfies ReadonlyArray<{ id: Exclude<LobbyPageId, 'lobby'>; label: string }>
+  { id: 'profile', label: 'Inventory', icon: UserRound },
+  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+  { id: 'play', label: 'Play', icon: Play },
+  { id: 'store', label: 'Store', icon: ShoppingBag },
+  { id: 'news', label: 'News', icon: Newspaper }
+] as const satisfies ReadonlyArray<{
+  id: Exclude<LobbyPageId, 'lobby' | 'settings'>
+  label: string
+  icon: typeof Play
+}>
 
 interface LobbyNavigationProps {
   activePage: LobbyPageId
@@ -25,138 +27,107 @@ export function LobbyNavigation({
   activePage,
   onNavigate,
   className,
-  showBackToLobby = true,
   locked = false
 }: LobbyNavigationProps): JSX.Element {
-  const navRef = useRef<HTMLUListElement>(null)
-
-  const [indicator, setIndicator] = useState({
-    left: 0,
-    width: 0
-  })
-
-  const updateIndicator = (element: HTMLElement): void => {
-    const nav = navRef.current
-
-    if (!nav) return
-
-    const navRect = nav.getBoundingClientRect()
-    const rect = element.getBoundingClientRect()
-
-    setIndicator({
-      left: rect.left - navRect.left,
-      width: rect.width
-    })
-  }
-
-  useEffect(() => {
-    const activeElement = navRef.current?.querySelector(
-      `[data-page="${activePage}"]`
-    ) as HTMLElement | null
-
-    if (activeElement) {
-      updateIndicator(activeElement)
-    } else {
-      setIndicator((current) => ({ left: current.left, width: 0 }))
-    }
-  }, [activePage])
+  const canNavigate = (page: LobbyPageId): boolean =>
+    !locked || page === 'settings' || page === 'play'
 
   return (
     <nav
       className={twMerge(
-        'flex h-16 w-full overflow-hidden bg-gray-950/70 backdrop-blur-md sm:h-20',
+        'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-16 items-center px-3 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-28 before:bg-gradient-to-b before:from-neutral-950/25 before:to-transparent sm:h-20 sm:px-5',
         className
       )}
+      aria-label="Lobby navigation"
     >
-      <button
-        type="button"
-        className="shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Open party lobby"
-        disabled={locked}
-        onClick={() => onNavigate('lobby')}
-      >
-        <Logo />
-      </button>
-      {showBackToLobby && (
-        <button
-          type="button"
-          className={twMerge(
-            'shrink-0 px-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase cursor-pointer transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 sm:px-3 flex items-center gap-2',
-            activePage !== 'lobby' ? 'opacity-100' : 'opacity-0'
-          )}
-          aria-label="Back to Lobby"
-          disabled={locked}
+      <div className="pointer-events-auto relative z-10 flex items-center gap-1.5 p-1.5">
+        <IconButton
+          label="Home"
+          active={activePage === 'lobby'}
+          disabled={!canNavigate('lobby')}
           onClick={() => onNavigate('lobby')}
         >
-          <ChevronLeft size="1.25em" /> Back to Lobby
-        </button>
-      )}
+          <House className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
+        </IconButton>
+        <IconButton
+          label="Settings"
+          active={activePage === 'settings'}
+          disabled={!canNavigate('settings')}
+          onClick={() => onNavigate('settings')}
+        >
+          <Settings className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
+        </IconButton>
+      </div>
 
-      <ul
-        ref={navRef}
-        className="relative ml-auto flex min-w-0 gap-0 overflow-x-auto capitalize sm:gap-2"
-      >
-        {/* Moving blue bar + glow */}
-        <div
-          className={twMerge(
-            'pointer-events-none absolute bottom-0 z-20 h-0.5 bg-blue-400 shadow-[0_0_6px_2px_rgba(59,130,246,0.8)] transition-all duration-300 ease-out',
-            pages.some((p) => p.id === activePage) ? 'opacity-100' : 'opacity-0'
-          )}
-          style={{
-            left: indicator.left,
-            width: indicator.width
-          }}
-        />
+      <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">
+        {pages.map(({ id, icon: Icon, label }) => {
+          const active = activePage === id
+          const isPlay = id === 'play'
 
-        {pages.map(({ id, label }) => (
-          <PageButton
-            key={id}
-            page={id}
-            active={activePage === id}
-            disabled={locked && id !== 'settings' && id !== 'play'}
-            onClick={(element) => {
-              onNavigate(id)
-              updateIndicator(element)
-            }}
-          >
-            {label}
-          </PageButton>
-        ))}
-      </ul>
+          return (
+            <button
+              key={id}
+              type="button"
+              disabled={!canNavigate(id)}
+              aria-current={active ? 'page' : undefined}
+              onClick={() => onNavigate(id)}
+              className={twMerge(
+                'group relative inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 text-xs font-bold tracking-[0.08em] text-white/80 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:px-4 sm:text-sm',
+                active &&
+                  'bg-white/10 text-sky-200 after:absolute after:-top-3.5 after:left-1/2 after:h-0.5 after:w-[calc(100%+0.5rem)] after:-translate-x-1/2 after:bg-sky-300 after:shadow-[0_0_10px_rgba(125,211,252,0.95)] sm:after:-top-5',
+                isPlay && 'px-3 text-white sm:px-5',
+                isPlay &&
+                  active &&
+                  'bg-sky-500 text-white shadow-[0_0_22px_rgba(14,165,233,0.65)] hover:bg-sky-400'
+              )}
+            >
+              {isPlay && !active && (
+                <>
+                  <span className="pointer-events-none absolute -inset-2 rounded-lg bg-sky-400/20 blur-md motion-safe:animate-pulse" />
+                  <span className="pointer-events-none absolute -inset-1 rounded-md border border-sky-300/45 opacity-0 motion-safe:animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                  <span className="pointer-events-none absolute inset-0 rounded-md border border-sky-200/80 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]" />
+                </>
+              )}
+              <Icon
+                className={twMerge(
+                  'relative z-10 size-3.5 transition-transform group-hover:scale-110 sm:size-4',
+                  isPlay &&
+                    'fill-current text-sky-300 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]'
+                )}
+                aria-hidden="true"
+              />
+              <span className="relative z-10 hidden sm:inline">{label}</span>
+            </button>
+          )
+        })}
+      </div>
     </nav>
   )
 }
 
-function PageButton({ children, page, active, disabled, onClick }: PageButtonProps): JSX.Element {
-  const buttonRef = useRef<HTMLLIElement>(null)
-
-  return (
-    <li ref={buttonRef} data-page={page} className="relative flex">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => {
-          if (buttonRef.current) onClick?.(buttonRef.current)
-        }}
-        className={twMerge(
-          'relative flex cursor-pointer items-center justify-center px-3 py-2 text-sm font-bold text-white hover:text-blue-100 active:text-blue-200 disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:text-xl',
-          active && 'text-blue-400'
-        )}
-      >
-        {active && (
-          <span className="nav-active-bg pointer-events-none absolute inset-x-0 bottom-0 z-0" />
-        )}
-
-        <span className="relative z-10">{children}</span>
-      </button>
-    </li>
-  )
+interface IconButtonProps {
+  label: string
+  active: boolean
+  disabled: boolean
+  onClick: () => void
+  children: JSX.Element
 }
 
-interface PageButtonProps {
-  children: ReactNode
-  page: Exclude<LobbyPageId, 'lobby'>
-  active?: boolean
-  disabled?: boolean
-  onClick?: (element: HTMLElement) => void
+function IconButton({ label, active, disabled, onClick, children }: IconButtonProps): JSX.Element {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      disabled={disabled}
+      onClick={onClick}
+      className={twMerge(
+        'grid size-8 place-items-center rounded-md text-white/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:size-9',
+        active &&
+          'bg-white/10 text-sky-200 after:absolute after:-top-3.5 after:left-1/2 after:h-0.5 after:w-[calc(100%+0.25rem)] after:-translate-x-1/2 after:bg-sky-300 after:shadow-[0_0_10px_rgba(125,211,252,0.95)] sm:after:-top-5'
+      )}
+    >
+      {children}
+    </button>
+  )
 }

@@ -2,7 +2,6 @@ import { memo, useEffect, useState, type JSX } from 'react'
 import dustBackground from '../../assets/dust.jpg'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
-import { PartyPanel } from '../party/PartyPanel'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
 import { PartyPlayerSlot } from '../party/PartyPlayerSlot'
@@ -46,7 +45,6 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
 
   return (
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
-      <PartyPanel playerId={player.id} />
       <div className="relative flex min-h-0 flex-1 md:pr-72">
         {members.length < 4 && <LobbyNewsPanel />}
         <section className="flex flex-1 flex-wrap justify-center">
@@ -224,7 +222,7 @@ export function LobbyPage(): JSX.Element {
       <LobbySocialSidebar playerId={player.id} />
       {content && (
         <div
-          className={`relative z-10 min-h-screen pt-16 backdrop-blur-md sm:pt-20 ${showSocialSidebar ? 'md:pr-72' : ''}`}
+          className={`relative z-10 min-h-screen bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20 ${showSocialSidebar ? 'md:pr-72' : ''}`}
         >
           {content}
         </div>

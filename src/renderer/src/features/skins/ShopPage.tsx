@@ -138,13 +138,13 @@ export function ShopPage(): JSX.Element {
   }, [])
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] w-full bg-neutral-950/75 p-6 text-white sm:p-10">
+    <main className="min-h-[calc(100vh-5rem)] w-full p-6 text-white sm:p-10">
       <div className="mx-auto w-full max-w-6xl">
-        <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6">
+        <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
             <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-neutral-200">
               Choose a weapon, then unlock a skin for a future match.
             </p>
           </div>
