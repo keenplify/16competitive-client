@@ -424,3 +424,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### AppImage
 
 - AppImage runs now require Gear Lever.
+
+## v2026.909.12 — 2026-09-09
+
+### Matchmaking
+
+- Added regional latency selection.
+- Matchmaking nodes now measure latency to help inform region selection.
