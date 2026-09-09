@@ -21,7 +21,10 @@ export type PartySceneActor = {
   isCurrentPlayer: boolean
 }
 
+type WeaponHand = 'left' | 'right'
+
 type WeaponTransform = {
+  hand?: WeaponHand
   modelRotation: readonly [number, number, number]
   handRotation: readonly [number, number, number]
   handOffset: readonly [number, number, number]
@@ -35,7 +38,8 @@ const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
 
 // Weapon placement is intentionally independent from animation families so each
 // p_*.mdl can be calibrated without changing other guns that share ref_aim_*.
-const WEAPON_TRANSFORM: Record<string, WeaponTransform> = {
+// A weapon may provide multiple transforms when it needs multiple model instances.
+const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransform[]> = {
   ak47: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
@@ -136,11 +140,20 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform> = {
     handRotation: [0, 180, 0],
     handOffset: [3, 1, 3]
   },
-  elite: {
-    modelRotation: [-120, 180, 0],
-    handRotation: [0, 180, 0],
-    handOffset: [4.5, 0, 4]
-  },
+  elite: [
+    {
+      hand: 'right',
+      modelRotation: [-120, 180, 0],
+      handRotation: [0, 180, 0],
+      handOffset: [4.5, 0, 4]
+    },
+    {
+      hand: 'left',
+      modelRotation: [-120, 180, 0],
+      handRotation: [0, 180, 0],
+      handOffset: [4.5, 0, 4]
+    }
+  ],
   m3: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
@@ -236,8 +249,10 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
   return idleSequenceIndexFor(modelData)
 }
 
-const weaponTransformFor = (weaponKey: string): WeaponTransform =>
-  WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM
+const weaponTransformsFor = (weaponKey: string): readonly WeaponTransform[] => {
+  const configured = WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM
+  return Array.isArray(configured) ? configured : [configured]
+}
 
 const addMesh = (
   group: THREE.Group,
@@ -306,7 +321,7 @@ const createActor = (
 ): THREE.Group => {
   const player = parseModelCached(playerBuffer)
   const animationIndex = weaponAnimationIndexFor(player, actor.weaponKey)
-  const weaponTransform = weaponTransformFor(actor.weaponKey)
+  const weaponTransforms = weaponTransformsFor(actor.weaponKey)
   const renderData = prepareRenderData(player, [animationIndex])
   const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
@@ -333,77 +348,87 @@ const createActor = (
     player.bones.map((bone, index) => [bone.name.toLowerCase(), index])
   )
   const rightHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('r hand'))
-  const weaponBoneMap = weapon.bones.map(
-    (bone) => playerBoneIndices.get(bone.name.toLowerCase()) ?? rightHandBone
-  )
+  const leftHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('l hand'))
   const playerBones = calcRotations(player, animationIndex, 0)
-  const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees)))
-  )
-  const handTransform = new THREE.Matrix4().fromArray(
-    playerBones[rightHandBone] as unknown as number[]
-  )
-  const handRotation = handTransform
-    .clone()
-    .multiply(
-      new THREE.Matrix4().makeRotationFromEuler(
-        new THREE.Euler(
-          ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
-        )
+
+  weaponTransforms.forEach((weaponTransform) => {
+    const requestedHandBone = weaponTransform.hand === 'left' ? leftHandBone : rightHandBone
+    const handBone = requestedHandBone >= 0 ? requestedHandBone : rightHandBone
+    const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
+      new THREE.Euler(
+        ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
       )
     )
-    .multiply(new THREE.Matrix4().getInverse(handTransform))
-  const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
-  const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
-    .applyMatrix4(handTransform)
-    .sub(handOrigin)
-
-  weapon.meshes.forEach((bodyPart, bodyPartIndex) =>
-    bodyPart.forEach((subModel, subModelIndex) =>
-      subModel.forEach((sourceMesh, meshIndex) => {
-        const textureIndex = weapon.skinRef[sourceMesh.skinRef]
-        const textureInfo = weapon.textures[textureIndex]
-        const { vertices, uv, indices } = readFacesData(
-          weapon.triangles[bodyPartIndex][subModelIndex][meshIndex],
-          weapon.vertices[bodyPartIndex][subModelIndex],
-          textureInfo ?? { width: 1, height: 1 }
-        )
-        const positioned = new Float32Array(vertices.length)
-        for (let index = 0; index < vertices.length; index += 3) {
-          const vertex = new THREE.Vector3(
-            vertices[index],
-            vertices[index + 1],
-            vertices[index + 2]
-          ).applyMatrix4(sourceRotation)
-          positioned[index] = vertex.x
-          positioned[index + 1] = vertex.y
-          positioned[index + 2] = vertex.z
-        }
-        const boneBuffer = Uint8Array.from(
-          weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
-          (boneIndex) => weaponBoneMap[boneIndex] ?? rightHandBone
-        )
-        const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
-        for (let index = 0; index < skinned.length; index += 3) {
-          const vertex = new THREE.Vector3(
-            skinned[index],
-            skinned[index + 1],
-            skinned[index + 2]
-          ).applyMatrix4(handRotation)
-          skinned[index] = vertex.x + handOffset.x
-          skinned[index + 1] = vertex.y + handOffset.y
-          skinned[index + 2] = vertex.z + handOffset.z
-        }
-        addMesh(
-          group,
-          new THREE.BufferAttribute(skinned, 3),
-          new THREE.BufferAttribute(uv, 2),
-          weaponTextures[textureIndex],
-          textureInfo
-        )
-      })
+    const handTransform = new THREE.Matrix4().fromArray(
+      playerBones[handBone] as unknown as number[]
     )
-  )
+    const handRotation = handTransform
+      .clone()
+      .multiply(
+        new THREE.Matrix4().makeRotationFromEuler(
+          new THREE.Euler(
+            ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
+          )
+        )
+      )
+      .multiply(new THREE.Matrix4().getInverse(handTransform))
+    const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
+    const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
+      .applyMatrix4(handTransform)
+      .sub(handOrigin)
+    const weaponBoneMap = weapon.bones.map((bone) =>
+      weaponTransform.hand
+        ? handBone
+        : playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone
+    )
+
+    weapon.meshes.forEach((bodyPart, bodyPartIndex) =>
+      bodyPart.forEach((subModel, subModelIndex) =>
+        subModel.forEach((sourceMesh, meshIndex) => {
+          const textureIndex = weapon.skinRef[sourceMesh.skinRef]
+          const textureInfo = weapon.textures[textureIndex]
+          const { vertices, uv, indices } = readFacesData(
+            weapon.triangles[bodyPartIndex][subModelIndex][meshIndex],
+            weapon.vertices[bodyPartIndex][subModelIndex],
+            textureInfo ?? { width: 1, height: 1 }
+          )
+          const positioned = new Float32Array(vertices.length)
+          for (let index = 0; index < vertices.length; index += 3) {
+            const vertex = new THREE.Vector3(
+              vertices[index],
+              vertices[index + 1],
+              vertices[index + 2]
+            ).applyMatrix4(sourceRotation)
+            positioned[index] = vertex.x
+            positioned[index + 1] = vertex.y
+            positioned[index + 2] = vertex.z
+          }
+          const boneBuffer = Uint8Array.from(
+            weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
+            (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
+          )
+          const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
+          for (let index = 0; index < skinned.length; index += 3) {
+            const vertex = new THREE.Vector3(
+              skinned[index],
+              skinned[index + 1],
+              skinned[index + 2]
+            ).applyMatrix4(handRotation)
+            skinned[index] = vertex.x + handOffset.x
+            skinned[index + 1] = vertex.y + handOffset.y
+            skinned[index + 2] = vertex.z + handOffset.z
+          }
+          addMesh(
+            group,
+            new THREE.BufferAttribute(skinned, 3),
+            new THREE.BufferAttribute(uv, 2),
+            weaponTextures[textureIndex],
+            textureInfo
+          )
+        })
+      )
+    )
+  })
 
   group.rotation.x = THREE.Math.degToRad(-90)
   group.rotation.z = THREE.Math.degToRad(-90)
