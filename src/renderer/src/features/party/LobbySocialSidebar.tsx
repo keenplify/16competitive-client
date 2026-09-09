@@ -1,5 +1,5 @@
-import { ChevronRight, LoaderCircle, Mail, UserPlus, Users } from 'lucide-react'
-import type { FormEvent, JSX } from 'react'
+import { ChevronRight, Mail, UserPlus, Users } from 'lucide-react'
+import type { FormEvent, JSX, KeyboardEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
@@ -27,7 +27,8 @@ export function LobbySocialSidebar({
   const setInviteUsername = usePartyStore((state) => state.setInviteUsername)
   const invite = usePartyStore((state) => state.invite)
   const leave = usePartyStore((state) => state.leave)
-  const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+  const isSearching =
+    queueStatus === 'joining' || queueStatus === 'queued' || queueStatus === 'leaving'
   const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
   const matchNeedsAttention = [
@@ -40,123 +41,152 @@ export function LobbySocialSidebar({
 
   if (matchNeedsAttention) return null
 
-  if (collapsed) {
-    return (
-      <aside
-        className="fixed top-0 right-0 z-20 flex h-screen w-11 flex-col items-center border border-r-0 border-white/10 bg-neutral-950/90 text-neutral-300 shadow-2xl backdrop-blur-md transition hover:bg-neutral-900 hover:text-white"
-        aria-label="Friends summary"
-        onFocusCapture={() => onCollapsedChange(false)}
-      >
-        <button
-          type="button"
-          className="mt-5 rounded p-2 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400"
-          aria-label="Expand Friends panel"
-          onClick={() => onCollapsedChange(false)}
-        >
-          <Users className="size-4" aria-hidden="true" />
-        </button>
-        <div className="mt-auto mb-5 flex flex-col items-center gap-4">
-          {isSearching && (
-            <span title="Finding match" aria-label="Finding match">
-              <LoaderCircle className="size-4 animate-spin text-sky-300" aria-hidden="true" />
-            </span>
-          )}
-          <span className="relative" title="Party invitations" aria-label="Party invitations">
-            <Mail className="size-4" aria-hidden="true" />
-            {invitations.length > 0 && (
-              <span className="absolute -top-2 -right-2 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
-                {invitations.length}
-              </span>
-            )}
-          </span>
-        </div>
-      </aside>
-    )
-  }
-
   const handleInvite = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     void invite()
   }
 
+  const expandCollapsedSidebar = (): void => {
+    if (collapsed) onCollapsedChange(false)
+  }
+
+  const handleCollapsedKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+    if (!collapsed || (event.key !== 'Enter' && event.key !== ' ')) return
+    event.preventDefault()
+    onCollapsedChange(false)
+  }
+
   return (
-    <aside
-      className={`${isSearching ? 'flex' : 'hidden'} fixed right-0 bottom-0 z-20 max-h-[55vh] w-full flex-col border-t border-white/10 bg-neutral-950/90 text-white shadow-2xl backdrop-blur-md md:top-0 md:flex md:max-h-none md:w-72 md:border-t-0 md:border-l`}
-    >
-      <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
+    <>
+      <div
+        className={`fixed top-4 right-14 z-20 w-52 transition-all duration-300 ease-out ${
+          collapsed && isSearching
+            ? 'translate-x-0 opacity-100'
+            : 'pointer-events-none translate-x-4 opacity-0'
+        }`}
+      >
+        <MatchSearchPanel variant="compact" className="rounded-md" />
+      </div>
 
-      <section className="flex min-h-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-white/5 px-4">
-          <div className="flex items-center gap-2">
-            <Users className="size-4 text-neutral-300" aria-hidden="true" />
-            <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-200 uppercase">
-              {party ? `Party · ${party.members.length} / 5` : 'Friends'}
-            </h2>
+      <aside
+        className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/90 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${
+          collapsed
+            ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white'
+            : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[55vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`
+        }`}
+        aria-label={collapsed ? 'Expand Friends panel' : 'Friends panel'}
+        role={collapsed ? 'button' : undefined}
+        tabIndex={collapsed ? 0 : undefined}
+        onClick={expandCollapsedSidebar}
+        onKeyDown={handleCollapsedKeyDown}
+      >
+        <div
+          className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${
+            collapsed
+              ? 'translate-x-0 opacity-100 delay-100'
+              : 'pointer-events-none translate-x-3 opacity-0'
+          }`}
+          aria-hidden={!collapsed}
+        >
+          <div className="mt-5 rounded p-2">
+            <Users className="size-4" aria-hidden="true" />
           </div>
-          <div className="flex items-center gap-1">
-            {party ? (
-              <Button
-                variant="ghost"
-                className="h-7 px-2 text-[10px] tracking-[0.1em] uppercase"
-                disabled={status === 'leaving'}
-                onClick={() => void leave()}
-              >
-                {status === 'leaving' ? 'Leaving…' : isLeader ? 'Disband' : 'Leave'}
-              </Button>
-            ) : (
-              <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
+          <div className="mt-auto mb-5 flex flex-col items-center gap-4">
+            <span className="relative" title="Party invitations" aria-label="Party invitations">
+              <Mail className="size-4" aria-hidden="true" />
+              {invitations.length > 0 && (
+                <span className="absolute -top-2 -right-2 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
+                  {invitations.length}
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className={`flex h-full min-w-72 flex-1 flex-col transition-all duration-250 ease-out ${
+            collapsed
+              ? 'pointer-events-none translate-x-4 opacity-0'
+              : 'translate-x-0 opacity-100 delay-75'
+          }`}
+          aria-hidden={collapsed}
+        >
+          <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
+
+          <section className="flex min-h-0 flex-1 flex-col">
+            <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-white/5 px-4">
+              <div className="flex items-center gap-2">
+                <Users className="size-4 text-neutral-300" aria-hidden="true" />
+                <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-200 uppercase">
+                  {party ? `Party · ${party.members.length} / 5` : 'Friends'}
+                </h2>
+              </div>
+              <div className="flex items-center gap-1">
+                {party ? (
+                  <Button
+                    variant="ghost"
+                    className="h-7 px-2 text-[10px] tracking-[0.1em] uppercase"
+                    disabled={status === 'leaving'}
+                    onClick={() => void leave()}
+                  >
+                    {status === 'leaving' ? 'Leaving…' : isLeader ? 'Disband' : 'Leave'}
+                  </Button>
+                ) : (
+                  <UserPlus className="size-4 text-neutral-500" aria-hidden="true" />
+                )}
+                <button
+                  type="button"
+                  className="rounded p-1 text-neutral-500 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+                  aria-label="Collapse Friends panel"
+                  onClick={() => onCollapsedChange(true)}
+                >
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+            </header>
+
+            {isLeader && !isFull && !isSearching && (
+              <form className="shrink-0 border-b border-white/10 p-3" onSubmit={handleInvite}>
+                <TextField
+                  id="friends-invite-username"
+                  label="Invite by username"
+                  className="h-9 rounded-none"
+                  value={inviteUsername}
+                  minLength={3}
+                  maxLength={32}
+                  pattern="[A-Za-z0-9_]+"
+                  autoComplete="off"
+                  placeholder="player_name"
+                  disabled={status === 'inviting'}
+                  onChange={(event) => setInviteUsername(event.target.value)}
+                />
+                <Button
+                  className="mt-2 h-8 w-full rounded-none text-[11px] tracking-[0.14em] uppercase"
+                  type="submit"
+                  disabled={status === 'inviting'}
+                >
+                  {status === 'inviting' ? 'Sending…' : 'Invite player'}
+                </Button>
+              </form>
             )}
-            <button
-              type="button"
-              className="rounded p-1 text-neutral-500 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
-              aria-label="Collapse Friends panel"
-              onClick={() => onCollapsedChange(true)}
-            >
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-        </header>
 
-        {isLeader && !isFull && !isSearching && (
-          <form className="shrink-0 border-b border-white/10 p-3" onSubmit={handleInvite}>
-            <TextField
-              id="friends-invite-username"
-              label="Invite by username"
-              className="h-9 rounded-none"
-              value={inviteUsername}
-              minLength={3}
-              maxLength={32}
-              pattern="[A-Za-z0-9_]+"
-              autoComplete="off"
-              placeholder="player_name"
-              disabled={status === 'inviting'}
-              onChange={(event) => setInviteUsername(event.target.value)}
-            />
-            <Button
-              className="mt-2 h-8 w-full rounded-none text-[11px] tracking-[0.14em] uppercase"
-              type="submit"
-              disabled={status === 'inviting'}
-            >
-              {status === 'inviting' ? 'Sending…' : 'Invite player'}
-            </Button>
-          </form>
-        )}
+            <div className="min-h-5 shrink-0 px-3 pt-2" aria-live="polite">
+              {error && <p className="text-xs text-red-400">{error}</p>}
+              {!error && notice && <p className="text-xs text-emerald-400">{notice}</p>}
+            </div>
 
-        <div className="min-h-5 shrink-0 px-3 pt-2" aria-live="polite">
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          {!error && notice && <p className="text-xs text-emerald-400">{notice}</p>}
+            <div className="flex min-h-32 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
+              <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <Users className="size-4 text-neutral-500" aria-hidden="true" />
+              </div>
+              <p className="mt-3 text-sm font-medium text-neutral-300">Friends list coming soon</p>
+              <p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">
+                Online friends and party invites will appear here.
+              </p>
+            </div>
+          </section>
         </div>
-
-        <div className="flex min-h-32 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
-          <div className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-            <Users className="size-4 text-neutral-500" aria-hidden="true" />
-          </div>
-          <p className="mt-3 text-sm font-medium text-neutral-300">Friends list coming soon</p>
-          <p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">
-            Online friends and party invites will appear here.
-          </p>
-        </div>
-      </section>
-    </aside>
+      </aside>
+    </>
   )
 }
