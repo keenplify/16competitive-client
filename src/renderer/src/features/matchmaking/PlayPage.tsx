@@ -9,6 +9,7 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
+import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
 
 const connectionLabels = {
@@ -110,6 +111,8 @@ export function PlayPage(): JSX.Element {
 
   useEffect(() => {
     void loadRegions()
+    const timer = window.setInterval(() => void loadRegions(), 15_000)
+    return () => window.clearInterval(timer)
   }, [loadRegions])
 
   useEffect(() => {
@@ -308,21 +311,12 @@ export function PlayPage(): JSX.Element {
             >
               Preferred region
             </label>
-            <select
-              id="matchmaking-region"
-              className="mt-3 w-full max-w-sm border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-60"
-              value={selectedNodeId ?? ''}
+            <MatchmakingRegionSelect
+              nodes={nodes}
+              selectedNodeId={selectedNodeId}
               disabled={isSearching}
-              onChange={(event) => void selectNode(event.target.value || null)}
-            >
-              <option value="">Automatic (healthy region)</option>
-              {nodes.map((node) => (
-                <option key={node.id} value={node.id} disabled={!node.available}>
-                  {node.region.toUpperCase()} · {node.id}
-                  {node.available ? '' : ' (unavailable)'}
-                </option>
-              ))}
-            </select>
+              onChange={(nodeId) => void selectNode(nodeId)}
+            />
             <label className="mt-4 flex max-w-xl cursor-pointer items-center gap-3 text-sm text-neutral-300">
               <input
                 type="checkbox"
