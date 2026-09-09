@@ -97,6 +97,8 @@ export function SkinsPage(): JSX.Element {
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
   const [unequippingTeam, setUnequippingTeam] = useState(false)
   const [lobbyWeaponId, setLobbyWeaponId] = useState<string | null>(null)
+  const [lobbyWeaponKey, setLobbyWeaponKey] = useState<string | null>(null)
+  const [lobbyWeaponSkinId, setLobbyWeaponSkinId] = useState<string | null>(null)
   const [lobbyPlayerModel, setLobbyPlayerModel] = useState<string | null>(null)
   const [changingLobbyPlayer, setChangingLobbyPlayer] = useState(false)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -129,6 +131,9 @@ export function SkinsPage(): JSX.Element {
       ([inventory, lobbyLoadout]) => {
         setSkins(inventory)
         setLobbyPlayerModel(lobbyLoadout.playerModel)
+        setLobbyWeaponKey(lobbyLoadout.weaponKey)
+        setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
+        updateLobbyWeapon(lobbyLoadout.weaponKey, lobbyLoadout.weaponModelPath)
         setStatus('ready')
       },
       (reason: unknown) => {
@@ -176,7 +181,7 @@ export function SkinsPage(): JSX.Element {
   }
 
   const setLobbyWeapon = (owned: OwnedSkin): void => {
-    if (loadoutLocked || lobbyWeaponId || owned.lobbySelected) return
+    if (loadoutLocked || lobbyWeaponId || lobbyWeaponSkinId === owned.skin.id) return
     setLobbyWeaponId(owned.skin.id)
     setError(null)
     void window.api.skins
@@ -184,6 +189,8 @@ export function SkinsPage(): JSX.Element {
       .then(() => Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()]))
       .then(([inventory, lobbyLoadout]) => {
         setSkins(inventory)
+        setLobbyWeaponKey(lobbyLoadout.weaponKey)
+        setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
         updateLobbyWeapon(lobbyLoadout.weaponKey, lobbyLoadout.weaponModelPath)
         toast.success(`${owned.skin.name} is now displayed in your lobby.`)
       })
@@ -198,6 +205,8 @@ export function SkinsPage(): JSX.Element {
     void window.api.skins
       .setLobbyWeaponKey(weaponKey)
       .then(() => {
+        setLobbyWeaponKey(weaponKey)
+        setLobbyWeaponSkinId(null)
         updateLobbyWeapon(weaponKey, null)
         toast.success(`${displayWeapon(weaponKey)} is now displayed in your lobby.`)
       })
@@ -342,19 +351,28 @@ export function SkinsPage(): JSX.Element {
                   {loadoutGroupLabels[group]}
                 </h3>
                 <div className="space-y-1.5">
-                  {loadoutGroups[team][group].map((weaponKey) => (
-                    <LoadoutWeaponCard
-                      key={weaponKey}
-                      weaponKey={weaponKey}
-                      equipped={equippedByWeapon.get(weaponKey)}
-                      selected={selectedWeapon === weaponKey}
-                      lobbyWeaponId={lobbyWeaponId}
-                      loadoutLocked={loadoutLocked}
-                      onSetLobbyWeapon={setLobbyWeapon}
-                      onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
-                      onSelect={() => selectLoadoutWeapon(weaponKey)}
-                    />
-                  ))}
+                  {loadoutGroups[team][group].map((weaponKey) => {
+                    const equipped = equippedByWeapon.get(weaponKey)
+                    const lobbySelected =
+                      lobbyWeaponKey === weaponKey &&
+                      (equipped
+                        ? lobbyWeaponSkinId === equipped.skin.id
+                        : lobbyWeaponSkinId === null)
+                    return (
+                      <LoadoutWeaponCard
+                        key={weaponKey}
+                        weaponKey={weaponKey}
+                        equipped={equipped}
+                        selected={selectedWeapon === weaponKey}
+                        lobbySelected={lobbySelected}
+                        lobbyWeaponId={lobbyWeaponId}
+                        loadoutLocked={loadoutLocked}
+                        onSetLobbyWeapon={setLobbyWeapon}
+                        onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
+                        onSelect={() => selectLoadoutWeapon(weaponKey)}
+                      />
+                    )
+                  })}
                 </div>
               </section>
             ))}
@@ -366,6 +384,12 @@ export function SkinsPage(): JSX.Element {
                 weaponKey="knife"
                 equipped={equippedByWeapon.get('knife')}
                 selected={selectedWeapon === 'knife'}
+                lobbySelected={
+                  lobbyWeaponKey === 'knife' &&
+                  (equippedByWeapon.get('knife')
+                    ? lobbyWeaponSkinId === equippedByWeapon.get('knife')?.skin.id
+                    : lobbyWeaponSkinId === null)
+                }
                 lobbyWeaponId={lobbyWeaponId}
                 loadoutLocked={loadoutLocked}
                 onSetLobbyWeapon={setLobbyWeapon}
@@ -485,6 +509,7 @@ function LoadoutWeaponCard({
   weaponKey,
   equipped,
   selected,
+  lobbySelected,
   lobbyWeaponId,
   loadoutLocked,
   onSetLobbyWeapon,
@@ -494,13 +519,14 @@ function LoadoutWeaponCard({
   weaponKey: string
   equipped: OwnedSkin | undefined
   selected: boolean
+  lobbySelected: boolean
   lobbyWeaponId: string | null
   loadoutLocked: boolean
   onSetLobbyWeapon: (owned: OwnedSkin) => void
   onSetDefaultLobbyWeapon: (weaponKey: string) => void
   onSelect: () => void
 }): JSX.Element {
-  const lobbyButtonLabel = equipped?.lobbySelected
+  const lobbyButtonLabel = lobbySelected
     ? 'Shown in your lobby'
     : 'Show this weapon in your lobby'
   return (
@@ -521,14 +547,14 @@ function LoadoutWeaponCard({
         <button
           type="button"
           className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-full border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-          title={equipped ? lobbyButtonLabel : 'Show this weapon in your lobby'}
-          aria-label={equipped ? lobbyButtonLabel : 'Show this weapon in your lobby'}
-          disabled={loadoutLocked || lobbyWeaponId !== null || equipped?.lobbySelected}
+          title={lobbyButtonLabel}
+          aria-label={lobbyButtonLabel}
+          disabled={loadoutLocked || lobbyWeaponId !== null || lobbySelected}
           onClick={() =>
             equipped ? onSetLobbyWeapon(equipped) : onSetDefaultLobbyWeapon(weaponKey)
           }
         >
-          {equipped?.lobbySelected ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
+          {lobbySelected ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
         </button>
       }
       <span className="block w-full min-w-0 px-1 py-1.5">
