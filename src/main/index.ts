@@ -279,9 +279,15 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle(
     MATCHMAKING_CHANNELS.joinQueue,
-    async (_, mode: unknown, mapIds: unknown, allowRegionExpansion: unknown) => {
+    async (
+      _,
+      mode: unknown,
+      mapIds: unknown,
+      allowRegionExpansion: unknown,
+      preferredRegion: unknown
+    ) => {
       await ensureLatestClientForMatchmaking()
-      return matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion)
+      return matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion)
     }
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())

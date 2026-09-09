@@ -42,6 +42,11 @@ const isMapIds = (value: unknown): value is string[] =>
   value.every(isMapId) &&
   new Set(value).size === value.length
 
+const isPreferredRegion = (value: unknown): value is string | null | undefined =>
+  value === null ||
+  value === undefined ||
+  (typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value))
+
 const isOptionalTimestamp = (value: unknown): value is string | undefined =>
   value === undefined || (typeof value === 'string' && Number.isFinite(Date.parse(value)))
 
@@ -314,6 +319,7 @@ class MatchmakingConnection {
   private desiredMode: MatchmakingMode | null = null
   private desiredMapIds: string[] = []
   private desiredAllowRegionExpansion = true
+  private desiredPreferredRegion: string | null = null
   private activeApiUrl: string | null = null
   private hostApiUrl: string | null = null
   private reconnectAttempt = 0
@@ -356,6 +362,7 @@ class MatchmakingConnection {
     this.recoveryStatusPending = false
     this.desiredMode = null
     this.desiredMapIds = []
+    this.desiredPreferredRegion = null
     this.lastConnection = null
     this.activeApiUrl = null
     this.hostApiUrl = null
@@ -374,6 +381,7 @@ class MatchmakingConnection {
     this.recoveryStatusPending = false
     this.desiredMode = null
     this.desiredMapIds = []
+    this.desiredPreferredRegion = null
     this.lastConnection = null
     this.activeApiUrl = null
     this.hostApiUrl = null
@@ -397,20 +405,34 @@ class MatchmakingConnection {
     this.renderer = null
   }
 
-  joinQueue(mode: unknown, mapIds: unknown, allowRegionExpansion: unknown): void {
+  joinQueue(
+    mode: unknown,
+    mapIds: unknown,
+    allowRegionExpansion: unknown,
+    preferredRegion: unknown
+  ): void {
     if (!isMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
     if (typeof allowRegionExpansion !== 'boolean')
       throw new Error('Invalid regional search preference')
+    if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
     this.desiredMode = mode
     this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
-    this.send({ type: 'join_queue', mode, mapIds, allowRegionExpansion })
+    this.desiredPreferredRegion = preferredRegion ?? null
+    this.send({
+      type: 'join_queue',
+      mode,
+      mapIds,
+      allowRegionExpansion,
+      ...(preferredRegion ? { preferredRegion } : {})
+    })
   }
 
   leaveQueue(): void {
     this.desiredMode = null
     this.desiredMapIds = []
+    this.desiredPreferredRegion = null
     this.send({ type: 'leave_queue' })
   }
 
@@ -616,7 +638,10 @@ class MatchmakingConnection {
                 type: 'join_queue',
                 mode: this.desiredMode,
                 mapIds: this.desiredMapIds,
-                allowRegionExpansion: this.desiredAllowRegionExpansion
+                allowRegionExpansion: this.desiredAllowRegionExpansion,
+                ...(this.desiredPreferredRegion
+                  ? { preferredRegion: this.desiredPreferredRegion }
+                  : {})
               })
             )
           }
@@ -642,19 +667,23 @@ class MatchmakingConnection {
         this.desiredMode = parsed.mode
         this.desiredMapIds = [...parsed.mapIds]
         this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
+        this.desiredPreferredRegion = parsed.region
       } else if (parsed.type === 'queue_left') {
         this.desiredMode = null
         this.desiredMapIds = []
+        this.desiredPreferredRegion = null
       } else if (
         parsed.type === 'error' &&
         (parsed.code === 'MAP_NOT_FOUND' || parsed.code === 'MAP_MODE_UNSUPPORTED')
       ) {
         this.desiredMode = null
         this.desiredMapIds = []
+        this.desiredPreferredRegion = null
       } else if (parsed.type === 'match_found') {
         this.freshProcess = false
         this.desiredMode = null
         this.desiredMapIds = []
+        this.desiredPreferredRegion = null
         if (this.renderer) {
           const window = BrowserWindow.fromWebContents(this.renderer)
           window?.show()

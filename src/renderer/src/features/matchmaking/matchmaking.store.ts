@@ -552,7 +552,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     joinQueue: async () => {
-      const { connectionStatus, maps, mapsStatus, selectedMapIds, allowRegionExpansion } = get()
+      const {
+        connectionStatus,
+        maps,
+        mapsStatus,
+        selectedMapIds,
+        selectedNodeId,
+        nodes,
+        allowRegionExpansion
+      } = get()
       if (connectionStatus !== 'ready') return
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
@@ -586,7 +594,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         error: null
       })
       try {
-        await window.api.matchmaking.joinQueue('5v5', selectedMapIds, allowRegionExpansion)
+        const selectedNode = nodes.find((node) => node.id === selectedNodeId && node.available)
+        await window.api.matchmaking.joinQueue(
+          '5v5',
+          selectedMapIds,
+          allowRegionExpansion,
+          selectedNode?.region ?? null
+        )
       } catch (error) {
         set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })
       }
