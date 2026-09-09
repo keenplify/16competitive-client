@@ -37,14 +37,14 @@ const AK47_WEAPON_TRANSFORM: WeaponTransform = {
 // independently. Until a family is tuned, keep the known-good AK-47 transform.
 const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
   carbine: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [15, 0, 1]
   },
   onehanded: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [5, 1, 1]
+    handOffset: [8, 1, 3]
   },
   dualpistols: {
     modelRotation: [0, 90, 90],
@@ -52,9 +52,9 @@ const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
     handOffset: [21, 0, 4]
   },
   rifle: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [15, 0, 3.5]
   },
   mp5: {
     modelRotation: [0, 90, 90],
@@ -417,7 +417,7 @@ export function PartyModelScene({
       scene.add(model)
       actorsToFade.push(model)
     })
-    camera.position.set(90, 22.5, 170)
+    camera.position.set(-90, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
