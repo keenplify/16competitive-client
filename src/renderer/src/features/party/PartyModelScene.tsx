@@ -130,6 +130,14 @@ const WEAPON_ANIMATION_FAMILY: Record<string, string> = {
   knife: 'knife'
 }
 
+const HOT_RENDER_REVISION = import.meta.hot
+  ? ((import.meta.hot.data.partyModelSceneRevision as number | undefined) ?? 0) + 1
+  : 0
+
+if (import.meta.hot) {
+  import.meta.hot.data.partyModelSceneRevision = HOT_RENDER_REVISION
+}
+
 const sequenceIndexFor = (modelData: ModelData, label: string): number =>
   modelData.sequences.findIndex((sequence) => sequence.label.toLowerCase() === label)
 
@@ -436,7 +444,7 @@ export function PartyModelScene({
       observer.disconnect()
       renderer.dispose()
     }
-  }, [actorKey, buffers])
+  }, [actorKey, buffers, HOT_RENDER_REVISION])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }
