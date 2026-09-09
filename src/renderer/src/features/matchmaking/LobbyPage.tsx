@@ -63,21 +63,22 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
           <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
         )}
         <PartyModelScene
-          actors={members.map((member, index) => ({
-            member,
-            modelPath:
-              member.lobbyPlayerModel ??
-              (member.id === player.id ? lobbyPlayerModel : modelForSlot(index, member)),
-            fallbackModelPath: modelForSlot(index, member),
-            weaponPath:
-              member.lobbyWeaponModelPath ??
-              (member.id === player.id
+          actors={members.map((member, index) => {
+            const isCurrentPlayer = member.id === player.id
+            return {
+              member,
+              modelPath: isCurrentPlayer
+                ? lobbyPlayerModel
+                : member.lobbyPlayerModel ?? modelForSlot(index, member),
+              fallbackModelPath: modelForSlot(index, member),
+              weaponPath: isCurrentPlayer
                 ? lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey)
-                : defaultWeaponModelPath(member.lobbyWeaponKey)),
-            weaponKey: member.id === player.id ? lobbyWeaponKey : member.lobbyWeaponKey,
-            isLeader: party?.leaderId === member.id,
-            isCurrentPlayer: member.id === player.id
-          }))}
+                : member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey),
+              weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
+              isLeader: party?.leaderId === member.id,
+              isCurrentPlayer
+            }
+          })}
           className="h-full min-h-[calc(100vh-5rem)] w-full"
         />
       </div>
