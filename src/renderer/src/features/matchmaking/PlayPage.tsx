@@ -179,10 +179,16 @@ export function PlayPage(): JSX.Element {
       <main
         className={twMerge(
           'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
-          queueStatus === 'server_ready' ? serverReadyBackgroundClass : 'bg-neutral-950/95'
+          queueStatus === 'server_ready' ? 'bg-transparent' : 'bg-neutral-950/95'
         )}
       >
-        <div className="w-full max-w-5xl">
+        {queueStatus === 'server_ready' && (
+          <div
+            className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
+            aria-hidden="true"
+          />
+        )}
+        <div className="relative z-10 w-full max-w-5xl">
           <div className="text-center">
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
               {queueStatus === 'countdown'
@@ -248,13 +254,12 @@ export function PlayPage(): JSX.Element {
   // usable instead of trying to read teams from a missing in-memory match.
   if (queueStatus === 'server_ready' && connectionDetails) {
     return (
-      <main
-        className={twMerge(
-          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
-          serverReadyBackgroundClass
-        )}
-      >
-        <section className="w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
+      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-transparent p-5 text-white sm:p-10">
+        <div
+          className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
+          aria-hidden="true"
+        />
+        <section className="relative z-10 w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
           <p className="text-xs font-bold tracking-[0.22em] text-emerald-300 uppercase">
             Match ready
           </p>
