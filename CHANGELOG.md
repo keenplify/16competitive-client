@@ -362,3 +362,29 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - WIP - remade launcher
 - Refine lobby navigation and page styling
 - Improve social login focus flow
+
+## v2026.909.6 — 2026-09-09
+
+### Matchmaking & Lobby
+
+- Added a more compact matchmaking search panel.
+- Improved friends sidebar animations and collapsed-rail interaction.
+
+### Match Assets
+
+- Moved asset downloads and repair controls into Settings.
+- Added skin asset repair and synchronization controls.
+- Completed match asset banners now hide automatically.
+
+### Skin Previews
+
+- Added per-weapon preview zoom controls.
+- Updated previews when zoom or presentation settings change.
+- Fixed store sizing and thumbnail regeneration.
+
+### Match Experience
+
+- Added clearer victory and defeat result gradients.
+- Improved server-ready and reconnect backgrounds.
+- Extended server-ready visuals behind navigation.
+- Added a smoother transition from match-ready screens back to the lobby.

@@ -1,6 +1,6 @@
 {
   "name": "16competitive-client",
-  "version": "2026.909.5",
+  "version": "2026.909.6",
   "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
   "author": "papamo.dev",
