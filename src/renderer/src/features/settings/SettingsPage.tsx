@@ -13,6 +13,7 @@ import type { SocialAuthProvider, SocialConnections } from '../../../../shared/a
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
+import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { useGameSettingsStore } from './game-settings.store'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
@@ -297,7 +298,7 @@ export function SettingsPage(): JSX.Element {
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
           <h1 className="mt-2 text-3xl font-semibold">Launcher settings</h1>
           <p className="mt-2 max-w-2xl text-sm text-neutral-500">
-            Configure the game client and manage your account credentials.
+            Configure the game client, manage downloaded assets, and update your account credentials.
           </p>
         </div>
 
@@ -405,6 +406,8 @@ export function SettingsPage(): JSX.Element {
                   </p>
                 )}
               </div>
+
+              <AssetDownloadSettings />
             </section>
 
             <section
