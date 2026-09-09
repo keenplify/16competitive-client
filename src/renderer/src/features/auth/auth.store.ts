@@ -133,9 +133,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const result = await window.api.auth.social(provider)
       if ('kind' in result) {
+        await window.api.window.focus()
         set({ status: 'idle', socialProvider: provider, socialPollToken: result.pollToken })
         return
       }
+      await window.api.window.focus()
       set({
         session: result,
         status: 'authenticated',
@@ -172,6 +174,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         socialPollToken,
         normalizedEmail
       )
+      await window.api.window.focus()
       set({
         session,
         status: 'authenticated',
