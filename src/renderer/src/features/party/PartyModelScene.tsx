@@ -259,6 +259,16 @@ const weaponTransformsFor = (weaponKey: string): readonly WeaponTransform[] => {
   return isWeaponTransformArray(configured) ? configured : [configured]
 }
 
+const weaponKeyFromPath = (weaponPath: string): string | null => {
+  const normalized = weaponPath.replace(/\\/g, '/').toLowerCase()
+  const customMatch = normalized.match(/(?:^|\/)models\/16competitive\/([^/]+)\//)
+  if (customMatch?.[1]) return customMatch[1]
+
+  const stockMatch = normalized.match(/(?:^|\/)p_([^/]+)\.mdl$/)
+  if (!stockMatch?.[1]) return null
+  return stockMatch[1] === 'mp5' ? 'mp5navy' : stockMatch[1]
+}
+
 const addMesh = (
   group: THREE.Group,
   positions: THREE.BufferAttribute,
@@ -325,8 +335,9 @@ const createActor = (
   weaponBuffer: ArrayBuffer
 ): THREE.Group => {
   const player = parseModelCached(playerBuffer)
-  const animationIndex = weaponAnimationIndexFor(player, actor.weaponKey)
-  const weaponTransforms = weaponTransformsFor(actor.weaponKey)
+  const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
+  const animationIndex = weaponAnimationIndexFor(player, presentationWeaponKey)
+  const weaponTransforms = weaponTransformsFor(presentationWeaponKey)
   const renderData = prepareRenderData(player, [animationIndex])
   const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
