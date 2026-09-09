@@ -330,3 +330,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Authentication
 
 - Updated the authentication page.
+
+## v2026.909.4 — 2026-09-09
+
+### Sign-in
+
+- Facebook sign-in now brings the launcher back into focus when authentication completes.
