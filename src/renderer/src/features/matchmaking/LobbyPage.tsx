@@ -59,9 +59,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   return (
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
       <div className="relative flex min-h-0 flex-1">
-        {members.length < 4 && (
-          <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
-        )}
+        {members.length < 4 && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
         <PartyModelScene
           actors={members.map((member, index) => {
             const isCurrentPlayer = member.id === player.id
@@ -69,11 +67,11 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
               member,
               modelPath: isCurrentPlayer
                 ? lobbyPlayerModel
-                : member.lobbyPlayerModel ?? modelForSlot(index, member),
+                : (member.lobbyPlayerModel ?? modelForSlot(index, member)),
               fallbackModelPath: modelForSlot(index, member),
               weaponPath: isCurrentPlayer
-                ? lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey)
-                : member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey),
+                ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
+                : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
               weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
               isLeader: party?.leaderId === member.id,
               isCurrentPlayer
@@ -108,14 +106,27 @@ export function LobbyPage(): JSX.Element {
   ].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const [friendsCollapsed, setFriendsCollapsed] = useState(false)
+  const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
   useEffect(() => {
     void refreshLobbyLoadout()
   }, [refreshLobbyLoadout])
   const handleNavigate = (nextPage: LobbyPageId): void => {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
-    if (nextPage === 'store' || nextPage === 'profile') setFriendsCollapsed(true)
+    if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
     navigate(nextPage)
+  }
+
+  const collapseFriendsSidebar = (): void => {
+    setFriendsCollapsed(true)
+    setFriendsHoverOpenDisabledUntil(Date.now() + 1_000)
+  }
+
+  const handleFriendsCollapsedChange = (collapsed: boolean): void => {
+    if (collapsed) {
+      setFriendsHoverOpenDisabledUntil(Date.now() + 1_000)
+    }
+    setFriendsCollapsed(collapsed)
   }
 
   useEffect(() => {
@@ -244,7 +255,8 @@ export function LobbyPage(): JSX.Element {
       <LobbySocialSidebar
         playerId={player.id}
         collapsed={friendsCollapsed}
-        onCollapsedChange={setFriendsCollapsed}
+        onCollapsedChange={handleFriendsCollapsedChange}
+        hoverOpenDisabledUntil={friendsHoverOpenDisabledUntil}
       />
       {content && (
         <div className="relative z-10 min-h-screen bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20">

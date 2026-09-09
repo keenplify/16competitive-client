@@ -237,7 +237,7 @@ export function SettingsPage(): JSX.Element {
         className={`group relative w-full overflow-hidden rounded-md px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${
           active
             ? 'translate-x-1 bg-sky-400/10 text-sky-300'
-            : 'text-neutral-500 hover:translate-x-0.5 hover:bg-white/5 hover:text-neutral-200'
+            : 'text-neutral-400 hover:translate-x-0.5 hover:bg-white/5 hover:text-neutral-200'
         }`}
       >
         <span
@@ -269,7 +269,7 @@ export function SettingsPage(): JSX.Element {
           </div>
           <div className="min-w-0">
             <p className="font-medium text-neutral-100">{label}</p>
-            <p className="truncate text-xs text-neutral-500">
+            <p className="truncate text-xs text-neutral-400">
               {socialLoading
                 ? 'Checking connection…'
                 : connected
@@ -312,8 +312,9 @@ export function SettingsPage(): JSX.Element {
         <div className="mb-8">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
           <h1 className="mt-2 text-3xl font-semibold">Launcher settings</h1>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-500">
-            Configure the game client, manage downloaded assets, and update your account credentials.
+          <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+            Configure the game client, manage downloaded assets, and update your account
+            credentials.
           </p>
         </div>
 
@@ -357,10 +358,10 @@ export function SettingsPage(): JSX.Element {
           <div className="min-w-0">
             <section
               ref={generalRef}
-              className="min-h-[70vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+              className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
             >
               <div className="mb-5">
-                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
                   General
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Game client</h2>
@@ -417,7 +418,7 @@ export function SettingsPage(): JSX.Element {
                 </div>
 
                 {configFilePath && (
-                  <p className="mt-6 break-all border-t border-white/10 pt-4 text-xs text-neutral-500">
+                  <p className="mt-6 break-all border-t border-white/10 pt-4 text-xs text-neutral-400">
                     Saved locally in: <span className="font-mono">{configFilePath}</span>
                   </p>
                 )}
@@ -426,14 +427,14 @@ export function SettingsPage(): JSX.Element {
 
             <section
               ref={assetsRef}
-              className="min-h-[70vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+              className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
             >
               <div className="mb-5">
-                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
                   Assets
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Assets & downloads</h2>
-                <p className="mt-2 text-sm text-neutral-500">
+                <p className="mt-2 text-sm text-neutral-400">
                   Check, download, or repair the managed game assets used by 1.6 Competitive.
                 </p>
               </div>
@@ -446,11 +447,11 @@ export function SettingsPage(): JSX.Element {
               className="min-h-[calc(100vh-8rem)] scroll-mt-20 pb-20 lg:scroll-mt-8"
             >
               <div className="mb-5">
-                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
                   Credentials
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Account credentials</h2>
-                <p className="mt-2 text-sm text-neutral-500">
+                <p className="mt-2 text-sm text-neutral-400">
                   Manage your username, sign-in methods, and password.
                 </p>
               </div>
@@ -501,7 +502,7 @@ export function SettingsPage(): JSX.Element {
                       {authStatus === 'changing_username' ? 'Saving…' : 'Change username'}
                     </Button>
                   </div>
-                  <p className="mt-2 text-xs text-neutral-500">
+                  <p className="mt-2 text-xs text-neutral-400">
                     3–32 characters: letters, numbers, and underscores.
                   </p>
 
