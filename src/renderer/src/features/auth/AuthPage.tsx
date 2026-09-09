@@ -58,6 +58,12 @@ export function AuthPage(): JSX.Element {
     }
   }, [session, status])
 
+  useEffect(() => {
+    if (socialPollToken && socialProvider === 'facebook') {
+      void window.api.window.focus()
+    }
+  }, [socialPollToken, socialProvider])
+
   if (
     session &&
     session.player.requiresUsernameSetup &&
