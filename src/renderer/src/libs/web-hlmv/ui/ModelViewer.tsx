@@ -13,6 +13,16 @@ type ModelViewerProps = {
   modelUrl?: string
   /** An MDL path relative to Counter-Strike's models directory. */
   modelPath?: string
+  /** Rotation of the primary model skeleton around its root bone. */
+  modelRootBoneRotation?: readonly [number, number, number]
+  /** A companion MDL rendered in the same scene, such as a player-held weapon. */
+  attachedModelPath?: string
+  /** Local rotation for a companion MDL before it is merged into player bones. */
+  attachedModelRotation?: readonly [number, number, number]
+  /** Extra rotation around the animated right-hand bone after bone merging. */
+  attachedModelHandRotation?: readonly [number, number, number]
+  /** Hand-local XYZ delta applied to a companion model after bone merging. */
+  attachedModelHandOffset?: readonly [number, number, number]
   camera?: ModelViewerCamera
   cameraLocked?: boolean
   /** Sequence label (for example, `idle1`) or zero-based sequence index. */
@@ -48,6 +58,11 @@ export function ModelViewer({
   sourceRevision,
   modelUrl,
   modelPath,
+  modelRootBoneRotation,
+  attachedModelPath,
+  attachedModelRotation,
+  attachedModelHandRotation,
+  attachedModelHandOffset,
   camera,
   cameraLocked = false,
   animation,
@@ -73,6 +88,11 @@ export function ModelViewer({
     buffer: ArrayBuffer
   } | null>(null)
   const [failedSource, setFailedSource] = useState<string | null>(null)
+  const [attachedModel, setAttachedModel] = useState<{
+    sourceKey: string
+    buffer: ArrayBuffer
+  } | null>(null)
+  const attachedSourceKey = attachedModelPath ? `path:${attachedModelPath}${revision}` : ''
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -110,11 +130,46 @@ export function ModelViewer({
     return () => abortController.abort()
   }, [modelBuffer, modelPath, modelUrl, onLoadError, sourceKey])
 
+  useEffect(() => {
+    if (!attachedModelPath) {
+      return
+    }
+
+    const requestedSourceKey = attachedSourceKey
+    let cancelled = false
+
+    void window.api.models
+      .read(attachedModelPath)
+      .then((buffer) => {
+        if (!cancelled) setAttachedModel({ sourceKey: requestedSourceKey, buffer })
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setAttachedModel(null)
+          console.warn('[HLMV] ModelViewer companion model load failed', {
+            modelPath: attachedModelPath,
+            error
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [attachedModelPath, attachedSourceKey])
+
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>
       {loadedModel?.sourceKey === sourceKey && (
         <Renderer
           modelBuffer={loadedModel.buffer}
+          modelRootBoneRotation={modelRootBoneRotation}
+          attachedModelBuffer={
+            attachedModel?.sourceKey === attachedSourceKey ? attachedModel.buffer : undefined
+          }
+          attachedModelRotation={attachedModelRotation}
+          attachedModelHandRotation={attachedModelHandRotation}
+          attachedModelHandOffset={attachedModelHandOffset}
           camera={camera}
           cameraLocked={cameraLocked}
           animation={animation}

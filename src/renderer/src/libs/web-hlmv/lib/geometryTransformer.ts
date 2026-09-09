@@ -110,7 +110,6 @@ export const getBonePositions = (
   animValues: MultiArrayView<number>,
   sequenceIndex: number,
   boneIndex: number,
-  // TODO: Do something about it
   s: number
 ): vec3 => {
   void frame
@@ -120,11 +119,10 @@ export const getBonePositions = (
   void boneIndex
   void s
 
-  // List of bone positions
   const position: vec3 = vec3.create()
 
   for (let axis = 0; axis < 3; axis++) {
-    position[axis] = bone.value[axis] // default;
+    position[axis] = bone.value[axis]
   }
 
   return position

@@ -149,7 +149,7 @@ export function ShopPage(): JSX.Element {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => setShowRedeemCode(true)}>
+            <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>

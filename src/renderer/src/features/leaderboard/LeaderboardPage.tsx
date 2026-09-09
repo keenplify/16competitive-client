@@ -27,7 +27,7 @@ export function LeaderboardPage(): JSX.Element {
         </div>
         <Button
           variant="ghost"
-          className="h-9 px-3 text-xs"
+          className="h-9 px-3 text-xs text-white"
           onClick={() => void load()}
           disabled={status === 'loading'}
         >

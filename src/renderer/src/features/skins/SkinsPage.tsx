@@ -1,13 +1,18 @@
-import { Crosshair, LoaderCircle, Palette, Power, PowerOff } from 'lucide-react'
+import { Check, Crosshair, LoaderCircle, Palette, Power, PowerOff, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useAuthStore } from '../auth/auth.store'
+import { usePartyStore } from '../party/party.store'
+import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
+import { toast } from 'react-toastify'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { LOBBY_PLAYER_MODELS } from '../party/party-models'
 
 type Team = 'ct' | 't'
 type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'knives'
@@ -91,7 +96,14 @@ export function SkinsPage(): JSX.Element {
   const [category, setCategory] = useState<WeaponCategory>('all')
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
   const [unequippingTeam, setUnequippingTeam] = useState(false)
+  const [lobbyWeaponId, setLobbyWeaponId] = useState<string | null>(null)
+  const [lobbyPlayerModel, setLobbyPlayerModel] = useState<string | null>(null)
+  const [changingLobbyPlayer, setChangingLobbyPlayer] = useState(false)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const playerId = useAuthStore((state) => state.session?.player.id)
+  const party = usePartyStore((state) => state.party)
+  const updateLobbyPlayerModel = useLobbyLoadoutStore((state) => state.setPlayerModel)
+  const updateLobbyWeapon = useLobbyLoadoutStore((state) => state.setWeapon)
   const loadoutLocked = [
     'match_found',
     'ready_check',
@@ -103,9 +115,20 @@ export function SkinsPage(): JSX.Element {
   const refresh = (): void => {
     setStatus('loading')
     setError(null)
-    void window.api.skins.mine().then(
-      (inventory) => {
+    const getLobbyLoadout = window.api.skins.getLobbyLoadout
+    void Promise.all([
+      window.api.skins.mine(),
+      getLobbyLoadout?.() ??
+        Promise.resolve({
+          playerModel: 'player/gign/gign.mdl',
+          weaponSkinId: null,
+          weaponKey: 'ak47',
+          weaponModelPath: null
+        })
+    ]).then(
+      ([inventory, lobbyLoadout]) => {
         setSkins(inventory)
+        setLobbyPlayerModel(lobbyLoadout.playerModel)
         setStatus('ready')
       },
       (reason: unknown) => {
@@ -127,6 +150,10 @@ export function SkinsPage(): JSX.Element {
     [skins]
   )
   const teamWeaponKeys = new Set([...Object.values(loadoutGroups[team]).flat(), 'knife'])
+  const partyLobbyPlayerModel = party?.members.find(
+    (candidate) => candidate.id === playerId
+  )?.lobbyPlayerModel
+  const selectedLobbyPlayerModel = lobbyPlayerModel ?? partyLobbyPlayerModel
   const filteredSkins = skins.filter(
     (owned) =>
       teamWeaponKeys.has(owned.skin.weaponKey) &&
@@ -146,6 +173,51 @@ export function SkinsPage(): JSX.Element {
   const selectLoadoutWeapon = (weaponKey: string): void => {
     setSelectedWeapon(weaponKey)
     setCategory('all')
+  }
+
+  const setLobbyWeapon = (owned: OwnedSkin): void => {
+    if (loadoutLocked || lobbyWeaponId || owned.lobbySelected) return
+    setLobbyWeaponId(owned.skin.id)
+    setError(null)
+    void window.api.skins
+      .setLobbyWeapon(owned.skin.id)
+      .then(() => Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()]))
+      .then(([inventory, lobbyLoadout]) => {
+        setSkins(inventory)
+        updateLobbyWeapon(lobbyLoadout.weaponKey, lobbyLoadout.weaponModelPath)
+        toast.success(`${owned.skin.name} is now displayed in your lobby.`)
+      })
+      .catch((reason: unknown) => setError(errorText(reason)))
+      .finally(() => setLobbyWeaponId(null))
+  }
+
+  const setDefaultLobbyWeapon = (weaponKey: string): void => {
+    if (loadoutLocked || lobbyWeaponId) return
+    setLobbyWeaponId(weaponKey)
+    setError(null)
+    void window.api.skins
+      .setLobbyWeaponKey(weaponKey)
+      .then(() => {
+        updateLobbyWeapon(weaponKey, null)
+        toast.success(`${displayWeapon(weaponKey)} is now displayed in your lobby.`)
+      })
+      .catch((reason: unknown) => setError(errorText(reason)))
+      .finally(() => setLobbyWeaponId(null))
+  }
+
+  const setLobbyPlayer = (modelPath: string): void => {
+    if (loadoutLocked || changingLobbyPlayer || selectedLobbyPlayerModel === modelPath) return
+    setChangingLobbyPlayer(true)
+    setError(null)
+    void window.api.skins
+      .setLobbyPlayerModel(modelPath)
+      .then(() => {
+        setLobbyPlayerModel(modelPath)
+        updateLobbyPlayerModel(modelPath)
+        toast.success(`${displayPlayerModel(modelPath)} is now your lobby character.`)
+      })
+      .catch((reason: unknown) => setError(errorText(reason)))
+      .finally(() => setChangingLobbyPlayer(false))
   }
 
   const setEquipped = (owned: OwnedSkin): void => {
@@ -243,6 +315,25 @@ export function SkinsPage(): JSX.Element {
             </div>
           </div>
         </header>
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
+          <span className="mr-1 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
+            Lobby character
+          </span>
+          {LOBBY_PLAYER_MODELS.map((modelPath) => {
+            const selected = selectedLobbyPlayerModel === modelPath
+            return (
+              <Button
+                key={modelPath}
+                className="h-7 px-2 text-[10px]"
+                variant={selected ? 'primary' : 'ghost'}
+                disabled={loadoutLocked || changingLobbyPlayer}
+                onClick={() => setLobbyPlayer(modelPath)}
+              >
+                {displayPlayerModel(modelPath)}
+              </Button>
+            )
+          })}
+        </div>
         <div className="mt-4 overflow-x-auto pb-2">
           <div className="grid min-w-[62rem] grid-cols-6 gap-2.5">
             {loadoutGroupOrder.map((group) => (
@@ -257,6 +348,10 @@ export function SkinsPage(): JSX.Element {
                       weaponKey={weaponKey}
                       equipped={equippedByWeapon.get(weaponKey)}
                       selected={selectedWeapon === weaponKey}
+                      lobbyWeaponId={lobbyWeaponId}
+                      loadoutLocked={loadoutLocked}
+                      onSetLobbyWeapon={setLobbyWeapon}
+                      onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
                       onSelect={() => selectLoadoutWeapon(weaponKey)}
                     />
                   ))}
@@ -271,6 +366,10 @@ export function SkinsPage(): JSX.Element {
                 weaponKey="knife"
                 equipped={equippedByWeapon.get('knife')}
                 selected={selectedWeapon === 'knife'}
+                lobbyWeaponId={lobbyWeaponId}
+                loadoutLocked={loadoutLocked}
+                onSetLobbyWeapon={setLobbyWeapon}
+                onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
                 onSelect={() => selectLoadoutWeapon('knife')}
               />
             </section>
@@ -386,34 +485,58 @@ function LoadoutWeaponCard({
   weaponKey,
   equipped,
   selected,
+  lobbyWeaponId,
+  loadoutLocked,
+  onSetLobbyWeapon,
+  onSetDefaultLobbyWeapon,
   onSelect
 }: {
   weaponKey: string
   equipped: OwnedSkin | undefined
   selected: boolean
+  lobbyWeaponId: string | null
+  loadoutLocked: boolean
+  onSetLobbyWeapon: (owned: OwnedSkin) => void
+  onSetDefaultLobbyWeapon: (weaponKey: string) => void
   onSelect: () => void
 }): JSX.Element {
+  const lobbyButtonLabel = equipped?.lobbySelected
+    ? 'Shown in your lobby'
+    : 'Show this weapon in your lobby'
   return (
-    <button
-      type="button"
+    <div
       className={twMerge(
-        'group flex h-28 w-full flex-col border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300',
+        'group relative flex h-28 w-full flex-col border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
         selected ? 'border-sky-300 bg-sky-400/15 ring-1 ring-sky-300/50' : 'border-white/10'
       )}
-      aria-pressed={selected}
-      onClick={onSelect}
     >
-      <LoadoutThumbnail
-        key={equipped?.skin.id ?? weaponKey}
-        weaponKey={weaponKey}
-        equipped={equipped}
-      />
+      <button type="button" className="min-h-0 flex-1" aria-pressed={selected} onClick={onSelect}>
+        <LoadoutThumbnail
+          key={equipped?.skin.id ?? weaponKey}
+          weaponKey={weaponKey}
+          equipped={equipped}
+        />
+      </button>
+      {
+        <button
+          type="button"
+          className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-full border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+          title={equipped ? lobbyButtonLabel : 'Show this weapon in your lobby'}
+          aria-label={equipped ? lobbyButtonLabel : 'Show this weapon in your lobby'}
+          disabled={loadoutLocked || lobbyWeaponId !== null || equipped?.lobbySelected}
+          onClick={() =>
+            equipped ? onSetLobbyWeapon(equipped) : onSetDefaultLobbyWeapon(weaponKey)
+          }
+        >
+          {equipped?.lobbySelected ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
+        </button>
+      }
       <span className="block w-full min-w-0 px-1 py-1.5">
         <span className="block truncate text-center text-xs font-bold tracking-wide text-neutral-300">
           {equipped?.skin.name ?? displayWeapon(weaponKey)}
         </span>
       </span>
-    </button>
+    </div>
   )
 }
 
@@ -461,5 +584,13 @@ function EmptyInventory(): JSX.Element {
         Visit the Store to unlock a skin for your loadout.
       </p>
     </div>
+  )
+}
+
+function displayPlayerModel(modelPath: string): string {
+  const model = modelPath.split('/').at(-2) ?? 'Character'
+  return model.replace(
+    /(^|_)([a-z])/g,
+    (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`
   )
 }

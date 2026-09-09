@@ -129,9 +129,14 @@ export const parseAnimations = (
   sequences: structs.SequenceDesc[],
   numBones: number
 ): structs.Animation[][] =>
-  sequences.map((sequence) =>
-    BinaryReader.readStructMultiple(dataView, structs.animation, sequence.animIndex, numBones)
-  )
+  sequences.map((sequence) => {
+    const animationSize = BinaryReader.getStructLength(structs.animation)
+    // CS player aim sequences are a 3x3 pitch/yaw grid. Blend zero is an
+    // extreme corner; index four is the neutral forward-looking pose.
+    const blendIndex = sequence.numBlends === 9 ? 4 : 0
+    const animationIndex = sequence.animIndex + blendIndex * numBones * animationSize
+    return BinaryReader.readStructMultiple(dataView, structs.animation, animationIndex, numBones)
+  })
 
 /**
  * Parses animation values
@@ -151,8 +156,11 @@ export const parseAnimValues = (
   )
 
   for (let i = 0; i < sequences.length; i++) {
+    const blendIndex = sequences[i].numBlends === 9 ? 4 : 0
     for (let j = 0; j < numBones; j++) {
-      const animationIndex = /* seqGroup.data + */ sequences[i].animIndex + j * animStructLength
+      const animationIndex =
+        /* seqGroup.data + */ sequences[i].animIndex +
+        (blendIndex * numBones + j) * animStructLength
 
       for (let axis = 0; axis < AXLES_NUM; axis++) {
         for (let v = 0; v < MAX_SRCBONES; v++) {
