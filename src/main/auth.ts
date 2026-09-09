@@ -5,6 +5,7 @@ import type {
   PasswordChangeResult,
   RegistrationCredentials,
   SocialAuthProvider,
+  SocialAuthResult,
   SocialConnections,
   UsernameAvailability,
   UsernameChangeResult
@@ -42,6 +43,11 @@ interface BackendSocialStartResponse {
   authorizationUrl: string
   pollToken: string
   expiresAt: string
+}
+
+interface BackendSocialEmailRequiredResponse {
+  pending: true
+  requiresEmail: true
 }
 
 interface UsernameStatus {
@@ -161,6 +167,14 @@ const isSocialStartResponse = (value: unknown): value is BackendSocialStartRespo
   )
 }
 
+const isSocialEmailRequiredResponse = (
+  value: unknown
+): value is BackendSocialEmailRequiredResponse =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as Record<string, unknown>).pending === true &&
+  (value as Record<string, unknown>).requiresEmail === true
+
 const isSocialConnections = (value: unknown): value is SocialConnections => {
   if (typeof value !== 'object' || value === null) return false
   const connections = value as Record<string, unknown>
@@ -277,7 +291,9 @@ export const authenticate = async (
   return acceptAuthResponse(body)
 }
 
-export const authenticateWithSocial = async (untrustedProvider: unknown): Promise<AuthSession> => {
+export const authenticateWithSocial = async (
+  untrustedProvider: unknown
+): Promise<SocialAuthResult> => {
   const provider = validateSocialProvider(untrustedProvider)
   const startResponse = await fetch(`${API_BASE_URL}/auth/social/start`, {
     method: 'POST',
@@ -310,7 +326,12 @@ export const authenticateWithSocial = async (untrustedProvider: unknown): Promis
     if (!response) continue
 
     const body: unknown = await response.json().catch(() => null)
-    if (response.status === 202) continue
+    if (response.status === 202) {
+      if (isSocialEmailRequiredResponse(body)) {
+        return { kind: 'email_required', pollToken: startBody.pollToken, provider }
+      }
+      continue
+    }
     if (!response.ok) throw new Error(getErrorMessage(body, response.status))
     if (!isAuthResponse(body)) {
       throw new Error('The authentication server returned an invalid social login result')
@@ -319,6 +340,53 @@ export const authenticateWithSocial = async (untrustedProvider: unknown): Promis
     return acceptAuthResponse(body)
   }
 
+  throw new Error('Social login timed out. Please try again.')
+}
+
+export const completeSocialWithEmail = async (
+  untrustedProvider: unknown,
+  untrustedPollToken: unknown,
+  untrustedEmail: unknown
+): Promise<AuthSession> => {
+  validateSocialProvider(untrustedProvider)
+  if (
+    typeof untrustedPollToken !== 'string' ||
+    untrustedPollToken.length < 32 ||
+    typeof untrustedEmail !== 'string' ||
+    untrustedEmail.length > 254 ||
+    !EMAIL_PATTERN.test(untrustedEmail.trim())
+  ) {
+    throw new Error('Enter a valid email address')
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/social/complete-email`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ pollToken: untrustedPollToken, email: untrustedEmail.trim() }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+
+  const deadline = Date.now() + SOCIAL_LOGIN_MAX_MS
+  while (Date.now() < deadline) {
+    await delay(SOCIAL_POLL_INTERVAL_MS)
+    const pollResponse = await fetch(`${API_BASE_URL}/auth/social/complete`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pollToken: untrustedPollToken }),
+      signal: AbortSignal.timeout(10_000)
+    }).catch(() => null)
+    if (!pollResponse) continue
+    const pollBody: unknown = await pollResponse.json().catch(() => null)
+    if (pollResponse.status === 202) continue
+    if (!pollResponse.ok) throw new Error(getErrorMessage(pollBody, pollResponse.status))
+    if (!isAuthResponse(pollBody)) {
+      throw new Error('The authentication server returned an invalid social login result')
+    }
+    return acceptAuthResponse(pollBody)
+  }
   throw new Error('Social login timed out. Please try again.')
 }
 

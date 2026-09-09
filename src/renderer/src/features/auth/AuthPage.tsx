@@ -17,6 +17,7 @@ export function AuthPage(): JSX.Element {
   const password = useAuthStore((state) => state.password)
   const status = useAuthStore((state) => state.status)
   const socialProvider = useAuthStore((state) => state.socialProvider)
+  const socialPollToken = useAuthStore((state) => state.socialPollToken)
   const error = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
   const setMode = useAuthStore((state) => state.setMode)
@@ -25,6 +26,7 @@ export function AuthPage(): JSX.Element {
   const setPassword = useAuthStore((state) => state.setPassword)
   const submit = useAuthStore((state) => state.submit)
   const loginWithSocial = useAuthStore((state) => state.loginWithSocial)
+  const submitSocialEmail = useAuthStore((state) => state.submitSocialEmail)
   const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
   const restoreStarted = useRef(false)
@@ -86,7 +88,7 @@ export function AuthPage(): JSX.Element {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    void submit()
+    void (socialPollToken ? submitSocialEmail() : submit())
   }
 
   return (
@@ -205,7 +207,7 @@ export function AuthPage(): JSX.Element {
               hint="3–32 characters: letters, numbers, and underscores"
               onChange={(event) => setUsername(event.target.value)}
             />
-            {!isLogin && (
+            {(!isLogin || socialPollToken) && (
               <TextField
                 id="email"
                 label="Email"
@@ -215,21 +217,28 @@ export function AuthPage(): JSX.Element {
                 autoComplete="email"
                 disabled={isSubmitting}
                 placeholder="player@example.com"
+                hint={
+                  socialPollToken
+                    ? 'Facebook did not provide an email address. Add one to continue.'
+                    : undefined
+                }
                 onChange={(event) => setEmail(event.target.value)}
               />
             )}
-            <TextField
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              minLength={8}
-              maxLength={128}
-              autoComplete={isLogin ? 'current-password' : 'new-password'}
-              disabled={isSubmitting}
-              placeholder="At least 8 characters"
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            {!socialPollToken && (
+              <TextField
+                id="password"
+                label="Password"
+                type="password"
+                value={password}
+                minLength={8}
+                maxLength={128}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                disabled={isSubmitting}
+                placeholder="At least 8 characters"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            )}
 
             <div className="min-h-5" aria-live="polite">
               {error && <p className="text-sm text-red-400">{error}</p>}
@@ -237,12 +246,14 @@ export function AuthPage(): JSX.Element {
 
             <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting && !socialProvider
-                ? isLogin
+                ? isLogin && !socialPollToken
                   ? 'Signing in…'
-                  : 'Creating account…'
-                : isLogin
-                  ? 'Sign in'
-                  : 'Create account'}
+                  : 'Continue with Facebook'
+                : socialPollToken
+                  ? 'Continue with Facebook'
+                  : isLogin
+                    ? 'Sign in'
+                    : 'Create account'}
             </Button>
           </form>
 
