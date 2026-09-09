@@ -298,29 +298,68 @@ const addMesh = (
   return mesh
 }
 
+const roundedRectPath = (
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+): void => {
+  const clampedRadius = Math.min(radius, width / 2, height / 2)
+  context.beginPath()
+  context.moveTo(x + clampedRadius, y)
+  context.lineTo(x + width - clampedRadius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + clampedRadius)
+  context.lineTo(x + width, y + height - clampedRadius)
+  context.quadraticCurveTo(x + width, y + height, x + width - clampedRadius, y + height)
+  context.lineTo(x + clampedRadius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - clampedRadius)
+  context.lineTo(x, y + clampedRadius)
+  context.quadraticCurveTo(x, y, x + clampedRadius, y)
+  context.closePath()
+}
+
 const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
+  // Keep the texture power-of-two so older Three.js/WebGL paths do not resize it.
+  // The larger source texture is downsampled onto the same world-space sprite size
+  // for noticeably sharper text and borders.
   const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 112
+  canvas.width = 1024
+  canvas.height = 256
   const context = canvas.getContext('2d')!
+  const cardX = 48
+  const cardY = 24
+  const cardWidth = canvas.width - cardX * 2
+  const cardHeight = canvas.height - cardY * 2
+
+  roundedRectPath(context, cardX, cardY, cardWidth, cardHeight, 42)
+  context.fillStyle = '#0b0f16'
+  context.fill()
+  context.lineWidth = 6
+  context.strokeStyle = actor.isCurrentPlayer ? '#38bdf8' : '#525866'
+  context.stroke()
+
   context.textAlign = 'center'
-  context.font = '700 34px sans-serif'
-  context.lineWidth = 7
-  context.lineJoin = 'round'
-  context.lineCap = 'round'
-  context.strokeStyle = 'rgba(0, 0, 0, 0.9)'
-  context.strokeText(actor.member.username, 256, 44)
+  context.textBaseline = 'middle'
   context.fillStyle = '#ffffff'
-  context.fillText(actor.member.username, 256, 44)
-  context.font = '600 20px sans-serif'
-  context.lineWidth = 4
-  context.fillStyle = 'rgba(220, 230, 240, 0.95)'
-  context.strokeText(`${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`, 256, 81)
-  context.fillText(`${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`, 256, 81)
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true })
+  context.font = '700 64px sans-serif'
+  context.fillText(actor.member.username, canvas.width / 2, 100)
+
+  context.fillStyle = '#cbd5e1'
+  context.font = '600 36px sans-serif'
+  context.fillText(
+    `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`,
+    canvas.width / 2,
+    170
   )
-  sprite.scale.set(38, 8.3, 1)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
+  texture.needsUpdate = true
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }))
+  sprite.scale.set(38, 9.5, 1)
   return sprite
 }
 
