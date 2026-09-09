@@ -48,8 +48,8 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
 
   return (
     <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 text-xs">
-      <p className="rounded-lg border border-amber-300/30 bg-slate-950/90 px-3 py-2 text-amber-100 shadow-xl backdrop-blur">
-        Alpha Release Testing Expect Bugs
+      <p className="rounded-lg border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
+        Alpha Release Testing <b>Expect Bugs</b>
       </p>
       <button
         type="button"
