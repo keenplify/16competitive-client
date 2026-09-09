@@ -2,6 +2,7 @@ export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
   social: 'auth:social',
+  socialComplete: 'auth:social-complete',
   socialConnections: 'auth:social-connections',
   socialConnect: 'auth:social-connect',
   usernameCheck: 'auth:username-check',
@@ -39,6 +40,14 @@ export interface AuthSession {
   player: AuthPlayer
 }
 
+export interface SocialEmailRequired {
+  kind: 'email_required'
+  pollToken: string
+  provider: SocialAuthProvider
+}
+
+export type SocialAuthResult = AuthSession | SocialEmailRequired
+
 export interface UsernameAvailability {
   available: boolean
 }
@@ -71,7 +80,12 @@ export interface SocialConnections {
 export interface AuthApi {
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
-  social(provider: SocialAuthProvider): Promise<AuthSession>
+  social(provider: SocialAuthProvider): Promise<SocialAuthResult>
+  completeSocial(
+    provider: SocialAuthProvider,
+    pollToken: string,
+    email: string
+  ): Promise<AuthSession>
   getSocialConnections(): Promise<SocialConnections>
   connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
   checkUsername(username: string): Promise<UsernameAvailability>

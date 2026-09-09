@@ -30,6 +30,8 @@ const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
+  completeSocial: (provider, pollToken, email) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.socialComplete, provider, pollToken, email),
   getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
   connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
