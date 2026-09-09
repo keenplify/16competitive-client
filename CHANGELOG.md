@@ -314,3 +314,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added client issue reporting.
 - Improved skin asset sync status visibility.
 - Enhanced diagnostic log handling.
+
+## v2026.909.2 — 2026-09-09
+
+### Authentication
+
+- Improved sign-in for Facebook accounts without a social email address.
+
+### Privacy & Terms
+
+- Added links to the Privacy Policy and Terms of Service on the sign-in screen.
