@@ -9,7 +9,7 @@ import type { ModelApi } from '../shared/models'
 import { MODEL_CHANNELS } from '../shared/models'
 import type { PartyApi } from '../shared/party'
 import { PARTY_CHANNELS } from '../shared/party'
-import type { GameSettingsApi } from '../shared/game-settings'
+import type { GameSettingsApi, SkinAssetSyncProgress } from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
@@ -93,7 +93,15 @@ const party: PartyApi = {
 const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseExecutable: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseExecutable),
-  save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath)
+  save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath),
+  getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
+  syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
+  onAssetSyncProgress: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: SkinAssetSyncProgress): void =>
+      listener(progress)
+    ipcRenderer.on(GAME_SETTINGS_CHANNELS.assetSyncProgress, handler)
+    return () => ipcRenderer.removeListener(GAME_SETTINGS_CHANNELS.assetSyncProgress, handler)
+  }
 }
 
 const matchHistory: MatchHistoryApi = {
