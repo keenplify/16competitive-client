@@ -48,8 +48,14 @@ const matchmaking: MatchmakingApi = {
   getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
   setAllowRegionExpansion: (value) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.setAllowRegionExpansion, value),
-  joinQueue: (mode, mapIds, allowRegionExpansion) =>
-    ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinQueue, mode, mapIds, allowRegionExpansion),
+  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion) =>
+    ipcRenderer.invoke(
+      MATCHMAKING_CHANNELS.joinQueue,
+      mode,
+      mapIds,
+      allowRegionExpansion,
+      preferredRegion
+    ),
   leaveQueue: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveQueue),
   getQueueStatus: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getQueueStatus),
   getMaps: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getMaps),

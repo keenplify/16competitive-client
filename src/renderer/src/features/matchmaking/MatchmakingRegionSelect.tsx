@@ -14,6 +14,14 @@ interface RegionOption {
   automatic: boolean
 }
 
+const regionLabel = (region: string): string =>
+  region === 'sea'
+    ? 'SEA'
+    : region
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+
 interface MatchmakingRegionSelectProps {
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
@@ -66,7 +74,7 @@ export function MatchmakingRegionSelect({
     })
     .map((node) => ({
       value: node.id,
-      label: `${node.region.toUpperCase()} · ${node.id}`,
+      label: `${regionLabel(node.region)} · ${node.id}`,
       node,
       latencyMs: nodeLatency(node),
       available: node.available,
@@ -130,12 +138,12 @@ export function MatchmakingRegionSelect({
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">
-                  {option.automatic ? 'Automatic' : node?.region.toUpperCase()}
+                  {option.automatic ? 'Automatic' : node ? regionLabel(node.region) : ''}
                 </span>
                 <span className="block truncate text-[11px] text-neutral-500">
                   {option.automatic
                     ? node
-                      ? `Currently ${node.region.toUpperCase()} · ${node.id}`
+                      ? `Currently ${regionLabel(node.region)} · ${node.id}`
                       : 'Chooses the lowest-latency healthy region'
                     : node?.id}
                 </span>
@@ -155,7 +163,7 @@ export function MatchmakingRegionSelect({
       <p className="mt-2 text-xs text-neutral-500">
         {selectedNodeId === null
           ? bestNode
-            ? `Automatic currently prefers ${bestNode.region.toUpperCase()} at ${nodeLatency(bestNode)} ms.`
+            ? `Automatic currently prefers ${regionLabel(bestNode.region)} at ${nodeLatency(bestNode)} ms.`
             : 'Automatic chooses the lowest-latency healthy region when one is reachable.'
           : 'Manual region selection overrides automatic latency routing.'}
       </p>

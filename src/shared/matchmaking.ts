@@ -239,7 +239,12 @@ export interface MatchmakingApi {
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>
-  joinQueue(mode: MatchmakingMode, mapIds: string[], allowRegionExpansion: boolean): Promise<void>
+  joinQueue(
+    mode: MatchmakingMode,
+    mapIds: string[],
+    allowRegionExpansion: boolean,
+    preferredRegion?: string | null
+  ): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMap[]>
