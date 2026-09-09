@@ -21,9 +21,88 @@ export type PartySceneActor = {
   isCurrentPlayer: boolean
 }
 
-const AK47_MODEL_ROTATION = [0, 90, 90] as const
-const AK47_HAND_ROTATION = [0, 180, 0] as const
-const AK47_HAND_OFFSET = [21, 0, 4] as const
+type WeaponTransform = {
+  modelRotation: readonly [number, number, number]
+  handRotation: readonly [number, number, number]
+  handOffset: readonly [number, number, number]
+}
+
+const AK47_WEAPON_TRANSFORM: WeaponTransform = {
+  modelRotation: [0, 90, 90],
+  handRotation: [0, 180, 0],
+  handOffset: [21, 0, 4]
+}
+
+// Each ref_aim_* family gets its own transform so it can be calibrated
+// independently. Until a family is tuned, keep the known-good AK-47 transform.
+const WEAPON_FAMILY_TRANSFORM: Record<string, WeaponTransform> = {
+  carbine: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  onehanded: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  dualpistols: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  rifle: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  mp5: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  m249: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  grenade: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  c4: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  knife: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  ak47: AK47_WEAPON_TRANSFORM,
+  shieldgren: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  shieldknife: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  shieldgun: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  },
+  shielded: {
+    modelRotation: [0, 90, 90],
+    handRotation: [0, 180, 0],
+    handOffset: [21, 0, 4]
+  }
+}
 
 const WEAPON_ANIMATION_FAMILY: Record<string, string> = {
   usp: 'onehanded',
@@ -68,6 +147,11 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
     if (index >= 0) return index
   }
   return idleSequenceIndexFor(modelData)
+}
+
+const weaponTransformFor = (weaponKey: string): WeaponTransform => {
+  const family = WEAPON_ANIMATION_FAMILY[weaponKey]
+  return (family && WEAPON_FAMILY_TRANSFORM[family]) || AK47_WEAPON_TRANSFORM
 }
 
 const addMesh = (
@@ -137,6 +221,7 @@ const createActor = (
 ): THREE.Group => {
   const player = parseModelCached(playerBuffer)
   const animationIndex = weaponAnimationIndexFor(player, actor.weaponKey)
+  const weaponTransform = weaponTransformFor(actor.weaponKey)
   const renderData = prepareRenderData(player, [animationIndex])
   const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
@@ -168,7 +253,9 @@ const createActor = (
   )
   const playerBones = calcRotations(player, animationIndex, 0)
   const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
-    new THREE.Euler(...AK47_MODEL_ROTATION.map((degrees) => THREE.Math.degToRad(degrees)))
+    new THREE.Euler(
+      ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
+    )
   )
   const handTransform = new THREE.Matrix4().fromArray(
     playerBones[rightHandBone] as unknown as number[]
@@ -177,12 +264,14 @@ const createActor = (
     .clone()
     .multiply(
       new THREE.Matrix4().makeRotationFromEuler(
-        new THREE.Euler(...AK47_HAND_ROTATION.map((degrees) => THREE.Math.degToRad(degrees)))
+        new THREE.Euler(
+          ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
+        )
       )
     )
     .multiply(new THREE.Matrix4().getInverse(handTransform))
   const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
-  const handOffset = new THREE.Vector3(...AK47_HAND_OFFSET)
+  const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
     .applyMatrix4(handTransform)
     .sub(handOrigin)
 
