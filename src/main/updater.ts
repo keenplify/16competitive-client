@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { type AppUpdateStatus, UPDATE_CHANNELS } from '../shared/updater'
+import { getCurrentAppImagePath, updateCurrentAppImageWithGearLever } from './gear-lever'
 
 let status: AppUpdateStatus = { state: 'idle' }
 let installStarted = false
@@ -8,6 +9,8 @@ let forcedExitTimer: ReturnType<typeof setTimeout> | null = null
 let requiredUpdateVersion: string | null = null
 let updaterInitialized = false
 let updateCheckInFlight: Promise<void> | null = null
+let gearLeverInstallInFlight: Promise<void> | null = null
+let gearLeverUpdateApplied = false
 
 const INSTALL_QUIT_TIMEOUT_MS = 2_000
 const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 15_000
@@ -23,6 +26,10 @@ function supportsSelfUpdate(): boolean {
   if (!app.isPackaged) return false
   // electron-updater supports Linux self-updates only for AppImage packages.
   return process.platform !== 'linux' || Boolean(process.env.APPIMAGE)
+}
+
+function usesGearLeverUpdate(): boolean {
+  return getCurrentAppImagePath() !== null
 }
 
 function requiredUpdateError(): Error {
@@ -48,6 +55,55 @@ function hasPendingUpdate(): boolean {
   )
 }
 
+function markUpdateFailure(message: string): void {
+  if (forcedExitTimer) clearTimeout(forcedExitTimer)
+  forcedExitTimer = null
+  installStarted = false
+  setStatus({
+    state: 'error',
+    message,
+    ...(requiredUpdateVersion ? { requiredVersion: requiredUpdateVersion } : {})
+  })
+}
+
+function startGearLeverUpdate(version: string): void {
+  if (gearLeverInstallInFlight) return
+
+  gearLeverInstallInFlight = (async () => {
+    setStatus({ state: 'downloading', version, percent: 0 })
+
+    try {
+      await updateCurrentAppImageWithGearLever((percent) => {
+        setStatus({ state: 'downloading', version, percent })
+      })
+      gearLeverUpdateApplied = true
+      setStatus({ state: 'downloaded', version })
+      forceRestartAndInstall()
+      return
+    } catch (error) {
+      console.warn(
+        'Gear Lever update failed, falling back to electron-updater:',
+        error instanceof Error ? error.message : String(error)
+      )
+    }
+
+    try {
+      gearLeverUpdateApplied = false
+      await autoUpdater.downloadUpdate()
+    } catch (error) {
+      console.warn(
+        'Fallback launcher update failed:',
+        error instanceof Error ? error.message : String(error)
+      )
+      if (status.state !== 'error') {
+        markUpdateFailure('The required launcher update could not be installed automatically.')
+      }
+    }
+  })().finally(() => {
+    gearLeverInstallInFlight = null
+  })
+}
+
 function initializeUpdater(): void {
   if (updaterInitialized || !supportsSelfUpdate()) return
   updaterInitialized = true
@@ -57,12 +113,13 @@ function initializeUpdater(): void {
     forcedExitTimer = null
   })
 
-  autoUpdater.autoDownload = true
+  autoUpdater.autoDownload = !usesGearLeverUpdate()
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.on('checking-for-update', () => setStatus({ state: 'checking' }))
   autoUpdater.on('update-available', (info) => {
     requiredUpdateVersion = info.version
     setStatus({ state: 'available', version: info.version })
+    if (usesGearLeverUpdate()) startGearLeverUpdate(info.version)
   })
   autoUpdater.on('update-not-available', () => {
     requiredUpdateVersion = null
@@ -79,22 +136,18 @@ function initializeUpdater(): void {
     })
   })
   autoUpdater.on('update-downloaded', (info) => {
+    gearLeverUpdateApplied = false
     requiredUpdateVersion = info.version
     setStatus({ state: 'downloaded', version: info.version })
     forceRestartAndInstall()
   })
   autoUpdater.on('error', (error) => {
-    if (forcedExitTimer) clearTimeout(forcedExitTimer)
-    forcedExitTimer = null
-    installStarted = false
     console.warn('Automatic update failed:', error.message)
-    setStatus({
-      state: 'error',
-      message: requiredUpdateVersion
-        ? 'The required launcher update could not be installed.'
-        : 'Could not check for launcher updates.',
-      ...(requiredUpdateVersion ? { requiredVersion: requiredUpdateVersion } : {})
-    })
+    markUpdateFailure(
+      requiredUpdateVersion
+        ? 'The required launcher update could not be installed automatically.'
+        : 'Could not check for launcher updates.'
+    )
   })
 }
 
@@ -137,10 +190,23 @@ export function restartAndInstallUpdate(): void {
   if (installStarted) return
 
   installStarted = true
-  // The platform installer waits for this process to exit. If a window or
-  // third-party listener ever prevents the graceful quit, do not leave the
-  // launcher visibly stuck with the installer waiting behind it.
+  // The updater waits for this process to exit. If a window or third-party
+  // listener prevents the graceful quit, do not leave the launcher stuck.
   forcedExitTimer = setTimeout(() => app.exit(0), INSTALL_QUIT_TIMEOUT_MS)
+
+  if (gearLeverUpdateApplied) {
+    const appImagePath = getCurrentAppImagePath()
+    if (!appImagePath) {
+      installStarted = false
+      if (forcedExitTimer) clearTimeout(forcedExitTimer)
+      forcedExitTimer = null
+      throw new Error('The updated AppImage path is unavailable.')
+    }
+    app.relaunch({ execPath: appImagePath })
+    app.quit()
+    return
+  }
+
   autoUpdater.quitAndInstall()
 }
 
