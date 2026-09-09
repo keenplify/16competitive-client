@@ -66,6 +66,7 @@ const matchmaking: MatchmakingApi = {
 
 const windowApi: WindowApi = {
   maximize: () => ipcRenderer.invoke(WINDOW_CHANNELS.maximize),
+  focus: () => ipcRenderer.invoke(WINDOW_CHANNELS.focus),
   openCounterStrikeSteamStore: () =>
     ipcRenderer.invoke(WINDOW_CHANNELS.openCounterStrikeSteamStore),
   exit: () => ipcRenderer.invoke(WINDOW_CHANNELS.exit)

@@ -281,6 +281,12 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
     lockWindowFullScreen()
   })
+  ipcMain.handle(WINDOW_CHANNELS.focus, () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  })
   ipcMain.handle(WINDOW_CHANNELS.openCounterStrikeSteamStore, () =>
     shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)
   )
