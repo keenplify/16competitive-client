@@ -444,3 +444,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Removed the Gear Lever dependency for Linux AppImage updates.
 - Updated documentation and package metadata to reflect the revised updater behavior.
+
+## v2026.909.15 — 2026-09-09
+
+### Matchmaking
+
+- Choose a preferred region when joining the matchmaking queue.
+- Your selected region is reflected in queue status.
