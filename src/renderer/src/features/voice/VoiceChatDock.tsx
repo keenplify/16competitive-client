@@ -175,6 +175,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const openMicRef = useRef(openMic)
   const pttActiveRef = useRef(pttActive)
   const peersRef = useRef(peers)
+  const preferencesRef = useRef(preferences)
   const activeContext = joinedContext ?? desiredContext
 
   useEffect(() => {
@@ -184,6 +185,10 @@ export function VoiceChatDock(): JSX.Element | null {
   useEffect(() => {
     peersRef.current = peers
   }, [peers])
+
+  useEffect(() => {
+    preferencesRef.current = preferences
+  }, [preferences])
 
   useEffect(() => {
     contextRef.current = joinedContext
@@ -294,7 +299,7 @@ export function VoiceChatDock(): JSX.Element | null {
   }, [activeContext?.kind, enabled, openMic, voicePttKey])
 
   const preferenceFor = (playerId: string): PeerPreference =>
-    preferences[playerId] ?? { volume: 1, muted: false }
+    preferencesRef.current[playerId] ?? { volume: 1, muted: false }
 
   const applyPreference = (runtime: PeerRuntime, preference: PeerPreference): void => {
     runtime.audio.volume = preference.muted ? 0 : preference.volume
@@ -303,6 +308,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const updatePreference = (playerId: string, next: PeerPreference): void => {
     setPreferences((current) => {
       const updated = { ...current, [playerId]: next }
+      preferencesRef.current = updated
       savePeerPreferences(updated)
       const runtime = runtimesRef.current.get(playerId)
       if (runtime) applyPreference(runtime, next)
@@ -615,7 +621,7 @@ export function VoiceChatDock(): JSX.Element | null {
       ? 'right-0 bottom-0 w-72 rounded-none border-r-0 border-b-0'
       : railMode === 'collapsed'
         ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] rounded-xl'
-        : 'right-5 bottom-20 w-[min(24rem,calc(100vw-2.5rem))] rounded-xl'
+        : 'right-5 top-24 w-[min(24rem,calc(100vw-2.5rem))] rounded-xl'
 
   return (
     <aside
