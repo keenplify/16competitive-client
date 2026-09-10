@@ -10,6 +10,7 @@ export const GAME_SETTINGS_CHANNELS = {
 export interface GameSettings {
   cs16ExecutablePath: string | null
   configFilePath: string
+  voicePttKeys: string[]
 }
 
 export type SkinAssetSyncMode = 'download' | 'repair'
