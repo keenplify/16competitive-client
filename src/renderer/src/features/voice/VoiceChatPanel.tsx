@@ -19,8 +19,60 @@ const stateLabel = {
   connecting: 'Connecting',
   connected: 'Connected',
   reconnecting: 'Reconnecting',
+  disconnected: 'Disconnected',
   error: 'Voice error'
 } as const
+
+const keyboardEventToVoicePttKey = (event: KeyboardEvent): string | null => {
+  if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3).toLowerCase()
+  if (/^Digit[0-9]$/.test(event.code)) return event.code.slice(5)
+  if (/^F(?:[1-9]|1[0-2])$/.test(event.code)) return event.code
+
+  const mapped: Record<string, string> = {
+    Space: 'SPACE',
+    ControlLeft: 'CTRL',
+    ControlRight: 'CTRL',
+    ShiftLeft: 'SHIFT',
+    ShiftRight: 'SHIFT',
+    AltLeft: 'ALT',
+    AltRight: 'ALT',
+    Enter: 'ENTER',
+    NumpadEnter: 'ENTER',
+    Tab: 'TAB',
+    Backspace: 'BACKSPACE',
+    ArrowUp: 'UPARROW',
+    ArrowDown: 'DOWNARROW',
+    ArrowLeft: 'LEFTARROW',
+    ArrowRight: 'RIGHTARROW',
+    Insert: 'INS',
+    Delete: 'DEL',
+    Home: 'HOME',
+    End: 'END',
+    PageUp: 'PGUP',
+    PageDown: 'PGDN'
+  }
+
+  return mapped[event.code] ?? null
+}
+
+const mouseEventToVoicePttKey = (event: MouseEvent): string | null => {
+  switch (event.button) {
+    case 0:
+      return 'MOUSE1'
+    case 2:
+      return 'MOUSE2'
+    case 1:
+      return 'MOUSE3'
+    case 3:
+      return 'MOUSE4'
+    case 4:
+      return 'MOUSE5'
+    default:
+      return null
+  }
+}
+
+const displayVoicePttKey = (key: string): string => (key.length === 1 ? key.toUpperCase() : key)
 
 export function VoiceChatPanel(): JSX.Element | null {
   const playerId = useAuthStore((state) => state.session?.player.id)
@@ -31,6 +83,7 @@ export function VoiceChatPanel(): JSX.Element | null {
   const room = useVoiceStore((state) => state.room)
   const peers = useVoiceStore((state) => state.peers)
   const micMode = useVoiceStore((state) => state.micMode)
+  const pttPressed = useVoiceStore((state) => state.pttPressed)
   const microphoneReady = useVoiceStore((state) => state.microphoneReady)
   const error = useVoiceStore((state) => state.error)
   const initialize = useVoiceStore((state) => state.initialize)
@@ -38,9 +91,13 @@ export function VoiceChatPanel(): JSX.Element | null {
   const disconnect = useVoiceStore((state) => state.disconnect)
   const sync = useVoiceStore((state) => state.sync)
   const setMicMode = useVoiceStore((state) => state.setMicMode)
+  const setPttPressed = useVoiceStore((state) => state.setPttPressed)
   const setPeerVolume = useVoiceStore((state) => state.setPeerVolume)
   const togglePeerMuted = useVoiceStore((state) => state.togglePeerMuted)
   const [minimized, setMinimized] = useState(false)
+  const [voicePttKey, setVoicePttKey] = useState('k')
+  const [capturingPttKey, setCapturingPttKey] = useState(false)
+  const [pttKeyError, setPttKeyError] = useState<string | null>(null)
 
   useEffect(() => {
     if (playerId) initialize(playerId)
@@ -51,12 +108,118 @@ export function VoiceChatPanel(): JSX.Element | null {
     void sync().catch(() => undefined)
   }, [connectionDetails?.matchId, match?.matchId, party?.id, party?.members.length, playerId, sync])
 
+  useEffect(() => {
+    let active = true
+    void window.api.gameSettings
+      .get()
+      .then((settings) => {
+        if (active) setVoicePttKey(settings.voicePttKey)
+      })
+      .catch((loadError: unknown) => {
+        if (active) {
+          setPttKeyError(
+            loadError instanceof Error ? loadError.message : 'Could not load the push-to-talk key.'
+          )
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const voiceActive = connectionState !== 'disabled' && connectionState !== 'disconnected'
+
+  useEffect(() => {
+    if (micMode !== 'push_to_talk' || !voiceActive || capturingPttKey) {
+      setPttPressed(false)
+      return
+    }
+
+    const matchesConfiguredKey = (candidate: string | null): boolean =>
+      candidate !== null && candidate.toLowerCase() === voicePttKey.toLowerCase()
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!event.repeat && matchesConfiguredKey(keyboardEventToVoicePttKey(event))) {
+        setPttPressed(true)
+      }
+    }
+    const onKeyUp = (event: KeyboardEvent): void => {
+      if (matchesConfiguredKey(keyboardEventToVoicePttKey(event))) setPttPressed(false)
+    }
+    const onMouseDown = (event: MouseEvent): void => {
+      if (matchesConfiguredKey(mouseEventToVoicePttKey(event))) setPttPressed(true)
+    }
+    const onMouseUp = (event: MouseEvent): void => {
+      if (matchesConfiguredKey(mouseEventToVoicePttKey(event))) setPttPressed(false)
+    }
+    const onBlur = (): void => setPttPressed(false)
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('blur', onBlur)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('blur', onBlur)
+      setPttPressed(false)
+    }
+  }, [capturingPttKey, micMode, setPttPressed, voiceActive, voicePttKey])
+
+  useEffect(() => {
+    if (!capturingPttKey) return
+
+    const saveKey = (key: string): void => {
+      setCapturingPttKey(false)
+      setPttKeyError(null)
+      void window.api.gameSettings
+        .setVoicePttKey(key)
+        .then((settings) => setVoicePttKey(settings.voicePttKey))
+        .catch((saveError: unknown) =>
+          setPttKeyError(
+            saveError instanceof Error ? saveError.message : 'Could not save the push-to-talk key.'
+          )
+        )
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.key === 'Escape') {
+        setCapturingPttKey(false)
+        return
+      }
+      const key = keyboardEventToVoicePttKey(event)
+      if (key) saveKey(key)
+    }
+
+    const onMouseDown = (event: MouseEvent): void => {
+      const key = mouseEventToVoicePttKey(event)
+      if (!key) return
+      event.preventDefault()
+      event.stopPropagation()
+      saveKey(key)
+    }
+
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('mousedown', onMouseDown, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('mousedown', onMouseDown, true)
+    }
+  }, [capturingPttKey])
+
   if (!playerId) return null
   const hasVoiceContext = Boolean(room || match || connectionDetails || (party && party.members.length > 1))
   if (!hasVoiceContext && connectionState !== 'error') return null
 
   const title = room?.scope === 'match_team' ? 'Team Voice' : 'Party Voice'
-  const active = connectionState !== 'disabled'
+  const active = voiceActive
+  const displayedPttKey = displayVoicePttKey(voicePttKey)
 
   return (
     <aside className="fixed right-5 bottom-5 z-[80] w-[min(25rem,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur">
@@ -113,6 +276,41 @@ export function VoiceChatPanel(): JSX.Element | null {
             </button>
           </div>
 
+          <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-neutral-200">Push-to-talk key</p>
+                <p className="mt-0.5 text-[11px] text-neutral-500">
+                  The same key is synced to Counter-Strike.
+                </p>
+              </div>
+              <kbd className="min-w-12 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-center font-mono text-xs font-semibold text-white">
+                {capturingPttKey ? '...' : displayedPttKey}
+              </kbd>
+              <button
+                type="button"
+                className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-neutral-200 hover:bg-white/10"
+                onClick={() => {
+                  setPttKeyError(null)
+                  setCapturingPttKey((value) => !value)
+                }}
+              >
+                {capturingPttKey ? 'Cancel' : 'Change'}
+              </button>
+            </div>
+            {capturingPttKey && (
+              <p className="mt-2 text-[11px] text-sky-300">
+                Press a keyboard key or MOUSE1-MOUSE5. Escape cancels.
+              </p>
+            )}
+            {micMode === 'push_to_talk' && active && !capturingPttKey && (
+              <p className={`mt-2 text-[11px] ${pttPressed ? 'text-emerald-300' : 'text-neutral-500'}`}>
+                {pttPressed ? 'Transmitting voice' : `Hold ${displayedPttKey} to talk`}
+              </p>
+            )}
+            {pttKeyError && <p className="mt-2 text-[11px] text-red-300">{pttKeyError}</p>}
+          </div>
+
           {active && !microphoneReady && room && peers.length > 0 && (
             <p className="mt-3 text-xs text-amber-300">Waiting for microphone permission…</p>
           )}
@@ -161,7 +359,9 @@ export function VoiceChatPanel(): JSX.Element | null {
 
           {micMode === 'push_to_talk' && active && (
             <p className="mt-3 text-[11px] text-neutral-500">
-              Uses the Counter-Strike +voicerecord key while you are in game.
+              {room?.scope === 'match_team'
+                ? `Counter-Strike ${displayedPttKey} controls this mic while you are in game.`
+                : `The launcher listens for ${displayedPttKey} while it is focused.`}
             </p>
           )}
           {error && <p className="mt-3 text-xs text-red-300">{error}</p>}

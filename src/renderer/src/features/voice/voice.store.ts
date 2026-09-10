@@ -259,13 +259,22 @@ export const useVoiceStore = create<VoiceState>((set, get) => {
       set({ connectionState: event.state })
       return
     }
+    if (event.type === 'voice_ptt') {
+      set({ pttPressed: event.pressed })
+      updateTrackEnabled({ ...get(), pttPressed: event.pressed })
+      return
+    }
     if (event.type === 'error') {
       set({ connectionState: 'error', error: event.message })
       return
     }
     if (event.type === 'voice_room') {
       const previousRoomId = get().room?.roomId
-      if (previousRoomId !== event.room?.roomId) stopAllPeers()
+      if (previousRoomId !== event.room?.roomId) {
+        stopAllPeers()
+        set({ pttPressed: false })
+        updateTrackEnabled({ ...get(), pttPressed: false })
+      }
       const peers = (event.room?.participants ?? [])
         .filter(({ id }) => id !== currentPlayerId)
         .map((participant) => ({

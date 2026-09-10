@@ -67,6 +67,9 @@ const asVoiceEvent = (value: unknown): VoiceEvent | null => {
       ? (event as unknown as VoiceEvent)
       : null
   }
+  if (event.type === 'voice_ptt' && typeof event.pressed === 'boolean') {
+    return { type: 'voice_ptt', pressed: event.pressed }
+  }
   if (event.type === 'error' && typeof event.code === 'string' && typeof event.message === 'string') {
     return event as unknown as VoiceEvent
   }
