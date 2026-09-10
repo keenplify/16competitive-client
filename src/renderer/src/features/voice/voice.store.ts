@@ -3,7 +3,13 @@ import type { VoiceEvent, VoiceParticipant, VoiceRoom, VoiceSignal } from '../..
 
 export type VoiceMicMode = 'push_to_talk' | 'open_mic'
 
-type VoiceConnectionState = 'disabled' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+type VoiceConnectionState =
+  | 'disabled'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'error'
 type PeerConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface VoicePeer extends VoiceParticipant {
@@ -150,6 +156,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => {
     connection.addEventListener('icecandidate', (event) => {
       if (!event.candidate || !get().room) return
       const candidate = event.candidate.toJSON()
+      if (!candidate.candidate) return
       void window.api.voice.signal(room.roomId, participant.id, {
         type: 'ice',
         candidate: candidate.candidate,
@@ -186,13 +193,12 @@ export const useVoiceStore = create<VoiceState>((set, get) => {
     const connection = await ensurePeerConnection(participant)
     if (connection.signalingState !== 'stable' || connection.localDescription) return
     const offer = await connection.createOffer()
+    if (!offer.sdp) return
     await connection.setLocalDescription(offer)
-    if (connection.localDescription?.sdp) {
-      await window.api.voice.signal(room.roomId, participant.id, {
-        type: 'offer',
-        sdp: connection.localDescription.sdp
-      })
-    }
+    await window.api.voice.signal(room.roomId, participant.id, {
+      type: 'offer',
+      sdp: offer.sdp
+    })
   }
 
   const addParticipant = (participant: VoiceParticipant): void => {
@@ -219,13 +225,12 @@ export const useVoiceStore = create<VoiceState>((set, get) => {
       await connection.setRemoteDescription({ type: 'offer', sdp: signal.sdp })
       await flushPendingIce(fromPlayerId, connection)
       const answer = await connection.createAnswer()
+      if (!answer.sdp) return
       await connection.setLocalDescription(answer)
-      if (connection.localDescription?.sdp) {
-        await window.api.voice.signal(room.roomId, fromPlayerId, {
-          type: 'answer',
-          sdp: connection.localDescription.sdp
-        })
-      }
+      await window.api.voice.signal(room.roomId, fromPlayerId, {
+        type: 'answer',
+        sdp: answer.sdp
+      })
       return
     }
 
@@ -251,7 +256,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => {
 
   const handleEvent = (event: VoiceEvent): void => {
     if (event.type === 'connection_state') {
-      set({ connectionState: event.state === 'connected' ? 'connected' : event.state })
+      set({ connectionState: event.state })
       return
     }
     if (event.type === 'error') {
