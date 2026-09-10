@@ -1,4 +1,5 @@
 import { clearSessionToken, getSessionToken } from './auth'
+import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 import type { LobbyLoadout, OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
@@ -20,6 +21,11 @@ const makeError = (message: string, code?: string): ApiError =>
   Object.assign(new Error(message), { code })
 
 const getSkinApiUrl = async (): Promise<string> => {
+  const activeApiUrl = matchmakingConnection.getActiveApiUrl()
+  if (activeApiUrl) {
+    cachedSkinApiUrl = { url: activeApiUrl, expiresAt: Date.now() + SKIN_API_URL_CACHE_MS }
+    return activeApiUrl
+  }
   if (cachedSkinApiUrl && cachedSkinApiUrl.expiresAt > Date.now()) return cachedSkinApiUrl.url
   if (pendingSkinApiUrl) return pendingSkinApiUrl
 

@@ -405,6 +405,10 @@ class MatchmakingConnection {
   private lastConnection: MatchConnection | null = null
   private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
+  getActiveApiUrl(): string | null {
+    return this.activeApiUrl ?? this.hostApiUrl
+  }
+
   connect(renderer: WebContents): void {
     this.renderer = renderer
     this.manuallyDisconnected = false
