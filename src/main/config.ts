@@ -1,5 +1,3 @@
-import './voice-ipc'
-
 // Keep local development configurable through .env, but never let a packaged
 // launcher silently fall back to a localhost service that is not running on
 // the player's machine. Production builds still replace this value at bundle
