@@ -533,3 +533,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added support for choosing a custom voice push-to-talk key.
 - Improved restoration of voice key bindings.
+
+## v2026.910.10 — 2026-09-10
+
+### Voice Chat
+
+- Push-to-talk now uses a private GoldSrc command.
