@@ -7,6 +7,7 @@ import type {
   MatchmakingServerMessage,
   QueuedPlayer,
   VoiceContext,
+  VoiceIceServer,
   VoiceSignalType
 } from '../shared/matchmaking'
 import type { GlobalChatMessage, GlobalChatMessageDeleted } from '../shared/matchmaking'
@@ -90,6 +91,29 @@ const isVoicePeer = (value: unknown): boolean => {
   if (typeof value !== 'object' || value === null) return false
   const peer = value as Record<string, unknown>
   return typeof peer.id === 'string' && typeof peer.username === 'string'
+}
+
+const isVoiceIceServer = (value: unknown): value is VoiceIceServer => {
+  if (typeof value !== 'object' || value === null) return false
+  const server = value as Record<string, unknown>
+  const isIceUrl = (url: unknown): url is string =>
+    typeof url === 'string' &&
+    url.length >= 1 &&
+    url.length <= 512 &&
+    /^(stun|turn|turns):/.test(url)
+  const urlsAreValid =
+    isIceUrl(server.urls) ||
+    (Array.isArray(server.urls) &&
+      server.urls.length >= 1 &&
+      server.urls.length <= 4 &&
+      server.urls.every(isIceUrl))
+  return (
+    urlsAreValid &&
+    (server.username === undefined ||
+      (typeof server.username === 'string' && server.username.length <= 256)) &&
+    (server.credential === undefined ||
+      (typeof server.credential === 'string' && server.credential.length <= 512))
+  )
 }
 
 const isVoiceSignalType = (value: unknown): value is VoiceSignalType =>
@@ -187,7 +211,12 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         isVoiceContext(message.context) &&
         Array.isArray(message.peers) &&
         message.peers.length <= 19 &&
-        message.peers.every(isVoicePeer)
+        message.peers.every(isVoicePeer) &&
+        Array.isArray(message.iceServers) &&
+        message.iceServers.length >= 1 &&
+        message.iceServers.length <= 4 &&
+        message.iceServers.every(isVoiceIceServer) &&
+        message.iceTransportPolicy === 'relay'
       )
     case 'voice_peer_joined':
       return isVoiceContext(message.context) && isVoicePeer(message.peer)

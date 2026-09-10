@@ -36,11 +36,6 @@ const VOICE_PREFERENCES_KEY = '16competitive.voice.preferences'
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
 const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 const NATIVE_PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:stun.l.google.com:19302' }
-]
-
 const sameContext = (left: VoiceContext | null, right: VoiceContext | null): boolean =>
   Boolean(left && right && left.kind === right.kind && left.id === right.id)
 
@@ -179,6 +174,10 @@ export function VoiceChatDock(): JSX.Element | null {
   const pttActiveRef = useRef(pttActive)
   const peersRef = useRef(peers)
   const preferencesRef = useRef(preferences)
+  const iceConfigurationRef = useRef<RTCConfiguration>({
+    iceServers: [],
+    iceTransportPolicy: 'relay'
+  })
   const activeContext = joinedContext ?? desiredContext
 
   useEffect(() => {
@@ -409,7 +408,7 @@ export function VoiceChatDock(): JSX.Element | null {
     const existingAfterMicrophone = runtimesRef.current.get(peer.id)
     if (existingAfterMicrophone) return existingAfterMicrophone
 
-    const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    const connection = new RTCPeerConnection(iceConfigurationRef.current)
     const audio = document.createElement('audio')
     audio.autoplay = true
     audio.hidden = true
@@ -476,6 +475,10 @@ export function VoiceChatDock(): JSX.Element | null {
     const removeListener = window.api.matchmaking.onEvent((event: MatchmakingEvent) => {
       if (event.type === 'voice_session') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
+        iceConfigurationRef.current = {
+          iceServers: event.iceServers,
+          iceTransportPolicy: event.iceTransportPolicy
+        }
         setJoinedContext(event.context)
         setPeers(event.peers)
         for (const peer of event.peers) void makeOffer(peer).catch(() => undefined)
