@@ -259,6 +259,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'party_invitation_received':
     case 'party_updated':
     case 'party_disbanded':
+    case 'friend_request_received':
+    case 'friends_updated':
       return true
     case 'party_presence_ping':
       return (
