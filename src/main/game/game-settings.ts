@@ -1,7 +1,8 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, normalize } from 'node:path'
+import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
+import { readVoicePttKeys } from './voice-ptt'
 
 interface StoredGameSettings {
   cs16ExecutablePath: string
@@ -92,15 +93,26 @@ const readStoredPath = async (): Promise<string | null> => {
   }
 }
 
+const gameDirectoryForExecutable = (executablePath: string): string => {
+  const configuredDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
+  return configuredDirectory ? resolve(configuredDirectory) : dirname(executablePath)
+}
+
+const settingsForExecutable = async (cs16ExecutablePath: string): Promise<GameSettings> => ({
+  cs16ExecutablePath,
+  configFilePath: configPath(),
+  voicePttKeys: await readVoicePttKeys(gameDirectoryForExecutable(cs16ExecutablePath))
+})
+
 export const getGameSettings = async (): Promise<GameSettings> => {
   const stored = await readStoredPath()
-  if (stored) return { cs16ExecutablePath: stored, configFilePath: configPath() }
+  if (stored) return settingsForExecutable(stored)
   const detected = await detectCs16Executable()
   if (detected) {
     await saveGameSettings(detected)
-    return { cs16ExecutablePath: detected, configFilePath: configPath() }
+    return settingsForExecutable(detected)
   }
-  return { cs16ExecutablePath: null, configFilePath: configPath() }
+  return { cs16ExecutablePath: null, configFilePath: configPath(), voicePttKeys: [] }
 }
 
 export const chooseCs16Executable = async (): Promise<string | null> => {
@@ -127,7 +139,7 @@ export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSett
   })
   await rename(temporary, destination)
   if (process.platform !== 'win32') await chmod(destination, 0o600)
-  return { cs16ExecutablePath, configFilePath: destination }
+  return settingsForExecutable(cs16ExecutablePath)
 }
 
 export const getSavedCs16Executable = readStoredPath
