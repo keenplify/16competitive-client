@@ -98,6 +98,53 @@ let skinAssetSyncProgress: SkinAssetSyncProgress = {
 
 installDiagnosticLogCapture()
 
+function installWindowDiagnostics(window: BrowserWindow): void {
+  const state = (): Record<string, unknown> => ({
+    focused: window.isFocused(),
+    visible: window.isVisible(),
+    minimized: window.isMinimized(),
+    fullScreen: window.isFullScreen(),
+    alwaysOnTop: window.isAlwaysOnTop()
+  })
+  const logEvent = (event: string): void => console.info('[WindowDebug]', event, state())
+
+  console.info('[WindowDebug]', 'environment', {
+    platform: process.platform,
+    sessionType: process.env.XDG_SESSION_TYPE ?? 'unknown',
+    wayland: Boolean(process.env.WAYLAND_DISPLAY),
+    x11: Boolean(process.env.DISPLAY),
+    ozonePlatform: app.commandLine.getSwitchValue('ozone-platform') || 'default',
+    electron: process.versions.electron,
+    chrome: process.versions.chrome
+  })
+
+  window.on('focus', () => logEvent('focus'))
+  window.on('blur', () => logEvent('blur'))
+  window.on('show', () => logEvent('show'))
+  window.on('hide', () => logEvent('hide'))
+  window.on('minimize', () => logEvent('minimize'))
+  window.on('restore', () => logEvent('restore'))
+  window.on('maximize', () => logEvent('maximize'))
+  window.on('unmaximize', () => logEvent('unmaximize'))
+  window.on('enter-full-screen', () => logEvent('enter-full-screen'))
+  window.on('leave-full-screen', () => logEvent('leave-full-screen'))
+
+  window.webContents.on('before-input-event', (_, input) => {
+    if (input.key !== 'Alt' && !(input.alt && input.key === 'Tab')) return
+    console.info('[WindowDebug]', 'keyboard', {
+      type: input.type,
+      key: input.key,
+      alt: input.alt,
+      shift: input.shift,
+      control: input.control,
+      meta: input.meta,
+      autoRepeat: input.isAutoRepeat,
+      focused: window.isFocused(),
+      fullScreen: window.isFullScreen()
+    })
+  })
+}
+
 function focusMainWindow(): void {
   const window =
     mainWindow && !mainWindow.isDestroyed() ? mainWindow : BrowserWindow.getAllWindows()[0]
@@ -191,6 +238,7 @@ function createWindow(): void {
       sandbox: true
     }
   })
+  installWindowDiagnostics(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.setBounds(displayBounds)
