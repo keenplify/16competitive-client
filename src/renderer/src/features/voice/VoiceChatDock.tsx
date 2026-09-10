@@ -299,6 +299,9 @@ export function VoiceChatDock(): JSX.Element | null {
   }, [activeContext?.kind, enabled, openMic, voicePttKey])
 
   const preferenceFor = (playerId: string): PeerPreference =>
+    preferences[playerId] ?? { volume: 1, muted: false }
+
+  const runtimePreferenceFor = (playerId: string): PeerPreference =>
     preferencesRef.current[playerId] ?? { volume: 1, muted: false }
 
   const applyPreference = (runtime: PeerRuntime, preference: PeerPreference): void => {
@@ -410,7 +413,7 @@ export function VoiceChatDock(): JSX.Element | null {
     document.body.appendChild(audio)
     const runtime: PeerRuntime = { peer, connection, audio, pendingIce: [] }
     runtimesRef.current.set(peer.id, runtime)
-    applyPreference(runtime, preferenceFor(peer.id))
+    applyPreference(runtime, runtimePreferenceFor(peer.id))
 
     for (const track of stream.getTracks()) connection.addTrack(track, stream)
 
