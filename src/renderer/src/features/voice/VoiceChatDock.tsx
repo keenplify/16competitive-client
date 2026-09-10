@@ -232,6 +232,7 @@ export function VoiceChatDock(): JSX.Element | null {
     return () => observer.disconnect()
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Player identity changes require resetting the persisted PTT key before the async settings read. */
   useEffect(() => {
     let cancelled = false
     if (!currentPlayerId) {
@@ -260,6 +261,7 @@ export function VoiceChatDock(): JSX.Element | null {
       window.removeEventListener(VOICE_PTT_KEY_CHANGED_EVENT, keyChanged)
     }
   }, [currentPlayerId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!enabled || openMic || activeContext?.kind !== 'party' || !voicePttKey) return
@@ -566,6 +568,7 @@ export function VoiceChatDock(): JSX.Element | null {
     return removeListener
   }, [desiredContext, enabled])
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Voice context transitions synchronously tear down stale media and UI state. */
   useEffect(() => {
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
       if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
@@ -588,6 +591,7 @@ export function VoiceChatDock(): JSX.Element | null {
         )
     }
   }, [connectionStatus, desiredContext, enabled, joinedContext])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(
     () => () => {
