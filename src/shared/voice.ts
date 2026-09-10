@@ -35,6 +35,7 @@ export type VoiceEvent =
   | { type: 'voice_peer_available'; roomId: string; participant: VoiceParticipant }
   | { type: 'voice_peer_left'; roomId: string; playerId: string }
   | { type: 'voice_signal'; roomId: string; fromPlayerId: string; signal: VoiceSignal }
+  | { type: 'voice_ptt'; pressed: boolean }
   | { type: 'error'; code: string; message: string }
 
 export interface VoiceApi {
