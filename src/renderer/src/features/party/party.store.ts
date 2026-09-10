@@ -30,6 +30,7 @@ interface PartyState {
   refresh: () => Promise<void>
   setInviteUsername: (username: string) => void
   invite: () => Promise<void>
+  invitePlayer: (username: string) => Promise<void>
   respond: (invitationId: string, decision: PartyInvitationDecision) => Promise<void>
   leave: () => Promise<void>
   setChatDraft: (message: string) => void
@@ -287,6 +288,25 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         inviteUsername: '',
         status: 'idle',
         notice: `Invitation sent to ${invitation.invitedPlayer.username}.`
+      })
+    } catch (error) {
+      set({ status: 'idle', error: readableError(error) })
+    }
+  },
+
+  invitePlayer: async (username) => {
+    if (!/^[A-Za-z0-9_]{3,32}$/.test(username)) {
+      set({ error: 'That friend has an invalid username.' })
+      return
+    }
+    set({ status: 'inviting', error: null, notice: null })
+    try {
+      const invitation = await window.api.party.invite(username)
+      const party = await window.api.party.get()
+      set({
+        party,
+        status: 'idle',
+        notice: `Party invitation sent to ${invitation.invitedPlayer.username}.`
       })
     } catch (error) {
       set({ status: 'idle', error: readableError(error) })

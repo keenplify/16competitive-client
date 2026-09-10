@@ -9,6 +9,8 @@ import type { ModelApi } from '../shared/models'
 import { MODEL_CHANNELS } from '../shared/models'
 import type { PartyApi } from '../shared/party'
 import { PARTY_CHANNELS } from '../shared/party'
+import type { FriendsApi } from '../shared/friends'
+import { FRIEND_CHANNELS } from '../shared/friends'
 import type { GameSettingsApi, SkinAssetSyncProgress } from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
@@ -100,6 +102,15 @@ const party: PartyApi = {
   sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message)
 }
 
+const friends: FriendsApi = {
+  list: () => ipcRenderer.invoke(FRIEND_CHANNELS.list),
+  search: (query) => ipcRenderer.invoke(FRIEND_CHANNELS.search, query),
+  request: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.request, playerId),
+  accept: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.accept, requestId),
+  discard: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.discard, requestId),
+  remove: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.remove, playerId)
+}
+
 const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseExecutable: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseExecutable),
@@ -171,6 +182,7 @@ const diagnosticLogs: DiagnosticLogsApi = {
 
 const api = {
   auth,
+  friends,
   gameSettings,
   leaderboard,
   matchmaking,
