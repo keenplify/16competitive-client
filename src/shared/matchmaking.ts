@@ -10,6 +10,9 @@ export const MATCHMAKING_CHANNELS = {
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
   reconnectGame: 'matchmaking:reconnect-game',
+  voiceSync: 'matchmaking:voice-sync',
+  voiceLeave: 'matchmaking:voice-leave',
+  voiceSignal: 'matchmaking:voice-signal',
   event: 'matchmaking:event'
 } as const
 
@@ -51,6 +54,35 @@ export interface MatchmakingPreferences {
   selectedNodeId: string | null
   allowRegionExpansion: boolean
 }
+
+export type VoiceScope = 'party' | 'match_team'
+
+export interface VoiceParticipant {
+  id: string
+  username: string
+}
+
+export type VoiceSignal =
+  | { type: 'offer'; sdp: string }
+  | { type: 'answer'; sdp: string }
+  | {
+      type: 'ice'
+      candidate: string
+      sdpMid?: string | null
+      sdpMLineIndex?: number | null
+    }
+
+export interface VoiceRoom {
+  scope: VoiceScope
+  roomId: string
+  participants: VoiceParticipant[]
+}
+
+export type VoiceServerEvent =
+  | { type: 'voice_room'; room: VoiceRoom | null }
+  | { type: 'voice_peer_available'; roomId: string; participant: VoiceParticipant }
+  | { type: 'voice_peer_left'; roomId: string; playerId: string }
+  | { type: 'voice_signal'; roomId: string; fromPlayerId: string; signal: VoiceSignal }
 
 export type PartyChatNotificationCode =
   | 'MEMBER_CONNECTED'
@@ -149,6 +181,7 @@ export type MatchmakingServerMessage =
   | GlobalChatMessage
   | GlobalChatHistory
   | GlobalChatMessageDeleted
+  | VoiceServerEvent
   | {
       type: 'match_found'
       matchId: string
@@ -250,5 +283,8 @@ export interface MatchmakingApi {
   getMaps(): Promise<MatchmakingMap[]>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
+  voiceSync(): Promise<void>
+  voiceLeave(): Promise<void>
+  voiceSignal(roomId: string, targetPlayerId: string, signal: VoiceSignal): Promise<void>
   onEvent(listener: (event: MatchmakingEvent) => void): () => void
 }
