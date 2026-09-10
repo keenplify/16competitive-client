@@ -121,7 +121,7 @@ export function LobbySocialSidebar({
           <div className="mt-5 rounded p-2">
             <Users className="size-4" aria-hidden="true" />
           </div>
-          <div className="mt-auto mb-5 flex flex-col items-center gap-4">
+          <div className={`mt-auto flex flex-col items-center gap-4 ${party ? 'mb-20' : 'mb-5'}`}>
             <span className="relative" title="Party invitations" aria-label="Party invitations">
               <Mail className="size-4" aria-hidden="true" />
               {invitations.length > 0 && (
@@ -143,7 +143,7 @@ export function LobbySocialSidebar({
         >
           <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
 
-          <section className="flex min-h-0 flex-1 flex-col">
+          <section className={`flex min-h-0 flex-1 flex-col ${party ? 'pb-[53px]' : ''}`}>
             <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-white/5 px-4">
               <div className="flex items-center gap-2">
                 <Users className="size-4 text-neutral-300" aria-hidden="true" />

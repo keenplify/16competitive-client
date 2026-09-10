@@ -62,6 +62,10 @@ const matchmaking: MatchmakingApi = {
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  voiceJoin: (context) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceJoin, context),
+  voiceLeave: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceLeave),
+  voiceSignal: (targetPlayerId, signalType, signal) =>
+    ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceSignal, targetPlayerId, signalType, signal),
   onEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, message: MatchmakingEvent): void =>
       listener(message)
@@ -100,6 +104,7 @@ const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseExecutable: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseExecutable),
   save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath),
+  setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
   syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
   onAssetSyncProgress: (listener) => {

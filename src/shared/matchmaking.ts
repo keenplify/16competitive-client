@@ -10,6 +10,9 @@ export const MATCHMAKING_CHANNELS = {
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
   reconnectGame: 'matchmaking:reconnect-game',
+  voiceJoin: 'matchmaking:voice-join',
+  voiceLeave: 'matchmaking:voice-leave',
+  voiceSignal: 'matchmaking:voice-signal',
   event: 'matchmaking:event'
 } as const
 
@@ -27,6 +30,24 @@ export interface QueuedPlayer {
   id: string
   username: string
   mmr: number
+}
+
+export interface VoicePeer {
+  id: string
+  username: string
+}
+
+export interface VoiceContext {
+  kind: 'party' | 'match'
+  id: string
+}
+
+export type VoiceSignalType = 'offer' | 'answer' | 'ice'
+
+export interface VoiceIceServer {
+  urls: string | string[]
+  username?: string
+  credential?: string
 }
 
 export interface MatchmakingMap {
@@ -117,6 +138,22 @@ export type MatchmakingServerMessage =
       retryAfterMs: number
     }
   | { type: 'authenticated'; player: QueuedPlayer }
+  | {
+      type: 'voice_session'
+      context: VoiceContext
+      peers: VoicePeer[]
+      iceServers: VoiceIceServer[]
+      iceTransportPolicy: 'relay'
+    }
+  | { type: 'voice_peer_joined'; context: VoiceContext; peer: VoicePeer }
+  | { type: 'voice_peer_left'; context: VoiceContext; playerId: string }
+  | {
+      type: 'voice_signal'
+      context: VoiceContext
+      fromPlayerId: string
+      signalType: VoiceSignalType
+      signal: string
+    }
   | {
       type: 'queue_joined'
       mode: MatchmakingMode
@@ -250,5 +287,8 @@ export interface MatchmakingApi {
   getMaps(): Promise<MatchmakingMap[]>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
+  voiceJoin(context: VoiceContext): Promise<void>
+  voiceLeave(): Promise<void>
+  voiceSignal(targetPlayerId: string, signalType: VoiceSignalType, signal: string): Promise<void>
   onEvent(listener: (event: MatchmakingEvent) => void): () => void
 }

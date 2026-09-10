@@ -451,3 +451,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Choose a preferred region when joining the matchmaking queue.
 - Your selected region is reflected in queue status.
+
+## v2026.910.1 — 2026-09-10
+
+### Voice Chat
+
+- Added persistent party and team voice controls alongside Friends.
+- Improved voice connection reliability and reconnect handling.
+- Added push-to-talk settings and synchronized them with GoldSrc.
+- Added Wayland-safe push-to-talk support.
+- Fixed voice controls overlapping and improved mouse capture.
+
+### Matchmaking & Skins
+
+- Skin requests now use the selected region and active node.
+- Improved skin asset synchronization feedback.
+
+### Game Settings
+
+- Added configured GoldSrc push-to-talk keys to game settings.
+- Applied push-to-talk settings when launching matches.

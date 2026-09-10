@@ -1,19 +1,49 @@
 import { clearSessionToken, getSessionToken } from './auth'
-import { API_BASE_URL } from './config'
+import { matchmakingConnection } from './matchmaking'
+import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 import type { LobbyLoadout, OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 // Keep downloaded preview models in the per-user cache so the store does not
 // fetch the same .mdl every time it renders a skin.
 const PREVIEW_MODEL_CACHE_ENABLED = true
+const SKIN_API_URL_CACHE_MS = 5_000
 
 const skinIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const weaponKeyPattern = /^[a-z0-9_]+$/
 
 type ApiError = Error & { code?: string }
 
+let cachedSkinApiUrl: { url: string; expiresAt: number } | null = null
+let pendingSkinApiUrl: Promise<string> | null = null
+
 const makeError = (message: string, code?: string): ApiError =>
   Object.assign(new Error(message), { code })
+
+const getSkinApiUrl = async (): Promise<string> => {
+  const activeApiUrl = matchmakingConnection.getActiveApiUrl()
+  if (activeApiUrl) {
+    cachedSkinApiUrl = { url: activeApiUrl, expiresAt: Date.now() + SKIN_API_URL_CACHE_MS }
+    return activeApiUrl
+  }
+  if (cachedSkinApiUrl && cachedSkinApiUrl.expiresAt > Date.now()) return cachedSkinApiUrl.url
+  if (pendingSkinApiUrl) return pendingSkinApiUrl
+
+  pendingSkinApiUrl = resolvePreferredMatchmakingApiUrl()
+    .then((url) => {
+      cachedSkinApiUrl = { url, expiresAt: Date.now() + SKIN_API_URL_CACHE_MS }
+      return url
+    })
+    .finally(() => {
+      pendingSkinApiUrl = null
+    })
+  return pendingSkinApiUrl
+}
+
+const skinApiUrl = async (path: string): Promise<string> => {
+  const baseUrl = await getSkinApiUrl()
+  return new URL(path, `${baseUrl.replace(/\/$/, '')}/`).toString()
+}
 
 const isSkin = (value: unknown): value is Skin => {
   if (typeof value !== 'object' || value === null) return false
@@ -51,7 +81,7 @@ const isOwnedSkin = (value: unknown): value is OwnedSkin => {
 const playerRequest = async (path: string, init: RequestInit = {}): Promise<unknown> => {
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to manage skins.', 'UNAUTHORIZED')
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(await skinApiUrl(path), {
     ...init,
     headers: { authorization: `Bearer ${token}`, ...init.headers },
     signal: AbortSignal.timeout(10_000)
@@ -81,7 +111,7 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
     throw new Error('Invalid weapon filter')
   }
   const query = weaponKey ? `?weaponKey=${encodeURIComponent(weaponKey)}` : ''
-  const body = await fetch(`${API_BASE_URL}/skins${query}`, {
+  const body = await fetch(await skinApiUrl(`/skins${query}`), {
     signal: AbortSignal.timeout(10_000)
   }).catch(() => {
     throw new Error('Could not reach the shop server.')
@@ -189,7 +219,7 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
     if (cached) return cached
   }
 
-  const response = await fetch(`${API_BASE_URL}/skins/${validatedSkinId}/preview-model`, {
+  const response = await fetch(await skinApiUrl(`/skins/${validatedSkinId}/preview-model`), {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000)
   }).catch(() => {

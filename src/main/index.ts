@@ -45,7 +45,12 @@ import {
   type SkinAssetSyncMode,
   type SkinAssetSyncProgress
 } from '../shared/game-settings'
-import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
+import {
+  chooseCs16Executable,
+  getGameSettings,
+  saveGameSettings,
+  saveVoicePttKey
+} from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { SKIN_CHANNELS } from '../shared/skins'
@@ -318,6 +323,15 @@ app.whenReady().then(async () => {
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceJoin, (_, context: unknown) =>
+    matchmakingConnection.joinVoice(context)
+  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceLeave, () => matchmakingConnection.leaveVoice())
+  ipcMain.handle(
+    MATCHMAKING_CHANNELS.voiceSignal,
+    (_, targetPlayerId: unknown, signalType: unknown, signal: unknown) =>
+      matchmakingConnection.sendVoiceSignal(targetPlayerId, signalType, signal)
+  )
   ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
     readCounterStrikeModel(relativePath)
   )
@@ -355,6 +369,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
