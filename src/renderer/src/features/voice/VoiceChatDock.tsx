@@ -15,6 +15,9 @@ interface PeerRuntime {
   connection: RTCPeerConnection
   audio: HTMLAudioElement
   pendingIce: RTCIceCandidateInit[]
+  makingOffer: boolean
+  ignoreOffer: boolean
+  isSettingRemoteAnswerPending: boolean
 }
 
 interface PeerPreference {
@@ -411,7 +414,15 @@ export function VoiceChatDock(): JSX.Element | null {
     audio.autoplay = true
     audio.hidden = true
     document.body.appendChild(audio)
-    const runtime: PeerRuntime = { peer, connection, audio, pendingIce: [] }
+    const runtime: PeerRuntime = {
+      peer,
+      connection,
+      audio,
+      pendingIce: [],
+      makingOffer: false,
+      ignoreOffer: false,
+      isSettingRemoteAnswerPending: false
+    }
     runtimesRef.current.set(peer.id, runtime)
     applyPreference(runtime, runtimePreferenceFor(peer.id))
 
@@ -429,25 +440,28 @@ export function VoiceChatDock(): JSX.Element | null {
     connection.addEventListener('connectionstatechange', () => {
       setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
       if (connection.connectionState !== 'failed') return
-      connection.restartIce()
-      const currentPlayer = playerIdRef.current
-      if (currentPlayer && currentPlayer < peer.id) {
-        window.setTimeout(() => void makeOffer(peer).catch(() => undefined), 100)
-      }
+      window.setTimeout(() => void makeOffer(peer, true).catch(() => undefined), 100)
     })
 
     setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
     return runtime
   }
 
-  const makeOffer = async (peer: VoicePeer): Promise<void> => {
+  const makeOffer = async (peer: VoicePeer, iceRestart = false): Promise<void> => {
     const currentPlayer = playerIdRef.current
-    if (!currentPlayer || currentPlayer >= peer.id) return
+    if (!currentPlayer || (!iceRestart && currentPlayer >= peer.id)) return
     const runtime = await ensurePeer(peer)
-    if (runtime.connection.signalingState !== 'stable') return
-    const offer = await runtime.connection.createOffer()
-    await runtime.connection.setLocalDescription(offer)
-    await sendSignal(peer.id, 'offer', offer)
+    if (runtime.makingOffer || runtime.connection.signalingState !== 'stable') return
+
+    try {
+      runtime.makingOffer = true
+      const offer = await runtime.connection.createOffer(iceRestart ? { iceRestart: true } : {})
+      if (runtime.connection.signalingState !== 'stable') return
+      await runtime.connection.setLocalDescription(offer)
+      await sendSignal(peer.id, 'offer', offer)
+    } finally {
+      runtime.makingOffer = false
+    }
   }
 
   const flushPendingIce = async (runtime: PeerRuntime): Promise<void> => {
@@ -460,10 +474,6 @@ export function VoiceChatDock(): JSX.Element | null {
 
   useEffect(() => {
     const removeListener = window.api.matchmaking.onEvent((event: MatchmakingEvent) => {
-      if (event.type === 'authenticated' && enabled && desiredContext) {
-        void window.api.matchmaking.voiceJoin(desiredContext).catch(() => undefined)
-        return
-      }
       if (event.type === 'voice_session') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
         setJoinedContext(event.context)
@@ -505,7 +515,22 @@ export function VoiceChatDock(): JSX.Element | null {
         if (event.signalType === 'offer') {
           const offer = parseSignal<RTCSessionDescriptionInit>(event.signal)
           if (!offer) return
+
+          const currentPlayer = playerIdRef.current
+          const polite = currentPlayer ? currentPlayer > peer.id : true
+          const readyForOffer =
+            !runtime.makingOffer &&
+            (runtime.connection.signalingState === 'stable' ||
+              runtime.isSettingRemoteAnswerPending)
+          const offerCollision = !readyForOffer
+          runtime.ignoreOffer = !polite && offerCollision
+          if (runtime.ignoreOffer) return
+
+          if (offerCollision && runtime.connection.signalingState !== 'stable') {
+            await runtime.connection.setLocalDescription({ type: 'rollback' })
+          }
           await runtime.connection.setRemoteDescription(offer)
+          runtime.ignoreOffer = false
           await flushPendingIce(runtime)
           const answer = await runtime.connection.createAnswer()
           await runtime.connection.setLocalDescription(answer)
@@ -515,8 +540,14 @@ export function VoiceChatDock(): JSX.Element | null {
         if (event.signalType === 'answer') {
           const answer = parseSignal<RTCSessionDescriptionInit>(event.signal)
           if (!answer) return
-          await runtime.connection.setRemoteDescription(answer)
-          await flushPendingIce(runtime)
+          runtime.isSettingRemoteAnswerPending = true
+          try {
+            await runtime.connection.setRemoteDescription(answer)
+            runtime.ignoreOffer = false
+            await flushPendingIce(runtime)
+          } finally {
+            runtime.isSettingRemoteAnswerPending = false
+          }
           return
         }
         const candidate = parseSignal<RTCIceCandidateInit>(event.signal)
