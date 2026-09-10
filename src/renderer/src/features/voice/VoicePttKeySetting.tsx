@@ -2,6 +2,8 @@ import { useEffect, useState, type JSX } from 'react'
 import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 
+export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
+
 const keyboardEventGoldSrcKey = (event: KeyboardEvent): string | null => {
   if (event.code.startsWith('Key') && event.code.length === 4) return event.code.slice(3).toUpperCase()
   if (event.code.startsWith('Digit') && event.code.length === 6) return event.code.slice(5)
@@ -93,6 +95,9 @@ export function VoicePttKeySetting(): JSX.Element {
         .then((settings) => {
           setPttKey(settings.voicePttKey)
           setHasGame(Boolean(settings.cs16ExecutablePath))
+          window.dispatchEvent(
+            new CustomEvent(VOICE_PTT_KEY_CHANGED_EVENT, { detail: settings.voicePttKey })
+          )
           setNotice(
             settings.cs16ExecutablePath
               ? `Push-to-talk is now ${settings.voicePttKey} in the launcher and Counter-Strike.`
