@@ -62,6 +62,10 @@ const matchmaking: MatchmakingApi = {
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  voiceJoin: (context) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceJoin, context),
+  voiceLeave: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceLeave),
+  voiceSignal: (targetPlayerId, signalType, signal) =>
+    ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceSignal, targetPlayerId, signalType, signal),
   onEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, message: MatchmakingEvent): void =>
       listener(message)
