@@ -472,6 +472,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added configured GoldSrc push-to-talk keys to game settings.
 - Applied push-to-talk settings when launching matches.
 
+## v2026.910.3 — 2026-09-10
+
+### Voice Chat
+
+- Improved handling and diagnostics for failed voice relay connections.
+- Voice chat state now resets correctly when changing contexts.
+
+## v2026.910.4 — 2026-09-10
+
+### Linux
+
+- Improved reliability for Linux builds.
+=======
 ## v2026.910.2 — 2026-09-10
 
 ### Voice Chat
@@ -482,4 +495,4 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ### Documentation
 
-- Updated the README.
+- Updated the README

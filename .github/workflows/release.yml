@@ -38,7 +38,7 @@ jobs:
             artifact: windows-release
           - os: ubuntu-latest
             command: npm run build:linux
-            artifact: linux-release
+            artifact: linux-appimage-release
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -61,8 +61,6 @@ jobs:
             dist/*.exe
             dist/*.blockmap
             dist/*.AppImage
-            dist/*.deb
-            dist/*.snap
             dist/latest*.yml
           if-no-files-found: error
 

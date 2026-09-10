@@ -11,6 +11,7 @@ interface StoredGameSettings {
 
 const DEFAULT_VOICE_PTT_KEY = 'K'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
+let settingsWriteQueue: Promise<void> = Promise.resolve()
 
 const detectCs16Executable = async (): Promise<string | null> => {
   const home = process.env.HOME ?? ''
@@ -87,16 +88,21 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
   }
 }
 
-const writeStoredSettings = async (settings: StoredGameSettings): Promise<void> => {
-  const destination = configPath()
-  const temporary = `${destination}.tmp`
-  await mkdir(dirname(destination), { recursive: true })
-  await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600
-  })
-  await rename(temporary, destination)
-  if (process.platform !== 'win32') await chmod(destination, 0o600)
+const writeStoredSettings = (settings: StoredGameSettings): Promise<void> => {
+  const write = async (): Promise<void> => {
+    const destination = configPath()
+    const temporary = `${destination}.${process.pid}.tmp`
+    await mkdir(dirname(destination), { recursive: true })
+    await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600
+    })
+    await rename(temporary, destination)
+    if (process.platform !== 'win32') await chmod(destination, 0o600)
+  }
+  const pending = settingsWriteQueue.then(write, write)
+  settingsWriteQueue = pending.catch(() => undefined)
+  return pending
 }
 
 const validateStoredPath = async (settings: StoredGameSettings): Promise<string | null> => {
