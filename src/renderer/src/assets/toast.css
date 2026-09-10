@@ -1,0 +1,87 @@
+.launcher-toast-container {
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0;
+}
+
+.launcher-toast-container .Toastify__toast {
+  min-height: 0;
+  margin-bottom: 0.55rem;
+  padding: 0.8rem 0.85rem 0.9rem;
+  border: 1px solid rgb(125 211 252 / 38%);
+  border-left: 3px solid rgb(56 189 248);
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgb(14 116 144 / 18%), transparent 42%),
+    rgb(9 14 20 / 96%);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 46%);
+  color: rgb(226 232 240);
+}
+
+.launcher-toast-container .Toastify__toast--error {
+  border-color: rgb(251 113 133 / 42%);
+  border-left-color: rgb(251 113 133);
+  background:
+    linear-gradient(90deg, rgb(190 24 93 / 16%), transparent 42%),
+    rgb(20 9 13 / 96%);
+}
+
+.launcher-toast-container .Toastify__toast--warning {
+  border-color: rgb(252 211 77 / 42%);
+  border-left-color: rgb(252 211 77);
+  background:
+    linear-gradient(90deg, rgb(180 83 9 / 16%), transparent 42%),
+    rgb(20 16 7 / 96%);
+}
+
+.launcher-toast-container .Toastify__toast-body {
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.launcher-toast-container .Toastify__toast-icon {
+  width: 1rem;
+  margin-inline-end: 0.7rem;
+}
+
+.launcher-toast-container .Toastify__toast--success .Toastify__toast-icon svg,
+.launcher-toast-container .Toastify__toast--info .Toastify__toast-icon svg {
+  fill: rgb(56 189 248);
+}
+
+.launcher-toast-container .Toastify__toast--error .Toastify__toast-icon svg {
+  fill: rgb(251 113 133);
+}
+
+.launcher-toast-container .Toastify__close-button {
+  align-self: flex-start;
+  padding: 0.05rem;
+  color: rgb(148 163 184);
+  opacity: 0.8;
+}
+
+.launcher-toast-container .Toastify__close-button:hover {
+  color: white;
+  opacity: 1;
+}
+
+.launcher-toast-container .Toastify__progress-bar {
+  height: 2px;
+  opacity: 1;
+}
+
+.launcher-toast-container .Toastify__progress-bar--success,
+.launcher-toast-container .Toastify__progress-bar--info {
+  background: rgb(56 189 248);
+}
+
+.launcher-toast-container .Toastify__progress-bar--error {
+  background: rgb(251 113 133);
+}
+
+.launcher-toast-container .Toastify__progress-bar--warning {
+  background: rgb(252 211 77);
+}
