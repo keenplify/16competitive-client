@@ -496,3 +496,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Documentation
 
 - Updated the README
+
+## v2026.910.6 — 2026-09-10
+
+### Team Communication
+
+- Added team voice chat.
+
+### Downloads
+
+- Released Windows and AppImage packages.
