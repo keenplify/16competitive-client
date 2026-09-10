@@ -140,6 +140,8 @@ export function LobbySocialSidebar({
   const party = usePartyStore((state) => state.party)
   const partyInvitations = usePartyStore((state) => state.invitations)
   const partyStatus = usePartyStore((state) => state.status)
+  const partyError = usePartyStore((state) => state.error)
+  const partyNotice = usePartyStore((state) => state.notice)
   const leave = usePartyStore((state) => state.leave)
   const inviteFriend = usePartyStore((state) => state.invitePlayer)
   const friends = useFriendsStore((state) => state.friends)
@@ -258,7 +260,7 @@ export function LobbySocialSidebar({
             )}
           </div>
 
-          {(friendsError || friendsNotice) && <div className="shrink-0 px-3 pt-2" aria-live="polite"><p className={`text-xs ${friendsError ? 'text-red-400' : 'text-emerald-400'}`}>{friendsError ?? friendsNotice}</p></div>}
+          {(friendsError || partyError || friendsNotice || partyNotice) && <div className="shrink-0 px-3 pt-2" aria-live="polite"><p className={`text-xs ${friendsError || partyError ? 'text-red-400' : 'text-emerald-400'}`}>{friendsError ?? partyError ?? friendsNotice ?? partyNotice}</p></div>}
 
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {friendRequests.length > 0 && (
