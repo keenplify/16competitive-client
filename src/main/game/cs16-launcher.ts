@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { app } from 'electron'
 import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
-import { getSavedCs16Executable } from './game-settings'
+import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
@@ -331,7 +331,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  const voicePttSession = await prepareVoicePtt(cwd, input.onVoicePtt)
+  const voicePttSession = await prepareVoicePtt(cwd, input.onVoicePtt, await getSavedVoicePttKey())
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'

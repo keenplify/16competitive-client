@@ -209,3 +209,9 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
   }
   return cs16ExecutablePath
 }
+
+export const getSavedVoicePttKey = async (): Promise<string> => {
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  return resolveVoicePttKey(storedSettings, cs16ExecutablePath)
+}

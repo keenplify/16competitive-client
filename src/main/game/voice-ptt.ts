@@ -1,7 +1,12 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
+const VOICE_WRAPPER_COMMAND = '+16competitive_voicerecord'
+const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
+const PTT_DOWN_MARKER = '__16COMPETITIVE_PTT_DOWN__'
+const PTT_UP_MARKER = '__16COMPETITIVE_PTT_UP__'
+const RESTORE_SETTLE_MS = 250
 
 const SPECIAL_VOICE_KEYS = new Set([
   'SPACE',
@@ -52,9 +57,28 @@ const voiceKeysFromConfig = (contents: string): string[] =>
     .split(/\r?\n/)
     .map((line) => line.match(/^\s*bind\s+"([^"\r\n]+)"\s+"([^"\r\n]*)"\s*$/i))
     .filter((match): match is RegExpMatchArray => Boolean(match))
-    .filter((match) => match[2].trim().toLowerCase() === VOICE_BIND_COMMAND)
+    .filter((match) => {
+      const command = match[2].trim().toLowerCase()
+      return command === VOICE_BIND_COMMAND || command === VOICE_WRAPPER_COMMAND
+    })
     .map((match) => match[1])
     .filter((key) => !/["\r\n;]/.test(key))
+
+const restoreWrapperBindings = (contents: string): string => {
+  const eol = contents.includes('\r\n') ? '\r\n' : '\n'
+  return contents
+    .split(/\r?\n/)
+    .map((line) =>
+      line.replace(
+        /^(\s*bind\s+"[^"\r\n]+"\s+")\+16competitive_voicerecord("\s*)$/i,
+        `$1${VOICE_BIND_COMMAND}$2`
+      )
+    )
+    .join(eol)
+}
+
+const delay = (milliseconds: number): Promise<void> =>
+  new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
 export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
@@ -75,22 +99,55 @@ export const readVoicePttKey = async (gameDirectory: string): Promise<string | n
 }
 
 /**
- * The launcher deliberately never changes cstrike/config.cfg. GoldSrc saves
- * that file itself, so editing it around process startup/exit can race its
- * save and remove unrelated user binds.
+ * Match-time aliases live only in the generated match config. After GoldSrc
+ * exits, its temporary wrapper bind is changed back atomically without
+ * touching any unrelated config lines.
  */
 export const prepareVoicePtt = async (
-  _gameDirectory: string,
-  _onPtt: (active: boolean) => void = () => undefined
+  gameDirectory: string,
+  _onPtt: (active: boolean) => void = () => undefined,
+  configuredKey?: string
 ): Promise<VoicePttSession> => {
-  void _gameDirectory
   void _onPtt
-  console.info('[VoicePTT] native bridge disabled; preserving GoldSrc config')
+  const keys = [
+    ...new Set([
+      ...(await readVoicePttKeys(gameDirectory)),
+      ...(configuredKey ? [normalizeVoicePttKey(configuredKey)] : [])
+    ])
+  ]
+  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+
+  if (keys.length === 0) {
+    console.warn('[VoicePTT] no +voicerecord bind found; native PTT bridge disabled')
+  } else {
+    console.info('[VoicePTT] prepared native Counter-Strike PTT bridge', { keys })
+  }
+
   return {
-    enabled: false,
-    keys: [],
-    configCommands: [],
+    enabled: keys.length > 0,
+    keys,
+    configCommands:
+      keys.length > 0
+        ? [
+            `alias "${VOICE_WRAPPER_COMMAND}" "+voicerecord; echo ${PTT_DOWN_MARKER}; cmd 16competitive_ptt 1"`,
+            `alias "${VOICE_WRAPPER_RELEASE_COMMAND}" "-voicerecord; echo ${PTT_UP_MARKER}; cmd 16competitive_ptt 0"`,
+            ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`)
+          ]
+        : [],
     launchArguments: [],
-    restoreBindings: async () => undefined
+    restoreBindings: async () => {
+      // This is called only from the tracked game process exit path. Give
+      // GoldSrc a small window to finish its own config.cfg write first.
+      await delay(RESTORE_SETTLE_MS)
+      const current = await readFile(configPath, 'utf8').catch(() => '')
+      if (!current) return
+      const restored = restoreWrapperBindings(current)
+      if (restored === current) return
+
+      const temporary = `${configPath}.${process.pid}.16competitive.tmp`
+      await writeFile(temporary, restored, { encoding: 'utf8', mode: 0o600 })
+      await rename(temporary, configPath)
+      console.info('[VoicePTT] restored Counter-Strike voice binding after exit')
+    }
   }
 }
