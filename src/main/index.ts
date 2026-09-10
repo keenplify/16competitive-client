@@ -89,8 +89,6 @@ import {
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
 let mainWindow
-let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
-let isShuttingDown = false
 let focusWindowWhenReady = false
 let skinAssetSyncProgress: SkinAssetSyncProgress = {
   status: 'idle',
@@ -99,25 +97,6 @@ let skinAssetSyncProgress: SkinAssetSyncProgress = {
 }
 
 installDiagnosticLogCapture()
-
-function stopFullScreenRecovery(): void {
-  isShuttingDown = true
-  if (fullScreenRecoveryTimer) clearTimeout(fullScreenRecoveryTimer)
-  fullScreenRecoveryTimer = null
-}
-
-function lockWindowFullScreen(): void {
-  if (isShuttingDown || !mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return
-  mainWindow.setFullScreen(true)
-}
-
-function scheduleFullScreenRecovery(): void {
-  if (isShuttingDown || fullScreenRecoveryTimer) return
-  fullScreenRecoveryTimer = setTimeout(() => {
-    fullScreenRecoveryTimer = null
-    lockWindowFullScreen()
-  }, 0)
-}
 
 function focusMainWindow(): void {
   const window =
@@ -189,7 +168,6 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function createWindow(): void {
-  isShuttingDown = false
   const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
 
   mainWindow = new BrowserWindow({
@@ -217,19 +195,16 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow.setBounds(displayBounds)
     mainWindow.show()
-    lockWindowFullScreen()
+    mainWindow.setFullScreen(true)
     if (focusWindowWhenReady) {
       focusWindowWhenReady = false
       focusMainWindow()
     }
   })
 
-  mainWindow.on('close', stopFullScreenRecovery)
   mainWindow.on('closed', () => {
-    stopFullScreenRecovery()
     disconnectMatchmakingIntentionally()
   })
-  mainWindow.on('leave-full-screen', scheduleFullScreenRecovery)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -379,7 +354,7 @@ app.whenReady().then(async () => {
     matchmakingConnection.sendGlobalMessage(message)
   )
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
-    lockWindowFullScreen()
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setFullScreen(true)
   })
   ipcMain.handle(WINDOW_CHANNELS.focus, () => {
     focusMainWindow()
@@ -429,6 +404,5 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  stopFullScreenRecovery()
   disconnectMatchmakingIntentionally()
 })
