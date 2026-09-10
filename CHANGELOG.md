@@ -526,3 +526,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Improved window diagnostics logging.
+
+## v2026.910.9 — 2026-09-10
+
+### Voice Chat
+
+- Added support for choosing a custom voice push-to-talk key.
+- Improved restoration of voice key bindings.
