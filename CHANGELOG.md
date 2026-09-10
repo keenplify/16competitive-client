@@ -539,3 +539,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Push-to-talk now uses a private GoldSrc command.
+
+## v2026.910.11 — 2026-09-10
+
+### Changes
+
+- No player-facing changes provided.
