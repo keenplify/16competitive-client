@@ -91,6 +91,7 @@ const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/Co
 let mainWindow
 let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
 let isShuttingDown = false
+let focusWindowWhenReady = false
 let skinAssetSyncProgress: SkinAssetSyncProgress = {
   status: 'idle',
   completedFiles: 0,
@@ -116,6 +117,21 @@ function scheduleFullScreenRecovery(): void {
     fullScreenRecoveryTimer = null
     lockWindowFullScreen()
   }, 0)
+}
+
+function focusMainWindow(): void {
+  const window =
+    mainWindow && !mainWindow.isDestroyed() ? mainWindow : BrowserWindow.getAllWindows()[0]
+
+  if (!window || window.isDestroyed()) {
+    focusWindowWhenReady = true
+    return
+  }
+
+  if (window.isMinimized()) window.restore()
+  if (!window.isVisible()) window.show()
+  app.focus({ steal: true })
+  window.focus()
 }
 
 function disconnectMatchmakingIntentionally(): void {
@@ -166,6 +182,10 @@ async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
+} else {
+  app.on('second-instance', () => {
+    focusMainWindow()
+  })
 }
 
 function createWindow(): void {
@@ -198,6 +218,10 @@ function createWindow(): void {
     mainWindow.setBounds(displayBounds)
     mainWindow.show()
     lockWindowFullScreen()
+    if (focusWindowWhenReady) {
+      focusWindowWhenReady = false
+      focusMainWindow()
+    }
   })
 
   mainWindow.on('close', stopFullScreenRecovery)
@@ -358,10 +382,7 @@ app.whenReady().then(async () => {
     lockWindowFullScreen()
   })
   ipcMain.handle(WINDOW_CHANNELS.focus, () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.show()
-    mainWindow.focus()
+    focusMainWindow()
   })
   ipcMain.handle(WINDOW_CHANNELS.openCounterStrikeSteamStore, () =>
     shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)

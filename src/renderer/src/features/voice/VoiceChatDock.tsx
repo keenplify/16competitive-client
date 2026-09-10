@@ -18,6 +18,7 @@ interface PeerRuntime {
   makingOffer: boolean
   ignoreOffer: boolean
   isSettingRemoteAnswerPending: boolean
+  connectionTimeout?: number
 }
 
 interface PeerPreference {
@@ -326,6 +327,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const closePeer = (playerId: string): void => {
     const runtime = runtimesRef.current.get(playerId)
     if (!runtime) return
+    if (runtime.connectionTimeout !== undefined) window.clearTimeout(runtime.connectionTimeout)
     runtime.connection.close()
     runtime.audio.pause()
     runtime.audio.srcObject = null
@@ -425,6 +427,10 @@ export function VoiceChatDock(): JSX.Element | null {
       isSettingRemoteAnswerPending: false
     }
     runtimesRef.current.set(peer.id, runtime)
+    runtime.connectionTimeout = window.setTimeout(() => {
+      if (runtime.connection.connectionState === 'connected') return
+      setMicError('Voice relay could not connect. Check your network and try reconnecting voice.')
+    }, 15_000)
     applyPreference(runtime, runtimePreferenceFor(peer.id))
 
     for (const track of stream.getTracks()) connection.addTrack(track, stream)
@@ -440,8 +446,18 @@ export function VoiceChatDock(): JSX.Element | null {
     })
     connection.addEventListener('connectionstatechange', () => {
       setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
-      if (connection.connectionState !== 'failed') return
-      window.setTimeout(() => void makeOffer(peer, true).catch(() => undefined), 100)
+      if (connection.connectionState === 'connected') {
+        if (runtime.connectionTimeout !== undefined) {
+          window.clearTimeout(runtime.connectionTimeout)
+          runtime.connectionTimeout = undefined
+        }
+        setMicError(null)
+        return
+      }
+      if (connection.connectionState === 'failed') {
+        setMicError('Voice relay connection failed. Retrying…')
+        window.setTimeout(() => void makeOffer(peer, true).catch(() => undefined), 100)
+      }
     })
 
     setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
