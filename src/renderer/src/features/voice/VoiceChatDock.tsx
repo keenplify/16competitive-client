@@ -37,6 +37,58 @@ const ICE_SERVERS: RTCIceServer[] = [
 const sameContext = (left: VoiceContext | null, right: VoiceContext | null): boolean =>
   Boolean(left && right && left.kind === right.kind && left.id === right.id)
 
+const normalizeGoldSrcKey = (key: string): string => key.trim().toUpperCase()
+
+const keyboardEventGoldSrcKey = (event: KeyboardEvent): string | null => {
+  if (event.code.startsWith('Key') && event.code.length === 4) return event.code.slice(3).toUpperCase()
+  if (event.code.startsWith('Digit') && event.code.length === 6) return event.code.slice(5)
+  if (/^F(?:[1-9]|1[0-2])$/.test(event.code)) return event.code
+
+  const byCode: Record<string, string> = {
+    Space: 'SPACE',
+    ControlLeft: 'CTRL',
+    ControlRight: 'CTRL',
+    ShiftLeft: 'SHIFT',
+    ShiftRight: 'SHIFT',
+    AltLeft: 'ALT',
+    AltRight: 'ALT',
+    Enter: 'ENTER',
+    Tab: 'TAB',
+    Escape: 'ESCAPE',
+    Backspace: 'BACKSPACE',
+    ArrowUp: 'UPARROW',
+    ArrowDown: 'DOWNARROW',
+    ArrowLeft: 'LEFTARROW',
+    ArrowRight: 'RIGHTARROW',
+    Insert: 'INS',
+    Delete: 'DEL',
+    Home: 'HOME',
+    End: 'END',
+    PageUp: 'PGUP',
+    PageDown: 'PGDN'
+  }
+  const named = byCode[event.code]
+  if (named) return named
+  return event.key.length === 1 ? event.key.toUpperCase() : null
+}
+
+const mouseEventGoldSrcKey = (event: MouseEvent): string | null => {
+  switch (event.button) {
+    case 0:
+      return 'MOUSE1'
+    case 2:
+      return 'MOUSE2'
+    case 1:
+      return 'MOUSE3'
+    case 3:
+      return 'MOUSE4'
+    case 4:
+      return 'MOUSE5'
+    default:
+      return null
+  }
+}
+
 const loadPeerPreferences = (): Record<string, PeerPreference> => {
   try {
     const value = localStorage.getItem(VOICE_PREFERENCES_KEY)
@@ -95,6 +147,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const [preferences, setPreferences] = useState<Record<string, PeerPreference>>(loadPeerPreferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
   const [pttActive, setPttActive] = useState(false)
+  const [lobbyPttKeys, setLobbyPttKeys] = useState<string[]>([])
   const [micError, setMicError] = useState<string | null>(null)
   const [micReady, setMicReady] = useState(false)
 
@@ -104,6 +157,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const playerIdRef = useRef<string | null>(currentPlayerId)
   const openMicRef = useRef(openMic)
   const pttActiveRef = useRef(pttActive)
+  const activeContext = joinedContext ?? desiredContext
 
   useEffect(() => {
     playerIdRef.current = currentPlayerId
@@ -125,6 +179,66 @@ export function VoiceChatDock(): JSX.Element | null {
     const track = streamRef.current?.getAudioTracks()[0]
     if (track) track.enabled = openMicRef.current || pttActive
   }, [pttActive])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!currentPlayerId || activeContext?.kind !== 'party') {
+      setLobbyPttKeys([])
+      return
+    }
+
+    void window.api.gameSettings
+      .get()
+      .then((settings) => {
+        if (!cancelled) setLobbyPttKeys(settings.voicePttKeys.map(normalizeGoldSrcKey))
+      })
+      .catch(() => {
+        if (!cancelled) setLobbyPttKeys([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeContext?.kind, currentPlayerId, party?.id])
+
+  useEffect(() => {
+    if (!enabled || openMic || activeContext?.kind !== 'party' || lobbyPttKeys.length === 0) return
+
+    const keys = new Set(lobbyPttKeys)
+    const keyDown = (event: KeyboardEvent): void => {
+      if (event.repeat) return
+      const key = keyboardEventGoldSrcKey(event)
+      if (key && keys.has(normalizeGoldSrcKey(key))) setPttActive(true)
+    }
+    const keyUp = (event: KeyboardEvent): void => {
+      const key = keyboardEventGoldSrcKey(event)
+      if (key && keys.has(normalizeGoldSrcKey(key))) setPttActive(false)
+    }
+    const mouseDown = (event: MouseEvent): void => {
+      const key = mouseEventGoldSrcKey(event)
+      if (key && keys.has(key)) setPttActive(true)
+    }
+    const mouseUp = (event: MouseEvent): void => {
+      const key = mouseEventGoldSrcKey(event)
+      if (key && keys.has(key)) setPttActive(false)
+    }
+    const reset = (): void => setPttActive(false)
+
+    window.addEventListener('keydown', keyDown)
+    window.addEventListener('keyup', keyUp)
+    window.addEventListener('mousedown', mouseDown)
+    window.addEventListener('mouseup', mouseUp)
+    window.addEventListener('blur', reset)
+
+    return () => {
+      window.removeEventListener('keydown', keyDown)
+      window.removeEventListener('keyup', keyUp)
+      window.removeEventListener('mousedown', mouseDown)
+      window.removeEventListener('mouseup', mouseUp)
+      window.removeEventListener('blur', reset)
+      reset()
+    }
+  }, [activeContext?.kind, enabled, lobbyPttKeys, openMic])
 
   const preferenceFor = (playerId: string): PeerPreference =>
     preferences[playerId] ?? { volume: 1, muted: false }
@@ -217,9 +331,7 @@ export function VoiceChatDock(): JSX.Element | null {
     })
     connection.addEventListener('connectionstatechange', () => {
       setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
-      if (connection.connectionState === 'failed') {
-        connection.restartIce()
-      }
+      if (connection.connectionState === 'failed') connection.restartIce()
     })
 
     setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
@@ -320,9 +432,7 @@ export function VoiceChatDock(): JSX.Element | null {
 
   useEffect(() => {
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
-      if (joinedContext) {
-        void window.api.matchmaking.voiceLeave().catch(() => undefined)
-      }
+      if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
       setPttActive(false)
       closeAllPeers()
       setJoinedContext(null)
@@ -357,10 +467,10 @@ export function VoiceChatDock(): JSX.Element | null {
 
   if (!desiredContext && !joinedContext) return null
 
-  const activeContext = joinedContext ?? desiredContext
   const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
   const connectedPeers = peers.filter(({ id }) => peerStates[id] === 'connected').length
   const nativePttAvailable = activeContext?.kind === 'match'
+  const configuredPttAvailable = nativePttAvailable || lobbyPttKeys.length > 0
 
   const disconnect = (): void => {
     setEnabled(false)
@@ -422,7 +532,7 @@ export function VoiceChatDock(): JSX.Element | null {
                     onPointerCancel={() => setPttActive(false)}
                     onPointerLeave={() => setPttActive(false)}
                   >
-                    {nativePttAvailable ? 'PTT test' : 'Hold to talk'}
+                    {configuredPttAvailable ? 'PTT test' : 'Hold to talk'}
                   </button>
                 )}
                 <button
@@ -447,6 +557,11 @@ export function VoiceChatDock(): JSX.Element | null {
           {enabled && !openMic && nativePttAvailable && (
             <p className="mt-3 text-xs text-neutral-400">
               Counter-Strike push-to-talk controls this mic using your existing +voicerecord bind.
+            </p>
+          )}
+          {enabled && !openMic && activeContext?.kind === 'party' && lobbyPttKeys.length > 0 && (
+            <p className="mt-3 text-xs text-neutral-400">
+              Push-to-talk: {lobbyPttKeys.join(' / ')} while the launcher is focused.
             </p>
           )}
 
