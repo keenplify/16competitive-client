@@ -198,6 +198,8 @@ export function VoiceChatPanel(): JSX.Element | null {
     }
 
     const onMouseDown = (event: MouseEvent): void => {
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-ptt-capture-control]')) return
       const key = mouseEventToVoicePttKey(event)
       if (!key) return
       event.preventDefault()
@@ -288,6 +290,7 @@ export function VoiceChatPanel(): JSX.Element | null {
                 {capturingPttKey ? '...' : displayedPttKey}
               </kbd>
               <button
+                data-ptt-capture-control
                 type="button"
                 className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-neutral-200 hover:bg-white/10"
                 onClick={() => {
