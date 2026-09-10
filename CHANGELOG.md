@@ -477,3 +477,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Clarified when voice chat context state resets.
+
+## v2026.910.5 — 2026-09-10
+
+### Documentation
+
+- Updated the README.
