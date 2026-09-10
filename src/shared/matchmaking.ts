@@ -44,6 +44,12 @@ export interface VoiceContext {
 
 export type VoiceSignalType = 'offer' | 'answer' | 'ice'
 
+export interface VoiceIceServer {
+  urls: string | string[]
+  username?: string
+  credential?: string
+}
+
 export interface MatchmakingMap {
   id: string
   displayName: string
@@ -132,7 +138,13 @@ export type MatchmakingServerMessage =
       retryAfterMs: number
     }
   | { type: 'authenticated'; player: QueuedPlayer }
-  | { type: 'voice_session'; context: VoiceContext; peers: VoicePeer[] }
+  | {
+      type: 'voice_session'
+      context: VoiceContext
+      peers: VoicePeer[]
+      iceServers: VoiceIceServer[]
+      iceTransportPolicy: 'relay'
+    }
   | { type: 'voice_peer_joined'; context: VoiceContext; peer: VoicePeer }
   | { type: 'voice_peer_left'; context: VoiceContext; playerId: string }
   | {
