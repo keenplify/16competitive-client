@@ -318,6 +318,15 @@ app.whenReady().then(async () => {
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceJoin, (_, context: unknown) =>
+    matchmakingConnection.joinVoice(context)
+  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceLeave, () => matchmakingConnection.leaveVoice())
+  ipcMain.handle(
+    MATCHMAKING_CHANNELS.voiceSignal,
+    (_, targetPlayerId: unknown, signalType: unknown, signal: unknown) =>
+      matchmakingConnection.sendVoiceSignal(targetPlayerId, signalType, signal)
+  )
   ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
     readCounterStrikeModel(relativePath)
   )
