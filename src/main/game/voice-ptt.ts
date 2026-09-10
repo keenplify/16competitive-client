@@ -1,11 +1,13 @@
-import { readFile, unlink, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readFile, readdir, readlink, unlink, writeFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
 const VOICE_WRAPPER_COMMAND = '+16competitive_voicerecord'
 const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
 const VOICE_BACKUP_FILE = '16competitive_voice_restore.json'
 const DEFAULT_VOICE_SCALE = '1'
+const LINUX_RESTORE_WAIT_TIMEOUT_MS = 5_000
+const LINUX_RESTORE_POLL_MS = 50
 
 const SPECIAL_VOICE_KEYS = new Set([
   'SPACE',
@@ -49,6 +51,40 @@ export interface VoicePttSession {
   keys: string[]
   configCommands: string[]
   restoreBindings(): Promise<void>
+}
+
+const delay = (milliseconds: number): Promise<void> =>
+  new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
+
+const hasRunningLinuxGoldSrc = async (gameDirectory: string): Promise<boolean> => {
+  if (process.platform !== 'linux') return false
+  const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
+  const running = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+      .map(async (entry) => {
+        const [cwd, executable] = await Promise.all([
+          readlink(`/proc/${entry.name}/cwd`).catch(() => ''),
+          readlink(`/proc/${entry.name}/exe`).catch(() => '')
+        ])
+        return cwd === gameDirectory && basename(executable) === 'hl_linux'
+      })
+  )
+  return running.some(Boolean)
+}
+
+const waitForLinuxGoldSrcExit = async (gameDirectory: string): Promise<void> => {
+  if (process.platform !== 'linux') return
+  const deadline = Date.now() + LINUX_RESTORE_WAIT_TIMEOUT_MS
+  while (await hasRunningLinuxGoldSrc(gameDirectory)) {
+    if (Date.now() >= deadline) {
+      console.warn('[VoicePTT] GoldSrc was still running when voice settings were restored', {
+        gameDirectory
+      })
+      return
+    }
+    await delay(LINUX_RESTORE_POLL_MS)
+  }
 }
 
 export const normalizeVoicePttKey = (value: unknown): string => {
@@ -222,6 +258,7 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
   })
 
   const restoreBindings = async (): Promise<void> => {
+    await waitForLinuxGoldSrcExit(gameDirectory)
     const backup = (await readRestoreBackup(gameDirectory)) ?? { voiceScale: originalVoiceScale }
     const current = await readFile(configPath, 'utf8').catch(() => '')
     if (current) {
