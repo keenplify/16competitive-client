@@ -3,6 +3,8 @@ import type { AuthApi } from '../shared/auth'
 import { AUTH_CHANNELS } from '../shared/auth'
 import type { MatchmakingApi, MatchmakingEvent } from '../shared/matchmaking'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
+import type { VoiceApi, VoiceEvent } from '../shared/voice'
+import { VOICE_CHANNELS } from '../shared/voice'
 import type { WindowApi } from '../shared/window'
 import { WINDOW_CHANNELS } from '../shared/window'
 import type { ModelApi } from '../shared/models'
@@ -62,11 +64,28 @@ const matchmaking: MatchmakingApi = {
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  voiceSync: () => ipcRenderer.invoke(VOICE_CHANNELS.sync),
+  voiceLeave: () => ipcRenderer.invoke(VOICE_CHANNELS.disconnect),
+  voiceSignal: (roomId, targetPlayerId, signal) =>
+    ipcRenderer.invoke(VOICE_CHANNELS.signal, roomId, targetPlayerId, signal),
   onEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, message: MatchmakingEvent): void =>
       listener(message)
     ipcRenderer.on(MATCHMAKING_CHANNELS.event, handler)
     return () => ipcRenderer.removeListener(MATCHMAKING_CHANNELS.event, handler)
+  }
+}
+
+const voice: VoiceApi = {
+  connect: () => ipcRenderer.invoke(VOICE_CHANNELS.connect),
+  disconnect: () => ipcRenderer.invoke(VOICE_CHANNELS.disconnect),
+  sync: () => ipcRenderer.invoke(VOICE_CHANNELS.sync),
+  signal: (roomId, targetPlayerId, signal) =>
+    ipcRenderer.invoke(VOICE_CHANNELS.signal, roomId, targetPlayerId, signal),
+  onEvent: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, message: VoiceEvent): void => listener(message)
+    ipcRenderer.on(VOICE_CHANNELS.event, handler)
+    return () => ipcRenderer.removeListener(VOICE_CHANNELS.event, handler)
   }
 }
 
@@ -176,6 +195,7 @@ const api = {
   redeemCodes,
   skins,
   updater,
+  voice,
   window: windowApi,
   diagnosticLogs
 }
