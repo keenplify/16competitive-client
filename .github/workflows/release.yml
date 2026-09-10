@@ -29,7 +29,17 @@ jobs:
   package:
     needs: verify-version
     environment: Prod
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: npm run build:win
+            artifact: windows-release
+          - os: ubuntu-latest
+            command: npm run build:linux
+            artifact: linux-appimage-release
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,7 +47,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build:linux
+      - run: ${{ matrix.command }}
       - name: Reject localhost backend in release bundle
         shell: bash
         run: >-
@@ -46,10 +56,12 @@ jobs:
           throw new Error('Release bundle targets the local development backend')"
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-appimage-release
+          name: ${{ matrix.artifact }}
           path: |
+            dist/*.exe
+            dist/*.blockmap
             dist/*.AppImage
-            dist/latest-linux.yml
+            dist/latest*.yml
           if-no-files-found: error
 
   publish:
