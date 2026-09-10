@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import type { MatchmakingEvent } from '../../../../shared/matchmaking'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 
+type RailMode = 'expanded' | 'collapsed' | 'absent'
+
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const [progress, setProgress] = useState<Extract<
     MatchmakingEvent,
@@ -12,6 +14,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const [description, setDescription] = useState('')
   const [reporting, setReporting] = useState(false)
   const [reportStatus, setReportStatus] = useState('')
+  const [railMode, setRailMode] = useState<RailMode>('absent')
 
   useEffect(() => {
     return window.api.matchmaking.onEvent((event) => {
@@ -19,11 +22,45 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     })
   }, [])
 
+  useEffect(() => {
+    const detectRail = (): void => {
+      const rail = document.querySelector<HTMLElement>(
+        'aside[aria-label="Friends panel"], aside[aria-label="Expand Friends panel"]'
+      )
+      if (!rail || rail.getClientRects().length === 0) {
+        setRailMode('absent')
+        return
+      }
+      setRailMode(rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded')
+    }
+
+    detectRail()
+    const observer = new MutationObserver(detectRail)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-label', 'class']
+    })
+    window.addEventListener('resize', detectRail)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', detectRail)
+    }
+  }, [])
+
   const percentage =
     progress && progress.totalFiles > 0
       ? Math.round((progress.completedFiles / progress.totalFiles) * 100)
       : 0
   const failed = progress?.status === 'error'
+  const reportPosition =
+    railMode === 'expanded'
+      ? 'right-4 bottom-[calc(55vh+1rem)] md:right-[19rem] md:bottom-4'
+      : railMode === 'collapsed'
+        ? 'right-[3.75rem] bottom-4'
+        : 'right-4 bottom-4'
+
   const reportIssue = async (): Promise<void> => {
     if (!description.trim()) {
       setReportStatus('Please describe what went wrong.')
@@ -47,7 +84,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 text-xs">
+    <div
+      className={`fixed ${reportPosition} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
+    >
       <p className="rounded-lg border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
         Alpha Release Testing <b>Expect Bugs</b>
       </p>
