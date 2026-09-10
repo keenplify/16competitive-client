@@ -1,13 +1,20 @@
-import { useEffect, useRef, type FormEvent, type JSX } from 'react'
+import { UserPlus } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
+import { useFriendsStore } from '../friends/friends.store'
 import { usePartyStore, type ChatTab } from './party.store'
 
 const tabs: Array<{ id: ChatTab; label: string }> = [
   { id: 'party', label: 'Party' },
   { id: 'global', label: 'Global Chat' }
 ]
+
+interface ChatSender {
+  id: string
+  username: string
+}
 
 export function PartyChat(): JSX.Element {
   const playerId = useAuthStore((state) => state.session?.player.id)
@@ -27,16 +34,47 @@ export function PartyChat(): JSX.Element {
   const setChatTab = usePartyStore((state) => state.setChatTab)
   const setGlobalDraft = usePartyStore((state) => state.setGlobalChatDraft)
   const sendGlobalChat = usePartyStore((state) => state.sendGlobalChat)
+  const requestFriend = useFriendsStore((state) => state.request)
+  const actingPlayerId = useFriendsStore((state) => state.actingPlayerId)
   const feedRef = useRef<HTMLDivElement>(null)
+  const [playerMenu, setPlayerMenu] = useState<{
+    player: ChatSender
+    x: number
+    y: number
+  } | null>(null)
   const entries = chatTab === 'party' ? partyEntries : globalEntries
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
   }, [entries])
 
+  useEffect(() => {
+    const closeMenu = (): void => setPlayerMenu(null)
+    const closeOnEscape = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') setPlayerMenu(null)
+    }
+    window.addEventListener('click', closeMenu)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('click', closeMenu)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     void (chatTab === 'party' ? sendPartyChat() : sendGlobalChat())
+  }
+  const showPlayerMenu = (event: MouseEvent<HTMLSpanElement>, player: ChatSender): void => {
+    if (player.id === playerId) return
+    event.preventDefault()
+    setPlayerMenu({ player, x: event.clientX, y: event.clientY })
+  }
+  const sendFriendRequest = (): void => {
+    if (!playerMenu) return
+    const { id } = playerMenu.player
+    setPlayerMenu(null)
+    void requestFriend(id)
   }
 
   const draft = chatTab === 'party' ? partyDraft : globalDraft
@@ -45,6 +83,7 @@ export function PartyChat(): JSX.Element {
   const canSend = chatTab === 'global' || Boolean(party)
 
   return (
+    <>
     <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
       <div className="flex border-b border-white/15 bg-black/50" role="tablist" aria-label="Chat">
         {tabs.map((tab) => (
@@ -88,7 +127,15 @@ export function PartyChat(): JSX.Element {
               ) : (
                 <p key={entry.id} className="break-words" title={entry.sentAt}>
                   <span className="text-sky-300">[Party] </span>
-                  <span className={entry.sender.id === playerId ? 'text-amber-300' : 'text-white'}>
+                  <span
+                    className={twMerge(
+                      entry.sender.id === playerId
+                        ? 'text-amber-300'
+                        : 'cursor-context-menu text-white transition hover:text-sky-300 hover:underline'
+                    )}
+                    title={entry.sender.id === playerId ? undefined : 'Right-click to add friend'}
+                    onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
+                  >
                     {entry.sender.username}
                   </span>
                   <span className="text-neutral-400">: </span>
@@ -105,7 +152,15 @@ export function PartyChat(): JSX.Element {
             {globalEntries.map((entry) => (
               <p key={entry.id} className="break-words" title={entry.sentAt}>
                 <span className="text-violet-300">[Global] </span>
-                <span className={entry.sender.id === playerId ? 'text-amber-300' : 'text-white'}>
+                <span
+                  className={twMerge(
+                    entry.sender.id === playerId
+                      ? 'text-amber-300'
+                      : 'cursor-context-menu text-white transition hover:text-sky-300 hover:underline'
+                  )}
+                  title={entry.sender.id === playerId ? undefined : 'Right-click to add friend'}
+                  onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
+                >
                   {entry.sender.username}
                 </span>
                 <span className="text-neutral-400">: </span>
@@ -155,5 +210,25 @@ export function PartyChat(): JSX.Element {
         </div>
       )}
     </aside>
+      {playerMenu && (
+        <div
+          className="fixed z-50 min-w-44 overflow-hidden border border-white/15 bg-neutral-800 py-1 text-white shadow-xl"
+          style={{ left: playerMenu.x, top: playerMenu.y }}
+          role="menu"
+          aria-label={`Options for ${playerMenu.player.username}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            role="menuitem"
+            disabled={actingPlayerId === playerMenu.player.id}
+            onClick={sendFriendRequest}
+          >
+            <UserPlus className="size-4 text-sky-300" aria-hidden="true" /> Send friend request
+          </button>
+        </div>
+      )}
+    </>
   )
 }
