@@ -7,6 +7,32 @@ const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
 const VOICE_BACKUP_FILE = '16competitive_voice_restore.json'
 const DEFAULT_VOICE_SCALE = '1'
 
+const SPECIAL_VOICE_KEYS = new Set([
+  'SPACE',
+  'CTRL',
+  'SHIFT',
+  'ALT',
+  'ENTER',
+  'TAB',
+  'ESCAPE',
+  'BACKSPACE',
+  'UPARROW',
+  'DOWNARROW',
+  'LEFTARROW',
+  'RIGHTARROW',
+  'INS',
+  'DEL',
+  'HOME',
+  'END',
+  'PGUP',
+  'PGDN',
+  'MOUSE1',
+  'MOUSE2',
+  'MOUSE3',
+  'MOUSE4',
+  'MOUSE5'
+])
+
 interface ParsedBind {
   key: string
   command: string
@@ -23,6 +49,16 @@ export interface VoicePttSession {
   keys: string[]
   configCommands: string[]
   restoreBindings(): Promise<void>
+}
+
+export const normalizeVoicePttKey = (value: unknown): string => {
+  if (typeof value !== 'string') throw new Error('Choose a valid push-to-talk key.')
+  const key = value.trim()
+  if (/^[a-z0-9]$/i.test(key)) return key.toUpperCase()
+  if (/^F(?:[1-9]|1[0-2])$/i.test(key)) return key.toUpperCase()
+  const upper = key.toUpperCase()
+  if (SPECIAL_VOICE_KEYS.has(upper)) return upper
+  throw new Error('That key cannot be used for push-to-talk.')
 }
 
 const parseBind = (line: string): ParsedBind | null => {
@@ -119,6 +155,42 @@ export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]>
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
   const existing = await readFile(configPath, 'utf8').catch(() => '')
   return [...new Set(voiceKeysFromConfig(existing))]
+}
+
+export const readVoicePttKey = async (gameDirectory: string): Promise<string | null> => {
+  const keys = await readVoicePttKeys(gameDirectory)
+  for (const key of keys) {
+    try {
+      return normalizeVoicePttKey(key)
+    } catch {
+      // Ignore GoldSrc keys that the launcher cannot reproduce reliably.
+    }
+  }
+  return null
+}
+
+export const writeVoicePttKey = async (
+  gameDirectory: string,
+  untrustedKey: unknown
+): Promise<string> => {
+  const key = normalizeVoicePttKey(untrustedKey)
+  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const existing = await readFile(configPath, 'utf8').catch(() => '')
+  const restored = replaceWrapperBindings(existing).contents
+  const eol = restored.includes('\r\n') ? '\r\n' : '\n'
+  const normalizedKey = key.toUpperCase()
+  const lines = restored.split(/\r?\n/).filter((line) => {
+    const bind = parseBind(line)
+    if (!bind) return true
+    const command = bind.command.trim().toLowerCase()
+    if (command === VOICE_BIND_COMMAND || command === VOICE_WRAPPER_COMMAND) return false
+    return bind.key.trim().toUpperCase() !== normalizedKey
+  })
+  while (lines.length > 0 && lines.at(-1)?.trim() === '') lines.pop()
+  lines.push(`bind "${key}" "${VOICE_BIND_COMMAND}"`, '')
+  await writeFile(configPath, lines.join(eol), { encoding: 'utf8' })
+  console.info('[VoicePTT] synchronized Counter-Strike push-to-talk key', { key })
+  return key
 }
 
 export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSession> => {

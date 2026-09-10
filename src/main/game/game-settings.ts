@@ -2,12 +2,14 @@ import { app, dialog } from 'electron'
 import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
-import { readVoicePttKeys } from './voice-ptt'
+import { normalizeVoicePttKey, readVoicePttKey, writeVoicePttKey } from './voice-ptt'
 
 interface StoredGameSettings {
-  cs16ExecutablePath: string
+  cs16ExecutablePath?: string
+  voicePttKey?: string
 }
 
+const DEFAULT_VOICE_PTT_KEY = 'K'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
 
 const detectCs16Executable = async (): Promise<string | null> => {
@@ -17,14 +19,6 @@ const detectCs16Executable = async (): Promise<string | null> => {
       ? [
           join(
             process.env.LOCALAPPDATA ?? '',
-            'Steam',
-            'steamapps',
-            'common',
-            'Half-Life',
-            'hl.exe'
-          ),
-          join(
-            process.env.PROGRAMFILES ?? '',
             'Steam',
             'steamapps',
             'common',
@@ -77,17 +71,38 @@ const validateExecutable = async (
   return executablePath
 }
 
-const readStoredPath = async (): Promise<string | null> => {
+const readStoredSettings = async (): Promise<StoredGameSettings> => {
   try {
     const parsed = JSON.parse(await readFile(configPath(), 'utf8')) as unknown
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      typeof (parsed as Partial<StoredGameSettings>).cs16ExecutablePath !== 'string'
-    ) {
-      return null
+    if (typeof parsed !== 'object' || parsed === null) return {}
+    const settings = parsed as Partial<StoredGameSettings>
+    return {
+      ...(typeof settings.cs16ExecutablePath === 'string'
+        ? { cs16ExecutablePath: settings.cs16ExecutablePath }
+        : {}),
+      ...(typeof settings.voicePttKey === 'string' ? { voicePttKey: settings.voicePttKey } : {})
     }
-    return await validateExecutable((parsed as StoredGameSettings).cs16ExecutablePath)
+  } catch {
+    return {}
+  }
+}
+
+const writeStoredSettings = async (settings: StoredGameSettings): Promise<void> => {
+  const destination = configPath()
+  const temporary = `${destination}.tmp`
+  await mkdir(dirname(destination), { recursive: true })
+  await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: 0o600
+  })
+  await rename(temporary, destination)
+  if (process.platform !== 'win32') await chmod(destination, 0o600)
+}
+
+const validateStoredPath = async (settings: StoredGameSettings): Promise<string | null> => {
+  if (!settings.cs16ExecutablePath) return null
+  try {
+    return await validateExecutable(settings.cs16ExecutablePath)
   } catch {
     return null
   }
@@ -98,21 +113,70 @@ const gameDirectoryForExecutable = (executablePath: string): string => {
   return configuredDirectory ? resolve(configuredDirectory) : dirname(executablePath)
 }
 
-const settingsForExecutable = async (cs16ExecutablePath: string): Promise<GameSettings> => ({
+const resolveVoicePttKey = async (
+  storedSettings: StoredGameSettings,
+  executablePath: string | null
+): Promise<string> => {
+  if (storedSettings.voicePttKey) {
+    try {
+      return normalizeVoicePttKey(storedSettings.voicePttKey)
+    } catch {
+      // Fall through to the player's current GoldSrc bind or the launcher default.
+    }
+  }
+
+  if (executablePath) {
+    const currentGoldSrcKey = await readVoicePttKey(gameDirectoryForExecutable(executablePath))
+    if (currentGoldSrcKey) return currentGoldSrcKey
+  }
+
+  return DEFAULT_VOICE_PTT_KEY
+}
+
+const buildSettings = (cs16ExecutablePath: string | null, voicePttKey: string): GameSettings => ({
   cs16ExecutablePath,
   configFilePath: configPath(),
-  voicePttKeys: await readVoicePttKeys(gameDirectoryForExecutable(cs16ExecutablePath))
+  voicePttKey,
+  // Keep the array during the voice feature rollout so existing lobby PTT code
+  // consumes the same single launcher-owned key.
+  voicePttKeys: [voicePttKey]
 })
 
+const persistResolvedSettings = async (
+  cs16ExecutablePath: string | null,
+  voicePttKey: string
+): Promise<void> => {
+  await writeStoredSettings({
+    ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
+    voicePttKey
+  })
+}
+
+const synchronizeConfiguredVoiceKey = async (
+  cs16ExecutablePath: string,
+  voicePttKey: string
+): Promise<void> => {
+  await writeVoicePttKey(gameDirectoryForExecutable(cs16ExecutablePath), voicePttKey)
+}
+
 export const getGameSettings = async (): Promise<GameSettings> => {
-  const stored = await readStoredPath()
-  if (stored) return settingsForExecutable(stored)
-  const detected = await detectCs16Executable()
-  if (detected) {
-    await saveGameSettings(detected)
-    return settingsForExecutable(detected)
+  const storedSettings = await readStoredSettings()
+  let cs16ExecutablePath = await validateStoredPath(storedSettings)
+  if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
+
+  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+
+  if (cs16ExecutablePath) {
+    await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey).catch((syncError: unknown) => {
+      console.warn(
+        '[GameSettings] could not synchronize Counter-Strike push-to-talk key',
+        syncError instanceof Error ? syncError.message : String(syncError)
+      )
+    })
   }
-  return { cs16ExecutablePath: null, configFilePath: configPath(), voicePttKeys: [] }
+
+  return buildSettings(cs16ExecutablePath, voicePttKey)
 }
 
 export const chooseCs16Executable = async (): Promise<string | null> => {
@@ -130,16 +194,36 @@ export const chooseCs16Executable = async (): Promise<string | null> => {
 
 export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSettings> => {
   const cs16ExecutablePath = await validateExecutable(untrustedPath, true)
-  const destination = configPath()
-  const temporary = `${destination}.tmp`
-  await mkdir(dirname(destination), { recursive: true })
-  await writeFile(temporary, `${JSON.stringify({ cs16ExecutablePath }, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600
-  })
-  await rename(temporary, destination)
-  if (process.platform !== 'win32') await chmod(destination, 0o600)
-  return settingsForExecutable(cs16ExecutablePath)
+  const storedSettings = await readStoredSettings()
+  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+  await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey)
+  return buildSettings(cs16ExecutablePath, voicePttKey)
 }
 
-export const getSavedCs16Executable = readStoredPath
+export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettings> => {
+  const voicePttKey = normalizeVoicePttKey(untrustedKey)
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+  if (cs16ExecutablePath) await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey)
+  return buildSettings(cs16ExecutablePath, voicePttKey)
+}
+
+export const getSavedCs16Executable = async (): Promise<string | null> => {
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  if (!cs16ExecutablePath) return null
+
+  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
+  if (storedSettings.voicePttKey !== voicePttKey) {
+    await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+  }
+  await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey).catch((syncError: unknown) => {
+    console.warn(
+      '[GameSettings] could not synchronize Counter-Strike push-to-talk key before launch',
+      syncError instanceof Error ? syncError.message : String(syncError)
+    )
+  })
+  return cs16ExecutablePath
+}
