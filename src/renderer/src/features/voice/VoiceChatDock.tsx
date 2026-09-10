@@ -1,3 +1,4 @@
+import { Mic2, MicOff } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import type {
   MatchmakingEvent,
@@ -25,6 +26,8 @@ interface NativePttSignal {
   type: 'ptt'
   active: boolean
 }
+
+type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 const VOICE_PREFERENCES_KEY = '16competitive.voice.preferences'
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
@@ -124,6 +127,16 @@ const parseSignal = <T,>(signal: string): T | null => {
   }
 }
 
+const microphoneErrorMessage = (error: unknown): string => {
+  if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    return 'Microphone permission is blocked. Allow microphone access, then reconnect voice.'
+  }
+  if (error instanceof DOMException && error.name === 'NotFoundError') {
+    return 'No microphone was found.'
+  }
+  return error instanceof Error ? error.message : 'Could not access the microphone.'
+}
+
 export function VoiceChatDock(): JSX.Element | null {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id ?? null)
   const party = usePartyStore((state) => state.party)
@@ -151,18 +164,26 @@ export function VoiceChatDock(): JSX.Element | null {
   const [voicePttKey, setVoicePttKey] = useState('K')
   const [micError, setMicError] = useState<string | null>(null)
   const [micReady, setMicReady] = useState(false)
+  const [railMode, setRailMode] = useState<RailMode>('absent')
 
   const streamRef = useRef<MediaStream | null>(null)
+  const microphonePromiseRef = useRef<Promise<MediaStream> | null>(null)
+  const microphoneGenerationRef = useRef(0)
   const runtimesRef = useRef(new Map<string, PeerRuntime>())
   const contextRef = useRef<VoiceContext | null>(null)
   const playerIdRef = useRef<string | null>(currentPlayerId)
   const openMicRef = useRef(openMic)
   const pttActiveRef = useRef(pttActive)
+  const peersRef = useRef(peers)
   const activeContext = joinedContext ?? desiredContext
 
   useEffect(() => {
     playerIdRef.current = currentPlayerId
   }, [currentPlayerId])
+
+  useEffect(() => {
+    peersRef.current = peers
+  }, [peers])
 
   useEffect(() => {
     contextRef.current = joinedContext
@@ -180,6 +201,29 @@ export function VoiceChatDock(): JSX.Element | null {
     const track = streamRef.current?.getAudioTracks()[0]
     if (track) track.enabled = openMicRef.current || pttActive
   }, [pttActive])
+
+  useEffect(() => {
+    const detectRail = (): void => {
+      const rail = document.querySelector<HTMLElement>(
+        'aside[aria-label="Friends panel"], aside[aria-label="Expand Friends panel"]'
+      )
+      if (!rail) {
+        setRailMode('absent')
+        return
+      }
+      setRailMode(rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded')
+    }
+
+    detectRail()
+    const observer = new MutationObserver(detectRail)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-label']
+    })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -286,23 +330,55 @@ export function VoiceChatDock(): JSX.Element | null {
     setPeers([])
   }
 
+  const stopMicrophone = (): void => {
+    microphoneGenerationRef.current += 1
+    microphonePromiseRef.current = null
+    for (const track of streamRef.current?.getTracks() ?? []) track.stop()
+    streamRef.current = null
+    setMicReady(false)
+  }
+
   const ensureMicrophone = async (): Promise<MediaStream> => {
     if (streamRef.current) return streamRef.current
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      },
-      video: false
-    })
-    const track = stream.getAudioTracks()[0]
-    if (track) track.enabled = openMicRef.current || pttActiveRef.current
-    streamRef.current = stream
-    setMicReady(true)
-    setMicError(null)
-    return stream
+    if (microphonePromiseRef.current) return microphonePromiseRef.current
+
+    const generation = microphoneGenerationRef.current
+    const request = navigator.mediaDevices
+      .getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: false
+      })
+      .then((stream) => {
+        if (generation !== microphoneGenerationRef.current) {
+          for (const track of stream.getTracks()) track.stop()
+          throw new Error('Voice microphone request was cancelled.')
+        }
+        const track = stream.getAudioTracks()[0]
+        if (track) track.enabled = openMicRef.current || pttActiveRef.current
+        streamRef.current = stream
+        setMicReady(true)
+        setMicError(null)
+        return stream
+      })
+      .catch((error: unknown) => {
+        if (generation === microphoneGenerationRef.current) {
+          setMicReady(false)
+          setMicError(microphoneErrorMessage(error))
+        }
+        throw error
+      })
+
+    microphonePromiseRef.current = request
+    try {
+      return await request
+    } finally {
+      if (microphonePromiseRef.current === request) microphonePromiseRef.current = null
+    }
   }
 
   const sendSignal = async (
@@ -317,6 +393,10 @@ export function VoiceChatDock(): JSX.Element | null {
     const existing = runtimesRef.current.get(peer.id)
     if (existing) return existing
 
+    const stream = await ensureMicrophone()
+    const existingAfterMicrophone = runtimesRef.current.get(peer.id)
+    if (existingAfterMicrophone) return existingAfterMicrophone
+
     const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS })
     const audio = document.createElement('audio')
     audio.autoplay = true
@@ -326,7 +406,6 @@ export function VoiceChatDock(): JSX.Element | null {
     runtimesRef.current.set(peer.id, runtime)
     applyPreference(runtime, preferenceFor(peer.id))
 
-    const stream = await ensureMicrophone()
     for (const track of stream.getTracks()) connection.addTrack(track, stream)
 
     connection.addEventListener('icecandidate', (event) => {
@@ -340,7 +419,12 @@ export function VoiceChatDock(): JSX.Element | null {
     })
     connection.addEventListener('connectionstatechange', () => {
       setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
-      if (connection.connectionState === 'failed') connection.restartIce()
+      if (connection.connectionState !== 'failed') return
+      connection.restartIce()
+      const currentPlayer = playerIdRef.current
+      if (currentPlayer && currentPlayer < peer.id) {
+        window.setTimeout(() => void makeOffer(peer).catch(() => undefined), 100)
+      }
     })
 
     setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
@@ -403,7 +487,7 @@ export function VoiceChatDock(): JSX.Element | null {
         return
       }
 
-      const peer = peers.find(({ id }) => id === event.fromPlayerId) ?? {
+      const peer = peersRef.current.find(({ id }) => id === event.fromPlayerId) ?? {
         id: event.fromPlayerId,
         username: 'Teammate'
       }
@@ -437,13 +521,14 @@ export function VoiceChatDock(): JSX.Element | null {
     })
 
     return removeListener
-  }, [desiredContext, enabled, peers])
+  }, [desiredContext, enabled])
 
   useEffect(() => {
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
       if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
       setPttActive(false)
       closeAllPeers()
+      stopMicrophone()
       setJoinedContext(null)
       return
     }
@@ -451,6 +536,7 @@ export function VoiceChatDock(): JSX.Element | null {
     if (!sameContext(joinedContext, desiredContext)) {
       setPttActive(false)
       closeAllPeers()
+      stopMicrophone()
       setJoinedContext(null)
       void window.api.matchmaking
         .voiceJoin(desiredContext)
@@ -467,8 +553,10 @@ export function VoiceChatDock(): JSX.Element | null {
         runtime.audio.remove()
       }
       runtimesRef.current.clear()
+      microphoneGenerationRef.current += 1
       for (const track of streamRef.current?.getTracks() ?? []) track.stop()
       streamRef.current = null
+      microphonePromiseRef.current = null
       void window.api.matchmaking.voiceLeave().catch(() => undefined)
     },
     []
@@ -485,6 +573,7 @@ export function VoiceChatDock(): JSX.Element | null {
     setPttActive(false)
     void window.api.matchmaking.voiceLeave().catch(() => undefined)
     closeAllPeers()
+    stopMicrophone()
     setJoinedContext(null)
   }
 
@@ -493,26 +582,73 @@ export function VoiceChatDock(): JSX.Element | null {
     setMicError(null)
   }
 
+  if (railMode === 'collapsed' && !expanded) {
+    return (
+      <button
+        type="button"
+        className={`fixed right-0 bottom-5 z-[70] grid h-11 w-11 place-items-center border-y border-l bg-neutral-950/95 shadow-xl backdrop-blur transition-colors ${
+          enabled
+            ? pttActive
+              ? 'border-sky-400/60 text-sky-300'
+              : 'border-white/15 text-neutral-300 hover:bg-neutral-900 hover:text-white'
+            : 'border-red-400/30 text-red-300'
+        }`}
+        title={`${contextLabel}: ${enabled ? `${connectedPeers}/${peers.length} connected` : 'disconnected'}`}
+        aria-label={`Open ${contextLabel.toLowerCase()} controls`}
+        onClick={() => setExpanded(true)}
+      >
+        {enabled ? <Mic2 className="size-4" aria-hidden="true" /> : <MicOff className="size-4" aria-hidden="true" />}
+        {enabled && peers.length > 0 && (
+          <span
+            className={`absolute right-1 bottom-1 size-1.5 rounded-full ${
+              connectedPeers > 0 ? 'bg-emerald-400' : 'bg-amber-300'
+            }`}
+            aria-hidden="true"
+          />
+        )}
+      </button>
+    )
+  }
+
+  const dockPosition =
+    railMode === 'expanded'
+      ? 'right-0 bottom-0 w-72 rounded-none border-r-0 border-b-0'
+      : railMode === 'collapsed'
+        ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] rounded-xl'
+        : 'right-5 bottom-20 w-[min(24rem,calc(100vw-2.5rem))] rounded-xl'
+
   return (
-    <aside className="fixed right-5 bottom-5 z-[70] w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur">
+    <aside
+      className={`fixed z-[70] overflow-hidden border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur ${dockPosition}`}
+      aria-label={contextLabel}
+    >
       <button
         type="button"
         className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/5"
         onClick={() => setExpanded((value) => !value)}
       >
-        <div>
-          <p className="text-sm font-semibold">{contextLabel}</p>
-          <p className="text-xs text-neutral-400">
-            {enabled
-              ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : pttActive ? ' · Talking' : ''}`
-              : 'Disconnected'}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={`grid size-7 shrink-0 place-items-center rounded-full ${
+              enabled ? (pttActive ? 'bg-sky-400/20 text-sky-300' : 'bg-white/5 text-neutral-300') : 'bg-red-400/10 text-red-300'
+            }`}
+          >
+            {enabled ? <Mic2 className="size-3.5" aria-hidden="true" /> : <MicOff className="size-3.5" aria-hidden="true" />}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{contextLabel}</p>
+            <p className="truncate text-xs text-neutral-400">
+              {enabled
+                ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : pttActive ? ' · Talking' : ''}`
+                : 'Disconnected'}
+            </p>
+          </div>
         </div>
         <span className="text-lg text-neutral-400">{expanded ? '−' : '+'}</span>
       </button>
 
       {expanded && (
-        <div className="border-t border-white/10 p-4">
+        <div className="max-h-[65vh] overflow-y-auto border-t border-white/10 p-4">
           <div className="flex flex-wrap gap-2">
             {enabled ? (
               <>
