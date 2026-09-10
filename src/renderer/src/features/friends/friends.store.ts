@@ -29,6 +29,7 @@ interface FriendsState {
 
 let removeEventListener: (() => void) | null = null
 let refreshInFlight: Promise<void> | null = null
+let refreshTimer: number | null = null
 
 const readableError = (error: unknown): string =>
   error instanceof Error ? error.message : 'Friends request failed.'
@@ -56,11 +57,14 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
       }
     })
     void get().refresh()
+    refreshTimer = window.setInterval(() => void get().refresh(), 20_000)
   },
 
   stop: () => {
     removeEventListener?.()
     removeEventListener = null
+    if (refreshTimer !== null) window.clearInterval(refreshTimer)
+    refreshTimer = null
   },
 
   refresh: async () => {
