@@ -181,6 +181,8 @@ export type MatchmakingServerMessage =
   | { type: 'party_invitation_received' }
   | { type: 'party_updated' }
   | { type: 'party_disbanded' }
+  | { type: 'friend_request_received' }
+  | { type: 'friends_updated' }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
   | GlobalChatMessage
