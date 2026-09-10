@@ -557,3 +557,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added party actions directly to the friends panel.
 - Improved the lobby’s social sidebar.
+
+## v2026.910.13 — 2026-09-10
+
+### Friends
+
+- Improved friends and social interactions in the party sidebar.
+
+### Chat
+
+- Refined party chat interactions for a smoother experience.
+- Added clearer toast notifications for chat and social activity.
