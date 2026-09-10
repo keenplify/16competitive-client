@@ -557,6 +557,7 @@ class MatchmakingConnection {
     await launchCounterStrikeForMatch({
       ...connection,
       forceRestart: true,
+      onVoicePtt: (active) => this.notifyLocalVoicePtt(connection.matchId, active),
       onExit: ({ code, signal }) => {
         this.focusLauncher()
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
@@ -787,6 +788,7 @@ class MatchmakingConnection {
           .then(() =>
             launchCounterStrikeForMatch({
               ...parsed,
+              onVoicePtt: (active) => this.notifyLocalVoicePtt(parsed.matchId, active),
               onExit: ({ code, signal }) => {
                 this.focusLauncher()
                 this.notify({
@@ -971,6 +973,16 @@ class MatchmakingConnection {
     if (this.renderer && !this.renderer.isDestroyed()) {
       this.renderer.send(MATCHMAKING_CHANNELS.event, event)
     }
+  }
+
+  private notifyLocalVoicePtt(matchId: string, active: boolean): void {
+    this.notify({
+      type: 'voice_signal',
+      context: { kind: 'match', id: matchId },
+      fromPlayerId: '__16competitive_ptt__',
+      signalType: 'ice',
+      signal: JSON.stringify({ type: 'ptt', active })
+    })
   }
 }
 

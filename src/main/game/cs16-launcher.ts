@@ -30,6 +30,7 @@ interface MatchLaunchInput {
   password: string
   joinToken: string
   forceRestart?: boolean
+  onVoicePtt?: (active: boolean) => void
   onExit?: (event: { code: number | null; signal: string | null }) => void
 }
 
@@ -362,7 +363,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
   await synchronizeUserConfigIdentity(cwd, playerName, input.joinToken)
-  const voicePttSession = await prepareVoicePtt(cwd)
+  const voicePttSession = await prepareVoicePtt(cwd, input.onVoicePtt)
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'
@@ -412,7 +413,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   const directMatchArgs = ['+exec', matchConfigName, '+connect', `${input.host}:${input.port}`]
   const gameArgs = directMatchArgs
-  const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
+  const launchArgs = [
+    ...launchTarget.argumentPrefix,
+    ...voicePttSession.launchArguments,
+    ...gameArgs
+  ]
   launchedGameDirectory = cwd
   launchedExecutablePath = executable
   console.info('[GameLaunch] starting Counter-Strike', {
