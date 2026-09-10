@@ -14,6 +14,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
+import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -44,9 +45,21 @@ let linuxMonitorGeneration = 0
 let launchQueue: Promise<void> = Promise.resolve()
 let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
 let steamExitWatchGeneration = 0
+let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
+
+const finishVoicePttSession = async (matchId?: string): Promise<void> => {
+  const active = activeVoicePttSession
+  if (!active || (matchId && active.matchId !== matchId)) return
+  activeVoicePttSession = null
+  try {
+    await active.session.restoreBindings()
+  } catch (error) {
+    console.warn('[VoicePTT] could not restore Counter-Strike voice settings', error)
+  }
+}
 
 const clearMatchConfig = (generation?: number): void => {
   if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
@@ -149,6 +162,7 @@ const monitorLinuxCounterStrikeHandoff = async (
         })
         if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
           clearMatchConfig(matchConfigGeneration)
+          await finishVoicePttSession(matchId)
           watchSteamExit(matchId)
           onExit?.({ code: null, signal: null })
         }
@@ -158,6 +172,7 @@ const monitorLinuxCounterStrikeHandoff = async (
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
         clearMatchConfig(matchConfigGeneration)
+        await finishVoicePttSession(matchId)
         watchSteamExit(matchId)
         onExit?.({ code: null, signal: null })
       }
@@ -176,10 +191,14 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   linuxMonitorGeneration++
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
-    void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
+    void closeLinuxCounterStrikeProcesses(launchedGameDirectory).finally(() =>
+      finishVoicePttSession(matchId)
+    )
   }
   if (process.platform === 'win32' && launchedExecutablePath) {
-    void closeWindowsCounterStrikeProcesses(launchedExecutablePath)
+    void closeWindowsCounterStrikeProcesses(launchedExecutablePath).finally(() =>
+      finishVoicePttSession(matchId)
+    )
   }
   launchedGameDirectory = null
   launchedExecutablePath = null
@@ -289,9 +308,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   if (!SAFE_PASSWORD.test(input.password)) throw new Error('Invalid game server password')
   if (!/^[A-Za-z0-9_-]{32,64}$/.test(input.joinToken)) throw new Error('Invalid match join token')
-  // match_connect is durable server state and may be delivered more than once
-  // during socket recovery or API-host handoff. Only the explicit Reconnect
-  // action is allowed to restart a match that this launcher already started.
   if (launchedMatchId === input.matchId && !input.forceRestart) return
 
   const relaunchingSameMatch = launchedMatchId === input.matchId && input.forceRestart === true
@@ -339,10 +355,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
     gameProcess = null
     await delay(RELAUNCH_SETTLE_MS)
+    await finishVoicePttSession(input.matchId)
+  } else if (activeVoicePttSession) {
+    await finishVoicePttSession()
   }
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
   await synchronizeUserConfigIdentity(cwd, playerName, input.joinToken)
+  const voicePttSession = await prepareVoicePtt(cwd)
+  activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'
   const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
@@ -357,18 +378,19 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       temporaryMatchConfigPath,
       [
         ...identityCommands,
+        ...voicePttSession.configCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
         `password "${input.password}"`,
         // GoldSrc can process its normal user config after +exec during startup.
-        // Wait a few frames, then reassert match identity immediately before connecting.
+        // Wait a few frames, then reassert match identity and the PTT wrapper
+        // immediately before connecting.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
         ...identityCommands,
+        ...voicePttSession.configCommands,
         `password "${input.password}"`,
-        // This GoldSrc build retains quotes around the connect argument and then
-        // rejects the otherwise valid endpoint as a bad server address.
         `connect ${input.host}:${input.port}`,
         ''
       ].join('\n'),
@@ -380,6 +402,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       matchId: input.matchId,
       error
     })
+    await finishVoicePttSession(input.matchId)
     throw new Error('Could not prepare the Counter-Strike match connection. Please try reconnecting.')
   } finally {
     await unlink(temporaryMatchConfigPath).catch(() => undefined)
@@ -387,16 +410,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   launchedMatchConfigPath = matchConfigPath
   launchedMatchConfigGeneration = matchConfigGeneration
 
-  // GoldSrc reparses command lines and can interpret a hyphen inside a secret as
-  // a new launch option. Keep the password and join token exclusively in the
-  // restricted config files so their complete values reach the engine and do
-  // not leak through the OS process list. The final connect remains a fallback
-  // when Steam forwards parameters to an already-running client.
   const directMatchArgs = ['+exec', matchConfigName, '+connect', `${input.host}:${input.port}`]
   const gameArgs = directMatchArgs
-  // Linux Steam forwards the remaining app arguments directly to GoldSrc. Do
-  // not add `--`: Steam passes it through as an actual engine argument. The
-  // Windows/direct and standalone targets consume the same argument array.
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
   launchedExecutablePath = executable
@@ -409,29 +424,35 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     ),
     playerName,
     joinTokenPresent: true,
+    voicePttKeys: voicePttSession.keys,
     relaunchingSameMatch
   })
-  const spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
-    const child = spawn(launchTarget.executable, launchArgs, {
-      cwd,
-      shell: false,
-      // Steam remains running after handing off to GoldSrc. Do not keep the
-      // Electron process alive through Steam's stdout/stderr pipes.
-      stdio: launchTarget.usesLauncherHandoff
-        ? ['ignore', 'ignore', 'ignore']
-        : ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        // The non-Steam fallback needs the same libraries as hl.sh.
-        LD_LIBRARY_PATH:
-          process.platform === 'linux' && !launchTarget.usesLauncherHandoff
-            ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
-            : process.env.LD_LIBRARY_PATH
-      }
+
+  let spawnedProcess: ChildProcess
+  try {
+    spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
+      const child = spawn(launchTarget.executable, launchArgs, {
+        cwd,
+        shell: false,
+        stdio: launchTarget.usesLauncherHandoff
+          ? ['ignore', 'ignore', 'ignore']
+          : ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          LD_LIBRARY_PATH:
+            process.platform === 'linux' && !launchTarget.usesLauncherHandoff
+              ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
+              : process.env.LD_LIBRARY_PATH
+        }
+      })
+      child.once('error', reject)
+      child.once('spawn', () => resolveProcess(child))
     })
-    child.once('error', reject)
-    child.once('spawn', () => resolveProcess(child))
-  })
+  } catch (error) {
+    await finishVoicePttSession(input.matchId)
+    throw error
+  }
+
   if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
@@ -448,8 +469,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   gameProcess.stderr?.on('data', appendGameOutput)
   spawnedProcess.once('exit', (code, signal) => {
     if (launchTarget.usesLauncherHandoff) {
-      // Steam and some standalone launchers exit after starting the actual
-      // GoldSrc process. Keep the match config in place for that child process.
       console.info('[GameLaunch] launcher handoff completed', {
         matchId: input.matchId,
         distribution: launchTarget.distribution,
@@ -473,6 +492,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       code,
       signal
     })
+    void finishVoicePttSession(input.matchId)
     if (gameOutput.trim()) {
       const safeOutput = gameOutput
         .replaceAll(input.password, '[redacted]')
@@ -506,8 +526,6 @@ export const launchCounterStrikeForMatch = (input: MatchLaunchInput): Promise<vo
     .catch(() => undefined)
     .then(() => performLaunchCounterStrikeForMatch(input))
 
-  // A failed launch must not poison the queue. Later reconnect attempts should
-  // still get a chance to prepare the config and spawn the game.
   launchQueue = operation.catch(() => undefined)
 
   if (!input.forceRestart) return operation
