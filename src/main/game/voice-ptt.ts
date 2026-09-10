@@ -63,6 +63,24 @@ const restoreVoiceScale = (contents: string, originalVoiceScale: string): string
   return lines.join(eol)
 }
 
+const voiceKeysFromConfig = (contents: string): string[] =>
+  contents
+    .split(/\r?\n/)
+    .map(parseBind)
+    .filter((bind): bind is ParsedBind => Boolean(bind))
+    .filter((bind) => {
+      const command = bind.command.trim().toLowerCase()
+      return command === VOICE_BIND_COMMAND || command === VOICE_WRAPPER_COMMAND
+    })
+    .map((bind) => bind.key)
+    .filter((key) => !/["\r\n;]/.test(key))
+
+export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
+  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const existing = await readFile(configPath, 'utf8').catch(() => '')
+  return [...new Set(voiceKeysFromConfig(existing))]
+}
+
 export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSession> => {
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
   const existing = await readFile(configPath, 'utf8').catch(() => '')
@@ -74,13 +92,7 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
     console.info('[VoicePTT] recovered stale Counter-Strike voice binding')
   }
 
-  const keys = recovered.contents
-    .split(/\r?\n/)
-    .map(parseBind)
-    .filter((bind): bind is ParsedBind => Boolean(bind))
-    .filter((bind) => bind.command.trim().toLowerCase() === VOICE_BIND_COMMAND)
-    .map((bind) => bind.key)
-    .filter((key) => !/["\r\n;]/.test(key))
+  const keys = [...new Set(voiceKeysFromConfig(recovered.contents))]
 
   if (keys.length === 0) {
     console.warn('[VoicePTT] no +voicerecord bind found; native PTT bridge disabled')
@@ -101,17 +113,18 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
   return {
     enabled: keys.length > 0,
     keys,
-    configCommands:
-      keys.length > 0
+    configCommands: [
+      ...(keys.length > 0
         ? [
             `alias "${VOICE_WRAPPER_COMMAND}" "+voicerecord; cmd 16competitive_ptt 1"`,
             `alias "${VOICE_WRAPPER_RELEASE_COMMAND}" "-voicerecord; cmd 16competitive_ptt 0"`,
-            ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`),
-            // Keep native GoldSrc voice packets available for the built-in HUD,
-            // but make their playback silent. Electron/WebRTC carries real audio.
-            'voice_scale "0"'
+            ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`)
           ]
-        : [],
+        : []),
+      // Keep native GoldSrc voice packets available for the built-in HUD,
+      // but make their playback silent. Electron/WebRTC carries real audio.
+      'voice_scale "0"'
+    ],
     restoreBindings
   }
 }
