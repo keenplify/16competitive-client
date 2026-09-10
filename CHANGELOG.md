@@ -471,3 +471,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added configured GoldSrc push-to-talk keys to game settings.
 - Applied push-to-talk settings when launching matches.
+
+## v2026.910.2 — 2026-09-10
+
+### Voice Chat
+
+- Clarified when voice chat context state resets.
