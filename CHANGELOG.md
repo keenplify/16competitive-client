@@ -512,3 +512,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Added a local push-to-talk fallback for GoldSrc matches.
+
+## v2026.910.8 — 2026-09-10
+
+### Voice
+
+- Improved push-to-talk handling.
+
+### Windowing
+
+- Fixed Alt-Tab behavior.
+
+### Diagnostics
+
+- Improved window diagnostics logging.
