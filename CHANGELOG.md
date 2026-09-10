@@ -506,3 +506,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Downloads
 
 - Released Windows and AppImage packages.
+
+## v2026.910.7 — 2026-09-10
+
+### Voice Chat
+
+- Added a local push-to-talk fallback for GoldSrc matches.
