@@ -1,5 +1,6 @@
 import type { AuthApi } from '../shared/auth'
 import type { MatchmakingApi } from '../shared/matchmaking'
+import type { VoiceApi } from '../shared/voice'
 import type { WindowApi } from '../shared/window'
 import type { ModelApi } from '../shared/models'
 import type { PartyApi } from '../shared/party'
@@ -26,6 +27,7 @@ declare global {
       models: ModelApi
       party: PartyApi
       updater: UpdaterApi
+      voice: VoiceApi
       window: WindowApi
       diagnosticLogs: DiagnosticLogsApi
     }
