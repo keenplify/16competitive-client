@@ -10,7 +10,7 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useRef, type JSX, type KeyboardEvent } from 'react'
-import type { FriendPlayer, FriendSearchResult } from '../../../../../shared/friends'
+import type { FriendPlayer, FriendSearchResult } from '../../../../shared/friends'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useFriendsStore } from '../friends/friends.store'

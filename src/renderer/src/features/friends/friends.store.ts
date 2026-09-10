@@ -3,7 +3,7 @@ import type {
   FriendPlayer,
   FriendSearchResult,
   IncomingFriendRequest
-} from '../../../../../shared/friends'
+} from '../../../../shared/friends'
 
 interface FriendsState {
   friends: FriendPlayer[]
