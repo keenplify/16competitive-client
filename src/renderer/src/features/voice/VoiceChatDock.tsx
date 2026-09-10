@@ -21,8 +21,14 @@ interface PeerPreference {
   muted: boolean
 }
 
+interface NativePttSignal {
+  type: 'ptt'
+  active: boolean
+}
+
 const VOICE_PREFERENCES_KEY = '16competitive.voice.preferences'
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
+const NATIVE_PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.cloudflare.com:3478' },
   { urls: 'stun:stun.l.google.com:19302' }
@@ -268,6 +274,14 @@ export function VoiceChatDock(): JSX.Element | null {
       if (event.type !== 'voice_signal') return
       if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
 
+      if (event.fromPlayerId === NATIVE_PTT_SIGNAL_PLAYER_ID) {
+        const nativePtt = parseSignal<NativePttSignal>(event.signal)
+        if (nativePtt?.type === 'ptt' && typeof nativePtt.active === 'boolean') {
+          setPttActive(nativePtt.active)
+        }
+        return
+      }
+
       const peer = peers.find(({ id }) => id === event.fromPlayerId) ?? {
         id: event.fromPlayerId,
         username: 'Teammate'
@@ -309,12 +323,14 @@ export function VoiceChatDock(): JSX.Element | null {
       if (joinedContext) {
         void window.api.matchmaking.voiceLeave().catch(() => undefined)
       }
+      setPttActive(false)
       closeAllPeers()
       setJoinedContext(null)
       return
     }
 
     if (!sameContext(joinedContext, desiredContext)) {
+      setPttActive(false)
       closeAllPeers()
       setJoinedContext(null)
       void window.api.matchmaking
@@ -341,8 +357,10 @@ export function VoiceChatDock(): JSX.Element | null {
 
   if (!desiredContext && !joinedContext) return null
 
-  const contextLabel = (joinedContext ?? desiredContext)?.kind === 'match' ? 'Team voice' : 'Party voice'
+  const activeContext = joinedContext ?? desiredContext
+  const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
   const connectedPeers = peers.filter(({ id }) => peerStates[id] === 'connected').length
+  const nativePttAvailable = activeContext?.kind === 'match'
 
   const disconnect = (): void => {
     setEnabled(false)
@@ -368,7 +386,7 @@ export function VoiceChatDock(): JSX.Element | null {
           <p className="text-sm font-semibold">{contextLabel}</p>
           <p className="text-xs text-neutral-400">
             {enabled
-              ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : ''}`
+              ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : pttActive ? ' · Talking' : ''}`
               : 'Disconnected'}
           </p>
         </div>
@@ -404,7 +422,7 @@ export function VoiceChatDock(): JSX.Element | null {
                     onPointerCancel={() => setPttActive(false)}
                     onPointerLeave={() => setPttActive(false)}
                   >
-                    Hold to talk
+                    {nativePttAvailable ? 'PTT test' : 'Hold to talk'}
                   </button>
                 )}
                 <button
@@ -425,6 +443,12 @@ export function VoiceChatDock(): JSX.Element | null {
               </button>
             )}
           </div>
+
+          {enabled && !openMic && nativePttAvailable && (
+            <p className="mt-3 text-xs text-neutral-400">
+              Counter-Strike push-to-talk controls this mic using your existing +voicerecord bind.
+            </p>
+          )}
 
           {enabled && (
             <div className="mt-4 space-y-3">
