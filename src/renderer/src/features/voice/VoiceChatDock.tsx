@@ -28,6 +28,7 @@ interface NativePttSignal {
 
 const VOICE_PREFERENCES_KEY = '16competitive.voice.preferences'
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
+const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 const NATIVE_PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -147,7 +148,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const [preferences, setPreferences] = useState<Record<string, PeerPreference>>(loadPeerPreferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
   const [pttActive, setPttActive] = useState(false)
-  const [lobbyPttKeys, setLobbyPttKeys] = useState<string[]>([])
+  const [voicePttKey, setVoicePttKey] = useState('K')
   const [micError, setMicError] = useState<string | null>(null)
   const [micReady, setMicReady] = useState(false)
 
@@ -182,45 +183,53 @@ export function VoiceChatDock(): JSX.Element | null {
 
   useEffect(() => {
     let cancelled = false
-    if (!currentPlayerId || activeContext?.kind !== 'party') {
-      setLobbyPttKeys([])
+    if (!currentPlayerId) {
+      setVoicePttKey('K')
       return
     }
 
     void window.api.gameSettings
       .get()
       .then((settings) => {
-        if (!cancelled) setLobbyPttKeys(settings.voicePttKeys.map(normalizeGoldSrcKey))
+        if (!cancelled) setVoicePttKey(normalizeGoldSrcKey(settings.voicePttKey))
       })
-      .catch(() => {
-        if (!cancelled) setLobbyPttKeys([])
-      })
+      .catch(() => undefined)
+
+    const keyChanged = (event: Event): void => {
+      const key = (event as CustomEvent<unknown>).detail
+      if (typeof key === 'string' && key.trim()) {
+        setVoicePttKey(normalizeGoldSrcKey(key))
+        setPttActive(false)
+      }
+    }
+    window.addEventListener(VOICE_PTT_KEY_CHANGED_EVENT, keyChanged)
 
     return () => {
       cancelled = true
+      window.removeEventListener(VOICE_PTT_KEY_CHANGED_EVENT, keyChanged)
     }
-  }, [activeContext?.kind, currentPlayerId, party?.id])
+  }, [currentPlayerId])
 
   useEffect(() => {
-    if (!enabled || openMic || activeContext?.kind !== 'party' || lobbyPttKeys.length === 0) return
+    if (!enabled || openMic || activeContext?.kind !== 'party' || !voicePttKey) return
 
-    const keys = new Set(lobbyPttKeys)
+    const configuredKey = normalizeGoldSrcKey(voicePttKey)
     const keyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return
       const key = keyboardEventGoldSrcKey(event)
-      if (key && keys.has(normalizeGoldSrcKey(key))) setPttActive(true)
+      if (key && normalizeGoldSrcKey(key) === configuredKey) setPttActive(true)
     }
     const keyUp = (event: KeyboardEvent): void => {
       const key = keyboardEventGoldSrcKey(event)
-      if (key && keys.has(normalizeGoldSrcKey(key))) setPttActive(false)
+      if (key && normalizeGoldSrcKey(key) === configuredKey) setPttActive(false)
     }
     const mouseDown = (event: MouseEvent): void => {
       const key = mouseEventGoldSrcKey(event)
-      if (key && keys.has(key)) setPttActive(true)
+      if (key && key === configuredKey) setPttActive(true)
     }
     const mouseUp = (event: MouseEvent): void => {
       const key = mouseEventGoldSrcKey(event)
-      if (key && keys.has(key)) setPttActive(false)
+      if (key && key === configuredKey) setPttActive(false)
     }
     const reset = (): void => setPttActive(false)
 
@@ -238,7 +247,7 @@ export function VoiceChatDock(): JSX.Element | null {
       window.removeEventListener('blur', reset)
       reset()
     }
-  }, [activeContext?.kind, enabled, lobbyPttKeys, openMic])
+  }, [activeContext?.kind, enabled, openMic, voicePttKey])
 
   const preferenceFor = (playerId: string): PeerPreference =>
     preferences[playerId] ?? { volume: 1, muted: false }
@@ -469,8 +478,7 @@ export function VoiceChatDock(): JSX.Element | null {
 
   const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
   const connectedPeers = peers.filter(({ id }) => peerStates[id] === 'connected').length
-  const nativePttAvailable = activeContext?.kind === 'match'
-  const configuredPttAvailable = nativePttAvailable || lobbyPttKeys.length > 0
+  const configuredPttAvailable = Boolean(voicePttKey)
 
   const disconnect = (): void => {
     setEnabled(false)
@@ -554,14 +562,14 @@ export function VoiceChatDock(): JSX.Element | null {
             )}
           </div>
 
-          {enabled && !openMic && nativePttAvailable && (
+          {enabled && !openMic && activeContext?.kind === 'match' && (
             <p className="mt-3 text-xs text-neutral-400">
-              Counter-Strike push-to-talk controls this mic using your existing +voicerecord bind.
+              Hold <span className="font-mono text-neutral-200">{voicePttKey}</span> in Counter-Strike to talk.
             </p>
           )}
-          {enabled && !openMic && activeContext?.kind === 'party' && lobbyPttKeys.length > 0 && (
+          {enabled && !openMic && activeContext?.kind === 'party' && (
             <p className="mt-3 text-xs text-neutral-400">
-              Push-to-talk: {lobbyPttKeys.join(' / ')} while the launcher is focused.
+              Hold <span className="font-mono text-neutral-200">{voicePttKey}</span> to talk while the launcher is focused.
             </p>
           )}
 
