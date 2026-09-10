@@ -21,6 +21,7 @@ import { MatchResultsPage } from './MatchResultsPage'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
+import { useFriendsStore } from '../friends/friends.store'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
@@ -89,6 +90,8 @@ export function LobbyPage(): JSX.Element {
   const party = usePartyStore((state) => state.party)
   const startParty = usePartyStore((state) => state.start)
   const stopParty = usePartyStore((state) => state.stop)
+  const startFriends = useFriendsStore((state) => state.start)
+  const stopFriends = useFriendsStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
   const navigate = useNavigationStore((state) => state.navigate)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
@@ -131,8 +134,12 @@ export function LobbyPage(): JSX.Element {
 
   useEffect(() => {
     startParty()
-    return stopParty
-  }, [startParty, stopParty])
+    startFriends()
+    return () => {
+      stopParty()
+      stopFriends()
+    }
+  }, [startFriends, startParty, stopFriends, stopParty])
 
   useEffect(() => {
     void connectMatchmaking()

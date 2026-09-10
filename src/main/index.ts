@@ -33,6 +33,7 @@ import { getMatchmakingMaps } from './matchmaking-maps'
 import { getMatchHistory, getMatchSummary, getPlayerProfile } from './match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import { PARTY_CHANNELS } from '../shared/party'
+import { FRIEND_CHANNELS } from '../shared/friends'
 import {
   getParty,
   getPartyInvitations,
@@ -40,6 +41,14 @@ import {
   leaveParty,
   respondToPartyInvitation
 } from './party'
+import {
+  acceptFriendRequest,
+  discardFriendRequest,
+  getFriends,
+  removeFriend,
+  searchPlayers,
+  sendFriendRequest
+} from './friends'
 import {
   GAME_SETTINGS_CHANNELS,
   type SkinAssetSyncMode,
@@ -388,6 +397,12 @@ app.whenReady().then(async () => {
   ipcMain.handle(MODEL_CHANNELS.writeThumbnail, (_, cacheKey: unknown, png: unknown) =>
     writeModelThumbnail(cacheKey, png)
   )
+  ipcMain.handle(FRIEND_CHANNELS.list, () => getFriends())
+  ipcMain.handle(FRIEND_CHANNELS.search, (_, query: unknown) => searchPlayers(query))
+  ipcMain.handle(FRIEND_CHANNELS.request, (_, playerId: unknown) => sendFriendRequest(playerId))
+  ipcMain.handle(FRIEND_CHANNELS.accept, (_, requestId: unknown) => acceptFriendRequest(requestId))
+  ipcMain.handle(FRIEND_CHANNELS.discard, (_, requestId: unknown) => discardFriendRequest(requestId))
+  ipcMain.handle(FRIEND_CHANNELS.remove, (_, playerId: unknown) => removeFriend(playerId))
   ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
   ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())
   ipcMain.handle(PARTY_CHANNELS.invite, (_, username: unknown) => inviteToParty(username))
