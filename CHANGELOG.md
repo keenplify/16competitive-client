@@ -478,3 +478,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved handling and diagnostics for failed voice relay connections.
 - Voice chat state now resets correctly when changing contexts.
+
+## v2026.910.4 — 2026-09-10
+
+### Linux
+
+- Improved reliability for Linux builds.
