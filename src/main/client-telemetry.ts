@@ -1,3 +1,4 @@
+import './voice-ipc'
 import { app } from 'electron'
 import { arch, cpus, platform, release, totalmem, version } from 'node:os'
 import { API_BASE_URL } from './config'
@@ -14,7 +15,6 @@ const gpuDescriptions = async (): Promise<string[]> => {
     if (typeof info !== 'object' || info === null) return []
     const devices = (info as Record<string, unknown>).gpuDevice
     if (!Array.isArray(devices)) return []
-
     return devices
       .slice(0, 16)
       .map((device) => {
