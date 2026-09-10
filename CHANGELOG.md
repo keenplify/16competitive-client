@@ -545,3 +545,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes provided.
+
+## v2026.910.12 — 2026-09-10
+
+### Friends
+
+- Added a CS2-style friends list.
+- Friend presence now refreshes across regions.
+
+### Parties
+
+- Added party actions directly to the friends panel.
+- Improved the lobby’s social sidebar.
