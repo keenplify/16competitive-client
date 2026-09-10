@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 
@@ -58,6 +58,7 @@ const readableError = (error: unknown): string =>
     : 'Could not save the push-to-talk key.'
 
 export function VoicePttKeySetting(): JSX.Element {
+  const panelRef = useRef<HTMLDivElement>(null)
   const [pttKey, setPttKey] = useState('K')
   const [hasGame, setHasGame] = useState(false)
   const [capturing, setCapturing] = useState(false)
@@ -118,7 +119,9 @@ export function VoicePttKeySetting(): JSX.Element {
     }
 
     const mouseDown = (event: MouseEvent): void => {
+      const panel = panelRef.current
       const target = event.target
+      if (!panel || !(target instanceof Node) || !panel.contains(target)) return
       if (target instanceof Element && target.closest('[data-ptt-capture-control]')) return
       const key = mouseEventGoldSrcKey(event)
       if (!key) return
@@ -136,7 +139,7 @@ export function VoicePttKeySetting(): JSX.Element {
   }, [capturing])
 
   return (
-    <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+    <div ref={panelRef} className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
