@@ -1,9 +1,10 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
 const VOICE_WRAPPER_COMMAND = '+16competitive_voicerecord'
 const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
+const VOICE_BACKUP_FILE = '16competitive_voice_restore.json'
 const DEFAULT_VOICE_SCALE = '1'
 
 interface ParsedBind {
@@ -11,6 +12,10 @@ interface ParsedBind {
   command: string
   prefix: string
   suffix: string
+}
+
+interface VoiceRestoreBackup {
+  voiceScale: string
 }
 
 export interface VoicePttSession {
@@ -75,6 +80,41 @@ const voiceKeysFromConfig = (contents: string): string[] =>
     .map((bind) => bind.key)
     .filter((key) => !/["\r\n;]/.test(key))
 
+const readRestoreBackup = async (gameDirectory: string): Promise<VoiceRestoreBackup | null> => {
+  try {
+    const parsed = JSON.parse(
+      await readFile(join(gameDirectory, 'cstrike', VOICE_BACKUP_FILE), 'utf8')
+    ) as unknown
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof (parsed as Partial<VoiceRestoreBackup>).voiceScale !== 'string' ||
+      !/^[0-9]+(?:\.[0-9]+)?$/.test((parsed as VoiceRestoreBackup).voiceScale)
+    ) {
+      return null
+    }
+    return parsed as VoiceRestoreBackup
+  } catch {
+    return null
+  }
+}
+
+const restorePendingVoiceSettings = async (gameDirectory: string): Promise<void> => {
+  const backupPath = join(gameDirectory, 'cstrike', VOICE_BACKUP_FILE)
+  const backup = await readRestoreBackup(gameDirectory)
+  if (!backup) return
+
+  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const current = await readFile(configPath, 'utf8').catch(() => '')
+  if (current) {
+    const restoredBindings = replaceWrapperBindings(current)
+    const restored = restoreVoiceScale(restoredBindings.contents, backup.voiceScale)
+    if (restored !== current) await writeFile(configPath, restored, { encoding: 'utf8' })
+  }
+  await unlink(backupPath).catch(() => undefined)
+  console.info('[VoicePTT] recovered Counter-Strike voice settings from previous session')
+}
+
 export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
   const existing = await readFile(configPath, 'utf8').catch(() => '')
@@ -82,7 +122,11 @@ export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]>
 }
 
 export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSession> => {
-  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  await restorePendingVoiceSettings(gameDirectory)
+
+  const cstrikeDirectory = join(gameDirectory, 'cstrike')
+  const configPath = join(cstrikeDirectory, 'config.cfg')
+  const backupPath = join(cstrikeDirectory, VOICE_BACKUP_FILE)
   const existing = await readFile(configPath, 'utf8').catch(() => '')
   const recovered = replaceWrapperBindings(existing)
   const originalVoiceScale = findVoiceScale(recovered.contents)
@@ -100,13 +144,20 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
     console.info('[VoicePTT] prepared native Counter-Strike PTT bridge', { keys })
   }
 
+  await writeFile(backupPath, `${JSON.stringify({ voiceScale: originalVoiceScale })}\n`, {
+    encoding: 'utf8',
+    mode: 0o600
+  })
+
   const restoreBindings = async (): Promise<void> => {
+    const backup = (await readRestoreBackup(gameDirectory)) ?? { voiceScale: originalVoiceScale }
     const current = await readFile(configPath, 'utf8').catch(() => '')
-    if (!current) return
-    const restoredBindings = replaceWrapperBindings(current)
-    const restored = restoreVoiceScale(restoredBindings.contents, originalVoiceScale)
-    if (restored === current) return
-    await writeFile(configPath, restored, { encoding: 'utf8' })
+    if (current) {
+      const restoredBindings = replaceWrapperBindings(current)
+      const restored = restoreVoiceScale(restoredBindings.contents, backup.voiceScale)
+      if (restored !== current) await writeFile(configPath, restored, { encoding: 'utf8' })
+    }
+    await unlink(backupPath).catch(() => undefined)
     console.info('[VoicePTT] restored Counter-Strike voice settings')
   }
 
