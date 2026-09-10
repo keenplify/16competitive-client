@@ -5,7 +5,9 @@ import type {
   MatchmakingEvent,
   MatchmakingMode,
   MatchmakingServerMessage,
-  QueuedPlayer
+  QueuedPlayer,
+  VoiceContext,
+  VoiceSignalType
 } from '../shared/matchmaking'
 import type { GlobalChatMessage, GlobalChatMessageDeleted } from '../shared/matchmaking'
 import { getSessionToken } from './auth'
@@ -72,6 +74,26 @@ const isPlayer = (value: unknown): value is QueuedPlayer => {
     typeof player.mmr === 'number'
   )
 }
+
+const isVoiceContext = (value: unknown): value is VoiceContext => {
+  if (typeof value !== 'object' || value === null) return false
+  const context = value as Record<string, unknown>
+  return (
+    (context.kind === 'party' || context.kind === 'match') &&
+    typeof context.id === 'string' &&
+    context.id.length >= 1 &&
+    context.id.length <= 80
+  )
+}
+
+const isVoicePeer = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false
+  const peer = value as Record<string, unknown>
+  return typeof peer.id === 'string' && typeof peer.username === 'string'
+}
+
+const isVoiceSignalType = (value: unknown): value is VoiceSignalType =>
+  value === 'offer' || value === 'answer' || value === 'ice'
 
 const isTeams = (value: unknown): value is { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] } => {
   if (typeof value !== 'object' || value === null) return false
@@ -160,6 +182,26 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       )
     case 'authenticated':
       return isPlayer(message.player)
+    case 'voice_session':
+      return (
+        isVoiceContext(message.context) &&
+        Array.isArray(message.peers) &&
+        message.peers.length <= 19 &&
+        message.peers.every(isVoicePeer)
+      )
+    case 'voice_peer_joined':
+      return isVoiceContext(message.context) && isVoicePeer(message.peer)
+    case 'voice_peer_left':
+      return isVoiceContext(message.context) && typeof message.playerId === 'string'
+    case 'voice_signal':
+      return (
+        isVoiceContext(message.context) &&
+        typeof message.fromPlayerId === 'string' &&
+        isVoiceSignalType(message.signalType) &&
+        typeof message.signal === 'string' &&
+        message.signal.length >= 1 &&
+        message.signal.length <= 24_000
+      )
     case 'queue_joined':
       return (
         isMode(message.mode) &&
@@ -328,9 +370,6 @@ class MatchmakingConnection {
   private cancelledMatchIds = new Set<string>()
   private finishedMatchIds = new Set<string>()
   private manuallyDisconnected = false
-  // A new launcher process must not silently resume a queue left behind by a
-  // previous process. Active matches are handled separately by the recovery
-  // status messages and are intentionally preserved.
   private freshProcess = true
   private authenticated = false
   private recoveryStatusPending = false
@@ -340,19 +379,14 @@ class MatchmakingConnection {
   connect(renderer: WebContents): void {
     this.renderer = renderer
     this.manuallyDisconnected = false
-
-    // An explicit retry (for example, after the OS reports that the network
-    // is back) should replace any delayed exponential retry, not race it.
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
-
     if (
       this.socket?.readyState === WebSocket.OPEN ||
       this.socket?.readyState === WebSocket.CONNECTING
     ) {
       return
     }
-
     this.openSocket(false)
   }
 
@@ -389,10 +423,6 @@ class MatchmakingConnection {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.stopPing()
-
-    // Best effort: explicitly remove a queued entry before the socket closes.
-    // This does not cancel an already-created match because the backend keeps
-    // queue membership separate from match membership.
     if (this.socket?.readyState === WebSocket.OPEN) {
       try {
         this.socket.send(JSON.stringify({ type: 'leave_queue' }))
@@ -454,6 +484,26 @@ class MatchmakingConnection {
     this.send({ type: 'global_chat_send', message: message.trim() })
   }
 
+  joinVoice(context: unknown): void {
+    if (!isVoiceContext(context)) throw new Error('Invalid voice channel')
+    this.send({ type: 'voice_join', context })
+  }
+
+  leaveVoice(): void {
+    this.send({ type: 'voice_leave' })
+  }
+
+  sendVoiceSignal(targetPlayerId: unknown, signalType: unknown, signal: unknown): void {
+    if (typeof targetPlayerId !== 'string' || targetPlayerId.length < 1 || targetPlayerId.length > 80) {
+      throw new Error('Invalid voice peer')
+    }
+    if (!isVoiceSignalType(signalType)) throw new Error('Invalid voice signal type')
+    if (typeof signal !== 'string' || signal.length < 1 || signal.length > 24_000) {
+      throw new Error('Invalid voice signal')
+    }
+    this.send({ type: 'voice_signal', targetPlayerId, signalType, signal })
+  }
+
   respondReady(matchId: unknown, accepted: unknown): void {
     if (typeof matchId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(matchId)) {
       throw new Error('Invalid match ready check')
@@ -468,8 +518,6 @@ class MatchmakingConnection {
     try {
       await waitForMatchAssetPreload(connection.matchId)
     } catch {
-      // Recovery after a launcher restart has no in-memory preload. A previous
-      // attempt may also have failed, so replace it with a fresh verified run.
       clearMatchAssetPreload(connection.matchId)
       await this.prepareMatchAssets(connection.matchId)
     }
@@ -538,8 +586,6 @@ class MatchmakingConnection {
     } catch (error) {
       console.warn('[Matchmaking] could not create WebSocket connection', error)
       if (handoff) {
-        // Closing the current socket enters the normal reconnect path and
-        // avoids leaving the launcher stuck on an unreachable match host.
         this.socket?.close()
       } else {
         this.notify({ type: 'connection_state', state: 'reconnecting' })
@@ -574,18 +620,11 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'server_restarting') {
-        // A deployment explicitly cancels its queue and matches. Do not carry a
-        // desired queue over the reconnect, or the launcher could immediately
-        // requeue someone the deployment just removed.
         this.desiredMode = null
         this.desiredMapIds = []
         this.recoveryStatusPending = false
         this.restartReconnectAtMs = Date.now() + parsed.retryAfterMs
         this.notify(parsed)
-        // Do not rely on the remote shutdown to deliver a close event. Some
-        // WebSocket implementations can remain closing while the server is
-        // already offline, which would leave the launcher disconnected with
-        // no reconnect timer.
         this.handleSocketDisconnect(socket)
         socket.close()
         return
@@ -597,9 +636,7 @@ class MatchmakingConnection {
       ) {
         return
       }
-      if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) {
-        return
-      }
+      if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) return
       if (
         parsed.type === 'match_found' &&
         this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)
@@ -658,8 +695,6 @@ class MatchmakingConnection {
         if (parsed.type === 'match_ready_check') this.freshProcess = false
         if (parsed.type === 'queue_status' && this.freshProcess) {
           this.freshProcess = false
-          // A fresh process should never resume an old queue. Do this only
-          // after authoritative status confirms that the player is queued.
           socket.send(JSON.stringify({ type: 'leave_queue' }))
         }
       } else if (parsed.type === 'queue_joined') {
@@ -712,10 +747,6 @@ class MatchmakingConnection {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
-        // A fresh launcher has no in-memory preload, while socket recovery in
-        // the same process may already have one. Both paths must continue into
-        // launch after verification; launchCounterStrikeForMatch makes replayed
-        // match_connect delivery idempotent within the current app process.
         const assetsReady = isRecoveredConnection
           ? this.prepareMatchAssets(parsed.matchId)
           : waitForMatchAssetPreload(parsed.matchId)
@@ -767,17 +798,12 @@ class MatchmakingConnection {
         this.recoveryStatusPending = false
         if (parsed.code === 'NOT_QUEUED') return
       }
-      // Only match_found is replayed during a host handoff. Countdown and ready-state
-      // events intentionally repeat for the same match and must reach the renderer.
       if (parsed.type === 'match_found') {
         this.seenMatchEvents.add(`${parsed.type}:${parsed.matchId}`)
       }
       this.notify(parsed)
     })
     socket.addEventListener('error', () => {
-      // Do not call socket.close() from this event. Node/undici may already be
-      // dispatching the failure from its close path, which makes close() here
-      // recursively re-enter the same error path and overflow the stack.
       console.warn('[Matchmaking] WebSocket connection error')
       if (!handoff) this.handleSocketDisconnect(socket)
     })
@@ -830,7 +856,6 @@ class MatchmakingConnection {
 
   private startPing(): void {
     this.stopPing()
-
     const ping = (): void => {
       const socket = this.socket
       if (
@@ -841,7 +866,6 @@ class MatchmakingConnection {
       ) {
         return
       }
-
       try {
         socket.send(JSON.stringify({ type: 'ping' }))
       } catch {
@@ -858,7 +882,6 @@ class MatchmakingConnection {
         socket.close()
       }, PONG_TIMEOUT_MS)
     }
-
     ping()
     this.pingTimer = setInterval(ping, PING_INTERVAL_MS)
   }
