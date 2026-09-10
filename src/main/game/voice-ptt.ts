@@ -1,4 +1,5 @@
-import { readFile, readdir, readlink, unlink, writeFile } from 'node:fs/promises'
+import { watch, type FSWatcher } from 'node:fs'
+import { open, readFile, readdir, readlink, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
@@ -6,6 +7,10 @@ const VOICE_WRAPPER_COMMAND = '+16competitive_voicerecord'
 const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
 const VOICE_BACKUP_FILE = '16competitive_voice_restore.json'
 const DEFAULT_VOICE_SCALE = '1'
+const PTT_DOWN_MARKER = '__16COMPETITIVE_PTT_DOWN__'
+const PTT_UP_MARKER = '__16COMPETITIVE_PTT_UP__'
+const QCONSOLE_POLL_MS = 100
+const MAX_LOG_READ_BYTES = 64 * 1024
 const LINUX_RESTORE_WAIT_TIMEOUT_MS = 5_000
 const LINUX_RESTORE_POLL_MS = 50
 
@@ -50,6 +55,7 @@ export interface VoicePttSession {
   enabled: boolean
   keys: string[]
   configCommands: string[]
+  launchArguments: string[]
   restoreBindings(): Promise<void>
 }
 
@@ -229,7 +235,10 @@ export const writeVoicePttKey = async (
   return key
 }
 
-export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSession> => {
+export const prepareVoicePtt = async (
+  gameDirectory: string,
+  onPtt: (active: boolean) => void = () => undefined
+): Promise<VoicePttSession> => {
   await restorePendingVoiceSettings(gameDirectory)
 
   const cstrikeDirectory = join(gameDirectory, 'cstrike')
@@ -257,7 +266,96 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
     mode: 0o600
   })
 
+  const logPath = join(gameDirectory, 'qconsole.log')
+  let logOffset = (await stat(logPath).catch(() => null))?.size ?? 0
+  let partialLine = ''
+  let stopped = false
+  let watcher: FSWatcher | null = null
+  let lastPttState = false
+  let readQueue = Promise.resolve()
+
+  const publishPtt = (active: boolean): void => {
+    if (active === lastPttState) return
+    lastPttState = active
+    onPtt(active)
+  }
+
+  const consumeText = (text: string): void => {
+    const combined = partialLine + text
+    const lines = combined.split(/\r?\n/)
+    partialLine = lines.pop() ?? ''
+    for (const line of lines) {
+      if (line.includes(PTT_DOWN_MARKER)) publishPtt(true)
+      if (line.includes(PTT_UP_MARKER)) publishPtt(false)
+    }
+    if (partialLine.includes(PTT_DOWN_MARKER)) {
+      publishPtt(true)
+      partialLine = ''
+    } else if (partialLine.includes(PTT_UP_MARKER)) {
+      publishPtt(false)
+      partialLine = ''
+    }
+  }
+
+  const readNewLogData = async (): Promise<void> => {
+    if (stopped) return
+    const metadata = await stat(logPath).catch(() => null)
+    if (!metadata?.isFile()) return
+    if (metadata.size < logOffset) {
+      logOffset = 0
+      partialLine = ''
+    }
+    if (metadata.size === logOffset) return
+
+    const handle = await open(logPath, 'r')
+    try {
+      while (!stopped && logOffset < metadata.size) {
+        const bytesToRead = Math.min(MAX_LOG_READ_BYTES, metadata.size - logOffset)
+        const buffer = Buffer.allocUnsafe(bytesToRead)
+        const { bytesRead } = await handle.read(buffer, 0, bytesToRead, logOffset)
+        if (bytesRead <= 0) break
+        logOffset += bytesRead
+        consumeText(buffer.subarray(0, bytesRead).toString('utf8'))
+      }
+    } finally {
+      await handle.close()
+    }
+  }
+
+  const queueRead = (): void => {
+    readQueue = readQueue.then(readNewLogData).catch((error: unknown) => {
+      console.warn('[VoicePTT] could not read GoldSrc console markers', error)
+    })
+  }
+
+  if (keys.length > 0) {
+    try {
+      watcher = watch(gameDirectory, (_eventType, filename) => {
+        if (!filename || filename.toString().toLowerCase() === 'qconsole.log') queueRead()
+      })
+      watcher.on('error', (error) => {
+        console.warn('[VoicePTT] GoldSrc console watcher error', error)
+      })
+    } catch (error) {
+      console.warn('[VoicePTT] GoldSrc console watcher unavailable; using polling fallback', error)
+    }
+  }
+
+  const pollTimer = setInterval(queueRead, QCONSOLE_POLL_MS)
+  pollTimer.unref?.()
+
+  const stopMonitoring = (): void => {
+    if (stopped) return
+    stopped = true
+    clearInterval(pollTimer)
+    watcher?.close()
+    watcher = null
+    if (lastPttState) onPtt(false)
+    lastPttState = false
+  }
+
   const restoreBindings = async (): Promise<void> => {
+    stopMonitoring()
     await waitForLinuxGoldSrcExit(gameDirectory)
     const backup = (await readRestoreBackup(gameDirectory)) ?? { voiceScale: originalVoiceScale }
     const current = await readFile(configPath, 'utf8').catch(() => '')
@@ -276,8 +374,8 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
     configCommands: [
       ...(keys.length > 0
         ? [
-            `alias "${VOICE_WRAPPER_COMMAND}" "+voicerecord; cmd 16competitive_ptt 1"`,
-            `alias "${VOICE_WRAPPER_RELEASE_COMMAND}" "-voicerecord; cmd 16competitive_ptt 0"`,
+            `alias "${VOICE_WRAPPER_COMMAND}" "+voicerecord; echo ${PTT_DOWN_MARKER}; cmd 16competitive_ptt 1"`,
+            `alias "${VOICE_WRAPPER_RELEASE_COMMAND}" "-voicerecord; echo ${PTT_UP_MARKER}; cmd 16competitive_ptt 0"`,
             ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`)
           ]
         : []),
@@ -285,6 +383,9 @@ export const prepareVoicePtt = async (gameDirectory: string): Promise<VoicePttSe
       // but make their playback silent. Electron/WebRTC carries real audio.
       'voice_scale "0"'
     ],
+    // GoldSrc writes the two unique PTT markers to qconsole.log. This works
+    // without global keyboard hooks when the game owns focus, including Wayland.
+    launchArguments: keys.length > 0 ? ['-condebug'] : [],
     restoreBindings
   }
 }
