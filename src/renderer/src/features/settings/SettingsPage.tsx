@@ -15,6 +15,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { useGameSettingsStore } from './game-settings.store'
+import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'assets' | 'credentials'
@@ -423,6 +424,8 @@ export function SettingsPage(): JSX.Element {
                   </p>
                 )}
               </div>
+
+              <VoicePttKeySetting />
             </section>
 
             <section
