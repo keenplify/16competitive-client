@@ -5,7 +5,8 @@ import { Button } from '../../components/ui/Button'
 export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 
 const keyboardEventGoldSrcKey = (event: KeyboardEvent): string | null => {
-  if (event.code.startsWith('Key') && event.code.length === 4) return event.code.slice(3).toUpperCase()
+  if (event.code.startsWith('Key') && event.code.length === 4)
+    return event.code.slice(3).toUpperCase()
   if (event.code.startsWith('Digit') && event.code.length === 6) return event.code.slice(5)
   if (/^F(?:[1-9]|1[0-2])$/.test(event.code)) return event.code
 
@@ -99,11 +100,7 @@ export function VoicePttKeySetting(): JSX.Element {
           window.dispatchEvent(
             new CustomEvent(VOICE_PTT_KEY_CHANGED_EVENT, { detail: settings.voicePttKey })
           )
-          setNotice(
-            settings.cs16ExecutablePath
-              ? `Push-to-talk is now ${settings.voicePttKey} in the launcher and Counter-Strike.`
-              : `Push-to-talk is now ${settings.voicePttKey}. It will sync when Counter-Strike is configured.`
-          )
+          setNotice(`Launcher push-to-talk is now ${settings.voicePttKey}.`)
         })
         .catch((saveError: unknown) => setError(readableError(saveError)))
         .finally(() => setSaving(false))
@@ -147,8 +144,8 @@ export function VoicePttKeySetting(): JSX.Element {
             <h3 className="text-lg font-semibold">Push-to-talk</h3>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-            One key is used by party voice in the launcher and by Counter-Strike during matches.
-            The launcher writes the same key to GoldSrc <span className="font-mono">+voicerecord</span>.
+            This key controls party voice in the launcher. Counter-Strike keeps using the
+            keybindings in its own configuration.
           </p>
         </div>
 
@@ -183,8 +180,8 @@ export function VoicePttKeySetting(): JSX.Element {
         {!notice && !error && (
           <p className="text-neutral-500">
             {hasGame
-              ? 'GoldSrc config is kept synchronized. A running match keeps the key it launched with.'
-              : 'Choose your Counter-Strike executable and this key will be synchronized automatically.'}
+              ? 'The launcher never changes your GoldSrc config or keybindings.'
+              : 'Choose your Counter-Strike executable to launch matches.'}
           </p>
         )}
       </div>

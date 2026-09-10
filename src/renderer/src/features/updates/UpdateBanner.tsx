@@ -23,7 +23,17 @@ export function UpdateBanner(): JSX.Element | null {
   useEffect(() => {
     if (!isBlocking) return
 
-    const blockKeyboardInput = (event: KeyboardEvent): void => event.preventDefault()
+    console.info('[WindowDebug]', 'update keyboard blocker enabled', { state: status.state })
+    const blockKeyboardInput = (event: KeyboardEvent): void => {
+      if (event.key === 'Alt' || (event.altKey && event.key === 'Tab')) {
+        console.info('[WindowDebug]', 'update keyboard blocker intercepted shortcut', {
+          type: event.type,
+          key: event.key,
+          alt: event.altKey
+        })
+      }
+      event.preventDefault()
+    }
     window.addEventListener('keydown', blockKeyboardInput, true)
     window.addEventListener('keyup', blockKeyboardInput, true)
     dialogRef.current?.focus()
@@ -31,7 +41,7 @@ export function UpdateBanner(): JSX.Element | null {
       window.removeEventListener('keydown', blockKeyboardInput, true)
       window.removeEventListener('keyup', blockKeyboardInput, true)
     }
-  }, [isBlocking])
+  }, [isBlocking, status.state])
 
   if (
     status.state === 'idle' ||

@@ -2,7 +2,7 @@ import { app, dialog } from 'electron'
 import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
-import { normalizeVoicePttKey, readVoicePttKey, writeVoicePttKey } from './voice-ptt'
+import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
@@ -158,13 +158,6 @@ const persistResolvedSettings = async (
   })
 }
 
-const synchronizeConfiguredVoiceKey = async (
-  cs16ExecutablePath: string,
-  voicePttKey: string
-): Promise<void> => {
-  await writeVoicePttKey(gameDirectoryForExecutable(cs16ExecutablePath), voicePttKey)
-}
-
 export const getGameSettings = async (): Promise<GameSettings> => {
   const storedSettings = await readStoredSettings()
   let cs16ExecutablePath = await validateStoredPath(storedSettings)
@@ -172,15 +165,6 @@ export const getGameSettings = async (): Promise<GameSettings> => {
 
   const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
   await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
-
-  if (cs16ExecutablePath) {
-    await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey).catch((syncError: unknown) => {
-      console.warn(
-        '[GameSettings] could not synchronize Counter-Strike push-to-talk key',
-        syncError instanceof Error ? syncError.message : String(syncError)
-      )
-    })
-  }
 
   return buildSettings(cs16ExecutablePath, voicePttKey)
 }
@@ -203,7 +187,6 @@ export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSett
   const storedSettings = await readStoredSettings()
   const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
   await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
-  await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey)
   return buildSettings(cs16ExecutablePath, voicePttKey)
 }
 
@@ -212,7 +195,6 @@ export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettin
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
-  if (cs16ExecutablePath) await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey)
   return buildSettings(cs16ExecutablePath, voicePttKey)
 }
 
@@ -225,11 +207,5 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
   if (storedSettings.voicePttKey !== voicePttKey) {
     await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
   }
-  await synchronizeConfiguredVoiceKey(cs16ExecutablePath, voicePttKey).catch((syncError: unknown) => {
-    console.warn(
-      '[GameSettings] could not synchronize Counter-Strike push-to-talk key before launch',
-      syncError instanceof Error ? syncError.message : String(syncError)
-    )
-  })
   return cs16ExecutablePath
 }

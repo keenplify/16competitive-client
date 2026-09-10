@@ -1,15 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { app } from 'electron'
-import {
-  readFile,
-  readdir,
-  readlink,
-  realpath,
-  rename,
-  stat,
-  unlink,
-  writeFile
-} from 'node:fs/promises'
+import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable } from './game-settings'
 import { getSessionUsername } from '../auth'
@@ -274,28 +265,6 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
   console.info('[GameLaunch] Windows Counter-Strike processes terminated', { terminated })
 }
 
-const synchronizeUserConfigIdentity = async (
-  gameDirectory: string,
-  playerName: string,
-  joinToken: string
-): Promise<void> => {
-  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
-  const existing = await readFile(configPath, 'utf8').catch(() => '')
-  const eol = existing.includes('\r\n') ? '\r\n' : '\n'
-  const lines = existing
-    .split(/\r?\n/)
-    .filter(
-      (line) => !/^\s*name(?:\s|$)/i.test(line) && !/^\s*setinfo\s+"?_16c"?(?:\s|$)/i.test(line)
-    )
-  while (lines.length > 0 && lines.at(-1)?.trim() === '') lines.pop()
-  lines.push(`name "${playerName}"`, `setinfo "_16c" "${joinToken}"`, '')
-  await writeFile(configPath, lines.join(eol), { encoding: 'utf8' })
-  console.info('[GameLaunch] synchronized Counter-Strike identity config', {
-    playerName,
-    joinTokenPresent: true
-  })
-}
-
 const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
   console.info('[GameLaunch] match_connect received', {
     matchId: input.matchId,
@@ -362,7 +331,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  await synchronizeUserConfigIdentity(cwd, playerName, input.joinToken)
   const voicePttSession = await prepareVoicePtt(cwd, input.onVoicePtt)
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
@@ -404,7 +372,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       error
     })
     await finishVoicePttSession(input.matchId)
-    throw new Error('Could not prepare the Counter-Strike match connection. Please try reconnecting.')
+    throw new Error(
+      'Could not prepare the Counter-Strike match connection. Please try reconnecting.'
+    )
   } finally {
     await unlink(temporaryMatchConfigPath).catch(() => undefined)
   }
