@@ -2,10 +2,7 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
-const VOICE_WRAPPER_COMMAND = '+16competitive_voicerecord'
-const VOICE_WRAPPER_RELEASE_COMMAND = '-16competitive_voicerecord'
-const PTT_DOWN_MARKER = '__16COMPETITIVE_PTT_DOWN__'
-const PTT_UP_MARKER = '__16COMPETITIVE_PTT_UP__'
+const VOICE_WRAPPER_COMMAND = '+16competitive_voice'
 const RESTORE_SETTLE_MS = 250
 
 const SPECIAL_VOICE_KEYS = new Set([
@@ -70,7 +67,7 @@ const restoreWrapperBindings = (contents: string): string => {
     .split(/\r?\n/)
     .map((line) =>
       line.replace(
-        /^(\s*bind\s+"[^"\r\n]+"\s+")\+16competitive_voicerecord("\s*)$/i,
+        /^(\s*bind\s+"[^"\r\n]+"\s+")\+16competitive_voice("\s*)$/i,
         `$1${VOICE_BIND_COMMAND}$2`
       )
     )
@@ -99,8 +96,8 @@ export const readVoicePttKey = async (gameDirectory: string): Promise<string | n
 }
 
 /**
- * Match-time aliases live only in the generated match config. After GoldSrc
- * exits, its temporary wrapper bind is changed back atomically without
+ * The match config binds a private server command instead of native voice.
+ * After GoldSrc exits, its temporary bind is changed back atomically without
  * touching any unrelated config lines.
  */
 export const prepareVoicePtt = async (
@@ -118,9 +115,9 @@ export const prepareVoicePtt = async (
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
 
   if (keys.length === 0) {
-    console.warn('[VoicePTT] no +voicerecord bind found; native PTT bridge disabled')
+    console.warn('[VoicePTT] no push-to-talk key is configured; voice bridge disabled')
   } else {
-    console.info('[VoicePTT] prepared native Counter-Strike PTT bridge', { keys })
+    console.info('[VoicePTT] prepared private Counter-Strike PTT bridge', { keys })
   }
 
   return {
@@ -129,8 +126,6 @@ export const prepareVoicePtt = async (
     configCommands:
       keys.length > 0
         ? [
-            `alias "${VOICE_WRAPPER_COMMAND}" "+voicerecord; echo ${PTT_DOWN_MARKER}; cmd 16competitive_ptt 1"`,
-            `alias "${VOICE_WRAPPER_RELEASE_COMMAND}" "-voicerecord; echo ${PTT_UP_MARKER}; cmd 16competitive_ptt 0"`,
             ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`)
           ]
         : [],
