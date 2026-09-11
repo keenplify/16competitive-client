@@ -61,17 +61,104 @@ const voiceKeysFromConfig = (contents: string): string[] =>
     .map((match) => match[1])
     .filter((key) => !/["\r\n;]/.test(key))
 
-const restoreWrapperBindings = (contents: string): string => {
+interface VoiceBindingSnapshot {
+  key: string
+  command: string | null
+}
+
+const parseVoiceBind = (line: string): { key: string; command: string } | null => {
+  const match = line.match(/^\s*bind\s+"([^"\r\n]+)"\s+"([^"\r\n]*)"\s*$/i)
+  return match ? { key: match[1], command: match[2] } : null
+}
+
+const normalizeVoicePttKeys = (keys: string[]): string[] => {
+  const normalized: string[] = []
+  for (const key of keys) {
+    try {
+      const candidate = normalizeVoicePttKey(key)
+      if (!normalized.some((existing) => existing.toLowerCase() === candidate.toLowerCase())) {
+        normalized.push(candidate)
+      }
+    } catch {
+      // Ignore an existing GoldSrc key that the launcher cannot represent.
+    }
+  }
+  return normalized
+}
+
+const installVoiceBindings = (
+  contents: string,
+  keys: string[]
+): { contents: string; snapshots: VoiceBindingSnapshot[] } => {
   const eol = contents.includes('\r\n') ? '\r\n' : '\n'
-  return contents
-    .split(/\r?\n/)
-    .map((line) =>
-      line.replace(
-        /^(\s*bind\s+"[^"\r\n]+"\s+")\+16competitive_voice("\s*)$/i,
-        `$1${VOICE_BIND_COMMAND}$2`
+  const snapshots = keys.map((key) => ({ key, command: null }) satisfies VoiceBindingSnapshot)
+  const snapshotByKey = new Map(snapshots.map((snapshot) => [snapshot.key.toLowerCase(), snapshot]))
+  const lines: string[] = []
+
+  for (const line of contents.split(/\r?\n/)) {
+    const binding = parseVoiceBind(line)
+    const snapshot = binding ? snapshotByKey.get(binding.key.toLowerCase()) : undefined
+    if (!binding || !snapshot) {
+      lines.push(line)
+      continue
+    }
+
+    snapshot.command =
+      binding.command.toLowerCase() === VOICE_WRAPPER_COMMAND
+        ? VOICE_BIND_COMMAND
+        : binding.command
+  }
+
+  while (lines.at(-1)?.trim() === '') lines.pop()
+  lines.push(...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`), '')
+
+  return { contents: lines.join(eol), snapshots }
+}
+
+const restoreVoiceBindings = (
+  contents: string,
+  snapshots: VoiceBindingSnapshot[]
+): string => {
+  const eol = contents.includes('\r\n') ? '\r\n' : '\n'
+  const snapshotByKey = new Map(snapshots.map((snapshot) => [snapshot.key.toLowerCase(), snapshot]))
+  const effectiveBindings = new Map<string, string>()
+
+  for (const line of contents.split(/\r?\n/)) {
+    const binding = parseVoiceBind(line)
+    if (binding && snapshotByKey.has(binding.key.toLowerCase())) {
+      effectiveBindings.set(binding.key.toLowerCase(), binding.command)
+    }
+  }
+
+  const keysToRestore = new Set(
+    snapshots
+      .filter(
+        ({ key }) =>
+          effectiveBindings.get(key.toLowerCase())?.toLowerCase() === VOICE_WRAPPER_COMMAND
       )
-    )
-    .join(eol)
+      .map(({ key }) => key.toLowerCase())
+  )
+  if (keysToRestore.size === 0) return contents
+
+  const lines = contents.split(/\r?\n/).filter((line) => {
+    const binding = parseVoiceBind(line)
+    return !binding || !keysToRestore.has(binding.key.toLowerCase())
+  })
+  while (lines.at(-1)?.trim() === '') lines.pop()
+
+  for (const snapshot of snapshots) {
+    if (keysToRestore.has(snapshot.key.toLowerCase()) && snapshot.command !== null) {
+      lines.push(`bind "${snapshot.key}" "${snapshot.command}"`)
+    }
+  }
+  lines.push('')
+  return lines.join(eol)
+}
+
+const writeConfigAtomically = async (configPath: string, contents: string): Promise<void> => {
+  const temporary = `${configPath}.${process.pid}.16competitive.tmp`
+  await writeFile(temporary, contents, { encoding: 'utf8', mode: 0o600 })
+  await rename(temporary, configPath)
 }
 
 const delay = (milliseconds: number): Promise<void> =>
@@ -106,13 +193,18 @@ export const prepareVoicePtt = async (
   configuredKey?: string
 ): Promise<VoicePttSession> => {
   void _onPtt
-  const keys = [
-    ...new Set([
-      ...(await readVoicePttKeys(gameDirectory)),
-      ...(configuredKey ? [normalizeVoicePttKey(configuredKey)] : [])
-    ])
-  ]
+  const keys = normalizeVoicePttKeys([
+    ...(await readVoicePttKeys(gameDirectory)),
+    ...(configuredKey ? [configuredKey] : [])
+  ])
   const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const originalConfig = await readFile(configPath, 'utf8').catch(() => '')
+  const installedBindings = installVoiceBindings(originalConfig, keys)
+
+  if (keys.length > 0 && installedBindings.contents !== originalConfig) {
+    await writeConfigAtomically(configPath, installedBindings.contents)
+    console.info('[VoicePTT] installed temporary Counter-Strike voice binding', { keys })
+  }
 
   if (keys.length === 0) {
     console.warn('[VoicePTT] no push-to-talk key is configured; voice bridge disabled')
@@ -136,12 +228,10 @@ export const prepareVoicePtt = async (
       await delay(RESTORE_SETTLE_MS)
       const current = await readFile(configPath, 'utf8').catch(() => '')
       if (!current) return
-      const restored = restoreWrapperBindings(current)
+      const restored = restoreVoiceBindings(current, installedBindings.snapshots)
       if (restored === current) return
 
-      const temporary = `${configPath}.${process.pid}.16competitive.tmp`
-      await writeFile(temporary, restored, { encoding: 'utf8', mode: 0o600 })
-      await rename(temporary, configPath)
+      await writeConfigAtomically(configPath, restored)
       console.info('[VoicePTT] restored Counter-Strike voice binding after exit')
     }
   }
