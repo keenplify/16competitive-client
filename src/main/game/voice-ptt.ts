@@ -49,6 +49,11 @@ export const normalizeVoicePttKey = (value: unknown): string => {
   throw new Error('That key cannot be used for push-to-talk.')
 }
 
+// GoldSrc stores single-character keyboard binds in lowercase.  Its `bind`
+// console command does not treat `K` and `k` as interchangeable, so retain
+// the uppercase form for launcher UI while emitting the engine's key name.
+const goldSrcBindKey = (key: string): string => (/^[A-Z]$/.test(key) ? key.toLowerCase() : key)
+
 const voiceKeysFromConfig = (contents: string): string[] =>
   contents
     .split(/\r?\n/)
@@ -110,7 +115,7 @@ const installVoiceBindings = (
   }
 
   while (lines.at(-1)?.trim() === '') lines.pop()
-  lines.push(...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`), '')
+  lines.push(...keys.map((key) => `bind "${goldSrcBindKey(key)}" "${VOICE_WRAPPER_COMMAND}"`), '')
 
   return { contents: lines.join(eol), snapshots }
 }
@@ -217,9 +222,7 @@ export const prepareVoicePtt = async (
     keys,
     configCommands:
       keys.length > 0
-        ? [
-            ...keys.map((key) => `bind "${key}" "${VOICE_WRAPPER_COMMAND}"`)
-          ]
+        ? keys.map((key) => `bind "${goldSrcBindKey(key)}" "${VOICE_WRAPPER_COMMAND}"`)
         : [],
     launchArguments: [],
     restoreBindings: async () => {

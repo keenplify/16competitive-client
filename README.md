@@ -118,3 +118,5 @@ See [AGENTS.md](AGENTS.md) for the architecture, security expectations, and deve
 License details will be added as the project approaches its first public release.
 
 Test change
+
+TODO: fix voice chat. currently it is party only, should be team wide supported, then seperate channel is party only.
