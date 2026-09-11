@@ -91,7 +91,7 @@ const installVoiceBindings = (
   keys: string[]
 ): { contents: string; snapshots: VoiceBindingSnapshot[] } => {
   const eol = contents.includes('\r\n') ? '\r\n' : '\n'
-  const snapshots = keys.map((key) => ({ key, command: null }) satisfies VoiceBindingSnapshot)
+  const snapshots: VoiceBindingSnapshot[] = keys.map((key) => ({ key, command: null }))
   const snapshotByKey = new Map(snapshots.map((snapshot) => [snapshot.key.toLowerCase(), snapshot]))
   const lines: string[] = []
 
