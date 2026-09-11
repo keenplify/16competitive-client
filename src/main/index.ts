@@ -408,7 +408,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(FRIEND_CHANNELS.search, (_, query: unknown) => searchPlayers(query))
   ipcMain.handle(FRIEND_CHANNELS.request, (_, playerId: unknown) => sendFriendRequest(playerId))
   ipcMain.handle(FRIEND_CHANNELS.accept, (_, requestId: unknown) => acceptFriendRequest(requestId))
-  ipcMain.handle(FRIEND_CHANNELS.discard, (_, requestId: unknown) => discardFriendRequest(requestId))
+  ipcMain.handle(FRIEND_CHANNELS.discard, (_, requestId: unknown) =>
+    discardFriendRequest(requestId)
+  )
   ipcMain.handle(FRIEND_CHANNELS.remove, (_, playerId: unknown) => removeFriend(playerId))
   ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
   ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())

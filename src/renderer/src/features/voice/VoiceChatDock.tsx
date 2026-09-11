@@ -52,7 +52,8 @@ const sameContext = (left: VoiceContext | null, right: VoiceContext | null): boo
 const normalizeGoldSrcKey = (key: string): string => key.trim().toUpperCase()
 
 const keyboardEventGoldSrcKey = (event: KeyboardEvent): string | null => {
-  if (event.code.startsWith('Key') && event.code.length === 4) return event.code.slice(3).toUpperCase()
+  if (event.code.startsWith('Key') && event.code.length === 4)
+    return event.code.slice(3).toUpperCase()
   if (event.code.startsWith('Digit') && event.code.length === 6) return event.code.slice(5)
   if (/^F(?:[1-9]|1[0-2])$/.test(event.code)) return event.code
 
@@ -111,9 +112,7 @@ const loadPeerPreferences = (): Record<string, PeerPreference> => {
         playerId,
         {
           volume:
-            typeof preference.volume === 'number'
-              ? Math.max(0, Math.min(1, preference.volume))
-              : 1,
+            typeof preference.volume === 'number' ? Math.max(0, Math.min(1, preference.volume)) : 1,
           muted: preference.muted === true
         }
       ])
@@ -182,7 +181,8 @@ export function VoiceChatDock(): JSX.Element | null {
   const [joinedContext, setJoinedContext] = useState<VoiceContext | null>(null)
   const [peers, setPeers] = useState<VoicePeer[]>([])
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
-  const [preferences, setPreferences] = useState<Record<string, PeerPreference>>(loadPeerPreferences)
+  const [preferences, setPreferences] =
+    useState<Record<string, PeerPreference>>(loadPeerPreferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
   const [pttChannel, setPttChannel] = useState<VoiceTalkChannel | null>(null)
   const [teamVoicePttKey, setTeamVoicePttKey] = useState('K')
@@ -234,6 +234,13 @@ export function VoiceChatDock(): JSX.Element | null {
     [updateOutgoingTracks]
   )
 
+  const toggleOpenMic = (): void => {
+    const nextOpenMic = !openMicRef.current
+    openMicRef.current = nextOpenMic
+    if (nextOpenMic) setTalkChannel(null)
+    setOpenMic(nextOpenMic)
+  }
+
   useEffect(() => {
     playerIdRef.current = currentPlayerId
   }, [currentPlayerId])
@@ -269,10 +276,6 @@ export function VoiceChatDock(): JSX.Element | null {
   useEffect(() => {
     openMicRef.current = openMic
     localStorage.setItem(OPEN_MIC_KEY, String(openMic))
-    if (openMic) {
-      pttChannelRef.current = null
-      setPttChannel(null)
-    }
     updateOutgoingTracks()
   }, [openMic, updateOutgoingTracks])
 
@@ -285,7 +288,9 @@ export function VoiceChatDock(): JSX.Element | null {
         setRailMode('absent')
         return
       }
-      setRailMode(rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded')
+      setRailMode(
+        rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded'
+      )
     }
 
     detectRail()
@@ -327,7 +332,10 @@ export function VoiceChatDock(): JSX.Element | null {
       }
       if (typeof detail !== 'object' || detail === null) return
       const value = detail as Partial<VoicePttKeyChangedDetail>
-      if ((value.channel !== 'team' && value.channel !== 'party') || typeof value.key !== 'string') {
+      if (
+        (value.channel !== 'team' && value.channel !== 'party') ||
+        typeof value.key !== 'string'
+      ) {
         return
       }
       if (value.channel === 'team') setTeamVoicePttKey(normalizeGoldSrcKey(value.key))
@@ -651,8 +659,7 @@ export function VoiceChatDock(): JSX.Element | null {
           const polite = currentPlayer ? currentPlayer > peer.id : true
           const readyForOffer =
             !runtime.makingOffer &&
-            (runtime.connection.signalingState === 'stable' ||
-              runtime.isSettingRemoteAnswerPending)
+            (runtime.connection.signalingState === 'stable' || runtime.isSettingRemoteAnswerPending)
           const offerCollision = !readyForOffer
           runtime.ignoreOffer = !polite && offerCollision
           if (runtime.ignoreOffer) return
@@ -775,7 +782,11 @@ export function VoiceChatDock(): JSX.Element | null {
         aria-label={`Open ${contextLabel.toLowerCase()} controls`}
         onClick={() => setExpanded(true)}
       >
-        {enabled ? <Mic2 className="size-4" aria-hidden="true" /> : <MicOff className="size-4" aria-hidden="true" />}
+        {enabled ? (
+          <Mic2 className="size-4" aria-hidden="true" />
+        ) : (
+          <MicOff className="size-4" aria-hidden="true" />
+        )}
         {enabled && peers.length > 0 && (
           <span
             className={`absolute right-1 bottom-1 size-1.5 rounded-full ${
@@ -808,10 +819,18 @@ export function VoiceChatDock(): JSX.Element | null {
         <div className="flex min-w-0 items-center gap-3">
           <span
             className={`grid size-7 shrink-0 place-items-center rounded-full ${
-              enabled ? (pttActive ? 'bg-sky-400/20 text-sky-300' : 'bg-white/5 text-neutral-300') : 'bg-red-400/10 text-red-300'
+              enabled
+                ? pttActive
+                  ? 'bg-sky-400/20 text-sky-300'
+                  : 'bg-white/5 text-neutral-300'
+                : 'bg-red-400/10 text-red-300'
             }`}
           >
-            {enabled ? <Mic2 className="size-3.5" aria-hidden="true" /> : <MicOff className="size-3.5" aria-hidden="true" />}
+            {enabled ? (
+              <Mic2 className="size-3.5" aria-hidden="true" />
+            ) : (
+              <MicOff className="size-3.5" aria-hidden="true" />
+            )}
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{contextLabel}</p>
@@ -837,7 +856,7 @@ export function VoiceChatDock(): JSX.Element | null {
                       ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
                       : 'border-white/15 bg-white/5 text-neutral-200'
                   }`}
-                  onClick={() => setOpenMic((value) => !value)}
+                  onClick={toggleOpenMic}
                 >
                   Open mic {openMic ? 'on' : 'off'}
                 </button>
@@ -894,8 +913,8 @@ export function VoiceChatDock(): JSX.Element | null {
           )}
           {enabled && !openMic && activeContext?.kind === 'party' && (
             <p className="mt-3 text-xs text-neutral-400">
-              Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party talk
-              while the launcher is focused.
+              Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party
+              talk while the launcher is focused.
             </p>
           )}
 
@@ -912,7 +931,10 @@ export function VoiceChatDock(): JSX.Element | null {
                 const preference = preferenceFor(peer.id)
                 const state = peerStates[peer.id] ?? 'new'
                 return (
-                  <div key={peer.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <div
+                    key={peer.id}
+                    className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{peer.username}</p>

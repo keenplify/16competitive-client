@@ -91,7 +91,9 @@ export function MatchSearchPanel({
             <p className="text-[8px] font-bold tracking-[0.18em] text-emerald-300 uppercase">
               Matchmaking
             </p>
-            <p className="mt-0.5 truncate text-[10px] font-medium text-neutral-200">{statusTitle}</p>
+            <p className="mt-0.5 truncate text-[10px] font-medium text-neutral-200">
+              {statusTitle}
+            </p>
           </div>
           <span className="shrink-0 font-mono text-[9px] tabular-nums text-neutral-300">
             {queueDuration}

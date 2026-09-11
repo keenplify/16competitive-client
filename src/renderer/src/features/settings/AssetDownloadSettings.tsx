@@ -120,7 +120,9 @@ export function AssetDownloadSettings(): JSX.Element {
           </p>
         </div>
         {hasKnownTotal && progress.status === 'syncing' && (
-          <span className="shrink-0 font-mono text-sm tabular-nums text-sky-300">{percentage}%</span>
+          <span className="shrink-0 font-mono text-sm tabular-nums text-sky-300">
+            {percentage}%
+          </span>
         )}
       </div>
 

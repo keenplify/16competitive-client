@@ -526,9 +526,7 @@ function LoadoutWeaponCard({
   onSetDefaultLobbyWeapon: (weaponKey: string) => void
   onSelect: () => void
 }): JSX.Element {
-  const lobbyButtonLabel = lobbySelected
-    ? 'Shown in your lobby'
-    : 'Show this weapon in your lobby'
+  const lobbyButtonLabel = lobbySelected ? 'Shown in your lobby' : 'Show this weapon in your lobby'
   return (
     <div
       className={twMerge(

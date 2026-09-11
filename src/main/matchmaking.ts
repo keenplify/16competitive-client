@@ -542,7 +542,11 @@ class MatchmakingConnection {
   }
 
   sendVoiceSignal(targetPlayerId: unknown, signalType: unknown, signal: unknown): void {
-    if (typeof targetPlayerId !== 'string' || targetPlayerId.length < 1 || targetPlayerId.length > 80) {
+    if (
+      typeof targetPlayerId !== 'string' ||
+      targetPlayerId.length < 1 ||
+      targetPlayerId.length > 80
+    ) {
       throw new Error('Invalid voice peer')
     }
     if (!isVoiceSignalType(signalType)) throw new Error('Invalid voice signal type')

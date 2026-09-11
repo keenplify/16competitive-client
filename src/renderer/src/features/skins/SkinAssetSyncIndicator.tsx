@@ -31,7 +31,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         setRailMode('absent')
         return
       }
-      setRailMode(rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded')
+      setRailMode(
+        rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded'
+      )
     }
 
     detectRail()
