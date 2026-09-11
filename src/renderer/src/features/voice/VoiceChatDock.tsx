@@ -1,5 +1,5 @@
 import { Mic2, MicOff } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import type {
   MatchmakingEvent,
   VoiceContext,
@@ -14,6 +14,7 @@ interface PeerRuntime {
   peer: VoicePeer
   connection: RTCPeerConnection
   audio: HTMLAudioElement
+  senderTrack: MediaStreamTrack
   pendingIce: RTCIceCandidateInit[]
   makingOffer: boolean
   ignoreOffer: boolean
@@ -26,9 +27,17 @@ interface PeerPreference {
   muted: boolean
 }
 
+type VoiceTalkChannel = 'team' | 'party'
+
 interface NativePttSignal {
   type: 'ptt'
   active: boolean
+  channel?: VoiceTalkChannel
+}
+
+interface VoicePttKeyChangedDetail {
+  channel: VoiceTalkChannel
+  key: string
 }
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
@@ -136,6 +145,22 @@ const microphoneErrorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : 'Could not access the microphone.'
 }
 
+const shouldTransmitToPeer = (
+  context: VoiceContext | null,
+  peerId: string,
+  enabled: boolean,
+  openMic: boolean,
+  pttChannel: VoiceTalkChannel | null,
+  partyMemberIds: Set<string>
+): boolean => {
+  if (!enabled || !context) return false
+  if (openMic) return true
+  if (!pttChannel) return false
+  if (context.kind === 'party') return pttChannel === 'party'
+  if (pttChannel === 'team') return true
+  return partyMemberIds.has(peerId)
+}
+
 export function VoiceChatDock(): JSX.Element | null {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id ?? null)
   const party = usePartyStore((state) => state.party)
@@ -159,8 +184,9 @@ export function VoiceChatDock(): JSX.Element | null {
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
   const [preferences, setPreferences] = useState<Record<string, PeerPreference>>(loadPeerPreferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
-  const [pttActive, setPttActive] = useState(false)
-  const [voicePttKey, setVoicePttKey] = useState('K')
+  const [pttChannel, setPttChannel] = useState<VoiceTalkChannel | null>(null)
+  const [teamVoicePttKey, setTeamVoicePttKey] = useState('K')
+  const [partyVoicePttKey, setPartyVoicePttKey] = useState('V')
   const [micError, setMicError] = useState<string | null>(null)
   const [micReady, setMicReady] = useState(false)
   const [railMode, setRailMode] = useState<RailMode>('absent')
@@ -170,9 +196,12 @@ export function VoiceChatDock(): JSX.Element | null {
   const microphoneGenerationRef = useRef(0)
   const runtimesRef = useRef(new Map<string, PeerRuntime>())
   const contextRef = useRef<VoiceContext | null>(null)
+  const desiredContextRef = useRef<VoiceContext | null>(desiredContext)
   const playerIdRef = useRef<string | null>(currentPlayerId)
+  const enabledRef = useRef(enabled)
   const openMicRef = useRef(openMic)
-  const pttActiveRef = useRef(pttActive)
+  const pttChannelRef = useRef<VoiceTalkChannel | null>(pttChannel)
+  const partyMemberIdsRef = useRef<Set<string>>(new Set())
   const peersRef = useRef(peers)
   const preferencesRef = useRef(preferences)
   const iceConfigurationRef = useRef<RTCConfiguration>({
@@ -180,10 +209,44 @@ export function VoiceChatDock(): JSX.Element | null {
     iceTransportPolicy: 'relay'
   })
   const activeContext = joinedContext ?? desiredContext
+  const pttActive = pttChannel !== null
+
+  const updateOutgoingTracks = useCallback((): void => {
+    const context = contextRef.current ?? desiredContextRef.current
+    for (const runtime of runtimesRef.current.values()) {
+      runtime.senderTrack.enabled = shouldTransmitToPeer(
+        context,
+        runtime.peer.id,
+        enabledRef.current,
+        openMicRef.current,
+        pttChannelRef.current,
+        partyMemberIdsRef.current
+      )
+    }
+  }, [])
+
+  const setTalkChannel = useCallback(
+    (channel: VoiceTalkChannel | null): void => {
+      pttChannelRef.current = channel
+      setPttChannel(channel)
+      updateOutgoingTracks()
+    },
+    [updateOutgoingTracks]
+  )
 
   useEffect(() => {
     playerIdRef.current = currentPlayerId
   }, [currentPlayerId])
+
+  useEffect(() => {
+    desiredContextRef.current = desiredContext
+    updateOutgoingTracks()
+  }, [desiredContext, updateOutgoingTracks])
+
+  useEffect(() => {
+    enabledRef.current = enabled
+    updateOutgoingTracks()
+  }, [enabled, updateOutgoingTracks])
 
   useEffect(() => {
     peersRef.current = peers
@@ -195,20 +258,23 @@ export function VoiceChatDock(): JSX.Element | null {
 
   useEffect(() => {
     contextRef.current = joinedContext
-  }, [joinedContext])
+    updateOutgoingTracks()
+  }, [joinedContext, updateOutgoingTracks])
+
+  useEffect(() => {
+    partyMemberIdsRef.current = new Set(party?.members.map(({ id }) => id) ?? [])
+    updateOutgoingTracks()
+  }, [party, updateOutgoingTracks])
 
   useEffect(() => {
     openMicRef.current = openMic
     localStorage.setItem(OPEN_MIC_KEY, String(openMic))
-    const track = streamRef.current?.getAudioTracks()[0]
-    if (track) track.enabled = openMic || pttActiveRef.current
-  }, [openMic])
-
-  useEffect(() => {
-    pttActiveRef.current = pttActive
-    const track = streamRef.current?.getAudioTracks()[0]
-    if (track) track.enabled = openMicRef.current || pttActive
-  }, [pttActive])
+    if (openMic) {
+      pttChannelRef.current = null
+      setPttChannel(null)
+    }
+    updateOutgoingTracks()
+  }, [openMic, updateOutgoingTracks])
 
   useEffect(() => {
     const detectRail = (): void => {
@@ -233,27 +299,40 @@ export function VoiceChatDock(): JSX.Element | null {
     return () => observer.disconnect()
   }, [])
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Player identity changes require resetting the persisted PTT key before the async settings read. */
+  /* eslint-disable react-hooks/set-state-in-effect -- Player identity changes require resetting persisted PTT keys before the async settings read. */
   useEffect(() => {
     let cancelled = false
     if (!currentPlayerId) {
-      setVoicePttKey('K')
+      setTeamVoicePttKey('K')
+      setPartyVoicePttKey('V')
+      setTalkChannel(null)
       return
     }
 
     void window.api.gameSettings
       .get()
       .then((settings) => {
-        if (!cancelled) setVoicePttKey(normalizeGoldSrcKey(settings.voicePttKey))
+        if (cancelled) return
+        setTeamVoicePttKey(normalizeGoldSrcKey(settings.voicePttKeys[0] ?? settings.voicePttKey))
+        setPartyVoicePttKey(normalizeGoldSrcKey(settings.voicePttKeys[1] ?? 'V'))
       })
       .catch(() => undefined)
 
     const keyChanged = (event: Event): void => {
-      const key = (event as CustomEvent<unknown>).detail
-      if (typeof key === 'string' && key.trim()) {
-        setVoicePttKey(normalizeGoldSrcKey(key))
-        setPttActive(false)
+      const detail = (event as CustomEvent<unknown>).detail
+      if (typeof detail === 'string' && detail.trim()) {
+        setTeamVoicePttKey(normalizeGoldSrcKey(detail))
+        setTalkChannel(null)
+        return
       }
+      if (typeof detail !== 'object' || detail === null) return
+      const value = detail as Partial<VoicePttKeyChangedDetail>
+      if ((value.channel !== 'team' && value.channel !== 'party') || typeof value.key !== 'string') {
+        return
+      }
+      if (value.channel === 'team') setTeamVoicePttKey(normalizeGoldSrcKey(value.key))
+      else setPartyVoicePttKey(normalizeGoldSrcKey(value.key))
+      setTalkChannel(null)
     }
     window.addEventListener(VOICE_PTT_KEY_CHANGED_EVENT, keyChanged)
 
@@ -261,31 +340,43 @@ export function VoiceChatDock(): JSX.Element | null {
       cancelled = true
       window.removeEventListener(VOICE_PTT_KEY_CHANGED_EVENT, keyChanged)
     }
-  }, [currentPlayerId])
+  }, [currentPlayerId, setTalkChannel])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (!enabled || openMic || activeContext?.kind !== 'party' || !voicePttKey) return
+    if (!enabled || openMic || !activeContext) return
 
-    const configuredKey = normalizeGoldSrcKey(voicePttKey)
+    const teamKey = normalizeGoldSrcKey(teamVoicePttKey)
+    const partyKey = normalizeGoldSrcKey(partyVoicePttKey)
+    const canTeamTalk = activeContext.kind === 'match'
+    const canPartyTalk = Boolean(party)
+
+    const channelForKey = (key: string | null): VoiceTalkChannel | null => {
+      if (!key) return null
+      const normalized = normalizeGoldSrcKey(key)
+      if (canTeamTalk && normalized === teamKey) return 'team'
+      if (canPartyTalk && normalized === partyKey) return 'party'
+      return null
+    }
+
     const keyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return
-      const key = keyboardEventGoldSrcKey(event)
-      if (key && normalizeGoldSrcKey(key) === configuredKey) setPttActive(true)
+      const channel = channelForKey(keyboardEventGoldSrcKey(event))
+      if (channel) setTalkChannel(channel)
     }
     const keyUp = (event: KeyboardEvent): void => {
-      const key = keyboardEventGoldSrcKey(event)
-      if (key && normalizeGoldSrcKey(key) === configuredKey) setPttActive(false)
+      const channel = channelForKey(keyboardEventGoldSrcKey(event))
+      if (channel && pttChannelRef.current === channel) setTalkChannel(null)
     }
     const mouseDown = (event: MouseEvent): void => {
-      const key = mouseEventGoldSrcKey(event)
-      if (key && key === configuredKey) setPttActive(true)
+      const channel = channelForKey(mouseEventGoldSrcKey(event))
+      if (channel) setTalkChannel(channel)
     }
     const mouseUp = (event: MouseEvent): void => {
-      const key = mouseEventGoldSrcKey(event)
-      if (key && key === configuredKey) setPttActive(false)
+      const channel = channelForKey(mouseEventGoldSrcKey(event))
+      if (channel && pttChannelRef.current === channel) setTalkChannel(null)
     }
-    const reset = (): void => setPttActive(false)
+    const reset = (): void => setTalkChannel(null)
 
     window.addEventListener('keydown', keyDown)
     window.addEventListener('keyup', keyUp)
@@ -301,7 +392,7 @@ export function VoiceChatDock(): JSX.Element | null {
       window.removeEventListener('blur', reset)
       reset()
     }
-  }, [activeContext?.kind, enabled, openMic, voicePttKey])
+  }, [activeContext, enabled, openMic, party, partyVoicePttKey, setTalkChannel, teamVoicePttKey])
 
   const preferenceFor = (playerId: string): PeerPreference =>
     preferences[playerId] ?? { volume: 1, muted: false }
@@ -328,6 +419,7 @@ export function VoiceChatDock(): JSX.Element | null {
     const runtime = runtimesRef.current.get(playerId)
     if (!runtime) return
     if (runtime.connectionTimeout !== undefined) window.clearTimeout(runtime.connectionTimeout)
+    runtime.senderTrack.stop()
     runtime.connection.close()
     runtime.audio.pause()
     runtime.audio.srcObject = null
@@ -374,7 +466,7 @@ export function VoiceChatDock(): JSX.Element | null {
           throw new Error('Voice microphone request was cancelled.')
         }
         const track = stream.getAudioTracks()[0]
-        if (track) track.enabled = openMicRef.current || pttActiveRef.current
+        if (track) track.enabled = true
         streamRef.current = stream
         setMicReady(true)
         setMicError(null)
@@ -412,6 +504,18 @@ export function VoiceChatDock(): JSX.Element | null {
     const existingAfterMicrophone = runtimesRef.current.get(peer.id)
     if (existingAfterMicrophone) return existingAfterMicrophone
 
+    const sourceTrack = stream.getAudioTracks()[0]
+    if (!sourceTrack) throw new Error('No microphone audio track is available.')
+    const senderTrack = sourceTrack.clone()
+    senderTrack.enabled = shouldTransmitToPeer(
+      contextRef.current ?? desiredContextRef.current,
+      peer.id,
+      enabledRef.current,
+      openMicRef.current,
+      pttChannelRef.current,
+      partyMemberIdsRef.current
+    )
+    const outboundStream = new MediaStream([senderTrack])
     const connection = new RTCPeerConnection(iceConfigurationRef.current)
     const audio = document.createElement('audio')
     audio.autoplay = true
@@ -421,6 +525,7 @@ export function VoiceChatDock(): JSX.Element | null {
       peer,
       connection,
       audio,
+      senderTrack,
       pendingIce: [],
       makingOffer: false,
       ignoreOffer: false,
@@ -433,7 +538,7 @@ export function VoiceChatDock(): JSX.Element | null {
     }, 15_000)
     applyPreference(runtime, runtimePreferenceFor(peer.id))
 
-    for (const track of stream.getTracks()) connection.addTrack(track, stream)
+    connection.addTrack(senderTrack, outboundStream)
 
     connection.addEventListener('icecandidate', (event) => {
       if (!event.candidate) return
@@ -522,7 +627,12 @@ export function VoiceChatDock(): JSX.Element | null {
       if (event.fromPlayerId === NATIVE_PTT_SIGNAL_PLAYER_ID) {
         const nativePtt = parseSignal<NativePttSignal>(event.signal)
         if (nativePtt?.type === 'ptt' && typeof nativePtt.active === 'boolean') {
-          setPttActive(nativePtt.active)
+          const channel: VoiceTalkChannel = nativePtt.channel === 'party' ? 'party' : 'team'
+          if (nativePtt.active) {
+            if (channel === 'team' || partyMemberIdsRef.current.size > 0) setTalkChannel(channel)
+          } else if (pttChannelRef.current === channel) {
+            setTalkChannel(null)
+          }
         }
         return
       }
@@ -582,13 +692,13 @@ export function VoiceChatDock(): JSX.Element | null {
     })
 
     return removeListener
-  }, [desiredContext, enabled])
+  }, [desiredContext, enabled, setTalkChannel])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Voice context transitions synchronously tear down stale media and UI state. */
   useEffect(() => {
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
       if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
-      setPttActive(false)
+      setTalkChannel(null)
       closeAllPeers()
       stopMicrophone()
       setJoinedContext(null)
@@ -596,7 +706,7 @@ export function VoiceChatDock(): JSX.Element | null {
     }
 
     if (!sameContext(joinedContext, desiredContext)) {
-      setPttActive(false)
+      setTalkChannel(null)
       closeAllPeers()
       stopMicrophone()
       setJoinedContext(null)
@@ -606,12 +716,13 @@ export function VoiceChatDock(): JSX.Element | null {
           setMicError(error instanceof Error ? error.message : 'Could not join voice chat.')
         )
     }
-  }, [connectionStatus, desiredContext, enabled, joinedContext])
+  }, [connectionStatus, desiredContext, enabled, joinedContext, setTalkChannel])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(
     () => () => {
       for (const runtime of runtimesRef.current.values()) {
+        runtime.senderTrack.stop()
         runtime.connection.close()
         runtime.audio.remove()
       }
@@ -629,11 +740,15 @@ export function VoiceChatDock(): JSX.Element | null {
 
   const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
   const connectedPeers = peers.filter(({ id }) => peerStates[id] === 'connected').length
-  const configuredPttAvailable = Boolean(voicePttKey)
+  const configuredPttAvailable = Boolean(
+    activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey
+  )
+  const talkingLabel = pttChannel ? `Talking to: ${pttChannel === 'team' ? 'Team' : 'Party'}` : null
+  const testChannel: VoiceTalkChannel = activeContext?.kind === 'match' ? 'team' : 'party'
 
   const disconnect = (): void => {
     setEnabled(false)
-    setPttActive(false)
+    setTalkChannel(null)
     void window.api.matchmaking.voiceLeave().catch(() => undefined)
     closeAllPeers()
     stopMicrophone()
@@ -702,7 +817,7 @@ export function VoiceChatDock(): JSX.Element | null {
             <p className="truncate text-sm font-semibold">{contextLabel}</p>
             <p className="truncate text-xs text-neutral-400">
               {enabled
-                ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : pttActive ? ' · Talking' : ''}`
+                ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : talkingLabel ? ` · ${talkingLabel}` : ''}`
                 : 'Disconnected'}
             </p>
           </div>
@@ -734,10 +849,10 @@ export function VoiceChatDock(): JSX.Element | null {
                         ? 'border-sky-400/60 bg-sky-400/20 text-sky-100'
                         : 'border-white/15 bg-white/5 text-neutral-200'
                     }`}
-                    onPointerDown={() => setPttActive(true)}
-                    onPointerUp={() => setPttActive(false)}
-                    onPointerCancel={() => setPttActive(false)}
-                    onPointerLeave={() => setPttActive(false)}
+                    onPointerDown={() => setTalkChannel(testChannel)}
+                    onPointerUp={() => setTalkChannel(null)}
+                    onPointerCancel={() => setTalkChannel(null)}
+                    onPointerLeave={() => setTalkChannel(null)}
                   >
                     {configuredPttAvailable ? 'PTT test' : 'Hold to talk'}
                   </button>
@@ -761,21 +876,37 @@ export function VoiceChatDock(): JSX.Element | null {
             )}
           </div>
 
+          {talkingLabel && !openMic && (
+            <p className="mt-3 text-xs font-semibold text-sky-300">{talkingLabel}</p>
+          )}
+
           {enabled && !openMic && activeContext?.kind === 'match' && (
             <p className="mt-3 text-xs text-neutral-400">
-              Hold <span className="font-mono text-neutral-200">{voicePttKey}</span> in Counter-Strike to talk.
+              Hold <span className="font-mono text-neutral-200">{teamVoicePttKey}</span> for Team
+              {party ? (
+                <>
+                  {' · '}Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span>{' '}
+                  for Party
+                </>
+              ) : null}{' '}
+              in Counter-Strike.
             </p>
           )}
           {enabled && !openMic && activeContext?.kind === 'party' && (
             <p className="mt-3 text-xs text-neutral-400">
-              Hold <span className="font-mono text-neutral-200">{voicePttKey}</span> to talk while the launcher is focused.
+              Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party talk
+              while the launcher is focused.
             </p>
           )}
 
           {enabled && (
             <div className="mt-4 space-y-3">
               {peers.length === 0 && (
-                <p className="text-xs text-neutral-500">Waiting for another player in voice chat.</p>
+                <p className="text-xs text-neutral-500">
+                  {activeContext?.kind === 'match'
+                    ? 'No other human teammates in voice. Team PTT still shows the in-game chatter indicator.'
+                    : 'Waiting for another player in voice chat.'}
+                </p>
               )}
               {peers.map((peer) => {
                 const preference = preferenceFor(peer.id)
