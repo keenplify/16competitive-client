@@ -36,9 +36,9 @@ const nodeLatency = (node: MatchmakingNodeWithLatency): number | null =>
 
 const latencyDotClass = (latencyMs: number | null, available: boolean): string => {
   if (!available || latencyMs === null) return 'bg-neutral-600'
-  if (latencyMs <= 60) return 'bg-emerald-400'
-  if (latencyMs <= 100) return 'bg-yellow-400'
-  if (latencyMs <= 160) return 'bg-orange-400'
+  if (latencyMs <= 100) return 'bg-emerald-400'
+  if (latencyMs <= 200) return 'bg-yellow-400'
+  if (latencyMs < 300) return 'bg-orange-400'
   return 'bg-red-500'
 }
 
