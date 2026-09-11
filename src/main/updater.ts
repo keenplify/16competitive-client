@@ -88,7 +88,7 @@ function initializeUpdater(): void {
       version:
         status.state === 'available' || status.state === 'downloading'
           ? status.version
-          : requiredUpdateVersion ?? '',
+          : (requiredUpdateVersion ?? ''),
       percent: Math.round(progress.percent)
     })
   })

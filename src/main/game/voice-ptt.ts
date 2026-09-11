@@ -158,10 +158,7 @@ const installVoiceBindings = (
   return { contents: lines.join(eol), snapshots }
 }
 
-const restoreVoiceBindings = (
-  contents: string,
-  snapshots: VoiceBindingSnapshot[]
-): string => {
+const restoreVoiceBindings = (contents: string, snapshots: VoiceBindingSnapshot[]): string => {
   const eol = contents.includes('\r\n') ? '\r\n' : '\n'
   const snapshotByKey = new Map(snapshots.map((snapshot) => [snapshot.key.toLowerCase(), snapshot]))
   const effectiveBindings = new Map<string, string>()
@@ -234,9 +231,7 @@ export const prepareVoicePtt = async (
   const { teamKey, partyKey } = parseConfiguredVoiceKeys(configuredKeys)
   const partyKeyLower = partyKey.toLowerCase()
   const teamKeys = normalizeVoicePttKeys([
-    ...(await readVoicePttKeys(gameDirectory)).filter(
-      (key) => key.toLowerCase() !== partyKeyLower
-    ),
+    ...(await readVoicePttKeys(gameDirectory)).filter((key) => key.toLowerCase() !== partyKeyLower),
     teamKey
   ])
   const bindings: VoiceBinding[] = [

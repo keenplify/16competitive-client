@@ -90,7 +90,8 @@ export const searchPlayers = async (query: unknown): Promise<FriendSearchResult[
 }
 
 const validId = (value: unknown): string => {
-  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) throw new Error('A valid player ID is required')
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value))
+    throw new Error('A valid player ID is required')
   return value
 }
 

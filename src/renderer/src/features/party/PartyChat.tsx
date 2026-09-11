@@ -84,49 +84,74 @@ export function PartyChat(): JSX.Element {
 
   return (
     <>
-    <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
-      <div className="flex border-b border-white/15 bg-black/50" role="tablist" aria-label="Chat">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={chatTab === tab.id}
-            className={twMerge(
-              'h-9 flex-1 border-b-2 border-transparent px-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
-              chatTab === tab.id && 'border-sky-400 text-white'
-            )}
-            onClick={() => setChatTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
+        <div className="flex border-b border-white/15 bg-black/50" role="tablist" aria-label="Chat">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={chatTab === tab.id}
+              className={twMerge(
+                'h-9 flex-1 border-b-2 border-transparent px-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
+                chatTab === tab.id && 'border-sky-400 text-white'
+              )}
+              onClick={() => setChatTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      <div
-        ref={feedRef}
-        className="flex-1 space-y-1 overflow-y-auto px-3 py-2 font-sans text-xs leading-relaxed"
-        role="log"
-        aria-live="polite"
-        aria-label={chatTab === 'party' ? 'Party messages' : 'Global messages'}
-      >
-        {chatTab === 'party' ? (
-          <>
-            {partyEntries.length === 0 && (
-              <p className="text-neutral-500">
-                {party
-                  ? 'Party messages and status updates appear here.'
-                  : 'Join or create a party to use party chat.'}
-              </p>
-            )}
-            {partyEntries.map((entry) =>
-              entry.type === 'party_chat_notification' ? (
-                <p key={entry.id} className="text-emerald-300" title={entry.sentAt}>
-                  {entry.message}
+        <div
+          ref={feedRef}
+          className="flex-1 space-y-1 overflow-y-auto px-3 py-2 font-sans text-xs leading-relaxed"
+          role="log"
+          aria-live="polite"
+          aria-label={chatTab === 'party' ? 'Party messages' : 'Global messages'}
+        >
+          {chatTab === 'party' ? (
+            <>
+              {partyEntries.length === 0 && (
+                <p className="text-neutral-500">
+                  {party
+                    ? 'Party messages and status updates appear here.'
+                    : 'Join or create a party to use party chat.'}
                 </p>
-              ) : (
+              )}
+              {partyEntries.map((entry) =>
+                entry.type === 'party_chat_notification' ? (
+                  <p key={entry.id} className="text-emerald-300" title={entry.sentAt}>
+                    {entry.message}
+                  </p>
+                ) : (
+                  <p key={entry.id} className="break-words" title={entry.sentAt}>
+                    <span className="text-sky-300">[Party] </span>
+                    <span
+                      className={twMerge(
+                        entry.sender.id === playerId
+                          ? 'text-amber-300'
+                          : 'cursor-context-menu text-white transition hover:text-sky-300 hover:underline'
+                      )}
+                      title={entry.sender.id === playerId ? undefined : 'Right-click to add friend'}
+                      onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
+                    >
+                      {entry.sender.username}
+                    </span>
+                    <span className="text-neutral-400">: </span>
+                    <span className="text-neutral-100">{entry.message}</span>
+                  </p>
+                )
+              )}
+            </>
+          ) : (
+            <>
+              {globalEntries.length === 0 && (
+                <p className="text-neutral-500">Global messages appear here.</p>
+              )}
+              {globalEntries.map((entry) => (
                 <p key={entry.id} className="break-words" title={entry.sentAt}>
-                  <span className="text-sky-300">[Party] </span>
+                  <span className="text-violet-300">[Global] </span>
                   <span
                     className={twMerge(
                       entry.sender.id === playerId
@@ -141,75 +166,50 @@ export function PartyChat(): JSX.Element {
                   <span className="text-neutral-400">: </span>
                   <span className="text-neutral-100">{entry.message}</span>
                 </p>
-              )
-            )}
-          </>
-        ) : (
-          <>
-            {globalEntries.length === 0 && (
-              <p className="text-neutral-500">Global messages appear here.</p>
-            )}
-            {globalEntries.map((entry) => (
-              <p key={entry.id} className="break-words" title={entry.sentAt}>
-                <span className="text-violet-300">[Global] </span>
-                <span
-                  className={twMerge(
-                    entry.sender.id === playerId
-                      ? 'text-amber-300'
-                      : 'cursor-context-menu text-white transition hover:text-sky-300 hover:underline'
-                  )}
-                  title={entry.sender.id === playerId ? undefined : 'Right-click to add friend'}
-                  onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
-                >
-                  {entry.sender.username}
-                </span>
-                <span className="text-neutral-400">: </span>
-                <span className="text-neutral-100">{entry.message}</span>
-              </p>
-            ))}
-          </>
-        )}
-      </div>
+              ))}
+            </>
+          )}
+        </div>
 
-      {canSend ? (
-        <form className="border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
-          <div className="flex">
-            <input
-              className="h-9 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm outline-none placeholder:text-neutral-500"
-              value={draft}
-              maxLength={300}
-              placeholder={chatTab === 'party' ? 'Say to party' : 'Say to everyone'}
-              aria-label={chatTab === 'party' ? 'Party message' : 'Global message'}
-              onChange={(event) =>
-                chatTab === 'party'
-                  ? setPartyDraft(event.target.value)
-                  : setGlobalDraft(event.target.value)
-              }
-            />
+        {canSend ? (
+          <form className="border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
+            <div className="flex">
+              <input
+                className="h-9 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm outline-none placeholder:text-neutral-500"
+                value={draft}
+                maxLength={300}
+                placeholder={chatTab === 'party' ? 'Say to party' : 'Say to everyone'}
+                aria-label={chatTab === 'party' ? 'Party message' : 'Global message'}
+                onChange={(event) =>
+                  chatTab === 'party'
+                    ? setPartyDraft(event.target.value)
+                    : setGlobalDraft(event.target.value)
+                }
+              />
+              <Button
+                className="h-9 rounded-none bg-transparent px-4 text-xs tracking-wide text-neutral-300 uppercase hover:bg-white/5 hover:text-white disabled:bg-transparent"
+                variant="ghost"
+                type="submit"
+                disabled={!draft.trim() || sending}
+              >
+                Send
+              </Button>
+            </div>
+            {error && <p className="px-2 pt-1 text-xs text-red-400">{error}</p>}
+          </form>
+        ) : (
+          <div className="border-t border-white/15 bg-black/50 p-2">
             <Button
-              className="h-9 rounded-none bg-transparent px-4 text-xs tracking-wide text-neutral-300 uppercase hover:bg-white/5 hover:text-white disabled:bg-transparent"
+              className="h-9 w-full rounded-none text-xs tracking-wide uppercase"
               variant="ghost"
-              type="submit"
-              disabled={!draft.trim() || sending}
+              disabled={partyEntries.length === 0}
+              onClick={clearPartyChat}
             >
-              Send
+              {partyEntries.length > 0 ? 'Party ended · Clear messages' : 'Party chat unavailable'}
             </Button>
           </div>
-          {error && <p className="px-2 pt-1 text-xs text-red-400">{error}</p>}
-        </form>
-      ) : (
-        <div className="border-t border-white/15 bg-black/50 p-2">
-          <Button
-            className="h-9 w-full rounded-none text-xs tracking-wide uppercase"
-            variant="ghost"
-            disabled={partyEntries.length === 0}
-            onClick={clearPartyChat}
-          >
-            {partyEntries.length > 0 ? 'Party ended · Clear messages' : 'Party chat unavailable'}
-          </Button>
-        </div>
-      )}
-    </aside>
+        )}
+      </aside>
       {playerMenu && (
         <div
           className="fixed z-50 min-w-44 overflow-hidden border border-white/15 bg-neutral-800 py-1 text-white shadow-xl"

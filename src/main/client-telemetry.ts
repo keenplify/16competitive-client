@@ -21,8 +21,10 @@ const gpuDescriptions = async (): Promise<string[]> => {
         if (typeof device !== 'object' || device === null) return undefined
         const record = device as Record<string, unknown>
         const name = trimText(record.deviceString, 160)
-        const vendorId = typeof record.vendorId === 'number' ? record.vendorId.toString(16) : undefined
-        const deviceId = typeof record.deviceId === 'number' ? record.deviceId.toString(16) : undefined
+        const vendorId =
+          typeof record.vendorId === 'number' ? record.vendorId.toString(16) : undefined
+        const deviceId =
+          typeof record.deviceId === 'number' ? record.deviceId.toString(16) : undefined
         const ids = vendorId && deviceId ? `PCI ${vendorId}:${deviceId}` : undefined
         return trimText([name, ids].filter(Boolean).join(' · '), 256)
       })

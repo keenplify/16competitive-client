@@ -1,16 +1,11 @@
-import {
-  Check,
-  ChevronRight,
-  Gamepad2,
-  Mail,
-  Search,
-  UserPlus,
-  Users,
-  X
-} from 'lucide-react'
+import { Check, ChevronRight, Gamepad2, Mail, Search, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
-import type { FriendPlayer, FriendSearchResult, IncomingFriendRequest } from '../../../../shared/friends'
+import type {
+  FriendPlayer,
+  FriendSearchResult,
+  IncomingFriendRequest
+} from '../../../../shared/friends'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useFriendsStore } from '../friends/friends.store'
@@ -61,10 +56,14 @@ function FriendRow({
         />
       </div>
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-xs font-semibold ${online ? 'text-neutral-100' : 'text-neutral-500'}`}>
+        <p
+          className={`truncate text-xs font-semibold ${online ? 'text-neutral-100' : 'text-neutral-500'}`}
+        >
           {friend.username}
         </p>
-        <p className={`text-[10px] uppercase ${inGame ? 'text-violet-300' : online ? 'text-emerald-400' : 'text-neutral-600'}`}>
+        <p
+          className={`text-[10px] uppercase ${inGame ? 'text-violet-300' : online ? 'text-emerald-400' : 'text-neutral-600'}`}
+        >
           {inGame ? 'In game' : online ? 'Online' : 'Offline'} · {friend.mmr} MMR
         </p>
       </div>
@@ -161,8 +160,12 @@ function FriendRequestsModal({
       <section className="w-full max-w-sm border border-white/15 bg-neutral-900 shadow-2xl">
         <header className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-5 py-4">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">Friends</p>
-            <h2 id="friend-requests-title" className="mt-1 text-lg font-semibold text-white">Friend requests</h2>
+            <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+              Friends
+            </p>
+            <h2 id="friend-requests-title" className="mt-1 text-lg font-semibold text-white">
+              Friend requests
+            </h2>
           </div>
           <button
             type="button"
@@ -175,16 +178,23 @@ function FriendRequestsModal({
         </header>
         <div className="max-h-[60vh] overflow-y-auto p-3">
           {requests.length === 0 ? (
-            <p className="px-2 py-6 text-center text-sm text-neutral-500">No pending friend requests.</p>
+            <p className="px-2 py-6 text-center text-sm text-neutral-500">
+              No pending friend requests.
+            </p>
           ) : (
             <div className="grid gap-2">
               {requests.map((request) => (
-                <article key={request.id} className="flex items-center gap-3 border border-white/10 bg-black/20 p-3">
+                <article
+                  key={request.id}
+                  className="flex items-center gap-3 border border-white/10 bg-black/20 p-3"
+                >
                   <div className="flex size-9 shrink-0 items-center justify-center bg-neutral-800 text-[10px] font-bold">
                     {initials(request.player.username)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">{request.player.username}</p>
+                    <p className="truncate text-sm font-semibold text-white">
+                      {request.player.username}
+                    </p>
                     <p className="text-xs text-neutral-500">Wants to be friends</p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -254,12 +264,19 @@ export function LobbySocialSidebar({
   const discardFriend = useFriendsStore((state) => state.discard)
   const removeFriend = useFriendsStore((state) => state.remove)
 
-  const isSearching = queueStatus === 'joining' || queueStatus === 'queued' || queueStatus === 'leaving'
+  const isSearching =
+    queueStatus === 'joining' || queueStatus === 'queued' || queueStatus === 'leaving'
   const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
   const canInvite = isLeader && !isFull && !isSearching
   const notificationCount = partyInvitations.length + friendRequests.length
-  const matchNeedsAttention = ['match_found', 'ready_check', 'countdown', 'starting_server', 'server_ready'].includes(queueStatus)
+  const matchNeedsAttention = [
+    'match_found',
+    'ready_check',
+    'countdown',
+    'starting_server',
+    'server_ready'
+  ].includes(queueStatus)
   const groups = [
     { label: 'In game', items: friends.filter((friend) => friend.presence === 'IN_GAME') },
     { label: 'Online', items: friends.filter((friend) => friend.presence === 'ONLINE') },
@@ -276,9 +293,12 @@ export function LobbySocialSidebar({
     }
   }, [query, search])
 
-  useEffect(() => () => {
-    if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
+    },
+    []
+  )
 
   useEffect(() => {
     if (friendsNotice) toast.success(friendsNotice)
@@ -345,7 +365,9 @@ export function LobbySocialSidebar({
 
   return (
     <>
-      <div className={`fixed top-4 right-14 z-20 w-52 transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}>
+      <div
+        className={`fixed top-4 right-14 z-20 w-52 transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
+      >
         <MatchSearchPanel variant="compact" className="rounded-md" />
       </div>
       <aside
@@ -358,25 +380,41 @@ export function LobbySocialSidebar({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${collapsed ? 'translate-x-0 opacity-100 delay-100' : 'pointer-events-none translate-x-3 opacity-0'}`} aria-hidden={!collapsed}>
+        <div
+          className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${collapsed ? 'translate-x-0 opacity-100 delay-100' : 'pointer-events-none translate-x-3 opacity-0'}`}
+          aria-hidden={!collapsed}
+        >
           <div className="relative mt-5 rounded p-2">
             <Users className="size-4" aria-hidden="true" />
-            {notificationCount > 0 && <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">{notificationCount}</span>}
+            {notificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
+                {notificationCount}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className={`flex h-full min-w-72 flex-1 flex-col transition-all duration-250 ease-out ${collapsed ? 'pointer-events-none translate-x-4 opacity-0' : 'translate-x-0 opacity-100 delay-75'}`} aria-hidden={collapsed}>
+        <div
+          className={`flex h-full min-w-72 flex-1 flex-col transition-all duration-250 ease-out ${collapsed ? 'pointer-events-none translate-x-4 opacity-0' : 'translate-x-0 opacity-100 delay-75'}`}
+          aria-hidden={collapsed}
+        >
           <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-sky-300" aria-hidden="true" />
-              <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-100 uppercase">Friends · {friends.length}</h2>
+              <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-100 uppercase">
+                Friends · {friends.length}
+              </h2>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 className="relative rounded p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 disabled:cursor-default disabled:opacity-40"
-                aria-label={friendRequests.length > 0 ? `Friend requests (${friendRequests.length})` : 'No friend requests'}
+                aria-label={
+                  friendRequests.length > 0
+                    ? `Friend requests (${friendRequests.length})`
+                    : 'No friend requests'
+                }
                 title={friendRequests.length > 0 ? 'Friend requests' : 'No friend requests'}
                 disabled={friendRequests.length === 0}
                 onClick={() => setFriendRequestsOpen(true)}
@@ -388,8 +426,22 @@ export function LobbySocialSidebar({
                   </span>
                 )}
               </button>
-              {party && <Button variant="ghost" className="h-7 px-2 text-[9px] uppercase" disabled={partyStatus === 'leaving'} onClick={() => void leave()}>{isLeader ? 'Disband' : 'Leave'}</Button>}
-              <button type="button" className="rounded p-1 text-neutral-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400" aria-label="Collapse Friends panel" onClick={() => onCollapsedChange(true)}>
+              {party && (
+                <Button
+                  variant="ghost"
+                  className="h-7 px-2 text-[9px] uppercase"
+                  disabled={partyStatus === 'leaving'}
+                  onClick={() => void leave()}
+                >
+                  {isLeader ? 'Disband' : 'Leave'}
+                </Button>
+              )}
+              <button
+                type="button"
+                className="rounded p-1 text-neutral-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+                aria-label="Collapse Friends panel"
+                onClick={() => onCollapsedChange(true)}
+              >
                 <ChevronRight className="size-4" aria-hidden="true" />
               </button>
             </div>
@@ -410,21 +462,53 @@ export function LobbySocialSidebar({
             {query.trim().length >= 2 && (
               <div className="mt-2 max-h-40 overflow-y-auto border border-white/10 bg-black/30">
                 {searching && <p className="p-3 text-xs text-neutral-500">Searching…</p>}
-                {!searching && results.length === 0 && <p className="p-3 text-xs text-neutral-500">No players found.</p>}
-                {!searching && results.map((player) => <SearchResultRow key={player.id} player={player} busy={actingPlayerId === player.id} onAdd={() => void requestFriend(player.id)} />)}
+                {!searching && results.length === 0 && (
+                  <p className="p-3 text-xs text-neutral-500">No players found.</p>
+                )}
+                {!searching &&
+                  results.map((player) => (
+                    <SearchResultRow
+                      key={player.id}
+                      player={player}
+                      busy={actingPlayerId === player.id}
+                      onAdd={() => void requestFriend(player.id)}
+                    />
+                  ))}
               </div>
             )}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
-            {groups.map((group) => group.items.length > 0 && (
-              <section key={group.label} className="mb-2">
-                <h3 className="px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{group.label} · {group.items.length}</h3>
-                {group.items.map((friend) => <FriendRow key={friend.id} friend={friend} canInvite={canInvite} busy={actingPlayerId === friend.id || partyStatus === 'inviting'} onInvite={() => void inviteFriend(friend.username)} onContextMenu={(event) => showFriendMenu(event, friend)} />)}
-              </section>
-            ))}
+            {groups.map(
+              (group) =>
+                group.items.length > 0 && (
+                  <section key={group.label} className="mb-2">
+                    <h3 className="px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
+                      {group.label} · {group.items.length}
+                    </h3>
+                    {group.items.map((friend) => (
+                      <FriendRow
+                        key={friend.id}
+                        friend={friend}
+                        canInvite={canInvite}
+                        busy={actingPlayerId === friend.id || partyStatus === 'inviting'}
+                        onInvite={() => void inviteFriend(friend.username)}
+                        onContextMenu={(event) => showFriendMenu(event, friend)}
+                      />
+                    ))}
+                  </section>
+                )
+            )}
             {friends.length === 0 && query.trim().length < 2 && (
-              <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center"><div className="flex size-10 items-center justify-center border border-white/10 bg-white/5"><UserPlus className="size-4 text-neutral-500" /></div><p className="mt-3 text-sm font-medium text-neutral-300">Build your squad</p><p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">Find players above, add them, then invite online friends to your party.</p></div>
+              <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center">
+                <div className="flex size-10 items-center justify-center border border-white/10 bg-white/5">
+                  <UserPlus className="size-4 text-neutral-500" />
+                </div>
+                <p className="mt-3 text-sm font-medium text-neutral-300">Build your squad</p>
+                <p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">
+                  Find players above, add them, then invite online friends to your party.
+                </p>
+              </div>
             )}
           </div>
         </div>

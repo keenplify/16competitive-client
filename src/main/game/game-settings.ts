@@ -254,10 +254,7 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
   if (!cs16ExecutablePath) return null
 
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  if (
-    storedSettings.voicePttKey !== keys.team ||
-    storedSettings.partyVoicePttKey !== keys.party
-  ) {
+  if (storedSettings.voicePttKey !== keys.team || storedSettings.partyVoicePttKey !== keys.party) {
     await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
   }
   return cs16ExecutablePath
