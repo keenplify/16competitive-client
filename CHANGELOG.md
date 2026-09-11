@@ -584,3 +584,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Only servers measured at 200 ms or less are eligible.
 - Preserved safe-region settings across matchmaking reconnects.
 - Added a fallback to the connected region when latency probes fail.
+
+## v2026.911.2 — 2026-09-11
+
+### Improvements
+
+- Improved consistency across matchmaking, party, voice chat, settings, and skins screens.
+- Refined party sidebar and chat presentation for a smoother experience.
+- Polished voice chat controls and status indicators.
