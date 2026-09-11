@@ -568,3 +568,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Refined party chat interactions for a smoother experience.
 - Added clearer toast notifications for chat and social activity.
+
+## v2026.911.1 — 2026-09-11
+
+### Voice Chat
+
+- Added separate Team and Party voice channels.
+- Added separate push-to-talk controls and settings for Team and Party chat.
+- Improved automatic push-to-talk binding, including GoldSrc-compatible key bindings.
+
+### Matchmaking
+
+- Improved region selection using latency-safe regions.
+- Added latency safety bands to matchmaking server selection.
+- Only servers measured at 200 ms or less are eligible.
+- Preserved safe-region settings across matchmaking reconnects.
+- Added a fallback to the connected region when latency probes fail.
