@@ -4,6 +4,8 @@ import { Button } from '../../components/ui/Button'
 
 export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 
+type VoiceTalkChannel = 'team' | 'party'
+
 const keyboardEventGoldSrcKey = (event: KeyboardEvent): string | null => {
   if (event.code.startsWith('Key') && event.code.length === 4)
     return event.code.slice(3).toUpperCase()
@@ -60,9 +62,10 @@ const readableError = (error: unknown): string =>
 
 export function VoicePttKeySetting(): JSX.Element {
   const panelRef = useRef<HTMLDivElement>(null)
-  const [pttKey, setPttKey] = useState('K')
+  const [teamPttKey, setTeamPttKey] = useState('K')
+  const [partyPttKey, setPartyPttKey] = useState('V')
   const [hasGame, setHasGame] = useState(false)
-  const [capturing, setCapturing] = useState(false)
+  const [capturing, setCapturing] = useState<VoiceTalkChannel | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -73,7 +76,8 @@ export function VoicePttKeySetting(): JSX.Element {
       .get()
       .then((settings) => {
         if (cancelled) return
-        setPttKey(settings.voicePttKey)
+        setTeamPttKey(settings.voicePttKeys[0] ?? settings.voicePttKey)
+        setPartyPttKey(settings.voicePttKeys[1] ?? 'V')
         setHasGame(Boolean(settings.cs16ExecutablePath))
       })
       .catch((loadError: unknown) => {
@@ -88,19 +92,33 @@ export function VoicePttKeySetting(): JSX.Element {
     if (!capturing) return
 
     const saveKey = (key: string): void => {
-      setCapturing(false)
+      const channel = capturing
+      setCapturing(null)
       setSaving(true)
       setError(null)
       setNotice(null)
+      const value = channel === 'party' ? `party:${key}` : key
       void window.api.gameSettings
-        .setVoicePttKey(key)
+        .setVoicePttKey(value)
         .then((settings) => {
-          setPttKey(settings.voicePttKey)
+          const nextTeamKey = settings.voicePttKeys[0] ?? settings.voicePttKey
+          const nextPartyKey = settings.voicePttKeys[1] ?? 'V'
+          setTeamPttKey(nextTeamKey)
+          setPartyPttKey(nextPartyKey)
           setHasGame(Boolean(settings.cs16ExecutablePath))
           window.dispatchEvent(
-            new CustomEvent(VOICE_PTT_KEY_CHANGED_EVENT, { detail: settings.voicePttKey })
+            new CustomEvent(VOICE_PTT_KEY_CHANGED_EVENT, {
+              detail: {
+                channel,
+                key: channel === 'team' ? nextTeamKey : nextPartyKey
+              }
+            })
           )
-          setNotice(`Launcher push-to-talk is now ${settings.voicePttKey}.`)
+          setNotice(
+            `${channel === 'team' ? 'Team' : 'Party'} push-to-talk is now ${
+              channel === 'team' ? nextTeamKey : nextPartyKey
+            }.`
+          )
         })
         .catch((saveError: unknown) => setError(readableError(saveError)))
         .finally(() => setSaving(false))
@@ -135,42 +153,60 @@ export function VoicePttKeySetting(): JSX.Element {
     }
   }, [capturing])
 
+  const bindingRow = (channel: VoiceTalkChannel, key: string): JSX.Element => (
+    <div className="flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-white">
+          {channel === 'team' ? 'Team talk' : 'Party talk'}
+        </p>
+        <p className="mt-1 text-xs text-neutral-500">
+          {channel === 'team'
+            ? 'Talk to every human teammate in your current match.'
+            : 'Talk only to party members who are also on your current team.'}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <kbd className="grid min-w-20 place-items-center border border-white/20 bg-black/40 px-4 py-2 font-mono text-sm font-semibold text-white">
+          {key}
+        </kbd>
+        <Button
+          variant="ghost"
+          data-ptt-capture-control
+          disabled={saving}
+          onClick={() => {
+            setCapturing((value) => (value === channel ? null : channel))
+            setError(null)
+            setNotice(null)
+          }}
+        >
+          {capturing === channel ? 'Cancel' : saving ? 'Saving…' : 'Change'}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <div ref={panelRef} className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Mic2 className="size-5 text-sky-400" aria-hidden="true" />
-            <h3 className="text-lg font-semibold">Push-to-talk</h3>
-          </div>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-            This key controls party voice in the launcher and team voice during matches.
-            Counter-Strike receives it temporarily when a match launches.
-          </p>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <Mic2 className="size-5 text-sky-400" aria-hidden="true" />
+          <h3 className="text-lg font-semibold">Push-to-talk</h3>
         </div>
+        <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+          Team and Party talk use separate keys. Team defaults to K and Party defaults to V.
+          Counter-Strike receives both bindings temporarily when a match launches.
+        </p>
+      </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <kbd className="grid min-w-20 place-items-center border border-white/20 bg-black/40 px-4 py-2 font-mono text-sm font-semibold text-white">
-            {pttKey}
-          </kbd>
-          <Button
-            variant="ghost"
-            data-ptt-capture-control
-            disabled={saving}
-            onClick={() => {
-              setCapturing((value) => !value)
-              setError(null)
-              setNotice(null)
-            }}
-          >
-            {capturing ? 'Cancel' : saving ? 'Saving…' : 'Change'}
-          </Button>
-        </div>
+      <div className="mt-4">
+        {bindingRow('team', teamPttKey)}
+        {bindingRow('party', partyPttKey)}
       </div>
 
       {capturing && (
-        <div className="mt-4 border border-sky-400/25 bg-sky-400/5 p-4 text-sm text-sky-200">
-          Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel.
+        <div className="mt-2 border border-sky-400/25 bg-sky-400/5 p-4 text-sm text-sky-200">
+          Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for{' '}
+          {capturing === 'team' ? 'Team' : 'Party'} talk.
         </div>
       )}
 
@@ -180,7 +216,7 @@ export function VoicePttKeySetting(): JSX.Element {
         {!notice && !error && (
           <p className="text-neutral-500">
             {hasGame
-              ? 'Your previous Counter-Strike binding is restored after the match.'
+              ? 'Your previous Counter-Strike bindings are restored after the match.'
               : 'Choose your Counter-Strike executable to launch matches.'}
           </p>
         )}
