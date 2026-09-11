@@ -604,7 +604,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 typeof node.latencyMs === 'number' &&
                 Number.isFinite(node.latencyMs)
             )
-            .sort((left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity))[0]
+            .sort((left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity))[0] ??
+          nodes.find((node) => node.available)
         const eligibleRegions = [
           ...new Set(
             nodes
