@@ -595,11 +595,39 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       })
       try {
         const selectedNode = nodes.find((node) => node.id === selectedNodeId && node.available)
+        const preferredNode =
+          selectedNode ??
+          [...nodes]
+            .filter(
+              (node) =>
+                node.available &&
+                typeof node.latencyMs === 'number' &&
+                Number.isFinite(node.latencyMs)
+            )
+            .sort((left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity))[0] ??
+          nodes.find((node) => node.available)
+        const eligibleRegions = [
+          ...new Set(
+            nodes
+              .filter(
+                (node) =>
+                  node.available &&
+                  typeof node.latencyMs === 'number' &&
+                  Number.isFinite(node.latencyMs) &&
+                  node.latencyMs <= 200
+              )
+              .map((node) => node.region)
+          )
+        ]
+        if (preferredNode && !eligibleRegions.includes(preferredNode.region)) {
+          eligibleRegions.push(preferredNode.region)
+        }
         await window.api.matchmaking.joinQueue(
           '5v5',
           selectedMapIds,
           allowRegionExpansion,
-          selectedNode?.region ?? null
+          preferredNode?.region ?? null,
+          eligibleRegions
         )
       } catch (error) {
         set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })

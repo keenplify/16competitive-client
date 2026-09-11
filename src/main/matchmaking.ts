@@ -50,6 +50,13 @@ const isPreferredRegion = (value: unknown): value is string | null | undefined =
   value === undefined ||
   (typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value))
 
+const isEligibleRegions = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.length <= 32 &&
+  value.every((region) => isPreferredRegion(region) && typeof region === 'string') &&
+  new Set(value).size === value.length
+
 const isOptionalTimestamp = (value: unknown): value is string | undefined =>
   value === undefined || (typeof value === 'string' && Number.isFinite(Date.parse(value)))
 
@@ -393,6 +400,7 @@ class MatchmakingConnection {
   private desiredMapIds: string[] = []
   private desiredAllowRegionExpansion = true
   private desiredPreferredRegion: string | null = null
+  private desiredEligibleRegions: string[] = []
   private activeApiUrl: string | null = null
   private hostApiUrl: string | null = null
   private reconnectAttempt = 0
@@ -474,22 +482,26 @@ class MatchmakingConnection {
     mode: unknown,
     mapIds: unknown,
     allowRegionExpansion: unknown,
-    preferredRegion: unknown
+    preferredRegion: unknown,
+    eligibleRegions: unknown
   ): void {
     if (!isMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
     if (typeof allowRegionExpansion !== 'boolean')
       throw new Error('Invalid regional search preference')
     if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
+    if (!isEligibleRegions(eligibleRegions)) throw new Error('Invalid eligible matchmaking regions')
     this.desiredMode = mode
     this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
     this.desiredPreferredRegion = preferredRegion ?? null
+    this.desiredEligibleRegions = [...eligibleRegions]
     this.send({
       type: 'join_queue',
       mode,
       mapIds,
       allowRegionExpansion,
+      eligibleRegions,
       ...(preferredRegion ? { preferredRegion } : {})
     })
   }
@@ -498,6 +510,7 @@ class MatchmakingConnection {
     this.desiredMode = null
     this.desiredMapIds = []
     this.desiredPreferredRegion = null
+    this.desiredEligibleRegions = []
     this.send({ type: 'leave_queue' })
   }
 
@@ -712,6 +725,7 @@ class MatchmakingConnection {
                 mode: this.desiredMode,
                 mapIds: this.desiredMapIds,
                 allowRegionExpansion: this.desiredAllowRegionExpansion,
+                eligibleRegions: this.desiredEligibleRegions,
                 ...(this.desiredPreferredRegion
                   ? { preferredRegion: this.desiredPreferredRegion }
                   : {})
