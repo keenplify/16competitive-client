@@ -7,9 +7,12 @@ import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 interface StoredGameSettings {
   cs16ExecutablePath?: string
   voicePttKey?: string
+  partyVoicePttKey?: string
 }
 
-const DEFAULT_VOICE_PTT_KEY = 'K'
+const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
+const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
+const PARTY_VOICE_PTT_PREFIX = 'party:'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
 let settingsWriteQueue: Promise<void> = Promise.resolve()
 
@@ -81,7 +84,10 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.cs16ExecutablePath === 'string'
         ? { cs16ExecutablePath: settings.cs16ExecutablePath }
         : {}),
-      ...(typeof settings.voicePttKey === 'string' ? { voicePttKey: settings.voicePttKey } : {})
+      ...(typeof settings.voicePttKey === 'string' ? { voicePttKey: settings.voicePttKey } : {}),
+      ...(typeof settings.partyVoicePttKey === 'string'
+        ? { partyVoicePttKey: settings.partyVoicePttKey }
+        : {})
     }
   } catch {
     return {}
@@ -119,7 +125,7 @@ const gameDirectoryForExecutable = (executablePath: string): string => {
   return configuredDirectory ? resolve(configuredDirectory) : dirname(executablePath)
 }
 
-const resolveVoicePttKey = async (
+const resolveTeamVoicePttKey = async (
   storedSettings: StoredGameSettings,
   executablePath: string | null
 ): Promise<string> => {
@@ -136,26 +142,57 @@ const resolveVoicePttKey = async (
     if (currentGoldSrcKey) return currentGoldSrcKey
   }
 
-  return DEFAULT_VOICE_PTT_KEY
+  return DEFAULT_TEAM_VOICE_PTT_KEY
 }
 
-const buildSettings = (cs16ExecutablePath: string | null, voicePttKey: string): GameSettings => ({
+const resolvePartyVoicePttKey = (
+  storedSettings: StoredGameSettings,
+  teamVoicePttKey: string
+): string => {
+  if (storedSettings.partyVoicePttKey) {
+    try {
+      const savedKey = normalizeVoicePttKey(storedSettings.partyVoicePttKey)
+      if (savedKey.toLowerCase() !== teamVoicePttKey.toLowerCase()) return savedKey
+    } catch {
+      // Fall through to the launcher default.
+    }
+  }
+
+  if (DEFAULT_PARTY_VOICE_PTT_KEY !== teamVoicePttKey) return DEFAULT_PARTY_VOICE_PTT_KEY
+  return 'B'
+}
+
+const buildSettings = (
+  cs16ExecutablePath: string | null,
+  teamVoicePttKey: string,
+  partyVoicePttKey: string
+): GameSettings => ({
   cs16ExecutablePath,
   configFilePath: configPath(),
-  voicePttKey,
-  // Keep the array during the voice feature rollout so existing lobby PTT code
-  // consumes the same single launcher-owned key.
-  voicePttKeys: [voicePttKey]
+  // Keep voicePttKey as the team binding for compatibility with older renderer code.
+  voicePttKey: teamVoicePttKey,
+  // Index 0 is Team, index 1 is Party. This preserves the existing IPC contract.
+  voicePttKeys: [teamVoicePttKey, partyVoicePttKey]
 })
 
 const persistResolvedSettings = async (
   cs16ExecutablePath: string | null,
-  voicePttKey: string
+  teamVoicePttKey: string,
+  partyVoicePttKey: string
 ): Promise<void> => {
   await writeStoredSettings({
     ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
-    voicePttKey
+    voicePttKey: teamVoicePttKey,
+    partyVoicePttKey
   })
+}
+
+const resolveVoicePttKeys = async (
+  storedSettings: StoredGameSettings,
+  executablePath: string | null
+): Promise<{ team: string; party: string }> => {
+  const team = await resolveTeamVoicePttKey(storedSettings, executablePath)
+  return { team, party: resolvePartyVoicePttKey(storedSettings, team) }
 }
 
 export const getGameSettings = async (): Promise<GameSettings> => {
@@ -163,10 +200,10 @@ export const getGameSettings = async (): Promise<GameSettings> => {
   let cs16ExecutablePath = await validateStoredPath(storedSettings)
   if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
 
-  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
 
-  return buildSettings(cs16ExecutablePath, voicePttKey)
+  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
 }
 
 export const chooseCs16Executable = async (): Promise<string | null> => {
@@ -185,17 +222,30 @@ export const chooseCs16Executable = async (): Promise<string | null> => {
 export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSettings> => {
   const cs16ExecutablePath = await validateExecutable(untrustedPath, true)
   const storedSettings = await readStoredSettings()
-  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
-  return buildSettings(cs16ExecutablePath, voicePttKey)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
 }
 
 export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettings> => {
-  const voicePttKey = normalizeVoicePttKey(untrustedKey)
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
-  return buildSettings(cs16ExecutablePath, voicePttKey)
+  const current = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+
+  let teamVoicePttKey = current.team
+  let partyVoicePttKey = current.party
+  if (typeof untrustedKey === 'string' && untrustedKey.startsWith(PARTY_VOICE_PTT_PREFIX)) {
+    partyVoicePttKey = normalizeVoicePttKey(untrustedKey.slice(PARTY_VOICE_PTT_PREFIX.length))
+  } else {
+    teamVoicePttKey = normalizeVoicePttKey(untrustedKey)
+  }
+
+  if (teamVoicePttKey.toLowerCase() === partyVoicePttKey.toLowerCase()) {
+    throw new Error('Team and Party talk need different push-to-talk keys.')
+  }
+
+  await persistResolvedSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
+  return buildSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
 }
 
 export const getSavedCs16Executable = async (): Promise<string | null> => {
@@ -203,9 +253,12 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   if (!cs16ExecutablePath) return null
 
-  const voicePttKey = await resolveVoicePttKey(storedSettings, cs16ExecutablePath)
-  if (storedSettings.voicePttKey !== voicePttKey) {
-    await persistResolvedSettings(cs16ExecutablePath, voicePttKey)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  if (
+    storedSettings.voicePttKey !== keys.team ||
+    storedSettings.partyVoicePttKey !== keys.party
+  ) {
+    await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
   }
   return cs16ExecutablePath
 }
@@ -213,5 +266,6 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
 export const getSavedVoicePttKey = async (): Promise<string> => {
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  return resolveVoicePttKey(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  return `${keys.team}|${keys.party}`
 }
