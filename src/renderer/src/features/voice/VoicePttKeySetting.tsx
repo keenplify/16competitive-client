@@ -144,8 +144,8 @@ export function VoicePttKeySetting(): JSX.Element {
             <h3 className="text-lg font-semibold">Push-to-talk</h3>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-            This key controls party voice in the launcher. Counter-Strike keeps using the
-            keybindings in its own configuration.
+            This key controls party voice in the launcher and team voice during matches.
+            Counter-Strike receives it temporarily when a match launches.
           </p>
         </div>
 
@@ -180,7 +180,7 @@ export function VoicePttKeySetting(): JSX.Element {
         {!notice && !error && (
           <p className="text-neutral-500">
             {hasGame
-              ? 'The launcher never changes your GoldSrc config or keybindings.'
+              ? 'Your previous Counter-Strike binding is restored after the match.'
               : 'Choose your Counter-Strike executable to launch matches.'}
           </p>
         )}
