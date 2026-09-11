@@ -66,6 +66,7 @@ export interface MatchmakingNode {
   activeConnections: number
   activeMatches: number
   available: boolean
+  latencyMs?: number | null
 }
 
 export interface MatchmakingPreferences {
@@ -282,7 +283,8 @@ export interface MatchmakingApi {
     mode: MatchmakingMode,
     mapIds: string[],
     allowRegionExpansion: boolean,
-    preferredRegion?: string | null
+    preferredRegion?: string | null,
+    eligibleRegions?: string[]
   ): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
