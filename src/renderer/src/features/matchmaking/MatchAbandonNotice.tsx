@@ -14,6 +14,8 @@ export function MatchAbandonNotice(): null {
         return
       }
 
+      void window.api.window.focus()
+
       const options = {
         autoClose: false as const,
         closeOnClick: false,
