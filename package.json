@@ -21,7 +21,7 @@
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir --publish never",
     "build:win": "npm run build && electron-builder --win --publish never",
-    "build:mac": "npm run build && electron-builder --mac --universal --publish never",
+    "build:mac": "electron-vite build && electron-builder --mac --publish never",
     "build:linux": "electron-vite build && electron-builder --linux AppImage --publish never",
     "release:date": "node scripts/set-date-version.mjs",
     "release:notes": "node scripts/generate-changelog.mjs",
