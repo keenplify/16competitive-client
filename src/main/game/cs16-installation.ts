@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises'
-import { basename, dirname, join, normalize } from 'node:path'
+import { basename, delimiter, dirname, join, normalize } from 'node:path'
 
 export type Cs16Distribution = 'steam' | 'standalone'
 
@@ -24,6 +24,19 @@ const findSteamLibraryRoot = (executable: string): string | null => {
   return null
 }
 
+const findWinePrefix = (executable: string): string | null => {
+  let current = dirname(normalize(executable))
+
+  for (let depth = 0; depth < 16; depth++) {
+    if (basename(current).toLowerCase() === 'drive_c') return dirname(current)
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+
+  return null
+}
+
 const firstExistingFile = async (candidates: string[]): Promise<string | null> => {
   for (const candidate of candidates) {
     const metadata = await stat(candidate).catch(() => null)
@@ -32,11 +45,70 @@ const firstExistingFile = async (candidates: string[]): Promise<string | null> =
   return null
 }
 
+const resolveMacWineExecutable = async (): Promise<string> => {
+  const configured = process.env.CS16_WINE_EXECUTABLE?.trim()
+  const pathCandidates = (process.env.PATH ?? '')
+    .split(delimiter)
+    .filter(Boolean)
+    .flatMap((directory) => [join(directory, 'wine'), join(directory, 'wine64')])
+  const candidates = [
+    ...(configured ? [configured] : []),
+    '/opt/homebrew/bin/wine',
+    '/opt/homebrew/bin/wine64',
+    '/usr/local/bin/wine',
+    '/usr/local/bin/wine64',
+    '/opt/local/bin/wine',
+    '/opt/local/bin/wine64',
+    '/Applications/Wine Stable.app/Contents/Resources/wine/bin/wine',
+    '/Applications/Wine Stable.app/Contents/Resources/wine/bin/wine64',
+    '/Applications/Wine Devel.app/Contents/Resources/wine/bin/wine',
+    '/Applications/Wine Staging.app/Contents/Resources/wine/bin/wine',
+    ...pathCandidates
+  ]
+
+  const wineExecutable = await firstExistingFile(candidates)
+  if (!wineExecutable) {
+    throw new Error(
+      'Wine was not found on macOS. Install Wine or set CS16_WINE_EXECUTABLE to the Wine binary.'
+    )
+  }
+  return wineExecutable
+}
+
+const macWineLaunchTarget = async (
+  executable: string,
+  distribution: Cs16Distribution
+): Promise<Cs16LaunchTarget> => {
+  const wineExecutable = await resolveMacWineExecutable()
+  const winePrefix = findWinePrefix(executable)
+  if (!winePrefix) {
+    throw new Error('The selected hl.exe must be inside a Wine prefix containing drive_c.')
+  }
+
+  // cs16-launcher already passes process.env to spawn. Set WINEPREFIX here so
+  // the selected hl.exe always launches with the same prefix it belongs to,
+  // including custom prefixes outside ~/.wine.
+  process.env.WINEPREFIX = winePrefix
+
+  return {
+    distribution,
+    executable: wineExecutable,
+    argumentPrefix: [executable, '-game', 'cstrike', '-noforcemparms', '-noforcemaccel'],
+    textureSize: distribution === 'steam' ? '1024' : '512',
+    usesLauncherHandoff: false
+  }
+}
+
 export const classifyCs16Distribution = (executable: string): Cs16Distribution =>
   findSteamLibraryRoot(executable) ? 'steam' : 'standalone'
 
 export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16LaunchTarget> => {
   const steamLibraryRoot = findSteamLibraryRoot(executable)
+
+  if (process.platform === 'darwin') {
+    return macWineLaunchTarget(executable, steamLibraryRoot ? 'steam' : 'standalone')
+  }
+
   if (!steamLibraryRoot) {
     const standaloneLauncher =
       process.platform === 'win32'
