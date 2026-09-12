@@ -9,7 +9,6 @@ export interface Cs16LaunchTarget {
   argumentPrefix: string[]
   textureSize: '512' | '1024'
   usesLauncherHandoff: boolean
-  environment?: Record<string, string>
 }
 
 const findSteamLibraryRoot = (executable: string): string | null => {
@@ -86,13 +85,17 @@ const macWineLaunchTarget = async (
     throw new Error('The selected hl.exe must be inside a Wine prefix containing drive_c.')
   }
 
+  // cs16-launcher already passes process.env to spawn. Set WINEPREFIX here so
+  // the selected hl.exe always launches with the same prefix it belongs to,
+  // including custom prefixes outside ~/.wine.
+  process.env.WINEPREFIX = winePrefix
+
   return {
     distribution,
     executable: wineExecutable,
     argumentPrefix: [executable, '-game', 'cstrike', '-noforcemparms', '-noforcemaccel'],
     textureSize: distribution === 'steam' ? '1024' : '512',
-    usesLauncherHandoff: false,
-    environment: { WINEPREFIX: winePrefix }
+    usesLauncherHandoff: false
   }
 }
 
