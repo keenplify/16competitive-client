@@ -359,7 +359,12 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       return (
         typeof message.matchId === 'string' &&
         typeof message.reason === 'string' &&
-        ['PLAYER_DECLINED', 'PLAYER_NOT_READY', 'SERVER_START_FAILED'].includes(message.reason) &&
+        [
+          'PLAYER_DECLINED',
+          'PLAYER_NOT_READY',
+          'SERVER_START_FAILED',
+          'PLAYER_DID_NOT_CONNECT'
+        ].includes(message.reason) &&
         typeof message.message === 'string'
       )
     case 'match_finished':
@@ -834,6 +839,8 @@ class MatchmakingConnection {
         this.cancelledMatchIds.add(parsed.matchId)
         this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
+        closeCounterStrikeForMatch(parsed.matchId)
+        this.focusLauncher()
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
         this.finishedMatchIds.add(parsed.matchId)
         this.lastConnection = null
