@@ -41,7 +41,7 @@ Browse your weapon collection and equip skins for Terrorist or Counter-Terrorist
 - **Profiles and match history** — Keep your player identity and past games in one place.
 - **Weapon skins** — Browse collections and manage active loadouts.
 - **A smoother launch flow** — Select your game installation and launch into assigned servers when they are ready.
-- **Windows and Linux support** — Built for both platforms from the start. macOS support is planned for the future.
+- **Windows, Linux, and macOS launcher support** — macOS runs the Windows Counter-Strike 1.6 client through Wine.
 
 ## Match flow
 
@@ -57,9 +57,17 @@ The backend remains authoritative for matchmaking, player identity, inventory, r
 
 ## Download
 
-Visit the repository’s **[Releases](../../releases)** page for the latest Windows and Linux builds.
+Visit the repository’s **[Releases](../../releases)** page for the latest Windows, Linux, and macOS builds.
 
 > Counter-Strike 1.6 is required to play. Select and validate your local game executable from the launcher’s Settings tab before joining a match.
+
+### Game executable
+
+- **Windows:** select `hl.exe` from the Half-Life installation.
+- **Linux:** select `hl.sh` (recommended) or `hl_linux` from the Half-Life installation.
+- **macOS:** install Wine and install the Windows Counter-Strike 1.6 client inside a Wine prefix. Then select its Windows `hl.exe`, for example `~/.wine/drive_c/Program Files (x86)/Steam/steamapps/common/Half-Life/hl.exe`.
+
+The macOS launcher automatically looks for Wine in common Homebrew, MacPorts, and Wine application locations. Set `CS16_WINE_EXECUTABLE` if your Wine binary is elsewhere. The Wine prefix is derived from the selected `hl.exe`, so custom prefixes are supported as long as the executable is under a `drive_c` directory.
 
 On Linux, the AppImage includes automatic updates through Electron's AppImage updater. DEB and Snap packages do not support automatic launcher updates.
 
@@ -69,6 +77,7 @@ On Linux, the AppImage includes automatic updates through Electron's AppImage up
 
 - Node.js and npm
 - A Counter-Strike 1.6 installation for end-to-end game testing
+- Wine on macOS when testing game launch
 
 ```bash
 npm install
@@ -86,9 +95,8 @@ cp .env.example .env
 ```bash
 npm run build:win    # Windows
 npm run build:linux  # Linux
+npm run build:mac    # macOS universal DMG/ZIP
 ```
-
-macOS support is planned for a future release.
 
 Before opening a pull request:
 
@@ -105,7 +113,7 @@ Releases use calendar SemVer in the format `YYYY.MMDD.REVISION`, for example `20
 npm run release
 ```
 
-GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
+GitHub Actions builds the Windows, Linux, and macOS packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
 
 ## Contributing
 
