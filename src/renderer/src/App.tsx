@@ -1,5 +1,6 @@
 import { AuthPage } from './features/auth/AuthPage'
 import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
+import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
 import { UpdateBanner } from './features/updates/UpdateBanner'
 import { SkinAssetSyncIndicator } from './features/skins/SkinAssetSyncIndicator'
 import { VoiceChatDock } from './features/voice/VoiceChatDock'
@@ -12,6 +13,7 @@ function App(): React.JSX.Element {
     <>
       <UpdateBanner />
       <ConnectionBanner />
+      <MatchAbandonNotice />
       <SkinAssetSyncIndicator />
       <VoiceChatDock />
       <ToastContainer
