@@ -65,23 +65,13 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
   if (process.platform === 'win32') {
     return {
       distribution: 'steam',
+      // The selected Steam installation's hl.exe is a stable child process on
+      // Windows. Launch it directly so duplicate match status events can be
+      // ignored and reconnects can terminate the exact installation safely.
+      // The Linux binary needs Steam's runtime setup and therefore retains the
+      // launcher handoff below.
       executable,
       argumentPrefix: ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel'],
-      textureSize: '1024',
-      usesLauncherHandoff: false
-    }
-  }
-
-  if (process.platform === 'darwin') {
-    const gameDirectory = dirname(executable)
-    const macLauncher = await firstExistingFile([join(gameDirectory, 'hl.sh')])
-    return {
-      distribution: 'steam',
-      // Steam's GoldSrc macOS launch configuration uses hl.sh. Prefer that
-      // wrapper even if the player manually selected hl_osx because it sets up
-      // the game runtime and working directory expected by the native binary.
-      executable: macLauncher ?? executable,
-      argumentPrefix: ['-steam', '-game', 'cstrike', '-noforcemparms', '-noforcemaccel'],
       textureSize: '1024',
       usesLauncherHandoff: false
     }

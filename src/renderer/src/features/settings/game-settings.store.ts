@@ -17,17 +17,6 @@ const message = (error: unknown): string =>
     ? error.message.replace(/^Error invoking remote method '.+?': Error: /, '')
     : 'Request failed.'
 
-const executableSelectionHelp = (): string => {
-  const userAgent = navigator.userAgent.toLowerCase()
-  if (userAgent.includes('mac')) {
-    return 'Game location: select hl.sh (recommended) or hl_osx inside the Steam Half-Life folder.'
-  }
-  if (userAgent.includes('windows')) {
-    return 'Game location: select hl.exe inside the Steam Half-Life folder.'
-  }
-  return 'Game location: select hl.sh (recommended) or hl_linux inside the Steam Half-Life folder.'
-}
-
 export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   executablePath: '',
   savedPath: null,
@@ -44,8 +33,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         executablePath: settings.cs16ExecutablePath ?? '',
         savedPath: settings.cs16ExecutablePath,
         configFilePath: settings.configFilePath,
-        status: 'idle',
-        notice: executableSelectionHelp()
+        status: 'idle'
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
@@ -53,16 +41,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   choose: async () => {
-    set({ status: 'choosing', error: null, notice: executableSelectionHelp() })
+    set({ status: 'choosing', error: null, notice: null })
     try {
       const executablePath = await window.api.gameSettings.chooseExecutable()
-      set({
-        status: 'idle',
-        notice: executableSelectionHelp(),
-        ...(executablePath ? { executablePath } : {})
-      })
+      set({ status: 'idle', ...(executablePath ? { executablePath } : {}) })
     } catch (error) {
-      set({ status: 'idle', error: message(error), notice: executableSelectionHelp() })
+      set({ status: 'idle', error: message(error) })
     }
   },
 
@@ -76,10 +60,10 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         savedPath: settings.cs16ExecutablePath,
         configFilePath: settings.configFilePath,
         status: 'idle',
-        notice: `Counter-Strike path saved. ${executableSelectionHelp()}`
+        notice: 'Counter-Strike path saved.'
       })
     } catch (error) {
-      set({ status: 'idle', error: message(error), notice: executableSelectionHelp() })
+      set({ status: 'idle', error: message(error) })
     }
   }
 }))
