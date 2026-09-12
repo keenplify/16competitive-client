@@ -39,6 +39,9 @@ jobs:
           - os: ubuntu-latest
             command: npm run build:linux
             artifact: linux-appimage-release
+          - os: macos-latest
+            command: npm run build:mac
+            artifact: macos-universal-release
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +64,8 @@ jobs:
             dist/*.exe
             dist/*.blockmap
             dist/*.AppImage
+            dist/*.dmg
+            dist/*.zip
             dist/latest*.yml
           if-no-files-found: error
 
