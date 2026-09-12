@@ -224,7 +224,11 @@ export type MatchmakingServerMessage =
   | {
       type: 'match_cancelled'
       matchId: string
-      reason: 'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED'
+      reason:
+        | 'PLAYER_DECLINED'
+        | 'PLAYER_NOT_READY'
+        | 'SERVER_START_FAILED'
+        | 'PLAYER_DID_NOT_CONNECT'
       message: string
     }
   | {
