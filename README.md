@@ -41,7 +41,7 @@ Browse your weapon collection and equip skins for Terrorist or Counter-Terrorist
 - **Profiles and match history** — Keep your player identity and past games in one place.
 - **Weapon skins** — Browse collections and manage active loadouts.
 - **A smoother launch flow** — Select your game installation and launch into assigned servers when they are ready.
-- **Windows, Linux, and macOS support** — Desktop builds and platform-aware Counter-Strike installation paths are supported.
+- **Windows and Linux support** — Built for both platforms from the start. macOS support is planned for the future.
 
 ## Match flow
 
@@ -57,17 +57,9 @@ The backend remains authoritative for matchmaking, player identity, inventory, r
 
 ## Download
 
-Visit the repository’s **[Releases](../../releases)** page for the latest Windows, Linux, and macOS builds.
+Visit the repository’s **[Releases](../../releases)** page for the latest Windows and Linux builds.
 
 > Counter-Strike 1.6 is required to play. Select and validate your local game executable from the launcher’s Settings tab before joining a match.
-
-When selecting the Counter-Strike game location, choose the GoldSrc launcher file inside the Half-Life folder:
-
-- Windows: `hl.exe`
-- Linux: `hl.sh` (recommended) or `hl_linux`
-- macOS: `hl.sh` (recommended) or `hl_osx`
-
-On macOS, the launcher also checks the standard Steam location at `~/Library/Application Support/Steam/steamapps/common/Half-Life` automatically.
 
 On Linux, the AppImage includes automatic updates through Electron's AppImage updater. DEB and Snap packages do not support automatic launcher updates.
 
@@ -94,8 +86,9 @@ cp .env.example .env
 ```bash
 npm run build:win    # Windows
 npm run build:linux  # Linux
-npm run build:mac    # macOS universal DMG/ZIP
 ```
+
+macOS support is planned for a future release.
 
 Before opening a pull request:
 
@@ -112,7 +105,7 @@ Releases use calendar SemVer in the format `YYYY.MMDD.REVISION`, for example `20
 npm run release
 ```
 
-GitHub Actions builds the Windows, Linux, and macOS packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits where the package format supports it.
+GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
 
 ## Contributing
 

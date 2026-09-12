@@ -1,6 +1,6 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join, normalize, resolve } from 'node:path'
+import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
 import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 
@@ -15,44 +15,6 @@ const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
 const PARTY_VOICE_PTT_PREFIX = 'party:'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
 let settingsWriteQueue: Promise<void> = Promise.resolve()
-
-const expectedExecutableNames = (): string[] => {
-  if (process.platform === 'win32') return ['hl.exe']
-  if (process.platform === 'darwin') return ['hl.sh', 'hl_osx']
-  return ['hl.sh', 'hl_linux']
-}
-
-const executableSelectionHelp = (): string => {
-  if (process.platform === 'win32') return 'Select the Half-Life hl.exe file.'
-  if (process.platform === 'darwin') {
-    return 'Select hl.sh (recommended) or hl_osx from the Half-Life folder.'
-  }
-  return 'Select hl.sh (recommended) or hl_linux from the Half-Life folder.'
-}
-
-const validateExecutable = async (
-  untrustedPath: unknown,
-  ensureExecutable = false
-): Promise<string> => {
-  if (typeof untrustedPath !== 'string' || !isAbsolute(untrustedPath)) {
-    throw new Error(`Choose an absolute Counter-Strike executable path. ${executableSelectionHelp()}`)
-  }
-  const executablePath = normalize(untrustedPath)
-  const metadata = await stat(executablePath).catch(() => null)
-  if (!metadata?.isFile()) {
-    throw new Error(`The selected Counter-Strike executable was not found. ${executableSelectionHelp()}`)
-  }
-
-  const selectedName = basename(executablePath).toLowerCase()
-  if (!expectedExecutableNames().some((name) => name.toLowerCase() === selectedName)) {
-    throw new Error(`That does not look like a Counter-Strike executable. ${executableSelectionHelp()}`)
-  }
-
-  if (ensureExecutable && process.platform !== 'win32' && (metadata.mode & 0o111) === 0) {
-    await chmod(executablePath, metadata.mode | 0o111)
-  }
-  return executablePath
-}
 
 const detectCs16Executable = async (): Promise<string | null> => {
   const home = process.env.HOME ?? ''
@@ -84,41 +46,33 @@ const detectCs16Executable = async (): Promise<string | null> => {
             'hl.exe'
           )
         ]
-      : process.platform === 'darwin'
-        ? [
-            join(
-              home,
-              'Library',
-              'Application Support',
-              'Steam',
-              'steamapps',
-              'common',
-              'Half-Life',
-              'hl.sh'
-            ),
-            join(
-              home,
-              'Library',
-              'Application Support',
-              'Steam',
-              'steamapps',
-              'common',
-              'Half-Life',
-              'hl_osx'
-            )
-          ]
-        : [
-            join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh'),
-            join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-            join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.sh'),
-            join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux')
-          ]
+      : [
+          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+          join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
+        ]
   for (const candidate of candidates) {
     if (!isAbsolute(candidate)) continue
     const metadata = await stat(candidate).catch(() => null)
     if (metadata?.isFile()) return validateExecutable(candidate, true)
   }
   return null
+}
+
+const validateExecutable = async (
+  untrustedPath: unknown,
+  ensureExecutable = false
+): Promise<string> => {
+  if (typeof untrustedPath !== 'string' || !isAbsolute(untrustedPath)) {
+    throw new Error('Choose an absolute Counter-Strike executable path.')
+  }
+  const executablePath = normalize(untrustedPath)
+  const metadata = await stat(executablePath).catch(() => null)
+  if (!metadata?.isFile()) throw new Error('The selected Counter-Strike executable was not found.')
+  if (ensureExecutable && process.platform !== 'win32' && (metadata.mode & 0o111) === 0) {
+    await chmod(executablePath, metadata.mode | 0o111)
+  }
+  return executablePath
 }
 
 const readStoredSettings = async (): Promise<StoredGameSettings> => {
@@ -254,13 +208,12 @@ export const getGameSettings = async (): Promise<GameSettings> => {
 
 export const chooseCs16Executable = async (): Promise<string | null> => {
   const result = await dialog.showOpenDialog({
-    title: `Choose Counter-Strike 1.6 executable - ${executableSelectionHelp()}`,
-    message: executableSelectionHelp(),
+    title: 'Choose Counter-Strike 1.6 executable',
     properties: ['openFile'],
     filters:
       process.platform === 'win32'
-        ? [{ name: 'Half-Life executable (hl.exe)', extensions: ['exe'] }]
-        : [{ name: 'Half-Life launcher', extensions: ['sh', '*'] }]
+        ? [{ name: 'Counter-Strike executable', extensions: ['exe'] }]
+        : [{ name: 'Counter-Strike executable', extensions: ['*'] }]
   })
   if (result.canceled || !result.filePaths[0]) return null
   return validateExecutable(result.filePaths[0], true)
