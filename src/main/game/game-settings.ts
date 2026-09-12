@@ -47,9 +47,9 @@ const validateExecutable = async (
     throw new Error(`Choose ${expectedNames.join(' or ')}. ${executableSelectionHelp()}`)
   }
 
-  // macOS launches the Windows hl.exe through Wine, so the PE file itself does
-  // not need a Unix executable bit. Native Linux launchers still do.
-  if (ensureExecutable && process.platform === 'linux' && (metadata.mode & 0o111) === 0) {
+  // The launcher already requires the configured file to have a Unix execute
+  // bit on non-Windows platforms. Preserve that invariant for Wine's hl.exe too.
+  if (ensureExecutable && process.platform !== 'win32' && (metadata.mode & 0o111) === 0) {
     await chmod(executablePath, metadata.mode | 0o111)
   }
   return executablePath
