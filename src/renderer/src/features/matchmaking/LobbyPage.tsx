@@ -4,7 +4,7 @@ import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
-import { modelForSlot, presentationModelPath } from '../party/party-models'
+import { modelForSlot } from '../party/party-models'
 import { PartyModelScene } from '../party/PartyModelScene'
 import { LobbySocialSidebar } from '../party/LobbySocialSidebar'
 import { usePartyStore } from '../party/party.store'
@@ -64,18 +64,16 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
         <PartyModelScene
           actors={members.map((member, index) => {
             const isCurrentPlayer = member.id === player.id
-            const weaponKey = isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey
-            const selectedModelPath = isCurrentPlayer
-              ? lobbyPlayerModel
-              : (member.lobbyPlayerModel ?? modelForSlot(index, member))
             return {
               member,
-              modelPath: presentationModelPath(selectedModelPath, weaponKey),
+              modelPath: isCurrentPlayer
+                ? lobbyPlayerModel
+                : (member.lobbyPlayerModel ?? modelForSlot(index, member)),
               fallbackModelPath: modelForSlot(index, member),
               weaponPath: isCurrentPlayer
                 ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
                 : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
-              weaponKey,
+              weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
               isLeader: party?.leaderId === member.id,
               isCurrentPlayer
             }
