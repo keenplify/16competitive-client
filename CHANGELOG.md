@@ -600,3 +600,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - See why a match was cancelled when players fail to connect.
 - Receive clear, persistent notices when a match is abandoned.
 - The launcher now comes into focus for important abandon notices.
+
+## v2026.913.2 — 2026-09-13
+
+### Visuals
+
+- Fixed the lobby glow effect.
