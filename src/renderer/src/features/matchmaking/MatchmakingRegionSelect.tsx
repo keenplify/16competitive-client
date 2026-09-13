@@ -99,6 +99,12 @@ export function MatchmakingRegionSelect({
         value={selectedOption}
         isOptionDisabled={(option) => !option.automatic && !option.available}
         onChange={(option) => onChange(option?.value || null)}
+        styles={{
+          // react-select clips both wrappers by default. The latency indicator
+          // intentionally has an outer glow, so let it paint into the control.
+          valueContainer: (base) => ({ ...base, overflow: 'visible' }),
+          singleValue: (base) => ({ ...base, overflow: 'visible' })
+        }}
         classNames={{
           container: () => 'mt-3 w-full text-sm',
           control: ({ isFocused, isDisabled }) =>
