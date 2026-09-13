@@ -592,3 +592,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved consistency across matchmaking, party, voice chat, settings, and skins screens.
 - Refined party sidebar and chat presentation for a smoother experience.
 - Polished voice chat controls and status indicators.
+
+## v2026.913.1 — 2026-09-13
+
+### Match Updates
+
+- See why a match was cancelled when players fail to connect.
+- Receive clear, persistent notices when a match is abandoned.
+- The launcher now comes into focus for important abandon notices.
