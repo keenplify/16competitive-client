@@ -606,3 +606,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Visuals
 
 - Fixed the lobby glow effect.
+
+## v2026.913.3 — 2026-09-13
+
+### Matchmaking
+
+- Updated the matchmaking lobby experience.
+- Improved region selection.
