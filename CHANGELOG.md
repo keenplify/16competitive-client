@@ -613,3 +613,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Updated the matchmaking lobby experience.
 - Improved region selection.
+
+## v2026.913.4 — 2026-09-13
+
+### Matchmaking
+
+- Added a warning modal explaining penalties for failing to connect to a match.
