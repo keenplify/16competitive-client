@@ -31,6 +31,11 @@ interface FoundMatch {
   hostApiUrl: string
   teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
 }
+
+export interface MatchAbandonNotice {
+  penalized: boolean
+  message: string
+}
 export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'> {
   winner: 1 | 2
   teamAScore: number
@@ -78,6 +83,7 @@ interface MatchmakingState {
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
   serverRestarting: { message: string; retryAfterMs: number } | null
+  matchAbandonNotice: MatchAbandonNotice | null
   error: string | null
   connect: () => Promise<void>
   loadMaps: () => Promise<void>
@@ -92,6 +98,7 @@ interface MatchmakingState {
   reconnectGame: () => Promise<void>
   reset: () => void
   dismissCompletedMatch: () => void
+  dismissMatchAbandonNotice: () => void
 }
 
 let removeEventListener: (() => void) | null = null
@@ -369,6 +376,19 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'error':
+        if (event.code === 'MATCH_ABANDON_WARNING' || event.code === 'MATCH_ABANDON_PENALTY') {
+          set({
+            matchAbandonNotice: {
+              penalized: event.code === 'MATCH_ABANDON_PENALTY',
+              message: event.message
+            }
+          })
+          void window.api.window.focus()
+          if (event.code === 'MATCH_ABANDON_PENALTY') {
+            window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
+          }
+          break
+        }
         if (event.code === 'MAP_NOT_FOUND') {
           set({
             queueStatus: 'idle',
@@ -453,6 +473,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     connectionDetails: null,
     gameExited: false,
     serverRestarting: null,
+    matchAbandonNotice: null,
     error: null,
 
     connect: async () => {
@@ -669,6 +690,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     dismissCompletedMatch: () => set({ completedMatch: null, error: null }),
 
+    dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
+
     reset: () =>
       set({
         connectionStatus: 'disconnected',
@@ -701,6 +724,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         connectionDetails: null,
         gameExited: false,
         serverRestarting: null,
+        matchAbandonNotice: null,
         error: null
       })
   }

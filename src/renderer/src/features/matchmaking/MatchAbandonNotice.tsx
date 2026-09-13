@@ -1,34 +1,51 @@
-import { useEffect } from 'react'
-import { toast } from 'react-toastify'
+import { AlertTriangle } from 'lucide-react'
+import { useEffect, useRef, type JSX } from 'react'
+import { Button } from '../../components/ui/Button'
+import { ModalPortal } from '../../components/ui/ModalPortal'
+import { useMatchmakingStore } from './matchmaking.store'
 
-const MATCH_ABANDON_WARNING = 'MATCH_ABANDON_WARNING'
-const MATCH_ABANDON_PENALTY = 'MATCH_ABANDON_PENALTY'
+export function MatchAbandonNotice(): JSX.Element | null {
+  const notice = useMatchmakingStore((state) => state.matchAbandonNotice)
+  const dismiss = useMatchmakingStore((state) => state.dismissMatchAbandonNotice)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
-export function MatchAbandonNotice(): null {
   useEffect(() => {
-    return window.api.matchmaking.onEvent((event) => {
-      if (
-        event.type !== 'error' ||
-        (event.code !== MATCH_ABANDON_WARNING && event.code !== MATCH_ABANDON_PENALTY)
-      ) {
-        return
-      }
+    if (notice) dialogRef.current?.querySelector('button')?.focus()
+  }, [notice])
 
-      void window.api.window.focus()
+  if (!notice) return null
 
-      const options = {
-        autoClose: false as const,
-        closeOnClick: false,
-        toastId: `match-abandon:${event.code}:${event.message}`
-      }
-
-      if (event.code === MATCH_ABANDON_PENALTY) {
-        toast.error(event.message, options)
-      } else {
-        toast.warning(event.message, options)
-      }
-    })
-  }, [])
-
-  return null
+  return (
+    <ModalPortal>
+      <div
+        ref={dialogRef}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/85 p-4 backdrop-blur-sm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="match-abandon-title"
+        aria-describedby="match-abandon-description"
+      >
+        <section className="w-full max-w-md rounded-xl border border-red-400/25 bg-neutral-900 p-6 text-center shadow-2xl">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-400/10 text-red-300">
+            <AlertTriangle className="size-6" aria-hidden="true" />
+          </div>
+          <p className="mt-4 text-xs font-bold tracking-[0.18em] text-red-300 uppercase">
+            Match discarded
+          </p>
+          <h2 id="match-abandon-title" className="mt-2 text-2xl font-semibold text-white">
+            {notice.penalized ? 'MMR penalty applied' : 'You did not connect in time'}
+          </h2>
+          <p id="match-abandon-description" className="mt-3 text-sm leading-6 text-neutral-300">
+            {notice.message}
+          </p>
+          <Button
+            className="mt-6 w-full bg-red-400 hover:bg-red-300 focus-visible:outline-red-300"
+            onClick={dismiss}
+          >
+            I understand
+          </Button>
+        </section>
+      </div>
+    </ModalPortal>
+  )
 }
