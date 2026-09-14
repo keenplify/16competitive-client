@@ -637,3 +637,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Platform Support
 
 - Legacy ARMv7 Linux builds are no longer supported.
+
+## v2026.914.3 — 2026-09-14
+
+### Matchmaking
+
+- Regional latency is now measured over UDP.
