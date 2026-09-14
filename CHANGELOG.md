@@ -643,3 +643,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Regional latency is now measured over UDP.
+
+## v2026.914.4 — 2026-09-14
+
+### Linux
+
+- ARM64 Linux updater metadata is now published.
