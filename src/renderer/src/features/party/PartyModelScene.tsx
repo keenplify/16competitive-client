@@ -228,6 +228,25 @@ const WEAPON_ANIMATION_FAMILY: Record<string, string> = {
   knife: 'knife'
 }
 
+const LOBBY_SEQUENCE_BY_WEAPON: Record<string, string> = {
+  usp: 'idle_pistol',
+  glock18: 'idle_pistol',
+  p228: 'idle_pistol',
+  deagle: 'idle_pistol',
+  fiveseven: 'idle_pistol',
+  elite: 'idle_pistol',
+  awp: 'idle_sniper',
+  scout: 'idle_sniper',
+  g3sg1: 'idle_sniper',
+  sg550: 'idle_sniper',
+  mp5navy: 'idle_smg',
+  tmp: 'idle_smg',
+  mac10: 'idle_smg',
+  ump45: 'idle_smg',
+  p90: 'idle_smg',
+  knife: 'idle_knife'
+}
+
 const HOT_RENDER_REVISION = import.meta.hot
   ? ((import.meta.hot.data.partyModelSceneRevision as number | undefined) ?? 0) + 1
   : 0
@@ -253,6 +272,12 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
     if (index >= 0) return index
   }
   return idleSequenceIndexFor(modelData)
+}
+
+const lobbyAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
+  const sequenceLabel = LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle'
+  const index = sequenceIndexFor(modelData, sequenceLabel)
+  return index >= 0 ? index : weaponAnimationIndexFor(modelData, weaponKey)
 }
 
 const isWeaponTransformArray = (
@@ -381,9 +406,10 @@ const createActor = (
 ): THREE.Group => {
   const player = parseModelCached(playerBuffer)
   const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
-  const animationIndex = weaponAnimationIndexFor(player, presentationWeaponKey)
+  const animationIndex = lobbyAnimationIndexFor(player, presentationWeaponKey)
   const weaponTransforms = weaponTransformsFor(presentationWeaponKey)
   const renderData = prepareRenderData(player, [animationIndex])
+  const activeSequence = player.sequences[animationIndex]
   const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
 
@@ -392,13 +418,14 @@ const createActor = (
       subModel.forEach(({ geometryBuffers, uvMap }, meshIndex) => {
         const sourceMesh = player.meshes[bodyPartIndex][subModelIndex][meshIndex]
         const textureIndex = player.skinRef[sourceMesh.skinRef]
-        addMesh(
+        const mesh = addMesh(
           group,
           geometryBuffers[animationIndex][0],
           uvMap,
           playerTextures[textureIndex],
           player.textures[textureIndex]
         )
+        mesh.userData.animationFrames = geometryBuffers[animationIndex]
       })
     )
   )
@@ -410,7 +437,9 @@ const createActor = (
   )
   const rightHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('r hand'))
   const leftHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('l hand'))
-  const playerBones = calcRotations(player, animationIndex, 0)
+  const playerAnimationFrames = Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
+    calcRotations(player, animationIndex, frame)
+  )
 
   weaponTransforms.forEach((weaponTransform) => {
     const requestedHandBone = weaponTransform.hand === 'left' ? leftHandBone : rightHandBone
@@ -420,23 +449,6 @@ const createActor = (
         ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
       )
     )
-    const handTransform = new THREE.Matrix4().fromArray(
-      playerBones[handBone] as unknown as number[]
-    )
-    const handRotation = handTransform
-      .clone()
-      .multiply(
-        new THREE.Matrix4().makeRotationFromEuler(
-          new THREE.Euler(
-            ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
-          )
-        )
-      )
-      .multiply(new THREE.Matrix4().getInverse(handTransform))
-    const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
-    const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
-      .applyMatrix4(handTransform)
-      .sub(handOrigin)
     const weaponBoneMap = weapon.bones.map((bone) =>
       weaponTransform.hand ? handBone : (playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone)
     )
@@ -466,24 +478,45 @@ const createActor = (
             weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
             (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
           )
-          const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
-          for (let index = 0; index < skinned.length; index += 3) {
-            const vertex = new THREE.Vector3(
-              skinned[index],
-              skinned[index + 1],
-              skinned[index + 2]
-            ).applyMatrix4(handRotation)
-            skinned[index] = vertex.x + handOffset.x
-            skinned[index + 1] = vertex.y + handOffset.y
-            skinned[index + 2] = vertex.z + handOffset.z
-          }
-          addMesh(
+          const animationFrames = playerAnimationFrames.map((playerBones) => {
+            const handTransform = new THREE.Matrix4().fromArray(
+              playerBones[handBone] as unknown as number[]
+            )
+            const handRotation = handTransform
+              .clone()
+              .multiply(
+                new THREE.Matrix4().makeRotationFromEuler(
+                  new THREE.Euler(
+                    ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
+                  )
+                )
+              )
+              .multiply(new THREE.Matrix4().getInverse(handTransform))
+            const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
+            const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
+              .applyMatrix4(handTransform)
+              .sub(handOrigin)
+            const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
+            for (let index = 0; index < skinned.length; index += 3) {
+              const vertex = new THREE.Vector3(
+                skinned[index],
+                skinned[index + 1],
+                skinned[index + 2]
+              ).applyMatrix4(handRotation)
+              skinned[index] = vertex.x + handOffset.x
+              skinned[index + 1] = vertex.y + handOffset.y
+              skinned[index + 2] = vertex.z + handOffset.z
+            }
+            return new THREE.BufferAttribute(skinned, 3)
+          })
+          const mesh = addMesh(
             group,
-            new THREE.BufferAttribute(skinned, 3),
+            animationFrames[0] ?? new THREE.BufferAttribute(positioned, 3),
             new THREE.BufferAttribute(uv, 2),
             weaponTextures[textureIndex],
             textureInfo
           )
+          mesh.userData.animationFrames = animationFrames
         })
       )
     )
@@ -503,6 +536,9 @@ const createActor = (
   group.worldToLocal(nameplatePosition)
   nameplate.position.copy(nameplatePosition)
   group.add(nameplate)
+  group.userData.animationFps = activeSequence?.fps ?? 0
+  group.userData.animationFrameCount = activeSequence?.numFrames ?? 0
+  group.userData.animationStartedAt = performance.now()
   return group
 }
 
@@ -614,7 +650,33 @@ export function PartyModelScene({
       camera.position.x += (targetCameraX - camera.position.x) * 0.06
       camera.lookAt(new THREE.Vector3(0, 0, 0))
       const opacity = Math.min((performance.now() - fadeStartedAt) / 450, 1)
-      actorsToFade.forEach((actor) => setActorOpacity(actor, opacity))
+      const now = performance.now()
+      actorsToFade.forEach((actor) => {
+        setActorOpacity(actor, opacity)
+        const fps = actor.userData.animationFps as number
+        const frameCount = actor.userData.animationFrameCount as number
+        if (fps <= 0 || frameCount <= 0) return
+        const sequenceTime = ((now - (actor.userData.animationStartedAt as number)) / 1000) * fps
+        const frame = Math.floor(sequenceTime) % frameCount
+        const nextFrame = (frame + 1) % frameCount
+        const frameProgress = sequenceTime - Math.floor(sequenceTime)
+        actor.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return
+          const frames = object.userData.animationFrames as THREE.BufferAttribute[] | undefined
+          const position = (object.geometry as THREE.BufferGeometry).getAttribute('position') as
+            THREE.BufferAttribute | undefined
+          const sourcePosition = frames?.[frame]
+          const nextPosition = frames?.[nextFrame]
+          if (!sourcePosition || !nextPosition || !position) return
+          const target = position.array as Float32Array
+          const current = sourcePosition.array as ArrayLike<number>
+          const next = nextPosition.array as ArrayLike<number>
+          for (let index = 0; index < target.length; index++) {
+            target[index] = current[index] + (next[index] - current[index]) * frameProgress
+          }
+          position.needsUpdate = true
+        })
+      })
       renderer.render(scene, camera)
     }
     render()
