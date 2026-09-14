@@ -61,6 +61,8 @@ Visit the repository’s **[Releases](../../releases)** page for the latest Wind
 
 > Counter-Strike 1.6 is required to play. Select and validate your local game executable from the launcher’s Settings tab before joining a match.
 
+On Linux, the AppImage includes automatic updates through Electron's AppImage updater. DEB and Snap packages do not support automatic launcher updates.
+
 ## Run locally
 
 ### Requirements
@@ -82,9 +84,13 @@ cp .env.example .env
 ### Build packages
 
 ```bash
-npm run build:win    # Windows
-npm run build:linux  # Linux
+npm run build:win             # Windows
+npm run build:linux           # Linux x64
+npm run build:linux:arm64     # Linux ARM64 / aarch64
 ```
+
+The ARM64 command cross-builds a Linux AppImage from any supported host and is
+the supported target for modern ARM Linux devices, including Asahi Linux.
 
 macOS support is planned for a future release.
 
@@ -114,3 +120,7 @@ See [AGENTS.md](AGENTS.md) for the architecture, security expectations, and deve
 ## License
 
 License details will be added as the project approaches its first public release.
+
+Test change
+
+TODO: fix voice chat. currently it is party only, should be team wide supported, then seperate channel is party only.

@@ -8,9 +8,21 @@ const ASSET_PATH =
   /^models\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w)\.mdl$/
 const SHA256 = /^[a-f0-9]{64}$/
 const MAX_MODEL_SIZE = 20 * 1024 * 1024
-const DOWNLOAD_CONCURRENCY = 3
-const MANIFEST_RETRY_COUNT = 30
+// Some players connect over high-latency or lossy routes. Fetching the three
+// GoldSrc models at once made one request prone to stalling behind the others.
+// Keep the transfer small and give each model several bounded chances instead.
+const DOWNLOAD_CONCURRENCY = 1
+const ASSET_DOWNLOAD_RETRY_COUNT = 20
+// The largest model is only a few hundred KB, but long-distance routes can
+// take longer than 15 seconds to receive its complete response. Keep a bounded
+// timeout without rejecting a usable slow connection.
+const ASSET_DOWNLOAD_TIMEOUT_MS = 90_000
+const ASSET_DOWNLOAD_RETRY_DELAY_MS = 1_000
+const ASSET_DOWNLOAD_RETRY_MAX_DELAY_MS = 5_000
+const MANIFEST_RETRY_COUNT = 60
 const MANIFEST_RETRY_DELAY_MS = 1_000
+const MANIFEST_RETRY_MAX_DELAY_MS = 5_000
+const CATALOG_ASSET_PATH = /^models\/16competitive\/[a-zA-Z0-9_/-]+\.mdl$/
 
 interface MatchAsset {
   path: string
@@ -27,7 +39,19 @@ export interface MatchAssetPreloadProgress {
   totalFiles: number
 }
 
+class NonRetryableAssetError extends Error {}
+
 const preloads = new Map<string, Promise<void>>()
+const preloadControllers = new Map<string, AbortController>()
+
+const delay = (milliseconds: number): Promise<void> =>
+  new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
+
+const retryDelay = (baseDelay: number, maxDelay: number, attempt: number): number =>
+  Math.min(baseDelay * attempt, maxDelay)
+
+const isRetryableHttpStatus = (status: number): boolean =>
+  status === 404 || status === 408 || status === 425 || status === 429 || status >= 500
 
 const isMatchAsset = (value: unknown): value is MatchAsset => {
   if (typeof value !== 'object' || value === null) return false
@@ -68,6 +92,15 @@ const destinationFor = (assetRoot: string, assetPath: string): string => {
   return destination
 }
 
+const catalogDestinationFor = (assetRoot: string, assetPath: string): string => {
+  if (!CATALOG_ASSET_PATH.test(assetPath) || assetPath.includes('..'))
+    throw new Error(`Skin catalog contains an unsafe asset path: ${assetPath}`)
+  const destination = resolve(assetRoot, assetPath)
+  if (relative(assetRoot, destination).startsWith('..'))
+    throw new Error(`Skin catalog asset escapes the game directory: ${assetPath}`)
+  return destination
+}
+
 const expectedHashFor = (asset: MatchAsset): string => {
   const pathHash = ASSET_PATH.exec(asset.path)?.[1]
   if (!pathHash) throw new Error(`Match manifest contains an unsafe asset path: ${asset.path}`)
@@ -79,11 +112,133 @@ const expectedHashFor = (asset: MatchAsset): string => {
 
 const hasExpectedHash = async (destination: string, expectedHash: string): Promise<boolean> => {
   const metadata = await stat(destination).catch(() => null)
-  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > MAX_MODEL_SIZE) return false
+  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > MAX_MODEL_SIZE) {
+    console.debug('[MatchAssets] cache miss', {
+      destination,
+      reason: metadata ? 'invalid-size-or-type' : 'missing'
+    })
+    return false
+  }
   const bytes = await readFile(destination).catch(() => null)
-  if (!bytes) return false
+  if (!bytes) {
+    console.debug('[MatchAssets] cache read failed', { destination })
+    return false
+  }
   const actualHash = createHash('sha256').update(Buffer.from(bytes)).digest('hex')
-  return actualHash.startsWith(expectedHash)
+  const valid = actualHash.startsWith(expectedHash)
+  console.debug(`[MatchAssets] cache ${valid ? 'hit' : 'hash mismatch'}`, {
+    destination,
+    expectedHash,
+    actualHash
+  })
+  return valid
+}
+
+const fetchAssetBytes = async (
+  apiUrl: URL,
+  matchId: string,
+  asset: MatchAsset,
+  token: string,
+  expectedHash: string,
+  signal: AbortSignal
+): Promise<Buffer> => {
+  const url = new URL(`/matches/${encodeURIComponent(matchId)}/assets/file`, apiUrl)
+  url.searchParams.set('path', asset.path)
+
+  for (let attempt = 1; attempt <= ASSET_DOWNLOAD_RETRY_COUNT; attempt += 1) {
+    try {
+      console.info('[MatchAssets] asset request started', {
+        matchId,
+        path: asset.path,
+        attempt,
+        maxAttempts: ASSET_DOWNLOAD_RETRY_COUNT
+      })
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+        signal: AbortSignal.any([signal, AbortSignal.timeout(ASSET_DOWNLOAD_TIMEOUT_MS)])
+      })
+      console.info('[MatchAssets] asset response received', {
+        matchId,
+        path: asset.path,
+        attempt,
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      })
+      if (!response.ok) {
+        const error = new Error(`Could not download ${asset.path} (${response.status}).`)
+        if (!isRetryableHttpStatus(response.status)) {
+          throw new NonRetryableAssetError(error.message)
+        }
+        throw error
+      }
+      if (!response.headers.get('content-type')?.startsWith('application/octet-stream')) {
+        throw new NonRetryableAssetError(
+          `Match asset server returned an invalid content type for ${asset.path}.`
+        )
+      }
+      const contentLength = Number(response.headers.get('content-length'))
+      if (
+        Number.isFinite(contentLength) &&
+        (contentLength < 16 || contentLength > MAX_MODEL_SIZE)
+      ) {
+        throw new NonRetryableAssetError(`Match asset has an unsupported size: ${asset.path}`)
+      }
+
+      const bytes = Buffer.from(await response.arrayBuffer())
+      console.info('[MatchAssets] asset body received', {
+        matchId,
+        path: asset.path,
+        attempt,
+        bytes: bytes.length
+      })
+      if (
+        bytes.length < 16 ||
+        bytes.length > MAX_MODEL_SIZE ||
+        bytes.subarray(0, 4).toString() !== 'IDST'
+      ) {
+        throw new Error(`Match asset is not a valid GoldSrc model: ${asset.path}`)
+      }
+      const actualHash = createHash('sha256').update(bytes).digest('hex')
+      console.debug('[MatchAssets] asset validated', {
+        matchId,
+        path: asset.path,
+        expectedHash,
+        actualHash
+      })
+      if (!actualHash.startsWith(expectedHash)) {
+        throw new Error(`Match asset integrity check failed: ${asset.path}`)
+      }
+      return bytes
+    } catch (error) {
+      console.warn('[MatchAssets] asset request failed', {
+        matchId,
+        path: asset.path,
+        attempt,
+        error: error instanceof Error ? error.message : String(error),
+        aborted: signal.aborted
+      })
+      if (signal.aborted) {
+        throw new NonRetryableAssetError('Match asset download was cancelled.')
+      }
+      if (error instanceof NonRetryableAssetError || attempt === ASSET_DOWNLOAD_RETRY_COUNT) {
+        throw error
+      }
+      console.warn('[MatchAssets] asset download failed; retrying', {
+        matchId,
+        path: asset.path,
+        attempt,
+        maxAttempts: ASSET_DOWNLOAD_RETRY_COUNT,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      await delay(
+        retryDelay(ASSET_DOWNLOAD_RETRY_DELAY_MS, ASSET_DOWNLOAD_RETRY_MAX_DELAY_MS, attempt)
+      )
+    }
+  }
+
+  throw new Error(`Could not download ${asset.path}.`)
 }
 
 const downloadAsset = async (
@@ -91,48 +246,199 @@ const downloadAsset = async (
   matchId: string,
   asset: MatchAsset,
   token: string,
-  assetRoot: string
+  assetRoot: string,
+  signal: AbortSignal
 ): Promise<void> => {
   const destination = destinationFor(assetRoot, asset.path)
   const expectedHash = expectedHashFor(asset)
-  if (await hasExpectedHash(destination, expectedHash)) return
-
-  const url = new URL(`/matches/${encodeURIComponent(matchId)}/assets/file`, apiUrl)
-  url.searchParams.set('path', asset.path)
-  const response = await fetch(url, {
-    headers: { authorization: `Bearer ${token}` },
-    redirect: 'error',
-    signal: AbortSignal.timeout(45_000)
-  })
-  if (!response.ok) throw new Error(`Could not download ${asset.path} (${response.status}).`)
-  if (!response.headers.get('content-type')?.startsWith('application/octet-stream')) {
-    throw new Error(`Match asset server returned an invalid content type for ${asset.path}.`)
-  }
-  const contentLength = Number(response.headers.get('content-length'))
-  if (Number.isFinite(contentLength) && (contentLength < 16 || contentLength > MAX_MODEL_SIZE)) {
-    throw new Error(`Match asset has an unsupported size: ${asset.path}`)
-  }
-  const bytes = Buffer.from(await response.arrayBuffer())
-  if (
-    bytes.length < 16 ||
-    bytes.length > MAX_MODEL_SIZE ||
-    bytes.subarray(0, 4).toString() !== 'IDST'
-  ) {
-    throw new Error(`Match asset is not a valid GoldSrc model: ${asset.path}`)
-  }
-  const actualHash = createHash('sha256').update(bytes).digest('hex')
-  if (!actualHash.startsWith(expectedHash)) {
-    throw new Error(`Match asset integrity check failed: ${asset.path}`)
+  if (await hasExpectedHash(destination, expectedHash)) {
+    console.info('[MatchAssets] using cached asset', { matchId, path: asset.path })
+    return
   }
 
+  console.info('[MatchAssets] downloading asset', { matchId, path: asset.path, destination })
+  const bytes = await fetchAssetBytes(apiUrl, matchId, asset, token, expectedHash, signal)
   await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
   const temporary = `${destination}.${randomUUID()}.partial`
   try {
     await writeFile(temporary, bytes, { mode: 0o600 })
     await rename(temporary, destination)
+    console.info('[MatchAssets] asset installed', {
+      matchId,
+      path: asset.path,
+      destination,
+      bytes: bytes.length
+    })
   } finally {
     await unlink(temporary).catch(() => undefined)
   }
+}
+
+export interface SkinAssetSyncProgress {
+  status: 'syncing' | 'ready' | 'error'
+  completedFiles: number
+  totalFiles: number
+  message?: string
+}
+
+interface CatalogAsset {
+  path: string
+  sha256: string
+}
+
+const isCatalogAsset = (value: unknown): value is CatalogAsset => {
+  if (typeof value !== 'object' || value === null) return false
+  const asset = value as Record<string, unknown>
+  if (
+    typeof asset.path !== 'string' ||
+    !CATALOG_ASSET_PATH.test(asset.path) ||
+    asset.path.includes('..') ||
+    typeof asset.sha256 !== 'string' ||
+    !SHA256.test(asset.sha256)
+  ) {
+    return false
+  }
+  const pathHash = ASSET_PATH.exec(asset.path)?.[1]
+  return !pathHash || asset.sha256.startsWith(pathHash)
+}
+
+let skinSyncTask: Promise<void> | null = null
+
+const syncSkinAssets = async (
+  apiUrl: string,
+  onProgress: (progress: SkinAssetSyncProgress) => void
+): Promise<void> => {
+  const token = getSessionToken()
+  if (!token) return
+  console.info('[MatchAssets] catalog sync started', { apiUrl })
+  const base = new URL(apiUrl)
+  const response = await fetch(new URL('/skins/assets/manifest', base), {
+    headers: { authorization: `Bearer ${token}` },
+    redirect: 'error',
+    signal: AbortSignal.timeout(30_000)
+  })
+  console.info('[MatchAssets] catalog response received', {
+    status: response.status,
+    contentType: response.headers.get('content-type')
+  })
+  if (!response.ok) throw new Error(`Could not load skin asset catalog (${response.status}).`)
+  const payload: unknown = await response.json().catch(() => null)
+  const assets =
+    typeof payload === 'object' &&
+    payload !== null &&
+    Array.isArray((payload as { assets?: unknown }).assets)
+      ? (payload as { assets: unknown[] }).assets
+      : null
+  if (!assets || !assets.every(isCatalogAsset)) {
+    throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
+  }
+  const catalog = assets as CatalogAsset[]
+  const assetRoot = join(await getGameDirectory(), 'cstrike')
+  console.info('[MatchAssets] catalog loaded', {
+    entries: catalog.length,
+    assetRoot
+  })
+  let completedFiles = 0
+  console.info('[MatchAssets] catalog progress', {
+    completedFiles,
+    totalFiles: catalog.length
+  })
+  onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+  await runWithConcurrency(
+    catalog.map((asset) => async () => {
+      console.info('[MatchAssets] catalog asset started', { path: asset.path })
+      const destination = catalogDestinationFor(assetRoot, asset.path)
+      if (!(await hasExpectedHash(destination, asset.sha256))) {
+        const fileUrl = new URL('/skins/assets/file', base)
+        fileUrl.searchParams.set('path', asset.path)
+        const result = await fetch(fileUrl, {
+          headers: { authorization: `Bearer ${token}` },
+          redirect: 'error',
+          signal: AbortSignal.timeout(90_000)
+        })
+        console.info('[MatchAssets] catalog asset response received', {
+          path: asset.path,
+          status: result.status,
+          contentType: result.headers.get('content-type'),
+          contentLength: result.headers.get('content-length')
+        })
+        if (!result.ok) throw new Error(`Could not download ${asset.path} (${result.status}).`)
+        if (!result.headers.get('content-type')?.startsWith('application/octet-stream')) {
+          throw new Error(`Skin asset server returned an invalid content type: ${asset.path}`)
+        }
+        const bytes = Buffer.from(await result.arrayBuffer())
+        console.info('[MatchAssets] catalog asset body received', {
+          path: asset.path,
+          bytes: bytes.length
+        })
+        if (
+          bytes.length < 16 ||
+          bytes.length > MAX_MODEL_SIZE ||
+          bytes.subarray(0, 4).toString() !== 'IDST'
+        )
+          throw new Error(`Skin asset is not a valid GoldSrc model: ${asset.path}`)
+        const actualHash = createHash('sha256').update(bytes).digest('hex')
+        if (actualHash !== asset.sha256) {
+          throw new Error(`Skin asset integrity check failed: ${asset.path}`)
+        }
+        await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
+        const temporary = `${destination}.${randomUUID()}.partial`
+        try {
+          await writeFile(temporary, bytes, { mode: 0o600 })
+          if (!(await hasExpectedHash(temporary, asset.sha256))) {
+            throw new Error(`Skin asset failed on-disk hash validation: ${asset.path}`)
+          }
+          await rename(temporary, destination)
+          console.info('[MatchAssets] catalog asset installed', {
+            path: asset.path,
+            destination,
+            bytes: bytes.length
+          })
+        } finally {
+          await unlink(temporary).catch(() => undefined)
+        }
+      }
+      completedFiles += 1
+      console.info('[MatchAssets] catalog progress', {
+        completedFiles,
+        totalFiles: catalog.length,
+        path: asset.path
+      })
+      onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+    })
+  )
+  onProgress({ status: 'ready', completedFiles: catalog.length, totalFiles: catalog.length })
+  console.info('[MatchAssets] catalog sync ready', { count: catalog.length })
+}
+
+export const startSkinAssetSync = (
+  apiUrl: string,
+  onProgress: (progress: SkinAssetSyncProgress) => void
+): Promise<void> => {
+  if (skinSyncTask) return skinSyncTask
+  skinSyncTask = syncSkinAssets(apiUrl, onProgress)
+    .catch((error: unknown) => {
+      console.error('[MatchAssets] catalog sync failed', {
+        error: error instanceof Error ? error.message : String(error)
+      })
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code?: unknown }).code)
+          : ''
+      const message =
+        code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
+          ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
+          : error instanceof Error &&
+              error.message.includes('Choose your Counter-Strike executable')
+            ? 'Choose your Counter-Strike executable in Settings to download skin assets.'
+            : 'Could not download skin assets. Check your connection and try again.'
+      onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })
+      throw error
+    })
+    .finally(() => {
+      skinSyncTask = null
+    })
+  return skinSyncTask
 }
 
 const runWithConcurrency = async (tasks: Array<() => Promise<void>>): Promise<void> => {
@@ -146,25 +452,62 @@ const runWithConcurrency = async (tasks: Array<() => Promise<void>>): Promise<vo
   await Promise.all(Array.from({ length: Math.min(DOWNLOAD_CONCURRENCY, tasks.length) }, worker))
 }
 
-const loadManifest = async (manifestUrl: URL, token: string): Promise<MatchAssetsResponse> => {
-  for (let attempt = 0; attempt < MANIFEST_RETRY_COUNT; attempt += 1) {
-    const response = await fetch(manifestUrl, {
-      headers: { authorization: `Bearer ${token}` },
-      redirect: 'error',
-      signal: AbortSignal.timeout(15_000)
-    })
-    if (response.ok) {
-      const payload: unknown = await response.json().catch(() => null)
-      if (!isMatchAssetsResponse(payload)) throw new Error('Match asset manifest is invalid.')
-      return payload
+const loadManifest = async (
+  manifestUrl: URL,
+  token: string,
+  signal: AbortSignal
+): Promise<MatchAssetsResponse> => {
+  console.info('[MatchAssets] manifest request started', {
+    url: manifestUrl.toString(),
+    maxAttempts: MANIFEST_RETRY_COUNT
+  })
+  for (let attempt = 1; attempt <= MANIFEST_RETRY_COUNT; attempt += 1) {
+    try {
+      const response = await fetch(manifestUrl, {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+        signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)])
+      })
+      if (response.ok) {
+        const payload: unknown = await response.json().catch(() => null)
+        if (!isMatchAssetsResponse(payload)) {
+          throw new NonRetryableAssetError('Match asset manifest is invalid.')
+        }
+        console.info('[MatchAssets] manifest loaded', {
+          status: response.status,
+          assetCount: payload.assets.length,
+          attempt
+        })
+        return payload
+      }
+
+      // A match can be assigned just before its asset authorization record is
+      // visible on the regional API. Network outages, rate limits and temporary
+      // server failures should also keep retrying while the match remains active.
+      if (!isRetryableHttpStatus(response.status)) {
+        throw new NonRetryableAssetError(
+          `Could not load required match assets (${response.status}).`
+        )
+      }
+      if (attempt === MANIFEST_RETRY_COUNT) {
+        throw new Error(`Could not load required match assets (${response.status}).`)
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        throw new NonRetryableAssetError('Match asset download was cancelled.')
+      }
+      if (error instanceof NonRetryableAssetError || attempt === MANIFEST_RETRY_COUNT) {
+        throw error
+      }
+      console.warn('[MatchAssets] manifest request failed; retrying', {
+        url: manifestUrl.toString(),
+        attempt,
+        maxAttempts: MANIFEST_RETRY_COUNT,
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
-    // A match can be assigned just before its asset authorization record is
-    // visible on the regional API. Keep preparing rather than falling back to
-    // GoldSrc's slow in-game downloads.
-    if (response.status !== 404 || attempt === MANIFEST_RETRY_COUNT - 1) {
-      throw new Error(`Could not load required match assets (${response.status}).`)
-    }
-    await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, MANIFEST_RETRY_DELAY_MS))
+
+    await delay(retryDelay(MANIFEST_RETRY_DELAY_MS, MANIFEST_RETRY_MAX_DELAY_MS, attempt))
   }
   throw new Error('Could not load required match assets.')
 }
@@ -172,7 +515,8 @@ const loadManifest = async (manifestUrl: URL, token: string): Promise<MatchAsset
 const preload = async (
   matchId: string,
   hostApiUrl: string,
-  onProgress?: (progress: MatchAssetPreloadProgress) => void
+  onProgress: ((progress: MatchAssetPreloadProgress) => void) | undefined,
+  signal: AbortSignal
 ): Promise<void> => {
   if (!/^[a-z0-9-]{36}$/i.test(matchId)) throw new Error('Invalid match ID for asset download.')
   const token = getSessionToken()
@@ -183,8 +527,9 @@ const preload = async (
   }
   const assetRoot = join(await getGameDirectory(), 'cstrike')
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
+  console.info('[MatchAssets] match preload started', { matchId, assetRoot })
   onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })
-  const payload = await loadManifest(manifestUrl, token)
+  const payload = await loadManifest(manifestUrl, token, signal)
 
   const uniqueAssets = new Map<string, MatchAsset>()
   for (const asset of payload.assets) {
@@ -197,11 +542,22 @@ const preload = async (
   console.info('[MatchAssets] preparing match assets', { matchId, count: uniqueAssets.size })
   let completedFiles = 0
   const totalFiles = uniqueAssets.size
+  console.info('[MatchAssets] match download progress', {
+    matchId,
+    completedFiles,
+    totalFiles
+  })
   onProgress?.({ status: 'downloading', completedFiles, totalFiles })
   await runWithConcurrency(
     [...uniqueAssets.values()].map((asset) => async () => {
-      await downloadAsset(apiUrl, matchId, asset, token, assetRoot)
+      await downloadAsset(apiUrl, matchId, asset, token, assetRoot, signal)
       completedFiles += 1
+      console.info('[MatchAssets] match asset progress', {
+        matchId,
+        path: asset.path,
+        completedFiles,
+        totalFiles
+      })
       onProgress?.({ status: 'downloading', completedFiles, totalFiles })
     })
   )
@@ -216,8 +572,30 @@ export const startMatchAssetPreload = (
 ): Promise<void> => {
   const current = preloads.get(matchId)
   if (current) return current
-  const task = preload(matchId, hostApiUrl, onProgress)
+  const controller = new AbortController()
+  const task = preload(matchId, hostApiUrl, onProgress, controller.signal)
   preloads.set(matchId, task)
+  preloadControllers.set(matchId, controller)
+  void task.then(
+    () => {
+      console.info('[MatchAssets] match preload finished', { matchId })
+      if (preloadControllers.get(matchId) === controller) {
+        preloadControllers.delete(matchId)
+      }
+    },
+    (error: unknown) => {
+      console.error('[MatchAssets] match preload failed', {
+        matchId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      // Do not leave a rejected preload cached. After connectivity returns the
+      // recovered match_connect event must be able to start a fresh preload.
+      if (preloads.get(matchId) === task) preloads.delete(matchId)
+      if (preloadControllers.get(matchId) === controller) {
+        preloadControllers.delete(matchId)
+      }
+    }
+  )
   return task
 }
 
@@ -228,5 +606,8 @@ export const waitForMatchAssetPreload = async (matchId: string): Promise<void> =
 }
 
 export const clearMatchAssetPreload = (matchId: string): void => {
+  console.info('[MatchAssets] match preload cancelled', { matchId })
+  preloadControllers.get(matchId)?.abort()
+  preloadControllers.delete(matchId)
   preloads.delete(matchId)
 }

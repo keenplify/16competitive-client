@@ -1,9 +1,15 @@
 import { app } from 'electron'
+import { randomBytes } from 'node:crypto'
+import { createSocket } from 'node:dgram'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmaking'
+
+type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
+
+const LATENCY_PROBE_TIMEOUT_MS = 1_500
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
 
@@ -20,6 +26,20 @@ const isApiUrl = (value: unknown): value is string => {
   }
 }
 
+const isLatencyProbe = (value: unknown): value is NonNullable<MatchmakingNode['latencyProbe']> => {
+  if (!isObject(value)) return false
+  const { host, port } = value
+  return (
+    typeof host === 'string' &&
+    host.length > 0 &&
+    host.length <= 253 &&
+    typeof port === 'number' &&
+    Number.isInteger(port) &&
+    port > 0 &&
+    port <= 65_535
+  )
+}
+
 const isNode = (value: unknown): value is MatchmakingNode =>
   isObject(value) &&
   typeof value.id === 'string' &&
@@ -29,6 +49,7 @@ const isNode = (value: unknown): value is MatchmakingNode =>
   value.region.length > 0 &&
   value.region.length <= 32 &&
   isApiUrl(value.publicApiUrl) &&
+  (value.latencyProbe === undefined || isLatencyProbe(value.latencyProbe)) &&
   typeof value.capacity === 'number' &&
   Number.isFinite(value.capacity) &&
   typeof value.activeConnections === 'number' &&
@@ -36,6 +57,61 @@ const isNode = (value: unknown): value is MatchmakingNode =>
   typeof value.activeMatches === 'number' &&
   Number.isFinite(value.activeMatches) &&
   typeof value.available === 'boolean'
+
+const measuredLatency = (node: MatchmakingNode): number | null => {
+  const latencyMs = (node as Partial<MeasuredMatchmakingNode>).latencyMs
+  return typeof latencyMs === 'number' && Number.isFinite(latencyMs) ? latencyMs : null
+}
+
+const probeUdpLatency = (
+  probe: NonNullable<MatchmakingNode['latencyProbe']>
+): Promise<number | null> =>
+  new Promise((resolve) => {
+    const socket = createSocket('udp4')
+    const nonce = randomBytes(16)
+    const startedAt = performance.now()
+    let settled = false
+    const finish = (latencyMs: number | null): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      socket.close()
+      resolve(latencyMs)
+    }
+    const timeout = setTimeout(() => finish(null), LATENCY_PROBE_TIMEOUT_MS)
+    socket.once('error', () => finish(null))
+    socket.on('message', (message) => {
+      if (message.length === nonce.length && message.equals(nonce)) {
+        finish(Math.max(0, Math.round(performance.now() - startedAt)))
+      }
+    })
+    socket.send(nonce, probe.port, probe.host, (error) => {
+      if (error) finish(null)
+    })
+  })
+
+const probeNodeLatency = async (node: MatchmakingNode): Promise<number | null> => {
+  if (!node.available) return null
+  if (node.latencyProbe) {
+    const latencyMs = await probeUdpLatency(node.latencyProbe)
+    if (latencyMs !== null) return latencyMs
+  }
+  const startedAt = performance.now()
+  try {
+    await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
+    return Math.max(0, Math.round(performance.now() - startedAt))
+  } catch {
+    return null
+  }
+}
+
+const attachNodeLatencies = async (nodes: MatchmakingNode[]): Promise<MatchmakingNode[]> =>
+  Promise.all(
+    nodes.map(async (node) => ({
+      ...node,
+      latencyMs: await probeNodeLatency(node)
+    }))
+  )
 
 export const getMatchmakingPreferences = async (): Promise<MatchmakingPreferences> => {
   try {
@@ -79,7 +155,54 @@ export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
   if (!response.ok || !isObject(body) || !Array.isArray(body.nodes) || !body.nodes.every(isNode)) {
     throw new Error('The regional matchmaking service returned invalid nodes')
   }
-  return body.nodes
+  return attachNodeLatencies(body.nodes)
+}
+
+export const selectMatchmakingApiUrl = async (
+  nodes: MatchmakingNode[],
+  selectedNodeId: string | null
+): Promise<string | null> => {
+  const selected = nodes.find((node) => node.id === selectedNodeId && node.available)
+  if (selected) return selected.publicApiUrl
+
+  const available = nodes.filter((node) => node.available)
+  if (available.length === 0) return null
+
+  const alreadyMeasured = available
+    .map((node) => ({ node, latency: measuredLatency(node) }))
+    .filter(
+      (measurement): measurement is { node: MatchmakingNode; latency: number } =>
+        measurement.latency !== null
+    )
+    .sort((left, right) => left.latency - right.latency)
+
+  if (alreadyMeasured.length > 0) return alreadyMeasured[0].node.publicApiUrl
+
+  const measurements = await Promise.all(
+    available.map(async (node) => ({ node, latency: await probeNodeLatency(node) }))
+  )
+
+  return (
+    measurements
+      .filter(
+        (measurement): measurement is { node: MatchmakingNode; latency: number } =>
+          measurement.latency !== null
+      )
+      .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
+    available[0].publicApiUrl
+  )
+}
+
+export const resolvePreferredMatchmakingApiUrl = async (): Promise<string> => {
+  try {
+    const [nodes, preferences] = await Promise.all([
+      getMatchmakingNodes(),
+      getMatchmakingPreferences()
+    ])
+    return (await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)) ?? API_BASE_URL
+  } catch {
+    return API_BASE_URL
+  }
 }
 
 export const toMatchmakingWsUrl = (apiUrl: string): string => {

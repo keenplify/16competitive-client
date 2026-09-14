@@ -3,24 +3,11 @@ import { twMerge } from 'tailwind-merge'
 import type { PartyMember } from '../../../../shared/party'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useGameSettingsStore } from '../settings/game-settings.store'
-
-const PLAYER_MODELS = [
-  'player/arctic/arctic.mdl',
-  'player/gign/gign.mdl',
-  'player/gsg9/gsg9.mdl',
-  'player/guerilla/guerilla.mdl',
-  'player/leet/leet.mdl',
-  'player/sas/sas.mdl',
-  'player/terror/terror.mdl',
-  'player/urban/urban.mdl'
-] as const
-
-const modelForSlot = (slot: number, member: PartyMember | null): string => {
-  const seed = member?.id ?? `open-slot-${slot}`
-  let hash = 0
-  for (const character of seed) hash = (hash * 31 + character.charCodeAt(0)) | 0
-  return PLAYER_MODELS[Math.abs(hash + slot * 17) % PLAYER_MODELS.length]
-}
+import { modelForSlot } from './party-models'
+const AK47_MODEL_ROTATION = [0, 90, 90] as const
+const AK47_HAND_ROTATION = [0, 180, 0] as const
+const PLAYER_ROOT_BONE_ROTATION = [0, 0, 0] as const
+const AK47_HAND_OFFSET = [21, 0, 4] as const
 
 interface PartyPlayerSlotProps {
   slot: number
@@ -48,8 +35,13 @@ export function PartyPlayerSlot({
     >
       <ModelViewer
         modelPath={modelForSlot(slot, member)}
+        attachedModelPath="p_ak47.mdl"
+        attachedModelRotation={AK47_MODEL_ROTATION}
+        attachedModelHandRotation={AK47_HAND_ROTATION}
+        attachedModelHandOffset={AK47_HAND_OFFSET}
         sourceRevision={installationPath ?? 'unloaded'}
-        animation="idle1"
+        animation="ref_aim_ak47"
+        modelRootBoneRotation={PLAYER_ROOT_BONE_ROTATION}
         maxFrameRate={30}
         cameraLocked
         className="absolute inset-0"

@@ -9,8 +9,11 @@ import {
   prepareRenderData,
   createModelMeshes,
   createContainer,
-  createTexture
+  createTexture,
+  applyBoneTransforms,
+  applyRootBoneRotation
 } from '../lib/modelRenderer'
+import { readFacesData } from '../lib/geometryBuilder'
 import { createModelController, ModelController } from '../lib/modelController'
 import {
   createOrbitControls,
@@ -20,6 +23,7 @@ import {
   createTimer,
   createScene
 } from '../lib/screneRenderer'
+import { calcRotations } from '../lib/geometryTransformer'
 import THREE from '../lib/three'
 
 export type WindowSize = {
@@ -115,6 +119,14 @@ const useAnimationFrame = function <T extends (...args: unknown[]) => void>(call
 
 type Props = {
   modelBuffer: ArrayBuffer
+  modelRootBoneRotation?: readonly [number, number, number]
+  /** Optional static world-model companion, positioned in the primary model's coordinate space. */
+  attachedModelBuffer?: ArrayBuffer
+  attachedModelRotation?: readonly [number, number, number]
+  /** Additional companion rotation applied in the player hand's coordinate space. */
+  attachedModelHandRotation?: readonly [number, number, number]
+  /** Hand-local XYZ delta applied after companion bone merging. */
+  attachedModelHandOffset?: readonly [number, number, number]
   setModelController: (controller: ModelController) => void
   setModelData: (modelData: ModelData) => void
   camera?: ModelViewerCamera
@@ -271,7 +283,8 @@ export const Renderer = (props: Props): React.JSX.Element => {
     try {
       const preparedRenderData = prepareRenderData(
         modelData,
-        props.animation === undefined ? undefined : [animationIndex]
+        props.animation === undefined ? undefined : [animationIndex],
+        props.modelRootBoneRotation
       )
       console.info('[HLMV] Render data prepared', {
         milliseconds: Math.round(performance.now() - startedAt)
@@ -284,7 +297,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
       })
       throw error
     }
-  }, [animationIndex, modelData, props.animation])
+  }, [animationIndex, modelData, props.animation, props.modelRootBoneRotation])
 
   // Textures preparing
   const textures = React.useMemo(() => {
@@ -384,6 +397,139 @@ export const Renderer = (props: Props): React.JSX.Element => {
       )
     )
 
+    // GoldSrc renders third-person weapons with EF_BONEMERGE: weapon bones
+    // adopt matching player-model bones. Preserve that relationship here.
+    if (props.attachedModelBuffer) {
+      const attachedModelData = parseModelCached(props.attachedModelBuffer)
+      const attachedTextures = attachedModelData.textures.map((texture) =>
+        buildTexture(props.attachedModelBuffer!, texture)
+      )
+      const playerBoneIndices = new Map(
+        modelData.bones.map((bone, index) => [bone.name.toLowerCase(), index])
+      )
+      const rightHandBone = modelData.bones.findIndex((bone) =>
+        bone.name.toLowerCase().includes('r hand')
+      )
+      const companionBoneMap = attachedModelData.bones.map(
+        (bone) => playerBoneIndices.get(bone.name.toLowerCase()) ?? rightHandBone
+      )
+      const playerFrames = Array.from(
+        { length: modelData.sequences[animationIndex].numFrames },
+        (_, frame) =>
+          applyRootBoneRotation(
+            calcRotations(modelData, animationIndex, frame),
+            props.modelRootBoneRotation
+          )
+      )
+
+      attachedModelData.meshes.forEach((bodyPart, bodyPartIndex) =>
+        bodyPart.forEach((subModel, subModelIndex) =>
+          subModel.forEach((sourceMesh, meshIndex) => {
+            const textureIndex = attachedModelData.skinRef[sourceMesh.skinRef]
+            const textureInfo = attachedModelData.textures[textureIndex]
+            const { vertices, uv, indices } = readFacesData(
+              attachedModelData.triangles[bodyPartIndex][subModelIndex][meshIndex],
+              attachedModelData.vertices[bodyPartIndex][subModelIndex],
+              textureInfo ?? { width: 1, height: 1 }
+            )
+            const mergedBoneBuffer = Uint8Array.from(
+              attachedModelData.vertBoneBuffer[bodyPartIndex][subModelIndex],
+              (boneIndex) => companionBoneMap[boneIndex] ?? rightHandBone
+            )
+            const companionRotation = props.attachedModelRotation
+              ? new THREE.Matrix4().makeRotationFromEuler(
+                  new THREE.Euler(
+                    ...props.attachedModelRotation.map((degrees) => THREE.Math.degToRad(degrees))
+                  )
+                )
+              : undefined
+            const positionedVertices = companionRotation
+              ? new Float32Array(
+                  Array.from({ length: vertices.length / 3 }, (_, index) => {
+                    const vertex = new THREE.Vector3(
+                      vertices[index * 3],
+                      vertices[index * 3 + 1],
+                      vertices[index * 3 + 2]
+                    ).applyMatrix4(companionRotation)
+                    return [vertex.x, vertex.y, vertex.z]
+                  }).flat()
+                )
+              : vertices
+            const animationFrames = playerFrames.map((boneTransforms) => {
+              const skinnedVertices = applyBoneTransforms(
+                positionedVertices,
+                indices,
+                mergedBoneBuffer,
+                boneTransforms
+              )
+              if (
+                (props.attachedModelHandRotation || props.attachedModelHandOffset) &&
+                rightHandBone >= 0
+              ) {
+                const handTransform = new THREE.Matrix4().fromArray(
+                  boneTransforms[rightHandBone] as unknown as number[]
+                )
+                const localRotation = new THREE.Matrix4().makeRotationFromEuler(
+                  new THREE.Euler(
+                    ...(props.attachedModelHandRotation ?? [0, 0, 0]).map((degrees) =>
+                      THREE.Math.degToRad(degrees)
+                    )
+                  )
+                )
+                const handRotation = handTransform
+                  .clone()
+                  .multiply(localRotation)
+                  .multiply(new THREE.Matrix4().getInverse(handTransform))
+                const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
+                const handOffset = props.attachedModelHandOffset
+                  ? new THREE.Vector3(...props.attachedModelHandOffset)
+                      .applyMatrix4(handTransform)
+                      .sub(handOrigin)
+                  : new THREE.Vector3()
+
+                for (let index = 0; index < skinnedVertices.length; index += 3) {
+                  const vertex = new THREE.Vector3(
+                    skinnedVertices[index],
+                    skinnedVertices[index + 1],
+                    skinnedVertices[index + 2]
+                  ).applyMatrix4(handRotation)
+                  skinnedVertices[index] = vertex.x + handOffset.x
+                  skinnedVertices[index + 1] = vertex.y + handOffset.y
+                  skinnedVertices[index + 2] = vertex.z + handOffset.z
+                }
+              }
+
+              return new THREE.BufferAttribute(skinnedVertices, 3)
+            })
+            const geometry = new THREE.BufferGeometry()
+            geometry.addAttribute(
+              'position',
+              animationFrames[0] ?? new THREE.BufferAttribute(positionedVertices, 3)
+            )
+            geometry.addAttribute('uv', new THREE.BufferAttribute(uv, 2))
+            const material = new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              side: THREE.DoubleSide,
+              transparent: true,
+              alphaTest: 0.5
+            })
+
+            if (attachedTextures[textureIndex] && textureInfo) {
+              material.map = createTexture(
+                attachedTextures[textureIndex],
+                textureInfo.width,
+                textureInfo.height
+              )
+            }
+
+            const mesh = new THREE.Mesh(geometry, material)
+            mesh.userData.animationFrames = animationFrames
+            fallback.add(mesh)
+          })
+        )
+      )
+    }
+
     fallback.rotation.copy(container.rotation)
     fallback.updateMatrixWorld(true)
 
@@ -400,7 +546,18 @@ export const Renderer = (props: Props): React.JSX.Element => {
     }
 
     return fallback
-  }, [animationIndex, container, meshesRenderData, modelData, textures])
+  }, [
+    animationIndex,
+    container,
+    meshesRenderData,
+    modelData,
+    props.modelRootBoneRotation,
+    props.attachedModelBuffer,
+    props.attachedModelHandOffset,
+    props.attachedModelHandRotation,
+    props.attachedModelRotation,
+    textures
+  ])
 
   const fallbackAnimationTime = React.useRef(0)
   React.useEffect(() => {
@@ -549,10 +706,11 @@ export const Renderer = (props: Props): React.JSX.Element => {
         const frame =
           Math.floor(fallbackAnimationTime.current * activeSequence.fps) % activeSequence.numFrames
 
-        fallbackContainer.children.forEach((child) => {
+        fallbackContainer.traverse((child) => {
+          if (!(child as THREE.Mesh).isMesh) return
           const mesh = child as THREE.Mesh
-          const frames = mesh.userData.geometryBuffers?.[animationIndex] as
-            THREE.BufferAttribute[] | undefined
+          const frames = (mesh.userData.animationFrames ??
+            mesh.userData.geometryBuffers?.[animationIndex]) as THREE.BufferAttribute[] | undefined
           const sourcePosition = frames?.[frame]
           const position = (mesh.geometry as THREE.BufferGeometry).getAttribute(
             'position'

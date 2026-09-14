@@ -1,13 +1,20 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, normalize } from 'node:path'
+import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
+import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 
 interface StoredGameSettings {
-  cs16ExecutablePath: string
+  cs16ExecutablePath?: string
+  voicePttKey?: string
+  partyVoicePttKey?: string
 }
 
+const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
+const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
+const PARTY_VOICE_PTT_PREFIX = 'party:'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
+let settingsWriteQueue: Promise<void> = Promise.resolve()
 
 const detectCs16Executable = async (): Promise<string | null> => {
   const home = process.env.HOME ?? ''
@@ -16,14 +23,6 @@ const detectCs16Executable = async (): Promise<string | null> => {
       ? [
           join(
             process.env.LOCALAPPDATA ?? '',
-            'Steam',
-            'steamapps',
-            'common',
-            'Half-Life',
-            'hl.exe'
-          ),
-          join(
-            process.env.PROGRAMFILES ?? '',
             'Steam',
             'steamapps',
             'common',
@@ -76,31 +75,135 @@ const validateExecutable = async (
   return executablePath
 }
 
-const readStoredPath = async (): Promise<string | null> => {
+const readStoredSettings = async (): Promise<StoredGameSettings> => {
   try {
     const parsed = JSON.parse(await readFile(configPath(), 'utf8')) as unknown
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      typeof (parsed as Partial<StoredGameSettings>).cs16ExecutablePath !== 'string'
-    ) {
-      return null
+    if (typeof parsed !== 'object' || parsed === null) return {}
+    const settings = parsed as Partial<StoredGameSettings>
+    return {
+      ...(typeof settings.cs16ExecutablePath === 'string'
+        ? { cs16ExecutablePath: settings.cs16ExecutablePath }
+        : {}),
+      ...(typeof settings.voicePttKey === 'string' ? { voicePttKey: settings.voicePttKey } : {}),
+      ...(typeof settings.partyVoicePttKey === 'string'
+        ? { partyVoicePttKey: settings.partyVoicePttKey }
+        : {})
     }
-    return await validateExecutable((parsed as StoredGameSettings).cs16ExecutablePath)
+  } catch {
+    return {}
+  }
+}
+
+const writeStoredSettings = (settings: StoredGameSettings): Promise<void> => {
+  const write = async (): Promise<void> => {
+    const destination = configPath()
+    const temporary = `${destination}.${process.pid}.tmp`
+    await mkdir(dirname(destination), { recursive: true })
+    await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600
+    })
+    await rename(temporary, destination)
+    if (process.platform !== 'win32') await chmod(destination, 0o600)
+  }
+  const pending = settingsWriteQueue.then(write, write)
+  settingsWriteQueue = pending.catch(() => undefined)
+  return pending
+}
+
+const validateStoredPath = async (settings: StoredGameSettings): Promise<string | null> => {
+  if (!settings.cs16ExecutablePath) return null
+  try {
+    return await validateExecutable(settings.cs16ExecutablePath)
   } catch {
     return null
   }
 }
 
-export const getGameSettings = async (): Promise<GameSettings> => {
-  const stored = await readStoredPath()
-  if (stored) return { cs16ExecutablePath: stored, configFilePath: configPath() }
-  const detected = await detectCs16Executable()
-  if (detected) {
-    await saveGameSettings(detected)
-    return { cs16ExecutablePath: detected, configFilePath: configPath() }
+const gameDirectoryForExecutable = (executablePath: string): string => {
+  const configuredDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
+  return configuredDirectory ? resolve(configuredDirectory) : dirname(executablePath)
+}
+
+const resolveTeamVoicePttKey = async (
+  storedSettings: StoredGameSettings,
+  executablePath: string | null
+): Promise<string> => {
+  if (storedSettings.voicePttKey) {
+    try {
+      return normalizeVoicePttKey(storedSettings.voicePttKey)
+    } catch {
+      // Fall through to the player's current GoldSrc bind or the launcher default.
+    }
   }
-  return { cs16ExecutablePath: null, configFilePath: configPath() }
+
+  if (executablePath) {
+    const currentGoldSrcKey = await readVoicePttKey(gameDirectoryForExecutable(executablePath))
+    if (currentGoldSrcKey) return currentGoldSrcKey
+  }
+
+  return DEFAULT_TEAM_VOICE_PTT_KEY
+}
+
+const resolvePartyVoicePttKey = (
+  storedSettings: StoredGameSettings,
+  teamVoicePttKey: string
+): string => {
+  if (storedSettings.partyVoicePttKey) {
+    try {
+      const savedKey = normalizeVoicePttKey(storedSettings.partyVoicePttKey)
+      if (savedKey.toLowerCase() !== teamVoicePttKey.toLowerCase()) return savedKey
+    } catch {
+      // Fall through to the launcher default.
+    }
+  }
+
+  if (DEFAULT_PARTY_VOICE_PTT_KEY !== teamVoicePttKey) return DEFAULT_PARTY_VOICE_PTT_KEY
+  return 'B'
+}
+
+const buildSettings = (
+  cs16ExecutablePath: string | null,
+  teamVoicePttKey: string,
+  partyVoicePttKey: string
+): GameSettings => ({
+  cs16ExecutablePath,
+  configFilePath: configPath(),
+  // Keep voicePttKey as the team binding for compatibility with older renderer code.
+  voicePttKey: teamVoicePttKey,
+  // Index 0 is Team, index 1 is Party. This preserves the existing IPC contract.
+  voicePttKeys: [teamVoicePttKey, partyVoicePttKey]
+})
+
+const persistResolvedSettings = async (
+  cs16ExecutablePath: string | null,
+  teamVoicePttKey: string,
+  partyVoicePttKey: string
+): Promise<void> => {
+  await writeStoredSettings({
+    ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
+    voicePttKey: teamVoicePttKey,
+    partyVoicePttKey
+  })
+}
+
+const resolveVoicePttKeys = async (
+  storedSettings: StoredGameSettings,
+  executablePath: string | null
+): Promise<{ team: string; party: string }> => {
+  const team = await resolveTeamVoicePttKey(storedSettings, executablePath)
+  return { team, party: resolvePartyVoicePttKey(storedSettings, team) }
+}
+
+export const getGameSettings = async (): Promise<GameSettings> => {
+  const storedSettings = await readStoredSettings()
+  let cs16ExecutablePath = await validateStoredPath(storedSettings)
+  if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
+
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+
+  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
 }
 
 export const chooseCs16Executable = async (): Promise<string | null> => {
@@ -118,16 +221,48 @@ export const chooseCs16Executable = async (): Promise<string | null> => {
 
 export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSettings> => {
   const cs16ExecutablePath = await validateExecutable(untrustedPath, true)
-  const destination = configPath()
-  const temporary = `${destination}.tmp`
-  await mkdir(dirname(destination), { recursive: true })
-  await writeFile(temporary, `${JSON.stringify({ cs16ExecutablePath }, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600
-  })
-  await rename(temporary, destination)
-  if (process.platform !== 'win32') await chmod(destination, 0o600)
-  return { cs16ExecutablePath, configFilePath: destination }
+  const storedSettings = await readStoredSettings()
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
 }
 
-export const getSavedCs16Executable = readStoredPath
+export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettings> => {
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  const current = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+
+  let teamVoicePttKey = current.team
+  let partyVoicePttKey = current.party
+  if (typeof untrustedKey === 'string' && untrustedKey.startsWith(PARTY_VOICE_PTT_PREFIX)) {
+    partyVoicePttKey = normalizeVoicePttKey(untrustedKey.slice(PARTY_VOICE_PTT_PREFIX.length))
+  } else {
+    teamVoicePttKey = normalizeVoicePttKey(untrustedKey)
+  }
+
+  if (teamVoicePttKey.toLowerCase() === partyVoicePttKey.toLowerCase()) {
+    throw new Error('Team and Party talk need different push-to-talk keys.')
+  }
+
+  await persistResolvedSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
+  return buildSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
+}
+
+export const getSavedCs16Executable = async (): Promise<string | null> => {
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  if (!cs16ExecutablePath) return null
+
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  if (storedSettings.voicePttKey !== keys.team || storedSettings.partyVoicePttKey !== keys.party) {
+    await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+  }
+  return cs16ExecutablePath
+}
+
+export const getSavedVoicePttKey = async (): Promise<string> => {
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  return `${keys.team}|${keys.party}`
+}

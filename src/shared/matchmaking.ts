@@ -10,6 +10,9 @@ export const MATCHMAKING_CHANNELS = {
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
   reconnectGame: 'matchmaking:reconnect-game',
+  voiceJoin: 'matchmaking:voice-join',
+  voiceLeave: 'matchmaking:voice-leave',
+  voiceSignal: 'matchmaking:voice-signal',
   event: 'matchmaking:event'
 } as const
 
@@ -29,6 +32,24 @@ export interface QueuedPlayer {
   mmr: number
 }
 
+export interface VoicePeer {
+  id: string
+  username: string
+}
+
+export interface VoiceContext {
+  kind: 'party' | 'match'
+  id: string
+}
+
+export type VoiceSignalType = 'offer' | 'answer' | 'ice'
+
+export interface VoiceIceServer {
+  urls: string | string[]
+  username?: string
+  credential?: string
+}
+
 export interface MatchmakingMap {
   id: string
   displayName: string
@@ -41,10 +62,15 @@ export interface MatchmakingNode {
   id: string
   region: string
   publicApiUrl: string
+  latencyProbe?: {
+    host: string
+    port: number
+  }
   capacity: number
   activeConnections: number
   activeMatches: number
   available: boolean
+  latencyMs?: number | null
 }
 
 export interface MatchmakingPreferences {
@@ -110,7 +136,29 @@ export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
 
 export type MatchmakingServerMessage =
   | { type: 'connected'; authenticated: false }
+  | {
+      type: 'server_restarting'
+      message: string
+      restartInMs: number
+      retryAfterMs: number
+    }
   | { type: 'authenticated'; player: QueuedPlayer }
+  | {
+      type: 'voice_session'
+      context: VoiceContext
+      peers: VoicePeer[]
+      iceServers: VoiceIceServer[]
+      iceTransportPolicy: 'relay'
+    }
+  | { type: 'voice_peer_joined'; context: VoiceContext; peer: VoicePeer }
+  | { type: 'voice_peer_left'; context: VoiceContext; playerId: string }
+  | {
+      type: 'voice_signal'
+      context: VoiceContext
+      fromPlayerId: string
+      signalType: VoiceSignalType
+      signal: string
+    }
   | {
       type: 'queue_joined'
       mode: MatchmakingMode
@@ -138,6 +186,8 @@ export type MatchmakingServerMessage =
   | { type: 'party_invitation_received' }
   | { type: 'party_updated' }
   | { type: 'party_disbanded' }
+  | { type: 'friend_request_received' }
+  | { type: 'friends_updated' }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
   | GlobalChatMessage
@@ -178,7 +228,11 @@ export type MatchmakingServerMessage =
   | {
       type: 'match_cancelled'
       matchId: string
-      reason: 'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED'
+      reason:
+        | 'PLAYER_DECLINED'
+        | 'PLAYER_NOT_READY'
+        | 'SERVER_START_FAILED'
+        | 'PLAYER_DID_NOT_CONNECT'
       message: string
     }
   | {
@@ -214,6 +268,13 @@ export type MatchmakingEvent =
       completedFiles: number
       totalFiles: number
     }
+  | {
+      type: 'skin_assets_sync_progress'
+      status: 'syncing' | 'ready' | 'error'
+      completedFiles: number
+      totalFiles: number
+      message?: string
+    }
   | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }
   | {
       type: 'connection_state'
@@ -226,11 +287,20 @@ export interface MatchmakingApi {
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>
-  joinQueue(mode: MatchmakingMode, mapIds: string[], allowRegionExpansion: boolean): Promise<void>
+  joinQueue(
+    mode: MatchmakingMode,
+    mapIds: string[],
+    allowRegionExpansion: boolean,
+    preferredRegion?: string | null,
+    eligibleRegions?: string[]
+  ): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMap[]>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
+  voiceJoin(context: VoiceContext): Promise<void>
+  voiceLeave(): Promise<void>
+  voiceSignal(targetPlayerId: string, signalType: VoiceSignalType, signal: string): Promise<void>
   onEvent(listener: (event: MatchmakingEvent) => void): () => void
 }
