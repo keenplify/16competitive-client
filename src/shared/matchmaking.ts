@@ -62,6 +62,10 @@ export interface MatchmakingNode {
   id: string
   region: string
   publicApiUrl: string
+  latencyProbe?: {
+    host: string
+    port: number
+  }
   capacity: number
   activeConnections: number
   activeMatches: number
