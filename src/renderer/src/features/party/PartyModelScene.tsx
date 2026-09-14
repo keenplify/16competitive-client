@@ -56,14 +56,14 @@ const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
 // A weapon may provide multiple transforms when it needs multiple model instances.
 const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransform[]> = {
   ak47: {
-    modelRotation: [0, 90, 90],
+    modelRotation: [0, 110, 90],
     handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    handOffset: [21, 0, 0.5]
   },
   m4a1: {
-    modelRotation: [0, -90, 90],
+    modelRotation: [0, -78, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 3.5]
+    handOffset: [11, 0, 2]
   },
   galil: {
     modelRotation: [0, 90, 90],
@@ -73,7 +73,7 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   famas: {
     modelRotation: [0, 0, 180],
     handRotation: [0, 0, 0],
-    handOffset: [15, 0, 1.5]
+    handOffset: [9, 0, 1.5]
   },
   aug: {
     modelRotation: [90, 0, 0],
@@ -86,34 +86,34 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [21, 0, 4]
   },
   awp: {
-    modelRotation: [0, -90, 90],
+    modelRotation: [0, -75, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 3.5]
+    handOffset: [13, 0, 0.5]
   },
   scout: {
-    modelRotation: [0, -90, 90],
+    modelRotation: [0, -75, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 3.5]
+    handOffset: [9, 0, 3]
   },
   g3sg1: {
-    modelRotation: [0, -90, 90],
+    modelRotation: [0, -70, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 3.5]
+    handOffset: [10, 0, 1]
   },
   sg550: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [15, 0, 3.5]
+    handOffset: [4, 0, 0.5]
   },
   mp5navy: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 90],
-    handOffset: [0, 0, 4]
+    handOffset: [-2, 0, 4]
   },
   tmp: {
     modelRotation: [0, 280, 90],
     handRotation: [0, 180, 0],
-    handOffset: [1, 1, 1]
+    handOffset: [3, -0.5, 1]
   },
   mac10: {
     modelRotation: [0, 280, 90],
@@ -123,12 +123,12 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   ump45: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 0],
-    handOffset: [2, -1, 3]
+    handOffset: [2, -0.5, 0]
   },
   p90: {
-    modelRotation: [0, -90, 90],
+    modelRotation: [0, -80, 90],
     handRotation: [0, 180, 0],
-    handOffset: [2, -1, 3]
+    handOffset: [0, 0, 4]
   },
   usp: {
     modelRotation: [0, 290, 90],
@@ -151,9 +151,9 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [4, 1, 3]
   },
   fiveseven: {
-    modelRotation: [0, 280, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [3, 1, 3]
+    modelRotation: [0, 270, 90],
+    handRotation: [0, 180, 90],
+    handOffset: [6, -0.5, 2.5]
   },
   elite: [
     {
@@ -185,9 +185,9 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [1, 2.5, 4]
   },
   knife: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [2, 1, 1]
+    modelRotation: [0, -13, 90],
+    handRotation: [90, 90, 90],
+    handOffset: [4, -0.5, 3]
   },
   c4: {
     modelRotation: [0, 90, 90],
@@ -698,6 +698,7 @@ export function PartyModelScene({
       if (bounds.width <= 0) return
       const normalizedX = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
       targetCameraX = -11.25 + normalizedX * 22.5
+      // targetCameraX = 90
     }
     window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
