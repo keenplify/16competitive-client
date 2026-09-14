@@ -1,0 +1,56 @@
+ From this machine, I measured:
+
+   Region           UDP probe (27014)    HTTP fallback
+  ━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━
+   SEA                      timed out           113 ms
+  ───────────────  ───────────────────  ───────────────
+   Europe East                 287 ms           561 ms
+  ───────────────  ───────────────────  ───────────────
+   North America            timed out           435 ms
+
+  The launcher falls back to HTTP when UDP port 27014 is blocked. That makes SEA display roughly 113 ms, and means the launcher cannot measure the same UDP route
+  Counter-Strike uses.
+
+  Also, Europe and North America advertise insecure raw-IP endpoints:
+
+  - http://185.70.196.213:3000
+  - http://152.44.43.173:3000
+
+  They should use HTTPS domains, not public HTTP/IP addresses.
+
+  Give this to your backend AI:
+
+  Audit and fix the regional deployment for the 1.6 Competitive backend. Do not change client code unless strictly needed.
+
+  Evidence from an external launcher host:
+  - GET https://16competitive.papamo.dev/nodes returns:
+    - sea-api-1 / sea / https://16competitive.papamo.dev / UDP probe 27014
+    - europe-east-api-1 / europe-east / http://185.70.196.213:3000 / UDP probe 27014
+    - north-america-api-1 / north-america / http://152.44.43.173:3000 / UDP probe 27014
+  - UDP echo probes to SEA and North America port 27014 time out.
+  - Europe UDP 27014 responds.
+  - SEA HTTPS health RTT is about 113 ms from the Philippines.
+
+  Requirements:
+  1. On every regional node, ensure the API starts the existing UDP latency echo service on MATCHMAKING_LATENCY_PROBE_PORT=27014 and binds it publicly.
+  2. Open inbound UDP 27014 in BOTH the server OS firewall and the cloud/provider firewall/security group. Verify from an external host that each node echoes a 16-
+  byte UDP payload.
+  3. Open the GoldSrc game UDP range 27015-27019 in both firewalls too.
+  4. Do not expose raw HTTP API IP addresses. Give each node a stable DNS name and TLS certificate, then set PUBLIC_API_URL to HTTPS:
+     - sea-api.example.com
+     - eu-api.example.com
+     - na-api.example.com
+     Use HTTPS/WSS only in production.
+  5. If using Cloudflare, keep regional API and UDP probe hostnames DNS-only unless the chosen service explicitly supports UDP proxying. Standard Cloudflare
+  proxying will not expose UDP 27014.
+  6. Verify each node has a unique stable NODE_ID and correct REGION, uses the shared production database, and registers as healthy.
+  7. Verify /nodes reports each HTTPS publicApiUrl and latencyProbe host correctly.
+  8. Add a deployment smoke-test script that checks:
+     - HTTPS /health for every node
+     - public UDP echo on port 27014 for every node
+     - /nodes has no http:// URLs, loopback hosts, or raw IP publicApiUrl values
+     - each advertised node is healthy and reachable.
+  9. Preserve the existing regional matchmaking architecture and do not move trusted matchmaking decisions into the Electron client.
+
+  Even after the probe fix, 113 ms to SEA reflects your network route. A Philippines-hosted node is the practical way to get genuinely low ping for you; Europe and
+  North America will naturally remain high.

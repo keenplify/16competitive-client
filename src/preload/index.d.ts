@@ -3,6 +3,7 @@ import type { MatchmakingApi } from '../shared/matchmaking'
 import type { WindowApi } from '../shared/window'
 import type { ModelApi } from '../shared/models'
 import type { PartyApi } from '../shared/party'
+import type { FriendsApi } from '../shared/friends'
 import type { GameSettingsApi } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
@@ -10,11 +11,13 @@ import type { UpdaterApi } from '../shared/updater'
 import type { LeaderboardApi } from '../shared/leaderboard'
 import type { NewsApi } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
+import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
 
 declare global {
   interface Window {
     api: {
       auth: AuthApi
+      friends: FriendsApi
       gameSettings: GameSettingsApi
       leaderboard: LeaderboardApi
       matchmaking: MatchmakingApi
@@ -26,6 +29,7 @@ declare global {
       party: PartyApi
       updater: UpdaterApi
       window: WindowApi
+      diagnosticLogs: DiagnosticLogsApi
     }
   }
 }

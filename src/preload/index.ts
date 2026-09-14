@@ -9,7 +9,9 @@ import type { ModelApi } from '../shared/models'
 import { MODEL_CHANNELS } from '../shared/models'
 import type { PartyApi } from '../shared/party'
 import { PARTY_CHANNELS } from '../shared/party'
-import type { GameSettingsApi } from '../shared/game-settings'
+import type { FriendsApi } from '../shared/friends'
+import { FRIEND_CHANNELS } from '../shared/friends'
+import type { GameSettingsApi, SkinAssetSyncProgress } from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
@@ -23,10 +25,20 @@ import type { NewsApi } from '../shared/news'
 import { NEWS_CHANNELS } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
+import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
+import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
+  social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
+  completeSocial: (provider, pollToken, email) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.socialComplete, provider, pollToken, email),
+  getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
+  connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
+  checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
+  changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
+  changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
@@ -38,14 +50,25 @@ const matchmaking: MatchmakingApi = {
   getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
   setAllowRegionExpansion: (value) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.setAllowRegionExpansion, value),
-  joinQueue: (mode, mapIds, allowRegionExpansion) =>
-    ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinQueue, mode, mapIds, allowRegionExpansion),
+  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) =>
+    ipcRenderer.invoke(
+      MATCHMAKING_CHANNELS.joinQueue,
+      mode,
+      mapIds,
+      allowRegionExpansion,
+      preferredRegion,
+      eligibleRegions
+    ),
   leaveQueue: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveQueue),
   getQueueStatus: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getQueueStatus),
   getMaps: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getMaps),
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  voiceJoin: (context) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceJoin, context),
+  voiceLeave: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceLeave),
+  voiceSignal: (targetPlayerId, signalType, signal) =>
+    ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceSignal, targetPlayerId, signalType, signal),
   onEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, message: MatchmakingEvent): void =>
       listener(message)
@@ -56,6 +79,7 @@ const matchmaking: MatchmakingApi = {
 
 const windowApi: WindowApi = {
   maximize: () => ipcRenderer.invoke(WINDOW_CHANNELS.maximize),
+  focus: () => ipcRenderer.invoke(WINDOW_CHANNELS.focus),
   openCounterStrikeSteamStore: () =>
     ipcRenderer.invoke(WINDOW_CHANNELS.openCounterStrikeSteamStore),
   exit: () => ipcRenderer.invoke(WINDOW_CHANNELS.exit)
@@ -79,10 +103,28 @@ const party: PartyApi = {
   sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message)
 }
 
+const friends: FriendsApi = {
+  list: () => ipcRenderer.invoke(FRIEND_CHANNELS.list),
+  search: (query) => ipcRenderer.invoke(FRIEND_CHANNELS.search, query),
+  request: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.request, playerId),
+  accept: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.accept, requestId),
+  discard: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.discard, requestId),
+  remove: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.remove, playerId)
+}
+
 const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseExecutable: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseExecutable),
-  save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath)
+  save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath),
+  setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
+  getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
+  syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
+  onAssetSyncProgress: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: SkinAssetSyncProgress): void =>
+      listener(progress)
+    ipcRenderer.on(GAME_SETTINGS_CHANNELS.assetSyncProgress, handler)
+    return () => ipcRenderer.removeListener(GAME_SETTINGS_CHANNELS.assetSyncProgress, handler)
+  }
 }
 
 const matchHistory: MatchHistoryApi = {
@@ -95,10 +137,15 @@ const matchHistory: MatchHistoryApi = {
 const skins: SkinsApi = {
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
   mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
+  getLobbyLoadout: () => ipcRenderer.invoke(SKIN_CHANNELS.getLobbyLoadout),
   unlock: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId),
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
   unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
-  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId)
+  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId),
+  setLobbyWeapon: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeapon, skinId),
+  setLobbyWeaponKey: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeaponKey, weaponKey),
+  setLobbyPlayerModel: (modelPath) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.setLobbyPlayerModel, modelPath)
 }
 
 const updater: UpdaterApi = {
@@ -128,8 +175,15 @@ const redeemCodes: RedeemCodesApi = {
   redeem: (code) => ipcRenderer.invoke(REDEEM_CODE_CHANNELS.redeem, code)
 }
 
+const diagnosticLogs: DiagnosticLogsApi = {
+  get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
+  report: (description, rendererLogs) =>
+    ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs)
+}
+
 const api = {
   auth,
+  friends,
   gameSettings,
   leaderboard,
   matchmaking,
@@ -140,12 +194,10 @@ const api = {
   redeemCodes,
   skins,
   updater,
-  window: windowApi
+  window: windowApi,
+  diagnosticLogs
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('api', api)

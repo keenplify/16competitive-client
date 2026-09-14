@@ -3,13 +3,32 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { Button } from '../../components/ui/Button'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { useAuthStore } from '../auth/auth.store'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
+  const currentPlayerId = useAuthStore((state) => state.session?.player.id)
   const winners = match.winner === 1 ? match.teams.teamA : match.teams.teamB
   const losers = match.winner === 1 ? match.teams.teamB : match.teams.teamA
+  const currentPlayerTeam = match.teams.teamA.some((player) => player.id === currentPlayerId)
+    ? 1
+    : match.teams.teamB.some((player) => player.id === currentPlayerId)
+      ? 2
+      : null
+  const didWin = currentPlayerTeam !== null && currentPlayerTeam === match.winner
+  const resultLabel = didWin ? 'Victory' : 'Defeat'
+  const resultClassName = didWin ? 'text-emerald-300' : 'text-neutral-200'
+  const resultsBackgroundClass = didWin
+    ? 'bg-[radial-gradient(circle_at_50%_24%,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_28%,rgba(10,10,10,0.70)_60%,rgba(10,10,10,0.97)_100%)]'
+    : 'bg-[radial-gradient(circle_at_50%_24%,rgba(148,163,184,0.22)_0%,rgba(71,85,105,0.14)_30%,rgba(10,10,10,0.74)_60%,rgba(10,10,10,0.97)_100%)]'
   const score =
-    match.winner === 1 ? [match.teamAScore, match.teamBScore] : [match.teamBScore, match.teamAScore]
+    currentPlayerTeam === 1
+      ? [match.teamAScore, match.teamBScore]
+      : currentPlayerTeam === 2
+        ? [match.teamBScore, match.teamAScore]
+        : match.winner === 1
+          ? [match.teamAScore, match.teamBScore]
+          : [match.teamBScore, match.teamAScore]
   const [contextMenu, setContextMenu] = useState<{
     playerId: string
     x: number
@@ -65,31 +84,45 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   }
 
   return (
-    <section className="min-h-[calc(100vh-5rem)] bg-neutral-950/90 px-5 py-10 text-center">
-      <p className="text-xs font-bold tracking-[.3em] text-emerald-400 uppercase">Match complete</p>
-      <h1 className="mt-2 text-6xl font-black tracking-[.12em] text-emerald-400 uppercase">
-        Victory
-      </h1>
-      <p className="mt-2 text-3xl font-bold">
-        {score[0]} <span className="text-neutral-500">—</span> {score[1]}
-      </p>
-      <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-400 uppercase">
-        {getMatchmakingModeLabel(match.mode)} · {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
-      </p>
-      <Team
-        label="Winners"
-        players={winners}
-        stats={match.players}
-        ratedMatch={match.mode !== 'casual'}
-        onPlayerContextMenu={showPlayerMenu}
+    <section className="relative min-h-[calc(100vh-5rem)] bg-transparent px-5 py-10 text-center text-white">
+      <div
+        className={`pointer-events-none fixed inset-0 z-0 ${resultsBackgroundClass}`}
+        aria-hidden="true"
       />
-      <Team
-        label="Opponents"
-        players={losers}
-        stats={match.players}
-        ratedMatch={match.mode !== 'casual'}
-        onPlayerContextMenu={showPlayerMenu}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.46)_0%,rgba(0,0,0,0.12)_42%,rgba(0,0,0,0.18)_100%)]"
+        aria-hidden="true"
       />
+
+      <div className="relative z-10">
+        <p className={`text-xs font-bold tracking-[.3em] uppercase ${resultClassName}`}>
+          Match complete
+        </p>
+        <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
+          {resultLabel}
+        </h1>
+        <p className="mt-2 text-3xl font-bold text-white">
+          {score[0]} <span className="text-neutral-500">—</span> {score[1]}
+        </p>
+        <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
+          {getMatchmakingModeLabel(match.mode)} · {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
+        </p>
+        <Team
+          label="Winners"
+          players={winners}
+          stats={match.players}
+          ratedMatch={match.mode !== 'casual'}
+          onPlayerContextMenu={showPlayerMenu}
+        />
+        <Team
+          label="Opponents"
+          players={losers}
+          stats={match.players}
+          ratedMatch={match.mode !== 'casual'}
+          onPlayerContextMenu={showPlayerMenu}
+        />
+      </div>
+
       {contextMenu && (
         <div
           className="fixed z-50 min-w-40 overflow-hidden rounded-lg border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
@@ -179,7 +212,7 @@ function Team({
 }): React.JSX.Element {
   return (
     <div className="mx-auto mt-8 max-w-6xl">
-      <h2 className="mb-3 text-left text-xs font-bold tracking-[.2em] text-neutral-400 uppercase">
+      <h2 className="mb-3 text-left text-xs font-bold tracking-[.2em] text-neutral-300 uppercase">
         {label}
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -188,18 +221,18 @@ function Team({
           return (
             <article
               key={p.id}
-              className="cursor-context-menu border border-white/15 bg-neutral-900/90 p-4 text-left transition hover:bg-neutral-800/90"
+              className="cursor-context-menu border border-white/15 bg-black/45 p-4 text-left shadow-lg backdrop-blur-sm transition hover:border-white/25 hover:bg-black/55"
               onContextMenu={(event) => onPlayerContextMenu(event, p.id)}
               title="Right-click to view profile"
             >
-              <p className="truncate text-lg font-bold">{p.username}</p>
-              <p className="mt-5 text-xs text-neutral-500">K / A / D</p>
-              <p className="text-xl font-bold text-neutral-300">
+              <p className="truncate text-lg font-bold text-white">{p.username}</p>
+              <p className="mt-5 text-xs text-neutral-400">K / A / D</p>
+              <p className="text-xl font-bold text-neutral-200">
                 {playerStats
                   ? `${playerStats.kills} / ${playerStats.assists} / ${playerStats.deaths}`
                   : '— / — / —'}
               </p>
-              <p className="mt-3 text-xs text-neutral-500">MMR</p>
+              <p className="mt-3 text-xs text-neutral-400">MMR</p>
               <p
                 className={`font-mono text-sm font-semibold tabular-nums ${
                   ratedMatch && playerStats
@@ -207,8 +240,8 @@ function Team({
                       ? 'text-emerald-400'
                       : playerStats.mmrChange < 0
                         ? 'text-rose-300'
-                        : 'text-neutral-400'
-                    : 'text-neutral-400'
+                        : 'text-neutral-300'
+                    : 'text-neutral-300'
                 }`}
               >
                 {playerStats
@@ -217,7 +250,7 @@ function Team({
                     : 'Unranked'
                   : '—'}
               </p>
-              <p className="mt-3 text-xs text-neutral-500">HS% — · ADR —</p>
+              <p className="mt-3 text-xs text-neutral-400">HS% — · ADR —</p>
             </article>
           )
         })}

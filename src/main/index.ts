@@ -1,13 +1,27 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { authenticate, clearSessionToken, restoreSession } from './auth'
+import {
+  authenticate,
+  authenticateWithSocial,
+  completeSocialWithEmail,
+  changePassword,
+  changeUsername,
+  checkUsername,
+  clearSessionToken,
+  connectSocial,
+  getSessionToken,
+  getSocialConnections,
+  restoreSession
+} from './auth'
+import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
 import { matchmakingConnection } from './matchmaking'
 import {
   getMatchmakingNodes,
   getMatchmakingPreferences,
+  resolvePreferredMatchmakingApiUrl,
   saveMatchmakingPreferences
 } from './matchmaking-regions'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
@@ -19,6 +33,7 @@ import { getMatchmakingMaps } from './matchmaking-maps'
 import { getMatchHistory, getMatchSummary, getPlayerProfile } from './match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import { PARTY_CHANNELS } from '../shared/party'
+import { FRIEND_CHANNELS } from '../shared/friends'
 import {
   getParty,
   getPartyInvitations,
@@ -26,19 +41,46 @@ import {
   leaveParty,
   respondToPartyInvitation
 } from './party'
-import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
-import { chooseCs16Executable, getGameSettings, saveGameSettings } from './game/game-settings'
+import {
+  acceptFriendRequest,
+  discardFriendRequest,
+  getFriends,
+  removeFriend,
+  searchPlayers,
+  sendFriendRequest
+} from './friends'
+import {
+  GAME_SETTINGS_CHANNELS,
+  type SkinAssetSyncMode,
+  type SkinAssetSyncProgress
+} from '../shared/game-settings'
+import {
+  chooseCs16Executable,
+  getGameSettings,
+  saveGameSettings,
+  saveVoicePttKey
+} from './game/game-settings'
+import { startSkinAssetSync } from './game/match-assets'
+import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
+  getLobbyLoadout,
   getOwnedSkins,
   getSkinPreviewModel,
   listSkins,
+  setLobbyPlayerModel,
+  setLobbyWeapon,
+  setLobbyWeaponKey,
   unequipSkin,
   unlockSkin
 } from './skins'
-import { checkForAppUpdates } from './updater'
-import { getAppUpdateStatus, restartAndInstallUpdate } from './updater'
+import {
+  checkForAppUpdates,
+  ensureLatestClientForMatchmaking,
+  getAppUpdateStatus,
+  restartAndInstallUpdate
+} from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
 import { getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
@@ -46,54 +88,150 @@ import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { redeemCode } from './redeem-codes'
-import { configureGearLeverUpdates } from './gear-lever'
+import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
+import {
+  getDiagnosticLogs,
+  installDiagnosticLogCapture,
+  reportDiagnosticIssue
+} from './diagnostic-logs'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
 let mainWindow
-let fullScreenRecoveryTimer: ReturnType<typeof setTimeout> | null = null
-let isShuttingDown = false
-
-function stopFullScreenRecovery(): void {
-  isShuttingDown = true
-  if (fullScreenRecoveryTimer) clearTimeout(fullScreenRecoveryTimer)
-  fullScreenRecoveryTimer = null
+let focusWindowWhenReady = false
+let skinAssetSyncProgress: SkinAssetSyncProgress = {
+  status: 'idle',
+  completedFiles: 0,
+  totalFiles: 0
 }
 
-function lockWindowFullScreen(): void {
-  if (isShuttingDown || !mainWindow || mainWindow.isDestroyed() || mainWindow.isFullScreen()) return
-  mainWindow.setFullScreen(true)
+installDiagnosticLogCapture()
+
+function installWindowDiagnostics(window: BrowserWindow): void {
+  const state = (): Record<string, unknown> => ({
+    focused: window.isFocused(),
+    visible: window.isVisible(),
+    minimized: window.isMinimized(),
+    fullScreen: window.isFullScreen(),
+    alwaysOnTop: window.isAlwaysOnTop()
+  })
+  const logEvent = (event: string): void => console.info('[WindowDebug]', event, state())
+
+  console.info('[WindowDebug]', 'environment', {
+    platform: process.platform,
+    sessionType: process.env.XDG_SESSION_TYPE ?? 'unknown',
+    wayland: Boolean(process.env.WAYLAND_DISPLAY),
+    x11: Boolean(process.env.DISPLAY),
+    ozonePlatform: app.commandLine.getSwitchValue('ozone-platform') || 'default',
+    electron: process.versions.electron,
+    chrome: process.versions.chrome
+  })
+
+  window.on('focus', () => logEvent('focus'))
+  window.on('blur', () => logEvent('blur'))
+  window.on('show', () => logEvent('show'))
+  window.on('hide', () => logEvent('hide'))
+  window.on('minimize', () => logEvent('minimize'))
+  window.on('restore', () => logEvent('restore'))
+  window.on('maximize', () => logEvent('maximize'))
+  window.on('unmaximize', () => logEvent('unmaximize'))
+  window.on('enter-full-screen', () => logEvent('enter-full-screen'))
+  window.on('leave-full-screen', () => logEvent('leave-full-screen'))
+
+  window.webContents.on('before-input-event', (_, input) => {
+    if (input.key !== 'Alt' && !(input.alt && input.key === 'Tab')) return
+    console.info('[WindowDebug]', 'keyboard', {
+      type: input.type,
+      key: input.key,
+      alt: input.alt,
+      shift: input.shift,
+      control: input.control,
+      meta: input.meta,
+      autoRepeat: input.isAutoRepeat,
+      focused: window.isFocused(),
+      fullScreen: window.isFullScreen()
+    })
+  })
 }
 
-function scheduleFullScreenRecovery(): void {
-  if (isShuttingDown || fullScreenRecoveryTimer) return
-  fullScreenRecoveryTimer = setTimeout(() => {
-    fullScreenRecoveryTimer = null
-    lockWindowFullScreen()
-  }, 0)
+function focusMainWindow(): void {
+  const window =
+    mainWindow && !mainWindow.isDestroyed() ? mainWindow : BrowserWindow.getAllWindows()[0]
+
+  if (!window || window.isDestroyed()) {
+    focusWindowWhenReady = true
+    return
+  }
+
+  if (window.isMinimized()) window.restore()
+  if (!window.isVisible()) window.show()
+  app.focus({ steal: true })
+  window.focus()
 }
 
-// A second shortcut launch is a separate Electron process. Acquire this lock
-// before creating any windows so that process exits without showing anything.
+function disconnectMatchmakingIntentionally(): void {
+  matchmakingConnection.shutdown()
+}
+
+function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSyncProgress): void {
+  skinAssetSyncProgress = progress
+  if (!sender.isDestroyed()) sender.send(GAME_SETTINGS_CHANNELS.assetSyncProgress, progress)
+}
+
+async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): Promise<void> {
+  publishSkinAssetSyncProgress(sender, {
+    status: 'syncing',
+    completedFiles: 0,
+    totalFiles: 0,
+    message: mode === 'repair' ? 'Repairing skin assets…' : 'Checking skin assets…'
+  })
+
+  try {
+    const apiUrl = await resolvePreferredMatchmakingApiUrl()
+    const onProgress = (progress: SkinAssetSyncProgress): void =>
+      publishSkinAssetSyncProgress(sender, progress)
+    if (mode === 'repair') {
+      await repairSkinAssets(apiUrl, onProgress)
+    } else {
+      await startSkinAssetSync(apiUrl, onProgress)
+    }
+  } catch (error) {
+    if (skinAssetSyncProgress.status !== 'error') {
+      publishSkinAssetSyncProgress(sender, {
+        status: 'error',
+        completedFiles: skinAssetSyncProgress.completedFiles,
+        totalFiles: skinAssetSyncProgress.totalFiles,
+        message: error instanceof Error ? error.message : 'Could not sync skin assets.'
+      })
+    }
+    throw error
+  }
+}
+
+async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
+  const result = await authentication
+  const token = getSessionToken()
+  if (token) void reportClientTelemetry(token)
+  return result
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
+} else {
+  app.on('second-instance', () => {
+    focusMainWindow()
+  })
 }
 
 function createWindow(): void {
-  isShuttingDown = false
-
   const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
 
-  // Create the browser window.
   mainWindow = new BrowserWindow({
     x: displayBounds.x,
     y: displayBounds.y,
     width: displayBounds.width,
     height: displayBounds.height,
     frame: false,
-    // Enter fullscreen after the display-sized window has been mapped. Some
-    // Linux window managers otherwise keep Electron's initial content surface
-    // at its fallback size and center it on a black fullscreen background.
     fullscreen: false,
     resizable: true,
     movable: false,
@@ -109,29 +247,27 @@ function createWindow(): void {
       sandbox: true
     }
   })
+  installWindowDiagnostics(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.setBounds(displayBounds)
     mainWindow.show()
-    lockWindowFullScreen()
+    mainWindow.setFullScreen(true)
+    if (focusWindowWhenReady) {
+      focusWindowWhenReady = false
+      focusMainWindow()
+    }
   })
 
-  // Closing a fullscreen window can emit leave-full-screen. Do not force the
-  // window back into fullscreen while Electron is quitting for an update.
-  mainWindow.on('close', stopFullScreenRecovery)
   mainWindow.on('closed', () => {
-    stopFullScreenRecovery()
-    matchmakingConnection.disconnect()
+    disconnectMatchmakingIntentionally()
   })
-  mainWindow.on('leave-full-screen', scheduleFullScreenRecovery)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -139,29 +275,52 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  // Set app user model id for windows
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
-    authenticate('login', credentials)
+    withClientTelemetry(authenticate('login', credentials))
+  )
+  ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
+  ipcMain.handle(
+    DIAGNOSTIC_LOG_CHANNELS.report,
+    (_, description: unknown, rendererLogs: unknown) => {
+      if (
+        typeof description !== 'string' ||
+        description.trim().length < 1 ||
+        description.length > 10_000
+      )
+        throw new Error('Issue description is invalid.')
+      if (!Array.isArray(rendererLogs) || rendererLogs.some((log) => typeof log !== 'string'))
+        throw new Error('Diagnostic logs are invalid.')
+      return reportDiagnosticIssue(description.trim(), rendererLogs.slice(0, 2_000))
+    }
   )
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
-    authenticate('register', credentials)
+    withClientTelemetry(authenticate('register', credentials))
   )
-  ipcMain.handle(AUTH_CHANNELS.restore, () => restoreSession())
+  ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) =>
+    withClientTelemetry(authenticateWithSocial(provider))
+  )
+  ipcMain.handle(
+    AUTH_CHANNELS.socialComplete,
+    (_, provider: unknown, pollToken: unknown, email: unknown) =>
+      withClientTelemetry(completeSocialWithEmail(provider, pollToken, email))
+  )
+  ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
+  ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
+    changePassword(credentials)
+  )
+  ipcMain.handle(AUTH_CHANNELS.restore, () => withClientTelemetry(restoreSession()))
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
-    matchmakingConnection.disconnect()
+    disconnectMatchmakingIntentionally()
     clearSessionToken()
   })
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
@@ -181,8 +340,23 @@ app.whenReady().then(() => {
   })
   ipcMain.handle(
     MATCHMAKING_CHANNELS.joinQueue,
-    (_, mode: unknown, mapIds: unknown, allowRegionExpansion: unknown) =>
-      matchmakingConnection.joinQueue(mode, mapIds, allowRegionExpansion)
+    async (
+      _,
+      mode: unknown,
+      mapIds: unknown,
+      allowRegionExpansion: unknown,
+      preferredRegion: unknown,
+      eligibleRegions: unknown
+    ) => {
+      await ensureLatestClientForMatchmaking()
+      return matchmakingConnection.joinQueue(
+        mode,
+        mapIds,
+        allowRegionExpansion,
+        preferredRegion,
+        eligibleRegions
+      )
+    }
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
@@ -196,14 +370,31 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
+  ipcMain.handle(SKIN_CHANNELS.getLobbyLoadout, () => getLobbyLoadout())
   ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown) => unlockSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown) => getSkinPreviewModel(skinId))
+  ipcMain.handle(SKIN_CHANNELS.setLobbyWeapon, (_, skinId: unknown) => setLobbyWeapon(skinId))
+  ipcMain.handle(SKIN_CHANNELS.setLobbyWeaponKey, (_, weaponKey: unknown) =>
+    setLobbyWeaponKey(weaponKey)
+  )
+  ipcMain.handle(SKIN_CHANNELS.setLobbyPlayerModel, (_, modelPath: unknown) =>
+    setLobbyPlayerModel(modelPath)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceJoin, (_, context: unknown) =>
+    matchmakingConnection.joinVoice(context)
+  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.voiceLeave, () => matchmakingConnection.leaveVoice())
+  ipcMain.handle(
+    MATCHMAKING_CHANNELS.voiceSignal,
+    (_, targetPlayerId: unknown, signalType: unknown, signal: unknown) =>
+      matchmakingConnection.sendVoiceSignal(targetPlayerId, signalType, signal)
+  )
   ipcMain.handle(MODEL_CHANNELS.read, (_, relativePath: unknown) =>
     readCounterStrikeModel(relativePath)
   )
@@ -213,6 +404,14 @@ app.whenReady().then(() => {
   ipcMain.handle(MODEL_CHANNELS.writeThumbnail, (_, cacheKey: unknown, png: unknown) =>
     writeModelThumbnail(cacheKey, png)
   )
+  ipcMain.handle(FRIEND_CHANNELS.list, () => getFriends())
+  ipcMain.handle(FRIEND_CHANNELS.search, (_, query: unknown) => searchPlayers(query))
+  ipcMain.handle(FRIEND_CHANNELS.request, (_, playerId: unknown) => sendFriendRequest(playerId))
+  ipcMain.handle(FRIEND_CHANNELS.accept, (_, requestId: unknown) => acceptFriendRequest(requestId))
+  ipcMain.handle(FRIEND_CHANNELS.discard, (_, requestId: unknown) =>
+    discardFriendRequest(requestId)
+  )
+  ipcMain.handle(FRIEND_CHANNELS.remove, (_, playerId: unknown) => removeFriend(playerId))
   ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
   ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())
   ipcMain.handle(PARTY_CHANNELS.invite, (_, username: unknown) => inviteToParty(username))
@@ -227,7 +426,10 @@ app.whenReady().then(() => {
     matchmakingConnection.sendGlobalMessage(message)
   )
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
-    lockWindowFullScreen()
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setFullScreen(true)
+  })
+  ipcMain.handle(WINDOW_CHANNELS.focus, () => {
+    focusMainWindow()
   })
   ipcMain.handle(WINDOW_CHANNELS.openCounterStrikeSteamStore, () =>
     shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)
@@ -235,9 +437,22 @@ app.whenReady().then(() => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, (_, executablePath: unknown) =>
-    saveGameSettings(executablePath)
-  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
+    if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
+    return runSkinAssetSync(event.sender, mode)
+  })
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, executablePath: unknown) => {
+    const settings = await saveGameSettings(executablePath)
+    void runSkinAssetSync(event.sender, 'download').catch((error: unknown) => {
+      console.warn(
+        '[GameSettings] skin asset sync retry failed',
+        error instanceof Error ? error.message : String(error)
+      )
+    })
+    return settings
+  })
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
@@ -247,31 +462,19 @@ app.whenReady().then(() => {
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   createWindow()
-  void configureGearLeverUpdates().catch((error: unknown) => {
-    console.warn(
-      'Could not configure Gear Lever updates:',
-      error instanceof Error ? error.message : String(error)
-    )
-  })
   checkForAppUpdates()
 
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-app.on('before-quit', stopFullScreenRecovery)
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+app.on('before-quit', () => {
+  disconnectMatchmakingIntentionally()
+})

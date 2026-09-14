@@ -97,6 +97,26 @@ export const applyBoneTransforms = (
   return posArray
 }
 
+/** Rotates every calculated bone around the model's root-bone origin. */
+export const applyRootBoneRotation = (
+  boneTransforms: mat4[],
+  rotation?: readonly [number, number, number]
+): mat4[] => {
+  if (!rotation || boneTransforms.length === 0) return boneTransforms
+
+  const inverseRoot = mat4.invert(mat4.create(), boneTransforms[0])
+  if (!inverseRoot) return boneTransforms
+
+  const correction = mat4.create()
+  mat4.rotateX(correction, correction, (rotation[0] * Math.PI) / 180)
+  mat4.rotateY(correction, correction, (rotation[1] * Math.PI) / 180)
+  mat4.rotateZ(correction, correction, (rotation[2] * Math.PI) / 180)
+  const pivotRotation = mat4.multiply(mat4.create(), boneTransforms[0], correction)
+  mat4.multiply(pivotRotation, pivotRotation, inverseRoot)
+
+  return boneTransforms.map((transform) => mat4.multiply(mat4.create(), pivotRotation, transform))
+}
+
 /**
  * Returns generated mesh buffers and UV-maps of each frame of each sequence of
  * the model
@@ -104,7 +124,8 @@ export const applyBoneTransforms = (
  */
 export const prepareRenderData = (
   modelData: ModelData,
-  sequenceIndices?: readonly number[]
+  sequenceIndices?: readonly number[],
+  rootBoneRotation?: readonly [number, number, number]
 ): MeshRenderData[][][] => {
   const startedAt = performance.now()
   const renderData: MeshRenderData[][][] = []
@@ -132,7 +153,7 @@ export const prepareRenderData = (
     selectedSequences && !selectedSequences.has(sequenceIndex)
       ? []
       : Array.from({ length: sequence.numFrames }, (_, frame) =>
-          calcRotations(modelData, sequenceIndex, frame)
+          applyRootBoneRotation(calcRotations(modelData, sequenceIndex, frame), rootBoneRotation)
         )
   )
   const invalidBoneTransforms = boneTransforms

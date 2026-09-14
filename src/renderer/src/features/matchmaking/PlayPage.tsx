@@ -9,6 +9,7 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
+import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
 
 const connectionLabels = {
@@ -19,6 +20,9 @@ const connectionLabels = {
   authenticating: 'Authenticating',
   ready: 'Connected'
 } as const
+
+const serverReadyBackgroundClass =
+  'bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_30%,rgba(10,10,10,0.72)_62%,rgba(10,10,10,0.97)_100%)]'
 
 interface MapCardProps {
   map: MatchmakingMap
@@ -107,6 +111,8 @@ export function PlayPage(): JSX.Element {
 
   useEffect(() => {
     void loadRegions()
+    const timer = window.setInterval(() => void loadRegions(), 15_000)
+    return () => window.clearInterval(timer)
   }, [loadRegions])
 
   useEffect(() => {
@@ -173,8 +179,19 @@ export function PlayPage(): JSX.Element {
 
   if (match && ['countdown', 'starting_server', 'server_ready'].includes(queueStatus)) {
     return (
-      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/95 p-5 text-white sm:p-10">
-        <div className="w-full max-w-5xl">
+      <main
+        className={twMerge(
+          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
+          queueStatus === 'server_ready' ? 'bg-transparent' : 'bg-neutral-950/95'
+        )}
+      >
+        {queueStatus === 'server_ready' && (
+          <div
+            className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
+            aria-hidden="true"
+          />
+        )}
+        <div className="relative z-10 w-full max-w-5xl">
           <div className="text-center">
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
               {queueStatus === 'countdown'
@@ -240,8 +257,12 @@ export function PlayPage(): JSX.Element {
   // usable instead of trying to read teams from a missing in-memory match.
   if (queueStatus === 'server_ready' && connectionDetails) {
     return (
-      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/95 p-5 text-white sm:p-10">
-        <section className="w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
+      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-transparent p-5 text-white sm:p-10">
+        <div
+          className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
+          aria-hidden="true"
+        />
+        <section className="relative z-10 w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
           <p className="text-xs font-bold tracking-[0.22em] text-emerald-300 uppercase">
             Match ready
           </p>
@@ -249,12 +270,8 @@ export function PlayPage(): JSX.Element {
           <p className="mt-3 text-sm text-emerald-100/70">
             The game server is available at {connectionDetails.host}:{connectionDetails.port}.
           </p>
-          <MatchAssetPreparation
-            className="mx-auto mt-5 max-w-md text-left"
-            preparation={assetPreparation}
-          />
           <Button className="mt-6" onClick={() => void reconnectGame()}>
-            {assetPreparation.status === 'ready' ? 'Reconnect to match' : 'Prepare and reconnect'}
+            Reconnect to match
           </Button>
           {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
         </section>
@@ -263,19 +280,19 @@ export function PlayPage(): JSX.Element {
   }
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] bg-neutral-950/92 p-5 text-white sm:p-8">
+    <main className="min-h-[calc(100vh-5rem)] p-5 text-white sm:p-8">
       <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="flex flex-wrap items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Matchmaking</p>
             <h1 className="mt-2 text-3xl font-semibold">Choose your battlefield</h1>
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-neutral-200">
               {isLeader
                 ? "Toggle any 5v5 Competitive maps to build your party's search pool."
                 : 'Your party leader chooses the Competitive map pool.'}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 text-xs text-neutral-200">
             <span
               className={twMerge(
                 'size-2 rounded-full bg-neutral-600',
@@ -289,26 +306,17 @@ export function PlayPage(): JSX.Element {
         <>
           <section className="mt-8 border-t border-white/10 pt-6">
             <label
-              className="block text-xs font-semibold tracking-wide text-neutral-500 uppercase"
+              className="block text-xs font-semibold tracking-wide text-neutral-200 uppercase"
               htmlFor="matchmaking-region"
             >
               Preferred region
             </label>
-            <select
-              id="matchmaking-region"
-              className="mt-3 w-full max-w-sm border border-white/10 bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-60"
-              value={selectedNodeId ?? ''}
+            <MatchmakingRegionSelect
+              nodes={nodes}
+              selectedNodeId={selectedNodeId}
               disabled={isSearching}
-              onChange={(event) => void selectNode(event.target.value || null)}
-            >
-              <option value="">Automatic (healthy region)</option>
-              {nodes.map((node) => (
-                <option key={node.id} value={node.id} disabled={!node.available}>
-                  {node.region.toUpperCase()} · {node.id}
-                  {node.available ? '' : ' (unavailable)'}
-                </option>
-              ))}
-            </select>
+              onChange={(nodeId) => void selectNode(nodeId)}
+            />
             <label className="mt-4 flex max-w-xl cursor-pointer items-center gap-3 text-sm text-neutral-300">
               <input
                 type="checkbox"
@@ -323,9 +331,9 @@ export function PlayPage(): JSX.Element {
 
           <section className="mt-8">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-xs font-semibold tracking-wide text-neutral-500 uppercase">Maps</p>
+              <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Maps</p>
               {availableMaps.length > 0 && (
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-200">
                   {selectedMapIds.length} of {availableMaps.length} selected
                 </p>
               )}
