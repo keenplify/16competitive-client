@@ -4,7 +4,7 @@ import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
-import { modelForSlot } from '../party/party-models'
+import { modelForSlot, presentationModelPath } from '../party/party-models'
 import { PartyModelScene } from '../party/PartyModelScene'
 import { LobbySocialSidebar } from '../party/LobbySocialSidebar'
 import { usePartyStore } from '../party/party.store'
@@ -64,12 +64,14 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
         <PartyModelScene
           actors={members.map((member, index) => {
             const isCurrentPlayer = member.id === player.id
+            const fallbackModelPath = modelForSlot(index, member)
+            const selectedModelPath = isCurrentPlayer
+              ? lobbyPlayerModel
+              : (member.lobbyPlayerModel ?? fallbackModelPath)
             return {
               member,
-              modelPath: isCurrentPlayer
-                ? lobbyPlayerModel
-                : (member.lobbyPlayerModel ?? modelForSlot(index, member)),
-              fallbackModelPath: modelForSlot(index, member),
+              modelPath: presentationModelPath(selectedModelPath),
+              fallbackModelPath,
               weaponPath: isCurrentPlayer
                 ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
                 : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),

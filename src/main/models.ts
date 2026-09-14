@@ -1,6 +1,19 @@
+import { app } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, resolve, sep } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
+
+const LOBBY_MODEL_PREFIX = 'lobby/'
+const LOBBY_MODEL_FILES = new Set([
+  'arctic_lobby.mdl',
+  'gign_lobby.mdl',
+  'gsg9_lobby.mdl',
+  'guerilla_lobby.mdl',
+  'leet_lobby.mdl',
+  'sas_lobby.mdl',
+  'terror_lobby.mdl',
+  'urban_lobby.mdl'
+])
 
 // Temporary development source for lobby previews. Installation detection will
 // replace this with the player's selected Counter-Strike installation.
@@ -25,6 +38,16 @@ const normalizeModelPath = (relativePath: string): string => {
 export const readCounterStrikeModel = async (relativePath: unknown): Promise<ArrayBuffer> => {
   if (!isSafeModelPath(relativePath)) {
     throw new Error('A relative .mdl model path is required')
+  }
+
+  if (relativePath.startsWith(LOBBY_MODEL_PREFIX)) {
+    const fileName = relativePath.slice(LOBBY_MODEL_PREFIX.length)
+    if (!LOBBY_MODEL_FILES.has(fileName)) throw new Error('Unknown bundled lobby model')
+    const lobbyModelsDirectory = app.isPackaged
+      ? join(process.resourcesPath, 'lobby-models')
+      : join(app.getAppPath(), 'resources', 'lobby-models')
+    const file = await readFile(join(lobbyModelsDirectory, fileName))
+    return file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)
   }
 
   const executable = await getSavedCs16Executable()
