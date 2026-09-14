@@ -57,10 +57,6 @@ jobs:
           node -e "const bundle=require('node:fs').readFileSync('out/main/index.js','utf8');
           if (bundle.includes('http://127.0.0.1:3000'))
           throw new Error('Release bundle targets the local development backend')"
-      - name: Keep updater metadata on the x64 package
-        if: matrix.command == 'npm run build:linux:arm64'
-        shell: bash
-        run: rm -f dist/latest*.yml
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
