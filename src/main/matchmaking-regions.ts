@@ -1,4 +1,6 @@
 import { app } from 'electron'
+import { randomBytes } from 'node:crypto'
+import { createSocket } from 'node:dgram'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { getSessionToken } from './auth'
@@ -6,6 +8,8 @@ import { API_BASE_URL } from './config'
 import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmaking'
 
 type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
+
+const LATENCY_PROBE_TIMEOUT_MS = 1_500
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
 
@@ -22,6 +26,20 @@ const isApiUrl = (value: unknown): value is string => {
   }
 }
 
+const isLatencyProbe = (value: unknown): value is NonNullable<MatchmakingNode['latencyProbe']> => {
+  if (!isObject(value)) return false
+  const { host, port } = value
+  return (
+    typeof host === 'string' &&
+    host.length > 0 &&
+    host.length <= 253 &&
+    typeof port === 'number' &&
+    Number.isInteger(port) &&
+    port > 0 &&
+    port <= 65_535
+  )
+}
+
 const isNode = (value: unknown): value is MatchmakingNode =>
   isObject(value) &&
   typeof value.id === 'string' &&
@@ -31,6 +49,7 @@ const isNode = (value: unknown): value is MatchmakingNode =>
   value.region.length > 0 &&
   value.region.length <= 32 &&
   isApiUrl(value.publicApiUrl) &&
+  (value.latencyProbe === undefined || isLatencyProbe(value.latencyProbe)) &&
   typeof value.capacity === 'number' &&
   Number.isFinite(value.capacity) &&
   typeof value.activeConnections === 'number' &&
@@ -44,8 +63,39 @@ const measuredLatency = (node: MatchmakingNode): number | null => {
   return typeof latencyMs === 'number' && Number.isFinite(latencyMs) ? latencyMs : null
 }
 
+const probeUdpLatency = (
+  probe: NonNullable<MatchmakingNode['latencyProbe']>
+): Promise<number | null> =>
+  new Promise((resolve) => {
+    const socket = createSocket('udp4')
+    const nonce = randomBytes(16)
+    const startedAt = performance.now()
+    let settled = false
+    const finish = (latencyMs: number | null): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      socket.close()
+      resolve(latencyMs)
+    }
+    const timeout = setTimeout(() => finish(null), LATENCY_PROBE_TIMEOUT_MS)
+    socket.once('error', () => finish(null))
+    socket.on('message', (message) => {
+      if (message.length === nonce.length && message.equals(nonce)) {
+        finish(Math.max(0, Math.round(performance.now() - startedAt)))
+      }
+    })
+    socket.send(nonce, probe.port, probe.host, (error) => {
+      if (error) finish(null)
+    })
+  })
+
 const probeNodeLatency = async (node: MatchmakingNode): Promise<number | null> => {
   if (!node.available) return null
+  if (node.latencyProbe) {
+    const latencyMs = await probeUdpLatency(node.latencyProbe)
+    if (latencyMs !== null) return latencyMs
+  }
   const startedAt = performance.now()
   try {
     await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
