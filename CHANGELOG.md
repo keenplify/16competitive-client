@@ -625,3 +625,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Added packaging support for ARM Linux devices.
+
+## v2026.914.2 — 2026-09-14
+
+### Lobby
+
+- Improved lobby character model rendering.
+- Added lobby character animations.
+- Lobby models are now cached locally for reuse.
+
+### Platform Support
+
+- Legacy ARMv7 Linux builds are no longer supported.
