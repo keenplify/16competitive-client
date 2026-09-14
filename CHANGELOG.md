@@ -649,3 +649,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - ARM64 Linux updater metadata is now published.
+
+## v2026.914.5 — 2026-09-14
+
+### Connectivity
+
+- Documented regional latency and connectivity issues for follow-up.
