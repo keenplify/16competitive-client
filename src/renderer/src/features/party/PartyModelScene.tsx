@@ -10,6 +10,11 @@ import {
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import type { PartyMember } from '../../../../shared/party'
+import {
+  readCachedLobbyPresentation,
+  writeCachedLobbyPresentation,
+  type CachedLobbyPresentation
+} from './lobby-model-cache'
 
 export type PartySceneActor = {
   member: PartyMember
@@ -33,8 +38,12 @@ type WeaponTransform = {
 type LoadedScene = {
   actorKey: string
   actors: PartySceneActor[]
-  buffers: ArrayBuffer[]
+  playerPresentations: CachedLobbyPresentation[]
+  weaponBuffers: ArrayBuffer[]
 }
+
+const LOBBY_MODEL_PREFIX = 'lobby/'
+const LOBBY_PRESENTATION_CACHE_REVISION = 1
 
 const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
   modelRotation: [0, 90, 90],
@@ -275,9 +284,73 @@ const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): numbe
 }
 
 const lobbyAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
-  const sequenceLabel = LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle'
+  const sequenceLabel = lobbySequenceLabelFor(weaponKey)
   const index = sequenceIndexFor(modelData, sequenceLabel)
   return index >= 0 ? index : weaponAnimationIndexFor(modelData, weaponKey)
+}
+
+const lobbySequenceLabelFor = (weaponKey: string): string =>
+  LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle'
+
+const buildLobbyPresentation = (
+  playerBuffer: ArrayBuffer,
+  weaponKey: string
+): CachedLobbyPresentation => {
+  const player = parseModelCached(playerBuffer)
+  const animationIndex = lobbyAnimationIndexFor(player, weaponKey)
+  const activeSequence = player.sequences[animationIndex]
+  const renderData = prepareRenderData(player, [animationIndex])
+  const meshes = renderData.flatMap((bodyPart, bodyPartIndex) =>
+    bodyPart.flatMap((subModel, subModelIndex) =>
+      subModel.map(({ geometryBuffers, uvMap }, meshIndex) => {
+        const sourceMesh = player.meshes[bodyPartIndex][subModelIndex][meshIndex]
+        return {
+          animationFrames: geometryBuffers[animationIndex].map(
+            (frame) => new Float32Array(frame.array)
+          ),
+          uv: new Float32Array(uvMap.array),
+          textureIndex: player.skinRef[sourceMesh.skinRef]
+        }
+      })
+    )
+  )
+
+  return {
+    fps: activeSequence?.fps ?? 0,
+    frameCount: activeSequence?.numFrames ?? 0,
+    boneNames: player.bones.map((bone) => bone.name.toLowerCase()),
+    boneTransforms: Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
+      calcRotations(player, animationIndex, frame).map((matrix) => new Float32Array(matrix))
+    ),
+    meshes,
+    textures: player.textures.map((texture) => ({
+      pixels: buildTexture(playerBuffer, texture),
+      width: texture.width,
+      height: texture.height
+    }))
+  }
+}
+
+const loadPlayerPresentation = async (
+  actor: PartySceneActor,
+  weaponKey: string
+): Promise<CachedLobbyPresentation> => {
+  const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${actor.modelPath}:${lobbySequenceLabelFor(weaponKey)}`
+  if (actor.modelPath.startsWith(LOBBY_MODEL_PREFIX)) {
+    const cached = await readCachedLobbyPresentation(cacheKey)
+    if (cached) return cached
+    try {
+      const playerBuffer = await window.api.models.read(actor.modelPath)
+      const presentation = buildLobbyPresentation(playerBuffer, weaponKey)
+      await writeCachedLobbyPresentation(cacheKey, presentation)
+      return presentation
+    } catch {
+      // Fall through to the selected installation's stock model.
+    }
+  }
+
+  const playerBuffer = await window.api.models.read(actor.fallbackModelPath)
+  return buildLobbyPresentation(playerBuffer, weaponKey)
 }
 
 const isWeaponTransformArray = (
@@ -401,45 +474,31 @@ const setActorOpacity = (actor: THREE.Group, opacity: number): void => {
 
 const createActor = (
   actor: PartySceneActor,
-  playerBuffer: ArrayBuffer,
+  player: CachedLobbyPresentation,
   weaponBuffer: ArrayBuffer
 ): THREE.Group => {
-  const player = parseModelCached(playerBuffer)
   const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
-  const animationIndex = lobbyAnimationIndexFor(player, presentationWeaponKey)
   const weaponTransforms = weaponTransformsFor(presentationWeaponKey)
-  const renderData = prepareRenderData(player, [animationIndex])
-  const activeSequence = player.sequences[animationIndex]
-  const playerTextures = player.textures.map((texture) => buildTexture(playerBuffer, texture))
   const group = new THREE.Group()
 
-  renderData.forEach((bodyPart, bodyPartIndex) =>
-    bodyPart.forEach((subModel, subModelIndex) =>
-      subModel.forEach(({ geometryBuffers, uvMap }, meshIndex) => {
-        const sourceMesh = player.meshes[bodyPartIndex][subModelIndex][meshIndex]
-        const textureIndex = player.skinRef[sourceMesh.skinRef]
-        const mesh = addMesh(
-          group,
-          geometryBuffers[animationIndex][0],
-          uvMap,
-          playerTextures[textureIndex],
-          player.textures[textureIndex]
-        )
-        mesh.userData.animationFrames = geometryBuffers[animationIndex]
-      })
+  player.meshes.forEach(({ animationFrames, uv, textureIndex }) => {
+    const texture = player.textures[textureIndex]
+    const frameAttributes = animationFrames.map((frame) => new THREE.BufferAttribute(frame, 3))
+    const mesh = addMesh(
+      group,
+      frameAttributes[0],
+      new THREE.BufferAttribute(uv, 2),
+      texture?.pixels,
+      texture
     )
-  )
+    mesh.userData.animationFrames = frameAttributes
+  })
 
   const weapon = parseModelCached(weaponBuffer)
   const weaponTextures = weapon.textures.map((texture) => buildTexture(weaponBuffer, texture))
-  const playerBoneIndices = new Map(
-    player.bones.map((bone, index) => [bone.name.toLowerCase(), index])
-  )
-  const rightHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('r hand'))
-  const leftHandBone = player.bones.findIndex((bone) => bone.name.toLowerCase().includes('l hand'))
-  const playerAnimationFrames = Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
-    calcRotations(player, animationIndex, frame)
-  )
+  const playerBoneIndices = new Map(player.boneNames.map((boneName, index) => [boneName, index]))
+  const rightHandBone = player.boneNames.findIndex((boneName) => boneName.includes('r hand'))
+  const leftHandBone = player.boneNames.findIndex((boneName) => boneName.includes('l hand'))
 
   weaponTransforms.forEach((weaponTransform) => {
     const requestedHandBone = weaponTransform.hand === 'left' ? leftHandBone : rightHandBone
@@ -478,7 +537,7 @@ const createActor = (
             weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
             (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
           )
-          const animationFrames = playerAnimationFrames.map((playerBones) => {
+          const animationFrames = player.boneTransforms.map((playerBones) => {
             const handTransform = new THREE.Matrix4().fromArray(
               playerBones[handBone] as unknown as number[]
             )
@@ -536,8 +595,8 @@ const createActor = (
   group.worldToLocal(nameplatePosition)
   nameplate.position.copy(nameplatePosition)
   group.add(nameplate)
-  group.userData.animationFps = activeSequence?.fps ?? 0
-  group.userData.animationFrameCount = activeSequence?.numFrames ?? 0
+  group.userData.animationFps = player.fps
+  group.userData.animationFrameCount = player.frameCount
   group.userData.animationStartedAt = performance.now()
   return group
 }
@@ -571,17 +630,24 @@ export function PartyModelScene({
     let active = true
     const loadKey = actorKey
     const actorsSnapshot = [...actorsRef.current]
-    void Promise.all([
-      ...actorsSnapshot.flatMap((actor) => [
-        window.api.models
-          .read(actor.modelPath)
-          .catch(() => window.api.models.read(actor.fallbackModelPath)),
-        window.api.models.read(actor.weaponPath).catch(() => window.api.models.read('p_ak47.mdl'))
-      ])
-    ])
+    void Promise.all(
+      actorsSnapshot.map(async (actor) => {
+        const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
+        const [playerPresentation, weaponBuffer] = await Promise.all([
+          loadPlayerPresentation(actor, presentationWeaponKey),
+          window.api.models.read(actor.weaponPath).catch(() => window.api.models.read('p_ak47.mdl'))
+        ])
+        return { playerPresentation, weaponBuffer }
+      })
+    )
       .then((loaded) => {
         if (!active) return
-        setLoadedScene({ actorKey: loadKey, actors: actorsSnapshot, buffers: loaded })
+        setLoadedScene({
+          actorKey: loadKey,
+          actors: actorsSnapshot,
+          playerPresentations: loaded.map(({ playerPresentation }) => playerPresentation),
+          weaponBuffers: loaded.map(({ weaponBuffer }) => weaponBuffer)
+        })
       })
       .catch((error: unknown) => console.error('[Lobby] Could not load party scene models', error))
     return () => {
@@ -592,7 +658,8 @@ export function PartyModelScene({
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !loadedScene || loadedScene.actorKey !== actorKey) return
-    if (loadedScene.buffers.length !== loadedScene.actors.length * 2) return
+    if (loadedScene.playerPresentations.length !== loadedScene.actors.length) return
+    if (loadedScene.weaponBuffers.length !== loadedScene.actors.length) return
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 2000)
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
@@ -600,7 +667,6 @@ export function PartyModelScene({
     const ambient = new THREE.AmbientLight(0xffffff, 1.2)
     scene.add(ambient)
     const sceneActors = loadedScene.actors
-    const buffers = loadedScene.buffers
     const formation = [
       { x: 0, z: 24 },
       { x: 31, z: 2 },
@@ -610,10 +676,10 @@ export function PartyModelScene({
     ] as const
     const actorsToFade: THREE.Group[] = []
     sceneActors.forEach((actor, index) => {
-      const playerBuffer = buffers[index * 2]
-      const weaponBuffer = buffers[index * 2 + 1]
-      if (!playerBuffer || !weaponBuffer) return
-      const model = createActor(actor, playerBuffer, weaponBuffer)
+      const playerPresentation = loadedScene.playerPresentations[index]
+      const weaponBuffer = loadedScene.weaponBuffers[index]
+      if (!playerPresentation || !weaponBuffer) return
+      const model = createActor(actor, playerPresentation, weaponBuffer)
       setActorOpacity(model, 0)
       // GoldSrc player MDLs do not share a consistent local origin. Center a
       // solo actor from its actual geometry while leaving the tuned five-player
