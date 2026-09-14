@@ -619,3 +619,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Added a warning modal explaining penalties for failing to connect to a match.
+
+## v2026.914.1 — 2026-09-14
+
+### Linux
+
+- Added packaging support for ARM Linux devices.
