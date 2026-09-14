@@ -84,9 +84,16 @@ cp .env.example .env
 ### Build packages
 
 ```bash
-npm run build:win    # Windows
-npm run build:linux  # Linux
+npm run build:win             # Windows
+npm run build:linux           # Linux x64
+npm run build:linux:arm64     # Linux ARM64 / aarch64
+npm run build:linux:armv7l    # Linux 32-bit ARM
 ```
+
+The ARM commands cross-build Linux AppImages from any supported host. ARM64 is
+the recommended target for modern ARM Linux devices. The ARMv7l target is
+available for older 32-bit systems and requires an Electron release with an
+ARMv7l binary.
 
 macOS support is planned for a future release.
 
