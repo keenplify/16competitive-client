@@ -37,6 +37,7 @@ export function LobbyNavigation({
 
   return (
     <nav
+      data-i18n-skip
       className={twMerge(
         'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-16 items-center px-3 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-28 before:bg-gradient-to-b before:from-neutral-950/25 before:to-transparent sm:h-20 sm:px-5',
         className
