@@ -18,7 +18,10 @@ export function AudioController(): JSX.Element | null {
   const gameStarting = queueStatus === 'server_ready' && !gameExited && !matchmakingError
   const shouldUseLobbyLowPass =
     playerId !== null &&
-    (match === null || gameExited || (queueStatus === 'server_ready' && matchmakingError !== null))
+    (match === null ||
+      readyResponse === 'declined' ||
+      gameExited ||
+      (queueStatus === 'server_ready' && matchmakingError !== null))
 
   const previousMatchId = useRef<string | null>(null)
   const previousReadyResponse = useRef(readyResponse)
