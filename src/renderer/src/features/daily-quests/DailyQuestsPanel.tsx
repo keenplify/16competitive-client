@@ -38,7 +38,7 @@ export function DailyQuestsPanel({
   )
 
   return (
-    <section className="rounded-xl border border-white/20 bg-black/75 p-4 shadow-2xl backdrop-blur-sm">
+    <section className="border border-white/10 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-md">
       <div className="mb-3 flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
@@ -76,7 +76,7 @@ export function DailyQuestsPanel({
             return (
               <article
                 key={quest.id}
-                className="rounded-lg border border-white/10 bg-black/50 px-3 py-3"
+                className="border border-white/10 bg-black/20 px-3 py-3"
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
