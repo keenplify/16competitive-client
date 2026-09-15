@@ -5,10 +5,12 @@ type RuntimeLanguage = Exclude<LanguageCode, 'en'>
 const ru: Record<string, string> = {
   'Party model scene': 'Сцена моделей группы',
   'Authentication failed. Please try again.': 'Ошибка авторизации. Попробуйте еще раз.',
-  'Username must be 3–32 characters using letters, numbers, or underscores.': 'Имя должно содержать 3–32 символа: буквы, цифры или подчеркивания.',
+  'Username must be 3–32 characters using letters, numbers, or underscores.':
+    'Имя должно содержать 3–32 символа: буквы, цифры или подчеркивания.',
   'Password must be 8–128 characters.': 'Пароль должен содержать 8–128 символов.',
   'Enter a valid email address.': 'Введите корректный email.',
-  'Sign in, then go to Settings > Credentials > Connected accounts > Facebook.': 'Войдите, затем откройте Настройки > Учетная запись > Подключенные аккаунты > Facebook.',
+  'Sign in, then go to Settings > Credentials > Connected accounts > Facebook.':
+    'Войдите, затем откройте Настройки > Учетная запись > Подключенные аккаунты > Facebook.',
   'Background music volume': 'Громкость фоновой музыки',
   'Sound effects volume': 'Громкость звуковых эффектов',
   volume: 'громкость',
@@ -16,7 +18,7 @@ const ru: Record<string, string> = {
   'Counter-Strike path saved.': 'Путь к Counter-Strike сохранен.',
   'Could not load daily quests.': 'Не удалось загрузить ежедневные задания.',
   'Could not refresh daily quests.': 'Не удалось обновить ежедневные задания.',
-  'MMR': 'MMR',
+  MMR: 'MMR',
   'HS% / ADR': 'HS% / ADR',
   'K / A / D': 'K / A / D',
   'P Cash': 'P Cash',
@@ -28,10 +30,12 @@ const ru: Record<string, string> = {
 const tl: Record<string, string> = {
   'Party model scene': 'Party model scene',
   'Authentication failed. Please try again.': 'Nag-fail ang authentication. Try ulit.',
-  'Username must be 3–32 characters using letters, numbers, or underscores.': 'Dapat 3–32 characters ang username gamit letters, numbers, o underscores.',
+  'Username must be 3–32 characters using letters, numbers, or underscores.':
+    'Dapat 3–32 characters ang username gamit letters, numbers, o underscores.',
   'Password must be 8–128 characters.': 'Dapat 8–128 characters ang password.',
   'Enter a valid email address.': 'Mag-enter ng valid email address.',
-  'Sign in, then go to Settings > Credentials > Connected accounts > Facebook.': 'Mag-sign in, then punta sa Settings > Account > Connected accounts > Facebook.',
+  'Sign in, then go to Settings > Credentials > Connected accounts > Facebook.':
+    'Mag-sign in, then punta sa Settings > Account > Connected accounts > Facebook.',
   'Background music volume': 'Background music volume',
   'Sound effects volume': 'Sound effects volume',
   volume: 'volume',
@@ -39,7 +43,7 @@ const tl: Record<string, string> = {
   'Counter-Strike path saved.': 'Saved na ang Counter-Strike path.',
   'Could not load daily quests.': 'Hindi ma-load ang daily quests.',
   'Could not refresh daily quests.': 'Hindi ma-refresh ang daily quests.',
-  'MMR': 'MMR',
+  MMR: 'MMR',
   'HS% / ADR': 'HS% / ADR',
   'K / A / D': 'K / A / D',
   'P Cash': 'P Cash',

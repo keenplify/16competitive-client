@@ -7,7 +7,7 @@ export function LanguageSettings(): JSX.Element {
   const setLanguage = useLanguageStore((state) => state.setLanguage)
 
   return (
-    <section className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+    <section data-i18n-skip className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
       <div className="flex items-start gap-3">
         <Languages className="mt-0.5 size-5 shrink-0 text-sky-400" aria-hidden="true" />
         <div className="min-w-0 flex-1">

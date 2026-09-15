@@ -205,7 +205,8 @@ const indonesian: Record<TranslationKey, string> = {
   'auth.finishSocial': 'Selesaikan {{action}} dengan {{provider}} di browser Anda.',
   'auth.finishSigningIn': 'proses masuk',
   'auth.finishCreatingAccount': 'pembuatan akun',
-  'auth.facebookEmailHint': 'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
+  'auth.facebookEmailHint':
+    'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
 }
 
 const portuguese: Record<TranslationKey, string> = {
@@ -243,7 +244,8 @@ const portuguese: Record<TranslationKey, string> = {
   'auth.finishSocial': 'Conclua {{action}} com {{provider}} no seu navegador.',
   'auth.finishSigningIn': 'o login',
   'auth.finishCreatingAccount': 'a criação da sua conta',
-  'auth.facebookEmailHint': 'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.'
+  'auth.facebookEmailHint':
+    'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.'
 }
 
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {

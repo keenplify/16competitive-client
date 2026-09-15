@@ -326,7 +326,10 @@ const catalog: Record<string, string> = {
 
 const patterns: Array<[RegExp, string]> = [
   [/^Signed in as (.+)$/, 'Conectado como $1'],
-  [/^You can change your username again on (.+)\.$/, 'Você poderá alterar seu nome de usuário novamente em $1.'],
+  [
+    /^You can change your username again on (.+)\.$/,
+    'Você poderá alterar seu nome de usuário novamente em $1.'
+  ],
   [/^(Google|Facebook) connected\.$/, '$1 conectado.'],
   [/^Connect (Google|Facebook)$/, 'Conectar $1'],
   [/^Rank (\d+)$/, 'Posição $1'],
@@ -338,9 +341,15 @@ const patterns: Array<[RegExp, string]> = [
   [/^Downloading required skins · (\d+) \/ (\d+)$/, 'Baixando skins necessárias · $1 / $2'],
   [/^(\d+)% downloaded$/, '$1% baixado'],
   [/^Searching in (.+)$/, 'Procurando em $1'],
-  [/^Searching from (.+) · Regional expansion enabled$/, 'Procurando a partir de $1 · expansão regional ativada'],
+  [
+    /^Searching from (.+) · Regional expansion enabled$/,
+    'Procurando a partir de $1 · expansão regional ativada'
+  ],
   [/^(\d+) of (\d+) selected$/, '$1 de $2 selecionados'],
-  [/^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/, 'Servidor pronto em $1. O launcher abrirá o Counter-Strike e conectará automaticamente.'],
+  [
+    /^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/,
+    'Servidor pronto em $1. O launcher abrirá o Counter-Strike e conectará automaticamente.'
+  ],
   [/^Team (1|2) · Winners$/, 'Equipe $1 · Vencedores'],
   [/^Team (1|2)$/, 'Equipe $1'],
   [/^Party · (\d+) \/ 5$/, 'Grupo · $1 / 5'],
@@ -350,7 +359,10 @@ const patterns: Array<[RegExp, string]> = [
   [/^Friends · (\d+)$/, 'Amigos · $1'],
   [/^Accept (.+)'s friend request$/, 'Aceitar solicitação de amizade de $1'],
   [/^Discard (.+)'s friend request$/, 'Recusar solicitação de amizade de $1'],
-  [/^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/, 'Você recebeu $1 pontos. Seu novo saldo é $2 pontos.'],
+  [
+    /^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/,
+    'Você recebeu $1 pontos. Seu novo saldo é $2 pontos.'
+  ],
   [/^No (.+) skins are currently on sale\.$/, 'Nenhuma skin de $1 está à venda no momento.'],
   [/^Open (.+) 3D preview$/, 'Abrir prévia 3D de $1'],
   [/^By (.+)$/, 'Por $1'],

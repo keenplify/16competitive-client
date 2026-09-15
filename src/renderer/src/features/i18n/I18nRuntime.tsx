@@ -6,7 +6,13 @@ import { translateRuntimePortuguese } from './ui-translations-portuguese'
 import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
 
-const translatableAttributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'] as const
+const translatableAttributes = [
+  'aria-label',
+  'aria-valuetext',
+  'title',
+  'placeholder',
+  'alt'
+] as const
 
 type TranslatableAttribute = (typeof translatableAttributes)[number]
 
@@ -90,7 +96,11 @@ export function I18nRuntime(): null {
         translateTextNode(root)
         return
       }
-      if (!(root instanceof Element || root instanceof DocumentFragment || root instanceof Document)) {
+      if (!(
+        root instanceof Element ||
+        root instanceof DocumentFragment ||
+        root instanceof Document
+      )) {
         return
       }
       if (root instanceof Element) translateElement(root)
