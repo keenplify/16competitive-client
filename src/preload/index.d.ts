@@ -1,4 +1,5 @@
 import type { AuthApi } from '../shared/auth'
+import type { DailyQuestsApi } from '../shared/daily-quests'
 import type { MatchmakingApi } from '../shared/matchmaking'
 import type { WindowApi } from '../shared/window'
 import type { ModelApi } from '../shared/models'
@@ -17,6 +18,7 @@ declare global {
   interface Window {
     api: {
       auth: AuthApi
+      dailyQuests: DailyQuestsApi
       friends: FriendsApi
       gameSettings: GameSettingsApi
       leaderboard: LeaderboardApi

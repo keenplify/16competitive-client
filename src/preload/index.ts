@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AuthApi } from '../shared/auth'
 import { AUTH_CHANNELS } from '../shared/auth'
+import type { DailyQuestsApi } from '../shared/daily-quests'
+import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
 import type { MatchmakingApi, MatchmakingEvent } from '../shared/matchmaking'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import type { WindowApi } from '../shared/window'
@@ -41,6 +43,10 @@ const auth: AuthApi = {
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
+}
+
+const dailyQuests: DailyQuestsApi = {
+  get: () => ipcRenderer.invoke(DAILY_QUEST_CHANNELS.get)
 }
 
 const matchmaking: MatchmakingApi = {
@@ -138,7 +144,7 @@ const skins: SkinsApi = {
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
   mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
   getLobbyLoadout: () => ipcRenderer.invoke(SKIN_CHANNELS.getLobbyLoadout),
-  unlock: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId),
+  unlock: (skinId, currency) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId, currency),
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
   unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
   previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId),
@@ -183,6 +189,7 @@ const diagnosticLogs: DiagnosticLogsApi = {
 
 const api = {
   auth,
+  dailyQuests,
   friends,
   gameSettings,
   leaderboard,

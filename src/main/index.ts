@@ -17,6 +17,8 @@ import {
 } from './auth'
 import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
+import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
+import { getDailyQuests } from './daily-quests'
 import { matchmakingConnection } from './matchmaking'
 import {
   getMatchmakingNodes,
@@ -323,6 +325,7 @@ app.whenReady().then(async () => {
     disconnectMatchmakingIntentionally()
     clearSessionToken()
   })
+  ipcMain.handle(DAILY_QUEST_CHANNELS.get, () => getDailyQuests())
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
     matchmakingConnection.connect(event.sender)
   )
@@ -371,7 +374,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
   ipcMain.handle(SKIN_CHANNELS.getLobbyLoadout, () => getLobbyLoadout())
-  ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown) => unlockSkin(skinId))
+  ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown, currency: unknown) =>
+    unlockSkin(skinId, currency)
+  )
   ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown) => getSkinPreviewModel(skinId))
