@@ -11,6 +11,9 @@ import {
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { Button } from '../../components/ui/Button'
+import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
+import { useAudioSettingsStore } from '../audio/audio.store'
+import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
@@ -18,7 +21,7 @@ import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
-type SettingsSection = 'general' | 'assets' | 'credentials'
+type SettingsSection = 'general' | 'audio' | 'assets' | 'credentials'
 
 const readableError = (error: unknown): string =>
   error instanceof Error
@@ -28,6 +31,7 @@ const readableError = (error: unknown): string =>
 export function SettingsPage(): JSX.Element {
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
+  const audioRef = useRef<HTMLElement>(null)
   const assetsRef = useRef<HTMLElement>(null)
   const credentialsRef = useRef<HTMLElement>(null)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -41,7 +45,12 @@ export function SettingsPage(): JSX.Element {
   const load = useGameSettingsStore((state) => state.load)
   const choose = useGameSettingsStore((state) => state.choose)
   const save = useGameSettingsStore((state) => state.save)
-
+  const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
+  const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
+  const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
+  const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
+  const setSfxVolume = useAudioSettingsStore((state) => state.setSfxVolume)
+  const setSelectedBgmId = useAudioSettingsStore((state) => state.setSelectedBgmId)
   const authStatus = useAuthStore((state) => state.status)
   const authError = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
@@ -82,11 +91,13 @@ export function SettingsPage(): JSX.Element {
 
   const updateActiveSection = (): void => {
     const container = scrollRef.current
+    const audio = audioRef.current
     const assets = assetsRef.current
     const credentials = credentialsRef.current
-    if (!container || !assets || !credentials) return
+    if (!container || !audio || !assets || !credentials) return
 
     const containerTop = container.getBoundingClientRect().top
+    const audioTop = audio.getBoundingClientRect().top - containerTop
     const assetsTop = assets.getBoundingClientRect().top - containerTop
     const credentialsTop = credentials.getBoundingClientRect().top - containerTop
     const activationLine = Math.min(220, container.clientHeight * 0.3)
@@ -95,6 +106,8 @@ export function SettingsPage(): JSX.Element {
       setActiveSection('credentials')
     } else if (assetsTop <= activationLine) {
       setActiveSection('assets')
+    } else if (audioTop <= activationLine) {
+      setActiveSection('audio')
     } else {
       setActiveSection('general')
     }
@@ -111,9 +124,11 @@ export function SettingsPage(): JSX.Element {
     const target =
       section === 'general'
         ? generalRef.current
-        : section === 'assets'
-          ? assetsRef.current
-          : credentialsRef.current
+        : section === 'audio'
+          ? audioRef.current
+          : section === 'assets'
+            ? assetsRef.current
+            : credentialsRef.current
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -321,8 +336,9 @@ export function SettingsPage(): JSX.Element {
 
         <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
           <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-            <nav className="grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
+            <nav className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
+              {sectionButton('audio', 'Voice & Audio')}
               {sectionButton('assets', 'Assets')}
               {sectionButton('credentials', 'Credentials')}
             </nav>
@@ -424,6 +440,66 @@ export function SettingsPage(): JSX.Element {
                   </p>
                 )}
               </div>
+            </section>
+
+            <section
+              ref={audioRef}
+              className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+            >
+              <div className="mb-5">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+                  Voice & Audio
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">Voice and launcher audio</h2>
+                <p className="mt-2 text-sm text-neutral-400">
+                  Configure voice bindings, launcher music, and interface sound effects.
+                </p>
+              </div>
+
+              <section className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                <h3 className="text-lg font-semibold">Audio</h3>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Control launcher music and interface sounds. These preferences are saved on this
+                  device.
+                </p>
+
+                <label className="mt-6 block">
+                  <span className="text-sm font-semibold text-neutral-200">Music set</span>
+                  <span className="mt-1 block text-xs text-neutral-500">
+                    Choose a music set for the launcher. Each set can provide its own background
+                    music and match-found cue.
+                  </span>
+                  <select
+                    className="mt-3 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400"
+                    value={selectedBgmId}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value
+                      if (isLauncherBgmId(value)) setSelectedBgmId(value)
+                    }}
+                  >
+                    {MUSIC_SETS.map((set) => (
+                      <option key={set.id} value={set.id}>
+                        {set.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <VolumeControl
+                    label="Background music"
+                    description="Launcher music volume. Music fades out when a match starts."
+                    value={bgmVolume}
+                    onChange={setBgmVolume}
+                  />
+                  <VolumeControl
+                    label="Sound effects"
+                    description="Navigation tabs, party invitations, matchmaking alerts, game-start, victory, and defeat sounds."
+                    value={sfxVolume}
+                    onChange={setSfxVolume}
+                  />
+                </div>
+              </section>
 
               <VoicePttKeySetting />
             </section>

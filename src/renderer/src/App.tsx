@@ -1,4 +1,5 @@
 import { AuthPage } from './features/auth/AuthPage'
+import { AudioController } from './features/audio/AudioController'
 import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
 import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
 import { UpdateBanner } from './features/updates/UpdateBanner'
@@ -11,6 +12,7 @@ import './assets/toast.css'
 function App(): React.JSX.Element {
   return (
     <>
+      <AudioController />
       <UpdateBanner />
       <ConnectionBanner />
       <MatchAbandonNotice />

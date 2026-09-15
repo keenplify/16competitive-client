@@ -85,6 +85,7 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
             type="button"
             className="rounded-md p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-300 disabled:opacity-40"
             aria-label="Close redeem code dialog"
+            data-audio-sfx="backward"
             disabled={isSubmitting}
             onClick={onClose}
           >
@@ -110,7 +111,7 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
                 <p className="mt-2">You already owned the reward skin.</p>
               )}
             </div>
-            <Button className="mt-5 w-full" onClick={onClose}>
+            <Button className="mt-5 w-full" data-audio-sfx="backward" onClick={onClose}>
               Done
             </Button>
           </div>
@@ -136,7 +137,12 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
               {error && <p className="text-sm text-rose-300">{error}</p>}
             </div>
             <div className="mt-4 flex justify-end gap-3">
-              <Button variant="ghost" disabled={isSubmitting} onClick={onClose}>
+              <Button
+                variant="ghost"
+                data-audio-sfx="backward"
+                disabled={isSubmitting}
+                onClick={onClose}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || code.trim().length < 3}>
