@@ -1,14 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type {
-  LobbyLoadout,
-  OwnedSkin,
-  PCashUnlockResult,
-  Skin,
-  StoreWallet,
-  UnlockResult
-} from '../shared/skins'
+import type { LobbyLoadout, OwnedSkin, Skin, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
@@ -62,6 +55,7 @@ const isSkin = (value: unknown): value is Skin => {
     typeof skin.pricePoints === 'number' &&
     typeof skin.pointsEnabled === 'boolean' &&
     (typeof skin.pricePCash === 'number' || skin.pricePCash === null) &&
+    typeof skin.viewerPCash === 'number' &&
     (typeof skin.availableFrom === 'string' || skin.availableFrom === null) &&
     (typeof skin.availableUntil === 'string' || skin.availableUntil === null) &&
     typeof skin.creatorName === 'string' &&
@@ -119,18 +113,7 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
   ) {
     throw new Error('Invalid weapon filter')
   }
-  const data = await fetch(await skinApiUrl('/skins/store-pricing'), {
-    signal: AbortSignal.timeout(10_000)
-  })
-    .then(async (response) => {
-      const body: unknown = await response.json().catch(() => null)
-      if (!response.ok) throw new Error('Could not load skins currently on sale.')
-      return body
-    })
-    .catch(() => {
-      throw new Error('Could not reach the shop server.')
-    })
-
+  const data = await playerRequest('/skins/store')
   if (!Array.isArray(data) || !data.every(isSkin)) {
     throw new Error('Could not load skins currently on sale.')
   }
@@ -142,19 +125,6 @@ export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   if (!Array.isArray(data) || !data.every(isOwnedSkin))
     throw new Error('The server returned an invalid inventory.')
   return data
-}
-
-export const getStoreWallet = async (): Promise<StoreWallet> => {
-  const data = await playerRequest('/skins/wallet')
-  if (
-    typeof data !== 'object' ||
-    data === null ||
-    typeof (data as Record<string, unknown>).points !== 'number' ||
-    typeof (data as Record<string, unknown>).pCash !== 'number'
-  ) {
-    throw new Error('The server returned an invalid store wallet.')
-  }
-  return data as StoreWallet
 }
 
 export const getLobbyLoadout = async (): Promise<LobbyLoadout> => {
@@ -184,29 +154,36 @@ const validateSkinId = (skinId: unknown): string => {
 }
 
 export const unlockSkin = async (skinId: unknown): Promise<UnlockResult> => {
-  const data = await playerRequest(`/skins/${validateSkinId(skinId)}/unlock`, { method: 'POST' })
-  if (
-    typeof data !== 'object' ||
-    data === null ||
-    typeof (data as Record<string, unknown>).points !== 'number'
-  ) {
-    throw new Error('The server returned an invalid unlock result.')
-  }
-  return data as UnlockResult
-}
+  const id = validateSkinId(skinId)
+  const catalog = await listSkins()
+  const skin = catalog.find((item) => item.id === id)
+  if (!skin) throw makeError('This skin is not currently available.', 'SKIN_UNAVAILABLE')
 
-export const unlockSkinWithPCash = async (skinId: unknown): Promise<PCashUnlockResult> => {
-  const data = await playerRequest(`/skins/${validateSkinId(skinId)}/unlock-p-cash`, {
-    method: 'POST'
-  })
-  if (
-    typeof data !== 'object' ||
-    data === null ||
-    typeof (data as Record<string, unknown>).pCash !== 'number'
-  ) {
-    throw new Error('The server returned an invalid P Cash unlock result.')
+  if (skin.pointsEnabled) {
+    const data = await playerRequest(`/skins/${id}/unlock`, { method: 'POST' })
+    if (
+      typeof data !== 'object' ||
+      data === null ||
+      typeof (data as Record<string, unknown>).points !== 'number'
+    ) {
+      throw new Error('The server returned an invalid unlock result.')
+    }
+    return { ...(data as Record<string, unknown>), currency: 'POINTS' } as UnlockResult
   }
-  return data as PCashUnlockResult
+
+  if (skin.pricePCash !== null) {
+    const data = await playerRequest(`/skins/${id}/unlock-p-cash`, { method: 'POST' })
+    if (
+      typeof data !== 'object' ||
+      data === null ||
+      typeof (data as Record<string, unknown>).pCash !== 'number'
+    ) {
+      throw new Error('The server returned an invalid P Cash unlock result.')
+    }
+    return { ...(data as Record<string, unknown>), currency: 'P_CASH' } as UnlockResult
+  }
+
+  throw makeError('This skin does not have an available purchase method.', 'SKIN_UNAVAILABLE')
 }
 
 export const equipSkin = async (skinId: unknown): Promise<void> => {
