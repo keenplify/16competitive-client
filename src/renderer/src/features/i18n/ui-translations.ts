@@ -7,7 +7,8 @@ const ru: Record<string, string> = {
   'Add your email': 'Добавьте email',
   'Facebook did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.':
     'Facebook не передал email. Добавьте его, чтобы создать аккаунт 1.6 Competitive. Имя игрока вы выберете следующим шагом.',
-  'We use this to secure and identify your account.': 'Он нужен для защиты и идентификации аккаунта.',
+  'We use this to secure and identify your account.':
+    'Он нужен для защиты и идентификации аккаунта.',
   'Checking email…': 'Проверяем email…',
   Continue: 'Продолжить',
   'Back to login': 'Вернуться ко входу',
@@ -21,7 +22,8 @@ const ru: Record<string, string> = {
   Register: 'Регистрация',
   or: 'или',
   Username: 'Имя игрока',
-  '3–32 characters: letters, numbers, and underscores': '3–32 символа: буквы, цифры и подчеркивания',
+  '3–32 characters: letters, numbers, and underscores':
+    '3–32 символа: буквы, цифры и подчеркивания',
   Email: 'Email',
   Password: 'Пароль',
   'At least 8 characters': 'Не менее 8 символов',
@@ -32,7 +34,8 @@ const ru: Record<string, string> = {
   'Exit to desktop': 'Закрыть лаунчер',
   'Privacy Policy': 'Политика конфиденциальности',
   'Terms & Conditions': 'Условия использования',
-  'Facebook did not provide an email address. Add one to continue.': 'Facebook не передал email. Добавьте его, чтобы продолжить.',
+  'Facebook did not provide an email address. Add one to continue.':
+    'Facebook не передал email. Добавьте его, чтобы продолжить.',
   'Restoring your session': 'Восстановление сессии',
   'One last step': 'Последний шаг',
   'Choose your username': 'Выберите имя игрока',
@@ -86,13 +89,15 @@ const ru: Record<string, string> = {
   'Check, download, or repair the managed game assets used by 1.6 Competitive.':
     'Проверьте, загрузите или восстановите игровые ресурсы 1.6 Competitive.',
   'Account credentials': 'Данные учетной записи',
-  'Manage your username, sign-in methods, and password.': 'Управляйте именем игрока, способами входа и паролем.',
+  'Manage your username, sign-in methods, and password.':
+    'Управляйте именем игрока, способами входа и паролем.',
   'Visible to other players. You can change it once every 7 days.':
     'Видно другим игрокам. Имя можно менять раз в 7 дней.',
   'Current username': 'Текущее имя',
   'New username': 'Новое имя',
   'Change username': 'Изменить имя',
-  '3–32 characters: letters, numbers, and underscores.': '3–32 символа: буквы, цифры и подчеркивания.',
+  '3–32 characters: letters, numbers, and underscores.':
+    '3–32 символа: буквы, цифры и подчеркивания.',
   'Connected accounts': 'Подключенные аккаунты',
   'Connect Google or Facebook so either provider can authenticate this same player account.':
     'Подключите Google или Facebook, чтобы входить в этот же аккаунт через любой из сервисов.',
@@ -113,7 +118,8 @@ const ru: Record<string, string> = {
   'New passwords do not match.': 'Новые пароли не совпадают.',
   'Password changed.': 'Пароль изменен.',
   'Password created.': 'Пароль создан.',
-  'Username changed. You can change it again in 7 days.': 'Имя изменено. Следующее изменение будет доступно через 7 дней.',
+  'Username changed. You can change it again in 7 days.':
+    'Имя изменено. Следующее изменение будет доступно через 7 дней.',
 
   'Save your Counter-Strike executable above before downloading assets.':
     'Сначала сохраните путь к Counter-Strike выше.',
@@ -136,14 +142,18 @@ const ru: Record<string, string> = {
   'Push-to-talk': 'Рация',
   'Team talk': 'Командный голос',
   'Party talk': 'Голос группы',
-  'Talk to every human teammate in your current match.': 'Говорите со всеми игроками своей команды в текущем матче.',
-  'Talk only to party members who are also on your current team.': 'Говорите только с участниками группы, которые находятся в вашей команде.',
+  'Talk to every human teammate in your current match.':
+    'Говорите со всеми игроками своей команды в текущем матче.',
+  'Talk only to party members who are also on your current team.':
+    'Говорите только с участниками группы, которые находятся в вашей команде.',
   Cancel: 'Отмена',
   Change: 'Изменить',
   'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. Counter-Strike receives both bindings temporarily when a match launches.':
     'Для команды и группы используются разные клавиши. По умолчанию: K для команды и V для группы. При запуске матча Counter-Strike временно получает обе привязки.',
-  'Your previous Counter-Strike bindings are restored after the match.': 'После матча прежние привязки Counter-Strike восстанавливаются.',
-  'Choose your Counter-Strike executable to launch matches.': 'Выберите исполняемый файл Counter-Strike для запуска матчей.',
+  'Your previous Counter-Strike bindings are restored after the match.':
+    'После матча прежние привязки Counter-Strike восстанавливаются.',
+  'Choose your Counter-Strike executable to launch matches.':
+    'Выберите исполняемый файл Counter-Strike для запуска матчей.',
   'Could not save the push-to-talk key.': 'Не удалось сохранить клавишу голосовой связи.',
 
   Rankings: 'Рейтинг',
@@ -166,8 +176,10 @@ const ru: Record<string, string> = {
   '1.6 Competitive update': 'Обновление 1.6 Competitive',
   'View on Mastodon ↗': 'Открыть в Mastodon ↗',
 
-  'Disconnected from server. Reconnecting...': 'Соединение с сервером потеряно. Переподключаемся...',
-  'No internet connection. Reconnecting when it returns...': 'Нет подключения к интернету. Переподключимся после восстановления...',
+  'Disconnected from server. Reconnecting...':
+    'Соединение с сервером потеряно. Переподключаемся...',
+  'No internet connection. Reconnecting when it returns...':
+    'Нет подключения к интернету. Переподключимся после восстановления...',
   'Match discarded': 'Матч отменен',
   'MMR penalty applied': 'Применен штраф MMR',
   'You did not connect in time': 'Вы не успели подключиться',
@@ -207,8 +219,10 @@ const ru: Record<string, string> = {
   Automatic: 'Автоматически',
   'Preferred matchmaking region': 'Предпочтительный регион матчмейкинга',
   'Chooses the lowest-latency healthy region': 'Выбирает доступный регион с минимальной задержкой',
-  'Automatic chooses the lowest-latency healthy region when one is reachable.': 'Автовыбор использует доступный регион с минимальной задержкой.',
-  'Manual region selection overrides automatic latency routing.': 'Ручной выбор региона отключает автоматическую маршрутизацию по задержке.',
+  'Automatic chooses the lowest-latency healthy region when one is reachable.':
+    'Автовыбор использует доступный регион с минимальной задержкой.',
+  'Manual region selection overrides automatic latency routing.':
+    'Ручной выбор региона отключает автоматическую маршрутизацию по задержке.',
   Offline: 'Не в сети',
   Connecting: 'Подключение',
   Reconnecting: 'Переподключение',
@@ -216,7 +230,8 @@ const ru: Record<string, string> = {
   Authenticating: 'Авторизация',
   'Match found': 'Матч найден',
   'Preparing ready check': 'Подготовка подтверждения',
-  'Waiting for the server to open player acceptance…': 'Ждем, пока сервер откроет подтверждение игроков…',
+  'Waiting for the server to open player acceptance…':
+    'Ждем, пока сервер откроет подтверждение игроков…',
   'All players ready': 'Все игроки готовы',
   'Preparing server': 'Подготовка сервера',
   'Server ready': 'Сервер готов',
@@ -228,19 +243,25 @@ const ru: Record<string, string> = {
   'Match ready': 'Матч готов',
   'Reconnect to your match': 'Вернуться в матч',
   'Choose your battlefield': 'Выберите поле боя',
-  "Toggle any 5v5 Competitive maps to build your party's search pool.": 'Выберите карты 5v5 Competitive для поиска вашей группы.',
-  'Your party leader chooses the Competitive map pool.': 'Набор карт Competitive выбирает лидер группы.',
+  "Toggle any 5v5 Competitive maps to build your party's search pool.":
+    'Выберите карты 5v5 Competitive для поиска вашей группы.',
+  'Your party leader chooses the Competitive map pool.':
+    'Набор карт Competitive выбирает лидер группы.',
   'Preferred region': 'Предпочтительный регион',
-  'Expand search to other regions after 90 seconds': 'Расширить поиск на другие регионы через 90 секунд',
+  'Expand search to other regions after 90 seconds':
+    'Расширить поиск на другие регионы через 90 секунд',
   Maps: 'Карты',
   'Loading maps…': 'Загружаем карты…',
-  'Competitive matchmaking is temporarily unavailable.': 'Competitive матчмейкинг временно недоступен.',
+  'Competitive matchmaking is temporarily unavailable.':
+    'Competitive матчмейкинг временно недоступен.',
   'Searching…': 'Поиск…',
   'Joining queue…': 'Входим в очередь…',
   'Find match': 'Найти матч',
   'Waiting for leader': 'Ждем лидера',
-  'You’ll be moved into the queue when your leader starts matchmaking.': 'Вы попадете в очередь, когда лидер начнет поиск матча.',
-  'Choose and save your Counter-Strike executable in Settings first.': 'Сначала выберите и сохраните исполняемый файл Counter-Strike в настройках.',
+  'You’ll be moved into the queue when your leader starts matchmaking.':
+    'Вы попадете в очередь, когда лидер начнет поиск матча.',
+  'Choose and save your Counter-Strike executable in Settings first.':
+    'Сначала выберите и сохраните исполняемый файл Counter-Strike в настройках.',
   Competitive: 'Соревновательный',
   Casual: 'Обычный',
   Ranked: 'Рейтинговый',
@@ -248,10 +269,12 @@ const ru: Record<string, string> = {
 
   'Match rewards': 'Награды за матч',
   'Daily mission report': 'Отчет по ежедневным заданиям',
-  "Your match progress has been added to today's missions.": 'Прогресс матча добавлен к сегодняшним заданиям.',
+  "Your match progress has been added to today's missions.":
+    'Прогресс матча добавлен к сегодняшним заданиям.',
   Next: 'Далее',
   'Mission progress': 'Прогресс заданий',
-  'MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS': 'ИТОГИ МАТЧА ОТКРОЮТСЯ АВТОМАТИЧЕСКИ ЧЕРЕЗ 5 СЕКУНД',
+  'MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS':
+    'ИТОГИ МАТЧА ОТКРОЮТСЯ АВТОМАТИЧЕСКИ ЧЕРЕЗ 5 СЕКУНД',
   'Match complete': 'Матч завершен',
   Victory: 'Победа',
   Defeat: 'Поражение',
@@ -294,13 +317,17 @@ const ru: Record<string, string> = {
 
   Party: 'Группа',
   'Party invitation': 'Приглашение в группу',
-  'Accept an invitation to join that player’s lobby.': 'Примите приглашение, чтобы присоединиться к лобби игрока.',
+  'Accept an invitation to join that player’s lobby.':
+    'Примите приглашение, чтобы присоединиться к лобби игрока.',
   'Responding…': 'Отвечаем…',
   Accept: 'Принять',
   Decline: 'Отклонить',
-  'You are the leader. Manage invitations from the Friends sidebar.': 'Вы лидер. Управляйте приглашениями на панели друзей.',
-  'Only the party leader can invite players or start matchmaking.': 'Только лидер группы может приглашать игроков и начинать поиск матча.',
-  'Invite a player from the Friends sidebar to create a party.': 'Пригласите игрока с панели друзей, чтобы создать группу.',
+  'You are the leader. Manage invitations from the Friends sidebar.':
+    'Вы лидер. Управляйте приглашениями на панели друзей.',
+  'Only the party leader can invite players or start matchmaking.':
+    'Только лидер группы может приглашать игроков и начинать поиск матча.',
+  'Invite a player from the Friends sidebar to create a party.':
+    'Пригласите игрока с панели друзей, чтобы создать группу.',
   'Leaving…': 'Выходим…',
   'Disband party': 'Распустить группу',
   'Leave party': 'Покинуть группу',
@@ -310,8 +337,10 @@ const ru: Record<string, string> = {
   Chat: 'Чат',
   'Party messages': 'Сообщения группы',
   'Global messages': 'Общие сообщения',
-  'Party messages and status updates appear here.': 'Здесь отображаются сообщения группы и изменения статуса.',
-  'Join or create a party to use party chat.': 'Вступите в группу или создайте ее, чтобы использовать чат группы.',
+  'Party messages and status updates appear here.':
+    'Здесь отображаются сообщения группы и изменения статуса.',
+  'Join or create a party to use party chat.':
+    'Вступите в группу или создайте ее, чтобы использовать чат группы.',
   'Global messages appear here.': 'Здесь отображаются сообщения общего чата.',
   'Right-click to add friend': 'Щелкните правой кнопкой, чтобы добавить в друзья',
   'Say to party': 'Сообщение группе',
@@ -343,7 +372,8 @@ const ru: Record<string, string> = {
   'Search username': 'Поиск по имени',
   'No players found.': 'Игроки не найдены.',
   'Build your squad': 'Соберите команду',
-  'Find players above, add them, then invite online friends to your party.': 'Найдите игроков выше, добавьте их в друзья и пригласите друзей онлайн в группу.',
+  'Find players above, add them, then invite online friends to your party.':
+    'Найдите игроков выше, добавьте их в друзья и пригласите друзей онлайн в группу.',
   'Remove friend': 'Удалить из друзей',
 
   'Redeem Code': 'Активировать код',
@@ -355,13 +385,15 @@ const ru: Record<string, string> = {
   Done: 'Готово',
   Code: 'Код',
   'Enter a redeem code.': 'Введите код.',
-  'Could not redeem the code. Please try again.': 'Не удалось активировать код. Попробуйте еще раз.',
+  'Could not redeem the code. Please try again.':
+    'Не удалось активировать код. Попробуйте еще раз.',
   'Redeeming…': 'Активация…',
   Redeem: 'Активировать',
 
   Store: 'Магазин',
   'Skins on sale': 'Скины в продаже',
-  'Earn Points by playing. P Cash is the premium Papa Cash currency.': 'Зарабатывайте очки в игре. P Cash — премиальная валюта Papa Cash.',
+  'Earn Points by playing. P Cash is the premium Papa Cash currency.':
+    'Зарабатывайте очки в игре. P Cash — премиальная валюта Papa Cash.',
   'Filter skins by weapon': 'Фильтр скинов по оружию',
   'All weapons': 'Все оружие',
   Pistols: 'Пистолеты',
@@ -400,7 +432,8 @@ const ru: Record<string, string> = {
   'Shown in your lobby': 'Показано в вашем лобби',
   'Show this weapon in your lobby': 'Показать это оружие в лобби',
   'No skins unlocked yet.': 'Скины еще не разблокированы.',
-  'Visit the Store to unlock a skin for your loadout.': 'Откройте Магазин, чтобы разблокировать скин для снаряжения.',
+  'Visit the Store to unlock a skin for your loadout.':
+    'Откройте Магазин, чтобы разблокировать скин для снаряжения.',
   'Could not update your loadout.': 'Не удалось обновить снаряжение.',
 
   'Alpha Release Testing': 'Тестирование альфа-версии',
@@ -417,13 +450,16 @@ const ru: Record<string, string> = {
 
   'Launcher update required': 'Требуется обновление лаунчера',
   'This version can no longer be used.': 'Эту версию больше нельзя использовать.',
-  'The launcher will restart automatically when the update is ready.': 'Лаунчер автоматически перезапустится после загрузки обновления.',
+  'The launcher will restart automatically when the update is ready.':
+    'Лаунчер автоматически перезапустится после загрузки обновления.',
   'Exit launcher': 'Закрыть лаунчер',
 
-  'Microphone permission is blocked. Allow microphone access, then reconnect voice.': 'Доступ к микрофону заблокирован. Разрешите доступ и переподключите голос.',
+  'Microphone permission is blocked. Allow microphone access, then reconnect voice.':
+    'Доступ к микрофону заблокирован. Разрешите доступ и переподключите голос.',
   'No microphone was found.': 'Микрофон не найден.',
   'Could not access the microphone.': 'Не удалось получить доступ к микрофону.',
-  'Voice relay could not connect. Check your network and try reconnecting voice.': 'Не удалось подключиться к голосовому серверу. Проверьте сеть и попробуйте снова.',
+  'Voice relay could not connect. Check your network and try reconnecting voice.':
+    'Не удалось подключиться к голосовому серверу. Проверьте сеть и попробуйте снова.',
   'Voice relay connection failed. Retrying…': 'Сбой голосового соединения. Повторяем…',
   'Could not join voice chat.': 'Не удалось подключиться к голосовому чату.',
   Teammate: 'Союзник',
@@ -443,7 +479,8 @@ const ru: Record<string, string> = {
   'Waiting for another player in voice chat.': 'Ждем другого игрока в голосовом чате.',
   Unmute: 'Включить звук',
   Mute: 'Отключить звук',
-  'Microphone permission will be requested when another player joins voice.': 'Разрешение на микрофон будет запрошено, когда другой игрок подключится к голосу.'
+  'Microphone permission will be requested when another player joins voice.':
+    'Разрешение на микрофон будет запрошено, когда другой игрок подключится к голосу.'
 }
 
 const tl: Record<string, string> = {
@@ -451,7 +488,8 @@ const tl: Record<string, string> = {
   'Add your email': 'Add mo ang email mo',
   'Facebook did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.':
     'Walang email na binigay ang Facebook. Mag-add para makagawa ng 1.6 Competitive account. Username naman ang next.',
-  'We use this to secure and identify your account.': 'Gagamitin ito para ma-secure at ma-identify ang account mo.',
+  'We use this to secure and identify your account.':
+    'Gagamitin ito para ma-secure at ma-identify ang account mo.',
   'Checking email…': 'Chine-check ang email…',
   Continue: 'Continue',
   'Back to login': 'Back to login',
@@ -465,7 +503,8 @@ const tl: Record<string, string> = {
   Register: 'Register',
   or: 'or',
   Username: 'Username',
-  '3–32 characters: letters, numbers, and underscores': '3–32 characters: letters, numbers, at underscores',
+  '3–32 characters: letters, numbers, and underscores':
+    '3–32 characters: letters, numbers, at underscores',
   Email: 'Email',
   Password: 'Password',
   'At least 8 characters': 'At least 8 characters',
@@ -476,7 +515,8 @@ const tl: Record<string, string> = {
   'Exit to desktop': 'Exit to desktop',
   'Privacy Policy': 'Privacy Policy',
   'Terms & Conditions': 'Terms & Conditions',
-  'Facebook did not provide an email address. Add one to continue.': 'Walang email na binigay ang Facebook. Mag-add para mag-continue.',
+  'Facebook did not provide an email address. Add one to continue.':
+    'Walang email na binigay ang Facebook. Mag-add para mag-continue.',
   'Restoring your session': 'Nire-restore ang session mo',
   'One last step': 'Last step na',
   'Choose your username': 'Pili ka ng username',
@@ -512,7 +552,8 @@ const tl: Record<string, string> = {
   Save: 'Save',
   'Saved locally in:': 'Saved locally sa:',
   'Voice and launcher audio': 'Voice at launcher audio',
-  'Configure voice bindings, launcher music, and interface sound effects.': 'I-configure ang voice keys, launcher music, at interface sounds.',
+  'Configure voice bindings, launcher music, and interface sound effects.':
+    'I-configure ang voice keys, launcher music, at interface sounds.',
   Audio: 'Audio',
   'Control launcher music and interface sounds. These preferences are saved on this device.':
     'I-control ang launcher music at interface sounds. Mase-save ang settings sa device na ito.',
@@ -520,19 +561,24 @@ const tl: Record<string, string> = {
   'Choose a music set for the launcher. Each set can provide its own background music and match-found cue.':
     'Pili ng music set para sa launcher. Puwedeng may sariling background music at match-found sound ang bawat set.',
   'Background music': 'Background music',
-  'Launcher music volume. Music fades out when a match starts.': 'Launcher music volume. Magfa-fade out kapag nagsimula ang match.',
+  'Launcher music volume. Music fades out when a match starts.':
+    'Launcher music volume. Magfa-fade out kapag nagsimula ang match.',
   'Sound effects': 'Sound effects',
   'Navigation tabs, party invitations, matchmaking alerts, game-start, victory, and defeat sounds.':
     'Sounds para sa navigation, party invites, matchmaking alerts, game start, victory, at defeat.',
   'Assets & downloads': 'Assets & downloads',
-  'Check, download, or repair the managed game assets used by 1.6 Competitive.': 'I-check, download, o repair ang game assets ng 1.6 Competitive.',
+  'Check, download, or repair the managed game assets used by 1.6 Competitive.':
+    'I-check, download, o repair ang game assets ng 1.6 Competitive.',
   'Account credentials': 'Account credentials',
-  'Manage your username, sign-in methods, and password.': 'I-manage ang username, sign-in methods, at password mo.',
-  'Visible to other players. You can change it once every 7 days.': 'Ito ang makikita ng ibang players. Puwede palitan once every 7 days.',
+  'Manage your username, sign-in methods, and password.':
+    'I-manage ang username, sign-in methods, at password mo.',
+  'Visible to other players. You can change it once every 7 days.':
+    'Ito ang makikita ng ibang players. Puwede palitan once every 7 days.',
   'Current username': 'Current username',
   'New username': 'New username',
   'Change username': 'Change username',
-  '3–32 characters: letters, numbers, and underscores.': '3–32 characters: letters, numbers, at underscores.',
+  '3–32 characters: letters, numbers, and underscores.':
+    '3–32 characters: letters, numbers, at underscores.',
   'Connected accounts': 'Connected accounts',
   'Connect Google or Facebook so either provider can authenticate this same player account.':
     'I-connect ang Google o Facebook para puwedeng gamitin pareho sa same player account.',
@@ -542,7 +588,8 @@ const tl: Record<string, string> = {
   'Change password': 'Change password',
   'Create password': 'Create password',
   'Verify your password before replacing it.': 'I-verify muna ang current password bago palitan.',
-  'Add a password to enable username/password login for this account.': 'Mag-add ng password para puwedeng mag-login gamit username/password.',
+  'Add a password to enable username/password login for this account.':
+    'Mag-add ng password para puwedeng mag-login gamit username/password.',
   'Verify password': 'Verify password',
   'New password': 'New password',
   'Confirm new password': 'Confirm new password',
@@ -552,9 +599,11 @@ const tl: Record<string, string> = {
   'New passwords do not match.': 'Hindi match ang new passwords.',
   'Password changed.': 'Na-change na ang password.',
   'Password created.': 'Nagawa na ang password.',
-  'Username changed. You can change it again in 7 days.': 'Na-change na ang username. Puwede ulit after 7 days.',
+  'Username changed. You can change it again in 7 days.':
+    'Na-change na ang username. Puwede ulit after 7 days.',
 
-  'Save your Counter-Strike executable above before downloading assets.': 'I-save muna ang Counter-Strike executable sa taas bago mag-download ng assets.',
+  'Save your Counter-Strike executable above before downloading assets.':
+    'I-save muna ang Counter-Strike executable sa taas bago mag-download ng assets.',
   'Repairing skin assets…': 'Nire-repair ang skin assets…',
   'Checking skin assets…': 'Chine-check ang skin assets…',
   'Downloading skin assets…': 'Dina-download ang skin assets…',
@@ -566,21 +615,26 @@ const tl: Record<string, string> = {
     'I-download ang missing 1.6 Competitive models bago mag-matchmaking. Ang Repair ay magre-redownload ng managed files kung may sira.',
   'Skin asset download progress': 'Skin asset download progress',
   'Preparing asset download': 'Pine-prepare ang asset download',
-  'Asset maintenance is unavailable while matchmaking or a match is active.': 'Hindi available ang asset maintenance habang nasa matchmaking o active match.',
+  'Asset maintenance is unavailable while matchmaking or a match is active.':
+    'Hindi available ang asset maintenance habang nasa matchmaking o active match.',
   'Download assets': 'Download assets',
   'Repair assets': 'Repair assets',
 
   'Push-to-talk': 'Push-to-talk',
   'Team talk': 'Team talk',
   'Party talk': 'Party talk',
-  'Talk to every human teammate in your current match.': 'Makipag-usap sa lahat ng human teammates sa current match.',
-  'Talk only to party members who are also on your current team.': 'Party members lang na nasa current team mo ang makakarinig.',
+  'Talk to every human teammate in your current match.':
+    'Makipag-usap sa lahat ng human teammates sa current match.',
+  'Talk only to party members who are also on your current team.':
+    'Party members lang na nasa current team mo ang makakarinig.',
   Cancel: 'Cancel',
   Change: 'Change',
   'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. Counter-Strike receives both bindings temporarily when a match launches.':
     'Magkaibang keys ang Team at Party talk. Default K ang Team at V ang Party. Temporary lang ilalagay sa Counter-Strike ang bindings kapag nag-launch ang match.',
-  'Your previous Counter-Strike bindings are restored after the match.': 'Ibabalik ang previous Counter-Strike bindings mo after ng match.',
-  'Choose your Counter-Strike executable to launch matches.': 'Piliin ang Counter-Strike executable para makapag-launch ng matches.',
+  'Your previous Counter-Strike bindings are restored after the match.':
+    'Ibabalik ang previous Counter-Strike bindings mo after ng match.',
+  'Choose your Counter-Strike executable to launch matches.':
+    'Piliin ang Counter-Strike executable para makapag-launch ng matches.',
   'Could not save the push-to-talk key.': 'Hindi ma-save ang push-to-talk key.',
 
   Rankings: 'Rankings',
@@ -604,7 +658,8 @@ const tl: Record<string, string> = {
   'View on Mastodon ↗': 'View sa Mastodon ↗',
 
   'Disconnected from server. Reconnecting...': 'Na-disconnect sa server. Reconnecting...',
-  'No internet connection. Reconnecting when it returns...': 'Walang internet. Magre-reconnect pag bumalik...',
+  'No internet connection. Reconnecting when it returns...':
+    'Walang internet. Magre-reconnect pag bumalik...',
   'Match discarded': 'Match discarded',
   'MMR penalty applied': 'May MMR penalty',
   'You did not connect in time': 'Hindi ka naka-connect on time',
@@ -643,9 +698,12 @@ const tl: Record<string, string> = {
   'No ping': 'No ping',
   Automatic: 'Automatic',
   'Preferred matchmaking region': 'Preferred matchmaking region',
-  'Chooses the lowest-latency healthy region': 'Pinipili ang healthy region na may pinakamababang ping',
-  'Automatic chooses the lowest-latency healthy region when one is reachable.': 'Automatic na pipili ng healthy region na may pinakamababang ping.',
-  'Manual region selection overrides automatic latency routing.': 'Kapag manual ang region, hindi gagamitin ang automatic ping routing.',
+  'Chooses the lowest-latency healthy region':
+    'Pinipili ang healthy region na may pinakamababang ping',
+  'Automatic chooses the lowest-latency healthy region when one is reachable.':
+    'Automatic na pipili ng healthy region na may pinakamababang ping.',
+  'Manual region selection overrides automatic latency routing.':
+    'Kapag manual ang region, hindi gagamitin ang automatic ping routing.',
   Offline: 'Offline',
   Connecting: 'Connecting',
   Reconnecting: 'Reconnecting',
@@ -653,7 +711,8 @@ const tl: Record<string, string> = {
   Authenticating: 'Authenticating',
   'Match found': 'Match found',
   'Preparing ready check': 'Pine-prepare ang ready check',
-  'Waiting for the server to open player acceptance…': 'Hinihintay ang server na buksan ang player acceptance…',
+  'Waiting for the server to open player acceptance…':
+    'Hinihintay ang server na buksan ang player acceptance…',
   'All players ready': 'Ready na lahat ng players',
   'Preparing server': 'Pine-prepare ang server',
   'Server ready': 'Ready na ang server',
@@ -665,19 +724,25 @@ const tl: Record<string, string> = {
   'Match ready': 'Ready ang match',
   'Reconnect to your match': 'Reconnect sa match mo',
   'Choose your battlefield': 'Piliin ang battlefield mo',
-  "Toggle any 5v5 Competitive maps to build your party's search pool.": 'Piliin ang 5v5 Competitive maps na isasama sa search pool ng party.',
-  'Your party leader chooses the Competitive map pool.': 'Party leader ang pipili ng Competitive map pool.',
+  "Toggle any 5v5 Competitive maps to build your party's search pool.":
+    'Piliin ang 5v5 Competitive maps na isasama sa search pool ng party.',
+  'Your party leader chooses the Competitive map pool.':
+    'Party leader ang pipili ng Competitive map pool.',
   'Preferred region': 'Preferred region',
-  'Expand search to other regions after 90 seconds': 'Mag-search din sa ibang regions after 90 seconds',
+  'Expand search to other regions after 90 seconds':
+    'Mag-search din sa ibang regions after 90 seconds',
   Maps: 'Maps',
   'Loading maps…': 'Loading maps…',
-  'Competitive matchmaking is temporarily unavailable.': 'Temporarily unavailable ang Competitive matchmaking.',
+  'Competitive matchmaking is temporarily unavailable.':
+    'Temporarily unavailable ang Competitive matchmaking.',
   'Searching…': 'Searching…',
   'Joining queue…': 'Joining queue…',
   'Find match': 'Find match',
   'Waiting for leader': 'Waiting for leader',
-  'You’ll be moved into the queue when your leader starts matchmaking.': 'Isasama ka sa queue kapag nag-start ng matchmaking ang leader.',
-  'Choose and save your Counter-Strike executable in Settings first.': 'Piliin at i-save muna ang Counter-Strike executable sa Settings.',
+  'You’ll be moved into the queue when your leader starts matchmaking.':
+    'Isasama ka sa queue kapag nag-start ng matchmaking ang leader.',
+  'Choose and save your Counter-Strike executable in Settings first.':
+    'Piliin at i-save muna ang Counter-Strike executable sa Settings.',
   Competitive: 'Competitive',
   Casual: 'Casual',
   Ranked: 'Ranked',
@@ -685,10 +750,12 @@ const tl: Record<string, string> = {
 
   'Match rewards': 'Match rewards',
   'Daily mission report': 'Daily mission report',
-  "Your match progress has been added to today's missions.": 'Na-add na ang match progress mo sa missions today.',
+  "Your match progress has been added to today's missions.":
+    'Na-add na ang match progress mo sa missions today.',
   Next: 'Next',
   'Mission progress': 'Mission progress',
-  'MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS': 'AUTO MAG-O-OPEN ANG MATCH SUMMARY IN 5 SECONDS',
+  'MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS':
+    'AUTO MAG-O-OPEN ANG MATCH SUMMARY IN 5 SECONDS',
   'Match complete': 'Match complete',
   Victory: 'Victory',
   Defeat: 'Defeat',
@@ -731,13 +798,17 @@ const tl: Record<string, string> = {
 
   Party: 'Party',
   'Party invitation': 'Party invitation',
-  'Accept an invitation to join that player’s lobby.': 'I-accept ang invite para sumali sa lobby ng player.',
+  'Accept an invitation to join that player’s lobby.':
+    'I-accept ang invite para sumali sa lobby ng player.',
   'Responding…': 'Responding…',
   Accept: 'Accept',
   Decline: 'Decline',
-  'You are the leader. Manage invitations from the Friends sidebar.': 'Ikaw ang leader. I-manage ang invites sa Friends sidebar.',
-  'Only the party leader can invite players or start matchmaking.': 'Party leader lang ang puwedeng mag-invite o mag-start ng matchmaking.',
-  'Invite a player from the Friends sidebar to create a party.': 'Mag-invite ng player sa Friends sidebar para gumawa ng party.',
+  'You are the leader. Manage invitations from the Friends sidebar.':
+    'Ikaw ang leader. I-manage ang invites sa Friends sidebar.',
+  'Only the party leader can invite players or start matchmaking.':
+    'Party leader lang ang puwedeng mag-invite o mag-start ng matchmaking.',
+  'Invite a player from the Friends sidebar to create a party.':
+    'Mag-invite ng player sa Friends sidebar para gumawa ng party.',
   'Leaving…': 'Leaving…',
   'Disband party': 'Disband party',
   'Leave party': 'Leave party',
@@ -747,8 +818,10 @@ const tl: Record<string, string> = {
   Chat: 'Chat',
   'Party messages': 'Party messages',
   'Global messages': 'Global messages',
-  'Party messages and status updates appear here.': 'Dito lalabas ang party messages at status updates.',
-  'Join or create a party to use party chat.': 'Sumali o gumawa ng party para magamit ang party chat.',
+  'Party messages and status updates appear here.':
+    'Dito lalabas ang party messages at status updates.',
+  'Join or create a party to use party chat.':
+    'Sumali o gumawa ng party para magamit ang party chat.',
   'Global messages appear here.': 'Dito lalabas ang global messages.',
   'Right-click to add friend': 'Right-click para mag-add friend',
   'Say to party': 'Message sa party',
@@ -780,7 +853,8 @@ const tl: Record<string, string> = {
   'Search username': 'Search username',
   'No players found.': 'Walang nahanap na players.',
   'Build your squad': 'Build your squad',
-  'Find players above, add them, then invite online friends to your party.': 'Maghanap ng players sa taas, i-add sila, then invite ang online friends sa party.',
+  'Find players above, add them, then invite online friends to your party.':
+    'Maghanap ng players sa taas, i-add sila, then invite ang online friends sa party.',
   'Remove friend': 'Remove friend',
 
   'Redeem Code': 'Redeem Code',
@@ -798,7 +872,8 @@ const tl: Record<string, string> = {
 
   Store: 'Store',
   'Skins on sale': 'Skins on sale',
-  'Earn Points by playing. P Cash is the premium Papa Cash currency.': 'Earn Points by playing. P Cash ang premium Papa Cash currency.',
+  'Earn Points by playing. P Cash is the premium Papa Cash currency.':
+    'Earn Points by playing. P Cash ang premium Papa Cash currency.',
   'Filter skins by weapon': 'Filter skins by weapon',
   'All weapons': 'All weapons',
   Pistols: 'Pistols',
@@ -818,8 +893,10 @@ const tl: Record<string, string> = {
   Source: 'Source',
   'Close preview': 'Close preview',
   'Drag to rotate': 'Drag para i-rotate',
-  'You need more points to unlock this skin.': 'Kulang ang points mo para ma-unlock ang skin na ito.',
-  'You need more P Cash to unlock this skin.': 'Kulang ang P Cash mo para ma-unlock ang skin na ito.',
+  'You need more points to unlock this skin.':
+    'Kulang ang points mo para ma-unlock ang skin na ito.',
+  'You need more P Cash to unlock this skin.':
+    'Kulang ang P Cash mo para ma-unlock ang skin na ito.',
   'Could not complete this shop request.': 'Hindi ma-complete ang shop request.',
   'Retry inventory': 'Retry inventory',
   'Active loadout': 'Active loadout',
@@ -837,14 +914,16 @@ const tl: Record<string, string> = {
   'Shown in your lobby': 'Shown sa lobby mo',
   'Show this weapon in your lobby': 'I-show ang weapon na ito sa lobby mo',
   'No skins unlocked yet.': 'Wala ka pang unlocked skins.',
-  'Visit the Store to unlock a skin for your loadout.': 'Punta sa Store para mag-unlock ng skin para sa loadout mo.',
+  'Visit the Store to unlock a skin for your loadout.':
+    'Punta sa Store para mag-unlock ng skin para sa loadout mo.',
   'Could not update your loadout.': 'Hindi ma-update ang loadout mo.',
 
   'Alpha Release Testing': 'Alpha Release Testing',
   'Expect Bugs': 'Expect Bugs',
   'Report an Issue': 'Report an Issue',
   'What went wrong?': 'Ano ang nangyari?',
-  'Tell us what happened and what you expected.': 'Sabihin kung ano ang nangyari at ano ang expected mo.',
+  'Tell us what happened and what you expected.':
+    'Sabihin kung ano ang nangyari at ano ang expected mo.',
   'Please describe what went wrong.': 'I-describe muna kung ano ang nangyari.',
   'Issue reported. Thank you!': 'Na-report na. Thank you!',
   'Could not report issue.': 'Hindi ma-report ang issue.',
@@ -854,13 +933,16 @@ const tl: Record<string, string> = {
 
   'Launcher update required': 'Kailangan ng launcher update',
   'This version can no longer be used.': 'Hindi na puwedeng gamitin ang version na ito.',
-  'The launcher will restart automatically when the update is ready.': 'Automatic magre-restart ang launcher kapag ready na ang update.',
+  'The launcher will restart automatically when the update is ready.':
+    'Automatic magre-restart ang launcher kapag ready na ang update.',
   'Exit launcher': 'Exit launcher',
 
-  'Microphone permission is blocked. Allow microphone access, then reconnect voice.': 'Blocked ang microphone permission. I-allow ang mic, then reconnect voice.',
+  'Microphone permission is blocked. Allow microphone access, then reconnect voice.':
+    'Blocked ang microphone permission. I-allow ang mic, then reconnect voice.',
   'No microphone was found.': 'Walang microphone na nakita.',
   'Could not access the microphone.': 'Hindi ma-access ang microphone.',
-  'Voice relay could not connect. Check your network and try reconnecting voice.': 'Hindi maka-connect ang voice relay. Check ang network then reconnect voice.',
+  'Voice relay could not connect. Check your network and try reconnecting voice.':
+    'Hindi maka-connect ang voice relay. Check ang network then reconnect voice.',
   'Voice relay connection failed. Retrying…': 'Nag-fail ang voice relay. Retrying…',
   'Could not join voice chat.': 'Hindi maka-join sa voice chat.',
   Teammate: 'Teammate',
@@ -880,7 +962,8 @@ const tl: Record<string, string> = {
   'Waiting for another player in voice chat.': 'Waiting sa ibang player sa voice chat.',
   Unmute: 'Unmute',
   Mute: 'Mute',
-  'Microphone permission will be requested when another player joins voice.': 'Hihingi ng microphone permission kapag may ibang player na sumali sa voice.'
+  'Microphone permission will be requested when another player joins voice.':
+    'Hihingi ng microphone permission kapag may ibang player na sumali sa voice.'
 }
 
 const catalogs: Record<RuntimeLanguage, Record<string, string>> = { ru, tl }
@@ -888,13 +971,22 @@ const catalogs: Record<RuntimeLanguage, Record<string, string>> = { ru, tl }
 const dynamic = {
   ru: [
     [/^Signed in as (.+)$/, 'Выполнен вход: $1'],
-    [/^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/, 'Завершите вход или создание аккаунта через $2 в браузере.'],
+    [
+      /^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/,
+      'Завершите вход или создание аккаунта через $2 в браузере.'
+    ],
     [/^You can change your username again on (.+)\.$/, 'Имя можно снова изменить $1.'],
     [/^(Google|Facebook) connected\.$/, '$1 подключен.'],
-    [/^Connect (Google|Facebook) as another way to sign in\.$/, 'Подключите $1 как дополнительный способ входа.'],
+    [
+      /^Connect (Google|Facebook) as another way to sign in\.$/,
+      'Подключите $1 как дополнительный способ входа.'
+    ],
     [/^Connect (Google|Facebook)$/, 'Подключить $1'],
     [/^(Team|Party) push-to-talk is now (.+)\.$/, 'Клавиша голосовой связи $1: $2.'],
-    [/^Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for (Team|Party) talk\.$/, 'Нажмите клавишу или MOUSE1–MOUSE5 в этой панели для голосовой связи $1.'],
+    [
+      /^Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for (Team|Party) talk\.$/,
+      'Нажмите клавишу или MOUSE1–MOUSE5 в этой панели для голосовой связи $1.'
+    ],
     [/^Rank (\d+)$/, 'Место $1'],
     [/^Updated (.+) · Next refresh (.+)$/, 'Обновлено $1 · Следующее обновление $2'],
     [/^Resets (.+)$/, 'Сброс $1'],
@@ -907,17 +999,29 @@ const dynamic = {
     [/^(.+): (ready|pending)$/, '$1: $2'],
     [/^(.+) · (Ready|Pending)$/, '$1 · $2'],
     [/^Searching in (.+)$/, 'Поиск в регионе $1'],
-    [/^Searching from (.+) · Regional expansion enabled$/, 'Поиск от $1 · расширение по регионам включено'],
+    [
+      /^Searching from (.+) · Regional expansion enabled$/,
+      'Поиск от $1 · расширение по регионам включено'
+    ],
     [/^Currently (.+) · (.+)$/, 'Сейчас $1 · $2'],
-    [/^Automatic currently prefers (.+) at (\d+) ms\.$/, 'Автовыбор сейчас предпочитает $1 с задержкой $2 мс.'],
+    [
+      /^Automatic currently prefers (.+) at (\d+) ms\.$/,
+      'Автовыбор сейчас предпочитает $1 с задержкой $2 мс.'
+    ],
     [/^(\d+) of (\d+) selected$/, 'Выбрано $1 из $2'],
-    [/^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/, 'Сервер готов: $1. Лаунчер запустит Counter-Strike и подключится автоматически.'],
+    [
+      /^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/,
+      'Сервер готов: $1. Лаунчер запустит Counter-Strike и подключится автоматически.'
+    ],
     [/^The game server is available at (.+)\.$/, 'Игровой сервер доступен: $1.'],
     [/^Team (1|2) · Winners$/, 'Команда $1 · Победители'],
     [/^Team (1|2)$/, 'Команда $1'],
     [/^Playing since (.+)$/, 'Играет с $1'],
     [/^(Team A|Team B) won · (.+)$/, '$1 победила · $2'],
-    [/^The launcher will reconnect automatically in about (\d+) seconds\.$/, 'Лаунчер автоматически переподключится примерно через $1 сек.'],
+    [
+      /^The launcher will reconnect automatically in about (\d+) seconds\.$/,
+      'Лаунчер автоматически переподключится примерно через $1 сек.'
+    ],
     [/^Party · (\d+) \/ 5$/, 'Группа · $1 / 5'],
     [/^(.+) invited you to their party\.$/, '$1 приглашает вас в группу.'],
     [/^Invite (.+) to party$/, 'Пригласить $1 в группу'],
@@ -927,7 +1031,10 @@ const dynamic = {
     [/^Accept (.+)'s friend request$/, 'Принять запрос в друзья от $1'],
     [/^Discard (.+)'s friend request$/, 'Отклонить запрос в друзья от $1'],
     [/^Friend options for (.+)$/, 'Действия с другом $1'],
-    [/^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/, 'Вы получили $1 очк. Новый баланс: $2 очк.'],
+    [
+      /^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/,
+      'Вы получили $1 очк. Новый баланс: $2 очк.'
+    ],
     [/^No (.+) skins are currently on sale\.$/, 'Сейчас нет скинов категории $1 в продаже.'],
     [/^Open (.+) 3D preview$/, 'Открыть 3D-просмотр $1'],
     [/^(.+) preview$/, 'Предпросмотр $1'],
@@ -940,7 +1047,10 @@ const dynamic = {
     [/^Downloading assets — (\d+)%$/, 'Загрузка ресурсов — $1%'],
     [/^Update (.+) found\. Downloading…$/, 'Найдено обновление $1. Загружаем…'],
     [/^Downloading update (.*) — (\d+)%$/, 'Загрузка обновления $1 — $2%'],
-    [/^Update (.+) is ready\. Restarting launcher…$/, 'Обновление $1 готово. Перезапускаем лаунчер…'],
+    [
+      /^Update (.+) is ready\. Restarting launcher…$/,
+      'Обновление $1 готово. Перезапускаем лаунчер…'
+    ],
     [/^(Team voice|Party voice): (.+) connected$/, '$1: подключено $2'],
     [/^Open (team voice|party voice) controls$/, 'Открыть управление голосом'],
     [/^(\d+)\/(\d+) connected$/, 'Подключено $1/$2'],
@@ -948,13 +1058,25 @@ const dynamic = {
   ],
   tl: [
     [/^Signed in as (.+)$/, 'Signed in as $1'],
-    [/^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/, 'Tapusin ang process gamit ang $2 sa browser mo.'],
-    [/^You can change your username again on (.+)\.$/, 'Puwede mo ulit palitan ang username sa $1.'],
+    [
+      /^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/,
+      'Tapusin ang process gamit ang $2 sa browser mo.'
+    ],
+    [
+      /^You can change your username again on (.+)\.$/,
+      'Puwede mo ulit palitan ang username sa $1.'
+    ],
     [/^(Google|Facebook) connected\.$/, 'Connected na ang $1.'],
-    [/^Connect (Google|Facebook) as another way to sign in\.$/, 'I-connect ang $1 bilang another sign-in option.'],
+    [
+      /^Connect (Google|Facebook) as another way to sign in\.$/,
+      'I-connect ang $1 bilang another sign-in option.'
+    ],
     [/^Connect (Google|Facebook)$/, 'Connect $1'],
     [/^(Team|Party) push-to-talk is now (.+)\.$/, '$1 push-to-talk is now $2.'],
-    [/^Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for (Team|Party) talk\.$/, 'Press ng keyboard key o MOUSE1–MOUSE5 sa panel na ito para sa $1 talk.'],
+    [
+      /^Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for (Team|Party) talk\.$/,
+      'Press ng keyboard key o MOUSE1–MOUSE5 sa panel na ito para sa $1 talk.'
+    ],
     [/^Rank (\d+)$/, 'Rank $1'],
     [/^Updated (.+) · Next refresh (.+)$/, 'Updated $1 · Next refresh $2'],
     [/^Resets (.+)$/, 'Resets $1'],
@@ -965,17 +1087,29 @@ const dynamic = {
     [/^Downloading required skins · (\d+) \/ (\d+)$/, 'Dina-download ang required skins · $1 / $2'],
     [/^(\d+)% downloaded$/, '$1% downloaded'],
     [/^Searching in (.+)$/, 'Searching sa $1'],
-    [/^Searching from (.+) · Regional expansion enabled$/, 'Searching from $1 · enabled ang regional expansion'],
+    [
+      /^Searching from (.+) · Regional expansion enabled$/,
+      'Searching from $1 · enabled ang regional expansion'
+    ],
     [/^Currently (.+) · (.+)$/, 'Currently $1 · $2'],
-    [/^Automatic currently prefers (.+) at (\d+) ms\.$/, 'Automatic currently prefers $1 at $2 ms.'],
+    [
+      /^Automatic currently prefers (.+) at (\d+) ms\.$/,
+      'Automatic currently prefers $1 at $2 ms.'
+    ],
     [/^(\d+) of (\d+) selected$/, '$1 of $2 selected'],
-    [/^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/, 'Ready ang server sa $1. Auto ila-launch ng launcher ang Counter-Strike at magko-connect.'],
+    [
+      /^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/,
+      'Ready ang server sa $1. Auto ila-launch ng launcher ang Counter-Strike at magko-connect.'
+    ],
     [/^The game server is available at (.+)\.$/, 'Available ang game server sa $1.'],
     [/^Team (1|2) · Winners$/, 'Team $1 · Winners'],
     [/^Team (1|2)$/, 'Team $1'],
     [/^Playing since (.+)$/, 'Playing since $1'],
     [/^(Team A|Team B) won · (.+)$/, '$1 won · $2'],
-    [/^The launcher will reconnect automatically in about (\d+) seconds\.$/, 'Auto magre-reconnect ang launcher in about $1 seconds.'],
+    [
+      /^The launcher will reconnect automatically in about (\d+) seconds\.$/,
+      'Auto magre-reconnect ang launcher in about $1 seconds.'
+    ],
     [/^Party · (\d+) \/ 5$/, 'Party · $1 / 5'],
     [/^(.+) invited you to their party\.$/, 'Ininvite ka ni $1 sa party.'],
     [/^Invite (.+) to party$/, 'Invite $1 to party'],
@@ -985,7 +1119,10 @@ const dynamic = {
     [/^Accept (.+)'s friend request$/, 'Accept friend request ni $1'],
     [/^Discard (.+)'s friend request$/, 'Discard friend request ni $1'],
     [/^Friend options for (.+)$/, 'Friend options for $1'],
-    [/^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/, 'Nakuha mo ang $1 points. New balance mo: $2 points.'],
+    [
+      /^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/,
+      'Nakuha mo ang $1 points. New balance mo: $2 points.'
+    ],
     [/^No (.+) skins are currently on sale\.$/, 'Walang $1 skins on sale ngayon.'],
     [/^Open (.+) 3D preview$/, 'Open $1 3D preview'],
     [/^(.+) preview$/, '$1 preview'],
@@ -998,7 +1135,10 @@ const dynamic = {
     [/^Downloading assets — (\d+)%$/, 'Downloading assets — $1%'],
     [/^Update (.+) found\. Downloading…$/, 'Nakita ang update $1. Downloading…'],
     [/^Downloading update (.*) — (\d+)%$/, 'Downloading update $1 — $2%'],
-    [/^Update (.+) is ready\. Restarting launcher…$/, 'Ready na ang update $1. Restarting launcher…'],
+    [
+      /^Update (.+) is ready\. Restarting launcher…$/,
+      'Ready na ang update $1. Restarting launcher…'
+    ],
     [/^(Team voice|Party voice): (.+) connected$/, '$1: $2 connected'],
     [/^Open (team voice|party voice) controls$/, 'Open voice controls'],
     [/^(\d+)\/(\d+) connected$/, '$1/$2 connected'],

@@ -3,12 +3,7 @@ export const DAILY_QUEST_CHANNELS = {
 } as const
 
 export type DailyQuestMetric =
-  | 'HEADSHOTS'
-  | 'ASSISTS'
-  | 'GRENADE_KILLS'
-  | 'KILLS'
-  | 'MATCHES_PLAYED'
-  | 'MATCHES_WON'
+  'HEADSHOTS' | 'ASSISTS' | 'GRENADE_KILLS' | 'KILLS' | 'MATCHES_PLAYED' | 'MATCHES_WON'
 
 export interface DailyQuest {
   id: string

@@ -1,9 +1,5 @@
 import { create } from 'zustand'
-import {
-  DEFAULT_BGM_ID,
-  isLauncherBgmId,
-  type LauncherBgmId
-} from './audio.paths'
+import { DEFAULT_BGM_ID, isLauncherBgmId, type LauncherBgmId } from './audio.paths'
 
 const STORAGE_KEY = '16competitive.audio-settings'
 const DEFAULT_BGM_VOLUME = 50
@@ -37,13 +33,9 @@ const readStoredSettings = (): StoredAudioSettings => {
     const parsed = JSON.parse(raw) as Partial<StoredAudioSettings>
     return {
       bgmVolume:
-        typeof parsed.bgmVolume === 'number'
-          ? clampVolume(parsed.bgmVolume)
-          : DEFAULT_BGM_VOLUME,
+        typeof parsed.bgmVolume === 'number' ? clampVolume(parsed.bgmVolume) : DEFAULT_BGM_VOLUME,
       sfxVolume:
-        typeof parsed.sfxVolume === 'number'
-          ? clampVolume(parsed.sfxVolume)
-          : DEFAULT_SFX_VOLUME,
+        typeof parsed.sfxVolume === 'number' ? clampVolume(parsed.sfxVolume) : DEFAULT_SFX_VOLUME,
       selectedBgmId: isLauncherBgmId(parsed.selectedBgmId) ? parsed.selectedBgmId : DEFAULT_BGM_ID
     }
   } catch {

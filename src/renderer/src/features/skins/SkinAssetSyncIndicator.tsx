@@ -46,7 +46,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         setRailMode('absent')
         return
       }
-      setRailMode(rail.getAttribute('aria-label') === collapsedFriendsLabel ? 'collapsed' : 'expanded')
+      setRailMode(
+        rail.getAttribute('aria-label') === collapsedFriendsLabel ? 'collapsed' : 'expanded'
+      )
     }
 
     detectRail()

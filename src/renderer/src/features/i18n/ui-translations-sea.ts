@@ -6,7 +6,8 @@ type Catalog = Record<string, string>
 const thAuth: Catalog = {
   'Step 1 of 2': 'ขั้นตอนที่ 1 จาก 2',
   'Add your email': 'เพิ่มอีเมลของคุณ',
-  'We use this to secure and identify your account.': 'เราใช้อีเมลนี้เพื่อรักษาความปลอดภัยและระบุบัญชีของคุณ',
+  'We use this to secure and identify your account.':
+    'เราใช้อีเมลนี้เพื่อรักษาความปลอดภัยและระบุบัญชีของคุณ',
   'Checking email…': 'กำลังตรวจสอบอีเมล…',
   Continue: 'ดำเนินการต่อ',
   'Back to login': 'กลับไปหน้าเข้าสู่ระบบ',
@@ -86,7 +87,8 @@ const thSettings: Catalog = {
   'New passwords do not match.': 'รหัสผ่านใหม่ไม่ตรงกัน',
   'Password changed.': 'เปลี่ยนรหัสผ่านแล้ว',
   'Password created.': 'สร้างรหัสผ่านแล้ว',
-  'Username changed. You can change it again in 7 days.': 'เปลี่ยนชื่อผู้ใช้แล้ว คุณสามารถเปลี่ยนได้อีกครั้งใน 7 วัน',
+  'Username changed. You can change it again in 7 days.':
+    'เปลี่ยนชื่อผู้ใช้แล้ว คุณสามารถเปลี่ยนได้อีกครั้งใน 7 วัน',
   'Game assets': 'ไฟล์เกม',
   'Repairing skin assets…': 'กำลังซ่อมไฟล์สกิน…',
   'Checking skin assets…': 'กำลังตรวจสอบไฟล์สกิน…',
@@ -107,8 +109,10 @@ const thSettings: Catalog = {
 }
 
 const thMatchmaking: Catalog = {
-  'Disconnected from server. Reconnecting...': 'ตัดการเชื่อมต่อจากเซิร์ฟเวอร์ กำลังเชื่อมต่อใหม่...',
-  'No internet connection. Reconnecting when it returns...': 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต จะเชื่อมต่อใหม่เมื่ออินเทอร์เน็ตกลับมา...',
+  'Disconnected from server. Reconnecting...':
+    'ตัดการเชื่อมต่อจากเซิร์ฟเวอร์ กำลังเชื่อมต่อใหม่...',
+  'No internet connection. Reconnecting when it returns...':
+    'ไม่มีการเชื่อมต่ออินเทอร์เน็ต จะเชื่อมต่อใหม่เมื่ออินเทอร์เน็ตกลับมา...',
   'Match discarded': 'ยกเลิกแมตช์',
   'MMR penalty applied': 'มีการหัก MMR',
   'You did not connect in time': 'คุณเชื่อมต่อไม่ทันเวลา',
@@ -166,7 +170,8 @@ const thMatchmaking: Catalog = {
   'Preferred region': 'ภูมิภาคที่ต้องการ',
   Maps: 'แผนที่',
   'Loading maps…': 'กำลังโหลดแผนที่…',
-  'Competitive matchmaking is temporarily unavailable.': 'การจับคู่ Competitive ไม่พร้อมใช้งานชั่วคราว',
+  'Competitive matchmaking is temporarily unavailable.':
+    'การจับคู่ Competitive ไม่พร้อมใช้งานชั่วคราว',
   'Searching…': 'กำลังค้นหา…',
   'Joining queue…': 'กำลังเข้าคิว…',
   'Find match': 'ค้นหาแมตช์',
@@ -363,7 +368,8 @@ const thStoreAndSystem: Catalog = {
 const idAuth: Catalog = {
   'Step 1 of 2': 'Langkah 1 dari 2',
   'Add your email': 'Tambahkan email Anda',
-  'We use this to secure and identify your account.': 'Kami menggunakan email ini untuk mengamankan dan mengidentifikasi akun Anda.',
+  'We use this to secure and identify your account.':
+    'Kami menggunakan email ini untuk mengamankan dan mengidentifikasi akun Anda.',
   'Checking email…': 'Memeriksa email…',
   Continue: 'Lanjutkan',
   'Back to login': 'Kembali ke halaman masuk',
@@ -443,7 +449,8 @@ const idSettings: Catalog = {
   'New passwords do not match.': 'Kata sandi baru tidak cocok.',
   'Password changed.': 'Kata sandi berhasil diubah.',
   'Password created.': 'Kata sandi berhasil dibuat.',
-  'Username changed. You can change it again in 7 days.': 'Nama pengguna berhasil diubah. Anda dapat mengubahnya lagi dalam 7 hari.',
+  'Username changed. You can change it again in 7 days.':
+    'Nama pengguna berhasil diubah. Anda dapat mengubahnya lagi dalam 7 hari.',
   'Game assets': 'Aset game',
   'Repairing skin assets…': 'Memperbaiki aset skin…',
   'Checking skin assets…': 'Memeriksa aset skin…',
@@ -465,7 +472,8 @@ const idSettings: Catalog = {
 
 const idMatchmaking: Catalog = {
   'Disconnected from server. Reconnecting...': 'Terputus dari server. Menghubungkan kembali...',
-  'No internet connection. Reconnecting when it returns...': 'Tidak ada koneksi internet. Akan tersambung kembali saat internet tersedia...',
+  'No internet connection. Reconnecting when it returns...':
+    'Tidak ada koneksi internet. Akan tersambung kembali saat internet tersedia...',
   'Match discarded': 'Pertandingan dibatalkan',
   'MMR penalty applied': 'Penalti MMR diterapkan',
   'You did not connect in time': 'Anda tidak terhubung tepat waktu',
@@ -523,7 +531,8 @@ const idMatchmaking: Catalog = {
   'Preferred region': 'Region pilihan',
   Maps: 'Map',
   'Loading maps…': 'Memuat map…',
-  'Competitive matchmaking is temporarily unavailable.': 'Matchmaking Competitive sementara tidak tersedia.',
+  'Competitive matchmaking is temporarily unavailable.':
+    'Matchmaking Competitive sementara tidak tersedia.',
   'Searching…': 'Mencari…',
   'Joining queue…': 'Masuk antrean…',
   'Find match': 'Cari pertandingan',
@@ -532,7 +541,8 @@ const idMatchmaking: Catalog = {
   Casual: 'Kasual',
   Ranked: 'Berperingkat',
   Unranked: 'Tanpa peringkat',
-  'Match found. Waiting for players to accept.': 'Pertandingan ditemukan. Menunggu pemain menerima.',
+  'Match found. Waiting for players to accept.':
+    'Pertandingan ditemukan. Menunggu pemain menerima.',
   'Starting the game server…': 'Memulai server game…',
   'Matchmaking request failed.': 'Permintaan matchmaking gagal.'
 }
@@ -739,8 +749,14 @@ const catalogs: Record<SeaLanguage, Catalog> = {
 const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
   th: [
     [/^Signed in as (.+)$/, 'เข้าสู่ระบบเป็น $1'],
-    [/^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/, 'ดำเนินการด้วย $2 ให้เสร็จในเบราว์เซอร์'],
-    [/^You can change your username again on (.+)\.$/, 'คุณสามารถเปลี่ยนชื่อผู้ใช้ได้อีกครั้งในวันที่ $1'],
+    [
+      /^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/,
+      'ดำเนินการด้วย $2 ให้เสร็จในเบราว์เซอร์'
+    ],
+    [
+      /^You can change your username again on (.+)\.$/,
+      'คุณสามารถเปลี่ยนชื่อผู้ใช้ได้อีกครั้งในวันที่ $1'
+    ],
     [/^(Google|Facebook) connected\.$/, 'เชื่อมต่อ $1 แล้ว'],
     [/^Connect (Google|Facebook)$/, 'เชื่อมต่อ $1'],
     [/^Rank (\d+)$/, 'อันดับ $1'],
@@ -752,9 +768,15 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
     [/^Downloading required skins · (\d+) \/ (\d+)$/, 'กำลังดาวน์โหลดสกินที่จำเป็น · $1 / $2'],
     [/^(\d+)% downloaded$/, 'ดาวน์โหลดแล้ว $1%'],
     [/^Searching in (.+)$/, 'กำลังค้นหาใน $1'],
-    [/^Searching from (.+) · Regional expansion enabled$/, 'กำลังค้นหาจาก $1 · เปิดการค้นหาข้ามภูมิภาค'],
+    [
+      /^Searching from (.+) · Regional expansion enabled$/,
+      'กำลังค้นหาจาก $1 · เปิดการค้นหาข้ามภูมิภาค'
+    ],
     [/^(\d+) of (\d+) selected$/, 'เลือกแล้ว $1 จาก $2'],
-    [/^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/, 'เซิร์ฟเวอร์พร้อมที่ $1 ลอนเชอร์จะเปิด Counter-Strike และเชื่อมต่อให้อัตโนมัติ'],
+    [
+      /^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/,
+      'เซิร์ฟเวอร์พร้อมที่ $1 ลอนเชอร์จะเปิด Counter-Strike และเชื่อมต่อให้อัตโนมัติ'
+    ],
     [/^Team (1|2) · Winners$/, 'ทีม $1 · ผู้ชนะ'],
     [/^Team (1|2)$/, 'ทีม $1'],
     [/^Party · (\d+) \/ 5$/, 'ปาร์ตี้ · $1 / 5'],
@@ -764,7 +786,10 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
     [/^Friends · (\d+)$/, 'เพื่อน · $1'],
     [/^Accept (.+)'s friend request$/, 'ยอมรับคำขอเป็นเพื่อนจาก $1'],
     [/^Discard (.+)'s friend request$/, 'ปฏิเสธคำขอเป็นเพื่อนจาก $1'],
-    [/^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/, 'คุณได้รับ $1 แต้ม ยอดใหม่คือ $2 แต้ม'],
+    [
+      /^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/,
+      'คุณได้รับ $1 แต้ม ยอดใหม่คือ $2 แต้ม'
+    ],
     [/^No (.+) skins are currently on sale\.$/, 'ขณะนี้ไม่มีสกิน $1 วางขาย'],
     [/^Open (.+) 3D preview$/, 'เปิดตัวอย่าง 3D ของ $1'],
     [/^By (.+)$/, 'โดย $1'],
@@ -783,8 +808,14 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
   ],
   id: [
     [/^Signed in as (.+)$/, 'Masuk sebagai $1'],
-    [/^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/, 'Selesaikan proses dengan $2 di browser Anda.'],
-    [/^You can change your username again on (.+)\.$/, 'Anda dapat mengubah nama pengguna lagi pada $1.'],
+    [
+      /^Finish (signing in|creating your account) with (Google|Facebook) in your browser\.$/,
+      'Selesaikan proses dengan $2 di browser Anda.'
+    ],
+    [
+      /^You can change your username again on (.+)\.$/,
+      'Anda dapat mengubah nama pengguna lagi pada $1.'
+    ],
     [/^(Google|Facebook) connected\.$/, '$1 terhubung.'],
     [/^Connect (Google|Facebook)$/, 'Hubungkan $1'],
     [/^Rank (\d+)$/, 'Peringkat $1'],
@@ -796,9 +827,15 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
     [/^Downloading required skins · (\d+) \/ (\d+)$/, 'Mengunduh skin yang diperlukan · $1 / $2'],
     [/^(\d+)% downloaded$/, '$1% terunduh'],
     [/^Searching in (.+)$/, 'Mencari di $1'],
-    [/^Searching from (.+) · Regional expansion enabled$/, 'Mencari dari $1 · perluasan region aktif'],
+    [
+      /^Searching from (.+) · Regional expansion enabled$/,
+      'Mencari dari $1 · perluasan region aktif'
+    ],
     [/^(\d+) of (\d+) selected$/, '$1 dari $2 dipilih'],
-    [/^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/, 'Server siap di $1. Launcher akan menjalankan Counter-Strike dan terhubung otomatis.'],
+    [
+      /^Server ready at (.+)\. The launcher will launch Counter-Strike and connect automatically\.$/,
+      'Server siap di $1. Launcher akan menjalankan Counter-Strike dan terhubung otomatis.'
+    ],
     [/^Team (1|2) · Winners$/, 'Tim $1 · Pemenang'],
     [/^Team (1|2)$/, 'Tim $1'],
     [/^Party · (\d+) \/ 5$/, 'Party · $1 / 5'],
@@ -808,7 +845,10 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
     [/^Friends · (\d+)$/, 'Teman · $1'],
     [/^Accept (.+)'s friend request$/, 'Terima permintaan teman dari $1'],
     [/^Discard (.+)'s friend request$/, 'Tolak permintaan teman dari $1'],
-    [/^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/, 'Anda menerima $1 poin. Saldo baru Anda adalah $2 poin.'],
+    [
+      /^You received ([\d,.]+) points\. Your new balance is ([\d,.]+) points\.$/,
+      'Anda menerima $1 poin. Saldo baru Anda adalah $2 poin.'
+    ],
     [/^No (.+) skins are currently on sale\.$/, 'Tidak ada skin $1 yang sedang dijual.'],
     [/^Open (.+) 3D preview$/, 'Buka pratinjau 3D $1'],
     [/^By (.+)$/, 'Oleh $1'],
@@ -827,10 +867,7 @@ const patterns: Record<SeaLanguage, Array<[RegExp, string]>> = {
   ]
 }
 
-export const translateRuntimeSea = (
-  language: SupportedLanguageCode,
-  source: string
-): string => {
+export const translateRuntimeSea = (language: SupportedLanguageCode, source: string): string => {
   if ((language !== 'th' && language !== 'id') || !source) return source
   const match = source.match(/^(\s*)([\s\S]*?)(\s*)$/)
   if (!match) return source

@@ -17,6 +17,7 @@ import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
+import { LanguageSettings } from '../i18n/LanguageSettings'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 
@@ -384,7 +385,9 @@ export function SettingsPage(): JSX.Element {
                 <h2 className="mt-2 text-2xl font-semibold">Game client</h2>
               </div>
 
-              <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+              <LanguageSettings />
+
+              <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
                 <p className="mt-2 text-sm text-neutral-400">
                   Choose the executable the launcher should start when a match server is ready.
