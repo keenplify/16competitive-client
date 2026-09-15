@@ -1,16 +1,21 @@
 const STORAGE_KEY = '16competitive.language'
 
-const localeLanguageMap: Record<string, 'en' | 'ru' | 'tl' | 'th' | 'id'> = {
+type SupportedLanguage = 'en' | 'ru' | 'tl' | 'th' | 'id' | 'pt'
+
+const localeLanguageMap: Record<string, SupportedLanguage> = {
   en: 'en',
   ru: 'ru',
   tl: 'tl',
   fil: 'tl',
   th: 'th',
   id: 'id',
-  in: 'id'
+  in: 'id',
+  pt: 'pt'
 }
 
-const detectPreferredLanguage = (): 'en' | 'ru' | 'tl' | 'th' | 'id' => {
+const supportedLanguages: SupportedLanguage[] = ['en', 'ru', 'tl', 'th', 'id', 'pt']
+
+const detectPreferredLanguage = (): SupportedLanguage => {
   const locales = [
     ...(typeof navigator !== 'undefined' ? navigator.languages : []),
     typeof navigator !== 'undefined' ? navigator.language : undefined,
@@ -28,7 +33,7 @@ const detectPreferredLanguage = (): 'en' | 'ru' | 'tl' | 'th' | 'id' => {
 
 try {
   const existing = window.localStorage.getItem(STORAGE_KEY)
-  if (!existing || !['en', 'ru', 'tl', 'th', 'id'].includes(existing)) {
+  if (!existing || !supportedLanguages.includes(existing as SupportedLanguage)) {
     window.localStorage.setItem(STORAGE_KEY, detectPreferredLanguage())
   }
 } catch {
