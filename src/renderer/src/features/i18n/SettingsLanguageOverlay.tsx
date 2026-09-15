@@ -31,10 +31,7 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
       const generalSection = findGeneralSection()
       if (!generalSection) return
 
-      if (mountedHost?.isConnected && mountedHost.parentElement === generalSection) {
-        if (host !== mountedHost) setHost(mountedHost)
-        return
-      }
+      if (mountedHost?.isConnected && mountedHost.parentElement === generalSection) return
 
       const existing = generalSection.querySelector<HTMLDivElement>('[data-language-settings-host]')
       if (existing) {
@@ -57,8 +54,8 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
 
     ensureMounted()
 
-    // SettingsPage owns this DOM subtree and may reconcile away nodes inserted by a portal.
-    // Keep the host attached directly below the General heading if that happens.
+    // SettingsPage owns this subtree, so a normal render can remove an injected host.
+    // Reattach it below the General heading whenever that happens.
     const observer = new MutationObserver(ensureMounted)
     observer.observe(document.body, { childList: true, subtree: true })
 
@@ -69,6 +66,6 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
     }
   }, [page, session])
 
-  if (page !== 'settings' || !session || !host?.isConnected) return null
+  if (page !== 'settings' || !session || !host) return null
   return createPortal(<LanguageSettings />, host)
 }
