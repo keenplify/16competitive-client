@@ -6,7 +6,7 @@ import { SUPPORTED_LANGUAGES, useLanguageStore, useTranslation, type LanguageCod
 export function AuthLanguageOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
-  const { language } = useTranslation()
+  const { language, t } = useTranslation()
   const setLanguage = useLanguageStore((state) => state.setLanguage)
 
   if (session && ['authenticated', 'changing_username', 'logging_out'].includes(status)) return null
@@ -14,7 +14,7 @@ export function AuthLanguageOverlay(): JSX.Element | null {
   return (
     <div className="fixed top-4 right-4 z-[90] flex items-center gap-2 rounded-lg border border-white/10 bg-neutral-950/85 p-1.5 text-white shadow-xl backdrop-blur-md sm:top-6 sm:right-6">
       <Languages className="mx-1 size-4 text-sky-300" aria-hidden="true" />
-      <div className="flex gap-1" role="group" aria-label="Language">
+      <div className="flex gap-1" role="group" aria-label={t('settings.language.title')}>
         {SUPPORTED_LANGUAGES.map((option) => {
           const selected = option.code === language
           return (
