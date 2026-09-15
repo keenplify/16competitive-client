@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
-import type { OwnedSkin, Skin } from '../../../../shared/skins'
+import type { OwnedSkin, Skin, SkinCurrency } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
@@ -14,6 +14,7 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { skinRarityPresentation } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
 
 type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
@@ -99,11 +100,11 @@ export function ShopPage(): JSX.Element {
     [selectedCategory, skins]
   )
 
-  const unlock = (skin: Skin): void => {
+  const unlock = (skin: Skin, currency: SkinCurrency): void => {
     setBuyingId(skin.id)
     setError(null)
     void window.api.skins
-      .unlock(skin.id)
+      .unlock(skin.id, currency)
       .then((result) => {
         if (result.currency === 'POINTS' && typeof result.points === 'number') {
           setPoints(result.points)
@@ -221,6 +222,7 @@ export function ShopPage(): JSX.Element {
               const owned = ownedSkins.get(skin.id)
               const buying = buyingId === skin.id
               const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
+              const rarity = skinRarityPresentation(skin)
               return (
                 <article
                   key={skin.id}
@@ -235,11 +237,11 @@ export function ShopPage(): JSX.Element {
                     <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
                       {skin.weaponKey}
                     </p>
-                    {premiumOnly && (
-                      <span className="rounded bg-sky-300/10 px-2 py-1 text-[10px] font-bold tracking-wide text-sky-300 uppercase">
-                        Premium
-                      </span>
-                    )}
+                    <span
+                      className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                    >
+                      {rarity.label}
+                    </span>
                   </div>
                   <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
                   <p className="mt-3 flex-1 text-sm text-neutral-400">
@@ -264,23 +266,36 @@ export function ShopPage(): JSX.Element {
                         </>
                       )}
                     </div>
-                    <Button
-                      className="h-9 px-3 text-xs"
-                      variant={owned ? 'ghost' : 'primary'}
-                      disabled={buying}
-                      onClick={() => (owned ? openLoadout() : unlock(skin))}
-                    >
-                      {owned ? (
-                        'Manage loadout'
-                      ) : buying ? (
-                        'Unlocking…'
-                      ) : (
-                        <>
-                          <ShoppingBag className="mr-1 size-3.5" />
-                          {premiumOnly ? 'Buy with P Cash' : 'Unlock'}
-                        </>
-                      )}
-                    </Button>
+                    {owned ? (
+                      <Button className="h-9 px-3 text-xs" variant="ghost" onClick={openLoadout}>
+                        Manage loadout
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        {skin.pointsEnabled && (
+                          <Button
+                            className="h-9 px-3 text-xs"
+                            variant="primary"
+                            disabled={buying}
+                            onClick={() => unlock(skin, 'POINTS')}
+                          >
+                            <ShoppingBag className="mr-1 size-3.5" />
+                            {buying ? 'Unlocking…' : 'Points'}
+                          </Button>
+                        )}
+                        {skin.pricePCash !== null && (
+                          <Button
+                            className="h-9 px-3 text-xs"
+                            variant={premiumOnly ? 'primary' : 'ghost'}
+                            disabled={buying}
+                            onClick={() => unlock(skin, 'P_CASH')}
+                          >
+                            <ShoppingBag className="mr-1 size-3.5" />
+                            {buying ? 'Unlocking…' : 'P Cash'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </article>
               )

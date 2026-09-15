@@ -1,7 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type { LobbyLoadout, OwnedSkin, Skin, UnlockResult } from '../shared/skins'
+import type { LobbyLoadout, OwnedSkin, Skin, SkinCurrency, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
@@ -153,13 +153,19 @@ const validateSkinId = (skinId: unknown): string => {
   return skinId
 }
 
-export const unlockSkin = async (skinId: unknown): Promise<UnlockResult> => {
+export const unlockSkin = async (skinId: unknown, currency: unknown): Promise<UnlockResult> => {
   const id = validateSkinId(skinId)
+  if (currency !== 'POINTS' && currency !== 'P_CASH') {
+    throw makeError('Invalid purchase currency.', 'SKIN_UNAVAILABLE')
+  }
   const catalog = await listSkins()
   const skin = catalog.find((item) => item.id === id)
   if (!skin) throw makeError('This skin is not currently available.', 'SKIN_UNAVAILABLE')
 
-  if (skin.pointsEnabled) {
+  if (currency === 'POINTS') {
+    if (!skin.pointsEnabled) {
+      throw makeError('This skin is not available for Points.', 'SKIN_UNAVAILABLE')
+    }
     const data = await playerRequest(`/skins/${id}/unlock`, { method: 'POST' })
     if (
       typeof data !== 'object' ||
@@ -180,7 +186,10 @@ export const unlockSkin = async (skinId: unknown): Promise<UnlockResult> => {
     ) {
       throw new Error('The server returned an invalid P Cash unlock result.')
     }
-    return { ...(data as Record<string, unknown>), currency: 'P_CASH' } as UnlockResult
+    return {
+      ...(data as Record<string, unknown>),
+      currency: 'P_CASH' as SkinCurrency
+    } as UnlockResult
   }
 
   throw makeError('This skin does not have an available purchase method.', 'SKIN_UNAVAILABLE')

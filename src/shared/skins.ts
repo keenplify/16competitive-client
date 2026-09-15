@@ -46,6 +46,8 @@ export interface UnlockResult {
   currency: 'POINTS' | 'P_CASH'
 }
 
+export type SkinCurrency = 'POINTS' | 'P_CASH'
+
 export interface LobbyLoadout {
   playerModel: string
   weaponSkinId: string | null
@@ -57,7 +59,7 @@ export interface SkinsApi {
   list(weaponKey?: string): Promise<Skin[]>
   mine(): Promise<OwnedSkin[]>
   getLobbyLoadout(): Promise<LobbyLoadout>
-  unlock(skinId: string): Promise<UnlockResult>
+  unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult>
   equip(skinId: string): Promise<void>
   unequip(skinId: string): Promise<void>
   previewModel(skinId: string): Promise<ArrayBuffer>
