@@ -365,6 +365,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
             className="size-9 px-0"
             variant="ghost"
             aria-label="Close preview"
+            data-audio-sfx="backward"
             onClick={onClose}
           >
             <X className="size-4" />

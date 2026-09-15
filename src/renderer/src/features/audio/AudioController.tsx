@@ -14,7 +14,11 @@ export function AudioController(): JSX.Element | null {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const gameExited = useMatchmakingStore((state) => state.gameExited)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
-  const gameStarting = queueStatus === 'server_ready' && !gameExited
+  const matchmakingError = useMatchmakingStore((state) => state.error)
+  const gameStarting = queueStatus === 'server_ready' && !gameExited && !matchmakingError
+  const shouldUseLobbyLowPass =
+    playerId !== null &&
+    (match === null || gameExited || (queueStatus === 'server_ready' && matchmakingError !== null))
 
   const previousMatchId = useRef<string | null>(null)
   const previousReadyResponse = useRef(readyResponse)
@@ -24,6 +28,10 @@ export function AudioController(): JSX.Element | null {
   useEffect(() => {
     launcherAudio.setBgmTrack(selectedBgmId)
   }, [selectedBgmId])
+
+  useEffect(() => {
+    launcherAudio.setBgmLowPass(shouldUseLobbyLowPass)
+  }, [shouldUseLobbyLowPass])
 
   useEffect(() => {
     launcherAudio.setBgmVolume(bgmVolume)
@@ -36,28 +44,53 @@ export function AudioController(): JSX.Element | null {
   useEffect(() => {
     launcherAudio.startBgm()
 
+    const syncFocus = (): void => launcherAudio.setBgmFocused(document.hasFocus())
+    const handleVisibilityChange = (): void => {
+      launcherAudio.setBgmFocused(!document.hidden && document.hasFocus())
+    }
     const retry = (): void => launcherAudio.startBgm()
     window.addEventListener('pointerdown', retry, { once: true })
     window.addEventListener('keydown', retry, { once: true })
+    window.addEventListener('focus', syncFocus)
+    window.addEventListener('blur', syncFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     const handleClick = (event: MouseEvent): void => {
       const target = event.target
       if (!(target instanceof Element)) return
-      const tab = target.closest('[data-audio-sfx="tab"]')
-      if (!(tab instanceof HTMLButtonElement) || tab.disabled) return
-      launcherAudio.playSfx('tab')
+      const navigation = target.closest('[data-audio-sfx="forward"], [data-audio-sfx="backward"]')
+      if (navigation instanceof HTMLButtonElement && !navigation.disabled) {
+        launcherAudio.playSfx(navigation.dataset.audioSfx === 'backward' ? 'backward' : 'forward')
+        return
+      }
+
+      const findMatch = target.closest('[data-audio-sfx="findMatch"]')
+      if (findMatch instanceof HTMLButtonElement && !findMatch.disabled) {
+        launcherAudio.playSfx('findMatch')
+      }
     }
 
     const removeMatchmakingListener = window.api.matchmaking.onEvent((event) => {
       if (event.type === 'party_invitation_received') launcherAudio.playSfx('partyInvitation')
     })
 
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape' && document.querySelector('[role="dialog"]')) {
+        launcherAudio.playSfx('backward')
+      }
+    }
+
     document.addEventListener('click', handleClick)
+    window.addEventListener('keydown', handleEscape)
     return () => {
       document.removeEventListener('click', handleClick)
+      window.removeEventListener('keydown', handleEscape)
       removeMatchmakingListener()
       window.removeEventListener('pointerdown', retry)
       window.removeEventListener('keydown', retry)
+      window.removeEventListener('focus', syncFocus)
+      window.removeEventListener('blur', syncFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
@@ -94,7 +127,8 @@ export function AudioController(): JSX.Element | null {
         ? 2
         : null
 
-    if (playerTeam) launcherAudio.playSfx(completedMatch.winner === playerTeam ? 'victory' : 'defeat')
+    if (playerTeam)
+      launcherAudio.playSfx(completedMatch.winner === playerTeam ? 'victory' : 'defeat')
     launcherAudio.restoreBgm()
   }, [completedMatch, playerId])
 

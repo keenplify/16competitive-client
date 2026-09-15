@@ -1,21 +1,35 @@
-export const BGM_TRACKS = [
-  { id: 'launcher-1', label: 'Launcher Theme 1', path: 'audio/bgm/launcher-1.mp3' },
-  { id: 'launcher-2', label: 'Launcher Theme 2', path: 'audio/bgm/launcher-2.mp3' },
-  { id: 'launcher-3', label: 'Launcher Theme 3', path: 'audio/bgm/launcher-3.mp3' }
+export const MUSIC_SETS = [
+  {
+    id: 'hip-hop',
+    label: 'Hip-Hop',
+    backgroundMusic: {
+      title: 'Enth E Nd',
+      path: 'audio/bgm/enth-e-nd.mp3'
+    },
+    cues: {
+      matchFound: 'audio/sfx/match-found.mp3'
+    }
+  }
 ] as const
 
-export type LauncherBgmId = (typeof BGM_TRACKS)[number]['id']
-export const DEFAULT_BGM_ID: LauncherBgmId = BGM_TRACKS[0].id
+export type LauncherMusicSetId = (typeof MUSIC_SETS)[number]['id']
+export type LauncherBgmId = LauncherMusicSetId
+export const DEFAULT_BGM_ID: LauncherBgmId = MUSIC_SETS[0].id
 
 export const isLauncherBgmId = (value: unknown): value is LauncherBgmId =>
-  typeof value === 'string' && BGM_TRACKS.some((track) => track.id === value)
+  typeof value === 'string' && MUSIC_SETS.some((set) => set.id === value)
 
-export const getLauncherBgmTrack = (id: LauncherBgmId) =>
-  BGM_TRACKS.find((track) => track.id === id) ?? BGM_TRACKS[0]
+export const getLauncherMusicSet = (id: LauncherMusicSetId) =>
+  MUSIC_SETS.find((set) => set.id === id) ?? MUSIC_SETS[0]
+
+export const getLauncherBgmTrack = (id: LauncherBgmId) => getLauncherMusicSet(id).backgroundMusic
 
 export const AUDIO_PATHS = {
   sfx: {
     tab: 'audio/sfx/tab.mp3',
+    findMatch: 'audio/sfx/find-match.mp3',
+    forward: 'audio/sfx/forward.mp3',
+    backward: 'audio/sfx/backward.mp3',
     partyInvitation: 'audio/sfx/party-invitation.mp3',
     matchFound: 'audio/sfx/match-found.mp3',
     matchAccepted: 'audio/sfx/match-accepted.mp3',
@@ -26,3 +40,6 @@ export const AUDIO_PATHS = {
 } as const
 
 export type LauncherSfx = keyof typeof AUDIO_PATHS.sfx
+
+export const getLauncherSfxPath = (setId: LauncherMusicSetId, sound: LauncherSfx): string =>
+  sound === 'matchFound' ? getLauncherMusicSet(setId).cues.matchFound : AUDIO_PATHS.sfx[sound]
