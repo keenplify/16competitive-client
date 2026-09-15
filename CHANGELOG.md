@@ -655,3 +655,12 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Connectivity
 
 - Documented regional latency and connectivity issues for follow-up.
+
+## v2026.915.1 — 2026-09-15
+
+### Audio
+
+- Added looping launcher background music.
+- Added selectable BGM presets with saved preferences.
+- Added separate BGM and SFX volume controls.
+- Added audio cues for navigation, match found, party invitations, and game start.
