@@ -1,10 +1,8 @@
 export const SKIN_CHANNELS = {
   list: 'skins:list',
   mine: 'skins:mine',
-  wallet: 'skins:wallet',
   getLobbyLoadout: 'skins:get-lobby-loadout',
   unlock: 'skins:unlock',
-  unlockPCash: 'skins:unlock-p-cash',
   equip: 'skins:equip',
   unequip: 'skins:unequip',
   previewModel: 'skins:preview-model',
@@ -22,6 +20,7 @@ export interface Skin {
   pricePoints: number
   pointsEnabled: boolean
   pricePCash: number | null
+  viewerPCash: number
   availableFrom: string | null
   availableUntil: string | null
   creatorName: string
@@ -40,19 +39,11 @@ export interface OwnedSkin {
   lobbySelected: boolean
 }
 
-export interface StoreWallet {
-  points: number
-  pCash: number
-}
-
 export interface UnlockResult {
   skin: Skin
-  points: number
-}
-
-export interface PCashUnlockResult {
-  skin: Skin
-  pCash: number
+  points?: number
+  pCash?: number
+  currency: 'POINTS' | 'P_CASH'
 }
 
 export interface LobbyLoadout {
@@ -65,10 +56,8 @@ export interface LobbyLoadout {
 export interface SkinsApi {
   list(weaponKey?: string): Promise<Skin[]>
   mine(): Promise<OwnedSkin[]>
-  wallet(): Promise<StoreWallet>
   getLobbyLoadout(): Promise<LobbyLoadout>
   unlock(skinId: string): Promise<UnlockResult>
-  unlockPCash(skinId: string): Promise<PCashUnlockResult>
   equip(skinId: string): Promise<void>
   unequip(skinId: string): Promise<void>
   previewModel(skinId: string): Promise<ArrayBuffer>
