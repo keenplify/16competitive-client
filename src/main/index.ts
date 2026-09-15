@@ -17,6 +17,8 @@ import {
 } from './auth'
 import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
+import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
+import { getDailyQuests } from './daily-quests'
 import { matchmakingConnection } from './matchmaking'
 import {
   getMatchmakingNodes,
@@ -323,6 +325,7 @@ app.whenReady().then(async () => {
     disconnectMatchmakingIntentionally()
     clearSessionToken()
   })
+  ipcMain.handle(DAILY_QUEST_CHANNELS.get, () => getDailyQuests())
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
     matchmakingConnection.connect(event.sender)
   )
