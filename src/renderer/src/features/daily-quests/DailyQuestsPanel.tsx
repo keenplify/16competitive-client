@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type {
   DailyQuest,
   DailyQuestSnapshot,
@@ -32,31 +32,18 @@ export function DailyQuestsPanel({
   title = 'Daily missions',
   compact = false
 }: DailyQuestsPanelProps): React.JSX.Element {
-  const quests = useMemo<DailyQuest[]>(() => rewards?.quests ?? snapshot?.quests ?? [], [rewards, snapshot])
-  const [animatedProgress, setAnimatedProgress] = useState<Record<string, number>>({})
-
-  useEffect(() => {
-    if (!rewards) {
-      setAnimatedProgress(Object.fromEntries(quests.map((quest) => [quest.id, quest.progress])))
-      return
-    }
-
-    setAnimatedProgress(
-      Object.fromEntries(rewards.quests.map((quest) => [quest.id, quest.progressBefore]))
-    )
-    const timer = window.setTimeout(() => {
-      setAnimatedProgress(
-        Object.fromEntries(rewards.quests.map((quest) => [quest.id, quest.progressAfter]))
-      )
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [quests, rewards])
+  const quests = useMemo<DailyQuest[]>(
+    () => rewards?.quests ?? snapshot?.quests ?? [],
+    [rewards, snapshot]
+  )
 
   return (
     <section className="rounded-xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
       <div className="mb-3 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Progress</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+            Progress
+          </p>
           <h2 className="text-lg font-bold text-white">{title}</h2>
         </div>
         {rewards ? (
@@ -68,7 +55,9 @@ export function DailyQuestsPanel({
           </div>
         ) : snapshot ? (
           <div className="text-right">
-            <p className="font-mono text-sm font-bold text-white">{snapshot.points.toLocaleString()} pts</p>
+            <p className="font-mono text-sm font-bold text-white">
+              {snapshot.points.toLocaleString()} pts
+            </p>
             <p className="text-[11px] text-white/40">{resetLabel(snapshot.resetsAt)}</p>
           </div>
         ) : null}
@@ -81,7 +70,7 @@ export function DailyQuestsPanel({
       ) : (
         <div className={compact ? 'space-y-2' : 'space-y-3'}>
           {quests.map((quest) => {
-            const progress = animatedProgress[quest.id] ?? quest.progress
+            const progress = quest.progress
             const completed = progress >= quest.target
             const matchQuest = rewards?.quests.find(({ id }) => id === quest.id)
             return (
@@ -101,7 +90,11 @@ export function DailyQuestsPanel({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs font-bold text-amber-200">+{quest.rewardPoints} pts</p>
-                    {completed && <p className="mt-0.5 text-[10px] font-bold uppercase text-emerald-300">Complete</p>}
+                    {completed && (
+                      <p className="mt-0.5 text-[10px] font-bold uppercase text-emerald-300">
+                        Complete
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
@@ -128,7 +121,10 @@ export function DailyQuestsPanel({
           </p>
           <div className="space-y-1.5">
             {rewards.pointChanges.map((change, index) => (
-              <div key={`${change.source}-${change.label}-${index}`} className="flex justify-between gap-3 text-sm">
+              <div
+                key={`${change.source}-${change.label}-${index}`}
+                className="flex justify-between gap-3 text-sm"
+              >
                 <span className="text-white/65">{change.label}</span>
                 <span
                   className={
