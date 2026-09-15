@@ -1,5 +1,6 @@
 import { AuthPage } from './features/auth/AuthPage'
 import { AudioController } from './features/audio/AudioController'
+import { SettingsLanguageOverlay } from './features/i18n/SettingsLanguageOverlay'
 import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
 import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
 import { UpdateBanner } from './features/updates/UpdateBanner'
@@ -18,6 +19,7 @@ function App(): React.JSX.Element {
       <MatchAbandonNotice />
       <SkinAssetSyncIndicator />
       <VoiceChatDock />
+      <SettingsLanguageOverlay />
       <ToastContainer
         position="top-left"
         theme="dark"
