@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLanguageStore } from './i18n'
+import { translateRuntimeFragment } from './ui-translations-extra'
 import { translateRuntimeText } from './ui-translations'
 
 const translatableAttributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'] as const
@@ -17,6 +18,10 @@ export function I18nRuntime(): null {
   useEffect(() => {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
+    const translate = (source: string): string => {
+      const translated = translateRuntimeText(language, source)
+      return translated === source ? translateRuntimeFragment(language, source) : translated
+    }
 
     const markAttribute = (element: Element, attribute: TranslatableAttribute): void => {
       const marked = applyingAttributes.get(element) ?? new Set<TranslatableAttribute>()
@@ -40,7 +45,7 @@ export function I18nRuntime(): null {
       const current = node.nodeValue ?? ''
       if (refreshSource || !textSources.current.has(node)) textSources.current.set(node, current)
       const source = textSources.current.get(node) ?? current
-      const translated = translateRuntimeText(language, source)
+      const translated = translate(source)
       if (translated === current) return
       applyingText.add(node)
       node.nodeValue = translated
@@ -61,7 +66,7 @@ export function I18nRuntime(): null {
       }
       if (refreshSource || !sources.has(attribute)) sources.set(attribute, current)
       const source = sources.get(attribute) ?? current
-      const translated = translateRuntimeText(language, source)
+      const translated = translate(source)
       if (translated === current) return
       markAttribute(element, attribute)
       element.setAttribute(attribute, translated)
