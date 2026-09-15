@@ -362,6 +362,7 @@ export function PlayPage(): JSX.Element {
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-white/10 pt-6">
             <Button
               className="min-w-44"
+              data-audio-sfx="findMatch"
               disabled={
                 !isLeader ||
                 !isConnected ||
