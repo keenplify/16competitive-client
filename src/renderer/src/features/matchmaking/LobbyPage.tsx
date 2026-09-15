@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { memo, useEffect, useState, type JSX } from 'react'
 import dustBackground from '../../assets/dust.jpg'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
@@ -118,6 +119,7 @@ export function LobbyPage(): JSX.Element {
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const [friendsCollapsed, setFriendsCollapsed] = useState(false)
   const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
+  const [dailyMissionsCollapsed, setDailyMissionsCollapsed] = useState(false)
   useEffect(() => {
     void refreshLobbyLoadout()
   }, [refreshLobbyLoadout])
@@ -269,12 +271,46 @@ export function LobbyPage(): JSX.Element {
             friendsCollapsed ? 'md:right-16' : 'md:right-[calc(18rem+1rem)]'
           }`}
         >
-          <DailyQuestsPanel
-            snapshot={questSnapshot}
-            loading={questStatus === 'loading'}
-            error={questError}
-            compact
-          />
+          <section className="overflow-hidden border border-white/10 bg-neutral-950/90 shadow-2xl backdrop-blur-md">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none"
+              aria-expanded={!dailyMissionsCollapsed}
+              aria-controls="lobby-daily-missions"
+              onClick={() => setDailyMissionsCollapsed((collapsed) => !collapsed)}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold text-white">
+                <ClipboardList className="size-4 text-sky-300" aria-hidden="true" /> Daily missions
+                {questSnapshot && (
+                  <span className="font-mono text-xs font-bold text-emerald-300">
+                    {questSnapshot.points.toLocaleString()} pts
+                  </span>
+                )}
+              </span>
+              {dailyMissionsCollapsed ? (
+                <ChevronDown className="size-4 text-white/55" aria-hidden="true" />
+              ) : (
+                <ChevronUp className="size-4 text-white/55" aria-hidden="true" />
+              )}
+            </button>
+            <div
+              id="lobby-daily-missions"
+              className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                dailyMissionsCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
+              }`}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="border-t border-white/10 p-3">
+                  <DailyQuestsPanel
+                    snapshot={questSnapshot}
+                    loading={questStatus === 'loading'}
+                    error={questError}
+                    compact
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       )}
       <LobbyNavigation

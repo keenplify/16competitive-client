@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   DailyQuest,
   DailyQuestSnapshot,
@@ -12,6 +12,8 @@ interface DailyQuestsPanelProps {
   error?: string | null
   title?: string
   compact?: boolean
+  /** Plays the match-result progress reveal after this screen receives focus. */
+  revealMatchProgress?: boolean
 }
 
 const clampPercent = (progress: number, target: number): number =>
@@ -30,15 +32,50 @@ export function DailyQuestsPanel({
   loading = false,
   error = null,
   title = 'Daily missions',
-  compact = false
+  compact = false,
+  revealMatchProgress = false
 }: DailyQuestsPanelProps): React.JSX.Element {
   const quests = useMemo<DailyQuest[]>(
     () => rewards?.quests ?? snapshot?.quests ?? [],
     [rewards, snapshot]
   )
+  const [isFocused, setIsFocused] = useState(() =>
+    revealMatchProgress ? document.hasFocus() && !document.hidden : false
+  )
+  const [revealStarted, setRevealStarted] = useState(false)
+  const [revealFinished, setRevealFinished] = useState(false)
+
+  useEffect(() => {
+    if (!revealMatchProgress) return
+    const beginReveal = (): void => {
+      if (!document.hidden) setIsFocused(true)
+    }
+    window.addEventListener('focus', beginReveal)
+    document.addEventListener('visibilitychange', beginReveal)
+    return () => {
+      window.removeEventListener('focus', beginReveal)
+      document.removeEventListener('visibilitychange', beginReveal)
+    }
+  }, [revealMatchProgress])
+
+  useEffect(() => {
+    if (!revealMatchProgress || !isFocused) return
+    const frame = window.requestAnimationFrame(() => setRevealStarted(true))
+    const finish = window.setTimeout(() => setRevealFinished(true), 1250)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(finish)
+    }
+  }, [isFocused, revealMatchProgress])
 
   return (
-    <section className="border border-white/10 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-md">
+    <section
+      className={
+        revealMatchProgress
+          ? 'w-full max-w-3xl border border-sky-300/15 bg-[#080b10]/90 p-5 shadow-[0_28px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-7'
+          : 'border border-white/10 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-md'
+      }
+    >
       <div className="mb-3 flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
@@ -76,16 +113,19 @@ export function DailyQuestsPanel({
             return (
               <article
                 key={quest.id}
-                className="border border-white/10 bg-black/20 px-3 py-3"
+                className={`border px-3 py-3 transition-opacity duration-700 ${
+                  revealMatchProgress && matchQuest?.completedThisMatch && revealFinished
+                    ? 'border-emerald-400/15 bg-emerald-400/[0.03] opacity-50'
+                    : 'border-white/10 bg-black/20'
+                }`}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white/90">{quest.title}</p>
                     <p className="mt-0.5 text-xs text-white/40">
-                      {Math.min(progress, quest.target)} / {quest.target}
-                      {matchQuest && matchQuest.progressAfter > matchQuest.progressBefore
-                        ? `  +${matchQuest.progressAfter - matchQuest.progressBefore} this match`
-                        : ''}
+                      {revealMatchProgress && matchQuest
+                        ? `${Math.min(matchQuest.progressBefore, quest.target)} → ${Math.min(progress, quest.target)} / ${quest.target}`
+                        : `${Math.min(progress, quest.target)} / ${quest.target}`}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
@@ -99,10 +139,28 @@ export function DailyQuestsPanel({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-white/70 transition-[width] duration-700 ease-out"
-                    style={{ width: `${clampPercent(progress, quest.target)}%` }}
+                    className="h-full rounded-full bg-gradient-to-r from-sky-300 to-emerald-300 transition-[width] duration-[1100ms] ease-out"
+                    style={{
+                      width: `${clampPercent(
+                        revealMatchProgress && matchQuest && !revealStarted
+                          ? matchQuest.progressBefore
+                          : progress,
+                        quest.target
+                      )}%`
+                    }}
                   />
                 </div>
+                {revealMatchProgress &&
+                  matchQuest &&
+                  matchQuest.progressAfter > matchQuest.progressBefore && (
+                    <p
+                      className={`mt-2 text-right text-xs font-black tracking-wide text-emerald-300 transition-all duration-500 ${
+                        revealStarted ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
+                      }`}
+                    >
+                      +{matchQuest.progressAfter - matchQuest.progressBefore} PROGRESS
+                    </p>
+                  )}
                 {matchQuest?.completedThisMatch && (
                   <p className="mt-2 text-xs font-semibold text-emerald-300">
                     Mission complete · +{quest.rewardPoints} points
@@ -115,7 +173,13 @@ export function DailyQuestsPanel({
       )}
 
       {rewards && rewards.pointChanges.length > 0 && (
-        <div className="mt-4 border-t border-white/10 pt-3">
+        <div
+          className={`mt-4 border-t border-white/10 pt-3 transition-all duration-500 ${
+            revealMatchProgress && !revealFinished
+              ? 'translate-y-3 opacity-0'
+              : 'translate-y-0 opacity-100'
+          }`}
+        >
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
             Points this match
           </p>
@@ -129,7 +193,7 @@ export function DailyQuestsPanel({
                 <span
                   className={
                     change.amount >= 0
-                      ? 'font-mono font-bold text-emerald-300'
+                      ? 'font-mono font-black text-emerald-300'
                       : 'font-mono font-bold text-red-300'
                   }
                 >

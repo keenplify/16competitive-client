@@ -233,21 +233,25 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                     <h2 className="border-b border-white/10 px-5 py-3 text-sm font-semibold">
                       {teamName(id)}
                     </h2>
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-5 py-2 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-2 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
                       <span>Player</span>
                       <span className="text-right">K / A / D</span>
+                      <span className="text-right">HS% / ADR</span>
                       <span className="min-w-10 text-right">MMR</span>
                     </div>
                     {players.map((entry) => (
                       <div
                         key={entry.id}
-                        className="grid cursor-context-menu grid-cols-[1fr_auto_auto] gap-4 border-t border-white/10 px-5 py-3 text-sm transition hover:bg-white/5"
+                        className="grid cursor-context-menu grid-cols-[1fr_auto_auto_auto] gap-4 border-t border-white/10 px-5 py-3 text-sm transition hover:bg-white/5"
                         onContextMenu={(event) => showPlayerMenu(event, entry)}
                         title="Right-click to view profile"
                       >
                         <span className="font-medium">{entry.username}</span>
                         <span className="text-right font-mono tabular-nums text-neutral-300">
                           {entry.kills} / {entry.assists} / {entry.deaths}
+                        </span>
+                        <span className="text-right font-mono text-xs tabular-nums text-neutral-400">
+                          {entry.headshotPercent}% / {entry.adr.toFixed(1)}
                         </span>
                         <span
                           className={`min-w-10 text-right font-mono text-xs font-semibold tabular-nums ${

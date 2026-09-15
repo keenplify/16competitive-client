@@ -1,11 +1,13 @@
-import { ChevronLeft, LoaderCircle, UserRound } from 'lucide-react'
+import { ArrowRight, ChevronLeft, LoaderCircle, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
+import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
 import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
+import { useFriendsStore } from '../friends/friends.store'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
@@ -14,8 +16,8 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   const rewards = useDailyQuestStore((state) =>
     state.lastMatchId === match.matchId ? state.lastMatchRewards : null
   )
-  const winners = match.winner === 1 ? match.teams.teamA : match.teams.teamB
-  const losers = match.winner === 1 ? match.teams.teamB : match.teams.teamA
+  const friends = useFriendsStore((state) => state.friends)
+  const requestFriend = useFriendsStore((state) => state.request)
   const currentPlayerTeam = match.teams.teamA.some((player) => player.id === currentPlayerId)
     ? 1
     : match.teams.teamB.some((player) => player.id === currentPlayerId)
@@ -43,6 +45,9 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileStatus, setProfileStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [resultsStep, setResultsStep] = useState<'missions' | 'summary'>(() =>
+    rewards || questSnapshot ? 'missions' : 'summary'
+  )
 
   useEffect(() => {
     const closeContextMenu = (): void => setContextMenu(null)
@@ -56,6 +61,44 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [])
+
+  useEffect(() => {
+    if (resultsStep !== 'missions') return
+    let remainingMs = 5000
+    let startedAt = 0
+    let timeout: number | undefined
+
+    const advance = (): void => {
+      window.clearTimeout(timeout)
+      setResultsStep('summary')
+    }
+    const resume = (): void => {
+      if (document.hidden || !document.hasFocus() || timeout) return
+      startedAt = Date.now()
+      timeout = window.setTimeout(advance, remainingMs)
+    }
+    const pause = (): void => {
+      if (!timeout) return
+      window.clearTimeout(timeout)
+      timeout = undefined
+      remainingMs -= Date.now() - startedAt
+    }
+    const onFocusChange = (): void => {
+      if (document.hidden || !document.hasFocus()) pause()
+      else resume()
+    }
+
+    onFocusChange()
+    window.addEventListener('focus', onFocusChange)
+    window.addEventListener('blur', onFocusChange)
+    document.addEventListener('visibilitychange', onFocusChange)
+    return () => {
+      window.clearTimeout(timeout)
+      window.removeEventListener('focus', onFocusChange)
+      window.removeEventListener('blur', onFocusChange)
+      document.removeEventListener('visibilitychange', onFocusChange)
+    }
+  }, [resultsStep])
 
   const showPlayerMenu = (event: MouseEvent<HTMLElement>, playerId: string): void => {
     event.preventDefault()
@@ -89,6 +132,15 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     setProfileError(null)
   }
 
+  const addFriend = (playerId: string): void => {
+    setContextMenu(null)
+    void requestFriend(playerId).then(() => {
+      const { error, notice } = useFriendsStore.getState()
+      if (error) toast.error(error)
+      else if (notice) toast.success(notice)
+    })
+  }
+
   return (
     <section className="relative min-h-[calc(100vh-5rem)] bg-transparent px-5 py-10 text-center text-white">
       <div
@@ -100,43 +152,73 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         aria-hidden="true"
       />
 
-      <div className="relative z-10">
-        <p className={`text-xs font-bold tracking-[.3em] uppercase ${resultClassName}`}>
-          Match complete
-        </p>
-        <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
-          {resultLabel}
-        </h1>
-        <p className="mt-2 text-3xl font-bold text-white">
-          {score[0]} <span className="text-neutral-500">—</span> {score[1]}
-        </p>
-        <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
-          {getMatchmakingModeLabel(match.mode)} · {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
-        </p>
-        {(rewards || questSnapshot) && (
-          <div className="mx-auto mt-8 max-w-2xl text-left">
+      {resultsStep === 'missions' && (
+        <div className="relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center py-8">
+          <div className="w-full max-w-3xl text-left">
+            <div className="mb-7 flex items-end justify-between gap-6 px-1">
+              <div>
+                <p className="text-xs font-bold tracking-[.3em] text-sky-300 uppercase">
+                  Match rewards
+                </p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  Daily mission report
+                </h1>
+                <p className="mt-2 text-sm text-white/50">
+                  Your match progress has been added to today&apos;s missions.
+                </p>
+              </div>
+              <Button
+                className="group shrink-0 border border-sky-300/30 bg-sky-400/10 text-sky-100 hover:bg-sky-400/20"
+                onClick={() => setResultsStep('summary')}
+              >
+                Next{' '}
+                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
+              </Button>
+            </div>
             <DailyQuestsPanel
               snapshot={rewards ? null : questSnapshot}
               rewards={rewards}
-              title="Daily mission progress"
+              title="Mission progress"
+              revealMatchProgress
             />
+            <p className="mt-5 text-center text-xs font-medium tracking-wide text-white/35">
+              MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS
+            </p>
           </div>
-        )}
-        <Team
-          label="Winners"
-          players={winners}
-          stats={match.players}
-          ratedMatch={match.mode !== 'casual'}
-          onPlayerContextMenu={showPlayerMenu}
-        />
-        <Team
-          label="Opponents"
-          players={losers}
-          stats={match.players}
-          ratedMatch={match.mode !== 'casual'}
-          onPlayerContextMenu={showPlayerMenu}
-        />
-      </div>
+        </div>
+      )}
+
+      {resultsStep === 'summary' && (
+        <div className="relative z-10">
+          <p className={`text-xs font-bold tracking-[.3em] uppercase ${resultClassName}`}>
+            Match complete
+          </p>
+          <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
+            {resultLabel}
+          </h1>
+          <p className="mt-2 text-3xl font-bold text-white">
+            {score[0]} <span className="text-neutral-500">—</span> {score[1]}
+          </p>
+          <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
+            {getMatchmakingModeLabel(match.mode)} ·{' '}
+            {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
+          </p>
+          <Team
+            label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
+            players={match.teams.teamA}
+            stats={match.players}
+            ratedMatch={match.mode !== 'casual'}
+            onPlayerContextMenu={showPlayerMenu}
+          />
+          <Team
+            label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
+            players={match.teams.teamB}
+            stats={match.players}
+            ratedMatch={match.mode !== 'casual'}
+            onPlayerContextMenu={showPlayerMenu}
+          />
+        </div>
+      )}
 
       {contextMenu && (
         <div
@@ -153,6 +235,20 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           >
             <UserRound className="size-4 text-sky-300" aria-hidden="true" /> View profile
           </button>
+          {contextMenu.playerId !== currentPlayerId && (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-white/35"
+              role="menuitem"
+              disabled={friends.some((friend) => friend.id === contextMenu.playerId)}
+              onClick={() => addFriend(contextMenu.playerId)}
+            >
+              <UserPlus className="size-4 text-emerald-300" aria-hidden="true" />
+              {friends.some((friend) => friend.id === contextMenu.playerId)
+                ? 'Already friends'
+                : 'Add friend'}
+            </button>
+          )}
         </div>
       )}
       {(profileStatus === 'loading' || profileStatus === 'error' || profile) && (
@@ -265,7 +361,9 @@ function Team({
                     : 'Unranked'
                   : '—'}
               </p>
-              <p className="mt-3 text-xs text-neutral-400">HS% — · ADR —</p>
+              <p className="mt-3 text-xs font-medium text-neutral-400">
+                HS% {playerStats?.headshotPercent ?? 0} · ADR {playerStats?.adr.toFixed(1) ?? '0.0'}
+              </p>
             </article>
           )
         })}
