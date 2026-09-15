@@ -6,12 +6,10 @@ import { LanguageSettings } from './LanguageSettings'
 
 const findGeneralSection = (): HTMLElement | null => {
   const sections = Array.from(document.querySelectorAll<HTMLElement>('main section'))
-  return (
-    sections.find((section) => {
-      const heading = section.firstElementChild?.textContent ?? ''
-      return heading.includes('General') && heading.includes('Game client')
-    }) ?? sections[0] ?? null
-  )
+
+  // General owns the read-only Counter-Strike executable path input. Targeting
+  // that control is language-independent, unlike matching translated headings.
+  return sections.find((section) => section.querySelector('input[readonly]')) ?? null
 }
 
 export function SettingsLanguageOverlay(): JSX.Element | null {
@@ -32,6 +30,12 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
       if (!generalSection) return
 
       if (mountedHost?.isConnected && mountedHost.parentElement === generalSection) return
+
+      if (mountedHost?.isConnected && mountedHost.parentElement !== generalSection) {
+        mountedHost.remove()
+        mountedHost = null
+        setHost(null)
+      }
 
       const existing = generalSection.querySelector<HTMLDivElement>('[data-language-settings-host]')
       if (existing) {
