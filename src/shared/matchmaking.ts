@@ -1,3 +1,5 @@
+import type { MatchRewardSummary } from './daily-quests'
+
 export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
   getNodes: 'matchmaking:get-nodes',
@@ -254,6 +256,7 @@ export type MatchmakingServerMessage =
         mmrAfter: number
         mmrChange: number
       }[]
+      rewards?: MatchRewardSummary
     }
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }
