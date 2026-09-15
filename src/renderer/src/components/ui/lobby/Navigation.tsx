@@ -1,17 +1,19 @@
 import type { JSX } from 'react'
 import { House, Newspaper, Play, Settings, ShoppingBag, Trophy, UserRound } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
+import type { TranslationKey } from '../../../features/i18n/i18n'
+import { useTranslation } from '../../../features/i18n/i18n'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
 
 const pages = [
-  { id: 'profile', label: 'Inventory', icon: UserRound },
-  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-  { id: 'play', label: 'Play', icon: Play },
-  { id: 'store', label: 'Store', icon: ShoppingBag },
-  { id: 'news', label: 'News', icon: Newspaper }
+  { id: 'profile', labelKey: 'nav.inventory', icon: UserRound },
+  { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: Trophy },
+  { id: 'play', labelKey: 'nav.play', icon: Play },
+  { id: 'store', labelKey: 'nav.store', icon: ShoppingBag },
+  { id: 'news', labelKey: 'nav.news', icon: Newspaper }
 ] as const satisfies ReadonlyArray<{
   id: Exclude<LobbyPageId, 'lobby' | 'settings'>
-  label: string
+  labelKey: TranslationKey
   icon: typeof Play
 }>
 
@@ -29,20 +31,22 @@ export function LobbyNavigation({
   className,
   locked = false
 }: LobbyNavigationProps): JSX.Element {
+  const { t } = useTranslation()
   const canNavigate = (page: LobbyPageId): boolean =>
     !locked || page === 'settings' || page === 'play'
 
   return (
     <nav
+      data-i18n-skip
       className={twMerge(
         'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-16 items-center px-3 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-28 before:bg-gradient-to-b before:from-neutral-950/25 before:to-transparent sm:h-20 sm:px-5',
         className
       )}
-      aria-label="Lobby navigation"
+      aria-label={t('nav.lobbyNavigation')}
     >
       <div className="pointer-events-auto relative z-10 flex items-center gap-1.5 p-1.5">
         <IconButton
-          label="Home"
+          label={t('nav.home')}
           audioSfx="backward"
           active={activePage === 'lobby'}
           disabled={!canNavigate('lobby')}
@@ -51,7 +55,7 @@ export function LobbyNavigation({
           <House className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
         </IconButton>
         <IconButton
-          label="Settings"
+          label={t('nav.settings')}
           audioSfx="forward"
           active={activePage === 'settings'}
           disabled={!canNavigate('settings')}
@@ -62,7 +66,7 @@ export function LobbyNavigation({
       </div>
 
       <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">
-        {pages.map(({ id, icon: Icon, label }) => {
+        {pages.map(({ id, icon: Icon, labelKey }) => {
           const active = activePage === id
           const isPlay = id === 'play'
 
@@ -99,7 +103,7 @@ export function LobbyNavigation({
                 )}
                 aria-hidden="true"
               />
-              <span className="relative z-10 hidden sm:inline">{label}</span>
+              <span className="relative z-10 hidden sm:inline">{t(labelKey)}</span>
             </button>
           )
         })}
