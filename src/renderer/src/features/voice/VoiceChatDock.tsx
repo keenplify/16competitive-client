@@ -166,6 +166,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
+  const match = useMatchmakingStore((state) => state.match)
 
   const desiredContext = useMemo<VoiceContext | null>(() => {
     if (!currentPlayerId) return null
@@ -210,6 +211,27 @@ export function VoiceChatDock(): JSX.Element | null {
   })
   const activeContext = joinedContext ?? desiredContext
   const pttActive = pttChannel !== null
+  const voiceRoster = useMemo(() => {
+    if (activeContext?.kind !== 'match' || !match || !currentPlayerId) {
+      return peers.map((peer) => ({ peer, simulated: false }))
+    }
+
+    const team = [match.teams.teamA, match.teams.teamB].find((players) =>
+      players.some(({ id }) => id === currentPlayerId)
+    )
+    if (!team) return peers.map((peer) => ({ peer, simulated: false }))
+
+    const livePeers = new Map(peers.map((peer) => [peer.id, peer]))
+    return team
+      .filter(({ id }) => id !== currentPlayerId)
+      .map(({ id, username }) => {
+        const peer = livePeers.get(id)
+        return {
+          peer: peer ?? { id, username },
+          simulated: !peer
+        }
+      })
+  }, [activeContext?.kind, currentPlayerId, match, peers])
 
   const updateOutgoingTracks = useCallback((): void => {
     const context = contextRef.current ?? desiredContextRef.current
@@ -746,7 +768,9 @@ export function VoiceChatDock(): JSX.Element | null {
   if (!desiredContext && !joinedContext) return null
 
   const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
-  const connectedPeers = peers.filter(({ id }) => peerStates[id] === 'connected').length
+  const connectedPeers = voiceRoster.filter(
+    ({ peer, simulated }) => simulated || peerStates[peer.id] === 'connected'
+  ).length
   const configuredPttAvailable = Boolean(
     activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey
   )
@@ -778,7 +802,7 @@ export function VoiceChatDock(): JSX.Element | null {
               : 'border-white/15 text-neutral-300 hover:bg-neutral-900 hover:text-white'
             : 'border-red-400/30 text-red-300'
         }`}
-        title={`${contextLabel}: ${enabled ? `${connectedPeers}/${peers.length} connected` : 'disconnected'}`}
+        title={`${contextLabel}: ${enabled ? `${connectedPeers}/${voiceRoster.length} connected` : 'disconnected'}`}
         aria-label={`Open ${contextLabel.toLowerCase()} controls`}
         onClick={() => setExpanded(true)}
       >
@@ -787,7 +811,7 @@ export function VoiceChatDock(): JSX.Element | null {
         ) : (
           <MicOff className="size-4" aria-hidden="true" />
         )}
-        {enabled && peers.length > 0 && (
+        {enabled && voiceRoster.length > 0 && (
           <span
             className={`absolute right-1 bottom-1 size-1.5 rounded-full ${
               connectedPeers > 0 ? 'bg-emerald-400' : 'bg-amber-300'
@@ -836,7 +860,7 @@ export function VoiceChatDock(): JSX.Element | null {
             <p className="truncate text-sm font-semibold">{contextLabel}</p>
             <p className="truncate text-xs text-neutral-400">
               {enabled
-                ? `${connectedPeers}/${peers.length} connected${openMic ? ' · Open mic' : talkingLabel ? ` · ${talkingLabel}` : ''}`
+                ? `${connectedPeers}/${voiceRoster.length} connected${openMic ? ' · Open mic' : talkingLabel ? ` · ${talkingLabel}` : ''}`
                 : 'Disconnected'}
             </p>
           </div>
@@ -920,16 +944,16 @@ export function VoiceChatDock(): JSX.Element | null {
 
           {enabled && (
             <div className="mt-4 space-y-3">
-              {peers.length === 0 && (
+              {voiceRoster.length === 0 && (
                 <p className="text-xs text-neutral-500">
                   {activeContext?.kind === 'match'
-                    ? 'No other human teammates in voice. Team PTT still shows the in-game chatter indicator.'
+                    ? 'Waiting for teammates in voice.'
                     : 'Waiting for another player in voice chat.'}
                 </p>
               )}
-              {peers.map((peer) => {
+              {voiceRoster.map(({ peer, simulated }) => {
                 const preference = preferenceFor(peer.id)
-                const state = peerStates[peer.id] ?? 'new'
+                const state = simulated ? 'connected' : (peerStates[peer.id] ?? 'new')
                 return (
                   <div
                     key={peer.id}
@@ -973,7 +997,7 @@ export function VoiceChatDock(): JSX.Element | null {
             </div>
           )}
 
-          {!micReady && enabled && !micError && (
+          {!micReady && enabled && !micError && voiceRoster.length === 0 && (
             <p className="mt-3 text-xs text-neutral-500">
               Microphone permission will be requested when another player joins voice.
             </p>
