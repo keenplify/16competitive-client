@@ -725,3 +725,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added language selection to authentication screens and General settings.
 - Improved language picker placement and visibility across launcher screens.
+
+## v2026.915.8 — 2026-09-15
+
+### Settings
+
+- Added language selection to Settings.
+- Improved language switching across the app.
+
+### Localization
+
+- Updated translations across supported languages.
+- Added and refined translated interface text.
