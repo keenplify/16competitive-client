@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { MatchmakingEvent } from '../../../../shared/matchmaking'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
+import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
 import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
 
@@ -29,6 +30,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   useEffect(() => {
     const translateFriendsLabel = (source: string): string => {
       if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
+      if (language === 'pt') return translateRuntimePortuguese(language, source)
       return isLegacyRuntimeLanguage(language) ? translateRuntimeText(language, source) : source
     }
     const friendsLabel = translateFriendsLabel('Friends panel')
