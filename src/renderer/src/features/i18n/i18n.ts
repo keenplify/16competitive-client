@@ -4,10 +4,15 @@ import { create } from 'zustand'
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'ru', label: 'Русский' },
-  { code: 'tl', label: 'Taglish' }
+  { code: 'tl', label: 'Taglish' },
+  { code: 'th', label: 'ไทย' },
+  { code: 'id', label: 'Bahasa Indonesia' }
 ] as const
 
-export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
+// Kept for the original Russian/Taglish runtime catalogs so they do not need
+// to be rewritten when additional language packs are added.
+export type LanguageCode = 'en' | 'ru' | 'tl'
+export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
   'nav.lobbyNavigation': 'Lobby navigation',
@@ -126,18 +131,99 @@ const taglish: Record<TranslationKey, string> = {
   'auth.facebookEmailHint': 'Walang email na binigay ang Facebook. Mag-add para mag-continue.'
 }
 
-const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
+const thai: Record<TranslationKey, string> = {
+  'nav.lobbyNavigation': 'เมนูล็อบบี้',
+  'nav.home': 'หน้าหลัก',
+  'nav.settings': 'การตั้งค่า',
+  'nav.inventory': 'คลัง',
+  'nav.leaderboard': 'อันดับ',
+  'nav.play': 'เล่น',
+  'nav.store': 'ร้านค้า',
+  'nav.news': 'ข่าว',
+  'settings.language.title': 'ภาษา',
+  'settings.language.description': 'เลือกภาษาที่ใช้ในหน้าต่างลอนเชอร์',
+  'settings.language.help': 'การเปลี่ยนแปลงมีผลทันทีและจะบันทึกไว้ในอุปกรณ์นี้',
+  'auth.restoring': 'กำลังกู้คืนเซสชันของคุณ',
+  'auth.welcomeBack': 'ยินดีต้อนรับกลับ',
+  'auth.createAccount': 'สร้างบัญชี',
+  'auth.loginDescription': 'เข้าสู่ระบบเพื่อใช้งานการจับคู่',
+  'auth.registerDescription': 'เลือกวิธีที่คุณต้องการใช้สร้างบัญชี',
+  'auth.login': 'เข้าสู่ระบบ',
+  'auth.register': 'สมัครสมาชิก',
+  'auth.or': 'หรือ',
+  'auth.username': 'ชื่อผู้ใช้',
+  'auth.usernameHint': '3–32 ตัวอักษร: ตัวอักษร ตัวเลข และขีดล่าง',
+  'auth.email': 'อีเมล',
+  'auth.password': 'รหัสผ่าน',
+  'auth.passwordPlaceholder': 'อย่างน้อย 8 ตัวอักษร',
+  'auth.signingIn': 'กำลังเข้าสู่ระบบ…',
+  'auth.signIn': 'เข้าสู่ระบบ',
+  'auth.createAccountButton': 'สร้างบัญชี',
+  'auth.continueFacebook': 'ดำเนินการต่อด้วย Facebook',
+  'auth.exitDesktop': 'ออกไปยังเดสก์ท็อป',
+  'auth.privacyPolicy': 'นโยบายความเป็นส่วนตัว',
+  'auth.terms': 'ข้อกำหนดและเงื่อนไข',
+  'auth.finishSocial': 'ดำเนินการ {{action}} ด้วย {{provider}} ให้เสร็จในเบราว์เซอร์',
+  'auth.finishSigningIn': 'การเข้าสู่ระบบ',
+  'auth.finishCreatingAccount': 'การสร้างบัญชี',
+  'auth.facebookEmailHint': 'Facebook ไม่ได้ส่งอีเมลมาให้ โปรดเพิ่มอีเมลเพื่อดำเนินการต่อ'
+}
+
+const indonesian: Record<TranslationKey, string> = {
+  'nav.lobbyNavigation': 'Navigasi lobi',
+  'nav.home': 'Beranda',
+  'nav.settings': 'Pengaturan',
+  'nav.inventory': 'Inventaris',
+  'nav.leaderboard': 'Papan peringkat',
+  'nav.play': 'Main',
+  'nav.store': 'Toko',
+  'nav.news': 'Berita',
+  'settings.language.title': 'Bahasa',
+  'settings.language.description': 'Pilih bahasa yang digunakan oleh antarmuka launcher.',
+  'settings.language.help': 'Perubahan diterapkan langsung dan disimpan di perangkat ini.',
+  'auth.restoring': 'Memulihkan sesi Anda',
+  'auth.welcomeBack': 'Selamat datang kembali',
+  'auth.createAccount': 'Buat akun',
+  'auth.loginDescription': 'Masuk untuk melanjutkan ke matchmaking.',
+  'auth.registerDescription': 'Pilih cara Anda ingin membuat akun.',
+  'auth.login': 'Masuk',
+  'auth.register': 'Daftar',
+  'auth.or': 'atau',
+  'auth.username': 'Nama pengguna',
+  'auth.usernameHint': '3–32 karakter: huruf, angka, dan garis bawah',
+  'auth.email': 'Email',
+  'auth.password': 'Kata sandi',
+  'auth.passwordPlaceholder': 'Minimal 8 karakter',
+  'auth.signingIn': 'Sedang masuk…',
+  'auth.signIn': 'Masuk',
+  'auth.createAccountButton': 'Buat akun',
+  'auth.continueFacebook': 'Lanjutkan dengan Facebook',
+  'auth.exitDesktop': 'Keluar ke desktop',
+  'auth.privacyPolicy': 'Kebijakan Privasi',
+  'auth.terms': 'Syarat & Ketentuan',
+  'auth.finishSocial': 'Selesaikan {{action}} dengan {{provider}} di browser Anda.',
+  'auth.finishSigningIn': 'proses masuk',
+  'auth.finishCreatingAccount': 'pembuatan akun',
+  'auth.facebookEmailHint': 'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
+}
+
+const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
   en: english,
   ru: russian,
-  tl: taglish
+  tl: taglish,
+  th: thai,
+  id: indonesian
 }
 
 const STORAGE_KEY = '16competitive.language'
 
-export const isLanguageCode = (value: unknown): value is LanguageCode =>
+export const isLanguageCode = (value: unknown): value is SupportedLanguageCode =>
   SUPPORTED_LANGUAGES.some((language) => language.code === value)
 
-const readStoredLanguage = (): LanguageCode => {
+export const isLegacyRuntimeLanguage = (value: SupportedLanguageCode): value is LanguageCode =>
+  value === 'en' || value === 'ru' || value === 'tl'
+
+const readStoredLanguage = (): SupportedLanguageCode => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     return isLanguageCode(stored) ? stored : 'en'
@@ -146,11 +232,11 @@ const readStoredLanguage = (): LanguageCode => {
   }
 }
 
-const applyDocumentLanguage = (language: LanguageCode): void => {
+const applyDocumentLanguage = (language: SupportedLanguageCode): void => {
   if (typeof document !== 'undefined') document.documentElement.lang = language
 }
 
-const persistLanguage = (language: LanguageCode): void => {
+const persistLanguage = (language: SupportedLanguageCode): void => {
   try {
     window.localStorage.setItem(STORAGE_KEY, language)
   } catch {
@@ -159,8 +245,8 @@ const persistLanguage = (language: LanguageCode): void => {
 }
 
 interface LanguageState {
-  language: LanguageCode
-  setLanguage: (language: LanguageCode) => void
+  language: SupportedLanguageCode
+  setLanguage: (language: SupportedLanguageCode) => void
 }
 
 const initialLanguage = readStoredLanguage()
@@ -176,11 +262,11 @@ export const useLanguageStore = create<LanguageState>((set) => ({
 }))
 
 export const translate = (
-  language: LanguageCode,
+  language: SupportedLanguageCode,
   key: TranslationKey,
   params?: TranslationParams
 ): string => {
-  let translated = translations[language][key] ?? english[key]
+  let translated = translations[language]?.[key] ?? english[key]
   if (!params) return translated
 
   for (const [name, value] of Object.entries(params)) {
@@ -190,7 +276,7 @@ export const translate = (
 }
 
 export function useTranslation(): {
-  language: LanguageCode
+  language: SupportedLanguageCode
   t: (key: TranslationKey, params?: TranslationParams) => string
 } {
   const language = useLanguageStore((state) => state.language)
