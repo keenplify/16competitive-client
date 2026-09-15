@@ -4,6 +4,16 @@ import { useAuthStore } from '../auth/auth.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { LanguageSettings } from './LanguageSettings'
 
+const findGeneralSection = (): HTMLElement | null => {
+  const sections = Array.from(document.querySelectorAll<HTMLElement>('main section'))
+  return (
+    sections.find((section) => {
+      const heading = section.firstElementChild?.textContent ?? ''
+      return heading.includes('General') && heading.includes('Game client')
+    }) ?? sections[0] ?? null
+  )
+}
+
 export function SettingsLanguageOverlay(): JSX.Element | null {
   const page = useNavigationStore((state) => state.page)
   const session = useAuthStore((state) => state.session)
@@ -17,36 +27,39 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
 
     let mountedHost: HTMLDivElement | null = null
 
-    const mountIntoGeneral = (): boolean => {
-      const generalSection = document.querySelector<HTMLElement>('main section')
-      if (!generalSection) return false
+    const ensureMounted = (): void => {
+      const generalSection = findGeneralSection()
+      if (!generalSection) return
+
+      if (mountedHost?.isConnected && mountedHost.parentElement === generalSection) {
+        if (host !== mountedHost) setHost(mountedHost)
+        return
+      }
 
       const existing = generalSection.querySelector<HTMLDivElement>('[data-language-settings-host]')
       if (existing) {
         mountedHost = existing
         setHost(existing)
-        return true
+        return
       }
 
       const nextHost = document.createElement('div')
       nextHost.dataset.languageSettingsHost = 'true'
       nextHost.className = 'mb-5'
-      generalSection.insertBefore(nextHost, generalSection.children[1] ?? null)
+
+      const sectionHeader = generalSection.firstElementChild
+      if (sectionHeader) sectionHeader.insertAdjacentElement('afterend', nextHost)
+      else generalSection.prepend(nextHost)
+
       mountedHost = nextHost
       setHost(nextHost)
-      return true
     }
 
-    if (mountIntoGeneral()) {
-      return () => {
-        mountedHost?.remove()
-        setHost(null)
-      }
-    }
+    ensureMounted()
 
-    const observer = new MutationObserver(() => {
-      if (mountIntoGeneral()) observer.disconnect()
-    })
+    // SettingsPage owns this DOM subtree and may reconcile away nodes inserted by a portal.
+    // Keep the host attached directly below the General heading if that happens.
+    const observer = new MutationObserver(ensureMounted)
     observer.observe(document.body, { childList: true, subtree: true })
 
     return () => {
@@ -56,6 +69,6 @@ export function SettingsLanguageOverlay(): JSX.Element | null {
     }
   }, [page, session])
 
-  if (page !== 'settings' || !session || !host) return null
+  if (page !== 'settings' || !session || !host?.isConnected) return null
   return createPortal(<LanguageSettings />, host)
 }
