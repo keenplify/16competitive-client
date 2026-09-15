@@ -6,7 +6,8 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ru', label: 'Русский' },
   { code: 'tl', label: 'Taglish' },
   { code: 'th', label: 'ไทย' },
-  { code: 'id', label: 'Bahasa Indonesia' }
+  { code: 'id', label: 'Bahasa Indonesia' },
+  { code: 'pt', label: 'Português' }
 ] as const
 
 // Kept for the original Russian/Taglish runtime catalogs so they do not need
@@ -207,12 +208,51 @@ const indonesian: Record<TranslationKey, string> = {
   'auth.facebookEmailHint': 'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
 }
 
+const portuguese: Record<TranslationKey, string> = {
+  'nav.lobbyNavigation': 'Navegação do lobby',
+  'nav.home': 'Início',
+  'nav.settings': 'Configurações',
+  'nav.inventory': 'Inventário',
+  'nav.leaderboard': 'Ranking',
+  'nav.play': 'Jogar',
+  'nav.store': 'Loja',
+  'nav.news': 'Notícias',
+  'settings.language.title': 'Idioma',
+  'settings.language.description': 'Escolha o idioma usado pela interface do launcher.',
+  'settings.language.help': 'As alterações são aplicadas imediatamente e salvas neste dispositivo.',
+  'auth.restoring': 'Restaurando sua sessão',
+  'auth.welcomeBack': 'Bem-vindo de volta',
+  'auth.createAccount': 'Criar uma conta',
+  'auth.loginDescription': 'Entre para continuar para o matchmaking.',
+  'auth.registerDescription': 'Escolha como deseja criar sua conta.',
+  'auth.login': 'Entrar',
+  'auth.register': 'Cadastrar',
+  'auth.or': 'ou',
+  'auth.username': 'Nome de usuário',
+  'auth.usernameHint': '3–32 caracteres: letras, números e sublinhados',
+  'auth.email': 'E-mail',
+  'auth.password': 'Senha',
+  'auth.passwordPlaceholder': 'Pelo menos 8 caracteres',
+  'auth.signingIn': 'Entrando…',
+  'auth.signIn': 'Entrar',
+  'auth.createAccountButton': 'Criar conta',
+  'auth.continueFacebook': 'Continuar com Facebook',
+  'auth.exitDesktop': 'Sair para a área de trabalho',
+  'auth.privacyPolicy': 'Política de Privacidade',
+  'auth.terms': 'Termos e Condições',
+  'auth.finishSocial': 'Conclua {{action}} com {{provider}} no seu navegador.',
+  'auth.finishSigningIn': 'o login',
+  'auth.finishCreatingAccount': 'a criação da sua conta',
+  'auth.facebookEmailHint': 'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.'
+}
+
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
   en: english,
   ru: russian,
   tl: taglish,
   th: thai,
-  id: indonesian
+  id: indonesian,
+  pt: portuguese
 }
 
 const STORAGE_KEY = '16competitive.language'
