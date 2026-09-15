@@ -695,3 +695,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Daily Quests
 
 - Added daily quests.
+
+## v2026.915.5 — 2026-09-15
+
+### Shop
+
+- Improved error messages when unlocking skins.
+- Shop errors now appear as clear notifications.
