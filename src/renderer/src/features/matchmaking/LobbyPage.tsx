@@ -265,7 +265,7 @@ export function LobbyPage(): JSX.Element {
       <LobbyScene player={player} party={party} />
       {page === 'lobby' && !completedMatch && (
         <div
-          className={`fixed top-20 right-4 z-20 w-[min(20rem,calc(100vw-2rem))] sm:top-24 ${
+          className={`fixed top-20 right-4 z-20 w-[min(20rem,calc(100vw-2rem))] transition-[right] duration-300 ease-out sm:top-24 ${
             friendsCollapsed ? 'md:right-16' : 'md:right-[calc(18rem+1rem)]'
           }`}
         >
