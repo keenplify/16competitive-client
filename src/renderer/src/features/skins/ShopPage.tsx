@@ -1,5 +1,6 @@
 import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
+import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
@@ -38,9 +39,15 @@ const weaponCategories: Array<{ id: WeaponCategory; label: string }> = [
   { id: 'knives', label: 'Knife' }
 ] as const
 
+const ipcErrorPrefix = /^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/
+
 const errorDetails = (reason: unknown): { message: string; code?: string } => {
   if (!(reason instanceof Error)) return { message: 'Could not complete this shop request.' }
-  return { message: reason.message, code: (reason as Error & { code?: string }).code }
+  const message = reason.message.replace(ipcErrorPrefix, '').trim()
+  return {
+    message: message || 'Could not complete this shop request.',
+    code: (reason as Error & { code?: string }).code
+  }
 }
 
 const safeExternalUrl = (value: string | null): string | null => {
@@ -125,13 +132,13 @@ export function ShopPage(): JSX.Element {
             )
         }
         if (failure.code === 'SKIN_UNAVAILABLE') load()
-        setError(
+        const message =
           failure.code === 'INSUFFICIENT_POINTS'
             ? 'You need more points to unlock this skin.'
             : failure.code === 'INSUFFICIENT_P_CASH'
               ? 'You need more P Cash to unlock this skin.'
               : failure.message
-        )
+        toast.error(message)
       })
       .finally(() => setBuyingId(null))
   }
