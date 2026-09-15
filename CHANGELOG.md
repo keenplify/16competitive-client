@@ -664,3 +664,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added selectable BGM presets with saved preferences.
 - Added separate BGM and SFX volume controls.
 - Added audio cues for navigation, match found, party invitations, and game start.
+
+## v2026.915.2 — 2026-09-15
+
+### Match Found
+
+- Fixed an issue with match-found notifications.
