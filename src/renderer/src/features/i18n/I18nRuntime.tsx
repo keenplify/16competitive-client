@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLanguageStore } from './i18n'
 import { translateRuntimeFragment } from './ui-translations-extra'
+import { translateRuntimeFinal } from './ui-translations-final'
 import { translateRuntimeText } from './ui-translations'
 
 const translatableAttributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'] as const
@@ -19,8 +20,10 @@ export function I18nRuntime(): null {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
     const translate = (source: string): string => {
-      const translated = translateRuntimeText(language, source)
-      return translated === source ? translateRuntimeFragment(language, source) : translated
+      const primary = translateRuntimeText(language, source)
+      if (primary !== source) return primary
+      const fragment = translateRuntimeFragment(language, source)
+      return fragment !== source ? fragment : translateRuntimeFinal(language, source)
     }
 
     const markAttribute = (element: Element, attribute: TranslatableAttribute): void => {
