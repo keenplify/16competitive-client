@@ -707,3 +707,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - feat: enhance match history and results with additional player stats
 - fix: show bot teammates in team voice
+
+## v2026.915.7 — 2026-09-15
+
+### Language Support
+
+- Added Taglish, Portuguese, Thai, and Indonesian language options.
+- The launcher now detects your language on first launch.
+- Language preferences persist across sessions.
+
+### Localization
+
+- Translated launcher navigation, settings, authentication, friends panel, notices, and dynamic UI text.
+- Language changes now apply immediately throughout the launcher.
+
+### Settings & Sign-In
+
+- Added language selection to authentication screens and General settings.
+- Improved language picker placement and visibility across launcher screens.
