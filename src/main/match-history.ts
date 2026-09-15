@@ -22,6 +22,10 @@ const isEntry = (value: unknown): value is MatchHistoryEntry => {
     typeof entry.kills === 'number' &&
     typeof entry.deaths === 'number' &&
     typeof entry.assists === 'number' &&
+    typeof entry.headshots === 'number' &&
+    typeof entry.damage === 'number' &&
+    typeof entry.headshotPercent === 'number' &&
+    typeof entry.adr === 'number' &&
     isNullableInteger(entry.mmrBefore) &&
     isNullableInteger(entry.mmrAfter) &&
     isNullableInteger(entry.mmrChange)
@@ -39,6 +43,10 @@ const isSummaryPlayer = (value: unknown): value is MatchSummaryPlayer => {
     typeof player.kills === 'number' &&
     typeof player.deaths === 'number' &&
     typeof player.assists === 'number' &&
+    typeof player.headshots === 'number' &&
+    typeof player.damage === 'number' &&
+    typeof player.headshotPercent === 'number' &&
+    typeof player.adr === 'number' &&
     isNullableInteger(player.mmrBefore) &&
     isNullableInteger(player.mmrAfter) &&
     isNullableInteger(player.mmrChange)

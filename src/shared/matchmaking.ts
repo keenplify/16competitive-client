@@ -231,10 +231,7 @@ export type MatchmakingServerMessage =
       type: 'match_cancelled'
       matchId: string
       reason:
-        | 'PLAYER_DECLINED'
-        | 'PLAYER_NOT_READY'
-        | 'SERVER_START_FAILED'
-        | 'PLAYER_DID_NOT_CONNECT'
+        'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED' | 'PLAYER_DID_NOT_CONNECT'
       message: string
     }
   | {
@@ -252,6 +249,10 @@ export type MatchmakingServerMessage =
         kills: number
         deaths: number
         assists: number
+        headshots: number
+        damage: number
+        headshotPercent: number
+        adr: number
         mmrBefore: number
         mmrAfter: number
         mmrChange: number

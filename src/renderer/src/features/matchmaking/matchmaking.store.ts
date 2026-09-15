@@ -46,6 +46,10 @@ export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'
     kills: number
     deaths: number
     assists: number
+    headshots: number
+    damage: number
+    headshotPercent: number
+    adr: number
     mmrBefore: number
     mmrAfter: number
     mmrChange: number
