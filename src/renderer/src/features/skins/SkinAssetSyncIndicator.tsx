@@ -2,7 +2,8 @@ import { Clipboard, Download, LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { MatchmakingEvent } from '../../../../shared/matchmaking'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
-import { useLanguageStore } from '../i18n/i18n'
+import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
+import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
@@ -26,8 +27,12 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   }, [])
 
   useEffect(() => {
-    const friendsLabel = translateRuntimeText(language, 'Friends panel')
-    const collapsedFriendsLabel = translateRuntimeText(language, 'Expand Friends panel')
+    const translateFriendsLabel = (source: string): string => {
+      if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
+      return isLegacyRuntimeLanguage(language) ? translateRuntimeText(language, source) : source
+    }
+    const friendsLabel = translateFriendsLabel('Friends panel')
+    const collapsedFriendsLabel = translateFriendsLabel('Expand Friends panel')
     const detectRail = (): void => {
       const rail = Array.from(document.querySelectorAll<HTMLElement>('aside[aria-label]')).find(
         (candidate) => {
