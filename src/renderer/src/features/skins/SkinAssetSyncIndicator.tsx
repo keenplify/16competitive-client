@@ -2,10 +2,15 @@ import { Clipboard, Download, LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { MatchmakingEvent } from '../../../../shared/matchmaking'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
+import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
+import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
+import { translateRuntimeSea } from '../i18n/ui-translations-sea'
+import { translateRuntimeText } from '../i18n/ui-translations'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
+  const language = useLanguageStore((state) => state.language)
   const [progress, setProgress] = useState<Extract<
     MatchmakingEvent,
     { type: 'skin_assets_sync_progress' }
@@ -23,17 +28,25 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   }, [])
 
   useEffect(() => {
+    const translateFriendsLabel = (source: string): string => {
+      if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
+      if (language === 'pt') return translateRuntimePortuguese(language, source)
+      return isLegacyRuntimeLanguage(language) ? translateRuntimeText(language, source) : source
+    }
+    const friendsLabel = translateFriendsLabel('Friends panel')
+    const collapsedFriendsLabel = translateFriendsLabel('Expand Friends panel')
     const detectRail = (): void => {
-      const rail = document.querySelector<HTMLElement>(
-        'aside[aria-label="Friends panel"], aside[aria-label="Expand Friends panel"]'
+      const rail = Array.from(document.querySelectorAll<HTMLElement>('aside[aria-label]')).find(
+        (candidate) => {
+          const label = candidate.getAttribute('aria-label')
+          return label === friendsLabel || label === collapsedFriendsLabel
+        }
       )
       if (!rail || rail.getClientRects().length === 0) {
         setRailMode('absent')
         return
       }
-      setRailMode(
-        rail.getAttribute('aria-label') === 'Expand Friends panel' ? 'collapsed' : 'expanded'
-      )
+      setRailMode(rail.getAttribute('aria-label') === collapsedFriendsLabel ? 'collapsed' : 'expanded')
     }
 
     detectRail()
@@ -49,7 +62,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
       observer.disconnect()
       window.removeEventListener('resize', detectRail)
     }
-  }, [])
+  }, [language])
 
   const percentage =
     progress && progress.totalFiles > 0

@@ -1,3 +1,4 @@
+import './features/i18n/detect-initial-language'
 import './assets/main.css'
 
 import { StrictMode } from 'react'
