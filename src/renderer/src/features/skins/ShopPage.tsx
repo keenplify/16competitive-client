@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
-import type { OwnedSkin, Skin } from '../../../../shared/skins'
+import type { OwnedSkin, Skin, SkinCurrency } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
@@ -14,6 +14,7 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { skinRarityPresentation } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
 
 type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
@@ -65,6 +66,7 @@ export function ShopPage(): JSX.Element {
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
+  const pCash = skins[0]?.viewerPCash ?? 0
 
   const load = useCallback((): void => {
     setStatus('loading')
@@ -98,16 +100,21 @@ export function ShopPage(): JSX.Element {
     [selectedCategory, skins]
   )
 
-  const unlock = (skin: Skin): void => {
+  const unlock = (skin: Skin, currency: SkinCurrency): void => {
     setBuyingId(skin.id)
     setError(null)
     void window.api.skins
-      .unlock(skin.id)
+      .unlock(skin.id, currency)
       .then((result) => {
-        setPoints(result.points)
-        return window.api.skins.mine()
+        if (result.currency === 'POINTS' && typeof result.points === 'number') {
+          setPoints(result.points)
+        }
+        return Promise.all([window.api.skins.mine(), window.api.skins.list()])
       })
-      .then((inventory) => setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item]))))
+      .then(([inventory, catalog]) => {
+        setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
+        setSkins(catalog)
+      })
       .catch((reason: unknown) => {
         const failure = errorDetails(reason)
         if (failure.code === 'SKIN_ALREADY_OWNED') {
@@ -121,7 +128,9 @@ export function ShopPage(): JSX.Element {
         setError(
           failure.code === 'INSUFFICIENT_POINTS'
             ? 'You need more points to unlock this skin.'
-            : failure.message
+            : failure.code === 'INSUFFICIENT_P_CASH'
+              ? 'You need more P Cash to unlock this skin.'
+              : failure.message
         )
       })
       .finally(() => setBuyingId(null))
@@ -133,8 +142,12 @@ export function ShopPage(): JSX.Element {
   }
 
   const refreshOwnedSkins = useCallback(async (): Promise<void> => {
-    const inventory = await window.api.skins.mine()
+    const [inventory, catalog] = await Promise.all([
+      window.api.skins.mine(),
+      window.api.skins.list()
+    ])
     setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
+    setSkins(catalog)
   }, [])
 
   return (
@@ -145,20 +158,28 @@ export function ShopPage(): JSX.Element {
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
             <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
             <p className="mt-2 text-sm text-neutral-200">
-              Choose a weapon, then unlock a skin for a future match.
+              Earn Points by playing. P Cash is the premium Papa Cash currency.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>
             <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-right">
               <p className="text-[10px] font-bold tracking-[0.16em] text-amber-200 uppercase">
-                Available points
+                Points
               </p>
               <p className="mt-1 text-xl font-bold tabular-nums text-amber-300">
                 {points.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-right">
+              <p className="text-[10px] font-bold tracking-[0.16em] text-sky-200 uppercase">
+                P Cash
+              </p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-sky-300">
+                {pCash.toLocaleString()}
               </p>
             </div>
           </div>
@@ -200,6 +221,8 @@ export function ShopPage(): JSX.Element {
             {filteredSkins.map((skin) => {
               const owned = ownedSkins.get(skin.id)
               const buying = buyingId === skin.id
+              const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
+              const rarity = skinRarityPresentation(skin)
               return (
                 <article
                   key={skin.id}
@@ -210,33 +233,69 @@ export function ShopPage(): JSX.Element {
                     owned={Boolean(owned)}
                     onOpen={() => setPreviewSkin(skin)}
                   />
-                  <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
-                    {skin.weaponKey}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
+                      {skin.weaponKey}
+                    </p>
+                    <span
+                      className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                    >
+                      {rarity.label}
+                    </span>
+                  </div>
                   <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
                   <p className="mt-3 flex-1 text-sm text-neutral-400">
                     {skin.description ?? 'Custom weapon skin.'}
                   </p>
-                  <div className="mt-5 flex items-center justify-between gap-3">
-                    <span className="font-semibold tabular-nums text-amber-300">
-                      {owned ? 'Owned' : `${skin.pricePoints.toLocaleString()} pts`}
-                    </span>
-                    <Button
-                      className="h-9 px-3 text-xs"
-                      variant={owned ? 'ghost' : 'primary'}
-                      disabled={buying}
-                      onClick={() => (owned ? openLoadout() : unlock(skin))}
-                    >
+                  <div className="mt-5 flex items-end justify-between gap-3">
+                    <div className="flex flex-col gap-1 font-semibold tabular-nums">
                       {owned ? (
-                        'Manage loadout'
-                      ) : buying ? (
-                        'Unlocking…'
+                        <span className="text-emerald-300">Owned</span>
                       ) : (
                         <>
-                          <ShoppingBag className="mr-1 size-3.5" /> Unlock
+                          {skin.pointsEnabled && (
+                            <span className="text-amber-300">
+                              {skin.pricePoints.toLocaleString()} pts
+                            </span>
+                          )}
+                          {skin.pricePCash !== null && (
+                            <span className="text-sky-300">
+                              {skin.pricePCash.toLocaleString()} P Cash
+                            </span>
+                          )}
                         </>
                       )}
-                    </Button>
+                    </div>
+                    {owned ? (
+                      <Button className="h-9 px-3 text-xs" variant="ghost" onClick={openLoadout}>
+                        Manage loadout
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        {skin.pointsEnabled && (
+                          <Button
+                            className="h-9 px-3 text-xs"
+                            variant="primary"
+                            disabled={buying}
+                            onClick={() => unlock(skin, 'POINTS')}
+                          >
+                            <ShoppingBag className="mr-1 size-3.5" />
+                            {buying ? 'Unlocking…' : 'Points'}
+                          </Button>
+                        )}
+                        {skin.pricePCash !== null && (
+                          <Button
+                            className="h-9 px-3 text-xs"
+                            variant={premiumOnly ? 'primary' : 'ghost'}
+                            disabled={buying}
+                            onClick={() => unlock(skin, 'P_CASH')}
+                          >
+                            <ShoppingBag className="mr-1 size-3.5" />
+                            {buying ? 'Unlocking…' : 'P Cash'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </article>
               )

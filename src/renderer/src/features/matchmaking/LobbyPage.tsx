@@ -2,6 +2,8 @@ import { memo, useEffect, useState, type JSX } from 'react'
 import dustBackground from '../../assets/dust.jpg'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
+import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
+import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
 import { modelForSlot, presentationModelPath } from '../party/party-models'
@@ -50,8 +52,6 @@ const soloLobbyMember = (player: AuthPlayer): PartyMember => ({
   lobbyWeaponModelPath: null
 })
 
-// Keep the player slots and their WebGL viewers mounted while another page is
-// open. The foreground pages render as translucent layers over this scene.
 const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps): JSX.Element {
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
@@ -95,6 +95,11 @@ export function LobbyPage(): JSX.Element {
   const stopParty = usePartyStore((state) => state.stop)
   const startFriends = useFriendsStore((state) => state.start)
   const stopFriends = useFriendsStore((state) => state.stop)
+  const questSnapshot = useDailyQuestStore((state) => state.snapshot)
+  const questStatus = useDailyQuestStore((state) => state.status)
+  const questError = useDailyQuestStore((state) => state.error)
+  const startDailyQuests = useDailyQuestStore((state) => state.start)
+  const stopDailyQuests = useDailyQuestStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
   const navigate = useNavigationStore((state) => state.navigate)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
@@ -138,11 +143,13 @@ export function LobbyPage(): JSX.Element {
   useEffect(() => {
     startParty()
     startFriends()
+    startDailyQuests()
     return () => {
       stopParty()
       stopFriends()
+      stopDailyQuests()
     }
-  }, [startFriends, startParty, stopFriends, stopParty])
+  }, [startDailyQuests, startFriends, startParty, stopDailyQuests, stopFriends, stopParty])
 
   useEffect(() => {
     void connectMatchmaking()
@@ -256,6 +263,20 @@ export function LobbyPage(): JSX.Element {
       style={{ backgroundImage: `url(${dustBackground})` }}
     >
       <LobbyScene player={player} party={party} />
+      {page === 'lobby' && !completedMatch && (
+        <div
+          className={`fixed top-20 right-4 z-20 w-[min(20rem,calc(100vw-2rem))] transition-[right] duration-300 ease-out sm:top-24 ${
+            friendsCollapsed ? 'md:right-16' : 'md:right-[calc(18rem+1rem)]'
+          }`}
+        >
+          <DailyQuestsPanel
+            snapshot={questSnapshot}
+            loading={questStatus === 'loading'}
+            error={questError}
+            compact
+          />
+        </div>
+      )}
       <LobbyNavigation
         activePage={page}
         onNavigate={handleNavigate}

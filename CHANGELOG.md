@@ -670,3 +670,22 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Found
 
 - Fixed an issue with match-found notifications.
+
+## v2026.915.3 — 2026-09-15
+
+### Daily Quests
+
+- View daily quests in the lobby and match results.
+- Track quest progress with new animations.
+- See quest rewards carried through match results.
+
+### Store & Skins
+
+- Purchase skins with P Cash.
+- View P Cash prices in the store.
+- Browse skins by rarity tiers.
+- Existing skin unlocks and P Cash balances are preserved.
+
+### Rewards
+
+- Daily rewards now display and apply correctly.
