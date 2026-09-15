@@ -689,3 +689,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Rewards
 
 - Daily rewards now display and apply correctly.
+
+## v2026.915.4 — 2026-09-15
+
+### Daily Quests
+
+- Added daily quests.
