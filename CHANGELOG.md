@@ -702,3 +702,8 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved error messages when unlocking skins.
 - Shop errors now appear as clear notifications.
+
+## v2026.915.6 — 2026-09-15
+
+- feat: enhance match history and results with additional player stats
+- fix: show bot teammates in team voice
