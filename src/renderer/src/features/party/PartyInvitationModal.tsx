@@ -45,6 +45,7 @@ export function PartyInvitationModal(): JSX.Element | null {
                 <Button
                   className="border border-white/10"
                   variant="ghost"
+                  data-audio-sfx="backward"
                   disabled={status === 'responding'}
                   onClick={() => void respond(invitation.id, 'decline')}
                 >

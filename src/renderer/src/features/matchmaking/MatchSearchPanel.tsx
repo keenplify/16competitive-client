@@ -144,6 +144,7 @@ export function MatchSearchPanel({
         <Button
           className="mt-3 h-8 w-full rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white"
           variant="ghost"
+          data-audio-sfx="backward"
           disabled={isJoining || isLeaving}
           onClick={() => void leaveQueue()}
         >

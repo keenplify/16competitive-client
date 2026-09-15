@@ -22,6 +22,7 @@ import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
+import { launcherAudio } from '../audio/audio.manager'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
@@ -148,16 +149,19 @@ export function LobbyPage(): JSX.Element {
   }, [connectMatchmaking])
 
   useEffect(() => {
-    const openSettings = (event: KeyboardEvent): void => {
+    const returnToLobby = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
+      if (document.querySelector('[role="dialog"]')) return
+      if (page === 'lobby' || matchNavigationLocked) return
       event.preventDefault()
       if (useMatchmakingStore.getState().completedMatch) dismissCompletedMatch()
-      navigate('settings')
+      launcherAudio.playSfx('backward')
+      navigate('lobby')
     }
 
-    window.addEventListener('keydown', openSettings, true)
-    return () => window.removeEventListener('keydown', openSettings, true)
-  }, [dismissCompletedMatch, navigate])
+    window.addEventListener('keydown', returnToLobby, true)
+    return () => window.removeEventListener('keydown', returnToLobby, true)
+  }, [dismissCompletedMatch, matchNavigationLocked, navigate, page])
 
   useEffect(() => {
     let active = true

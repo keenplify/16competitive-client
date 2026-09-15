@@ -43,6 +43,7 @@ export function LobbyNavigation({
       <div className="pointer-events-auto relative z-10 flex items-center gap-1.5 p-1.5">
         <IconButton
           label="Home"
+          audioSfx="backward"
           active={activePage === 'lobby'}
           disabled={!canNavigate('lobby')}
           onClick={() => onNavigate('lobby')}
@@ -51,6 +52,7 @@ export function LobbyNavigation({
         </IconButton>
         <IconButton
           label="Settings"
+          audioSfx="forward"
           active={activePage === 'settings'}
           disabled={!canNavigate('settings')}
           onClick={() => onNavigate('settings')}
@@ -68,6 +70,7 @@ export function LobbyNavigation({
             <button
               key={id}
               type="button"
+              data-audio-sfx="forward"
               disabled={!canNavigate(id)}
               aria-current={active ? 'page' : undefined}
               onClick={() => onNavigate(id)}
@@ -109,14 +112,23 @@ interface IconButtonProps {
   label: string
   active: boolean
   disabled: boolean
+  audioSfx: 'forward' | 'backward'
   onClick: () => void
   children: JSX.Element
 }
 
-function IconButton({ label, active, disabled, onClick, children }: IconButtonProps): JSX.Element {
+function IconButton({
+  label,
+  active,
+  disabled,
+  audioSfx,
+  onClick,
+  children
+}: IconButtonProps): JSX.Element {
   return (
     <button
       type="button"
+      data-audio-sfx={audioSfx}
       aria-label={label}
       aria-current={active ? 'page' : undefined}
       disabled={disabled}
