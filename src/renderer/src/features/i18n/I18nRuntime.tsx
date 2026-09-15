@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { useLanguageStore } from './i18n'
+import { isLegacyRuntimeLanguage, useLanguageStore } from './i18n'
 import { translateRuntimeFragment } from './ui-translations-extra'
 import { translateRuntimeFinal } from './ui-translations-final'
+import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
 
 const translatableAttributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'] as const
@@ -20,6 +21,9 @@ export function I18nRuntime(): null {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
     const translate = (source: string): string => {
+      if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
+      if (!isLegacyRuntimeLanguage(language)) return source
+
       const primary = translateRuntimeText(language, source)
       if (primary !== source) return primary
       const fragment = translateRuntimeFragment(language, source)
