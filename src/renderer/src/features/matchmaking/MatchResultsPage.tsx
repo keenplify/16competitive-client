@@ -4,10 +4,16 @@ import { Button } from '../../components/ui/Button'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
+import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
+import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
+  const questSnapshot = useDailyQuestStore((state) => state.snapshot)
+  const rewards = useDailyQuestStore((state) =>
+    state.lastMatchId === match.matchId ? state.lastMatchRewards : null
+  )
   const winners = match.winner === 1 ? match.teams.teamA : match.teams.teamB
   const losers = match.winner === 1 ? match.teams.teamB : match.teams.teamA
   const currentPlayerTeam = match.teams.teamA.some((player) => player.id === currentPlayerId)
@@ -107,6 +113,15 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
           {getMatchmakingModeLabel(match.mode)} · {match.mode === 'casual' ? 'Unranked' : 'Ranked'}
         </p>
+        {(rewards || questSnapshot) && (
+          <div className="mx-auto mt-8 max-w-2xl text-left">
+            <DailyQuestsPanel
+              snapshot={rewards ? null : questSnapshot}
+              rewards={rewards}
+              title="Daily mission progress"
+            />
+          </div>
+        )}
         <Team
           label="Winners"
           players={winners}
