@@ -264,7 +264,11 @@ export function LobbyPage(): JSX.Element {
     >
       <LobbyScene player={player} party={party} />
       {page === 'lobby' && !completedMatch && (
-        <div className="fixed bottom-6 left-6 z-20 w-[min(22rem,calc(100vw-3rem))]">
+        <div
+          className={`fixed top-20 right-4 z-20 w-[min(20rem,calc(100vw-2rem))] sm:top-24 ${
+            friendsCollapsed ? 'md:right-16' : 'md:right-[calc(18rem+1rem)]'
+          }`}
+        >
           <DailyQuestsPanel
             snapshot={questSnapshot}
             loading={questStatus === 'loading'}
