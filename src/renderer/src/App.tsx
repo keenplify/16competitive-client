@@ -1,5 +1,7 @@
 import { AuthPage } from './features/auth/AuthPage'
 import { AudioController } from './features/audio/AudioController'
+import { AuthLanguageOverlay } from './features/i18n/AuthLanguageOverlay'
+import { I18nRuntime } from './features/i18n/I18nRuntime'
 import { SettingsLanguageOverlay } from './features/i18n/SettingsLanguageOverlay'
 import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
 import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
@@ -13,6 +15,7 @@ import './assets/toast.css'
 function App(): React.JSX.Element {
   return (
     <>
+      <I18nRuntime />
       <AudioController />
       <UpdateBanner />
       <ConnectionBanner />
@@ -20,6 +23,7 @@ function App(): React.JSX.Element {
       <SkinAssetSyncIndicator />
       <VoiceChatDock />
       <SettingsLanguageOverlay />
+      <AuthLanguageOverlay />
       <ToastContainer
         position="top-left"
         theme="dark"
