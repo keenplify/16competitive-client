@@ -200,10 +200,10 @@ export function AuthPage(): JSX.Element {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex gap-3">
             <Button
               variant="ghost"
-              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
               disabled={isSubmitting}
               onClick={() => void loginWithSocial('google')}
             >
@@ -219,9 +219,9 @@ export function AuthPage(): JSX.Element {
               )}
               Google
             </Button>
-            <Button
+            {/* <Button
               variant="ghost"
-              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
               disabled={isSubmitting}
               onClick={() => void loginWithSocial('facebook')}
             >
@@ -236,7 +236,7 @@ export function AuthPage(): JSX.Element {
                 </span>
               )}
               Facebook
-            </Button>
+            </Button> */}
           </div>
 
           {socialProvider && (
