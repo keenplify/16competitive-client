@@ -181,8 +181,7 @@ export function PlayPage(): JSX.Element {
     return (
       <main
         className={twMerge(
-          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10',
-          'bg-transparent'
+          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10 bg-transparent'
         )}
       >
         {queueStatus === 'server_ready' && (
