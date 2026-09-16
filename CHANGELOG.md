@@ -755,3 +755,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved Lobby and Play page backgrounds.
 - Refined Daily Quests panel spacing.
+
+## v2026.916.3 — 2026-09-16
+
+### Authentication
+
+- Facebook login is temporarily unavailable.
