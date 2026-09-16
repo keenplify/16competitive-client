@@ -4,6 +4,7 @@ import type {
   DailyQuestSnapshot,
   MatchRewardSummary
 } from '../../../../shared/daily-quests'
+import { twMerge } from 'tailwind-merge'
 
 interface DailyQuestsPanelProps {
   snapshot?: DailyQuestSnapshot | null
@@ -70,18 +71,20 @@ export function DailyQuestsPanel({
 
   return (
     <section
-      className={
+      className={twMerge(
         revealMatchProgress
-          ? 'w-full max-w-3xl border border-sky-300/15 bg-[#080b10]/90 p-5 shadow-[0_28px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-7'
-          : 'border border-white/10 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-md'
-      }
+          ? 'w-full max-w-3xl border border-sky-300/15 p-5 shadow-[0_28px_100px_rgba(0,0,0,0.58)]  sm:p-7'
+          : 'border border-white/10 p-2 shadow-2xl backdrop-blur-md',
+        rewards &&
+          twMerge('backdrop-blur-xl', revealMatchProgress ? 'bg-[#080b10]/90' : 'bg-neutral-950/95')
+      )}
     >
-      <div className="mb-3 flex items-center justify-between gap-4">
+      <div className="mb-1 flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
             Progress
           </p>
-          <h2 className="text-lg font-bold text-white">{title}</h2>
+          {rewards && <h2 className="text-lg font-bold text-white">{title}</h2>}
         </div>
         {rewards ? (
           <div className="text-right">
@@ -92,9 +95,6 @@ export function DailyQuestsPanel({
           </div>
         ) : snapshot ? (
           <div className="text-right">
-            <p className="font-mono text-sm font-bold text-white">
-              {snapshot.points.toLocaleString()} pts
-            </p>
             <p className="text-[11px] text-white/40">{resetLabel(snapshot.resetsAt)}</p>
           </div>
         ) : null}
@@ -113,43 +113,47 @@ export function DailyQuestsPanel({
             return (
               <article
                 key={quest.id}
-                className={`border px-3 py-3 transition-opacity duration-700 ${
+                className={`border px-2 py-2 transition-opacity duration-700 ${
                   revealMatchProgress && matchQuest?.completedThisMatch && revealFinished
                     ? 'border-emerald-400/15 bg-emerald-400/[0.03] opacity-50'
                     : 'border-white/10 bg-black/20'
                 }`}
               >
-                <div className="mb-2 flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white/90">{quest.title}</p>
-                    <p className="mt-0.5 text-xs text-white/40">
-                      {revealMatchProgress && matchQuest
-                        ? `${Math.min(matchQuest.progressBefore, quest.target)} → ${Math.min(progress, quest.target)} / ${quest.target}`
-                        : `${Math.min(progress, quest.target)} / ${quest.target}`}
-                    </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-xs font-bold text-amber-200">+{quest.rewardPoints} pts</p>
-                    {completed && (
+                    {completed ? (
                       <p className="mt-0.5 text-[10px] font-bold uppercase text-emerald-300">
                         Complete
                       </p>
+                    ) : (
+                      <p className="text-xs font-bold text-amber-200">+{quest.rewardPoints} pts</p>
                     )}
                   </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-300 to-emerald-300 transition-[width] duration-[1100ms] ease-out"
-                    style={{
-                      width: `${clampPercent(
-                        revealMatchProgress && matchQuest && !revealStarted
-                          ? matchQuest.progressBefore
-                          : progress,
-                        quest.target
-                      )}%`
-                    }}
-                  />
+                <div className="flex items-center gap-2">
+                  <p className="mt-0.5 text-xs text-white/40">
+                    {revealMatchProgress && matchQuest
+                      ? `${Math.min(matchQuest.progressBefore, quest.target)} → ${Math.min(progress, quest.target)} / ${quest.target}`
+                      : `${Math.min(progress, quest.target)} / ${quest.target}`}
+                  </p>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10 grow">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-sky-300 to-emerald-300 transition-[width] duration-[1100ms] ease-out"
+                      style={{
+                        width: `${clampPercent(
+                          revealMatchProgress && matchQuest && !revealStarted
+                            ? matchQuest.progressBefore
+                            : progress,
+                          quest.target
+                        )}%`
+                      }}
+                    />
+                  </div>
                 </div>
+
                 {revealMatchProgress &&
                   matchQuest &&
                   matchQuest.progressAfter > matchQuest.progressBefore && (
