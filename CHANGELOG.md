@@ -743,3 +743,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Interface
 
 - Streamlined the Lobby and Play screens.
+
+## v2026.916.2 — 2026-09-16
+
+### Map Previews
+
+- Added map previews for Dust1, Italy, and Assault.
+- Match-found screens now display dynamic map previews.
+
+### Interface
+
+- Improved Lobby and Play page backgrounds.
+- Refined Daily Quests panel spacing.
