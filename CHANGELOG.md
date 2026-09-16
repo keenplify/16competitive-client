@@ -737,3 +737,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Updated translations across supported languages.
 - Added and refined translated interface text.
+
+## v2026.916.1 — 2026-09-16
+
+### Interface
+
+- Streamlined the Lobby and Play screens.
