@@ -300,7 +300,7 @@ export function LobbyPage(): JSX.Element {
               }`}
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="border-t border-white/10 p-3">
+                <div className="border-t border-white/10">
                   <DailyQuestsPanel
                     snapshot={questSnapshot}
                     loading={questStatus === 'loading'}

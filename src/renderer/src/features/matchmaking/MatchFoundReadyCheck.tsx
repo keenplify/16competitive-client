@@ -6,9 +6,9 @@ import {
   type MatchmakingMode,
   type QueuedPlayer
 } from '../../../../shared/matchmaking'
-import dust2Preview from '../../assets/dust2.jpg'
 import { Button } from '../../components/ui/Button'
 import { AssetPreparation, MatchAssetPreparation } from './MatchAssetPreparation'
+import { localMapPreviews } from './map-previews'
 
 interface MatchFoundReadyCheckProps {
   acceptedPlayerIds: string[]
@@ -61,7 +61,7 @@ export function MatchFoundReadyCheck({
     <main className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden bg-transparent px-5 py-12 text-white">
       <div
         className="absolute inset-0 -z-20 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
-        style={{ backgroundImage: `url(${dust2Preview})` }}
+        style={{ backgroundImage: `url(${localMapPreviews[match.mapId]})` }}
         aria-hidden="true"
       />
       <div
