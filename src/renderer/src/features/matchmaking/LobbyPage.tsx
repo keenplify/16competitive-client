@@ -328,11 +328,7 @@ export function LobbyPage(): JSX.Element {
         onCollapsedChange={handleFriendsCollapsedChange}
         hoverOpenDisabledUntil={friendsHoverOpenDisabledUntil}
       />
-      {content && (
-        <div className="relative z-10 min-h-screen bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20">
-          {content}
-        </div>
-      )}
+      {content && <div className="relative z-10 min-h-screen pt-16 sm:pt-20">{content}</div>}
     </main>
   )
 }
