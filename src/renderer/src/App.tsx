@@ -1,5 +1,6 @@
 import { AuthPage } from './features/auth/AuthPage'
 import { AntiCheatStartupBanner } from './features/anticheat/AntiCheatStartupBanner'
+import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
 import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
 import { AudioController } from './features/audio/AudioController'
 import { AuthLanguageOverlay } from './features/i18n/AuthLanguageOverlay'
@@ -22,6 +23,7 @@ function App(): React.JSX.Element {
         <AudioController />
         <UpdateBanner />
         <ConnectionBanner />
+        <AntiCheatMatchCancellationNotice />
         <MatchAbandonNotice />
         <SkinAssetSyncIndicator />
         <VoiceChatDock />
