@@ -127,15 +127,12 @@ const criticalFiles = (
   executablePath: string,
   gameDirectory: string
 ): Array<{ path: string; role: AntiCheatFileObservation['role']; optional?: boolean }> => {
-  const shared = [
-    { path: executablePath, role: 'executable' as const },
-    { path: join(gameDirectory, 'cstrike', 'cl_dlls', 'client.dll'), role: 'critical' as const },
-    { path: join(gameDirectory, 'cstrike', 'cl_dlls', 'client.so'), role: 'critical' as const }
-  ]
+  const executable = { path: executablePath, role: 'executable' as const }
 
   if (process.platform === 'win32') {
     return [
-      ...shared,
+      executable,
+      { path: join(gameDirectory, 'cstrike', 'cl_dlls', 'client.dll'), role: 'critical' },
       { path: join(gameDirectory, 'hw.dll'), role: 'critical' },
       { path: join(gameDirectory, 'sw.dll'), role: 'critical', optional: true },
       { path: join(gameDirectory, 'filesystem_stdio.dll'), role: 'critical' },
@@ -146,7 +143,8 @@ const criticalFiles = (
 
   if (process.platform === 'linux') {
     return [
-      ...shared,
+      executable,
+      { path: join(gameDirectory, 'cstrike', 'cl_dlls', 'client.so'), role: 'critical' },
       { path: join(gameDirectory, 'hl_linux'), role: 'executable', optional: true },
       { path: join(gameDirectory, 'hw.so'), role: 'critical', optional: true },
       { path: join(gameDirectory, 'filesystem_stdio.so'), role: 'critical', optional: true },
@@ -154,7 +152,7 @@ const criticalFiles = (
     ]
   }
 
-  return shared
+  return [executable]
 }
 
 const collectPrelaunch = async (
@@ -175,7 +173,16 @@ const collectPrelaunch = async (
     .map((item) => `${item.path}:${item.sha256}`)
     .sort()
     .join('\n')
-  const signals: AntiCheatSignal[] = []
+  const signals: AntiCheatSignal[] = files
+    .filter(
+      (item) =>
+        (item.role === 'critical' || item.role === 'executable') && item.status !== 'present'
+    )
+    .map((item) => ({
+      code: item.status === 'missing' ? 'CRITICAL_FILE_MISSING' : 'CRITICAL_FILE_UNREADABLE',
+      severity: 'warning' as const,
+      detail: `${item.path} is ${item.status}`
+    }))
 
   if (
     process.platform === 'win32' &&
@@ -253,8 +260,8 @@ const linuxModulePaths = async (processId: number): Promise<string[]> => {
     new Set(
       maps
         .split('\n')
-        .map((line) => line.match(/\s(\/[^\s]+)$/)?.[1])
-        .filter((item): item is string => Boolean(item))
+        .map((line) => line.match(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(.+)$/)?.[1])
+        .filter((item): item is string => Boolean(item?.startsWith('/')))
     )
   )
 }
@@ -351,7 +358,7 @@ const reportObservation = async (observation: AntiCheatObservation): Promise<voi
 const windowsProcessIdForExecutable = async (executablePath: string): Promise<number | null> => {
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('ANTICHEAT_TARGET_EXE')",
-    '$match = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) } | Sort-Object CreationDate -Descending | Select-Object -First 1)',
+    '$match = @(Get-CimInstance Win32_Process -Filter "Name=\'hl.exe\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) } | Sort-Object CreationDate -Descending | Select-Object -First 1)',
     'if ($match.Count -gt 0) { Write-Output $match[0].ProcessId }'
   ].join('; ')
   const result = await runPowerShell(script, { ANTICHEAT_TARGET_EXE: executablePath })
