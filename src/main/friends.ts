@@ -1,10 +1,13 @@
+import { ipcMain } from 'electron'
 import { API_BASE_URL } from './config'
 import { getSessionToken } from './auth'
-import type {
-  FriendPresence,
-  FriendSearchResult,
-  FriendsSnapshot,
-  IncomingFriendRequest
+import {
+  FRIEND_CHANNELS,
+  type FriendChatMessage,
+  type FriendPresence,
+  type FriendSearchResult,
+  type FriendsSnapshot,
+  type IncomingFriendRequest
 } from '../shared/friends'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -24,6 +27,15 @@ const isRequest = (value: unknown): value is IncomingFriendRequest =>
   typeof value.id === 'string' &&
   typeof value.createdAt === 'string' &&
   isPlayer(value.player)
+const isChatMessage = (value: unknown): value is FriendChatMessage =>
+  isObject(value) &&
+  typeof value.id === 'string' &&
+  isObject(value.sender) &&
+  typeof value.sender.id === 'string' &&
+  typeof value.sender.username === 'string' &&
+  typeof value.recipientPlayerId === 'string' &&
+  typeof value.message === 'string' &&
+  typeof value.sentAt === 'string'
 
 const errorMessage = (body: unknown, status: number): string =>
   isObject(body) && typeof body.message === 'string'
@@ -113,3 +125,37 @@ export const discardFriendRequest = async (requestId: unknown): Promise<void> =>
 export const removeFriend = async (playerId: unknown): Promise<void> => {
   await friendsRequest(`/friends/${validId(playerId)}`, { method: 'DELETE' })
 }
+
+export const getFriendChatHistory = async (playerId: unknown): Promise<FriendChatMessage[]> => {
+  const body = await friendsRequest(`/friends/${validId(playerId)}/messages`)
+  if (!isObject(body) || !Array.isArray(body.messages) || !body.messages.every(isChatMessage)) {
+    throw new Error('The friends server returned invalid chat history')
+  }
+  return body.messages
+}
+
+export const sendFriendChatMessage = async (
+  playerId: unknown,
+  untrustedMessage: unknown
+): Promise<FriendChatMessage> => {
+  if (
+    typeof untrustedMessage !== 'string' ||
+    untrustedMessage.trim().length === 0 ||
+    untrustedMessage.length > 300
+  ) {
+    throw new Error('Friend messages must contain 1-300 characters')
+  }
+  const body = await friendsRequest(`/friends/${validId(playerId)}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message: untrustedMessage.trim() })
+  })
+  if (!isObject(body) || !isChatMessage(body.message)) {
+    throw new Error('The friends server returned an invalid chat message')
+  }
+  return body.message
+}
+
+ipcMain.handle(FRIEND_CHANNELS.chatHistory, (_, playerId: unknown) => getFriendChatHistory(playerId))
+ipcMain.handle(FRIEND_CHANNELS.chatSend, (_, playerId: unknown, message: unknown) =>
+  sendFriendChatMessage(playerId, message)
+)
