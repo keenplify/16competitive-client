@@ -781,3 +781,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed an issue that could cause memory leaks.
 - Improved anti-cheat startup and match-to-match state handling.
+
+## v2026.917.2 — 2026-09-17
+
+### Anti-cheat
+
+- Updated the anti-cheat match cancellation notice.
