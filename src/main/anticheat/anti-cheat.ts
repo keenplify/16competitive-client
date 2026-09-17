@@ -257,10 +257,10 @@ const runPowerShell = async (
     })
     let stdout = ''
     let stderr = ''
-    child.stdout?.on('data', (chunk: Buffer) => {
+    child.stdout?.on('data', (chunk) => {
       stdout += chunk.toString('utf8')
     })
-    child.stderr?.on('data', (chunk: Buffer) => {
+    child.stderr?.on('data', (chunk) => {
       stderr += chunk.toString('utf8')
     })
     child.once('error', (error) => resolveResult({ code: null, stdout, stderr: error.message }))
@@ -309,7 +309,7 @@ const shouldHashModule = (gameDirectory: string, filePath: string): boolean => {
   return pathInside(gameDirectory, filePath)
 }
 
-const unexpectedWindowsModule = (name: string, hint: string): boolean => {
+const isUnexpectedHlDll = (name: string, hint: string): boolean => {
   const lowerName = name.toLowerCase()
   if (!lowerName.endsWith('.dll')) return false
   if (hint.startsWith('windows:')) return false
@@ -374,13 +374,13 @@ const collectRuntime = async (
     if (
       process.platform === 'win32' &&
       unexpectedSignalCount < MAX_UNEXPECTED_MODULE_SIGNALS &&
-      unexpectedWindowsModule(name, hint)
+      isUnexpectedHlDll(name, hint)
     ) {
       unexpectedSignalCount += 1
       signals.push({
-        code: 'UNEXPECTED_GAME_MODULE',
+        code: 'HL_INJECTED_DLL',
         severity: 'high',
-        detail: `${name} was loaded into Counter-Strike from ${hint.split(':', 1)[0] || 'an unexpected location'}. Review its SHA-256 and match demo.`
+        detail: `${name} is loaded inside hl.exe but is not part of the expected Windows/GoldSrc/Steam DLL baseline. Review its SHA-256 and match demo.`
       })
     }
   }
