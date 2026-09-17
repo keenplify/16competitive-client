@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Gamepad2, Mail, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react'
+import { Check, ChevronRight, Gamepad2, Mail, MessageCircle, Search, UserMinus, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import type {
@@ -539,12 +539,12 @@ export function LobbySocialSidebar({
           </button>
           <button
             type="button"
-            className="flex w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10 focus-visible:bg-red-400/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10 focus-visible:bg-red-400/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             role="menuitem"
             disabled={actingPlayerId === friendMenu.friend.id}
             onClick={handleRemoveFriend}
           >
-            Remove friend
+            <UserMinus className="size-4" aria-hidden="true" /> Remove friend
           </button>
         </div>
       )}
