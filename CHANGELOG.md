@@ -793,3 +793,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Fixes
 
 - Fixed an issue affecting the anti-cheat match cancellation notice.
+
+## v2026.917.4 — 2026-09-17
+
+### Device Ban Screen
+
+- Added a sign-out option when access is blocked by a device ban.
+- Device bans are rechecked after login.
