@@ -6,6 +6,7 @@ import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { getSessionToken } from '../auth'
 import { API_BASE_URL } from '../config'
 import type { Cs16Distribution } from '../game/cs16-installation'
+import { isAllowedHlInjectedDll } from './module-whitelist'
 
 const RUNTIME_SCAN_INTERVAL_MS = 15_000
 const WINDOWS_PROCESS_DISCOVERY_TIMEOUT_MS = 30_000
@@ -374,7 +375,8 @@ const collectRuntime = async (
     if (
       process.platform === 'win32' &&
       unexpectedSignalCount < MAX_UNEXPECTED_MODULE_SIGNALS &&
-      isUnexpectedHlDll(name, hint)
+      isUnexpectedHlDll(name, hint) &&
+      !isAllowedHlInjectedDll(sha256)
     ) {
       unexpectedSignalCount += 1
       signals.push({
