@@ -761,3 +761,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Authentication
 
 - Facebook login is temporarily unavailable.
+
+## v2026.917.1 — 2026-09-17
+
+### Anti-Cheat
+
+- Added anti-cheat checks before the launcher and when starting Counter-Strike.
+- Added clearer notices for device bans and anti-cheat-related match cancellations.
+- Improved detection of unexpected game changes and cheating indicators.
+- Reduced false-positive anti-cheat alerts.
+
+### Launcher
+
+- Added checks for missing or incomplete game setup.
+- Improved launcher protection while Counter-Strike is running.
+- Improved live refresh of ban and match status.
+
+### Reliability
+
+- Fixed an issue that could cause memory leaks.
+- Improved anti-cheat startup and match-to-match state handling.
