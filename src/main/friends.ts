@@ -1,11 +1,13 @@
+import { ipcMain } from 'electron'
 import { API_BASE_URL } from './config'
 import { getSessionToken } from './auth'
-import type {
-  FriendChatMessage,
-  FriendPresence,
-  FriendSearchResult,
-  FriendsSnapshot,
-  IncomingFriendRequest
+import {
+  FRIEND_CHANNELS,
+  type FriendChatMessage,
+  type FriendPresence,
+  type FriendSearchResult,
+  type FriendsSnapshot,
+  type IncomingFriendRequest
 } from '../shared/friends'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -152,3 +154,8 @@ export const sendFriendChatMessage = async (
   }
   return body.message
 }
+
+ipcMain.handle(FRIEND_CHANNELS.chatHistory, (_, playerId: unknown) => getFriendChatHistory(playerId))
+ipcMain.handle(FRIEND_CHANNELS.chatSend, (_, playerId: unknown, message: unknown) =>
+  sendFriendChatMessage(playerId, message)
+)
