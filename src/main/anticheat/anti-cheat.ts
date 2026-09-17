@@ -11,6 +11,36 @@ const RUNTIME_SCAN_INTERVAL_MS = 15_000
 const WINDOWS_PROCESS_DISCOVERY_TIMEOUT_MS = 30_000
 const WINDOWS_PROCESS_DISCOVERY_INTERVAL_MS = 750
 const MAX_RUNTIME_MODULES = 256
+const MAX_UNEXPECTED_MODULE_SIGNALS = 16
+
+const COMMON_EXTERNAL_WINDOWS_MODULES = new Set([
+  'gameoverlayrenderer.dll',
+  'gameoverlayrenderer64.dll',
+  'steamclient.dll',
+  'steamclient64.dll',
+  'tier0_s.dll',
+  'tier0_s64.dll',
+  'vstdlib_s.dll',
+  'vstdlib_s64.dll',
+  'crashhandler.dll',
+  'crashhandler64.dll'
+])
+
+const COMMON_GAME_WINDOWS_MODULES = new Set([
+  'hl.exe',
+  'hw.dll',
+  'sw.dll',
+  'client.dll',
+  'filesystem_stdio.dll',
+  'steam_api.dll',
+  'steam.dll',
+  'gameui.dll',
+  'vgui.dll',
+  'vgui2.dll',
+  'sdl2.dll',
+  'opengl32.dll',
+  'mp.dll'
+])
 
 export type AntiCheatSignalSeverity = 'info' | 'warning' | 'high'
 
@@ -273,8 +303,19 @@ const modulePaths = async (processId: number): Promise<string[]> => {
 }
 
 const shouldHashModule = (gameDirectory: string, filePath: string): boolean => {
-  if (pathInside(gameDirectory, filePath)) return true
-  return /^(?:opengl32|client|hw|sw|filesystem_stdio)\.(?:dll|so)$/i.test(basename(filePath))
+  const hint = pathHint(gameDirectory, filePath)
+  if (process.platform === 'win32') return !hint.startsWith('windows:')
+  if (process.platform === 'linux') return !hint.startsWith('system:')
+  return pathInside(gameDirectory, filePath)
+}
+
+const unexpectedWindowsModule = (name: string, hint: string): boolean => {
+  const lowerName = name.toLowerCase()
+  if (!lowerName.endsWith('.dll')) return false
+  if (hint.startsWith('windows:')) return false
+  if (hint.startsWith('other:')) return !COMMON_EXTERNAL_WINDOWS_MODULES.has(lowerName)
+  if (hint.startsWith('game:')) return !COMMON_GAME_WINDOWS_MODULES.has(lowerName)
+  return false
 }
 
 const collectRuntime = async (
@@ -299,6 +340,7 @@ const collectRuntime = async (
 
   const modules: AntiCheatModuleObservation[] = []
   const signals: AntiCheatSignal[] = []
+  let unexpectedSignalCount = 0
 
   for (const filePath of paths.slice(0, MAX_RUNTIME_MODULES)) {
     const name = basename(filePath)
@@ -318,6 +360,19 @@ const collectRuntime = async (
         code: 'GAME_LOCAL_OPENGL_MODULE',
         severity: 'high',
         detail: 'The running game loaded opengl32.dll from the game directory.'
+      })
+    }
+
+    if (
+      process.platform === 'win32' &&
+      unexpectedSignalCount < MAX_UNEXPECTED_MODULE_SIGNALS &&
+      unexpectedWindowsModule(name, hint)
+    ) {
+      unexpectedSignalCount += 1
+      signals.push({
+        code: 'UNEXPECTED_GAME_MODULE',
+        severity: 'high',
+        detail: `${name} was loaded into Counter-Strike from ${hint.split(':', 1)[0] || 'an unexpected location'}. Review its SHA-256 and match demo.`
       })
     }
   }
@@ -356,12 +411,18 @@ const reportObservation = async (observation: AntiCheatObservation): Promise<voi
 }
 
 const windowsProcessIdForExecutable = async (executablePath: string): Promise<number | null> => {
+  const executableName = basename(executablePath)
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('ANTICHEAT_TARGET_EXE')",
-    '$match = @(Get-CimInstance Win32_Process -Filter "Name=\'hl.exe\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) } | Sort-Object CreationDate -Descending | Select-Object -First 1)',
+    "$targetName = [Environment]::GetEnvironmentVariable('ANTICHEAT_TARGET_NAME')",
+    '$escapedName = $targetName.Replace("\'", "\'\'")',
+    '$match = @(Get-CimInstance Win32_Process -Filter "Name=\'$escapedName\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) } | Sort-Object CreationDate -Descending | Select-Object -First 1)',
     'if ($match.Count -gt 0) { Write-Output $match[0].ProcessId }'
   ].join('; ')
-  const result = await runPowerShell(script, { ANTICHEAT_TARGET_EXE: executablePath })
+  const result = await runPowerShell(script, {
+    ANTICHEAT_TARGET_EXE: executablePath,
+    ANTICHEAT_TARGET_NAME: executableName
+  })
   if (result.code !== 0) return null
   const processId = Number(result.stdout.trim())
   return Number.isInteger(processId) && processId > 0 ? processId : null
