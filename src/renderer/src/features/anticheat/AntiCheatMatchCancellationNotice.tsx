@@ -16,8 +16,8 @@ export function AntiCheatMatchCancellationNotice(): JSX.Element | null {
 
   useEffect(() => {
     if (!isAntiCheatCancellation) {
-      setDismissed(false)
-      return
+      const resetDismissal = window.setTimeout(() => setDismissed(false), 0)
+      return () => window.clearTimeout(resetDismissal)
     }
     if (visible) dialogRef.current?.querySelector('button')?.focus()
   }, [isAntiCheatCancellation, visible])
