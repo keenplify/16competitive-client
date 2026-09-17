@@ -524,7 +524,7 @@ export function LobbySocialSidebar({
       {friendMenu && (
         <div
           className="fixed z-50 min-w-40 overflow-hidden border border-white/15 bg-neutral-800 py-1 shadow-xl"
-          style={{ left: friendMenu.x, top: friendMenu.y }}
+          style={{ right: Math.max(8, window.innerWidth - friendMenu.x + 8), top: friendMenu.y }}
           role="menu"
           aria-label={`Friend options for ${friendMenu.friend.username}`}
           onClick={(event) => event.stopPropagation()}
