@@ -21,7 +21,6 @@ const formatBanExpiry = (value: string): string => {
 export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.Element {
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [cheatingDetected, setCheatingDetected] = useState(false)
-  const logout = useAuthStore((state) => state.logout)
   const authStatus = useAuthStore((state) => state.status)
 
   useEffect(() => {
@@ -144,19 +143,9 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
           <p style={{ margin: '18px 0 0', fontSize: 14, color: '#777' }}>
             Offense {ban.offenseCount} · {ban.reason}
           </p>
-          <div style={{ display: 'grid', gap: 12, marginTop: 32 }}>
-            <Button
-              className="w-full"
-              onClick={() => {
-                void logout().then(() => setStatus({ banned: false }))
-              }}
-            >
-              Sign out
-            </Button>
-            <Button className="w-full" onClick={() => void window.api.window.exit()}>
-              Close launcher
-            </Button>
-          </div>
+          <Button className="mt-8 w-full" onClick={() => void window.api.window.exit()}>
+            Close launcher
+          </Button>
         </div>
       </div>
     )
