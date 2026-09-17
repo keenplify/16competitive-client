@@ -787,3 +787,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Anti-cheat
 
 - Updated the anti-cheat match cancellation notice.
+
+## v2026.917.3 — 2026-09-17
+
+### Fixes
+
+- Fixed an issue affecting the anti-cheat match cancellation notice.
