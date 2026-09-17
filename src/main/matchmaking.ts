@@ -169,6 +169,23 @@ const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
   )
 }
 
+const isFriendChatMessage = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false
+  const message = value as Record<string, unknown>
+  return (
+    typeof message.id === 'string' &&
+    typeof message.recipientPlayerId === 'string' &&
+    typeof message.message === 'string' &&
+    message.message.length >= 1 &&
+    message.message.length <= 300 &&
+    typeof message.sentAt === 'string' &&
+    typeof message.sender === 'object' &&
+    message.sender !== null &&
+    typeof (message.sender as Record<string, unknown>).id === 'string' &&
+    typeof (message.sender as Record<string, unknown>).username === 'string'
+  )
+}
+
 const isGlobalChatMessageDeleted = (value: unknown): value is GlobalChatMessageDeleted => {
   if (typeof value !== 'object' || value === null) return false
   const message = value as Record<string, unknown>
@@ -269,6 +286,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'friend_request_received':
     case 'friends_updated':
       return true
+    case 'friend_chat_message':
+      return isFriendChatMessage(message.message)
     case 'party_presence_ping':
       return (
         typeof message.nonce === 'string' && message.nonce.length > 0 && message.nonce.length <= 64

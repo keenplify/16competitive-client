@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Gamepad2, Mail, Search, UserPlus, Users, X } from 'lucide-react'
+import { Check, ChevronRight, Gamepad2, Mail, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import type {
@@ -8,6 +8,7 @@ import type {
 } from '../../../../shared/friends'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
+import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
@@ -249,6 +250,7 @@ export function LobbySocialSidebar({
   const partyNotice = usePartyStore((state) => state.notice)
   const leave = usePartyStore((state) => state.leave)
   const inviteFriend = usePartyStore((state) => state.invitePlayer)
+  const openFriendChat = useFriendChatStore((state) => state.open)
   const friends = useFriendsStore((state) => state.friends)
   const friendRequests = useFriendsStore((state) => state.incomingRequests)
   const query = useFriendsStore((state) => state.query)
@@ -355,6 +357,12 @@ export function LobbySocialSidebar({
   const showFriendMenu = (event: MouseEvent<HTMLDivElement>, friend: FriendPlayer): void => {
     event.preventDefault()
     setFriendMenu({ friend, x: event.clientX, y: event.clientY })
+  }
+  const handleOpenChat = (): void => {
+    if (!friendMenu) return
+    const friend = friendMenu.friend
+    setFriendMenu(null)
+    void openFriendChat(friend)
   }
   const handleRemoveFriend = (): void => {
     if (!friendMenu) return
@@ -521,6 +529,14 @@ export function LobbySocialSidebar({
           aria-label={`Friend options for ${friendMenu.friend.username}`}
           onClick={(event) => event.stopPropagation()}
         >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
+            role="menuitem"
+            onClick={handleOpenChat}
+          >
+            <MessageCircle className="size-4 text-sky-300" aria-hidden="true" /> Message
+          </button>
           <button
             type="button"
             className="flex w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10 focus-visible:bg-red-400/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
