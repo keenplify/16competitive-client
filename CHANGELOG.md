@@ -800,3 +800,22 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a sign-out option when access is blocked by a device ban.
 - Device bans are rechecked after login.
+
+## v2026.917.5 — 2026-09-17
+
+### Private Friend Chat
+
+- Open private chats from a friend’s context menu.
+- Switch between friend chat tabs in the chat panel.
+- Receive realtime friend messages and restore offline messages.
+
+### Notifications
+
+- Get sound and taskbar notifications for incoming friend messages.
+- Launcher attention alerts and flashing now highlight new messages.
+
+### Chat Experience
+
+- Friend chats reset cleanly between sessions.
+- Opening a friend chat automatically focuses the message input.
+- Message history no longer inflates DM unread counts.
