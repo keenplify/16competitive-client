@@ -26,7 +26,7 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
           if (active) setStatus(result)
         })
         .catch(() => {
-          if (active && status === null) setStatus({ banned: false })
+          if (active) setStatus((current) => current ?? { banned: false })
         })
     }
 
