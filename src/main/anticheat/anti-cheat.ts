@@ -10,7 +10,7 @@ import type { Cs16Distribution } from '../game/cs16-installation'
 const RUNTIME_SCAN_INTERVAL_MS = 15_000
 const WINDOWS_PROCESS_DISCOVERY_TIMEOUT_MS = 30_000
 const WINDOWS_PROCESS_DISCOVERY_INTERVAL_MS = 750
-const MAX_RUNTIME_MODULES = 256
+const MAX_RUNTIME_MODULES = 512
 const MAX_UNEXPECTED_MODULE_SIGNALS = 16
 
 const COMMON_EXTERNAL_WINDOWS_MODULES = new Set([
@@ -341,6 +341,14 @@ const collectRuntime = async (
   const modules: AntiCheatModuleObservation[] = []
   const signals: AntiCheatSignal[] = []
   let unexpectedSignalCount = 0
+
+  if (paths.length > MAX_RUNTIME_MODULES) {
+    signals.push({
+      code: 'MODULE_INVENTORY_TRUNCATED',
+      severity: 'warning',
+      detail: `Counter-Strike reported ${paths.length} loaded modules; the first ${MAX_RUNTIME_MODULES} were captured.`
+    })
+  }
 
   for (const filePath of paths.slice(0, MAX_RUNTIME_MODULES)) {
     const name = basename(filePath)
