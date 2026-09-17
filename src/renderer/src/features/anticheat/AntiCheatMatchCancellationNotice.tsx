@@ -20,6 +20,7 @@ export function AntiCheatMatchCancellationNotice(): JSX.Element | null {
       return () => window.clearTimeout(resetDismissal)
     }
     if (visible) dialogRef.current?.querySelector('button')?.focus()
+    return undefined
   }, [isAntiCheatCancellation, visible])
 
   if (!visible) return null
