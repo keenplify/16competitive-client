@@ -4,7 +4,9 @@ export const FRIEND_CHANNELS = {
   request: 'friends:request',
   accept: 'friends:accept',
   discard: 'friends:discard',
-  remove: 'friends:remove'
+  remove: 'friends:remove',
+  chatHistory: 'friends:chat-history',
+  chatSend: 'friends:chat-send'
 } as const
 
 export type FriendPresence = 'ONLINE' | 'IN_GAME' | 'OFFLINE'
@@ -32,6 +34,14 @@ export interface FriendsSnapshot {
   incomingRequests: IncomingFriendRequest[]
 }
 
+export interface FriendChatMessage {
+  id: string
+  sender: { id: string; username: string }
+  recipientPlayerId: string
+  message: string
+  sentAt: string
+}
+
 export interface FriendsApi {
   list(): Promise<FriendsSnapshot>
   search(query: string): Promise<FriendSearchResult[]>
@@ -39,4 +49,6 @@ export interface FriendsApi {
   accept(requestId: string): Promise<void>
   discard(requestId: string): Promise<void>
   remove(playerId: string): Promise<void>
+  getChatHistory(playerId: string): Promise<FriendChatMessage[]>
+  sendChatMessage(playerId: string, message: string): Promise<FriendChatMessage>
 }
