@@ -6,6 +6,8 @@ import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from './auth.store'
 import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
+import { PlayPage } from '../matchmaking/PlayPage'
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { localMapPreviews } from '../matchmaking/map-previews'
 
 const mapPreviewSources = Object.values(localMapPreviews)
@@ -20,6 +22,8 @@ export function AuthPage(): JSX.Element {
   const socialPollToken = useAuthStore((state) => state.socialPollToken)
   const error = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
+  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const gameExited = useMatchmakingStore((state) => state.gameExited)
   const setMode = useAuthStore((state) => state.setMode)
   const setUsername = useAuthStore((state) => state.setUsername)
   const setEmail = useAuthStore((state) => state.setEmail)
@@ -76,7 +80,11 @@ export function AuthPage(): JSX.Element {
     (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
     session
   ) {
-    return <LobbyPage />
+    // Once Counter-Strike is running, unmount the lobby entirely. The lobby
+    // owns the animated Three.js party scene and several chat/social surfaces;
+    // keeping them mounted competes with the game for GPU and memory.
+    const gameStarted = queueStatus === 'server_ready' && !gameExited
+    return gameStarted ? <PlayPage /> : <LobbyPage />
   }
 
   if (status === 'restoring') {
