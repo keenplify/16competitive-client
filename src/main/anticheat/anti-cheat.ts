@@ -14,6 +14,19 @@ const WINDOWS_PROCESS_DISCOVERY_INTERVAL_MS = 750
 const MAX_RUNTIME_MODULES = 512
 const MAX_UNEXPECTED_MODULE_SIGNALS = 16
 
+// Exact content signatures for injected modules. File names and paths are
+// intentionally ignored because they can be changed trivially.
+const KNOWN_CHEAT_MODULE_HASHES = new Map<string, string>([
+  [
+    'ec2dc54f4ca54e7f5df085d96a9e60d41d1277460c7ba831e9786c555a3346ab',
+    'KNOWN_OXWARE_106_CHEATER_DLL_HASH'
+  ],
+  [
+    'fd5ff48d770b04c1c08f9ee42b9ff4bc72bc3f8495b13641a7f0583e65202bc4',
+    'KNOWN_OPENGL_CHEAT_HASH'
+  ]
+])
+
 const COMMON_EXTERNAL_WINDOWS_MODULES = new Set([
   'gameoverlayrenderer.dll',
   'gameoverlayrenderer64.dll',
@@ -49,6 +62,7 @@ export interface AntiCheatSignal {
   code: string
   severity: AntiCheatSignalSeverity
   detail?: string
+  sha256?: string
 }
 
 export interface AntiCheatFileObservation {
@@ -102,6 +116,9 @@ const sha256File = async (filePath: string): Promise<string> =>
     stream.once('error', rejectHash)
     stream.once('end', () => resolveHash(hash.digest('hex')))
   })
+
+const knownCheatCodeForHash = (sha256: string | undefined): string | undefined =>
+  sha256 ? KNOWN_CHEAT_MODULE_HASHES.get(sha256.toLowerCase()) : undefined
 
 const pathInside = (root: string, filePath: string): boolean => {
   const child = relative(resolve(root), resolve(filePath))
@@ -214,6 +231,17 @@ const collectPrelaunch = async (
       severity: 'warning' as const,
       detail: `${item.path} is ${item.status}`
     }))
+
+  for (const file of files) {
+    const knownCheatCode = knownCheatCodeForHash(file.sha256)
+    if (!knownCheatCode) continue
+    signals.push({
+      code: knownCheatCode,
+      severity: 'high',
+      sha256: file.sha256,
+      detail: `Exact SHA-256 match for a known incompatible file (${file.path}).`
+    })
+  }
 
   if (
     process.platform === 'win32' &&
@@ -360,6 +388,16 @@ const collectRuntime = async (
     }
     modules.push({ name, pathHint: hint, ...(sha256 ? { sha256 } : {}) })
 
+    const knownCheatCode = knownCheatCodeForHash(sha256)
+    if (knownCheatCode) {
+      signals.push({
+        code: knownCheatCode,
+        severity: 'high',
+        sha256,
+        detail: `Exact SHA-256 match for a known incompatible module (${name}).`
+      })
+    }
+
     if (
       process.platform === 'win32' &&
       name.toLowerCase() === 'opengl32.dll' &&
@@ -382,6 +420,7 @@ const collectRuntime = async (
       signals.push({
         code: 'HL_INJECTED_DLL',
         severity: 'high',
+        ...(sha256 ? { sha256 } : {}),
         detail: `${name} is loaded inside hl.exe but is not part of the expected Windows/GoldSrc/Steam DLL baseline. Review its SHA-256 and match demo.`
       })
     }

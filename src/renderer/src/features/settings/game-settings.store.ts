@@ -7,9 +7,11 @@ interface GameSettingsState {
   status: 'idle' | 'loading' | 'choosing' | 'saving'
   error: string | null
   notice: string | null
+  requiresGameSetup: boolean
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
+  promptToConfigureForMatch: () => void
 }
 
 const message = (error: unknown): string =>
@@ -24,6 +26,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   status: 'idle',
   error: null,
   notice: null,
+  requiresGameSetup: false,
 
   load: async () => {
     set({ status: 'loading', error: null })
@@ -33,7 +36,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         executablePath: settings.cs16ExecutablePath ?? '',
         savedPath: settings.cs16ExecutablePath,
         configFilePath: settings.configFilePath,
-        status: 'idle'
+        status: 'idle',
+        requiresGameSetup: !settings.cs16ExecutablePath
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
@@ -60,10 +64,21 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         savedPath: settings.cs16ExecutablePath,
         configFilePath: settings.configFilePath,
         status: 'idle',
+        requiresGameSetup: false,
         notice: 'Counter-Strike path saved.'
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
     }
+  },
+
+  promptToConfigureForMatch: () => {
+    set({
+      executablePath: '',
+      savedPath: null,
+      error: null,
+      requiresGameSetup: true,
+      notice: 'Set up your Counter-Strike 1.6 executable before reconnecting to the match.'
+    })
   }
 }))

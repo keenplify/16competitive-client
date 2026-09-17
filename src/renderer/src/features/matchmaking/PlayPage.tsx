@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
+import { useNavigationStore } from '../navigation/navigation.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
@@ -103,6 +104,7 @@ export function PlayPage(): JSX.Element {
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
   const gameExecutablePath = useGameSettingsStore((state) => state.savedPath)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
+  const navigate = useNavigationStore((state) => state.navigate)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
 
   useEffect(() => {
@@ -130,6 +132,19 @@ export function PlayPage(): JSX.Element {
     const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
   }, [queueStatus, readyDeadline])
+
+  const handleReconnect = async (): Promise<void> => {
+    // Revalidate through the main process: a saved path can become stale if the
+    // player deletes or moves their Counter-Strike installation while the app is open.
+    const settings = await window.api.gameSettings.get().catch(() => null)
+    if (!settings?.cs16ExecutablePath) {
+      useGameSettingsStore.getState().promptToConfigureForMatch()
+      navigate('settings')
+      return
+    }
+
+    await reconnectGame()
+  }
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
@@ -239,7 +254,7 @@ export function PlayPage(): JSX.Element {
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">
-              <Button variant="ghost" onClick={() => void reconnectGame()}>
+              <Button variant="ghost" onClick={() => void handleReconnect()}>
                 Reconnect to match
               </Button>
             </div>
@@ -269,7 +284,7 @@ export function PlayPage(): JSX.Element {
           <p className="mt-3 text-sm text-emerald-100/70">
             The game server is available at {connectionDetails.host}:{connectionDetails.port}.
           </p>
-          <Button className="mt-6" onClick={() => void reconnectGame()}>
+          <Button className="mt-6" onClick={() => void handleReconnect()}>
             Reconnect to match
           </Button>
           {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
