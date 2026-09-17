@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AuthApi } from '../shared/auth'
 import { AUTH_CHANNELS } from '../shared/auth'
+import type { AntiCheatApi } from '../shared/anti-cheat'
+import { ANTICHEAT_CHANNELS } from '../shared/anti-cheat'
 import type { DailyQuestsApi } from '../shared/daily-quests'
 import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
 import type { MatchmakingApi, MatchmakingEvent } from '../shared/matchmaking'
@@ -43,6 +45,10 @@ const auth: AuthApi = {
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
+}
+
+const antiCheat: AntiCheatApi = {
+  getDeviceStatus: () => ipcRenderer.invoke(ANTICHEAT_CHANNELS.deviceStatus)
 }
 
 const dailyQuests: DailyQuestsApi = {
@@ -189,6 +195,7 @@ const diagnosticLogs: DiagnosticLogsApi = {
 
 const api = {
   auth,
+  antiCheat,
   dailyQuests,
   friends,
   gameSettings,
