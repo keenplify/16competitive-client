@@ -176,7 +176,10 @@ const bootstrapOfflineChats = async (
       }
     })
 
-    if (hasNewOfflineMessage) playFriendMessageSound()
+    if (hasNewOfflineMessage) {
+      playFriendMessageSound()
+      void window.api.friends.requestAttention()
+    }
   }
 
   if (generation === bootstrapGeneration && activePlayerId === playerId) {
@@ -217,7 +220,10 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
       const current = get().conversations[friendId]
       const alreadyKnown = current?.messages.some((entry) => entry.id === message.id) ?? false
 
-      if (incoming && !alreadyKnown) playFriendMessageSound()
+      if (incoming && !alreadyKnown) {
+        playFriendMessageSound()
+        void window.api.friends.requestAttention()
+      }
 
       if (!incoming && !current) return
 
