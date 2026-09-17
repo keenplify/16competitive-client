@@ -21,8 +21,8 @@ const formatBanExpiry = (value: string): string => {
 export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.Element {
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [cheatingDetected, setCheatingDetected] = useState(false)
-  const [signedOut, setSignedOut] = useState(false)
   const logout = useAuthStore((state) => state.logout)
+  const authStatus = useAuthStore((state) => state.status)
 
   useEffect(() => {
     let active = true
@@ -55,7 +55,15 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
     }
   }, [])
 
-  if (status === null && !signedOut) {
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return
+    void window.api.antiCheat
+      .getDeviceStatus()
+      .then((result) => setStatus(result))
+      .catch(() => undefined)
+  }, [authStatus])
+
+  if (status === null) {
     return <div style={{ position: 'fixed', inset: 0, background: '#080808' }} />
   }
 
@@ -95,7 +103,7 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
     )
   }
 
-  if (status?.banned && !signedOut) {
+  if (status?.banned) {
     const ban = status as DeviceBanStatus
     return (
       <div
@@ -140,7 +148,7 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
             <Button
               className="w-full"
               onClick={() => {
-                void logout().then(() => setSignedOut(true))
+                void logout().then(() => setStatus({ banned: false }))
               }}
             >
               Sign out
