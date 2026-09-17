@@ -8,6 +8,7 @@ import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
 import { PlayPage } from '../matchmaking/PlayPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { localMapPreviews } from '../matchmaking/map-previews'
 
 const mapPreviewSources = Object.values(localMapPreviews)
@@ -24,6 +25,7 @@ export function AuthPage(): JSX.Element {
   const session = useAuthStore((state) => state.session)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const gameExited = useMatchmakingStore((state) => state.gameExited)
+  const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
   const setMode = useAuthStore((state) => state.setMode)
   const setUsername = useAuthStore((state) => state.setUsername)
   const setEmail = useAuthStore((state) => state.setEmail)
@@ -83,7 +85,7 @@ export function AuthPage(): JSX.Element {
     // Once Counter-Strike is running, unmount the lobby entirely. The lobby
     // owns the animated Three.js party scene and several chat/social surfaces;
     // keeping them mounted competes with the game for GPU and memory.
-    const gameStarted = queueStatus === 'server_ready' && !gameExited
+    const gameStarted = queueStatus === 'server_ready' && !gameExited && !requiresGameSetup
     return gameStarted ? <PlayPage /> : <LobbyPage />
   }
 

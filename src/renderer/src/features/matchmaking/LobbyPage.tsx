@@ -18,6 +18,7 @@ import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
 import { SettingsPage } from '../settings/SettingsPage'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
@@ -103,6 +104,7 @@ export function LobbyPage(): JSX.Element {
   const stopDailyQuests = useDailyQuestStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
   const navigate = useNavigationStore((state) => state.navigate)
+  const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const serverRestarting = useMatchmakingStore((state) => state.serverRestarting)
@@ -234,7 +236,9 @@ export function LobbyPage(): JSX.Element {
     )
   }
 
-  const content = completedMatch ? (
+  const content = requiresGameSetup ? (
+    <SettingsPage />
+  ) : completedMatch ? (
     <MatchResultsPage match={completedMatch} />
   ) : page === 'play' ? (
     <PlayPage />

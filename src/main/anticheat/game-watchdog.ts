@@ -6,7 +6,6 @@ interface ActiveGameWatchdog {
   executablePath: string
   child: ChildProcess
   stopping: boolean
-  restartTimer: NodeJS.Timeout | null
 }
 
 let activeWatchdog: ActiveGameWatchdog | null = null
@@ -56,11 +55,15 @@ const spawnLinuxWatchdog = (executablePath: string): ChildProcess => {
     'done'
   ].join('\n')
 
-  return spawn('/bin/sh', ['-c', script, '16competitive-watchdog', String(process.pid), executablePath], {
-    detached: true,
-    shell: false,
-    stdio: 'ignore'
-  })
+  return spawn(
+    '/bin/sh',
+    ['-c', script, '16competitive-watchdog', String(process.pid), executablePath],
+    {
+      detached: true,
+      shell: false,
+      stdio: 'ignore'
+    }
+  )
 }
 
 const spawnWatchdog = (executablePath: string): ChildProcess | null => {
@@ -83,8 +86,7 @@ const armWatchdog = (matchId: string, executablePath: string): void => {
     matchId,
     executablePath,
     child,
-    stopping: false,
-    restartTimer: null
+    stopping: false
   }
   activeWatchdog = state
   child.unref()
@@ -105,17 +107,15 @@ const armWatchdog = (matchId: string, executablePath: string): void => {
 
   child.once('exit', (code, signal) => {
     if (activeWatchdog !== state || state.stopping) return
-    console.warn('[AntiCheat] launcher watchdog exited unexpectedly; respawning', {
-      matchId,
-      code,
-      signal
-    })
-    state.restartTimer = setTimeout(() => {
-      if (activeWatchdog !== state || state.stopping) return
-      activeWatchdog = null
-      armWatchdog(matchId, executablePath)
-    }, 500)
-    state.restartTimer.unref?.()
+    activeWatchdog = null
+    console.warn(
+      '[AntiCheat] launcher watchdog exited before the launcher closed; it will not restart automatically',
+      {
+        matchId,
+        code,
+        signal
+      }
+    )
   })
 }
 
@@ -129,8 +129,6 @@ export const stopGameWatchdog = (matchId?: string): void => {
   if (!state || (matchId && state.matchId !== matchId)) return
   activeWatchdog = null
   state.stopping = true
-  if (state.restartTimer) clearTimeout(state.restartTimer)
-  state.restartTimer = null
   try {
     state.child.kill()
   } catch {
