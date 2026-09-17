@@ -1,5 +1,4 @@
 import { AuthPage } from './features/auth/AuthPage'
-import { AntiCheatStartupBanner } from './features/anticheat/AntiCheatStartupBanner'
 import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
 import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
 import { AudioController } from './features/audio/AudioController'
@@ -18,7 +17,6 @@ function App(): React.JSX.Element {
   return (
     <DeviceBanGate>
       <>
-        <AntiCheatStartupBanner />
         <I18nRuntime />
         <AudioController />
         <UpdateBanner />
