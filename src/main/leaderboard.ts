@@ -11,9 +11,13 @@ const isEntry = (value: unknown): value is LeaderboardEntry => {
     typeof entry.rank === 'number' &&
     Number.isInteger(entry.rank) &&
     entry.rank > 0 &&
+    typeof entry.playerId === 'string' &&
+    /^[0-9a-f-]{36}$/i.test(entry.playerId) &&
     typeof entry.username === 'string' &&
     entry.username.length > 0 &&
     entry.username.length <= 80 &&
+    (entry.flagCountryCode === null ||
+      (typeof entry.flagCountryCode === 'string' && /^[A-Z]{2}$/.test(entry.flagCountryCode))) &&
     typeof entry.mmr === 'number' &&
     Number.isFinite(entry.mmr)
   )
