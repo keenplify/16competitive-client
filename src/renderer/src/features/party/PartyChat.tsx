@@ -49,6 +49,7 @@ export function PartyChat(): JSX.Element {
   const requestFriend = useFriendsStore((state) => state.request)
   const actingPlayerId = useFriendsStore((state) => state.actingPlayerId)
   const feedRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [playerMenu, setPlayerMenu] = useState<{
     player: ChatSender
     x: number
@@ -65,6 +66,12 @@ export function PartyChat(): JSX.Element {
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
   }, [activeFriendId, friendConversation?.messages, chatTab, partyEntries, globalEntries])
+
+  useEffect(() => {
+    if (!activeFriendId) return
+    const frame = window.requestAnimationFrame(() => inputRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeFriendId])
 
   useEffect(() => {
     const closeMenu = (): void => setPlayerMenu(null)
@@ -299,6 +306,7 @@ export function PartyChat(): JSX.Element {
           <form className="border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
             <div className="flex">
               <input
+                ref={inputRef}
                 className="h-9 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm outline-none placeholder:text-neutral-500"
                 value={draft}
                 maxLength={300}
