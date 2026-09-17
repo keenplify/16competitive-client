@@ -232,10 +232,6 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
         set((state) => {
           const current = state.conversations[friendId]
           if (!current) return state
-          const knownIds = new Set(current.messages.map(({ id }) => id))
-          const newIncomingCount = messages.filter(
-            (message) => !knownIds.has(message.id) && message.sender.id === friendId
-          ).length
           return {
             conversations: {
               ...state.conversations,
@@ -244,8 +240,7 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
                 messages,
                 loading: false,
                 error: null,
-                unread:
-                  state.activeFriendId === friendId ? 0 : current.unread + newIncomingCount
+                unread: state.activeFriendId === friendId ? 0 : current.unread
               }
             }
           }
