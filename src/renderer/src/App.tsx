@@ -1,4 +1,5 @@
 import { AuthPage } from './features/auth/AuthPage'
+import { AntiCheatStartupBanner } from './features/anticheat/AntiCheatStartupBanner'
 import { AudioController } from './features/audio/AudioController'
 import { AuthLanguageOverlay } from './features/i18n/AuthLanguageOverlay'
 import { I18nRuntime } from './features/i18n/I18nRuntime'
@@ -14,6 +15,7 @@ import './assets/toast.css'
 function App(): React.JSX.Element {
   return (
     <>
+      <AntiCheatStartupBanner />
       <I18nRuntime />
       <AudioController />
       <UpdateBanner />
