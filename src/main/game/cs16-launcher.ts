@@ -7,6 +7,7 @@ import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
+import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -169,6 +170,7 @@ const monitorLinuxCounterStrikeHandoff = async (
           gameDirectory
         })
         if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+          stopGameWatchdog(matchId)
           stopAntiCheatSession(antiCheatSession, 'game-process-not-found')
           clearMatchConfig(matchConfigGeneration)
           await finishVoicePttSession(matchId)
@@ -180,6 +182,7 @@ const monitorLinuxCounterStrikeHandoff = async (
     } else if (!processIds.includes(trackedPid)) {
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+        stopGameWatchdog(matchId)
         stopAntiCheatSession(antiCheatSession, 'game-exit')
         clearMatchConfig(matchConfigGeneration)
         await finishVoicePttSession(matchId)
@@ -199,6 +202,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   console.info('[GameLaunch] closing completed match', { matchId })
   gameProcessGeneration++
   linuxMonitorGeneration++
+  stopGameWatchdog(matchId)
   finishAntiCheatSession(matchId, 'match-closed')
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
@@ -211,6 +215,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
       finishVoicePttSession(matchId)
     )
   }
+  launchedMatchId = null
   launchedGameDirectory = null
   launchedExecutablePath = null
   clearMatchConfig()
@@ -238,7 +243,7 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
 const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<void> => {
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
-    '$matches = @(Get-CimInstance Win32_Process -Filter "Name=\'hl.exe\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
+    '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
     '$matches | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
     'Write-Output $matches.Count'
   ].join('; ')
@@ -340,6 +345,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       platform: process.platform
     })
     linuxMonitorGeneration++
+    stopGameWatchdog(input.matchId)
     finishAntiCheatSession(input.matchId, 'relaunch')
     if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
@@ -347,6 +353,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     await delay(RELAUNCH_SETTLE_MS)
     await finishVoicePttSession(input.matchId)
   } else {
+    stopGameWatchdog()
     if (activeAntiCheatSession) finishAntiCheatSession(undefined, 'new-match-launch')
     if (activeVoicePttSession) await finishVoicePttSession()
   }
@@ -461,6 +468,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
+  startGameWatchdog(input.matchId, executable)
   const linuxHandoffMonitorGeneration =
     process.platform === 'linux' && launchTarget.usesLauncherHandoff
       ? ++linuxMonitorGeneration
@@ -525,6 +533,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       })
       return
     }
+    stopGameWatchdog(input.matchId)
+    launchedMatchId = null
+    launchedGameDirectory = null
+    launchedExecutablePath = null
     clearMatchConfig(matchConfigGeneration)
     if (launchTarget.distribution === 'steam') watchSteamExit(input.matchId)
     input.onExit?.({ code, signal })
