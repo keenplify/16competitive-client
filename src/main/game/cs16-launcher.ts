@@ -6,6 +6,8 @@ import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
+import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
+import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -38,6 +40,7 @@ let launchQueue: Promise<void> = Promise.resolve()
 let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
 let steamExitWatchGeneration = 0
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
+let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -51,6 +54,18 @@ const finishVoicePttSession = async (matchId?: string): Promise<void> => {
   } catch (error) {
     console.warn('[VoicePTT] could not restore Counter-Strike voice settings', error)
   }
+}
+
+const stopAntiCheatSession = (session: AntiCheatSession, reason: string): void => {
+  session.stop(reason)
+  if (activeAntiCheatSession?.session === session) activeAntiCheatSession = null
+}
+
+const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): void => {
+  const active = activeAntiCheatSession
+  if (!active || (matchId && active.matchId !== matchId)) return
+  activeAntiCheatSession = null
+  active.session.stop(reason)
 }
 
 const clearMatchConfig = (generation?: number): void => {
@@ -131,6 +146,7 @@ const monitorLinuxCounterStrikeHandoff = async (
   gameDirectory: string,
   generation: number,
   matchConfigGeneration: number,
+  antiCheatSession: AntiCheatSession,
   onExit?: (event: { code: number | null; signal: string | null }) => void
 ): Promise<void> => {
   const discoveryDeadline = Date.now() + LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS
@@ -142,6 +158,7 @@ const monitorLinuxCounterStrikeHandoff = async (
     if (trackedPid === null) {
       if (processIds.length > 0) {
         trackedPid = Math.max(...processIds)
+        antiCheatSession.attachProcess(trackedPid)
         console.info('[GameLaunch] tracking Linux GoldSrc process after launcher handoff', {
           matchId,
           pid: trackedPid,
@@ -153,6 +170,8 @@ const monitorLinuxCounterStrikeHandoff = async (
           gameDirectory
         })
         if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+          stopGameWatchdog(matchId)
+          stopAntiCheatSession(antiCheatSession, 'game-process-not-found')
           clearMatchConfig(matchConfigGeneration)
           await finishVoicePttSession(matchId)
           watchSteamExit(matchId)
@@ -163,6 +182,8 @@ const monitorLinuxCounterStrikeHandoff = async (
     } else if (!processIds.includes(trackedPid)) {
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
+        stopGameWatchdog(matchId)
+        stopAntiCheatSession(antiCheatSession, 'game-exit')
         clearMatchConfig(matchConfigGeneration)
         await finishVoicePttSession(matchId)
         watchSteamExit(matchId)
@@ -181,6 +202,8 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   console.info('[GameLaunch] closing completed match', { matchId })
   gameProcessGeneration++
   linuxMonitorGeneration++
+  stopGameWatchdog(matchId)
+  finishAntiCheatSession(matchId, 'match-closed')
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory).finally(() =>
@@ -192,6 +215,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
       finishVoicePttSession(matchId)
     )
   }
+  launchedMatchId = null
   launchedGameDirectory = null
   launchedExecutablePath = null
   clearMatchConfig()
@@ -219,7 +243,7 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
 const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<void> => {
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
-    '$matches = @(Get-CimInstance Win32_Process -Filter "Name=\'hl.exe\'" | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
+    '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
     '$matches | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
     'Write-Output $matches.Count'
   ].join('; ')
@@ -321,13 +345,17 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       platform: process.platform
     })
     linuxMonitorGeneration++
+    stopGameWatchdog(input.matchId)
+    finishAntiCheatSession(input.matchId, 'relaunch')
     if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
     gameProcess = null
     await delay(RELAUNCH_SETTLE_MS)
     await finishVoicePttSession(input.matchId)
-  } else if (activeVoicePttSession) {
-    await finishVoicePttSession()
+  } else {
+    stopGameWatchdog()
+    if (activeAntiCheatSession) finishAntiCheatSession(undefined, 'new-match-launch')
+    if (activeVoicePttSession) await finishVoicePttSession()
   }
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
@@ -381,6 +409,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   launchedMatchConfigPath = matchConfigPath
   launchedMatchConfigGeneration = matchConfigGeneration
 
+  const antiCheatSession = startAntiCheatSession({
+    matchId: input.matchId,
+    executablePath: executable,
+    gameDirectory: cwd,
+    distribution: launchTarget.distribution
+  })
+  activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
+
   const directMatchArgs = ['+exec', matchConfigName, '+connect', `${input.host}:${input.port}`]
   const gameArgs = directMatchArgs
   const launchArgs = [
@@ -424,6 +460,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       child.once('spawn', () => resolveProcess(child))
     })
   } catch (error) {
+    stopAntiCheatSession(antiCheatSession, 'launch-failed')
     await finishVoicePttSession(input.matchId)
     throw error
   }
@@ -431,10 +468,18 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
+  startGameWatchdog(input.matchId, executable)
   const linuxHandoffMonitorGeneration =
     process.platform === 'linux' && launchTarget.usesLauncherHandoff
       ? ++linuxMonitorGeneration
       : linuxMonitorGeneration
+
+  if (!launchTarget.usesLauncherHandoff && spawnedProcess.pid) {
+    antiCheatSession.attachProcess(spawnedProcess.pid)
+  } else if (process.platform === 'win32' && launchTarget.usesLauncherHandoff) {
+    void antiCheatSession.attachWhenWindowsProcessAppears(executable)
+  }
+
   console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: gameProcess.pid })
   let gameOutput = ''
   const appendGameOutput = (chunk: Buffer): void => {
@@ -457,6 +502,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
           cwd,
           linuxHandoffMonitorGeneration,
           matchConfigGeneration,
+          antiCheatSession,
           input.onExit
         )
       }
@@ -467,6 +513,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       code,
       signal
     })
+    stopAntiCheatSession(antiCheatSession, 'game-exit')
     void finishVoicePttSession(input.matchId)
     if (gameOutput.trim()) {
       const safeOutput = gameOutput
@@ -486,6 +533,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       })
       return
     }
+    stopGameWatchdog(input.matchId)
+    launchedMatchId = null
+    launchedGameDirectory = null
+    launchedExecutablePath = null
     clearMatchConfig(matchConfigGeneration)
     if (launchTarget.distribution === 'steam') watchSteamExit(input.matchId)
     input.onExit?.({ code, signal })

@@ -1,4 +1,7 @@
 import { AuthPage } from './features/auth/AuthPage'
+import { AntiCheatStartupBanner } from './features/anticheat/AntiCheatStartupBanner'
+import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
+import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
 import { AudioController } from './features/audio/AudioController'
 import { AuthLanguageOverlay } from './features/i18n/AuthLanguageOverlay'
 import { I18nRuntime } from './features/i18n/I18nRuntime'
@@ -13,25 +16,29 @@ import './assets/toast.css'
 
 function App(): React.JSX.Element {
   return (
-    <>
-      <I18nRuntime />
-      <AudioController />
-      <UpdateBanner />
-      <ConnectionBanner />
-      <MatchAbandonNotice />
-      <SkinAssetSyncIndicator />
-      <VoiceChatDock />
-      <AuthLanguageOverlay />
-      <ToastContainer
-        position="top-left"
-        theme="dark"
-        autoClose={3_500}
-        style={{ marginTop: '4rem' }}
-        transition={Slide}
-        className="launcher-toast-container"
-      />
-      <AuthPage />
-    </>
+    <DeviceBanGate>
+      <>
+        <AntiCheatStartupBanner />
+        <I18nRuntime />
+        <AudioController />
+        <UpdateBanner />
+        <ConnectionBanner />
+        <AntiCheatMatchCancellationNotice />
+        <MatchAbandonNotice />
+        <SkinAssetSyncIndicator />
+        <VoiceChatDock />
+        <AuthLanguageOverlay />
+        <ToastContainer
+          position="top-left"
+          theme="dark"
+          autoClose={3_500}
+          style={{ marginTop: '4rem' }}
+          transition={Slide}
+          className="launcher-toast-container"
+        />
+        <AuthPage />
+      </>
+    </DeviceBanGate>
   )
 }
 
