@@ -43,6 +43,8 @@ const auth: AuthApi = {
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
+  changeFlagCountryCode: (flagCountryCode) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.flagChange, flagCountryCode),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
