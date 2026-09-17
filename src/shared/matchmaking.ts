@@ -1,4 +1,5 @@
 import type { MatchRewardSummary } from './daily-quests'
+import type { FriendChatMessage } from './friends'
 
 export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
@@ -190,6 +191,7 @@ export type MatchmakingServerMessage =
   | { type: 'party_disbanded' }
   | { type: 'friend_request_received' }
   | { type: 'friends_updated' }
+  | { type: 'friend_chat_message'; message: FriendChatMessage }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
   | GlobalChatMessage
@@ -231,7 +233,10 @@ export type MatchmakingServerMessage =
       type: 'match_cancelled'
       matchId: string
       reason:
-        'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED' | 'PLAYER_DID_NOT_CONNECT'
+        | 'PLAYER_DECLINED'
+        | 'PLAYER_NOT_READY'
+        | 'SERVER_START_FAILED'
+        | 'PLAYER_DID_NOT_CONNECT'
       message: string
     }
   | {
