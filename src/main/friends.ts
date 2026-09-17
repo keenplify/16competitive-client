@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { API_BASE_URL } from './config'
 import { getSessionToken } from './auth'
 import {
@@ -11,6 +11,8 @@ import {
 } from '../shared/friends'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const attentionWindows = new WeakSet<BrowserWindow>()
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 const isPresence = (value: unknown): value is FriendPresence =>
@@ -41,6 +43,20 @@ const errorMessage = (body: unknown, status: number): string =>
   isObject(body) && typeof body.message === 'string'
     ? body.message
     : `Friends request failed (${status})`
+
+const requestFriendMessageAttention = (): void => {
+  const window = BrowserWindow.getAllWindows()[0]
+  if (!window || window.isDestroyed() || window.isFocused()) return
+
+  window.flashFrame(true)
+  if (attentionWindows.has(window)) return
+
+  attentionWindows.add(window)
+  window.once('focus', () => {
+    attentionWindows.delete(window)
+    if (!window.isDestroyed()) window.flashFrame(false)
+  })
+}
 
 const friendsRequest = async (path: string, init?: RequestInit): Promise<unknown> => {
   const token = getSessionToken()
@@ -159,3 +175,4 @@ ipcMain.handle(FRIEND_CHANNELS.chatHistory, (_, playerId: unknown) => getFriendC
 ipcMain.handle(FRIEND_CHANNELS.chatSend, (_, playerId: unknown, message: unknown) =>
   sendFriendChatMessage(playerId, message)
 )
+ipcMain.handle(FRIEND_CHANNELS.requestAttention, () => requestFriendMessageAttention())
