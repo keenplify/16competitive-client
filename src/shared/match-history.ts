@@ -56,6 +56,7 @@ export interface PlayerProfile {
   id: string
   username: string
   mmr: number
+  flagCountryCode: string | null
   wins: number
   losses: number
   kills: number
