@@ -96,6 +96,7 @@ import {
   installDiagnosticLogCapture,
   reportDiagnosticIssue
 } from './diagnostic-logs'
+import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -284,6 +285,14 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  const startupSplashPromise = showAntiCheatStartupSplash().catch((error: unknown) => {
+    console.warn(
+      '[AntiCheat] startup splash could not be shown',
+      error instanceof Error ? error.message : String(error)
+    )
+    return null
+  })
+
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('login', credentials))
   )
@@ -466,7 +475,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
+  const startupSplash = await startupSplashPromise
   createWindow()
+  if (startupSplash && !startupSplash.isDestroyed()) startupSplash.destroy()
   checkForAppUpdates()
 
   app.on('activate', function () {
