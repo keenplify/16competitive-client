@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { DeviceBanStatus, DeviceStatus } from '../../../../shared/anti-cheat'
 
+const ANTI_CHEAT_CANCELLED_MESSAGE =
+  'This game was cancelled because the server detected cheating.'
+
 const formatBanDate = (value: string): string => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
@@ -16,16 +19,30 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
 
   useEffect(() => {
     let active = true
-    void window.api.antiCheat
-      .getDeviceStatus()
-      .then((result) => {
-        if (active) setStatus(result)
-      })
-      .catch(() => {
-        if (active) setStatus({ banned: false })
-      })
+    const refreshStatus = (): void => {
+      void window.api.antiCheat
+        .getDeviceStatus()
+        .then((result) => {
+          if (active) setStatus(result)
+        })
+        .catch(() => {
+          if (active && status === null) setStatus({ banned: false })
+        })
+    }
+
+    refreshStatus()
+    const removeMatchmakingListener = window.api.matchmaking.onEvent((event) => {
+      if (
+        event.type === 'match_cancelled' &&
+        event.message === ANTI_CHEAT_CANCELLED_MESSAGE
+      ) {
+        refreshStatus()
+      }
+    })
+
     return () => {
       active = false
+      removeMatchmakingListener()
     }
   }, [])
 
