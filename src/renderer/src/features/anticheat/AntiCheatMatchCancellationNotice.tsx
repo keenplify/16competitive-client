@@ -9,13 +9,18 @@ const ANTI_CHEAT_CANCELLED_MESSAGE =
 
 export function AntiCheatMatchCancellationNotice(): JSX.Element | null {
   const error = useMatchmakingStore((state) => state.error)
-  const [dismissedMessage, setDismissedMessage] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
-  const visible = error === ANTI_CHEAT_CANCELLED_MESSAGE && dismissedMessage !== error
+  const isAntiCheatCancellation = error === ANTI_CHEAT_CANCELLED_MESSAGE
+  const visible = isAntiCheatCancellation && !dismissed
 
   useEffect(() => {
+    if (!isAntiCheatCancellation) {
+      setDismissed(false)
+      return
+    }
     if (visible) dialogRef.current?.querySelector('button')?.focus()
-  }, [visible])
+  }, [isAntiCheatCancellation, visible])
 
   if (!visible) return null
 
@@ -50,7 +55,7 @@ export function AntiCheatMatchCancellationNotice(): JSX.Element | null {
           </p>
           <Button
             className="mt-6 w-full bg-red-400 hover:bg-red-300 focus-visible:outline-red-300"
-            onClick={() => setDismissedMessage(error)}
+            onClick={() => setDismissed(true)}
           >
             Continue
           </Button>
