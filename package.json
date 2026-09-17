@@ -48,6 +48,7 @@
     "tailwindcss": "^4.3.3",
     "three": "^0.101.1",
     "three-orbit-controls": "^82.1.0",
+    "vite-plugin-bundle-obfuscator": "^1.13.1",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
