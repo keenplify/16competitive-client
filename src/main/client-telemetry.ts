@@ -1,7 +1,8 @@
-import { app } from 'electron'
+import { app, ipcMain } from 'electron'
 import { arch, cpus, platform, release, totalmem, version } from 'node:os'
 import type { DeviceStatus } from '../shared/anti-cheat'
-import { collectHardwareFingerprint } from './anticheat/hardware-fingerprint'
+import { ANTICHEAT_CHANNELS } from '../shared/anti-cheat'
+import { collectHardwareFingerprint, getDeviceBanStatus } from './anticheat/hardware-fingerprint'
 import { API_BASE_URL } from './config'
 
 const trimText = (value: unknown, maxLength: number): string | undefined => {
@@ -84,3 +85,5 @@ export const reportClientTelemetry = async (token: string): Promise<DeviceStatus
     return null
   }
 }
+
+ipcMain.handle(ANTICHEAT_CHANNELS.deviceStatus, () => getDeviceBanStatus())
