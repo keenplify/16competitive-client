@@ -373,6 +373,28 @@ const weaponKeyFromPath = (weaponPath: string): string | null => {
   return stockMatch[1] === 'mp5' ? 'mp5navy' : stockMatch[1]
 }
 
+const DEFAULT_LOBBY_WEAPON_PATH = 'p_ak47.mdl'
+const DEFAULT_LOBBY_WEAPON_KEY = 'ak47'
+
+/** Keep the fallback model, animation, and transform on the same weapon. */
+const loadLobbyWeapon = async (
+  actor: PartySceneActor
+): Promise<{ actor: PartySceneActor; weaponBuffer: ArrayBuffer }> => {
+  try {
+    return { actor, weaponBuffer: await window.api.models.read(actor.weaponPath) }
+  } catch {
+    const fallbackActor: PartySceneActor = {
+      ...actor,
+      weaponPath: DEFAULT_LOBBY_WEAPON_PATH,
+      weaponKey: DEFAULT_LOBBY_WEAPON_KEY
+    }
+    return {
+      actor: fallbackActor,
+      weaponBuffer: await window.api.models.read(DEFAULT_LOBBY_WEAPON_PATH)
+    }
+  }
+}
+
 const addMesh = (
   group: THREE.Group,
   positions: THREE.BufferAttribute,
@@ -632,19 +654,25 @@ export function PartyModelScene({
     const actorsSnapshot = [...actorsRef.current]
     void Promise.all(
       actorsSnapshot.map(async (actor) => {
-        const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
-        const [playerPresentation, weaponBuffer] = await Promise.all([
-          loadPlayerPresentation(actor, presentationWeaponKey),
-          window.api.models.read(actor.weaponPath).catch(() => window.api.models.read('p_ak47.mdl'))
-        ])
-        return { playerPresentation, weaponBuffer }
+        const loadedWeapon = await loadLobbyWeapon(actor)
+        const presentationWeaponKey =
+          weaponKeyFromPath(loadedWeapon.actor.weaponPath) ?? loadedWeapon.actor.weaponKey
+        const playerPresentation = await loadPlayerPresentation(
+          loadedWeapon.actor,
+          presentationWeaponKey
+        )
+        return {
+          actor: loadedWeapon.actor,
+          playerPresentation,
+          weaponBuffer: loadedWeapon.weaponBuffer
+        }
       })
     )
       .then((loaded) => {
         if (!active) return
         setLoadedScene({
           actorKey: loadKey,
-          actors: actorsSnapshot,
+          actors: loaded.map(({ actor }) => actor),
           playerPresentations: loaded.map(({ playerPresentation }) => playerPresentation),
           weaponBuffers: loaded.map(({ weaponBuffer }) => weaponBuffer)
         })
