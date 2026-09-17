@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import type { FriendChatMessage, FriendPlayer } from '../../../../shared/friends'
+import { useAuthStore } from '../auth/auth.store'
+import { playFriendMessageSound } from './friend-message-sound'
 
-type ChatFriend = Pick<FriendPlayer, 'id' | 'username' | 'presence'>
+type ChatFriend = Pick<FriendPlayer, 'id' | 'username'>
 
 export interface FriendConversation {
   friend: ChatFriend
@@ -35,6 +37,17 @@ const refreshInFlight = new Map<string, Promise<void>>()
 const readableError = (error: unknown): string =>
   error instanceof Error ? error.message : 'Private chat request failed.'
 
+const mergeMessage = (
+  messages: FriendChatMessage[],
+  message: FriendChatMessage
+): FriendChatMessage[] =>
+  [...messages.filter((entry) => entry.id !== message.id), message]
+    .sort((left, right) => {
+      const timeDifference = Date.parse(left.sentAt) - Date.parse(right.sentAt)
+      return timeDifference || left.id.localeCompare(right.id)
+    })
+    .slice(-10)
+
 export const useFriendChatStore = create<FriendChatState>((set, get) => ({
   openFriendIds: [],
   activeFriendId: null,
@@ -43,7 +56,54 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
   start: () => {
     if (removeEventListener) return
     removeEventListener = window.api.matchmaking.onEvent((event) => {
-      if (event.type === 'friends_updated') void get().refreshOpen()
+      if (event.type !== 'friend_chat_message') return
+
+      const playerId = useAuthStore.getState().session?.player.id
+      if (!playerId) return
+
+      const message = event.message
+      const incoming = message.recipientPlayerId === playerId && message.sender.id !== playerId
+      const friendId = incoming ? message.sender.id : message.recipientPlayerId
+      const current = get().conversations[friendId]
+      const alreadyKnown = current?.messages.some((entry) => entry.id === message.id) ?? false
+
+      if (incoming && !alreadyKnown) playFriendMessageSound()
+
+      if (!incoming && !current) return
+
+      set((state) => {
+        const conversation = state.conversations[friendId]
+        const wasKnown = conversation?.messages.some((entry) => entry.id === message.id) ?? false
+        const unreadIncrement =
+          incoming && !wasKnown && state.activeFriendId !== friendId ? 1 : 0
+
+        return {
+          openFriendIds: state.openFriendIds.includes(friendId)
+            ? state.openFriendIds
+            : [...state.openFriendIds, friendId],
+          conversations: {
+            ...state.conversations,
+            [friendId]: conversation
+              ? {
+                  ...conversation,
+                  messages: mergeMessage(conversation.messages, message),
+                  loading: false,
+                  unread: conversation.unread + unreadIncrement
+                }
+              : {
+                  friend: { id: message.sender.id, username: message.sender.username },
+                  messages: [message],
+                  draft: '',
+                  loading: false,
+                  sending: false,
+                  error: null,
+                  unread: state.activeFriendId === friendId ? 0 : 1
+                }
+          }
+        }
+      })
+
+      if (incoming) void get().refresh(friendId)
     })
   },
 
@@ -83,9 +143,7 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
       const conversations = { ...state.conversations }
       delete conversations[friendId]
       const activeFriendId =
-        state.activeFriendId === friendId
-          ? (openFriendIds.at(-1) ?? null)
-          : state.activeFriendId
+        state.activeFriendId === friendId ? (openFriendIds.at(-1) ?? null) : state.activeFriendId
       return { openFriendIds, conversations, activeFriendId }
     }),
 
