@@ -6,7 +6,8 @@ export const FRIEND_CHANNELS = {
   discard: 'friends:discard',
   remove: 'friends:remove',
   chatHistory: 'friends:chat-history',
-  chatSend: 'friends:chat-send'
+  chatSend: 'friends:chat-send',
+  requestAttention: 'friends:request-attention'
 } as const
 
 export type FriendPresence = 'ONLINE' | 'IN_GAME' | 'OFFLINE'
@@ -51,4 +52,5 @@ export interface FriendsApi {
   remove(playerId: string): Promise<void>
   getChatHistory(playerId: string): Promise<FriendChatMessage[]>
   sendChatMessage(playerId: string, message: string): Promise<FriendChatMessage>
+  requestAttention(): Promise<void>
 }
