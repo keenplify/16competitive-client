@@ -6,7 +6,9 @@ export interface CountryOption {
   name: string
 }
 
-// Country options are static data shared by profile controls.\n// eslint-disable-next-line react-refresh/only-export-components\nexport const COUNTRY_OPTIONS: CountryOption[] = [
+// Country options are static data shared by profile controls.
+// eslint-disable-next-line react-refresh/only-export-components
+export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: 'AF', name: "Afghanistan" },
   { code: 'AX', name: "Åland Islands" },
   { code: 'AL', name: "Albania" },
