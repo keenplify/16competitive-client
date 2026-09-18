@@ -8,7 +8,9 @@ export const SKIN_CHANNELS = {
   previewModel: 'skins:preview-model',
   setLobbyWeapon: 'skins:set-lobby-weapon',
   setLobbyWeaponKey: 'skins:set-lobby-weapon-key',
-  setLobbyPlayerModel: 'skins:set-lobby-player-model'
+  setLobbyPlayerModel: 'skins:set-lobby-player-model',
+  pendingGift: 'skins:pending-gift',
+  claimGift: 'skins:claim-gift'
 } as const
 
 export interface Skin {
@@ -55,6 +57,23 @@ export interface LobbyLoadout {
   weaponModelPath: string | null
 }
 
+
+export interface SkinGiftChoice {
+  id: string
+  weaponKey: string
+  name: string
+  description: string | null
+  owned: boolean
+}
+
+export interface SkinGift {
+  id: string
+  kind: 'WELCOME' | 'ADMIN'
+  title: string
+  choices: SkinGiftChoice[]
+  createdAt: string
+}
+
 export interface SkinsApi {
   list(weaponKey?: string): Promise<Skin[]>
   mine(): Promise<OwnedSkin[]>
@@ -66,4 +85,6 @@ export interface SkinsApi {
   setLobbyWeapon(skinId: string): Promise<void>
   setLobbyWeaponKey(weaponKey: string): Promise<void>
   setLobbyPlayerModel(modelPath: string): Promise<void>
+  pendingGift(): Promise<SkinGift | null>
+  claimGift(giftId: string, skinId: string): Promise<{ skin: SkinGiftChoice }>
 }
