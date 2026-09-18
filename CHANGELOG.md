@@ -853,3 +853,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.918.3 — 2026-09-18
 
 - Report measured regional latency
+
+## v2026.918.4 — 2026-09-18
+
+- Fix CountryFlag lint directive formatting
+- Format latency reporting helper
+- Fix profile flag effect lint
+- Fix country flag fast refresh lint
