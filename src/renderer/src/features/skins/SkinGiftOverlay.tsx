@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import type { SkinGift, SkinGiftChoice } from '../../../../shared/skins'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
+import { useTranslation } from '../i18n/i18n'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
 
 type RevealStage = 'intro' | 'choices' | 'claiming' | 'claimed'
@@ -16,6 +17,7 @@ const errorMessage = (reason: unknown): string => {
 export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
+  const { t } = useTranslation()
   const [gift, setGift] = useState<SkinGift | null>(null)
   const [stage, setStage] = useState<RevealStage>('intro')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -113,12 +115,12 @@ export function SkinGiftOverlay(): JSX.Element | null {
               <Sparkles className="absolute -top-3 -right-4 size-7 text-amber-200" aria-hidden="true" />
             </div>
             <p className="mt-7 text-xs font-black tracking-[0.45em] text-amber-300 uppercase">
-              A gift has arrived
+              {t('gift.arrived')}
             </p>
             <h2 id="skin-gift-title" className="mt-3 text-5xl font-black tracking-tight sm:text-7xl">
-              {gift.title}
+              {gift.kind === 'WELCOME' ? t('gift.welcomeTitle') : gift.title}
             </h2>
-            <p className="mt-4 text-sm text-neutral-300">One of these skins is yours. Choose wisely.</p>
+            <p className="mt-4 text-sm text-neutral-300">{t('gift.intro')}</p>
           </div>
 
           <div
@@ -128,12 +130,13 @@ export function SkinGiftOverlay(): JSX.Element | null {
           >
             <header className="mb-8 text-center">
               <p className="text-xs font-black tracking-[0.35em] text-amber-300 uppercase">
-                {gift.kind === 'WELCOME' ? 'New player reward' : 'Special reward'}
+                {gift.kind === 'WELCOME' ? t('gift.newPlayerReward') : t('gift.specialReward')}
               </p>
-              <h2 className="mt-2 text-4xl font-black sm:text-5xl">{gift.title}</h2>
+              <h2 className="mt-2 text-4xl font-black sm:text-5xl">
+                {gift.kind === 'WELCOME' ? t('gift.welcomeTitle') : gift.title}
+              </h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-neutral-300">
-                We truly appreciate you playing the early alpha release of 1.6 Competitive! As a welcome gift,
-                please select one of the skins below.
+                {gift.kind === 'WELCOME' ? t('gift.welcomeMessage') : t('gift.intro')}
               </p>
             </header>
 
@@ -166,7 +169,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                         skinId={choice.id}
                         modelKey={choice.id}
                         weaponKey={choice.weaponKey}
-                        fallback={<span className="text-xs text-neutral-500">Preview unavailable</span>}
+                        fallback={<span className="text-xs text-neutral-500">{t('gift.previewUnavailable')}</span>}
                         className="absolute inset-0"
                       />
                       <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
@@ -182,21 +185,21 @@ export function SkinGiftOverlay(): JSX.Element | null {
 
                     <div className="mt-6 flex h-11 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/10 text-sm font-black tracking-[0.12em] text-amber-200 uppercase transition group-hover:bg-amber-300/20">
                       {choice.owned
-                        ? 'Already owned'
+                        ? t('gift.owned')
                         : selected && stage === 'claiming'
                           ? <>
                               <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                              Claiming
+                              {t('gift.claiming')}
                             </>
                           : selected && finished
-                            ? 'Unlocked'
-                            : 'Choose this skin'}
+                            ? t('gift.unlocked')
+                            : t('gift.choose')}
                     </div>
 
                     {selected && finished && (
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-amber-200/10 backdrop-blur-[1px]">
                         <div className="rounded-full border border-amber-200/60 bg-neutral-950/95 px-6 py-3 text-lg font-black tracking-[0.2em] text-amber-200 uppercase shadow-[0_0_70px_rgba(251,191,36,0.5)]">
-                          Yours
+                          {t('gift.yours')}
                         </div>
                       </div>
                     )}
