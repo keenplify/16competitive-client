@@ -63,6 +63,7 @@ const english = {
   'gift.unlocked': "Unlocked",
   'gift.yours': "Yours",
   'gift.previewUnavailable': "Preview unavailable",
+  'gift.decideLater': "I can't decide yet",
 } as const
 
 export type TranslationKey = keyof typeof english
@@ -116,6 +117,7 @@ const russian: Record<TranslationKey, string> = {
   'gift.unlocked': "Разблокировано",
   'gift.yours': "Ваш",
   'gift.previewUnavailable': "Предпросмотр недоступен",
+  'gift.decideLater': "Я пока не могу выбрать",
 }
 
 const taglish: Record<TranslationKey, string> = {
@@ -166,6 +168,7 @@ const taglish: Record<TranslationKey, string> = {
   'gift.unlocked': "Unlocked",
   'gift.yours': "Sa iyo na",
   'gift.previewUnavailable': "Walang preview",
+  'gift.decideLater': "Di pa ako makapag-decide",
 }
 
 const thai: Record<TranslationKey, string> = {
@@ -216,6 +219,7 @@ const thai: Record<TranslationKey, string> = {
   'gift.unlocked': "ปลดล็อกแล้ว",
   'gift.yours': "เป็นของคุณแล้ว",
   'gift.previewUnavailable': "ไม่มีตัวอย่าง",
+  'gift.decideLater': "ฉันยังตัดสินใจไม่ได้",
 }
 
 const indonesian: Record<TranslationKey, string> = {
@@ -267,6 +271,7 @@ const indonesian: Record<TranslationKey, string> = {
   'gift.unlocked': "Terbuka",
   'gift.yours': "Milikmu",
   'gift.previewUnavailable': "Pratinjau tidak tersedia",
+  'gift.decideLater': "Saya belum bisa memutuskan",
 }
 
 const portuguese: Record<TranslationKey, string> = {
@@ -318,6 +323,7 @@ const portuguese: Record<TranslationKey, string> = {
   'gift.unlocked': "Desbloqueada",
   'gift.yours': "É sua",
   'gift.previewUnavailable': "Prévia indisponível",
+  'gift.decideLater': "Ainda não consigo decidir",
 }
 
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
