@@ -50,7 +50,7 @@ const english = {
   'auth.finishSocial': 'Finish {{action}} with {{provider}} in your browser.',
   'auth.finishSigningIn': 'signing in',
   'auth.finishCreatingAccount': 'creating your account',
-  'auth.facebookEmailHint': 'Facebook did not provide an email address. Add one to continue.'
+  'auth.facebookEmailHint': 'Facebook did not provide an email address. Add one to continue.',
   'gift.arrived': "A gift has arrived",
   'gift.welcomeTitle': "WELCOME GIFT",
   'gift.intro': "One of these skins is yours. Choose wisely.",
@@ -103,7 +103,7 @@ const russian: Record<TranslationKey, string> = {
   'auth.finishSocial': 'Завершите {{action}} через {{provider}} в браузере.',
   'auth.finishSigningIn': 'вход',
   'auth.finishCreatingAccount': 'создание аккаунта',
-  'auth.facebookEmailHint': 'Facebook не передал email. Добавьте его, чтобы продолжить.'
+  'auth.facebookEmailHint': 'Facebook не передал email. Добавьте его, чтобы продолжить.',
   'gift.arrived': "Вам пришёл подарок",
   'gift.welcomeTitle': "ПРИВЕТСТВЕННЫЙ ПОДАРОК",
   'gift.intro': "Один из этих скинов ваш. Выбирайте.",
@@ -153,7 +153,7 @@ const taglish: Record<TranslationKey, string> = {
   'auth.finishSocial': 'Tapusin ang {{action}} gamit ang {{provider}} sa browser mo.',
   'auth.finishSigningIn': 'pag-sign in',
   'auth.finishCreatingAccount': 'pag-create ng account',
-  'auth.facebookEmailHint': 'Walang email na binigay ang Facebook. Mag-add para mag-continue.'
+  'auth.facebookEmailHint': 'Walang email na binigay ang Facebook. Mag-add para mag-continue.',
   'gift.arrived': "May gift ka!",
   'gift.welcomeTitle': "WELCOME GIFT",
   'gift.intro': "Isa sa mga skin na ito ay para sa iyo. Pili ka.",
@@ -203,7 +203,7 @@ const thai: Record<TranslationKey, string> = {
   'auth.finishSocial': 'ดำเนินการ {{action}} ด้วย {{provider}} ให้เสร็จในเบราว์เซอร์',
   'auth.finishSigningIn': 'การเข้าสู่ระบบ',
   'auth.finishCreatingAccount': 'การสร้างบัญชี',
-  'auth.facebookEmailHint': 'Facebook ไม่ได้ส่งอีเมลมาให้ โปรดเพิ่มอีเมลเพื่อดำเนินการต่อ'
+  'auth.facebookEmailHint': 'Facebook ไม่ได้ส่งอีเมลมาให้ โปรดเพิ่มอีเมลเพื่อดำเนินการต่อ',
   'gift.arrived': "คุณได้รับของขวัญ",
   'gift.welcomeTitle': "ของขวัญต้อนรับ",
   'gift.intro': "หนึ่งในสกินเหล่านี้เป็นของคุณ เลือกได้เลย",
@@ -254,7 +254,7 @@ const indonesian: Record<TranslationKey, string> = {
   'auth.finishSigningIn': 'proses masuk',
   'auth.finishCreatingAccount': 'pembuatan akun',
   'auth.facebookEmailHint':
-    'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
+    'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.',
   'gift.arrived': "Hadiah telah tiba",
   'gift.welcomeTitle': "HADIAH SELAMAT DATANG",
   'gift.intro': "Salah satu skin ini milikmu. Silakan pilih.",
@@ -305,7 +305,7 @@ const portuguese: Record<TranslationKey, string> = {
   'auth.finishSigningIn': 'o login',
   'auth.finishCreatingAccount': 'a criação da sua conta',
   'auth.facebookEmailHint':
-    'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.'
+    'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.',
   'gift.arrived': "Um presente chegou",
   'gift.welcomeTitle': "PRESENTE DE BOAS-VINDAS",
   'gift.intro': "Uma destas skins é sua. Escolha com cuidado.",
