@@ -36,6 +36,7 @@ const PONG_TIMEOUT_MS = 10_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
 const isMapIds = (value: unknown): value is string[] =>
@@ -286,6 +287,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
     case 'friend_request_received':
     case 'friends_updated':
       return true
+    case 'skin_gift_available':
+      return typeof message.giftId === 'string' && uuidPattern.test(message.giftId)
     case 'friend_chat_message':
       return isFriendChatMessage(message.message)
     case 'party_presence_ping':
