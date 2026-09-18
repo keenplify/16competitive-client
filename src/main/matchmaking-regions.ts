@@ -113,10 +113,7 @@ const attachNodeLatencies = async (nodes: MatchmakingNode[]): Promise<Matchmakin
     }))
   )
 
-const reportNodeLatencies = async (
-  nodes: MatchmakingNode[],
-  token: string
-): Promise<void> => {
+const reportNodeLatencies = async (nodes: MatchmakingNode[], token: string): Promise<void> => {
   const measurements = nodes.flatMap((node) => {
     const latencyMs = measuredLatency(node)
     return latencyMs === null ? [] : [{ region: node.region, latencyMs }]
