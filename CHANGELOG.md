@@ -819,3 +819,27 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Friend chats reset cleanly between sessions.
 - Opening a friend chat automatically focuses the message input.
 - Message history no longer inflates DM unread counts.
+
+## v2026.918.1 — 2026-09-18
+
+- Show flags in country picker options
+- Move flag picker beside profile name
+- Move flag guidance into country picker
+- Fix player flag sizing
+- Use SVG flags and styled country picker
+- Add react-world-flags dependency to project
+- Auto-save player flag selection
+- Merge pull request #21 from keenplify/feature/player-flags
+- Show flags and profiles from leaderboard
+- Show flag on player profile
+- Validate player profile flag
+- Add flag to player profile
+- Validate leaderboard flags
+- Add flags to leaderboard entries
+- Add optional flag selector to profile
+- Store player flag selection
+- Expose player flag setting
+- Register player flag IPC
+- Support changing player flag
+- Add flag to auth contract
+- Add country flag display helpers
