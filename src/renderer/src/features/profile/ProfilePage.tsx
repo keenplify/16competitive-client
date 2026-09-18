@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useState, type JSX } from 'react'
 import Select, { type SingleValue } from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import { useAuthStore } from '../auth/auth.store'
@@ -27,21 +27,17 @@ export function ProfilePage(): JSX.Element {
   const tab = useNavigationStore((state) => state.profileTab)
   const setTab = useNavigationStore((state) => state.setProfileTab)
   const changeFlagCountryCode = useAuthStore((state) => state.changeFlagCountryCode)
-  const [draftFlag, setDraftFlag] = useState(player?.flagCountryCode ?? '')
+  const [draftFlag, setDraftFlag] = useState<string | null>(null)
   const [savingFlag, setSavingFlag] = useState(false)
-
-  useEffect(() => {
-    setDraftFlag(player?.flagCountryCode ?? '')
-  }, [player?.flagCountryCode])
+  const selectedFlag = draftFlag ?? player?.flagCountryCode ?? ''
 
   const handleFlagChange = async (option: SingleValue<CountryOption>): Promise<void> => {
     if (option?.code === FLAG_HELP_OPTION.code) return
     const flagCountryCode = option?.code ?? ''
-    const previousFlag = player?.flagCountryCode ?? ''
     setDraftFlag(flagCountryCode)
     setSavingFlag(true)
-    const saved = await changeFlagCountryCode(flagCountryCode || null)
-    if (!saved) setDraftFlag(previousFlag)
+    await changeFlagCountryCode(flagCountryCode || null)
+    setDraftFlag(null)
     setSavingFlag(false)
   }
 
@@ -62,7 +58,7 @@ export function ProfilePage(): JSX.Element {
                 menuPlacement="auto"
                 options={REPRESENTING_FLAG_OPTIONS}
                 value={
-                  REPRESENTING_FLAG_OPTIONS.find((option) => option.code === draftFlag) ??
+                  REPRESENTING_FLAG_OPTIONS.find((option) => option.code === selectedFlag) ??
                   REPRESENTING_FLAG_OPTIONS[0]
                 }
                 getOptionLabel={(option) => option.name}
