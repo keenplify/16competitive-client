@@ -52,15 +52,10 @@ export function ProfilePage(): JSX.Element {
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold">{player?.username ?? 'Player'}</h1>
-          </div>
-          <div className="mt-4 flex max-w-xl flex-wrap items-end gap-2">
-            <label
-              htmlFor="representing-flag"
-              className="min-w-64 flex-1 text-xs font-semibold text-neutral-300"
-            >
-              Representing flag
+            <div className="w-[100px] shrink-0">
               <Select<CountryOption, false>
                 inputId="representing-flag"
+                aria-label="Representing flag"
                 unstyled
                 isSearchable
                 isDisabled={savingFlag}
@@ -74,39 +69,47 @@ export function ProfilePage(): JSX.Element {
                 getOptionValue={(option) => option.code}
                 isOptionDisabled={(option) => option.code === FLAG_HELP_OPTION.code}
                 onChange={(option) => void handleFlagChange(option)}
-                formatOptionLabel={(option) =>
-                  option.code === FLAG_HELP_OPTION.code ? (
-                    <span className="text-xs text-neutral-500">{option.name}</span>
+                formatOptionLabel={(option, { context }) =>
+                  context === 'value' ? (
+                    option.code ? (
+                      <CountryFlag
+                        code={option.code}
+                        className="h-4 w-6 rounded-[2px] object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="h-4 w-6 rounded-[2px] border border-white/15 bg-white/5"
+                        aria-label="No flag"
+                      />
+                    )
                   ) : (
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      {option.code ? (
-                        <CountryFlag
-                          code={option.code}
-                          className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
-                        />
-                      ) : (
-                        <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
-                      )}
-                      <span className="truncate">{option.name}</span>
+                    <span
+                      className={
+                        option.code === FLAG_HELP_OPTION.code
+                          ? 'text-xs text-neutral-500'
+                          : 'truncate'
+                      }
+                    >
+                      {option.name}
                     </span>
                   )
                 }
                 classNames={{
                   control: ({ isFocused }) =>
-                    `mt-1 min-h-10 cursor-pointer border bg-neutral-900 text-sm transition ${
+                    `min-h-9 cursor-pointer border bg-neutral-900 text-sm transition ${
                       isFocused
                         ? 'border-sky-400 ring-1 ring-sky-400/20'
                         : 'border-white/15 hover:border-white/30'
                     }`,
-                  valueContainer: () => 'px-3 py-1',
+                  valueContainer: () => 'justify-center px-2 py-1',
                   input: () => 'text-white',
-                  singleValue: () => 'text-white',
+                  singleValue: () => 'flex justify-center text-white',
                   placeholder: () => 'text-neutral-500',
-                  indicatorsContainer: () => 'px-2 text-neutral-400',
+                  indicatorsContainer: () => 'pr-1 text-neutral-400',
                   dropdownIndicator: () => 'p-1 transition hover:text-white',
-                  indicatorSeparator: () => 'mx-1 w-px bg-white/10',
+                  indicatorSeparator: () => 'hidden',
                   menu: () =>
-                    'z-50 mt-1 overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl shadow-black/60',
+                    'z-50 mt-1 min-w-56 overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl shadow-black/60',
                   menuList: () => 'max-h-72 p-1',
                   option: ({ isDisabled, isFocused, isSelected }) =>
                     `px-3 py-2 text-sm transition ${
@@ -121,7 +124,7 @@ export function ProfilePage(): JSX.Element {
                   noOptionsMessage: () => 'px-3 py-4 text-sm text-neutral-500'
                 }}
               />
-            </label>
+            </div>
           </div>
           <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
             {(['matches', 'skins'] as const).map((id) => (
