@@ -191,6 +191,7 @@ export type MatchmakingServerMessage =
   | { type: 'party_disbanded' }
   | { type: 'friend_request_received' }
   | { type: 'friends_updated' }
+  | { type: 'skin_gift_available'; giftId: string }
   | { type: 'friend_chat_message'; message: FriendChatMessage }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
