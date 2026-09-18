@@ -162,7 +162,9 @@ const skins: SkinsApi = {
   setLobbyWeapon: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeapon, skinId),
   setLobbyWeaponKey: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeaponKey, weaponKey),
   setLobbyPlayerModel: (modelPath) =>
-    ipcRenderer.invoke(SKIN_CHANNELS.setLobbyPlayerModel, modelPath)
+    ipcRenderer.invoke(SKIN_CHANNELS.setLobbyPlayerModel, modelPath),
+  pendingGift: () => ipcRenderer.invoke(SKIN_CHANNELS.pendingGift),
+  claimGift: (giftId, skinId) => ipcRenderer.invoke(SKIN_CHANNELS.claimGift, giftId, skinId)
 }
 
 const updater: UpdaterApi = {
