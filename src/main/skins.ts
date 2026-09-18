@@ -1,7 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type { LobbyLoadout, OwnedSkin, Skin, SkinCurrency, UnlockResult } from '../shared/skins'
+import type { LobbyLoadout, OwnedSkin, Skin, SkinCurrency, SkinGift, SkinGiftChoice, UnlockResult } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
@@ -272,4 +272,44 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
     })
   }
   return model
+}
+
+
+export const getPendingSkinGift = async (): Promise<SkinGift | null> => {
+  const data = await playerRequest('/skin-gifts/pending')
+  if (typeof data !== 'object' || data === null) throw new Error('The server returned an invalid gift response.')
+  const gift = (data as Record<string, unknown>).gift
+  if (gift === null) return null
+  if (
+    typeof gift !== 'object' ||
+    gift === null ||
+    typeof (gift as Record<string, unknown>).id !== 'string' ||
+    typeof (gift as Record<string, unknown>).title !== 'string' ||
+    !Array.isArray((gift as Record<string, unknown>).choices)
+  ) {
+    throw new Error('The server returned an invalid gift.')
+  }
+  return gift as SkinGift
+}
+
+export const claimSkinGift = async (
+  giftId: unknown,
+  skinId: unknown
+): Promise<{ skin: SkinGiftChoice }> => {
+  const id = validateSkinId(giftId)
+  const selectedSkinId = validateSkinId(skinId)
+  const data = await playerRequest(`/skin-gifts/${id}/claim`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ skinId: selectedSkinId })
+  })
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    typeof (data as Record<string, unknown>).skin !== 'object' ||
+    (data as Record<string, unknown>).skin === null
+  ) {
+    throw new Error('The server returned an invalid gift claim.')
+  }
+  return data as { skin: SkinGiftChoice }
 }
