@@ -51,6 +51,18 @@ const english = {
   'auth.finishSigningIn': 'signing in',
   'auth.finishCreatingAccount': 'creating your account',
   'auth.facebookEmailHint': 'Facebook did not provide an email address. Add one to continue.'
+  'gift.arrived': "A gift has arrived",
+  'gift.welcomeTitle': "WELCOME GIFT",
+  'gift.intro': "One of these skins is yours. Choose wisely.",
+  'gift.newPlayerReward': "New player reward",
+  'gift.specialReward': "Special reward",
+  'gift.welcomeMessage': "We truly appreciate you playing the early alpha release of 1.6 Competitive! As a welcome gift, please select one of the skins below.",
+  'gift.choose': "Choose this skin",
+  'gift.owned': "Already owned",
+  'gift.claiming': "Claiming",
+  'gift.unlocked': "Unlocked",
+  'gift.yours': "Yours",
+  'gift.previewUnavailable': "Preview unavailable",
 } as const
 
 export type TranslationKey = keyof typeof english
@@ -92,6 +104,18 @@ const russian: Record<TranslationKey, string> = {
   'auth.finishSigningIn': 'вход',
   'auth.finishCreatingAccount': 'создание аккаунта',
   'auth.facebookEmailHint': 'Facebook не передал email. Добавьте его, чтобы продолжить.'
+  'gift.arrived': "Вам пришёл подарок",
+  'gift.welcomeTitle': "ПРИВЕТСТВЕННЫЙ ПОДАРОК",
+  'gift.intro': "Один из этих скинов ваш. Выбирайте.",
+  'gift.newPlayerReward': "Награда новому игроку",
+  'gift.specialReward': "Особая награда",
+  'gift.welcomeMessage': "Спасибо, что играете в раннюю альфа-версию 1.6 Competitive! В качестве приветственного подарка выберите один из скинов ниже.",
+  'gift.choose': "Выбрать этот скин",
+  'gift.owned': "Уже есть",
+  'gift.claiming': "Получение…",
+  'gift.unlocked': "Разблокировано",
+  'gift.yours': "Ваш",
+  'gift.previewUnavailable': "Предпросмотр недоступен",
 }
 
 const taglish: Record<TranslationKey, string> = {
@@ -130,6 +154,18 @@ const taglish: Record<TranslationKey, string> = {
   'auth.finishSigningIn': 'pag-sign in',
   'auth.finishCreatingAccount': 'pag-create ng account',
   'auth.facebookEmailHint': 'Walang email na binigay ang Facebook. Mag-add para mag-continue.'
+  'gift.arrived': "May gift ka!",
+  'gift.welcomeTitle': "WELCOME GIFT",
+  'gift.intro': "Isa sa mga skin na ito ay para sa iyo. Pili ka.",
+  'gift.newPlayerReward': "New player reward",
+  'gift.specialReward': "Special reward",
+  'gift.welcomeMessage': "Maraming salamat sa paglalaro ng early alpha release ng 1.6 Competitive! Bilang welcome gift, pumili ng isa sa mga skin sa ibaba.",
+  'gift.choose': "Piliin itong skin",
+  'gift.owned': "Owned mo na",
+  'gift.claiming': "Kinukuha…",
+  'gift.unlocked': "Unlocked",
+  'gift.yours': "Sa iyo na",
+  'gift.previewUnavailable': "Walang preview",
 }
 
 const thai: Record<TranslationKey, string> = {
@@ -168,6 +204,18 @@ const thai: Record<TranslationKey, string> = {
   'auth.finishSigningIn': 'การเข้าสู่ระบบ',
   'auth.finishCreatingAccount': 'การสร้างบัญชี',
   'auth.facebookEmailHint': 'Facebook ไม่ได้ส่งอีเมลมาให้ โปรดเพิ่มอีเมลเพื่อดำเนินการต่อ'
+  'gift.arrived': "คุณได้รับของขวัญ",
+  'gift.welcomeTitle': "ของขวัญต้อนรับ",
+  'gift.intro': "หนึ่งในสกินเหล่านี้เป็นของคุณ เลือกได้เลย",
+  'gift.newPlayerReward': "รางวัลสำหรับผู้เล่นใหม่",
+  'gift.specialReward': "รางวัลพิเศษ",
+  'gift.welcomeMessage': "ขอบคุณมากที่ร่วมเล่น 1.6 Competitive เวอร์ชันอัลฟ่าช่วงแรก! เพื่อเป็นของขวัญต้อนรับ โปรดเลือกหนึ่งสกินด้านล่าง",
+  'gift.choose': "เลือกสกินนี้",
+  'gift.owned': "มีอยู่แล้ว",
+  'gift.claiming': "กำลังรับ…",
+  'gift.unlocked': "ปลดล็อกแล้ว",
+  'gift.yours': "เป็นของคุณแล้ว",
+  'gift.previewUnavailable': "ไม่มีตัวอย่าง",
 }
 
 const indonesian: Record<TranslationKey, string> = {
@@ -207,6 +255,18 @@ const indonesian: Record<TranslationKey, string> = {
   'auth.finishCreatingAccount': 'pembuatan akun',
   'auth.facebookEmailHint':
     'Facebook tidak memberikan alamat email. Tambahkan email untuk melanjutkan.'
+  'gift.arrived': "Hadiah telah tiba",
+  'gift.welcomeTitle': "HADIAH SELAMAT DATANG",
+  'gift.intro': "Salah satu skin ini milikmu. Silakan pilih.",
+  'gift.newPlayerReward': "Hadiah pemain baru",
+  'gift.specialReward': "Hadiah spesial",
+  'gift.welcomeMessage': "Terima kasih banyak telah memainkan rilis early alpha 1.6 Competitive! Sebagai hadiah selamat datang, silakan pilih salah satu skin di bawah ini.",
+  'gift.choose': "Pilih skin ini",
+  'gift.owned': "Sudah dimiliki",
+  'gift.claiming': "Mengklaim…",
+  'gift.unlocked': "Terbuka",
+  'gift.yours': "Milikmu",
+  'gift.previewUnavailable': "Pratinjau tidak tersedia",
 }
 
 const portuguese: Record<TranslationKey, string> = {
@@ -246,6 +306,18 @@ const portuguese: Record<TranslationKey, string> = {
   'auth.finishCreatingAccount': 'a criação da sua conta',
   'auth.facebookEmailHint':
     'O Facebook não forneceu um endereço de e-mail. Adicione um para continuar.'
+  'gift.arrived': "Um presente chegou",
+  'gift.welcomeTitle': "PRESENTE DE BOAS-VINDAS",
+  'gift.intro': "Uma destas skins é sua. Escolha com cuidado.",
+  'gift.newPlayerReward': "Recompensa de novo jogador",
+  'gift.specialReward': "Recompensa especial",
+  'gift.welcomeMessage': "Agradecemos muito por jogar a versão early alpha de 1.6 Competitive! Como presente de boas-vindas, escolha uma das skins abaixo.",
+  'gift.choose': "Escolher esta skin",
+  'gift.owned': "Já possui",
+  'gift.claiming': "Resgatando…",
+  'gift.unlocked': "Desbloqueada",
+  'gift.yours': "É sua",
+  'gift.previewUnavailable': "Prévia indisponível",
 }
 
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
