@@ -7,6 +7,7 @@ import {
   authenticateWithSocial,
   completeSocialWithEmail,
   changePassword,
+  changeFlagCountryCode,
   changeUsername,
   checkUsername,
   clearSessionToken,
@@ -328,6 +329,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
   ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
     changePassword(credentials)
+  )
+  ipcMain.handle(AUTH_CHANNELS.flagChange, (_, flagCountryCode: unknown) =>
+    changeFlagCountryCode(flagCountryCode)
   )
   ipcMain.handle(AUTH_CHANNELS.restore, () => withClientTelemetry(restoreSession()))
   ipcMain.handle(AUTH_CHANNELS.logout, () => {

@@ -4,7 +4,9 @@ export const LEADERBOARD_CHANNELS = {
 
 export interface LeaderboardEntry {
   rank: number
+  playerId: string
   username: string
+  flagCountryCode: string | null
   mmr: number
 }
 

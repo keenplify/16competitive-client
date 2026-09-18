@@ -24,6 +24,7 @@ interface AuthState {
   submitSocialEmail: () => Promise<void>
   checkUsername: (username: string) => Promise<boolean>
   changeUsername: (username: string) => Promise<boolean>
+  changeFlagCountryCode: (flagCountryCode: string | null) => Promise<boolean>
   restore: () => Promise<void>
   refreshSession: () => Promise<void>
   logout: () => Promise<void>
@@ -201,6 +202,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       return (await window.api.auth.checkUsername(username)).available
     } catch {
+      return false
+    }
+  },
+
+  changeFlagCountryCode: async (flagCountryCode) => {
+    if (!get().session) return false
+    try {
+      const result = await window.api.auth.changeFlagCountryCode(flagCountryCode)
+      set((state) => ({
+        session: state.session
+          ? {
+              ...state.session,
+              player: { ...state.session.player, flagCountryCode: result.flagCountryCode }
+            }
+          : state.session
+      }))
+      return true
+    } catch (error) {
+      set({ error: readableError(error) })
       return false
     }
   },

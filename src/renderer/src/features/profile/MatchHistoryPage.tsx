@@ -9,6 +9,7 @@ import type {
   PlayerProfile
 } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { CountryFlag } from '../../components/CountryFlag'
 
 const teamName = (team: string): string => (team === 'team_1' ? 'Team A' : 'Team B')
 
@@ -144,7 +145,10 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                     <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
                       Player profile
                     </p>
-                    <h1 className="mt-1 text-3xl font-semibold">{profile.username}</h1>
+                    <div className="mt-1 flex items-center gap-3">
+                      <h1 className="text-3xl font-semibold">{profile.username}</h1>
+                      <CountryFlag code={profile.flagCountryCode} className="text-2xl" />
+                    </div>
                   </div>
                 </div>
               </header>

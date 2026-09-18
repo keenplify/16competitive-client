@@ -8,6 +8,7 @@ export const AUTH_CHANNELS = {
   usernameCheck: 'auth:username-check',
   usernameChange: 'auth:username-change',
   passwordChange: 'auth:password-change',
+  flagChange: 'auth:flag-change',
   logout: 'auth:logout',
   restore: 'auth:restore'
 } as const
@@ -29,6 +30,7 @@ export interface AuthPlayer {
   email: string
   mmr: number
   points: number
+  flagCountryCode: string | null
   createdAt: string
   hasPassword: boolean
   requiresUsernameSetup: boolean
@@ -67,6 +69,10 @@ export interface PasswordChangeResult {
   hasPassword: true
 }
 
+export interface FlagChangeResult {
+  flagCountryCode: string | null
+}
+
 export interface SocialConnectionState {
   connected: boolean
   email: string | null
@@ -91,6 +97,7 @@ export interface AuthApi {
   checkUsername(username: string): Promise<UsernameAvailability>
   changeUsername(username: string): Promise<UsernameChangeResult>
   changePassword(credentials: PasswordChangeCredentials): Promise<PasswordChangeResult>
+  changeFlagCountryCode(flagCountryCode: string | null): Promise<FlagChangeResult>
   restore(): Promise<AuthSession | null>
   logout(): Promise<void>
 }
