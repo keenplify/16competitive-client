@@ -71,6 +71,8 @@ import {
   getLobbyLoadout,
   getOwnedSkins,
   getSkinPreviewModel,
+  getPendingSkinGift,
+  claimSkinGift,
   listSkins,
   setLobbyPlayerModel,
   setLobbyWeapon,
@@ -399,6 +401,10 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(SKIN_CHANNELS.setLobbyPlayerModel, (_, modelPath: unknown) =>
     setLobbyPlayerModel(modelPath)
+  )
+  ipcMain.handle(SKIN_CHANNELS.pendingGift, () => getPendingSkinGift())
+  ipcMain.handle(SKIN_CHANNELS.claimGift, (_, giftId: unknown, skinId: unknown) =>
+    claimSkinGift(giftId, skinId)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
