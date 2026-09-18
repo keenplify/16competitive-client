@@ -131,7 +131,10 @@ export function SkinGiftOverlay(): JSX.Element | null {
                 {gift.kind === 'WELCOME' ? 'New player reward' : 'Special reward'}
               </p>
               <h2 className="mt-2 text-4xl font-black sm:text-5xl">{gift.title}</h2>
-              <p className="mt-3 text-sm text-neutral-400">Pick 1 of 3 Points skins to keep forever.</p>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-neutral-300">
+                We truly appreciate you playing the early alpha release of 1.6 Competitive! As a welcome gift,
+                please select one of the skins below.
+              </p>
             </header>
 
             <div className="grid gap-5 md:grid-cols-3">
