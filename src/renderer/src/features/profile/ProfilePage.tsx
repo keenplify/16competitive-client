@@ -82,15 +82,19 @@ export function ProfilePage(): JSX.Element {
                         aria-label="No flag"
                       />
                     )
+                  ) : option.code === FLAG_HELP_OPTION.code ? (
+                    <span className="text-xs text-neutral-500">{option.name}</span>
                   ) : (
-                    <span
-                      className={
-                        option.code === FLAG_HELP_OPTION.code
-                          ? 'text-xs text-neutral-500'
-                          : 'truncate'
-                      }
-                    >
-                      {option.name}
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {option.code ? (
+                        <CountryFlag
+                          code={option.code}
+                          className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+                        />
+                      ) : (
+                        <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
+                      )}
+                      <span className="truncate">{option.name}</span>
                     </span>
                   )
                 }
