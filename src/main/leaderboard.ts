@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config'
+import { getSessionToken } from './auth'
 import type { LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
 
 const isTimestamp = (value: unknown): value is string =>
@@ -23,7 +24,7 @@ const isEntry = (value: unknown): value is LeaderboardEntry => {
   )
 }
 
-const isTopMmrLeaderboard = (value: unknown): value is TopMmrLeaderboard => {
+const isTopMmrLeaderboard = (value: unknown): value is Omit<TopMmrLeaderboard, 'currentPlayer'> => {
   if (typeof value !== 'object' || value === null) return false
   const leaderboard = value as Record<string, unknown>
   return (
@@ -33,6 +34,22 @@ const isTopMmrLeaderboard = (value: unknown): value is TopMmrLeaderboard => {
     leaderboard.entries.length <= 10 &&
     leaderboard.entries.every(isEntry)
   )
+}
+
+const getCurrentPlayerStanding = async (): Promise<LeaderboardEntry | null> => {
+  const token = getSessionToken()
+  if (!token) return null
+
+  const response = await fetch(`${API_BASE_URL}/leaderboard/me`, {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+
+  if (!response || response.status === 401 || response.status === 404) return null
+
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok || !isEntry(body)) return null
+  return body
 }
 
 export const getTopMmrLeaderboard = async (): Promise<TopMmrLeaderboard> => {
@@ -49,5 +66,7 @@ export const getTopMmrLeaderboard = async (): Promise<TopMmrLeaderboard> => {
   if (!isTopMmrLeaderboard(body)) {
     throw new Error('The matchmaking server returned an invalid leaderboard')
   }
-  return body
+
+  const currentPlayer = await getCurrentPlayerStanding()
+  return { ...body, currentPlayer }
 }
