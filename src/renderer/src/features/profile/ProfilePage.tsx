@@ -11,7 +11,13 @@ import {
   type CountryOption
 } from '../../components/CountryFlag'
 
+const FLAG_HELP_OPTION: CountryOption = {
+  code: '__help__',
+  name: 'Choose a flag or leave it blank.'
+}
+
 const REPRESENTING_FLAG_OPTIONS: CountryOption[] = [
+  FLAG_HELP_OPTION,
   { code: '', name: 'No flag' },
   ...COUNTRY_OPTIONS
 ]
@@ -29,6 +35,7 @@ export function ProfilePage(): JSX.Element {
   }, [player?.flagCountryCode])
 
   const handleFlagChange = async (option: SingleValue<CountryOption>): Promise<void> => {
+    if (option?.code === FLAG_HELP_OPTION.code) return
     const flagCountryCode = option?.code ?? ''
     const previousFlag = player?.flagCountryCode ?? ''
     setDraftFlag(flagCountryCode)
@@ -65,20 +72,25 @@ export function ProfilePage(): JSX.Element {
                 }
                 getOptionLabel={(option) => option.name}
                 getOptionValue={(option) => option.code}
+                isOptionDisabled={(option) => option.code === FLAG_HELP_OPTION.code}
                 onChange={(option) => void handleFlagChange(option)}
-                formatOptionLabel={(option) => (
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    {option.code ? (
-                      <CountryFlag
-                        code={option.code}
-                        className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
-                      />
-                    ) : (
-                      <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
-                    )}
-                    <span className="truncate">{option.name}</span>
-                  </span>
-                )}
+                formatOptionLabel={(option) =>
+                  option.code === FLAG_HELP_OPTION.code ? (
+                    <span className="text-xs text-neutral-500">{option.name}</span>
+                  ) : (
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {option.code ? (
+                        <CountryFlag
+                          code={option.code}
+                          className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+                        />
+                      ) : (
+                        <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
+                      )}
+                      <span className="truncate">{option.name}</span>
+                    </span>
+                  )
+                }
                 classNames={{
                   control: ({ isFocused }) =>
                     `mt-1 min-h-10 cursor-pointer border bg-neutral-900 text-sm transition ${
@@ -96,21 +108,20 @@ export function ProfilePage(): JSX.Element {
                   menu: () =>
                     'z-50 mt-1 overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl shadow-black/60',
                   menuList: () => 'max-h-72 p-1',
-                  option: ({ isFocused, isSelected }) =>
-                    `cursor-pointer px-3 py-2 text-sm transition ${
-                      isSelected
-                        ? 'bg-sky-400/20 text-sky-200'
-                        : isFocused
-                          ? 'bg-white/10 text-white'
-                          : 'text-neutral-200'
+                  option: ({ isDisabled, isFocused, isSelected }) =>
+                    `px-3 py-2 text-sm transition ${
+                      isDisabled
+                        ? 'cursor-default border-b border-white/10 text-neutral-500'
+                        : isSelected
+                          ? 'cursor-pointer bg-sky-400/20 text-sky-200'
+                          : isFocused
+                            ? 'cursor-pointer bg-white/10 text-white'
+                            : 'cursor-pointer text-neutral-200'
                     }`,
                   noOptionsMessage: () => 'px-3 py-4 text-sm text-neutral-500'
                 }}
               />
             </label>
-            <p className="w-full text-xs text-neutral-500">
-              {savingFlag ? 'Saving flag…' : 'Choose a flag or leave it blank.'}
-            </p>
           </div>
           <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
             {(['matches', 'skins'] as const).map((id) => (
