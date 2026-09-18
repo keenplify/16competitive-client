@@ -843,3 +843,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Support changing player flag
 - Add flag to auth contract
 - Add country flag display helpers
+
+## v2026.918.2 — 2026-09-18
+
+- Show player standing below leaderboard
+- Fetch current player leaderboard standing
+- Include current player leaderboard standing
