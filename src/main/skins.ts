@@ -8,6 +8,7 @@ const PREVIEW_MODEL_CACHE_ENABLED = true
 const SKIN_API_URL_CACHE_MS = 5_000
 
 const skinIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const giftRewardIdPattern = /^(?:skin:[0-9a-f-]{36}|points:(?:2000|3000|4000|5000)|pcoins:(?:[1-9]\d{2}|1\d{3}|2000))$/i
 const weaponKeyPattern = /^[a-z0-9_]+$/
 
 type ApiError = Error & { code?: string }
@@ -294,22 +295,32 @@ export const getPendingSkinGift = async (): Promise<SkinGift | null> => {
 
 export const claimSkinGift = async (
   giftId: unknown,
-  skinId: unknown
-): Promise<{ skin: SkinGiftChoice }> => {
+  rewardId: unknown
+): Promise<{
+  reward: SkinGiftChoice
+  pointsGranted?: number
+  pCoinsGranted?: number
+}> => {
   const id = validateSkinId(giftId)
-  const selectedSkinId = validateSkinId(skinId)
+  if (typeof rewardId !== 'string' || !giftRewardIdPattern.test(rewardId)) {
+    throw new Error('Invalid gift reward ID')
+  }
   const data = await playerRequest(`/skin-gifts/${id}/claim`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ skinId: selectedSkinId })
+    body: JSON.stringify({ rewardId })
   })
   if (
     typeof data !== 'object' ||
     data === null ||
-    typeof (data as Record<string, unknown>).skin !== 'object' ||
-    (data as Record<string, unknown>).skin === null
+    typeof (data as Record<string, unknown>).reward !== 'object' ||
+    (data as Record<string, unknown>).reward === null
   ) {
     throw new Error('The server returned an invalid gift claim.')
   }
-  return data as { skin: SkinGiftChoice }
+  return data as {
+    reward: SkinGiftChoice
+    pointsGranted?: number
+    pCoinsGranted?: number
+  }
 }
