@@ -21,6 +21,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const [gift, setGift] = useState<SkinGift | null>(null)
   const [stage, setStage] = useState<RevealStage>('intro')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [dismissedGiftId, setDismissedGiftId] = useState<string | null>(null)
   const requestInFlight = useRef(false)
   const revealedGiftId = useRef<string | null>(null)
 
@@ -29,6 +30,10 @@ export function SkinGiftOverlay(): JSX.Element | null {
     requestInFlight.current = true
     try {
       const pending = await window.api.skins.pendingGift()
+      if (pending?.id === dismissedGiftId) {
+        setGift(null)
+        return
+      }
       setGift(pending)
       if (pending && revealedGiftId.current !== pending.id) {
         revealedGiftId.current = pending.id
@@ -40,11 +45,13 @@ export function SkinGiftOverlay(): JSX.Element | null {
     } finally {
       requestInFlight.current = false
     }
-  }, [session])
+  }, [dismissedGiftId, session])
 
   useEffect(() => {
     if (status !== 'authenticated' || !session || session.player.requiresUsernameSetup) {
       setGift(null)
+      setDismissedGiftId(null)
+      revealedGiftId.current = null
       return
     }
     void loadGift()
@@ -57,6 +64,14 @@ export function SkinGiftOverlay(): JSX.Element | null {
     const timer = window.setTimeout(() => setStage('choices'), 1700)
     return () => window.clearTimeout(timer)
   }, [gift, stage])
+
+  const decideLater = (): void => {
+    if (!gift || stage !== 'choices') return
+    setDismissedGiftId(gift.id)
+    setGift(null)
+    setSelectedId(null)
+    setStage('intro')
+  }
 
   const claim = (choice: SkinGiftChoice): void => {
     if (!gift || choice.owned || stage !== 'choices') return
@@ -281,6 +296,17 @@ export function SkinGiftOverlay(): JSX.Element | null {
                   </button>
                 )
               })}
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                disabled={stage !== 'choices'}
+                onClick={decideLater}
+                className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-neutral-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white disabled:cursor-default disabled:opacity-40"
+              >
+                {t('gift.decideLater')}
+              </button>
             </div>
           </div>
         </section>
