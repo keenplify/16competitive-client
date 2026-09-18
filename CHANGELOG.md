@@ -849,3 +849,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Show player standing below leaderboard
 - Fetch current player leaderboard standing
 - Include current player leaderboard standing
+
+## v2026.918.3 — 2026-09-18
+
+- Report measured regional latency
