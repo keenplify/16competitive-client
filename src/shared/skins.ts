@@ -58,13 +58,38 @@ export interface LobbyLoadout {
 }
 
 
-export interface SkinGiftChoice {
+export interface SkinGiftSkinChoice {
   id: string
+  type: 'SKIN'
+  skinId: string
   weaponKey: string
   name: string
   description: string | null
   owned: boolean
 }
+
+export interface SkinGiftPointsChoice {
+  id: string
+  type: 'POINTS'
+  points: number
+  name: string
+  description: null
+  owned: false
+}
+
+export interface SkinGiftPCoinsChoice {
+  id: string
+  type: 'P_COINS'
+  pCoins: number
+  name: string
+  description: null
+  owned: false
+}
+
+export type SkinGiftChoice =
+  | SkinGiftSkinChoice
+  | SkinGiftPointsChoice
+  | SkinGiftPCoinsChoice
 
 export interface SkinGift {
   id: string
@@ -86,5 +111,9 @@ export interface SkinsApi {
   setLobbyWeaponKey(weaponKey: string): Promise<void>
   setLobbyPlayerModel(modelPath: string): Promise<void>
   pendingGift(): Promise<SkinGift | null>
-  claimGift(giftId: string, skinId: string): Promise<{ skin: SkinGiftChoice }>
+  claimGift(giftId: string, rewardId: string): Promise<{
+    reward: SkinGiftChoice
+    pointsGranted?: number
+    pCoinsGranted?: number
+  }>
 }
