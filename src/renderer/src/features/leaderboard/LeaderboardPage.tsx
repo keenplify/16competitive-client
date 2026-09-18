@@ -1,7 +1,9 @@
-import { Trophy } from 'lucide-react'
-import { useEffect, type JSX } from 'react'
+import { ChevronLeft, LoaderCircle, Trophy, UserRound } from 'lucide-react'
+import { useEffect, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useLeaderboardStore } from './leaderboard.store'
+import type { PlayerProfile } from '../../../../shared/match-history'
+import { CountryFlag } from '../../components/CountryFlag'
 
 const formatTimestamp = (value: string): string =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -12,10 +14,90 @@ export function LeaderboardPage(): JSX.Element {
   const leaderboard = useLeaderboardStore((state) => state.leaderboard)
   const status = useLeaderboardStore((state) => state.status)
   const load = useLeaderboardStore((state) => state.load)
+  const [profile, setProfile] = useState<PlayerProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+
+  const openProfile = (playerId: string): void => {
+    setProfile(null)
+    setProfileError(null)
+    setProfileLoading(true)
+    void window.api.matchHistory
+      .getPlayerProfile(playerId)
+      .then((loaded) => setProfile(loaded))
+      .catch((error: unknown) =>
+        setProfileError(error instanceof Error ? error.message : 'Could not load player profile.')
+      )
+      .finally(() => setProfileLoading(false))
+  }
 
   useEffect(() => {
     void load()
   }, [load])
+
+  if (profileLoading || profile || profileError) {
+    return (
+      <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
+        <div className="mx-auto max-w-3xl">
+          <Button
+            variant="ghost"
+            className="h-9 px-3 text-xs"
+            onClick={() => {
+              setProfile(null)
+              setProfileError(null)
+              setProfileLoading(false)
+            }}
+          >
+            <ChevronLeft className="mr-1 size-4" aria-hidden="true" /> Leaderboard
+          </Button>
+          {profileLoading && (
+            <div className="flex min-h-80 items-center justify-center" role="status">
+              <LoaderCircle className="size-7 animate-spin text-sky-300" aria-hidden="true" />
+            </div>
+          )}
+          {profileError && <p className="mt-8 text-sm text-rose-300">{profileError}</p>}
+          {profile && (
+            <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
+              <header className="border-b border-white/10 px-6 py-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-sky-400/15 text-sky-300">
+                    <UserRound className="size-6" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
+                      Player profile
+                    </p>
+                    <div className="mt-1 flex items-center gap-3">
+                      <h1 className="text-3xl font-semibold">{profile.username}</h1>
+                      <CountryFlag code={profile.flagCountryCode} className="text-2xl" />
+                    </div>
+                  </div>
+                </div>
+              </header>
+              <dl className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-4">
+                {[
+                  ['MMR', profile.mmr],
+                  ['Wins', profile.wins],
+                  ['Losses', profile.losses],
+                  ['K / A / D', `${profile.kills} / ${profile.assists} / ${profile.deaths}`]
+                ].map(([label, value]) => (
+                  <div key={label} className="p-5">
+                    <dt className="text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+                      {label}
+                    </dt>
+                    <dd className="mt-2 text-lg font-semibold tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="px-6 py-4 text-xs text-neutral-500">
+                Playing since {new Date(profile.createdAt).toLocaleDateString()}
+              </p>
+            </section>
+          )}
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
@@ -67,7 +149,15 @@ export function LeaderboardPage(): JSX.Element {
                     entry.rank
                   )}
                 </span>
-                <span className="truncate font-medium">{entry.username}</span>
+                <button
+                  type="button"
+                  className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
+                  onClick={() => openProfile(entry.playerId)}
+                  title={`View ${entry.username}'s profile`}
+                >
+                  <CountryFlag code={entry.flagCountryCode} className="shrink-0 text-lg" />
+                  <span className="truncate">{entry.username}</span>
+                </button>
                 <span className="font-mono text-sm font-semibold text-sky-300">
                   {entry.mmr.toLocaleString()}
                 </span>

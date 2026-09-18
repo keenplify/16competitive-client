@@ -78,6 +78,8 @@ const isPlayerProfile = (value: unknown): value is PlayerProfile => {
     typeof player.id === 'string' &&
     typeof player.username === 'string' &&
     typeof player.mmr === 'number' &&
+    (player.flagCountryCode === null ||
+      (typeof player.flagCountryCode === 'string' && /^[A-Z]{2}$/.test(player.flagCountryCode))) &&
     typeof player.wins === 'number' &&
     typeof player.losses === 'number' &&
     typeof player.kills === 'number' &&

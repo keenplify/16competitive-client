@@ -3,6 +3,7 @@ import type {
   AuthSession,
   PasswordChangeCredentials,
   PasswordChangeResult,
+  FlagChangeResult,
   RegistrationCredentials,
   SocialAuthProvider,
   SocialAuthResult,
@@ -29,6 +30,7 @@ interface BackendAuthResponse {
     email: string
     mmr: number
     points: number
+    flagCountryCode: string | null
     createdAt: string
     hasPassword: boolean
   }
@@ -151,6 +153,9 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     typeof (player as Record<string, unknown>).email === 'string' &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
     typeof (player as Record<string, unknown>).points === 'number' &&
+    (((player as Record<string, unknown>).flagCountryCode === null) ||
+      (typeof (player as Record<string, unknown>).flagCountryCode === 'string' &&
+        /^[A-Z]{2}$/.test((player as Record<string, unknown>).flagCountryCode as string))) &&
     typeof (player as Record<string, unknown>).createdAt === 'string' &&
     typeof (player as Record<string, unknown>).hasPassword === 'boolean'
   )
@@ -504,6 +509,44 @@ export const changeUsername = async (untrustedUsername: unknown): Promise<Userna
   }
   sessionUsername = (body as UsernameChangeResult).username
   return body as UsernameChangeResult
+}
+
+export const changeFlagCountryCode = async (
+  untrustedFlagCountryCode: unknown
+): Promise<FlagChangeResult> => {
+  if (
+    untrustedFlagCountryCode !== null &&
+    (typeof untrustedFlagCountryCode !== 'string' ||
+      !/^[A-Za-z]{2}$/.test(untrustedFlagCountryCode))
+  ) {
+    throw new Error('Invalid flag country code')
+  }
+  if (!sessionToken) throw new Error('Authentication required')
+  const flagCountryCode =
+    typeof untrustedFlagCountryCode === 'string' ? untrustedFlagCountryCode.toUpperCase() : null
+  const response = await fetch(`${API_BASE_URL}/auth/flag`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ flagCountryCode }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    !('flagCountryCode' in body) ||
+    ((body as Record<string, unknown>).flagCountryCode !== null &&
+      (typeof (body as Record<string, unknown>).flagCountryCode !== 'string' ||
+        !/^[A-Z]{2}$/.test((body as Record<string, unknown>).flagCountryCode as string)))
+  ) {
+    throw new Error('The server returned an invalid flag response')
+  }
+  return body as FlagChangeResult
 }
 
 export const changePassword = async (
