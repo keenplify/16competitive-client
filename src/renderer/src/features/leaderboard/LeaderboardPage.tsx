@@ -35,6 +35,14 @@ export function LeaderboardPage(): JSX.Element {
     void load()
   }, [load])
 
+  const currentPlayer = leaderboard?.currentPlayer ?? null
+  const showCurrentPlayerOutsideTopTen = currentPlayer !== null && currentPlayer.rank > 10
+  const displayedEntries = leaderboard
+    ? showCurrentPlayerOutsideTopTen
+      ? [...leaderboard.entries.slice(0, 9), currentPlayer]
+      : leaderboard.entries
+    : []
+
   if (profileLoading || profile || profileError) {
     return (
       <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
@@ -132,14 +140,14 @@ export function LeaderboardPage(): JSX.Element {
             <span>Player</span>
             <span>MMR</span>
           </div>
-          {leaderboard.entries.length === 0 ? (
+          {displayedEntries.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-neutral-400">
               No ranked players yet.
             </p>
           ) : (
-            leaderboard.entries.map((entry) => (
+            displayedEntries.map((entry) => (
               <div
-                key={entry.rank}
+                key={entry.playerId}
                 className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
               >
                 <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
@@ -156,7 +164,14 @@ export function LeaderboardPage(): JSX.Element {
                   title={`View ${entry.username}'s profile`}
                 >
                   <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
-                  <span className="truncate">{entry.username}</span>
+                  <span className="truncate">
+                    {entry.username}
+                    {currentPlayer?.playerId === entry.playerId && (
+                      <span className="ml-2 text-[10px] font-bold tracking-wider text-sky-400 uppercase">
+                        You
+                      </span>
+                    )}
+                  </span>
                 </button>
                 <span className="font-mono text-sm font-semibold text-sky-300">
                   {entry.mmr.toLocaleString()}
