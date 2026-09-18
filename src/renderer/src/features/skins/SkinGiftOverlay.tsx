@@ -22,6 +22,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const [stage, setStage] = useState<RevealStage>('intro')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const requestInFlight = useRef(false)
+  const revealedGiftId = useRef<string | null>(null)
 
   const loadGift = useCallback(async (): Promise<void> => {
     if (requestInFlight.current || !session || session.player.requiresUsernameSetup) return
@@ -29,7 +30,8 @@ export function SkinGiftOverlay(): JSX.Element | null {
     try {
       const pending = await window.api.skins.pendingGift()
       setGift(pending)
-      if (pending) {
+      if (pending && revealedGiftId.current !== pending.id) {
+        revealedGiftId.current = pending.id
         setSelectedId(null)
         setStage('intro')
       }
