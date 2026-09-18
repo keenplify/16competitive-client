@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import Flag from 'react-world-flags'
 
 export interface CountryOption {
   code: string
@@ -258,31 +259,6 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: 'ZW', name: "Zimbabwe" }
 ]
 
-export const countryFlagEmoji = (code: string): string =>
-  code
-    .toUpperCase()
-    .replace(/[A-Z]/g, (letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
-
-export const detectLocaleCountryCode = (): string | null => {
-  const languages = typeof navigator === 'undefined' ? [] : navigator.languages
-  for (const language of languages) {
-    try {
-      const region = new Intl.Locale(language).region?.toUpperCase()
-      if (region && COUNTRY_OPTIONS.some((country) => country.code === region)) return region
-    } catch {
-      // Ignore malformed locale entries and continue through the browser's locale list.
-    }
-  }
-  return null
-}
-
-export const orderedCountryOptions = (detectedCode: string | null): CountryOption[] => {
-  if (!detectedCode) return COUNTRY_OPTIONS
-  const detected = COUNTRY_OPTIONS.find((country) => country.code === detectedCode)
-  if (!detected) return COUNTRY_OPTIONS
-  return [detected, ...COUNTRY_OPTIONS.filter((country) => country.code !== detectedCode)]
-}
-
 export function CountryFlag({
   code,
   className = ''
@@ -292,8 +268,11 @@ export function CountryFlag({
 }): JSX.Element | null {
   if (!code) return null
   return (
-    <span className={className} role="img" aria-label={code.toUpperCase()}>
-      {countryFlagEmoji(code)}
-    </span>
+    <Flag
+      code={code}
+      className={className}
+      alt={`${code.toUpperCase()} flag`}
+      loading="lazy"
+    />
   )
 }
