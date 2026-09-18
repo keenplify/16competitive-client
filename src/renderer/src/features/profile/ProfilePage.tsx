@@ -45,7 +45,6 @@ export function ProfilePage(): JSX.Element {
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Profile</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold">{player?.username ?? 'Player'}</h1>
-            <CountryFlag code={player?.flagCountryCode} className="text-2xl" />
           </div>
           <div className="mt-4 flex max-w-xl flex-wrap items-end gap-2">
             <label

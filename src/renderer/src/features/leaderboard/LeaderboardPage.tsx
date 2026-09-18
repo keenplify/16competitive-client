@@ -69,7 +69,7 @@ export function LeaderboardPage(): JSX.Element {
                     </p>
                     <div className="mt-1 flex items-center gap-3">
                       <h1 className="text-3xl font-semibold">{profile.username}</h1>
-                      <CountryFlag code={profile.flagCountryCode} className="text-2xl" />
+                      <CountryFlag code={profile.flagCountryCode} className="h-[1em] w-auto shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export function LeaderboardPage(): JSX.Element {
                   onClick={() => openProfile(entry.playerId)}
                   title={`View ${entry.username}'s profile`}
                 >
-                  <CountryFlag code={entry.flagCountryCode} className="shrink-0 text-lg" />
+                  <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
                   <span className="truncate">{entry.username}</span>
                 </button>
                 <span className="font-mono text-sm font-semibold text-sky-300">
