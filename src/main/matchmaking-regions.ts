@@ -113,6 +113,30 @@ const attachNodeLatencies = async (nodes: MatchmakingNode[]): Promise<Matchmakin
     }))
   )
 
+const reportNodeLatencies = async (
+  nodes: MatchmakingNode[],
+  token: string
+): Promise<void> => {
+  const measurements = nodes.flatMap((node) => {
+    const latencyMs = measuredLatency(node)
+    return latencyMs === null ? [] : [{ region: node.region, latencyMs }]
+  })
+  if (measurements.length === 0) return
+  try {
+    await fetch(`${API_BASE_URL}/auth/latency-observations`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ measurements }),
+      signal: AbortSignal.timeout(2_500)
+    })
+  } catch {
+    // Ping reporting is operational telemetry only. Never block region selection.
+  }
+}
+
 export const getMatchmakingPreferences = async (): Promise<MatchmakingPreferences> => {
   try {
     const value: unknown = JSON.parse(await readFile(preferencesPath(), 'utf8'))
@@ -155,7 +179,9 @@ export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
   if (!response.ok || !isObject(body) || !Array.isArray(body.nodes) || !body.nodes.every(isNode)) {
     throw new Error('The regional matchmaking service returned invalid nodes')
   }
-  return attachNodeLatencies(body.nodes)
+  const measuredNodes = await attachNodeLatencies(body.nodes)
+  void reportNodeLatencies(measuredNodes, token)
+  return measuredNodes
 }
 
 export const selectMatchmakingApiUrl = async (
