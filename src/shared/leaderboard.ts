@@ -14,6 +14,7 @@ export interface TopMmrLeaderboard {
   generatedAt: string
   refreshAt: string
   entries: LeaderboardEntry[]
+  currentPlayer: LeaderboardEntry | null
 }
 
 export interface LeaderboardApi {
