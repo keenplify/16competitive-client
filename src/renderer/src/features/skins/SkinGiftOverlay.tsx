@@ -1,4 +1,4 @@
-import { Gift, LoaderCircle, Sparkles } from 'lucide-react'
+import { LoaderCircle, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import type { SkinGift, SkinGiftChoice } from '../../../../shared/skins'
@@ -54,7 +54,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
 
   useEffect(() => {
     if (!gift || stage !== 'intro') return
-    const timer = window.setTimeout(() => setStage('choices'), 1050)
+    const timer = window.setTimeout(() => setStage('choices'), 1700)
     return () => window.clearTimeout(timer)
   }, [gift, stage])
 
@@ -88,6 +88,62 @@ export function SkinGiftOverlay(): JSX.Element | null {
 
   return (
     <ModalPortal>
+      <style>{`
+        @keyframes giftBoxBounce {
+          0% { transform: translateX(-50%) translateY(18px) scale(.78); opacity: 0; }
+          22% { transform: translateX(-50%) translateY(-8px) scale(1.04); opacity: 1; }
+          38% { transform: translateX(-50%) translateY(0) scale(.98); }
+          52% { transform: translateX(-50%) translateY(-5px) rotate(-3deg); }
+          64% { transform: translateX(-50%) translateY(-5px) rotate(3deg); }
+          76% { transform: translateX(-50%) translateY(-3px) rotate(-2deg); }
+          88% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+          100% { transform: translateX(-50%) translateY(0) scale(1); }
+        }
+
+        @keyframes giftLidPop {
+          0%, 18% { transform: translateY(0) rotate(0deg) scale(1); }
+          55% { transform: translateY(-27px) rotate(-8deg) scale(1.03); }
+          100% { transform: translate(34px, -58px) rotate(24deg) scale(.94); opacity: .15; }
+        }
+
+        @keyframes giftBurst {
+          0%, 38% { opacity: .2; transform: translate(-50%, -50%) scale(.55); }
+          62% { opacity: .95; transform: translate(-50%, -50%) scale(1.3); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+        }
+
+        @keyframes giftSparkle {
+          0%, 35% { opacity: 0; transform: translateY(8px) scale(.4) rotate(-20deg); }
+          58% { opacity: 1; transform: translateY(-8px) scale(1.25) rotate(8deg); }
+          100% { opacity: 0; transform: translateY(-20px) scale(.7) rotate(22deg); }
+        }
+
+        @keyframes giftStar {
+          0%, 42% { opacity: 0; transform: translateY(6px) scale(.3); }
+          60% { opacity: 1; transform: translateY(-10px) scale(1.25); }
+          100% { opacity: 0; transform: translateY(-30px) scale(.3); }
+        }
+
+        .gift-box { animation: giftBoxBounce 1.05s cubic-bezier(.2,.85,.25,1) both; transform-origin: center bottom; }
+        .gift-box-lid { animation: giftLidPop .82s cubic-bezier(.2,.85,.25,1) .78s both; transform-origin: 18% 100%; }
+        .gift-box-burst { animation: giftBurst 1.05s ease-out .55s both; }
+        .gift-box-sparkle { animation: giftSparkle .9s ease-out .62s both; }
+        .gift-box-star { animation: giftStar .88s ease-out both; }
+        .gift-box-star-one { animation-delay: .62s; }
+        .gift-box-star-two { animation-delay: .74s; }
+        .gift-box-star-three { animation-delay: .84s; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .gift-box,
+          .gift-box-lid,
+          .gift-box-burst,
+          .gift-box-sparkle,
+          .gift-box-star {
+            animation-duration: .01ms !important;
+            animation-delay: 0ms !important;
+          }
+        }
+      `}</style>
       <div
         className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-black/90 p-5 backdrop-blur-xl"
         role="dialog"
@@ -112,9 +168,26 @@ export function SkinGiftOverlay(): JSX.Element | null {
                 : 'pointer-events-none scale-125 opacity-0'
             }`}
           >
-            <div className="relative grid size-24 place-items-center rounded-full border border-amber-200/30 bg-amber-300/10 shadow-[0_0_80px_rgba(251,191,36,0.28)]">
-              <Gift className="size-11 text-amber-300" aria-hidden="true" />
-              <Sparkles className="absolute -top-3 -right-4 size-7 text-amber-200" aria-hidden="true" />
+            <div className="gift-box-scene relative h-36 w-44" aria-hidden="true">
+              <div className="gift-box-burst absolute top-1/2 left-1/2 size-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-300/20 blur-2xl" />
+              <Sparkles className="gift-box-sparkle absolute top-0 right-0 size-8 text-amber-200" />
+              <span className="gift-box-star gift-box-star-one absolute top-7 left-0 size-2 rounded-full bg-amber-200" />
+              <span className="gift-box-star gift-box-star-two absolute top-2 left-8 size-1.5 rounded-full bg-white" />
+              <span className="gift-box-star gift-box-star-three absolute right-4 bottom-8 size-2 rounded-full bg-amber-300" />
+
+              <div className="gift-box absolute bottom-2 left-1/2 h-28 w-32 -translate-x-1/2">
+                <div className="gift-box-base absolute right-1 bottom-0 left-1 h-20 rounded-b-xl border border-amber-100/30 bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 shadow-[0_18px_60px_rgba(251,191,36,0.35)]">
+                  <div className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-red-600/90 shadow-[0_0_16px_rgba(220,38,38,0.35)]" />
+                  <div className="absolute inset-x-0 top-3 h-px bg-white/20" />
+                </div>
+
+                <div className="gift-box-lid absolute top-2 -left-1 h-9 w-[8.5rem] rounded-lg border border-amber-100/40 bg-linear-to-b from-amber-200 to-amber-500 shadow-lg">
+                  <div className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-red-600" />
+                  <div className="gift-box-bow gift-box-bow-left absolute -top-6 left-[2.75rem] h-7 w-9 rounded-[100%_10%_100%_10%] border-4 border-red-500 bg-red-600/80" />
+                  <div className="gift-box-bow gift-box-bow-right absolute -top-6 right-[2.75rem] h-7 w-9 rounded-[10%_100%_10%_100%] border-4 border-red-500 bg-red-600/80" />
+                  <div className="absolute -top-3 left-1/2 size-6 -translate-x-1/2 rounded-full bg-red-600 shadow-md" />
+                </div>
+              </div>
             </div>
             <p className="mt-7 text-xs font-black tracking-[0.45em] text-amber-300 uppercase">
               {t('gift.arrived')}
