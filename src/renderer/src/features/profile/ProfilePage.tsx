@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAuthStore } from '../auth/auth.store'
 import { SkinsPage } from '../skins/SkinsPage'
 import { MatchHistoryPage } from './MatchHistoryPage'
 import { useNavigationStore } from '../navigation/navigation.store'
 import {
+  COUNTRY_OPTIONS,
   CountryFlag,
-  detectLocaleCountryCode,
-  orderedCountryOptions,
   countryFlagEmoji
 } from '../../components/CountryFlag'
 
@@ -16,8 +15,6 @@ export function ProfilePage(): JSX.Element {
   const tab = useNavigationStore((state) => state.profileTab)
   const setTab = useNavigationStore((state) => state.setProfileTab)
   const changeFlagCountryCode = useAuthStore((state) => state.changeFlagCountryCode)
-  const detectedCode = useMemo(() => detectLocaleCountryCode(), [])
-  const countryOptions = useMemo(() => orderedCountryOptions(detectedCode), [detectedCode])
   const [draftFlag, setDraftFlag] = useState(player?.flagCountryCode ?? '')
   const [savingFlag, setSavingFlag] = useState(false)
 
@@ -25,9 +22,12 @@ export function ProfilePage(): JSX.Element {
     setDraftFlag(player?.flagCountryCode ?? '')
   }, [player?.flagCountryCode])
 
-  const saveFlag = async (): Promise<void> => {
+  const handleFlagChange = async (flagCountryCode: string): Promise<void> => {
+    const previousFlag = player?.flagCountryCode ?? ''
+    setDraftFlag(flagCountryCode)
     setSavingFlag(true)
-    await changeFlagCountryCode(draftFlag || null)
+    const saved = await changeFlagCountryCode(flagCountryCode || null)
+    if (!saved) setDraftFlag(previousFlag)
     setSavingFlag(false)
   }
 
@@ -46,29 +46,19 @@ export function ProfilePage(): JSX.Element {
               <select
                 className="mt-1 h-10 w-full border border-white/15 bg-neutral-900 px-3 text-sm text-white outline-none focus:border-sky-400"
                 value={draftFlag}
-                onChange={(event) => setDraftFlag(event.target.value)}
+                disabled={savingFlag}
+                onChange={(event) => void handleFlagChange(event.target.value)}
               >
                 <option value="">No flag</option>
-                {countryOptions.map((country, index) => (
+                {COUNTRY_OPTIONS.map((country) => (
                   <option key={country.code} value={country.code}>
-                    {country.code === detectedCode && index === 0 ? 'Suggested · ' : ''}
                     {country.name} {countryFlagEmoji(country.code)}
                   </option>
                 ))}
               </select>
             </label>
-            <button
-              type="button"
-              className="h-10 border border-sky-400/40 bg-sky-400/10 px-4 text-xs font-bold text-sky-300 uppercase transition hover:bg-sky-400/20 disabled:opacity-50"
-              disabled={savingFlag || draftFlag === (player?.flagCountryCode ?? '')}
-              onClick={() => void saveFlag()}
-            >
-              {savingFlag ? 'Saving…' : 'Save flag'}
-            </button>
             <p className="w-full text-xs text-neutral-500">
-              {detectedCode
-                ? `${detectedCode} is suggested from your device locale, but nothing is selected automatically.`
-                : 'Choose a flag or leave it blank.'}
+              {savingFlag ? 'Saving flag…' : 'Choose a flag or leave it blank.'}
             </p>
           </div>
           <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
