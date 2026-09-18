@@ -1,10 +1,12 @@
-import { LoaderCircle, Sparkles } from 'lucide-react'
+import { Coins, LoaderCircle, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import type { SkinGift, SkinGiftChoice } from '../../../../shared/skins'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useNavigationStore } from '../navigation/navigation.store'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
 
 type RevealStage = 'intro' | 'choices' | 'claiming' | 'claimed'
@@ -17,6 +19,10 @@ const errorMessage = (reason: unknown): string => {
 export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
+  const setPoints = useAuthStore((state) => state.setPoints)
+  const page = useNavigationStore((state) => state.page)
+  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const { t } = useTranslation()
   const [gift, setGift] = useState<SkinGift | null>(null)
   const [stage, setStage] = useState<RevealStage>('intro')
@@ -25,8 +31,23 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const requestInFlight = useRef(false)
   const revealedGiftId = useRef<string | null>(null)
 
+  const matchLifecycleActive = [
+    'match_found',
+    'ready_check',
+    'countdown',
+    'starting_server',
+    'server_ready'
+  ].includes(queueStatus)
+  const safeToShow =
+    status === 'authenticated' &&
+    Boolean(session) &&
+    !session?.player.requiresUsernameSetup &&
+    page === 'lobby' &&
+    completedMatch === null &&
+    !matchLifecycleActive
+
   const loadGift = useCallback(async (): Promise<void> => {
-    if (requestInFlight.current || !session || session.player.requiresUsernameSetup) return
+    if (requestInFlight.current || !safeToShow || !session) return
     requestInFlight.current = true
     try {
       const pending = await window.api.skins.pendingGift()
@@ -45,7 +66,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
     } finally {
       requestInFlight.current = false
     }
-  }, [dismissedGiftId, session])
+  }, [dismissedGiftId, safeToShow, session])
 
   useEffect(() => {
     if (status !== 'authenticated' || !session || session.player.requiresUsernameSetup) {
@@ -54,9 +75,20 @@ export function SkinGiftOverlay(): JSX.Element | null {
       revealedGiftId.current = null
       return
     }
+    if (!safeToShow) {
+      setGift(null)
+      return
+    }
     void loadGift()
     const timer = window.setInterval(() => void loadGift(), 60_000)
     return () => window.clearInterval(timer)
+  }, [loadGift, safeToShow, session, status])
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session) return
+    return window.api.matchmaking.onEvent((event) => {
+      if (event.type === 'skin_gift_available') void loadGift()
+    })
   }, [loadGift, session, status])
 
   useEffect(() => {
@@ -78,7 +110,11 @@ export function SkinGiftOverlay(): JSX.Element | null {
     setSelectedId(choice.id)
     setStage('claiming')
     void window.api.skins.claimGift(gift.id, choice.id)
-      .then(() => {
+      .then((result) => {
+        if (typeof result.pointsGranted === 'number') {
+          const currentPoints = useAuthStore.getState().session?.player.points ?? 0
+          setPoints(currentPoints + result.pointsGranted)
+        }
         setStage('claimed')
         return new Promise<void>((resolve) => window.setTimeout(resolve, 1050))
       })
@@ -96,7 +132,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
       })
   }
 
-  if (!gift) return null
+  if (!gift || !safeToShow) return null
 
   const showingChoices = stage !== 'intro'
   const finished = stage === 'claimed'
@@ -234,6 +270,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
               {gift.choices.map((choice, index) => {
                 const selected = selectedId === choice.id
                 const lockedOut = selectedId !== null && !selected
+                const currency = choice.type !== 'SKIN'
                 return (
                   <button
                     key={choice.id}
@@ -254,23 +291,37 @@ export function SkinGiftOverlay(): JSX.Element | null {
                     }`}
                   >
                     <div className="relative h-52 overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.18),_rgba(10,10,10,0.2)_70%)]">
-                      <SkinModelThumbnail
-                        cacheKey={`gift:v1:${choice.id}`}
-                        skinId={choice.id}
-                        modelKey={choice.id}
-                        weaponKey={choice.weaponKey}
-                        fallback={<span className="text-xs text-neutral-500">{t('gift.previewUnavailable')}</span>}
-                        className="absolute inset-0"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-                      <span className="absolute bottom-3 left-3 rounded bg-black/65 px-2 py-1 text-[10px] font-black tracking-[0.14em] text-amber-200 uppercase">
-                        {choice.weaponKey}
-                      </span>
+                      {choice.type === 'SKIN' ? (
+                        <>
+                          <SkinModelThumbnail
+                            cacheKey={`gift:v2:${choice.skinId}`}
+                            skinId={choice.skinId}
+                            modelKey={choice.skinId}
+                            weaponKey={choice.weaponKey}
+                            fallback={<span className="text-xs text-neutral-500">{t('gift.previewUnavailable')}</span>}
+                            className="absolute inset-0"
+                          />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+                          <span className="absolute bottom-3 left-3 rounded bg-black/65 px-2 py-1 text-[10px] font-black tracking-[0.14em] text-amber-200 uppercase">
+                            {choice.weaponKey}
+                          </span>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.24),_rgba(10,10,10,0.15)_70%)] text-center">
+                          <Coins className="size-16 text-amber-300 drop-shadow-[0_0_24px_rgba(251,191,36,0.45)]" aria-hidden="true" />
+                          <span className="mt-4 text-4xl font-black tabular-nums text-amber-200">
+                            {(choice.type === 'POINTS' ? choice.points : choice.pCoins).toLocaleString()}
+                          </span>
+                          <span className="mt-1 text-xs font-black tracking-[0.18em] text-amber-100/75 uppercase">
+                            {choice.type === 'POINTS' ? 'Points' : 'P Coins'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <h3 className="mt-5 text-2xl font-bold">{choice.name}</h3>
                     <p className="mt-2 min-h-10 text-sm leading-5 text-neutral-400">
-                      {choice.description ?? 'Custom weapon skin.'}
+                      {currency ? t('gift.currencyReward') : (choice.description ?? t('gift.skinReward'))}
                     </p>
 
                     <div className="mt-6 flex h-11 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/10 text-sm font-black tracking-[0.12em] text-amber-200 uppercase transition group-hover:bg-amber-300/20">
