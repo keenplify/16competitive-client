@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX } from 'react'
+import Select, { type SingleValue } from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import { useAuthStore } from '../auth/auth.store'
 import { SkinsPage } from '../skins/SkinsPage'
@@ -7,8 +8,13 @@ import { useNavigationStore } from '../navigation/navigation.store'
 import {
   COUNTRY_OPTIONS,
   CountryFlag,
-  countryFlagEmoji
+  type CountryOption
 } from '../../components/CountryFlag'
+
+const REPRESENTING_FLAG_OPTIONS: CountryOption[] = [
+  { code: '', name: 'No flag' },
+  ...COUNTRY_OPTIONS
+]
 
 export function ProfilePage(): JSX.Element {
   const player = useAuthStore((state) => state.session?.player)
@@ -22,7 +28,8 @@ export function ProfilePage(): JSX.Element {
     setDraftFlag(player?.flagCountryCode ?? '')
   }, [player?.flagCountryCode])
 
-  const handleFlagChange = async (flagCountryCode: string): Promise<void> => {
+  const handleFlagChange = async (option: SingleValue<CountryOption>): Promise<void> => {
+    const flagCountryCode = option?.code ?? ''
     const previousFlag = player?.flagCountryCode ?? ''
     setDraftFlag(flagCountryCode)
     setSavingFlag(true)
@@ -41,21 +48,66 @@ export function ProfilePage(): JSX.Element {
             <CountryFlag code={player?.flagCountryCode} className="text-2xl" />
           </div>
           <div className="mt-4 flex max-w-xl flex-wrap items-end gap-2">
-            <label className="min-w-64 flex-1 text-xs font-semibold text-neutral-300">
+            <label
+              htmlFor="representing-flag"
+              className="min-w-64 flex-1 text-xs font-semibold text-neutral-300"
+            >
               Representing flag
-              <select
-                className="mt-1 h-10 w-full border border-white/15 bg-neutral-900 px-3 text-sm text-white outline-none focus:border-sky-400"
-                value={draftFlag}
-                disabled={savingFlag}
-                onChange={(event) => void handleFlagChange(event.target.value)}
-              >
-                <option value="">No flag</option>
-                {COUNTRY_OPTIONS.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.name} {countryFlagEmoji(country.code)}
-                  </option>
-                ))}
-              </select>
+              <Select<CountryOption, false>
+                inputId="representing-flag"
+                unstyled
+                isSearchable
+                isDisabled={savingFlag}
+                menuPlacement="auto"
+                options={REPRESENTING_FLAG_OPTIONS}
+                value={
+                  REPRESENTING_FLAG_OPTIONS.find((option) => option.code === draftFlag) ??
+                  REPRESENTING_FLAG_OPTIONS[0]
+                }
+                getOptionLabel={(option) => option.name}
+                getOptionValue={(option) => option.code}
+                onChange={(option) => void handleFlagChange(option)}
+                formatOptionLabel={(option) => (
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    {option.code ? (
+                      <CountryFlag
+                        code={option.code}
+                        className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+                      />
+                    ) : (
+                      <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
+                    )}
+                    <span className="truncate">{option.name}</span>
+                  </span>
+                )}
+                classNames={{
+                  control: ({ isFocused }) =>
+                    `mt-1 min-h-10 cursor-pointer border bg-neutral-900 text-sm transition ${
+                      isFocused
+                        ? 'border-sky-400 ring-1 ring-sky-400/20'
+                        : 'border-white/15 hover:border-white/30'
+                    }`,
+                  valueContainer: () => 'px-3 py-1',
+                  input: () => 'text-white',
+                  singleValue: () => 'text-white',
+                  placeholder: () => 'text-neutral-500',
+                  indicatorsContainer: () => 'px-2 text-neutral-400',
+                  dropdownIndicator: () => 'p-1 transition hover:text-white',
+                  indicatorSeparator: () => 'mx-1 w-px bg-white/10',
+                  menu: () =>
+                    'z-50 mt-1 overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl shadow-black/60',
+                  menuList: () => 'max-h-72 p-1',
+                  option: ({ isFocused, isSelected }) =>
+                    `cursor-pointer px-3 py-2 text-sm transition ${
+                      isSelected
+                        ? 'bg-sky-400/20 text-sky-200'
+                        : isFocused
+                          ? 'bg-white/10 text-white'
+                          : 'text-neutral-200'
+                    }`,
+                  noOptionsMessage: () => 'px-3 py-4 text-sm text-neutral-500'
+                }}
+              />
             </label>
             <p className="w-full text-xs text-neutral-500">
               {savingFlag ? 'Saving flag…' : 'Choose a flag or leave it blank.'}
