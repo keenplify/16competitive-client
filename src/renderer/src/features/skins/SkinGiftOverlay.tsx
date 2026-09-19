@@ -181,15 +181,21 @@ export function SkinGiftOverlay(): JSX.Element | null {
   return (
     <ModalPortal>
       <style>{`
+        /*
+         * Tailwind v4 emits the translate-x/y utilities as the "translate"
+         * property, which composes with "transform". The keyframes below must
+         * therefore not repeat that centering offset, or the animated element
+         * lands half its own size off center.
+         */
         @keyframes giftBoxBounce {
-          0% { transform: translateX(-50%) translateY(18px) scale(.78); opacity: 0; }
-          22% { transform: translateX(-50%) translateY(-8px) scale(1.04); opacity: 1; }
-          38% { transform: translateX(-50%) translateY(0) scale(.98); }
-          52% { transform: translateX(-50%) translateY(-5px) rotate(-3deg); }
-          64% { transform: translateX(-50%) translateY(-5px) rotate(3deg); }
-          76% { transform: translateX(-50%) translateY(-3px) rotate(-2deg); }
-          88% { transform: translateX(-50%) translateY(0) rotate(0deg); }
-          100% { transform: translateX(-50%) translateY(0) scale(1); }
+          0% { transform: translateY(18px) scale(.78); opacity: 0; }
+          22% { transform: translateY(-8px) scale(1.04); opacity: 1; }
+          38% { transform: translateY(0) scale(.98); }
+          52% { transform: translateY(-5px) rotate(-3deg); }
+          64% { transform: translateY(-5px) rotate(3deg); }
+          76% { transform: translateY(-3px) rotate(-2deg); }
+          88% { transform: translateY(0) rotate(0deg); }
+          100% { transform: translateY(0) scale(1); }
         }
 
         @keyframes giftLidPop {
@@ -199,9 +205,9 @@ export function SkinGiftOverlay(): JSX.Element | null {
         }
 
         @keyframes giftBurst {
-          0%, 38% { opacity: .2; transform: translate(-50%, -50%) scale(.55); }
-          62% { opacity: .95; transform: translate(-50%, -50%) scale(1.3); }
-          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+          0%, 38% { opacity: .2; transform: scale(.55); }
+          62% { opacity: .95; transform: scale(1.3); }
+          100% { opacity: 0; transform: scale(1.8); }
         }
 
         @keyframes giftSparkle {
