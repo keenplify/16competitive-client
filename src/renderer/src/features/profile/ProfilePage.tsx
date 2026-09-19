@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { useAuthStore } from '../auth/auth.store'
 import { SkinsPage } from '../skins/SkinsPage'
 import { MatchHistoryPage } from './MatchHistoryPage'
+import { OperationPage } from '../operations/OperationPage'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { COUNTRY_OPTIONS, CountryFlag, type CountryOption } from '../../components/CountryFlag'
 
@@ -123,7 +124,7 @@ export function ProfilePage(): JSX.Element {
             </div>
           </div>
           <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
-            {(['matches', 'skins'] as const).map((id) => (
+            {(['matches', 'skins', 'operation'] as const).map((id) => (
               <button
                 key={id}
                 type="button"
@@ -137,12 +138,18 @@ export function ProfilePage(): JSX.Element {
                 )}
                 onClick={() => setTab(id)}
               >
-                {id === 'matches' ? 'Match history' : 'Loadout'}
+                {id === 'matches' ? 'Match history' : id === 'skins' ? 'Loadout' : 'Operation'}
               </button>
             ))}
           </div>
         </header>
-        {tab === 'matches' ? <MatchHistoryPage showHeader={false} /> : <SkinsPage />}
+        {tab === 'matches' ? (
+          <MatchHistoryPage showHeader={false} />
+        ) : tab === 'skins' ? (
+          <SkinsPage />
+        ) : (
+          <OperationPage />
+        )}
       </div>
     </main>
   )

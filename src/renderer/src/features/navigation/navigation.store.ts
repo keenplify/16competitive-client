@@ -3,7 +3,7 @@ import { create } from 'zustand'
 export type LobbyPageId =
   'lobby' | 'play' | 'leaderboard' | 'store' | 'news' | 'settings' | 'profile'
 
-export type ProfileTabId = 'matches' | 'skins'
+export type ProfileTabId = 'matches' | 'skins' | 'operation'
 
 interface NavigationState {
   page: LobbyPageId

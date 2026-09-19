@@ -100,6 +100,12 @@ import {
   reportDiagnosticIssue
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
+import { OPERATION_CHANNELS } from '../shared/operations'
+import {
+  getActiveOperation,
+  getMyOperation,
+  markOperationViewed
+} from './operations'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -483,6 +489,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
+  ipcMain.handle(OPERATION_CHANNELS.getActive, () => getActiveOperation())
+  ipcMain.handle(OPERATION_CHANNELS.getMine, () => getMyOperation())
+  ipcMain.handle(OPERATION_CHANNELS.markViewed, (_, operationId: unknown, viewedPoints: unknown) =>
+    markOperationViewed(operationId, viewedPoints)
+  )
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   const startupSplash = await startupSplashPromise
