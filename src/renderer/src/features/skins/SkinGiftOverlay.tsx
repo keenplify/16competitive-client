@@ -384,7 +384,13 @@ export function SkinGiftOverlay(): JSX.Element | null {
                       )}
                     </div>
 
-                    <h3 className="mt-5 text-2xl font-bold">{choice.name}</h3>
+                    <h3 className="mt-5 text-2xl font-bold">
+                      {choice.type === 'POINTS'
+                        ? `${choice.points.toLocaleString()} Points`
+                        : choice.type === 'P_COINS'
+                          ? `${choice.pCoins.toLocaleString()} Papa Cash`
+                          : choice.name}
+                    </h3>
                     <p className="mt-2 min-h-10 text-sm leading-5 text-neutral-400">
                       {currency
                         ? t('gift.currencyReward')
