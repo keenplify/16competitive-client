@@ -211,7 +211,7 @@ export function OperationPage(): JSX.Element {
     [displayedPoints, operation]
   )
   const progressPercent = Math.min(100, (displayedPoints / Math.max(1, maxPoints)) * 100)
-  const trackFillPercent = progressPercent * 0.9
+  const trackFillPercent = progressPercent
   const heroUrl = safeHttpsImage(operation?.heroUrl ?? null)
   const logoUrl = safeHttpsImage(operation?.logoUrl ?? null)
 
