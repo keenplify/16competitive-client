@@ -285,11 +285,6 @@ export function LobbyPage(): JSX.Element {
             >
               <span className="flex items-center gap-2 text-sm font-semibold text-white">
                 <ClipboardList className="size-4 text-sky-300" aria-hidden="true" /> Daily missions
-                {questSnapshot && (
-                  <span className="font-mono text-xs font-bold text-emerald-300">
-                    {questSnapshot.points.toLocaleString()} pts
-                  </span>
-                )}
               </span>
               {dailyMissionsCollapsed ? (
                 <ChevronDown className="size-4 text-white/55" aria-hidden="true" />

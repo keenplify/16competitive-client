@@ -62,6 +62,7 @@ export const useDailyQuestStore = create<DailyQuestState>((set, get) => ({
   stop: () => {
     removeMatchmakingListener?.()
     removeMatchmakingListener = null
+    set({ status: 'idle' })
   },
   load: async () => {
     if (get().status === 'loading' || get().status === 'ready') return
