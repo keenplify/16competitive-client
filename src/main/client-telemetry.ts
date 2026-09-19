@@ -66,9 +66,10 @@ export const reportClientTelemetry = async (token: string): Promise<DeviceStatus
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(7_500)
     })
-    const responseBody = (await response.json().catch(() => null)) as
-      | { ban?: DeviceStatus; error?: unknown }
-      | null
+    const responseBody = (await response.json().catch(() => null)) as {
+      ban?: DeviceStatus
+      error?: unknown
+    } | null
 
     if (response.status === 403 && responseBody?.ban?.banned === true) {
       return responseBody.ban

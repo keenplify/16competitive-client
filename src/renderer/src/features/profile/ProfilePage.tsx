@@ -5,11 +5,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { SkinsPage } from '../skins/SkinsPage'
 import { MatchHistoryPage } from './MatchHistoryPage'
 import { useNavigationStore } from '../navigation/navigation.store'
-import {
-  COUNTRY_OPTIONS,
-  CountryFlag,
-  type CountryOption
-} from '../../components/CountryFlag'
+import { COUNTRY_OPTIONS, CountryFlag, type CountryOption } from '../../components/CountryFlag'
 
 const FLAG_HELP_OPTION: CountryOption = {
   code: '__help__',

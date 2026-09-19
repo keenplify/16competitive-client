@@ -34,6 +34,11 @@ const matchLifecycleActive = (queueStatus: string): boolean =>
 // match results screen.
 const GIFT_MATCH_RESULT_GRACE_MS = 800
 
+interface AccountGiftRef {
+  accountId: string
+  giftId: string
+}
+
 export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
@@ -43,22 +48,30 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const { t } = useTranslation()
-  const [gift, setGift] = useState<SkinGift | null>(null)
+  const [loadedGift, setLoadedGift] = useState<SkinGift | null>(null)
   const [stage, setStage] = useState<RevealStage>('intro')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [dismissedGiftId, setDismissedGiftId] = useState<string | null>(null)
+  const [dismissal, setDismissal] = useState<AccountGiftRef | null>(null)
   const requestInFlight = useRef(false)
-  const revealedGiftId = useRef<string | null>(null)
+  const revealedGift = useRef<AccountGiftRef | null>(null)
+
+  const accountId = status === 'authenticated' && session ? session.player.id : null
 
   const baseSafeToShow =
-    status === 'authenticated' &&
-    Boolean(session) &&
+    accountId !== null &&
     !session?.player.requiresUsernameSetup &&
     page === 'lobby' &&
     completedMatch === null &&
     !matchLifecycleActive(queueStatus)
 
   const safeToShow = baseSafeToShow && connectionStatus === 'ready'
+
+  // The overlay owns no cross-account state: a gift loaded or dismissed for a
+  // different account is simply ignored here, which keeps a sign-out from
+  // needing an effect that clears state during a render pass.
+  const gift = safeToShow ? loadedGift : null
+  const dismissedGiftId =
+    accountId !== null && dismissal?.accountId === accountId ? dismissal.giftId : null
 
   const loadGift = useCallback(async (): Promise<void> => {
     if (requestInFlight.current || !safeToShow || !session) return
@@ -79,13 +92,18 @@ export function SkinGiftOverlay(): JSX.Element | null {
       ) {
         return
       }
+      const activeAccountId = auth.session.player.id
       if (pending?.id === dismissedGiftId) {
-        setGift(null)
+        setLoadedGift(null)
         return
       }
-      setGift(pending)
-      if (pending && revealedGiftId.current !== pending.id) {
-        revealedGiftId.current = pending.id
+      setLoadedGift(pending)
+      if (
+        pending &&
+        (revealedGift.current?.accountId !== activeAccountId ||
+          revealedGift.current.giftId !== pending.id)
+      ) {
+        revealedGift.current = { accountId: activeAccountId, giftId: pending.id }
         setSelectedId(null)
         setStage('intro')
       }
@@ -97,23 +115,14 @@ export function SkinGiftOverlay(): JSX.Element | null {
   }, [dismissedGiftId, safeToShow, session])
 
   useEffect(() => {
-    if (status !== 'authenticated' || !session || session.player.requiresUsernameSetup) {
-      setGift(null)
-      setDismissedGiftId(null)
-      revealedGiftId.current = null
-      return
-    }
-    if (!safeToShow) {
-      setGift(null)
-      return
-    }
+    if (!safeToShow) return
     const initialTimer = window.setTimeout(() => void loadGift(), GIFT_MATCH_RESULT_GRACE_MS)
     const pollTimer = window.setInterval(() => void loadGift(), 60_000)
     return () => {
       window.clearTimeout(initialTimer)
       window.clearInterval(pollTimer)
     }
-  }, [loadGift, safeToShow, session, status])
+  }, [loadGift, safeToShow])
 
   useEffect(() => {
     if (status !== 'authenticated' || !session) return
@@ -129,9 +138,9 @@ export function SkinGiftOverlay(): JSX.Element | null {
   }, [gift, stage])
 
   const decideLater = (): void => {
-    if (!gift || stage !== 'choices') return
-    setDismissedGiftId(gift.id)
-    setGift(null)
+    if (!gift || !accountId || stage !== 'choices') return
+    setDismissal({ accountId, giftId: gift.id })
+    setLoadedGift(null)
     setSelectedId(null)
     setStage('intro')
   }
@@ -151,7 +160,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
         return new Promise<void>((resolve) => window.setTimeout(resolve, 1050))
       })
       .then(() => {
-        setGift(null)
+        setLoadedGift(null)
         setSelectedId(null)
         setStage('intro')
         void loadGift()
@@ -164,7 +173,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
       })
   }
 
-  if (!gift || !safeToShow) return null
+  if (!gift) return null
 
   const showingChoices = stage !== 'intro'
   const finished = stage === 'claimed'

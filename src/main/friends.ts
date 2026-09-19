@@ -171,7 +171,9 @@ export const sendFriendChatMessage = async (
   return body.message
 }
 
-ipcMain.handle(FRIEND_CHANNELS.chatHistory, (_, playerId: unknown) => getFriendChatHistory(playerId))
+ipcMain.handle(FRIEND_CHANNELS.chatHistory, (_, playerId: unknown) =>
+  getFriendChatHistory(playerId)
+)
 ipcMain.handle(FRIEND_CHANNELS.chatSend, (_, playerId: unknown, message: unknown) =>
   sendFriendChatMessage(playerId, message)
 )
