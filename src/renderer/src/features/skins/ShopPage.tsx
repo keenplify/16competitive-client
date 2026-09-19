@@ -137,7 +137,7 @@ export function ShopPage(): JSX.Element {
           failure.code === 'INSUFFICIENT_POINTS'
             ? 'You need more points to unlock this skin.'
             : failure.code === 'INSUFFICIENT_P_CASH'
-              ? 'You need more P Cash to unlock this skin.'
+              ? 'You need more Papa Cash to unlock this skin.'
               : failure.message
         toast.error(message)
       })
@@ -166,7 +166,7 @@ export function ShopPage(): JSX.Element {
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
             <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
             <p className="mt-2 text-sm text-neutral-200">
-              Earn Points by playing. P Cash is the premium Papa Cash currency.
+              Earn Points by playing. Papa Cash is the premium currency.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
