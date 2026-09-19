@@ -1,7 +1,5 @@
 import {
   Award,
-  Coins,
-  Gem,
   Gift,
   LoaderCircle,
   LockKeyhole,
@@ -12,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OperationTier } from '../../../../shared/operations'
 import { Button } from '../../components/ui/Button'
+import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
 import { useOperationStore } from './operation.store'
 
@@ -46,14 +45,18 @@ function RewardPreview({ tier }: { tier: OperationTier }): JSX.Element {
     )
   }
 
-  const Icon =
-    tier.rewardType === 'POINTS'
-      ? Coins
-      : tier.rewardType === 'P_CASH'
-        ? Gem
-        : tier.rewardType === 'SHOWCASE'
-          ? Award
-          : Gift
+  if (tier.rewardType === 'POINTS' || tier.rewardType === 'P_CASH') {
+    return (
+      <div className="absolute inset-0 grid place-items-center">
+        <CurrencyIcon
+          currency={tier.rewardType}
+          className={tier.isMajor ? 'size-24' : 'size-20'}
+        />
+      </div>
+    )
+  }
+
+  const Icon = tier.rewardType === 'SHOWCASE' ? Award : Gift
 
   return (
     <div className="absolute inset-0 grid place-items-center">
@@ -158,7 +161,10 @@ export function OperationPage(): JSX.Element {
 
   const operation = snapshot?.operation ?? null
   const progress = snapshot?.progress ?? null
-  const maxPoints = operation?.tiers.at(-1)?.requiredPoints ?? 1
+  const maxPoints =
+    operation && operation.tiers.length > 0
+      ? operation.tiers[operation.tiers.length - 1]!.requiredPoints
+      : 1
   const lastViewedPoints = progress?.lastViewedPoints ?? 0
   const currentPoints = progress?.points ?? 0
 
@@ -332,7 +338,7 @@ export function OperationPage(): JSX.Element {
           >
             <div className="absolute top-[211px] left-[5%] h-1 w-[90%] overflow-hidden rounded-full bg-white/10">
               <div
-                className="operation-progress-sheen h-full bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+                className="operation-progress-sheen h-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
                 style={{ width: `${trackFillPercent}%` }}
               />
             </div>
