@@ -889,3 +889,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.919.2 — 2026-09-19
 
 - Refactor code for consistency and readability across various components
+
+## v2026.919.3 — 2026-09-19
+
+- Refactor animation keyframes in SkinGiftOverlay for improved clarity and performance
