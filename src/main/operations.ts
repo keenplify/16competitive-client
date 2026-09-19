@@ -148,7 +148,11 @@ export const markOperationViewed = async (
   if (typeof operationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(operationId)) {
     throw new Error('Invalid Operation.')
   }
-  if (!Number.isInteger(viewedPoints) || Number(viewedPoints) < 0) {
+  if (
+    typeof viewedPoints !== 'number' ||
+    !Number.isInteger(viewedPoints) ||
+    viewedPoints < 0
+  ) {
     throw new Error('Invalid Operation progress.')
   }
   const body = await request(`/operations/${operationId}/view`, {
