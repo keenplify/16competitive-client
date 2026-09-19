@@ -1,8 +1,9 @@
-import { Coins, LoaderCircle, Sparkles } from 'lucide-react'
+import { LoaderCircle, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import type { SkinGift, SkinGiftChoice } from '../../../../shared/skins'
 import { ModalPortal } from '../../components/ui/ModalPortal'
+import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
@@ -365,19 +366,19 @@ export function SkinGiftOverlay(): JSX.Element | null {
                           </span>
                         </>
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.24),_rgba(10,10,10,0.15)_70%)] text-center">
-                          <Coins
-                            className="size-16 text-amber-300 drop-shadow-[0_0_24px_rgba(251,191,36,0.45)]"
-                            aria-hidden="true"
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.18),_rgba(10,10,10,0.15)_70%)] text-center">
+                          <CurrencyIcon
+                            currency={choice.type === 'POINTS' ? 'POINTS' : 'P_CASH'}
+                            className="size-28 drop-shadow-[0_0_30px_rgba(255,255,255,0.18)]"
                           />
-                          <span className="mt-4 text-4xl font-black tabular-nums text-amber-200">
+                          <span className="mt-1 text-4xl font-black tabular-nums text-white">
                             {(choice.type === 'POINTS'
                               ? choice.points
                               : choice.pCoins
                             ).toLocaleString()}
                           </span>
-                          <span className="mt-1 text-xs font-black tracking-[0.18em] text-amber-100/75 uppercase">
-                            {choice.type === 'POINTS' ? 'Points' : 'P Coins'}
+                          <span className="mt-1 text-xs font-black tracking-[0.18em] text-neutral-300 uppercase">
+                            {choice.type === 'POINTS' ? 'Points' : 'Papa Cash'}
                           </span>
                         </div>
                       )}
