@@ -2,6 +2,7 @@ import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
+import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
 import type { OwnedSkin, Skin, SkinCurrency } from '../../../../shared/skins'
@@ -173,21 +174,21 @@ export function ShopPage(): JSX.Element {
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>
-            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-right">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-amber-200 uppercase">
-                Points
-              </p>
-              <p className="mt-1 text-xl font-bold tabular-nums text-amber-300">
-                {points.toLocaleString()}
-              </p>
+            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3">
+              <CurrencyAmount
+                currency="POINTS"
+                amount={points}
+                className="text-xl font-bold text-white"
+                iconClassName="size-8"
+              />
             </div>
-            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-right">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-sky-200 uppercase">
-                P Cash
-              </p>
-              <p className="mt-1 text-xl font-bold tabular-nums text-sky-300">
-                {pCash.toLocaleString()}
-              </p>
+            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3">
+              <CurrencyAmount
+                currency="P_CASH"
+                amount={pCash}
+                className="text-xl font-bold text-white"
+                iconClassName="size-8"
+              />
             </div>
           </div>
         </header>
@@ -261,14 +262,20 @@ export function ShopPage(): JSX.Element {
                       ) : (
                         <>
                           {skin.pointsEnabled && (
-                            <span className="text-amber-300">
-                              {skin.pricePoints.toLocaleString()} pts
-                            </span>
+                            <CurrencyAmount
+                              currency="POINTS"
+                              amount={skin.pricePoints}
+                              className="font-semibold text-white"
+                              iconClassName="size-5"
+                            />
                           )}
                           {skin.pricePCash !== null && (
-                            <span className="text-sky-300">
-                              {skin.pricePCash.toLocaleString()} P Cash
-                            </span>
+                            <CurrencyAmount
+                              currency="P_CASH"
+                              amount={skin.pricePCash}
+                              className="font-semibold text-white"
+                              iconClassName="size-5"
+                            />
                           )}
                         </>
                       )}
@@ -287,7 +294,15 @@ export function ShopPage(): JSX.Element {
                             onClick={() => unlock(skin, 'POINTS')}
                           >
                             <ShoppingBag className="mr-1 size-3.5" />
-                            {buying ? 'Unlocking…' : 'Points'}
+                            {buying ? (
+                              'Unlocking…'
+                            ) : (
+                              <CurrencyAmount
+                                currency="POINTS"
+                                amount={skin.pricePoints}
+                                iconClassName="size-5"
+                              />
+                            )}
                           </Button>
                         )}
                         {skin.pricePCash !== null && (
@@ -298,7 +313,15 @@ export function ShopPage(): JSX.Element {
                             onClick={() => unlock(skin, 'P_CASH')}
                           >
                             <ShoppingBag className="mr-1 size-3.5" />
-                            {buying ? 'Unlocking…' : 'P Cash'}
+                            {buying ? (
+                              'Unlocking…'
+                            ) : (
+                              <CurrencyAmount
+                                currency="P_CASH"
+                                amount={skin.pricePCash}
+                                iconClassName="size-5"
+                              />
+                            )}
                           </Button>
                         )}
                       </div>
