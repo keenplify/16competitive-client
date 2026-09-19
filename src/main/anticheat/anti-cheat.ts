@@ -21,10 +21,7 @@ const KNOWN_CHEAT_MODULE_HASHES = new Map<string, string>([
     'ec2dc54f4ca54e7f5df085d96a9e60d41d1277460c7ba831e9786c555a3346ab',
     'KNOWN_OXWARE_106_CHEATER_DLL_HASH'
   ],
-  [
-    'fd5ff48d770b04c1c08f9ee42b9ff4bc72bc3f8495b13641a7f0583e65202bc4',
-    'KNOWN_OPENGL_CHEAT_HASH'
-  ]
+  ['fd5ff48d770b04c1c08f9ee42b9ff4bc72bc3f8495b13641a7f0583e65202bc4', 'KNOWN_OPENGL_CHEAT_HASH']
 ])
 
 const COMMON_EXTERNAL_WINDOWS_MODULES = new Set([
@@ -129,7 +126,8 @@ const normalizedRelative = (root: string, filePath: string): string =>
   relative(resolve(root), resolve(filePath)).split(sep).join('/')
 
 const pathHint = (gameDirectory: string, filePath: string): string => {
-  if (pathInside(gameDirectory, filePath)) return `game:${normalizedRelative(gameDirectory, filePath)}`
+  if (pathInside(gameDirectory, filePath))
+    return `game:${normalizedRelative(gameDirectory, filePath)}`
 
   if (process.platform === 'win32') {
     const windowsRoot = process.env.SystemRoot
@@ -215,7 +213,9 @@ const collectPrelaunch = async (
     )
   ).filter((item): item is AntiCheatFileObservation => item !== null)
 
-  const executableObservation = files.find((item) => item.role === 'executable' && item.status === 'present')
+  const executableObservation = files.find(
+    (item) => item.role === 'executable' && item.status === 'present'
+  )
   const fingerprintMaterial = files
     .filter((item) => item.status === 'present' && item.sha256)
     .map((item) => `${item.path}:${item.sha256}`)
@@ -255,7 +255,8 @@ const collectPrelaunch = async (
     signals.push({
       code: 'LOCAL_OPENGL_WRAPPER',
       severity: 'high',
-      detail: 'A game-local opengl32.dll is present. Review before treating this as a cheat verdict.'
+      detail:
+        'A game-local opengl32.dll is present. Review before treating this as a cheat verdict.'
     })
   }
 
@@ -304,7 +305,8 @@ const windowsModulePaths = async (processId: number): Promise<string[]> => {
     '$modulePaths | ConvertTo-Json -Compress'
   ].join('; ')
   const result = await runPowerShell(script, { ANTICHEAT_PID: String(processId) })
-  if (result.code !== 0) throw new Error(result.stderr.trim() || 'Windows module enumeration failed')
+  if (result.code !== 0)
+    throw new Error(result.stderr.trim() || 'Windows module enumeration failed')
   const trimmed = result.stdout.trim()
   if (!trimmed) return []
   const parsed = JSON.parse(trimmed) as unknown
@@ -426,7 +428,9 @@ const collectRuntime = async (
     }
   }
 
-  modules.sort((left, right) => `${left.name}:${left.pathHint}`.localeCompare(`${right.name}:${right.pathHint}`))
+  modules.sort((left, right) =>
+    `${left.name}:${left.pathHint}`.localeCompare(`${right.name}:${right.pathHint}`)
+  )
   return { modules, signals }
 }
 
@@ -487,10 +491,7 @@ export class AntiCheatSession {
     void this.reportPrelaunch()
   }
 
-  private baseObservation(): Pick<
-    AntiCheatObservation,
-    'matchId' | 'platform' | 'distribution'
-  > {
+  private baseObservation(): Pick<AntiCheatObservation, 'matchId' | 'platform' | 'distribution'> {
     return {
       matchId: this.options.matchId,
       platform: normalizedPlatform(),

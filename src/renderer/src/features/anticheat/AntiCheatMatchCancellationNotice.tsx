@@ -4,8 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 
-const ANTI_CHEAT_CANCELLED_MESSAGE =
-  'This game was cancelled because the server detected cheating.'
+const ANTI_CHEAT_CANCELLED_MESSAGE = 'This game was cancelled because the server detected cheating.'
 
 export function AntiCheatMatchCancellationNotice(): JSX.Element | null {
   const error = useMatchmakingStore((state) => state.error)

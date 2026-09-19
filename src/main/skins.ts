@@ -1,14 +1,23 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type { LobbyLoadout, OwnedSkin, Skin, SkinCurrency, SkinGift, SkinGiftChoice, UnlockResult } from '../shared/skins'
+import type {
+  LobbyLoadout,
+  OwnedSkin,
+  Skin,
+  SkinCurrency,
+  SkinGift,
+  SkinGiftChoice,
+  UnlockResult
+} from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
 const SKIN_API_URL_CACHE_MS = 5_000
 
 const skinIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const giftRewardIdPattern = /^(?:skin:[0-9a-f-]{36}|points:(?:2000|3000|4000|5000)|pcoins:(?:[1-9]\d{2}|1\d{3}|2000))$/i
+const giftRewardIdPattern =
+  /^(?:skin:[0-9a-f-]{36}|points:(?:2000|3000|4000|5000)|pcoins:(?:[1-9]\d{2}|1\d{3}|2000))$/i
 const weaponKeyPattern = /^[a-z0-9_]+$/
 
 type ApiError = Error & { code?: string }
@@ -275,10 +284,10 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   return model
 }
 
-
 export const getPendingSkinGift = async (): Promise<SkinGift | null> => {
   const data = await playerRequest('/skin-gifts/pending')
-  if (typeof data !== 'object' || data === null) throw new Error('The server returned an invalid gift response.')
+  if (typeof data !== 'object' || data === null)
+    throw new Error('The server returned an invalid gift response.')
   const gift = (data as Record<string, unknown>).gift
   if (gift === null) return null
   if (

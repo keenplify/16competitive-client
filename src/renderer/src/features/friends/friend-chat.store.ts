@@ -230,8 +230,7 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
       set((state) => {
         const conversation = state.conversations[friendId]
         const wasKnown = conversation?.messages.some((entry) => entry.id === message.id) ?? false
-        const unreadIncrement =
-          incoming && !wasKnown && state.activeFriendId !== friendId ? 1 : 0
+        const unreadIncrement = incoming && !wasKnown && state.activeFriendId !== friendId ? 1 : 0
 
         return {
           openFriendIds: state.openFriendIds.includes(friendId)

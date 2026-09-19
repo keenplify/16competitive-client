@@ -125,7 +125,8 @@ const friends: FriendsApi = {
   discard: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.discard, requestId),
   remove: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.remove, playerId),
   getChatHistory: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.chatHistory, playerId),
-  sendChatMessage: (playerId, message) => ipcRenderer.invoke(FRIEND_CHANNELS.chatSend, playerId, message),
+  sendChatMessage: (playerId, message) =>
+    ipcRenderer.invoke(FRIEND_CHANNELS.chatSend, playerId, message),
   requestAttention: () => ipcRenderer.invoke(FRIEND_CHANNELS.requestAttention)
 }
 

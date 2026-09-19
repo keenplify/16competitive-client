@@ -153,7 +153,7 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     typeof (player as Record<string, unknown>).email === 'string' &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
     typeof (player as Record<string, unknown>).points === 'number' &&
-    (((player as Record<string, unknown>).flagCountryCode === null) ||
+    ((player as Record<string, unknown>).flagCountryCode === null ||
       (typeof (player as Record<string, unknown>).flagCountryCode === 'string' &&
         /^[A-Z]{2}$/.test((player as Record<string, unknown>).flagCountryCode as string))) &&
     typeof (player as Record<string, unknown>).createdAt === 'string' &&

@@ -2,7 +2,7 @@ import { resolve } from 'path'
 import { defineConfig, loadEnv } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import vitePluginBundleObfuscator from 'vite-plugin-bundle-obfuscator';
+import vitePluginBundleObfuscator from 'vite-plugin-bundle-obfuscator'
 
 const developmentContentSecurityPolicy =
   "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http: ws: https://mastodon.social; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:"

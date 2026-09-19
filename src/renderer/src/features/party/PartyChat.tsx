@@ -128,7 +128,9 @@ export function PartyChat(): JSX.Element {
     : chatTab === 'party'
       ? partyError
       : globalError
-  const canSend = activeFriendId ? Boolean(friendConversation) : chatTab === 'global' || Boolean(party)
+  const canSend = activeFriendId
+    ? Boolean(friendConversation)
+    : chatTab === 'global' || Boolean(party)
   const placeholder = activeFriendId
     ? `Message ${friendConversation?.friend.username ?? 'friend'}`
     : chatTab === 'party'

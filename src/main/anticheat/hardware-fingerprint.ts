@@ -52,13 +52,13 @@ const runPowerShellJson = async (): Promise<Record<string, unknown>> => {
   const script = [
     "$ErrorActionPreference = 'SilentlyContinue'",
     '$result = [ordered]@{}',
-    "$result.system_uuid = @((Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue | ForEach-Object { $_.UUID }))",
-    "$result.motherboard_serial = @((Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue | ForEach-Object { $_.SerialNumber }))",
-    "$result.bios_serial = @((Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue | ForEach-Object { $_.SerialNumber }))",
-    "$result.disk_serial = @((Get-CimInstance Win32_DiskDrive -ErrorAction SilentlyContinue | Sort-Object Index | ForEach-Object { $_.SerialNumber }))",
+    '$result.system_uuid = @((Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue | ForEach-Object { $_.UUID }))',
+    '$result.motherboard_serial = @((Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue | ForEach-Object { $_.SerialNumber }))',
+    '$result.bios_serial = @((Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue | ForEach-Object { $_.SerialNumber }))',
+    '$result.disk_serial = @((Get-CimInstance Win32_DiskDrive -ErrorAction SilentlyContinue | Sort-Object Index | ForEach-Object { $_.SerialNumber }))',
     "$machineGuid = (Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Cryptography' -Name MachineGuid -ErrorAction SilentlyContinue).MachineGuid",
     '$result.machine_guid = @($machineGuid)',
-    "$result.cpu = @((Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.ProcessorId)|$($_.Name)\" }))",
+    '$result.cpu = @((Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | ForEach-Object { "$($_.ProcessorId)|$($_.Name)" }))',
     '$tpm = Get-TpmEndorsementKeyInfo -HashAlgorithm Sha256 -ErrorAction SilentlyContinue',
     '$result.tpm_ek = @()',
     'if ($tpm -and $tpm.IsPresent -and $tpm.PublicKeyHash) { $result.tpm_ek = @([string]$tpm.PublicKeyHash) }',
@@ -88,7 +88,9 @@ const runPowerShellJson = async (): Promise<Record<string, unknown>> => {
       clearTimeout(timeout)
       try {
         const parsed = JSON.parse(stdout.trim()) as unknown
-        resolveResult(parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {})
+        resolveResult(
+          parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
+        )
       } catch {
         resolveResult({})
       }
@@ -109,7 +111,9 @@ const networkAdapterSignals = (): HardwareSignal[] => {
     .map((entry) => entry.mac.replace(/[^A-Fa-f0-9]/g, '').toUpperCase())
     .filter(Boolean)
     .sort()
-  return Array.from(new Set(macs)).slice(0, 8).map((mac) => hashSignal('network_adapter', mac))
+  return Array.from(new Set(macs))
+    .slice(0, 8)
+    .map((mac) => hashSignal('network_adapter', mac))
 }
 
 const fallbackCpuSignal = (): HardwareSignal[] => {

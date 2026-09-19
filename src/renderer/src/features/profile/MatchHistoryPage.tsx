@@ -147,7 +147,10 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                     </p>
                     <div className="mt-1 flex items-center gap-3">
                       <h1 className="text-3xl font-semibold">{profile.username}</h1>
-                      <CountryFlag code={profile.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                      <CountryFlag
+                        code={profile.flagCountryCode}
+                        className="h-[1em] w-auto shrink-0"
+                      />
                     </div>
                   </div>
                 </div>

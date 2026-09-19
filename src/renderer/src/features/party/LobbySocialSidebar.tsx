@@ -1,4 +1,15 @@
-import { Check, ChevronRight, Gamepad2, Mail, MessageCircle, Search, UserMinus, UserPlus, Users, X } from 'lucide-react'
+import {
+  Check,
+  ChevronRight,
+  Gamepad2,
+  Mail,
+  MessageCircle,
+  Search,
+  UserMinus,
+  UserPlus,
+  Users,
+  X
+} from 'lucide-react'
 import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import type {
