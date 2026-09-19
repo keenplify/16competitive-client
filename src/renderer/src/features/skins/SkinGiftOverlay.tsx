@@ -13,8 +13,26 @@ type RevealStage = 'intro' | 'choices' | 'claiming' | 'claimed'
 
 const errorMessage = (reason: unknown): string => {
   if (!(reason instanceof Error)) return 'Could not claim this gift.'
-  return reason.message.replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/, '').trim()
+  return reason.message
+    .replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/, '')
+    .trim()
 }
+
+const MATCH_LIFECYCLE_STATUSES = [
+  'match_found',
+  'ready_check',
+  'countdown',
+  'starting_server',
+  'server_ready'
+]
+
+const matchLifecycleActive = (queueStatus: string): boolean =>
+  MATCH_LIFECYCLE_STATUSES.includes(queueStatus)
+
+// Give the matchmaking socket a chance to replay a completed match before the
+// overlay polls for the gift, so a freshly earned gift never flashes over the
+// match results screen.
+const GIFT_MATCH_RESULT_GRACE_MS = 800
 
 export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
@@ -22,6 +40,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const setPoints = useAuthStore((state) => state.setPoints)
   const page = useNavigationStore((state) => state.page)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const { t } = useTranslation()
   const [gift, setGift] = useState<SkinGift | null>(null)
@@ -31,26 +50,35 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const requestInFlight = useRef(false)
   const revealedGiftId = useRef<string | null>(null)
 
-  const matchLifecycleActive = [
-    'match_found',
-    'ready_check',
-    'countdown',
-    'starting_server',
-    'server_ready'
-  ].includes(queueStatus)
-  const safeToShow =
+  const baseSafeToShow =
     status === 'authenticated' &&
     Boolean(session) &&
     !session?.player.requiresUsernameSetup &&
     page === 'lobby' &&
     completedMatch === null &&
-    !matchLifecycleActive
+    !matchLifecycleActive(queueStatus)
+
+  const safeToShow = baseSafeToShow && connectionStatus === 'ready'
 
   const loadGift = useCallback(async (): Promise<void> => {
     if (requestInFlight.current || !safeToShow || !session) return
     requestInFlight.current = true
     try {
       const pending = await window.api.skins.pendingGift()
+      const auth = useAuthStore.getState()
+      const navigation = useNavigationStore.getState()
+      const matchmaking = useMatchmakingStore.getState()
+      if (
+        auth.status !== 'authenticated' ||
+        !auth.session ||
+        auth.session.player.requiresUsernameSetup ||
+        navigation.page !== 'lobby' ||
+        matchmaking.completedMatch !== null ||
+        matchmaking.connectionStatus !== 'ready' ||
+        matchLifecycleActive(matchmaking.queueStatus)
+      ) {
+        return
+      }
       if (pending?.id === dismissedGiftId) {
         setGift(null)
         return
@@ -79,9 +107,12 @@ export function SkinGiftOverlay(): JSX.Element | null {
       setGift(null)
       return
     }
-    void loadGift()
-    const timer = window.setInterval(() => void loadGift(), 60_000)
-    return () => window.clearInterval(timer)
+    const initialTimer = window.setTimeout(() => void loadGift(), GIFT_MATCH_RESULT_GRACE_MS)
+    const pollTimer = window.setInterval(() => void loadGift(), 60_000)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(pollTimer)
+    }
   }, [loadGift, safeToShow, session, status])
 
   useEffect(() => {
@@ -109,7 +140,8 @@ export function SkinGiftOverlay(): JSX.Element | null {
     if (!gift || choice.owned || stage !== 'choices') return
     setSelectedId(choice.id)
     setStage('claiming')
-    void window.api.skins.claimGift(gift.id, choice.id)
+    void window.api.skins
+      .claimGift(gift.id, choice.id)
       .then((result) => {
         if (typeof result.pointsGranted === 'number') {
           const currentPoints = useAuthStore.getState().session?.player.points ?? 0
@@ -243,7 +275,10 @@ export function SkinGiftOverlay(): JSX.Element | null {
             <p className="mt-7 text-xs font-black tracking-[0.45em] text-amber-300 uppercase">
               {t('gift.arrived')}
             </p>
-            <h2 id="skin-gift-title" className="mt-3 text-5xl font-black tracking-tight sm:text-7xl">
+            <h2
+              id="skin-gift-title"
+              className="mt-3 text-5xl font-black tracking-tight sm:text-7xl"
+            >
               {gift.kind === 'WELCOME' ? t('gift.welcomeTitle') : gift.title}
             </h2>
             <p className="mt-4 text-sm text-neutral-300">{t('gift.intro')}</p>
@@ -282,12 +317,16 @@ export function SkinGiftOverlay(): JSX.Element | null {
                       selected
                         ? 'z-10 scale-105 border-amber-300 shadow-[0_0_70px_rgba(251,191,36,0.35)]'
                         : lockedOut
-                          ? 'scale-95 border-white/5 opacity-30 blur-[1px]'
+                          ? 'scale-95 border-white/5 opacity-50 blur-[1px]'
                           : choice.owned
-                            ? 'border-white/5 opacity-40'
+                            ? 'border-white/5 opacity-50'
                             : 'border-white/10 hover:-translate-y-2 hover:border-amber-300/60 hover:shadow-[0_18px_60px_rgba(251,191,36,0.16)]'
                     } ${
-                      showingChoices ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+                      choice.owned
+                        ? 'translate-y-0'
+                        : showingChoices
+                          ? 'translate-y-0 opacity-100'
+                          : 'translate-y-12 opacity-0'
                     }`}
                   >
                     <div className="relative h-52 overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.18),_rgba(10,10,10,0.2)_70%)]">
@@ -298,7 +337,11 @@ export function SkinGiftOverlay(): JSX.Element | null {
                             skinId={choice.skinId}
                             modelKey={choice.skinId}
                             weaponKey={choice.weaponKey}
-                            fallback={<span className="text-xs text-neutral-500">{t('gift.previewUnavailable')}</span>}
+                            fallback={
+                              <span className="text-xs text-neutral-500">
+                                {t('gift.previewUnavailable')}
+                              </span>
+                            }
                             className="absolute inset-0"
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
@@ -308,9 +351,15 @@ export function SkinGiftOverlay(): JSX.Element | null {
                         </>
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.24),_rgba(10,10,10,0.15)_70%)] text-center">
-                          <Coins className="size-16 text-amber-300 drop-shadow-[0_0_24px_rgba(251,191,36,0.45)]" aria-hidden="true" />
+                          <Coins
+                            className="size-16 text-amber-300 drop-shadow-[0_0_24px_rgba(251,191,36,0.45)]"
+                            aria-hidden="true"
+                          />
                           <span className="mt-4 text-4xl font-black tabular-nums text-amber-200">
-                            {(choice.type === 'POINTS' ? choice.points : choice.pCoins).toLocaleString()}
+                            {(choice.type === 'POINTS'
+                              ? choice.points
+                              : choice.pCoins
+                            ).toLocaleString()}
                           </span>
                           <span className="mt-1 text-xs font-black tracking-[0.18em] text-amber-100/75 uppercase">
                             {choice.type === 'POINTS' ? 'Points' : 'P Coins'}
@@ -321,20 +370,30 @@ export function SkinGiftOverlay(): JSX.Element | null {
 
                     <h3 className="mt-5 text-2xl font-bold">{choice.name}</h3>
                     <p className="mt-2 min-h-10 text-sm leading-5 text-neutral-400">
-                      {currency ? t('gift.currencyReward') : (choice.description ?? t('gift.skinReward'))}
+                      {currency
+                        ? t('gift.currencyReward')
+                        : (choice.description ?? t('gift.skinReward'))}
                     </p>
 
-                    <div className="mt-6 flex h-11 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/10 text-sm font-black tracking-[0.12em] text-amber-200 uppercase transition group-hover:bg-amber-300/20">
-                      {choice.owned
-                        ? t('gift.owned')
-                        : selected && stage === 'claiming'
-                          ? <>
-                              <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                              {t('gift.claiming')}
-                            </>
-                          : selected && finished
-                            ? t('gift.unlocked')
-                            : t('gift.choose')}
+                    <div
+                      className={`mt-6 flex h-11 items-center justify-center rounded-lg border text-sm font-black tracking-[0.12em] uppercase transition ${
+                        choice.owned
+                          ? 'border-transparent bg-transparent text-neutral-500'
+                          : 'border-amber-300/25 bg-amber-300/10 text-amber-200 group-hover:bg-amber-300/20'
+                      }`}
+                    >
+                      {choice.owned ? (
+                        t('gift.owned')
+                      ) : selected && stage === 'claiming' ? (
+                        <>
+                          <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                          {t('gift.claiming')}
+                        </>
+                      ) : selected && finished ? (
+                        t('gift.unlocked')
+                      ) : (
+                        t('gift.choose')
+                      )}
                     </div>
 
                     {selected && finished && (
