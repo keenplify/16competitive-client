@@ -860,3 +860,28 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Format latency reporting helper
 - Fix profile flag effect lint
 - Fix country flag fast refresh lint
+
+## v2026.919.1 — 2026-09-19
+
+- final touches
+- Merge pull request #22 from keenplify/feature/random-skin-gifts
+- Localize mixed gift reward copy
+- Show realtime gifts only in lobby with currency cards
+- Claim mixed gift reward types
+- Support skin and currency gift choices
+- Forward realtime skin gift events
+- Add realtime skin gift client event
+- Translate deferred gift choice
+- Allow deferring welcome gift choice
+- Add animated gift box reveal
+- Keep gift reveal stable while polling
+- Fix gift translation catalog syntax
+- Use live language strings in skin gift reveal
+- Localize animated skin gifts
+- Add welcome gift thank-you message
+- Show pending skin gifts after login
+- Add animated skin gift reveal
+- Wire skin gift IPC
+- Expose skin gifts to renderer
+- Add skin gift API calls
+- Add skin gift client types
