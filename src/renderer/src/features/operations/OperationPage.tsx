@@ -27,7 +27,7 @@ const safeHttpsImage = (value: string | null): string | null => {
 const rewardName = (tier: OperationTier): string => {
   if (tier.rewardType === 'SKIN') return tier.skin?.name ?? 'Weapon skin'
   if (tier.rewardType === 'POINTS') return `${(tier.amount ?? 0).toLocaleString()} Points`
-  if (tier.rewardType === 'P_CASH') return `${(tier.amount ?? 0).toLocaleString()} P Cash`
+  if (tier.rewardType === 'P_CASH') return `${(tier.amount ?? 0).toLocaleString()} Papa Cash`
   return tier.showcaseName ?? 'Showcase'
 }
 
@@ -291,7 +291,7 @@ export function OperationPage(): JSX.Element {
               <span className="border border-white/15 bg-black/30 px-2.5 py-1.5 text-neutral-200">
                 {operation.accessType === 'FREE'
                   ? 'Free Operation'
-                  : `${operation.pricePCash?.toLocaleString() ?? 0} P Cash`}
+                  : `${operation.pricePCash?.toLocaleString() ?? 0} Papa Cash`}
               </span>
               <span className="border border-white/15 bg-black/30 px-2.5 py-1.5 text-neutral-200">
                 Ends {new Date(operation.endsAt).toLocaleDateString()}
