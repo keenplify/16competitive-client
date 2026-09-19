@@ -30,6 +30,8 @@ import { NEWS_CHANNELS } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
+import type { OperationsApi } from '../shared/operations'
+import { OPERATION_CHANNELS } from '../shared/operations'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 
 const auth: AuthApi = {
@@ -195,6 +197,13 @@ const redeemCodes: RedeemCodesApi = {
   redeem: (code) => ipcRenderer.invoke(REDEEM_CODE_CHANNELS.redeem, code)
 }
 
+const operations: OperationsApi = {
+  getActive: () => ipcRenderer.invoke(OPERATION_CHANNELS.getActive),
+  getMine: () => ipcRenderer.invoke(OPERATION_CHANNELS.getMine),
+  markViewed: (operationId, viewedPoints) =>
+    ipcRenderer.invoke(OPERATION_CHANNELS.markViewed, operationId, viewedPoints)
+}
+
 const diagnosticLogs: DiagnosticLogsApi = {
   get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
   report: (description, rendererLogs) =>
@@ -212,6 +221,7 @@ const api = {
   matchHistory,
   models,
   news,
+  operations,
   party,
   redeemCodes,
   skins,
