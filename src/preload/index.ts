@@ -114,7 +114,8 @@ const party: PartyApi = {
     ipcRenderer.invoke(PARTY_CHANNELS.respond, invitationId, decision),
   leave: () => ipcRenderer.invoke(PARTY_CHANNELS.leave),
   sendMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendMessage, message),
-  sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message),
+  sendGlobalMessage: (message, scope) =>
+    ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message, scope),
   setGlobalChatLanguage: (language) =>
     ipcRenderer.invoke(PARTY_CHANNELS.setGlobalChatLanguage, language),
   onDiscordJoinResult: (listener) => {
