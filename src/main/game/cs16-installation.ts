@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { basename, dirname, join, normalize } from 'node:path'
+import { COMPETITIVE_GAME_DIR } from './competitive-game-directory'
 
 export type Cs16Distribution = 'steam' | 'standalone'
 
@@ -51,7 +52,7 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       argumentPrefix: [
         ...(standaloneLauncher ? ['-steam'] : []),
         '-game',
-        'cstrike',
+        COMPETITIVE_GAME_DIR,
         '-noforcemparms',
         '-noforcemaccel'
       ],
@@ -71,7 +72,7 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // The Linux binary needs Steam's runtime setup and therefore retains the
       // launcher handoff below.
       executable,
-      argumentPrefix: ['-game', 'cstrike', '-noforcemparms', '-noforcemaccel'],
+      argumentPrefix: ['-game', COMPETITIVE_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
       textureSize: '1024',
       usesLauncherHandoff: false
     }
@@ -80,7 +81,7 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
   return {
     distribution: 'steam',
     executable: 'steam',
-    argumentPrefix: ['-applaunch', '10'],
+    argumentPrefix: ['-applaunch', '10', '-game', COMPETITIVE_GAME_DIR],
     textureSize: '1024',
     usesLauncherHandoff: true
   }

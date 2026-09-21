@@ -1,5 +1,5 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
 const LEGACY_VOICE_WRAPPER_COMMAND = '+16competitive_voice'
@@ -8,6 +8,11 @@ const PARTY_VOICE_WRAPPER_COMMAND = '+16competitive_party_voice'
 const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
 const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
 const RESTORE_SETTLE_MS = 250
+
+const configPathFor = (gameDirectory: string): string =>
+  basename(gameDirectory).toLowerCase() === '16competitive'
+    ? join(gameDirectory, 'config.cfg')
+    : join(gameDirectory, 'cstrike', 'config.cfg')
 
 const MANAGED_VOICE_WRAPPERS = new Set([
   LEGACY_VOICE_WRAPPER_COMMAND,
@@ -205,7 +210,7 @@ const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
 export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
-  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const configPath = configPathFor(gameDirectory)
   const existing = await readFile(configPath, 'utf8').catch(() => '')
   return [...new Set(teamVoiceKeysFromConfig(existing))]
 }
@@ -239,7 +244,7 @@ export const prepareVoicePtt = async (
     { key: partyKey, command: PARTY_VOICE_WRAPPER_COMMAND }
   ]
   const keys = [...new Set(bindings.map(({ key }) => key))]
-  const configPath = join(gameDirectory, 'cstrike', 'config.cfg')
+  const configPath = configPathFor(gameDirectory)
   const originalConfig = await readFile(configPath, 'utf8').catch(() => '')
   const installedBindings = installVoiceBindings(originalConfig, bindings)
 
