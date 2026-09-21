@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
+import { SUPPORTED_LANGUAGES, useLanguageStore } from '../i18n/i18n'
 import { usePartyStore, type ChatTab } from './party.store'
 
 const baseTabs: Array<{ id: ChatTab; label: string }> = [
@@ -26,6 +27,7 @@ export function PartyChat(): JSX.Element {
   const partyError = usePartyStore((state) => state.chatError)
   const chatTab = usePartyStore((state) => state.chatTab)
   const globalEntries = usePartyStore((state) => state.globalChatEntries)
+  const globalChatLanguage = usePartyStore((state) => state.globalChatLanguage)
   const globalDraft = usePartyStore((state) => state.globalChatDraft)
   const globalSending = usePartyStore((state) => state.globalChatSending)
   const globalError = usePartyStore((state) => state.globalChatError)
@@ -34,7 +36,9 @@ export function PartyChat(): JSX.Element {
   const clearPartyChat = usePartyStore((state) => state.clearChat)
   const setChatTab = usePartyStore((state) => state.setChatTab)
   const setGlobalDraft = usePartyStore((state) => state.setGlobalChatDraft)
+  const setGlobalChatLanguage = usePartyStore((state) => state.setGlobalChatLanguage)
   const sendGlobalChat = usePartyStore((state) => state.sendGlobalChat)
+  const language = useLanguageStore((state) => state.language)
 
   const openFriendIds = useFriendChatStore((state) => state.openFriendIds)
   const activeFriendId = useFriendChatStore((state) => state.activeFriendId)
@@ -57,11 +61,18 @@ export function PartyChat(): JSX.Element {
   } | null>(null)
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
+  const globalLanguageLabel =
+    SUPPORTED_LANGUAGES.find(({ code }) => code === globalChatLanguage)?.label ??
+    globalChatLanguage.toUpperCase()
 
   useEffect(() => {
     startFriendChat()
     return stopFriendChat
   }, [startFriendChat, stopFriendChat])
+
+  useEffect(() => {
+    void setGlobalChatLanguage(language)
+  }, [language, setGlobalChatLanguage])
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
@@ -135,12 +146,12 @@ export function PartyChat(): JSX.Element {
     ? `Message ${friendConversation?.friend.username ?? 'friend'}`
     : chatTab === 'party'
       ? 'Say to party'
-      : 'Say to everyone'
+      : `Say to ${globalLanguageLabel} chat`
   const messageLabel = activeFriendId
     ? `Private message to ${friendConversation?.friend.username ?? 'friend'}`
     : chatTab === 'party'
       ? 'Party message'
-      : 'Global message'
+      : `${globalLanguageLabel} chat message`
 
   return (
     <>
@@ -162,7 +173,7 @@ export function PartyChat(): JSX.Element {
               )}
               onClick={() => selectBaseTab(tab.id)}
             >
-              {tab.label}
+              {tab.id === 'global' ? `${globalLanguageLabel} Chat` : tab.label}
             </button>
           ))}
           {openFriendIds.map((friendId) => {
@@ -219,7 +230,7 @@ export function PartyChat(): JSX.Element {
               ? `Private messages with ${friendConversation?.friend.username ?? 'friend'}`
               : chatTab === 'party'
                 ? 'Party messages'
-                : 'Global messages'
+                : `${globalLanguageLabel} chat messages`
           }
         >
           {activeFriendId ? (
@@ -284,7 +295,7 @@ export function PartyChat(): JSX.Element {
               )}
               {globalEntries.map((entry) => (
                 <p key={entry.id} className="break-words" title={entry.sentAt}>
-                  <span className="text-violet-300">[Global] </span>
+                  <span className="text-violet-300">[{globalChatLanguage.toUpperCase()}] </span>
                   <span
                     className={twMerge(
                       entry.sender.id === playerId
