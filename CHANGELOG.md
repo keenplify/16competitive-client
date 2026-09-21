@@ -909,3 +909,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Lobby
 
 - Made lobby nameplates responsive.
+
+## v2026.921.2 — 2026-09-21
+
+### Global Chat
+
+- Global chat now follows your launcher language.
+- Changing the launcher language switches global chat to the matching language room.
+- Chat messages now include language information for a clearer experience.
+
+### Lobby Chat
+
+- Lobby chat can be closed without permanently hiding it.
