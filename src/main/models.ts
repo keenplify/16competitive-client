@@ -30,6 +30,14 @@ const normalizeModelPath = (relativePath: string): string => {
   return pathWithinModelsDirectory.split('/').join(sep)
 }
 
+// Buffer may be a view into a shared or pooled backing store, so copy exactly
+// the file's bytes into a standalone ArrayBuffer before sending it over IPC.
+const toArrayBuffer = (file: Buffer): ArrayBuffer => {
+  const buffer = new ArrayBuffer(file.byteLength)
+  new Uint8Array(buffer).set(file)
+  return buffer
+}
+
 /**
  * Reads only MDLs contained in Counter-Strike's models directory. The renderer
  * supplies either a path relative to cstrike/models or a cstrike-relative path
@@ -47,7 +55,7 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
       ? join(process.resourcesPath, 'lobby-models')
       : join(app.getAppPath(), 'resources', 'lobby-models')
     const file = await readFile(join(lobbyModelsDirectory, fileName))
-    return file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)
+    return toArrayBuffer(file)
   }
 
   const executable = await getSavedCs16Executable()
@@ -83,5 +91,5 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
     bytes: file.byteLength
   })
 
-  return file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)
+  return toArrayBuffer(file)
 }

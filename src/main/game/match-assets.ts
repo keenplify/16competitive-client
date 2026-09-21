@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { getSessionToken } from '../auth'
 import { getSavedCs16Executable } from './game-settings'
 import { ensureCompetitiveGameDirectory } from './competitive-game-directory'
