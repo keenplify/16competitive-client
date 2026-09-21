@@ -117,6 +117,8 @@ The launcher publishes Discord Rich Presence from the Electron main process. It 
 
 Create a Discord application named **1.6 Competitive**, use `resources/icon.png` as its application icon, and upload the same image as a Rich Presence Art Asset with the key `logo`. Then set `DISCORD_CLIENT_ID` when building. Local development can put the value in `.env`. Release builds read the `DISCORD_CLIENT_ID` GitHub Actions environment variable. If you use a different Art Asset key, set `DISCORD_LARGE_IMAGE_KEY` to match.
 
+Discord Rich Presence also works with Vesktop when **Enable Rich Presence via arRPC** is enabled. Native Vesktop and its Flatpak runtime socket are detected automatically. For another sandbox or a custom arRPC server, set `DISCORD_IPC_PATH` to its IPC socket path (use `:` between paths on Linux/macOS and `;` on Windows).
+
 No Discord secret or user token is required. Rich Presence talks only to the locally running Discord desktop client.
 
 ## Contributing
