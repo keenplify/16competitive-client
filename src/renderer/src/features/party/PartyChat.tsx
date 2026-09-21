@@ -19,6 +19,14 @@ interface ChatSender {
   username: string
 }
 
+interface MinimizedChatPing {
+  kind: 'party' | 'friend'
+  friendId?: string
+  title: string
+  preview: string
+  count: number
+}
+
 export function PartyChat(): JSX.Element {
   const playerId = useAuthStore((state) => state.session?.player.id)
   const party = usePartyStore((state) => state.party)
@@ -61,12 +69,15 @@ export function PartyChat(): JSX.Element {
   const actingPlayerId = useFriendsStore((state) => state.actingPlayerId)
   const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const seenPartyMessageIdsRef = useRef<Set<string> | null>(null)
+  const seenFriendMessageIdsRef = useRef<Set<string> | null>(null)
   const [playerMenu, setPlayerMenu] = useState<{
     player: ChatSender
     x: number
     y: number
   } | null>(null)
   const [chatOpen, setChatOpen] = useState(true)
+  const [minimizedPing, setMinimizedPing] = useState<MinimizedChatPing | null>(null)
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
   const globalLanguageLabel =
@@ -81,6 +92,75 @@ export function PartyChat(): JSX.Element {
   useEffect(() => {
     void setGlobalChatLanguage(language)
   }, [language, setGlobalChatLanguage])
+
+  useEffect(() => {
+    const messages = partyEntries.filter(
+      (entry): entry is Extract<(typeof partyEntries)[number], { type: 'party_chat_message' }> =>
+        entry.type === 'party_chat_message'
+    )
+    const currentIds = new Set(messages.map((entry) => entry.id))
+    const seen = seenPartyMessageIdsRef.current
+    if (!seen) {
+      seenPartyMessageIdsRef.current = currentIds
+      return
+    }
+
+    const incoming = messages.filter(
+      (entry) => !seen.has(entry.id) && entry.sender.id !== playerId
+    )
+    seenPartyMessageIdsRef.current = currentIds
+
+    if (!chatOpen && incoming.length > 0) {
+      const latest = incoming[incoming.length - 1]
+      setMinimizedPing((current) => ({
+        kind: 'party',
+        title: `Party • ${latest.sender.username}`,
+        preview: latest.message,
+        count: (current?.count ?? 0) + incoming.length
+      }))
+    }
+  }, [chatOpen, partyEntries, playerId])
+
+  useEffect(() => {
+    const messages = Object.entries(conversations).flatMap(([friendId, conversation]) =>
+      conversation.messages.map((message) => ({
+        friendId,
+        friendUsername: conversation.friend.username,
+        message
+      }))
+    )
+    const currentIds = new Set(messages.map(({ message }) => message.id))
+    const seen = seenFriendMessageIdsRef.current
+    if (!seen) {
+      seenFriendMessageIdsRef.current = currentIds
+      return
+    }
+
+    const incoming = messages.filter(
+      ({ message }) =>
+        !seen.has(message.id) &&
+        message.recipientPlayerId === playerId &&
+        message.sender.id !== playerId
+    )
+    seenFriendMessageIdsRef.current = currentIds
+
+    if (!chatOpen && incoming.length > 0) {
+      const latest = [...incoming].sort(
+        (left, right) => Date.parse(left.message.sentAt) - Date.parse(right.message.sentAt)
+      )[incoming.length - 1]
+      setMinimizedPing((current) => ({
+        kind: 'friend',
+        friendId: latest.friendId,
+        title: `Private • ${latest.friendUsername}`,
+        preview: latest.message.message,
+        count: (current?.count ?? 0) + incoming.length
+      }))
+    }
+  }, [chatOpen, conversations, playerId])
+
+  useEffect(() => {
+    if (chatOpen) setMinimizedPing(null)
+  }, [chatOpen])
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
@@ -115,6 +195,18 @@ export function PartyChat(): JSX.Element {
   const selectBaseTab = (tab: ChatTab): void => {
     setChatTab(tab)
     useFriendChatStore.setState({ activeFriendId: null })
+  }
+
+  const openMinimizedPing = (): void => {
+    const ping = minimizedPing
+    setChatOpen(true)
+    if (!ping) return
+    if (ping.kind === 'party') {
+      selectBaseTab('party')
+    } else if (ping.friendId) {
+      selectFriendChat(ping.friendId)
+    }
+    setMinimizedPing(null)
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -180,6 +272,30 @@ export function PartyChat(): JSX.Element {
 
   return (
     <>
+      {!chatOpen && minimizedPing && (
+        <button
+          type="button"
+          className="fixed bottom-16 left-4 z-[6] w-[min(20rem,calc(100%-2rem))] border border-sky-400/40 bg-black/90 p-3 text-left text-white shadow-2xl backdrop-blur-md transition hover:border-sky-300/70 hover:bg-neutral-950"
+          onClick={openMinimizedPing}
+          aria-label={`Open ${minimizedPing.title}`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-300 opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-sky-300" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-xs font-semibold tracking-wide text-sky-200 uppercase">
+              {minimizedPing.title}
+            </span>
+            {minimizedPing.count > 1 && (
+              <span className="rounded-full bg-sky-400 px-1.5 py-0.5 text-[10px] font-bold text-neutral-950">
+                {minimizedPing.count > 99 ? '99+' : minimizedPing.count}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 truncate text-xs text-neutral-300">{minimizedPing.preview}</p>
+        </button>
+      )}
       {!chatOpen && (
         <button
           type="button"
@@ -187,7 +303,14 @@ export function PartyChat(): JSX.Element {
           onClick={() => setChatOpen(true)}
           aria-label="Open chat"
         >
-          <MessageSquare className="size-4 text-sky-300" aria-hidden="true" />
+          <span className="relative">
+            <MessageSquare className="size-4 text-sky-300" aria-hidden="true" />
+            {minimizedPing && (
+              <span className="absolute -right-2 -top-2 grid min-w-4 place-items-center rounded-full bg-sky-400 px-1 text-[9px] font-bold leading-4 text-neutral-950">
+                {minimizedPing.count > 9 ? '9+' : minimizedPing.count}
+              </span>
+            )}
+          </span>
           Chat
         </button>
       )}
