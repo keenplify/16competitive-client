@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
@@ -102,6 +102,7 @@ import {
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
 import { discordPresence } from './discord-presence'
+import { DISCORD_CLIENT_ID } from './config'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -114,6 +115,28 @@ let skinAssetSyncProgress: SkinAssetSyncProgress = {
 }
 
 installDiagnosticLogCapture()
+
+function registerDiscordApplicationProtocol(): void {
+  if (!/^\d{17,20}$/.test(DISCORD_CLIENT_ID)) return
+  const protocol = `discord-${DISCORD_CLIENT_ID}`
+
+  try {
+    const registered =
+      process.platform === 'win32' && process.defaultApp && process.argv[1]
+        ? app.setAsDefaultProtocolClient(protocol, process.execPath, [resolve(process.argv[1])])
+        : app.setAsDefaultProtocolClient(protocol)
+    if (!registered) {
+      console.warn('[DiscordPresence] could not register Discord application protocol', protocol)
+    }
+  } catch (error) {
+    console.warn(
+      '[DiscordPresence] Discord application protocol registration failed',
+      error instanceof Error ? error.message : String(error)
+    )
+  }
+}
+
+registerDiscordApplicationProtocol()
 
 function installWindowDiagnostics(window: BrowserWindow): void {
   const state = (): Record<string, unknown> => ({
