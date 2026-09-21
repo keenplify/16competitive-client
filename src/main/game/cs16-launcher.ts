@@ -331,7 +331,7 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
   })
 }
 
-const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<void> => {
+const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<number> => {
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
     '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
@@ -373,11 +373,12 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
       code: result.code,
       detail: result.stderr.trim() || 'PowerShell process lookup failed'
     })
-    return
+    return 0
   }
 
   const terminated = Number(result.stdout.trim()) || 0
   console.info('[GameLaunch] Windows Counter-Strike processes terminated', { terminated })
+  return terminated
 }
 
 const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
@@ -430,6 +431,30 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   const competitiveDirectory = await ensureCompetitiveGameDirectory(cwd)
 
+  const launchTarget = await resolveCs16LaunchTarget(executable)
+  const launchGameDirectory = competitiveDirectory
+  console.info('[GameLaunch] Counter-Strike installation classified', {
+    distribution: launchTarget.distribution,
+    selectedExecutable: executable,
+    launchExecutable: launchTarget.executable,
+    gameExecutable: launchTarget.gameExecutable,
+    usesLauncherHandoff: launchTarget.usesLauncherHandoff,
+    usesSteamEmulation: launchTarget.usesSteamEmulation,
+    launchGameDirectory
+  })
+  if (launchTarget.executable !== executable) {
+    // Non-Steam repacks ship a wrapper that starts Counter-Strike and exits. It
+    // may also self-update over the network, so keep the reason in the log.
+    console.warn(
+      '[GameLaunch] the selected executable is a launcher wrapper; following the game process it starts instead',
+      {
+        matchId: input.matchId,
+        wrapper: launchTarget.executable,
+        gameExecutable: launchTarget.gameExecutable
+      }
+    )
+  }
+
   const processGeneration = ++gameProcessGeneration
   if (relaunchingSameMatch) {
     console.info('[GameLaunch] restarting Counter-Strike for match reconnect', {
@@ -440,7 +465,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     stopGameWatchdog(input.matchId)
     finishAntiCheatSession(input.matchId, 'relaunch')
     terminateSpawnedGameProcess(gameProcess)
-    if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
+    if (process.platform === 'win32')
+      await closeWindowsCounterStrikeProcesses(launchTarget.gameExecutable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
     gameProcess = null
     await delay(RELAUNCH_SETTLE_MS)
@@ -449,27 +475,33 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     stopGameWatchdog()
     if (activeAntiCheatSession) finishAntiCheatSession(undefined, 'new-match-launch')
     if (activeVoicePttSession) await finishVoicePttSession()
+    // The launcher may have restarted after a prior handoff, leaving a GoldSrc
+    // process alive while its in-memory match state is gone. GoldSrc allows one
+    // client instance only, so clear that process before a fresh match launch.
+    if (process.platform === 'win32') {
+      const terminated = await closeWindowsCounterStrikeProcesses(launchTarget.gameExecutable)
+      if (terminated > 0) await delay(RELAUNCH_SETTLE_MS)
+    }
   }
 
   await prepareManagedSkinAudio(input.matchId, cwd)
 
-  const launchTarget = await resolveCs16LaunchTarget(executable)
-  const requiresAddonsBridge = process.platform === 'linux' && launchTarget.usesLauncherHandoff
+  const requiresAddonsBridge = launchTarget.requiresAddonsBridge
   // Steam's own launch flags force `-game cstrike`, so the competitive game
   // directory is exposed through GoldSrc's addons search path instead.
   const addonsBridgeReady = requiresAddonsBridge ? await ensureSteamAddonsDirectory(cwd) : true
   const voicePttSession = await prepareVoicePtt(
-    competitiveDirectory,
+    launchGameDirectory,
     input.onVoicePtt,
     await getSavedVoicePttKey()
   )
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'
-  const matchConfigPath = join(competitiveDirectory, matchConfigName)
+  const matchConfigPath = join(launchGameDirectory, matchConfigName)
   const matchConfigGeneration = ++nextMatchConfigGeneration
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
-  await unlink(join(competitiveDirectory, '16competitive-match.cfg')).catch(() => undefined)
+  await unlink(join(launchGameDirectory, '16competitive-match.cfg')).catch(() => undefined)
 
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
@@ -565,7 +597,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     ...gameArgs
   ]
   launchedGameDirectory = cwd
-  launchedExecutablePath = executable
+  // Track the GoldSrc binary rather than the selected path: for a wrapper the
+  // selected executable has already exited and match cleanup would miss the game.
+  launchedExecutablePath = launchTarget.gameExecutable
   await startManagedSkinAudioConnectionGuard(input.matchId, cwd).catch((error: unknown) => {
     console.error('[SkinAudio] could not start external-server guard', error)
   })
@@ -638,7 +672,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
   gameProcess = spawnedProcess
   launchedMatchId = input.matchId
-  startGameWatchdog(input.matchId, executable)
+  startGameWatchdog(input.matchId, launchTarget.gameExecutable)
   const linuxHandoffMonitorGeneration =
     process.platform === 'linux' && launchTarget.usesLauncherHandoff
       ? ++linuxMonitorGeneration
@@ -647,7 +681,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (!launchTarget.usesLauncherHandoff && spawnedProcess.pid) {
     antiCheatSession.attachProcess(spawnedProcess.pid)
   } else if (process.platform === 'win32' && launchTarget.usesLauncherHandoff) {
-    void antiCheatSession.attachWhenWindowsProcessAppears(executable)
+    void antiCheatSession.attachWhenWindowsProcessAppears(launchTarget.gameExecutable)
   }
 
   console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: gameProcess.pid })
@@ -744,3 +778,6 @@ export const launchCounterStrikeForMatch = (input: MatchLaunchInput): Promise<vo
   forcedLaunchInFlight = { matchId: input.matchId, promise: trackedPromise }
   return trackedPromise
 }
+
+export const isCounterStrikeActiveForMatch = (matchId: string): boolean =>
+  launchedMatchId === matchId

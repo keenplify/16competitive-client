@@ -93,6 +93,7 @@ export function PlayPage(): JSX.Element {
   const countdown = useMatchmakingStore((state) => state.countdown)
   const assetPreparation = useMatchmakingStore((state) => state.assetPreparation)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
+  const gameExited = useMatchmakingStore((state) => state.gameExited)
   const error = useMatchmakingStore((state) => state.error)
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const loadRegions = useMatchmakingStore((state) => state.loadRegions)
@@ -254,8 +255,12 @@ export function PlayPage(): JSX.Element {
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">
-              <Button variant="ghost" onClick={() => void handleReconnect()}>
-                Reconnect to match
+              <Button
+                disabled={!gameExited}
+                variant="ghost"
+                onClick={() => void handleReconnect()}
+              >
+                {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
               </Button>
             </div>
           )}
@@ -284,8 +289,12 @@ export function PlayPage(): JSX.Element {
           <p className="mt-3 text-sm text-emerald-100/70">
             The game server is available at {connectionDetails.host}:{connectionDetails.port}.
           </p>
-          <Button className="mt-6" onClick={() => void handleReconnect()}>
-            Reconnect to match
+          <Button
+            className="mt-6"
+            disabled={!gameExited}
+            onClick={() => void handleReconnect()}
+          >
+            {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
           </Button>
           {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
         </section>
