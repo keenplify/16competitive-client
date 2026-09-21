@@ -117,9 +117,12 @@ export type PartyChatEvent =
       sentAt: string
     }
 
+export type GlobalChatLanguage = string
+
 export interface GlobalChatMessage {
   type: 'global_chat_message'
   id: string
+  language: GlobalChatLanguage
   sender: { id: string; username: string }
   message: string
   sentAt: string
@@ -127,12 +130,14 @@ export interface GlobalChatMessage {
 
 export interface GlobalChatHistory {
   type: 'global_chat_history'
+  language: GlobalChatLanguage
   messages: GlobalChatMessage[]
 }
 
 export interface GlobalChatMessageDeleted {
   type: 'global_chat_message_deleted'
   id: string
+  language: GlobalChatLanguage
 }
 
 export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
