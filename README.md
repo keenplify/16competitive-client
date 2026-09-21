@@ -111,6 +111,14 @@ npm run release
 
 GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
 
+## Discord Rich Presence
+
+The launcher publishes Discord Rich Presence from the Electron main process. It shows whether the player is in the lobby, in a party, searching for a match, at match found, or actively in Counter-Strike. Active matches include the current map, and parties include their current size.
+
+Create a Discord application named **1.6 Competitive**, set its application icon to `resources/icon.png` so the current launcher logo is used in presence, then set `DISCORD_CLIENT_ID` when building. Local development can put the value in `.env`. Release builds read the `DISCORD_CLIENT_ID` GitHub Actions environment variable.
+
+No Discord secret or user token is required. Rich Presence talks only to the locally running Discord desktop client.
+
 ## Contributing
 
 Issues, feedback, and pull requests are welcome. Please keep the backend authoritative and preserve the secure Electron boundary: filesystem access and game launching belong in the main process, while the renderer receives only narrow, validated APIs.

@@ -16,3 +16,6 @@ export const MATCHMAKING_WS_URL =
     url.hash = ''
     return url.toString()
   })()
+
+
+export const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID?.trim() ?? ''
