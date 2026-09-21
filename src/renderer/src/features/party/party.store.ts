@@ -22,6 +22,7 @@ interface PartyState {
   chatError: string | null
   chatTab: ChatTab
   globalChatEntries: GlobalChatMessage[]
+  globalChatLanguage: string
   globalChatDraft: string
   globalChatSending: boolean
   globalChatError: string | null
@@ -38,6 +39,7 @@ interface PartyState {
   clearChat: () => void
   setChatTab: (tab: ChatTab) => void
   setGlobalChatDraft: (message: string) => void
+  setGlobalChatLanguage: (language: string) => Promise<void>
   sendGlobalChat: () => Promise<void>
   reset: () => void
 }
@@ -83,6 +85,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   chatError: null,
   chatTab: 'global',
   globalChatEntries: [],
+  globalChatLanguage: 'en',
   globalChatDraft: '',
   globalChatSending: false,
   globalChatError: null,
@@ -108,19 +111,27 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, event) }))
       }
       if (event.type === 'global_chat_message') {
-        set((state) => ({
-          globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event])
-        }))
+        set((state) =>
+          event.language === state.globalChatLanguage
+            ? { globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event]) }
+            : {}
+        )
       }
       if (event.type === 'global_chat_message_deleted') {
-        set((state) => ({
-          globalChatEntries: state.globalChatEntries.filter((entry) => entry.id !== event.id)
-        }))
+        set((state) =>
+          event.language === state.globalChatLanguage
+            ? {
+                globalChatEntries: state.globalChatEntries.filter((entry) => entry.id !== event.id)
+              }
+            : {}
+        )
       }
       if (event.type === 'global_chat_history') {
-        set((state) => ({
-          globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, event.messages)
-        }))
+        set((state) =>
+          event.language === state.globalChatLanguage
+            ? { globalChatEntries: event.messages }
+            : {}
+        )
       }
       if (event.type === 'match_found') {
         const partyId = get().party?.id
@@ -384,6 +395,21 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   setGlobalChatDraft: (globalChatDraft) =>
     set({ globalChatDraft: globalChatDraft.slice(0, 300), globalChatError: null }),
 
+  setGlobalChatLanguage: async (language) => {
+    if (language === get().globalChatLanguage) return
+    set({
+      globalChatLanguage: language,
+      globalChatEntries: [],
+      globalChatDraft: '',
+      globalChatError: null
+    })
+    try {
+      await window.api.party.setGlobalChatLanguage(language)
+    } catch (error) {
+      set({ globalChatError: readableError(error) })
+    }
+  },
+
   sendGlobalChat: async () => {
     const message = get().globalChatDraft.trim()
     if (!message || get().globalChatSending) return
@@ -411,6 +437,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatError: null,
       chatTab: 'global',
       globalChatEntries: [],
+      globalChatLanguage: 'en',
       globalChatDraft: '',
       globalChatSending: false,
       globalChatError: null
