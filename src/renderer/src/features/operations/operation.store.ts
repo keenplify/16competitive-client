@@ -66,7 +66,8 @@ export const useOperationStore = create<OperationState>((set, get) => ({
     try {
       const progress = await window.api.operations.markViewed(operationId, viewedPoints)
       const snapshot = get().snapshot
-      if (!snapshot?.operation || snapshot.operation.id !== operationId || !snapshot.progress) return
+      if (!snapshot?.operation || snapshot.operation.id !== operationId || !snapshot.progress)
+        return
       set({
         snapshot: {
           ...snapshot,

@@ -21,15 +21,14 @@ export function PurchaseConfirmModal({
   onConfirm: (currency: SkinCurrency) => void
 }): JSX.Element {
   const options = useMemo(
-    () =>
-      [
-        ...(skin.pointsEnabled
-          ? [{ currency: 'POINTS' as const, amount: skin.pricePoints, balance: pointsBalance }]
-          : []),
-        ...(skin.pricePCash !== null
-          ? [{ currency: 'P_CASH' as const, amount: skin.pricePCash, balance: pCashBalance }]
-          : [])
-      ],
+    () => [
+      ...(skin.pointsEnabled
+        ? [{ currency: 'POINTS' as const, amount: skin.pricePoints, balance: pointsBalance }]
+        : []),
+      ...(skin.pricePCash !== null
+        ? [{ currency: 'P_CASH' as const, amount: skin.pricePCash, balance: pCashBalance }]
+        : [])
+    ],
     [pCashBalance, pointsBalance, skin.pointsEnabled, skin.pricePCash, skin.pricePoints]
   )
   const [currency, setCurrency] = useState<SkinCurrency>(options[0]?.currency ?? 'POINTS')

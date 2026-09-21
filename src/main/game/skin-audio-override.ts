@@ -52,7 +52,11 @@ let connectionGuardGeneration = 0
 let managedConnectionTargets = new Set<string>()
 
 const normalizeConnectionTarget = (value: string): string =>
-  value.trim().replace(/\.{3}$/, '').replace(/\.$/, '').toLowerCase()
+  value
+    .trim()
+    .replace(/\.{3}$/, '')
+    .replace(/\.$/, '')
+    .toLowerCase()
 
 interface ConnectionLogEvent {
   type: 'connecting' | 'accepted'
@@ -107,10 +111,7 @@ const makeSilentWav = (): Buffer => {
   return output
 }
 
-const readPakEntry = async (
-  pakPath: string,
-  entryName: string
-): Promise<Buffer | null> => {
+const readPakEntry = async (pakPath: string, entryName: string): Promise<Buffer | null> => {
   const handle = await open(pakPath, 'r').catch(() => null)
   if (!handle) return null
 
@@ -126,21 +127,12 @@ const readPakEntry = async (
 
     const directoryOffset = header.readUInt32LE(4)
     const directoryLength = header.readUInt32LE(8)
-    if (
-      directoryLength === 0 ||
-      directoryLength % 64 !== 0 ||
-      directoryLength > 16 * 1024 * 1024
-    ) {
+    if (directoryLength === 0 || directoryLength % 64 !== 0 || directoryLength > 16 * 1024 * 1024) {
       return null
     }
 
     const directory = Buffer.alloc(directoryLength)
-    const directoryRead = await handle.read(
-      directory,
-      0,
-      directory.length,
-      directoryOffset
-    )
+    const directoryRead = await handle.read(directory, 0, directory.length, directoryOffset)
     if (directoryRead.bytesRead !== directory.length) return null
 
     const target = entryName.replaceAll('\\', '/').toLowerCase()
@@ -174,19 +166,16 @@ const readVanillaStockSound = async (
   fileName: string
 ): Promise<Buffer | null> => {
   for (const base of ['cstrike', 'valve']) {
-    const bytes = await readFile(
-      join(gameDirectory, base, 'sound', 'weapons', fileName)
-    ).catch(() => null)
+    const bytes = await readFile(join(gameDirectory, base, 'sound', 'weapons', fileName)).catch(
+      () => null
+    )
     if (bytes && isWave(bytes)) return bytes
   }
 
   const entryName = `sound/weapons/${fileName}`
   for (const base of ['cstrike', 'valve']) {
     for (let index = 0; index <= 9; index += 1) {
-      const bytes = await readPakEntry(
-        join(gameDirectory, base, `pak${index}.pak`),
-        entryName
-      )
+      const bytes = await readPakEntry(join(gameDirectory, base, `pak${index}.pak`), entryName)
       if (bytes && isWave(bytes)) return bytes
     }
   }
@@ -309,12 +298,7 @@ export const prepareManagedSkinAudio = async (
     })
     await writeFile(defaultCopy, vanillaBytes, { mode: 0o600 })
 
-    const override = safeGamePath(
-      competitiveDirectory,
-      'sound',
-      'weapons',
-      fileName
-    )
+    const override = safeGamePath(competitiveDirectory, 'sound', 'weapons', fileName)
     await mkdir(join(competitiveDirectory, 'sound', 'weapons'), {
       recursive: true,
       mode: 0o700
