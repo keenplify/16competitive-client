@@ -66,6 +66,10 @@ import {
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
+import {
+  restoreManagedSkinAudio,
+  restoreStaleManagedSkinAudio
+} from './game/skin-audio-override'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -101,6 +105,12 @@ import {
   reportDiagnosticIssue
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
+import { OPERATION_CHANNELS } from '../shared/operations'
+import {
+  getActiveOperation,
+  getMyOperation,
+  markOperationViewed
+} from './operations'
 import { discordPresence } from './discord-presence'
 import { DISCORD_CLIENT_ID } from './config'
 
@@ -309,6 +319,9 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
+  await restoreStaleManagedSkinAudio().catch((error: unknown) => {
+    console.error('[SkinAudio] startup overlay cleanup failed', error)
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -535,6 +548,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
+  ipcMain.handle(OPERATION_CHANNELS.getActive, () => getActiveOperation())
+  ipcMain.handle(OPERATION_CHANNELS.getMine, () => getMyOperation())
+  ipcMain.handle(OPERATION_CHANNELS.markViewed, (_, operationId: unknown, viewedPoints: unknown) =>
+    markOperationViewed(operationId, viewedPoints)
+  )
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   const startupSplash = await startupSplashPromise
@@ -553,7 +571,17 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+let cleaningOverlayBeforeQuit = false
+app.on('before-quit', (event) => {
   disconnectMatchmakingIntentionally()
   discordPresence.stop()
+  if (cleaningOverlayBeforeQuit) return
+
+  cleaningOverlayBeforeQuit = true
+  event.preventDefault()
+  void restoreManagedSkinAudio()
+    .catch((error: unknown) => {
+      console.error('[SkinAudio] overlay cleanup during launcher shutdown failed', error)
+    })
+    .finally(() => app.quit())
 })

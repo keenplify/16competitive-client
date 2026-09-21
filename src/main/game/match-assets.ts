@@ -3,11 +3,12 @@ import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promis
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { getSessionToken } from '../auth'
 import { getSavedCs16Executable } from './game-settings'
+import { ensureCompetitiveGameDirectory } from './competitive-game-directory'
 
 const ASSET_PATH =
-  /^models\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w)\.mdl$/
+  /^(?:models|sound|sprites)\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w|action|explosion)\.(mdl|wav|spr)$/
 const SHA256 = /^[a-f0-9]{64}$/
-const MAX_MODEL_SIZE = 20 * 1024 * 1024
+const MAX_ASSET_SIZE = 20 * 1024 * 1024
 // Some players connect over high-latency or lossy routes. Fetching the three
 // GoldSrc models at once made one request prone to stalling behind the others.
 // Keep the transfer small and give each model several bounded chances instead.
@@ -22,7 +23,8 @@ const ASSET_DOWNLOAD_RETRY_MAX_DELAY_MS = 5_000
 const MANIFEST_RETRY_COUNT = 60
 const MANIFEST_RETRY_DELAY_MS = 1_000
 const MANIFEST_RETRY_MAX_DELAY_MS = 5_000
-const CATALOG_ASSET_PATH = /^models\/16competitive\/[a-zA-Z0-9_/-]+\.mdl$/
+const CATALOG_ASSET_PATH =
+  /^(?:models|sound|sprites)\/16competitive\/[a-zA-Z0-9_/-]+\.(?:mdl|wav|spr)$/
 
 interface MatchAsset {
   path: string
@@ -52,6 +54,20 @@ const retryDelay = (baseDelay: number, maxDelay: number, attempt: number): numbe
 
 const isRetryableHttpStatus = (status: number): boolean =>
   status === 404 || status === 408 || status === 425 || status === 429 || status >= 500
+
+const isValidGoldSrcAsset = (path: string, bytes: Buffer): boolean => {
+  if (bytes.length < 16 || bytes.length > MAX_ASSET_SIZE) return false
+  if (path.endsWith('.mdl')) return bytes.subarray(0, 4).toString() === 'IDST'
+  if (path.endsWith('.spr')) return bytes.subarray(0, 4).toString() === 'IDSP'
+  if (path.endsWith('.wav')) {
+    return (
+      bytes.subarray(0, 4).toString() === 'RIFF' &&
+      bytes.length >= 12 &&
+      bytes.subarray(8, 12).toString() === 'WAVE'
+    )
+  }
+  return false
+}
 
 const isMatchAsset = (value: unknown): value is MatchAsset => {
   if (typeof value !== 'object' || value === null) return false
@@ -112,7 +128,7 @@ const expectedHashFor = (asset: MatchAsset): string => {
 
 const hasExpectedHash = async (destination: string, expectedHash: string): Promise<boolean> => {
   const metadata = await stat(destination).catch(() => null)
-  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > MAX_MODEL_SIZE) {
+  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > MAX_ASSET_SIZE) {
     console.debug('[MatchAssets] cache miss', {
       destination,
       reason: metadata ? 'invalid-size-or-type' : 'missing'
@@ -181,7 +197,7 @@ const fetchAssetBytes = async (
       const contentLength = Number(response.headers.get('content-length'))
       if (
         Number.isFinite(contentLength) &&
-        (contentLength < 16 || contentLength > MAX_MODEL_SIZE)
+        (contentLength < 16 || contentLength > MAX_ASSET_SIZE)
       ) {
         throw new NonRetryableAssetError(`Match asset has an unsupported size: ${asset.path}`)
       }
@@ -193,12 +209,8 @@ const fetchAssetBytes = async (
         attempt,
         bytes: bytes.length
       })
-      if (
-        bytes.length < 16 ||
-        bytes.length > MAX_MODEL_SIZE ||
-        bytes.subarray(0, 4).toString() !== 'IDST'
-      ) {
-        throw new Error(`Match asset is not a valid GoldSrc model: ${asset.path}`)
+      if (!isValidGoldSrcAsset(asset.path, bytes)) {
+        throw new Error(`Match asset is not a valid GoldSrc skin asset: ${asset.path}`)
       }
       const actualHash = createHash('sha256').update(bytes).digest('hex')
       console.debug('[MatchAssets] asset validated', {
@@ -333,7 +345,7 @@ const syncSkinAssets = async (
     throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
   }
   const catalog = assets as CatalogAsset[]
-  const assetRoot = join(await getGameDirectory(), 'cstrike')
+  const assetRoot = await ensureCompetitiveGameDirectory(await getGameDirectory())
   console.info('[MatchAssets] catalog loaded', {
     entries: catalog.length,
     assetRoot
@@ -371,12 +383,8 @@ const syncSkinAssets = async (
           path: asset.path,
           bytes: bytes.length
         })
-        if (
-          bytes.length < 16 ||
-          bytes.length > MAX_MODEL_SIZE ||
-          bytes.subarray(0, 4).toString() !== 'IDST'
-        )
-          throw new Error(`Skin asset is not a valid GoldSrc model: ${asset.path}`)
+        if (!isValidGoldSrcAsset(asset.path, bytes))
+          throw new Error(`Skin asset is not a valid GoldSrc asset: ${asset.path}`)
         const actualHash = createHash('sha256').update(bytes).digest('hex')
         if (actualHash !== asset.sha256) {
           throw new Error(`Skin asset integrity check failed: ${asset.path}`)
@@ -525,7 +533,7 @@ const preload = async (
   if (!['https:', 'http:'].includes(apiUrl.protocol) || apiUrl.username || apiUrl.password) {
     throw new Error('Match asset server URL is invalid.')
   }
-  const assetRoot = join(await getGameDirectory(), 'cstrike')
+  const assetRoot = await ensureCompetitiveGameDirectory(await getGameDirectory())
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
   console.info('[MatchAssets] match preload started', { matchId, assetRoot })
   onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })

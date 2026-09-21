@@ -95,6 +95,7 @@ interface AntiCheatSessionOptions {
   executablePath: string
   gameDirectory: string
   distribution: Cs16Distribution
+  onProcessExit?: (processId: number) => void
 }
 
 const delay = (milliseconds: number): Promise<void> =>
@@ -463,6 +464,27 @@ const reportObservation = async (observation: AntiCheatObservation): Promise<voi
   }
 }
 
+const processIsAlive = async (processId: number): Promise<boolean> => {
+  if (!Number.isInteger(processId) || processId <= 0) return false
+
+  if (process.platform === 'win32') {
+    const script = [
+      "$targetPid = [int][Environment]::GetEnvironmentVariable('ANTICHEAT_PID')",
+      '$target = Get-Process -Id $targetPid -ErrorAction SilentlyContinue',
+      'if ($null -eq $target) { exit 1 }',
+      'exit 0'
+    ].join('; ')
+    const result = await runPowerShell(script, { ANTICHEAT_PID: String(processId) })
+    return result.code === 0
+  }
+
+  if (process.platform === 'linux') {
+    return Boolean((await stat(`/proc/${processId}`).catch(() => null))?.isDirectory())
+  }
+
+  return true
+}
+
 const windowsProcessIdForExecutable = async (executablePath: string): Promise<number | null> => {
   const executableName = basename(executablePath)
   const script = [
@@ -484,6 +506,7 @@ const windowsProcessIdForExecutable = async (executablePath: string): Promise<nu
 export class AntiCheatSession {
   private stopped = false
   private runtimeTimer: NodeJS.Timeout | null = null
+  private runtimeExitTimer: NodeJS.Timeout | null = null
   private runtimeProcessId: number | null = null
   private lastRuntimeSignature: string | null = null
 
@@ -514,9 +537,34 @@ export class AntiCheatSession {
     this.runtimeProcessId = processId
     this.lastRuntimeSignature = null
     if (this.runtimeTimer) clearInterval(this.runtimeTimer)
+    if (this.runtimeExitTimer) clearInterval(this.runtimeExitTimer)
     setTimeout(() => void this.reportRuntime(), 1_000).unref?.()
     this.runtimeTimer = setInterval(() => void this.reportRuntime(), RUNTIME_SCAN_INTERVAL_MS)
     this.runtimeTimer.unref?.()
+    this.runtimeExitTimer = setInterval(() => void this.checkProcessExit(processId), 1_500)
+    this.runtimeExitTimer.unref?.()
+  }
+
+  private async checkProcessExit(processId: number): Promise<void> {
+    if (this.stopped || this.runtimeProcessId !== processId) return
+    if (await processIsAlive(processId)) return
+    if (this.runtimeProcessId !== processId || this.stopped) return
+
+    this.runtimeProcessId = null
+    if (this.runtimeTimer) clearInterval(this.runtimeTimer)
+    this.runtimeTimer = null
+    if (this.runtimeExitTimer) clearInterval(this.runtimeExitTimer)
+    this.runtimeExitTimer = null
+
+    try {
+      this.options.onProcessExit?.(processId)
+    } catch (error) {
+      console.warn('[AntiCheat] managed process exit callback failed', {
+        matchId: this.options.matchId,
+        processId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
   }
 
   async attachWhenWindowsProcessAppears(executablePath: string): Promise<void> {
@@ -571,6 +619,8 @@ export class AntiCheatSession {
     this.stopped = true
     if (this.runtimeTimer) clearInterval(this.runtimeTimer)
     this.runtimeTimer = null
+    if (this.runtimeExitTimer) clearInterval(this.runtimeExitTimer)
+    this.runtimeExitTimer = null
     const processId = this.runtimeProcessId ?? undefined
     this.runtimeProcessId = null
     void reportObservation({

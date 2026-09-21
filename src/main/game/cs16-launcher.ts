@@ -5,9 +5,15 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
+import { ensureCompetitiveGameDirectory } from './competitive-game-directory'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
+import {
+  prepareManagedSkinAudio,
+  restoreManagedSkinAudio,
+  startManagedSkinAudioConnectionGuard
+} from './skin-audio-override'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -174,6 +180,7 @@ const monitorLinuxCounterStrikeHandoff = async (
           stopAntiCheatSession(antiCheatSession, 'game-process-not-found')
           clearMatchConfig(matchConfigGeneration)
           await finishVoicePttSession(matchId)
+          await restoreManagedSkinAudio().catch(() => undefined)
           watchSteamExit(matchId)
           onExit?.({ code: null, signal: null })
         }
@@ -186,6 +193,7 @@ const monitorLinuxCounterStrikeHandoff = async (
         stopAntiCheatSession(antiCheatSession, 'game-exit')
         clearMatchConfig(matchConfigGeneration)
         await finishVoicePttSession(matchId)
+        await restoreManagedSkinAudio().catch(() => undefined)
         watchSteamExit(matchId)
         onExit?.({ code: null, signal: null })
       }
@@ -204,6 +212,9 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   linuxMonitorGeneration++
   stopGameWatchdog(matchId)
   finishAntiCheatSession(matchId, 'match-closed')
+  void restoreManagedSkinAudio().catch((error: unknown) => {
+    console.error('[SkinAudio] restore after managed match close failed', error)
+  })
   if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory).finally(() =>
@@ -337,6 +348,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
+  const competitiveDirectory = await ensureCompetitiveGameDirectory(cwd)
 
   const processGeneration = ++gameProcessGeneration
   if (relaunchingSameMatch) {
@@ -358,15 +370,17 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     if (activeVoicePttSession) await finishVoicePttSession()
   }
 
+  await prepareManagedSkinAudio(input.matchId, cwd)
+
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  const voicePttSession = await prepareVoicePtt(cwd, input.onVoicePtt, await getSavedVoicePttKey())
+  const voicePttSession = await prepareVoicePtt(competitiveDirectory, input.onVoicePtt, await getSavedVoicePttKey())
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'
-  const matchConfigPath = join(cwd, 'cstrike', matchConfigName)
+  const matchConfigPath = join(competitiveDirectory, matchConfigName)
   const matchConfigGeneration = ++nextMatchConfigGeneration
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
-  await unlink(join(cwd, 'cstrike', '16competitive-match.cfg')).catch(() => undefined)
+  await unlink(join(competitiveDirectory, '16competitive-match.cfg')).catch(() => undefined)
 
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
@@ -400,6 +414,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       error
     })
     await finishVoicePttSession(input.matchId)
+    await restoreManagedSkinAudio().catch(() => undefined)
     throw new Error(
       'Could not prepare the Counter-Strike match connection. Please try reconnecting.'
     )
@@ -413,11 +428,39 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     matchId: input.matchId,
     executablePath: executable,
     gameDirectory: cwd,
-    distribution: launchTarget.distribution
+    distribution: launchTarget.distribution,
+    ...(process.platform === 'win32' && launchTarget.usesLauncherHandoff
+      ? {
+          onProcessExit: () => {
+            if (launchedMatchId !== input.matchId) return
+            console.info('[GameLaunch] Windows GoldSrc process exited after launcher handoff', {
+              matchId: input.matchId
+            })
+            stopGameWatchdog(input.matchId)
+            finishAntiCheatSession(input.matchId, 'game-exit')
+            void finishVoicePttSession(input.matchId)
+            void restoreManagedSkinAudio().catch((error: unknown) => {
+              console.error('[SkinAudio] restore after Windows game exit failed', error)
+            })
+            launchedMatchId = null
+            launchedGameDirectory = null
+            launchedExecutablePath = null
+            clearMatchConfig(matchConfigGeneration)
+            if (launchTarget.distribution === 'steam') watchSteamExit(input.matchId)
+            input.onExit?.({ code: null, signal: null })
+          }
+        }
+      : {})
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  const directMatchArgs = ['+exec', matchConfigName, '+connect', `${input.host}:${input.port}`]
+  const directMatchArgs = [
+    '-condebug',
+    '+exec',
+    matchConfigName,
+    '+connect',
+    `${input.host}:${input.port}`
+  ]
   const gameArgs = directMatchArgs
   const launchArgs = [
     ...launchTarget.argumentPrefix,
@@ -426,6 +469,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   ]
   launchedGameDirectory = cwd
   launchedExecutablePath = executable
+  await startManagedSkinAudioConnectionGuard(input.matchId, cwd).catch((error: unknown) => {
+    console.error('[SkinAudio] could not start external-server guard', error)
+  })
   console.info('[GameLaunch] starting Counter-Strike', {
     distribution: launchTarget.distribution,
     executable: launchTarget.executable,
@@ -462,6 +508,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   } catch (error) {
     stopAntiCheatSession(antiCheatSession, 'launch-failed')
     await finishVoicePttSession(input.matchId)
+    await restoreManagedSkinAudio().catch(() => undefined)
     throw error
   }
 
@@ -534,6 +581,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       return
     }
     stopGameWatchdog(input.matchId)
+    void restoreManagedSkinAudio().catch((error: unknown) => {
+      console.error('[SkinAudio] restore after game exit failed', error)
+    })
     launchedMatchId = null
     launchedGameDirectory = null
     launchedExecutablePath = null

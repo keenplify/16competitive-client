@@ -1,7 +1,9 @@
-import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingBag, Ticket, X } from 'lucide-react'
+import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingCart, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
+import { CurrencyAmount } from '../../components/CurrencyIcon'
+import { PurchaseConfirmModal } from './PurchaseConfirmModal'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
 import type { OwnedSkin, Skin, SkinCurrency } from '../../../../shared/skins'
@@ -18,13 +20,14 @@ import { SkinModelThumbnail } from './SkinModelThumbnail'
 import { skinRarityPresentation } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
 
-type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'knives'
+type WeaponCategory = 'all' | 'pistols' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'grenades' | 'knives'
 
 const weaponCategory = (key: string): WeaponCategory => {
   if (['glock18', 'usp', 'p228', 'deagle', 'elite', 'fiveseven'].includes(key)) return 'pistols'
   if (['tmp', 'mac10', 'mp5navy', 'ump45', 'p90'].includes(key)) return 'smgs'
   if (['galil', 'famas', 'ak47', 'm4a1', 'aug', 'sg552'].includes(key)) return 'rifles'
   if (['scout', 'awp', 'sg550', 'g3sg1'].includes(key)) return 'snipers'
+  if (['hegrenade', 'flashbang', 'smokegrenade'].includes(key)) return 'grenades'
   if (key === 'knife') return 'knives'
   return 'heavy'
 }
@@ -36,6 +39,7 @@ const weaponCategories: Array<{ id: WeaponCategory; label: string }> = [
   { id: 'rifles', label: 'Rifles' },
   { id: 'snipers', label: 'Snipers' },
   { id: 'heavy', label: 'Machine gun' },
+  { id: 'grenades', label: 'Grenades' },
   { id: 'knives', label: 'Knife' }
 ] as const
 
@@ -69,6 +73,7 @@ export function ShopPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [ownedSkins, setOwnedSkins] = useState<Map<string, OwnedSkin>>(new Map())
   const [buyingId, setBuyingId] = useState<string | null>(null)
+  const [purchaseSkin, setPurchaseSkin] = useState<Skin | null>(null)
   const [previewSkin, setPreviewSkin] = useState<Skin | null>(null)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const navigate = useNavigationStore((state) => state.navigate)
@@ -109,6 +114,7 @@ export function ShopPage(): JSX.Element {
 
   const unlock = (skin: Skin, currency: SkinCurrency): void => {
     setBuyingId(skin.id)
+    setPurchaseSkin(skin)
     setError(null)
     void window.api.skins
       .unlock(skin.id, currency)
@@ -136,11 +142,14 @@ export function ShopPage(): JSX.Element {
           failure.code === 'INSUFFICIENT_POINTS'
             ? 'You need more points to unlock this skin.'
             : failure.code === 'INSUFFICIENT_P_CASH'
-              ? 'You need more P Cash to unlock this skin.'
+              ? 'You need more Papa Cash to unlock this skin.'
               : failure.message
         toast.error(message)
       })
-      .finally(() => setBuyingId(null))
+      .finally(() => {
+        setBuyingId(null)
+        setPurchaseSkin(null)
+      })
   }
 
   const openLoadout = (): void => {
@@ -165,7 +174,7 @@ export function ShopPage(): JSX.Element {
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
             <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
             <p className="mt-2 text-sm text-neutral-200">
-              Earn Points by playing. P Cash is the premium Papa Cash currency.
+              Earn Points by playing. Papa Cash is the premium currency.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
@@ -173,21 +182,21 @@ export function ShopPage(): JSX.Element {
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>
-            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-right">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-amber-200 uppercase">
-                Points
-              </p>
-              <p className="mt-1 text-xl font-bold tabular-nums text-amber-300">
-                {points.toLocaleString()}
-              </p>
+            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3">
+              <CurrencyAmount
+                currency="POINTS"
+                amount={points}
+                className="text-xl font-bold text-white"
+                iconClassName="size-8"
+              />
             </div>
-            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-right">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-sky-200 uppercase">
-                P Cash
-              </p>
-              <p className="mt-1 text-xl font-bold tabular-nums text-sky-300">
-                {pCash.toLocaleString()}
-              </p>
+            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3">
+              <CurrencyAmount
+                currency="P_CASH"
+                amount={pCash}
+                className="text-xl font-bold text-white"
+                iconClassName="size-8"
+              />
             </div>
           </div>
         </header>
@@ -261,14 +270,20 @@ export function ShopPage(): JSX.Element {
                       ) : (
                         <>
                           {skin.pointsEnabled && (
-                            <span className="text-amber-300">
-                              {skin.pricePoints.toLocaleString()} pts
-                            </span>
+                            <CurrencyAmount
+                              currency="POINTS"
+                              amount={skin.pricePoints}
+                              className="font-semibold text-white"
+                              iconClassName="size-5"
+                            />
                           )}
                           {skin.pricePCash !== null && (
-                            <span className="text-sky-300">
-                              {skin.pricePCash.toLocaleString()} P Cash
-                            </span>
+                            <CurrencyAmount
+                              currency="P_CASH"
+                              amount={skin.pricePCash}
+                              className="font-semibold text-white"
+                              iconClassName="size-5"
+                            />
                           )}
                         </>
                       )}
@@ -278,30 +293,20 @@ export function ShopPage(): JSX.Element {
                         Manage loadout
                       </Button>
                     ) : (
-                      <div className="flex gap-2">
-                        {skin.pointsEnabled && (
-                          <Button
-                            className="h-9 px-3 text-xs"
-                            variant="primary"
-                            disabled={buying}
-                            onClick={() => unlock(skin, 'POINTS')}
-                          >
-                            <ShoppingBag className="mr-1 size-3.5" />
-                            {buying ? 'Unlocking…' : 'Points'}
-                          </Button>
+                      <Button
+                        className="size-10 px-0"
+                        variant={premiumOnly ? 'primary' : 'ghost'}
+                        disabled={buying}
+                        aria-label={`Purchase ${skin.name}`}
+                        title={`Purchase ${skin.name}`}
+                        onClick={() => setPurchaseSkin(skin)}
+                      >
+                        {buying ? (
+                          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <ShoppingCart className="size-4" aria-hidden="true" />
                         )}
-                        {skin.pricePCash !== null && (
-                          <Button
-                            className="h-9 px-3 text-xs"
-                            variant={premiumOnly ? 'primary' : 'ghost'}
-                            disabled={buying}
-                            onClick={() => unlock(skin, 'P_CASH')}
-                          >
-                            <ShoppingBag className="mr-1 size-3.5" />
-                            {buying ? 'Unlocking…' : 'P Cash'}
-                          </Button>
-                        )}
-                      </div>
+                      </Button>
                     )}
                   </div>
                 </article>
@@ -310,6 +315,18 @@ export function ShopPage(): JSX.Element {
           </section>
         ) : null}
       </div>
+      {purchaseSkin && (
+        <PurchaseConfirmModal
+          skin={purchaseSkin}
+          pointsBalance={points}
+          pCashBalance={pCash}
+          busy={buyingId === purchaseSkin.id}
+          onClose={() => {
+            if (buyingId !== purchaseSkin.id) setPurchaseSkin(null)
+          }}
+          onConfirm={(currency) => unlock(purchaseSkin, currency)}
+        />
+      )}
       {previewSkin && (
         <ModalPortal>
           <SkinPreview

@@ -54,14 +54,30 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
   if (!executable) {
     throw new Error('Choose your Counter-Strike executable in Settings first')
   }
-  const modelsDirectory = resolve(join(dirname(executable), 'cstrike', 'models'))
+  const gameRoot = dirname(executable)
   const modelPath = normalizeModelPath(relativePath)
-  const resolvedPath = resolve(modelsDirectory, modelPath)
-  if (!resolvedPath.startsWith(`${modelsDirectory}${sep}`)) {
-    throw new Error('Model path must stay inside the Counter-Strike models directory')
+  const candidates = [
+    resolve(join(gameRoot, '16competitive', 'models'), modelPath),
+    resolve(join(gameRoot, 'cstrike', 'models'), modelPath)
+  ]
+  const allowedRoots = [
+    resolve(join(gameRoot, '16competitive', 'models')),
+    resolve(join(gameRoot, 'cstrike', 'models'))
+  ]
+  if (
+    candidates.some(
+      (candidate, index) => !candidate.startsWith(`${allowedRoots[index]}${sep}`)
+    )
+  ) {
+    throw new Error('Model path must stay inside a managed Counter-Strike models directory')
   }
 
-  const file = await readFile(resolvedPath)
+  let file: Buffer | null = null
+  for (const candidate of candidates) {
+    file = await readFile(candidate).catch(() => null)
+    if (file) break
+  }
+  if (!file) throw new Error('Counter-Strike model was not found in 16competitive or cstrike')
   console.info('[Models] Loaded Counter-Strike model', {
     relativePath,
     bytes: file.byteLength
