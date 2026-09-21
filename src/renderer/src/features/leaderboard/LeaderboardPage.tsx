@@ -118,14 +118,6 @@ export function LeaderboardPage(): JSX.Element {
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
           <p className="mt-2 text-sm text-neutral-200">Top players by matchmaking rating</p>
         </div>
-        <Button
-          variant="ghost"
-          className="h-9 px-3 text-xs text-white"
-          onClick={() => void load()}
-          disabled={status === 'loading'}
-        >
-          Refresh
-        </Button>
       </header>
 
       {status === 'loading' && !leaderboard && (
