@@ -17,5 +17,6 @@ export const MATCHMAKING_WS_URL =
     return url.toString()
   })()
 
-
 export const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID?.trim() ?? ''
+
+export const DISCORD_LARGE_IMAGE_KEY = process.env.DISCORD_LARGE_IMAGE_KEY?.trim() || 'logo'

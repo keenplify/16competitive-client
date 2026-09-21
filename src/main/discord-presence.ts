@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { MatchmakingMode } from '../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../shared/matchmaking'
 import type { Party } from '../shared/party'
-import { DISCORD_CLIENT_ID } from './config'
+import { DISCORD_CLIENT_ID, DISCORD_LARGE_IMAGE_KEY } from './config'
 
 const HANDSHAKE_OPCODE = 0
 const FRAME_OPCODE = 1
@@ -23,6 +23,10 @@ interface DiscordActivity {
   details: string
   state: string
   timestamps?: { start: number }
+  assets?: {
+    large_image: string
+    large_text: string
+  }
   party?: {
     id: string
     size: [number, number]
@@ -203,6 +207,9 @@ class DiscordPresence {
   private buildActivity(): DiscordActivity | null {
     if (!this.state.authenticated) return null
 
+    const assets = DISCORD_LARGE_IMAGE_KEY
+      ? { large_image: DISCORD_LARGE_IMAGE_KEY, large_text: '1.6 Competitive' }
+      : undefined
     const party =
       this.state.partyId && this.state.partySize > 1
         ? {
@@ -222,6 +229,7 @@ class DiscordPresence {
             ? { timestamps: { start: this.state.gameStartedAt } }
             : {}),
           ...(party ? { party } : {}),
+          ...(assets ? { assets } : {}),
           instance: false
         }
       }
@@ -231,6 +239,7 @@ class DiscordPresence {
         details: this.state.matchStarted ? 'Match In Progress' : 'Match Found',
         state: `${mode} • ${this.state.match.mapId}`,
         ...(party ? { party } : {}),
+        ...(assets ? { assets } : {}),
         instance: false
       }
     }
@@ -246,6 +255,7 @@ class DiscordPresence {
         details: 'Searching for Match',
         state: `${mode} • ${mapText}`,
         ...(party ? { party } : {}),
+        ...(assets ? { assets } : {}),
         instance: false
       }
     }
@@ -255,6 +265,7 @@ class DiscordPresence {
         type: 0,
         details: 'In Lobby',
         state: 'In a Party',
+        ...(assets ? { assets } : {}),
         party,
         instance: false
       }
@@ -264,6 +275,7 @@ class DiscordPresence {
       type: 0,
       details: 'In Lobby',
       state: 'Ready to play',
+      ...(assets ? { assets } : {}),
       instance: false
     }
   }
@@ -297,11 +309,10 @@ class DiscordPresence {
       .then(() => {
         this.flushCurrentActivity()
       })
-      .catch(() => {
-        this.scheduleReconnect()
-      })
+      .catch(() => undefined)
       .finally(() => {
         this.connectPromise = null
+        if (!this.ready) this.scheduleReconnect()
       })
   }
 
