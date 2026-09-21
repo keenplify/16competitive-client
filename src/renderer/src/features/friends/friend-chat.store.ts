@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { FriendChatMessage, FriendPlayer } from '../../../../shared/friends'
 import { useAuthStore } from '../auth/auth.store'
-import { playFriendMessageSound } from './friend-message-sound'
+import { playChatMessageSound } from '../chat/chat-message-sound'
 
 type ChatFriend = Pick<FriendPlayer, 'id' | 'username'>
 
@@ -177,7 +177,7 @@ const bootstrapOfflineChats = async (
     })
 
     if (hasNewOfflineMessage) {
-      playFriendMessageSound()
+      playChatMessageSound()
       void window.api.friends.requestAttention()
     }
   }
@@ -221,7 +221,7 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
       const alreadyKnown = current?.messages.some((entry) => entry.id === message.id) ?? false
 
       if (incoming && !alreadyKnown) {
-        playFriendMessageSound()
+        playChatMessageSound()
         void window.api.friends.requestAttention()
       }
 
