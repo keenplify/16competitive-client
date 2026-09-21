@@ -944,3 +944,30 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - The Global chat tab is now always visible.
 - Fixed minimized chat state behavior.
+
+## v2026.921.5 — 2026-09-21
+
+### Store & Skins
+
+- Browse skins in a full-width store with sidebar filters.
+- Filter skins by rarity and weapon category.
+- Purchase and gift skins with updated currency visuals.
+- Enjoy animated currency choices in gifts and operation rewards.
+
+### Operations
+
+- Added the Operations experience with progress and rewards.
+- View and claim Points and Papa Cash rewards.
+
+### Match & Game Experience
+
+- Improved Counter-Strike 1.6 installation detection and launching.
+- Added improved match asset and audio handling.
+- Improved voice push-to-talk behavior and game monitoring.
+
+### Interface
+
+- Reserved space for the Friends rail.
+- New sessions now default to language chat.
+- Removed unnecessary refresh controls.
+- Updated Points and Papa Cash artwork throughout the app.
