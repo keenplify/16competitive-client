@@ -21,7 +21,12 @@ const developmentCsp = {
   }
 }
 
-const mainProcessEnvNames = ['API_BASE_URL', 'MATCHMAKING_WS_URL', 'DISCORD_CLIENT_ID'] as const
+const mainProcessEnvNames = [
+  'API_BASE_URL',
+  'MATCHMAKING_WS_URL',
+  'DISCORD_CLIENT_ID',
+  'DISCORD_LARGE_IMAGE_KEY'
+] as const
 type MainProcessEnvName = (typeof mainProcessEnvNames)[number]
 
 const productionMainProcessEnv: Partial<Record<MainProcessEnvName, string>> = {
