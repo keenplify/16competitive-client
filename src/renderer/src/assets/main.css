@@ -186,3 +186,107 @@
     animation: none !important;
   }
 }
+
+
+@keyframes currency-icon-bling-glow {
+  0%, 56%, 100% {
+    filter: brightness(1) drop-shadow(0 0 0 rgb(255 255 255 / 0%));
+    transform: scale(1);
+  }
+  64% {
+    filter: brightness(1.32) drop-shadow(0 0 10px rgb(255 255 255 / 42%));
+    transform: scale(1.035);
+  }
+  74% {
+    filter: brightness(1.08) drop-shadow(0 0 4px rgb(255 255 255 / 18%));
+    transform: scale(1);
+  }
+}
+
+@keyframes currency-icon-bling-star-a {
+  0%, 52%, 100% {
+    opacity: 0;
+    transform: scale(.15) rotate(0deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.2) rotate(35deg);
+  }
+  69% {
+    opacity: .45;
+    transform: scale(.7) rotate(70deg);
+  }
+  76% {
+    opacity: 0;
+    transform: scale(.2) rotate(95deg);
+  }
+}
+
+@keyframes currency-icon-bling-star-b {
+  0%, 63%, 100% {
+    opacity: 0;
+    transform: scale(.1) rotate(10deg);
+  }
+  71% {
+    opacity: .95;
+    transform: scale(.9) rotate(50deg);
+  }
+  79% {
+    opacity: 0;
+    transform: scale(.2) rotate(85deg);
+  }
+}
+
+.currency-icon-bling > img {
+  animation: currency-icon-bling-glow 2.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.currency-icon-bling::before,
+.currency-icon-bling::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  width: 22%;
+  height: 22%;
+  pointer-events: none;
+  background: white;
+  clip-path: polygon(
+    50% 0%,
+    61% 39%,
+    100% 50%,
+    61% 61%,
+    50% 100%,
+    39% 61%,
+    0% 50%,
+    39% 39%
+  );
+  filter: drop-shadow(0 0 4px rgb(255 255 255 / 85%));
+}
+
+.currency-icon-bling::before {
+  top: 3%;
+  right: 0;
+  animation: currency-icon-bling-star-a 2.8s ease-out infinite;
+}
+
+.currency-icon-bling::after {
+  bottom: 9%;
+  left: 2%;
+  width: 15%;
+  height: 15%;
+  animation: currency-icon-bling-star-b 2.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currency-icon-bling > img,
+  .currency-icon-bling::before,
+  .currency-icon-bling::after {
+    animation: none !important;
+  }
+
+  .currency-icon-bling::before,
+  .currency-icon-bling::after {
+    display: none;
+  }
+}
