@@ -1,5 +1,6 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import { STOCK_GAME_DIR } from './game-directory'
 
 const VOICE_BIND_COMMAND = '+voicerecord'
 const LEGACY_VOICE_WRAPPER_COMMAND = '+16competitive_voice'
@@ -9,10 +10,15 @@ const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
 const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
 const RESTORE_SETTLE_MS = 250
 
+/**
+ * Callers pass either the stock `cstrike` game directory (the engine's only game
+ * directory, and where launcher content lives) or the installation root that
+ * contains it.
+ */
 const configPathFor = (gameDirectory: string): string =>
-  basename(gameDirectory).toLowerCase() === '16competitive'
+  basename(gameDirectory).toLowerCase() === STOCK_GAME_DIR
     ? join(gameDirectory, 'config.cfg')
-    : join(gameDirectory, 'cstrike', 'config.cfg')
+    : join(gameDirectory, STOCK_GAME_DIR, 'config.cfg')
 
 const MANAGED_VOICE_WRAPPERS = new Set([
   LEGACY_VOICE_WRAPPER_COMMAND,

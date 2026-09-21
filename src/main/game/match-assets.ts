@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promis
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { getSessionToken } from '../auth'
 import { getSavedCs16Executable } from './game-settings'
-import { ensureCompetitiveGameDirectory } from './competitive-game-directory'
+import { ensureLauncherContentDirectory } from './game-directory'
 
 const ASSET_PATH =
   /^(?:models|sound|sprites)\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w|action|explosion)\.(mdl|wav|spr)$/
@@ -345,7 +345,7 @@ const syncSkinAssets = async (
     throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
   }
   const catalog = assets as CatalogAsset[]
-  const assetRoot = await ensureCompetitiveGameDirectory(await getGameDirectory())
+  const assetRoot = await ensureLauncherContentDirectory(await getGameDirectory())
   console.info('[MatchAssets] catalog loaded', {
     entries: catalog.length,
     assetRoot
@@ -533,7 +533,7 @@ const preload = async (
   if (!['https:', 'http:'].includes(apiUrl.protocol) || apiUrl.username || apiUrl.password) {
     throw new Error('Match asset server URL is invalid.')
   }
-  const assetRoot = await ensureCompetitiveGameDirectory(await getGameDirectory())
+  const assetRoot = await ensureLauncherContentDirectory(await getGameDirectory())
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
   console.info('[MatchAssets] match preload started', { matchId, assetRoot })
   onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })
