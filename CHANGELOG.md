@@ -893,3 +893,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.919.3 — 2026-09-19
 
 - Refactor animation keyframes in SkinGiftOverlay for improved clarity and performance
+
+## v2026.921.1 — 2026-09-21
+
+### Discord
+
+- Added Discord Rich Presence.
+- Join parties directly from Discord.
+- Improved Discord reconnect handling and artwork.
+
+### Parties
+
+- Added support for registering Discord join links.
+
+### Lobby
+
+- Made lobby nameplates responsive.
