@@ -7,7 +7,7 @@ import type {
 import type { GlobalChatMessage, PartyChatEvent } from '../../../../shared/matchmaking'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
-export type ChatTab = 'party' | 'global'
+export type ChatTab = 'party' | 'language' | 'global'
 
 interface PartyState {
   party: Party | null
@@ -22,10 +22,14 @@ interface PartyState {
   chatError: string | null
   chatTab: ChatTab
   globalChatEntries: GlobalChatMessage[]
+  languageChatEntries: GlobalChatMessage[]
   globalChatLanguage: string
   globalChatDraft: string
   globalChatSending: boolean
   globalChatError: string | null
+  languageChatDraft: string
+  languageChatSending: boolean
+  languageChatError: string | null
   start: () => void
   stop: () => void
   refresh: () => Promise<void>
@@ -39,8 +43,10 @@ interface PartyState {
   clearChat: () => void
   setChatTab: (tab: ChatTab) => void
   setGlobalChatDraft: (message: string) => void
+  setLanguageChatDraft: (message: string) => void
   setGlobalChatLanguage: (language: string) => Promise<void>
   sendGlobalChat: () => Promise<void>
+  sendLanguageChat: () => Promise<void>
   reset: () => void
 }
 
@@ -85,10 +91,14 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   chatError: null,
   chatTab: 'global',
   globalChatEntries: [],
+  languageChatEntries: [],
   globalChatLanguage: 'en',
   globalChatDraft: '',
   globalChatSending: false,
   globalChatError: null,
+  languageChatDraft: '',
+  languageChatSending: false,
+  languageChatError: null,
 
   start: () => {
     if (removePartyEventListener) return
