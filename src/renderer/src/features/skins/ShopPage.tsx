@@ -109,7 +109,7 @@ function StoreFilterButton({
       </button>
 
       {tooltip && (
-        <div className="pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 hidden w-64 -translate-y-1/2 rounded-lg border border-white/15 bg-neutral-950/98 p-3 text-left opacity-0 shadow-2xl backdrop-blur transition group-hover/filter:opacity-100 lg:block">
+        <div className="pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 hidden w-64 -translate-y-1/2 rounded-lg border border-white/15 bg-neutral-950/95 p-3 text-left opacity-0 shadow-2xl backdrop-blur transition group-hover/filter:opacity-100 md:block">
           <p className="text-[10px] font-black tracking-[0.16em] text-neutral-500 uppercase">
             Typical price
           </p>
@@ -335,8 +335,8 @@ export function ShopPage(): JSX.Element {
           </p>
         )}
 
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="rounded-xl border border-white/10 bg-neutral-950/75 p-3 shadow-xl lg:sticky lg:top-5">
+        <div className="mt-6 grid items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="rounded-xl border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5">
             <div className="flex items-center justify-between gap-3 px-1 pb-2">
               <div>
                 <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
@@ -430,7 +430,7 @@ export function ShopPage(): JSX.Element {
               </div>
             ) : null}
             {status === 'ready' && filteredSkins.length > 0 ? (
-              <section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <section className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
             {filteredSkins.map((skin) => {
               const owned = ownedSkins.get(skin.id)
               const buying = buyingId === skin.id
