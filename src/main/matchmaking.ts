@@ -10,7 +10,11 @@ import type {
   VoiceIceServer,
   VoiceSignalType
 } from '../shared/matchmaking'
-import type { GlobalChatMessage, GlobalChatMessageDeleted } from '../shared/matchmaking'
+import type {
+  GlobalChatMessage,
+  GlobalChatMessageDeleted,
+  GlobalChatScope
+} from '../shared/matchmaking'
 import { getSessionToken } from './auth'
 import { MATCHMAKING_WS_URL } from './config'
 import {
@@ -41,6 +45,12 @@ const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value) && value.length <= 35
+const isGlobalChatScope = (value: unknown): value is GlobalChatScope =>
+  value === 'global' || value === 'language'
+const hasValidGlobalChatRoom = (value: Record<string, unknown>): boolean =>
+  value.scope === 'global'
+    ? value.language === undefined
+    : value.scope === 'language' && isGlobalChatLanguage(value.language)
 
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
@@ -164,7 +174,8 @@ const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
   return (
     message.type === 'global_chat_message' &&
     typeof message.id === 'string' &&
-    isGlobalChatLanguage(message.language) &&
+    isGlobalChatScope(message.scope) &&
+    hasValidGlobalChatRoom(message) &&
     typeof message.message === 'string' &&
     message.message.length >= 1 &&
     message.message.length <= 300 &&
@@ -199,7 +210,8 @@ const isGlobalChatMessageDeleted = (value: unknown): value is GlobalChatMessageD
   return (
     message.type === 'global_chat_message_deleted' &&
     typeof message.id === 'string' &&
-    isGlobalChatLanguage(message.language)
+    isGlobalChatScope(message.scope) &&
+    hasValidGlobalChatRoom(message)
   )
 }
 
@@ -331,10 +343,15 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       return isGlobalChatMessageDeleted(message)
     case 'global_chat_history':
       return (
-        isGlobalChatLanguage(message.language) &&
+        isGlobalChatScope(message.scope) &&
+        hasValidGlobalChatRoom(message) &&
         Array.isArray(message.messages) &&
         message.messages.length <= 100 &&
-        message.messages.every(isGlobalChatMessage)
+        message.messages.every(isGlobalChatMessage) &&
+        message.messages.every((entry) =>
+          entry.scope === message.scope &&
+          (message.scope === 'global' || entry.language === message.language)
+        )
       )
     case 'match_found': {
       if (
@@ -564,11 +581,12 @@ class MatchmakingConnection {
     this.send({ type: 'party_chat_send', message: message.trim() })
   }
 
-  sendGlobalMessage(message: unknown): void {
+  sendGlobalMessage(message: unknown, scope: unknown): void {
     if (typeof message !== 'string' || message.trim().length === 0 || message.length > 300) {
-      throw new Error('Global messages must contain 1-300 characters')
+      throw new Error('Chat messages must contain 1-300 characters')
     }
-    this.send({ type: 'global_chat_send', message: message.trim() })
+    if (!isGlobalChatScope(scope)) throw new Error('Invalid chat room')
+    this.send({ type: 'global_chat_send', scope, message: message.trim() })
   }
 
   setGlobalChatLanguage(language: unknown): void {
