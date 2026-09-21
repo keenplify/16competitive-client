@@ -921,3 +921,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Lobby Chat
 
 - Lobby chat can be closed without permanently hiding it.
+
+## v2026.921.3 — 2026-09-21
+
+### Chat
+
+- Added separate Party, Language, and Global chat tabs.
+- Kept chat messages isolated by room.
+- Improved message routing across chat rooms.
+- Private messages now use shared chat notifications.
+
+### Notifications
+
+- Added chat notification sounds for party and public messages.
+- Minimized Party and private chats now show message pings.
+- Removed obsolete friend-only chat sounds.
