@@ -977,3 +977,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Fixes
 
 - Improved match asset handling and match data reliability.
+
+## v2026.921.7 — 2026-09-21
+
+### Operations
+
+- Improved the operations screen and operation-related flows.
+- Fixed issues affecting operation state and behavior.
+
+### Skins
+
+- Improved skin purchase confirmation.
+- Updated skin rarity handling and display.
+- Refined skin audio override behavior.
