@@ -418,18 +418,21 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   setGlobalChatDraft: (globalChatDraft) =>
     set({ globalChatDraft: globalChatDraft.slice(0, 300), globalChatError: null }),
 
+  setLanguageChatDraft: (languageChatDraft) =>
+    set({ languageChatDraft: languageChatDraft.slice(0, 300), languageChatError: null }),
+
   setGlobalChatLanguage: async (language) => {
     if (language === get().globalChatLanguage) return
     set({
       globalChatLanguage: language,
-      globalChatEntries: [],
-      globalChatDraft: '',
-      globalChatError: null
+      languageChatEntries: [],
+      languageChatDraft: '',
+      languageChatError: null
     })
     try {
       await window.api.party.setGlobalChatLanguage(language)
     } catch (error) {
-      set({ globalChatError: readableError(error) })
+      set({ languageChatError: readableError(error) })
     }
   },
 
@@ -438,10 +441,22 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     if (!message || get().globalChatSending) return
     set({ globalChatSending: true, globalChatError: null })
     try {
-      await window.api.party.sendGlobalMessage(message)
+      await window.api.party.sendGlobalMessage(message, 'global')
       set({ globalChatDraft: '', globalChatSending: false })
     } catch (error) {
       set({ globalChatSending: false, globalChatError: readableError(error) })
+    }
+  },
+
+  sendLanguageChat: async () => {
+    const message = get().languageChatDraft.trim()
+    if (!message || get().languageChatSending) return
+    set({ languageChatSending: true, languageChatError: null })
+    try {
+      await window.api.party.sendGlobalMessage(message, 'language')
+      set({ languageChatDraft: '', languageChatSending: false })
+    } catch (error) {
+      set({ languageChatSending: false, languageChatError: readableError(error) })
     }
   },
 
@@ -460,10 +475,14 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatError: null,
       chatTab: 'global',
       globalChatEntries: [],
+      languageChatEntries: [],
       globalChatLanguage: 'en',
       globalChatDraft: '',
       globalChatSending: false,
-      globalChatError: null
+      globalChatError: null,
+      languageChatDraft: '',
+      languageChatSending: false,
+      languageChatError: null
     })
   }
 }))
