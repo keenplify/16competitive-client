@@ -1,11 +1,4 @@
-import {
-  Award,
-  Gift,
-  LoaderCircle,
-  LockKeyhole,
-  Sparkles,
-  Star
-} from 'lucide-react'
+import { Award, Gift, LoaderCircle, LockKeyhole, Sparkles, Star } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OperationTier } from '../../../../shared/operations'
@@ -86,16 +79,11 @@ function TierCard({
 }): JSX.Element {
   const unlocked = displayedPoints >= tier.requiredPoints
   const newlyUnlocked =
-    tier.requiredPoints > lastViewedPoints &&
-    tier.requiredPoints <= currentPoints &&
-    unlocked
+    tier.requiredPoints > lastViewedPoints && tier.requiredPoints <= currentPoints && unlocked
   const position = 5 + (tier.requiredPoints / Math.max(1, maxPoints)) * 90
 
   return (
-    <div
-      className="absolute top-3 -translate-x-1/2"
-      style={{ left: `${position}%` }}
-    >
+    <div className="absolute top-3 -translate-x-1/2" style={{ left: `${position}%` }}>
       <article
         className={twMerge(
           'relative flex flex-col overflow-hidden border bg-neutral-950/95 shadow-xl transition-[transform,opacity,border-color,box-shadow] duration-500',
@@ -103,7 +91,8 @@ function TierCard({
           unlocked
             ? 'border-sky-300/60 opacity-100 shadow-[0_0_24px_rgba(56,189,248,0.16)]'
             : 'border-white/10 opacity-55 grayscale-[.45]',
-          newlyUnlocked && 'operation-tier-pop border-amber-200/80 shadow-[0_0_38px_rgba(251,191,36,0.35)]'
+          newlyUnlocked &&
+            'operation-tier-pop border-amber-200/80 shadow-[0_0_38px_rgba(251,191,36,0.35)]'
         )}
       >
         <div className="relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.22),_transparent_68%)]">
@@ -123,7 +112,12 @@ function TierCard({
           <p className="truncate text-[10px] font-bold tracking-[0.12em] text-sky-300 uppercase">
             Tier {tier.tier}
           </p>
-          <p className={twMerge('mt-1 truncate font-semibold text-white', tier.isMajor ? 'text-sm' : 'text-xs')}>
+          <p
+            className={twMerge(
+              'mt-1 truncate font-semibold text-white',
+              tier.isMajor ? 'text-sm' : 'text-xs'
+            )}
+          >
             {rewardName(tier)}
           </p>
         </div>
@@ -171,25 +165,23 @@ export function OperationPage(): JSX.Element {
 
   useEffect(() => {
     if (!operation || !progress) return
+
     const start = Math.min(progress.lastViewedPoints, progress.points)
     const target = progress.points
-    setDisplayedPoints(start)
-
-    if (target <= start) return
+    const shouldAcknowledge = target > start
     const acknowledgeKey = `${operation.id}:${target}`
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reducedMotion) {
-      setDisplayedPoints(target)
-      if (acknowledgedRef.current !== acknowledgeKey) {
-        acknowledgedRef.current = acknowledgeKey
-        void acknowledge(operation.id, target)
-      }
-      return
+
+    const acknowledgeOnce = (): void => {
+      if (!shouldAcknowledge || acknowledgedRef.current === acknowledgeKey) return
+      acknowledgedRef.current = acknowledgeKey
+      void acknowledge(operation.id, target)
     }
 
-    let animationFrame = 0
-    const startedAt = performance.now()
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const duration = Math.min(3_200, Math.max(1_050, 950 + (target - start) * 2.5))
+    const startedAt = performance.now()
+    let animationFrame = 0
+
     const frame = (now: number): void => {
       const elapsed = Math.min(1, (now - startedAt) / duration)
       const eased = 1 - Math.pow(1 - elapsed, 3)
@@ -198,12 +190,20 @@ export function OperationPage(): JSX.Element {
         animationFrame = window.requestAnimationFrame(frame)
         return
       }
-      if (acknowledgedRef.current !== acknowledgeKey) {
-        acknowledgedRef.current = acknowledgeKey
-        void acknowledge(operation.id, target)
-      }
+      acknowledgeOnce()
     }
-    animationFrame = window.requestAnimationFrame(frame)
+
+    // The counting animation runs entirely inside requestAnimationFrame so the
+    // effect body never calls setState synchronously (which would cascade renders).
+    animationFrame = window.requestAnimationFrame((now) => {
+      if (!shouldAcknowledge || reducedMotion) {
+        setDisplayedPoints(target)
+        acknowledgeOnce()
+        return
+      }
+      frame(now)
+    })
+
     return () => window.cancelAnimationFrame(animationFrame)
   }, [acknowledge, operation, progress])
 
@@ -327,7 +327,8 @@ export function OperationPage(): JSX.Element {
           </div>
           {currentPoints > lastViewedPoints && (
             <span className="inline-flex items-center gap-2 text-xs font-semibold text-amber-200">
-              <Sparkles className="size-4" /> +{(currentPoints - lastViewedPoints).toLocaleString()} OP since last view
+              <Sparkles className="size-4" /> +{(currentPoints - lastViewedPoints).toLocaleString()}{' '}
+              OP since last view
             </span>
           )}
         </div>

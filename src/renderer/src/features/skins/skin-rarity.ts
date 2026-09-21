@@ -65,9 +65,8 @@ export const skinRarity = (
   return 'FIELD'
 }
 
-export const skinRarityPresentationFor = (
-  rarity: SkinRarity
-): SkinRarityPresentation => presentation[rarity]
+export const skinRarityPresentationFor = (rarity: SkinRarity): SkinRarityPresentation =>
+  presentation[rarity]
 
 export const skinRarityPresentation = (
   skin: Parameters<typeof skinRarity>[0]

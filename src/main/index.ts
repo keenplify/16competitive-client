@@ -66,10 +66,7 @@ import {
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
-import {
-  restoreManagedSkinAudio,
-  restoreStaleManagedSkinAudio
-} from './game/skin-audio-override'
+import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -106,11 +103,7 @@ import {
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
 import { OPERATION_CHANNELS } from '../shared/operations'
-import {
-  getActiveOperation,
-  getMyOperation,
-  markOperationViewed
-} from './operations'
+import { getActiveOperation, getMyOperation, markOperationViewed } from './operations'
 import { discordPresence } from './discord-presence'
 import { DISCORD_CLIENT_ID } from './config'
 

@@ -73,9 +73,7 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
     resolve(join(gameRoot, 'cstrike', 'models'))
   ]
   if (
-    candidates.some(
-      (candidate, index) => !candidate.startsWith(`${allowedRoots[index]}${sep}`)
-    )
+    candidates.some((candidate, index) => !candidate.startsWith(`${allowedRoots[index]}${sep}`))
   ) {
     throw new Error('Model path must stay inside a managed Counter-Strike models directory')
   }

@@ -1,11 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type {
-  Operation,
-  OperationSnapshot,
-  OperationViewedResult
-} from '../shared/operations'
+import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
 
 type ApiError = Error & { code?: string }
 
@@ -148,11 +144,7 @@ export const markOperationViewed = async (
   if (typeof operationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(operationId)) {
     throw new Error('Invalid Operation.')
   }
-  if (
-    typeof viewedPoints !== 'number' ||
-    !Number.isInteger(viewedPoints) ||
-    viewedPoints < 0
-  ) {
+  if (typeof viewedPoints !== 'number' || !Number.isInteger(viewedPoints) || viewedPoints < 0) {
     throw new Error('Invalid Operation progress.')
   }
   const body = await request(`/operations/${operationId}/view`, {
