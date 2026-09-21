@@ -121,27 +121,40 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, event) }))
       }
       if (event.type === 'global_chat_message') {
-        set((state) =>
-          event.language === state.globalChatLanguage
-            ? { globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event]) }
+        set((state) => {
+          if (event.scope === 'global') {
+            return { globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event]) }
+          }
+          return event.language === state.globalChatLanguage
+            ? { languageChatEntries: mergeGlobalChatEntries(state.languageChatEntries, [event]) }
             : {}
-        )
+        })
       }
       if (event.type === 'global_chat_message_deleted') {
-        set((state) =>
-          event.language === state.globalChatLanguage
+        set((state) => {
+          if (event.scope === 'global') {
+            return {
+              globalChatEntries: state.globalChatEntries.filter((entry) => entry.id !== event.id)
+            }
+          }
+          return event.language === state.globalChatLanguage
             ? {
-                globalChatEntries: state.globalChatEntries.filter((entry) => entry.id !== event.id)
+                languageChatEntries: state.languageChatEntries.filter(
+                  (entry) => entry.id !== event.id
+                )
               }
             : {}
-        )
+        })
       }
       if (event.type === 'global_chat_history') {
-        set((state) =>
-          event.language === state.globalChatLanguage
-            ? { globalChatEntries: event.messages }
+        set((state) => {
+          if (event.scope === 'global') {
+            return { globalChatEntries: event.messages }
+          }
+          return event.language === state.globalChatLanguage
+            ? { languageChatEntries: event.messages }
             : {}
-        )
+        })
       }
       if (event.type === 'match_found') {
         const partyId = get().party?.id
