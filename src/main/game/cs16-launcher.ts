@@ -607,9 +607,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         // (reconnect, match closed, launcher exit) can terminate the whole tree
         // even when the game itself hides behind a launcher script or emulator.
         detached: directLaunch,
-        stdio: launchTarget.usesLauncherHandoff
-          ? ['ignore', 'ignore', 'ignore']
-          : ['ignore', 'pipe', 'pipe'],
+        // Keep the standalone launcher's output while diagnosing handoff
+        // failures. It is deliberately capped below and credentials are
+        // redacted before it is written to the application log.
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
           ...(directLaunch && process.platform === 'linux' && launchTarget.distribution === 'steam'
@@ -664,6 +665,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         code,
         signal
       })
+      if (gameOutput.trim()) {
+        const safeOutput = gameOutput
+          .replaceAll(input.password, '[redacted]')
+          .replaceAll(input.joinToken, '[redacted]')
+        console.error('[GameLaunch] standalone launcher output', {
+          matchId: input.matchId,
+          output: safeOutput
+        })
+      }
       if (gameProcess === spawnedProcess) gameProcess = null
       if (process.platform === 'linux') {
         void monitorLinuxCounterStrikeHandoff(
