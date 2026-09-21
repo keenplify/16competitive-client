@@ -996,3 +996,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - dsadsa
 - mmfi x
 - verify
+
+## v2026.921.9 — 2026-09-21
+
+### Discord
+
+- Improved Discord Rich Presence connection reliability.
+
+### Match Assets
+
+- Restored previous match asset behavior.
