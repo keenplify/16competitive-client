@@ -21,11 +21,13 @@ const developmentCsp = {
   }
 }
 
-const mainProcessEnvNames = ['API_BASE_URL', 'MATCHMAKING_WS_URL'] as const
-const productionMainProcessEnv = {
+const mainProcessEnvNames = ['API_BASE_URL', 'MATCHMAKING_WS_URL', 'DISCORD_CLIENT_ID'] as const
+type MainProcessEnvName = (typeof mainProcessEnvNames)[number]
+
+const productionMainProcessEnv: Partial<Record<MainProcessEnvName, string>> = {
   API_BASE_URL: 'https://16competitive.papamo.dev',
   MATCHMAKING_WS_URL: 'wss://16competitive.papamo.dev/matchmaking/ws'
-} satisfies Record<(typeof mainProcessEnvNames)[number], string>
+}
 
 export default defineConfig(({ mode }) => {
   // API endpoints are compiled into the trusted main-process bundle only.
@@ -35,7 +37,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const mainProcessEnv = Object.fromEntries(
     mainProcessEnvNames.flatMap((name) => {
-      const value = env[name] || (mode === 'production' ? productionMainProcessEnv[name] : '')
+      const value =
+        process.env[name] || env[name] || (mode === 'production' ? productionMainProcessEnv[name] : '')
 
       return value ? [[`process.env.${name}`, JSON.stringify(value)]] : []
     })

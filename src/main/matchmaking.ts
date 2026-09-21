@@ -26,6 +26,8 @@ import {
   waitForMatchAssetPreload
 } from './game/match-assets'
 import { API_BASE_URL } from './config'
+import { getParty } from './party'
+import { discordPresence } from './discord-presence'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_BASE_DELAY_MS = 1_000
@@ -605,10 +607,23 @@ class MatchmakingConnection {
       forceRestart: true,
       onVoicePtt: (active) => this.notifyLocalVoicePtt(connection.matchId, active),
       onExit: ({ code, signal }) => {
+        discordPresence.setInGame(false)
         this.focusLauncher()
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
       }
     })
+    discordPresence.setInGame(true)
+  }
+
+  private refreshDiscordPartyPresence(): void {
+    void getParty()
+      .then((party) => discordPresence.setParty(party))
+      .catch((error: unknown) => {
+        console.warn(
+          '[DiscordPresence] could not refresh party state',
+          error instanceof Error ? error.message : String(error)
+        )
+      })
   }
 
   private prepareMatchAssets(matchId: string): Promise<void> {
@@ -733,6 +748,8 @@ class MatchmakingConnection {
       }
       if (parsed.type === 'authenticated') {
         socketAuthenticated = true
+        discordPresence.setAuthenticated(true)
+        this.refreshDiscordPartyPresence()
         clearTimeout(connectionTimeout)
         if (handoff) {
           const oldSocket = this.socket
@@ -773,6 +790,9 @@ class MatchmakingConnection {
         })
       } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
         this.recoveryStatusPending = false
+        if (parsed.type === 'queue_status') {
+          discordPresence.setQueue(parsed.mode, parsed.mapIds)
+        }
         if (parsed.type === 'match_ready_check') this.freshProcess = false
         if (parsed.type === 'queue_status' && this.freshProcess) {
           this.freshProcess = false
@@ -780,11 +800,13 @@ class MatchmakingConnection {
         }
       } else if (parsed.type === 'queue_joined') {
         this.freshProcess = false
+        discordPresence.setQueue(parsed.mode, parsed.mapIds)
         this.desiredMode = parsed.mode
         this.desiredMapIds = [...parsed.mapIds]
         this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
         this.desiredPreferredRegion = parsed.region
       } else if (parsed.type === 'queue_left') {
+        discordPresence.clearQueue()
         this.desiredMode = null
         this.desiredMapIds = []
         this.desiredPreferredRegion = null
@@ -797,6 +819,7 @@ class MatchmakingConnection {
         this.desiredPreferredRegion = null
       } else if (parsed.type === 'match_found') {
         this.freshProcess = false
+        discordPresence.setMatch(parsed.mode, parsed.mapId)
         this.desiredMode = null
         this.desiredMapIds = []
         this.desiredPreferredRegion = null
@@ -832,11 +855,12 @@ class MatchmakingConnection {
           ? this.prepareMatchAssets(parsed.matchId)
           : waitForMatchAssetPreload(parsed.matchId)
         void assetsReady
-          .then(() =>
-            launchCounterStrikeForMatch({
+          .then(async () => {
+            await launchCounterStrikeForMatch({
               ...parsed,
               onVoicePtt: (active) => this.notifyLocalVoicePtt(parsed.matchId, active),
               onExit: ({ code, signal }) => {
+                discordPresence.setInGame(false)
                 this.focusLauncher()
                 this.notify({
                   type: 'game_process_exited',
@@ -846,7 +870,8 @@ class MatchmakingConnection {
                 })
               }
             })
-          )
+            discordPresence.setInGame(true)
+          })
           .catch((error: unknown) =>
             this.notify({
               type: 'error',
@@ -858,12 +883,14 @@ class MatchmakingConnection {
             })
           )
       } else if (parsed.type === 'match_cancelled') {
+        discordPresence.finishMatch()
         this.cancelledMatchIds.add(parsed.matchId)
         this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
         closeCounterStrikeForMatch(parsed.matchId)
         this.focusLauncher()
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
+        discordPresence.finishMatch()
         this.finishedMatchIds.add(parsed.matchId)
         this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
@@ -884,6 +911,11 @@ class MatchmakingConnection {
       }
       if (parsed.type === 'match_found') {
         this.seenMatchEvents.add(`${parsed.type}:${parsed.matchId}`)
+      }
+      if (parsed.type === 'party_updated') {
+        this.refreshDiscordPartyPresence()
+      } else if (parsed.type === 'party_disbanded') {
+        discordPresence.setParty(null)
       }
       this.notify(parsed)
     })

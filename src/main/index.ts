@@ -100,6 +100,7 @@ import {
   reportDiagnosticIssue
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
+import { discordPresence } from './discord-presence'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -177,6 +178,7 @@ function focusMainWindow(): void {
 
 function disconnectMatchmakingIntentionally(): void {
   matchmakingConnection.shutdown()
+  discordPresence.reset()
 }
 
 function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSyncProgress): void {
@@ -436,7 +438,11 @@ app.whenReady().then(async () => {
     discardFriendRequest(requestId)
   )
   ipcMain.handle(FRIEND_CHANNELS.remove, (_, playerId: unknown) => removeFriend(playerId))
-  ipcMain.handle(PARTY_CHANNELS.get, () => getParty())
+  ipcMain.handle(PARTY_CHANNELS.get, async () => {
+    const party = await getParty()
+    discordPresence.setParty(party)
+    return party
+  })
   ipcMain.handle(PARTY_CHANNELS.getInvitations, () => getPartyInvitations())
   ipcMain.handle(PARTY_CHANNELS.invite, (_, username: unknown) => inviteToParty(username))
   ipcMain.handle(PARTY_CHANNELS.respond, (_, invitationId: unknown, decision: unknown) =>
@@ -503,4 +509,5 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   disconnectMatchmakingIntentionally()
+  discordPresence.stop()
 })
