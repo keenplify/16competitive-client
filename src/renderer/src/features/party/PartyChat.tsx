@@ -338,6 +338,32 @@ export function PartyChat(): JSX.Element {
                 )
               )}
             </>
+          ) : chatTab === 'language' ? (
+            <>
+              {languageEntries.length === 0 && (
+                <p className="text-neutral-500">
+                  No messages in {globalLanguageLabel} chat yet.
+                </p>
+              )}
+              {languageEntries.map((entry) => (
+                <p key={entry.id} className="break-words" title={entry.sentAt}>
+                  <span className="text-violet-300">[{globalChatLanguage.toUpperCase()}] </span>
+                  <span
+                    className={twMerge(
+                      entry.sender.id === playerId
+                        ? 'text-amber-300'
+                        : 'cursor-context-menu text-white transition hover:text-sky-300 hover:underline'
+                    )}
+                    title={entry.sender.id === playerId ? undefined : 'Right-click to add friend'}
+                    onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
+                  >
+                    {entry.sender.username}
+                  </span>
+                  <span className="text-neutral-400">: </span>
+                  <span className="text-neutral-100">{entry.message}</span>
+                </p>
+              ))}
+            </>
           ) : (
             <>
               {globalEntries.length === 0 && (
@@ -345,7 +371,7 @@ export function PartyChat(): JSX.Element {
               )}
               {globalEntries.map((entry) => (
                 <p key={entry.id} className="break-words" title={entry.sentAt}>
-                  <span className="text-violet-300">[{globalChatLanguage.toUpperCase()}] </span>
+                  <span className="text-cyan-300">[Global] </span>
                   <span
                     className={twMerge(
                       entry.sender.id === playerId
@@ -380,6 +406,8 @@ export function PartyChat(): JSX.Element {
                     setFriendDraft(activeFriendId, event.target.value)
                   } else if (chatTab === 'party') {
                     setPartyDraft(event.target.value)
+                  } else if (chatTab === 'language') {
+                    setLanguageDraft(event.target.value)
                   } else {
                     setGlobalDraft(event.target.value)
                   }
