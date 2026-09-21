@@ -120,14 +120,12 @@ class DiscordPresence {
   private ready = false
   private receiveBuffer = Buffer.alloc(0)
   private connectPromise: Promise<void> | null = null
-  private readyWaiter:
-    | {
-        socket: Socket
-        resolve: () => void
-        reject: (error: Error) => void
-        timer: ReturnType<typeof setTimeout>
-      }
-    | null = null
+  private readyWaiter: {
+    socket: Socket
+    resolve: () => void
+    reject: (error: Error) => void
+    timer: ReturnType<typeof setTimeout>
+  } | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private lastSentActivityKey: string | null = null
   private stopped = false
@@ -245,9 +243,7 @@ class DiscordPresence {
           type: 0,
           details: `${mode} • In Game`,
           state: `Map: ${this.state.match.mapId}`,
-          ...(this.state.gameStartedAt
-            ? { timestamps: { start: this.state.gameStartedAt } }
-            : {}),
+          ...(this.state.gameStartedAt ? { timestamps: { start: this.state.gameStartedAt } } : {}),
           ...(party ? { party } : {}),
           ...(assets ? { assets } : {}),
           instance: false

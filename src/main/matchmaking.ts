@@ -348,9 +348,10 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         Array.isArray(message.messages) &&
         message.messages.length <= 100 &&
         message.messages.every(isGlobalChatMessage) &&
-        message.messages.every((entry) =>
-          entry.scope === message.scope &&
-          (message.scope === 'global' || entry.language === message.language)
+        message.messages.every(
+          (entry) =>
+            entry.scope === message.scope &&
+            (message.scope === 'global' || entry.language === message.language)
         )
       )
     case 'match_found': {

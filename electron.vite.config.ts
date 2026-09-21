@@ -43,7 +43,9 @@ export default defineConfig(({ mode }) => {
   const mainProcessEnv = Object.fromEntries(
     mainProcessEnvNames.flatMap((name) => {
       const value =
-        process.env[name] || env[name] || (mode === 'production' ? productionMainProcessEnv[name] : '')
+        process.env[name] ||
+        env[name] ||
+        (mode === 'production' ? productionMainProcessEnv[name] : '')
 
       return value ? [[`process.env.${name}`, JSON.stringify(value)]] : []
     })

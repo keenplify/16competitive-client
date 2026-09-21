@@ -484,7 +484,8 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Improved reliability for Linux builds.
-=======
+  \=======
+
 ## v2026.910.2 — 2026-09-10
 
 ### Voice Chat

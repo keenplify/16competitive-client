@@ -51,9 +51,7 @@ export interface PartyLeaveResponse {
 
 export type PartyInvitationDecision = 'accept' | 'decline'
 
-export type DiscordPartyJoinResult =
-  | { ok: true; party: Party }
-  | { ok: false; message: string }
+export type DiscordPartyJoinResult = { ok: true; party: Party } | { ok: false; message: string }
 
 export interface PartyApi {
   get(): Promise<Party | null>
