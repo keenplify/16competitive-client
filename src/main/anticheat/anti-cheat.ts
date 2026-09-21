@@ -573,6 +573,10 @@ export class AntiCheatSession {
     while (!this.stopped && Date.now() < deadline) {
       const processId = await windowsProcessIdForExecutable(executablePath)
       if (processId) {
+        console.info('[AntiCheat] Counter-Strike process found after launcher handoff', {
+          executablePath,
+          processId
+        })
         this.attachProcess(processId)
         return
       }
@@ -580,6 +584,10 @@ export class AntiCheatSession {
     }
 
     if (!this.stopped) {
+      console.warn('[AntiCheat] Counter-Strike process was not found after launcher handoff', {
+        executablePath,
+        timeoutMilliseconds: WINDOWS_PROCESS_DISCOVERY_TIMEOUT_MS
+      })
       await reportObservation({
         ...this.baseObservation(),
         phase: 'runtime',
