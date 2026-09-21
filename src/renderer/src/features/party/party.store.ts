@@ -128,12 +128,6 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, event) }))
       }
       if (event.type === 'global_chat_message') {
-        const playerId = useAuthStore.getState().session?.player.id
-        const relevantEntries =
-          event.scope === 'global' ? get().globalChatEntries : get().languageChatEntries
-        const alreadyKnown = relevantEntries.some((entry) => entry.id === event.id)
-        if (!alreadyKnown && event.sender.id !== playerId) playChatMessageSound()
-
         set((state) => {
           if (event.scope === 'global') {
             return { globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event]) }
