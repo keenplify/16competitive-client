@@ -369,6 +369,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.18),_rgba(10,10,10,0.15)_70%)] text-center">
                           <CurrencyIcon
                             currency={choice.type === 'POINTS' ? 'POINTS' : 'P_CASH'}
+                            animated
                             className="size-28 drop-shadow-[0_0_30px_rgba(255,255,255,0.18)]"
                           />
                           <span className="mt-1 text-4xl font-black tabular-nums text-white">
