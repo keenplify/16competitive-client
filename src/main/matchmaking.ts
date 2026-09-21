@@ -22,7 +22,11 @@ import {
   getMatchmakingPreferences,
   toMatchmakingWsUrl
 } from './matchmaking-regions'
-import { closeCounterStrikeForMatch, launchCounterStrikeForMatch } from './game/cs16-launcher'
+import {
+  closeCounterStrikeForMatch,
+  isCounterStrikeActiveForMatch,
+  launchCounterStrikeForMatch
+} from './game/cs16-launcher'
 import {
   clearMatchAssetPreload,
   startMatchAssetPreload,
@@ -639,6 +643,12 @@ class MatchmakingConnection {
   async reconnectGame(): Promise<void> {
     if (!this.lastConnection) throw new Error('No previous match connection is available')
     const connection = this.lastConnection
+    if (isCounterStrikeActiveForMatch(connection.matchId)) {
+      console.info('[GameLaunch] ignored reconnect while Counter-Strike is already active', {
+        matchId: connection.matchId
+      })
+      return
+    }
     try {
       await waitForMatchAssetPreload(connection.matchId)
     } catch {

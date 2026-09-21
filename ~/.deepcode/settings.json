@@ -1,0 +1,9 @@
+{
+  "env": {
+    "MODEL": "deepseek-flash",
+    "BASE_URL": "https://api.deepseek.com",
+    "API_KEY": "sk-75b7d76faf7544f3bbd3fb8473310828"
+  },
+  "thinkingEnabled": true,
+  "reasoningEffort": "max"
+}

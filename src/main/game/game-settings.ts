@@ -1,5 +1,5 @@
 import { app, dialog } from 'electron'
-import { chmod, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
 import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
@@ -16,46 +16,90 @@ const PARTY_VOICE_PTT_PREFIX = 'party:'
 const configPath = (): string => join(app.getPath('userData'), 'game-settings.json')
 let settingsWriteQueue: Promise<void> = Promise.resolve()
 
-const detectCs16Executable = async (): Promise<string | null> => {
+const steamExecutableCandidates = (): string[] => {
   const home = process.env.HOME ?? ''
-  const candidates =
-    process.platform === 'win32'
-      ? [
-          join(
-            process.env.LOCALAPPDATA ?? '',
-            'Steam',
-            'steamapps',
-            'common',
-            'Half-Life',
-            'hl.exe'
-          ),
-          join(
-            process.env.PROGRAMFILES ?? '',
-            'Steam',
-            'steamapps',
-            'common',
-            'Half-Life',
-            'hl.exe'
-          ),
-          join(
-            process.env['PROGRAMFILES(X86)'] ?? '',
-            'Steam',
-            'steamapps',
-            'common',
-            'Half-Life',
-            'hl.exe'
-          )
-        ]
-      : [
-          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-          join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-          join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
-        ]
-  for (const candidate of candidates) {
+  if (process.platform === 'win32') {
+    return [
+      join(process.env.LOCALAPPDATA ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe'),
+      join(process.env.PROGRAMFILES ?? '', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl.exe'),
+      join(
+        process.env['PROGRAMFILES(X86)'] ?? '',
+        'Steam',
+        'steamapps',
+        'common',
+        'Half-Life',
+        'hl.exe'
+      )
+    ]
+  }
+  return [
+    join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+    join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
+    join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
+  ]
+}
+
+/**
+ * Conventional folders non-Steam Counter-Strike distributions are unpacked
+ * into. These repacks ship a plain directory (for example
+ * `C:\Games\Counter-Strike WaRzOnE`) instead of registering with Steam.
+ *
+ * Detection is strictly read-only and a discovered installation is never
+ * modified. Steam candidates are always tried first, so Steam stays the
+ * preferred distribution and this scan only runs when nothing else was found.
+ */
+const standaloneSearchRoots = (): string[] => {
+  if (process.platform === 'win32') {
+    return [join(process.env.SystemDrive ?? 'C:', 'Games')]
+  }
+  const home = process.env.HOME ?? ''
+  return [join(home, 'Games'), join(home, 'games')]
+}
+
+/** Bound the directory scan so detection stays cheap at startup. */
+const STANDALONE_SCAN_LIMIT = 64
+
+const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
+  if (!(await stat(executable).catch(() => null))?.isFile()) return false
+  // Require the retail game directory so unrelated `hl.exe` files (mods, other
+  // Half-Life builds) are not offered as a Counter-Strike installation.
+  const liblist = join(dirname(executable), 'cstrike', 'liblist.gam')
+  return (await stat(liblist).catch(() => null))?.isFile() === true
+}
+
+const detectStandaloneExecutables = async (): Promise<string[]> => {
+  const executableNames = process.platform === 'win32' ? ['hl.exe'] : ['hl_linux', 'hl.sh']
+  const detected: string[] = []
+
+  for (const root of standaloneSearchRoots()) {
+    if (!isAbsolute(root)) continue
+    const entries = await readdir(root, { withFileTypes: true }).catch(() => null)
+    if (!entries) continue
+
+    for (const entry of entries.slice(0, STANDALONE_SCAN_LIMIT)) {
+      if (!entry.isDirectory()) continue
+      for (const name of executableNames) {
+        const candidate = join(root, entry.name, name)
+        if (await isGoldSrcInstallation(candidate)) detected.push(candidate)
+      }
+    }
+  }
+
+  return detected
+}
+
+const detectCs16Executable = async (): Promise<string | null> => {
+  for (const candidate of steamExecutableCandidates()) {
     if (!isAbsolute(candidate)) continue
     const metadata = await stat(candidate).catch(() => null)
     if (metadata?.isFile()) return validateExecutable(candidate, true)
   }
+
+  for (const candidate of await detectStandaloneExecutables()) {
+    const executable = await validateExecutable(candidate, true).catch(() => null)
+    if (executable) return executable
+  }
+
   return null
 }
 
