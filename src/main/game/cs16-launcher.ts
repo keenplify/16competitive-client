@@ -14,10 +14,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
-import {
-  ensureCompetitiveGameDirectory,
-  ensureSteamAddonsDirectory
-} from './competitive-game-directory'
+import { ensureLauncherContentDirectory } from './game-directory'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
@@ -429,10 +426,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
-  const competitiveDirectory = await ensureCompetitiveGameDirectory(cwd)
-
+  // Every distribution runs the stock `cstrike` game directory, so this is both
+  // the game directory the engine launches on and the directory launcher-managed
+  // content goes into.
+  const launchGameDirectory = await ensureLauncherContentDirectory(cwd)
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  const launchGameDirectory = competitiveDirectory
   console.info('[GameLaunch] Counter-Strike installation classified', {
     distribution: launchTarget.distribution,
     selectedExecutable: executable,
@@ -484,12 +482,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  await prepareManagedSkinAudio(input.matchId, cwd)
+  await prepareManagedSkinAudio(input.matchId)
 
-  const requiresAddonsBridge = launchTarget.requiresAddonsBridge
-  // Steam's own launch flags force `-game cstrike`, so the competitive game
-  // directory is exposed through GoldSrc's addons search path instead.
-  const addonsBridgeReady = requiresAddonsBridge ? await ensureSteamAddonsDirectory(cwd) : true
   const voicePttSession = await prepareVoicePtt(
     launchGameDirectory,
     input.onVoicePtt,
@@ -575,16 +569,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  // The match configuration carries the join identity and password. Only repeat
-  // them on the command line when the engine may not find that config (the addons
-  // bridge could not be created), so the secret values normally never appear in
-  // the process list.
-  const identityArgs = addonsBridgeReady
-    ? []
-    : ['+name', playerName, '+setinfo', '_16c', input.joinToken, '+password', input.password]
+  // The match configuration carries the join identity and password and is
+  // written directly into the game directory the engine runs on, so `+exec`
+  // always finds it. The secret values therefore never appear in the process
+  // list.
   const directMatchArgs = [
     '-condebug',
-    ...identityArgs,
     '+exec',
     matchConfigName,
     '+connect',

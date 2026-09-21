@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises'
-import { basename, dirname, join, normalize } from 'node:path'
-import { COMPETITIVE_GAME_DIR } from './competitive-game-directory'
+import { basename, dirname, join } from 'node:path'
+import { STOCK_GAME_DIR, findSteamLibraryRoot, hasStandaloneSteamEmulator } from './game-directory'
 
 export type Cs16Distribution = 'steam' | 'standalone'
 
@@ -24,12 +24,6 @@ export interface Cs16LaunchTarget {
   usesLauncherHandoff: boolean
   /** The installation ships a rev.ini RevEmu layer and needs GoldSrc's `-steam`. */
   usesSteamEmulation: boolean
-  /**
-   * The engine is started in a way that forces the stock `cstrike` game
-   * directory, so `16competitive` has to be exposed through GoldSrc's addons
-   * search path instead of through `-game`.
-   */
-  requiresAddonsBridge: boolean
 }
 
 const GOLD_SRC_WINDOWS_EXECUTABLE = 'hl.exe'
@@ -54,49 +48,32 @@ const GOLD_SRC_WINDOWS_EXECUTABLE = 'hl.exe'
  */
 const STANDALONE_WRAPPER_EXECUTABLES = new Set(['cs16launcher.exe'])
 
-const findSteamLibraryRoot = (executable: string): string | null => {
-  let current = dirname(normalize(executable))
-
-  for (let depth = 0; depth < 8; depth++) {
-    if (basename(current).toLowerCase() === 'steamapps') return dirname(current)
-    const parent = dirname(current)
-    if (parent === current) break
-    current = parent
-  }
-
-  return null
-}
-
 export const classifyCs16Distribution = (executable: string): Cs16Distribution =>
   findSteamLibraryRoot(executable) ? 'steam' : 'standalone'
 
-const hasStandaloneSteamEmulator = async (executable: string): Promise<boolean> =>
-  (await stat(join(dirname(executable), 'rev.ini')).catch(() => null))?.isFile() === true
-
+/**
+ * Every installation is started on the stock `cstrike` game directory. The match
+ * servers run `cstrike` and GoldSrc refuses a mismatched client, and the Steam
+ * filesystem only searches that directory - see `game-directory.ts`.
+ */
 const buildArgumentPrefix = (usesSteamEmulation: boolean): string[] => [
   // RevEmu installations load their local Steam emulator only when GoldSrc is
   // told to talk to Steam. This is the same flag the distribution's own
   // CS16Launcher.exe passes to hl.exe by default.
   ...(usesSteamEmulation ? ['-steam'] : []),
   '-game',
-  COMPETITIVE_GAME_DIR,
+  STOCK_GAME_DIR,
   '-noforcemparms',
-  '-noforcemaccel',
-  // Older RevEmu/GoldSrc builds can start with no visible window on current
-  // Windows display stacks when their saved fullscreen mode is invalid. A
-  // conservative windowed mode lets the game initialize; players can change
-  // video settings in-game afterwards.
-  ...(usesSteamEmulation ? ['-window', '-w', '1280', '-h', '720'] : [])
+  '-noforcemaccel'
 ]
 
 export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16LaunchTarget> => {
   const steamLibraryRoot = findSteamLibraryRoot(executable)
   if (!steamLibraryRoot) {
-    const usesSteamEmulation = await hasStandaloneSteamEmulator(executable)
+    const installRoot = dirname(executable)
+    const usesSteamEmulation = await hasStandaloneSteamEmulator(installRoot)
     const isWrapper = STANDALONE_WRAPPER_EXECUTABLES.has(basename(executable).toLowerCase())
-    const gameExecutable = isWrapper
-      ? join(dirname(executable), GOLD_SRC_WINDOWS_EXECUTABLE)
-      : executable
+    const gameExecutable = isWrapper ? join(installRoot, GOLD_SRC_WINDOWS_EXECUTABLE) : executable
 
     if (isWrapper && !(await stat(gameExecutable).catch(() => null))?.isFile()) {
       throw new Error(
@@ -116,8 +93,7 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // when forced above their supported 512px texture limit.
       textureSize: '512',
       usesLauncherHandoff: isWrapper,
-      usesSteamEmulation,
-      requiresAddonsBridge: false
+      usesSteamEmulation
     }
   }
 
@@ -129,36 +105,28 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // ignored and reconnects can terminate the exact installation safely.
       executable,
       gameExecutable: executable,
-      argumentPrefix: ['-game', COMPETITIVE_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
+      argumentPrefix: ['-game', STOCK_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
       textureSize: '1024',
       usesLauncherHandoff: false,
-      usesSteamEmulation: false,
-      requiresAddonsBridge: false
+      usesSteamEmulation: false
     }
   }
 
-  // Steam launches Counter-Strike (app 10) with its own `-game cstrike` flag and
-  // GoldSrc only honours the first `-game` argument, so `steam -applaunch 10
-  // -game 16competitive` still runs the stock `cstrike` game directory.
+  // Steam launches Counter-Strike (app 10) with its own `-game cstrike`, and
+  // GoldSrc only honours the first `-game`, so the game directory is `cstrike`
+  // either way; it is passed explicitly to state the requirement.
   //
   // Launching the game binary directly instead is not an option for a Steam
   // install: the client needs Steam's runtime setup, and on hosts where Steam
   // itself runs inside an emulation VM (box64/FEX/muvm) the game must be started
   // by Steam or it crashes during graphics initialisation.
-  //
-  // So keep Steam's launch and expose `16competitive` through GoldSrc's addons
-  // search path (`-addons` makes the engine search `<gamedir>_addon`, which
-  // `ensureSteamAddonsDirectory` links to `16competitive`). The match
-  // configuration, downloaded skins and sound overrides are then all found
-  // without ever writing into the player's `cstrike` folder.
   return {
     distribution: 'steam',
     executable: 'steam',
     gameExecutable: executable,
-    argumentPrefix: ['-applaunch', '10', '-addons', '-game', COMPETITIVE_GAME_DIR],
+    argumentPrefix: ['-applaunch', '10', '-game', STOCK_GAME_DIR],
     textureSize: '1024',
     usesLauncherHandoff: true,
-    usesSteamEmulation: false,
-    requiresAddonsBridge: true
+    usesSteamEmulation: false
   }
 }
