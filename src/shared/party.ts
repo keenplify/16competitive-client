@@ -6,6 +6,7 @@ export const PARTY_CHANNELS = {
   leave: 'party:leave',
   sendMessage: 'party:send-message',
   sendGlobalMessage: 'party:send-global-message',
+  setGlobalChatLanguage: 'party:set-global-chat-language',
   discordJoinResult: 'party:discord-join-result'
 } as const
 
@@ -62,5 +63,6 @@ export interface PartyApi {
   leave(): Promise<PartyLeaveResponse>
   sendMessage(message: string): Promise<void>
   sendGlobalMessage(message: string): Promise<void>
+  setGlobalChatLanguage(language: string): Promise<void>
   onDiscordJoinResult(listener: (result: DiscordPartyJoinResult) => void): () => void
 }
