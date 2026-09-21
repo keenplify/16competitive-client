@@ -14,6 +14,7 @@ import type { LeaderboardApi } from '../shared/leaderboard'
 import type { NewsApi } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
 import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
+import type { OperationsApi } from '../shared/operations'
 
 declare global {
   interface Window {
@@ -27,6 +28,7 @@ declare global {
       matchmaking: MatchmakingApi
       matchHistory: MatchHistoryApi
       news: NewsApi
+      operations: OperationsApi
       redeemCodes: RedeemCodesApi
       skins: SkinsApi
       models: ModelApi

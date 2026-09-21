@@ -8,6 +8,17 @@ export interface SkinRarityPresentation {
   className: string
 }
 
+export const skinRarityOrder: SkinRarity[] = [
+  'FIELD',
+  'FORGE',
+  'STRIKE',
+  'VANGUARD',
+  'NEON',
+  'CRIMSON',
+  'RELIC',
+  'VAULT'
+]
+
 const presentation: Record<SkinRarity, SkinRarityPresentation> = {
   FIELD: {
     label: 'Field',
@@ -53,6 +64,10 @@ export const skinRarity = (
   if (skin.pricePoints >= 2_000) return 'FORGE'
   return 'FIELD'
 }
+
+export const skinRarityPresentationFor = (
+  rarity: SkinRarity
+): SkinRarityPresentation => presentation[rarity]
 
 export const skinRarityPresentation = (
   skin: Parameters<typeof skinRarity>[0]

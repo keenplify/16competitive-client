@@ -59,6 +59,7 @@ const isSkin = (value: unknown): value is Skin => {
   return (
     typeof skin.id === 'string' &&
     typeof skin.gameVersion === 'string' &&
+    ['DRAFT', 'ACTIVE', 'UNLISTED', 'DISABLED'].includes(String(skin.status)) &&
     typeof skin.weaponKey === 'string' &&
     typeof skin.name === 'string' &&
     (typeof skin.description === 'string' || skin.description === null) &&
@@ -73,7 +74,9 @@ const isSkin = (value: unknown): value is Skin => {
     typeof skin.sourceUrl === 'string' &&
     typeof skin.licenseName === 'string' &&
     (typeof skin.licenseUrl === 'string' || skin.licenseUrl === null) &&
-    typeof skin.attributionText === 'string'
+    typeof skin.attributionText === 'string' &&
+    (typeof skin.actionSoundPath === 'string' || skin.actionSoundPath === null) &&
+    (typeof skin.explosionSpritePath === 'string' || skin.explosionSpritePath === null)
   )
 }
 

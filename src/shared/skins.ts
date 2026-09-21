@@ -16,6 +16,7 @@ export const SKIN_CHANNELS = {
 export interface Skin {
   id: string
   gameVersion: string
+  status: 'DRAFT' | 'ACTIVE' | 'UNLISTED' | 'DISABLED'
   weaponKey: string
   name: string
   description: string | null
@@ -31,6 +32,8 @@ export interface Skin {
   licenseName: string
   licenseUrl: string | null
   attributionText: string
+  actionSoundPath: string | null
+  explosionSpritePath: string | null
 }
 
 export interface OwnedSkin {
