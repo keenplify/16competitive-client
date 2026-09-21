@@ -39,6 +39,9 @@ const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const isGlobalChatLanguage = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value) && value.length <= 35
+
 const isMapId = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z0-9_]{1,64}$/.test(value)
 const isMapIds = (value: unknown): value is string[] =>
@@ -161,6 +164,7 @@ const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
   return (
     message.type === 'global_chat_message' &&
     typeof message.id === 'string' &&
+    isGlobalChatLanguage(message.language) &&
     typeof message.message === 'string' &&
     message.message.length >= 1 &&
     message.message.length <= 300 &&
@@ -192,7 +196,11 @@ const isFriendChatMessage = (value: unknown): boolean => {
 const isGlobalChatMessageDeleted = (value: unknown): value is GlobalChatMessageDeleted => {
   if (typeof value !== 'object' || value === null) return false
   const message = value as Record<string, unknown>
-  return message.type === 'global_chat_message_deleted' && typeof message.id === 'string'
+  return (
+    message.type === 'global_chat_message_deleted' &&
+    typeof message.id === 'string' &&
+    isGlobalChatLanguage(message.language)
+  )
 }
 
 const partyNotificationCodes = new Set([
@@ -323,6 +331,7 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       return isGlobalChatMessageDeleted(message)
     case 'global_chat_history':
       return (
+        isGlobalChatLanguage(message.language) &&
         Array.isArray(message.messages) &&
         message.messages.length <= 100 &&
         message.messages.every(isGlobalChatMessage)
@@ -430,6 +439,7 @@ class MatchmakingConnection {
   private desiredAllowRegionExpansion = true
   private desiredPreferredRegion: string | null = null
   private desiredEligibleRegions: string[] = []
+  private globalChatLanguage = 'en'
   private activeApiUrl: string | null = null
   private hostApiUrl: string | null = null
   private reconnectAttempt = 0
@@ -559,6 +569,14 @@ class MatchmakingConnection {
       throw new Error('Global messages must contain 1-300 characters')
     }
     this.send({ type: 'global_chat_send', message: message.trim() })
+  }
+
+  setGlobalChatLanguage(language: unknown): void {
+    if (!isGlobalChatLanguage(language)) throw new Error('Invalid global chat language')
+    this.globalChatLanguage = language
+    if (this.socket?.readyState === WebSocket.OPEN && this.authenticated) {
+      this.send({ type: 'global_chat_set_language', language })
+    }
   }
 
   joinVoice(context: unknown): void {
@@ -739,7 +757,13 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'connected') {
-        socket.send(JSON.stringify({ type: 'authenticate', token }))
+        socket.send(
+          JSON.stringify({
+            type: 'authenticate',
+            token,
+            globalChatLanguage: this.globalChatLanguage
+          })
+        )
         return
       }
       if (parsed.type === 'party_presence_ping') {
