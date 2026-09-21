@@ -13,7 +13,13 @@ const PING_OPCODE = 3
 const PONG_OPCODE = 4
 const MAX_FRAME_BYTES = 1024 * 1024
 const IPC_CONNECT_TIMEOUT_MS = 350
-const READY_TIMEOUT_MS = 2_000
+// Discord's desktop client answers the IPC handshake much slower than the pipe
+// connect itself: measured at roughly 1.0-2.6s on an idle desktop, and longer
+// while its renderer is busy. A 2s ceiling therefore tore the socket down just
+// before READY arrived, so Rich Presence was never set. Waiting longer is safe
+// because a missing Discord pipe fails to connect almost instantly, which is
+// handled by IPC_CONNECT_TIMEOUT_MS above.
+const READY_TIMEOUT_MS = 20_000
 const RECONNECT_DELAY_MS = 15_000
 const PARTY_MAX_SIZE = 5
 const CLIENT_ID_PATTERN = /^\d{17,20}$/
@@ -130,6 +136,7 @@ class DiscordPresence {
   private lastSentActivityKey: string | null = null
   private stopped = false
   private invalidClientIdLogged = false
+  private connectFailureLogged = false
   private joinHandler: ((secret: string) => Promise<void>) | null = null
 
   setJoinHandler(handler: (secret: string) => Promise<void>): void {
@@ -321,12 +328,26 @@ class DiscordPresence {
   }
 
   private requestConnection(): void {
-    if (this.stopped || this.connectPromise || !this.isConfigured()) return
+    // A pending reconnect already owns the next attempt. Without this guard every
+    // state change that republishes an activity (party refresh, queue updates)
+    // opened a fresh Discord IPC socket, which kept Discord answering the
+    // handshake late and made the whole connection unreliable.
+    if (this.stopped || this.connectPromise || this.reconnectTimer) return
+    if (!this.isConfigured()) return
+
     this.connectPromise = this.connect()
       .then(() => {
         this.flushCurrentActivity()
       })
-      .catch(() => undefined)
+      .catch((error: unknown) => {
+        if (!this.connectFailureLogged) {
+          this.connectFailureLogged = true
+          console.warn(
+            '[DiscordPresence] Rich Presence unavailable:',
+            error instanceof Error ? error.message : String(error)
+          )
+        }
+      })
       .finally(() => {
         this.connectPromise = null
         if (!this.ready) this.scheduleReconnect()
