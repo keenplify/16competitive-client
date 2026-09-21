@@ -25,7 +25,10 @@ const mainProcessEnvNames = [
   'API_BASE_URL',
   'MATCHMAKING_WS_URL',
   'DISCORD_CLIENT_ID',
-  'DISCORD_LARGE_IMAGE_KEY'
+  'DISCORD_LARGE_IMAGE_KEY',
+  // Optional escape hatch for sandboxed Discord clients or custom arRPC setups.
+  // This stays in the main bundle and is never exposed to the renderer.
+  'DISCORD_IPC_PATH'
 ] as const
 type MainProcessEnvName = (typeof mainProcessEnvNames)[number]
 

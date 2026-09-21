@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { MatchmakingMode } from '../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../shared/matchmaking'
 import type { Party } from '../shared/party'
-import { DISCORD_CLIENT_ID, DISCORD_LARGE_IMAGE_KEY } from './config'
+import { DISCORD_CLIENT_ID, DISCORD_IPC_PATH, DISCORD_LARGE_IMAGE_KEY } from './config'
 
 const HANDSHAKE_OPCODE = 0
 const FRAME_OPCODE = 1
@@ -68,21 +68,42 @@ const initialState = (): PresenceState => ({
 })
 
 const getDiscordIpcPaths = (): string[] => {
+  const configuredPaths = DISCORD_IPC_PATH
+    ? DISCORD_IPC_PATH.split(process.platform === 'win32' ? ';' : ':')
+        .map((path) => path.trim())
+        .filter(Boolean)
+    : []
+
   if (process.platform === 'win32') {
-    return Array.from({ length: 10 }, (_, index) => `\\\\?\\pipe\\discord-ipc-${index}`)
+    return [
+      ...configuredPaths,
+      ...Array.from({ length: 10 }, (_, index) => `\\\\?\\pipe\\discord-ipc-${index}`)
+    ]
   }
 
+  const runtimeDirectory = process.env.XDG_RUNTIME_DIR
   const roots = [
-    process.env.XDG_RUNTIME_DIR,
+    runtimeDirectory,
     process.env.TMPDIR,
     process.env.TMP,
     process.env.TEMP,
     '/tmp'
   ].filter((value): value is string => Boolean(value))
 
-  return [...new Set(roots)].flatMap((root) =>
-    Array.from({ length: 10 }, (_, index) => join(root, `discord-ipc-${index}`))
-  )
+  // Native Vesktop uses the regular Discord IPC location. Its Flatpak build
+  // hosts arRPC inside the app runtime mount instead, which is visible to
+  // host processes at this path.
+  const vesktopFlatpakRoot = runtimeDirectory
+    ? join(runtimeDirectory, '.flatpak', 'dev.vencord.Vesktop', 'xdg-run')
+    : null
+  const allRoots = vesktopFlatpakRoot ? [...roots, vesktopFlatpakRoot] : roots
+
+  return [
+    ...configuredPaths,
+    ...Array.from(new Set(allRoots)).flatMap((root) =>
+      Array.from({ length: 10 }, (_, index) => join(root, `discord-ipc-${index}`))
+    )
+  ]
 }
 
 const openIpcSocket = (path: string): Promise<Socket> =>
