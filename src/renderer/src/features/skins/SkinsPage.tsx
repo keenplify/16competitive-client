@@ -15,8 +15,8 @@ import { SkinModelThumbnail } from './SkinModelThumbnail'
 import { LOBBY_PLAYER_MODELS } from '../party/party-models'
 
 type Team = 'ct' | 't'
-type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'knives'
-type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'knives'>
+type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'grenades' | 'knives'
+type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'grenades' | 'knives'>
 
 const loadoutGroups: Record<Team, Record<LoadoutGroup, string[]>> = {
   ct: {
@@ -49,6 +49,7 @@ const weaponCategory = (key: string): WeaponCategory => {
   if (['galil', 'famas', 'ak47', 'm4a1', 'aug', 'sg552'].includes(key)) return 'rifles'
   if (['tmp', 'mac10', 'mp5navy', 'ump45', 'p90'].includes(key)) return 'smgs'
   if (['scout', 'awp', 'sg550', 'g3sg1'].includes(key)) return 'snipers'
+  if (['hegrenade', 'flashbang', 'smokegrenade'].includes(key)) return 'grenades'
   if (key === 'knife') return 'knives'
   return 'heavy'
 }
@@ -69,6 +70,8 @@ const displayWeapon = (key: string): string =>
     .replace('Sg550', 'SG 550')
     .replace('G3sg1', 'G3/SG-1')
     .replace('M249', 'M249')
+    .replace('Hegrenade', 'HE Grenade')
+    .replace('Smokegrenade', 'Smoke Grenade')
 
 const defaultPlayerModelPath = (weaponKey: string): string =>
   `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
@@ -80,6 +83,7 @@ const categories: Array<{ id: WeaponCategory; label: string }> = [
   { id: 'rifles', label: 'Rifles' },
   { id: 'snipers', label: 'Snipers' },
   { id: 'heavy', label: 'Machine gun' },
+  { id: 'grenades', label: 'Grenades' },
   { id: 'knives', label: 'Knife' }
 ]
 
@@ -154,7 +158,13 @@ export function SkinsPage(): JSX.Element {
       ),
     [skins]
   )
-  const teamWeaponKeys = new Set([...Object.values(loadoutGroups[team]).flat(), 'knife'])
+  const teamWeaponKeys = new Set([
+    ...Object.values(loadoutGroups[team]).flat(),
+    'hegrenade',
+    'flashbang',
+    'smokegrenade',
+    'knife'
+  ])
   const partyLobbyPlayerModel = party?.members.find(
     (candidate) => candidate.id === playerId
   )?.lobbyPlayerModel
