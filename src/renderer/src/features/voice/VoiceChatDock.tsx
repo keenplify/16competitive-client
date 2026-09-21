@@ -721,6 +721,7 @@ export function VoiceChatDock(): JSX.Element | null {
     })
 
     return removeListener
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desiredContext, enabled, setTalkChannel])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Voice context transitions synchronously tear down stale media and UI state. */
@@ -745,6 +746,7 @@ export function VoiceChatDock(): JSX.Element | null {
           setMicError(error instanceof Error ? error.message : 'Could not join voice chat.')
         )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionStatus, desiredContext, enabled, joinedContext, setTalkChannel])
   /* eslint-enable react-hooks/set-state-in-effect */
 
