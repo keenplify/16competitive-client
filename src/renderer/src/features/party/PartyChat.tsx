@@ -10,6 +10,7 @@ import { usePartyStore, type ChatTab } from './party.store'
 
 const baseTabs: Array<{ id: ChatTab; label: string }> = [
   { id: 'party', label: 'Party' },
+  { id: 'language', label: 'Language Chat' },
   { id: 'global', label: 'Global Chat' }
 ]
 
@@ -27,17 +28,23 @@ export function PartyChat(): JSX.Element {
   const partyError = usePartyStore((state) => state.chatError)
   const chatTab = usePartyStore((state) => state.chatTab)
   const globalEntries = usePartyStore((state) => state.globalChatEntries)
+  const languageEntries = usePartyStore((state) => state.languageChatEntries)
   const globalChatLanguage = usePartyStore((state) => state.globalChatLanguage)
   const globalDraft = usePartyStore((state) => state.globalChatDraft)
   const globalSending = usePartyStore((state) => state.globalChatSending)
   const globalError = usePartyStore((state) => state.globalChatError)
+  const languageDraft = usePartyStore((state) => state.languageChatDraft)
+  const languageSending = usePartyStore((state) => state.languageChatSending)
+  const languageError = usePartyStore((state) => state.languageChatError)
   const setPartyDraft = usePartyStore((state) => state.setChatDraft)
   const sendPartyChat = usePartyStore((state) => state.sendChat)
   const clearPartyChat = usePartyStore((state) => state.clearChat)
   const setChatTab = usePartyStore((state) => state.setChatTab)
   const setGlobalDraft = usePartyStore((state) => state.setGlobalChatDraft)
+  const setLanguageDraft = usePartyStore((state) => state.setLanguageChatDraft)
   const setGlobalChatLanguage = usePartyStore((state) => state.setGlobalChatLanguage)
   const sendGlobalChat = usePartyStore((state) => state.sendGlobalChat)
+  const sendLanguageChat = usePartyStore((state) => state.sendLanguageChat)
   const language = useLanguageStore((state) => state.language)
 
   const openFriendIds = useFriendChatStore((state) => state.openFriendIds)
@@ -77,7 +84,14 @@ export function PartyChat(): JSX.Element {
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
-  }, [activeFriendId, friendConversation?.messages, chatTab, partyEntries, globalEntries])
+  }, [
+    activeFriendId,
+    friendConversation?.messages,
+    chatTab,
+    partyEntries,
+    globalEntries,
+    languageEntries
+  ])
 
   useEffect(() => {
     if (!activeFriendId) return
