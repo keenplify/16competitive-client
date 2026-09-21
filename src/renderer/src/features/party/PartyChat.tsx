@@ -157,10 +157,6 @@ export function PartyChat(): JSX.Element {
   }, [chatOpen, conversations, playerId])
 
   useEffect(() => {
-    if (chatOpen) setMinimizedPing(null)
-  }, [chatOpen])
-
-  useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
   }, [
     activeFriendId,
@@ -193,6 +189,11 @@ export function PartyChat(): JSX.Element {
   const selectBaseTab = (tab: ChatTab): void => {
     setChatTab(tab)
     useFriendChatStore.setState({ activeFriendId: null })
+  }
+
+  const openChat = (): void => {
+    setMinimizedPing(null)
+    setChatOpen(true)
   }
 
   const openMinimizedPing = (): void => {
@@ -300,7 +301,7 @@ export function PartyChat(): JSX.Element {
         <button
           type="button"
           className="fixed bottom-4 left-4 z-[5] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
-          onClick={() => setChatOpen(true)}
+          onClick={openChat}
           aria-label="Open chat"
         >
           <span className="relative">
