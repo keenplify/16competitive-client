@@ -69,8 +69,6 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // The selected Steam installation's hl.exe is a stable child process on
       // Windows. Launch it directly so duplicate match status events can be
       // ignored and reconnects can terminate the exact installation safely.
-      // The Linux binary needs Steam's runtime setup and therefore retains the
-      // launcher handoff below.
       executable,
       argumentPrefix: ['-game', COMPETITIVE_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
       textureSize: '1024',
@@ -78,10 +76,24 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
     }
   }
 
+  // Steam launches Counter-Strike (app 10) with its own `-game cstrike` flag and
+  // GoldSrc only honours the first `-game` argument, so `steam -applaunch 10
+  // -game 16competitive` still runs the stock `cstrike` game directory.
+  //
+  // Launching the game binary directly instead is not an option for a Steam
+  // install: the client needs Steam's runtime setup, and on hosts where Steam
+  // itself runs inside an emulation VM (box64/FEX/muvm) the game must be started
+  // by Steam or it crashes during graphics initialisation.
+  //
+  // So keep Steam's launch and expose `16competitive` through GoldSrc's addons
+  // search path (`-addons` makes the engine search `<gamedir>_addon`, which
+  // `ensureSteamAddonsDirectory` links to `16competitive`). The match
+  // configuration, downloaded skins and sound overrides are then all found
+  // without ever writing into the player's `cstrike` folder.
   return {
     distribution: 'steam',
     executable: 'steam',
-    argumentPrefix: ['-applaunch', '10', '-game', COMPETITIVE_GAME_DIR],
+    argumentPrefix: ['-applaunch', '10', '-addons', '-game', COMPETITIVE_GAME_DIR],
     textureSize: '1024',
     usesLauncherHandoff: true
   }

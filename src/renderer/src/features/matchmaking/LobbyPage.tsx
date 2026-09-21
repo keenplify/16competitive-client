@@ -330,7 +330,9 @@ export function LobbyPage(): JSX.Element {
       {content && (
         <div
           className={`relative z-10 min-h-screen bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${
-            friendsCollapsed ? 'md:pr-11' : 'md:pr-72'
+            // The friends rail renders nothing while a match needs attention, so
+            // its reserved width must be released for the whole match lifecycle.
+            matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'
           }`}
         >
           {content}
