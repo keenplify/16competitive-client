@@ -31,6 +31,9 @@ interface DiscordActivity {
     id: string
     size: [number, number]
   }
+  secrets?: {
+    join: string
+  }
   instance: false
 }
 
@@ -38,6 +41,7 @@ interface PresenceState {
   authenticated: boolean
   partyId: string | null
   partySize: number
+  partyJoinSecret: string | null
   queue: { mode: MatchmakingMode; mapIds: string[] } | null
   match: { mode: MatchmakingMode; mapId: string } | null
   inGame: boolean
@@ -49,6 +53,7 @@ const initialState = (): PresenceState => ({
   authenticated: false,
   partyId: null,
   partySize: 0,
+  partyJoinSecret: null,
   queue: null,
   match: null,
   inGame: false,
@@ -127,6 +132,11 @@ class DiscordPresence {
   private lastSentActivityKey: string | null = null
   private stopped = false
   private invalidClientIdLogged = false
+  private joinHandler: ((secret: string) => Promise<void>) | null = null
+
+  setJoinHandler(handler: (secret: string) => Promise<void>): void {
+    this.joinHandler = handler
+  }
 
   setAuthenticated(authenticated: boolean): void {
     this.state.authenticated = authenticated
@@ -138,6 +148,7 @@ class DiscordPresence {
       this.state.gameStartedAt = null
       this.state.partyId = null
       this.state.partySize = 0
+      this.state.partyJoinSecret = null
     }
     this.publish()
   }
@@ -145,6 +156,7 @@ class DiscordPresence {
   setParty(party: Party | null): void {
     this.state.partyId = party?.id ?? null
     this.state.partySize = party?.members.length ?? 0
+    this.state.partyJoinSecret = party?.joinSecret ?? null
     this.publish()
   }
 
@@ -211,11 +223,19 @@ class DiscordPresence {
       ? { large_image: DISCORD_LARGE_IMAGE_KEY, large_text: '1.6 Competitive' }
       : undefined
     const party =
-      this.state.partyId && this.state.partySize > 1
+      this.state.partyId && this.state.partySize > 0
         ? {
             id: this.state.partyId,
             size: [this.state.partySize, PARTY_MAX_SIZE] as [number, number]
           }
+        : undefined
+    const secrets =
+      party &&
+      !this.state.queue &&
+      !this.state.match &&
+      this.state.partyJoinSecret &&
+      this.state.partySize < PARTY_MAX_SIZE
+        ? { join: this.state.partyJoinSecret }
         : undefined
 
     if (this.state.match) {
@@ -266,6 +286,7 @@ class DiscordPresence {
         details: 'In Lobby',
         state: 'In a Party',
         ...(assets ? { assets } : {}),
+        ...(secrets ? { secrets } : {}),
         party,
         instance: false
       }
@@ -425,7 +446,34 @@ class DiscordPresence {
 
       if (frame.cmd === 'DISPATCH' && frame.evt === 'READY') {
         this.ready = true
+        this.writeJsonFrame(FRAME_OPCODE, {
+          cmd: 'SUBSCRIBE',
+          args: {},
+          evt: 'ACTIVITY_JOIN',
+          nonce: randomUUID()
+        })
         this.resolveReady(socket)
+        continue
+      }
+      if (frame.cmd === 'DISPATCH' && frame.evt === 'ACTIVITY_JOIN') {
+        const data =
+          typeof frame.data === 'object' && frame.data !== null
+            ? (frame.data as Record<string, unknown>)
+            : null
+        const secret = data?.secret
+        if (
+          typeof secret === 'string' &&
+          secret.length >= 2 &&
+          secret.length <= 128 &&
+          this.joinHandler
+        ) {
+          void this.joinHandler(secret).catch((error: unknown) => {
+            console.warn(
+              '[DiscordPresence] activity join handler failed',
+              error instanceof Error ? error.message : String(error)
+            )
+          })
+        }
         continue
       }
       if (frame.evt === 'ERROR') {

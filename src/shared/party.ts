@@ -5,7 +5,8 @@ export const PARTY_CHANNELS = {
   respond: 'party:respond',
   leave: 'party:leave',
   sendMessage: 'party:send-message',
-  sendGlobalMessage: 'party:send-global-message'
+  sendGlobalMessage: 'party:send-global-message',
+  discordJoinResult: 'party:discord-join-result'
 } as const
 
 export interface PartyMember {
@@ -21,6 +22,7 @@ export interface PartyMember {
 export interface Party {
   id: string
   leaderId: string
+  joinSecret: string
   members: PartyMember[]
 }
 
@@ -48,6 +50,10 @@ export interface PartyLeaveResponse {
 
 export type PartyInvitationDecision = 'accept' | 'decline'
 
+export type DiscordPartyJoinResult =
+  | { ok: true; party: Party }
+  | { ok: false; message: string }
+
 export interface PartyApi {
   get(): Promise<Party | null>
   getInvitations(): Promise<PendingPartyInvitation[]>
@@ -56,4 +62,5 @@ export interface PartyApi {
   leave(): Promise<PartyLeaveResponse>
   sendMessage(message: string): Promise<void>
   sendGlobalMessage(message: string): Promise<void>
+  onDiscordJoinResult(listener: (result: DiscordPartyJoinResult) => void): () => void
 }

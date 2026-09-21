@@ -29,6 +29,8 @@ const isParty = (value: unknown): value is Party =>
   isObject(value) &&
   typeof value.id === 'string' &&
   typeof value.leaderId === 'string' &&
+  typeof value.joinSecret === 'string' &&
+  UUID_PATTERN.test(value.joinSecret) &&
   Array.isArray(value.members) &&
   value.members.length <= 5 &&
   value.members.every(isMember)
@@ -131,6 +133,20 @@ export const respondToPartyInvitation = async (
     throw new Error('The party server returned an invalid response')
   }
   return body as unknown as PartyInvitationResponse
+}
+
+export const joinPartyWithDiscordSecret = async (secret: unknown): Promise<Party> => {
+  if (typeof secret !== 'string' || !UUID_PATTERN.test(secret)) {
+    throw new Error('The Discord party invite is invalid')
+  }
+  const body = await partyRequest('/party/join', {
+    method: 'POST',
+    body: JSON.stringify({ secret })
+  })
+  if (!isObject(body) || !isParty(body.party)) {
+    throw new Error('The party server returned an invalid Discord join response')
+  }
+  return body.party
 }
 
 export const leaveParty = async (): Promise<PartyLeaveResponse> => {

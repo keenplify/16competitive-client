@@ -114,7 +114,15 @@ const party: PartyApi = {
     ipcRenderer.invoke(PARTY_CHANNELS.respond, invitationId, decision),
   leave: () => ipcRenderer.invoke(PARTY_CHANNELS.leave),
   sendMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendMessage, message),
-  sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message)
+  sendGlobalMessage: (message) => ipcRenderer.invoke(PARTY_CHANNELS.sendGlobalMessage, message),
+  onDiscordJoinResult: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      result: Parameters<typeof listener>[0]
+    ): void => listener(result)
+    ipcRenderer.on(PARTY_CHANNELS.discordJoinResult, handler)
+    return () => ipcRenderer.removeListener(PARTY_CHANNELS.discordJoinResult, handler)
+  }
 }
 
 const friends: FriendsApi = {
