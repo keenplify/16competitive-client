@@ -50,6 +50,7 @@ function RewardPreview({ tier }: { tier: OperationTier }): JSX.Element {
       <div className="absolute inset-0 grid place-items-center">
         <CurrencyIcon
           currency={tier.rewardType}
+          animated
           className={tier.isMajor ? 'size-24' : 'size-20'}
         />
       </div>
