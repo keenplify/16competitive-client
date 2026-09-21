@@ -317,75 +317,91 @@ export function PartyChat(): JSX.Element {
       )}
       {chatOpen && (
         <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
-          <div className="flex shrink-0 border-b border-white/15 bg-black/50">
-            <div className="flex min-w-0 flex-1 overflow-x-auto" role="tablist" aria-label="Chat">
-              {baseTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={!activeFriendId && chatTab === tab.id}
-                  className={twMerge(
-                    'h-9 shrink-0 border-b-2 border-transparent px-4 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
-                    !activeFriendId && chatTab === tab.id && 'border-sky-400 text-white'
-                  )}
-                  onClick={() => selectBaseTab(tab.id)}
-                >
-                  {tab.id === 'language' ? `${globalLanguageLabel} Chat` : tab.label}
-                </button>
-              ))}
-              {openFriendIds.map((friendId) => {
-                const conversation = conversations[friendId]
-                if (!conversation) return null
-                return (
+          <div className="shrink-0 border-b border-white/15 bg-black/50">
+            <div className="flex min-w-0">
+              <div
+                className="grid min-w-0 flex-1 grid-cols-3"
+                role="tablist"
+                aria-label="Public and party chat"
+              >
+                {baseTabs.map((tab) => (
                   <button
-                    key={friendId}
+                    key={tab.id}
                     type="button"
                     role="tab"
-                    aria-selected={activeFriendId === friendId}
+                    aria-selected={!activeFriendId && chatTab === tab.id}
                     className={twMerge(
-                      'group flex h-9 max-w-40 shrink-0 items-center gap-2 border-b-2 border-transparent px-3 text-xs font-semibold text-neutral-500 transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
-                      activeFriendId === friendId && 'border-sky-400 text-white'
+                      'h-9 min-w-0 border-b-2 border-transparent px-2 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
+                      !activeFriendId && chatTab === tab.id && 'border-sky-400 text-white'
                     )}
-                    onClick={() => selectFriendChat(friendId)}
+                    onClick={() => selectBaseTab(tab.id)}
                   >
-                    <span className="truncate">{conversation.friend.username}</span>
-                    {conversation.unread > 0 && (
-                      <span className="flex min-w-4 items-center justify-center rounded-full bg-sky-400 px-1 text-[9px] font-bold text-neutral-950">
-                        {conversation.unread > 9 ? '9+' : conversation.unread}
-                      </span>
-                    )}
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Close chat with ${conversation.friend.username}`}
-                      className="rounded px-1 text-neutral-600 hover:bg-white/10 hover:text-white"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        closeFriendChat(friendId)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return
-                        event.preventDefault()
-                        event.stopPropagation()
-                        closeFriendChat(friendId)
-                      }}
-                    >
-                      ×
+                    <span className="block truncate">
+                      {tab.id === 'language' ? `${globalLanguageLabel} Chat` : tab.label}
                     </span>
                   </button>
-                )
-              })}
+                ))}
+              </div>
+              <button
+                type="button"
+                className="grid size-9 shrink-0 place-items-center text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+                onClick={() => setChatOpen(false)}
+                aria-label="Close chat"
+                title="Close chat"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
             </div>
-            <button
-              type="button"
-              className="grid size-9 shrink-0 place-items-center text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
-              onClick={() => setChatOpen(false)}
-              aria-label="Close chat"
-              title="Close chat"
-            >
-              <X className="size-4" aria-hidden="true" />
-            </button>
+            {openFriendIds.length > 0 && (
+              <div
+                className="flex min-w-0 overflow-x-auto border-t border-white/10 bg-black/20"
+                role="tablist"
+                aria-label="Private chats"
+              >
+                {openFriendIds.map((friendId) => {
+                  const conversation = conversations[friendId]
+                  if (!conversation) return null
+                  return (
+                    <button
+                      key={friendId}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeFriendId === friendId}
+                      className={twMerge(
+                        'group flex h-9 max-w-40 shrink-0 items-center gap-2 border-b-2 border-transparent px-3 text-xs font-semibold text-neutral-500 transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
+                        activeFriendId === friendId && 'border-sky-400 text-white'
+                      )}
+                      onClick={() => selectFriendChat(friendId)}
+                    >
+                      <span className="truncate">{conversation.friend.username}</span>
+                      {conversation.unread > 0 && (
+                        <span className="flex min-w-4 items-center justify-center rounded-full bg-sky-400 px-1 text-[9px] font-bold text-neutral-950">
+                          {conversation.unread > 9 ? '9+' : conversation.unread}
+                        </span>
+                      )}
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Close chat with ${conversation.friend.username}`}
+                        className="rounded px-1 text-neutral-600 hover:bg-white/10 hover:text-white"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          closeFriendChat(friendId)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ') return
+                          event.preventDefault()
+                          event.stopPropagation()
+                          closeFriendChat(friendId)
+                        }}
+                      >
+                        ×
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           <div
