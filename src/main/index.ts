@@ -41,6 +41,7 @@ import {
   getParty,
   getPartyInvitations,
   inviteToParty,
+  joinPartyWithDiscordSecret,
   leaveParty,
   respondToPartyInvitation
 } from './party'
@@ -455,6 +456,25 @@ app.whenReady().then(async () => {
   ipcMain.handle(PARTY_CHANNELS.sendGlobalMessage, (_, message: unknown) =>
     matchmakingConnection.sendGlobalMessage(message)
   )
+
+  discordPresence.setJoinHandler(async (secret) => {
+    try {
+      const party = await joinPartyWithDiscordSecret(secret)
+      discordPresence.setParty(party)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(PARTY_CHANNELS.discordJoinResult, { ok: true, party })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not join the Discord party.'
+      console.warn('[DiscordPresence] party join failed', message)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(PARTY_CHANNELS.discordJoinResult, { ok: false, message })
+      }
+    } finally {
+      focusMainWindow()
+    }
+  })
+
   ipcMain.handle(WINDOW_CHANNELS.maximize, () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setFullScreen(true)
   })

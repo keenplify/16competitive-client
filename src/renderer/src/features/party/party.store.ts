@@ -43,6 +43,7 @@ interface PartyState {
 }
 
 let removePartyEventListener: (() => void) | null = null
+let removeDiscordJoinListener: (() => void) | null = null
 let partyRefreshInFlight: Promise<void> | null = null
 let partyRefreshQueued = false
 const MAX_CHAT_ENTRIES = 100
@@ -88,6 +89,19 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   start: () => {
     if (removePartyEventListener) return
+
+    removeDiscordJoinListener = window.api.party.onDiscordJoinResult((result) => {
+      if (result.ok) {
+        set({
+          party: result.party,
+          status: 'idle',
+          error: null,
+          notice: 'Joined party from Discord.'
+        })
+      } else {
+        set({ error: result.message, notice: null })
+      }
+    })
 
     removePartyEventListener = window.api.matchmaking.onEvent((event) => {
       if (event.type === 'party_chat_message' || event.type === 'party_chat_notification') {
@@ -211,6 +225,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   stop: () => {
     removePartyEventListener?.()
     removePartyEventListener = null
+    removeDiscordJoinListener?.()
+    removeDiscordJoinListener = null
     set({
       chatEntries: [],
       chatDraft: '',
