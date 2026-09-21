@@ -1,4 +1,4 @@
-import { UserPlus } from 'lucide-react'
+import { MessageSquare, UserPlus, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -59,6 +59,7 @@ export function PartyChat(): JSX.Element {
     x: number
     y: number
   } | null>(null)
+  const [chatOpen, setChatOpen] = useState(true)
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
   const globalLanguageLabel =
@@ -155,9 +156,22 @@ export function PartyChat(): JSX.Element {
 
   return (
     <>
+      {!chatOpen && (
+        <button
+          type="button"
+          className="fixed bottom-4 left-4 z-[5] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
+          onClick={() => setChatOpen(true)}
+          aria-label="Open chat"
+        >
+          <MessageSquare className="size-4 text-sky-300" aria-hidden="true" />
+          Chat
+        </button>
+      )}
+      {chatOpen && (
       <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
+        <div className="flex shrink-0 border-b border-white/15 bg-black/50">
         <div
-          className="flex shrink-0 overflow-x-auto border-b border-white/15 bg-black/50"
+          className="flex min-w-0 flex-1 overflow-x-auto"
           role="tablist"
           aria-label="Chat"
         >
@@ -218,6 +232,16 @@ export function PartyChat(): JSX.Element {
               </button>
             )
           })}
+        </div>
+        <button
+          type="button"
+          className="grid size-9 shrink-0 place-items-center text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+          onClick={() => setChatOpen(false)}
+          aria-label="Close chat"
+          title="Close chat"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
         </div>
 
         <div
@@ -359,6 +383,7 @@ export function PartyChat(): JSX.Element {
           </div>
         )}
       </aside>
+      )}
       {playerMenu && (
         <div
           className="fixed z-50 min-w-44 overflow-hidden border border-white/15 bg-neutral-800 py-1 text-white shadow-xl"
