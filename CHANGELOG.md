@@ -990,3 +990,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved skin purchase confirmation.
 - Updated skin rarity handling and display.
 - Refined skin audio override behavior.
+
+## v2026.921.8 — 2026-09-21
+
+- dsadsa
+- mmfi x
+- verify
