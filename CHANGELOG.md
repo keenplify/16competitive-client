@@ -971,3 +971,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - New sessions now default to language chat.
 - Removed unnecessary refresh controls.
 - Updated Points and Papa Cash artwork throughout the app.
+
+## v2026.921.6 — 2026-09-21
+
+### Fixes
+
+- Improved match asset handling and match data reliability.
