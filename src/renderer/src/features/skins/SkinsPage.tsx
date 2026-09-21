@@ -145,6 +145,7 @@ export function SkinsPage(): JSX.Element {
 
   useEffect(() => {
     void Promise.resolve().then(refresh)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const equippedByWeapon = useMemo(

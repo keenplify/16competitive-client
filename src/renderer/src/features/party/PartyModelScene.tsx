@@ -785,6 +785,7 @@ export function PartyModelScene({
       observer.disconnect()
       renderer.dispose()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actorKey, loadedScene, HOT_RENDER_REVISION])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
