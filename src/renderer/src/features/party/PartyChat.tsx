@@ -123,7 +123,9 @@ export function PartyChat(): JSX.Element {
       void sendFriendChat(activeFriendId)
       return
     }
-    void (chatTab === 'party' ? sendPartyChat() : sendGlobalChat())
+    if (chatTab === 'party') void sendPartyChat()
+    else if (chatTab === 'language') void sendLanguageChat()
+    else void sendGlobalChat()
   }
 
   const showPlayerMenu = (event: MouseEvent<HTMLSpanElement>, player: ChatSender): void => {
@@ -143,30 +145,38 @@ export function PartyChat(): JSX.Element {
     ? (friendConversation?.draft ?? '')
     : chatTab === 'party'
       ? partyDraft
-      : globalDraft
+      : chatTab === 'language'
+        ? languageDraft
+        : globalDraft
   const sending = activeFriendId
     ? Boolean(friendConversation?.sending)
     : chatTab === 'party'
       ? partySending
-      : globalSending
+      : chatTab === 'language'
+        ? languageSending
+        : globalSending
   const error = activeFriendId
     ? friendConversation?.error
     : chatTab === 'party'
       ? partyError
-      : globalError
-  const canSend = activeFriendId
-    ? Boolean(friendConversation)
-    : chatTab === 'global' || Boolean(party)
+      : chatTab === 'language'
+        ? languageError
+        : globalError
+  const canSend = activeFriendId ? Boolean(friendConversation) : chatTab !== 'party' || Boolean(party)
   const placeholder = activeFriendId
     ? `Message ${friendConversation?.friend.username ?? 'friend'}`
     : chatTab === 'party'
       ? 'Say to party'
-      : `Say to ${globalLanguageLabel} chat`
+      : chatTab === 'language'
+        ? `Say to ${globalLanguageLabel} chat`
+        : 'Say to Global Chat'
   const messageLabel = activeFriendId
     ? `Private message to ${friendConversation?.friend.username ?? 'friend'}`
     : chatTab === 'party'
       ? 'Party message'
-      : `${globalLanguageLabel} chat message`
+      : chatTab === 'language'
+        ? `${globalLanguageLabel} chat message`
+        : 'Global chat message'
 
   return (
     <>
@@ -201,7 +211,7 @@ export function PartyChat(): JSX.Element {
               )}
               onClick={() => selectBaseTab(tab.id)}
             >
-              {tab.id === 'global' ? `${globalLanguageLabel} Chat` : tab.label}
+              {tab.id === 'language' ? `${globalLanguageLabel} Chat` : tab.label}
             </button>
           ))}
           {openFriendIds.map((friendId) => {
@@ -268,7 +278,9 @@ export function PartyChat(): JSX.Element {
               ? `Private messages with ${friendConversation?.friend.username ?? 'friend'}`
               : chatTab === 'party'
                 ? 'Party messages'
-                : `${globalLanguageLabel} chat messages`
+                : chatTab === 'language'
+                  ? `${globalLanguageLabel} chat messages`
+                  : 'Global chat messages'
           }
         >
           {activeFriendId ? (
