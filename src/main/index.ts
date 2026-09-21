@@ -476,8 +476,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(PARTY_CHANNELS.sendMessage, (_, message: unknown) =>
     matchmakingConnection.sendPartyMessage(message)
   )
-  ipcMain.handle(PARTY_CHANNELS.sendGlobalMessage, (_, message: unknown) =>
-    matchmakingConnection.sendGlobalMessage(message)
+  ipcMain.handle(PARTY_CHANNELS.sendGlobalMessage, (_, message: unknown, scope: unknown) =>
+    matchmakingConnection.sendGlobalMessage(message, scope)
   )
   ipcMain.handle(PARTY_CHANNELS.setGlobalChatLanguage, (_, language: unknown) =>
     matchmakingConnection.setGlobalChatLanguage(language)
