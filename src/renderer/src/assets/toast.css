@@ -10,9 +10,7 @@
   border: 1px solid rgb(125 211 252 / 38%);
   border-left: 3px solid rgb(56 189 248);
   border-radius: 0;
-  background:
-    linear-gradient(90deg, rgb(14 116 144 / 18%), transparent 42%),
-    rgb(9 14 20 / 96%);
+  background: linear-gradient(90deg, rgb(14 116 144 / 18%), transparent 42%), rgb(9 14 20 / 96%);
   box-shadow: 0 12px 28px rgb(0 0 0 / 46%);
   color: rgb(226 232 240);
 }
@@ -20,17 +18,13 @@
 .launcher-toast-container .Toastify__toast--error {
   border-color: rgb(251 113 133 / 42%);
   border-left-color: rgb(251 113 133);
-  background:
-    linear-gradient(90deg, rgb(190 24 93 / 16%), transparent 42%),
-    rgb(20 9 13 / 96%);
+  background: linear-gradient(90deg, rgb(190 24 93 / 16%), transparent 42%), rgb(20 9 13 / 96%);
 }
 
 .launcher-toast-container .Toastify__toast--warning {
   border-color: rgb(252 211 77 / 42%);
   border-left-color: rgb(252 211 77);
-  background:
-    linear-gradient(90deg, rgb(180 83 9 / 16%), transparent 42%),
-    rgb(20 16 7 / 96%);
+  background: linear-gradient(90deg, rgb(180 83 9 / 16%), transparent 42%), rgb(20 16 7 / 96%);
 }
 
 .launcher-toast-container .Toastify__toast-body {
