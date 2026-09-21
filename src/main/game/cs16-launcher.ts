@@ -1,11 +1,23 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { app } from 'electron'
-import { readdir, readlink, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import {
+  readFile,
+  readdir,
+  readlink,
+  realpath,
+  rename,
+  stat,
+  unlink,
+  writeFile
+} from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
-import { ensureCompetitiveGameDirectory } from './competitive-game-directory'
+import {
+  ensureCompetitiveGameDirectory,
+  ensureSteamAddonsDirectory
+} from './competitive-game-directory'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
@@ -21,6 +33,9 @@ const MATCH_IDENTITY_WAIT_FRAMES = 20
 const RELAUNCH_SETTLE_MS = 500
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
 const LINUX_HANDOFF_POLL_MS = 1_000
+// Counter-Strike 1.6 on Steam. Direct launches export these so the client can
+// initialise the Steam API the same way Steam's own launch flags would.
+const STEAM_COUNTER_STRIKE_APP_ID = '10'
 
 interface MatchLaunchInput {
   matchId: string
@@ -82,35 +97,103 @@ const clearMatchConfig = (generation?: number): void => {
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
 }
 
-const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<number[]> => {
-  const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
-  const processIds: number[] = []
+// Direct launches run in their own process group, so terminating the group also
+// stops the launcher script, any emulation wrapper and the game itself. Without
+// that, killing the wrapper leaves Counter-Strike running on hosts where the
+// game process is not directly observable (Proton, box64, FEX/microVM setups).
+const terminateSpawnedGameProcess = (child: ChildProcess | null): void => {
+  if (!child || child.pid === undefined) return
+  if (child.exitCode !== null || child.signalCode !== null) return
+  try {
+    process.kill(-child.pid, 'SIGTERM')
+    return
+  } catch {
+    /* the child is not a process group leader */
+  }
+  try {
+    child.kill('SIGTERM')
+  } catch {
+    /* the process already exited */
+  }
+}
 
-  await Promise.all(
-    entries.map(async (entry) => {
-      if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) return
-      const pid = Number(entry.name)
-      if (pid === process.pid) return
-      const [cwd, executable] = await Promise.all([
+// GoldSrc can be wrapped by a launcher script or an emulation layer (box64, FEX,
+// Proton, microVM based setups) where `/proc/<pid>/exe` is the interpreter
+// instead of the game. Comparing program names instead of raw path segments
+// avoids matching unrelated paths such as a `/ssd/steam/` library folder.
+const GOLD_SRC_PROCESS_PATTERN =
+  /(?:^|[\s/\\])(?:hl\.sh|hl_linux|hl\.exe|hlds_run|hlds_linux)(?:$|[\s/\\])/i
+
+// Program names that identify the running Steam client. Steam can be started as
+// `steam`, `steam.sh` or `bin_steam.sh`, spawns `steamwebhelper` for its UI and
+// may be wrapped by a compatibility container.
+const STEAM_CLIENT_PROGRAMS = new Set([
+  'steam',
+  'steam.sh',
+  'bin_steam.sh',
+  'steamwebhelper',
+  'steamwebhelper.sh'
+])
+
+const isSteamClientProgram = (value: string): boolean =>
+  STEAM_CLIENT_PROGRAMS.has(basename(value.trim()).toLowerCase())
+
+const commandLineMentionsSteamClient = (commandLine: string): boolean =>
+  commandLine
+    .split(' ')
+    .filter(Boolean)
+    .some((token) => isSteamClientProgram(token))
+
+const readProcessCmdline = async (processId: number | string): Promise<string> => {
+  const raw = await readFile(`/proc/${processId}/cmdline`).catch(() => null)
+  if (!raw) return ''
+  return raw.toString('utf8').split('\u0000').filter(Boolean).join(' ')
+}
+
+const readProcessExecutable = async (processId: number | string): Promise<string> =>
+  readlink(`/proc/${processId}/exe`).catch(() => '')
+
+const listProcessIds = async (): Promise<number[]> => {
+  const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
+  return entries
+    .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+    .map((entry) => Number(entry.name))
+    .filter((pid) => pid !== process.pid)
+}
+
+const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<number[]> => {
+  const processIds = await listProcessIds()
+  const matches = await Promise.all(
+    processIds.map(async (pid) => {
+      const [cwd, executable, cmdline] = await Promise.all([
         readlink(`/proc/${pid}/cwd`).catch(() => ''),
-        readlink(`/proc/${pid}/exe`).catch(() => '')
+        readProcessExecutable(pid),
+        readProcessCmdline(pid)
       ])
-      if (cwd === gameDirectory && basename(executable) === 'hl_linux') processIds.push(pid)
+      if (cwd !== gameDirectory) return null
+      if (basename(executable) === 'hl_linux') return pid
+      // Wrapped or emulated clients report the interpreter as their executable,
+      // so fall back to the command line before giving up on the process.
+      return GOLD_SRC_PROCESS_PATTERN.test(cmdline) ? pid : null
     })
   )
 
-  return processIds
+  return matches.filter((pid): pid is number => pid !== null)
 }
 
 const isSteamRunning = async (): Promise<boolean> => {
   if (process.platform === 'linux') {
-    const entries = await readdir('/proc', { withFileTypes: true }).catch(() => [])
-    const processNames = await Promise.all(
-      entries
-        .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
-        .map(async (entry) => basename(await readlink(`/proc/${entry.name}/exe`).catch(() => '')))
+    const processIds = await listProcessIds()
+    const matches = await Promise.all(
+      processIds.map(async (pid) => {
+        const [executable, cmdline] = await Promise.all([
+          readProcessExecutable(pid),
+          readProcessCmdline(pid)
+        ])
+        return isSteamClientProgram(executable) || commandLineMentionsSteamClient(cmdline)
+      })
     )
-    return processNames.some((name) => name.toLowerCase() === 'steam')
+    return matches.some(Boolean)
   }
 
   if (process.platform === 'win32') {
@@ -157,6 +240,7 @@ const monitorLinuxCounterStrikeHandoff = async (
 ): Promise<void> => {
   const discoveryDeadline = Date.now() + LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS
   let trackedPid: number | null = null
+  let discoveryReported = false
 
   while (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
     const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
@@ -170,21 +254,17 @@ const monitorLinuxCounterStrikeHandoff = async (
           pid: trackedPid,
           gameDirectory
         })
-      } else if (Date.now() >= discoveryDeadline) {
-        console.warn('[GameLaunch] Linux GoldSrc process was not found after launcher handoff', {
-          matchId,
-          gameDirectory
-        })
-        if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
-          stopGameWatchdog(matchId)
-          stopAntiCheatSession(antiCheatSession, 'game-process-not-found')
-          clearMatchConfig(matchConfigGeneration)
-          await finishVoicePttSession(matchId)
-          await restoreManagedSkinAudio().catch(() => undefined)
-          watchSteamExit(matchId)
-          onExit?.({ code: null, signal: null })
-        }
-        return
+      } else if (Date.now() >= discoveryDeadline && !discoveryReported) {
+        // The game can be invisible from the host: when Steam runs inside an
+        // emulation VM (box64/FEX/muvm) or a compatibility container, only the
+        // wrapper process exists here. Never tear a live match session down
+        // because of that - the backend stays authoritative for match state, and
+        // the player may already be connected.
+        discoveryReported = true
+        console.warn(
+          '[GameLaunch] no Linux GoldSrc process observed after launcher handoff; keeping the match session open',
+          { matchId, gameDirectory }
+        )
       }
     } else if (!processIds.includes(trackedPid)) {
       console.info('[GameLaunch] Linux GoldSrc process exited', { matchId, pid: trackedPid })
@@ -215,7 +295,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   void restoreManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] restore after managed match close failed', error)
   })
-  if (gameProcess?.exitCode === null) gameProcess.kill('SIGTERM')
+  terminateSpawnedGameProcess(gameProcess)
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory).finally(() =>
       finishVoicePttSession(matchId)
@@ -359,6 +439,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     linuxMonitorGeneration++
     stopGameWatchdog(input.matchId)
     finishAntiCheatSession(input.matchId, 'relaunch')
+    terminateSpawnedGameProcess(gameProcess)
     if (process.platform === 'win32') await closeWindowsCounterStrikeProcesses(executable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
     gameProcess = null
@@ -373,7 +454,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   await prepareManagedSkinAudio(input.matchId, cwd)
 
   const launchTarget = await resolveCs16LaunchTarget(executable)
-  const voicePttSession = await prepareVoicePtt(competitiveDirectory, input.onVoicePtt, await getSavedVoicePttKey())
+  const requiresAddonsBridge = process.platform === 'linux' && launchTarget.usesLauncherHandoff
+  // Steam's own launch flags force `-game cstrike`, so the competitive game
+  // directory is exposed through GoldSrc's addons search path instead.
+  const addonsBridgeReady = requiresAddonsBridge ? await ensureSteamAddonsDirectory(cwd) : true
+  const voicePttSession = await prepareVoicePtt(
+    competitiveDirectory,
+    input.onVoicePtt,
+    await getSavedVoicePttKey()
+  )
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
 
   const matchConfigName = '16competitive_match.cfg'
@@ -454,8 +543,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
+  // The match configuration carries the join identity and password. Only repeat
+  // them on the command line when the engine may not find that config (the addons
+  // bridge could not be created), so the secret values normally never appear in
+  // the process list.
+  const identityArgs = addonsBridgeReady
+    ? []
+    : ['+name', playerName, '+setinfo', '_16c', input.joinToken, '+password', input.password]
   const directMatchArgs = [
     '-condebug',
+    ...identityArgs,
     '+exec',
     matchConfigName,
     '+connect',
@@ -472,6 +569,21 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   await startManagedSkinAudioConnectionGuard(input.matchId, cwd).catch((error: unknown) => {
     console.error('[SkinAudio] could not start external-server guard', error)
   })
+  const directLaunch = !launchTarget.usesLauncherHandoff
+  if (
+    directLaunch &&
+    process.platform === 'linux' &&
+    launchTarget.distribution === 'steam' &&
+    !(await isSteamRunning())
+  ) {
+    // Steam owns authentication for the Steam build of Counter-Strike. Launching
+    // directly is still attempted so the client can report the real failure, but
+    // the reason is worth recording in the launcher log.
+    console.warn(
+      '[GameLaunch] Steam does not appear to be running; Counter-Strike may refuse to start',
+      { matchId: input.matchId }
+    )
+  }
   console.info('[GameLaunch] starting Counter-Strike', {
     distribution: launchTarget.distribution,
     executable: launchTarget.executable,
@@ -491,13 +603,23 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       const child = spawn(launchTarget.executable, launchArgs, {
         cwd,
         shell: false,
+        // A direct launch becomes its own process group so the match lifecycle
+        // (reconnect, match closed, launcher exit) can terminate the whole tree
+        // even when the game itself hides behind a launcher script or emulator.
+        detached: directLaunch,
         stdio: launchTarget.usesLauncherHandoff
           ? ['ignore', 'ignore', 'ignore']
           : ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
+          ...(directLaunch && process.platform === 'linux' && launchTarget.distribution === 'steam'
+            ? {
+                SteamAppId: STEAM_COUNTER_STRIKE_APP_ID,
+                SteamGameId: STEAM_COUNTER_STRIKE_APP_ID
+              }
+            : {}),
           LD_LIBRARY_PATH:
-            process.platform === 'linux' && !launchTarget.usesLauncherHandoff
+            process.platform === 'linux' && directLaunch
               ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
               : process.env.LD_LIBRARY_PATH
         }

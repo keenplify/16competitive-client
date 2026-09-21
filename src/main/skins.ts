@@ -287,12 +287,27 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   return model
 }
 
+// Keeps the launcher log readable: the gift overlay polls once a minute while the
+// player waits in the lobby, so only state changes are reported.
+let lastReportedPendingGift: string | null | undefined
+
 export const getPendingSkinGift = async (): Promise<SkinGift | null> => {
-  const data = await playerRequest('/skin-gifts/pending')
+  const data = await playerRequest('/skin-gifts/pending').catch((error: unknown) => {
+    console.warn('[SkinGift] pending gift request failed', {
+      message: error instanceof Error ? error.message : String(error)
+    })
+    throw error
+  })
   if (typeof data !== 'object' || data === null)
     throw new Error('The server returned an invalid gift response.')
   const gift = (data as Record<string, unknown>).gift
-  if (gift === null) return null
+  if (gift === null) {
+    if (lastReportedPendingGift !== null) {
+      lastReportedPendingGift = null
+      console.info('[SkinGift] no pending gift for this account')
+    }
+    return null
+  }
   if (
     typeof gift !== 'object' ||
     gift === null ||
@@ -302,7 +317,15 @@ export const getPendingSkinGift = async (): Promise<SkinGift | null> => {
   ) {
     throw new Error('The server returned an invalid gift.')
   }
-  return gift as SkinGift
+  const pendingGift = gift as SkinGift
+  if (lastReportedPendingGift !== pendingGift.id) {
+    lastReportedPendingGift = pendingGift.id
+    console.info('[SkinGift] pending gift available', {
+      giftId: pendingGift.id,
+      kind: pendingGift.kind
+    })
+  }
+  return pendingGift
 }
 
 export const claimSkinGift = async (

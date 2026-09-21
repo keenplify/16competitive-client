@@ -42,16 +42,34 @@ const spawnWindowsWatchdog = (executablePath: string): ChildProcess => {
 }
 
 const spawnLinuxWatchdog = (executablePath: string): ChildProcess => {
+  // The launcher starts Counter-Strike in its own process group, so the watchdog
+  // stops the whole group: the game may sit behind a launcher script or an
+  // emulation wrapper (box64, FEX, Proton, microVM setups) where the game binary
+  // itself is not the process the launcher can see. It falls back to the single
+  // process when the target is not a group leader.
   const script = [
     'launcher_pid="$1"',
     'target_exe="$2"',
+    'stop_group() {',
+    '  kill -TERM -- "-$1" 2>/dev/null || kill -TERM "$1" 2>/dev/null || true',
+    '}',
     'while kill -0 "$launcher_pid" 2>/dev/null; do sleep 1; done',
     'for proc in /proc/[0-9]*; do',
+    '  pid="${proc##*/}"',
+    // The watchdog's own command line contains the target path, so it must never
+    // signal itself before it has walked the rest of the process table.
+    '  if [ "$pid" = "$$" ]; then',
+    '    continue',
+    '  fi',
     '  current="$(readlink "$proc/exe" 2>/dev/null || true)"',
     '  if [ "$current" = "$target_exe" ]; then',
-    '    pid="${proc##*/}"',
-    '    kill -TERM "$pid" 2>/dev/null || true',
+    '    stop_group "$pid"',
+    '    continue',
     '  fi',
+    `  cmdline="$(cat "$proc/cmdline" 2>/dev/null | tr '\\0' ' ' || true)"`,
+    '  case "$cmdline" in',
+    '    *"$target_exe"*) stop_group "$pid" ;;',
+    '  esac',
     'done'
   ].join('\n')
 

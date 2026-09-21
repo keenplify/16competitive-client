@@ -7,7 +7,7 @@ import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
-import { useNavigationStore } from '../navigation/navigation.store'
+import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
 
 type RevealStage = 'intro' | 'choices' | 'claiming' | 'claimed'
@@ -35,6 +35,11 @@ const matchLifecycleActive = (queueStatus: string): boolean =>
 // match results screen.
 const GIFT_MATCH_RESULT_GRACE_MS = 800
 
+// The launcher parks the player on the Play screen for the whole match lifecycle
+// and that is where they land again once the results are dismissed, so a gift
+// earned in a match must be able to appear there as well as in the lobby.
+const GIFT_SAFE_PAGES: LobbyPageId[] = ['lobby', 'play']
+
 interface AccountGiftRef {
   accountId: string
   giftId: string
@@ -61,7 +66,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const baseSafeToShow =
     accountId !== null &&
     !session?.player.requiresUsernameSetup &&
-    page === 'lobby' &&
+    GIFT_SAFE_PAGES.includes(page) &&
     completedMatch === null &&
     !matchLifecycleActive(queueStatus)
 

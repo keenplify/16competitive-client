@@ -17,6 +17,7 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { WEAPON_CATEGORIES, weaponCategory, type WeaponCategory } from './weapon-categories'
 import {
   skinRarity,
   skinRarityOrder,
@@ -26,46 +27,13 @@ import {
 } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
 
-type WeaponCategory =
-  | 'all'
-  | 'pistols'
-  | 'smgs'
-  | 'rifles'
-  | 'snipers'
-  | 'heavy'
-  | 'grenades'
-  | 'knives'
-
 type SkinTypeFilter = 'all' | SkinRarity
-
-const weaponCategory = (key: string): WeaponCategory => {
-  if (['glock18', 'usp', 'p228', 'deagle', 'elite', 'fiveseven'].includes(key)) return 'pistols'
-  if (['tmp', 'mac10', 'mp5navy', 'ump45', 'p90'].includes(key)) return 'smgs'
-  if (['galil', 'famas', 'ak47', 'm4a1', 'aug', 'sg552'].includes(key)) return 'rifles'
-  if (['scout', 'awp', 'sg550', 'g3sg1'].includes(key)) return 'snipers'
-  if (['hegrenade', 'flashbang', 'smokegrenade'].includes(key)) return 'grenades'
-  if (key === 'knife') return 'knives'
-  return 'heavy'
-}
-
-const weaponCategories: Array<{ id: WeaponCategory; label: string }> = [
-  { id: 'all', label: 'All weapons' },
-  { id: 'pistols', label: 'Pistols' },
-  { id: 'smgs', label: 'SMGs' },
-  { id: 'rifles', label: 'Rifles' },
-  { id: 'snipers', label: 'Snipers' },
-  { id: 'heavy', label: 'Machine gun' },
-  { id: 'grenades', label: 'Grenades' },
-  { id: 'knives', label: 'Knife' }
-] as const
 
 const priceRange = (values: number[]): string | null => {
   if (values.length === 0) return null
   const min = Math.min(...values)
   const max = Math.max(...values)
-  return min === max
-    ? min.toLocaleString()
-    : `${min.toLocaleString()}–${max.toLocaleString()}`
+  return min === max ? min.toLocaleString() : `${min.toLocaleString()}–${max.toLocaleString()}`
 }
 
 function StoreFilterButton({
@@ -188,10 +156,7 @@ export function ShopPage(): JSX.Element {
   }, [skins])
 
   const rarityStats = useMemo(() => {
-    const stats = new Map<
-      SkinRarity,
-      { count: number; points: number[]; pCash: number[] }
-    >()
+    const stats = new Map<SkinRarity, { count: number; points: number[]; pCash: number[] }>()
     for (const rarity of skinRarityOrder) {
       stats.set(rarity, { count: 0, points: [], pCash: [] })
     }
@@ -228,8 +193,7 @@ export function ShopPage(): JSX.Element {
     () =>
       skins.filter(
         (skin) =>
-          (selectedCategory === 'all' ||
-            weaponCategory(skin.weaponKey) === selectedCategory) &&
+          (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
           (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType)
       ),
     [selectedCategory, selectedSkinType, skins]
@@ -336,7 +300,7 @@ export function ShopPage(): JSX.Element {
         )}
 
         <div className="mt-6 grid items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="rounded-xl border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5">
+          <aside className="rounded-xl border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5 md:z-20">
             <div className="flex items-center justify-between gap-3 px-1 pb-2">
               <div>
                 <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
@@ -356,7 +320,7 @@ export function ShopPage(): JSX.Element {
             </div>
 
             <div className="space-y-1" aria-label="Filter skins by weapon">
-              {weaponCategories.map((category) => (
+              {WEAPON_CATEGORIES.map((category) => (
                 <StoreFilterButton
                   key={category.id}
                   label={category.label}
@@ -431,84 +395,88 @@ export function ShopPage(): JSX.Element {
             ) : null}
             {status === 'ready' && filteredSkins.length > 0 ? (
               <section className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
-            {filteredSkins.map((skin) => {
-              const owned = ownedSkins.get(skin.id)
-              const buying = buyingId === skin.id
-              const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
-              const rarity = skinRarityPresentation(skin)
-              return (
-                <article
-                  key={skin.id}
-                  className="flex min-h-72 flex-col rounded-xl border border-white/10 bg-neutral-900/90 p-5"
-                >
-                  <SkinCardPreview
-                    skin={skin}
-                    owned={Boolean(owned)}
-                    onOpen={() => setPreviewSkin(skin)}
-                  />
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
-                      {skin.weaponKey}
-                    </p>
-                    <span
-                      className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                {filteredSkins.map((skin) => {
+                  const owned = ownedSkins.get(skin.id)
+                  const buying = buyingId === skin.id
+                  const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
+                  const rarity = skinRarityPresentation(skin)
+                  return (
+                    <article
+                      key={skin.id}
+                      className="flex min-h-72 flex-col rounded-xl border border-white/10 bg-neutral-900/90 p-5"
                     >
-                      {rarity.label}
-                    </span>
-                  </div>
-                  <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
-                  <p className="mt-3 flex-1 text-sm text-neutral-400">
-                    {skin.description ?? 'Custom weapon skin.'}
-                  </p>
-                  <div className="mt-5 flex items-end justify-between gap-3">
-                    <div className="flex flex-col gap-1 font-semibold tabular-nums">
-                      {owned ? (
-                        <span className="text-emerald-300">Owned</span>
-                      ) : (
-                        <>
-                          {skin.pointsEnabled && (
-                            <CurrencyAmount
-                              currency="POINTS"
-                              amount={skin.pricePoints}
-                              className="font-semibold text-white"
-                              iconClassName="size-5"
-                            />
+                      <SkinCardPreview
+                        skin={skin}
+                        owned={Boolean(owned)}
+                        onOpen={() => setPreviewSkin(skin)}
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
+                          {skin.weaponKey}
+                        </p>
+                        <span
+                          className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                        >
+                          {rarity.label}
+                        </span>
+                      </div>
+                      <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
+                      <p className="mt-3 flex-1 text-sm text-neutral-400">
+                        {skin.description ?? 'Custom weapon skin.'}
+                      </p>
+                      <div className="mt-5 flex items-end justify-between gap-3">
+                        <div className="flex flex-col gap-1 font-semibold tabular-nums">
+                          {owned ? (
+                            <span className="text-emerald-300">Owned</span>
+                          ) : (
+                            <>
+                              {skin.pointsEnabled && (
+                                <CurrencyAmount
+                                  currency="POINTS"
+                                  amount={skin.pricePoints}
+                                  className="font-semibold text-white"
+                                  iconClassName="size-5"
+                                />
+                              )}
+                              {skin.pricePCash !== null && (
+                                <CurrencyAmount
+                                  currency="P_CASH"
+                                  amount={skin.pricePCash}
+                                  className="font-semibold text-white"
+                                  iconClassName="size-5"
+                                />
+                              )}
+                            </>
                           )}
-                          {skin.pricePCash !== null && (
-                            <CurrencyAmount
-                              currency="P_CASH"
-                              amount={skin.pricePCash}
-                              className="font-semibold text-white"
-                              iconClassName="size-5"
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    {owned ? (
-                      <Button className="h-9 px-3 text-xs" variant="ghost" onClick={openLoadout}>
-                        Manage loadout
-                      </Button>
-                    ) : (
-                      <Button
-                        className="size-10 px-0"
-                        variant={premiumOnly ? 'primary' : 'ghost'}
-                        disabled={buying}
-                        aria-label={`Purchase ${skin.name}`}
-                        title={`Purchase ${skin.name}`}
-                        onClick={() => setPurchaseSkin(skin)}
-                      >
-                        {buying ? (
-                          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                        </div>
+                        {owned ? (
+                          <Button
+                            className="h-9 px-3 text-xs"
+                            variant="ghost"
+                            onClick={openLoadout}
+                          >
+                            Manage loadout
+                          </Button>
                         ) : (
-                          <ShoppingCart className="size-4" aria-hidden="true" />
+                          <Button
+                            className="size-10 px-0"
+                            variant={premiumOnly ? 'primary' : 'secondary'}
+                            disabled={buying}
+                            aria-label={`Purchase ${skin.name}`}
+                            title={`Purchase ${skin.name}`}
+                            onClick={() => setPurchaseSkin(skin)}
+                          >
+                            {buying ? (
+                              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <ShoppingCart className="size-4" aria-hidden="true" />
+                            )}
+                          </Button>
                         )}
-                      </Button>
-                    )}
-                  </div>
-                </article>
-              )
-            })}
+                      </div>
+                    </article>
+                  )
+                })}
               </section>
             ) : null}
           </div>

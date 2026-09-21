@@ -12,15 +12,23 @@ import { toast } from 'react-toastify'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import {
+  GRENADE_WEAPON_KEYS,
+  KNIFE_WEAPON_KEY,
+  WEAPON_CATEGORIES,
+  weaponCategory,
+  weaponCategoryLabel,
+  type WeaponCategory
+} from './weapon-categories'
 import { LOBBY_PLAYER_MODELS } from '../party/party-models'
 
 type Team = 'ct' | 't'
-type WeaponCategory = 'all' | 'pistols' | 'rifles' | 'smgs' | 'heavy' | 'snipers' | 'grenades' | 'knives'
 type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'grenades' | 'knives'>
 
 const loadoutGroups: Record<Team, Record<LoadoutGroup, string[]>> = {
   ct: {
     pistols: ['usp', 'p228', 'deagle', 'fiveseven'],
+    shotguns: ['m3', 'xm1014'],
     smgs: ['tmp', 'mp5navy', 'ump45', 'p90'],
     rifles: ['famas', 'm4a1', 'aug'],
     snipers: ['scout', 'awp', 'sg550'],
@@ -28,6 +36,7 @@ const loadoutGroups: Record<Team, Record<LoadoutGroup, string[]>> = {
   },
   t: {
     pistols: ['glock18', 'p228', 'deagle', 'elite'],
+    shotguns: ['m3', 'xm1014'],
     smgs: ['mac10', 'mp5navy', 'ump45', 'p90'],
     rifles: ['galil', 'ak47', 'sg552'],
     snipers: ['scout', 'awp', 'g3sg1'],
@@ -35,23 +44,22 @@ const loadoutGroups: Record<Team, Record<LoadoutGroup, string[]>> = {
   }
 }
 
-const loadoutGroupLabels: Record<LoadoutGroup, string> = {
-  pistols: 'Pistols',
-  smgs: 'SMGs',
-  rifles: 'Rifles',
-  snipers: 'Snipers',
-  heavy: 'Machine gun'
-}
-const loadoutGroupOrder: LoadoutGroup[] = ['pistols', 'smgs', 'rifles', 'snipers', 'heavy']
+const loadoutGroupOrder: LoadoutGroup[] = [
+  'pistols',
+  'shotguns',
+  'smgs',
+  'rifles',
+  'snipers',
+  'heavy'
+]
 
-const weaponCategory = (key: string): WeaponCategory => {
-  if (['glock18', 'usp', 'p228', 'deagle', 'elite', 'fiveseven'].includes(key)) return 'pistols'
-  if (['galil', 'famas', 'ak47', 'm4a1', 'aug', 'sg552'].includes(key)) return 'rifles'
-  if (['tmp', 'mac10', 'mp5navy', 'ump45', 'p90'].includes(key)) return 'smgs'
-  if (['scout', 'awp', 'sg550', 'g3sg1'].includes(key)) return 'snipers'
-  if (['hegrenade', 'flashbang', 'smokegrenade'].includes(key)) return 'grenades'
-  if (key === 'knife') return 'knives'
-  return 'heavy'
+const loadoutGroupLabels: Record<LoadoutGroup, string> = {
+  pistols: weaponCategoryLabel('pistols'),
+  shotguns: weaponCategoryLabel('shotguns'),
+  smgs: weaponCategoryLabel('smgs'),
+  rifles: weaponCategoryLabel('rifles'),
+  snipers: weaponCategoryLabel('snipers'),
+  heavy: weaponCategoryLabel('heavy')
 }
 
 const displayWeapon = (key: string): string =>
@@ -75,17 +83,6 @@ const displayWeapon = (key: string): string =>
 
 const defaultPlayerModelPath = (weaponKey: string): string =>
   `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
-
-const categories: Array<{ id: WeaponCategory; label: string }> = [
-  { id: 'all', label: 'All weapons' },
-  { id: 'pistols', label: 'Pistols' },
-  { id: 'smgs', label: 'SMGs' },
-  { id: 'rifles', label: 'Rifles' },
-  { id: 'snipers', label: 'Snipers' },
-  { id: 'heavy', label: 'Machine gun' },
-  { id: 'grenades', label: 'Grenades' },
-  { id: 'knives', label: 'Knife' }
-]
 
 const errorText = (reason: unknown): string =>
   reason instanceof Error ? reason.message : 'Could not update your loadout.'
@@ -161,10 +158,8 @@ export function SkinsPage(): JSX.Element {
   )
   const teamWeaponKeys = new Set([
     ...Object.values(loadoutGroups[team]).flat(),
-    'hegrenade',
-    'flashbang',
-    'smokegrenade',
-    'knife'
+    ...GRENADE_WEAPON_KEYS,
+    KNIFE_WEAPON_KEY
   ])
   const partyLobbyPlayerModel = party?.members.find(
     (candidate) => candidate.id === playerId
@@ -268,6 +263,27 @@ export function SkinsPage(): JSX.Element {
       .finally(() => setUnequippingTeam(false))
   }
 
+  const renderLoadoutCard = (weaponKey: string): JSX.Element => {
+    const equipped = equippedByWeapon.get(weaponKey)
+    const lobbySelected =
+      lobbyWeaponKey === weaponKey &&
+      (equipped ? lobbyWeaponSkinId === equipped.skin.id : lobbyWeaponSkinId === null)
+    return (
+      <LoadoutWeaponCard
+        key={weaponKey}
+        weaponKey={weaponKey}
+        equipped={equipped}
+        selected={selectedWeapon === weaponKey}
+        lobbySelected={lobbySelected}
+        lobbyWeaponId={lobbyWeaponId}
+        loadoutLocked={loadoutLocked}
+        onSetLobbyWeapon={setLobbyWeapon}
+        onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
+        onSelect={() => selectLoadoutWeapon(weaponKey)}
+      />
+    )
+  }
+
   if (status === 'loading') {
     return (
       <div className="flex min-h-72 items-center justify-center" role="status">
@@ -355,58 +371,30 @@ export function SkinsPage(): JSX.Element {
           })}
         </div>
         <div className="mt-4 overflow-x-auto pb-2">
-          <div className="grid min-w-[62rem] grid-cols-6 gap-2.5">
+          <div className="grid min-w-[82rem] grid-cols-8 gap-2.5">
             {loadoutGroupOrder.map((group) => (
               <section key={group} className="flex h-full flex-col">
                 <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
                   {loadoutGroupLabels[group]}
                 </h3>
                 <div className="space-y-1.5">
-                  {loadoutGroups[team][group].map((weaponKey) => {
-                    const equipped = equippedByWeapon.get(weaponKey)
-                    const lobbySelected =
-                      lobbyWeaponKey === weaponKey &&
-                      (equipped
-                        ? lobbyWeaponSkinId === equipped.skin.id
-                        : lobbyWeaponSkinId === null)
-                    return (
-                      <LoadoutWeaponCard
-                        key={weaponKey}
-                        weaponKey={weaponKey}
-                        equipped={equipped}
-                        selected={selectedWeapon === weaponKey}
-                        lobbySelected={lobbySelected}
-                        lobbyWeaponId={lobbyWeaponId}
-                        loadoutLocked={loadoutLocked}
-                        onSetLobbyWeapon={setLobbyWeapon}
-                        onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
-                        onSelect={() => selectLoadoutWeapon(weaponKey)}
-                      />
-                    )
-                  })}
+                  {loadoutGroups[team][group].map((weaponKey) => renderLoadoutCard(weaponKey))}
                 </div>
               </section>
             ))}
-            <section>
+            <section className="flex h-full flex-col">
               <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
-                Knife
+                {weaponCategoryLabel('grenades')}
               </h3>
-              <LoadoutWeaponCard
-                weaponKey="knife"
-                equipped={equippedByWeapon.get('knife')}
-                selected={selectedWeapon === 'knife'}
-                lobbySelected={
-                  lobbyWeaponKey === 'knife' &&
-                  (equippedByWeapon.get('knife')
-                    ? lobbyWeaponSkinId === equippedByWeapon.get('knife')?.skin.id
-                    : lobbyWeaponSkinId === null)
-                }
-                lobbyWeaponId={lobbyWeaponId}
-                loadoutLocked={loadoutLocked}
-                onSetLobbyWeapon={setLobbyWeapon}
-                onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
-                onSelect={() => selectLoadoutWeapon('knife')}
-              />
+              <div className="space-y-1.5">
+                {GRENADE_WEAPON_KEYS.map((weaponKey) => renderLoadoutCard(weaponKey))}
+              </div>
+            </section>
+            <section className="flex h-full flex-col">
+              <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
+                {weaponCategoryLabel('knives')}
+              </h3>
+              <div className="space-y-1.5">{renderLoadoutCard(KNIFE_WEAPON_KEY)}</div>
             </section>
           </div>
         </div>
@@ -415,7 +403,7 @@ export function SkinsPage(): JSX.Element {
       <section className="flex-[1] border-t border-white/10 bg-[#080a0e] p-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2" aria-label="Filter inventory by weapon type">
-            {categories.map(({ id, label }) => (
+            {WEAPON_CATEGORIES.map(({ id, label }) => (
               <Button
                 key={id}
                 className={twMerge(

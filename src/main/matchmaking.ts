@@ -604,6 +604,12 @@ class MatchmakingConnection {
   }
 
   leaveVoice(): void {
+    // Leaving voice is best-effort. The renderer tears a voice session down when
+    // a match ends, when the dock unmounts and while signing out, all of which
+    // can happen after the socket is already gone. Rejecting those calls only
+    // produced "Error occurred in handler for 'matchmaking:voice-leave'" noise
+    // because there is nothing left to leave.
+    if (this.socket?.readyState !== WebSocket.OPEN) return
     this.send({ type: 'voice_leave' })
   }
 
