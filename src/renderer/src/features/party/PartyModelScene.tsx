@@ -441,14 +441,21 @@ const roundedRectPath = (
 }
 
 const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
-  // Keep the texture power-of-two so older Three.js/WebGL paths do not resize it.
-  // The larger source texture is downsampled onto the same world-space sprite size
-  // for noticeably sharper text and borders.
+  // Size each plate for its actual username. A fixed wide texture made short
+  // names waste space, while changing just the sprite width distorts the text.
   const canvas = document.createElement('canvas')
-  canvas.width = 1024
   canvas.height = 256
   const context = canvas.getContext('2d')!
-  const cardX = 48
+  const titleFontSize = 64
+  const subtitleFontSize = 36
+  const subtitle = `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`
+  context.font = `700 ${titleFontSize}px sans-serif`
+  const titleWidth = context.measureText(actor.member.username).width
+  context.font = `600 ${subtitleFontSize}px sans-serif`
+  const subtitleWidth = context.measureText(subtitle).width
+  canvas.width = Math.ceil(Math.min(512, Math.max(420, Math.max(titleWidth, subtitleWidth) + 160)))
+
+  const cardX = 24
   const cardY = 24
   const cardWidth = canvas.width - cardX * 2
   const cardHeight = canvas.height - cardY * 2
@@ -463,23 +470,20 @@ const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillStyle = '#ffffff'
-  context.font = '700 64px sans-serif'
+  context.font = `700 ${Math.min(titleFontSize, ((cardWidth - 48) / titleWidth) * titleFontSize)}px sans-serif`
   context.fillText(actor.member.username, canvas.width / 2, 100)
 
   context.fillStyle = '#cbd5e1'
-  context.font = '600 36px sans-serif'
-  context.fillText(
-    `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`,
-    canvas.width / 2,
-    170
-  )
+  context.font = `600 ${Math.min(subtitleFontSize, ((cardWidth - 48) / subtitleWidth) * subtitleFontSize)}px sans-serif`
+  context.fillText(subtitle, canvas.width / 2, 170)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.minFilter = THREE.LinearFilter
   texture.magFilter = THREE.LinearFilter
   texture.needsUpdate = true
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }))
-  sprite.scale.set(38, 9.5, 1)
+  const height = 9.5
+  sprite.scale.set((canvas.width / canvas.height) * height, height, 1)
   return sprite
 }
 
