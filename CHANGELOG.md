@@ -937,3 +937,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added chat notification sounds for party and public messages.
 - Minimized Party and private chats now show message pings.
 - Removed obsolete friend-only chat sounds.
+
+## v2026.921.4 — 2026-09-21
+
+### Chat
+
+- The Global chat tab is now always visible.
+- Fixed minimized chat state behavior.
