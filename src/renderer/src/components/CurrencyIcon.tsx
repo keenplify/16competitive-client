@@ -1,7 +1,7 @@
 import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
-import pointsCoin from '../assets/points-coin.png'
-import papaCashCoin from '../assets/papa-cash-coin.png'
+import pointsCoin from '../assets/points-coin.webp'
+import papaCashCoin from '../assets/papa-cash-coin.webp'
 
 export type CurrencyKind = 'POINTS' | 'P_CASH'
 
