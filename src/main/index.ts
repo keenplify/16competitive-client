@@ -479,6 +479,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(PARTY_CHANNELS.sendGlobalMessage, (_, message: unknown) =>
     matchmakingConnection.sendGlobalMessage(message)
   )
+  ipcMain.handle(PARTY_CHANNELS.setGlobalChatLanguage, (_, language: unknown) =>
+    matchmakingConnection.setGlobalChatLanguage(language)
+  )
 
   discordPresence.setJoinHandler(async (secret) => {
     try {
