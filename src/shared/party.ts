@@ -62,7 +62,7 @@ export interface PartyApi {
   respond(invitationId: string, decision: PartyInvitationDecision): Promise<PartyInvitationResponse>
   leave(): Promise<PartyLeaveResponse>
   sendMessage(message: string): Promise<void>
-  sendGlobalMessage(message: string): Promise<void>
+  sendGlobalMessage(message: string, scope: 'global' | 'language'): Promise<void>
   setGlobalChatLanguage(language: string): Promise<void>
   onDiscordJoinResult(listener: (result: DiscordPartyJoinResult) => void): () => void
 }
