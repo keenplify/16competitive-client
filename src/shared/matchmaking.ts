@@ -118,11 +118,13 @@ export type PartyChatEvent =
     }
 
 export type GlobalChatLanguage = string
+export type GlobalChatScope = 'global' | 'language'
 
 export interface GlobalChatMessage {
   type: 'global_chat_message'
   id: string
-  language: GlobalChatLanguage
+  scope: GlobalChatScope
+  language?: GlobalChatLanguage
   sender: { id: string; username: string }
   message: string
   sentAt: string
@@ -130,14 +132,16 @@ export interface GlobalChatMessage {
 
 export interface GlobalChatHistory {
   type: 'global_chat_history'
-  language: GlobalChatLanguage
+  scope: GlobalChatScope
+  language?: GlobalChatLanguage
   messages: GlobalChatMessage[]
 }
 
 export interface GlobalChatMessageDeleted {
   type: 'global_chat_message_deleted'
   id: string
-  language: GlobalChatLanguage
+  scope: GlobalChatScope
+  language?: GlobalChatLanguage
 }
 
 export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
