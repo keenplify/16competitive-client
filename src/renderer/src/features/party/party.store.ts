@@ -5,6 +5,8 @@ import type {
   PendingPartyInvitation
 } from '../../../../shared/party'
 import type { GlobalChatMessage, PartyChatEvent } from '../../../../shared/matchmaking'
+import { useAuthStore } from '../auth/auth.store'
+import { playChatMessageSound } from '../chat/chat-message-sound'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
 export type ChatTab = 'party' | 'language' | 'global'
@@ -118,9 +120,20 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
     removePartyEventListener = window.api.matchmaking.onEvent((event) => {
       if (event.type === 'party_chat_message' || event.type === 'party_chat_notification') {
+        if (event.type === 'party_chat_message') {
+          const playerId = useAuthStore.getState().session?.player.id
+          const alreadyKnown = get().chatEntries.some((entry) => entry.id === event.id)
+          if (!alreadyKnown && event.sender.id !== playerId) playChatMessageSound()
+        }
         set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, event) }))
       }
       if (event.type === 'global_chat_message') {
+        const playerId = useAuthStore.getState().session?.player.id
+        const relevantEntries =
+          event.scope === 'global' ? get().globalChatEntries : get().languageChatEntries
+        const alreadyKnown = relevantEntries.some((entry) => entry.id === event.id)
+        if (!alreadyKnown && event.sender.id !== playerId) playChatMessageSound()
+
         set((state) => {
           if (event.scope === 'global') {
             return { globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, [event]) }
