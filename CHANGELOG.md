@@ -1039,3 +1039,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skins
 
 - Improved weapon transforms and skin preview rotation for better model presentation.
+
+## v2026.922.3 — 2026-09-22
+
+### Match Features
+
+- Added player reporting.
+- Improved in-game roster management.
+
+### Voice Chat
+
+- Added voice chat preferences.
+- Refined the voice chat interface.
