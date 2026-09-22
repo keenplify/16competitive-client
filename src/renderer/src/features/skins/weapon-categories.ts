@@ -24,6 +24,9 @@ export const MACHINE_GUN_WEAPON_KEYS: readonly string[] = ['m249']
 export const GRENADE_WEAPON_KEYS: readonly string[] = ['hegrenade', 'flashbang', 'smokegrenade']
 export const KNIFE_WEAPON_KEY = 'knife'
 
+export const isGrenadeWeapon = (weaponKey: string): boolean =>
+  GRENADE_WEAPON_KEYS.includes(weaponKey)
+
 /**
  * Maps a Counter-Strike weapon key to the category used by the store filters and
  * the loadout. Shotguns used to fall through to the `heavy` fallback, which made
@@ -35,7 +38,7 @@ export const weaponCategory = (key: string): WeaponCategory => {
   if (SMG_WEAPON_KEYS.includes(key)) return 'smgs'
   if (RIFLE_WEAPON_KEYS.includes(key)) return 'rifles'
   if (SNIPER_WEAPON_KEYS.includes(key)) return 'snipers'
-  if (GRENADE_WEAPON_KEYS.includes(key)) return 'grenades'
+  if (isGrenadeWeapon(key)) return 'grenades'
   if (key === KNIFE_WEAPON_KEY) return 'knives'
   return 'heavy'
 }

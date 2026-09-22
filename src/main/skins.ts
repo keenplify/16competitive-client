@@ -75,6 +75,9 @@ const isSkin = (value: unknown): value is Skin => {
     typeof skin.licenseName === 'string' &&
     (typeof skin.licenseUrl === 'string' || skin.licenseUrl === null) &&
     typeof skin.attributionText === 'string' &&
+    (typeof skin.viewModelPath === 'string' || skin.viewModelPath === null) &&
+    (typeof skin.playerModelPath === 'string' || skin.playerModelPath === null) &&
+    (typeof skin.worldModelPath === 'string' || skin.worldModelPath === null) &&
     (typeof skin.actionSoundPath === 'string' || skin.actionSoundPath === null) &&
     (typeof skin.explosionSpritePath === 'string' || skin.explosionSpritePath === null)
   )

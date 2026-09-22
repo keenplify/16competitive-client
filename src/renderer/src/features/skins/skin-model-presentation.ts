@@ -1,4 +1,12 @@
+import { isGrenadeWeapon } from './weapon-categories'
+
 export type SkinPresentationRotation = readonly [number, number, number]
+
+/** Shared framing for HE, flash, and smoke grenade model previews. */
+export const GRENADE_SKIN_PREVIEW = {
+  zoom: 1.8,
+  rotation: [90, 0, 190] as SkinPresentationRotation
+} as const
 
 /**
  * Central per-weapon preview framing controls.
@@ -50,24 +58,30 @@ export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
 }
 
 export const getSkinCameraDistanceMultiplier = (weaponKey: string, base: number): number =>
-  base * (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
+  base *
+  (isGrenadeWeapon(weaponKey)
+    ? GRENADE_SKIN_PREVIEW.zoom
+    : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1))
 
 /** Fixed target used by the dual-wield Elite model to favor one pistol. */
 export const getSkinCameraTarget = (
   weaponKey: string
 ): readonly [number, number, number] | undefined => (weaponKey === 'elite' ? [0, 0, 0] : undefined)
 
-export const getSkinPresentationRotation = (weaponKey: string): SkinPresentationRotation => {
-  switch (weaponKey) {
-    case 'knife':
-      return [120, 90, 120]
-    case 'mp5navy':
-    case 'mac10':
-      return [90, 90, 90]
-    default:
-      return [90, 0, 190]
-  }
+export const SKIN_PREVIEW_ROTATION_BY_WEAPON: Record<string, SkinPresentationRotation> = {
+  // Shotguns — intentionally separate so each can be tuned independently.
+  m3: [90, 0, 190],
+  xm1014: [90, 0, 190],
+
+  knife: [120, 90, 120],
+  mp5navy: [90, 90, 90],
+  mac10: [90, 90, 90]
 }
+
+export const getSkinPresentationRotation = (weaponKey: string): SkinPresentationRotation =>
+  isGrenadeWeapon(weaponKey)
+    ? GRENADE_SKIN_PREVIEW.rotation
+    : (SKIN_PREVIEW_ROTATION_BY_WEAPON[weaponKey] ?? [90, 0, 190])
 
 /**
  * Stable signature for every setting that changes how a thumbnail is framed.
@@ -75,7 +89,9 @@ export const getSkinPresentationRotation = (weaponKey: string): SkinPresentation
  * immediately instead of reusing an image captured with older camera values.
  */
 export const getSkinPresentationRevision = (weaponKey: string): string => {
-  const zoom = SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1
+  const zoom = isGrenadeWeapon(weaponKey)
+    ? GRENADE_SKIN_PREVIEW.zoom
+    : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
   const rotation = getSkinPresentationRotation(weaponKey).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
   return `presentation-v2:${weaponKey}:z${zoom}:r${rotation}:t${target}`

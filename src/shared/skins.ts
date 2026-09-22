@@ -32,6 +32,9 @@ export interface Skin {
   licenseName: string
   licenseUrl: string | null
   attributionText: string
+  viewModelPath: string | null
+  playerModelPath: string | null
+  worldModelPath: string | null
   actionSoundPath: string | null
   explosionSpritePath: string | null
 }
