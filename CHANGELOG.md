@@ -1022,3 +1022,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Discord
 
 - Added configuration support for custom Discord IPC paths.
+
+## v2026.922.2 — 2026-09-22
+
+### Authentication
+
+- Added Discord social login.
+- Improved password verification and sign-in flow.
+- Added clearer social login provider icons.
+
+### Leaderboards
+
+- Added a national leaderboard view.
+- Improved player country display and leaderboard handling.
+
+### Skins
+
+- Improved weapon transforms and skin preview rotation for better model presentation.
