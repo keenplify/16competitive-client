@@ -1,19 +1,24 @@
-import { ChevronLeft, LoaderCircle, Trophy, UserRound } from 'lucide-react'
-import { useEffect, useState, type JSX } from 'react'
+import { ChevronLeft, Globe2, LoaderCircle, Trophy, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useLeaderboardStore } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
-import { CountryFlag } from '../../components/CountryFlag'
+import { COUNTRY_OPTIONS, CountryFlag } from '../../components/CountryFlag'
 
 const formatTimestamp = (value: string): string =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(value)
   )
 
+type LeaderboardScope = 'global' | 'national'
+
 export function LeaderboardPage(): JSX.Element {
   const leaderboard = useLeaderboardStore((state) => state.leaderboard)
   const status = useLeaderboardStore((state) => state.status)
+  const loadedCountryCode = useLeaderboardStore((state) => state.countryCode)
   const load = useLeaderboardStore((state) => state.load)
+  const [scope, setScope] = useState<LeaderboardScope>('global')
+  const [nationalCountryCode, setNationalCountryCode] = useState<string | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -34,6 +39,25 @@ export function LeaderboardPage(): JSX.Element {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (loadedCountryCode !== null || !leaderboard?.currentPlayer?.flagCountryCode) return
+    setNationalCountryCode(leaderboard.currentPlayer.flagCountryCode)
+  }, [leaderboard, loadedCountryCode])
+
+  const countryName = useMemo(
+    () =>
+      COUNTRY_OPTIONS.find((country) => country.code === nationalCountryCode)?.name ??
+      nationalCountryCode,
+    [nationalCountryCode]
+  )
+
+  const switchScope = (nextScope: LeaderboardScope): void => {
+    if (nextScope === scope) return
+    if (nextScope === 'national' && !nationalCountryCode) return
+    setScope(nextScope)
+    void load(nextScope === 'national' ? nationalCountryCode ?? undefined : undefined)
+  }
 
   const currentPlayer = leaderboard?.currentPlayer ?? null
   const showCurrentPlayerOutsideTopTen = currentPlayer !== null && currentPlayer.rank > 10
@@ -116,19 +140,58 @@ export function LeaderboardPage(): JSX.Element {
         <div>
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
-          <p className="mt-2 text-sm text-neutral-200">Top players by matchmaking rating</p>
+          <p className="mt-2 text-sm text-neutral-200">
+            {scope === 'national' && nationalCountryCode
+              ? `Top players in ${countryName} by matchmaking rating`
+              : 'Top players worldwide by matchmaking rating'}
+          </p>
         </div>
       </header>
 
-      {status === 'loading' && !leaderboard && (
+      <div className="mx-auto mt-6 flex max-w-3xl gap-2">
+        <button
+          type="button"
+          onClick={() => switchScope('global')}
+          className={`flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-bold tracking-wide uppercase transition ${
+            scope === 'global'
+              ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
+              : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
+          }`}
+        >
+          <Globe2 className="size-4" aria-hidden="true" />
+          Global
+        </button>
+        <button
+          type="button"
+          disabled={!nationalCountryCode}
+          onClick={() => switchScope('national')}
+          className={`flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-bold tracking-wide uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
+            scope === 'national'
+              ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
+              : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
+          }`}
+          title={nationalCountryCode ? `${countryName} leaderboard` : 'Set your country in your profile to unlock national rankings'}
+        >
+          <CountryFlag code={nationalCountryCode} className="h-4 w-auto shrink-0" />
+          National
+        </button>
+      </div>
+
+      {!nationalCountryCode && scope === 'global' && leaderboard && (
+        <p className="mx-auto mt-3 max-w-3xl text-xs text-neutral-500">
+          Set your country in your profile to unlock the national leaderboard.
+        </p>
+      )}
+
+      {status === 'loading' && (
         <p className="py-16 text-center text-sm text-neutral-400">Loading leaderboard…</p>
       )}
-      {status === 'error' && !leaderboard && (
+      {status === 'error' && (
         <p className="py-16 text-center text-sm text-rose-300">
           Could not load the leaderboard right now.
         </p>
       )}
-      {leaderboard && (
+      {status === 'ready' && leaderboard && (
         <section className="mx-auto mt-8 max-w-3xl overflow-hidden border border-white/10 bg-neutral-900/90">
           <div className="grid grid-cols-[3.5rem_1fr_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             <span>Rank</span>

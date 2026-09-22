@@ -6,21 +6,28 @@ type LeaderboardStatus = 'idle' | 'loading' | 'ready' | 'error'
 interface LeaderboardState {
   leaderboard: TopMmrLeaderboard | null
   status: LeaderboardStatus
-  load(): Promise<void>
+  countryCode: string | null
+  load(countryCode?: string): Promise<void>
 }
 
 export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({
   leaderboard: null,
   status: 'idle',
-  load: async () => {
-    if (get().status === 'loading') return
-    set({ status: 'loading' })
+  countryCode: null,
+  load: async (countryCode) => {
+    if (
+      get().status === 'loading' &&
+      get().countryCode === (countryCode ?? null)
+    ) return
+
+    set({ status: 'loading', countryCode: countryCode ?? null })
     try {
-      const leaderboard = await window.api.leaderboard.getTopMmr()
+      const leaderboard = await window.api.leaderboard.getTopMmr(countryCode)
+      if (get().countryCode !== (countryCode ?? null)) return
       set({ leaderboard, status: 'ready' })
     } catch (error) {
-      console.error('[Leaderboard] failed to load top MMR', error)
-      set({ status: 'error' })
+      console.error('[Leaderboard] failed to load top MMR', { countryCode, error })
+      if (get().countryCode === (countryCode ?? null)) set({ status: 'error' })
     }
   }
 }))
