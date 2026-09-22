@@ -15,10 +15,9 @@ type LeaderboardScope = 'global' | 'national'
 export function LeaderboardPage(): JSX.Element {
   const leaderboard = useLeaderboardStore((state) => state.leaderboard)
   const status = useLeaderboardStore((state) => state.status)
-  const loadedCountryCode = useLeaderboardStore((state) => state.countryCode)
+  const nationalCountryCode = useLeaderboardStore((state) => state.playerCountryCode)
   const load = useLeaderboardStore((state) => state.load)
   const [scope, setScope] = useState<LeaderboardScope>('global')
-  const [nationalCountryCode, setNationalCountryCode] = useState<string | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -40,11 +39,6 @@ export function LeaderboardPage(): JSX.Element {
     void load()
   }, [load])
 
-  useEffect(() => {
-    if (loadedCountryCode !== null || !leaderboard?.currentPlayer?.flagCountryCode) return
-    setNationalCountryCode(leaderboard.currentPlayer.flagCountryCode)
-  }, [leaderboard, loadedCountryCode])
-
   const countryName = useMemo(
     () =>
       COUNTRY_OPTIONS.find((country) => country.code === nationalCountryCode)?.name ??
@@ -56,7 +50,7 @@ export function LeaderboardPage(): JSX.Element {
     if (nextScope === scope) return
     if (nextScope === 'national' && !nationalCountryCode) return
     setScope(nextScope)
-    void load(nextScope === 'national' ? nationalCountryCode ?? undefined : undefined)
+    void load(nextScope === 'national' ? (nationalCountryCode ?? undefined) : undefined)
   }
 
   const currentPlayer = leaderboard?.currentPlayer ?? null
@@ -170,7 +164,11 @@ export function LeaderboardPage(): JSX.Element {
               ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
               : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
           }`}
-          title={nationalCountryCode ? `${countryName} leaderboard` : 'Set your country in your profile to unlock national rankings'}
+          title={
+            nationalCountryCode
+              ? `${countryName} leaderboard`
+              : 'Set your country in your profile to unlock national rankings'
+          }
         >
           <CountryFlag code={nationalCountryCode} className="h-4 w-auto shrink-0" />
           National
