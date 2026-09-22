@@ -1051,3 +1051,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added voice chat preferences.
 - Refined the voice chat interface.
+
+## v2026.922.4 — 2026-09-22
+
+### Leaderboard
+
+- Added the continental leaderboard to the client.
