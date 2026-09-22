@@ -23,9 +23,6 @@ const connectionLabels = {
   ready: 'Connected'
 } as const
 
-const serverReadyBackgroundClass =
-  'bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_30%,rgba(10,10,10,0.72)_62%,rgba(10,10,10,0.97)_100%)]'
-
 interface MapCardProps {
   map: MatchmakingMap
   selected: boolean
@@ -155,6 +152,9 @@ export function PlayPage(): JSX.Element {
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const availableMaps = maps.filter((map) => map.supportedModes.includes('5v5'))
   const hasSelectedMaps = selectedMapIds.length > 0
+  const matchMapPreview = match
+    ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
+    : null
 
   if (match && queueStatus === 'match_found') {
     return (
@@ -206,9 +206,29 @@ export function PlayPage(): JSX.Element {
       >
         {queueStatus === 'server_ready' && (
           <div
-            className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
+            className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-neutral-950"
             aria-hidden="true"
-          />
+          >
+            {matchMapPreview && (
+              <img
+                className="absolute inset-0 h-full w-full scale-110 object-cover blur-[6px]"
+                src={matchMapPreview}
+                alt=""
+                onError={(event) => {
+                  const localPreview = match ? localMapPreviews[match.mapId] : undefined
+                  event.currentTarget.onerror = null
+                  if (localPreview && event.currentTarget.src !== localPreview) {
+                    event.currentTarget.src = localPreview
+                  } else {
+                    event.currentTarget.hidden = true
+                  }
+                }}
+              />
+            )}
+            <div className="absolute inset-0 bg-black/55" />
+            <div className="match-ambient-glow absolute -inset-1/4" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_10%,rgba(0,0,0,0.65)_100%)]" />
+          </div>
         )}
         <div className="relative z-10 w-full max-w-5xl">
           <div className="text-center">
@@ -237,12 +257,6 @@ export function PlayPage(): JSX.Element {
               className="mx-auto mt-5 max-w-md"
               preparation={assetPreparation}
             />
-            {queueStatus === 'server_ready' && connectionDetails && (
-              <div className="mx-auto mt-5 max-w-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-200">
-                Match server: {connectionDetails.host}:{connectionDetails.port}. Alt tab here to
-                manage player voice, report a player, or reconnect after exiting.
-              </div>
-            )}
           </div>
 
           {queueStatus === 'server_ready' && match ? (
@@ -273,7 +287,12 @@ export function PlayPage(): JSX.Element {
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">
-              <Button disabled={!gameExited} variant="ghost" onClick={() => void handleReconnect()}>
+              <Button
+                className="rounded-sm"
+                disabled={!gameExited}
+                variant="ghost"
+                onClick={() => void handleReconnect()}
+              >
                 {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
               </Button>
             </div>

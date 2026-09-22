@@ -290,3 +290,26 @@
     display: none;
   }
 }
+
+.match-ambient-glow {
+  background: radial-gradient(circle at center, rgb(16 185 129 / 25%), transparent 52%);
+  animation: match-ambient-breathe 9s ease-in-out infinite;
+}
+
+@keyframes match-ambient-breathe {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-ambient-glow {
+    animation: none;
+  }
+}
