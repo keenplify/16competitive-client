@@ -18,5 +18,5 @@ export interface TopMmrLeaderboard {
 }
 
 export interface LeaderboardApi {
-  getTopMmr(countryCode?: string): Promise<TopMmrLeaderboard>
+  getTopMmr(continentOf?: string): Promise<TopMmrLeaderboard>
 }

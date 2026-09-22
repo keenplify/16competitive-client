@@ -1,23 +1,21 @@
-import { ChevronLeft, Globe2, LoaderCircle, Trophy, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useState, type JSX } from 'react'
+import { ChevronLeft, Globe2, LoaderCircle, Map, Trophy, UserRound } from 'lucide-react'
+import { useEffect, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
-import { useLeaderboardStore } from './leaderboard.store'
+import { useLeaderboardStore, type LeaderboardScope } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
-import { COUNTRY_OPTIONS, CountryFlag } from '../../components/CountryFlag'
+import { CountryFlag } from '../../components/CountryFlag'
 
 const formatTimestamp = (value: string): string =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(value)
   )
 
-type LeaderboardScope = 'global' | 'national'
-
 export function LeaderboardPage(): JSX.Element {
   const leaderboard = useLeaderboardStore((state) => state.leaderboard)
+  const scope = useLeaderboardStore((state) => state.scope)
   const status = useLeaderboardStore((state) => state.status)
-  const nationalCountryCode = useLeaderboardStore((state) => state.playerCountryCode)
+  const playerCountryCode = useLeaderboardStore((state) => state.playerCountryCode)
   const load = useLeaderboardStore((state) => state.load)
-  const [scope, setScope] = useState<LeaderboardScope>('global')
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -39,18 +37,10 @@ export function LeaderboardPage(): JSX.Element {
     void load()
   }, [load])
 
-  const countryName = useMemo(
-    () =>
-      COUNTRY_OPTIONS.find((country) => country.code === nationalCountryCode)?.name ??
-      nationalCountryCode,
-    [nationalCountryCode]
-  )
-
   const switchScope = (nextScope: LeaderboardScope): void => {
     if (nextScope === scope) return
-    if (nextScope === 'national' && !nationalCountryCode) return
-    setScope(nextScope)
-    void load(nextScope === 'national' ? (nationalCountryCode ?? undefined) : undefined)
+    if (nextScope === 'continental' && !playerCountryCode) return
+    void load(nextScope === 'continental' ? (playerCountryCode ?? undefined) : undefined)
   }
 
   const currentPlayer = leaderboard?.currentPlayer ?? null
@@ -135,8 +125,8 @@ export function LeaderboardPage(): JSX.Element {
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
           <p className="mt-2 text-sm text-neutral-200">
-            {scope === 'national' && nationalCountryCode
-              ? `Top players in ${countryName} by matchmaking rating`
+            {scope === 'continental'
+              ? 'Top players on your continent by matchmaking rating'
               : 'Top players worldwide by matchmaking rating'}
           </p>
         </div>
@@ -157,27 +147,27 @@ export function LeaderboardPage(): JSX.Element {
         </button>
         <button
           type="button"
-          disabled={!nationalCountryCode}
-          onClick={() => switchScope('national')}
+          disabled={!playerCountryCode}
+          onClick={() => switchScope('continental')}
           className={`flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-bold tracking-wide uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
-            scope === 'national'
+            scope === 'continental'
               ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
               : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
           }`}
           title={
-            nationalCountryCode
-              ? `${countryName} leaderboard`
-              : 'Set your country in your profile to unlock national rankings'
+            playerCountryCode
+              ? 'Your continental leaderboard'
+              : 'Set your country in your profile to unlock continental rankings'
           }
         >
-          <CountryFlag code={nationalCountryCode} className="h-4 w-auto shrink-0" />
-          National
+          <Map className="size-4" aria-hidden="true" />
+          Continental
         </button>
       </div>
 
-      {!nationalCountryCode && scope === 'global' && leaderboard && (
+      {!playerCountryCode && scope === 'global' && leaderboard && (
         <p className="mx-auto mt-3 max-w-3xl text-xs text-neutral-500">
-          Set your country in your profile to unlock the national leaderboard.
+          Set your country in your profile to unlock the continental leaderboard.
         </p>
       )}
 
