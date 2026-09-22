@@ -1006,3 +1006,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Assets
 
 - Restored previous match asset behavior.
+
+## v2026.922.1 — 2026-09-22
+
+### Lobby
+
+- Added a marketing lobby experience.
+- Added lobby chat functionality.
+
+### Skins
+
+- Improved skin model handling and previews.
+- Improved model caching and presentation.
+
+### Discord
+
+- Added configuration support for custom Discord IPC paths.
