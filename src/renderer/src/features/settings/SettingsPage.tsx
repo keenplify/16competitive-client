@@ -23,6 +23,8 @@ import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'audio' | 'assets' | 'credentials'
+const socialProviderLabel = (provider: SocialAuthProvider): string =>
+  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
 const readableError = (error: unknown): string =>
   error instanceof Error
@@ -225,14 +227,23 @@ export function SettingsPage(): JSX.Element {
   }
 
   const handleConnectSocial = async (provider: SocialAuthProvider): Promise<void> => {
-    if (connectingProvider) return
+    if (connectingProvider) {
+      if (connectingProvider === provider) {
+        try {
+          await window.api.auth.reopenSocial(provider)
+        } catch (connectionError) {
+          setSocialError(readableError(connectionError))
+        }
+      }
+      return
+    }
     setConnectingProvider(provider)
     setSocialError(null)
     setSocialNotice(null)
     try {
       const connections = await window.api.auth.connectSocial(provider)
       setSocialConnections(connections)
-      setSocialNotice(`${provider === 'google' ? 'Google' : 'Facebook'} connected.`)
+      setSocialNotice(`${socialProviderLabel(provider)} connected.`)
     } catch (connectionError) {
       setSocialError(readableError(connectionError))
     } finally {
@@ -270,7 +281,7 @@ export function SettingsPage(): JSX.Element {
   const socialProviderRow = (provider: SocialAuthProvider): JSX.Element => {
     const connection = socialConnections?.[provider]
     const connected = connection?.connected === true
-    const label = provider === 'google' ? 'Google' : 'Facebook'
+    const label = socialProviderLabel(provider)
     const connecting = connectingProvider === provider
 
     return (
@@ -278,11 +289,15 @@ export function SettingsPage(): JSX.Element {
         <div className="flex min-w-0 items-center gap-3">
           <div
             className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
-              provider === 'google' ? 'bg-white text-neutral-900' : 'bg-[#1877F2] text-white'
+              provider === 'google'
+                ? 'bg-white text-neutral-900'
+                : provider === 'facebook'
+                  ? 'bg-[#1877F2] text-white'
+                  : 'bg-[#5865F2] text-white'
             }`}
             aria-hidden="true"
           >
-            {provider === 'google' ? 'G' : 'f'}
+            {provider === 'google' ? 'G' : provider === 'facebook' ? 'f' : 'D'}
           </div>
           <div className="min-w-0">
             <p className="font-medium text-neutral-100">{label}</p>
@@ -303,7 +318,11 @@ export function SettingsPage(): JSX.Element {
               ? 'border border-emerald-400/20 text-emerald-300 hover:bg-transparent'
               : 'border border-white/15 text-neutral-200 hover:bg-white/10'
           }
-          disabled={socialLoading || connected || connectingProvider !== null}
+          disabled={
+            socialLoading ||
+            connected ||
+            (connectingProvider !== null && connectingProvider !== provider)
+          }
           onClick={() => void handleConnectSocial(provider)}
         >
           {connecting ? (
@@ -313,7 +332,7 @@ export function SettingsPage(): JSX.Element {
           ) : (
             <Link2 className="mr-2 size-4" aria-hidden="true" />
           )}
-          {connecting ? 'Connecting…' : connected ? 'Connected' : `Connect ${label}`}
+          {connecting ? 'Reopen browser' : connected ? 'Connected' : `Connect ${label}`}
         </Button>
       </div>
     )
@@ -618,13 +637,14 @@ export function SettingsPage(): JSX.Element {
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Connected accounts</h3>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Connect Google or Facebook so either provider can authenticate this same player
-                  account.
+                  Connect Google, Facebook, or Discord so any provider can authenticate this same
+                  player account.
                 </p>
 
                 <div className="mt-5 grid gap-3">
                   {socialProviderRow('google')}
                   {socialProviderRow('facebook')}
+                  {socialProviderRow('discord')}
                 </div>
 
                 <div className="mt-3 min-h-6 text-sm" aria-live="polite">

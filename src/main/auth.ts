@@ -52,13 +52,26 @@ interface BackendSocialEmailRequiredResponse {
   requiresEmail: true
 }
 
+interface BackendSocialPasswordRequiredResponse {
+  pending: true
+  requiresPassword: true
+  email: string
+}
+
 interface UsernameStatus {
   requiresUsernameSetup: boolean
   usernameChangeAvailableAt: string | null
 }
 
+interface ActiveSocialAuthorization {
+  provider: SocialAuthProvider
+  url: string
+  expiresAt: number
+}
+
 let sessionToken: string | null = null
 let sessionUsername: string | null = null
+let activeSocialAuthorization: ActiveSocialAuthorization | null = null
 const tokenPath = () => join(app.getPath('userData'), 'session-token.bin')
 const persistToken = async (token: string) => {
   if (safeStorage.isEncryptionAvailable()) {
@@ -130,7 +143,7 @@ const validatePasswordChange = (value: unknown): PasswordChangeCredentials => {
 }
 
 const validateSocialProvider = (value: unknown): SocialAuthProvider => {
-  if (value !== 'google' && value !== 'facebook') {
+  if (value !== 'google' && value !== 'facebook' && value !== 'discord') {
     throw new Error('Invalid social login provider')
   }
   return value
@@ -180,10 +193,19 @@ const isSocialEmailRequiredResponse = (
   (value as Record<string, unknown>).pending === true &&
   (value as Record<string, unknown>).requiresEmail === true
 
+const isSocialPasswordRequiredResponse = (
+  value: unknown
+): value is BackendSocialPasswordRequiredResponse =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as Record<string, unknown>).pending === true &&
+  (value as Record<string, unknown>).requiresPassword === true &&
+  typeof (value as Record<string, unknown>).email === 'string'
+
 const isSocialConnections = (value: unknown): value is SocialConnections => {
   if (typeof value !== 'object' || value === null) return false
   const connections = value as Record<string, unknown>
-  return ['google', 'facebook'].every((provider) => {
+  return ['google', 'facebook', 'discord'].every((provider) => {
     const connection = connections[provider]
     if (typeof connection !== 'object' || connection === null) return false
     const state = connection as Record<string, unknown>
@@ -265,6 +287,29 @@ const socialDeadline = (expiresAt: string): number => {
   )
 }
 
+const activateSocialAuthorization = (
+  provider: SocialAuthProvider,
+  authorizationUrl: string,
+  expiresAt: string
+): ActiveSocialAuthorization => {
+  const active = {
+    provider,
+    url: validateAuthorizationUrl(authorizationUrl).toString(),
+    expiresAt: socialDeadline(expiresAt)
+  }
+  activeSocialAuthorization = active
+  return active
+}
+
+export const reopenSocialAuthorization = async (untrustedProvider: unknown): Promise<void> => {
+  const provider = validateSocialProvider(untrustedProvider)
+  const active = activeSocialAuthorization
+  if (!active || active.provider !== provider || active.expiresAt <= Date.now()) {
+    throw new Error('This social login is no longer active. Please start it again.')
+  }
+  await shell.openExternal(active.url)
+}
+
 export const authenticate = async (
   action: 'login' | 'register',
   untrustedCredentials: unknown
@@ -315,44 +360,61 @@ export const authenticateWithSocial = async (
     throw new Error('The authentication server returned an invalid social login response')
   }
 
-  await shell.openExternal(validateAuthorizationUrl(startBody.authorizationUrl).toString())
-  const deadline = socialDeadline(startBody.expiresAt)
+  const active = activateSocialAuthorization(
+    provider,
+    startBody.authorizationUrl,
+    startBody.expiresAt
+  )
+  const deadline = active.expiresAt
 
-  while (Date.now() < deadline) {
-    await delay(SOCIAL_POLL_INTERVAL_MS)
+  try {
+    await shell.openExternal(active.url)
+    while (Date.now() < deadline) {
+      await delay(SOCIAL_POLL_INTERVAL_MS)
 
-    const response = await fetch(`${API_BASE_URL}/auth/social/complete`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ pollToken: startBody.pollToken }),
-      signal: AbortSignal.timeout(10_000)
-    }).catch(() => null)
+      const response = await fetch(`${API_BASE_URL}/auth/social/complete`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pollToken: startBody.pollToken }),
+        signal: AbortSignal.timeout(10_000)
+      }).catch(() => null)
 
-    if (!response) continue
+      if (!response) continue
 
-    const body: unknown = await response.json().catch(() => null)
-    if (response.status === 202) {
-      if (isSocialEmailRequiredResponse(body)) {
-        return { kind: 'email_required', pollToken: startBody.pollToken, provider }
+      const body: unknown = await response.json().catch(() => null)
+      if (response.status === 202) {
+        if (isSocialPasswordRequiredResponse(body)) {
+          return {
+            kind: 'password_required',
+            pollToken: startBody.pollToken,
+            provider,
+            email: body.email
+          }
+        }
+        if (isSocialEmailRequiredResponse(body)) {
+          return { kind: 'email_required', pollToken: startBody.pollToken, provider }
+        }
+        continue
       }
-      continue
-    }
-    if (!response.ok) throw new Error(getErrorMessage(body, response.status))
-    if (!isAuthResponse(body)) {
-      throw new Error('The authentication server returned an invalid social login result')
+      if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+      if (!isAuthResponse(body)) {
+        throw new Error('The authentication server returned an invalid social login result')
+      }
+
+      return acceptAuthResponse(body)
     }
 
-    return acceptAuthResponse(body)
+    throw new Error('Social login timed out. Please try again.')
+  } finally {
+    if (activeSocialAuthorization === active) activeSocialAuthorization = null
   }
-
-  throw new Error('Social login timed out. Please try again.')
 }
 
 export const completeSocialWithEmail = async (
   untrustedProvider: unknown,
   untrustedPollToken: unknown,
   untrustedEmail: unknown
-): Promise<AuthSession> => {
+): Promise<SocialAuthResult> => {
   validateSocialProvider(untrustedProvider)
   if (
     typeof untrustedPollToken !== 'string' ||
@@ -385,7 +447,17 @@ export const completeSocialWithEmail = async (
     }).catch(() => null)
     if (!pollResponse) continue
     const pollBody: unknown = await pollResponse.json().catch(() => null)
-    if (pollResponse.status === 202) continue
+    if (pollResponse.status === 202) {
+      if (isSocialPasswordRequiredResponse(pollBody)) {
+        return {
+          kind: 'password_required',
+          pollToken: untrustedPollToken,
+          provider: validateSocialProvider(untrustedProvider),
+          email: pollBody.email
+        }
+      }
+      continue
+    }
     if (!pollResponse.ok) throw new Error(getErrorMessage(pollBody, pollResponse.status))
     if (!isAuthResponse(pollBody)) {
       throw new Error('The authentication server returned an invalid social login result')
@@ -393,6 +465,35 @@ export const completeSocialWithEmail = async (
     return acceptAuthResponse(pollBody)
   }
   throw new Error('Social login timed out. Please try again.')
+}
+
+export const completeSocialWithPassword = async (
+  untrustedPollToken: unknown,
+  untrustedPassword: unknown
+): Promise<AuthSession> => {
+  if (
+    typeof untrustedPollToken !== 'string' ||
+    untrustedPollToken.length < 32 ||
+    typeof untrustedPassword !== 'string' ||
+    untrustedPassword.length < 8 ||
+    untrustedPassword.length > 128
+  ) {
+    throw new Error('Enter your account password')
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/social/complete-password`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ pollToken: untrustedPollToken, password: untrustedPassword }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (!isAuthResponse(body)) {
+    throw new Error('The authentication server returned an invalid social login result')
+  }
+  return acceptAuthResponse(body)
 }
 
 export const getSocialConnections = async (): Promise<SocialConnections> => {
@@ -431,32 +532,41 @@ export const connectSocial = async (untrustedProvider: unknown): Promise<SocialC
     throw new Error('The authentication server returned an invalid social connection response')
   }
 
-  await shell.openExternal(validateAuthorizationUrl(startBody.authorizationUrl).toString())
-  const deadline = socialDeadline(startBody.expiresAt)
+  const active = activateSocialAuthorization(
+    provider,
+    startBody.authorizationUrl,
+    startBody.expiresAt
+  )
+  const deadline = active.expiresAt
 
-  while (Date.now() < deadline) {
-    await delay(SOCIAL_POLL_INTERVAL_MS)
-    const response = await fetch(`${API_BASE_URL}/auth/social/link/complete`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${sessionToken}`,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({ pollToken: startBody.pollToken }),
-      signal: AbortSignal.timeout(10_000)
-    }).catch(() => null)
+  try {
+    await shell.openExternal(active.url)
+    while (Date.now() < deadline) {
+      await delay(SOCIAL_POLL_INTERVAL_MS)
+      const response = await fetch(`${API_BASE_URL}/auth/social/link/complete`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ pollToken: startBody.pollToken }),
+        signal: AbortSignal.timeout(10_000)
+      }).catch(() => null)
 
-    if (!response) continue
-    const body: unknown = await response.json().catch(() => null)
-    if (response.status === 202) continue
-    if (!response.ok) throw new Error(getErrorMessage(body, response.status))
-    if (!isSocialConnections(body)) {
-      throw new Error('The server returned invalid social connection status')
+      if (!response) continue
+      const body: unknown = await response.json().catch(() => null)
+      if (response.status === 202) continue
+      if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+      if (!isSocialConnections(body)) {
+        throw new Error('The server returned invalid social connection status')
+      }
+      return body
     }
-    return body
-  }
 
-  throw new Error('Connecting the social account timed out. Please try again.')
+    throw new Error('Connecting the social account timed out. Please try again.')
+  } finally {
+    if (activeSocialAuthorization === active) activeSocialAuthorization = null
+  }
 }
 
 export const checkUsername = async (untrustedUsername: unknown): Promise<UsernameAvailability> => {

@@ -13,6 +13,7 @@ interface AuthState {
   status: AuthStatus
   socialProvider: SocialAuthProvider | null
   socialPollToken: string | null
+  socialPasswordRequired: boolean
   error: string | null
   session: AuthSession | null
   setMode: (mode: AuthMode) => void
@@ -22,6 +23,7 @@ interface AuthState {
   submit: () => Promise<void>
   loginWithSocial: (provider: SocialAuthProvider) => Promise<void>
   submitSocialEmail: () => Promise<void>
+  submitSocialPassword: () => Promise<void>
   checkUsername: (username: string) => Promise<boolean>
   changeUsername: (username: string) => Promise<boolean>
   changeFlagCountryCode: (flagCountryCode: string | null) => Promise<boolean>
@@ -34,6 +36,8 @@ interface AuthState {
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const socialProviderLabel = (provider: SocialAuthProvider): string =>
+  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Authentication failed. Please try again.'
@@ -49,6 +53,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'restoring',
   socialProvider: null,
   socialPollToken: null,
+  socialPasswordRequired: false,
   error: null,
   session: null,
 
@@ -74,7 +79,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setMode: (mode) =>
-    set({ mode, error: null, password: '', socialProvider: null, socialPollToken: null }),
+    set({
+      mode,
+      error: null,
+      password: '',
+      socialProvider: null,
+      socialPollToken: null,
+      socialPasswordRequired: false
+    }),
   setUsername: (username) => set({ username, error: null }),
   setEmail: (email) => set({ email, error: null }),
   setPassword: (password) => set({ password, error: null }),
@@ -128,14 +140,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginWithSocial: async (provider) => {
-    if (get().status === 'submitting') return
+    if (get().status === 'submitting') {
+      if (get().socialProvider === provider) {
+        try {
+          await window.api.auth.reopenSocial(provider)
+        } catch (error) {
+          set({ error: readableError(error) })
+        }
+      }
+      return
+    }
     set({ status: 'submitting', socialProvider: provider, error: null })
 
     try {
       const result = await window.api.auth.social(provider)
       if ('kind' in result) {
         await window.api.window.focus()
-        set({ status: 'idle', socialProvider: provider, socialPollToken: result.pollToken })
+        set({
+          status: 'idle',
+          socialProvider: provider,
+          socialPollToken: result.pollToken,
+          socialPasswordRequired: result.kind === 'password_required',
+          ...(result.kind === 'password_required' ? { email: result.email } : {})
+        })
         return
       }
       await window.api.window.focus()
@@ -144,6 +171,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         status: 'authenticated',
         socialProvider: null,
         socialPollToken: null,
+        socialPasswordRequired: false,
         password: ''
       })
     } catch (error) {
@@ -153,8 +181,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         status: 'idle',
         socialProvider: null,
         socialPollToken: null,
+        socialPasswordRequired: false,
         error: message.includes('already exists')
-          ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > Facebook.`
+          ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > ${socialProviderLabel(provider)}.`
           : message
       })
     }
@@ -175,12 +204,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         socialPollToken,
         normalizedEmail
       )
+      if ('kind' in session) {
+        set({
+          status: 'idle',
+          socialProvider: session.provider,
+          socialPollToken: session.pollToken,
+          socialPasswordRequired: session.kind === 'password_required',
+          ...(session.kind === 'password_required' ? { email: session.email } : {})
+        })
+        return
+      }
       await window.api.window.focus()
       set({
         session,
         status: 'authenticated',
         socialProvider: null,
         socialPollToken: null,
+        socialPasswordRequired: false,
         password: ''
       })
     } catch (error) {
@@ -191,9 +231,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         socialProvider: null,
         socialPollToken: null,
         error: message.includes('already exists')
-          ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > Facebook.`
+          ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > ${socialProviderLabel(socialProvider)}.`
           : message
       })
+    }
+  },
+
+  submitSocialPassword: async () => {
+    const { password, socialPollToken, status } = get()
+    if (!socialPollToken || status === 'submitting') return
+    if (password.length < 8 || password.length > 128) {
+      set({ error: 'Password must be 8–128 characters.' })
+      return
+    }
+    set({ status: 'submitting', error: null })
+    try {
+      const session = await window.api.auth.completeSocialPassword(socialPollToken, password)
+      set({
+        session,
+        status: 'authenticated',
+        socialProvider: null,
+        socialPollToken: null,
+        socialPasswordRequired: false,
+        password: ''
+      })
+    } catch (error) {
+      set({ status: 'idle', error: readableError(error) })
     }
   },
 
@@ -272,6 +335,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         status: 'idle',
         socialProvider: null,
         socialPollToken: null,
+        socialPasswordRequired: false,
         error: null,
         session: null
       })

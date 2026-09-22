@@ -12,6 +12,8 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { localMapPreviews } from '../matchmaking/map-previews'
 
 const mapPreviewSources = Object.values(localMapPreviews)
+const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): string =>
+  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
 export function AuthPage(): JSX.Element {
   const mode = useAuthStore((state) => state.mode)
@@ -21,6 +23,7 @@ export function AuthPage(): JSX.Element {
   const status = useAuthStore((state) => state.status)
   const socialProvider = useAuthStore((state) => state.socialProvider)
   const socialPollToken = useAuthStore((state) => state.socialPollToken)
+  const socialPasswordRequired = useAuthStore((state) => state.socialPasswordRequired)
   const error = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -33,6 +36,7 @@ export function AuthPage(): JSX.Element {
   const submit = useAuthStore((state) => state.submit)
   const loginWithSocial = useAuthStore((state) => state.loginWithSocial)
   const submitSocialEmail = useAuthStore((state) => state.submitSocialEmail)
+  const submitSocialPassword = useAuthStore((state) => state.submitSocialPassword)
   const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
   const restoreStarted = useRef(false)
@@ -65,7 +69,7 @@ export function AuthPage(): JSX.Element {
   }, [session, status])
 
   useEffect(() => {
-    if (socialPollToken && socialProvider === 'facebook') {
+    if (socialPollToken && socialProvider) {
       void window.api.window.focus()
     }
   }, [socialPollToken, socialProvider])
@@ -101,45 +105,76 @@ export function AuthPage(): JSX.Element {
     )
   }
 
-  if (socialPollToken && socialProvider === 'facebook') {
+  if (socialPollToken && socialProvider) {
     return (
       <main className="grid min-h-screen place-items-center bg-neutral-950 p-6 text-white">
         <section className="w-full max-w-md border border-white/10 bg-neutral-900/95 p-7 shadow-2xl sm:p-10">
           <Logo className="mb-8 size-16" />
-          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Step 1 of 2</p>
-          <h1 className="mt-2 text-3xl font-semibold">Add your email</h1>
+          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
+            {socialPasswordRequired ? 'Account verification' : 'Step 1 of 2'}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold">
+            {socialPasswordRequired ? 'Confirm your account' : 'Add your email'}
+          </h1>
           <p className="mt-3 text-sm leading-6 text-neutral-400">
-            Facebook did not share an email address. Add one to create your 1.6 Competitive account.
-            You’ll choose your username next.
+            {socialPasswordRequired
+              ? `An account already uses this email. Enter its password to connect ${socialProviderLabel(socialProvider)} and sign in.`
+              : `${socialProviderLabel(socialProvider)} did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.`}
           </p>
 
           <form
             className="mt-7 grid gap-5"
             onSubmit={(event) => {
               event.preventDefault()
-              void submitSocialEmail()
+              void (socialPasswordRequired ? submitSocialPassword() : submitSocialEmail())
             }}
           >
             <TextField
-              id="facebook-email"
+              id="social-email"
               label="Email"
               type="email"
               value={email}
               maxLength={254}
               autoComplete="email"
               autoFocus
-              disabled={isSubmitting}
+              disabled={isSubmitting || socialPasswordRequired}
               placeholder="player@example.com"
-              hint="We use this to secure and identify your account."
+              hint={
+                socialPasswordRequired
+                  ? 'This email came from the existing account and cannot be changed here.'
+                  : 'We use this to secure and identify your account.'
+              }
               onChange={(event) => setEmail(event.target.value)}
             />
+
+            {socialPasswordRequired && (
+              <TextField
+                id="social-account-password"
+                label="Account password"
+                type="password"
+                value={password}
+                minLength={8}
+                maxLength={128}
+                autoComplete="current-password"
+                autoFocus
+                disabled={isSubmitting}
+                placeholder="Enter your existing password"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            )}
 
             <div className="min-h-5" aria-live="polite">
               {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
 
             <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Checking email…' : 'Continue'}
+              {isSubmitting
+                ? socialPasswordRequired
+                  ? 'Verifying…'
+                  : 'Checking email…'
+                : socialPasswordRequired
+                  ? `Connect ${socialProviderLabel(socialProvider)} and sign in`
+                  : 'Continue'}
             </Button>
           </form>
 
@@ -210,11 +245,11 @@ export function AuthPage(): JSX.Element {
             </Button>
           </div>
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               variant="ghost"
               className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
-              disabled={isSubmitting}
+              disabled={isSubmitting && socialProvider !== 'google'}
               onClick={() => void loginWithSocial('google')}
             >
               {socialProvider === 'google' ? (
@@ -228,6 +263,24 @@ export function AuthPage(): JSX.Element {
                 </span>
               )}
               Google
+            </Button>
+            <Button
+              variant="ghost"
+              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+              disabled={isSubmitting && socialProvider !== 'discord'}
+              onClick={() => void loginWithSocial('discord')}
+            >
+              {socialProvider === 'discord' ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span
+                  className="grid size-5 place-items-center rounded-full bg-[#5865F2] text-xs font-bold text-white"
+                  aria-hidden="true"
+                >
+                  D
+                </span>
+              )}
+              Discord
             </Button>
             {/* <Button
               variant="ghost"
@@ -252,7 +305,8 @@ export function AuthPage(): JSX.Element {
           {socialProvider && (
             <p className="mt-3 text-center text-xs text-neutral-400" role="status">
               Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
-              {socialProvider === 'google' ? 'Google' : 'Facebook'} in your browser.
+              {socialProviderLabel(socialProvider)} in your browser. Click it again to reopen the
+              browser.
             </p>
           )}
 
@@ -289,7 +343,7 @@ export function AuthPage(): JSX.Element {
                 placeholder="player@example.com"
                 hint={
                   socialPollToken
-                    ? 'Facebook did not provide an email address. Add one to continue.'
+                    ? `${socialProvider ? socialProviderLabel(socialProvider) : 'The provider'} did not provide an email address. Add one to continue.`
                     : undefined
                 }
                 onChange={(event) => setEmail(event.target.value)}
@@ -318,9 +372,9 @@ export function AuthPage(): JSX.Element {
               {isSubmitting && !socialProvider
                 ? isLogin && !socialPollToken
                   ? 'Signing in…'
-                  : 'Continue with Facebook'
+                  : `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
                 : socialPollToken
-                  ? 'Continue with Facebook'
+                  ? `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
                   : isLogin
                     ? 'Sign in'
                     : 'Create account'}
