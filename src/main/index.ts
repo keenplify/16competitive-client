@@ -6,6 +6,7 @@ import {
   authenticate,
   authenticateWithSocial,
   completeSocialWithEmail,
+  completeSocialWithPassword,
   changePassword,
   changeFlagCountryCode,
   changeUsername,
@@ -14,6 +15,7 @@ import {
   connectSocial,
   getSessionToken,
   getSocialConnections,
+  reopenSocialAuthorization,
   restoreSession
 } from './auth'
 import { reportClientTelemetry } from './client-telemetry'
@@ -354,10 +356,16 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) =>
     withClientTelemetry(authenticateWithSocial(provider))
   )
+  ipcMain.handle(AUTH_CHANNELS.socialReopen, (_, provider: unknown) =>
+    reopenSocialAuthorization(provider)
+  )
   ipcMain.handle(
     AUTH_CHANNELS.socialComplete,
     (_, provider: unknown, pollToken: unknown, email: unknown) =>
       withClientTelemetry(completeSocialWithEmail(provider, pollToken, email))
+  )
+  ipcMain.handle(AUTH_CHANNELS.socialPasswordComplete, (_, pollToken: unknown, password: unknown) =>
+    withClientTelemetry(completeSocialWithPassword(pollToken, password))
   )
   ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))

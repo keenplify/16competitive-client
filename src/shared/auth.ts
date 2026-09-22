@@ -2,7 +2,9 @@ export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
   social: 'auth:social',
+  socialReopen: 'auth:social-reopen',
   socialComplete: 'auth:social-complete',
+  socialPasswordComplete: 'auth:social-password-complete',
   socialConnections: 'auth:social-connections',
   socialConnect: 'auth:social-connect',
   usernameCheck: 'auth:username-check',
@@ -13,7 +15,7 @@ export const AUTH_CHANNELS = {
   restore: 'auth:restore'
 } as const
 
-export type SocialAuthProvider = 'google' | 'facebook'
+export type SocialAuthProvider = 'google' | 'facebook' | 'discord'
 
 export interface AuthCredentials {
   username: string
@@ -48,7 +50,14 @@ export interface SocialEmailRequired {
   provider: SocialAuthProvider
 }
 
-export type SocialAuthResult = AuthSession | SocialEmailRequired
+export interface SocialPasswordRequired {
+  kind: 'password_required'
+  pollToken: string
+  provider: SocialAuthProvider
+  email: string
+}
+
+export type SocialAuthResult = AuthSession | SocialEmailRequired | SocialPasswordRequired
 
 export interface UsernameAvailability {
   available: boolean
@@ -81,17 +90,20 @@ export interface SocialConnectionState {
 export interface SocialConnections {
   google: SocialConnectionState
   facebook: SocialConnectionState
+  discord: SocialConnectionState
 }
 
 export interface AuthApi {
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
   social(provider: SocialAuthProvider): Promise<SocialAuthResult>
+  reopenSocial(provider: SocialAuthProvider): Promise<void>
   completeSocial(
     provider: SocialAuthProvider,
     pollToken: string,
     email: string
-  ): Promise<AuthSession>
+  ): Promise<SocialAuthResult>
+  completeSocialPassword(pollToken: string, password: string): Promise<AuthSession>
   getSocialConnections(): Promise<SocialConnections>
   connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
   checkUsername(username: string): Promise<UsernameAvailability>
