@@ -9,6 +9,7 @@ import type {
 import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { usePartyStore } from '../party/party.store'
+import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 
 interface PeerRuntime {
   peer: VoicePeer
@@ -20,11 +21,6 @@ interface PeerRuntime {
   ignoreOffer: boolean
   isSettingRemoteAnswerPending: boolean
   connectionTimeout?: number
-}
-
-interface PeerPreference {
-  volume: number
-  muted: boolean
 }
 
 type VoiceTalkChannel = 'team' | 'party'
@@ -42,7 +38,6 @@ interface VoicePttKeyChangedDetail {
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
-const VOICE_PREFERENCES_KEY = '16competitive.voice.preferences'
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
 const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 const NATIVE_PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
@@ -102,30 +97,6 @@ const mouseEventGoldSrcKey = (event: MouseEvent): string | null => {
   }
 }
 
-const loadPeerPreferences = (): Record<string, PeerPreference> => {
-  try {
-    const value = localStorage.getItem(VOICE_PREFERENCES_KEY)
-    if (!value) return {}
-    const parsed = JSON.parse(value) as Record<string, Partial<PeerPreference>>
-    return Object.fromEntries(
-      Object.entries(parsed).map(([playerId, preference]) => [
-        playerId,
-        {
-          volume:
-            typeof preference.volume === 'number' ? Math.max(0, Math.min(1, preference.volume)) : 1,
-          muted: preference.muted === true
-        }
-      ])
-    )
-  } catch {
-    return {}
-  }
-}
-
-const savePeerPreferences = (preferences: Record<string, PeerPreference>): void => {
-  localStorage.setItem(VOICE_PREFERENCES_KEY, JSON.stringify(preferences))
-}
-
 const parseSignal = <T,>(signal: string): T | null => {
   try {
     return JSON.parse(signal) as T
@@ -182,8 +153,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const [joinedContext, setJoinedContext] = useState<VoiceContext | null>(null)
   const [peers, setPeers] = useState<VoicePeer[]>([])
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
-  const [preferences, setPreferences] =
-    useState<Record<string, PeerPreference>>(loadPeerPreferences)
+  const preferences = useVoicePreferencesStore((state) => state.preferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
   const [pttChannel, setPttChannel] = useState<VoiceTalkChannel | null>(null)
   const [teamVoicePttKey, setTeamVoicePttKey] = useState('K')
@@ -283,6 +253,10 @@ export function VoiceChatDock(): JSX.Element | null {
 
   useEffect(() => {
     preferencesRef.current = preferences
+    for (const runtime of runtimesRef.current.values()) {
+      const preference = preferenceFor(preferences, runtime.peer.id)
+      runtime.audio.volume = preference.muted ? 0 : preference.volume
+    }
   }, [preferences])
 
   useEffect(() => {
@@ -424,25 +398,13 @@ export function VoiceChatDock(): JSX.Element | null {
     }
   }, [activeContext, enabled, openMic, party, partyVoicePttKey, setTalkChannel, teamVoicePttKey])
 
-  const preferenceFor = (playerId: string): PeerPreference =>
-    preferences[playerId] ?? { volume: 1, muted: false }
+  const runtimePreferenceFor = (playerId: string) => preferenceFor(preferencesRef.current, playerId)
 
-  const runtimePreferenceFor = (playerId: string): PeerPreference =>
-    preferencesRef.current[playerId] ?? { volume: 1, muted: false }
-
-  const applyPreference = (runtime: PeerRuntime, preference: PeerPreference): void => {
+  const applyPreference = (
+    runtime: PeerRuntime,
+    preference: { volume: number; muted: boolean }
+  ): void => {
     runtime.audio.volume = preference.muted ? 0 : preference.volume
-  }
-
-  const updatePreference = (playerId: string, next: PeerPreference): void => {
-    setPreferences((current) => {
-      const updated = { ...current, [playerId]: next }
-      preferencesRef.current = updated
-      savePeerPreferences(updated)
-      const runtime = runtimesRef.current.get(playerId)
-      if (runtime) applyPreference(runtime, next)
-      return updated
-    })
   }
 
   const closePeer = (playerId: string): void => {
@@ -793,7 +755,7 @@ export function VoiceChatDock(): JSX.Element | null {
     setMicError(null)
   }
 
-  if (railMode === 'collapsed' && !expanded) {
+  if (railMode === 'collapsed' && !expanded && activeContext?.kind !== 'match') {
     return (
       <button
         type="button"
@@ -831,6 +793,8 @@ export function VoiceChatDock(): JSX.Element | null {
       : railMode === 'collapsed'
         ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] rounded-xl'
         : 'right-5 top-24 w-[min(24rem,calc(100vw-2.5rem))] rounded-xl'
+
+  if (activeContext?.kind === 'match') return null
 
   return (
     <aside
@@ -925,18 +889,6 @@ export function VoiceChatDock(): JSX.Element | null {
             <p className="mt-3 text-xs font-semibold text-sky-300">{talkingLabel}</p>
           )}
 
-          {enabled && !openMic && activeContext?.kind === 'match' && (
-            <p className="mt-3 text-xs text-neutral-400">
-              Hold <span className="font-mono text-neutral-200">{teamVoicePttKey}</span> for Team
-              {party ? (
-                <>
-                  {' · '}Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span>{' '}
-                  for Party
-                </>
-              ) : null}{' '}
-              in Counter-Strike.
-            </p>
-          )}
           {enabled && !openMic && activeContext?.kind === 'party' && (
             <p className="mt-3 text-xs text-neutral-400">
               Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party
@@ -948,13 +900,11 @@ export function VoiceChatDock(): JSX.Element | null {
             <div className="mt-4 space-y-3">
               {voiceRoster.length === 0 && (
                 <p className="text-xs text-neutral-500">
-                  {activeContext?.kind === 'match'
-                    ? 'Waiting for teammates in voice.'
-                    : 'Waiting for another player in voice chat.'}
+                  Waiting for another player in voice chat.
                 </p>
               )}
               {voiceRoster.map(({ peer, simulated }) => {
-                const preference = preferenceFor(peer.id)
+                const preference = preferenceFor(preferences, peer.id)
                 const state = simulated ? 'connected' : (peerStates[peer.id] ?? 'new')
                 return (
                   <div
@@ -970,7 +920,9 @@ export function VoiceChatDock(): JSX.Element | null {
                         type="button"
                         className="rounded border border-white/10 px-2 py-1 text-xs text-neutral-300 hover:bg-white/5"
                         onClick={() =>
-                          updatePreference(peer.id, { ...preference, muted: !preference.muted })
+                          useVoicePreferencesStore
+                            .getState()
+                            .setPreference(peer.id, { ...preference, muted: !preference.muted })
                         }
                       >
                         {preference.muted ? 'Unmute' : 'Mute'}
@@ -986,7 +938,7 @@ export function VoiceChatDock(): JSX.Element | null {
                         value={Math.round(preference.volume * 100)}
                         disabled={preference.muted}
                         onChange={(event) =>
-                          updatePreference(peer.id, {
+                          useVoicePreferencesStore.getState().setPreference(peer.id, {
                             ...preference,
                             volume: Number(event.target.value) / 100
                           })

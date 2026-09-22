@@ -358,7 +358,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
             (message.scope === 'global' || entry.language === message.language)
         )
       )
-    case 'match_found': {
+    case 'match_found':
+    case 'match_roster': {
       if (
         typeof message.matchId !== 'string' ||
         !isMode(message.mode) ||
@@ -666,6 +667,44 @@ class MatchmakingConnection {
       }
     })
     discordPresence.setInGame(true)
+  }
+
+  async reportPlayer(
+    matchId: unknown,
+    targetPlayerId: unknown,
+    reason: unknown,
+    description: unknown
+  ): Promise<void> {
+    if (
+      typeof matchId !== 'string' ||
+      !uuidPattern.test(matchId) ||
+      typeof targetPlayerId !== 'string' ||
+      !uuidPattern.test(targetPlayerId) ||
+      !['CHEATING', 'GRIEFING', 'TOXIC_COMMUNICATION', 'AFK_THROWING', 'OTHER'].includes(
+        String(reason)
+      ) ||
+      typeof description !== 'string' ||
+      description.trim().length < 3 ||
+      description.trim().length > 300
+    ) {
+      throw new Error('Choose a reason and enter 3 to 300 characters before reporting.')
+    }
+    const token = getSessionToken()
+    if (!token) throw new Error('Sign in before reporting a player.')
+    const baseUrl = this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL
+    const response = await fetch(new URL(`/matches/${matchId}/reports`, baseUrl), {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ targetPlayerId, reason, description: description.trim() }),
+      signal: AbortSignal.timeout(10_000)
+    })
+    if (response.ok) return
+    const body: unknown = await response.json().catch(() => null)
+    const code = body && typeof body === 'object' && 'error' in body ? String(body.error) : ''
+    if (code === 'ALREADY_REPORTED') throw new Error('You have already reported this player.')
+    if (code === 'MATCH_NOT_LIVE') throw new Error('This match is no longer live.')
+    if (code === 'PLAYER_NOT_IN_MATCH') throw new Error('This player is not in your match.')
+    throw new Error('Could not submit the report. Please try again.')
   }
 
   private refreshDiscordPartyPresence(): void {

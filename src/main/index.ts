@@ -452,6 +452,11 @@ app.whenReady().then(async () => {
     matchmakingConnection.respondReady(matchId, accepted)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(
+    MATCHMAKING_CHANNELS.reportPlayer,
+    (_, matchId: unknown, targetPlayerId: unknown, reason: unknown, description: unknown) =>
+      matchmakingConnection.reportPlayer(matchId, targetPlayerId, reason, description)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.voiceJoin, (_, context: unknown) =>
     matchmakingConnection.joinVoice(context)
   )
