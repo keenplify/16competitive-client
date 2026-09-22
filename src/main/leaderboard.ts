@@ -38,9 +38,7 @@ const isTopMmrLeaderboard = (value: unknown): value is Omit<TopMmrLeaderboard, '
   )
 }
 
-const getCurrentPlayerStanding = async (
-  countryCode?: string
-): Promise<LeaderboardEntry | null> => {
+const getCurrentPlayerStanding = async (countryCode?: string): Promise<LeaderboardEntry | null> => {
   const token = getSessionToken()
   if (!token) return null
 
@@ -57,9 +55,7 @@ const getCurrentPlayerStanding = async (
   return body
 }
 
-export const getTopMmrLeaderboard = async (
-  countryCode?: string
-): Promise<TopMmrLeaderboard> => {
+export const getTopMmrLeaderboard = async (countryCode?: string): Promise<TopMmrLeaderboard> => {
   if (countryCode !== undefined && !isCountryCode(countryCode)) {
     throw new Error('Invalid leaderboard country')
   }
