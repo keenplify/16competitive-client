@@ -181,14 +181,14 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     }
   ],
   m3: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    modelRotation: [0, 0, 90],
+    handRotation: [0, 0, 0],
+    handOffset: [15, 0, 1]
   },
   xm1014: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
+    modelRotation: [0, 0, 90],
+    handRotation: [0, 0, 0],
+    handOffset: [15, 0, 1]
   },
   m249: {
     modelRotation: [90, 0, 90],
