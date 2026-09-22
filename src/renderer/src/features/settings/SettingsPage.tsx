@@ -11,6 +11,7 @@ import {
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { Button } from '../../components/ui/Button'
+import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import { VolumeControl } from '../audio/VolumeControl'
@@ -287,18 +288,7 @@ export function SettingsPage(): JSX.Element {
     return (
       <div className="flex flex-col gap-4 border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div
-            className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
-              provider === 'google'
-                ? 'bg-white text-neutral-900'
-                : provider === 'facebook'
-                  ? 'bg-[#1877F2] text-white'
-                  : 'bg-[#5865F2] text-white'
-            }`}
-            aria-hidden="true"
-          >
-            {provider === 'google' ? 'G' : provider === 'facebook' ? 'f' : 'D'}
-          </div>
+          <SocialProviderIcon provider={provider} className="size-9" />
           <div className="min-w-0">
             <p className="font-medium text-neutral-100">{label}</p>
             <p className="truncate text-xs text-neutral-400">
