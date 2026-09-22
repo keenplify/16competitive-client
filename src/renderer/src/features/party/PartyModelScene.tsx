@@ -10,6 +10,7 @@ import {
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import type { PartyMember } from '../../../../shared/party'
+import { isGrenadeWeapon } from '../skins/weapon-categories'
 import {
   readCachedLobbyPresentation,
   writeCachedLobbyPresentation,
@@ -21,6 +22,7 @@ export type PartySceneActor = {
   modelPath: string
   fallbackModelPath: string
   weaponPath: string
+  weaponSkinId: string | null
   weaponKey: string
   isLeader: boolean
   isCurrentPlayer: boolean
@@ -44,11 +46,19 @@ type LoadedScene = {
 
 const LOBBY_MODEL_PREFIX = 'lobby/'
 const LOBBY_PRESENTATION_CACHE_REVISION = 1
+const MAX_CURRENT_PLAYER_POINTER_YAW = THREE.Math.degToRad(8)
 
 const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
   modelRotation: [0, 90, 90],
   handRotation: [0, 180, 0],
   handOffset: [21, 0, 4]
+}
+
+/** Shared placement for every grenade p_*.mdl. */
+const GRENADE_WEAPON_TRANSFORM: WeaponTransform = {
+  modelRotation: [0, 90, 90],
+  handRotation: [0, 90, 0],
+  handOffset: [2, 0, 2.5]
 }
 
 // Weapon placement is intentionally independent from animation families so each
@@ -187,24 +197,9 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   knife: {
     modelRotation: [0, -13, 90],
     handRotation: [90, 90, 90],
-    handOffset: [4, -0.5, 3]
+    handOffset: [4, -0.5, 1]
   },
   c4: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
-  },
-  hegrenade: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
-  },
-  flashbang: {
-    modelRotation: [0, 90, 90],
-    handRotation: [0, 180, 0],
-    handOffset: [21, 0, 4]
-  },
-  smokegrenade: {
     modelRotation: [0, 90, 90],
     handRotation: [0, 180, 0],
     handOffset: [21, 0, 4]
@@ -275,7 +270,7 @@ const idleSequenceIndexFor = (modelData: ModelData): number => {
 }
 
 const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
-  const family = WEAPON_ANIMATION_FAMILY[weaponKey]
+  const family = isGrenadeWeapon(weaponKey) ? 'grenade' : WEAPON_ANIMATION_FAMILY[weaponKey]
   if (family) {
     const index = sequenceIndexFor(modelData, `ref_aim_${family}`)
     if (index >= 0) return index
@@ -290,7 +285,9 @@ const lobbyAnimationIndexFor = (modelData: ModelData, weaponKey: string): number
 }
 
 const lobbySequenceLabelFor = (weaponKey: string): string =>
-  LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle'
+  isGrenadeWeapon(weaponKey)
+    ? 'ref_aim_grenade'
+    : (LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle')
 
 const buildLobbyPresentation = (
   playerBuffer: ArrayBuffer,
@@ -336,6 +333,14 @@ const loadPlayerPresentation = async (
   weaponKey: string
 ): Promise<CachedLobbyPresentation> => {
   const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${actor.modelPath}:${lobbySequenceLabelFor(weaponKey)}`
+  if (isGrenadeWeapon(weaponKey)) {
+    const lobbyModelName = actor.modelPath.match(/^lobby\/([a-z0-9_]+)_lobby\.mdl$/i)?.[1]
+    const stockModelPath = lobbyModelName
+      ? `player/${lobbyModelName}/${lobbyModelName}.mdl`
+      : actor.fallbackModelPath
+    const playerBuffer = await window.api.models.read(stockModelPath)
+    return buildLobbyPresentation(playerBuffer, weaponKey)
+  }
   if (actor.modelPath.startsWith(LOBBY_MODEL_PREFIX)) {
     const cached = await readCachedLobbyPresentation(cacheKey)
     if (cached) return cached
@@ -358,7 +363,9 @@ const isWeaponTransformArray = (
 ): value is readonly WeaponTransform[] => Array.isArray(value)
 
 const weaponTransformsFor = (weaponKey: string): readonly WeaponTransform[] => {
-  const configured = WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM
+  const configured = isGrenadeWeapon(weaponKey)
+    ? GRENADE_WEAPON_TRANSFORM
+    : (WEAPON_TRANSFORM[weaponKey] ?? DEFAULT_WEAPON_TRANSFORM)
 
   return isWeaponTransformArray(configured) ? configured : [configured]
 }
@@ -383,6 +390,16 @@ const loadLobbyWeapon = async (
   try {
     return { actor, weaponBuffer: await window.api.models.read(actor.weaponPath) }
   } catch {
+    if (actor.weaponSkinId) {
+      try {
+        return {
+          actor,
+          weaponBuffer: await window.api.skins.previewModel(actor.weaponSkinId)
+        }
+      } catch {
+        // The skin may be unavailable to this account; use the stock fallback.
+      }
+    }
     const fallbackActor: PartySceneActor = {
       ...actor,
       weaponPath: DEFAULT_LOBBY_WEAPON_PATH,
@@ -644,7 +661,7 @@ export function PartyModelScene({
   const actorKey = actors
     .map(
       ({ member, modelPath, weaponPath, weaponKey, isCurrentPlayer, isLeader }) =>
-        `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${weaponKey}:${isLeader}:${isCurrentPlayer}`
+        `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${member.lobbyWeaponSkinId}:${weaponKey}:${isLeader}:${isCurrentPlayer}`
     )
     .join('|')
 
@@ -707,30 +724,34 @@ export function PartyModelScene({
       { x: -60, z: -20 }
     ] as const
     const actorsToFade: THREE.Group[] = []
+    let currentPlayerPivot: THREE.Group | null = null
     sceneActors.forEach((actor, index) => {
       const playerPresentation = loadedScene.playerPresentations[index]
       const weaponBuffer = loadedScene.weaponBuffers[index]
       if (!playerPresentation || !weaponBuffer) return
       const model = createActor(actor, playerPresentation, weaponBuffer)
       setActorOpacity(model, 0)
+      const pivot = new THREE.Group()
+      model.position.set(0, 0, 0)
       // GoldSrc player MDLs do not share a consistent local origin. Center a
       // solo actor from its actual geometry while leaving the tuned five-player
       // formation exactly as-is.
-      model.position.x = formation[index]?.x
-      model.position.y = -45
-      model.position.z = formation[index]?.z ?? 2
-      scene.add(model)
+      pivot.position.x = formation[index]?.x
+      pivot.position.y = -45
+      pivot.position.z = formation[index]?.z ?? 2
+      pivot.add(model)
+      scene.add(pivot)
+      if (actor.isCurrentPlayer) currentPlayerPivot = pivot
       actorsToFade.push(model)
     })
     camera.position.set(0, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
-    let targetCameraX = 0
+    let targetCurrentPlayerYaw = 0
     const handlePointerMove = (event: PointerEvent): void => {
       const bounds = canvas.getBoundingClientRect()
       if (bounds.width <= 0) return
       const normalizedX = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-      targetCameraX = -11.25 + normalizedX * 22.5
-      // targetCameraX = 90
+      targetCurrentPlayerYaw = (normalizedX * 2 - 1) * MAX_CURRENT_PLAYER_POINTER_YAW
     }
     window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
@@ -746,8 +767,10 @@ export function PartyModelScene({
     const fadeStartedAt = performance.now()
     const render = () => {
       frame = requestAnimationFrame(render)
-      camera.position.x += (targetCameraX - camera.position.x) * 0.06
-      camera.lookAt(new THREE.Vector3(0, 0, 0))
+      if (currentPlayerPivot) {
+        currentPlayerPivot.rotation.y +=
+          (targetCurrentPlayerYaw - currentPlayerPivot.rotation.y) * 0.06
+      }
       const opacity = Math.min((performance.now() - fadeStartedAt) / 450, 1)
       const now = performance.now()
       actorsToFade.forEach((actor) => {

@@ -7,6 +7,8 @@ import type {
 import type { GlobalChatMessage, PartyChatEvent } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
 import { playChatMessageSound } from '../chat/chat-message-sound'
+import { useLobbyLoadoutStore } from './lobby-loadout.store'
+import { buildMarketingLobby, MARKETING_LOBBY_ENABLED } from './marketing-lobby'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
 export type ChatTab = 'party' | 'language' | 'global'
@@ -104,6 +106,13 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   start: () => {
     if (removePartyEventListener) return
+
+    if (MARKETING_LOBBY_ENABLED) {
+      // A no-op listener doubles as the existing started/stopped lifecycle marker.
+      removePartyEventListener = () => undefined
+      void get().refresh()
+      return
+    }
 
     removeDiscordJoinListener = window.api.party.onDiscordJoinResult((result) => {
       if (result.ok) {
@@ -290,6 +299,22 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
     const operation = (async () => {
       try {
+        if (MARKETING_LOBBY_ENABLED) {
+          const player = useAuthStore.getState().session?.player
+          if (!player) throw new Error('Sign in before opening the marketing lobby.')
+          const { party, currentPlayerMember } = buildMarketingLobby(
+            player,
+            await window.api.skins.list()
+          )
+          useLobbyLoadoutStore
+            .getState()
+            .setPlayerModel(currentPlayerMember.lobbyPlayerModel ?? 'player/gign/gign.mdl')
+          useLobbyLoadoutStore
+            .getState()
+            .setWeapon(currentPlayerMember.lobbyWeaponKey, currentPlayerMember.lobbyWeaponModelPath)
+          set({ party, invitations: [], status: 'idle', error: null })
+          return
+        }
         do {
           partyRefreshQueued = false
           const [party, invitations] = await Promise.all([
@@ -326,6 +351,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   setInviteUsername: (inviteUsername) => set({ inviteUsername, error: null, notice: null }),
 
   invite: async () => {
+    if (MARKETING_LOBBY_ENABLED) {
+      set({ notice: 'The marketing lobby is local-only.' })
+      return
+    }
     const username = get().inviteUsername.trim()
     if (!/^[A-Za-z0-9_]{3,32}$/.test(username)) {
       set({ error: 'Enter a username with 3–32 letters, numbers, or underscores.' })
@@ -352,6 +381,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   },
 
   invitePlayer: async (username) => {
+    if (MARKETING_LOBBY_ENABLED) {
+      set({ notice: 'The marketing lobby is local-only.' })
+      return
+    }
     if (!/^[A-Za-z0-9_]{3,32}$/.test(username)) {
       set({ error: 'That friend has an invalid username.' })
       return
@@ -371,6 +404,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   },
 
   respond: async (invitationId, decision) => {
+    if (MARKETING_LOBBY_ENABLED) {
+      set({ notice: 'The marketing lobby is local-only.' })
+      return
+    }
     set({ status: 'responding', error: null, notice: null })
     try {
       await window.api.party.respond(invitationId, decision)
@@ -390,6 +427,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   },
 
   leave: async () => {
+    if (MARKETING_LOBBY_ENABLED) {
+      set({ notice: 'The marketing lobby is local-only.' })
+      return
+    }
     set({ status: 'leaving', error: null, notice: null })
     try {
       const result = await window.api.party.leave()
@@ -407,6 +448,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   setChatDraft: (chatDraft) => set({ chatDraft: chatDraft.slice(0, 300), chatError: null }),
 
   sendChat: async () => {
+    if (MARKETING_LOBBY_ENABLED) {
+      set({ chatError: 'The marketing lobby is local-only.' })
+      return
+    }
     const message = get().chatDraft.trim()
     if (!message || get().chatSending) return
     set({ chatSending: true, chatError: null })

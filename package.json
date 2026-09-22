@@ -17,6 +17,7 @@
     "verify": "npm run lint && npm run typecheck",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
+    "marketing:lobby": "electron-vite dev --mode marketing",
     "preview": "electron-vite preview",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",

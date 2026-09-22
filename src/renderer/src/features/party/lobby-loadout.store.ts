@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { MARKETING_LOBBY_ENABLED } from './marketing-lobby'
 
 const DEFAULT_PLAYER_MODEL = 'player/gign/gign.mdl'
 
@@ -16,6 +17,7 @@ export const useLobbyLoadoutStore = create<LobbyLoadoutState>((set) => ({
   weaponKey: 'ak47',
   weaponModelPath: null,
   refresh: async () => {
+    if (MARKETING_LOBBY_ENABLED) return
     const loadout = await window.api.skins.getLobbyLoadout?.().catch(() => null)
     if (loadout) {
       set({

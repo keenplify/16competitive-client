@@ -78,6 +78,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
               weaponPath: isCurrentPlayer
                 ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
                 : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
+              weaponSkinId: member.lobbyWeaponSkinId,
               weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
               isLeader: party?.leaderId === member.id,
               isCurrentPlayer
