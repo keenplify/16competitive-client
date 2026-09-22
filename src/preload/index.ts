@@ -84,6 +84,14 @@ const matchmaking: MatchmakingApi = {
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  reportPlayer: (matchId, targetPlayerId, reason, description) =>
+    ipcRenderer.invoke(
+      MATCHMAKING_CHANNELS.reportPlayer,
+      matchId,
+      targetPlayerId,
+      reason,
+      description
+    ),
   voiceJoin: (context) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceJoin, context),
   voiceLeave: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.voiceLeave),
   voiceSignal: (targetPlayerId, signalType, signal) =>

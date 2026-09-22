@@ -10,6 +10,7 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
+import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
 
@@ -193,7 +194,10 @@ export function PlayPage(): JSX.Element {
     )
   }
 
-  if (match && ['countdown', 'starting_server', 'server_ready'].includes(queueStatus)) {
+  if (
+    (match && (queueStatus === 'countdown' || queueStatus === 'starting_server')) ||
+    (queueStatus === 'server_ready' && connectionDetails)
+  ) {
     return (
       <main
         className={twMerge(
@@ -213,11 +217,12 @@ export function PlayPage(): JSX.Element {
                 ? 'All players ready'
                 : queueStatus === 'starting_server'
                   ? 'Preparing server'
-                  : 'Server ready'}
+                  : 'In game'}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">
-              {maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} ·{' '}
-              {getMatchmakingModeLabel(match.mode)}
+              {match
+                ? `${maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} · ${getMatchmakingModeLabel(match.mode)}`
+                : 'Match in progress'}
             </h1>
             {queueStatus === 'countdown' && (
               <>
@@ -234,24 +239,37 @@ export function PlayPage(): JSX.Element {
             />
             {queueStatus === 'server_ready' && connectionDetails && (
               <div className="mx-auto mt-5 max-w-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-200">
-                Server ready at {connectionDetails.host}:{connectionDetails.port}. The launcher will
-                launch Counter-Strike and connect automatically.
+                Match server: {connectionDetails.host}:{connectionDetails.port}. Alt tab here to
+                manage player voice, report a player, or reconnect after exiting.
               </div>
             )}
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <TeamRoster
-              name="Team A"
-              players={match.teams.teamA}
-              readyPlayerIds={acceptedPlayerIds}
+          {queueStatus === 'server_ready' && match ? (
+            <InGameRoster
+              className="mt-8"
+              matchId={match.matchId}
+              teams={match.teams}
+              currentPlayerId={player.id}
             />
-            <TeamRoster
-              name="Team B"
-              players={match.teams.teamB}
-              readyPlayerIds={acceptedPlayerIds}
-            />
-          </div>
+          ) : match ? (
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <TeamRoster
+                name="Team A"
+                players={match.teams.teamA}
+                readyPlayerIds={acceptedPlayerIds}
+              />
+              <TeamRoster
+                name="Team B"
+                players={match.teams.teamB}
+                readyPlayerIds={acceptedPlayerIds}
+              />
+            </div>
+          ) : (
+            <p className="mt-8 text-center text-sm text-neutral-400" role="status">
+              Loading match roster…
+            </p>
+          )}
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mt-8 flex justify-center">
@@ -263,33 +281,6 @@ export function PlayPage(): JSX.Element {
 
           {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
         </div>
-      </main>
-    )
-  }
-
-  // A client reopened after the match was already prepared receives the
-  // connection details but not the original roster. Keep the reconnect action
-  // usable instead of trying to read teams from a missing in-memory match.
-  if (queueStatus === 'server_ready' && connectionDetails) {
-    return (
-      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-transparent p-5 text-white sm:p-10">
-        <div
-          className={twMerge('pointer-events-none fixed inset-0 z-0', serverReadyBackgroundClass)}
-          aria-hidden="true"
-        />
-        <section className="relative z-10 w-full max-w-xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-8 text-center">
-          <p className="text-xs font-bold tracking-[0.22em] text-emerald-300 uppercase">
-            Match ready
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Reconnect to your match</h1>
-          <p className="mt-3 text-sm text-emerald-100/70">
-            The game server is available at {connectionDetails.host}:{connectionDetails.port}.
-          </p>
-          <Button className="mt-6" disabled={!gameExited} onClick={() => void handleReconnect()}>
-            {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
-          </Button>
-          {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
-        </section>
       </main>
     )
   }

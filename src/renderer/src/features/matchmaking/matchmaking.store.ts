@@ -235,6 +235,22 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           error: null
         })
         break
+      case 'match_roster':
+        if (terminalMatchIds.has(event.matchId)) break
+        set({
+          match: {
+            matchId: event.matchId,
+            mode: event.mode,
+            mapId: event.mapId,
+            region: event.region,
+            hostApiUrl: event.hostApiUrl,
+            teams: event.teams
+          },
+          selectedMode: event.mode,
+          selectedMapIds: [event.mapId],
+          activeRegion: event.region
+        })
+        break
       case 'match_assets_progress':
         set((state) =>
           state.match?.matchId === event.matchId ||

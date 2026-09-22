@@ -13,6 +13,7 @@ export const MATCHMAKING_CHANNELS = {
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
   reconnectGame: 'matchmaking:reconnect-game',
+  reportPlayer: 'matchmaking:report-player',
   voiceJoin: 'matchmaking:voice-join',
   voiceLeave: 'matchmaking:voice-leave',
   voiceSignal: 'matchmaking:voice-signal',
@@ -46,6 +47,9 @@ export interface VoiceContext {
 }
 
 export type VoiceSignalType = 'offer' | 'answer' | 'ice'
+
+export type PlayerReportReason =
+  'CHEATING' | 'GRIEFING' | 'TOXIC_COMMUNICATION' | 'AFK_THROWING' | 'OTHER'
 
 export interface VoiceIceServer {
   urls: string | string[]
@@ -217,6 +221,15 @@ export type MatchmakingServerMessage =
       teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
     }
   | {
+      type: 'match_roster'
+      matchId: string
+      mode: MatchmakingMode
+      mapId: string
+      region: string
+      hostApiUrl: string
+      teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
+    }
+  | {
       type: 'match_ready_check'
       matchId: string
       deadline: string
@@ -315,6 +328,12 @@ export interface MatchmakingApi {
   getMaps(): Promise<MatchmakingMap[]>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
+  reportPlayer(
+    matchId: string,
+    targetPlayerId: string,
+    reason: PlayerReportReason,
+    description: string
+  ): Promise<void>
   voiceJoin(context: VoiceContext): Promise<void>
   voiceLeave(): Promise<void>
   voiceSignal(targetPlayerId: string, signalType: VoiceSignalType, signal: string): Promise<void>
