@@ -207,7 +207,7 @@ const updater: UpdaterApi = {
 }
 
 const leaderboard: LeaderboardApi = {
-  getTopMmr: (countryCode) => ipcRenderer.invoke(LEADERBOARD_CHANNELS.getTopMmr, countryCode)
+  getTopMmr: (continentOf) => ipcRenderer.invoke(LEADERBOARD_CHANNELS.getTopMmr, continentOf)
 }
 
 const news: NewsApi = {

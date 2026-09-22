@@ -38,12 +38,12 @@ const isTopMmrLeaderboard = (value: unknown): value is Omit<TopMmrLeaderboard, '
   )
 }
 
-const getCurrentPlayerStanding = async (countryCode?: string): Promise<LeaderboardEntry | null> => {
+const getCurrentPlayerStanding = async (continentOf?: string): Promise<LeaderboardEntry | null> => {
   const token = getSessionToken()
   if (!token) return null
 
-  const countryQuery = countryCode ? `?country=${encodeURIComponent(countryCode)}` : ''
-  const response = await fetch(`${API_BASE_URL}/leaderboard/me${countryQuery}`, {
+  const regionQuery = continentOf ? `?continentOf=${encodeURIComponent(continentOf)}` : ''
+  const response = await fetch(`${API_BASE_URL}/leaderboard/me${regionQuery}`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
@@ -55,26 +55,26 @@ const getCurrentPlayerStanding = async (countryCode?: string): Promise<Leaderboa
   return body
 }
 
-export const getTopMmrLeaderboard = async (countryCode?: string): Promise<TopMmrLeaderboard> => {
-  if (countryCode !== undefined && !isCountryCode(countryCode)) {
+export const getTopMmrLeaderboard = async (continentOf?: string): Promise<TopMmrLeaderboard> => {
+  if (continentOf !== undefined && !isCountryCode(continentOf)) {
     throw new Error('Invalid leaderboard country')
   }
 
-  const countryQuery = countryCode ? `?country=${encodeURIComponent(countryCode)}` : ''
-  const response = await fetch(`${API_BASE_URL}/leaderboard/top-mmr${countryQuery}`, {
+  const regionQuery = continentOf ? `?continentOf=${encodeURIComponent(continentOf)}` : ''
+  const response = await fetch(`${API_BASE_URL}/leaderboard/top-mmr${regionQuery}`, {
     signal: AbortSignal.timeout(10_000)
   }).catch(() => {
     throw new Error('Could not reach the matchmaking server')
   })
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
-    console.error('[Leaderboard] request failed', { status: response.status, countryCode })
+    console.error('[Leaderboard] request failed', { status: response.status, continentOf })
     throw new Error('Could not load the leaderboard')
   }
   if (!isTopMmrLeaderboard(body)) {
     throw new Error('The matchmaking server returned an invalid leaderboard')
   }
 
-  const currentPlayer = await getCurrentPlayerStanding(countryCode)
+  const currentPlayer = await getCurrentPlayerStanding(continentOf)
   return { ...body, currentPlayer }
 }

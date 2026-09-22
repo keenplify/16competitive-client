@@ -553,14 +553,14 @@ app.whenReady().then(async () => {
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
-  ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, (_, countryCode: unknown) => {
+  ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, (_, continentOf: unknown) => {
     if (
-      countryCode !== undefined &&
-      (typeof countryCode !== 'string' || !/^[A-Z]{2}$/.test(countryCode))
+      continentOf !== undefined &&
+      (typeof continentOf !== 'string' || !/^[A-Z]{2}$/.test(continentOf))
     ) {
       throw new Error('Invalid leaderboard country')
     }
-    return getTopMmrLeaderboard(countryCode)
+    return getTopMmrLeaderboard(continentOf)
   })
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())

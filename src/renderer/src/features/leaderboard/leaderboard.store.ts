@@ -2,37 +2,44 @@ import { create } from 'zustand'
 import type { TopMmrLeaderboard } from '../../../../shared/leaderboard'
 
 type LeaderboardStatus = 'idle' | 'loading' | 'ready' | 'error'
+export type LeaderboardScope = 'global' | 'continental'
 
 interface LeaderboardState {
   leaderboard: TopMmrLeaderboard | null
+  scope: LeaderboardScope
   status: LeaderboardStatus
-  countryCode: string | null
+  continentOf: string | null
   playerCountryCode: string | null
-  load(countryCode?: string): Promise<void>
+  load(continentOf?: string): Promise<void>
 }
 
 export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({
   leaderboard: null,
+  scope: 'global',
   status: 'idle',
-  countryCode: null,
+  continentOf: null,
   playerCountryCode: null,
-  load: async (countryCode) => {
-    if (get().status === 'loading' && get().countryCode === (countryCode ?? null)) return
+  load: async (continentOf) => {
+    if (get().status === 'loading' && get().continentOf === (continentOf ?? null)) return
 
-    set({ status: 'loading', countryCode: countryCode ?? null })
+    set({
+      status: 'loading',
+      scope: continentOf ? 'continental' : 'global',
+      continentOf: continentOf ?? null
+    })
     try {
-      const leaderboard = await window.api.leaderboard.getTopMmr(countryCode)
-      if (get().countryCode !== (countryCode ?? null)) return
+      const leaderboard = await window.api.leaderboard.getTopMmr(continentOf)
+      if (get().continentOf !== (continentOf ?? null)) return
       set({
         leaderboard,
         status: 'ready',
-        ...(countryCode === undefined && {
+        ...(continentOf === undefined && {
           playerCountryCode: leaderboard.currentPlayer?.flagCountryCode ?? null
         })
       })
     } catch (error) {
-      console.error('[Leaderboard] failed to load top MMR', { countryCode, error })
-      if (get().countryCode === (countryCode ?? null)) set({ status: 'error' })
+      console.error('[Leaderboard] failed to load top MMR', { continentOf, error })
+      if (get().continentOf === (continentOf ?? null)) set({ status: 'error' })
     }
   }
 }))
