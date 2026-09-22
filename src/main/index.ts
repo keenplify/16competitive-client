@@ -540,7 +540,15 @@ app.whenReady().then(async () => {
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
-  ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, () => getTopMmrLeaderboard())
+  ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, (_, countryCode: unknown) => {
+    if (
+      countryCode !== undefined &&
+      (typeof countryCode !== 'string' || !/^[A-Z]{2}$/.test(countryCode))
+    ) {
+      throw new Error('Invalid leaderboard country')
+    }
+    return getTopMmrLeaderboard(countryCode)
+  })
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
   ipcMain.handle(OPERATION_CHANNELS.getActive, () => getActiveOperation())
