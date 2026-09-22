@@ -45,8 +45,9 @@ type LoadedScene = {
 }
 
 const LOBBY_MODEL_PREFIX = 'lobby/'
-const LOBBY_PRESENTATION_CACHE_REVISION = 1
+const LOBBY_PRESENTATION_CACHE_REVISION = 2
 const MAX_CURRENT_PLAYER_POINTER_YAW = THREE.Math.degToRad(8)
+const MAX_CURRENT_PLAYER_POINTER_PITCH = THREE.Math.degToRad(4)
 
 const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
   modelRotation: [0, 90, 90],
@@ -56,9 +57,9 @@ const DEFAULT_WEAPON_TRANSFORM: WeaponTransform = {
 
 /** Shared placement for every grenade p_*.mdl. */
 const GRENADE_WEAPON_TRANSFORM: WeaponTransform = {
-  modelRotation: [0, 90, 90],
+  modelRotation: [0, 120, 90],
   handRotation: [0, 90, 0],
-  handOffset: [2, 0, 2.5]
+  handOffset: [4, 0, 3]
 }
 
 // Weapon placement is intentionally independent from animation families so each
@@ -141,14 +142,14 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
     handOffset: [0, 0, 4]
   },
   usp: {
-    modelRotation: [0, 290, 90],
+    modelRotation: [0, 285, 90],
     handRotation: [0, 180, 0],
-    handOffset: [7, 1, 2]
+    handOffset: [7, 0.5, 0.5]
   },
   glock18: {
-    modelRotation: [0, 290, 90],
+    modelRotation: [0, 285, 90],
     handRotation: [0, 180, 0],
-    handOffset: [4, 0.5, 2]
+    handOffset: [4, 0.5, 1]
   },
   p228: {
     modelRotation: [0, 280, 90],
@@ -297,16 +298,40 @@ const buildLobbyPresentation = (
   const animationIndex = lobbyAnimationIndexFor(player, weaponKey)
   const activeSequence = player.sequences[animationIndex]
   const renderData = prepareRenderData(player, [animationIndex])
+  const boneNames = player.bones.map((bone) => bone.name.toLowerCase())
+  const upperBodyRoot = boneNames.findIndex((boneName) => boneName === 'bip01 spine')
+  const isUpperBodyBone = (boneIndex: number): boolean => {
+    let current = boneIndex
+    while (current >= 0) {
+      if (current === upperBodyRoot) return true
+      current = player.bones[current]?.parent ?? -1
+    }
+    return false
+  }
+  const boneTransforms = Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
+    calcRotations(player, animationIndex, frame).map((matrix) => new Float32Array(matrix))
+  )
   const meshes = renderData.flatMap((bodyPart, bodyPartIndex) =>
     bodyPart.flatMap((subModel, subModelIndex) =>
       subModel.map(({ geometryBuffers, uvMap }, meshIndex) => {
         const sourceMesh = player.meshes[bodyPartIndex][subModelIndex][meshIndex]
+        const textureIndex = player.skinRef[sourceMesh.skinRef]
+        const texture = player.textures[textureIndex]
+        const { indices } = readFacesData(
+          player.triangles[bodyPartIndex][subModelIndex][meshIndex],
+          player.vertices[bodyPartIndex][subModelIndex],
+          texture ?? { width: 1, height: 1 }
+        )
+        const vertexBones = player.vertBoneBuffer[bodyPartIndex][subModelIndex]
         return {
           animationFrames: geometryBuffers[animationIndex].map(
             (frame) => new Float32Array(frame.array)
           ),
+          upperBodyMask: Uint8Array.from(indices, (vertexIndex) =>
+            isUpperBodyBone(vertexBones[vertexIndex]) ? 1 : 0
+          ),
           uv: new Float32Array(uvMap.array),
-          textureIndex: player.skinRef[sourceMesh.skinRef]
+          textureIndex
         }
       })
     )
@@ -315,10 +340,14 @@ const buildLobbyPresentation = (
   return {
     fps: activeSequence?.fps ?? 0,
     frameCount: activeSequence?.numFrames ?? 0,
-    boneNames: player.bones.map((bone) => bone.name.toLowerCase()),
-    boneTransforms: Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
-      calcRotations(player, animationIndex, frame).map((matrix) => new Float32Array(matrix))
-    ),
+    boneNames,
+    boneTransforms,
+    upperBodyPivots: boneTransforms.map((frame) => {
+      const transform = frame[upperBodyRoot]
+      return transform
+        ? new Float32Array([transform[12], transform[13], transform[14]])
+        : new Float32Array([0, 0, 0])
+    }),
     meshes,
     textures: player.textures.map((texture) => ({
       pixels: buildTexture(playerBuffer, texture),
@@ -515,6 +544,8 @@ const setActorOpacity = (actor: THREE.Group, opacity: number): void => {
   })
 }
 
+const randomAnimationPhase = (): number => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32
+
 const createActor = (
   actor: PartySceneActor,
   player: CachedLobbyPresentation,
@@ -524,7 +555,7 @@ const createActor = (
   const weaponTransforms = weaponTransformsFor(presentationWeaponKey)
   const group = new THREE.Group()
 
-  player.meshes.forEach(({ animationFrames, uv, textureIndex }) => {
+  player.meshes.forEach(({ animationFrames, upperBodyMask, uv, textureIndex }) => {
     const texture = player.textures[textureIndex]
     const frameAttributes = animationFrames.map((frame) => new THREE.BufferAttribute(frame, 3))
     const mesh = addMesh(
@@ -535,6 +566,7 @@ const createActor = (
       texture
     )
     mesh.userData.animationFrames = frameAttributes
+    mesh.userData.upperBodyMask = upperBodyMask
   })
 
   const weapon = parseModelCached(weaponBuffer)
@@ -619,6 +651,7 @@ const createActor = (
             textureInfo
           )
           mesh.userData.animationFrames = animationFrames
+          mesh.userData.followsUpperBody = true
         })
       )
     )
@@ -640,7 +673,11 @@ const createActor = (
   group.add(nameplate)
   group.userData.animationFps = player.fps
   group.userData.animationFrameCount = player.frameCount
-  group.userData.animationStartedAt = performance.now()
+  const animationDurationMilliseconds =
+    player.fps > 0 && player.frameCount > 0 ? (player.frameCount / player.fps) * 1_000 : 0
+  group.userData.animationStartedAt =
+    performance.now() - randomAnimationPhase() * animationDurationMilliseconds
+  group.userData.upperBodyPivots = player.upperBodyPivots
   return group
 }
 
@@ -724,7 +761,7 @@ export function PartyModelScene({
       { x: -60, z: -20 }
     ] as const
     const actorsToFade: THREE.Group[] = []
-    let currentPlayerPivot: THREE.Group | null = null
+    let currentPlayerActor: THREE.Group | null = null
     sceneActors.forEach((actor, index) => {
       const playerPresentation = loadedScene.playerPresentations[index]
       const weaponBuffer = loadedScene.weaponBuffers[index]
@@ -741,17 +778,29 @@ export function PartyModelScene({
       pivot.position.z = formation[index]?.z ?? 2
       pivot.add(model)
       scene.add(pivot)
-      if (actor.isCurrentPlayer) currentPlayerPivot = pivot
+      if (actor.isCurrentPlayer) {
+        currentPlayerActor = model
+        model.updateMatrixWorld(true)
+        model.userData.pointerYawAxis = new THREE.Vector3(0, 1, 0)
+          .applyQuaternion(model.getWorldQuaternion(new THREE.Quaternion()).inverse())
+          .normalize()
+        model.userData.pointerPitchAxis = new THREE.Vector3(1, 0, 0)
+          .applyQuaternion(model.getWorldQuaternion(new THREE.Quaternion()).inverse())
+          .normalize()
+      }
       actorsToFade.push(model)
     })
     camera.position.set(0, 22.5, 170)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     let targetCurrentPlayerYaw = 0
+    let targetCurrentPlayerPitch = 0
     const handlePointerMove = (event: PointerEvent): void => {
       const bounds = canvas.getBoundingClientRect()
-      if (bounds.width <= 0) return
+      if (bounds.width <= 0 || bounds.height <= 0) return
       const normalizedX = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
+      const normalizedY = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
       targetCurrentPlayerYaw = (normalizedX * 2 - 1) * MAX_CURRENT_PLAYER_POINTER_YAW
+      targetCurrentPlayerPitch = (0.5 - normalizedY) * 2 * MAX_CURRENT_PLAYER_POINTER_PITCH
     }
     window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
@@ -765,12 +814,12 @@ export function PartyModelScene({
     resize()
     let frame = 0
     const fadeStartedAt = performance.now()
+    let currentPlayerYaw = 0
+    let currentPlayerPitch = 0
     const render = () => {
       frame = requestAnimationFrame(render)
-      if (currentPlayerPivot) {
-        currentPlayerPivot.rotation.y +=
-          (targetCurrentPlayerYaw - currentPlayerPivot.rotation.y) * 0.06
-      }
+      currentPlayerYaw += (targetCurrentPlayerYaw - currentPlayerYaw) * 0.06
+      currentPlayerPitch += (targetCurrentPlayerPitch - currentPlayerPitch) * 0.06
       const opacity = Math.min((performance.now() - fadeStartedAt) / 450, 1)
       const now = performance.now()
       actorsToFade.forEach((actor) => {
@@ -782,6 +831,35 @@ export function PartyModelScene({
         const frame = Math.floor(sequenceTime) % frameCount
         const nextFrame = (frame + 1) % frameCount
         const frameProgress = sequenceTime - Math.floor(sequenceTime)
+        const upperBodyPivots = actor.userData.upperBodyPivots as Float32Array[] | undefined
+        const sourcePivot = upperBodyPivots?.[frame]
+        const nextPivot = upperBodyPivots?.[nextFrame]
+        const upperBodyPivot = new THREE.Vector3(
+          sourcePivot && nextPivot
+            ? sourcePivot[0] + (nextPivot[0] - sourcePivot[0]) * frameProgress
+            : 0,
+          sourcePivot && nextPivot
+            ? sourcePivot[1] + (nextPivot[1] - sourcePivot[1]) * frameProgress
+            : 0,
+          sourcePivot && nextPivot
+            ? sourcePivot[2] + (nextPivot[2] - sourcePivot[2]) * frameProgress
+            : 0
+        )
+        const followsPointer = actor === currentPlayerActor
+        const pointerRotation = new THREE.Matrix4()
+          .makeRotationAxis(
+            (actor.userData.pointerYawAxis as THREE.Vector3 | undefined) ??
+              new THREE.Vector3(0, 1, 0),
+            currentPlayerYaw
+          )
+          .multiply(
+            new THREE.Matrix4().makeRotationAxis(
+              (actor.userData.pointerPitchAxis as THREE.Vector3 | undefined) ??
+                new THREE.Vector3(1, 0, 0),
+              currentPlayerPitch
+            )
+          )
+        const pointerVertex = new THREE.Vector3()
         actor.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return
           const frames = object.userData.animationFrames as THREE.BufferAttribute[] | undefined
@@ -793,8 +871,28 @@ export function PartyModelScene({
           const target = position.array as Float32Array
           const current = sourcePosition.array as ArrayLike<number>
           const next = nextPosition.array as ArrayLike<number>
-          for (let index = 0; index < target.length; index++) {
-            target[index] = current[index] + (next[index] - current[index]) * frameProgress
+          const upperBodyMask = object.userData.upperBodyMask as Uint8Array | undefined
+          const followsUpperBody = object.userData.followsUpperBody === true
+          for (let index = 0; index < target.length; index += 3) {
+            const x = current[index] + (next[index] - current[index]) * frameProgress
+            const y = current[index + 1] + (next[index + 1] - current[index + 1]) * frameProgress
+            const z = current[index + 2] + (next[index + 2] - current[index + 2]) * frameProgress
+            const shouldFollowPointer =
+              followsPointer && (followsUpperBody || upperBodyMask?.[index / 3] === 1)
+            if (shouldFollowPointer) {
+              pointerVertex
+                .set(x, y, z)
+                .sub(upperBodyPivot)
+                .applyMatrix4(pointerRotation)
+                .add(upperBodyPivot)
+              target[index] = pointerVertex.x
+              target[index + 1] = pointerVertex.y
+              target[index + 2] = pointerVertex.z
+            } else {
+              target[index] = x
+              target[index + 1] = y
+              target[index + 2] = z
+            }
           }
           position.needsUpdate = true
         })

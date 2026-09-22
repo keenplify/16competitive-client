@@ -4,8 +4,8 @@ export type SkinPresentationRotation = readonly [number, number, number]
 
 /** Shared framing for HE, flash, and smoke grenade model previews. */
 export const GRENADE_SKIN_PREVIEW = {
-  zoom: 1.8,
-  rotation: [90, 0, 190] as SkinPresentationRotation
+  zoom: 2.5,
+  rotation: [15, 0, 0] as SkinPresentationRotation
 } as const
 
 /**

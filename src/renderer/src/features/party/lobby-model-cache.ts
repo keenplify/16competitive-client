@@ -6,6 +6,7 @@ const APP_VERSION_KEY = 'app-version'
 
 export type CachedLobbyMesh = {
   animationFrames: Float32Array[]
+  upperBodyMask: Uint8Array
   uv: Float32Array
   textureIndex: number
 }
@@ -21,6 +22,7 @@ export type CachedLobbyPresentation = {
   frameCount: number
   boneNames: string[]
   boneTransforms: Float32Array[][]
+  upperBodyPivots: Float32Array[]
   meshes: CachedLobbyMesh[]
   textures: CachedLobbyTexture[]
 }

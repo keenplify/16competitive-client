@@ -51,7 +51,7 @@ function FriendRow({
   const online = friend.presence !== 'OFFLINE'
   return (
     <div
-      className="group flex cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-3 py-2 transition hover:border-l-sky-400 hover:bg-white/5"
+      className="group flex cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-4 py-2 transition hover:border-l-sky-400 hover:bg-white/5"
       title="Right-click for friend options"
       onContextMenu={onContextMenu}
     >
@@ -466,7 +466,7 @@ export function LobbySocialSidebar({
             </div>
           </header>
 
-          <div className="shrink-0 border-b border-white/10 p-3">
+          <div className="shrink-0 border-b border-white/10 px-4 py-3">
             <TextField
               id="friend-search"
               label="Find players"
@@ -502,7 +502,7 @@ export function LobbySocialSidebar({
               (group) =>
                 group.items.length > 0 && (
                   <section key={group.label} className="mb-2">
-                    <h3 className="px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
+                    <h3 className="px-4 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
                       {group.label} · {group.items.length}
                     </h3>
                     {group.items.map((friend) => (

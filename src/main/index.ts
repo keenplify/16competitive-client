@@ -66,6 +66,7 @@ import {
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
+import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
@@ -222,6 +223,7 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
   })
 
   try {
+    if (mode === 'repair') await clearCachedSkinPreviews()
     const apiUrl = await resolvePreferredMatchmakingApiUrl()
     const onProgress = (progress: SkinAssetSyncProgress): void =>
       publishSkinAssetSyncProgress(sender, progress)

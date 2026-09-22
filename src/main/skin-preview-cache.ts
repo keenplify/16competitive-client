@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
@@ -58,6 +58,10 @@ const removeEntry = async (skinId: string): Promise<void> => {
     unlink(paths.model).catch(() => undefined),
     unlink(paths.metadata).catch(() => undefined)
   ])
+}
+
+export const clearCachedSkinPreviews = async (): Promise<void> => {
+  await rm(cacheDirectory(), { recursive: true, force: true })
 }
 
 export const readCachedSkinPreview = async (skinId: string): Promise<ArrayBuffer | null> => {

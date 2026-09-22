@@ -6,6 +6,14 @@ const PREVIEW_MODEL_CACHE_ENABLED = true
 const modelBuffers = new Map<string, ArrayBuffer>()
 const pendingModels = new Map<string, Promise<ArrayBuffer>>()
 let cachedBytes = 0
+let cacheGeneration = 0
+
+export const clearCachedSkinModels = (): void => {
+  cacheGeneration += 1
+  modelBuffers.clear()
+  pendingModels.clear()
+  cachedBytes = 0
+}
 
 const cacheModel = (skinId: string, buffer: ArrayBuffer): void => {
   if (buffer.byteLength > MAX_MODEL_CACHE_BYTES) return
@@ -40,13 +48,16 @@ export const getCachedSkinModel = (skinId: string): Promise<ArrayBuffer> => {
   const pending = pendingModels.get(skinId)
   if (pending) return pending
 
+  const requestGeneration = cacheGeneration
   const request = window.api.skins
     .previewModel(skinId)
     .then((buffer) => {
-      cacheModel(skinId, buffer)
+      if (requestGeneration === cacheGeneration) cacheModel(skinId, buffer)
       return buffer
     })
-    .finally(() => pendingModels.delete(skinId))
+    .finally(() => {
+      if (pendingModels.get(skinId) === request) pendingModels.delete(skinId)
+    })
 
   pendingModels.set(skinId, request)
   return request
