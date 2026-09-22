@@ -3,6 +3,7 @@ import { useEffect, useState, type JSX } from 'react'
 import type { SkinAssetSyncMode, SkinAssetSyncProgress } from '../../../../shared/game-settings'
 import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { clearCachedSkinModels } from '../skins/skin-model-cache'
 import { useGameSettingsStore } from './game-settings.store'
 
 const initialProgress: SkinAssetSyncProgress = {
@@ -48,6 +49,7 @@ export function AssetDownloadSettings(): JSX.Element {
       message: mode === 'repair' ? 'Repairing skin assets…' : 'Checking skin assets…'
     }))
     try {
+      if (mode === 'repair') clearCachedSkinModels()
       await window.api.gameSettings.syncAssets(mode)
     } catch (error) {
       setProgress((current) =>

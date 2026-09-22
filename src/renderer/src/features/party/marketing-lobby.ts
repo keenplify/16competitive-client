@@ -1,4 +1,5 @@
 import type { AuthPlayer } from '../../../../shared/auth'
+import type { PartyChatEvent } from '../../../../shared/matchmaking'
 import type { Party, PartyMember } from '../../../../shared/party'
 import type { Skin } from '../../../../shared/skins'
 import { LOBBY_PLAYER_MODELS } from './party-models'
@@ -41,6 +42,40 @@ const memberWithSkin = (
 export interface MarketingLobby {
   party: Party
   currentPlayerMember: PartyMember
+  chatEntries: PartyChatEvent[]
+}
+
+const buildMarketingChat = (partyId: string, members: readonly PartyMember[]): PartyChatEvent[] => {
+  const now = Date.now()
+  const message = (
+    index: number,
+    sender: PartyMember,
+    text: string,
+    secondsAgo: number
+  ): PartyChatEvent => ({
+    type: 'party_chat_message',
+    id: `marketing-chat-${index}`,
+    partyId,
+    sender: { id: sender.id, username: sender.username },
+    message: text,
+    sentAt: new Date(now - secondsAgo * 1_000).toISOString()
+  })
+
+  return [
+    {
+      type: 'party_chat_notification',
+      id: 'marketing-chat-party-ready',
+      partyId,
+      code: 'MEMBER_JOINED',
+      message: 'Party is full. 5 / 5 players ready.',
+      sentAt: new Date(now - 94_000).toISOString()
+    },
+    message(1, members[1], 'warmup then queue?', 82),
+    message(2, members[2], 'ready when you are', 65),
+    message(3, members[3], 'that loadout looks clean', 43),
+    message(4, members[4], "let's run Dust II", 26),
+    message(5, members[0], "let's go", 9)
+  ]
 }
 
 /** Builds renderer-only showcase data. It never creates or changes a backend party. */
@@ -72,13 +107,16 @@ export const buildMarketingLobby = (player: AuthPlayer, catalog: Skin[]): Market
     )
   )
 
+  const party: Party = {
+    id: 'marketing-lobby',
+    leaderId: player.id,
+    joinSecret: 'local-marketing-lobby',
+    members: [currentPlayerMember, ...guests]
+  }
+
   return {
     currentPlayerMember,
-    party: {
-      id: 'marketing-lobby',
-      leaderId: player.id,
-      joinSecret: 'local-marketing-lobby',
-      members: [currentPlayerMember, ...guests]
-    }
+    party,
+    chatEntries: buildMarketingChat(party.id, party.members)
   }
 }

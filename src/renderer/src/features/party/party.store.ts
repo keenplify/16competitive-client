@@ -302,7 +302,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         if (MARKETING_LOBBY_ENABLED) {
           const player = useAuthStore.getState().session?.player
           if (!player) throw new Error('Sign in before opening the marketing lobby.')
-          const { party, currentPlayerMember } = buildMarketingLobby(
+          const { party, currentPlayerMember, chatEntries } = buildMarketingLobby(
             player,
             await window.api.skins.list()
           )
@@ -312,7 +312,14 @@ export const usePartyStore = create<PartyState>((set, get) => ({
           useLobbyLoadoutStore
             .getState()
             .setWeapon(currentPlayerMember.lobbyWeaponKey, currentPlayerMember.lobbyWeaponModelPath)
-          set({ party, invitations: [], status: 'idle', error: null })
+          set({
+            party,
+            invitations: [],
+            chatEntries,
+            chatTab: 'party',
+            status: 'idle',
+            error: null
+          })
           return
         }
         do {
@@ -449,7 +456,23 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   sendChat: async () => {
     if (MARKETING_LOBBY_ENABLED) {
-      set({ chatError: 'The marketing lobby is local-only.' })
+      const message = get().chatDraft.trim()
+      const player = useAuthStore.getState().session?.player
+      const party = get().party
+      if (!message || !player || !party) return
+      const entry: PartyChatEvent = {
+        type: 'party_chat_message',
+        id: `marketing-chat-local-${Date.now()}`,
+        partyId: party.id,
+        sender: { id: player.id, username: player.username },
+        message,
+        sentAt: new Date().toISOString()
+      }
+      set((state) => ({
+        chatEntries: appendChatEntry(state.chatEntries, entry),
+        chatDraft: '',
+        chatError: null
+      }))
       return
     }
     const message = get().chatDraft.trim()
