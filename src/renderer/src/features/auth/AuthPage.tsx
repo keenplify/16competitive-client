@@ -3,6 +3,7 @@ import { LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
+import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { useAuthStore } from './auth.store'
 import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
@@ -255,12 +256,7 @@ export function AuthPage(): JSX.Element {
               {socialProvider === 'google' ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
               ) : (
-                <span
-                  className="grid size-5 place-items-center rounded-full bg-white text-xs font-bold text-neutral-900"
-                  aria-hidden="true"
-                >
-                  G
-                </span>
+                <SocialProviderIcon provider="google" />
               )}
               Google
             </Button>
@@ -273,12 +269,7 @@ export function AuthPage(): JSX.Element {
               {socialProvider === 'discord' ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
               ) : (
-                <span
-                  className="grid size-5 place-items-center rounded-full bg-[#5865F2] text-xs font-bold text-white"
-                  aria-hidden="true"
-                >
-                  D
-                </span>
+                <SocialProviderIcon provider="discord" />
               )}
               Discord
             </Button>
@@ -291,12 +282,7 @@ export function AuthPage(): JSX.Element {
               {socialProvider === 'facebook' ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
               ) : (
-                <span
-                  className="grid size-5 place-items-center rounded-full bg-[#1877F2] text-sm font-bold text-white"
-                  aria-hidden="true"
-                >
-                  f
-                </span>
+                <SocialProviderIcon provider="facebook" />
               )}
               Facebook
             </Button> */}
