@@ -1150,3 +1150,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Added the web client version to Settings.
+
+## v2026.923.8 — 2026-09-23
+
+### Authentication
+
+- Social login windows now close automatically after successful sign-in.
