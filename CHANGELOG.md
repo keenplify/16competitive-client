@@ -1077,3 +1077,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added in-app changelog content with Markdown support.
 - Improved game and asset download settings.
+
+## v2026.923.2 — 2026-09-23
+
+### Operations
+
+- Improved reward track scrolling and centered reward selection.
+- Refined progression rail interactions.
+- Enhanced reward previews with smoother scrolling.
+- Added glow effects to operation skin previews.
+
+### Party
+
+- Improved party model scene previews.
+- Updated skin texture handling.
