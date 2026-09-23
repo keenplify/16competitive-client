@@ -74,10 +74,11 @@ const createHandoffUrl = async (publicApiUrl: string): Promise<string> => {
 
 const navigateToNode = async (publicApiUrl: string): Promise<void> => {
   if (sameOrigin(publicApiUrl)) return
+  const targetUrl = await createHandoffUrl(publicApiUrl)
   navigating = true
   clearTimers()
   socket?.close()
-  window.location.assign(await createHandoffUrl(publicApiUrl))
+  window.location.assign(targetUrl)
 }
 
 const steamLaunchUrl = (
@@ -123,7 +124,6 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
       apiUrl: window.location.origin,
       websocketUrl: websocketUrl()
     })
-    emit({ type: 'connection_state', state: 'connecting' })
     resolveConnect?.()
     resolveConnect = null
     rejectConnect = null
@@ -136,13 +136,18 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     return
   }
 
-  if (
-    (message.type === 'match_found' || message.type === 'match_roster') &&
-    message.hostApiUrl &&
-    !sameOrigin(message.hostApiUrl)
-  ) {
+  if (message.type === 'match_found' || message.type === 'match_roster') {
     emit(message)
-    await navigateToNode(message.hostApiUrl)
+    emit({
+      type: 'match_assets_progress',
+      matchId: message.matchId,
+      status: 'ready',
+      completedFiles: 0,
+      totalFiles: 0
+    })
+    if (message.hostApiUrl && !sameOrigin(message.hostApiUrl)) {
+      await navigateToNode(message.hostApiUrl)
+    }
     return
   }
 
