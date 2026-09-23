@@ -1129,3 +1129,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added browser-compatible settings.
 - Clarified streamed asset behavior in browser settings.
 - Improved desktop-only feature messaging.
+
+## v2026.923.5 — 2026-09-23
+
+### Match Connections
+
+- Match passwords are re-applied before connecting through Steam for more reliable joins.
+
+### Web Client
+
+- Web client updates are now rolled out across supported hosts after releases.
