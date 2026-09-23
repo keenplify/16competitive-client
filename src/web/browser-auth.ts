@@ -160,12 +160,14 @@ const beginSocial = async (
     )
     activeSocial = { provider, url: start.authorizationUrl, expiresAt }
     navigatePopup(popup, start.authorizationUrl)
-    return pollSocial(
+    const result = await pollSocial(
       linking ? '/auth/social/link/complete' : '/auth/social/complete',
       start.pollToken,
       provider,
       linking
     )
+    if (popup && !popup.closed) popup.close()
+    return result
   } catch (error) {
     popup?.close()
     throw error
