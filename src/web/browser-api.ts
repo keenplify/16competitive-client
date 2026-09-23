@@ -461,7 +461,7 @@ const api: Window['api'] = {
 
   updater: {
     async getCurrentVersion() {
-      return 'web'
+      return __SIXTEEN_COMPETITIVE_VERSION__
     },
     async getStatus() {
       return { state: 'idle' }
