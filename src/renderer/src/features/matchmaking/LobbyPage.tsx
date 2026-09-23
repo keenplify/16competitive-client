@@ -63,7 +63,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   return (
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
       <div className="relative flex min-h-0 flex-1">
-        {members.length < 4 && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
+        <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
         <PartyModelScene
           actors={members.map((member, index) => {
             const isCurrentPlayer = member.id === player.id

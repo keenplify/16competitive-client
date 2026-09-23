@@ -8,6 +8,7 @@ import type {
 } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { MARKETING_LOBBY_ENABLED } from '../party/marketing-lobby'
 import { usePartyStore } from '../party/party.store'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 
@@ -149,7 +150,7 @@ export function VoiceChatDock(): JSX.Element | null {
   }, [connectionDetails, currentPlayerId, party, queueStatus])
 
   const [enabled, setEnabled] = useState(true)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(MARKETING_LOBBY_ENABLED)
   const [joinedContext, setJoinedContext] = useState<VoiceContext | null>(null)
   const [peers, setPeers] = useState<VoicePeer[]>([])
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
@@ -182,6 +183,12 @@ export function VoiceChatDock(): JSX.Element | null {
   const activeContext = joinedContext ?? desiredContext
   const pttActive = pttChannel !== null
   const voiceRoster = useMemo(() => {
+    if (MARKETING_LOBBY_ENABLED && activeContext?.kind === 'party' && party) {
+      return party.members
+        .filter(({ id }) => id !== currentPlayerId)
+        .map(({ id, username }) => ({ peer: { id, username }, simulated: true }))
+    }
+
     if (activeContext?.kind !== 'match' || !match || !currentPlayerId) {
       return peers.map((peer) => ({ peer, simulated: false }))
     }
@@ -201,7 +208,7 @@ export function VoiceChatDock(): JSX.Element | null {
           simulated: !peer
         }
       })
-  }, [activeContext?.kind, currentPlayerId, match, peers])
+  }, [activeContext?.kind, currentPlayerId, match, party, peers])
 
   const updateOutgoingTracks = useCallback((): void => {
     const context = contextRef.current ?? desiredContextRef.current
@@ -348,7 +355,7 @@ export function VoiceChatDock(): JSX.Element | null {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (!enabled || openMic || !activeContext) return
+    if (MARKETING_LOBBY_ENABLED || !enabled || openMic || !activeContext) return
 
     const teamKey = normalizeGoldSrcKey(teamVoicePttKey)
     const partyKey = normalizeGoldSrcKey(partyVoicePttKey)
@@ -587,6 +594,7 @@ export function VoiceChatDock(): JSX.Element | null {
   }
 
   useEffect(() => {
+    if (MARKETING_LOBBY_ENABLED) return
     const removeListener = window.api.matchmaking.onEvent((event: MatchmakingEvent) => {
       if (event.type === 'voice_session') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
@@ -688,6 +696,7 @@ export function VoiceChatDock(): JSX.Element | null {
 
   /* eslint-disable react-hooks/set-state-in-effect -- Voice context transitions synchronously tear down stale media and UI state. */
   useEffect(() => {
+    if (MARKETING_LOBBY_ENABLED) return
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
       if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
       setTalkChannel(null)
