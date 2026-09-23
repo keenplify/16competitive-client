@@ -26,6 +26,41 @@ type UsernameStatus = Pick<
 
 const SOCIAL_TIMEOUT_MS = 10 * 60 * 1000
 const SOCIAL_POLL_MS = 1250
+const SESSION_CACHE_KEY = '16competitive.web.auth-session'
+
+const readCachedSession = (): AuthSession | null => {
+  try {
+    const raw = localStorage.getItem(SESSION_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as AuthSession
+    if (
+      !parsed ||
+      typeof parsed.expiresAt !== 'string' ||
+      !parsed.player ||
+      typeof parsed.player.id !== 'string' ||
+      Date.parse(parsed.expiresAt) <= Date.now()
+    ) {
+      localStorage.removeItem(SESSION_CACHE_KEY)
+      return null
+    }
+    return parsed
+  } catch {
+    localStorage.removeItem(SESSION_CACHE_KEY)
+    return null
+  }
+}
+
+const writeCachedSession = (session: AuthSession): void => {
+  try {
+    localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(session))
+  } catch {
+    // Session cache is only a refresh fallback. The bearer token remains authoritative.
+  }
+}
+
+const clearCachedSession = (): void => {
+  localStorage.removeItem(SESSION_CACHE_KEY)
+}
 let activeSocial: { provider: SocialAuthProvider; url: string; expiresAt: number } | null = null
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -36,7 +71,9 @@ const usernameStatus = async (): Promise<UsernameStatus> =>
 const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
   setWebSessionToken(body.token)
   const status = await usernameStatus()
-  return { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
+  const session = { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
+  writeCachedSession(session)
+  return session
 }
 
 const startPopup = (): Window | null => {
@@ -218,16 +255,48 @@ export const browserAuthApi: AuthApi = {
   async restore() {
     await webHandoffReady
     const token = getWebSessionToken()
-    if (!token) return null
+    if (!token) {
+      clearCachedSession()
+      return null
+    }
+
+    const cached = readCachedSession()
+
     try {
       const body = await requestJson<Omit<AuthResponse, 'token'>>('/auth/session', {
         authenticated: true,
-        timeoutMs: 5000
+        timeoutMs: 10_000,
+        clearOnUnauthorized: false
       })
-      const status = await usernameStatus()
-      return { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
-    } catch {
-      return null
+
+      let status: UsernameStatus | null = null
+      try {
+        status = await usernameStatus()
+      } catch {
+        // A valid auth session must not be discarded because optional username
+        // metadata could not be refreshed.
+      }
+
+      const session: AuthSession = {
+        expiresAt: body.expiresAt,
+        player: {
+          ...body.player,
+          requiresUsernameSetup:
+            status?.requiresUsernameSetup ?? cached?.player.requiresUsernameSetup ?? false,
+          usernameChangeAvailableAt:
+            status?.usernameChangeAvailableAt ?? cached?.player.usernameChangeAvailableAt ?? null
+        }
+      }
+      writeCachedSession(session)
+      return session
+    } catch (error) {
+      if ((error as Error & { status?: number }).status === 401) {
+        clearWebSessionToken()
+        clearCachedSession()
+        return null
+      }
+
+      return cached
     }
   },
 
@@ -243,6 +312,7 @@ export const browserAuthApi: AuthApi = {
       }
     } finally {
       clearWebSessionToken()
+      clearCachedSession()
     }
   }
 }
