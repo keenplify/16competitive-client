@@ -158,6 +158,8 @@ export function OperationPage(): JSX.Element {
   const [focusedTierId, setFocusedTierId] = useState<string | null>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
   const scrollFrameRef = useRef<number | null>(null)
+  const wheelAnimationFrameRef = useRef<number | null>(null)
+  const wheelTargetRef = useRef<number | null>(null)
   const acknowledgedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -176,6 +178,9 @@ export function OperationPage(): JSX.Element {
 
   useEffect(() => () => {
     if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current)
+    if (wheelAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(wheelAnimationFrameRef.current)
+    }
   }, [])
 
   const focusTier = (tier: OperationTier): void => {
@@ -183,9 +188,16 @@ export function OperationPage(): JSX.Element {
     const carousel = carouselRef.current
     const card = carousel?.querySelector<HTMLElement>(`[data-tier-id="${tier.id}"]`) ?? undefined
     if (carousel && card) {
+      if (wheelAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(wheelAnimationFrameRef.current)
+        wheelAnimationFrameRef.current = null
+      }
       const cardLeft = card.getBoundingClientRect().left - carousel.getBoundingClientRect().left
+      const targetLeft =
+        carousel.scrollLeft + cardLeft - (carousel.clientWidth - card.offsetWidth) / 2
+      wheelTargetRef.current = targetLeft
       carousel.scrollTo({
-        left: carousel.scrollLeft + cardLeft - (carousel.clientWidth - card.offsetWidth) / 2,
+        left: targetLeft,
         behavior: 'smooth'
       })
     }
@@ -215,6 +227,24 @@ export function OperationPage(): JSX.Element {
     const carousel = carouselRef.current
     if (!carousel) return
 
+    const animateWheelScroll = (): void => {
+      const target = wheelTargetRef.current
+      if (target === null) {
+        wheelAnimationFrameRef.current = null
+        return
+      }
+
+      const distance = target - carousel.scrollLeft
+      if (Math.abs(distance) < 0.5) {
+        carousel.scrollLeft = target
+        wheelAnimationFrameRef.current = null
+        return
+      }
+
+      carousel.scrollLeft += distance * 0.2
+      wheelAnimationFrameRef.current = window.requestAnimationFrame(animateWheelScroll)
+    }
+
     const handleWheel = (event: WheelEvent): void => {
       const multiplier =
         event.deltaMode === 1 ? 36 : event.deltaMode === 2 ? carousel.clientWidth : 1
@@ -224,15 +254,32 @@ export function OperationPage(): JSX.Element {
       if (delta === 0) return
 
       const maxScrollLeft = Math.max(0, carousel.scrollWidth - carousel.clientWidth)
-      const canScroll = delta < 0 ? carousel.scrollLeft > 0 : carousel.scrollLeft < maxScrollLeft
+      const currentTarget = wheelTargetRef.current ?? carousel.scrollLeft
+      const target = Math.max(0, Math.min(maxScrollLeft, currentTarget + delta))
+      const canScroll = Math.abs(target - currentTarget) > 0.5
       if (!canScroll) return
 
       event.preventDefault()
-      carousel.scrollLeft = Math.max(0, Math.min(maxScrollLeft, carousel.scrollLeft + delta))
+      wheelTargetRef.current = target
+      if (wheelAnimationFrameRef.current === null) {
+        wheelAnimationFrameRef.current = window.requestAnimationFrame(animateWheelScroll)
+      }
+    }
+
+    const resetWheelTarget = (): void => {
+      wheelTargetRef.current = carousel.scrollLeft
     }
 
     carousel.addEventListener('wheel', handleWheel, { passive: false })
-    return () => carousel.removeEventListener('wheel', handleWheel)
+    carousel.addEventListener('pointerdown', resetWheelTarget)
+    return () => {
+      carousel.removeEventListener('wheel', handleWheel)
+      carousel.removeEventListener('pointerdown', resetWheelTarget)
+      if (wheelAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(wheelAnimationFrameRef.current)
+        wheelAnimationFrameRef.current = null
+      }
+    }
   }, [operation?.id])
 
   useEffect(() => {
@@ -431,7 +478,7 @@ export function OperationPage(): JSX.Element {
           <div
             ref={carouselRef}
             onScroll={trackFocusedTier}
-            className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain pt-2 pb-4"
+            className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain pt-2 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ paddingInline: 'calc(50% - 5rem)' }}
             aria-label="Operation progression and reward tiers"
           >
@@ -450,12 +497,17 @@ export function OperationPage(): JSX.Element {
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                {operation.tiers.map((tier) => (
+                {operation.tiers.map((tier, index) => {
+                  const dotLeft =
+                    ((index * (TIER_CARD_WIDTH + TIER_GAP) + TIER_CARD_WIDTH / 2) /
+                      Math.max(TIER_CARD_WIDTH, rewardTrackWidth)) *
+                    100
+                  return (
                   <button
                     key={tier.id}
                     type="button"
                     className="absolute top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                    style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
+                    style={{ left: `${dotLeft}%` }}
                     aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier)}`}
                     aria-pressed={focusedTier?.id === tier.id}
                     onClick={() => focusTier(tier)}
@@ -471,7 +523,8 @@ export function OperationPage(): JSX.Element {
                       aria-hidden="true"
                     />
                   </button>
-                ))}
+                  )
+                })}
               </div>
               <div className="flex gap-3">
                 {operation.tiers.map((tier) => (
