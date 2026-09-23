@@ -19,7 +19,23 @@ const readableError = (error: unknown): string =>
     : 'Could not sync skin assets.'
 
 export function AssetDownloadSettings(): JSX.Element {
-  if (isWebRuntime()) {
+  const webRuntime = isWebRuntime()
+  const savedPath = useGameSettingsStore((state) => state.savedPath)
+  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)
+  const [requestedMode, setRequestedMode] = useState<SkinAssetSyncMode | null>(null)
+
+  useEffect(() => {
+    if (webRuntime) return undefined
+    const removeListener = window.api.gameSettings.onAssetSyncProgress(setProgress)
+    void window.api.gameSettings
+      .getAssetSyncStatus()
+      .then(setProgress)
+      .catch(() => undefined)
+    return removeListener
+  }, [webRuntime])
+
+  if (webRuntime) {
     return (
       <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
         <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
@@ -27,26 +43,12 @@ export function AssetDownloadSettings(): JSX.Element {
         </p>
         <h3 className="mt-2 text-lg font-semibold">Streamed from your region</h3>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
-          The web app streams managed skin and model assets from the selected regional server.
-          There is no launcher asset folder to download or repair.
+          The web app streams managed skin and model assets from the selected regional server. There
+          is no launcher asset folder to download or repair.
         </p>
       </div>
     )
   }
-
-  const savedPath = useGameSettingsStore((state) => state.savedPath)
-  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
-  const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)
-  const [requestedMode, setRequestedMode] = useState<SkinAssetSyncMode | null>(null)
-
-  useEffect(() => {
-    const removeListener = window.api.gameSettings.onAssetSyncProgress(setProgress)
-    void window.api.gameSettings
-      .getAssetSyncStatus()
-      .then(setProgress)
-      .catch(() => undefined)
-    return removeListener
-  }, [])
 
   const syncing = progress.status === 'syncing'
   const maintenanceLocked = queueStatus !== 'idle'
