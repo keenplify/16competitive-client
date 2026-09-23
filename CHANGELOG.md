@@ -1105,3 +1105,27 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Updated voice chat dock behavior for marketing lobbies.
+
+## v2026.923.4 — 2026-09-23
+
+### Web App
+
+- Added browser-based Unrated matchmaking.
+- Added installable PWA support.
+- Preserved browser sign-in sessions across refreshes.
+- Added links to download and open the desktop app.
+- Improved browser matchmaking reconnect handling.
+- Added browser audio support after user interaction.
+
+### Matchmaking
+
+- Added Unrated queue support to the desktop app.
+- Added competitive and Unrated queue selection.
+- Added Unrated map and match status support.
+- Improved matchmaking lifecycle and connection handling.
+
+### Settings
+
+- Added browser-compatible settings.
+- Clarified streamed asset behavior in browser settings.
+- Improved desktop-only feature messaging.
