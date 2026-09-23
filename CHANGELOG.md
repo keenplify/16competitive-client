@@ -1139,3 +1139,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web Client
 
 - Web client updates are now rolled out across supported hosts after releases.
+
+## v2026.923.6 — 2026-09-23
+
+### Match Results
+
+- Only Competitive results now affect ratings.
+- MMR changes are hidden for Unrated results.
+
+### Settings
+
+- Added the web client version to Settings.
