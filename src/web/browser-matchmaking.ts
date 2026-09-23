@@ -2,7 +2,6 @@ import type {
   MatchmakingApi,
   MatchmakingEvent,
   MatchmakingMap,
-  MatchmakingMode,
   MatchmakingNode,
   MatchmakingPreferences,
   MatchmakingServerMessage
@@ -191,10 +190,12 @@ const openSocket = (): Promise<void> => {
   })
 
   socket.addEventListener('close', () => {
+    const pendingReject = rejectConnect
     authenticated = false
     connectPromise = null
     resolveConnect = null
     rejectConnect = null
+    pendingReject?.(new Error('Matchmaking connection closed.'))
     if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer)
     heartbeatTimer = null
     if (navigating) return
