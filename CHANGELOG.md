@@ -1091,3 +1091,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved party model scene previews.
 - Updated skin texture handling.
+
+## v2026.923.3 — 2026-09-23
+
+### Launching
+
+- Improved Steam game launch handling on Windows.
+
+### Gameplay
+
+- Improved USP weapon positioning.
+
+### Voice Chat
+
+- Updated voice chat dock behavior for marketing lobbies.
