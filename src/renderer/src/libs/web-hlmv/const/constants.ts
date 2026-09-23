@@ -7,6 +7,9 @@ export const MAX_PER_BONE_CONTROLLERS = 6
 /** Flag of texture masking */
 export const NF_MASKED = 0x0040
 
+/** Add source RGB to the framebuffer rather than using normal alpha blending. */
+export const NF_ADDITIVE = 0x0020
+
 /** Number of colors */
 export const PALETTE_ENTRIES = 256
 

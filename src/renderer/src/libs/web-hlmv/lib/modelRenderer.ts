@@ -3,6 +3,10 @@ import { mat4 } from 'gl-matrix'
 import { ModelData } from './modelDataParser'
 import { readFacesData } from './geometryBuilder'
 import { calcRotations } from './geometryTransformer'
+import { NF_ADDITIVE } from '../const/constants'
+
+/** GoldSrc additive textures otherwise wash out against WebGL's bright preview background. */
+const ADDITIVE_OPACITY = 0.8
 
 /**
  * Mesh buffers of each frame of each sequence of the model and mesh UV-maps
@@ -275,21 +279,30 @@ export const prepareRenderData = (
 /**
  * Creates model mesh
  */
-export const createMesh = (
-  geometryBuffer: THREE.BufferAttribute,
-  uvMap: THREE.BufferAttribute,
-  texture?: THREE.Texture
-) => {
-  // Mesh level
-  const material = new THREE.MeshBasicMaterial({
+export const createModelMaterial = (texture?: THREE.Texture, textureFlags = 0) => {
+  const additive = (textureFlags & NF_ADDITIVE) !== 0
+  return new THREE.MeshBasicMaterial({
     map: texture,
     side: THREE.DoubleSide,
     transparent: true,
     alphaTest: 0.5,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    opacity: additive ? ADDITIVE_OPACITY : 1,
+    // Additive surfaces must not hide geometry rendered after them.
+    depthWrite: !additive,
     morphTargets: true,
     skinning: true
-    // color:        0xffffff
   })
+}
+
+export const createMesh = (
+  geometryBuffer: THREE.BufferAttribute,
+  uvMap: THREE.BufferAttribute,
+  texture?: THREE.Texture,
+  textureFlags = 0
+) => {
+  // Mesh level
+  const material = createModelMaterial(texture, textureFlags)
 
   // Prepare geometry
   const geometry = new THREE.BufferGeometry()
@@ -339,7 +352,7 @@ export const createModelMeshes = (
           modelData.skinRef[modelData.meshes[bodyPartIndex][subModelIndex][meshIndex].skinRef]
         const texture = textures[textureIndex]
 
-        return createMesh(initialGeometryBuffer, uvMap, texture)
+        return createMesh(initialGeometryBuffer, uvMap, texture, modelData.textures[textureIndex]?.flags)
       })
     )
   )
