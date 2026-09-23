@@ -70,7 +70,7 @@ const getPttKeys = (): [string, string] => {
 const browserSettings = (): GameSettings => {
   const [team, party] = getPttKeys()
   return {
-    cs16ExecutablePath: null,
+    cs16ExecutablePath: 'steam://run/10',
     cs16FolderPath: null,
     configFilePath: 'Browser / Steam',
     voicePttKey: team,
