@@ -203,20 +203,20 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
             {getMatchmakingModeLabel(match.mode)} ·{' '}
-            {match.mode === '5v5' || match.mode === '3v3' ? 'Ranked' : 'Unranked'}
+            {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
           </p>
           <Team
             label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
             players={match.teams.teamA}
             stats={match.players}
-            ratedMatch={match.mode === '5v5' || match.mode === '3v3'}
+            ratedMatch={match.mode === '5v5'}
             onPlayerContextMenu={showPlayerMenu}
           />
           <Team
             label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
             players={match.teams.teamB}
             stats={match.players}
-            ratedMatch={match.mode === '5v5' || match.mode === '3v3'}
+            ratedMatch={match.mode === '5v5'}
             onPlayerContextMenu={showPlayerMenu}
           />
         </div>
