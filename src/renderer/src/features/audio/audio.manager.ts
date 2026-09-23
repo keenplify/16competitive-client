@@ -28,6 +28,7 @@ class LauncherAudioManager {
   private bgmSuppressed = false
   private bgmFocused = document.hasFocus()
   private fadeFrame: number | null = null
+  private playbackUnlocked = window.__SIXTEEN_COMPETITIVE_WEB__ !== true
 
   private createBgm(trackId: LauncherBgmId): HTMLAudioElement {
     const bgm = new Audio(getLauncherBgmTrack(trackId).path)
@@ -46,7 +47,7 @@ class LauncherAudioManager {
   }
 
   private connectBgmFilter(bgm: HTMLAudioElement): void {
-    if (this.bgmSource || !window.AudioContext) return
+    if (!this.playbackUnlocked || this.bgmSource || !window.AudioContext) return
 
     const context = new AudioContext()
     const source = context.createMediaElementSource(bgm)
@@ -95,6 +96,16 @@ class LauncherAudioManager {
       const bgm = this.getBgm()
       void bgm.play().catch(() => undefined)
     }
+  }
+
+  unlockPlayback(): void {
+    if (this.playbackUnlocked) {
+      this.startBgm()
+      return
+    }
+    this.playbackUnlocked = true
+    if (this.bgm) this.connectBgmFilter(this.bgm)
+    this.startBgm()
   }
 
   startBgm(): void {
@@ -147,7 +158,7 @@ class LauncherAudioManager {
   }
 
   playSfx(sound: LauncherSfx): void {
-    if (this.sfxVolume === 0) return
+    if (!this.playbackUnlocked || this.sfxVolume === 0) return
     const audio = new Audio(getLauncherSfxPath(this.bgmTrackId, sound))
     audio.preload = 'none'
     audio.volume = volumeToUnit(this.sfxVolume) * SFX_VOLUME_FACTOR
@@ -179,16 +190,18 @@ class LauncherAudioManager {
 
   restoreBgm(durationMs = 1_500): void {
     this.bgmSuppressed = false
+    if (!this.playbackUnlocked) return
     const bgm = this.getBgm()
     if (this.canPlayBgm()) void bgm.play().catch(() => undefined)
     this.fadeBgmTo(volumeToUnit(this.bgmVolume), durationMs)
   }
 
   private canPlayBgm(): boolean {
-    return !this.bgmSuppressed && this.bgmFocused && this.bgmVolume > 0
+    return this.playbackUnlocked && !this.bgmSuppressed && this.bgmFocused && this.bgmVolume > 0
   }
 
   private fadeBgmTo(targetVolume: number, durationMs: number, pauseAtZero = false): void {
+    if (!this.playbackUnlocked) return
     const bgm = this.getBgm()
     if (this.fadeFrame !== null) cancelAnimationFrame(this.fadeFrame)
 
