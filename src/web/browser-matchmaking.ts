@@ -1,6 +1,7 @@
 import type {
   MatchmakingApi,
   MatchmakingEvent,
+  MatchmakingMap,
   MatchmakingMode,
   MatchmakingNode,
   MatchmakingPreferences,
@@ -191,6 +192,9 @@ const openSocket = (): Promise<void> => {
 
   socket.addEventListener('close', () => {
     authenticated = false
+    connectPromise = null
+    resolveConnect = null
+    rejectConnect = null
     if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer)
     heartbeatTimer = null
     if (navigating) return
@@ -296,9 +300,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async getMaps() {
-    const body = await requestJson<{ maps: Awaited<ReturnType<MatchmakingApi['getMaps']>> }>(
-      '/matchmaking/maps'
-    )
+    const body = await requestJson<{ maps: MatchmakingMap[] }>('/matchmaking/maps')
     return body.maps
   },
 
