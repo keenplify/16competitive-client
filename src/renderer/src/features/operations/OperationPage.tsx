@@ -23,6 +23,9 @@ const safeImageUrl = (value: string | null): string | null => {
   }
 }
 
+const TIER_CARD_WIDTH = 160
+const TIER_GAP = 12
+
 const rewardName = (tier: OperationTier): string => {
   if (tier.rewardType === 'SKIN') return tier.skin?.name ?? 'Weapon skin'
   if (tier.rewardType === 'POINTS') return `${(tier.amount ?? 0).toLocaleString()} Points`
@@ -178,9 +181,7 @@ export function OperationPage(): JSX.Element {
   const focusTier = (tier: OperationTier): void => {
     setFocusedTierId(tier.id)
     const carousel = carouselRef.current
-    const card = Array.from(carousel?.children ?? []).find(
-      (child) => child.getAttribute('data-tier-id') === tier.id
-    ) as HTMLElement | undefined
+    const card = carousel?.querySelector<HTMLElement>(`[data-tier-id="${tier.id}"]`) ?? undefined
     if (carousel && card) {
       const cardLeft = card.getBoundingClientRect().left - carousel.getBoundingClientRect().left
       carousel.scrollTo({
@@ -197,7 +198,7 @@ export function OperationPage(): JSX.Element {
       const carousel = carouselRef.current
       if (!carousel || !operation) return
       const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2
-      const cards = Array.from(carousel.children) as HTMLElement[]
+      const cards = Array.from(carousel.querySelectorAll<HTMLElement>('[data-tier-id]'))
       const nearest = cards.reduce<HTMLElement | null>((best, card) => {
         const rect = card.getBoundingClientRect()
         const distance = Math.abs(rect.left + rect.width / 2 - center)
@@ -209,6 +210,30 @@ export function OperationPage(): JSX.Element {
       if (tierId) setFocusedTierId((current) => current === tierId ? current : tierId)
     })
   }
+
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (!carousel) return
+
+    const handleWheel = (event: WheelEvent): void => {
+      const multiplier =
+        event.deltaMode === 1 ? 36 : event.deltaMode === 2 ? carousel.clientWidth : 1
+      const rawDelta =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+      const delta = rawDelta * multiplier
+      if (delta === 0) return
+
+      const maxScrollLeft = Math.max(0, carousel.scrollWidth - carousel.clientWidth)
+      const canScroll = delta < 0 ? carousel.scrollLeft > 0 : carousel.scrollLeft < maxScrollLeft
+      if (!canScroll) return
+
+      event.preventDefault()
+      carousel.scrollLeft = Math.max(0, Math.min(maxScrollLeft, carousel.scrollLeft + delta))
+    }
+
+    carousel.addEventListener('wheel', handleWheel, { passive: false })
+    return () => carousel.removeEventListener('wheel', handleWheel)
+  }, [operation?.id])
 
   useEffect(() => {
     if (!operation || !progress) return
@@ -259,6 +284,9 @@ export function OperationPage(): JSX.Element {
     [displayedPoints, operation]
   )
   const progressPercent = Math.min(100, (displayedPoints / Math.max(1, maxPoints)) * 100)
+  const rewardTrackWidth =
+    operation.tiers.length * TIER_CARD_WIDTH +
+    Math.max(0, operation.tiers.length - 1) * TIER_GAP
   const isWaterTheme = /water/i.test(operation?.title ?? '')
   const heroUrl =
     safeImageUrl(operation?.heroUrl ?? null) ?? (isWaterTheme ? waterBackground : null)
@@ -297,7 +325,7 @@ export function OperationPage(): JSX.Element {
 
   return (
     <section className="operation-enter mt-6 overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl">
-      <header className="relative min-h-[450px] overflow-hidden bg-[radial-gradient(circle_at_70%_35%,rgba(14,116,144,.28),transparent_52%)] lg:min-h-[520px]">
+      <header className="relative min-h-[520px] overflow-hidden bg-[radial-gradient(circle_at_70%_35%,rgba(14,116,144,.28),transparent_52%)] lg:min-h-[620px]">
         {heroUrl && (
           <img
             src={heroUrl}
@@ -308,7 +336,7 @@ export function OperationPage(): JSX.Element {
         )}
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,.96),rgba(3,7,18,.76)_42%,rgba(3,7,18,.24)_78%),linear-gradient(0deg,rgba(3,7,18,.94),transparent_65%)]" />
         <div className="operation-hero-scan pointer-events-none absolute inset-0 opacity-30" />
-        <div className="relative flex min-h-[450px] flex-col justify-between gap-8 p-6 sm:p-9 lg:min-h-[520px] lg:p-12">
+        <div className="relative flex min-h-[520px] flex-col justify-between gap-8 p-6 sm:p-9 lg:min-h-[620px] lg:p-12">
           <div className="max-w-[55%] min-w-64">
             <div className="flex items-center gap-4">
               {logoUrl && (
@@ -348,7 +376,7 @@ export function OperationPage(): JSX.Element {
             </div>
           </div>
 
-          <div className="relative h-64 drop-shadow-[-18px_20px_32px_rgba(0,0,0,.65)] md:absolute md:right-[-8%] md:bottom-[-12%] md:z-10 md:h-[118%] md:w-[55%] xl:right-[2%]">
+          <div className="relative h-80 drop-shadow-[-18px_20px_32px_rgba(0,0,0,.65)] md:absolute md:right-[-8%] md:bottom-[-10%] md:z-10 md:h-[126%] md:w-[58%] xl:right-[2%]">
             {focusedTier ? (
               <OperationSkinPreview key={focusedTier.id} tier={focusedTier} />
             ) : (
@@ -394,56 +422,58 @@ export function OperationPage(): JSX.Element {
             </span>
           )}
         </div>
-        <div className="mb-5">
-          <div className="mb-2 flex justify-between text-xs font-semibold tabular-nums text-neutral-300">
-            <span>Progression</span>
-            <span>{displayedPoints.toLocaleString()} / {maxPoints.toLocaleString()} OP</span>
-          </div>
-          <div
-            className="relative h-2 rounded-full bg-white/10"
-            role="progressbar"
-            aria-label="Operation reward progress"
-            aria-valuenow={Math.min(displayedPoints, maxPoints)}
-            aria-valuemin={0}
-            aria-valuemax={maxPoints}
-          >
-            <div
-              className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
-              style={{ width: `${progressPercent}%` }}
-            />
-            {operation.tiers.map((tier) => (
-              <span
-                key={tier.id}
-                className={twMerge(
-                  'pointer-events-none absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60 bg-neutral-700',
-                  displayedPoints >= tier.requiredPoints && 'bg-sky-200',
-                  tier.isMajor && 'size-3.5 border-amber-200'
-                )}
-                style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
-                aria-hidden="true"
-              />
-            ))}
-          </div>
+        <div className="mb-2 flex justify-between text-xs font-semibold tabular-nums text-neutral-300">
+          <span>Progression</span>
+          <span>{displayedPoints.toLocaleString()} / {maxPoints.toLocaleString()} OP</span>
         </div>
         <div className="relative">
           <div
             ref={carouselRef}
             onScroll={trackFocusedTier}
-            className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-4"
+            className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain pt-2 pb-4"
             style={{ paddingInline: 'calc(50% - 5rem)' }}
-            aria-label="Reward tiers"
+            aria-label="Operation progression and reward tiers"
           >
-            {operation.tiers.map((tier) => (
-              <TierCard
-                key={tier.id}
-                tier={tier}
-                displayedPoints={displayedPoints}
-                lastViewedPoints={lastViewedPoints}
-                currentPoints={currentPoints}
-                focused={focusedTier?.id === tier.id}
-                onFocus={focusTier}
-              />
-            ))}
+            <div style={{ width: `${Math.max(TIER_CARD_WIDTH, rewardTrackWidth)}px` }}>
+              <div
+                className="relative mb-5 h-2 rounded-full bg-white/10"
+                role="progressbar"
+                aria-label="Operation reward progress"
+                aria-valuenow={Math.min(displayedPoints, maxPoints)}
+                aria-valuemin={0}
+                aria-valuemax={maxPoints}
+              >
+                <div
+                  className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+                  style={{ width: `${progressPercent}%` }}
+                />
+                {operation.tiers.map((tier) => (
+                  <span
+                    key={tier.id}
+                    className={twMerge(
+                      'pointer-events-none absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60 bg-neutral-700',
+                      displayedPoints >= tier.requiredPoints && 'bg-sky-200',
+                      tier.isMajor && 'size-3.5 border-amber-200'
+                    )}
+                    style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+              <div className="flex gap-3">
+                {operation.tiers.map((tier) => (
+                  <TierCard
+                    key={tier.id}
+                    tier={tier}
+                    displayedPoints={displayedPoints}
+                    lastViewedPoints={lastViewedPoints}
+                    currentPoints={currentPoints}
+                    focused={focusedTier?.id === tier.id}
+                    onFocus={focusTier}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
           <div
             className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-linear-to-r from-transparent to-neutral-950 text-sky-300"
