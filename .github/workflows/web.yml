@@ -3,8 +3,6 @@ name: Verify web renderer
 on:
   pull_request:
   push:
-    branches:
-      - main
 
 permissions:
   contents: read
