@@ -18,8 +18,6 @@
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",
-    "web:dev": "vite --config vite.webapp.config.ts",
-    "web:build": "tsc --noEmit -p tsconfig.webapp.json && vite build --config vite.webapp.config.ts",
     "preview": "electron-vite preview",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
