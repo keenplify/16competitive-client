@@ -8,6 +8,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
 import { useFriendsStore } from '../friends/friends.store'
+import { OperationMatchProgress } from '../operations/OperationMatchProgress'
 import type { CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
@@ -64,7 +65,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
 
   useEffect(() => {
     if (resultsStep !== 'missions') return
-    let remainingMs = 5000
+    let remainingMs = 8000
     let startedAt = 0
     let timeout: number | undefined
 
@@ -181,8 +182,9 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               title="Mission progress"
               revealMatchProgress
             />
+            <OperationMatchProgress />
             <p className="mt-5 text-center text-xs font-medium tracking-wide text-white/35">
-              MATCH SUMMARY OPENS AUTOMATICALLY IN 5 SECONDS
+              MATCH SUMMARY OPENS AUTOMATICALLY IN 8 SECONDS
             </p>
           </div>
         </div>
