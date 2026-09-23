@@ -336,29 +336,47 @@ export function PlayPage(): JSX.Element {
           <section className="mt-8 border-t border-white/10 pt-6">
             <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
             <div className="mt-3 flex max-w-xl gap-3">
-              {(['5v5', 'unrated'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  disabled={isSearching || !isLeader || (webRuntime && mode === '5v5')}
-                  onClick={() => selectMode(mode)}
-                  className={twMerge(
-                    'flex-1 rounded border px-4 py-3 text-left transition',
-                    selectedMode === mode
-                      ? 'border-sky-400 bg-sky-400/10 text-white'
-                      : 'border-white/10 bg-neutral-900 text-neutral-300 hover:border-white/25'
-                  )}
-                >
-                  <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
-                  <span className="mt-1 block text-xs text-neutral-400">
-                    {mode === '5v5'
-                      ? webRuntime
-                        ? 'Rated matchmaking requires the desktop anti-cheat client.'
-                        : 'Rated. MMR changes and full competitive progression.'
-                      : 'Same 5v5 rules, but the result does not change MMR.'}
-                  </span>
-                </button>
-              ))}
+              {(['5v5', 'unrated'] as const).map((mode) =>
+                webRuntime && mode === '5v5' ? (
+                  <div
+                    key={mode}
+                    className="flex-1 rounded border border-white/10 bg-neutral-900 px-4 py-3 text-left text-neutral-300"
+                  >
+                    <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
+                    <span className="mt-1 block text-xs text-neutral-400">
+                      Rated matchmaking requires the desktop anti-cheat client.
+                    </span>
+                    <a
+                      href="https://papamo.dev/16competitive#download"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex text-xs font-semibold text-sky-300 transition hover:text-sky-200 hover:underline"
+                    >
+                      Download desktop app <span className="ml-1" aria-hidden="true">↗</span>
+                    </a>
+                  </div>
+                ) : (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={isSearching || !isLeader}
+                    onClick={() => selectMode(mode)}
+                    className={twMerge(
+                      'flex-1 rounded border px-4 py-3 text-left transition',
+                      selectedMode === mode
+                        ? 'border-sky-400 bg-sky-400/10 text-white'
+                        : 'border-white/10 bg-neutral-900 text-neutral-300 hover:border-white/25'
+                    )}
+                  >
+                    <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
+                    <span className="mt-1 block text-xs text-neutral-400">
+                      {mode === '5v5'
+                        ? 'Rated. MMR changes and full competitive progression.'
+                        : 'Same 5v5 rules, but the result does not change MMR.'}
+                    </span>
+                  </button>
+                )
+              )}
             </div>
           </section>
 
