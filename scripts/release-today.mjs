@@ -60,6 +60,25 @@ try {
   git('push', 'origin', tag)
 
   console.log(`${tag} pushed. GitHub Actions will build it and create the GitHub Release.`)
+
+  const remoteCommand = 'cd /opt/16competitive && git pull --ff-only && bun run web:build'
+  const failedHosts = []
+
+  for (const host of ['sg', 'na', 'ws']) {
+    console.log(`Updating web client on ${host}...`)
+    try {
+      execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', host, remoteCommand], {
+        stdio: 'inherit'
+      })
+    } catch {
+      failedHosts.push(host)
+      console.error(`Web client update failed on ${host}.`)
+    }
+  }
+
+  if (failedHosts.length) {
+    fail(`${tag} was pushed, but web client updates failed on: ${failedHosts.join(', ')}.`)
+  }
 } catch (error) {
   if (error instanceof Error) {
     console.error(error.message)

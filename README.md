@@ -109,7 +109,7 @@ Releases use calendar SemVer in the format `YYYY.MMDD.REVISION`, for example `20
 npm run release
 ```
 
-GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. Packaged apps check the public release feed at startup and install updates when the app exits.
+GitHub Actions builds the Windows and Linux packages and publishes the GitHub Release. After pushing the release, the command connects to the `sg`, `na`, and `ws` SSH hosts, runs `git pull --ff-only` in `/opt/16competitive`, and runs `bun run web:build` on each host. Configure those SSH aliases and non-interactive access before releasing. Packaged apps check the public release feed at startup and install updates when the app exits.
 
 ## Discord Rich Presence
 
