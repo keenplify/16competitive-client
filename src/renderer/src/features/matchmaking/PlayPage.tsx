@@ -338,7 +338,7 @@ export function PlayPage(): JSX.Element {
                 <button
                   key={mode}
                   type="button"
-                  disabled={isSearching}
+                  disabled={isSearching || !isLeader}
                   onClick={() => selectMode(mode)}
                   className={twMerge(
                     'flex-1 rounded border px-4 py-3 text-left transition',
@@ -397,7 +397,7 @@ export function PlayPage(): JSX.Element {
             )}
             {mapsStatus === 'ready' && availableMaps.length === 0 && (
               <p className="mt-4 text-sm text-neutral-400">
-                Competitive matchmaking is temporarily unavailable.
+                {getMatchmakingModeLabel(selectedMode)} matchmaking is temporarily unavailable.
               </p>
             )}
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
