@@ -5,6 +5,7 @@ import type { OperationTier } from '../../../../shared/operations'
 import { Button } from '../../components/ui/Button'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
+import { OperationSkinPreview } from './OperationSkinPreview'
 import waterBackground from '../../assets/operations/pixel-water-background.png'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { presentationModelPath } from '../party/party-models'
@@ -73,18 +74,22 @@ function TierCard({
   tier,
   displayedPoints,
   lastViewedPoints,
-  currentPoints
+  currentPoints,
+  focused,
+  onFocus
 }: {
   tier: OperationTier
   displayedPoints: number
   lastViewedPoints: number
   currentPoints: number
+  focused: boolean
+  onFocus: (tier: OperationTier) => void
 }): JSX.Element {
   const unlocked = displayedPoints >= tier.requiredPoints
   const newlyUnlocked =
     tier.requiredPoints > lastViewedPoints && tier.requiredPoints <= currentPoints && unlocked
   return (
-    <div className="w-36 shrink-0 snap-start sm:w-40">
+    <div data-tier-id={tier.id} className="w-40 shrink-0 snap-center">
       <article
         className={twMerge(
           'relative flex h-44 w-full flex-col overflow-hidden border bg-neutral-950/90 shadow-xl transition-[transform,opacity,border-color,box-shadow] duration-500',
@@ -93,9 +98,17 @@ function TierCard({
             ? 'border-sky-300/60 opacity-100 shadow-[0_0_24px_rgba(56,189,248,0.16)]'
             : 'border-white/10 opacity-55 grayscale-[.45]',
           newlyUnlocked &&
-            'operation-tier-pop border-amber-200/80 shadow-[0_0_38px_rgba(251,191,36,0.35)]'
+            'operation-tier-pop border-amber-200/80 shadow-[0_0_38px_rgba(251,191,36,0.35)]',
+          focused && 'scale-[1.04] border-sky-200 shadow-[0_0_32px_rgba(56,189,248,0.3)]'
         )}
       >
+        <button
+          type="button"
+          className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-300"
+          aria-label={`Focus ${rewardName(tier)}`}
+          aria-pressed={focused}
+          onClick={() => onFocus(tier)}
+        />
         <div className="relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.22),_transparent_68%)]">
           <RewardPreview tier={tier} />
           {!unlocked && (
@@ -139,6 +152,9 @@ export function OperationPage(): JSX.Element {
   const operativeModel = useLobbyLoadoutStore((state) => state.playerModel)
   const installationPath = useGameSettingsStore((state) => state.savedPath)
   const [displayedPoints, setDisplayedPoints] = useState(0)
+  const [focusedTierId, setFocusedTierId] = useState<string | null>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const scrollTimerRef = useRef<number | null>(null)
   const acknowledgedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -153,6 +169,45 @@ export function OperationPage(): JSX.Element {
       : 1
   const lastViewedPoints = progress?.lastViewedPoints ?? 0
   const currentPoints = progress?.points ?? 0
+  const focusedTier = operation?.tiers.find((tier) => tier.id === focusedTierId) ?? operation?.tiers[0] ?? null
+
+  useEffect(() => () => {
+    if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current)
+  }, [])
+
+  const focusTier = (tier: OperationTier): void => {
+    setFocusedTierId(tier.id)
+    const carousel = carouselRef.current
+    const card = Array.from(carousel?.children ?? []).find(
+      (child) => child.getAttribute('data-tier-id') === tier.id
+    ) as HTMLElement | undefined
+    if (carousel && card) {
+      const cardLeft = card.getBoundingClientRect().left - carousel.getBoundingClientRect().left
+      carousel.scrollTo({
+        left: carousel.scrollLeft + cardLeft - (carousel.clientWidth - card.offsetWidth) / 2,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const trackFocusedTier = (): void => {
+    if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current)
+    scrollTimerRef.current = window.setTimeout(() => {
+      scrollTimerRef.current = null
+      const carousel = carouselRef.current
+      if (!carousel || !operation) return
+      const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2
+      const cards = Array.from(carousel.children) as HTMLElement[]
+      const nearest = cards.reduce<HTMLElement | null>((best, card) => {
+        const rect = card.getBoundingClientRect()
+        const distance = Math.abs(rect.left + rect.width / 2 - center)
+        if (!best) return card
+        const bestRect = best.getBoundingClientRect()
+        return distance < Math.abs(bestRect.left + bestRect.width / 2 - center) ? card : best
+      }, null)
+      if (nearest?.dataset.tierId) setFocusedTierId(nearest.dataset.tierId)
+    }, 120)
+  }
 
   useEffect(() => {
     if (!operation || !progress) return
@@ -252,15 +307,6 @@ export function OperationPage(): JSX.Element {
         )}
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,.96),rgba(3,7,18,.76)_42%,rgba(3,7,18,.24)_78%),linear-gradient(0deg,rgba(3,7,18,.94),transparent_65%)]" />
         <div className="operation-hero-scan pointer-events-none absolute inset-0 opacity-30" />
-        <div className="absolute right-[-8%] bottom-[-12%] hidden h-[118%] w-[55%] drop-shadow-[-18px_20px_32px_rgba(0,0,0,.65)] md:block xl:right-[2%]">
-          <ModelViewer
-            modelPath={presentationModelPath(operativeModel)}
-            sourceRevision={installationPath ?? 'unloaded'}
-            maxFrameRate={30}
-            cameraLocked
-            className="h-full w-full"
-          />
-        </div>
         <div className="relative flex min-h-[450px] flex-col justify-between gap-8 p-6 sm:p-9 lg:min-h-[520px] lg:p-12">
           <div className="max-w-[55%] min-w-64">
             <div className="flex items-center gap-4">
@@ -301,6 +347,20 @@ export function OperationPage(): JSX.Element {
             </div>
           </div>
 
+          <div className="relative h-64 drop-shadow-[-18px_20px_32px_rgba(0,0,0,.65)] md:absolute md:right-[-8%] md:bottom-[-12%] md:z-10 md:h-[118%] md:w-[55%] xl:right-[2%]">
+            {focusedTier ? (
+              <OperationSkinPreview key={focusedTier.id} tier={focusedTier} />
+            ) : (
+              <ModelViewer
+                modelPath={presentationModelPath(operativeModel)}
+                sourceRevision={installationPath ?? 'unloaded'}
+                maxFrameRate={30}
+                cameraLocked
+                className="h-full w-full"
+              />
+            )}
+          </div>
+
           <div className="w-fit min-w-56 border border-white/15 bg-black/55 px-5 py-4 backdrop-blur-sm">
             <p className="text-[10px] font-bold tracking-[0.18em] text-neutral-400 uppercase">
               Operation Points
@@ -333,22 +393,43 @@ export function OperationPage(): JSX.Element {
             </span>
           )}
         </div>
-        <div
-          className="mb-5 h-1 overflow-hidden rounded-full bg-white/10"
-          role="progressbar"
-          aria-label="Operation reward progress"
-          aria-valuenow={displayedPoints}
-          aria-valuemin={0}
-          aria-valuemax={maxPoints}
-        >
+        <div className="mb-5">
+          <div className="mb-2 flex justify-between text-xs font-semibold tabular-nums text-neutral-300">
+            <span>Progression</span>
+            <span>{displayedPoints.toLocaleString()} / {maxPoints.toLocaleString()} OP</span>
+          </div>
           <div
-            className="operation-progress-sheen h-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
-            style={{ width: `${progressPercent}%` }}
-          />
+            className="relative h-2 rounded-full bg-white/10"
+            role="progressbar"
+            aria-label="Operation reward progress"
+            aria-valuenow={Math.min(displayedPoints, maxPoints)}
+            aria-valuemin={0}
+            aria-valuemax={maxPoints}
+          >
+            <div
+              className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+              style={{ width: `${progressPercent}%` }}
+            />
+            {operation.tiers.map((tier) => (
+              <span
+                key={tier.id}
+                className={twMerge(
+                  'pointer-events-none absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60 bg-neutral-700',
+                  displayedPoints >= tier.requiredPoints && 'bg-sky-200',
+                  tier.isMajor && 'size-3.5 border-amber-200'
+                )}
+                style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
         </div>
         <div className="relative">
           <div
-            className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 pr-9"
+            ref={carouselRef}
+            onScroll={trackFocusedTier}
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-4"
+            style={{ paddingInline: 'calc(50% - 5rem)' }}
             aria-label="Reward tiers"
           >
             {operation.tiers.map((tier) => (
@@ -358,6 +439,8 @@ export function OperationPage(): JSX.Element {
                 displayedPoints={displayedPoints}
                 lastViewedPoints={lastViewedPoints}
                 currentPoints={currentPoints}
+                focused={focusedTier?.id === tier.id}
+                onFocus={focusTier}
               />
             ))}
           </div>
