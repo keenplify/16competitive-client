@@ -92,7 +92,7 @@ function TierCard({
   const newlyUnlocked =
     tier.requiredPoints > lastViewedPoints && tier.requiredPoints <= currentPoints && unlocked
   return (
-    <div data-tier-id={tier.id} className="w-40 shrink-0 snap-center">
+    <div data-tier-id={tier.id} className="w-40 shrink-0">
       <article
         className={twMerge(
           'relative flex h-44 w-full flex-col overflow-hidden border bg-neutral-950/90 shadow-xl transition-[transform,opacity,border-color,box-shadow] duration-500',
@@ -224,8 +224,10 @@ export function OperationPage(): JSX.Element {
   }
 
   useEffect(() => {
+    if (status !== 'ready') return
     const carousel = carouselRef.current
     if (!carousel) return
+    wheelTargetRef.current = null
 
     const animateWheelScroll = (): void => {
       const target = wheelTargetRef.current
@@ -237,6 +239,7 @@ export function OperationPage(): JSX.Element {
       const distance = target - carousel.scrollLeft
       if (Math.abs(distance) < 0.5) {
         carousel.scrollLeft = target
+        wheelTargetRef.current = null
         wheelAnimationFrameRef.current = null
         return
       }
@@ -279,8 +282,9 @@ export function OperationPage(): JSX.Element {
         window.cancelAnimationFrame(wheelAnimationFrameRef.current)
         wheelAnimationFrameRef.current = null
       }
+      wheelTargetRef.current = null
     }
-  }, [operation?.id])
+  }, [operation?.id, status])
 
   useEffect(() => {
     if (!operation || !progress) return
@@ -478,7 +482,7 @@ export function OperationPage(): JSX.Element {
           <div
             ref={carouselRef}
             onScroll={trackFocusedTier}
-            className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain pt-2 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="overflow-x-auto overscroll-x-contain pt-2 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ paddingInline: 'calc(50% - 5rem)' }}
             aria-label="Operation progression and reward tiers"
           >

@@ -105,7 +105,7 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   scout: {
     modelRotation: [0, -75, 90],
     handRotation: [0, 180, 0],
-    handOffset: [9, 0, 3]
+    handOffset: [9, 0, 1]
   },
   g3sg1: {
     modelRotation: [0, -70, 90],
@@ -120,7 +120,7 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   mp5navy: {
     modelRotation: [0, -90, 90],
     handRotation: [0, 180, 90],
-    handOffset: [-2, 0, 4]
+    handOffset: [-3, 1, 3]
   },
   tmp: {
     modelRotation: [0, 280, 90],
@@ -700,13 +700,15 @@ interface PartyModelSceneProps {
   sourceRevision?: string | number
   className?: string
   showNameplates?: boolean
+  verticalOffset?: number
 }
 
 export function PartyModelScene({
   actors,
   sourceRevision,
   className,
-  showNameplates = true
+  showNameplates = true,
+  verticalOffset = -45
 }: PartyModelSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const actorsRef = useRef(actors)
@@ -790,7 +792,7 @@ export function PartyModelScene({
       // solo actor from its actual geometry while leaving the tuned five-player
       // formation exactly as-is.
       pivot.position.x = formation[index]?.x
-      pivot.position.y = -45
+      pivot.position.y = verticalOffset
       pivot.position.z = formation[index]?.z ?? 2
       pivot.add(model)
       scene.add(pivot)
@@ -923,7 +925,7 @@ export function PartyModelScene({
       renderer.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates])
+  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates, verticalOffset])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }

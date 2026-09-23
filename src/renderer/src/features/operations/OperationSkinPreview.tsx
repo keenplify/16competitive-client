@@ -1,11 +1,8 @@
 import { Award, LoaderCircle } from 'lucide-react'
-import { useEffect, useState, type CSSProperties, type JSX } from 'react'
+import { type CSSProperties, type JSX } from 'react'
 import type { OperationTier } from '../../../../shared/operations'
-import type { OwnedSkin } from '../../../../shared/skins'
-import { Button } from '../../components/ui/Button'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { useAuthStore } from '../auth/auth.store'
-import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import { PartyModelScene } from '../party/PartyModelScene'
@@ -26,46 +23,6 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
   const player = useAuthStore((state) => state.session?.player)
   const operativeModel = useLobbyLoadoutStore((state) => state.playerModel)
   const installationPath = useGameSettingsStore((state) => state.savedPath)
-  const [owned, setOwned] = useState<OwnedSkin | null>(null)
-  const [inventoryLoading, setInventoryLoading] = useState(true)
-  const [inventoryError, setInventoryError] = useState<string | null>(null)
-  const [equipping, setEquipping] = useState(false)
-  const queueStatus = useMatchmakingStore((state) => state.queueStatus)
-  const loadoutLocked = [
-    'match_found', 'ready_check', 'countdown', 'starting_server', 'server_ready'
-  ].includes(queueStatus)
-
-  useEffect(() => {
-    let active = true
-    void window.api.skins.mine().then(
-      (inventory) => {
-        if (active) {
-          setOwned(inventory.find((item) => item.skin.id === skinId) ?? null)
-          setInventoryLoading(false)
-        }
-      },
-      (reason: unknown) => {
-        if (active) {
-          setInventoryError(reason instanceof Error ? reason.message : 'Could not load inventory.')
-          setInventoryLoading(false)
-        }
-      }
-    )
-    return () => { active = false }
-  }, [skinId, weaponKey])
-
-  const equip = (): void => {
-    if (!owned || owned.equippedAt || equipping || loadoutLocked) return
-    setEquipping(true)
-    setInventoryError(null)
-    void window.api.skins.equip(skinId)
-      .then(() => window.api.skins.mine())
-      .then((inventory) => setOwned(inventory.find((item) => item.skin.id === skinId) ?? null))
-      .catch((reason: unknown) =>
-        setInventoryError(reason instanceof Error ? reason.message : 'Could not equip skin.')
-      )
-      .finally(() => setEquipping(false))
-  }
 
   return (
     <div className="relative flex h-full flex-col items-center justify-end pb-5 md:pb-7">
@@ -96,24 +53,13 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
             sourceRevision={installationPath ?? 'unloaded'}
             showNameplates={false}
             className="h-full w-full"
+            verticalOffset={-35}
           />
         ) : (
           <div className="grid h-full place-items-center" role="status">
             <LoaderCircle className="size-7 animate-spin text-sky-300" />
           </div>
         )}
-      </div>
-      <div className="z-10 mb-1 flex max-w-full flex-col items-center gap-2 rounded bg-black/60 px-5 py-3 backdrop-blur-sm">
-        <p className="max-w-full truncate text-sm font-semibold text-white">{tier.skin?.name ?? 'Weapon skin'}</p>
-        {inventoryError && <p className="text-center text-xs text-rose-300">{inventoryError}</p>}
-        <Button
-          className="min-w-28"
-          disabled={inventoryLoading || !owned || Boolean(owned.equippedAt) || equipping || loadoutLocked}
-          onClick={equip}
-        >
-          {inventoryLoading ? 'Checking…' : equipping ? 'Equipping…' : owned?.equippedAt
-            ? 'Equipped' : loadoutLocked ? 'Loadout locked' : owned ? 'Equip' : 'Unlock to equip'}
-        </Button>
       </div>
     </div>
   )

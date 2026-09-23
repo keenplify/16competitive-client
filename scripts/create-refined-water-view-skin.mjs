@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { decodeRgbPng } from './create-water-ak47-skin.mjs'
 import { readIndexedBmp } from './import-mdl-textures.mjs'
 
-const PATTERN_PATH = fileURLToPath(new URL('../resources/skin-patterns/calm-sky-water.png', import.meta.url))
+const PATTERN_PATH = fileURLToPath(new URL('../resources/skin-patterns/desktop-pixel-water.png', import.meta.url))
 const PAINTED_PARTS = {
   v_mp5: new Set(['lowerrec.bmp', 'buttstock.bmp', 'clip.bmp', 'forearm.bmp']),
   v_m4a1: new Set(['receiver.bmp', 'magazine.bmp', 'buttstock.bmp']),
@@ -149,15 +149,16 @@ function finishHardware(bmp, texture, material, swatch) {
   return color
 }
 
-function finishWorldTexture(bmp, texture, pattern, patternScale, material, swatch) {
+function finishWorldTexture(bmp, texture, modelName, pattern, patternScale, material, swatch) {
   const { width, height, pixels } = readIndexedBmp(bmp, texture.file)
   const background = externalBackground(pixels, width, height)
   const water = colorizeTexture(bmp, texture, pattern, patternScale)
   const hardware = finishHardware(bmp, texture, material, swatch)
   const result = Buffer.from(hardware)
+  const waterEnd = modelName.endsWith('_m4a1') ? 0.58 : 0.75
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const position = y * width + x
-    if (background[position] || x >= width * 0.75 || y >= height * 0.5) continue
+    if (background[position] || x >= width * waterEnd) continue
     water.copy(result, position * 3, position * 3, position * 3 + 3)
   }
   return result
@@ -279,7 +280,7 @@ export async function createRefinedWaterViewSkin(sourceDirectory, outputDirector
     if (modelName.startsWith('v_') && texture.index < 3) { await copyFile(source, output); continue }
     const bmp = await readFile(source)
     const rgb = (modelName.startsWith('p_') || modelName.startsWith('w_')) && painted.has(texture.name.toLowerCase())
-      ? finishWorldTexture(bmp, texture, pattern, patternScale, material, swatch)
+      ? finishWorldTexture(bmp, texture, modelName, pattern, patternScale, material, swatch)
       : painted.has(texture.name.toLowerCase())
       ? colorizeTexture(bmp, texture, pattern, patternScale)
       : finishHardware(bmp, texture, material, swatch)
