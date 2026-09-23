@@ -606,7 +606,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
         set({
-          error: 'Choose and save your Counter-Strike executable in Settings before matchmaking.'
+          error: 'Choose and save your Counter-Strike folder in Settings before matchmaking.'
         })
         return
       }

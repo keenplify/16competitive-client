@@ -71,7 +71,7 @@ export function AssetDownloadSettings(): JSX.Element {
     if (!savedPath) {
       return (
         <p className="text-sm text-neutral-400">
-          Save your Counter-Strike executable above before downloading assets.
+          Save your Counter-Strike folder above before downloading assets.
         </p>
       )
     }

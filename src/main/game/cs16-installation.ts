@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { STOCK_GAME_DIR, findSteamLibraryRoot, hasStandaloneSteamEmulator } from './game-directory'
 
@@ -48,6 +48,25 @@ const GOLD_SRC_WINDOWS_EXECUTABLE = 'hl.exe'
  */
 const STANDALONE_WRAPPER_EXECUTABLES = new Set(['cs16launcher.exe'])
 
+/**
+ * CS Xtreme V6's counter-strike.bat supplies -appid 10 and other engine flags.
+ * Its launcher.exe cannot be started through Node spawn on some installations
+ * (EACCES), so recognize the script and pass those flags to the selected hl.exe.
+ * Detect by the script instead of the installation folder name.
+ */
+const hasCsXtremeLaunchScript = async (installRoot: string): Promise<boolean> => {
+  if (process.platform !== 'win32') return false
+  const launchScript = await readFile(join(installRoot, 'counter-strike.bat'), 'utf8').catch(
+    () => null
+  )
+  return (
+    launchScript !== null &&
+    /^\s*start\s+launcher\.exe\s+-steam\s+-game\s+cstrike\s+-appid\s+10\b/im.test(
+      launchScript
+    )
+  )
+}
+
 export const classifyCs16Distribution = (executable: string): Cs16Distribution =>
   findSteamLibraryRoot(executable) ? 'steam' : 'standalone'
 
@@ -71,8 +90,12 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
   const steamLibraryRoot = findSteamLibraryRoot(executable)
   if (!steamLibraryRoot) {
     const installRoot = dirname(executable)
-    const usesSteamEmulation = await hasStandaloneSteamEmulator(installRoot)
     const isWrapper = STANDALONE_WRAPPER_EXECUTABLES.has(basename(executable).toLowerCase())
+    const isCsXtreme =
+      basename(executable).toLowerCase() === GOLD_SRC_WINDOWS_EXECUTABLE
+        ? await hasCsXtremeLaunchScript(installRoot)
+        : false
+    const usesSteamEmulation = isCsXtreme || (await hasStandaloneSteamEmulator(installRoot))
     const gameExecutable = isWrapper ? join(installRoot, GOLD_SRC_WINDOWS_EXECUTABLE) : executable
 
     if (isWrapper && !(await stat(gameExecutable).catch(() => null))?.isFile()) {
@@ -88,7 +111,20 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // separately (see `gameExecutable`).
       executable,
       gameExecutable,
-      argumentPrefix: buildArgumentPrefix(usesSteamEmulation),
+      argumentPrefix: isCsXtreme
+        ? [
+            '-steam',
+            '-game',
+            STOCK_GAME_DIR,
+            '-appid',
+            '10',
+            '-noipx',
+            '-nojoy',
+            '-noforcemspd',
+            '-noforcemparms',
+            '-noforcemaccel'
+          ]
+        : buildArgumentPrefix(usesSteamEmulation),
       // Older standalone GoldSrc clients can terminate during initialization
       // when forced above their supported 512px texture limit.
       textureSize: '512',

@@ -1,6 +1,6 @@
 export const GAME_SETTINGS_CHANNELS = {
   get: 'game-settings:get',
-  chooseExecutable: 'game-settings:choose-executable',
+  chooseFolder: 'game-settings:choose-folder',
   save: 'game-settings:save',
   setVoicePttKey: 'game-settings:set-voice-ptt-key',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
@@ -10,6 +10,7 @@ export const GAME_SETTINGS_CHANNELS = {
 
 export interface GameSettings {
   cs16ExecutablePath: string | null
+  cs16FolderPath: string | null
   configFilePath: string
   voicePttKey: string
   voicePttKeys: string[]
@@ -26,8 +27,8 @@ export interface SkinAssetSyncProgress {
 
 export interface GameSettingsApi {
   get(): Promise<GameSettings>
-  chooseExecutable(): Promise<string | null>
-  save(executablePath: string): Promise<GameSettings>
+  chooseFolder(): Promise<string | null>
+  save(folderPath: string): Promise<GameSettings>
   setVoicePttKey(key: string): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>
   syncAssets(mode: SkinAssetSyncMode): Promise<void>

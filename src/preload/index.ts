@@ -156,8 +156,8 @@ const friends: FriendsApi = {
 
 const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
-  chooseExecutable: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseExecutable),
-  save: (executablePath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, executablePath),
+  chooseFolder: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseFolder),
+  save: (folderPath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, folderPath),
   setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
   syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),

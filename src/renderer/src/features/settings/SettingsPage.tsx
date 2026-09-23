@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   CheckCircle2,
   Download,
   Link2,
@@ -18,6 +19,7 @@ import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
+import { ChangelogModal } from './ChangelogModal'
 import { LanguageSettings } from '../i18n/LanguageSettings'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
@@ -39,8 +41,9 @@ export function SettingsPage(): JSX.Element {
   const assetsRef = useRef<HTMLElement>(null)
   const credentialsRef = useRef<HTMLElement>(null)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
+  const [changelogOpen, setChangelogOpen] = useState(false)
 
-  const executablePath = useGameSettingsStore((state) => state.executablePath)
+  const folderPath = useGameSettingsStore((state) => state.folderPath)
   const savedPath = useGameSettingsStore((state) => state.savedPath)
   const configFilePath = useGameSettingsStore((state) => state.configFilePath)
   const status = useGameSettingsStore((state) => state.status)
@@ -356,6 +359,14 @@ export function SettingsPage(): JSX.Element {
             <div className="mt-3 grid grid-cols-2 gap-1 lg:grid-cols-1">
               <Button
                 variant="ghost"
+                className="justify-start border border-white/10 text-neutral-300 hover:bg-white/5 hover:text-white"
+                onClick={() => setChangelogOpen(true)}
+              >
+                <BookOpen className="mr-2 size-4" aria-hidden="true" />
+                Changelog
+              </Button>
+              <Button
+                variant="ghost"
                 className="justify-start border border-rose-400/20 bg-rose-400/5 text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
                 disabled={
                   authStatus === 'logging_out' ||
@@ -399,10 +410,10 @@ export function SettingsPage(): JSX.Element {
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
                 <p className="mt-2 text-sm text-neutral-400">
-                  Choose the executable the launcher should start when a match server is ready.
+                  Choose the game folder or its cstrike subfolder. The launcher will find the executable automatically.
                 </p>
 
-                {status !== 'loading' && !executablePath && (
+                {status !== 'loading' && !folderPath && (
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/5 p-4">
                     <p className="text-sm text-neutral-300">Counter-Strike is not installed yet?</p>
                     <Button
@@ -417,14 +428,14 @@ export function SettingsPage(): JSX.Element {
                 )}
 
                 <label className="mt-6 block text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                  Executable path
+                  Installation folder
                 </label>
                 <div className="mt-2 flex flex-col gap-3 sm:flex-row">
                   <input
                     className="h-11 min-w-0 flex-1 border border-white/15 bg-black/40 px-3 font-mono text-sm text-neutral-200 outline-none focus:border-sky-400"
-                    value={executablePath}
+                    value={folderPath}
                     readOnly
-                    placeholder="No Counter-Strike executable selected"
+                    placeholder="No Counter-Strike folder selected"
                   />
                   <Button
                     variant="ghost"
@@ -434,7 +445,7 @@ export function SettingsPage(): JSX.Element {
                     {status === 'choosing' ? 'Opening…' : 'Browse'}
                   </Button>
                   <Button
-                    disabled={status !== 'idle' || !executablePath || executablePath === savedPath}
+                    disabled={status !== 'idle' || !folderPath || folderPath === savedPath}
                     onClick={() => void save()}
                   >
                     {status === 'saving' ? 'Saving…' : 'Save'}
@@ -742,6 +753,7 @@ export function SettingsPage(): JSX.Element {
           </div>
         </div>
       </div>
+      {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
     </main>
   )
 }

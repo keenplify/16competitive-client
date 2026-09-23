@@ -401,7 +401,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     source: configuredExecutable ? 'settings-or-environment' : 'missing'
   })
   if (!configuredExecutable) {
-    throw new Error('Choose your Counter-Strike executable in Settings before joining a match.')
+    throw new Error('Choose your Counter-Strike folder in Settings before joining a match.')
   }
   if (!isAbsolute(configuredExecutable)) {
     throw new Error('CS16_CLIENT_EXECUTABLE_PATH must be an absolute path.')
