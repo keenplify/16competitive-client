@@ -1,9 +1,0 @@
-{
-  "name": "1.6 Competitive",
-  "short_name": "1.6 Competitive",
-  "description": "Steam-only unrated matchmaking for Counter-Strike 1.6",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#05070a",
-  "theme_color": "#05070a"
-}
