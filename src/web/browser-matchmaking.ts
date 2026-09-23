@@ -301,7 +301,9 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async getMaps() {
-    const body = await requestJson<{ maps: MatchmakingMap[] }>('/matchmaking/maps')
+    const body = await requestJson<{ maps: MatchmakingMap[] }>('/matchmaking/maps', {
+      authenticated: true
+    })
     return body.maps
   },
 
