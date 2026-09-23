@@ -20,15 +20,16 @@ export const MATCHMAKING_CHANNELS = {
   event: 'matchmaking:event'
 } as const
 
-export type MatchmakingMode = '5v5' | 'casual'
+export type MatchmakingMode = '5v5' | 'unrated' | 'casual'
 
 export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   '5v5': 'Competitive',
+  unrated: 'Unrated',
   casual: 'Casual'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
-  mode === '5v5' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
+  mode === '5v5' || mode === 'unrated' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
 
 export interface QueuedPlayer {
   id: string
