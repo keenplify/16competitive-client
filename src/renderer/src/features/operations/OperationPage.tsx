@@ -154,7 +154,7 @@ export function OperationPage(): JSX.Element {
   const [displayedPoints, setDisplayedPoints] = useState(0)
   const [focusedTierId, setFocusedTierId] = useState<string | null>(null)
   const carouselRef = useRef<HTMLDivElement>(null)
-  const scrollTimerRef = useRef<number | null>(null)
+  const scrollFrameRef = useRef<number | null>(null)
   const acknowledgedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -172,7 +172,7 @@ export function OperationPage(): JSX.Element {
   const focusedTier = operation?.tiers.find((tier) => tier.id === focusedTierId) ?? operation?.tiers[0] ?? null
 
   useEffect(() => () => {
-    if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current)
+    if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current)
   }, [])
 
   const focusTier = (tier: OperationTier): void => {
@@ -191,9 +191,9 @@ export function OperationPage(): JSX.Element {
   }
 
   const trackFocusedTier = (): void => {
-    if (scrollTimerRef.current !== null) window.clearTimeout(scrollTimerRef.current)
-    scrollTimerRef.current = window.setTimeout(() => {
-      scrollTimerRef.current = null
+    if (scrollFrameRef.current !== null) return
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null
       const carousel = carouselRef.current
       if (!carousel || !operation) return
       const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2
@@ -205,8 +205,9 @@ export function OperationPage(): JSX.Element {
         const bestRect = best.getBoundingClientRect()
         return distance < Math.abs(bestRect.left + bestRect.width / 2 - center) ? card : best
       }, null)
-      if (nearest?.dataset.tierId) setFocusedTierId(nearest.dataset.tierId)
-    }, 120)
+      const tierId = nearest?.dataset.tierId
+      if (tierId) setFocusedTierId((current) => current === tierId ? current : tierId)
+    })
   }
 
   useEffect(() => {
