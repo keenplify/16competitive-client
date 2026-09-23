@@ -1,5 +1,5 @@
 import { Award, LoaderCircle } from 'lucide-react'
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useState, type CSSProperties, type JSX } from 'react'
 import type { OperationTier } from '../../../../shared/operations'
 import type { OwnedSkin } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
@@ -13,6 +13,13 @@ import {
   getSkinCameraTarget,
   getSkinPresentationRotation
 } from '../skins/skin-model-presentation'
+
+const spotlightGlowStyle: CSSProperties = {
+  filter:
+    'drop-shadow(0 0 10px rgba(255,255,255,0.35)) ' +
+    'drop-shadow(0 0 24px rgba(255,255,255,0.22)) ' +
+    'drop-shadow(0 0 40px rgba(125,211,252,0.18))'
+}
 
 function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
   const skinId = tier.skinId!
@@ -72,24 +79,31 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
     <div className="flex h-full flex-col items-center justify-end pb-16 md:pb-[14%]">
       <div className="relative min-h-0 w-full flex-1">
         {weaponKey === 'elite' ? (
-          <img className="h-full w-full object-contain" src={elitePistolsImage} alt={tier.skin?.name ?? 'Elite pistols'} />
-        ) : model ? (
-          <ModelViewer
-            modelBuffer={model}
-            modelKey={skinId}
-            presentationRotation={getSkinPresentationRotation(weaponKey)}
-            camera={{
-              distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.9),
-              target: getSkinCameraTarget(weaponKey)
-            }}
-            animation="idle1"
-            maxFrameRate={30}
-            disableZoom
-            lockCameraDistance
-            orbitAngleLimit={0.7}
-            rotateSpeed={0.45}
-            className="absolute inset-0"
+          <img
+            className="h-full w-full object-contain"
+            style={spotlightGlowStyle}
+            src={elitePistolsImage}
+            alt={tier.skin?.name ?? 'Elite pistols'}
           />
+        ) : model ? (
+          <div className="absolute inset-0" style={spotlightGlowStyle}>
+            <ModelViewer
+              modelBuffer={model}
+              modelKey={skinId}
+              presentationRotation={getSkinPresentationRotation(weaponKey)}
+              camera={{
+                distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.9),
+                target: getSkinCameraTarget(weaponKey)
+              }}
+              animation="idle1"
+              maxFrameRate={30}
+              disableZoom
+              lockCameraDistance
+              orbitAngleLimit={0.7}
+              rotateSpeed={0.45}
+              className="absolute inset-0"
+            />
+          </div>
         ) : (
           <div className="grid h-full place-items-center text-sm text-rose-300" role="status">
             {modelError ?? <LoaderCircle className="size-7 animate-spin text-sky-300" />}
