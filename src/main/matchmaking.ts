@@ -859,7 +859,8 @@ class MatchmakingConnection {
           JSON.stringify({
             type: 'authenticate',
             token,
-            globalChatLanguage: this.globalChatLanguage
+            globalChatLanguage: this.globalChatLanguage,
+            client: 'desktop'
           })
         )
         return
