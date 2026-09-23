@@ -61,7 +61,8 @@ try {
 
   console.log(`${tag} pushed. GitHub Actions will build it and create the GitHub Release.`)
 
-  const remoteCommand = 'cd /opt/16competitive && git pull --ff-only && bun run web:build'
+  const remoteCommand =
+    'cd /root/16competitive && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'
   const failedHosts = []
 
   for (const host of ['sg', 'na', 'ws']) {
