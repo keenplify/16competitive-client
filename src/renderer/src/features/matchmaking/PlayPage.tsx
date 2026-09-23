@@ -13,6 +13,7 @@ import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
+import { isWebRuntime } from '../../web-runtime'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -107,6 +108,7 @@ export function PlayPage(): JSX.Element {
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const navigate = useNavigationStore((state) => state.navigate)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
+  const webRuntime = isWebRuntime()
 
   useEffect(() => {
     void loadMaps()
@@ -138,7 +140,7 @@ export function PlayPage(): JSX.Element {
     // Revalidate through the main process: a saved path can become stale if the
     // player deletes or moves their Counter-Strike installation while the app is open.
     const settings = await window.api.gameSettings.get().catch(() => null)
-    if (!settings?.cs16ExecutablePath) {
+    if (!webRuntime && !settings?.cs16ExecutablePath) {
       useGameSettingsStore.getState().promptToConfigureForMatch()
       navigate('settings')
       return
@@ -291,11 +293,11 @@ export function PlayPage(): JSX.Element {
             <div className="mt-8 flex justify-center">
               <Button
                 className="rounded-sm"
-                disabled={!gameExited}
+                disabled={!webRuntime && !gameExited}
                 variant="ghost"
                 onClick={() => void handleReconnect()}
               >
-                {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
+                {webRuntime ? 'Launch Counter-Strike' : gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
               </Button>
             </div>
           )}
@@ -338,7 +340,7 @@ export function PlayPage(): JSX.Element {
                 <button
                   key={mode}
                   type="button"
-                  disabled={isSearching || !isLeader}
+                  disabled={isSearching || !isLeader || (webRuntime && mode === '5v5')}
                   onClick={() => selectMode(mode)}
                   className={twMerge(
                     'flex-1 rounded border px-4 py-3 text-left transition',
@@ -350,7 +352,9 @@ export function PlayPage(): JSX.Element {
                   <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
                   <span className="mt-1 block text-xs text-neutral-400">
                     {mode === '5v5'
-                      ? 'Rated. MMR changes and full competitive progression.'
+                      ? webRuntime
+                        ? 'Rated matchmaking requires the desktop anti-cheat client.'
+                        : 'Rated. MMR changes and full competitive progression.'
                       : 'Same 5v5 rules, but the result does not change MMR.'}
                   </span>
                 </button>
@@ -422,7 +426,7 @@ export function PlayPage(): JSX.Element {
                 !isConnected ||
                 mapsStatus !== 'ready' ||
                 !hasSelectedMaps ||
-                !gameExecutablePath ||
+                (!webRuntime && !gameExecutablePath) ||
                 isSearching ||
                 queueStatus === 'joining'
               }
@@ -441,7 +445,7 @@ export function PlayPage(): JSX.Element {
                 You’ll be moved into the queue when your leader starts matchmaking.
               </p>
             )}
-            {isLeader && !gameExecutablePath && (
+            {isLeader && !webRuntime && !gameExecutablePath && (
               <p className="text-sm text-amber-300">
                 Choose and save your Counter-Strike folder in Settings first.
               </p>
