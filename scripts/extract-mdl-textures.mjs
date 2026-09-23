@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -54,6 +55,7 @@ export function readMdlTextures(mdl) {
 function safeFileStem(value) {
   return value
     .replace(/\.bmp$/i, '')
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
     .replace(/[. ]+$/g, '') || 'texture'
 }
