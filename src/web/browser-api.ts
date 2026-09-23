@@ -423,10 +423,28 @@ const api: Window['api'] = {
         if (!/^[a-z0-9_]+\.mdl$/i.test(file)) throw new Error('Invalid lobby model.')
         return requestArrayBuffer(`/pwa/lobby-models/${encodeURIComponent(file)}`)
       }
+
+      const stockPlayer = normalized.match(
+        /^player\/(arctic|gign|gsg9|guerilla|leet|sas|terror|urban)\/\1\.mdl$/i
+      )
+      if (stockPlayer) {
+        return requestArrayBuffer(
+          `/pwa/lobby-models/${encodeURIComponent(stockPlayer[1].toLowerCase() + '_lobby.mdl')}`
+        )
+      }
+
+      if (/^p_[a-z0-9_]+\.mdl$/i.test(normalized)) {
+        return requestArrayBuffer(
+          '/skins/assets/file?path=' +
+            encodeURIComponent('models/16competitive/system/p_null.mdl'),
+          { authenticated: true }
+        )
+      }
+
       const key = relativePath.replace(/\\/g, '/').startsWith('models/')
         ? relativePath.replace(/\\/g, '/')
         : `models/${normalized}`
-      return requestArrayBuffer(`/skins/assets/file?key=${encodeURIComponent(key)}`, {
+      return requestArrayBuffer(`/skins/assets/file?path=${encodeURIComponent(key)}`, {
         authenticated: true
       })
     },
