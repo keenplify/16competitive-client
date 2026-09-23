@@ -284,9 +284,10 @@ export function OperationPage(): JSX.Element {
     [displayedPoints, operation]
   )
   const progressPercent = Math.min(100, (displayedPoints / Math.max(1, maxPoints)) * 100)
+  const tierCount = operation?.tiers.length ?? 0
   const rewardTrackWidth =
-    operation.tiers.length * TIER_CARD_WIDTH +
-    Math.max(0, operation.tiers.length - 1) * TIER_GAP
+    tierCount * TIER_CARD_WIDTH +
+    Math.max(0, tierCount - 1) * TIER_GAP
   const isWaterTheme = /water/i.test(operation?.title ?? '')
   const heroUrl =
     safeImageUrl(operation?.heroUrl ?? null) ?? (isWaterTheme ? waterBackground : null)
@@ -435,29 +436,41 @@ export function OperationPage(): JSX.Element {
             aria-label="Operation progression and reward tiers"
           >
             <div style={{ width: `${Math.max(TIER_CARD_WIDTH, rewardTrackWidth)}px` }}>
-              <div
-                className="relative mb-5 h-2 rounded-full bg-white/10"
-                role="progressbar"
-                aria-label="Operation reward progress"
-                aria-valuenow={Math.min(displayedPoints, maxPoints)}
-                aria-valuemin={0}
-                aria-valuemax={maxPoints}
-              >
+              <div className="relative mb-5 h-2">
                 <div
-                  className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
-                  style={{ width: `${progressPercent}%` }}
-                />
-                {operation.tiers.map((tier) => (
-                  <span
-                    key={tier.id}
-                    className={twMerge(
-                      'pointer-events-none absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60 bg-neutral-700',
-                      displayedPoints >= tier.requiredPoints && 'bg-sky-200',
-                      tier.isMajor && 'size-3.5 border-amber-200'
-                    )}
-                    style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
-                    aria-hidden="true"
+                  className="absolute inset-0 rounded-full bg-white/10"
+                  role="progressbar"
+                  aria-label="Operation reward progress"
+                  aria-valuenow={Math.min(displayedPoints, maxPoints)}
+                  aria-valuemin={0}
+                  aria-valuemax={maxPoints}
+                >
+                  <div
+                    className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+                    style={{ width: `${progressPercent}%` }}
                   />
+                </div>
+                {operation.tiers.map((tier) => (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    className="absolute top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                    style={{ left: `${Math.min(100, tier.requiredPoints / Math.max(1, maxPoints) * 100)}%` }}
+                    aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier)}`}
+                    aria-pressed={focusedTier?.id === tier.id}
+                    onClick={() => focusTier(tier)}
+                  >
+                    <span
+                      className={twMerge(
+                        'size-2.5 rounded-full border border-white/60 bg-neutral-700 transition-[transform,background-color,border-color,box-shadow] hover:scale-125',
+                        displayedPoints >= tier.requiredPoints && 'bg-sky-200',
+                        tier.isMajor && 'size-3.5 border-amber-200',
+                        focusedTier?.id === tier.id &&
+                          'scale-125 border-sky-100 shadow-[0_0_10px_rgba(125,211,252,.75)]'
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
                 ))}
               </div>
               <div className="flex gap-3">
