@@ -1,10 +1,15 @@
-import { Award, Gift, LoaderCircle, LockKeyhole, Sparkles, Star } from 'lucide-react'
+import { Award, ChevronRight, Gift, LoaderCircle, LockKeyhole, Sparkles, Star } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OperationTier } from '../../../../shared/operations'
 import { Button } from '../../components/ui/Button'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
+import waterBackground from '../../assets/operations/pixel-water-background.png'
+import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
+import { presentationModelPath } from '../party/party-models'
+import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useOperationStore } from './operation.store'
 
 const safeImageUrl = (value: string | null): string | null => {
@@ -68,26 +73,22 @@ function TierCard({
   tier,
   displayedPoints,
   lastViewedPoints,
-  currentPoints,
-  maxPoints
+  currentPoints
 }: {
   tier: OperationTier
   displayedPoints: number
   lastViewedPoints: number
   currentPoints: number
-  maxPoints: number
 }): JSX.Element {
   const unlocked = displayedPoints >= tier.requiredPoints
   const newlyUnlocked =
     tier.requiredPoints > lastViewedPoints && tier.requiredPoints <= currentPoints && unlocked
-  const position = 5 + (tier.requiredPoints / Math.max(1, maxPoints)) * 90
-
   return (
-    <div className="absolute top-3 -translate-x-1/2" style={{ left: `${position}%` }}>
+    <div className="w-36 shrink-0 snap-start sm:w-40">
       <article
         className={twMerge(
-          'relative flex flex-col overflow-hidden border bg-neutral-950/95 shadow-xl transition-[transform,opacity,border-color,box-shadow] duration-500',
-          tier.isMajor ? 'h-44 w-44' : 'h-36 w-32',
+          'relative flex h-44 w-full flex-col overflow-hidden border bg-neutral-950/90 shadow-xl transition-[transform,opacity,border-color,box-shadow] duration-500',
+          tier.isMajor && 'border-amber-200/50',
           unlocked
             ? 'border-sky-300/60 opacity-100 shadow-[0_0_24px_rgba(56,189,248,0.16)]'
             : 'border-white/10 opacity-55 grayscale-[.45]',
@@ -122,20 +123,8 @@ function TierCard({
           </p>
         </div>
       </article>
-      <div className="mx-auto h-7 w-px bg-white/20" />
-      <div
-        className={twMerge(
-          'mx-auto grid size-6 place-items-center rounded-full border text-[9px] font-black tabular-nums transition duration-500',
-          unlocked
-            ? 'border-sky-200 bg-sky-300 text-neutral-950 shadow-[0_0_18px_rgba(56,189,248,0.65)]'
-            : 'border-white/20 bg-neutral-950 text-neutral-500',
-          newlyUnlocked && 'operation-progress-pulse'
-        )}
-      >
-        {tier.tier}
-      </div>
       <p className="mt-2 text-center text-[10px] font-semibold tabular-nums text-neutral-400">
-        {tier.requiredPoints.toLocaleString()} OP
+        {tier.requiredPoints.toLocaleString()} OP required
       </p>
     </div>
   )
@@ -147,6 +136,8 @@ export function OperationPage(): JSX.Element {
   const error = useOperationStore((state) => state.error)
   const loadMine = useOperationStore((state) => state.loadMine)
   const acknowledge = useOperationStore((state) => state.acknowledge)
+  const operativeModel = useLobbyLoadoutStore((state) => state.playerModel)
+  const installationPath = useGameSettingsStore((state) => state.savedPath)
   const [displayedPoints, setDisplayedPoints] = useState(0)
   const acknowledgedRef = useRef<string | null>(null)
 
@@ -212,8 +203,9 @@ export function OperationPage(): JSX.Element {
     [displayedPoints, operation]
   )
   const progressPercent = Math.min(100, (displayedPoints / Math.max(1, maxPoints)) * 100)
-  const trackFillPercent = progressPercent
-  const heroUrl = safeImageUrl(operation?.heroUrl ?? null)
+  const isWaterTheme = /water/i.test(operation?.title ?? '')
+  const heroUrl =
+    safeImageUrl(operation?.heroUrl ?? null) ?? (isWaterTheme ? waterBackground : null)
   const logoUrl = safeImageUrl(operation?.logoUrl ?? null)
 
   if (status === 'loading' || status === 'idle') {
@@ -248,20 +240,29 @@ export function OperationPage(): JSX.Element {
   }
 
   return (
-    <section className="operation-enter pb-10">
-      <header className="relative mt-6 min-h-64 overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl">
+    <section className="operation-enter mt-6 overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl">
+      <header className="relative min-h-[450px] overflow-hidden bg-[radial-gradient(circle_at_70%_35%,rgba(14,116,144,.28),transparent_52%)] lg:min-h-[520px]">
         {heroUrl && (
           <img
             src={heroUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-center"
             draggable={false}
           />
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,.96),rgba(3,7,18,.72)_48%,rgba(3,7,18,.28)),linear-gradient(0deg,rgba(3,7,18,.9),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,.96),rgba(3,7,18,.76)_42%,rgba(3,7,18,.24)_78%),linear-gradient(0deg,rgba(3,7,18,.94),transparent_65%)]" />
         <div className="operation-hero-scan pointer-events-none absolute inset-0 opacity-30" />
-        <div className="relative flex min-h-64 flex-col justify-between gap-6 p-6 sm:p-8 lg:flex-row lg:items-end">
-          <div className="max-w-2xl">
+        <div className="absolute right-[-8%] bottom-[-12%] hidden h-[118%] w-[55%] drop-shadow-[-18px_20px_32px_rgba(0,0,0,.65)] md:block xl:right-[2%]">
+          <ModelViewer
+            modelPath={presentationModelPath(operativeModel)}
+            sourceRevision={installationPath ?? 'unloaded'}
+            maxFrameRate={30}
+            cameraLocked
+            className="h-full w-full"
+          />
+        </div>
+        <div className="relative flex min-h-[450px] flex-col justify-between gap-8 p-6 sm:p-9 lg:min-h-[520px] lg:p-12">
+          <div className="max-w-[55%] min-w-64">
             <div className="flex items-center gap-4">
               {logoUrl && (
                 <img
@@ -273,7 +274,7 @@ export function OperationPage(): JSX.Element {
               )}
               <div>
                 <p className="text-xs font-black tracking-[0.24em] text-sky-300 uppercase">
-                  Active Operation
+                  Operation
                 </p>
                 <h2 className="mt-1 text-4xl font-black tracking-tight text-white uppercase sm:text-5xl">
                   {operation.title}
@@ -285,7 +286,7 @@ export function OperationPage(): JSX.Element {
                 {operation.description}
               </p>
             )}
-            <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-bold tracking-[0.14em] uppercase">
+            <div className="mt-6 flex flex-wrap gap-2 text-[10px] font-bold tracking-[0.14em] uppercase">
               <span className="border border-sky-300/30 bg-sky-300/10 px-2.5 py-1.5 text-sky-200">
                 {operation.phase}
               </span>
@@ -300,7 +301,7 @@ export function OperationPage(): JSX.Element {
             </div>
           </div>
 
-          <div className="min-w-56 border border-white/15 bg-black/55 px-5 py-4 backdrop-blur-sm">
+          <div className="w-fit min-w-56 border border-white/15 bg-black/55 px-5 py-4 backdrop-blur-sm">
             <p className="text-[10px] font-bold tracking-[0.18em] text-neutral-400 uppercase">
               Operation Points
             </p>
@@ -317,13 +318,13 @@ export function OperationPage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mt-8 border border-white/10 bg-neutral-950/88 p-5 shadow-2xl">
+      <div className="relative border-t border-white/10 bg-neutral-950/95 p-5 sm:p-7">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-black tracking-[0.2em] text-sky-400 uppercase">
               Reward track
             </p>
-            <h3 className="mt-1 text-xl font-semibold">Operation progression</h3>
+            <h3 className="mt-1 text-xl font-semibold">Operation rewards</h3>
           </div>
           {currentPoints > lastViewedPoints && (
             <span className="inline-flex items-center gap-2 text-xs font-semibold text-amber-200">
@@ -332,22 +333,24 @@ export function OperationPage(): JSX.Element {
             </span>
           )}
         </div>
-
-        <div className="overflow-x-auto overflow-y-hidden pb-3">
+        <div
+          className="mb-5 h-1 overflow-hidden rounded-full bg-white/10"
+          role="progressbar"
+          aria-label="Operation reward progress"
+          aria-valuenow={displayedPoints}
+          aria-valuemin={0}
+          aria-valuemax={maxPoints}
+        >
           <div
-            className="relative h-72"
-            style={{ minWidth: Math.max(1_000, operation.tiers.length * 150) }}
+            className="operation-progress-sheen h-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <div className="relative">
+          <div
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 pr-9"
+            aria-label="Reward tiers"
           >
-            <div className="absolute top-[211px] left-[5%] h-1 w-[90%] overflow-hidden rounded-full bg-white/10">
-              <div
-                className="operation-progress-sheen h-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
-                style={{ width: `${trackFillPercent}%` }}
-              />
-            </div>
-            <div
-              className="operation-progress-pulse absolute top-[204px] size-4 -translate-x-1/2 rounded-full border-2 border-white bg-sky-300 shadow-[0_0_24px_rgba(56,189,248,.9)]"
-              style={{ left: `${5 + progressPercent * 0.9}%` }}
-            />
             {operation.tiers.map((tier) => (
               <TierCard
                 key={tier.id}
@@ -355,9 +358,14 @@ export function OperationPage(): JSX.Element {
                 displayedPoints={displayedPoints}
                 lastViewedPoints={lastViewedPoints}
                 currentPoints={currentPoints}
-                maxPoints={maxPoints}
               />
             ))}
+          </div>
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-linear-to-r from-transparent to-neutral-950 text-sky-300"
+            aria-hidden="true"
+          >
+            <ChevronRight className="size-6" />
           </div>
         </div>
       </div>

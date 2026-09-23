@@ -84,6 +84,7 @@ const isOperation = (value: unknown): value is Operation => {
     (operation.accessType === 'FREE' || operation.accessType === 'PREMIUM') &&
     (typeof operation.pricePCash === 'number' || operation.pricePCash === null) &&
     stringOrNull(operation.logoUrl) &&
+    (operation.bannerUrl === undefined || stringOrNull(operation.bannerUrl)) &&
     stringOrNull(operation.heroUrl) &&
     typeof operation.durationDays === 'number' &&
     ['SCHEDULED', 'RUNNING', 'ENDED'].includes(String(operation.phase)) &&

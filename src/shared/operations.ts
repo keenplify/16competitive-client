@@ -36,6 +36,8 @@ export interface Operation {
   accessType: OperationAccessType
   pricePCash: number | null
   logoUrl: string | null
+  /** Optional lobby-card artwork; older Operations fall back to heroUrl. */
+  bannerUrl?: string | null
   heroUrl: string | null
   durationDays: number
   phase: OperationPhase

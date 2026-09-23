@@ -10,6 +10,7 @@ import {
   createModelMeshes,
   createContainer,
   createTexture,
+  createModelMaterial,
   applyBoneTransforms,
   applyRootBoneRotation
 } from '../lib/modelRenderer'
@@ -379,12 +380,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
           const textureIndex = modelData.skinRef[sourceMesh.skinRef]
           const textureData = textures[textureIndex]
           const textureInfo = modelData.textures[textureIndex]
-          const material = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-            transparent: true,
-            alphaTest: 0.5
-          })
+          const material = createModelMaterial(undefined, textureInfo?.flags)
 
           if (textureData && textureInfo) {
             material.map = createTexture(textureData, textureInfo.width, textureInfo.height)
@@ -507,12 +503,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
               animationFrames[0] ?? new THREE.BufferAttribute(positionedVertices, 3)
             )
             geometry.addAttribute('uv', new THREE.BufferAttribute(uv, 2))
-            const material = new THREE.MeshBasicMaterial({
-              color: 0xffffff,
-              side: THREE.DoubleSide,
-              transparent: true,
-              alphaTest: 0.5
-            })
+            const material = createModelMaterial(undefined, textureInfo?.flags)
 
             if (attachedTextures[textureIndex] && textureInfo) {
               material.map = createTexture(

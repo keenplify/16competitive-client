@@ -36,7 +36,7 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
     setProfileTab('operation')
     navigate('profile')
   }
-  const operationHeroUrl = safeImageUrl(operation?.heroUrl ?? null)
+  const operationBannerUrl = safeImageUrl(operation?.bannerUrl ?? operation?.heroUrl ?? null)
 
   return (
     <aside className={twMerge('hidden w-64 shrink-0 overflow-y-auto p-4 md:block', className)}>
@@ -48,9 +48,9 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
             className="group relative block w-full overflow-hidden border border-amber-300/25 bg-neutral-950/85 text-left shadow-xl transition hover:-translate-y-0.5 hover:border-amber-300/60 hover:shadow-[0_12px_30px_rgba(245,158,11,0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
           >
             <span className="block aspect-video w-full bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.2),_rgba(10,10,10,0.95)_72%)]" />
-            {operationHeroUrl && (
+            {operationBannerUrl && (
               <img
-                src={operationHeroUrl}
+                src={operationBannerUrl}
                 alt=""
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
