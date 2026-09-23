@@ -15,6 +15,8 @@ function fail(message) {
 }
 
 try {
+  git('pull')
+
   if (git('status', '--porcelain')) {
     fail('Refusing to release with uncommitted changes. Commit or stash them first.')
   }
