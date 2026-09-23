@@ -22,7 +22,13 @@ export const isLauncherBgmId = (value: unknown): value is LauncherBgmId =>
 export const getLauncherMusicSet = (id: LauncherMusicSetId) =>
   MUSIC_SETS.find((set) => set.id === id) ?? MUSIC_SETS[0]
 
-export const getLauncherBgmTrack = (id: LauncherBgmId) => getLauncherMusicSet(id).backgroundMusic
+const resolveAudioPath = (path: string): string =>
+  window.__SIXTEEN_COMPETITIVE_WEB__ === true ? `/pwa/${path}` : path
+
+export const getLauncherBgmTrack = (id: LauncherBgmId) => {
+  const track = getLauncherMusicSet(id).backgroundMusic
+  return { ...track, path: resolveAudioPath(track.path) }
+}
 
 export const AUDIO_PATHS = {
   sfx: {
@@ -42,4 +48,6 @@ export const AUDIO_PATHS = {
 export type LauncherSfx = keyof typeof AUDIO_PATHS.sfx
 
 export const getLauncherSfxPath = (setId: LauncherMusicSetId, sound: LauncherSfx): string =>
-  sound === 'matchFound' ? getLauncherMusicSet(setId).cues.matchFound : AUDIO_PATHS.sfx[sound]
+  resolveAudioPath(
+    sound === 'matchFound' ? getLauncherMusicSet(setId).cues.matchFound : AUDIO_PATHS.sfx[sound]
+  )
