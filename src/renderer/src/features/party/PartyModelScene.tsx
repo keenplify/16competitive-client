@@ -26,6 +26,7 @@ export type PartySceneActor = {
   weaponKey: string
   isLeader: boolean
   isCurrentPlayer: boolean
+  forceWeaponSkinPreview?: boolean
 }
 
 type WeaponHand = 'left' | 'right'
@@ -416,6 +417,16 @@ const DEFAULT_LOBBY_WEAPON_KEY = 'ak47'
 const loadLobbyWeapon = async (
   actor: PartySceneActor
 ): Promise<{ actor: PartySceneActor; weaponBuffer: ArrayBuffer }> => {
+  if (actor.forceWeaponSkinPreview && actor.weaponSkinId) {
+    try {
+      return {
+        actor,
+        weaponBuffer: await window.api.skins.previewModel(actor.weaponSkinId)
+      }
+    } catch {
+      // Fall through to the local/stock weapon path when preview data is unavailable.
+    }
+  }
   try {
     return { actor, weaponBuffer: await window.api.models.read(actor.weaponPath) }
   } catch {
@@ -549,7 +560,8 @@ const randomAnimationPhase = (): number => crypto.getRandomValues(new Uint32Arra
 const createActor = (
   actor: PartySceneActor,
   player: CachedLobbyPresentation,
-  weaponBuffer: ArrayBuffer
+  weaponBuffer: ArrayBuffer,
+  showNameplate: boolean
 ): THREE.Group => {
   const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
   const weaponTransforms = weaponTransformsFor(presentationWeaponKey)
@@ -663,14 +675,16 @@ const createActor = (
   const bounds = new THREE.Box3().setFromObject(group)
   group.position.y = (bounds.min.y - bounds.max.y) / 2
   group.updateMatrixWorld(true)
-  const nameplate = createNameplate(actor)
-  const centeredBounds = new THREE.Box3().setFromObject(group)
-  const nameplatePosition = centeredBounds
-    .getCenter(new THREE.Vector3())
-    .setY(centeredBounds.max.y + 8)
-  group.worldToLocal(nameplatePosition)
-  nameplate.position.copy(nameplatePosition)
-  group.add(nameplate)
+  if (showNameplate) {
+    const nameplate = createNameplate(actor)
+    const centeredBounds = new THREE.Box3().setFromObject(group)
+    const nameplatePosition = centeredBounds
+      .getCenter(new THREE.Vector3())
+      .setY(centeredBounds.max.y + 8)
+    group.worldToLocal(nameplatePosition)
+    nameplate.position.copy(nameplatePosition)
+    group.add(nameplate)
+  }
   group.userData.animationFps = player.fps
   group.userData.animationFrameCount = player.frameCount
   const animationDurationMilliseconds =
@@ -685,20 +699,22 @@ interface PartyModelSceneProps {
   actors: PartySceneActor[]
   sourceRevision?: string | number
   className?: string
+  showNameplates?: boolean
 }
 
 export function PartyModelScene({
   actors,
   sourceRevision,
-  className
+  className,
+  showNameplates = true
 }: PartyModelSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const actorsRef = useRef(actors)
   const [loadedScene, setLoadedScene] = useState<LoadedScene | null>(null)
   const actorKey = actors
     .map(
-      ({ member, modelPath, weaponPath, weaponKey, isCurrentPlayer, isLeader }) =>
-        `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${member.lobbyWeaponSkinId}:${weaponKey}:${isLeader}:${isCurrentPlayer}`
+      ({ member, modelPath, weaponPath, weaponSkinId, weaponKey, isCurrentPlayer, isLeader, forceWeaponSkinPreview }) =>
+        `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
     )
     .join('|')
 
@@ -766,7 +782,7 @@ export function PartyModelScene({
       const playerPresentation = loadedScene.playerPresentations[index]
       const weaponBuffer = loadedScene.weaponBuffers[index]
       if (!playerPresentation || !weaponBuffer) return
-      const model = createActor(actor, playerPresentation, weaponBuffer)
+      const model = createActor(actor, playerPresentation, weaponBuffer, showNameplates)
       setActorOpacity(model, 0)
       const pivot = new THREE.Group()
       model.position.set(0, 0, 0)
@@ -907,7 +923,7 @@ export function PartyModelScene({
       renderer.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actorKey, loadedScene, HOT_RENDER_REVISION])
+  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }

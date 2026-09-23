@@ -4,28 +4,28 @@ import type { OperationTier } from '../../../../shared/operations'
 import type { OwnedSkin } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
-import elitePistolsImage from '../../assets/elite-pistols.png'
-import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
+import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
-import { getCachedSkinModel } from '../skins/skin-model-cache'
-import {
-  getSkinCameraDistanceMultiplier,
-  getSkinCameraTarget,
-  getSkinPresentationRotation
-} from '../skins/skin-model-presentation'
+import { useGameSettingsStore } from '../settings/game-settings.store'
+import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
+import { PartyModelScene } from '../party/PartyModelScene'
+import { presentationModelPath } from '../party/party-models'
 
 const spotlightGlowStyle: CSSProperties = {
   filter:
-    'drop-shadow(0 0 10px rgba(255,255,255,0.35)) ' +
-    'drop-shadow(0 0 24px rgba(255,255,255,0.22)) ' +
-    'drop-shadow(0 0 40px rgba(125,211,252,0.18))'
+    'drop-shadow(0 0 10px rgba(255,255,255,0.28)) ' +
+    'drop-shadow(0 0 28px rgba(125,211,252,0.18))'
 }
+
+const defaultWeaponModelPath = (weaponKey: string): string =>
+  `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
 
 function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
   const skinId = tier.skinId!
   const weaponKey = tier.skin!.weaponKey!
-  const [model, setModel] = useState<ArrayBuffer | null>(null)
-  const [modelError, setModelError] = useState<string | null>(null)
+  const player = useAuthStore((state) => state.session?.player)
+  const operativeModel = useLobbyLoadoutStore((state) => state.playerModel)
+  const installationPath = useGameSettingsStore((state) => state.savedPath)
   const [owned, setOwned] = useState<OwnedSkin | null>(null)
   const [inventoryLoading, setInventoryLoading] = useState(true)
   const [inventoryError, setInventoryError] = useState<string | null>(null)
@@ -37,14 +37,6 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
 
   useEffect(() => {
     let active = true
-    if (weaponKey !== 'elite') {
-      void getCachedSkinModel(skinId).then(
-        (bytes) => { if (active) setModel(bytes) },
-        (reason: unknown) => {
-          if (active) setModelError(reason instanceof Error ? reason.message : 'Could not load model.')
-        }
-      )
-    }
     void window.api.skins.mine().then(
       (inventory) => {
         if (active) {
@@ -76,41 +68,42 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-end pb-16 md:pb-[14%]">
-      <div className="relative min-h-0 w-full flex-1">
-        {weaponKey === 'elite' ? (
-          <img
-            className="h-full w-full object-contain"
-            style={spotlightGlowStyle}
-            src={elitePistolsImage}
-            alt={tier.skin?.name ?? 'Elite pistols'}
+    <div className="relative flex h-full flex-col items-center justify-end pb-5 md:pb-7">
+      <div className="absolute inset-0" style={spotlightGlowStyle}>
+        {player ? (
+          <PartyModelScene
+            actors={[
+              {
+                member: {
+                  id: player.id,
+                  username: player.username,
+                  mmr: player.mmr,
+                  lobbyPlayerModel: operativeModel,
+                  lobbyWeaponSkinId: skinId,
+                  lobbyWeaponKey: weaponKey,
+                  lobbyWeaponModelPath: null
+                },
+                modelPath: presentationModelPath(operativeModel),
+                fallbackModelPath: operativeModel,
+                weaponPath: defaultWeaponModelPath(weaponKey),
+                weaponSkinId: skinId,
+                weaponKey,
+                isLeader: false,
+                isCurrentPlayer: true,
+                forceWeaponSkinPreview: true
+              }
+            ]}
+            sourceRevision={installationPath ?? 'unloaded'}
+            showNameplates={false}
+            className="h-full w-full"
           />
-        ) : model ? (
-          <div className="absolute inset-0" style={spotlightGlowStyle}>
-            <ModelViewer
-              modelBuffer={model}
-              modelKey={skinId}
-              presentationRotation={getSkinPresentationRotation(weaponKey)}
-              camera={{
-                distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.9),
-                target: getSkinCameraTarget(weaponKey)
-              }}
-              animation="idle1"
-              maxFrameRate={30}
-              disableZoom
-              lockCameraDistance
-              orbitAngleLimit={0.7}
-              rotateSpeed={0.45}
-              className="absolute inset-0"
-            />
-          </div>
         ) : (
-          <div className="grid h-full place-items-center text-sm text-rose-300" role="status">
-            {modelError ?? <LoaderCircle className="size-7 animate-spin text-sky-300" />}
+          <div className="grid h-full place-items-center" role="status">
+            <LoaderCircle className="size-7 animate-spin text-sky-300" />
           </div>
         )}
       </div>
-      <div className="z-10 flex max-w-full flex-col items-center gap-2 rounded bg-black/60 px-5 py-3 backdrop-blur-sm">
+      <div className="z-10 mb-1 flex max-w-full flex-col items-center gap-2 rounded bg-black/60 px-5 py-3 backdrop-blur-sm">
         <p className="max-w-full truncate text-sm font-semibold text-white">{tier.skin?.name ?? 'Weapon skin'}</p>
         {inventoryError && <p className="text-center text-xs text-rose-300">{inventoryError}</p>}
         <Button
