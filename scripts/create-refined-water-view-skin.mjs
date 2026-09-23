@@ -11,6 +11,7 @@ const PAINTED_PARTS = {
   v_scout: new Set(['base.bmp', 'magazine.bmp', 'scope.bmp']),
   v_hegrenade: new Set(['he_body.bmp']),
   v_glock18: new Set(['glock_slide.bmp', 'glock_mag.bmp']),
+  v_deagle: new Set(['de_slide1.bmp', 'de_slide2_eagle.bmp']),
   p_mp5: new Set(['w_mp5.bmp']),
   w_mp5: new Set(['w_mp5.bmp']),
   p_m4a1: new Set(['m4a1_skin.bmp']),
@@ -20,7 +21,9 @@ const PAINTED_PARTS = {
   p_hegrenade: new Set(['f_body.bmp']),
   w_hegrenade: new Set(['f_body.bmp']),
   p_glock18: new Set(['w_glock18.bmp']),
-  w_glock18: new Set(['w_glock18.bmp'])
+  w_glock18: new Set(['w_glock18.bmp']),
+  p_deagle: new Set(['deserteagle_skin.bmp']),
+  w_deagle: new Set(['deserteagle_skin.bmp'])
 }
 const BACKGROUND_MASKS = new Set(['receiver.bmp', 'base.bmp', 'he_body.bmp'])
 const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)))

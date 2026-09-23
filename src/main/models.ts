@@ -60,7 +60,7 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
 
   const executable = await getSavedCs16Executable()
   if (!executable) {
-    throw new Error('Choose your Counter-Strike executable in Settings first')
+    throw new Error('Choose your Counter-Strike folder in Settings first')
   }
   const gameRoot = dirname(executable)
   const modelPath = normalizeModelPath(relativePath)

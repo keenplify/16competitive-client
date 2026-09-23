@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 interface GameSettingsState {
-  executablePath: string
+  folderPath: string
   savedPath: string | null
   configFilePath: string | null
   status: 'idle' | 'loading' | 'choosing' | 'saving'
@@ -20,7 +20,7 @@ const message = (error: unknown): string =>
     : 'Request failed.'
 
 export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
-  executablePath: '',
+  folderPath: '',
   savedPath: null,
   configFilePath: null,
   status: 'idle',
@@ -33,8 +33,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     try {
       const settings = await window.api.gameSettings.get()
       set({
-        executablePath: settings.cs16ExecutablePath ?? '',
-        savedPath: settings.cs16ExecutablePath,
+        folderPath: settings.cs16FolderPath ?? '',
+        savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,
         status: 'idle',
         requiresGameSetup: !settings.cs16ExecutablePath
@@ -47,21 +47,21 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   choose: async () => {
     set({ status: 'choosing', error: null, notice: null })
     try {
-      const executablePath = await window.api.gameSettings.chooseExecutable()
-      set({ status: 'idle', ...(executablePath ? { executablePath } : {}) })
+      const folderPath = await window.api.gameSettings.chooseFolder()
+      set({ status: 'idle', ...(folderPath ? { folderPath } : {}) })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
     }
   },
 
   save: async () => {
-    const executablePath = get().executablePath
+    const folderPath = get().folderPath
     set({ status: 'saving', error: null, notice: null })
     try {
-      const settings = await window.api.gameSettings.save(executablePath)
+      const settings = await window.api.gameSettings.save(folderPath)
       set({
-        executablePath: settings.cs16ExecutablePath ?? '',
-        savedPath: settings.cs16ExecutablePath,
+        folderPath: settings.cs16FolderPath ?? '',
+        savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,
         status: 'idle',
         requiresGameSetup: false,
@@ -74,11 +74,11 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
 
   promptToConfigureForMatch: () => {
     set({
-      executablePath: '',
+      folderPath: '',
       savedPath: null,
       error: null,
       requiresGameSetup: true,
-      notice: 'Set up your Counter-Strike 1.6 executable before reconnecting to the match.'
+      notice: 'Set up your Counter-Strike 1.6 folder before reconnecting to the match.'
     })
   }
 }))

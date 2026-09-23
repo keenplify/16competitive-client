@@ -87,7 +87,7 @@ const isMatchAssetsResponse = (value: unknown): value is MatchAssetsResponse => 
 const getGameDirectory = async (): Promise<string> => {
   const executable = (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
   if (!executable || !isAbsolute(executable)) {
-    throw new Error('Choose your Counter-Strike executable in Settings before joining a match.')
+    throw new Error('Choose your Counter-Strike folder in Settings before joining a match.')
   }
   const gameDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
     ? resolve(process.env.CS16_CLIENT_GAME_DIRECTORY)
@@ -437,8 +437,8 @@ export const startSkinAssetSync = (
         code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
           ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
           : error instanceof Error &&
-              error.message.includes('Choose your Counter-Strike executable')
-            ? 'Choose your Counter-Strike executable in Settings to download skin assets.'
+              error.message.includes('Choose your Counter-Strike folder')
+            ? 'Choose your Counter-Strike folder in Settings to download skin assets.'
             : 'Could not download skin assets. Check your connection and try again.'
       onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })
       throw error

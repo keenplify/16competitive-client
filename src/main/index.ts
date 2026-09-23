@@ -61,7 +61,7 @@ import {
   type SkinAssetSyncProgress
 } from '../shared/game-settings'
 import {
-  chooseCs16Executable,
+  chooseCs16Folder,
   getGameSettings,
   saveGameSettings,
   saveVoicePttKey
@@ -533,15 +533,15 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseExecutable, () => chooseCs16Executable())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
     return runSkinAssetSync(event.sender, mode)
   })
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, executablePath: unknown) => {
-    const settings = await saveGameSettings(executablePath)
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, folderPath: unknown) => {
+    const settings = await saveGameSettings(folderPath)
     void runSkinAssetSync(event.sender, 'download').catch((error: unknown) => {
       console.warn(
         '[GameSettings] skin asset sync retry failed',

@@ -1,6 +1,6 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
 import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 
@@ -61,14 +61,25 @@ const STANDALONE_SCAN_LIMIT = 64
 
 const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
   if (!(await stat(executable).catch(() => null))?.isFile()) return false
-  // Require the retail game directory so unrelated `hl.exe` files (mods, other
-  // Half-Life builds) are not offered as a Counter-Strike installation.
-  const liblist = join(dirname(executable), 'cstrike', 'liblist.gam')
-  return (await stat(liblist).catch(() => null))?.isFile() === true
+  const cstrike = join(dirname(executable), 'cstrike')
+  if (!(await stat(cstrike).catch(() => null))?.isDirectory()) return false
+  if ((await stat(join(cstrike, 'liblist.gam')).catch(() => null))?.isFile()) return true
+  // Some valid standalone builds, including CS WaRzOnE, omit liblist.gam.
+  // Require both Counter-Strike game DLLs before accepting that layout.
+  if (process.platform !== 'win32') return false
+  return (
+    (await stat(join(cstrike, 'cl_dlls', 'client.dll')).catch(() => null))?.isFile() === true &&
+    (await stat(join(cstrike, 'dlls', 'mp.dll')).catch(() => null))?.isFile() === true
+  )
 }
 
+const executableNamesForPlatform = (): string[] =>
+  // WaRzOnE needs its supported wrapper; CS Xtreme V6 has launcher.exe instead
+  // and continues to use hl.exe with its installation-specific arguments.
+  process.platform === 'win32' ? ['CS16Launcher.exe', 'hl.exe'] : ['hl_linux', 'hl.sh']
+
 const detectStandaloneExecutables = async (): Promise<string[]> => {
-  const executableNames = process.platform === 'win32' ? ['hl.exe'] : ['hl_linux', 'hl.sh']
+  const executableNames = executableNamesForPlatform()
   const detected: string[] = []
 
   for (const root of standaloneSearchRoots()) {
@@ -117,6 +128,25 @@ const validateExecutable = async (
     await chmod(executablePath, metadata.mode | 0o111)
   }
   return executablePath
+}
+
+const validateInstallationFolder = async (untrustedPath: unknown): Promise<string> => {
+  if (typeof untrustedPath !== 'string' || !isAbsolute(untrustedPath)) {
+    throw new Error('Choose an absolute Counter-Strike installation folder.')
+  }
+  const selectedFolder = normalize(untrustedPath)
+  if (!(await stat(selectedFolder).catch(() => null))?.isDirectory()) {
+    throw new Error('The selected Counter-Strike installation folder was not found.')
+  }
+  const folder =
+    basename(selectedFolder).toLowerCase() === 'cstrike'
+      ? dirname(selectedFolder)
+      : selectedFolder
+  for (const name of executableNamesForPlatform()) {
+    const candidate = join(folder, name)
+    if (await isGoldSrcInstallation(candidate)) return validateExecutable(candidate, true)
+  }
+  throw new Error('Choose a Counter-Strike folder containing the game executable and cstrike files.')
 }
 
 const readStoredSettings = async (): Promise<StoredGameSettings> => {
@@ -212,6 +242,7 @@ const buildSettings = (
   partyVoicePttKey: string
 ): GameSettings => ({
   cs16ExecutablePath,
+  cs16FolderPath: cs16ExecutablePath ? dirname(cs16ExecutablePath) : null,
   configFilePath: configPath(),
   // Keep voicePttKey as the team binding for compatibility with older renderer code.
   voicePttKey: teamVoicePttKey,
@@ -250,21 +281,18 @@ export const getGameSettings = async (): Promise<GameSettings> => {
   return buildSettings(cs16ExecutablePath, keys.team, keys.party)
 }
 
-export const chooseCs16Executable = async (): Promise<string | null> => {
+export const chooseCs16Folder = async (): Promise<string | null> => {
   const result = await dialog.showOpenDialog({
-    title: 'Choose Counter-Strike 1.6 executable',
-    properties: ['openFile'],
-    filters:
-      process.platform === 'win32'
-        ? [{ name: 'Counter-Strike executable', extensions: ['exe'] }]
-        : [{ name: 'Counter-Strike executable', extensions: ['*'] }]
+    title: 'Choose Counter-Strike 1.6 installation folder',
+    properties: ['openDirectory']
   })
   if (result.canceled || !result.filePaths[0]) return null
-  return validateExecutable(result.filePaths[0], true)
+  const executablePath = await validateInstallationFolder(result.filePaths[0])
+  return dirname(executablePath)
 }
 
 export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSettings> => {
-  const cs16ExecutablePath = await validateExecutable(untrustedPath, true)
+  const cs16ExecutablePath = await validateInstallationFolder(untrustedPath)
   const storedSettings = await readStoredSettings()
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
   await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)

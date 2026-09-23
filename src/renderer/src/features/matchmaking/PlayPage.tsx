@@ -414,7 +414,7 @@ export function PlayPage(): JSX.Element {
             )}
             {isLeader && !gameExecutablePath && (
               <p className="text-sm text-amber-300">
-                Choose and save your Counter-Strike executable in Settings first.
+                Choose and save your Counter-Strike folder in Settings first.
               </p>
             )}
           </div>

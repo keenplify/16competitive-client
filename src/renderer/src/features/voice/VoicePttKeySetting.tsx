@@ -217,7 +217,7 @@ export function VoicePttKeySetting(): JSX.Element {
           <p className="text-neutral-500">
             {hasGame
               ? 'Your previous Counter-Strike bindings are restored after the match.'
-              : 'Choose your Counter-Strike executable to launch matches.'}
+              : 'Choose your Counter-Strike folder to launch matches.'}
           </p>
         )}
       </div>

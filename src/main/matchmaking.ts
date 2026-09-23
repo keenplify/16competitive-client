@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import type {
   MatchmakingEvent,
@@ -43,6 +43,7 @@ const RECONNECT_MAX_DELAY_MS = 30_000
 const CONNECTION_TIMEOUT_MS = 15_000
 const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
+const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
@@ -476,6 +477,9 @@ class MatchmakingConnection {
   private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
   private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
+  private matchAttentionWindow: BrowserWindow | null = null
+  private restoreMatchWindowTopmost = false
 
   getActiveApiUrl(): string | null {
     return this.activeApiUrl ?? this.hostApiUrl
@@ -726,11 +730,31 @@ class MatchmakingConnection {
     )
   }
 
-  private focusLauncher(): void {
+  private focusLauncher(urgent = false): void {
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
     if (window.isMinimized()) window.restore()
     window.show()
+    if (urgent) {
+      if (this.matchAttentionWindow !== window) {
+        if (this.matchAttentionTimer) clearTimeout(this.matchAttentionTimer)
+        if (this.matchAttentionWindow && !this.matchAttentionWindow.isDestroyed()) {
+          if (this.restoreMatchWindowTopmost) this.matchAttentionWindow.setAlwaysOnTop(false)
+        }
+        this.restoreMatchWindowTopmost = !window.isAlwaysOnTop()
+        this.matchAttentionWindow = window
+      }
+      if (this.restoreMatchWindowTopmost) window.setAlwaysOnTop(true, 'screen-saver')
+      if (this.matchAttentionTimer) clearTimeout(this.matchAttentionTimer)
+      this.matchAttentionTimer = setTimeout(() => {
+        this.matchAttentionTimer = null
+        if (!window.isDestroyed() && this.restoreMatchWindowTopmost) window.setAlwaysOnTop(false)
+        this.matchAttentionWindow = null
+        this.restoreMatchWindowTopmost = false
+      }, MATCH_ATTENTION_DURATION_MS)
+      window.moveTop()
+    }
+    app.focus({ steal: urgent })
     window.focus()
   }
 
@@ -891,7 +915,10 @@ class MatchmakingConnection {
         if (parsed.type === 'queue_status') {
           discordPresence.setQueue(parsed.mode, parsed.mapIds)
         }
-        if (parsed.type === 'match_ready_check') this.freshProcess = false
+        if (parsed.type === 'match_ready_check') {
+          this.freshProcess = false
+          this.focusLauncher(true)
+        }
         if (parsed.type === 'queue_status' && this.freshProcess) {
           this.freshProcess = false
           socket.send(JSON.stringify({ type: 'leave_queue' }))
@@ -921,11 +948,7 @@ class MatchmakingConnection {
         this.desiredMode = null
         this.desiredMapIds = []
         this.desiredPreferredRegion = null
-        if (this.renderer) {
-          const window = BrowserWindow.fromWebContents(this.renderer)
-          window?.show()
-          window?.focus()
-        }
+        this.focusLauncher(true)
         if (parsed.hostApiUrl !== this.activeApiUrl) {
           this.authenticated = false
           this.hostApiUrl = parsed.hostApiUrl
