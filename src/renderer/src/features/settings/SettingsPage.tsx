@@ -23,6 +23,7 @@ import { ChangelogModal } from './ChangelogModal'
 import { LanguageSettings } from '../i18n/LanguageSettings'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
+import { isWebRuntime } from '../../web-runtime'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'audio' | 'assets' | 'credentials'
@@ -66,6 +67,7 @@ export function SettingsPage(): JSX.Element {
   const refreshSession = useAuthStore((state) => state.refreshSession)
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
+  const webRuntime = isWebRuntime()
 
   const [newUsername, setNewUsername] = useState('')
   const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
@@ -340,10 +342,13 @@ export function SettingsPage(): JSX.Element {
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
         <div className="mb-8">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
-          <h1 className="mt-2 text-3xl font-semibold">Launcher settings</h1>
+          <h1 className="mt-2 text-3xl font-semibold">
+            {webRuntime ? '1.6 Competitive settings' : 'Launcher settings'}
+          </h1>
           <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-            Configure the game client, manage downloaded assets, and update your account
-            credentials.
+            {webRuntime
+              ? 'Configure browser audio, voice, language, and account credentials.'
+              : 'Configure the game client, manage downloaded assets, and update your account credentials.'}
           </p>
         </div>
 
@@ -385,10 +390,10 @@ export function SettingsPage(): JSX.Element {
                 onClick={() => void window.api.window.exit()}
               >
                 <Power className="mr-2 size-4" aria-hidden="true" />
-                Exit to desktop
+                {webRuntime ? 'Back to website' : 'Exit to desktop'}
               </Button>
               <p className="col-span-2 px-3 pt-1 text-[11px] text-neutral-600 lg:col-span-1">
-                Launcher <span className="font-mono">{currentVersion ?? '…'}</span>
+                {webRuntime ? 'Web' : 'Launcher'} <span className="font-mono">{currentVersion ?? '…'}</span>
               </p>
             </div>
           </aside>
@@ -407,62 +412,80 @@ export function SettingsPage(): JSX.Element {
 
               <LanguageSettings />
 
-              <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
-                <p className="mt-2 text-sm text-neutral-400">
-                  Choose the game folder or its cstrike subfolder. The launcher will find the executable automatically.
-                </p>
-
-                {status !== 'loading' && !folderPath && (
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/5 p-4">
-                    <p className="text-sm text-neutral-300">Counter-Strike is not installed yet?</p>
-                    <Button
-                      variant="ghost"
-                      className="border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
-                      onClick={() => void window.api.window.openCounterStrikeSteamStore()}
-                    >
-                      <Download className="mr-2 size-4" aria-hidden="true" />
-                      Download on Steam
-                    </Button>
-                  </div>
-                )}
-
-                <label className="mt-6 block text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                  Installation folder
-                </label>
-                <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                  <input
-                    className="h-11 min-w-0 flex-1 border border-white/15 bg-black/40 px-3 font-mono text-sm text-neutral-200 outline-none focus:border-sky-400"
-                    value={folderPath}
-                    readOnly
-                    placeholder="No Counter-Strike folder selected"
-                  />
+              {webRuntime ? (
+                <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
+                    Browser matches launch the Steam copy of Counter-Strike directly. You do not
+                    need to choose a local game folder or install launcher-managed files.
+                  </p>
                   <Button
                     variant="ghost"
-                    disabled={status !== 'idle'}
-                    onClick={() => void choose()}
+                    className="mt-5 border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
+                    onClick={() => void window.api.window.openCounterStrikeSteamStore()}
                   >
-                    {status === 'choosing' ? 'Opening…' : 'Browse'}
-                  </Button>
-                  <Button
-                    disabled={status !== 'idle' || !folderPath || folderPath === savedPath}
-                    onClick={() => void save()}
-                  >
-                    {status === 'saving' ? 'Saving…' : 'Save'}
+                    <Download className="mr-2 size-4" aria-hidden="true" />
+                    Open Counter-Strike on Steam
                   </Button>
                 </div>
-
-                <div className="mt-4 min-h-5 text-sm" aria-live="polite">
-                  {notice && <p className="text-emerald-300">{notice}</p>}
-                  {error && <p className="text-red-400">{error}</p>}
-                </div>
-
-                {configFilePath && (
-                  <p className="mt-6 break-all border-t border-white/10 pt-4 text-xs text-neutral-400">
-                    Saved locally in: <span className="font-mono">{configFilePath}</span>
+              ) : (
+                <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
+                  <p className="mt-2 text-sm text-neutral-400">
+                    Choose the game folder or its cstrike subfolder. The launcher will find the executable automatically.
                   </p>
-                )}
-              </div>
+
+                  {status !== 'loading' && !folderPath && (
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/5 p-4">
+                      <p className="text-sm text-neutral-300">Counter-Strike is not installed yet?</p>
+                      <Button
+                        variant="ghost"
+                        className="border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
+                        onClick={() => void window.api.window.openCounterStrikeSteamStore()}
+                      >
+                        <Download className="mr-2 size-4" aria-hidden="true" />
+                        Download on Steam
+                      </Button>
+                    </div>
+                  )}
+
+                  <label className="mt-6 block text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                    Installation folder
+                  </label>
+                  <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      className="h-11 min-w-0 flex-1 border border-white/15 bg-black/40 px-3 font-mono text-sm text-neutral-200 outline-none focus:border-sky-400"
+                      value={folderPath}
+                      readOnly
+                      placeholder="No Counter-Strike folder selected"
+                    />
+                    <Button
+                      variant="ghost"
+                      disabled={status !== 'idle'}
+                      onClick={() => void choose()}
+                    >
+                      {status === 'choosing' ? 'Opening…' : 'Browse'}
+                    </Button>
+                    <Button
+                      disabled={status !== 'idle' || !folderPath || folderPath === savedPath}
+                      onClick={() => void save()}
+                    >
+                      {status === 'saving' ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 min-h-5 text-sm" aria-live="polite">
+                    {notice && <p className="text-emerald-300">{notice}</p>}
+                    {error && <p className="text-red-400">{error}</p>}
+                  </div>
+
+                  {configFilePath && (
+                    <p className="mt-6 break-all border-t border-white/10 pt-4 text-xs text-neutral-400">
+                      Saved locally in: <span className="font-mono">{configFilePath}</span>
+                    </p>
+                  )}
+                </div>
+              )}
             </section>
 
             <section
