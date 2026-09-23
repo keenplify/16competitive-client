@@ -13,6 +13,7 @@ import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
+import { isWebRuntime } from '../../web-runtime'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -77,6 +78,7 @@ export function PlayPage(): JSX.Element {
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const maps = useMatchmakingStore((state) => state.maps)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
@@ -97,6 +99,7 @@ export function PlayPage(): JSX.Element {
   const loadRegions = useMatchmakingStore((state) => state.loadRegions)
   const selectNode = useMatchmakingStore((state) => state.selectNode)
   const setAllowRegionExpansion = useMatchmakingStore((state) => state.setAllowRegionExpansion)
+  const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
   const respondReady = useMatchmakingStore((state) => state.respondReady)
@@ -105,6 +108,7 @@ export function PlayPage(): JSX.Element {
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const navigate = useNavigationStore((state) => state.navigate)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
+  const webRuntime = isWebRuntime()
 
   useEffect(() => {
     void loadMaps()
@@ -136,7 +140,7 @@ export function PlayPage(): JSX.Element {
     // Revalidate through the main process: a saved path can become stale if the
     // player deletes or moves their Counter-Strike installation while the app is open.
     const settings = await window.api.gameSettings.get().catch(() => null)
-    if (!settings?.cs16ExecutablePath) {
+    if (!webRuntime && !settings?.cs16ExecutablePath) {
       useGameSettingsStore.getState().promptToConfigureForMatch()
       navigate('settings')
       return
@@ -150,7 +154,7 @@ export function PlayPage(): JSX.Element {
   const isLeader = !party || party.leaderId === player.id
   const isConnected = connectionStatus === 'ready'
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
-  const availableMaps = maps.filter((map) => map.supportedModes.includes('5v5'))
+  const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
   const hasSelectedMaps = selectedMapIds.length > 0
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
@@ -289,11 +293,11 @@ export function PlayPage(): JSX.Element {
             <div className="mt-8 flex justify-center">
               <Button
                 className="rounded-sm"
-                disabled={!gameExited}
+                disabled={!webRuntime && !gameExited}
                 variant="ghost"
                 onClick={() => void handleReconnect()}
               >
-                {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
+                {webRuntime ? 'Launch Counter-Strike' : gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
               </Button>
             </div>
           )}
@@ -313,8 +317,8 @@ export function PlayPage(): JSX.Element {
             <h1 className="mt-2 text-3xl font-semibold">Choose your battlefield</h1>
             <p className="mt-2 text-sm text-neutral-200">
               {isLeader
-                ? "Toggle any 5v5 Competitive maps to build your party's search pool."
-                : 'Your party leader chooses the Competitive map pool.'}
+                ? `Choose maps for ${getMatchmakingModeLabel(selectedMode)} matchmaking.`
+                : `Your party leader chooses the ${getMatchmakingModeLabel(selectedMode)} map pool.`}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-200">
@@ -329,6 +333,35 @@ export function PlayPage(): JSX.Element {
         </header>
 
         <>
+          <section className="mt-8 border-t border-white/10 pt-6">
+            <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
+            <div className="mt-3 flex max-w-xl gap-3">
+              {(['5v5', 'unrated'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  disabled={isSearching || !isLeader || (webRuntime && mode === '5v5')}
+                  onClick={() => selectMode(mode)}
+                  className={twMerge(
+                    'flex-1 rounded border px-4 py-3 text-left transition',
+                    selectedMode === mode
+                      ? 'border-sky-400 bg-sky-400/10 text-white'
+                      : 'border-white/10 bg-neutral-900 text-neutral-300 hover:border-white/25'
+                  )}
+                >
+                  <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
+                  <span className="mt-1 block text-xs text-neutral-400">
+                    {mode === '5v5'
+                      ? webRuntime
+                        ? 'Rated matchmaking requires the desktop anti-cheat client.'
+                        : 'Rated. MMR changes and full competitive progression.'
+                      : 'Same 5v5 rules, but the result does not change MMR.'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           <section className="mt-8 border-t border-white/10 pt-6">
             <label
               className="block text-xs font-semibold tracking-wide text-neutral-200 uppercase"
@@ -368,7 +401,7 @@ export function PlayPage(): JSX.Element {
             )}
             {mapsStatus === 'ready' && availableMaps.length === 0 && (
               <p className="mt-4 text-sm text-neutral-400">
-                Competitive matchmaking is temporarily unavailable.
+                {getMatchmakingModeLabel(selectedMode)} matchmaking is temporarily unavailable.
               </p>
             )}
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -393,7 +426,7 @@ export function PlayPage(): JSX.Element {
                 !isConnected ||
                 mapsStatus !== 'ready' ||
                 !hasSelectedMaps ||
-                !gameExecutablePath ||
+                (!webRuntime && !gameExecutablePath) ||
                 isSearching ||
                 queueStatus === 'joining'
               }
@@ -412,7 +445,7 @@ export function PlayPage(): JSX.Element {
                 You’ll be moved into the queue when your leader starts matchmaking.
               </p>
             )}
-            {isLeader && !gameExecutablePath && (
+            {isLeader && !webRuntime && !gameExecutablePath && (
               <p className="text-sm text-amber-300">
                 Choose and save your Counter-Strike folder in Settings first.
               </p>

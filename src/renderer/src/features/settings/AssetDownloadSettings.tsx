@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { clearCachedSkinModels } from '../skins/skin-model-cache'
 import { useGameSettingsStore } from './game-settings.store'
+import { isWebRuntime } from '../../web-runtime'
 
 const initialProgress: SkinAssetSyncProgress = {
   status: 'idle',
@@ -18,6 +19,21 @@ const readableError = (error: unknown): string =>
     : 'Could not sync skin assets.'
 
 export function AssetDownloadSettings(): JSX.Element {
+  if (isWebRuntime()) {
+    return (
+      <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+        <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">
+          Assets & previews
+        </p>
+        <h3 className="mt-2 text-lg font-semibold">Streamed from your region</h3>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
+          The web app streams managed skin and model assets from the selected regional server.
+          There is no launcher asset folder to download or repair.
+        </p>
+      </div>
+    )
+  }
+
   const savedPath = useGameSettingsStore((state) => state.savedPath)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <style>
+      #mobile-gate { display: none; }
+      .web-mobile-gate body { margin: 0; min-height: 100vh; background: #000; }
+      .web-mobile-gate #root { display: none; }
+      .web-mobile-gate #mobile-gate {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #000;
+        color: #fff;
+        font: 800 18px/1.2 Inter, system-ui, sans-serif;
+      }
+    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#080808" />
+    <title>1.6 Competitive</title>
+    <link rel="icon" href="/pwa/favicon.ico" sizes="any" />
+    <link rel="icon" href="/pwa/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
+    <link rel="manifest" href="/pwa/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; connect-src 'self' ws: wss: https://mastodon.social https://16competitive.papamo.dev https://euw.16competitive.papamo.dev https://na.16competitive.papamo.dev; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; frame-src 'none';"
+    />
+  </head>
+  <body>
+    <div id="mobile-gate">Please use a desktop</div>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
