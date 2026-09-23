@@ -2,6 +2,7 @@ import {
   BookOpen,
   CheckCircle2,
   Download,
+  ExternalLink,
   Link2,
   LoaderCircle,
   LogOut,
@@ -392,6 +393,17 @@ export function SettingsPage(): JSX.Element {
                 <Power className="mr-2 size-4" aria-hidden="true" />
                 {webRuntime ? 'Back to website' : 'Exit to desktop'}
               </Button>
+              {webRuntime && (
+                <a
+                  href="https://papamo.dev/16competitive"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 items-center justify-start rounded-md border border-sky-400/20 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                >
+                  <ExternalLink className="mr-2 size-4" aria-hidden="true" />
+                  Get desktop app
+                </a>
+              )}
               <p className="col-span-2 px-3 pt-1 text-[11px] text-neutral-600 lg:col-span-1">
                 {webRuntime ? 'Web' : 'Launcher'} <span className="font-mono">{currentVersion ?? '…'}</span>
               </p>
