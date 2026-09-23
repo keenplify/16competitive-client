@@ -70,6 +70,19 @@ const hasCsXtremeLaunchScript = async (installRoot: string): Promise<boolean> =>
 export const classifyCs16Distribution = (executable: string): Cs16Distribution =>
   findSteamLibraryRoot(executable) ? 'steam' : 'standalone'
 
+const findWindowsSteamExecutable = async (libraryRoot: string): Promise<string> => {
+  const candidates = [
+    join(libraryRoot, 'steam.exe'),
+    ...[process.env['PROGRAMFILES(X86)'], process.env.PROGRAMFILES, process.env.LOCALAPPDATA]
+      .filter((root): root is string => Boolean(root))
+      .map((root) => join(root, 'Steam', 'steam.exe'))
+  ]
+  for (const candidate of candidates) {
+    if ((await stat(candidate).catch(() => null))?.isFile()) return candidate
+  }
+  throw new Error('Steam was not found. Start Steam or reinstall it before joining a match.')
+}
+
 /**
  * Every installation is started on the stock `cstrike` game directory. The match
  * servers run `cstrike` and GoldSrc refuses a mismatched client, and the Steam
@@ -136,14 +149,13 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
   if (process.platform === 'win32') {
     return {
       distribution: 'steam',
-      // The selected Steam installation's hl.exe is a stable child process on
-      // Windows. Launch it directly so duplicate match status events can be
-      // ignored and reconnects can terminate the exact installation safely.
-      executable,
+      // Steam must initialize the Steam API for app 10. Launching hl.exe directly
+      // can fail with "Failure to initialize authentication interface".
+      executable: await findWindowsSteamExecutable(steamLibraryRoot),
       gameExecutable: executable,
-      argumentPrefix: ['-game', STOCK_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
+      argumentPrefix: ['-applaunch', '10', '-game', STOCK_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
       textureSize: '1024',
-      usesLauncherHandoff: false,
+      usesLauncherHandoff: true,
       usesSteamEmulation: false
     }
   }

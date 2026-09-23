@@ -441,16 +441,24 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     launchGameDirectory
   })
   if (launchTarget.executable !== executable) {
-    // Non-Steam repacks ship a wrapper that starts Counter-Strike and exits. It
-    // may also self-update over the network, so keep the reason in the log.
-    console.warn(
-      '[GameLaunch] the selected executable is a launcher wrapper; following the game process it starts instead',
-      {
+    if (launchTarget.distribution === 'steam') {
+      console.info('[GameLaunch] Steam will launch Counter-Strike', {
         matchId: input.matchId,
-        wrapper: launchTarget.executable,
+        steamExecutable: launchTarget.executable,
         gameExecutable: launchTarget.gameExecutable
-      }
-    )
+      })
+    } else {
+      // Non-Steam repacks ship a wrapper that starts Counter-Strike and exits. It
+      // may also self-update over the network, so keep the reason in the log.
+      console.warn(
+        '[GameLaunch] the selected executable is a launcher wrapper; following the game process it starts instead',
+        {
+          matchId: input.matchId,
+          wrapper: launchTarget.executable,
+          gameExecutable: launchTarget.gameExecutable
+        }
+      )
+    }
   }
 
   const processGeneration = ++gameProcessGeneration
@@ -631,10 +639,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         // (reconnect, match closed, launcher exit) can terminate the whole tree
         // even when the game itself hides behind a launcher script or emulator.
         detached: directLaunch,
-        // Keep the standalone launcher's output while diagnosing handoff
-        // failures. It is deliberately capped below and credentials are
-        // redacted before it is written to the application log.
-        stdio: ['ignore', 'pipe', 'pipe'],
+        // Steam can stay alive after handing off to hl.exe. Do not keep the
+        // launcher open through Steam's output pipes.
+        stdio:
+          process.platform === 'win32' && launchTarget.distribution === 'steam'
+            ? 'ignore'
+            : ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
           ...(directLaunch && process.platform === 'linux' && launchTarget.distribution === 'steam'
@@ -660,7 +670,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
 
   if (launchTarget.usesLauncherHandoff) spawnedProcess.unref()
-  gameProcess = spawnedProcess
+  // Steam may keep its own process alive after -applaunch. Match cleanup must
+  // never terminate Steam; the Windows process lookup targets hl.exe instead.
+  gameProcess =
+    process.platform === 'win32' && launchTarget.distribution === 'steam'
+      ? null
+      : spawnedProcess
   launchedMatchId = input.matchId
   startGameWatchdog(input.matchId, launchTarget.gameExecutable)
   const linuxHandoffMonitorGeneration =
@@ -674,13 +689,13 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     void antiCheatSession.attachWhenWindowsProcessAppears(launchTarget.gameExecutable)
   }
 
-  console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: gameProcess.pid })
+  console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: spawnedProcess.pid })
   let gameOutput = ''
   const appendGameOutput = (chunk: Buffer): void => {
     gameOutput = `${gameOutput}${chunk.toString('utf8')}`.slice(-8_000)
   }
-  gameProcess.stdout?.on('data', appendGameOutput)
-  gameProcess.stderr?.on('data', appendGameOutput)
+  spawnedProcess.stdout?.on('data', appendGameOutput)
+  spawnedProcess.stderr?.on('data', appendGameOutput)
   spawnedProcess.once('exit', (code, signal) => {
     if (launchTarget.usesLauncherHandoff) {
       console.info('[GameLaunch] launcher handoff completed', {
