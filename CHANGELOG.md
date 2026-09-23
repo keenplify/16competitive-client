@@ -1063,6 +1063,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Operations
 
 - View Operation progress after completing a match.
+- Browse Operation rewards in a focused carousel and equip eligible skins from their previews.
 
 ### Matchmaking
 
