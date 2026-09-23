@@ -9,6 +9,7 @@ import {
 import { create } from 'zustand'
 import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
+import { isWebRuntime } from '../../web-runtime'
 
 type ConnectionStatus =
   'disconnected' | 'connecting' | 'reconnecting' | 'handoff' | 'authenticating' | 'ready'
@@ -465,7 +466,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   return {
     connectionStatus: 'disconnected',
     queueStatus: 'idle',
-    selectedMode: '5v5',
+    selectedMode: isWebRuntime() ? 'unrated' : '5v5',
     maps: [],
     mapsStatus: 'idle',
     selectedMapIds: [],
@@ -717,7 +718,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       set({
         connectionStatus: 'disconnected',
         queueStatus: 'idle',
-        selectedMode: '5v5',
+        selectedMode: isWebRuntime() ? 'unrated' : '5v5',
         maps: [],
         mapsStatus: 'idle',
         selectedMapIds: [],
