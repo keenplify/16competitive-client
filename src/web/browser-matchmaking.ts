@@ -81,11 +81,29 @@ const navigateToNode = async (publicApiUrl: string): Promise<void> => {
   window.location.assign(targetUrl)
 }
 
+const STEAM_STARTUP_WAIT_FRAMES = 20
+
 const steamLaunchUrl = (
   connection: Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 ): string => {
-  const args =
-    `+setinfo "_16c" "${connection.joinToken}" +password "${connection.password}" +connect ${connection.host}:${connection.port}`
+  // The current GoldSrc/Anniversary client can process its normal startup
+  // config after Steam hands launch parameters to it. Mirror the desktop
+  // launcher's proven sequence: establish identity/password, wait through
+  // startup, reassert both values, then connect.
+  const waits = Array.from({ length: STEAM_STARTUP_WAIT_FRAMES }, () => '+wait').join(' ')
+  const args = [
+    '+setinfo _16c',
+    connection.joinToken,
+    '+password',
+    connection.password,
+    waits,
+    '+setinfo _16c',
+    connection.joinToken,
+    '+password',
+    connection.password,
+    '+connect',
+    `${connection.host}:${connection.port}`
+  ].join(' ')
   return `steam://run/10//${encodeURIComponent(args)}/`
 }
 
