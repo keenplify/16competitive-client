@@ -1057,3 +1057,22 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Leaderboard
 
 - Added the continental leaderboard to the client.
+
+## v2026.923.1 — 2026-09-23
+
+### Operations
+
+- View Operation progress after completing a match.
+
+### Matchmaking
+
+- Improved post-match results and Operation tracking.
+
+### Skins & Effects
+
+- Added water-themed skin patterns, materials, and splash effects.
+
+### Settings & Updates
+
+- Added in-app changelog content with Markdown support.
+- Improved game and asset download settings.
