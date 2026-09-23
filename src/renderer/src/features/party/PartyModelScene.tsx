@@ -145,7 +145,7 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   usp: {
     modelRotation: [0, 285, 90],
     handRotation: [0, 180, 0],
-    handOffset: [7, 0.5, 0.5]
+    handOffset: [7, 1, 0.5]
   },
   glock18: {
     modelRotation: [0, 285, 90],
