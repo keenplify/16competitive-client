@@ -59,46 +59,45 @@ const pollSocial = async (
   const deadline = Date.now() + SOCIAL_TIMEOUT_MS
   while (Date.now() < deadline) {
     await delay(SOCIAL_POLL_MS)
-    try {
-      const body = await requestJson<Record<string, unknown>>(endpoint, {
-        authenticated,
-        clearOnUnauthorized: false,
-        init: {
-          method: 'POST',
-          body: JSON.stringify({ pollToken })
+    const headers = new Headers({ 'content-type': 'application/json' })
+    if (authenticated && getWebSessionToken()) {
+      headers.set('authorization', `Bearer ${getWebSessionToken()}`)
+    }
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ pollToken }),
+      signal: AbortSignal.timeout(10_000)
+    })
+    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null
+
+    if (response.status === 202) {
+      if (body?.requiresPassword === true && typeof body.email === 'string') {
+        return {
+          kind: 'password_required',
+          pollToken,
+          provider,
+          email: body.email
         }
-      })
-      if (endpoint === '/auth/social/link/complete') return body as unknown as SocialConnections
-      if (typeof body.token === 'string') return acceptAuth(body as unknown as AuthResponse)
-      continue
-    } catch (error) {
-      const status = (error as Error & { status?: number }).status
-      if (status === 202) {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            ...(authenticated && getWebSessionToken()
-              ? { authorization: `Bearer ${getWebSessionToken()}` }
-              : {})
-          },
-          body: JSON.stringify({ pollToken })
-        })
-        const body = (await response.json().catch(() => null)) as Record<string, unknown> | null
-        if (body?.requiresPassword === true && typeof body.email === 'string') {
-          return {
-            kind: 'password_required',
-            pollToken,
-            provider,
-            email: body.email
-          }
-        }
-        if (body?.requiresEmail === true) {
-          return { kind: 'email_required', pollToken, provider }
-        }
-        continue
       }
-      throw error
+      if (body?.requiresEmail === true) {
+        return { kind: 'email_required', pollToken, provider }
+      }
+      continue
+    }
+
+    if (!response.ok || !body) {
+      throw new Error(
+        typeof body?.message === 'string'
+          ? body.message
+          : `Social login failed (${response.status})`
+      )
+    }
+    if (endpoint === '/auth/social/link/complete') {
+      return body as unknown as SocialConnections
+    }
+    if (typeof body.token === 'string') {
+      return acceptAuth(body as unknown as AuthResponse)
     }
   }
   throw new Error('Social login timed out. Please try again.')
