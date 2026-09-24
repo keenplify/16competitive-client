@@ -1228,3 +1228,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skin Previews
 
 - Added explosion sprite previews for skins.
+
+## v2026.924.9 — 2026-09-24
+
+### Visual Improvements
+
+- Smoothed explosion sprite animation.
