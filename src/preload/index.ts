@@ -84,6 +84,7 @@ const matchmaking: MatchmakingApi = {
   respondReady: (matchId, accepted) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.respondReady, matchId, accepted),
   reconnectGame: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.reconnectGame),
+  copyConnection: (matchId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.copyConnection, matchId),
   reportPlayer: (matchId, targetPlayerId, reason, description) =>
     ipcRenderer.invoke(
       MATCHMAKING_CHANNELS.reportPlayer,

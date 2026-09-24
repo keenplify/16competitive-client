@@ -13,6 +13,7 @@ export const MATCHMAKING_CHANNELS = {
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
   reconnectGame: 'matchmaking:reconnect-game',
+  copyConnection: 'matchmaking:copy-connection',
   reportPlayer: 'matchmaking:report-player',
   voiceJoin: 'matchmaking:voice-join',
   voiceLeave: 'matchmaking:voice-leave',
@@ -328,6 +329,7 @@ export interface MatchmakingApi {
   getMaps(): Promise<MatchmakingMap[]>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
+  copyConnection(matchId: string): Promise<void>
   reportPlayer(
     matchId: string,
     targetPlayerId: string,
