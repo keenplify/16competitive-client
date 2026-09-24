@@ -67,7 +67,7 @@ try {
     'cd /root/16competitive && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'
   const failedHosts = []
 
-  for (const host of ['sg', 'na', 'ws', 'ind']) {
+  for (const host of ['sg', 'na', 'ws', 'india']) {
     console.log(`Updating web client on ${host}...`)
     try {
       execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', host, remoteCommand], {
