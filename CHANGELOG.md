@@ -1180,3 +1180,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved gift validation for a smoother, clearer gifting experience.
 - Made general improvements across the app for greater consistency.
+
+## v2026.924.4 — 2026-09-24
+
+### Party Previews
+
+- Improved weapon model handling in web party previews.
+- Added clearer error messaging when previews fail to load.
+
+### Loadouts
+
+- Improved weapon loadout handling across matchmaking, party, and skins views.
