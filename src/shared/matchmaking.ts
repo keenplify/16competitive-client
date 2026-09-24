@@ -314,7 +314,7 @@ export type MatchmakingEvent =
   | {
       type: 'match_assets_progress'
       matchId: string
-      status: 'checking' | 'downloading' | 'ready'
+      status: 'checking' | 'downloading' | 'ready' | 'fastdl'
       completedFiles: number
       totalFiles: number
     }
