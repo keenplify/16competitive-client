@@ -1191,3 +1191,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Loadouts
 
 - Improved weapon loadout handling across matchmaking, party, and skins views.
+
+## v2026.924.5 — 2026-09-24
+
+### Language Support
+
+- Added Hindi translations for the UI.
+- Improved language detection and language support.
+
+### Skin Assets
+
+- Updated skin asset sync status text for localization.
