@@ -41,7 +41,7 @@ export function ExplosionSpritePreview({ skinId }: { skinId: string }): JSX.Elem
     }
     draw()
     if (reducedMotion || frames.length === 1) return
-    const interval = window.setInterval(draw, 90)
+    const interval = window.setInterval(draw, 90 / 1.75)
     return () => window.clearInterval(interval)
   }, [frames])
 
