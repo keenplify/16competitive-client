@@ -7,6 +7,7 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import { PartyModelScene } from '../party/PartyModelScene'
 import { presentationModelPath } from '../party/party-models'
+import { ExplosionSpritePreview } from './ExplosionSpritePreview'
 
 const spotlightGlowStyle: CSSProperties = {
   filter:
@@ -25,6 +26,9 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
 
   return (
     <div className="relative flex h-full flex-col items-center justify-end pb-5 md:pb-7">
+      {['hegrenade', 'flashbang', 'smokegrenade'].includes(weaponKey) && (
+        <ExplosionSpritePreview skinId={skinId} />
+      )}
       <div className="absolute inset-0" style={spotlightGlowStyle}>
         {player ? (
           <PartyModelScene

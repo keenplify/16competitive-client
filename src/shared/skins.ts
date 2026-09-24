@@ -6,6 +6,7 @@ export const SKIN_CHANNELS = {
   equip: 'skins:equip',
   unequip: 'skins:unequip',
   previewModel: 'skins:preview-model',
+  previewExplosionSprite: 'skins:preview-explosion-sprite',
   setLobbyWeapon: 'skins:set-lobby-weapon',
   setLobbyWeaponKey: 'skins:set-lobby-weapon-key',
   setLobbyPlayerModel: 'skins:set-lobby-player-model',
@@ -109,6 +110,7 @@ export interface SkinsApi {
   equip(skinId: string): Promise<void>
   unequip(skinId: string): Promise<void>
   previewModel(skinId: string): Promise<ArrayBuffer>
+  previewExplosionSprite(skinId: string): Promise<ArrayBuffer | null>
   setLobbyWeapon(skinId: string): Promise<void>
   setLobbyWeaponKey(weaponKey: string): Promise<void>
   setLobbyPlayerModel(modelPath: string): Promise<void>

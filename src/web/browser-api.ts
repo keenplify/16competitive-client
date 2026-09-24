@@ -185,6 +185,16 @@ const skins = {
       authenticated: true
     })
   },
+  async previewExplosionSprite(skinId: string): Promise<ArrayBuffer | null> {
+    try {
+      return await requestArrayBuffer(`/skins/${skinId}/preview-explosion-sprite`, {
+        authenticated: true
+      })
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Request failed (404)') return null
+      throw error
+    }
+  },
   async setLobbyWeapon(): Promise<void> {
     throw new Error('Lobby weapon selection is only available in the desktop app.')
   },
