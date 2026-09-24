@@ -1156,3 +1156,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Authentication
 
 - Social login windows now close automatically after successful sign-in.
+
+## v2026.924.1 — 2026-09-24
+
+### Weapon Previews
+
+- Added stable previews for available weapons and equipment.
+
+### Telemetry
+
+- Improved browser telemetry handling.
+- Added telemetry reporting for web mode.
