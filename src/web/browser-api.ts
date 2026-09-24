@@ -414,7 +414,7 @@ const api: Window['api'] = {
 
       if (normalized.toLowerCase() === 'p_ak47.mdl') return readBundledAk47Model()
       if (/^p_[a-z0-9_]+\.mdl$/i.test(normalized)) {
-        throw new Error('Web party previews support the bundled AK-47 only.')
+        throw new Error('This stock weapon model is unavailable in the browser.')
       }
 
       const key = relativePath.replace(/\\/g, '/').startsWith('models/')

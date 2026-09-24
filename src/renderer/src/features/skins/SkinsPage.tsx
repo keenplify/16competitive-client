@@ -136,7 +136,11 @@ export function SkinsPage(): JSX.Element {
         setLobbyPlayerModel(lobbyLoadout.playerModel)
         setLobbyWeaponKey(lobbyLoadout.weaponKey)
         setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
-        updateLobbyWeapon(lobbyLoadout.weaponKey, lobbyLoadout.weaponModelPath)
+        updateLobbyWeapon(
+          lobbyLoadout.weaponKey,
+          lobbyLoadout.weaponModelPath,
+          lobbyLoadout.weaponSkinId
+        )
         setStatus('ready')
       },
       (reason: unknown) => {
@@ -199,7 +203,11 @@ export function SkinsPage(): JSX.Element {
         setSkins(inventory)
         setLobbyWeaponKey(lobbyLoadout.weaponKey)
         setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
-        updateLobbyWeapon(lobbyLoadout.weaponKey, lobbyLoadout.weaponModelPath)
+        updateLobbyWeapon(
+          lobbyLoadout.weaponKey,
+          lobbyLoadout.weaponModelPath,
+          lobbyLoadout.weaponSkinId
+        )
         toast.success(`${owned.skin.name} is now displayed in your lobby.`)
       })
       .catch((reason: unknown) => setError(errorText(reason)))
@@ -215,7 +223,7 @@ export function SkinsPage(): JSX.Element {
       .then(() => {
         setLobbyWeaponKey(weaponKey)
         setLobbyWeaponSkinId(null)
-        updateLobbyWeapon(weaponKey, null)
+        updateLobbyWeapon(weaponKey, null, null)
         toast.success(`${displayWeapon(weaponKey)} is now displayed in your lobby.`)
       })
       .catch((reason: unknown) => setError(errorText(reason)))

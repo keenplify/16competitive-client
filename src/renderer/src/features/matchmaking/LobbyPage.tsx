@@ -27,7 +27,6 @@ import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
-import { isWebRuntime } from '../../web-runtime'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
@@ -59,8 +58,8 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
   const lobbyWeaponModelPath = useLobbyLoadoutStore((state) => state.weaponModelPath)
+  const lobbyWeaponSkinId = useLobbyLoadoutStore((state) => state.weaponSkinId)
   const members = party?.members ?? [soloLobbyMember(player)]
-  const webMode = isWebRuntime()
 
   return (
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
@@ -77,17 +76,11 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
               member,
               modelPath: presentationModelPath(selectedModelPath),
               fallbackModelPath,
-              weaponPath: webMode
-                ? 'p_ak47.mdl'
-                : isCurrentPlayer
-                  ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
-                  : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
-              weaponSkinId: webMode ? null : member.lobbyWeaponSkinId,
-              weaponKey: webMode
-                ? 'ak47'
-                : isCurrentPlayer
-                  ? lobbyWeaponKey
-                  : member.lobbyWeaponKey,
+              weaponPath: isCurrentPlayer
+                ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
+                : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
+              weaponSkinId: isCurrentPlayer ? lobbyWeaponSkinId : member.lobbyWeaponSkinId,
+              weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
               isLeader: party?.leaderId === member.id,
               isCurrentPlayer
             }
