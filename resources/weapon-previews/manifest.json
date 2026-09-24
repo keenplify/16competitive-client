@@ -1,0 +1,127 @@
+{
+  "p_ak47.mdl": {
+    "image": "p_ak47.png",
+    "modelSha256": "8361462d88f8cc00dfc62b56bb808865dfed8eaec93d063d2af6fec80cfc80ca"
+  },
+  "p_aug.mdl": {
+    "image": "p_aug.png",
+    "modelSha256": "2c3afe158e5f18822c9a28ab9afaa5278e768bbb3771f972a2f53800280ad6c7"
+  },
+  "p_awp.mdl": {
+    "image": "p_awp.png",
+    "modelSha256": "d62600226265c4fab48b55fc80c7a0dbd9f0970e7bf312ad0f75079d841c836f"
+  },
+  "p_c4.mdl": {
+    "image": "p_c4.png",
+    "modelSha256": "fbd567e6a58c35be853d1d80d903eaa7d980cf3691b4191484b1040e4ac85106"
+  },
+  "p_deagle.mdl": {
+    "image": "p_deagle.png",
+    "modelSha256": "9895a2e3b8197bf6e058a36ffa757d66d41f54fec4a95db8c1a223bb99bc6090"
+  },
+  "p_elite.mdl": {
+    "image": "p_elite.png",
+    "modelSha256": "dfb621c82fe160fdff5df1a1194807f22b6567ce416005c7842f1d60d8580668",
+    "source": "src/renderer/src/assets/elite-pistols.png"
+  },
+  "p_famas.mdl": {
+    "image": "p_famas.png",
+    "modelSha256": "2ba517cebe96ae42bed2c872cde6e0d83deb3bde9223707838eddc3660d3ac72"
+  },
+  "p_fiveseven.mdl": {
+    "image": "p_fiveseven.png",
+    "modelSha256": "c75a0057f6d8822503abeb5c5e491f6fa4236ae196fdcf946987c5f22965af0f"
+  },
+  "p_flashbang.mdl": {
+    "image": "p_flashbang.png",
+    "modelSha256": "b754a3577589525bea75e033a8a202e326bb0be3b7e9dfe35fb73b6f27247248"
+  },
+  "p_g3sg1.mdl": {
+    "image": "p_g3sg1.png",
+    "modelSha256": "009a2790a8da319c2475dcc875ca91ba17306709d2678076b93b70d518528559"
+  },
+  "p_galil.mdl": {
+    "image": "p_galil.png",
+    "modelSha256": "96c9f8c20fc6e45aa033adcbe40cbea57df45c4c461ed3f849d48a800b14e054"
+  },
+  "p_glock18.mdl": {
+    "image": "p_glock18.png",
+    "modelSha256": "daac0a5b0f49c8312c2695acf0c4c41d94e8912a2534c0f0c48409ae8a35cb8a"
+  },
+  "p_hegrenade.mdl": {
+    "image": "p_hegrenade.png",
+    "modelSha256": "494b329493f545298cdaa434edf70f32bafad964daf4d7a5c6383f8ef3f5d9cb"
+  },
+  "p_knife.mdl": {
+    "image": "p_knife.png",
+    "modelSha256": "4cebffd0d1cb481a9a211353e34d75f52bfa94f0d5c5db1ed828767998b92078"
+  },
+  "p_m249.mdl": {
+    "image": "p_m249.png",
+    "modelSha256": "f2fc6910be048e23e653a72c5442884e9451b2546be104ef79ba3e49412dd6ff"
+  },
+  "p_m3.mdl": {
+    "image": "p_m3.png",
+    "modelSha256": "eaa05596427ff6ea35b367d10d8247cf7a6c6b8323c636024124019bae4d26d1"
+  },
+  "p_m3super90.mdl": {
+    "image": "p_m3super90.png",
+    "modelSha256": "1bf2ce7e66d9faf7a03f11823058091cbd65c6898968d11faeb4a70fb6c4e478"
+  },
+  "p_m4a1.mdl": {
+    "image": "p_m4a1.png",
+    "modelSha256": "b9c06509f5eceabec30e305e8d41cc2b5930cedf65fc984e2fbd7f4f939c1e85"
+  },
+  "p_mac10.mdl": {
+    "image": "p_mac10.png",
+    "modelSha256": "fc732df86cbb414ebfbe32c069e1626ccfb6f996ccf1dc241777fec2989fdaae"
+  },
+  "p_mp5.mdl": {
+    "image": "p_mp5.png",
+    "modelSha256": "7f897e2dabb28374e512247371ee49e2f3a197974b2fc70fa975eba275f4222a"
+  },
+  "p_p228.mdl": {
+    "image": "p_p228.png",
+    "modelSha256": "6cd3f69f868e6a21d7ae129168938cd65469951f34f07a32becfa48ff24f7679"
+  },
+  "p_p90.mdl": {
+    "image": "p_p90.png",
+    "modelSha256": "60ccab9a3c2780f3b6a7033916abc9c8685e357bc2542120e0d22dcdea845655"
+  },
+  "p_scout.mdl": {
+    "image": "p_scout.png",
+    "modelSha256": "46c4b3992088f5b1154384928299464fb74c81312aab38c826cc7b45f02c6058"
+  },
+  "p_sg550.mdl": {
+    "image": "p_sg550.png",
+    "modelSha256": "f17cfe20100735f8168decef6c2cedbda121c72c506e0c72de33b9a79b0c2ef9"
+  },
+  "p_sg552.mdl": {
+    "image": "p_sg552.png",
+    "modelSha256": "2d88adf7f36fa957719f631302e2654604ca536bffcd8bd224452c8187d34c2b"
+  },
+  "p_shield.mdl": {
+    "image": "p_shield.png",
+    "modelSha256": "302afeb636720e604db99f4491608beaefb02a38d7fc294429cac2a7729d1bd5"
+  },
+  "p_smokegrenade.mdl": {
+    "image": "p_smokegrenade.png",
+    "modelSha256": "61e9f3a0eb8b0a59f7f284f3e800538e5d1905ffa78b2048c3900969038e8a8c"
+  },
+  "p_tmp.mdl": {
+    "image": "p_tmp.png",
+    "modelSha256": "f7329da8f3d89c32fddf7d790ac1750c702a3df20306e62f036ca751989ff526"
+  },
+  "p_ump45.mdl": {
+    "image": "p_ump45.png",
+    "modelSha256": "f8e9091ab16ec43d3a6ef8eaf1e02270f01c03cd215fa0f15fbc92d59f9ff8a2"
+  },
+  "p_usp.mdl": {
+    "image": "p_usp.png",
+    "modelSha256": "d613f4d00b2c3e501ffd59016d29bc65df710dcfa458344dc54bf496321e22a8"
+  },
+  "p_xm1014.mdl": {
+    "image": "p_xm1014.png",
+    "modelSha256": "f5736ee54c6f20bfc88c20e9f3e12b983f024afb98baf02f3d6c8524ca952e07"
+  }
+}

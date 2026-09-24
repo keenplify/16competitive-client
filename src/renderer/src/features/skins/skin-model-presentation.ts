@@ -71,6 +71,7 @@ export const getSkinCameraTarget = (
 export const SKIN_PREVIEW_ROTATION_BY_WEAPON: Record<string, SkinPresentationRotation> = {
   // Shotguns — intentionally separate so each can be tuned independently.
   m3: [90, 0, 190],
+  m3super90: [0, 90, 90],
   xm1014: [90, 90, 90],
 
   knife: [120, 90, 120],
