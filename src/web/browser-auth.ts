@@ -68,11 +68,158 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 const usernameStatus = async (): Promise<UsernameStatus> =>
   requestJson<UsernameStatus>('/auth/username/status', { authenticated: true })
 
+type BrowserNavigator = Navigator & {
+  deviceMemory?: number
+  userAgentData?: {
+    platform?: string
+    getHighEntropyValues?: (hints: string[]) => Promise<Record<string, unknown>>
+  }
+}
+
+const trimTelemetryText = (value: unknown, maxLength: number): string | undefined => {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, maxLength) : undefined
+}
+
+const browserPlatform = (userAgent: string, platformHint?: string): string => {
+  const source = `${platformHint ?? ''} ${userAgent}`.toLowerCase()
+  if (/iphone|ipad|ipod/.test(source)) return 'ios'
+  if (source.includes('android')) return 'android'
+  if (/windows|win32|win64/.test(source)) return 'win32'
+  if (/macintosh|mac os|macintel/.test(source)) return 'darwin'
+  if (/linux|x11/.test(source)) return 'linux'
+  return 'web'
+}
+
+const browserArchitecture = (
+  userAgent: string,
+  highEntropy: Record<string, unknown>
+): string => {
+  const hintedArchitecture = trimTelemetryText(highEntropy.architecture, 24)
+  const bitness = trimTelemetryText(highEntropy.bitness, 8)
+  if (hintedArchitecture) {
+    if (hintedArchitecture === 'x86' && bitness === '64') return 'x64'
+    if (hintedArchitecture === 'arm' && bitness === '64') return 'arm64'
+    return hintedArchitecture
+  }
+
+  if (/arm64|aarch64/i.test(userAgent)) return 'arm64'
+  if (/wow64|win64|x86_64|x64|amd64/i.test(userAgent)) return 'x64'
+  if (/i[3-6]86|x86/i.test(userAgent)) return 'x86'
+  if (/arm/i.test(userAgent)) return 'arm'
+  return 'unknown'
+}
+
+const browserOsRelease = (userAgent: string, platform: string): string => {
+  const windows = userAgent.match(/Windows NT ([0-9.]+)/i)?.[1]
+  if (windows) return `Windows NT ${windows}`
+
+  const android = userAgent.match(/Android\s+([^;)]+)/i)?.[1]
+  if (android) return `Android ${android.trim()}`
+
+  const ios = userAgent.match(/(?:CPU (?:iPhone )?OS|iPhone OS)\s+([0-9_]+)/i)?.[1]
+  if (ios) return `iOS ${ios.replace(/_/g, '.')}`
+
+  const mac = userAgent.match(/Mac OS X\s+([0-9_]+)/i)?.[1]
+  if (mac) return `macOS ${mac.replace(/_/g, '.')}`
+
+  if (platform === 'linux') return 'Linux'
+  return trimTelemetryText(userAgent, 128) ?? 'Web browser'
+}
+
+const browserGpuDevices = (): string[] => {
+  try {
+    const canvas = document.createElement('canvas')
+    const gl =
+      canvas.getContext('webgl') ??
+      (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null)
+    if (!gl) return []
+
+    const extension = gl.getExtension('WEBGL_debug_renderer_info')
+    if (!extension) return []
+
+    const renderer = trimTelemetryText(
+      gl.getParameter(extension.UNMASKED_RENDERER_WEBGL),
+      256
+    )
+    return renderer ? [renderer] : []
+  } catch {
+    return []
+  }
+}
+
+const reportBrowserClientTelemetry = async (): Promise<void> => {
+  try {
+    const browserNavigator = navigator as BrowserNavigator
+    const userAgent = navigator.userAgent
+    let highEntropy: Record<string, unknown> = {}
+
+    try {
+      const getHighEntropyValues = browserNavigator.userAgentData?.getHighEntropyValues
+      if (getHighEntropyValues) {
+        highEntropy = await getHighEntropyValues([
+          'architecture',
+          'bitness',
+          'platform',
+          'platformVersion'
+        ])
+      }
+    } catch {
+      // Browser privacy settings may reject high-entropy client hints.
+    }
+
+    const hintedPlatform =
+      trimTelemetryText(highEntropy.platform, 64) ??
+      trimTelemetryText(browserNavigator.userAgentData?.platform, 64) ??
+      trimTelemetryText(navigator.platform, 64)
+    const platform = browserPlatform(userAgent, hintedPlatform)
+    const platformVersion = trimTelemetryText(highEntropy.platformVersion, 96)
+    const logicalCpuCount =
+      Number.isInteger(navigator.hardwareConcurrency) && navigator.hardwareConcurrency > 0
+        ? navigator.hardwareConcurrency
+        : undefined
+    const deviceMemoryGb = browserNavigator.deviceMemory
+    const totalMemoryMb =
+      typeof deviceMemoryGb === 'number' && Number.isFinite(deviceMemoryGb) && deviceMemoryGb > 0
+        ? Math.max(1, Math.round(deviceMemoryGb * 1024))
+        : undefined
+
+    await requestJson('/auth/client-telemetry', {
+      authenticated: true,
+      timeoutMs: 7_500,
+      clearOnUnauthorized: false,
+      init: {
+        method: 'POST',
+        body: JSON.stringify({
+          clientVersion: `web-${String(__SIXTEEN_COMPETITIVE_VERSION__).slice(0, 60)}`,
+          platform,
+          architecture: browserArchitecture(userAgent, highEntropy),
+          osRelease: browserOsRelease(userAgent, platform),
+          osVersion: trimTelemetryText(
+            platformVersion ? `${platformVersion} · UA: ${userAgent}` : `UA: ${userAgent}`,
+            256
+          ),
+          logicalCpuCount,
+          totalMemoryMb,
+          gpuDevices: browserGpuDevices()
+        })
+      }
+    })
+  } catch (error) {
+    console.warn(
+      'Could not report browser client telemetry:',
+      error instanceof Error ? error.message : String(error)
+    )
+  }
+}
+
 const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
   setWebSessionToken(body.token)
   const status = await usernameStatus()
   const session = { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
   writeCachedSession(session)
+  void reportBrowserClientTelemetry()
   return session
 }
 
@@ -290,6 +437,7 @@ export const browserAuthApi: AuthApi = {
         }
       }
       writeCachedSession(session)
+      void reportBrowserClientTelemetry()
       return session
     } catch (error) {
       if ((error as Error & { status?: number }).status === 401) {
