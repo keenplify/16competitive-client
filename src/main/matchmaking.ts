@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, clipboard } from 'electron'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import type {
   MatchmakingEvent,
@@ -671,6 +671,45 @@ class MatchmakingConnection {
       }
     })
     discordPresence.setInGame(true)
+  }
+
+  async copyConnection(matchId: unknown): Promise<void> {
+    if (typeof matchId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(matchId)) {
+      throw new Error('Invalid match connection request')
+    }
+    if (this.lastConnection?.matchId !== matchId || this.cancelledMatchIds.has(matchId) ||
+        this.finishedMatchIds.has(matchId)) {
+      throw new Error('This match is no longer available')
+    }
+    const apiUrl = this.hostApiUrl ?? this.activeApiUrl
+    const token = getSessionToken()
+    if (!apiUrl || !token) throw new Error('Reconnect to matchmaking before copying the command')
+    try {
+      await waitForMatchAssetPreload(matchId)
+    } catch {
+      clearMatchAssetPreload(matchId)
+      await this.prepareMatchAssets(matchId)
+    }
+    const response = await fetch(
+      `${apiUrl.replace(/\/$/, '')}/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`,
+      {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(15_000)
+      }
+    )
+    if (!response.ok) throw new Error('Could not activate manual connection. Please retry.')
+    const value: unknown = await response.json()
+    if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
+    const { host, port, password, manualToken } = value as Record<string, unknown>
+    if (typeof host !== 'string' || !/^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/.test(host) ||
+        !Number.isInteger(port) || (port as number) < 1 || (port as number) > 65535 ||
+        typeof password !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(password) ||
+        typeof manualToken !== 'string' || !/^m_[0-9a-f]{48}$/.test(manualToken)) {
+      throw new Error('Invalid manual connection response')
+    }
+    // This token only works after the server has added it to its match-local allowlist.
+    clipboard.writeText(`setinfo "_16c" "${manualToken}"; password "${password}"; connect ${host}:${port}`)
   }
 
   async reportPlayer(

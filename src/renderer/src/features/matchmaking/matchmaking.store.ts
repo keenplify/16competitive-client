@@ -86,6 +86,8 @@ interface MatchmakingState {
   assetPreparation: AssetPreparation
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
+  matchReadyAt: number | null
+  copyConnectionStatus: 'idle' | 'copying' | 'copied'
   serverRestarting: { message: string; retryAfterMs: number } | null
   matchAbandonNotice: MatchAbandonNotice | null
   error: string | null
@@ -100,6 +102,7 @@ interface MatchmakingState {
   leaveQueue: () => Promise<void>
   respondReady: (accepted: boolean) => Promise<void>
   reconnectGame: () => Promise<void>
+  copyConnection: () => Promise<void>
   reset: () => void
   dismissCompletedMatch: () => void
   dismissMatchAbandonNotice: () => void
@@ -324,6 +327,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                   password: event.password
                 },
                 gameExited: false,
+                matchReadyAt:
+                  state.connectionDetails?.matchId === event.matchId && state.matchReadyAt
+                    ? state.matchReadyAt
+                    : Date.now(),
+                copyConnectionStatus: 'idle',
                 error: null
               }
         )
@@ -366,6 +374,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           match: null,
           assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
           connectionDetails: null,
+          matchReadyAt: null,
           gameExited: false,
           error: null
         })
@@ -390,6 +399,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 countdown: null,
                 assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
                 connectionDetails: null,
+                matchReadyAt: null,
                 gameExited: false,
                 error: event.message
               }
@@ -492,6 +502,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
     connectionDetails: null,
     gameExited: false,
+    matchReadyAt: null,
+    copyConnectionStatus: 'idle',
     serverRestarting: null,
     matchAbandonNotice: null,
     error: null,
@@ -708,6 +720,18 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       }
     },
 
+    copyConnection: async () => {
+      const matchId = get().connectionDetails?.matchId
+      if (!matchId || get().copyConnectionStatus === 'copying') return
+      set({ copyConnectionStatus: 'copying', error: null })
+      try {
+        await window.api.matchmaking.copyConnection(matchId)
+        if (get().connectionDetails?.matchId === matchId) set({ copyConnectionStatus: 'copied' })
+      } catch (error) {
+        set({ copyConnectionStatus: 'idle', error: readableError(error) })
+      }
+    },
+
     dismissCompletedMatch: () => set({ completedMatch: null, error: null }),
 
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
@@ -715,6 +739,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     reset: () =>
       set({
         connectionStatus: 'disconnected',
+        copyConnectionStatus: 'idle',
+        matchReadyAt: null,
         queueStatus: 'idle',
         selectedMode: '5v5',
         maps: [],

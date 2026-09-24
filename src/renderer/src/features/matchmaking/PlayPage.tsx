@@ -101,10 +101,14 @@ export function PlayPage(): JSX.Element {
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
   const respondReady = useMatchmakingStore((state) => state.respondReady)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
+  const copyConnection = useMatchmakingStore((state) => state.copyConnection)
+  const copyConnectionStatus = useMatchmakingStore((state) => state.copyConnectionStatus)
+  const matchReadyAt = useMatchmakingStore((state) => state.matchReadyAt)
   const gameExecutablePath = useGameSettingsStore((state) => state.savedPath)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const navigate = useNavigationStore((state) => state.navigate)
   const [secondsToAccept, setSecondsToAccept] = useState(20)
+  const [clockNow, setClockNow] = useState(Date.now)
 
   useEffect(() => {
     void loadMaps()
@@ -132,6 +136,12 @@ export function PlayPage(): JSX.Element {
     return () => window.clearInterval(timer)
   }, [queueStatus, readyDeadline])
 
+  useEffect(() => {
+    if (queueStatus !== 'server_ready' || !matchReadyAt) return
+    const timer = window.setInterval(() => setClockNow(Date.now()), 250)
+    return () => window.clearInterval(timer)
+  }, [queueStatus, matchReadyAt])
+
   const handleReconnect = async (): Promise<void> => {
     // Revalidate through the main process: a saved path can become stale if the
     // player deletes or moves their Counter-Strike installation while the app is open.
@@ -150,6 +160,10 @@ export function PlayPage(): JSX.Element {
   const isLeader = !party || party.leaderId === player.id
   const isConnected = connectionStatus === 'ready'
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+  const copyWaitSeconds = matchReadyAt
+    ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
+    : 10
+  const retryWindowOpen = copyWaitSeconds === 0
   const availableMaps = maps.filter((map) => map.supportedModes.includes('5v5'))
   const hasSelectedMaps = selectedMapIds.length > 0
   const matchMapPreview = match
@@ -286,16 +300,41 @@ export function PlayPage(): JSX.Element {
           )}
 
           {queueStatus === 'server_ready' && connectionDetails && (
-            <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button
                 className="rounded-sm"
-                disabled={!gameExited}
+                disabled={!gameExited || !retryWindowOpen}
                 variant="ghost"
                 onClick={() => void handleReconnect()}
               >
-                {gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
+                {gameExited
+                  ? retryWindowOpen
+                    ? 'Reconnect to match'
+                    : `Reconnect in ${copyWaitSeconds}s`
+                  : 'Counter-Strike is launching…'}
+              </Button>
+              <Button
+                className="rounded-sm"
+                disabled={copyConnectionStatus === 'copying' || !retryWindowOpen}
+                variant="ghost"
+                onClick={() => void copyConnection()}
+              >
+                {copyWaitSeconds > 0
+                  ? `Copy connection in ${copyWaitSeconds}s`
+                  : copyConnectionStatus === 'copying'
+                  ? 'Activating connection…'
+                  : copyConnectionStatus === 'copied'
+                    ? 'Copied — copy again'
+                    : 'Copy connection'}
               </Button>
             </div>
+          )}
+
+          {queueStatus === 'server_ready' && connectionDetails && (
+            <p className="mt-3 text-center text-xs text-neutral-400">
+              Backup: paste the copied command into the Counter-Strike console. Manual connection may
+              miss launcher voice, managed skin audio, and local anti-cheat setup.
+            </p>
           )}
 
           {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
