@@ -1173,3 +1173,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skins
 
 - Updated the AK-47 model asset.
+
+## v2026.924.3 — 2026-09-24
+
+### Improvements
+
+- Improved gift validation for a smoother, clearer gifting experience.
+- Made general improvements across the app for greater consistency.
