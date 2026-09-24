@@ -202,8 +202,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
             {score[0]} <span className="text-neutral-500">—</span> {score[1]}
           </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
-            {getMatchmakingModeLabel(match.mode)} ·{' '}
-            {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
+            {getMatchmakingModeLabel(match.mode)} · {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
           </p>
           <Team
             label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}

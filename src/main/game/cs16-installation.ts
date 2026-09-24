@@ -61,9 +61,7 @@ const hasCsXtremeLaunchScript = async (installRoot: string): Promise<boolean> =>
   )
   return (
     launchScript !== null &&
-    /^\s*start\s+launcher\.exe\s+-steam\s+-game\s+cstrike\s+-appid\s+10\b/im.test(
-      launchScript
-    )
+    /^\s*start\s+launcher\.exe\s+-steam\s+-game\s+cstrike\s+-appid\s+10\b/im.test(launchScript)
   )
 }
 
@@ -153,7 +151,14 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       // can fail with "Failure to initialize authentication interface".
       executable: await findWindowsSteamExecutable(steamLibraryRoot),
       gameExecutable: executable,
-      argumentPrefix: ['-applaunch', '10', '-game', STOCK_GAME_DIR, '-noforcemparms', '-noforcemaccel'],
+      argumentPrefix: [
+        '-applaunch',
+        '10',
+        '-game',
+        STOCK_GAME_DIR,
+        '-noforcemparms',
+        '-noforcemaccel'
+      ],
       textureSize: '1024',
       usesLauncherHandoff: true,
       usesSteamEmulation: false

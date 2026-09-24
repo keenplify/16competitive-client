@@ -715,7 +715,16 @@ export function PartyModelScene({
   const [loadedScene, setLoadedScene] = useState<LoadedScene | null>(null)
   const actorKey = actors
     .map(
-      ({ member, modelPath, weaponPath, weaponSkinId, weaponKey, isCurrentPlayer, isLeader, forceWeaponSkinPreview }) =>
+      ({
+        member,
+        modelPath,
+        weaponPath,
+        weaponSkinId,
+        weaponKey,
+        isCurrentPlayer,
+        isLeader,
+        forceWeaponSkinPreview
+      }) =>
         `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
     )
     .join('|')

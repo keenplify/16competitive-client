@@ -46,7 +46,8 @@ const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
-const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'unrated' || value === 'casual'
+const isMode = (value: unknown): value is MatchmakingMode =>
+  value === '5v5' || value === 'unrated' || value === 'casual'
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value) && value.length <= 35

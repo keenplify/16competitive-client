@@ -436,8 +436,7 @@ export const startSkinAssetSync = (
       const message =
         code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
           ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
-          : error instanceof Error &&
-              error.message.includes('Choose your Counter-Strike folder')
+          : error instanceof Error && error.message.includes('Choose your Counter-Strike folder')
             ? 'Choose your Counter-Strike folder in Settings to download skin assets.'
             : 'Could not download skin assets. Check your connection and try again.'
       onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })

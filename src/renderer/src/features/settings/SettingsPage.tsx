@@ -405,7 +405,8 @@ export function SettingsPage(): JSX.Element {
                 </a>
               )}
               <p className="col-span-2 px-3 pt-1 text-[11px] text-neutral-600 lg:col-span-1">
-                {webRuntime ? 'Web' : 'Launcher'} <span className="font-mono">{currentVersion ?? '…'}</span>
+                {webRuntime ? 'Web' : 'Launcher'}{' '}
+                <span className="font-mono">{currentVersion ?? '…'}</span>
               </p>
             </div>
           </aside>
@@ -444,12 +445,15 @@ export function SettingsPage(): JSX.Element {
                 <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                   <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
                   <p className="mt-2 text-sm text-neutral-400">
-                    Choose the game folder or its cstrike subfolder. The launcher will find the executable automatically.
+                    Choose the game folder or its cstrike subfolder. The launcher will find the
+                    executable automatically.
                   </p>
 
                   {status !== 'loading' && !folderPath && (
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/5 p-4">
-                      <p className="text-sm text-neutral-300">Counter-Strike is not installed yet?</p>
+                      <p className="text-sm text-neutral-300">
+                        Counter-Strike is not installed yet?
+                      </p>
                       <Button
                         variant="ghost"
                         className="border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"

@@ -5,14 +5,18 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const packageVersion = (JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }).version
+const packageVersion = (
+  JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
+).version
 
 const webAssets = {
   name: '16competitive-web-assets',
   async closeBundle(): Promise<void> {
     const output = resolve('dist-web')
     await mkdir(resolve(output, 'lobby-models'), { recursive: true })
-    await cp(resolve('resources/lobby-models'), resolve(output, 'lobby-models'), { recursive: true })
+    await cp(resolve('resources/lobby-models'), resolve(output, 'lobby-models'), {
+      recursive: true
+    })
     await copyFile(resolve('src/web/site.webmanifest'), resolve(output, 'site.webmanifest'))
     await copyFile(resolve('src/web/sw.js'), resolve(output, 'sw.js'))
   }
