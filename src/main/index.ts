@@ -76,6 +76,7 @@ import {
   getLobbyLoadout,
   getOwnedSkins,
   getSkinPreviewModel,
+  getSkinPreviewExplosionSprite,
   getPendingSkinGift,
   claimSkinGift,
   listSkins,
@@ -437,6 +438,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown) => getSkinPreviewModel(skinId))
+  ipcMain.handle(SKIN_CHANNELS.previewExplosionSprite, (_, skinId: unknown) =>
+    getSkinPreviewExplosionSprite(skinId)
+  )
   ipcMain.handle(SKIN_CHANNELS.setLobbyWeapon, (_, skinId: unknown) => setLobbyWeapon(skinId))
   ipcMain.handle(SKIN_CHANNELS.setLobbyWeaponKey, (_, weaponKey: unknown) =>
     setLobbyWeaponKey(weaponKey)

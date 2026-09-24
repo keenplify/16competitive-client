@@ -185,6 +185,8 @@ const skins: SkinsApi = {
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
   unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
   previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId),
+  previewExplosionSprite: (skinId) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.previewExplosionSprite, skinId),
   setLobbyWeapon: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeapon, skinId),
   setLobbyWeaponKey: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeaponKey, weaponKey),
   setLobbyPlayerModel: (modelPath) =>

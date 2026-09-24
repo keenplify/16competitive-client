@@ -290,6 +290,43 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   return model
 }
 
+export const getSkinPreviewExplosionSprite = async (
+  skinId: unknown
+): Promise<ArrayBuffer | null> => {
+  const token = getSessionToken()
+  if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
+  const id = validateSkinId(skinId)
+  const response = await fetch(await skinApiUrl(`/skins/${id}/preview-explosion-sprite`), {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15_000)
+  })
+  if (response.status === 404) return null
+  if (response.status === 401) {
+    clearSessionToken()
+    throw makeError('Your session expired. Sign in again.', 'UNAUTHORIZED')
+  }
+  if (
+    !response.ok ||
+    !response.headers.get('content-type')?.startsWith('application/octet-stream')
+  ) {
+    throw makeError('Could not load the explosion preview.')
+  }
+  const size = Number(response.headers.get('content-length'))
+  if (Number.isFinite(size) && (size < 1 || size > 5 * 1024 * 1024)) {
+    throw makeError('The explosion preview is an unsupported size.')
+  }
+  const sprite = await response.arrayBuffer()
+  const magic = new Uint8Array(sprite, 0, Math.min(4, sprite.byteLength))
+  if (
+    sprite.byteLength < 42 ||
+    sprite.byteLength > 5 * 1024 * 1024 ||
+    String.fromCharCode(...magic) !== 'IDSP'
+  ) {
+    throw makeError('The preview server returned an invalid sprite.')
+  }
+  return sprite
+}
+
 // Keeps the launcher log readable: the gift overlay polls once a minute while the
 // player waits in the lobby, so only state changes are reported.
 let lastReportedPendingGift: string | null | undefined
