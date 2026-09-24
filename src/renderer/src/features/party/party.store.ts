@@ -311,7 +311,11 @@ export const usePartyStore = create<PartyState>((set, get) => ({
             .setPlayerModel(currentPlayerMember.lobbyPlayerModel ?? 'player/gign/gign.mdl')
           useLobbyLoadoutStore
             .getState()
-            .setWeapon(currentPlayerMember.lobbyWeaponKey, currentPlayerMember.lobbyWeaponModelPath)
+            .setWeapon(
+              currentPlayerMember.lobbyWeaponKey,
+              currentPlayerMember.lobbyWeaponModelPath,
+              currentPlayerMember.lobbyWeaponSkinId
+            )
           set({
             party,
             invitations: [],
