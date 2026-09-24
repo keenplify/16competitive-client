@@ -1167,3 +1167,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved browser telemetry handling.
 - Added telemetry reporting for web mode.
+
+## v2026.924.2 — 2026-09-24
+
+### Skins
+
+- Updated the AK-47 model asset.
