@@ -39,6 +39,7 @@ const GIFT_MATCH_RESULT_GRACE_MS = 800
 // and that is where they land again once the results are dismissed, so a gift
 // earned in a match must be able to appear there as well as in the lobby.
 const GIFT_SAFE_PAGES: LobbyPageId[] = ['lobby', 'play']
+const isGiftSafePage = (page: LobbyPageId): boolean => GIFT_SAFE_PAGES.includes(page)
 
 interface AccountGiftRef {
   accountId: string
@@ -66,7 +67,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const baseSafeToShow =
     accountId !== null &&
     !session?.player.requiresUsernameSetup &&
-    GIFT_SAFE_PAGES.includes(page) &&
+    isGiftSafePage(page) &&
     completedMatch === null &&
     !matchLifecycleActive(queueStatus)
 
@@ -91,7 +92,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
         auth.status !== 'authenticated' ||
         !auth.session ||
         auth.session.player.requiresUsernameSetup ||
-        navigation.page !== 'lobby' ||
+        !isGiftSafePage(navigation.page) ||
         matchmaking.completedMatch !== null ||
         matchmaking.connectionStatus !== 'ready' ||
         matchLifecycleActive(matchmaking.queueStatus)
