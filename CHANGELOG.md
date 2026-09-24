@@ -1234,3 +1234,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Visual Improvements
 
 - Smoothed explosion sprite animation.
+
+## v2026.924.10 — 2026-09-24
+
+### Match Preparation
+
+- Added FastDL support for preparing match assets.
+- Improved match asset preparation status updates.
