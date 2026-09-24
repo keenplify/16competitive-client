@@ -1,22 +1,10 @@
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
-import type {
-  FriendChatMessage,
-  FriendSearchResult,
-  FriendsSnapshot
-} from '../shared/friends'
+import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
 import type { LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
-import type {
-  MatchHistoryEntry,
-  MatchSummary,
-  PlayerProfile
-} from '../shared/match-history'
+import type { MatchHistoryEntry, MatchSummary, PlayerProfile } from '../shared/match-history'
 import type { NewsPost } from '../shared/news'
-import type {
-  Operation,
-  OperationSnapshot,
-  OperationViewedResult
-} from '../shared/operations'
+import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
 import type {
   Party,
   PartyInvitationResponse,
@@ -36,15 +24,8 @@ import type {
 } from '../shared/skins'
 import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
 import { browserAuthApi } from './browser-auth'
-import {
-  browserMatchmakingApi,
-  browserPartyRealtime
-} from './browser-matchmaking'
-import {
-  getWebSessionToken,
-  requestArrayBuffer,
-  requestJson
-} from './browser-session'
+import { browserMatchmakingApi, browserPartyRealtime } from './browser-matchmaking'
+import { getWebSessionToken, requestArrayBuffer, requestJson } from './browser-session'
 
 const runtimeWindow = window as Window & { __SIXTEEN_COMPETITIVE_WEB__?: boolean }
 runtimeWindow.__SIXTEEN_COMPETITIVE_WEB__ = true
@@ -133,10 +114,9 @@ const friends = {
     return body.messages
   },
   async sendChatMessage(playerId: string, message: string): Promise<FriendChatMessage> {
-    const body = await jsonPost<{ message: FriendChatMessage }>(
-      `/friends/${playerId}/messages`,
-      { message: message.trim() }
-    )
+    const body = await jsonPost<{ message: FriendChatMessage }>(`/friends/${playerId}/messages`, {
+      message: message.trim()
+    })
     return body.message
   },
   async requestAttention(): Promise<void> {
@@ -190,9 +170,7 @@ const skins = {
   },
   async unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult> {
     const path =
-      currency === 'P_CASH'
-        ? `/skins/${skinId}/unlock-p-cash`
-        : `/skins/${skinId}/unlock`
+      currency === 'P_CASH' ? `/skins/${skinId}/unlock-p-cash` : `/skins/${skinId}/unlock`
     const body = await jsonPost<Record<string, unknown>>(path)
     return { ...body, currency } as unknown as UnlockResult
   },
@@ -248,10 +226,7 @@ const parseNews = (value: unknown): NewsPost | null => {
   return {
     id: item.id,
     createdAt: item.created_at,
-    url:
-      typeof item.url === 'string'
-        ? item.url
-        : 'https://mastodon.social/@16competitive',
+    url: typeof item.url === 'string' ? item.url : 'https://mastodon.social/@16competitive',
     content: item.content,
     mediaUrl
   }
@@ -350,15 +325,11 @@ const api: Window['api'] = {
       return body.matches
     },
     async getSummary(matchId: string): Promise<MatchSummary> {
-      const body = await authenticatedGet<{ match: MatchSummary }>(
-        `/profile/matches/${matchId}`
-      )
+      const body = await authenticatedGet<{ match: MatchSummary }>(`/profile/matches/${matchId}`)
       return body.match
     },
     async getPlayerProfile(playerId: string): Promise<PlayerProfile> {
-      const body = await authenticatedGet<{ player: PlayerProfile }>(
-        `/profile/players/${playerId}`
-      )
+      const body = await authenticatedGet<{ player: PlayerProfile }>(`/profile/players/${playerId}`)
       return body.player
     }
   },
@@ -382,10 +353,7 @@ const api: Window['api'] = {
     async getMine(): Promise<OperationSnapshot> {
       return authenticatedGet('/operations/me')
     },
-    async markViewed(
-      operationId: string,
-      viewedPoints: number
-    ): Promise<OperationViewedResult> {
+    async markViewed(operationId: string, viewedPoints: number): Promise<OperationViewedResult> {
       return jsonPost(`/operations/${operationId}/view`, { viewedPoints })
     }
   },
@@ -415,7 +383,11 @@ const api: Window['api'] = {
         const errorCode = known.includes(codeValue as (typeof known)[number])
           ? (codeValue as (typeof known)[number])
           : 'INTERNAL_ERROR'
-        return { ok: false, error: errorCode, message: error instanceof Error ? error.message : 'Could not redeem the code.' }
+        return {
+          ok: false,
+          error: errorCode,
+          message: error instanceof Error ? error.message : 'Could not redeem the code.'
+        }
       }
     }
   },

@@ -92,10 +92,7 @@ const browserPlatform = (userAgent: string, platformHint?: string): string => {
   return 'web'
 }
 
-const browserArchitecture = (
-  userAgent: string,
-  highEntropy: Record<string, unknown>
-): string => {
+const browserArchitecture = (userAgent: string, highEntropy: Record<string, unknown>): string => {
   const hintedArchitecture = trimTelemetryText(highEntropy.architecture, 24)
   const bitness = trimTelemetryText(highEntropy.bitness, 8)
   if (hintedArchitecture) {
@@ -139,10 +136,7 @@ const browserGpuDevices = (): string[] => {
     const extension = gl.getExtension('WEBGL_debug_renderer_info')
     if (!extension) return []
 
-    const renderer = trimTelemetryText(
-      gl.getParameter(extension.UNMASKED_RENDERER_WEBGL),
-      256
-    )
+    const renderer = trimTelemetryText(gl.getParameter(extension.UNMASKED_RENDERER_WEBGL), 256)
     return renderer ? [renderer] : []
   } catch {
     return []
@@ -301,7 +295,9 @@ const beginSocial = async (
       init: { method: 'POST', body: JSON.stringify({ provider }) }
     })
     const expiresAt = Math.min(
-      Number.isFinite(Date.parse(start.expiresAt)) ? Date.parse(start.expiresAt) : Date.now() + SOCIAL_TIMEOUT_MS,
+      Number.isFinite(Date.parse(start.expiresAt))
+        ? Date.parse(start.expiresAt)
+        : Date.now() + SOCIAL_TIMEOUT_MS,
       Date.now() + SOCIAL_TIMEOUT_MS
     )
     activeSocial = { provider, url: start.authorizationUrl, expiresAt }
@@ -354,7 +350,12 @@ export const browserAuthApi: AuthApi = {
         body: JSON.stringify({ pollToken, email: email.trim() })
       }
     })
-    return pollSocial('/auth/social/complete', pollToken, provider, false) as Promise<SocialAuthResult>
+    return pollSocial(
+      '/auth/social/complete',
+      pollToken,
+      provider,
+      false
+    ) as Promise<SocialAuthResult>
   },
 
   async completeSocialPassword(pollToken, password) {

@@ -582,7 +582,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     selectMap: (selectedMapId) => {
       const { maps } = get()
-      if (!maps.some((map) => map.id === selectedMapId && map.supportedModes.includes(get().selectedMode))) {
+      if (
+        !maps.some(
+          (map) => map.id === selectedMapId && map.supportedModes.includes(get().selectedMode)
+        )
+      ) {
         return
       }
       set((state) => ({

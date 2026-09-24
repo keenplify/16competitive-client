@@ -297,7 +297,11 @@ export function PlayPage(): JSX.Element {
                 variant="ghost"
                 onClick={() => void handleReconnect()}
               >
-                {webRuntime ? 'Launch Counter-Strike' : gameExited ? 'Reconnect to match' : 'Counter-Strike is launching…'}
+                {webRuntime
+                  ? 'Launch Counter-Strike'
+                  : gameExited
+                    ? 'Reconnect to match'
+                    : 'Counter-Strike is launching…'}
               </Button>
             </div>
           )}
@@ -352,7 +356,10 @@ export function PlayPage(): JSX.Element {
                       rel="noopener noreferrer"
                       className="mt-2 inline-flex text-xs font-semibold text-sky-300 transition hover:text-sky-200 hover:underline"
                     >
-                      Download desktop app <span className="ml-1" aria-hidden="true">↗</span>
+                      Download desktop app{' '}
+                      <span className="ml-1" aria-hidden="true">
+                        ↗
+                      </span>
                     </a>
                   </div>
                 ) : (
