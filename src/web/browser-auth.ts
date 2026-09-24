@@ -156,9 +156,8 @@ const reportBrowserClientTelemetry = async (): Promise<void> => {
     let highEntropy: Record<string, unknown> = {}
 
     try {
-      const getHighEntropyValues = browserNavigator.userAgentData?.getHighEntropyValues
-      if (getHighEntropyValues) {
-        highEntropy = await getHighEntropyValues([
+      if (browserNavigator.userAgentData?.getHighEntropyValues) {
+        highEntropy = await browserNavigator.userAgentData.getHighEntropyValues([
           'architecture',
           'bitness',
           'platform',
