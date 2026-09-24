@@ -11,6 +11,7 @@ import { PlayPage } from '../matchmaking/PlayPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { localMapPreviews } from '../matchmaking/map-previews'
+import { isWebRuntime } from '../../web-runtime'
 
 const mapPreviewSources = Object.values(localMapPreviews)
 const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): string =>
@@ -46,6 +47,7 @@ export function AuthPage(): JSX.Element {
   )
   const isLogin = mode === 'login'
   const isSubmitting = status === 'submitting'
+  const webRuntime = isWebRuntime()
 
   useEffect(() => {
     if (restoreStarted.current) return
@@ -375,6 +377,17 @@ export function AuthPage(): JSX.Element {
           >
             Exit to desktop
           </Button>
+
+          {webRuntime && (
+            <a
+              href="https://papamo.dev/16competitive"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide text-sky-300 transition hover:text-sky-200 hover:underline"
+            >
+              Get the desktop app <span aria-hidden="true">↗</span>
+            </a>
+          )}
 
           <p className="mt-5 text-center text-xs text-neutral-500">
             <a

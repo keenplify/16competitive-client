@@ -5,7 +5,8 @@
     "src/renderer/src/**/*",
     "src/preload/*.d.ts",
     "src/shared/**/*",
-    "src/shared/*.ts"
+    "src/shared/*.ts",
+    "src/web/**/*"
   ],
   "exclude": [
     "src/renderer/src/libs/web-hlmv/**/__tests__/**",

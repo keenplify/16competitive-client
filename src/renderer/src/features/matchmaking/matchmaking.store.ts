@@ -9,6 +9,7 @@ import {
 import { create } from 'zustand'
 import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
+import { isWebRuntime } from '../../web-runtime'
 
 type ConnectionStatus =
   'disconnected' | 'connecting' | 'reconnecting' | 'handoff' | 'authenticating' | 'ready'
@@ -475,7 +476,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   return {
     connectionStatus: 'disconnected',
     queueStatus: 'idle',
-    selectedMode: '5v5',
+    selectedMode: isWebRuntime() ? 'unrated' : '5v5',
     maps: [],
     mapsStatus: 'idle',
     selectedMapIds: [],
@@ -526,9 +527,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       set({ mapsStatus: 'loading', error: null })
       try {
         const maps = await window.api.matchmaking.getMaps()
-        const { selectedMapIds } = get()
+        const { selectedMapIds, selectedMode } = get()
         const availableMapIds = new Set(
-          maps.filter((map) => map.supportedModes.includes('5v5')).map((map) => map.id)
+          maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
         )
         set({
           maps,
@@ -593,7 +594,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     selectMap: (selectedMapId) => {
       const { maps } = get()
-      if (!maps.some((map) => map.id === selectedMapId && map.supportedModes.includes('5v5'))) {
+      if (
+        !maps.some(
+          (map) => map.id === selectedMapId && map.supportedModes.includes(get().selectedMode)
+        )
+      ) {
         return
       }
       set((state) => ({
@@ -612,7 +617,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         selectedMapIds,
         selectedNodeId,
         nodes,
-        allowRegionExpansion
+        allowRegionExpansion,
+        selectedMode
       } = get()
       if (connectionStatus !== 'ready') return
       const settings = await window.api.gameSettings.get().catch(() => null)
@@ -627,12 +633,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         return
       }
       const availableMapIds = new Set(
-        maps.filter((map) => map.supportedModes.includes('5v5')).map((map) => map.id)
+        maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
       )
       if (selectedMapIds.some((mapId) => !availableMapIds.has(mapId))) {
         set({
           selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId)),
-          error: 'One or more selected maps are no longer available for 5v5. Review your map pool.'
+          error: `One or more selected maps are no longer available for ${selectedMode}. Review your map pool.`
         })
         return
       }
@@ -678,7 +684,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           eligibleRegions.push(preferredNode.region)
         }
         await window.api.matchmaking.joinQueue(
-          '5v5',
+          selectedMode,
           selectedMapIds,
           allowRegionExpansion,
           preferredNode?.region ?? null,
@@ -742,7 +748,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         copyConnectionStatus: 'idle',
         matchReadyAt: null,
         queueStatus: 'idle',
-        selectedMode: '5v5',
+        selectedMode: isWebRuntime() ? 'unrated' : '5v5',
         maps: [],
         mapsStatus: 'idle',
         selectedMapIds: [],

@@ -673,9 +673,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // Steam may keep its own process alive after -applaunch. Match cleanup must
   // never terminate Steam; the Windows process lookup targets hl.exe instead.
   gameProcess =
-    process.platform === 'win32' && launchTarget.distribution === 'steam'
-      ? null
-      : spawnedProcess
+    process.platform === 'win32' && launchTarget.distribution === 'steam' ? null : spawnedProcess
   launchedMatchId = input.matchId
   startGameWatchdog(input.matchId, launchTarget.gameExecutable)
   const linuxHandoffMonitorGeneration =

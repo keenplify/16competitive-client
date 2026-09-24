@@ -3,6 +3,7 @@ import { isLegacyRuntimeLanguage, useLanguageStore } from './i18n'
 import { translateRuntimeFragment } from './ui-translations-extra'
 import { translateRuntimeFinal } from './ui-translations-final'
 import { translateRuntimePortuguese } from './ui-translations-portuguese'
+import { translateRuntimeHindi } from './ui-translations-hindi'
 import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
 
@@ -30,6 +31,7 @@ export function I18nRuntime(): null {
     const translate = (source: string): string => {
       if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
       if (language === 'pt') return translateRuntimePortuguese(language, source)
+      if (language === 'hi') return translateRuntimeHindi(language, source)
       if (!isLegacyRuntimeLanguage(language)) return source
 
       const primary = translateRuntimeText(language, source)

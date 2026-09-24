@@ -16,7 +16,9 @@ function fail(message) {
 
 function readCString(buffer, offset, length) {
   const end = buffer.indexOf(0, offset)
-  return buffer.subarray(offset, end === -1 ? offset + length : Math.min(end, offset + length)).toString('latin1')
+  return buffer
+    .subarray(offset, end === -1 ? offset + length : Math.min(end, offset + length))
+    .toString('latin1')
 }
 
 /**
@@ -31,7 +33,12 @@ export function readMdlTextures(mdl) {
 
   const count = mdl.readInt32LE(HEADER_TEXTURE_COUNT_OFFSET)
   const tableOffset = mdl.readInt32LE(HEADER_TEXTURE_OFFSET_OFFSET)
-  if (count < 0 || count > 4096 || tableOffset < 0 || tableOffset + count * TEXTURE_RECORD_SIZE > mdl.length) {
+  if (
+    count < 0 ||
+    count > 4096 ||
+    tableOffset < 0 ||
+    tableOffset + count * TEXTURE_RECORD_SIZE > mdl.length
+  ) {
     fail('texture table is outside the MDL file')
   }
 
@@ -44,7 +51,13 @@ export function readMdlTextures(mdl) {
     const dataOffset = mdl.readInt32LE(recordOffset + 76)
     const pixelsLength = width * height
     const paletteOffset = dataOffset + pixelsLength
-    if (!Number.isSafeInteger(pixelsLength) || width <= 0 || height <= 0 || dataOffset < 0 || paletteOffset + PALETTE_SIZE > mdl.length) {
+    if (
+      !Number.isSafeInteger(pixelsLength) ||
+      width <= 0 ||
+      height <= 0 ||
+      dataOffset < 0 ||
+      paletteOffset + PALETTE_SIZE > mdl.length
+    ) {
       fail(`texture ${index} (${name}) has an invalid pixel or palette range`)
     }
 
@@ -53,11 +66,13 @@ export function readMdlTextures(mdl) {
 }
 
 function safeFileStem(value) {
-  return value
-    .replace(/\.bmp$/i, '')
-    // eslint-disable-next-line no-control-regex
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
-    .replace(/[. ]+$/g, '') || 'texture'
+  return (
+    value
+      .replace(/\.bmp$/i, '')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      .replace(/[. ]+$/g, '') || 'texture'
+  )
 }
 
 /** Creates a Windows BMP using the MDL's indexed pixels and RGB palette. */
@@ -111,12 +126,27 @@ export async function extractMdlTextures(mdlPath, outputDirectory) {
     while (usedNames.has(fileName.toLowerCase())) fileName = `${baseName}_${suffix++}.bmp`
     usedNames.add(fileName.toLowerCase())
     await writeFile(path.join(outputDirectory, fileName), textureToBmp(mdl, texture))
-    manifestTextures.push({ index: texture.index, name: texture.name, file: fileName, width: texture.width, height: texture.height, flags: texture.flags })
+    manifestTextures.push({
+      index: texture.index,
+      name: texture.name,
+      file: fileName,
+      width: texture.width,
+      height: texture.height,
+      flags: texture.flags
+    })
   }
 
   const manifestPath = path.join(outputDirectory, 'textures.json')
-  await writeFile(manifestPath, `${JSON.stringify({ format: 'goldsrc-mdl-textures-v1', sourceModel: path.basename(mdlPath), textures: manifestTextures }, null, 2)}\n`)
-  return { textureCount: textures.length, outputDirectory, manifestPath, textures: manifestTextures }
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify({ format: 'goldsrc-mdl-textures-v1', sourceModel: path.basename(mdlPath), textures: manifestTextures }, null, 2)}\n`
+  )
+  return {
+    textureCount: textures.length,
+    outputDirectory,
+    manifestPath,
+    textures: manifestTextures
+  }
 }
 
 async function main() {
@@ -130,7 +160,8 @@ async function main() {
   console.log(`Extracted ${result.textureCount} texture(s) to ${result.outputDirectory}`)
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {
-  console.error(error.message)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  main().catch((error) => {
+    console.error(error.message)
+    process.exitCode = 1
+  })

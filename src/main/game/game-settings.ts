@@ -139,14 +139,14 @@ const validateInstallationFolder = async (untrustedPath: unknown): Promise<strin
     throw new Error('The selected Counter-Strike installation folder was not found.')
   }
   const folder =
-    basename(selectedFolder).toLowerCase() === 'cstrike'
-      ? dirname(selectedFolder)
-      : selectedFolder
+    basename(selectedFolder).toLowerCase() === 'cstrike' ? dirname(selectedFolder) : selectedFolder
   for (const name of executableNamesForPlatform()) {
     const candidate = join(folder, name)
     if (await isGoldSrcInstallation(candidate)) return validateExecutable(candidate, true)
   }
-  throw new Error('Choose a Counter-Strike folder containing the game executable and cstrike files.')
+  throw new Error(
+    'Choose a Counter-Strike folder containing the game executable and cstrike files.'
+  )
 }
 
 const readStoredSettings = async (): Promise<StoredGameSettings> => {

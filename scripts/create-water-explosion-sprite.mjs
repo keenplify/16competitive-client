@@ -13,14 +13,26 @@ function readReferenceSprite(buffer) {
   const height = buffer.readInt32LE(24)
   const frameCount = buffer.readInt32LE(28)
   const paletteSize = buffer.readUInt16LE(40)
-  if (width <= 0 || height <= 0 || width > 256 || height > 256 || frameCount < 2 || frameCount > 64 || paletteSize !== 256) {
+  if (
+    width <= 0 ||
+    height <= 0 ||
+    width > 256 ||
+    height > 256 ||
+    frameCount < 2 ||
+    frameCount > 64 ||
+    paletteSize !== 256
+  ) {
     throw new Error('Unsupported fexplo.spr dimensions, frame count, or palette')
   }
   const frameHeaders = []
   let offset = 42 + paletteSize * 3
   for (let i = 0; i < frameCount; i++) {
-    if (offset + 20 > buffer.length || buffer.readInt32LE(offset) !== 0 ||
-      buffer.readInt32LE(offset + 12) !== width || buffer.readInt32LE(offset + 16) !== height) {
+    if (
+      offset + 20 > buffer.length ||
+      buffer.readInt32LE(offset) !== 0 ||
+      buffer.readInt32LE(offset + 12) !== width ||
+      buffer.readInt32LE(offset + 16) !== height
+    ) {
       throw new Error(`Unsupported source sprite frame ${i}`)
     }
     frameHeaders.push(Buffer.from(buffer.subarray(offset, offset + 20)))
@@ -40,8 +52,8 @@ function sampleSheet(sheet, frame, x, y, width, height) {
   // Inset each cell slightly so generated grid-line artifacts cannot appear in-game.
   const u = 0.02 + 0.96 * ((x - left + 0.5) / side)
   const v = 0.02 + 0.96 * ((y - top + 0.5) / side)
-  const sx = Math.min(sheet.width - 1, Math.floor((column + u) * sheet.width / 4))
-  const sy = Math.min(sheet.height - 1, Math.floor((row + v) * sheet.height / 4))
+  const sx = Math.min(sheet.width - 1, Math.floor(((column + u) * sheet.width) / 4))
+  const sy = Math.min(sheet.height - 1, Math.floor(((row + v) * sheet.height) / 4))
   const offset = (sy * sheet.width + sx) * sheet.channels
   const alpha = sheet.channels === 4 ? sheet.pixels[offset + 3] / 255 : 1
   return [
@@ -52,19 +64,21 @@ function sampleSheet(sheet, frame, x, y, width, height) {
 }
 
 function renderFrames(sheet, layout) {
-  if (sheet.width < 512 || sheet.height < 512) throw new Error('Splash sheet must contain a 4x4 grid of sufficiently large frames')
+  if (sheet.width < 512 || sheet.height < 512)
+    throw new Error('Splash sheet must contain a 4x4 grid of sufficiently large frames')
   const frames = []
   for (let frame = 0; frame < layout.frameCount; frame++) {
     const rgb = Buffer.alloc(layout.width * layout.height * 3)
-    for (let y = 0; y < layout.height; y++) for (let x = 0; x < layout.width; x++) {
-      const sourceFrame = Math.round(frame * 15 / (layout.frameCount - 1))
-      const color = sampleSheet(sheet, sourceFrame, x, y, layout.width, layout.height)
-      const fade = frame === layout.frameCount - 1 ? 0.35 : 1
-      const target = (y * layout.width + x) * 3
-      rgb[target] = clamp(color[0] * fade)
-      rgb[target + 1] = clamp(color[1] * fade)
-      rgb[target + 2] = clamp(color[2] * fade)
-    }
+    for (let y = 0; y < layout.height; y++)
+      for (let x = 0; x < layout.width; x++) {
+        const sourceFrame = Math.round((frame * 15) / (layout.frameCount - 1))
+        const color = sampleSheet(sheet, sourceFrame, x, y, layout.width, layout.height)
+        const fade = frame === layout.frameCount - 1 ? 0.35 : 1
+        const target = (y * layout.width + x) * 3
+        rgb[target] = clamp(color[0] * fade)
+        rgb[target + 1] = clamp(color[1] * fade)
+        rgb[target + 2] = clamp(color[2] * fade)
+      }
     frames.push(rgb)
   }
   return frames
@@ -72,14 +86,25 @@ function renderFrames(sheet, layout) {
 
 function quantizeFrames(frames, width, height) {
   const bins = new Map()
-  for (const frame of frames) for (let offset = 0; offset < frame.length; offset += 3) {
-    const r = frame[offset], g = frame[offset + 1], b = frame[offset + 2]
-    const key = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)
-    const bin = bins.get(key) ?? [0, 0, 0, 0]
-    bin[0]++; bin[1] += r; bin[2] += g; bin[3] += b
-    bins.set(key, bin)
-  }
-  const palette = [[0, 0, 0], [255, 255, 255], [124, 220, 255], [24, 150, 225]]
+  for (const frame of frames)
+    for (let offset = 0; offset < frame.length; offset += 3) {
+      const r = frame[offset],
+        g = frame[offset + 1],
+        b = frame[offset + 2]
+      const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
+      const bin = bins.get(key) ?? [0, 0, 0, 0]
+      bin[0]++
+      bin[1] += r
+      bin[2] += g
+      bin[3] += b
+      bins.set(key, bin)
+    }
+  const palette = [
+    [0, 0, 0],
+    [255, 255, 255],
+    [124, 220, 255],
+    [24, 150, 225]
+  ]
   for (const [, bin] of [...bins.entries()].sort((a, b) => b[1][0] - a[1][0])) {
     if (palette.length === 256) break
     palette.push([bin[1] / bin[0], bin[2] / bin[0], bin[3] / bin[0]])
@@ -97,16 +122,26 @@ function quantizeFrames(frames, width, height) {
     const indexed = Buffer.alloc(width * height)
     for (let pixel = 0; pixel < indexed.length; pixel++) {
       const offset = pixel * 3
-      const r = frame[offset], g = frame[offset + 1], b = frame[offset + 2]
-      if (r + g + b < 9) { indexed[pixel] = 0; continue }
-      const key = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)
+      const r = frame[offset],
+        g = frame[offset + 1],
+        b = frame[offset + 2]
+      if (r + g + b < 9) {
+        indexed[pixel] = 0
+        continue
+      }
+      const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
       let choice = cache.get(key)
       if (choice === undefined) {
         let best = Infinity
         for (let i = 1; i < 256; i++) {
-          const dr = r - palette[i][0], dg = g - palette[i][1], db = b - palette[i][2]
+          const dr = r - palette[i][0],
+            dg = g - palette[i][1],
+            db = b - palette[i][2]
           const distance = dr * dr + dg * dg + db * db
-          if (distance < best) { best = distance; choice = i }
+          if (distance < best) {
+            best = distance
+            choice = i
+          }
         }
         cache.set(key, choice)
       }
@@ -142,7 +177,8 @@ async function writeFramePreview(outputPath, palette, frames, frameWidth, frameH
     const column = frame % 4
     const row = Math.floor(frame / 4)
     for (let y = 0; y < frameHeight; y++) {
-      const target = pixelOffset + (height - 1 - (row * frameHeight + y)) * stride + column * frameWidth
+      const target =
+        pixelOffset + (height - 1 - (row * frameHeight + y)) * stride + column * frameWidth
       frames[frame].copy(bmp, target, y * frameWidth, (y + 1) * frameWidth)
     }
   }
@@ -156,7 +192,11 @@ export async function createWaterExplosionSprite(referencePath, sheetPath, outpu
   const reference = await readFile(referencePath)
   const layout = readReferenceSprite(reference)
   const sheet = decodeRgbPng(await readFile(sheetPath))
-  const { paletteBytes, indexedFrames } = quantizeFrames(renderFrames(sheet, layout), layout.width, layout.height)
+  const { paletteBytes, indexedFrames } = quantizeFrames(
+    renderFrames(sheet, layout),
+    layout.width,
+    layout.height
+  )
   const header = Buffer.from(reference.subarray(0, 42))
   header.writeInt32LE(1, 12) // GoldSrc SPR_ADDITIVE, matching fexplo.spr
   const output = Buffer.concat([
@@ -165,22 +205,41 @@ export async function createWaterExplosionSprite(referencePath, sheetPath, outpu
     ...layout.frameHeaders.flatMap((frameHeader, index) => [frameHeader, indexedFrames[index]])
   ])
   await writeFile(outputPath, output)
-  const previewPath = await writeFramePreview(outputPath, paletteBytes, indexedFrames, layout.width, layout.height)
-  return { outputPath, previewPath, frameCount: indexedFrames.length, width: layout.width, height: layout.height }
+  const previewPath = await writeFramePreview(
+    outputPath,
+    paletteBytes,
+    indexedFrames,
+    layout.width,
+    layout.height
+  )
+  return {
+    outputPath,
+    previewPath,
+    frameCount: indexedFrames.length,
+    width: layout.width,
+    height: layout.height
+  }
 }
 
 async function main() {
   const [reference, sheet, output] = process.argv.slice(2)
   if (!reference || !sheet || !output) {
-    console.error('Usage: node scripts/create-water-explosion-sprite.mjs <fexplo.spr> <splash-sheet.png> <output.spr>')
+    console.error(
+      'Usage: node scripts/create-water-explosion-sprite.mjs <fexplo.spr> <splash-sheet.png> <output.spr>'
+    )
     process.exitCode = 1
     return
   }
   const result = await createWaterExplosionSprite(reference, sheet, output)
-  console.log(`Created ${result.frameCount}-frame ${result.width}x${result.height} water splash sprite: ${result.outputPath}`)
+  console.log(
+    `Created ${result.frameCount}-frame ${result.width}x${result.height} water splash sprite: ${result.outputPath}`
+  )
   console.log(`Frame preview: ${result.previewPath}`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((error) => { console.error(error.message); process.exitCode = 1 })
+  main().catch((error) => {
+    console.error(error.message)
+    process.exitCode = 1
+  })
 }

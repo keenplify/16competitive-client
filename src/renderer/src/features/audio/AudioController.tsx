@@ -51,7 +51,7 @@ export function AudioController(): JSX.Element | null {
     const handleVisibilityChange = (): void => {
       launcherAudio.setBgmFocused(!document.hidden && document.hasFocus())
     }
-    const retry = (): void => launcherAudio.startBgm()
+    const retry = (): void => launcherAudio.unlockPlayback()
     window.addEventListener('pointerdown', retry, { once: true })
     window.addEventListener('keydown', retry, { once: true })
     window.addEventListener('focus', syncFocus)

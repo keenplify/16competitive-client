@@ -36,16 +36,22 @@ export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
         <div className="min-h-0 overflow-y-auto px-6 py-5 text-sm leading-6 text-neutral-300">
           <ReactMarkdown
             components={{
-              h1: ({ children }) => <h3 className="mb-3 text-2xl font-semibold text-white">{children}</h3>,
+              h1: ({ children }) => (
+                <h3 className="mb-3 text-2xl font-semibold text-white">{children}</h3>
+              ),
               h2: ({ children }) => (
                 <h3 className="mt-8 mb-3 border-t border-white/10 pt-6 text-lg font-semibold text-white">
                   {children}
                 </h3>
               ),
-              h3: ({ children }) => <h4 className="mt-5 mb-2 font-semibold text-sky-300">{children}</h4>,
+              h3: ({ children }) => (
+                <h4 className="mt-5 mb-2 font-semibold text-sky-300">{children}</h4>
+              ),
               p: ({ children }) => <p className="my-2">{children}</p>,
               ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
-              ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+              ol: ({ children }) => (
+                <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>
+              ),
               code: ({ children }) => (
                 <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs text-white">
                   {children}

@@ -58,6 +58,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
   const lobbyWeaponModelPath = useLobbyLoadoutStore((state) => state.weaponModelPath)
+  const lobbyWeaponSkinId = useLobbyLoadoutStore((state) => state.weaponSkinId)
   const members = party?.members ?? [soloLobbyMember(player)]
 
   return (
@@ -78,7 +79,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
               weaponPath: isCurrentPlayer
                 ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
                 : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
-              weaponSkinId: member.lobbyWeaponSkinId,
+              weaponSkinId: isCurrentPlayer ? lobbyWeaponSkinId : member.lobbyWeaponSkinId,
               weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
               isLeader: party?.leaderId === member.id,
               isCurrentPlayer

@@ -1,6 +1,6 @@
 {
   "name": "16competitive-client",
-  "version": "2026.923.3",
+  "version": "2026.924.5",
   "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
   "author": "papamo.dev",
@@ -28,7 +28,8 @@
     "build:linux:arm64": "electron-vite build && electron-builder --linux AppImage --arm64 --publish never",
     "release:date": "node scripts/set-date-version.mjs",
     "release:notes": "node scripts/generate-changelog.mjs",
-    "release": "npm run verify && node scripts/release-today.mjs"
+    "release": "npm run verify && node scripts/release-today.mjs",
+    "build:web": "tsc --noEmit -p tsconfig.web.json --composite false && vite build --config vite.webapp.config.ts"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
