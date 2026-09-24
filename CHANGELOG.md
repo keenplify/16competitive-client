@@ -1222,3 +1222,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Help
 
 - Added a tooltip with backup instructions.
+
+## v2026.924.8 — 2026-09-24
+
+### Skin Previews
+
+- Added explosion sprite previews for skins.
