@@ -352,7 +352,12 @@ export const createModelMeshes = (
           modelData.skinRef[modelData.meshes[bodyPartIndex][subModelIndex][meshIndex].skinRef]
         const texture = textures[textureIndex]
 
-        return createMesh(initialGeometryBuffer, uvMap, texture, modelData.textures[textureIndex]?.flags)
+        return createMesh(
+          initialGeometryBuffer,
+          uvMap,
+          texture,
+          modelData.textures[textureIndex]?.flags
+        )
       })
     )
   )

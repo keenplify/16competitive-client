@@ -21,15 +21,35 @@ export const MATCHMAKING_CHANNELS = {
   event: 'matchmaking:event'
 } as const
 
-export type MatchmakingMode = '5v5' | 'casual'
+export type MatchmakingMode = '5v5' | 'unrated' | 'casual'
 
 export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   '5v5': 'Competitive',
+  unrated: 'Unrated',
   casual: 'Casual'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
-  mode === '5v5' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
+  mode === '5v5' || mode === 'unrated' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
+
+export function manualConnectionCommand(value: unknown): string {
+  if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
+  const { host, port, password, manualToken } = value as Record<string, unknown>
+  if (
+    typeof host !== 'string' ||
+    !/^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/.test(host) ||
+    !Number.isInteger(port) ||
+    (port as number) < 1 ||
+    (port as number) > 65535 ||
+    typeof password !== 'string' ||
+    !/^[A-Za-z0-9_-]{1,128}$/.test(password) ||
+    typeof manualToken !== 'string' ||
+    !/^m_[0-9a-f]{48}$/.test(manualToken)
+  ) {
+    throw new Error('Invalid manual connection response')
+  }
+  return `setinfo "_16c" "${manualToken}"; password "${password}"; connect ${host}:${port}`
+}
 
 export interface QueuedPlayer {
   id: string

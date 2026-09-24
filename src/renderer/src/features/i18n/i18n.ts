@@ -7,6 +7,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'tl', label: 'Taglish' },
   { code: 'th', label: 'ไทย' },
   { code: 'id', label: 'Bahasa Indonesia' },
+  { code: 'hi', label: 'हिन्दी' },
   { code: 'pt', label: 'Português' }
 ] as const
 
@@ -344,12 +345,67 @@ const portuguese: Record<TranslationKey, string> = {
   'gift.decideLater': 'Ainda não consigo decidir'
 }
 
+const hindi: Record<TranslationKey, string> = {
+  'nav.lobbyNavigation': 'लॉबी नेविगेशन',
+  'nav.home': 'होम',
+  'nav.settings': 'सेटिंग्स',
+  'nav.inventory': 'इन्वेंटरी',
+  'nav.leaderboard': 'लीडरबोर्ड',
+  'nav.play': 'खेलें',
+  'nav.store': 'स्टोर',
+  'nav.news': 'समाचार',
+  'settings.language.title': 'भाषा',
+  'settings.language.description': 'लॉन्चर इंटरफ़ेस की भाषा चुनें।',
+  'settings.language.help': 'बदलाव तुरंत लागू होते हैं और इस डिवाइस पर सहेजे जाते हैं।',
+  'auth.restoring': 'आपका सत्र बहाल हो रहा है',
+  'auth.welcomeBack': 'वापसी पर स्वागत है',
+  'auth.createAccount': 'खाता बनाएँ',
+  'auth.loginDescription': 'मैचमेकिंग जारी रखने के लिए साइन इन करें।',
+  'auth.registerDescription': 'खाता बनाने का तरीका चुनें।',
+  'auth.login': 'लॉग इन',
+  'auth.register': 'पंजीकरण',
+  'auth.or': 'या',
+  'auth.username': 'उपयोगकर्ता नाम',
+  'auth.usernameHint': '3–32 अक्षर: अंग्रेज़ी अक्षर, अंक और अंडरस्कोर',
+  'auth.email': 'ईमेल',
+  'auth.password': 'पासवर्ड',
+  'auth.passwordPlaceholder': 'कम से कम 8 अक्षर',
+  'auth.signingIn': 'साइन इन हो रहा है…',
+  'auth.signIn': 'साइन इन करें',
+  'auth.createAccountButton': 'खाता बनाएँ',
+  'auth.continueFacebook': 'Facebook से जारी रखें',
+  'auth.exitDesktop': 'डेस्कटॉप पर जाएँ',
+  'auth.privacyPolicy': 'गोपनीयता नीति',
+  'auth.terms': 'नियम और शर्तें',
+  'auth.finishSocial': 'अपने ब्राउज़र में {{provider}} से {{action}} पूरा करें।',
+  'auth.finishSigningIn': 'साइन इन',
+  'auth.finishCreatingAccount': 'खाता बनाना',
+  'auth.facebookEmailHint': 'Facebook से ईमेल पता नहीं मिला। जारी रखने के लिए ईमेल जोड़ें।',
+  'gift.arrived': 'आपको उपहार मिला है',
+  'gift.welcomeTitle': 'स्वागत उपहार',
+  'gift.intro': 'इनमें से एक इनाम आपका है। सोच-समझकर चुनें।',
+  'gift.newPlayerReward': 'नए खिलाड़ी का इनाम',
+  'gift.specialReward': 'विशेष इनाम',
+  'gift.welcomeMessage':
+    '1.6 Competitive का शुरुआती अल्फ़ा संस्करण खेलने के लिए धन्यवाद! स्वागत उपहार के रूप में नीचे दिए गए इनामों में से एक चुनें।',
+  'gift.choose': 'यह इनाम चुनें',
+  'gift.skinReward': 'कस्टम हथियार स्किन।',
+  'gift.currencyReward': 'मुद्रा इनाम सीधे आपके खाते में जोड़ दिया जाएगा।',
+  'gift.owned': 'पहले से मौजूद',
+  'gift.claiming': 'प्राप्त किया जा रहा है…',
+  'gift.unlocked': 'अनलॉक हो गया',
+  'gift.yours': 'आपका है',
+  'gift.previewUnavailable': 'पूर्वावलोकन उपलब्ध नहीं है',
+  'gift.decideLater': 'मैं बाद में चुनूँगा'
+}
+
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
   en: english,
   ru: russian,
   tl: taglish,
   th: thai,
   id: indonesian,
+  hi: hindi,
   pt: portuguese
 }
 

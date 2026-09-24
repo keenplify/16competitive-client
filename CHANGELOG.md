@@ -1105,3 +1105,100 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Updated voice chat dock behavior for marketing lobbies.
+
+## v2026.923.4 — 2026-09-23
+
+### Web App
+
+- Added browser-based Unrated matchmaking.
+- Added installable PWA support.
+- Preserved browser sign-in sessions across refreshes.
+- Added links to download and open the desktop app.
+- Improved browser matchmaking reconnect handling.
+- Added browser audio support after user interaction.
+
+### Matchmaking
+
+- Added Unrated queue support to the desktop app.
+- Added competitive and Unrated queue selection.
+- Added Unrated map and match status support.
+- Improved matchmaking lifecycle and connection handling.
+
+### Settings
+
+- Added browser-compatible settings.
+- Clarified streamed asset behavior in browser settings.
+- Improved desktop-only feature messaging.
+
+## v2026.923.5 — 2026-09-23
+
+### Match Connections
+
+- Match passwords are re-applied before connecting through Steam for more reliable joins.
+
+### Web Client
+
+- Web client updates are now rolled out across supported hosts after releases.
+
+## v2026.923.6 — 2026-09-23
+
+### Match Results
+
+- Only Competitive results now affect ratings.
+- MMR changes are hidden for Unrated results.
+
+### Settings
+
+- Added the web client version to Settings.
+
+## v2026.923.8 — 2026-09-23
+
+### Authentication
+
+- Social login windows now close automatically after successful sign-in.
+
+## v2026.924.1 — 2026-09-24
+
+### Weapon Previews
+
+- Added stable previews for available weapons and equipment.
+
+### Telemetry
+
+- Improved browser telemetry handling.
+- Added telemetry reporting for web mode.
+
+## v2026.924.2 — 2026-09-24
+
+### Skins
+
+- Updated the AK-47 model asset.
+
+## v2026.924.3 — 2026-09-24
+
+### Improvements
+
+- Improved gift validation for a smoother, clearer gifting experience.
+- Made general improvements across the app for greater consistency.
+
+## v2026.924.4 — 2026-09-24
+
+### Party Previews
+
+- Improved weapon model handling in web party previews.
+- Added clearer error messaging when previews fail to load.
+
+### Loadouts
+
+- Improved weapon loadout handling across matchmaking, party, and skins views.
+
+## v2026.924.5 — 2026-09-24
+
+### Language Support
+
+- Added Hindi translations for the UI.
+- Improved language detection and language support.
+
+### Skin Assets
+
+- Updated skin asset sync status text for localization.

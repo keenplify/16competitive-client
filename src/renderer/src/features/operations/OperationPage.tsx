@@ -174,14 +174,18 @@ export function OperationPage(): JSX.Element {
       : 1
   const lastViewedPoints = progress?.lastViewedPoints ?? 0
   const currentPoints = progress?.points ?? 0
-  const focusedTier = operation?.tiers.find((tier) => tier.id === focusedTierId) ?? operation?.tiers[0] ?? null
+  const focusedTier =
+    operation?.tiers.find((tier) => tier.id === focusedTierId) ?? operation?.tiers[0] ?? null
 
-  useEffect(() => () => {
-    if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current)
-    if (wheelAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(wheelAnimationFrameRef.current)
-    }
-  }, [])
+  useEffect(
+    () => () => {
+      if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current)
+      if (wheelAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(wheelAnimationFrameRef.current)
+      }
+    },
+    []
+  )
 
   const focusTier = (tier: OperationTier): void => {
     setFocusedTierId(tier.id)
@@ -219,7 +223,7 @@ export function OperationPage(): JSX.Element {
         return distance < Math.abs(bestRect.left + bestRect.width / 2 - center) ? card : best
       }, null)
       const tierId = nearest?.dataset.tierId
-      if (tierId) setFocusedTierId((current) => current === tierId ? current : tierId)
+      if (tierId) setFocusedTierId((current) => (current === tierId ? current : tierId))
     })
   }
 
@@ -251,8 +255,7 @@ export function OperationPage(): JSX.Element {
     const handleWheel = (event: WheelEvent): void => {
       const multiplier =
         event.deltaMode === 1 ? 36 : event.deltaMode === 2 ? carousel.clientWidth : 1
-      const rawDelta =
-        Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+      const rawDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
       const delta = rawDelta * multiplier
       if (delta === 0) return
 
@@ -336,9 +339,7 @@ export function OperationPage(): JSX.Element {
   )
   const progressPercent = Math.min(100, (displayedPoints / Math.max(1, maxPoints)) * 100)
   const tierCount = operation?.tiers.length ?? 0
-  const rewardTrackWidth =
-    tierCount * TIER_CARD_WIDTH +
-    Math.max(0, tierCount - 1) * TIER_GAP
+  const rewardTrackWidth = tierCount * TIER_CARD_WIDTH + Math.max(0, tierCount - 1) * TIER_GAP
   const isWaterTheme = /water/i.test(operation?.title ?? '')
   const heroUrl =
     safeImageUrl(operation?.heroUrl ?? null) ?? (isWaterTheme ? waterBackground : null)
@@ -476,7 +477,9 @@ export function OperationPage(): JSX.Element {
         </div>
         <div className="mb-2 flex justify-between text-xs font-semibold tabular-nums text-neutral-300">
           <span>Progression</span>
-          <span>{displayedPoints.toLocaleString()} / {maxPoints.toLocaleString()} OP</span>
+          <span>
+            {displayedPoints.toLocaleString()} / {maxPoints.toLocaleString()} OP
+          </span>
         </div>
         <div className="relative">
           <div
@@ -507,26 +510,26 @@ export function OperationPage(): JSX.Element {
                       Math.max(TIER_CARD_WIDTH, rewardTrackWidth)) *
                     100
                   return (
-                  <button
-                    key={tier.id}
-                    type="button"
-                    className="absolute top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                    style={{ left: `${dotLeft}%` }}
-                    aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier)}`}
-                    aria-pressed={focusedTier?.id === tier.id}
-                    onClick={() => focusTier(tier)}
-                  >
-                    <span
-                      className={twMerge(
-                        'size-2.5 rounded-full border border-white/60 bg-neutral-700 transition-[transform,background-color,border-color,box-shadow] hover:scale-125',
-                        displayedPoints >= tier.requiredPoints && 'bg-sky-200',
-                        tier.isMajor && 'size-3.5 border-amber-200',
-                        focusedTier?.id === tier.id &&
-                          'scale-125 border-sky-100 shadow-[0_0_10px_rgba(125,211,252,.75)]'
-                      )}
-                      aria-hidden="true"
-                    />
-                  </button>
+                    <button
+                      key={tier.id}
+                      type="button"
+                      className="absolute top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      style={{ left: `${dotLeft}%` }}
+                      aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier)}`}
+                      aria-pressed={focusedTier?.id === tier.id}
+                      onClick={() => focusTier(tier)}
+                    >
+                      <span
+                        className={twMerge(
+                          'size-2.5 rounded-full border border-white/60 bg-neutral-700 transition-[transform,background-color,border-color,box-shadow] hover:scale-125',
+                          displayedPoints >= tier.requiredPoints && 'bg-sky-200',
+                          tier.isMajor && 'size-3.5 border-amber-200',
+                          focusedTier?.id === tier.id &&
+                            'scale-125 border-sky-100 shadow-[0_0_10px_rgba(125,211,252,.75)]'
+                        )}
+                        aria-hidden="true"
+                      />
+                    </button>
                   )
                 })}
               </div>

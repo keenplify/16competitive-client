@@ -2,6 +2,7 @@ import { LoaderCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import elitePistolsImage from '../../assets/elite-pistols.png'
+import { bundledWeaponPreview } from './bundled-weapon-previews'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { getCachedSkinModel } from './skin-model-cache'
 import {
@@ -12,8 +13,7 @@ import {
 } from './skin-model-presentation'
 
 const MAX_ACTIVE_THUMBNAIL_RENDERERS = 2
-// Keep previews uncached during visual testing; this forces a fresh render.
-const PREVIEW_THUMBNAIL_CACHE_ENABLED = false
+const PREVIEW_THUMBNAIL_CACHE_ENABLED = true
 let activeThumbnailRenderers = 0
 const thumbnailQueue: Array<() => void> = []
 
@@ -75,6 +75,8 @@ export function SkinModelThumbnail({
   const mountedRef = useRef(true)
   const presentationRevision = getSkinPresentationRevision(weaponKey)
   const presentationCacheKey = `${cacheKey}:${presentationRevision}`
+  const bundledPreview = bundledWeaponPreview(weaponKey, modelPath)
+  const isStockModel = !skinId && /^(?:models\/)?p_[a-z0-9_]+\.mdl$/i.test(modelPath ?? '')
 
   const releaseRenderer = useCallback((): void => {
     releaseRef.current?.()
@@ -88,7 +90,7 @@ export function SkinModelThumbnail({
   }, [releaseRenderer])
 
   useEffect(() => {
-    if (weaponKey === 'elite') return
+    if (weaponKey === 'elite' || (isStockModel && bundledPreview)) return
     let active = true
     mountedRef.current = true
 
@@ -134,7 +136,7 @@ export function SkinModelThumbnail({
       mountedRef.current = false
       releaseRenderer()
     }
-  }, [fail, presentationCacheKey, releaseRenderer, skinId, weaponKey])
+  }, [bundledPreview, fail, isStockModel, presentationCacheKey, releaseRenderer, skinId, weaponKey])
 
   const capture = useCallback(
     (canvas: HTMLCanvasElement): void => {
@@ -167,42 +169,73 @@ export function SkinModelThumbnail({
       {weaponKey === 'elite' && (
         <img
           className="h-full w-full object-contain"
-          src={elitePistolsImage}
+          src={bundledPreview ?? elitePistolsImage}
           alt=""
           draggable={false}
         />
       )}
-      {weaponKey !== 'elite' && status === 'ready' && imageUrl && (
-        <img className="h-full w-full object-contain" src={imageUrl} alt="" draggable={false} />
-      )}
-      {weaponKey !== 'elite' && status === 'rendering' && (!skinId || modelBuffer) && (
-        <ModelViewer
-          key={presentationRevision}
-          modelBuffer={modelBuffer}
-          modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
-          modelPath={modelPath}
-          sourceRevision={sourceRevision}
-          presentationRotation={getSkinPresentationRotation(weaponKey)}
-          camera={{
-            distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.5),
-            target: getSkinCameraTarget(weaponKey)
-          }}
-          animation="idle1"
-          maxFrameRate={20}
-          cameraLocked
-          onFirstFrame={capture}
-          onLoadError={fail}
-          className="absolute inset-0"
+      {weaponKey !== 'elite' && isStockModel && bundledPreview && (
+        <img
+          className="h-full w-full object-contain"
+          src={bundledPreview}
+          alt=""
+          draggable={false}
         />
       )}
+      {weaponKey !== 'elite' && !isStockModel && status === 'ready' && imageUrl && (
+        <img className="h-full w-full object-contain" src={imageUrl} alt="" draggable={false} />
+      )}
       {weaponKey !== 'elite' &&
+        !(isStockModel && bundledPreview) &&
+        status === 'rendering' &&
+        (!skinId || modelBuffer) && (
+          <ModelViewer
+            key={presentationRevision}
+            modelBuffer={modelBuffer}
+            modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
+            modelPath={modelPath}
+            sourceRevision={sourceRevision}
+            presentationRotation={getSkinPresentationRotation(weaponKey)}
+            camera={{
+              distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.5),
+              target: getSkinCameraTarget(weaponKey)
+            }}
+            animation="idle1"
+            maxFrameRate={20}
+            cameraLocked
+            onFirstFrame={capture}
+            onLoadError={fail}
+            className="absolute inset-0"
+          />
+        )}
+      {weaponKey !== 'elite' &&
+        !(isStockModel && bundledPreview) &&
         (status === 'checking' || (status === 'rendering' && skinId && !modelBuffer)) && (
           <span className="absolute inset-0 flex items-center justify-center" role="status">
+            {bundledPreview && (
+              <img
+                className="absolute inset-0 h-full w-full object-contain"
+                src={bundledPreview}
+                alt=""
+                draggable={false}
+              />
+            )}
             <LoaderCircle className="size-5 animate-spin text-sky-300" />
           </span>
         )}
       {weaponKey !== 'elite' && status === 'failed' && (
-        <span className="absolute inset-0 flex items-center justify-center">{fallback}</span>
+        <span className="absolute inset-0 flex items-center justify-center">
+          {bundledPreview ? (
+            <img
+              className="h-full w-full object-contain"
+              src={bundledPreview}
+              alt=""
+              draggable={false}
+            />
+          ) : (
+            fallback
+          )}
+        </span>
       )}
     </span>
   )

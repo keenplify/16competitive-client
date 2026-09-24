@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron'
 import { app, BrowserWindow, clipboard } from 'electron'
-import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
+import { MATCHMAKING_CHANNELS, manualConnectionCommand } from '../shared/matchmaking'
 import type {
   MatchmakingEvent,
   MatchmakingMode,
@@ -46,7 +46,8 @@ const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
-const isMode = (value: unknown): value is MatchmakingMode => value === '5v5' || value === 'casual'
+const isMode = (value: unknown): value is MatchmakingMode =>
+  value === '5v5' || value === 'unrated' || value === 'casual'
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value) && value.length <= 35
@@ -677,8 +678,11 @@ class MatchmakingConnection {
     if (typeof matchId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(matchId)) {
       throw new Error('Invalid match connection request')
     }
-    if (this.lastConnection?.matchId !== matchId || this.cancelledMatchIds.has(matchId) ||
-        this.finishedMatchIds.has(matchId)) {
+    if (
+      this.lastConnection?.matchId !== matchId ||
+      this.cancelledMatchIds.has(matchId) ||
+      this.finishedMatchIds.has(matchId)
+    ) {
       throw new Error('This match is no longer available')
     }
     const apiUrl = this.hostApiUrl ?? this.activeApiUrl
@@ -700,16 +704,8 @@ class MatchmakingConnection {
     )
     if (!response.ok) throw new Error('Could not activate manual connection. Please retry.')
     const value: unknown = await response.json()
-    if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
-    const { host, port, password, manualToken } = value as Record<string, unknown>
-    if (typeof host !== 'string' || !/^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/.test(host) ||
-        !Number.isInteger(port) || (port as number) < 1 || (port as number) > 65535 ||
-        typeof password !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(password) ||
-        typeof manualToken !== 'string' || !/^m_[0-9a-f]{48}$/.test(manualToken)) {
-      throw new Error('Invalid manual connection response')
-    }
     // This token only works after the server has added it to its match-local allowlist.
-    clipboard.writeText(`setinfo "_16c" "${manualToken}"; password "${password}"; connect ${host}:${port}`)
+    clipboard.writeText(manualConnectionCommand(value))
   }
 
   async reportPlayer(
@@ -898,7 +894,8 @@ class MatchmakingConnection {
           JSON.stringify({
             type: 'authenticate',
             token,
-            globalChatLanguage: this.globalChatLanguage
+            globalChatLanguage: this.globalChatLanguage,
+            client: 'desktop'
           })
         )
         return

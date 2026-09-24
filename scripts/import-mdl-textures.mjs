@@ -18,7 +18,8 @@ function fail(message) {
 
 /** Reads an uncompressed, 8-bit paletted BMP and returns pixels in MDL top-down order. */
 export function readIndexedBmp(bmp, sourceName = 'BMP') {
-  if (bmp.length < BMP_COLOR_TABLE_OFFSET || bmp.toString('ascii', 0, 2) !== 'BM') fail(`${sourceName} is not a BMP file`)
+  if (bmp.length < BMP_COLOR_TABLE_OFFSET || bmp.toString('ascii', 0, 2) !== 'BM')
+    fail(`${sourceName} is not a BMP file`)
   const pixelOffset = bmp.readUInt32LE(BMP_PIXEL_OFFSET)
   const width = bmp.readInt32LE(BMP_WIDTH_OFFSET)
   const signedHeight = bmp.readInt32LE(BMP_HEIGHT_OFFSET)
@@ -26,14 +27,26 @@ export function readIndexedBmp(bmp, sourceName = 'BMP') {
   const compression = bmp.readUInt32LE(BMP_COMPRESSION_OFFSET)
   const height = Math.abs(signedHeight)
   const rowStride = (width + 3) & ~3
-  if (width <= 0 || height <= 0 || bitCount !== 8 || compression !== 0 || pixelOffset < BMP_COLOR_TABLE_OFFSET || pixelOffset + rowStride * height > bmp.length) {
+  if (
+    width <= 0 ||
+    height <= 0 ||
+    bitCount !== 8 ||
+    compression !== 0 ||
+    pixelOffset < BMP_COLOR_TABLE_OFFSET ||
+    pixelOffset + rowStride * height > bmp.length
+  ) {
     fail(`${sourceName} must be an uncompressed 8-bit paletted BMP`)
   }
 
   const pixels = Buffer.alloc(width * height)
   for (let y = 0; y < height; y++) {
     const sourceRow = signedHeight > 0 ? height - 1 - y : y
-    bmp.copy(pixels, y * width, pixelOffset + sourceRow * rowStride, pixelOffset + sourceRow * rowStride + width)
+    bmp.copy(
+      pixels,
+      y * width,
+      pixelOffset + sourceRow * rowStride,
+      pixelOffset + sourceRow * rowStride + width
+    )
   }
   const palette = Buffer.alloc(PALETTE_SIZE)
   for (let color = 0; color < 256; color++) {
@@ -48,10 +61,18 @@ export function readIndexedBmp(bmp, sourceName = 'BMP') {
 
 async function readManifest(texturesDirectory) {
   try {
-    const manifest = JSON.parse(await readFile(path.join(texturesDirectory, 'textures.json'), 'utf8'))
-    if (manifest.format !== 'goldsrc-mdl-textures-v1' || !Array.isArray(manifest.textures)) fail('textures.json is not an extraction manifest')
+    const manifest = JSON.parse(
+      await readFile(path.join(texturesDirectory, 'textures.json'), 'utf8')
+    )
+    if (manifest.format !== 'goldsrc-mdl-textures-v1' || !Array.isArray(manifest.textures))
+      fail('textures.json is not an extraction manifest')
     const entries = manifest.textures.map((texture) => {
-      if (!Number.isInteger(texture?.index) || typeof texture.file !== 'string' || !Number.isInteger(texture.flags)) fail('textures.json contains an invalid texture entry')
+      if (
+        !Number.isInteger(texture?.index) ||
+        typeof texture.file !== 'string' ||
+        !Number.isInteger(texture.flags)
+      )
+        fail('textures.json contains an invalid texture entry')
       return [texture.index, { file: texture.file, flags: texture.flags }]
     })
     return new Map(entries)
@@ -74,10 +95,13 @@ export async function importMdlTextures({ modelPath, texturesDirectory, outputPa
   for (const texture of textures) {
     const manifestTexture = manifest?.get(texture.index)
     const fileName = manifestTexture?.file ?? `${texture.name}.bmp`
-    if (typeof fileName !== 'string' || !fileName || path.basename(fileName) !== fileName) fail(`invalid filename for texture ${texture.index}`)
+    if (typeof fileName !== 'string' || !fileName || path.basename(fileName) !== fileName)
+      fail(`invalid filename for texture ${texture.index}`)
     const bmp = readIndexedBmp(await readFile(path.join(texturesDirectory, fileName)), fileName)
     if (bmp.width !== texture.width || bmp.height !== texture.height) {
-      fail(`${fileName} is ${bmp.width}x${bmp.height}; ${texture.name} must remain ${texture.width}x${texture.height}`)
+      fail(
+        `${fileName} is ${bmp.width}x${bmp.height}; ${texture.name} must remain ${texture.width}x${texture.height}`
+      )
     }
     bmp.pixels.copy(mdl, texture.dataOffset)
     bmp.palette.copy(mdl, texture.paletteOffset)
@@ -93,7 +117,9 @@ export async function importMdlTextures({ modelPath, texturesDirectory, outputPa
 async function main() {
   const [modelPath, texturesDirectory, outputPath] = process.argv.slice(2)
   if (!modelPath || !texturesDirectory || !outputPath) {
-    console.error('Usage: node scripts/import-mdl-textures.mjs <base-model.mdl> <texture-folder> <output-model.mdl>')
+    console.error(
+      'Usage: node scripts/import-mdl-textures.mjs <base-model.mdl> <texture-folder> <output-model.mdl>'
+    )
     process.exitCode = 1
     return
   }
@@ -101,7 +127,8 @@ async function main() {
   console.log(`Imported ${result.textureCount} texture(s) into ${result.outputPath}`)
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {
-  console.error(error.message)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  main().catch((error) => {
+    console.error(error.message)
+    process.exitCode = 1
+  })
