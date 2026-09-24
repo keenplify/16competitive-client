@@ -1202,3 +1202,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skin Assets
 
 - Updated skin asset sync status text for localization.
+
+## v2026.924.6 — 2026-09-24
+
+### Matchmaking
+
+- Copy match connection details from the matchmaking flow.
+
+### Regional Support
+
+- Added support for India-region matchmaking services.
