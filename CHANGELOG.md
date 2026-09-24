@@ -1212,3 +1212,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Regional Support
 
 - Added support for India-region matchmaking services.
+
+## v2026.924.7 — 2026-09-24
+
+### Match Connection
+
+- Added an option to copy connection details.
+
+### Help
+
+- Added a tooltip with backup instructions.
