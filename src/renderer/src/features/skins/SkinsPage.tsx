@@ -1,4 +1,4 @@
-import { Check, Crosshair, LoaderCircle, Palette, Power, PowerOff, Users } from 'lucide-react'
+import { Check, Crosshair, LoaderCircle, Power, PowerOff, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin } from '../../../../shared/skins'
@@ -21,6 +21,7 @@ import {
   type WeaponCategory
 } from './weapon-categories'
 import { LOBBY_PLAYER_MODELS } from '../party/party-models'
+import { isWebRuntime } from '../../web-runtime'
 
 type Team = 'ct' | 't'
 type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'grenades' | 'knives'>
@@ -88,6 +89,7 @@ const errorText = (reason: unknown): string =>
   reason instanceof Error ? reason.message : 'Could not update your loadout.'
 
 export function SkinsPage(): JSX.Element {
+  const webMode = isWebRuntime()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -187,7 +189,7 @@ export function SkinsPage(): JSX.Element {
   }
 
   const setLobbyWeapon = (owned: OwnedSkin): void => {
-    if (loadoutLocked || lobbyWeaponId || lobbyWeaponSkinId === owned.skin.id) return
+    if (webMode || loadoutLocked || lobbyWeaponId || lobbyWeaponSkinId === owned.skin.id) return
     setLobbyWeaponId(owned.skin.id)
     setError(null)
     void window.api.skins
@@ -205,7 +207,7 @@ export function SkinsPage(): JSX.Element {
   }
 
   const setDefaultLobbyWeapon = (weaponKey: string): void => {
-    if (loadoutLocked || lobbyWeaponId) return
+    if (webMode || loadoutLocked || lobbyWeaponId) return
     setLobbyWeaponId(weaponKey)
     setError(null)
     void window.api.skins
@@ -277,6 +279,7 @@ export function SkinsPage(): JSX.Element {
         lobbySelected={lobbySelected}
         lobbyWeaponId={lobbyWeaponId}
         loadoutLocked={loadoutLocked}
+        canChangeLobbyWeapon={!webMode}
         onSetLobbyWeapon={setLobbyWeapon}
         onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
         onSelect={() => selectLoadoutWeapon(weaponKey)}
@@ -298,8 +301,6 @@ export function SkinsPage(): JSX.Element {
         Retry inventory
       </Button>
     )
-  if (skins.length === 0) return <EmptyInventory />
-
   return (
     <section className="mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
       {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
@@ -312,6 +313,11 @@ export function SkinsPage(): JSX.Element {
             <h2 className="mt-1 text-xl font-semibold">
               {team === 'ct' ? 'Counter-Terrorists' : 'Terrorists'}
             </h2>
+            {webMode && (
+              <p className="mt-1 text-xs text-neutral-400">
+                Lobby weapon selection is only available in the desktop app.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -400,54 +406,56 @@ export function SkinsPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="flex-[1] border-t border-white/10 bg-[#080a0e] p-4">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2" aria-label="Filter inventory by weapon type">
-            {WEAPON_CATEGORIES.map(({ id, label }) => (
+      {skins.length > 0 && (
+        <section className="flex-[1] border-t border-white/10 bg-[#080a0e] p-4">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2" aria-label="Filter inventory by weapon type">
+              {WEAPON_CATEGORIES.map(({ id, label }) => (
+                <Button
+                  key={id}
+                  className={twMerge(
+                    'h-8 px-3 text-xs',
+                    category === id && !selectedWeapon && 'ring-1 ring-sky-300'
+                  )}
+                  variant={category === id && !selectedWeapon ? 'primary' : 'ghost'}
+                  onClick={() => {
+                    setCategory(id)
+                    setSelectedWeapon(null)
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            {selectedWeapon && (
               <Button
-                key={id}
-                className={twMerge(
-                  'h-8 px-3 text-xs',
-                  category === id && !selectedWeapon && 'ring-1 ring-sky-300'
-                )}
-                variant={category === id && !selectedWeapon ? 'primary' : 'ghost'}
-                onClick={() => {
-                  setCategory(id)
-                  setSelectedWeapon(null)
-                }}
+                className="h-8 px-3 text-xs"
+                variant="ghost"
+                onClick={() => setSelectedWeapon(null)}
               >
-                {label}
+                Showing: {displayWeapon(selectedWeapon)} ×
               </Button>
-            ))}
-          </div>
-          {selectedWeapon && (
-            <Button
-              className="h-8 px-3 text-xs"
-              variant="ghost"
-              onClick={() => setSelectedWeapon(null)}
-            >
-              Showing: {displayWeapon(selectedWeapon)} ×
-            </Button>
+            )}
+          </header>
+          {filteredSkins.length === 0 ? (
+            <p className="py-8 text-center text-sm text-neutral-500">
+              No unlocked skins for this weapon.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredSkins.map((owned) => (
+                <InventoryCard
+                  key={owned.skin.id}
+                  owned={owned}
+                  changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
+                  onEquip={() => setEquipped(owned)}
+                  onPreview={() => setPreviewSkin(owned.skin)}
+                />
+              ))}
+            </div>
           )}
-        </header>
-        {filteredSkins.length === 0 ? (
-          <p className="py-8 text-center text-sm text-neutral-500">
-            No unlocked skins for this weapon.
-          </p>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredSkins.map((owned) => (
-              <InventoryCard
-                key={owned.skin.id}
-                owned={owned}
-                changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
-                onEquip={() => setEquipped(owned)}
-                onPreview={() => setPreviewSkin(owned.skin)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
       {previewSkin && (
         <ModalPortal>
           <SkinPreview
@@ -511,6 +519,7 @@ function LoadoutWeaponCard({
   lobbySelected,
   lobbyWeaponId,
   loadoutLocked,
+  canChangeLobbyWeapon,
   onSetLobbyWeapon,
   onSetDefaultLobbyWeapon,
   onSelect
@@ -521,6 +530,7 @@ function LoadoutWeaponCard({
   lobbySelected: boolean
   lobbyWeaponId: string | null
   loadoutLocked: boolean
+  canChangeLobbyWeapon: boolean
   onSetLobbyWeapon: (owned: OwnedSkin) => void
   onSetDefaultLobbyWeapon: (weaponKey: string) => void
   onSelect: () => void
@@ -540,7 +550,7 @@ function LoadoutWeaponCard({
           equipped={equipped}
         />
       </button>
-      {
+      {canChangeLobbyWeapon && (
         <button
           type="button"
           className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-full border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
@@ -553,7 +563,7 @@ function LoadoutWeaponCard({
         >
           {lobbySelected ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
         </button>
-      }
+      )}
       <span className="block w-full min-w-0 px-1 py-1.5">
         <span className="block truncate text-center text-xs font-bold tracking-wide text-neutral-300">
           {equipped?.skin.name ?? displayWeapon(weaponKey)}
@@ -595,18 +605,6 @@ function LoadoutThumbnail({
         className="pointer-events-none absolute inset-0"
       />
     </span>
-  )
-}
-
-function EmptyInventory(): JSX.Element {
-  return (
-    <div className="mt-6 border border-dashed border-white/15 bg-black/20 p-10 text-center">
-      <Palette className="mx-auto size-7 text-neutral-500" aria-hidden="true" />
-      <p className="mt-3 font-medium">No skins unlocked yet.</p>
-      <p className="mt-1 text-sm text-neutral-400">
-        Visit the Store to unlock a skin for your loadout.
-      </p>
-    </div>
   )
 }
 

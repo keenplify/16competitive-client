@@ -34,6 +34,7 @@ import type {
   SkinGiftChoice,
   UnlockResult
 } from '../shared/skins'
+import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
 import { browserAuthApi } from './browser-auth'
 import {
   browserMatchmakingApi,
@@ -50,6 +51,12 @@ runtimeWindow.__SIXTEEN_COMPETITIVE_WEB__ = true
 
 const PTT_KEYS_KEY = '16competitive.web.ptt-keys'
 const thumbnailCache = new Map<string, ArrayBuffer>()
+
+const readBundledAk47Model = async (): Promise<ArrayBuffer> => {
+  const response = await fetch(bundledAk47ModelUrl)
+  if (!response.ok) throw new Error('Bundled AK-47 model is unavailable.')
+  return response.arrayBuffer()
+}
 
 const getPttKeys = (): [string, string] => {
   try {
@@ -200,11 +207,11 @@ const skins = {
       authenticated: true
     })
   },
-  async setLobbyWeapon(skinId: string): Promise<void> {
-    await jsonPost(`/skins/${skinId}/lobby-weapon`)
+  async setLobbyWeapon(): Promise<void> {
+    throw new Error('Lobby weapon selection is only available in the desktop app.')
   },
-  async setLobbyWeaponKey(weaponKey: string): Promise<void> {
-    await jsonPost('/skins/lobby-weapon', { weaponKey })
+  async setLobbyWeaponKey(): Promise<void> {
+    throw new Error('Lobby weapon selection is only available in the desktop app.')
   },
   async setLobbyPlayerModel(modelPath: string): Promise<void> {
     await jsonPost('/skins/lobby-player-model', { modelPath })
@@ -433,12 +440,9 @@ const api: Window['api'] = {
         )
       }
 
+      if (normalized.toLowerCase() === 'p_ak47.mdl') return readBundledAk47Model()
       if (/^p_[a-z0-9_]+\.mdl$/i.test(normalized)) {
-        return requestArrayBuffer(
-          '/skins/assets/file?path=' +
-            encodeURIComponent('models/16competitive/system/p_null.mdl'),
-          { authenticated: true }
-        )
+        throw new Error('Web party previews support the bundled AK-47 only.')
       }
 
       const key = relativePath.replace(/\\/g, '/').startsWith('models/')
