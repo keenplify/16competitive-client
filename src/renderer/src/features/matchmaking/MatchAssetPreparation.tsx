@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 export interface AssetPreparation {
-  status: 'idle' | 'checking' | 'downloading' | 'ready'
+  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'fastdl'
   completedFiles: number
   totalFiles: number
 }
@@ -17,6 +17,18 @@ export function MatchAssetPreparation({
   className
 }: MatchAssetPreparationProps): JSX.Element | null {
   if (preparation.status === 'idle' || preparation.status === 'ready') return null
+  if (preparation.status === 'fastdl') {
+    return (
+      <section
+        className={twMerge('border border-sky-300/35 bg-black/25 px-4 py-3 text-center', className)}
+        role="status"
+      >
+        <p className="text-xs font-bold tracking-[0.14em] text-sky-100 uppercase">
+          Counter-Strike will download missing skins in game
+        </p>
+      </section>
+    )
+  }
   const hasKnownTotal = preparation.totalFiles > 0
   const progress = hasKnownTotal
     ? Math.min(100, Math.round((preparation.completedFiles / preparation.totalFiles) * 100))

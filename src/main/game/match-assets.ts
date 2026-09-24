@@ -45,6 +45,10 @@ class NonRetryableAssetError extends Error {}
 
 const preloads = new Map<string, Promise<void>>()
 const preloadControllers = new Map<string, AbortController>()
+const fastDlEligibleMatches = new Set<string>()
+
+export const canUseMatchFastDlFallback = (matchId: string): boolean =>
+  fastDlEligibleMatches.has(matchId)
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -546,6 +550,22 @@ const preload = async (
       throw new Error(`Match manifest has a duplicate asset: ${asset.path}`)
     uniqueAssets.set(asset.path, asset)
   }
+  // GoldSrc only requests missing resources. Remove any invalid launcher-managed
+  // copy before allowing an in-game download fallback.
+  for (const asset of uniqueAssets.values()) {
+    const destination = destinationFor(assetRoot, asset.path)
+    if (
+      (await stat(destination).catch(() => null)) &&
+      !(await hasExpectedHash(destination, expectedHashFor(asset)))
+    ) {
+      await unlink(destination)
+      console.warn('[MatchAssets] removed invalid managed asset before FastDL fallback', {
+        matchId,
+        path: asset.path
+      })
+    }
+  }
+  fastDlEligibleMatches.add(matchId)
   console.info('[MatchAssets] preparing match assets', { matchId, count: uniqueAssets.size })
   let completedFiles = 0
   const totalFiles = uniqueAssets.size
@@ -579,6 +599,7 @@ export const startMatchAssetPreload = (
 ): Promise<void> => {
   const current = preloads.get(matchId)
   if (current) return current
+  fastDlEligibleMatches.delete(matchId)
   const controller = new AbortController()
   const task = preload(matchId, hostApiUrl, onProgress, controller.signal)
   preloads.set(matchId, task)
@@ -614,6 +635,7 @@ export const waitForMatchAssetPreload = async (matchId: string): Promise<void> =
 
 export const clearMatchAssetPreload = (matchId: string): void => {
   console.info('[MatchAssets] match preload cancelled', { matchId })
+  fastDlEligibleMatches.delete(matchId)
   preloadControllers.get(matchId)?.abort()
   preloadControllers.delete(matchId)
   preloads.delete(matchId)

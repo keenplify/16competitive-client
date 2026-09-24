@@ -28,6 +28,7 @@ import {
   launchCounterStrikeForMatch
 } from './game/cs16-launcher'
 import {
+  canUseMatchFastDlFallback,
   clearMatchAssetPreload,
   startMatchAssetPreload,
   startSkinAssetSync,
@@ -41,6 +42,7 @@ type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect'
 const RECONNECT_BASE_DELAY_MS = 1_000
 const RECONNECT_MAX_DELAY_MS = 30_000
 const CONNECTION_TIMEOUT_MS = 15_000
+const MATCH_ASSET_FASTDL_WAIT_MS = 20_000
 const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
@@ -471,6 +473,7 @@ class MatchmakingConnection {
   private restartReconnectAtMs = 0
   private seenMatchEvents = new Set<string>()
   private cancelledMatchIds = new Set<string>()
+  private fastDlMatchIds = new Set<string>()
   private finishedMatchIds = new Set<string>()
   private manuallyDisconnected = false
   private freshProcess = true
@@ -655,11 +658,11 @@ class MatchmakingConnection {
       })
       return
     }
-    try {
-      await waitForMatchAssetPreload(connection.matchId)
-    } catch {
-      clearMatchAssetPreload(connection.matchId)
-      await this.prepareMatchAssets(connection.matchId)
+    if (!this.fastDlMatchIds.has(connection.matchId)) {
+      await this.waitForMatchAssetsOrFastDl(
+        connection.matchId,
+        this.prepareMatchAssets(connection.matchId)
+      )
     }
     await launchCounterStrikeForMatch({
       ...connection,
@@ -688,11 +691,8 @@ class MatchmakingConnection {
     const apiUrl = this.hostApiUrl ?? this.activeApiUrl
     const token = getSessionToken()
     if (!apiUrl || !token) throw new Error('Reconnect to matchmaking before copying the command')
-    try {
-      await waitForMatchAssetPreload(matchId)
-    } catch {
-      clearMatchAssetPreload(matchId)
-      await this.prepareMatchAssets(matchId)
+    if (!this.fastDlMatchIds.has(matchId)) {
+      await this.waitForMatchAssetsOrFastDl(matchId, this.prepareMatchAssets(matchId))
     }
     const response = await fetch(
       `${apiUrl.replace(/\/$/, '')}/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`,
@@ -758,11 +758,57 @@ class MatchmakingConnection {
   }
 
   private prepareMatchAssets(matchId: string): Promise<void> {
-    const hostApiUrl = this.activeApiUrl ?? this.hostApiUrl
+    const hostApiUrl = this.hostApiUrl ?? this.activeApiUrl
     if (!hostApiUrl) throw new Error('The match asset server is unavailable.')
-    return startMatchAssetPreload(matchId, hostApiUrl, (progress) =>
-      this.notify({ type: 'match_assets_progress', matchId, ...progress })
-    )
+    return startMatchAssetPreload(matchId, hostApiUrl, (progress) => {
+      if (!this.fastDlMatchIds.has(matchId)) {
+        this.notify({ type: 'match_assets_progress', matchId, ...progress })
+      }
+    })
+  }
+
+  private async waitForMatchAssetsOrFastDl(
+    matchId: string,
+    assetsReady: Promise<void>
+  ): Promise<void> {
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null
+    const deadline = Date.now() + MATCH_ASSET_FASTDL_WAIT_MS
+    const fastDlReady = new Promise<'fastdl'>((resolve) => {
+      fallbackTimer = setInterval(() => {
+        if (Date.now() >= deadline && canUseMatchFastDlFallback(matchId)) resolve('fastdl')
+      }, 1_000)
+    })
+    let reason = 'launcher download exceeded the wait limit'
+    try {
+      const result = await Promise.race([assetsReady.then(() => 'ready' as const), fastDlReady])
+      if (result === 'ready') {
+        if (this.fastDlMatchIds.delete(matchId)) {
+          this.notify({
+            type: 'match_assets_progress',
+            matchId,
+            status: 'ready',
+            completedFiles: 0,
+            totalFiles: 0
+          })
+        }
+        return
+      }
+    } catch (error) {
+      if (!canUseMatchFastDlFallback(matchId)) throw error
+      reason = error instanceof Error ? error.message : String(error)
+    } finally {
+      if (fallbackTimer) clearInterval(fallbackTimer)
+    }
+    this.fastDlMatchIds.add(matchId)
+    console.warn('[MatchAssets] using in-game resource download', { matchId, reason })
+    clearMatchAssetPreload(matchId)
+    this.notify({
+      type: 'match_assets_progress',
+      matchId,
+      status: 'fastdl',
+      completedFiles: 0,
+      totalFiles: 0
+    })
   }
 
   private focusLauncher(urgent = false): void {
@@ -985,15 +1031,20 @@ class MatchmakingConnection {
         this.desiredMapIds = []
         this.desiredPreferredRegion = null
         this.focusLauncher(true)
-        if (parsed.hostApiUrl !== this.activeApiUrl) {
+        const needsHostHandoff = parsed.hostApiUrl !== this.activeApiUrl
+        this.hostApiUrl = parsed.hostApiUrl
+        if (needsHostHandoff) {
           this.authenticated = false
-          this.hostApiUrl = parsed.hostApiUrl
           this.openSocket(false, parsed.hostApiUrl, true)
         }
         void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl, (progress) =>
-          this.notify({ type: 'match_assets_progress', matchId: parsed.matchId, ...progress })
+          this.fastDlMatchIds.has(parsed.matchId)
+            ? undefined
+            : this.notify({ type: 'match_assets_progress', matchId: parsed.matchId, ...progress })
         ).catch((error: unknown) =>
-          this.cancelledMatchIds.has(parsed.matchId)
+          this.cancelledMatchIds.has(parsed.matchId) ||
+          this.fastDlMatchIds.has(parsed.matchId) ||
+          canUseMatchFastDlFallback(parsed.matchId)
             ? undefined
             : this.notify({
                 type: 'error',
@@ -1011,8 +1062,14 @@ class MatchmakingConnection {
         const assetsReady = isRecoveredConnection
           ? this.prepareMatchAssets(parsed.matchId)
           : waitForMatchAssetPreload(parsed.matchId)
-        void assetsReady
+        void this.waitForMatchAssetsOrFastDl(parsed.matchId, assetsReady)
           .then(async () => {
+            if (
+              this.cancelledMatchIds.has(parsed.matchId) ||
+              this.finishedMatchIds.has(parsed.matchId)
+            ) {
+              return
+            }
             await launchCounterStrikeForMatch({
               ...parsed,
               onVoicePtt: (active) => this.notifyLocalVoicePtt(parsed.matchId, active),
@@ -1029,7 +1086,13 @@ class MatchmakingConnection {
             })
             discordPresence.setInGame(true)
           })
-          .catch((error: unknown) =>
+          .catch((error: unknown) => {
+            if (
+              this.cancelledMatchIds.has(parsed.matchId) ||
+              this.finishedMatchIds.has(parsed.matchId)
+            ) {
+              return
+            }
             this.notify({
               type: 'error',
               code: 'MATCH_PREPARATION_FAILED',
@@ -1038,17 +1101,20 @@ class MatchmakingConnection {
                   ? error.message
                   : 'Could not prepare match assets or launch Counter-Strike.'
             })
-          )
+          })
       } else if (parsed.type === 'match_cancelled') {
         discordPresence.finishMatch()
         this.cancelledMatchIds.add(parsed.matchId)
+        this.fastDlMatchIds.delete(parsed.matchId)
         this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
+        this.hostApiUrl = null
         closeCounterStrikeForMatch(parsed.matchId)
         this.focusLauncher()
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
         discordPresence.finishMatch()
         this.finishedMatchIds.add(parsed.matchId)
+        this.fastDlMatchIds.delete(parsed.matchId)
         this.lastConnection = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
