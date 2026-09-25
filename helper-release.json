@@ -1,5 +1,5 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "repository": "keenplify/16competitive-helper",
   "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAflr5XmB/hoA5xEFxnQChy1w2Oqpe/29dOtjTs6fBPF0=\n-----END PUBLIC KEY-----",
   "registryUrl": "https://16competitive.papamo.dev"
