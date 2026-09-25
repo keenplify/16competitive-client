@@ -13,6 +13,7 @@ interface CustomGamesState {
   currentRoom: CustomGameRoom | null
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
+  movingServer: boolean
   refresh: () => Promise<void>
   restoreRoom: (hostApiUrl: string) => Promise<void>
   setPlayView: (view: 'matchmaking' | 'custom') => void
@@ -41,6 +42,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   currentRoom: null,
   status: 'idle',
   error: null,
+  movingServer: false,
   setPlayView: (playView) => set({ playView }),
   openCreateModal: () => set({ createModalOpen: true, error: null }),
   closeCreateModal: () => set({ createModalOpen: false }),
@@ -186,8 +188,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   moveServer: async (targetNodeId) => {
     const room = get().currentRoom
-    if (!room) return false
-    set({ error: null })
+    if (!room || get().movingServer) return false
+    set({ error: null, movingServer: true })
     try {
       set({
         currentRoom: await window.api.customGames.moveServer(room.id, targetNodeId, room.hostApiUrl)
@@ -196,6 +198,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     } catch (error) {
       set({ error: message(error) })
       return false
+    } finally {
+      set({ movingServer: false })
     }
   },
   kick: async (playerId) => {

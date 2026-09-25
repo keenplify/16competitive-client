@@ -68,7 +68,6 @@ export function CustomGamesPanel({
   const addBot = useCustomGamesStore((state) => state.addBot)
   const setTeamCapacity = useCustomGamesStore((state) => state.setTeamCapacity)
   const moveMember = useCustomGamesStore((state) => state.moveMember)
-  const moveServer = useCustomGamesStore((state) => state.moveServer)
   const kick = useCustomGamesStore((state) => state.kick)
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
@@ -227,35 +226,6 @@ export function CustomGamesPanel({
               </Button>
             </div>
           </div>
-
-          {editable && nodes.some((node) => node.available && node.id !== room.hostNodeId) && (
-            <form
-              className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4"
-              onSubmit={(event) => {
-                event.preventDefault()
-                const targetNodeId = String(new FormData(event.currentTarget).get('targetNodeId'))
-                void moveServer(targetNodeId).then((moved) => {
-                  if (moved) void selectNode(targetNodeId)
-                })
-              }}
-            >
-              <span className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                Move room
-              </span>
-              <select className={fieldClass} name="targetNodeId">
-                {nodes
-                  .filter((node) => node.available && node.id !== room.hostNodeId)
-                  .map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.region} · {node.id}
-                    </option>
-                  ))}
-              </select>
-              <Button variant="secondary" type="submit">
-                Move to server
-              </Button>
-            </form>
-          )}
 
           {editable && (
             <form
