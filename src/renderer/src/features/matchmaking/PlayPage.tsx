@@ -121,6 +121,8 @@ export function PlayPage(): JSX.Element {
   const playView = useCustomGamesStore((state) => state.playView)
   const setPlayView = useCustomGamesStore((state) => state.setPlayView)
   const currentCustomRoom = useCustomGamesStore((state) => state.currentRoom)
+  const moveCustomRoom = useCustomGamesStore((state) => state.moveServer)
+  const movingCustomRoom = useCustomGamesStore((state) => state.movingServer)
   const leaveCustomRoom = useCustomGamesStore((state) => state.leaveRoom)
   const restoreCustomRoom = useCustomGamesStore((state) => state.restoreRoom)
   const customRoomError = useCustomGamesStore((state) => state.error)
@@ -489,9 +491,24 @@ export function PlayPage(): JSX.Element {
                 ariaLabel="Custom game server"
                 showHint={false}
                 nodes={nodes}
-                selectedNodeId={selectedNodeId}
-                disabled={Boolean(currentCustomRoom)}
-                onChange={(nodeId) => void selectNode(nodeId)}
+                selectedNodeId={currentCustomRoom?.hostNodeId ?? selectedNodeId}
+                allowAutomatic={!currentCustomRoom}
+                disabled={
+                  movingCustomRoom ||
+                  Boolean(
+                    currentCustomRoom &&
+                    (currentCustomRoom.ownerId !== player?.id ||
+                      currentCustomRoom.state !== 'WAITING')
+                  )
+                }
+                onChange={(nodeId) => {
+                  if (currentCustomRoom) {
+                    if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
+                      void moveCustomRoom(nodeId)
+                  } else {
+                    void selectNode(nodeId)
+                  }
+                }}
               />
             </div>
           ) : (

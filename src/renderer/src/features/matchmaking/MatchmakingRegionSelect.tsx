@@ -26,6 +26,7 @@ interface MatchmakingRegionSelectProps {
   id?: string
   ariaLabel?: string
   showHint?: boolean
+  allowAutomatic?: boolean
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
   disabled: boolean
@@ -54,6 +55,7 @@ export function MatchmakingRegionSelect({
   id = 'matchmaking-region',
   ariaLabel = 'Preferred matchmaking region',
   showHint = true,
+  allowAutomatic = true,
   nodes,
   selectedNodeId,
   disabled,
@@ -87,7 +89,7 @@ export function MatchmakingRegionSelect({
       automatic: false
     }))
 
-  const options = [automaticOption, ...regionOptions]
+  const options = allowAutomatic ? [automaticOption, ...regionOptions] : regionOptions
   const selectedOption =
     options.find((option) => option.value === (selectedNodeId ?? '')) ?? automaticOption
 
