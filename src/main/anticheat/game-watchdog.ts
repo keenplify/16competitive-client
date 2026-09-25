@@ -19,7 +19,9 @@ const spawnWindowsWatchdog = (executablePath: string): ChildProcess => {
   const script = [
     "$launcherPid = [int][Environment]::GetEnvironmentVariable('ANTICHEAT_LAUNCHER_PID')",
     "$targetExe = [Environment]::GetEnvironmentVariable('ANTICHEAT_TARGET_EXE')",
-    'Wait-Process -Id $launcherPid -ErrorAction SilentlyContinue',
+    '$launcher = Get-Process -Id $launcherPid -ErrorAction SilentlyContinue',
+    'if ($null -eq $launcher) { exit 2 }',
+    'while (-not $launcher.HasExited) { Start-Sleep -Milliseconds 500; $launcher.Refresh() }',
     '$matches = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $targetExe, [System.StringComparison]::OrdinalIgnoreCase) })',
     '$matches | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }'
   ].join('; ')

@@ -84,6 +84,10 @@ export class AntiCheatSession {
               Number.isInteger(value.pid) &&
               value.pid === this.targetPid
             ) {
+              console.info('[AntiCheat] game process exited', {
+                matchId: this.options.matchId,
+                pid: value.pid
+              })
               this.targetPid = null
               this.options.onProcessExit?.(value.pid as number)
             } else if (
@@ -93,6 +97,10 @@ export class AntiCheatSession {
               this.discover
             ) {
               this.targetPid = Number(value.pid)
+              console.info('[AntiCheat] game process attached', {
+                matchId: this.options.matchId,
+                pid: this.targetPid
+              })
             } else if (value.event === 'report' && value.accepted === false) {
               console.warn('[AntiCheat] helper evidence upload unavailable', {
                 matchId: this.options.matchId
