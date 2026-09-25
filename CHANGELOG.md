@@ -1278,3 +1278,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Demo Playback
 
 - Added desktop integration for demo playback.
+
+## v2026.925.5 — 2026-09-25
+
+### Custom Games
+
+- Added support for creating and joining custom games.
+- Added custom game lobbies and player rosters.
+- Added custom game matchmaking state and controls.
+
+### Reliability
+
+- Improved anti-cheat logging.
+- Improved Windows watchdog process handling.
