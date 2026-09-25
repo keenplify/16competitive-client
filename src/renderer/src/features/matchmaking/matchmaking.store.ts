@@ -1,4 +1,6 @@
+import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 import {
+  allowsManualMatchConnection,
   MatchmakingEvent,
   MatchmakingMap,
   MatchmakingMode,
@@ -90,6 +92,8 @@ interface MatchmakingState {
   matchReadyAt: number | null
   copyConnectionStatus: 'idle' | 'copying' | 'copied'
   serverRestarting: { message: string; retryAfterMs: number } | null
+  antiCheatTermination: { matchId: string; dismissed: boolean } | null
+  dismissAntiCheatTermination: () => void
   matchAbandonNotice: MatchAbandonNotice | null
   error: string | null
   connect: () => Promise<void>
@@ -144,6 +148,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'server_restarting':
         set({
+          queueStatus: 'idle',
+          queuedAt: null,
+          autoFillAt: null,
+          searchStage: null,
+          queueStartedAt: null,
           serverRestarting: { message: event.message, retryAfterMs: event.retryAfterMs },
           error: null
         })
@@ -387,6 +396,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           state.match && state.match.matchId !== event.matchId
             ? {}
             : {
+                antiCheatTermination:
+                  event.message === ANTI_CHEAT_CANCELLED_MESSAGE
+                    ? state.antiCheatTermination?.matchId === event.matchId
+                      ? state.antiCheatTermination
+                      : { matchId: event.matchId, dismissed: false }
+                    : state.antiCheatTermination,
                 queueStatus: 'idle',
                 queuedAt: null,
                 autoFillAt: null,
@@ -452,7 +467,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           break
         }
         set({
-          ...(event.code === 'NOT_QUEUED'
+          ...(event.code === 'NOT_QUEUED' || event.code === 'SERVER_RESTARTING'
             ? {
                 queueStatus: 'idle' as const,
                 queuedAt: null,
@@ -506,6 +521,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     matchReadyAt: null,
     copyConnectionStatus: 'idle',
     serverRestarting: null,
+    antiCheatTermination: null,
+    dismissAntiCheatTermination: () =>
+      set((state) => ({
+        antiCheatTermination: state.antiCheatTermination
+          ? { ...state.antiCheatTermination, dismissed: true }
+          : null
+      })),
     matchAbandonNotice: null,
     error: null,
 
@@ -727,6 +749,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     copyConnection: async () => {
+      if (!allowsManualMatchConnection(get().match?.mode)) {
+        set({ error: 'Ranked matches require the desktop launcher.', copyConnectionStatus: 'idle' })
+        return
+      }
       const matchId = get().connectionDetails?.matchId
       if (!matchId || get().copyConnectionStatus === 'copying') return
       set({ copyConnectionStatus: 'copying', error: null })
@@ -776,6 +802,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         connectionDetails: null,
         gameExited: false,
         serverRestarting: null,
+        antiCheatTermination: null,
         matchAbandonNotice: null,
         error: null
       })

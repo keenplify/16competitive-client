@@ -15,6 +15,8 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "verify": "npm run lint && npm run typecheck",
+    "build:helper": "node scripts/build-game-inspector.mjs",
+    "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",
@@ -28,8 +30,11 @@
     "build:linux:arm64": "electron-vite build && electron-builder --linux AppImage --arm64 --publish never",
     "release:date": "node scripts/set-date-version.mjs",
     "release:notes": "node scripts/generate-changelog.mjs",
-    "release": "npm run verify && node scripts/release-today.mjs",
-    "build:web": "tsc --noEmit -p tsconfig.web.json --composite false && vite build --config vite.webapp.config.ts"
+    "release": "npm run verify && npm run test:helper && node scripts/release-today.mjs",
+    "build:web": "tsc --noEmit -p tsconfig.web.json --composite false && vite build --config vite.webapp.config.ts",
+    "prepare:helper": "node --experimental-strip-types scripts/prepare-game-inspector.mjs",
+    "release:check": "node --experimental-strip-types scripts/prepare-game-inspector.mjs --check-all",
+    "predev": "npm run build:helper"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

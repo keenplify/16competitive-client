@@ -4,7 +4,8 @@ import { createSocket } from 'node:dgram'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { getSessionToken } from './auth'
-import { API_BASE_URL } from './config'
+import { API_BASE_URL, LOCAL_DEVELOPMENT } from './config'
+import { isLoopbackBackend } from './backend-policy'
 import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmaking'
 
 type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
@@ -176,7 +177,10 @@ export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
   if (!response.ok || !isObject(body) || !Array.isArray(body.nodes) || !body.nodes.every(isNode)) {
     throw new Error('The regional matchmaking service returned invalid nodes')
   }
-  const measuredNodes = await attachNodeLatencies(body.nodes)
+  const nodes = LOCAL_DEVELOPMENT
+    ? body.nodes.filter((node) => isLoopbackBackend(node.publicApiUrl))
+    : body.nodes
+  const measuredNodes = await attachNodeLatencies(nodes)
   void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
 }

@@ -17,7 +17,11 @@ const formatValue = (value: unknown): string => {
 
 export const getDiagnosticLogs = (): string[] => [...entries]
 
-export async function reportDiagnosticIssue(description: string, rendererLogs: string[]) {
+export async function reportDiagnosticIssue(
+  description: string,
+  rendererLogs: string[],
+  deduplicationKey?: string
+) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
   const logs = [...entries, ...rendererLogs].join('\n').slice(-500_000)
@@ -26,6 +30,7 @@ export async function reportDiagnosticIssue(description: string, rendererLogs: s
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       description,
+      ...(deduplicationKey ? { deduplicationKey } : {}),
       logs: logs || 'No diagnostic logs recorded.',
       clientVersion: app.getVersion()
     }),

@@ -1,7 +1,11 @@
 import { useEffect, useState, type JSX } from 'react'
 import { CircleHelp, Copy } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
-import { getMatchmakingModeLabel, type MatchmakingMap } from '../../../../shared/matchmaking'
+import {
+  allowsManualMatchConnection,
+  getMatchmakingModeLabel,
+  type MatchmakingMap
+} from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartyStore } from '../party/party.store'
@@ -169,6 +173,7 @@ export function PlayPage(): JSX.Element {
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
+  const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
   const hasSelectedMaps = selectedMapIds.length > 0
   const matchMapPreview = match
@@ -308,53 +313,57 @@ export function PlayPage(): JSX.Element {
             <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3">
               <Button
                 className="w-full rounded-sm"
-                disabled={!webRuntime && (!gameExited || !retryWindowOpen)}
+                disabled={webRuntime ? !manualConnectionAllowed : !gameExited || !retryWindowOpen}
                 variant="primary"
                 onClick={() => void handleReconnect()}
               >
                 {webRuntime
-                  ? 'Launch Counter-Strike'
+                  ? manualConnectionAllowed
+                    ? 'Launch Counter-Strike'
+                    : 'Use desktop launcher for ranked'
                   : gameExited
                     ? retryWindowOpen
                       ? 'Reconnect to match'
                       : `Reconnect in ${copyWaitSeconds}s`
                     : 'Counter-Strike is launching…'}
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  className="w-full gap-2 rounded-sm"
-                  disabled={copyConnectionStatus === 'copying' || !retryWindowOpen}
-                  variant="secondary"
-                  onClick={() => void copyConnection()}
-                >
-                  <Copy className="size-4" aria-hidden="true" />
-                  {copyWaitSeconds > 0
-                    ? `Copy connection in ${copyWaitSeconds}s`
-                    : copyConnectionStatus === 'copying'
-                      ? 'Activating connection…'
-                      : copyConnectionStatus === 'copied'
-                        ? 'Copied — copy again'
-                        : 'Copy connection'}
-                </Button>
-                <span className="group/backup relative flex shrink-0">
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-neutral-400 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300"
-                    aria-label="Connection backup details"
-                    aria-describedby="connection-backup-tooltip"
+              {manualConnectionAllowed && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="w-full gap-2 rounded-sm"
+                    disabled={copyConnectionStatus === 'copying' || !retryWindowOpen}
+                    variant="secondary"
+                    onClick={() => void copyConnection()}
                   >
-                    <CircleHelp className="size-4" aria-hidden="true" />
-                  </button>
-                  <span
-                    id="connection-backup-tooltip"
-                    role="tooltip"
-                    className="pointer-events-none absolute right-0 bottom-[calc(100%+8px)] z-50 w-64 rounded border border-white/15 bg-neutral-950/95 px-3 py-2 text-left text-xs leading-5 text-neutral-200 opacity-0 shadow-2xl transition group-hover/backup:opacity-100 group-focus-within/backup:opacity-100"
-                  >
-                    Backup: paste the copied command into the Counter-Strike console. Launcher
-                    voice and managed skin/audio may need the normal launch flow.
+                    <Copy className="size-4" aria-hidden="true" />
+                    {copyWaitSeconds > 0
+                      ? `Copy connection in ${copyWaitSeconds}s`
+                      : copyConnectionStatus === 'copying'
+                        ? 'Activating connection…'
+                        : copyConnectionStatus === 'copied'
+                          ? 'Copied — copy again'
+                          : 'Copy connection'}
+                  </Button>
+                  <span className="group/backup relative flex shrink-0">
+                    <button
+                      type="button"
+                      className="rounded-full p-2 text-neutral-400 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300"
+                      aria-label="Connection backup details"
+                      aria-describedby="connection-backup-tooltip"
+                    >
+                      <CircleHelp className="size-4" aria-hidden="true" />
+                    </button>
+                    <span
+                      id="connection-backup-tooltip"
+                      role="tooltip"
+                      className="pointer-events-none absolute right-0 bottom-[calc(100%+8px)] z-50 w-64 rounded border border-white/15 bg-neutral-950/95 px-3 py-2 text-left text-xs leading-5 text-neutral-200 opacity-0 shadow-2xl transition group-hover/backup:opacity-100 group-focus-within/backup:opacity-100"
+                    >
+                      Backup: paste the copied command into the Counter-Strike console. Launcher
+                      voice and managed skin/audio may need the normal launch flow.
+                    </span>
                   </span>
-                </span>
-              </div>
+                </div>
+              )}
             </div>
           )}
 

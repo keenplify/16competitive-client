@@ -2,8 +2,9 @@ import { app, ipcMain } from 'electron'
 import { arch, cpus, platform, release, totalmem, version } from 'node:os'
 import type { DeviceStatus } from '../shared/anti-cheat'
 import { ANTICHEAT_CHANNELS } from '../shared/anti-cheat'
-import { collectHardwareFingerprint, getDeviceBanStatus } from './anticheat/hardware-fingerprint'
-import { API_BASE_URL } from './config'
+import { getDeviceBanStatus, parseDeviceStatus } from './anticheat/hardware-fingerprint'
+import { requestHelperDevice } from './anticheat/helper-process'
+import { API_BASE_URL, LOCAL_DEVELOPMENT } from './config'
 
 const trimText = (value: unknown, maxLength: number): string | undefined => {
   if (typeof value !== 'string') return undefined
@@ -41,7 +42,6 @@ export const reportClientTelemetry = async (token: string): Promise<DeviceStatus
   try {
     const cpuList = cpus()
     const firstCpu = cpuList[0]
-    const hardware = await collectHardwareFingerprint()
     const body = {
       clientVersion: app.getVersion(),
       platform: platform(),
@@ -53,31 +53,17 @@ export const reportClientTelemetry = async (token: string): Promise<DeviceStatus
       cpuSpeedMhz:
         Number.isInteger(firstCpu?.speed) && firstCpu.speed > 0 ? firstCpu.speed : undefined,
       totalMemoryMb: Math.max(1, Math.round(totalmem() / 1024 / 1024)),
-      gpuDevices: await gpuDescriptions(),
-      ...hardware
+      gpuDevices: await gpuDescriptions()
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/client-telemetry`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(7_500)
-    })
-    const responseBody = (await response.json().catch(() => null)) as {
-      ban?: DeviceStatus
-      error?: unknown
-    } | null
-
-    if (response.status === 403 && responseBody?.ban?.banned === true) {
-      return responseBody.ban
-    }
-    if (!response.ok) {
-      console.warn(`Client telemetry was not accepted (${response.status})`)
-    }
-    return { banned: false }
+    return parseDeviceStatus(
+      await requestHelperDevice({
+        apiUrl: API_BASE_URL,
+        allowInsecureLocal: LOCAL_DEVELOPMENT,
+        token,
+        telemetry: body
+      })
+    )
   } catch (error) {
     console.warn(
       'Could not report client telemetry:',

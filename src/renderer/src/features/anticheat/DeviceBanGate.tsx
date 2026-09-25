@@ -1,9 +1,10 @@
+import { MatchTerminationScreen } from './MatchTerminationScreen'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { DeviceBanStatus, DeviceStatus } from '../../../../shared/anti-cheat'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
 
-const ANTI_CHEAT_CANCELLED_MESSAGE = 'This game was cancelled because the server detected cheating.'
+import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 
 const formatBanExpiry = (value: string): string => {
   const date = new Date(value)
@@ -67,39 +68,7 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
   }
 
   if (cheatingDetected) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 100001,
-          display: 'grid',
-          placeItems: 'center',
-          background: 'rgba(8, 8, 8, .92)',
-          color: '#f5f5f5',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          padding: 32
-        }}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="cheating-detected-title"
-      >
-        <div style={{ width: 'min(520px, 100%)', textAlign: 'center' }}>
-          <div style={{ color: '#f87171', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em' }}>
-            ANTI-CHEAT
-          </div>
-          <h1 id="cheating-detected-title" style={{ margin: '16px 0 0', fontSize: 36 }}>
-            Cheating detected
-          </h1>
-          <p style={{ margin: '18px 0 0', color: '#b8b8b8', fontSize: 16, lineHeight: 1.6 }}>
-            You have been signed out and your match has been cancelled.
-          </p>
-          <Button className="mt-6 w-full" onClick={() => setCheatingDetected(false)}>
-            Continue
-          </Button>
-        </div>
-      </div>
-    )
+    return <MatchTerminationScreen banned onContinue={() => setCheatingDetected(false)} />
   }
 
   if (status?.banned) {
