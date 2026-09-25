@@ -55,3 +55,8 @@ publish:
   repo: 16competitive-client
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
+
+protocols:
+  - name: Competitive demo playback
+    schemes:
+      - competitive16

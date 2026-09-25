@@ -494,6 +494,16 @@ class MatchmakingConnection {
   private matchAttentionWindow: BrowserWindow | null = null
   private restoreMatchWindowTopmost = false
 
+  isBusyForDemo(): boolean {
+    return Boolean(
+      this.desiredMode ||
+      this.recoveryStatusPending ||
+      (this.lastConnection &&
+        !this.finishedMatchIds.has(this.lastConnection.matchId) &&
+        !this.cancelledMatchIds.has(this.lastConnection.matchId))
+    )
+  }
+
   getActiveApiUrl(): string | null {
     return this.activeApiUrl ?? this.hostApiUrl
   }

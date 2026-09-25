@@ -1,3 +1,4 @@
+import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.store'
 import type { JSX } from 'react'
 import { House, Newspaper, Play, Settings, ShoppingBag, Trophy, UserRound } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
@@ -32,6 +33,7 @@ export function LobbyNavigation({
   locked = false
 }: LobbyNavigationProps): JSX.Element {
   const { t } = useTranslation()
+  const canReview = useAdminDemosStore((state) => state.allowed)
   const canNavigate = (page: LobbyPageId): boolean =>
     !locked || page === 'settings' || page === 'play'
 
@@ -66,6 +68,17 @@ export function LobbyNavigation({
       </div>
 
       <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">
+        {canReview && (
+          <button
+            type="button"
+            disabled={!canNavigate('demos')}
+            onClick={() => onNavigate('demos')}
+            className="px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
+            aria-current={activePage === 'demos' ? 'page' : undefined}
+          >
+            Demos
+          </button>
+        )}
         {pages.map(({ id, icon: Icon, labelKey }) => {
           const active = activePage === id
           const isPlay = id === 'play'
