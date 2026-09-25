@@ -32,7 +32,10 @@ if (!repo || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo))
   )
 
 try {
-  execFileSync('gh', ['auth', 'status', '--hostname', 'github.com'], { stdio: 'pipe', shell: false })
+  execFileSync('gh', ['auth', 'status', '--hostname', 'github.com'], {
+    stdio: 'pipe',
+    shell: false
+  })
 } catch {
   throw new Error(
     'GitHub CLI authentication is required to download the private helper. Run gh auth login once, or provide GH_TOKEN with read access to the helper repository.'
