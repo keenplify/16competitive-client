@@ -1260,3 +1260,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved release management and versioning.
 - Added guidance for inspecting native game installations.
+
+## v2026.925.3 — 2026-09-25
+
+### Demo Playback
+
+- Added demo playback functionality.
+- Added a new interface for managing admin demos.
+- Added demo links and match integration for playback.
+
+### Navigation
+
+- Added access to the demo playback area from the lobby navigation.
