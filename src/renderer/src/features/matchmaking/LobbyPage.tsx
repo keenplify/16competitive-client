@@ -1,3 +1,5 @@
+import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
+import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
 import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { memo, useEffect, useState, type JSX } from 'react'
 import dustBackground from '../../assets/dust.jpg'
@@ -29,6 +31,7 @@ import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
+  demos: 'Admin demos',
   leaderboard: 'Leaderboard',
   store: 'Store',
   news: 'News',
@@ -216,6 +219,12 @@ export function LobbyPage(): JSX.Element {
     }
   }, [navigate, queueStatus])
 
+  useEffect(() => {
+    useAdminDemosStore.getState().reset()
+    if (player?.id) void useAdminDemosStore.getState().load()
+    return () => useAdminDemosStore.getState().reset()
+  }, [player?.id])
+
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   if (serverRestarting) {
@@ -244,6 +253,8 @@ export function LobbyPage(): JSX.Element {
     <MatchResultsPage match={completedMatch} />
   ) : page === 'play' ? (
     <PlayPage />
+  ) : page === 'demos' ? (
+    <AdminDemosPage />
   ) : page === 'settings' ? (
     <SettingsPage />
   ) : page === 'profile' ? (

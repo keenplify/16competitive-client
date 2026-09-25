@@ -1,3 +1,4 @@
+import type { AdminDemosApi } from '../shared/admin-demos'
 import type { AuthApi } from '../shared/auth'
 import type { AntiCheatApi } from '../shared/anti-cheat'
 import type { DailyQuestsApi } from '../shared/daily-quests'
@@ -19,6 +20,7 @@ import type { OperationsApi } from '../shared/operations'
 declare global {
   interface Window {
     api: {
+      adminDemos?: AdminDemosApi
       auth: AuthApi
       antiCheat: AntiCheatApi
       dailyQuests: DailyQuestsApi

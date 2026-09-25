@@ -1,3 +1,6 @@
+import { DEMO_PROTOCOL, parseDemoLink } from '../shared/demo-link'
+import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
+import { listAdminDemos, watchAdminDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -249,17 +252,61 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
   }
 }
 
+let pendingDemoId: string | null = null
+let demoLinkRunning = false
+async function processPendingDemo(): Promise<void> {
+  if (!pendingDemoId || !getSessionToken() || !app.isReady() || demoLinkRunning) return
+  const id = pendingDemoId
+  pendingDemoId = null
+  demoLinkRunning = true
+  try {
+    await watchAdminDemo(id)
+  } catch (error) {
+    await dialog.showMessageBox({
+      type: 'error',
+      title: 'Demo playback',
+      message: error instanceof Error ? error.message : 'Could not open demo.'
+    })
+  } finally {
+    demoLinkRunning = false
+  }
+}
+function acceptDemoLink(value: string): void {
+  const id = parseDemoLink(value)
+  if (!id) return
+  pendingDemoId = id
+  if (app.isReady()) {
+    focusMainWindow()
+    if (!getSessionToken())
+      void dialog.showMessageBox({
+        type: 'info',
+        title: 'Demo playback',
+        message: 'Sign in with your administrator account to watch this demo.'
+      })
+    void processPendingDemo()
+  }
+}
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  acceptDemoLink(url)
+})
+for (const argument of process.argv) acceptDemoLink(argument)
+
 async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
   const result = await authentication
   const token = getSessionToken()
-  if (token) void reportClientTelemetry(token)
+  if (token) {
+    void reportClientTelemetry(token)
+    void processPendingDemo()
+  }
   return result
 }
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
+    for (const argument of argv) acceptDemoLink(argument)
     focusMainWindow()
   })
 }
@@ -317,6 +364,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  if (process.defaultApp && process.argv[1])
+    app.setAsDefaultProtocolClient(DEMO_PROTOCOL, process.execPath, [resolve(process.argv[1])])
+  else app.setAsDefaultProtocolClient(DEMO_PROTOCOL)
   // Gate production/remote access before creating the renderer or restoring a session.
   try {
     await assertHelperForBackend()
@@ -366,6 +416,8 @@ app.whenReady().then(async () => {
     return null
   })
 
+  ipcMain.handle(ADMIN_DEMO_CHANNELS.list, (_, page: unknown) => listAdminDemos(page))
+  ipcMain.handle(ADMIN_DEMO_CHANNELS.watch, (_, id: unknown) => watchAdminDemo(id))
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('login', credentials))
   )
@@ -613,6 +665,7 @@ app.whenReady().then(async () => {
 
   const startupSplash = await startupSplashPromise
   createWindow()
+  void processPendingDemo()
   if (startupSplash && !startupSplash.isDestroyed()) startupSplash.destroy()
   checkForAppUpdates()
 

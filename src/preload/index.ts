@@ -1,3 +1,4 @@
+import { ADMIN_DEMO_CHANNELS, type AdminDemosApi } from '../shared/admin-demos'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AuthApi } from '../shared/auth'
 import { AUTH_CHANNELS } from '../shared/auth'
@@ -235,7 +236,12 @@ const diagnosticLogs: DiagnosticLogsApi = {
     ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs)
 }
 
+const adminDemos: AdminDemosApi = {
+  list: (page) => ipcRenderer.invoke(ADMIN_DEMO_CHANNELS.list, page),
+  watch: (id) => ipcRenderer.invoke(ADMIN_DEMO_CHANNELS.watch, id)
+}
 const api = {
+  adminDemos,
   auth,
   antiCheat,
   dailyQuests,
