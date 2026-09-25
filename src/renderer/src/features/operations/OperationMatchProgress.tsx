@@ -154,7 +154,7 @@ export function OperationMatchProgress(): JSX.Element | null {
         </div>
       </div>
       <div
-        className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"
+        className="mt-4 h-2 overflow-hidden bg-white/10"
         role="progressbar"
         aria-label="Operation reward progress"
         aria-valuenow={shown}

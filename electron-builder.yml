@@ -12,6 +12,7 @@ files:
   - '!native/**'
   - '!resources/native/**'
 beforePack: scripts/package-game-inspector.cjs
+afterPack: scripts/verify-packaged-native.cjs
 asarUnpack:
   - resources/**
 extraResources:

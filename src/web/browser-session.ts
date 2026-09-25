@@ -1,4 +1,5 @@
 const TOKEN_KEY = '16competitive.web.session'
+const SELECTED_NODE_KEY = '16competitive.web.selected-node'
 
 let sessionToken = localStorage.getItem(TOKEN_KEY)
 
@@ -18,7 +19,16 @@ export const clearWebSessionToken = (): void => {
 const consumeHandoff = async (): Promise<void> => {
   const url = new URL(window.location.href)
   const token = url.searchParams.get('handoff')
-  if (!token) return
+  const selectedNode = url.searchParams.get('selectedNode')
+  if (selectedNode === 'automatic') localStorage.removeItem(SELECTED_NODE_KEY)
+  else if (selectedNode) localStorage.setItem(SELECTED_NODE_KEY, selectedNode)
+  if (!token) {
+    if (selectedNode) {
+      url.searchParams.delete('selectedNode')
+      history.replaceState({}, '', url.pathname + url.search + url.hash)
+    }
+    return
+  }
 
   try {
     const response = await fetch('/auth/web-handoff/consume', {
@@ -38,6 +48,7 @@ const consumeHandoff = async (): Promise<void> => {
     }
   } finally {
     url.searchParams.delete('handoff')
+    url.searchParams.delete('selectedNode')
     history.replaceState({}, '', url.pathname + url.search + url.hash)
   }
 }

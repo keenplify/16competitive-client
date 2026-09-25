@@ -269,14 +269,14 @@ export function SettingsPage(): JSX.Element {
       <button
         type="button"
         onClick={() => scrollToSection(section)}
-        className={`group relative w-full overflow-hidden rounded-md px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${
+        className={`group relative w-full overflow-hidden  px-4 py-3 text-left text-sm font-medium transition-all duration-300 ${
           active
             ? 'translate-x-1 bg-sky-400/10 text-sky-300'
             : 'text-neutral-400 hover:translate-x-0.5 hover:bg-white/5 hover:text-neutral-200'
         }`}
       >
         <span
-          className={`absolute inset-y-2 left-0 w-0.5 rounded-full bg-sky-400 transition-all duration-300 ${
+          className={`absolute inset-y-2 left-0 w-0.5 bg-sky-400 transition-all duration-300 ${
             active ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'
           }`}
         />
@@ -355,7 +355,7 @@ export function SettingsPage(): JSX.Element {
 
         <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
           <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-            <nav className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
+            <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
               {sectionButton('audio', 'Voice & Audio')}
               {sectionButton('assets', 'Assets')}
@@ -398,7 +398,7 @@ export function SettingsPage(): JSX.Element {
                   href="https://papamo.dev/16competitive"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center justify-start rounded-md border border-sky-400/20 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                  className="inline-flex h-11 items-center justify-start  border border-sky-400/20 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
                 >
                   <ExternalLink className="mr-2 size-4" aria-hidden="true" />
                   Get desktop app

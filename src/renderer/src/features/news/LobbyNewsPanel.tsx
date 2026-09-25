@@ -75,7 +75,7 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
               />
             )}
             <span className="absolute inset-0 bg-linear-to-t from-black via-black/30 to-transparent" />
-            <span className="absolute top-2 left-2 rounded bg-amber-300 px-2 py-1 text-[9px] font-black tracking-[0.14em] text-black uppercase">
+            <span className="absolute top-2 left-2   bg-amber-300 px-2 py-1 text-[9px] font-black tracking-[0.14em] text-black uppercase">
               Active Operation
             </span>
             <span className="absolute inset-x-0 bottom-0 p-3">
@@ -101,10 +101,10 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
                     aria-valuenow={Math.round(tierProgress)}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-white/25"
+                    className="mt-1.5 block h-1.5 overflow-hidden bg-white/25"
                   >
                     <span
-                      className="block h-full rounded-full bg-amber-300"
+                      className="block h-full bg-amber-300"
                       style={{ width: `${tierProgress}%` }}
                     />
                   </span>

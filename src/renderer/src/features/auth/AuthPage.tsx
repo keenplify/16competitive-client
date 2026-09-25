@@ -229,7 +229,7 @@ export function AuthPage(): JSX.Element {
             </p>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 rounded-lg bg-neutral-900 p-1">
+          <div className="mb-6 grid grid-cols-2  bg-neutral-900 p-1">
             <Button
               variant="ghost"
               className={isLogin ? 'bg-neutral-800 text-white hover:bg-neutral-800' : undefined}

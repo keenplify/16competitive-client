@@ -23,7 +23,8 @@ const isMember = (value: unknown): boolean =>
   (typeof value.lobbyPlayerModel === 'string' || value.lobbyPlayerModel === null) &&
   (typeof value.lobbyWeaponSkinId === 'string' || value.lobbyWeaponSkinId === null) &&
   typeof value.lobbyWeaponKey === 'string' &&
-  (typeof value.lobbyWeaponModelPath === 'string' || value.lobbyWeaponModelPath === null)
+  (typeof value.lobbyWeaponModelPath === 'string' || value.lobbyWeaponModelPath === null) &&
+  (value.clientMode === 'desktop' || value.clientMode === 'web' || value.clientMode === 'offline')
 
 const isParty = (value: unknown): value is Party =>
   isObject(value) &&

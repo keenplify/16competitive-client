@@ -16,7 +16,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "verify": "npm run lint && npm run typecheck",
     "build:helper": "node scripts/build-game-inspector.mjs",
-    "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs",
+    "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs scripts/release-helper.test.mjs",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",

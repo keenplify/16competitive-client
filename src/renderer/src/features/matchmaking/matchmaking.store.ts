@@ -41,6 +41,7 @@ export interface MatchAbandonNotice {
 }
 export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'> {
   winner: 1 | 2
+  winnerPlayerId?: string
   teamAScore: number
   teamBScore: number
   players: {
@@ -108,6 +109,7 @@ interface MatchmakingState {
   respondReady: (accepted: boolean) => Promise<void>
   reconnectGame: () => Promise<void>
   copyConnection: () => Promise<void>
+  exitCustomMatch: (matchId: string) => void
   reset: () => void
   dismissCompletedMatch: () => void
   dismissMatchAbandonNotice: () => void
@@ -377,6 +379,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             mapId: event.mapId,
             teams: event.teams,
             winner: event.winner,
+            winnerPlayerId: event.winnerPlayerId,
             teamAScore: event.teamAScore,
             teamBScore: event.teamBScore,
             players: event.players
@@ -762,6 +765,30 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       } catch (error) {
         set({ copyConnectionStatus: 'idle', error: readableError(error) })
       }
+    },
+
+    exitCustomMatch: (matchId) => {
+      if (get().match?.matchId !== matchId) return
+      terminalMatchIds.add(matchId)
+      set({
+        queueStatus: 'idle',
+        queuedAt: null,
+        autoFillAt: null,
+        searchStage: null,
+        queueStartedAt: null,
+        match: null,
+        readyDeadline: null,
+        acceptedPlayerIds: [],
+        readyPlayersRequired: 0,
+        readyResponse: 'pending',
+        countdown: null,
+        assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+        connectionDetails: null,
+        matchReadyAt: null,
+        copyConnectionStatus: 'idle',
+        gameExited: false,
+        error: null
+      })
     },
 
     dismissCompletedMatch: () => set({ completedMatch: null, error: null }),

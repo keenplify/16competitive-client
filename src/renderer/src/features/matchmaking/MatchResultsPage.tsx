@@ -24,8 +24,12 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     : match.teams.teamB.some((player) => player.id === currentPlayerId)
       ? 2
       : null
-  const didWin = currentPlayerTeam !== null && currentPlayerTeam === match.winner
-  const resultLabel = didWin ? 'Victory' : 'Defeat'
+  const didWin =
+    match.mode === 'ffa'
+      ? currentPlayerId === match.winnerPlayerId
+      : currentPlayerTeam !== null && currentPlayerTeam === match.winner
+  const resultLabel =
+    match.mode === 'ffa' ? (didWin ? 'FFA winner' : 'FFA complete') : didWin ? 'Victory' : 'Defeat'
   const resultClassName = didWin ? 'text-emerald-300' : 'text-neutral-200'
   const resultsBackgroundClass = didWin
     ? 'bg-[radial-gradient(circle_at_50%_24%,rgba(16,185,129,0.30)_0%,rgba(6,95,70,0.18)_28%,rgba(10,10,10,0.70)_60%,rgba(10,10,10,0.97)_100%)]'
@@ -198,32 +202,68 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
             {resultLabel}
           </h1>
-          <p className="mt-2 text-3xl font-bold text-white">
-            {score[0]} <span className="text-neutral-500">—</span> {score[1]}
-          </p>
+          {match.mode === 'ffa' ? (
+            <p className="mt-2 text-xl font-bold text-white">
+              {match.players.find((player) => player.id === match.winnerPlayerId)?.username ??
+                'Winner'}{' '}
+              reached 90 kills
+            </p>
+          ) : (
+            <p className="mt-2 text-3xl font-bold text-white">
+              {score[0]} <span className="text-neutral-500">—</span> {score[1]}
+            </p>
+          )}
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
             {getMatchmakingModeLabel(match.mode)} · {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
           </p>
-          <Team
-            label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
-            players={match.teams.teamA}
-            stats={match.players}
-            ratedMatch={match.mode === '5v5'}
-            onPlayerContextMenu={showPlayerMenu}
-          />
-          <Team
-            label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
-            players={match.teams.teamB}
-            stats={match.players}
-            ratedMatch={match.mode === '5v5'}
-            onPlayerContextMenu={showPlayerMenu}
-          />
+          {match.mode === 'ffa' ? (
+            <div className="mt-8 border-t border-white/10 pt-4">
+              <h2 className="text-sm font-bold tracking-widest text-white uppercase">
+                FFA leaderboard
+              </h2>
+              <ol className="mt-3 space-y-2">
+                {[...match.players]
+                  .sort((a, b) => b.kills - a.kills || a.deaths - b.deaths)
+                  .map((player, index) => (
+                    <li
+                      key={player.id}
+                      className="flex items-center justify-between border border-white/10 px-4 py-2 text-sm"
+                    >
+                      <span>
+                        {index + 1}. {player.username}
+                        {player.id === match.winnerPlayerId ? ' · Winner' : ''}
+                      </span>
+                      <span>
+                        {player.kills} K / {player.deaths} D
+                      </span>
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          ) : (
+            <>
+              <Team
+                label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
+                players={match.teams.teamA}
+                stats={match.players}
+                ratedMatch={match.mode === '5v5'}
+                onPlayerContextMenu={showPlayerMenu}
+              />
+              <Team
+                label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
+                players={match.teams.teamB}
+                stats={match.players}
+                ratedMatch={match.mode === '5v5'}
+                onPlayerContextMenu={showPlayerMenu}
+              />
+            </>
+          )}
         </div>
       )}
 
       {contextMenu && (
         <div
-          className="fixed z-50 min-w-40 overflow-hidden rounded-lg border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
+          className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           role="menu"
           onClick={(event) => event.stopPropagation()}
@@ -259,7 +299,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           aria-modal="true"
           aria-label="Player profile"
         >
-          <section className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10 bg-neutral-900 text-left shadow-2xl">
+          <section className="w-full max-w-2xl overflow-hidden  border border-white/10 bg-neutral-900 text-left shadow-2xl">
             <header className="flex items-start justify-between border-b border-white/10 px-6 py-5">
               <div>
                 <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">

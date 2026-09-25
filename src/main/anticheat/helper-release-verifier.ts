@@ -8,6 +8,13 @@ export interface HelperManifest {
   fileName: string
   sha256: string
   sizeBytes: number
+  cosmeticModule?: CosmeticModuleManifest
+}
+
+export interface CosmeticModuleManifest {
+  fileName: 'papamo-cosmetic-module-linux-x86.so'
+  sha256: string
+  sizeBytes: number
 }
 
 export interface SignedHelperRelease {
@@ -38,6 +45,7 @@ export function verifyHelperRelease(value: unknown, publicKeyPem: string): Helpe
   )
     throw new Error('Helper manifest signature verification failed')
   const manifest = JSON.parse(envelope.manifest) as Partial<HelperManifest> | null
+  const cosmetic = manifest?.cosmeticModule
   if (
     !manifest ||
     manifest.schemaVersion !== 1 ||
@@ -53,7 +61,15 @@ export function verifyHelperRelease(value: unknown, publicKeyPem: string): Helpe
     typeof manifest.sizeBytes !== 'number' ||
     !Number.isSafeInteger(manifest.sizeBytes) ||
     manifest.sizeBytes < 1 ||
-    manifest.sizeBytes > 32 * 1024 * 1024
+    manifest.sizeBytes > 32 * 1024 * 1024 ||
+    (manifest.platform === 'linux' &&
+      (!cosmetic ||
+        cosmetic.fileName !== 'papamo-cosmetic-module-linux-x86.so' ||
+        !/^[a-f0-9]{64}$/.test(cosmetic.sha256) ||
+        !Number.isSafeInteger(cosmetic.sizeBytes) ||
+        cosmetic.sizeBytes < 1 ||
+        cosmetic.sizeBytes > 32 * 1024 * 1024)) ||
+    (manifest.platform === 'win' && cosmetic !== undefined)
   )
     throw new Error('Invalid helper manifest fields')
   return manifest as HelperManifest
@@ -65,4 +81,15 @@ export function verifyHelperBinary(bytes: Uint8Array, manifest: HelperManifest):
     createHash('sha256').update(bytes).digest('hex') !== manifest.sha256
   )
     throw new Error('Helper binary hash or size does not match its signed manifest')
+}
+
+export function verifyCosmeticModule(bytes: Uint8Array, manifest: HelperManifest): void {
+  const cosmetic = manifest.cosmeticModule
+  if (
+    manifest.platform !== 'linux' ||
+    !cosmetic ||
+    bytes.byteLength !== cosmetic.sizeBytes ||
+    createHash('sha256').update(bytes).digest('hex') !== cosmetic.sha256
+  )
+    throw new Error('Cosmetic module hash or size does not match its signed manifest')
 }

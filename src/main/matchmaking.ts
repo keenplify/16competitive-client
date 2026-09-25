@@ -2,6 +2,7 @@ import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../sha
 import type { WebContents } from 'electron'
 import { app, BrowserWindow, clipboard } from 'electron'
 import {
+  isMatchmakingMode,
   MATCHMAKING_CHANNELS,
   manualConnectionCommand,
   allowsManualMatchConnection
@@ -56,8 +57,6 @@ const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
-const isMode = (value: unknown): value is MatchmakingMode =>
-  value === '5v5' || value === 'unrated' || value === 'casual'
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value) && value.length <= 35
@@ -294,7 +293,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       )
     case 'queue_joined':
       return (
-        isMode(message.mode) &&
+        isMatchmakingMode(message.mode) &&
         isMapIds(message.mapIds) &&
         typeof message.region === 'string' &&
         typeof message.allowRegionExpansion === 'boolean' &&
@@ -303,10 +302,10 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         isOptionalSearchStage(message.searchStage)
       )
     case 'queue_left':
-      return isMode(message.mode) && isMapIds(message.mapIds)
+      return isMatchmakingMode(message.mode) && isMapIds(message.mapIds)
     case 'queue_status':
       return (
-        isMode(message.mode) &&
+        isMatchmakingMode(message.mode) &&
         isMapIds(message.mapIds) &&
         typeof message.queuedPlayers === 'number' &&
         typeof message.playersRequired === 'number' &&
@@ -372,7 +371,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'match_roster': {
       if (
         typeof message.matchId !== 'string' ||
-        !isMode(message.mode) ||
+        !isMatchmakingMode(message.mode) ||
         !isMapId(message.mapId) ||
         typeof message.region !== 'string' ||
         !isHttpUrl(message.hostApiUrl) ||
@@ -437,10 +436,12 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'match_finished':
       return (
         typeof message.matchId === 'string' &&
-        isMode(message.mode) &&
+        isMatchmakingMode(message.mode) &&
         isMapId(message.mapId) &&
         isTeams(message.teams) &&
         (message.winner === 1 || message.winner === 2) &&
+        (message.mode !== 'ffa' || typeof message.winnerPlayerId === 'string') &&
+        (message.winnerPlayerId === undefined || typeof message.winnerPlayerId === 'string') &&
         typeof message.teamAScore === 'number' &&
         typeof message.teamBScore === 'number' &&
         Array.isArray(message.players) &&
@@ -506,6 +507,19 @@ class MatchmakingConnection {
 
   getActiveApiUrl(): string | null {
     return this.activeApiUrl ?? this.hostApiUrl
+  }
+
+  switchApiUrl(apiUrl: string): void {
+    if (this.getActiveApiUrl() === apiUrl) return
+    const previous = this.socket
+    this.socket = null
+    this.authenticated = false
+    this.activeApiUrl = null
+    this.hostApiUrl = apiUrl
+    this.reconnectAttempt = 0
+    this.stopPing()
+    previous?.close()
+    if (this.renderer && !this.renderer.isDestroyed()) this.openSocket(false, apiUrl, true)
   }
 
   connect(renderer: WebContents): void {
@@ -576,7 +590,7 @@ class MatchmakingConnection {
     preferredRegion: unknown,
     eligibleRegions: unknown
   ): void {
-    if (!isMode(mode)) throw new Error('Unsupported matchmaking mode')
+    if (!isMatchmakingMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
     if (typeof allowRegionExpansion !== 'boolean')
       throw new Error('Invalid regional search preference')

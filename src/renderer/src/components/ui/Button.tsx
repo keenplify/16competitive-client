@@ -26,7 +26,7 @@ export function Button({
     <button
       type={type}
       className={twMerge(
-        'inline-flex h-11 items-center justify-center rounded-md px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed',
+        'inline-flex h-11 items-center justify-center  px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed',
         variants[variant],
         className
       )}

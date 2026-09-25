@@ -56,7 +56,7 @@ function StoreFilterButton({
       <button
         type="button"
         className={[
-          'flex h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 text-left text-xs font-semibold transition',
+          'flex h-10 w-full items-center justify-between gap-3  border px-3 text-left text-xs font-semibold transition',
           active
             ? 'border-amber-200/70 bg-amber-300 text-neutral-950 shadow-[0_0_20px_rgba(252,211,77,.12)]'
             : 'border-transparent bg-white/[0.035] text-neutral-300 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
@@ -67,7 +67,7 @@ function StoreFilterButton({
         <span className="truncate">{label}</span>
         <span
           className={[
-            'min-w-6 rounded px-1.5 py-0.5 text-center text-[10px] tabular-nums',
+            'min-w-6   px-1.5 py-0.5 text-center text-[10px] tabular-nums',
             active ? 'bg-black/15 text-neutral-900' : 'bg-black/25 text-neutral-500',
             badgeClassName ?? ''
           ].join(' ')}
@@ -77,7 +77,7 @@ function StoreFilterButton({
       </button>
 
       {tooltip && (
-        <div className="pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 hidden w-64 -translate-y-1/2 rounded-lg border border-white/15 bg-neutral-950/95 p-3 text-left opacity-0 shadow-2xl backdrop-blur transition group-hover/filter:opacity-100 md:block">
+        <div className="pointer-events-none absolute top-1/2 left-[calc(100%+10px)] z-50 hidden w-64 -translate-y-1/2  border border-white/15 bg-neutral-950/95 p-3 text-left opacity-0 shadow-2xl backdrop-blur transition group-hover/filter:opacity-100 md:block">
           <p className="text-[10px] font-black tracking-[0.16em] text-neutral-500 uppercase">
             Typical price
           </p>
@@ -274,7 +274,7 @@ export function ShopPage(): JSX.Element {
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>
-            <div className="rounded-lg border border-sky-300/20 bg-sky-300/10 px-4 py-3">
+            <div className=" border border-sky-300/20 bg-sky-300/10 px-4 py-3">
               <CurrencyAmount
                 currency="POINTS"
                 amount={points}
@@ -282,7 +282,7 @@ export function ShopPage(): JSX.Element {
                 iconClassName="size-8"
               />
             </div>
-            <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3">
+            <div className=" border border-amber-300/20 bg-amber-300/10 px-4 py-3">
               <CurrencyAmount
                 currency="P_CASH"
                 amount={pCash}
@@ -294,13 +294,13 @@ export function ShopPage(): JSX.Element {
         </header>
 
         {error && (
-          <p className="mt-5 rounded-md border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+          <p className="mt-5  border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
             {error}
           </p>
         )}
 
         <div className="mt-6 grid items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="rounded-xl border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5 md:z-20">
+          <aside className=" border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5 md:z-20">
             <div className="flex items-center justify-between gap-3 px-1 pb-2">
               <div>
                 <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
@@ -389,7 +389,7 @@ export function ShopPage(): JSX.Element {
               </Button>
             ) : null}
             {status === 'ready' && filteredSkins.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-white/15 p-10 text-center text-neutral-400">
+              <div className="mt-4  border border-dashed border-white/15 p-10 text-center text-neutral-400">
                 No skins match these filters.
               </div>
             ) : null}
@@ -403,7 +403,7 @@ export function ShopPage(): JSX.Element {
                   return (
                     <article
                       key={skin.id}
-                      className="flex min-h-72 flex-col rounded-xl border border-white/10 bg-neutral-900/90 p-5"
+                      className="flex min-h-72 flex-col  border border-white/10 bg-neutral-900/90 p-5"
                     >
                       <SkinCardPreview
                         skin={skin}
@@ -415,7 +415,7 @@ export function ShopPage(): JSX.Element {
                           {skin.weaponKey}
                         </p>
                         <span
-                          className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                          className={`  border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
                         >
                           {rarity.label}
                         </span>
@@ -527,7 +527,7 @@ export function SkinCardPreview({
   return (
     <button
       type="button"
-      className="group relative mb-4 h-40 w-full overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.28),_transparent_68%)] text-left transition hover:border-sky-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+      className="group relative mb-4 h-40 w-full overflow-hidden  border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.28),_transparent_68%)] text-left transition hover:border-sky-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
       aria-label={`Open ${skin.name} 3D preview`}
       onClick={onOpen}
     >
@@ -540,7 +540,7 @@ export function SkinCardPreview({
         className="pointer-events-none absolute inset-0"
       />
       {!owned && (
-        <span className="absolute top-3 right-3 flex items-center gap-1 rounded bg-black/65 px-2 py-1 text-[10px] font-bold tracking-wide text-neutral-200 uppercase backdrop-blur">
+        <span className="absolute top-3 right-3 flex items-center gap-1   bg-black/65 px-2 py-1 text-[10px] font-bold tracking-wide text-neutral-200 uppercase backdrop-blur">
           <LockKeyhole className="size-3" /> Locked
         </span>
       )}
@@ -580,7 +580,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
       aria-modal="true"
       aria-label={`${skin.name} preview`}
     >
-      <section className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-white/15 bg-neutral-950 shadow-2xl">
+      <section className="relative w-full max-w-3xl overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl">
         <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <h2 className="mt-1 text-lg font-semibold text-white">{skin.name}</h2>
@@ -658,7 +658,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
             </div>
           )}
           {skin.weaponKey !== 'elite' && model && (
-            <span className="pointer-events-none absolute bottom-3 left-4 rounded bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
+            <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
               Drag to rotate
             </span>
           )}

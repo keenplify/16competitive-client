@@ -800,8 +800,8 @@ export function VoiceChatDock(): JSX.Element | null {
     railMode === 'expanded'
       ? 'right-0 bottom-0 w-72 rounded-none border-r-0 border-b-0'
       : railMode === 'collapsed'
-        ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] rounded-xl'
-        : 'right-5 top-24 w-[min(24rem,calc(100vw-2.5rem))] rounded-xl'
+        ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] '
+        : 'right-5 top-24 w-[min(24rem,calc(100vw-2.5rem))] '
 
   if (activeContext?.kind === 'match') return null
 
@@ -850,7 +850,7 @@ export function VoiceChatDock(): JSX.Element | null {
               <>
                 <button
                   type="button"
-                  className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                  className={` border px-3 py-2 text-xs font-semibold ${
                     openMic
                       ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
                       : 'border-white/15 bg-white/5 text-neutral-200'
@@ -862,7 +862,7 @@ export function VoiceChatDock(): JSX.Element | null {
                 {!openMic && (
                   <button
                     type="button"
-                    className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                    className={` border px-3 py-2 text-xs font-semibold ${
                       pttActive
                         ? 'border-sky-400/60 bg-sky-400/20 text-sky-100'
                         : 'border-white/15 bg-white/5 text-neutral-200'
@@ -877,7 +877,7 @@ export function VoiceChatDock(): JSX.Element | null {
                 )}
                 <button
                   type="button"
-                  className="rounded-md border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-200"
+                  className=" border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-200"
                   onClick={disconnect}
                 >
                   Disconnect voice
@@ -886,7 +886,7 @@ export function VoiceChatDock(): JSX.Element | null {
             ) : (
               <button
                 type="button"
-                className="rounded-md border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200"
+                className=" border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200"
                 onClick={reconnect}
               >
                 Reconnect voice
@@ -916,10 +916,7 @@ export function VoiceChatDock(): JSX.Element | null {
                 const preference = preferenceFor(preferences, peer.id)
                 const state = simulated ? 'connected' : (peerStates[peer.id] ?? 'new')
                 return (
-                  <div
-                    key={peer.id}
-                    className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-                  >
+                  <div key={peer.id} className=" border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{peer.username}</p>
@@ -927,7 +924,7 @@ export function VoiceChatDock(): JSX.Element | null {
                       </div>
                       <button
                         type="button"
-                        className="rounded border border-white/10 px-2 py-1 text-xs text-neutral-300 hover:bg-white/5"
+                        className="  border border-white/10 px-2 py-1 text-xs text-neutral-300 hover:bg-white/5"
                         onClick={() =>
                           useVoicePreferencesStore
                             .getState()

@@ -7,6 +7,7 @@ import { MatchHistoryPage } from './MatchHistoryPage'
 import { OperationPage } from '../operations/OperationPage'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { COUNTRY_OPTIONS, CountryFlag, type CountryOption } from '../../components/CountryFlag'
+import { TabList } from '../../components/ui/TabList'
 
 const FLAG_HELP_OPTION: CountryOption = {
   code: '__help__',
@@ -65,13 +66,10 @@ export function ProfilePage(): JSX.Element {
                 formatOptionLabel={(option, { context }) =>
                   context === 'value' ? (
                     option.code ? (
-                      <CountryFlag
-                        code={option.code}
-                        className="h-4 w-6 rounded-[2px] object-cover"
-                      />
+                      <CountryFlag code={option.code} className="h-4 w-6  object-cover" />
                     ) : (
                       <span
-                        className="h-4 w-6 rounded-[2px] border border-white/15 bg-white/5"
+                        className="h-4 w-6  border border-white/15 bg-white/5"
                         aria-label="No flag"
                       />
                     )
@@ -82,10 +80,10 @@ export function ProfilePage(): JSX.Element {
                       {option.code ? (
                         <CountryFlag
                           code={option.code}
-                          className="h-4 w-6 shrink-0 rounded-[2px] object-cover"
+                          className="h-4 w-6 shrink-0  object-cover"
                         />
                       ) : (
-                        <span className="h-4 w-6 shrink-0 rounded-[2px] border border-white/15 bg-white/5" />
+                        <span className="h-4 w-6 shrink-0  border border-white/15 bg-white/5" />
                       )}
                       <span className="truncate">{option.name}</span>
                     </span>
@@ -123,25 +121,17 @@ export function ProfilePage(): JSX.Element {
               />
             </div>
           </div>
-          <div className="mt-6 flex gap-6" role="tablist" aria-label="Profile sections">
-            {(['matches', 'skins', 'operation'] as const).map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                className={twMerge(
-                  'border-b-2 px-1 pb-3 text-sm font-semibold capitalize transition',
-                  tab === id
-                    ? 'border-sky-400 text-sky-300'
-                    : 'border-transparent text-neutral-300 hover:text-white'
-                )}
-                onClick={() => setTab(id)}
-              >
-                {id === 'matches' ? 'Match history' : id === 'skins' ? 'Loadout' : 'Operation'}
-              </button>
-            ))}
-          </div>
+          <TabList
+            className="mt-6 border-b-0"
+            ariaLabel="Profile sections"
+            value={tab}
+            items={[
+              { value: 'matches', label: 'Match history' },
+              { value: 'skins', label: 'Loadout' },
+              { value: 'operation', label: 'Operation' }
+            ]}
+            onChange={setTab}
+          />
         </header>
         {tab === 'matches' ? (
           <MatchHistoryPage showHeader={false} />

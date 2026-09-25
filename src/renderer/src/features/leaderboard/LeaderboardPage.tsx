@@ -1,6 +1,7 @@
 import { ChevronLeft, Globe2, LoaderCircle, Map, Trophy, UserRound } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
+import { TabList } from '../../components/ui/TabList'
 import { useLeaderboardStore, type LeaderboardScope } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { CountryFlag } from '../../components/CountryFlag'
@@ -73,7 +74,7 @@ export function LeaderboardPage(): JSX.Element {
           )}
           {profileError && <p className="mt-8 text-sm text-rose-300">{profileError}</p>}
           {profile && (
-            <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
+            <section className="mt-6 overflow-hidden  border border-white/10 bg-neutral-900/90">
               <header className="border-b border-white/10 px-6 py-7">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-full bg-sky-400/15 text-sky-300">
@@ -120,7 +121,7 @@ export function LeaderboardPage(): JSX.Element {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
-      <header className="mx-auto flex max-w-3xl items-end justify-between gap-4 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+      <header className="mx-auto flex max-w-3xl items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <div>
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
@@ -132,38 +133,28 @@ export function LeaderboardPage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mx-auto mt-6 flex max-w-3xl gap-2">
-        <button
-          type="button"
-          onClick={() => switchScope('global')}
-          className={`flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-bold tracking-wide uppercase transition ${
-            scope === 'global'
-              ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
-              : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
-          }`}
-        >
-          <Globe2 className="size-4" aria-hidden="true" />
-          Global
-        </button>
-        <button
-          type="button"
-          disabled={!playerCountryCode}
-          onClick={() => switchScope('continental')}
-          className={`flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-bold tracking-wide uppercase transition disabled:cursor-not-allowed disabled:opacity-40 ${
-            scope === 'continental'
-              ? 'border-sky-400/50 bg-sky-400/15 text-sky-200'
-              : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white'
-          }`}
-          title={
-            playerCountryCode
+      <TabList
+        className="mx-auto mt-6 max-w-3xl"
+        ariaLabel="Leaderboard scope"
+        value={scope}
+        items={[
+          {
+            value: 'global',
+            label: 'Global',
+            icon: <Globe2 className="size-4" aria-hidden="true" />
+          },
+          {
+            value: 'continental',
+            label: 'Continental',
+            icon: <Map className="size-4" aria-hidden="true" />,
+            disabled: !playerCountryCode,
+            title: playerCountryCode
               ? 'Your continental leaderboard'
               : 'Set your country in your profile to unlock continental rankings'
           }
-        >
-          <Map className="size-4" aria-hidden="true" />
-          Continental
-        </button>
-      </div>
+        ]}
+        onChange={switchScope}
+      />
 
       {!playerCountryCode && scope === 'global' && leaderboard && (
         <p className="mx-auto mt-3 max-w-3xl text-xs text-neutral-500">

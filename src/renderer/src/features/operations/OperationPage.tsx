@@ -115,12 +115,12 @@ function TierCard({
         <div className="relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.22),_transparent_68%)]">
           <RewardPreview tier={tier} />
           {!unlocked && (
-            <span className="absolute top-2 right-2 rounded bg-black/65 p-1.5 text-neutral-300">
+            <span className="absolute top-2 right-2   bg-black/65 p-1.5 text-neutral-300">
               <LockKeyhole className="size-3.5" aria-hidden="true" />
             </span>
           )}
           {tier.isMajor && (
-            <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded bg-amber-300/15 px-2 py-1 text-[9px] font-black tracking-[0.16em] text-amber-200 uppercase">
+            <span className="absolute top-2 left-2 inline-flex items-center gap-1   bg-amber-300/15 px-2 py-1 text-[9px] font-black tracking-[0.16em] text-amber-200 uppercase">
               <Star className="size-3 fill-current" aria-hidden="true" /> Major
             </span>
           )}
@@ -492,7 +492,7 @@ export function OperationPage(): JSX.Element {
             <div style={{ width: `${Math.max(TIER_CARD_WIDTH, rewardTrackWidth)}px` }}>
               <div className="relative mb-5 h-2">
                 <div
-                  className="absolute inset-0 rounded-full bg-white/10"
+                  className="absolute inset-0 bg-white/10"
                   role="progressbar"
                   aria-label="Operation reward progress"
                   aria-valuenow={Math.min(displayedPoints, maxPoints)}
@@ -500,7 +500,7 @@ export function OperationPage(): JSX.Element {
                   aria-valuemax={maxPoints}
                 >
                   <div
-                    className="operation-progress-sheen h-full rounded-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
+                    className="operation-progress-sheen h-full bg-linear-to-r from-cyan-400 via-sky-300 to-blue-500 transition-[width] duration-75 ease-linear"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>

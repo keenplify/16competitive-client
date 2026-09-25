@@ -113,7 +113,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
             ['Team B', teams.teamB]
           ] as const
         ).map(([name, players]) => (
-          <section key={name} className="rounded-md border border-white/10 bg-neutral-900/90 p-5">
+          <section key={name} className=" border border-white/10 bg-neutral-900/90 p-5">
             <h2 className="mb-4 text-xs font-bold tracking-[0.18em] text-neutral-400 uppercase">
               {name}
             </h2>
@@ -124,7 +124,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
                 return (
                   <li
                     key={player.id}
-                    className="flex min-h-14 flex-wrap items-center gap-3 rounded-sm bg-black/25 px-3 py-2"
+                    className="flex min-h-14 flex-wrap items-center gap-3  bg-black/25 px-3 py-2"
                     onContextMenu={(event) => showMenu(event, player.id)}
                   >
                     <span
@@ -138,7 +138,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="grid size-9 place-items-center rounded-sm border border-white/10 text-neutral-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400"
+                          className="grid size-9 place-items-center  border border-white/10 text-neutral-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400"
                           aria-label={`${preference.muted ? 'Unmute' : 'Mute'} ${player.username}`}
                           aria-pressed={preference.muted}
                           onClick={() =>
@@ -175,7 +175,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
                         <button
                           type="button"
                           disabled={reportedIds.includes(player.id)}
-                          className="grid size-9 place-items-center rounded-sm border border-white/10 text-neutral-300 hover:bg-red-400/10 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-sky-400 disabled:opacity-40"
+                          className="grid size-9 place-items-center  border border-white/10 text-neutral-300 hover:bg-red-400/10 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-sky-400 disabled:opacity-40"
                           aria-label={`Report ${player.username}`}
                           title={reportedIds.includes(player.id) ? 'Reported' : 'Report player'}
                           onClick={() => {
@@ -199,7 +199,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
       {contextMenu && (
         <div
           role="menu"
-          className="fixed z-[110] min-w-40 rounded-sm border border-white/15 bg-neutral-800 py-1 text-left text-white shadow-xl"
+          className="fixed z-[110] min-w-40  border border-white/15 bg-neutral-800 py-1 text-left text-white shadow-xl"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(event) => event.stopPropagation()}
         >
@@ -235,7 +235,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
               role="dialog"
               aria-modal="true"
               aria-label="Player profile"
-              className="w-full max-w-md rounded-md border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
+              className="w-full max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
             >
               <div className="flex items-start justify-between gap-4">
                 <h2 className="text-xl font-semibold">{profile?.username ?? 'Player profile'}</h2>
@@ -290,7 +290,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
               role="dialog"
               aria-modal="true"
               aria-labelledby="player-report-title"
-              className="w-full max-w-md rounded-md border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
+              className="w-full max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
             >
               <h2 id="player-report-title" className="text-xl font-semibold">
                 Report {target.username}
@@ -312,7 +312,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
                 <label className="block text-sm">
                   Reason
                   <select
-                    className="mt-2 w-full rounded-sm border border-white/15 bg-neutral-800 px-3 py-2"
+                    className="mt-2 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
                     value={reason}
                     onChange={(event) => setReason(event.target.value as PlayerReportReason)}
                   >
@@ -326,7 +326,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
                 <label className="block text-sm">
                   Description
                   <textarea
-                    className="mt-2 min-h-28 w-full rounded-sm border border-white/15 bg-neutral-800 px-3 py-2"
+                    className="mt-2 min-h-28 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
                     value={description}
                     minLength={3}
                     maxLength={300}

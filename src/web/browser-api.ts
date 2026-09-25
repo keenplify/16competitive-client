@@ -13,6 +13,7 @@ import type {
   SentPartyInvitation
 } from '../shared/party'
 import type { RedeemCodeResponse } from '../shared/redeem-codes'
+import type { CustomGameRoom, CustomGamesApi } from '../shared/custom-games'
 import type {
   LobbyLoadout,
   OwnedSkin,
@@ -24,7 +25,7 @@ import type {
 } from '../shared/skins'
 import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
 import { browserAuthApi } from './browser-auth'
-import { browserMatchmakingApi, browserPartyRealtime } from './browser-matchmaking'
+import { browserMatchmakingApi, browserPartyRealtime, navigateToNode } from './browser-matchmaking'
 import { getWebSessionToken, requestArrayBuffer, requestJson } from './browser-session'
 
 const runtimeWindow = window as Window & { __SIXTEEN_COMPETITIVE_WEB__?: boolean }
@@ -77,6 +78,174 @@ const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
       ...(body === undefined ? {} : { body: JSON.stringify(body) })
     }
   })
+
+const customGames: CustomGamesApi = {
+  async list(selectedNodeId) {
+    const nodes = await browserMatchmakingApi.getNodes()
+    const availableNodes = nodes.filter((node) => node.available)
+    const targets = selectedNodeId
+      ? availableNodes.filter((node) => node.id === selectedNodeId)
+      : availableNodes
+    if (targets.length === 0) {
+      throw new Error(
+        selectedNodeId
+          ? 'The selected custom game server is unavailable.'
+          : 'No custom game servers are available.'
+      )
+    }
+    const results = await Promise.allSettled(
+      targets.map(async (node) => {
+        const result = await requestJson<{ rooms: CustomGameRoom[] }>('/custom-games', {
+          authenticated: true,
+          baseUrl: node.publicApiUrl,
+          clearOnUnauthorized: false
+        })
+        return result.rooms
+      })
+    )
+    const successful = results.filter(
+      (result): result is PromiseFulfilledResult<CustomGameRoom[]> => result.status === 'fulfilled'
+    )
+    if (successful.length === 0) {
+      throw new Error('Could not load rooms from the selected custom game servers.')
+    }
+    return [
+      ...new Map(successful.flatMap(({ value }) => value).map((room) => [room.id, room])).values()
+    ]
+  },
+  async mine(host) {
+    return (
+      await requestJson<{ room: CustomGameRoom | null }>('/custom-games/mine', {
+        authenticated: true,
+        baseUrl: host
+      })
+    ).room
+  },
+  async create(settings) {
+    const [nodes, preferences] = await Promise.all([
+      browserMatchmakingApi.getNodes(),
+      browserMatchmakingApi.getPreferences()
+    ])
+    const available = nodes.filter((node) => node.available)
+    const latency = (node: (typeof nodes)[number]): number =>
+      typeof node.latencyMs === 'number' && Number.isFinite(node.latencyMs)
+        ? node.latencyMs
+        : Infinity
+    const target = preferences.selectedNodeId
+      ? available.find((node) => node.id === preferences.selectedNodeId)
+      : available.sort((left, right) => latency(left) - latency(right))[0]
+    if (!target) throw new Error('No custom game server is available for your selection.')
+    const result = await requestJson<{ room: CustomGameRoom }>('/custom-games', {
+      authenticated: true,
+      baseUrl: target.publicApiUrl,
+      init: { method: 'POST', body: JSON.stringify(settings) }
+    })
+    if (new URL(target.publicApiUrl).origin !== window.location.origin) {
+      await navigateToNode(target.publicApiUrl, preferences.selectedNodeId)
+    }
+    return result.room
+  },
+  async update(roomId, settings, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(`/custom-games/${encodeURIComponent(roomId)}`, {
+        authenticated: true,
+        baseUrl: host,
+        init: { method: 'PATCH', body: JSON.stringify(settings) }
+      })
+    ).room
+  },
+  async join(roomId, password, host) {
+    const result = await requestJson<{ room: CustomGameRoom }>(
+      `/custom-games/${encodeURIComponent(roomId)}/join`,
+      {
+        authenticated: true,
+        baseUrl: host,
+        init: { method: 'POST', body: JSON.stringify({ password }) }
+      }
+    )
+    if (host && new URL(host).origin !== window.location.origin) {
+      const preferences = await browserMatchmakingApi.getPreferences()
+      await navigateToNode(host, preferences.selectedNodeId)
+    }
+    return result.room
+  },
+  async leave(roomId, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom | null }>(
+        `/custom-games/${encodeURIComponent(roomId)}/leave`,
+        { authenticated: true, baseUrl: host, init: { method: 'POST' } }
+      )
+    ).room
+  },
+  async start(roomId, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}/start`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'POST' }
+        }
+      )
+    ).room
+  },
+  async addBot(roomId, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}/bots`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'POST' }
+        }
+      )
+    ).room
+  },
+  async setTeamCapacity(roomId, team, capacity, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}/team-capacity`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'PATCH', body: JSON.stringify({ team, capacity }) }
+        }
+      )
+    ).room
+  },
+  async moveMember(roomId, playerId, team, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}/members/${encodeURIComponent(playerId)}/team`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'PATCH', body: JSON.stringify({ team }) }
+        }
+      )
+    ).room
+  },
+  async moveServer(roomId, targetNodeId, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}/move`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'POST', body: JSON.stringify({ targetNodeId }) }
+        }
+      )
+    ).room
+  },
+  async kick(roomId, playerId, host) {
+    return (
+      await requestJson<{ room: CustomGameRoom | null }>(
+        `/custom-games/${encodeURIComponent(roomId)}/members/${encodeURIComponent(playerId)}`,
+        { authenticated: true, baseUrl: host, init: { method: 'DELETE' } }
+      )
+    ).room
+  }
+}
 
 const friends = {
   async list(): Promise<FriendsSnapshot> {
@@ -258,6 +427,7 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 
 const api: Window['api'] = {
   auth: browserAuthApi,
+  customGames,
 
   antiCheat: {
     async getDeviceStatus() {

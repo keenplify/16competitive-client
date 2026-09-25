@@ -30,7 +30,7 @@ export function TextField({
         <input
           id={id}
           className={twMerge(
-            'h-11 w-full rounded-md border border-white/10 bg-neutral-950/70 px-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-amber-400/70 focus:ring-2 focus:ring-amber-400/10',
+            'h-11 w-full  border border-white/10 bg-neutral-950/70 px-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-amber-400/70 focus:ring-2 focus:ring-amber-400/10',
             className
           )}
           {...props}

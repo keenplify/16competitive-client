@@ -16,6 +16,7 @@ import type { NewsApi } from '../shared/news'
 import type { RedeemCodesApi } from '../shared/redeem-codes'
 import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
 import type { OperationsApi } from '../shared/operations'
+import type { CustomGamesApi } from '../shared/custom-games'
 
 declare global {
   interface Window {
@@ -24,6 +25,7 @@ declare global {
       auth: AuthApi
       antiCheat: AntiCheatApi
       dailyQuests: DailyQuestsApi
+      customGames: CustomGamesApi
       friends: FriendsApi
       gameSettings: GameSettingsApi
       leaderboard: LeaderboardApi

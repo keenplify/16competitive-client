@@ -74,6 +74,7 @@ import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
+import { closeCounterStrikeForMatch } from './game/cs16-launcher'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -102,6 +103,21 @@ import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
+import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
+import {
+  addCustomGameBot,
+  createCustomGame,
+  getMyCustomGame,
+  joinCustomGame,
+  kickCustomGameMember,
+  leaveCustomGame,
+  listCustomGames,
+  moveCustomGameMember,
+  moveCustomGameServer,
+  setCustomGameTeamCapacity,
+  startCustomGame,
+  updateCustomGame
+} from './custom-games'
 import { redeemCode } from './redeem-codes'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import {
@@ -481,11 +497,15 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
-  ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, (_, nodeId: unknown) => {
+  ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, async (_, nodeId: unknown) => {
     if (nodeId !== null && (typeof nodeId !== 'string' || nodeId.length > 80)) {
       throw new Error('Invalid matchmaking region')
     }
-    return saveMatchmakingPreferences({ selectedNodeId: nodeId })
+    const preferences = await saveMatchmakingPreferences({ selectedNodeId: nodeId })
+    const nodes = await getMatchmakingNodes()
+    const selected = nodes.find((node) => node.id === nodeId && node.available)
+    if (selected) matchmakingConnection.switchApiUrl(selected.publicApiUrl)
+    return preferences
   })
   ipcMain.handle(MATCHMAKING_CHANNELS.setAllowRegionExpansion, (_, value: unknown) => {
     if (typeof value !== 'boolean') throw new Error('Invalid regional search preference')
@@ -514,6 +534,54 @@ app.whenReady().then(async () => {
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.list, (_, selectedNodeId: unknown) =>
+    listCustomGames(selectedNodeId)
+  )
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.mine, (_, host: unknown) => getMyCustomGame(host))
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.create, (_, settings: unknown) => createCustomGame(settings))
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.update,
+    (_, roomId: unknown, settings: unknown, host: unknown) =>
+      updateCustomGame(roomId, settings, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.join,
+    (_, roomId: unknown, password: unknown, host: unknown) => joinCustomGame(roomId, password, host)
+  )
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.leave, async (_, roomId: unknown, host: unknown) => {
+    const currentRoom = await getMyCustomGame(host)
+    const result = await leaveCustomGame(roomId, host)
+    if (currentRoom && currentRoom.id === roomId && currentRoom.matchId) {
+      closeCounterStrikeForMatch(currentRoom.matchId)
+    }
+    return result
+  })
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.start, (_, roomId: unknown, host: unknown) =>
+    startCustomGame(roomId, host)
+  )
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.addBot, (_, roomId: unknown, host: unknown) =>
+    addCustomGameBot(roomId, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.setTeamCapacity,
+    (_, roomId: unknown, team: unknown, capacity: unknown, host: unknown) =>
+      setCustomGameTeamCapacity(roomId, team, capacity, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.moveMember,
+    (_, roomId: unknown, playerId: unknown, team: unknown, host: unknown) =>
+      moveCustomGameMember(roomId, playerId, team, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.moveServer,
+    (_, roomId: unknown, targetNodeId: unknown, host: unknown) =>
+      moveCustomGameServer(roomId, targetNodeId, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.kick,
+    (_, roomId: unknown, playerId: unknown, host: unknown) =>
+      kickCustomGameMember(roomId, playerId, host)
+  )
   ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) =>
     getMatchSummary(matchId)

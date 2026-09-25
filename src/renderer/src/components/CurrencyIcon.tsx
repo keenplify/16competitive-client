@@ -82,7 +82,7 @@ export function CurrencyAmount({
       {showTooltip && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-50 w-max max-w-56 -translate-x-1/2 translate-y-1 rounded border border-white/15 bg-neutral-950/95 px-3 py-2 text-left text-[11px] font-normal leading-4 text-neutral-200 opacity-0 shadow-2xl backdrop-blur transition group-hover/currency:translate-y-0 group-hover/currency:opacity-100 group-focus-within/currency:translate-y-0 group-focus-within/currency:opacity-100"
+          className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-50 w-max max-w-56 -translate-x-1/2 translate-y-1   border border-white/15 bg-neutral-950/95 px-3 py-2 text-left text-[11px] font-normal leading-4 text-neutral-200 opacity-0 shadow-2xl backdrop-blur transition group-hover/currency:translate-y-0 group-hover/currency:opacity-100 group-focus-within/currency:translate-y-0 group-focus-within/currency:opacity-100"
         >
           <strong className="block font-semibold text-white">{presentation.label}</strong>
           <span className="text-neutral-400">{presentation.description}</span>

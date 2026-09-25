@@ -15,7 +15,7 @@ export function LanguageSettings(): JSX.Element {
           <p className="mt-1 text-sm text-neutral-400">{t('settings.language.description')}</p>
 
           <div
-            className="mt-5 inline-flex flex-wrap rounded-md border border-white/10 bg-black/30 p-1"
+            className="mt-5 inline-flex flex-wrap  border border-white/10 bg-black/30 p-1"
             role="group"
             aria-label={t('settings.language.title')}
           >
@@ -27,7 +27,7 @@ export function LanguageSettings(): JSX.Element {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => setLanguage(option.code)}
-                  className={`rounded px-4 py-2 text-sm font-semibold transition ${
+                  className={`  px-4 py-2 text-sm font-semibold transition ${
                     selected
                       ? 'bg-sky-500 text-white shadow-[0_0_18px_rgba(14,165,233,0.2)]'
                       : 'text-neutral-400 hover:bg-white/5 hover:text-white'

@@ -41,7 +41,8 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
                   lobbyPlayerModel: operativeModel,
                   lobbyWeaponSkinId: skinId,
                   lobbyWeaponKey: weaponKey,
-                  lobbyWeaponModelPath: null
+                  lobbyWeaponModelPath: null,
+                  clientMode: 'desktop'
                 },
                 modelPath: presentationModelPath(operativeModel),
                 fallbackModelPath: operativeModel,
@@ -77,7 +78,7 @@ export function OperationSkinPreview({ tier }: { tier: OperationTier }): JSX.Ele
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4">
         <CurrencyIcon currency={tier.rewardType} animated className="size-44 sm:size-56" />
-        <p className="rounded bg-black/60 px-5 py-2 text-xl font-black text-white backdrop-blur-sm">
+        <p className="  bg-black/60 px-5 py-2 text-xl font-black text-white backdrop-blur-sm">
           {(tier.amount ?? 0).toLocaleString()}{' '}
           {tier.rewardType === 'POINTS' ? 'Points' : 'Papa Cash'}
         </p>
@@ -88,7 +89,7 @@ export function OperationSkinPreview({ tier }: { tier: OperationTier }): JSX.Ele
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 text-sky-200">
       <Award className="size-36 drop-shadow-[0_0_30px_rgba(56,189,248,.45)]" />
-      <p className="rounded bg-black/60 px-5 py-2 text-xl font-black text-white">
+      <p className="  bg-black/60 px-5 py-2 text-xl font-black text-white">
         {tier.showcaseName ?? 'Showcase'}
       </p>
     </div>

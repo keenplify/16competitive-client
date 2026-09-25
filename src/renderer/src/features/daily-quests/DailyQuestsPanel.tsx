@@ -139,9 +139,9 @@ export function DailyQuestsPanel({
                       ? `${Math.min(matchQuest.progressBefore, quest.target)} → ${Math.min(progress, quest.target)} / ${quest.target}`
                       : `${Math.min(progress, quest.target)} / ${quest.target}`}
                   </p>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10 grow">
+                  <div className="h-2 grow overflow-hidden bg-white/10">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-sky-300 to-emerald-300 transition-[width] duration-[1100ms] ease-out"
+                      className="h-full bg-gradient-to-r from-sky-300 to-emerald-300 transition-[width] duration-[1100ms] ease-out"
                       style={{
                         width: `${clampPercent(
                           revealMatchProgress && matchQuest && !revealStarted
