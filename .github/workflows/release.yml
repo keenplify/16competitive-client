@@ -31,6 +31,8 @@ jobs:
     environment: Prod
     env:
       DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
+      HELPER_REPOSITORY: ${{ vars.HELPER_REPOSITORY }}
+      GH_TOKEN: ${{ secrets.HELPER_RELEASE_READ_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,13 +54,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run test:helper
       - run: ${{ matrix.command }}
-      - name: Reject localhost backend in release bundle
-        shell: bash
-        run: >-
-          node -e "const bundle=require('node:fs').readFileSync('out/main/index.js','utf8');
-          if (bundle.includes('http://127.0.0.1:3000'))
-          throw new Error('Release bundle targets the local development backend')"
+      - name: Verify release backend target
+        run: node --experimental-strip-types scripts/check-release-backend.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}

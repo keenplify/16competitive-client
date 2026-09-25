@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
+import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -109,7 +109,8 @@ import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
 import { OPERATION_CHANNELS } from '../shared/operations'
 import { getActiveOperation, getMyOperation, markOperationViewed } from './operations'
 import { discordPresence } from './discord-presence'
-import { DISCORD_CLIENT_ID } from './config'
+import { DISCORD_CLIENT_ID, REQUIRES_SIGNED_HELPER } from './config'
+import { assertHelperForBackend } from './anticheat/helper-process'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -316,6 +317,38 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  // Gate production/remote access before creating the renderer or restoring a session.
+  try {
+    await assertHelperForBackend()
+  } catch {
+    dialog.showErrorBox(
+      'Approved helper required',
+      'This backend requires an approved signed anti-cheat helper. Install the pinned helper with npm run prepare:helper, or use the local development backend.'
+    )
+    app.quit()
+    return
+  }
+  if (REQUIRES_SIGNED_HELPER) {
+    let checkingHelper = false
+    const helperGuard = setInterval(() => {
+      if (checkingHelper) return
+      checkingHelper = true
+      void assertHelperForBackend()
+        .catch(() => {
+          dialog.showErrorBox(
+            'Anti-cheat verification unavailable',
+            'The helper could not be verified. Restart or repair the launcher before reconnecting. This is not a cheating ban.'
+          )
+          app.quit()
+        })
+        .finally(() => {
+          checkingHelper = false
+        })
+    }, 60_000)
+    helperGuard.unref()
+    app.once('before-quit', () => clearInterval(helperGuard))
+  }
+
   electronApp.setAppUserModelId('com.electron')
   await restoreStaleManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] startup overlay cleanup failed', error)

@@ -9,9 +9,14 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!native/**'
+  - '!resources/native/**'
+beforePack: scripts/package-game-inspector.cjs
 asarUnpack:
   - resources/**
 extraResources:
+  - from: resources/native/${os}-${arch}
+    to: native
   - from: resources/lobby-models
     to: lobby-models
 win:

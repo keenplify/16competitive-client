@@ -37,3 +37,8 @@ export interface AntiCheatApi {
 export const ANTICHEAT_CHANNELS = {
   deviceStatus: 'antiCheat:deviceStatus'
 } as const
+
+// Retain this wire text for compatibility with deployed backend cancellation events.
+export const ANTI_CHEAT_CANCELLED_MESSAGE =
+  'This game was cancelled because the server detected cheating.'
+export const ANTI_CHEAT_NOTICE_GRACE_MS = 9_000

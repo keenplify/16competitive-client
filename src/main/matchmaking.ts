@@ -1,6 +1,11 @@
+import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
 import type { WebContents } from 'electron'
 import { app, BrowserWindow, clipboard } from 'electron'
-import { MATCHMAKING_CHANNELS, manualConnectionCommand } from '../shared/matchmaking'
+import {
+  MATCHMAKING_CHANNELS,
+  manualConnectionCommand,
+  allowsManualMatchConnection
+} from '../shared/matchmaking'
 import type {
   MatchmakingEvent,
   MatchmakingMode,
@@ -16,7 +21,10 @@ import type {
   GlobalChatScope
 } from '../shared/matchmaking'
 import { getSessionToken } from './auth'
-import { MATCHMAKING_WS_URL } from './config'
+import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
+import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
+import { createAutomaticMatchReporter } from './automatic-match-report'
+import { reportDiagnosticIssue } from './diagnostic-logs'
 import {
   getMatchmakingNodes,
   getMatchmakingPreferences,
@@ -242,7 +250,7 @@ const partyNotificationCodes = new Set([
   'MATCH_CANCELLED'
 ])
 
-const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
+const isServerMessage = (value: unknown, endpoint: string): value is MatchmakingServerMessage => {
   if (typeof value !== 'object' || value === null || !('type' in value)) return false
   const message = value as Record<string, unknown>
 
@@ -268,10 +276,8 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
         message.peers.length <= 19 &&
         message.peers.every(isVoicePeer) &&
         Array.isArray(message.iceServers) &&
-        message.iceServers.length >= 1 &&
-        message.iceServers.length <= 4 &&
         message.iceServers.every(isVoiceIceServer) &&
-        message.iceTransportPolicy === 'relay'
+        allowsVoiceTransport(message.iceTransportPolicy, message.iceServers.length, endpoint)
       )
     case 'voice_peer_joined':
       return isVoiceContext(message.context) && isVoicePeer(message.peer)
@@ -417,6 +423,7 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
       )
     case 'match_cancelled':
       return (
+        (message.connectionFailed === undefined || typeof message.connectionFailed === 'boolean') &&
         typeof message.matchId === 'string' &&
         typeof message.reason === 'string' &&
         [
@@ -455,6 +462,7 @@ const isServerMessage = (value: unknown): value is MatchmakingServerMessage => {
 }
 
 class MatchmakingConnection {
+  private readonly reportConnectionFailure = createAutomaticMatchReporter(reportDiagnosticIssue)
   private socket: WebSocket | null = null
   private socketOpening = false
   private renderer: WebContents | null = null
@@ -480,6 +488,7 @@ class MatchmakingConnection {
   private authenticated = false
   private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
+  private manualConnectionMatchId: string | null = null
   private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
   private matchAttentionWindow: BrowserWindow | null = null
@@ -511,6 +520,7 @@ class MatchmakingConnection {
     this.desiredMapIds = []
     this.desiredPreferredRegion = null
     this.lastConnection = null
+    this.manualConnectionMatchId = null
     this.activeApiUrl = null
     this.hostApiUrl = null
     this.reconnectAttempt = 0
@@ -530,6 +540,7 @@ class MatchmakingConnection {
     this.desiredMapIds = []
     this.desiredPreferredRegion = null
     this.lastConnection = null
+    this.manualConnectionMatchId = null
     this.activeApiUrl = null
     this.hostApiUrl = null
     this.reconnectAttempt = 0
@@ -688,6 +699,8 @@ class MatchmakingConnection {
     ) {
       throw new Error('This match is no longer available')
     }
+    if (this.manualConnectionMatchId !== matchId)
+      throw new Error('Ranked matches require the desktop launcher.')
     const apiUrl = this.hostApiUrl ?? this.activeApiUrl
     const token = getSessionToken()
     if (!apiUrl || !token) throw new Error('Reconnect to matchmaking before copying the command')
@@ -874,6 +887,8 @@ class MatchmakingConnection {
     const websocketUrl = targetApiUrl ? toMatchmakingWsUrl(targetApiUrl) : MATCHMAKING_WS_URL
     let socket: WebSocket
     try {
+      if (LOCAL_DEVELOPMENT && !isLoopbackBackend(websocketUrl))
+        throw new Error('Local development cannot connect to a remote matchmaking node')
       socket = new WebSocket(websocketUrl)
     } catch (error) {
       console.warn('[Matchmaking] could not create WebSocket connection', error)
@@ -903,7 +918,7 @@ class MatchmakingConnection {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
-      if (!isServerMessage(parsed)) {
+      if (!isServerMessage(parsed, websocketUrl)) {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
@@ -927,6 +942,11 @@ class MatchmakingConnection {
         (this.cancelledMatchIds.has(parsed.matchId) || this.finishedMatchIds.has(parsed.matchId))
       ) {
         return
+      }
+      if (parsed.type === 'match_found' || parsed.type === 'match_roster') {
+        this.manualConnectionMatchId = allowsManualMatchConnection(parsed.mode)
+          ? parsed.matchId
+          : null
       }
       if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) return
       if (
@@ -1019,7 +1039,9 @@ class MatchmakingConnection {
         this.desiredPreferredRegion = null
       } else if (
         parsed.type === 'error' &&
-        (parsed.code === 'MAP_NOT_FOUND' || parsed.code === 'MAP_MODE_UNSUPPORTED')
+        (parsed.code === 'MAP_NOT_FOUND' ||
+          parsed.code === 'MAP_MODE_UNSUPPORTED' ||
+          parsed.code === 'SERVER_RESTARTING')
       ) {
         this.desiredMode = null
         this.desiredMapIds = []
@@ -1103,19 +1125,37 @@ class MatchmakingConnection {
             })
           })
       } else if (parsed.type === 'match_cancelled') {
+        void this.reportConnectionFailure(parsed)
         discordPresence.finishMatch()
+        const firstCancellation = !this.cancelledMatchIds.has(parsed.matchId)
         this.cancelledMatchIds.add(parsed.matchId)
         this.fastDlMatchIds.delete(parsed.matchId)
         this.lastConnection = null
+        this.manualConnectionMatchId = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
-        closeCounterStrikeForMatch(parsed.matchId)
-        this.focusLauncher()
+        if (parsed.message === ANTI_CHEAT_CANCELLED_MESSAGE) {
+          if (firstCancellation) {
+            const existingTimer = this.matchEndTimers.get(parsed.matchId)
+            if (existingTimer) clearTimeout(existingTimer)
+            const timer = setTimeout(() => {
+              this.matchEndTimers.delete(parsed.matchId)
+              closeCounterStrikeForMatch(parsed.matchId)
+              this.focusLauncher()
+            }, ANTI_CHEAT_NOTICE_GRACE_MS)
+            this.matchEndTimers.set(parsed.matchId, timer)
+            this.focusLauncher()
+          }
+        } else {
+          closeCounterStrikeForMatch(parsed.matchId)
+          this.focusLauncher()
+        }
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
         discordPresence.finishMatch()
         this.finishedMatchIds.add(parsed.matchId)
         this.fastDlMatchIds.delete(parsed.matchId)
         this.lastConnection = null
+        this.manualConnectionMatchId = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
         const timer = setTimeout(() => {

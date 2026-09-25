@@ -55,7 +55,29 @@ export default defineConfig(({ mode }) => {
   )
 
   return {
-    main: { define: mainProcessEnv },
+    main: {
+      define: mainProcessEnv,
+      plugins:
+        mode === 'production'
+          ? [
+              {
+                name: 'release-backend-target',
+                generateBundle() {
+                  this.emitFile({
+                    type: 'asset',
+                    fileName: 'backend-target.json',
+                    source: JSON.stringify({
+                      apiUrl: JSON.parse(mainProcessEnv['process.env.API_BASE_URL'] || 'null'),
+                      websocketUrl: JSON.parse(
+                        mainProcessEnv['process.env.MATCHMAKING_WS_URL'] || 'null'
+                      )
+                    })
+                  })
+                }
+              }
+            ]
+          : []
+    },
     preload: {},
     renderer: {
       resolve: {

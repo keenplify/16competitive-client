@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { app } from 'electron'
+import { app, dialog } from 'electron'
 import {
   readFile,
   readdir,
@@ -16,6 +16,7 @@ import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { ensureLauncherContentDirectory } from './game-directory'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
+import { prepareMatchIdentityConfig } from './match-identity-config'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 import {
@@ -27,6 +28,8 @@ import {
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
+let restoreMatchIdentity: (() => Promise<void>) | null = null
+let identityCleanup: Promise<void> = Promise.resolve()
 const RELAUNCH_SETTLE_MS = 500
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
 const LINUX_HANDOFF_POLL_MS = 1_000
@@ -92,6 +95,13 @@ const clearMatchConfig = (generation?: number): void => {
   launchedMatchConfigPath = null
   launchedMatchConfigGeneration = 0
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+  const restore = restoreMatchIdentity
+  restoreMatchIdentity = null
+  if (restore) {
+    identityCleanup = identityCleanup.then(restore).catch((error: unknown) => {
+      console.error('[GameLaunch] could not restore saved match identity', error)
+    })
+  }
 }
 
 // Direct launches run in their own process group, so terminating the group also
@@ -294,9 +304,9 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   })
   terminateSpawnedGameProcess(gameProcess)
   if (process.platform === 'linux' && launchedGameDirectory) {
-    void closeLinuxCounterStrikeProcesses(launchedGameDirectory).finally(() =>
-      finishVoicePttSession(matchId)
-    )
+    void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
+      .catch((error: unknown) => console.error('[GameLaunch] could not close Linux game', error))
+      .finally(() => finishVoicePttSession(matchId))
   }
   if (process.platform === 'win32' && launchedExecutablePath) {
     void closeWindowsCounterStrikeProcesses(launchedExecutablePath).finally(() =>
@@ -309,7 +319,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   clearMatchConfig()
 }
 
-const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<void> => {
+const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<number> => {
   const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
   let terminated = 0
 
@@ -326,6 +336,16 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
     gameDirectory,
     terminated
   })
+  if (terminated > 0) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      if ((await getLinuxCounterStrikeProcessIds(gameDirectory)).length === 0) return terminated
+      await delay(100)
+    }
+    throw new Error(
+      'Counter-Strike is still running. Close the game, then reconnect from the launcher.'
+    )
+  }
+  return terminated
 }
 
 const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<number> => {
@@ -488,6 +508,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       const terminated = await closeWindowsCounterStrikeProcesses(launchTarget.gameExecutable)
       if (terminated > 0) await delay(RELAUNCH_SETTLE_MS)
     }
+    if (process.platform === 'linux') {
+      const terminated = await closeLinuxCounterStrikeProcesses(cwd)
+      if (terminated > 0) await delay(RELAUNCH_SETTLE_MS)
+    }
   }
 
   await prepareManagedSkinAudio(input.matchId)
@@ -508,6 +532,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
   try {
+    await identityCleanup
+    if (restoreMatchIdentity) await restoreMatchIdentity()
+    restoreMatchIdentity = await prepareMatchIdentityConfig(
+      join(launchGameDirectory, 'config.cfg'),
+      input.joinToken
+    )
     await writeFile(
       temporaryMatchConfigPath,
       [
@@ -538,6 +568,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     })
     await finishVoicePttSession(input.matchId)
     await restoreManagedSkinAudio().catch(() => undefined)
+    clearMatchConfig()
     throw new Error(
       'Could not prepare the Counter-Strike match connection. Please try reconnecting.'
     )
@@ -547,9 +578,18 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   launchedMatchConfigPath = matchConfigPath
   launchedMatchConfigGeneration = matchConfigGeneration
 
-  const antiCheatSession = startAntiCheatSession({
+  const antiCheatSession = await startAntiCheatSession({
     matchId: input.matchId,
     executablePath: executable,
+    runtimeExecutablePath: launchTarget.gameExecutable,
+    onIntegrityFailure: () => {
+      closeCounterStrikeForMatch(input.matchId)
+      input.onExit?.({ code: null, signal: null })
+      dialog.showErrorBox(
+        'Anti-cheat helper unavailable',
+        'The game was closed because the anti-cheat helper stopped or could not be verified. Restart the launcher or reinstall the latest release, then reconnect. This is not a cheating ban.'
+      )
+    },
     gameDirectory: cwd,
     distribution: launchTarget.distribution,
     ...(process.platform === 'win32' && launchTarget.usesLauncherHandoff
@@ -574,6 +614,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
           }
         }
       : {})
+  }).catch(async (error: unknown) => {
+    await finishVoicePttSession(input.matchId)
+    await restoreManagedSkinAudio().catch(() => undefined)
+    clearMatchConfig(matchConfigGeneration)
+    throw error
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
@@ -581,13 +626,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // written directly into the game directory the engine runs on, so `+exec`
   // always finds it. The secret values therefore never appear in the process
   // list.
-  const directMatchArgs = [
-    '-condebug',
-    '+exec',
-    matchConfigName,
-    '+connect',
-    `${input.host}:${input.port}`
-  ]
+  // Only the config connects, after reasserting the fresh identity. A second
+  // +connect can bypass that ordering during Steam's existing-process handoff.
+  const directMatchArgs = ['-condebug', '+exec', matchConfigName]
   const gameArgs = directMatchArgs
   const launchArgs = [
     ...launchTarget.argumentPrefix,
@@ -666,6 +707,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     stopAntiCheatSession(antiCheatSession, 'launch-failed')
     await finishVoicePttSession(input.matchId)
     await restoreManagedSkinAudio().catch(() => undefined)
+    clearMatchConfig(matchConfigGeneration)
     throw error
   }
 

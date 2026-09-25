@@ -32,6 +32,9 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
 export const getMatchmakingModeLabel = (mode: string): string =>
   mode === '5v5' || mode === 'unrated' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
 
+export const allowsManualMatchConnection = (mode: unknown): boolean =>
+  mode === 'unrated' || mode === 'casual'
+
 export function manualConnectionCommand(value: unknown): string {
   if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
   const { host, port, password, manualToken } = value as Record<string, unknown>
@@ -185,7 +188,7 @@ export type MatchmakingServerMessage =
       context: VoiceContext
       peers: VoicePeer[]
       iceServers: VoiceIceServer[]
-      iceTransportPolicy: 'relay'
+      iceTransportPolicy: 'all' | 'relay'
     }
   | { type: 'voice_peer_joined'; context: VoiceContext; peer: VoicePeer }
   | { type: 'voice_peer_left'; context: VoiceContext; playerId: string }
@@ -278,6 +281,7 @@ export type MatchmakingServerMessage =
       matchId: string
       reason:
         'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED' | 'PLAYER_DID_NOT_CONNECT'
+      connectionFailed?: boolean
       message: string
     }
   | {

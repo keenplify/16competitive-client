@@ -15,8 +15,6 @@ function fail(message) {
 }
 
 try {
-  git('pull')
-
   if (git('status', '--porcelain')) {
     fail('Refusing to release with uncommitted changes. Commit or stash them first.')
   }
@@ -24,6 +22,13 @@ try {
   const branch = git('branch', '--show-current')
   if (!branch) fail('Refusing to release from a detached HEAD.')
 
+  git('pull', '--ff-only')
+  // Validate every pinned private binary and database approval before changing versions or pushing.
+  execFileSync(
+    'node',
+    ['--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', '--check-all'],
+    { stdio: 'inherit' }
+  )
   git('fetch', '--tags', '--quiet', 'origin')
 
   const now = new Date()
