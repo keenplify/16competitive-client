@@ -1,4 +1,5 @@
-import { DEMO_PROTOCOL, parseDemoLink } from '../shared/demo-link'
+import { parseDemoLink } from '../shared/demo-link'
+import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
@@ -364,9 +365,15 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  if (process.defaultApp && process.argv[1])
-    app.setAsDefaultProtocolClient(DEMO_PROTOCOL, process.execPath, [resolve(process.argv[1])])
-  else app.setAsDefaultProtocolClient(DEMO_PROTOCOL)
+  void registerDemoProtocol().catch((error) => {
+    console.error('[DemoPlayback] Protocol registration failed:', error)
+    void dialog.showMessageBox({
+      type: 'warning',
+      title: 'Demo links unavailable',
+      message:
+        'Could not register demo links with your desktop. You can still use the Demos page in the client.'
+    })
+  })
   // Gate production/remote access before creating the renderer or restoring a session.
   try {
     await assertHelperForBackend()

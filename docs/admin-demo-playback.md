@@ -7,9 +7,9 @@ competitive16://play-demo?recordingId=<recording UUID>
 ```
 
 URI schemes must start with a letter, so `16competitive://` is not used. The
-installed client registers `competitive16` on Windows/Linux. AppImage users need
-desktop integration for browser protocol launching. Restart an already running
-development client after changing protocol handlers.
+client registers `competitive16` on startup. Linux writes a per-user desktop
+handler and sets its MIME association, using the stable APPIMAGE path when
+available. Restart an already running client after changing protocol handlers.
 
 The client also provides an admin-only Demos navigation entry. Access is checked
 by authenticated backend endpoints, not by a renderer-provided role. Cold-start
