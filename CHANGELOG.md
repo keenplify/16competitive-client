@@ -1272,3 +1272,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Navigation
 
 - Added access to the demo playback area from the lobby navigation.
+
+## v2026.925.4 — 2026-09-25
+
+### Demo Playback
+
+- Added desktop integration for demo playback.
