@@ -110,3 +110,22 @@ created automatically by this source change.
 
 Windows native runtime and live game compatibility must be checked on the Windows
 CI runner and a test client. macOS helper releases are not currently supported.
+
+### Coordinated client and helper release
+
+`npm run release` requires clean, committed client and sibling
+`../16competitive-helper` checkouts, GitHub CLI authentication with access to
+the private repository, and permission to push both repositories.
+
+The command increments the helper patch version in Cargo.toml and Cargo.lock,
+runs its locked Rust tests, commits the version changes, and pushes the helper
+branch and release tag. It waits up to 45 minutes for the private release
+workflow to build, sign, and register all targets. It then updates
+helper-release.json and verifies all binaries, signatures, and backend approvals
+before committing and tagging the client release. Existing web deployment steps
+run afterward.
+
+If the helper version is already ahead of the client pin, retrying resumes that
+version instead of incrementing it again. Existing tags are never moved. If
+Actions fails, follow the printed run URL and fix/retry that workflow first.
+No signing or registry publishing secret is required on the release workstation.

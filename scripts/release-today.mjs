@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { releaseHelper } from './release-helper.mjs'
 
 /** @param {string[]} args @returns {string} */
 function git(...args) {
@@ -23,12 +24,22 @@ try {
   if (!branch) fail('Refusing to release from a detached HEAD.')
 
   git('pull', '--ff-only')
-  // Validate every pinned private binary and database approval before changing versions or pushing.
-  execFileSync(
-    'node',
-    ['--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', '--check-all'],
-    { stdio: 'inherit' }
-  )
+  const helperConfigPath = resolve('helper-release.json')
+  const originalHelperConfig = await readFile(helperConfigPath, 'utf8')
+  const helperConfig = JSON.parse(originalHelperConfig)
+  helperConfig.version = await releaseHelper(helperConfig)
+  await writeFile(helperConfigPath, `${JSON.stringify(helperConfig, null, 2)}\n`)
+  // Keep the previous pin if verification fails, so retries can resume the helper release.
+  try {
+    execFileSync(
+      'node',
+      ['--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', '--check-all'],
+      { stdio: 'inherit' }
+    )
+  } catch (error) {
+    await writeFile(helperConfigPath, originalHelperConfig)
+    throw error
+  }
   git('fetch', '--tags', '--quiet', 'origin')
 
   const now = new Date()
@@ -60,7 +71,7 @@ try {
   await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
   await writeFile(lockPath, `${JSON.stringify(lockJson, null, 2)}\n`)
 
-  git('add', 'package.json', 'package-lock.json', 'CHANGELOG.md')
+  git('add', 'package.json', 'package-lock.json', 'CHANGELOG.md', 'helper-release.json')
   git('commit', '-m', `Release ${tag}`)
   git('tag', '-a', tag, '-m', `Release ${tag}`)
   git('push', 'origin', branch)
