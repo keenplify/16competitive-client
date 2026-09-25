@@ -1253,3 +1253,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added game inspection support for match integrity checks.
 - Improved anti-cheat startup and match termination messaging.
+
+## v2026.925.2 — 2026-09-25
+
+### Improvements
+
+- Improved release management and versioning.
+- Added guidance for inspecting native game installations.
