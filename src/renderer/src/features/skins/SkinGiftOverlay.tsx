@@ -281,15 +281,15 @@ export function SkinGiftOverlay(): JSX.Element | null {
               <span className="gift-box-star gift-box-star-three absolute right-4 bottom-8 size-2 rounded-full bg-amber-300" />
 
               <div className="gift-box absolute bottom-2 left-1/2 h-28 w-32 -translate-x-1/2">
-                <div className="gift-box-base absolute right-1 bottom-0 left-1 h-20 rounded-b-xl border border-amber-100/30 bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 shadow-[0_18px_60px_rgba(251,191,36,0.35)]">
+                <div className="gift-box-base absolute right-1 bottom-0 left-1 h-20  border border-amber-100/30 bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 shadow-[0_18px_60px_rgba(251,191,36,0.35)]">
                   <div className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-red-600/90 shadow-[0_0_16px_rgba(220,38,38,0.35)]" />
                   <div className="absolute inset-x-0 top-3 h-px bg-white/20" />
                 </div>
 
-                <div className="gift-box-lid absolute top-2 -left-1 h-9 w-[8.5rem] rounded-lg border border-amber-100/40 bg-linear-to-b from-amber-200 to-amber-500 shadow-lg">
+                <div className="gift-box-lid absolute top-2 -left-1 h-9 w-[8.5rem]  border border-amber-100/40 bg-linear-to-b from-amber-200 to-amber-500 shadow-lg">
                   <div className="absolute inset-y-0 left-1/2 w-5 -translate-x-1/2 bg-red-600" />
-                  <div className="gift-box-bow gift-box-bow-left absolute -top-6 left-[2.75rem] h-7 w-9 rounded-[100%_10%_100%_10%] border-4 border-red-500 bg-red-600/80" />
-                  <div className="gift-box-bow gift-box-bow-right absolute -top-6 right-[2.75rem] h-7 w-9 rounded-[10%_100%_10%_100%] border-4 border-red-500 bg-red-600/80" />
+                  <div className="gift-box-bow gift-box-bow-left absolute -top-6 left-[2.75rem] h-7 w-9  border-4 border-red-500 bg-red-600/80" />
+                  <div className="gift-box-bow gift-box-bow-right absolute -top-6 right-[2.75rem] h-7 w-9  border-4 border-red-500 bg-red-600/80" />
                   <div className="absolute -top-3 left-1/2 size-6 -translate-x-1/2 rounded-full bg-red-600 shadow-md" />
                 </div>
               </div>
@@ -335,7 +335,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                     disabled={choice.owned || stage !== 'choices'}
                     onClick={() => claim(choice)}
                     style={{ transitionDelay: showingChoices ? `${index * 130}ms` : '0ms' }}
-                    className={`group relative min-h-[25rem] overflow-hidden rounded-2xl border bg-neutral-950/95 p-5 text-left shadow-2xl transition-all duration-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 disabled:cursor-default ${
+                    className={`group relative min-h-[25rem] overflow-hidden  border bg-neutral-950/95 p-5 text-left shadow-2xl transition-all duration-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 disabled:cursor-default ${
                       selected
                         ? 'z-10 scale-105 border-amber-300 shadow-[0_0_70px_rgba(251,191,36,0.35)]'
                         : lockedOut
@@ -351,7 +351,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                           : 'translate-y-12 opacity-0'
                     }`}
                   >
-                    <div className="relative h-52 overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.18),_rgba(10,10,10,0.2)_70%)]">
+                    <div className="relative h-52 overflow-hidden  border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.18),_rgba(10,10,10,0.2)_70%)]">
                       {choice.type === 'SKIN' ? (
                         <>
                           <SkinModelThumbnail
@@ -367,7 +367,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                             className="absolute inset-0"
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-                          <span className="absolute bottom-3 left-3 rounded bg-black/65 px-2 py-1 text-[10px] font-black tracking-[0.14em] text-amber-200 uppercase">
+                          <span className="absolute bottom-3 left-3   bg-black/65 px-2 py-1 text-[10px] font-black tracking-[0.14em] text-amber-200 uppercase">
                             {choice.weaponKey}
                           </span>
                         </>
@@ -405,7 +405,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                     </p>
 
                     <div
-                      className={`mt-6 flex h-11 items-center justify-center rounded-lg border text-sm font-black tracking-[0.12em] uppercase transition ${
+                      className={`mt-6 flex h-11 items-center justify-center  border text-sm font-black tracking-[0.12em] uppercase transition ${
                         choice.owned
                           ? 'border-transparent bg-transparent text-neutral-500'
                           : 'border-amber-300/25 bg-amber-300/10 text-amber-200 group-hover:bg-amber-300/20'
@@ -427,7 +427,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
 
                     {selected && finished && (
                       <div className="pointer-events-none absolute inset-0 grid place-items-center bg-amber-200/10 backdrop-blur-[1px]">
-                        <div className="rounded-full border border-amber-200/60 bg-neutral-950/95 px-6 py-3 text-lg font-black tracking-[0.2em] text-amber-200 uppercase shadow-[0_0_70px_rgba(251,191,36,0.5)]">
+                        <div className="border border-amber-200/60 bg-neutral-950/95 px-6 py-3 text-lg font-black tracking-[0.2em] text-amber-200 uppercase shadow-[0_0_70px_rgba(251,191,36,0.5)]">
                           {t('gift.yours')}
                         </div>
                       </div>
@@ -442,7 +442,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                 type="button"
                 disabled={stage !== 'choices'}
                 onClick={decideLater}
-                className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-neutral-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white disabled:cursor-default disabled:opacity-40"
+                className=" border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-neutral-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white disabled:cursor-default disabled:opacity-40"
               >
                 {t('gift.decideLater')}
               </button>

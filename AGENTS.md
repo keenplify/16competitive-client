@@ -930,6 +930,36 @@ Do not pretend client-side checks are authoritative.
 
 A modified client can lie.
 
+## Native Cosmetic Module (Verified Prototype)
+
+The private sibling repository `../16competitive-helper` contains an optional Rust
+cosmetic module under `cosmetic-module/` plus the `--skin-probe` helper workflow.
+Do not recreate this work in C or add it to the public Electron repository.
+
+Verified on native Linux x86 Counter-Strike 1.6 / GoldSrc build 10211:
+
+- a version 10 `IDST` viewmodel placed at a new path after the map has loaded can be
+  loaded and rendered without being present in the server's precache table;
+- a real custom knife model was switched off and on during the same running game;
+- the server-owned entity model index remained unchanged during local rendering;
+- the game remained stable while switching between the stock and custom knife.
+
+This is a development proof, not production cosmetic delivery. Current verified
+scope is the local player's first-person knife on native Linux. It does not yet
+prove Windows support, firearms, other-player models, dropped/world models, map
+transitions, repeated loading of different model files, signed asset authorization,
+or a production anti-cheat allowlist. Keep the anti-cheat scanner separate and do
+not grant broad renderer or injected-module exemptions.
+
+For launcher users, this approach can eventually remove the server precache limit
+for local first-person viewmodels. Web users must continue to receive only models
+already precached by the active server/map, with the normal stock model as fallback.
+Read `../16competitive-helper/cosmetic-module/README.md` before extending it.
+
+FFA first-to-90 work was deliberately paused and stored in Git stash with message
+`wip: FFA first-to-90 paused for cosmetic module research`. Inspect the stash before
+resuming that feature; do not assume those changes were discarded.
+
 ---
 
 ## Privacy

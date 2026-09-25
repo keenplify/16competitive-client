@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { generateKeyPairSync, sign, createHash } from 'node:crypto'
 import {
+  verifyCosmeticModule,
   verifyHelperBinary,
   verifyHelperRelease
 } from '../src/main/anticheat/helper-release-verifier.ts'
@@ -10,6 +11,7 @@ import {
 const { privateKey, publicKey } = generateKeyPairSync('ed25519')
 const pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
 const bytes = Buffer.from('fixture-helper')
+const cosmeticBytes = Buffer.from('fixture-cosmetic-module')
 const manifest = {
   schemaVersion: 1,
   version: '0.1.0',
@@ -17,7 +19,12 @@ const manifest = {
   arch: 'x64',
   fileName: 'game-inspector-linux-x64',
   sha256: createHash('sha256').update(bytes).digest('hex'),
-  sizeBytes: bytes.length
+  sizeBytes: bytes.length,
+  cosmeticModule: {
+    fileName: 'papamo-cosmetic-module-linux-x86.so',
+    sha256: createHash('sha256').update(cosmeticBytes).digest('hex'),
+    sizeBytes: cosmeticBytes.length
+  }
 }
 const envelopeFor = (value) => {
   const manifest = JSON.stringify(value)
@@ -27,11 +34,13 @@ const envelopeFor = (value) => {
 test('accepts a signed manifest and matching binary', () => {
   const approved = verifyHelperRelease(envelopeFor(manifest), pem)
   verifyHelperBinary(bytes, approved)
+  verifyCosmeticModule(cosmeticBytes, approved)
 })
 
 test('rejects altered bytes, altered metadata, another key, and unsigned manifests', () => {
   const envelope = envelopeFor(manifest)
   assert.throws(() => verifyHelperBinary(Buffer.from('modified-binary'), manifest))
+  assert.throws(() => verifyCosmeticModule(Buffer.from('modified-module'), manifest))
   assert.throws(() =>
     verifyHelperRelease({ ...envelope, manifest: envelope.manifest.replace('0.1.0', '0.2.0') }, pem)
   )
@@ -50,6 +59,8 @@ test('even signed manifests cannot introduce traversal, invalid platforms, overs
     { sizeBytes: 33554433 },
     { sha256: 'not-a-hash' },
     { version: '../release' },
+    { cosmeticModule: undefined },
+    { cosmeticModule: { ...manifest.cosmeticModule, fileName: '../module.so' } },
     { platform: 'win', arch: 'arm64', fileName: 'game-inspector-win-arm64.exe' }
   ])
     assert.throws(() => verifyHelperRelease(envelopeFor({ ...manifest, ...changes }), pem))

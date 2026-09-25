@@ -34,6 +34,8 @@ import type { DiagnosticLogsApi } from '../shared/diagnostic-logs'
 import type { OperationsApi } from '../shared/operations'
 import { OPERATION_CHANNELS } from '../shared/operations'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
+import type { CustomGamesApi } from '../shared/custom-games'
+import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 
 const auth: AuthApi = {
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
@@ -143,6 +145,27 @@ const party: PartyApi = {
   }
 }
 
+const customGames: CustomGamesApi = {
+  list: (selectedNodeId) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.list, selectedNodeId),
+  mine: (host) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.mine, host),
+  create: (settings) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.create, settings),
+  update: (roomId, settings, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.update, roomId, settings, host),
+  join: (roomId, password, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.join, roomId, password, host),
+  leave: (roomId, host) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.leave, roomId, host),
+  start: (roomId, host) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.start, roomId, host),
+  addBot: (roomId, host) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.addBot, roomId, host),
+  setTeamCapacity: (roomId, team, capacity, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.setTeamCapacity, roomId, team, capacity, host),
+  moveMember: (roomId, playerId, team, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.moveMember, roomId, playerId, team, host),
+  moveServer: (roomId, targetNodeId, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.moveServer, roomId, targetNodeId, host),
+  kick: (roomId, playerId, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.kick, roomId, playerId, host)
+}
+
 const friends: FriendsApi = {
   list: () => ipcRenderer.invoke(FRIEND_CHANNELS.list),
   search: (query) => ipcRenderer.invoke(FRIEND_CHANNELS.search, query),
@@ -245,6 +268,7 @@ const api = {
   auth,
   antiCheat,
   dailyQuests,
+  customGames,
   friends,
   gameSettings,
   leaderboard,

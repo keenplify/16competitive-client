@@ -54,7 +54,8 @@ const soloLobbyMember = (player: AuthPlayer): PartyMember => ({
   lobbyPlayerModel: null,
   lobbyWeaponSkinId: null,
   lobbyWeaponKey: 'ak47',
-  lobbyWeaponModelPath: null
+  lobbyWeaponModelPath: null,
+  clientMode: 'desktop'
 })
 
 const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps): JSX.Element {

@@ -46,11 +46,11 @@ export function PartyPlayerSlot({
         cameraLocked
         className="absolute inset-0"
       />
-      <footer className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-52 -translate-x-1/2 rounded-lg border border-white/15 bg-neutral-950/80 px-3 py-2.5 text-center shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <footer className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-52 -translate-x-1/2  border border-white/15 bg-neutral-950/80 px-3 py-2.5 text-center shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md">
         <div className="flex items-center justify-center gap-2">
           <p className="truncate text-sm font-semibold">{member.username}</p>
           {isLeader && (
-            <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-amber-300 uppercase">
+            <span className="  bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-amber-300 uppercase">
               Leader
             </span>
           )}

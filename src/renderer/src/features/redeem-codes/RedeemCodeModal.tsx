@@ -68,10 +68,10 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
         if (event.target === event.currentTarget && !isSubmitting) onClose()
       }}
     >
-      <section className="w-full max-w-md rounded-xl border border-white/10 bg-neutral-900 p-6 shadow-2xl">
+      <section className="w-full max-w-md  border border-white/10 bg-neutral-900 p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-lg bg-amber-300/10 text-amber-300">
+            <span className="flex size-10 items-center justify-center  bg-amber-300/10 text-amber-300">
               <Ticket className="size-5" aria-hidden="true" />
             </span>
             <div>
@@ -83,7 +83,7 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
           </div>
           <button
             type="button"
-            className="rounded-md p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-300 disabled:opacity-40"
+            className=" p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-300 disabled:opacity-40"
             aria-label="Close redeem code dialog"
             data-audio-sfx="backward"
             disabled={isSubmitting}
@@ -95,7 +95,7 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
 
         {status === 'success' && result ? (
           <div className="mt-6">
-            <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+            <div className=" border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm text-emerald-100">
               <p className="flex items-center gap-2 font-semibold">
                 <CheckCircle2 className="size-5 text-emerald-300" aria-hidden="true" />
                 Code redeemed

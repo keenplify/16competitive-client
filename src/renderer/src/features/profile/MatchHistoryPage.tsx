@@ -135,7 +135,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
             </p>
           )}
           {profile && (
-            <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
+            <section className="mt-6 overflow-hidden  border border-white/10 bg-neutral-900/90">
               <header className="border-b border-white/10 px-6 py-7">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-full bg-sky-400/15 text-sky-300">
@@ -235,7 +235,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                 {teams.map(({ id, players }) => (
                   <section
                     key={id}
-                    className="overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90"
+                    className="overflow-hidden  border border-white/10 bg-neutral-900/90"
                   >
                     <h2 className="border-b border-white/10 px-5 py-3 text-sm font-semibold">
                       {teamName(id)}
@@ -283,7 +283,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
         </div>
         {contextMenu && (
           <div
-            className="fixed z-50 min-w-40 overflow-hidden rounded-lg border border-white/15 bg-neutral-800 py-1 shadow-xl"
+            className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 shadow-xl"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             role="menu"
             onClick={(event) => event.stopPropagation()}
@@ -316,7 +316,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
             <p className="mt-2 text-sm text-neutral-400">Match history</p>
           </header>
         )}
-        <section className="mt-6 overflow-hidden rounded-xl border border-white/10 bg-neutral-900/90">
+        <section className="mt-6 overflow-hidden  border border-white/10 bg-neutral-900/90">
           <div className="grid grid-cols-[1fr_0.8fr_0.8fr_0.7fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-bold tracking-wide text-neutral-500 uppercase">
             <span>Match</span>
             <span>Result</span>

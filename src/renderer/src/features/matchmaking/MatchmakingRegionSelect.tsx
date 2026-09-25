@@ -23,6 +23,9 @@ const regionLabel = (region: string): string =>
         .join(' ')
 
 interface MatchmakingRegionSelectProps {
+  id?: string
+  ariaLabel?: string
+  showHint?: boolean
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
   disabled: boolean
@@ -48,6 +51,9 @@ const latencyLabel = (latencyMs: number | null, available: boolean): string => {
 }
 
 export function MatchmakingRegionSelect({
+  id = 'matchmaking-region',
+  ariaLabel = 'Preferred matchmaking region',
+  showHint = true,
   nodes,
   selectedNodeId,
   disabled,
@@ -88,9 +94,9 @@ export function MatchmakingRegionSelect({
   return (
     <div className="w-full max-w-sm">
       <Select<RegionOption, false>
-        inputId="matchmaking-region"
-        instanceId="matchmaking-region"
-        aria-label="Preferred matchmaking region"
+        inputId={id}
+        instanceId={id}
+        aria-label={ariaLabel}
         unstyled
         isClearable={false}
         isSearchable={false}
@@ -109,7 +115,7 @@ export function MatchmakingRegionSelect({
           container: () => 'mt-3 w-full text-sm',
           control: ({ isFocused, isDisabled }) =>
             twMerge(
-              'min-h-11 cursor-pointer rounded-md border border-white/10 bg-neutral-900 text-white transition',
+              'min-h-11 cursor-pointer  border border-white/10 bg-neutral-900 text-white transition',
               isFocused && 'border-sky-400/60 ring-1 ring-sky-400/20',
               isDisabled && 'cursor-not-allowed opacity-60'
             ),
@@ -119,8 +125,7 @@ export function MatchmakingRegionSelect({
           dropdownIndicator: ({ isFocused }) =>
             twMerge('transition-colors', isFocused && 'text-sky-300'),
           indicatorSeparator: () => 'hidden',
-          menu: () =>
-            'z-50 mt-1 overflow-hidden rounded-md border border-white/10 bg-neutral-950 shadow-2xl',
+          menu: () => 'z-50 mt-1 overflow-hidden  border border-white/10 bg-neutral-950 shadow-2xl',
           menuList: () => 'max-h-72 py-1',
           option: ({ isFocused, isSelected, isDisabled }) =>
             twMerge(
@@ -166,13 +171,15 @@ export function MatchmakingRegionSelect({
           )
         }}
       />
-      <p className="mt-2 text-xs text-neutral-500">
-        {selectedNodeId === null
-          ? bestNode
-            ? `Automatic currently prefers ${regionLabel(bestNode.region)} at ${nodeLatency(bestNode)} ms.`
-            : 'Automatic chooses the lowest-latency healthy region when one is reachable.'
-          : 'Manual region selection overrides automatic latency routing.'}
-      </p>
+      {showHint && (
+        <p className="mt-2 text-xs text-neutral-500">
+          {selectedNodeId === null
+            ? bestNode
+              ? `Automatic currently prefers ${regionLabel(bestNode.region)} at ${nodeLatency(bestNode)} ms.`
+              : 'Automatic chooses the lowest-latency healthy region when one is reachable.'
+            : 'Manual region selection overrides automatic latency routing.'}
+        </p>
+      )}
     </div>
   )
 }

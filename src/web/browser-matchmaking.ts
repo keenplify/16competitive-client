@@ -23,6 +23,7 @@ let heartbeatTimer: number | null = null
 let authenticated = false
 let navigating = false
 let nodesCache: MatchmakingNode[] = []
+let nodesCacheUpdatedAt = 0
 let lastConnection: Extract<MatchmakingServerMessage, { type: 'match_connect' }> | null = null
 
 const emit = (event: MatchmakingEvent): void => {
@@ -62,8 +63,14 @@ const sameOrigin = (url: string): boolean => {
   }
 }
 
-const createHandoffUrl = async (publicApiUrl: string): Promise<string> => {
+const createHandoffUrl = async (
+  publicApiUrl: string,
+  selectedNodeId?: string | null
+): Promise<string> => {
   const target = new URL('/pwa/', publicApiUrl)
+  if (selectedNodeId !== undefined) {
+    target.searchParams.set('selectedNode', selectedNodeId ?? 'automatic')
+  }
   if (!getWebSessionToken()) return target.toString()
   const handoff = await requestJson<{ token: string }>('/auth/web-handoff', {
     authenticated: true,
@@ -73,9 +80,12 @@ const createHandoffUrl = async (publicApiUrl: string): Promise<string> => {
   return target.toString()
 }
 
-const navigateToNode = async (publicApiUrl: string): Promise<void> => {
+export const navigateToNode = async (
+  publicApiUrl: string,
+  selectedNodeId?: string | null
+): Promise<void> => {
   if (sameOrigin(publicApiUrl)) return
-  const targetUrl = await createHandoffUrl(publicApiUrl)
+  const targetUrl = await createHandoffUrl(publicApiUrl, selectedNodeId)
   navigating = true
   clearTimers()
   socket?.close()
@@ -258,18 +268,22 @@ const probeNode = async (node: MatchmakingNode): Promise<number | null> => {
 }
 
 const getNodes = async (): Promise<MatchmakingNode[]> => {
+  if (nodesCache.length > 0 && Date.now() - nodesCacheUpdatedAt < 15_000) return nodesCache
   const body = await requestJson<{ nodes: MatchmakingNode[] }>('/nodes')
   const measured = await Promise.all(
     body.nodes.map(async (node) => ({ ...node, latencyMs: await probeNode(node) }))
   )
   nodesCache = measured
+  nodesCacheUpdatedAt = Date.now()
   return measured
 }
 
 const preferences = (): MatchmakingPreferences => {
-  const current = nodesCache.find((node) => sameOrigin(node.publicApiUrl))
+  const selectedNodeId = localStorage.getItem(SELECTED_NODE_KEY)
   return {
-    selectedNodeId: current?.id ?? localStorage.getItem(SELECTED_NODE_KEY),
+    selectedNodeId: nodesCache.some((node) => node.id === selectedNodeId && node.available)
+      ? selectedNodeId
+      : null,
     allowRegionExpansion: localStorage.getItem(ALLOW_EXPANSION_KEY) !== 'false'
   }
 }
@@ -285,7 +299,9 @@ export const browserMatchmakingApi: MatchmakingApi = {
     if (nodeId && !target) throw new Error('Selected matchmaking region is unavailable.')
     if (nodeId) localStorage.setItem(SELECTED_NODE_KEY, nodeId)
     else localStorage.removeItem(SELECTED_NODE_KEY)
-    if (target && !sameOrigin(target.publicApiUrl)) await navigateToNode(target.publicApiUrl)
+    if (target && !sameOrigin(target.publicApiUrl)) {
+      await navigateToNode(target.publicApiUrl, target.id)
+    }
     return preferences()
   },
 
@@ -300,7 +316,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) {
-    if (mode !== 'unrated') {
+    if (!allowsManualMatchConnection(mode)) {
       throw new Error('Ranked matchmaking requires the 1.6 Competitive desktop app.')
     }
     await openSocket()

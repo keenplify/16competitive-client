@@ -25,7 +25,7 @@ export function MatchAbandonNotice(): JSX.Element | null {
         aria-labelledby="match-abandon-title"
         aria-describedby="match-abandon-description"
       >
-        <section className="w-full max-w-md rounded-xl border border-red-400/25 bg-neutral-900 p-6 text-center shadow-2xl">
+        <section className="w-full max-w-md  border border-red-400/25 bg-neutral-900 p-6 text-center shadow-2xl">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-400/10 text-red-300">
             <AlertTriangle className="size-6" aria-hidden="true" />
           </div>

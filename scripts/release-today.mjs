@@ -77,7 +77,50 @@ try {
   git('push', 'origin', branch)
   git('push', 'origin', tag)
 
-  console.log(`${tag} pushed. GitHub Actions will build it and create the GitHub Release.`)
+  console.log(`${tag} pushed. Waiting for GitHub Actions to build every desktop package...`)
+  const releaseSha = git('rev-parse', 'HEAD')
+  const releaseDeadline = Date.now() + 60 * 60 * 1000
+  let releaseUrl = ''
+  let releaseCompleted = false
+  while (Date.now() < releaseDeadline) {
+    const runs = JSON.parse(
+      execFileSync(
+        'gh',
+        [
+          'run',
+          'list',
+          '--workflow',
+          'release.yml',
+          '--branch',
+          tag,
+          '--limit',
+          '10',
+          '--json',
+          'headSha,status,conclusion,url'
+        ],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+      )
+    )
+    const latest = runs.find((entry) => entry.headSha === releaseSha)
+    releaseUrl = latest?.url || releaseUrl
+    if (latest?.status === 'completed') {
+      if (latest.conclusion !== 'success') {
+        fail(`Desktop release failed: ${latest.url}. Fix the workflow and rerun it.`)
+      }
+      console.log(`Desktop packages completed successfully${latest.url ? ` (${latest.url})` : ''}.`)
+      releaseCompleted = true
+      break
+    }
+    console.log(
+      `Desktop ${tag}: ${latest?.status || 'waiting for Actions to start'}${latest?.url ? ` (${latest.url})` : ''}`
+    )
+    await new Promise((done) => setTimeout(done, 15_000))
+  }
+  if (!releaseCompleted) {
+    fail(
+      `Timed out waiting for desktop packages${releaseUrl ? `: ${releaseUrl}` : '.'} Check GitHub Actions before retrying.`
+    )
+  }
 
   const remoteCommand =
     'cd /root/16competitive && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'

@@ -289,7 +289,7 @@ export function PartyChat(): JSX.Element {
               {minimizedPing.title}
             </span>
             {minimizedPing.count > 1 && (
-              <span className="rounded-full bg-sky-400 px-1.5 py-0.5 text-[10px] font-bold text-neutral-950">
+              <span className="bg-sky-400 px-1.5 py-0.5 text-[10px] font-bold text-neutral-950">
                 {minimizedPing.count > 99 ? '99+' : minimizedPing.count}
               </span>
             )}
@@ -307,7 +307,7 @@ export function PartyChat(): JSX.Element {
           <span className="relative">
             <MessageSquare className="size-4 text-sky-300" aria-hidden="true" />
             {minimizedPing && (
-              <span className="absolute -right-2 -top-2 grid min-w-4 place-items-center rounded-full bg-sky-400 px-1 text-[9px] font-bold leading-4 text-neutral-950">
+              <span className="absolute -top-2 -right-2 grid min-w-4 place-items-center bg-sky-400 px-1 text-[9px] leading-4 font-bold text-neutral-950">
                 {minimizedPing.count > 9 ? '9+' : minimizedPing.count}
               </span>
             )}
@@ -316,7 +316,7 @@ export function PartyChat(): JSX.Element {
         </button>
       )}
       {chatOpen && (
-        <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-sm border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
+        <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden  border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
           <div className="shrink-0 border-b border-white/15 bg-black/50">
             <div className="flex min-w-0">
               <div
@@ -375,7 +375,7 @@ export function PartyChat(): JSX.Element {
                     >
                       <span className="truncate">{conversation.friend.username}</span>
                       {conversation.unread > 0 && (
-                        <span className="flex min-w-4 items-center justify-center rounded-full bg-sky-400 px-1 text-[9px] font-bold text-neutral-950">
+                        <span className="flex min-w-4 items-center justify-center bg-sky-400 px-1 text-[9px] font-bold text-neutral-950">
                           {conversation.unread > 9 ? '9+' : conversation.unread}
                         </span>
                       )}
@@ -383,7 +383,7 @@ export function PartyChat(): JSX.Element {
                         role="button"
                         tabIndex={0}
                         aria-label={`Close chat with ${conversation.friend.username}`}
-                        className="rounded px-1 text-neutral-600 hover:bg-white/10 hover:text-white"
+                        className="  px-1 text-neutral-600 hover:bg-white/10 hover:text-white"
                         onClick={(event) => {
                           event.stopPropagation()
                           closeFriendChat(friendId)

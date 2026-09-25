@@ -92,7 +92,7 @@ export function LobbyNavigation({
               aria-current={active ? 'page' : undefined}
               onClick={() => onNavigate(id)}
               className={twMerge(
-                'group relative inline-flex h-9 items-center justify-center gap-2 rounded-md px-2.5 text-xs font-bold tracking-[0.08em] text-white/80 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:px-4 sm:text-sm',
+                'group relative inline-flex h-9 items-center justify-center gap-2  px-2.5 text-xs font-bold tracking-[0.08em] text-white/80 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:px-4 sm:text-sm',
                 active &&
                   'bg-white/10 text-sky-200 after:absolute after:-top-3.5 after:left-1/2 after:h-0.5 after:w-[calc(100%+0.5rem)] after:-translate-x-1/2 after:bg-sky-300 after:shadow-[0_0_10px_rgba(125,211,252,0.95)] sm:after:-top-5',
                 isPlay && 'px-3 text-white sm:px-5',
@@ -103,9 +103,9 @@ export function LobbyNavigation({
             >
               {isPlay && !active && (
                 <>
-                  <span className="pointer-events-none absolute -inset-2 rounded-lg bg-sky-400/20 blur-md motion-safe:animate-pulse" />
-                  <span className="pointer-events-none absolute -inset-1 rounded-md border border-sky-300/45 opacity-0 motion-safe:animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" />
-                  <span className="pointer-events-none absolute inset-0 rounded-md border border-sky-200/80 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]" />
+                  <span className="pointer-events-none absolute -inset-2  bg-sky-400/20 blur-md motion-safe:animate-pulse" />
+                  <span className="pointer-events-none absolute -inset-1  border border-sky-300/45 opacity-0 motion-safe:animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                  <span className="pointer-events-none absolute inset-0  border border-sky-200/80 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]" />
                 </>
               )}
               <Icon
@@ -151,7 +151,7 @@ function IconButton({
       disabled={disabled}
       onClick={onClick}
       className={twMerge(
-        'grid size-8 place-items-center rounded-md text-white/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:size-9',
+        'grid size-8 place-items-center  text-white/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:size-9',
         active &&
           'bg-white/10 text-sky-200 after:absolute after:-top-3.5 after:left-1/2 after:h-0.5 after:w-[calc(100%+0.25rem)] after:-translate-x-1/2 after:bg-sky-300 after:shadow-[0_0_10px_rgba(125,211,252,0.95)] sm:after:-top-5'
       )}

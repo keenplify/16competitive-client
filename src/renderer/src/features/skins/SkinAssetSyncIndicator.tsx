@@ -106,26 +106,26 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     <div
       className={`fixed ${reportPosition} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
     >
-      <p className="rounded-lg border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
+      <p className=" border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
         Alpha Release Testing <b>Expect Bugs</b>
       </p>
       <button
         type="button"
         onClick={() => setReportOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-cyan-300/30 bg-slate-950/90 px-3 py-2 text-cyan-100 shadow-xl backdrop-blur transition hover:bg-slate-800"
+        className="flex items-center gap-2  border border-cyan-300/30 bg-slate-950/90 px-3 py-2 text-cyan-100 shadow-xl backdrop-blur transition hover:bg-slate-800"
       >
         <Clipboard className="size-4" aria-hidden="true" />
         Report an Issue
       </button>
       {reportOpen && (
-        <div className="w-80 rounded-lg border border-cyan-300/30 bg-slate-950/95 p-3 text-left text-cyan-100 shadow-xl backdrop-blur">
+        <div className="w-80  border border-cyan-300/30 bg-slate-950/95 p-3 text-left text-cyan-100 shadow-xl backdrop-blur">
           <p className="mb-2 font-medium">What went wrong?</p>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             maxLength={10_000}
             rows={4}
-            className="w-full resize-y rounded border border-slate-700 bg-slate-900 p-2 text-xs text-white outline-none focus:border-cyan-300"
+            className="w-full resize-y   border border-slate-700 bg-slate-900 p-2 text-xs text-white outline-none focus:border-cyan-300"
             placeholder="Tell us what happened and what you expected."
           />
           {reportStatus && <p className="mt-2 text-amber-200">{reportStatus}</p>}
@@ -134,7 +134,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
               type="button"
               onClick={() => setReportOpen(false)}
               disabled={reporting}
-              className="rounded px-2 py-1 text-slate-300 hover:bg-slate-800"
+              className="  px-2 py-1 text-slate-300 hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -142,7 +142,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
               type="button"
               onClick={() => void reportIssue()}
               disabled={reporting}
-              className="rounded bg-cyan-700 px-2 py-1 text-white hover:bg-cyan-600"
+              className="  bg-cyan-700 px-2 py-1 text-white hover:bg-cyan-600"
             >
               {reporting ? 'Reporting…' : 'Submit report'}
             </button>
@@ -151,7 +151,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
       )}
       {progress && progress.status !== 'ready' && (
         <aside
-          className={`flex items-center gap-2 rounded-lg border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
+          className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
           role="status"
           aria-live="polite"
         >

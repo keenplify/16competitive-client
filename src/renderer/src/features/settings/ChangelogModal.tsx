@@ -23,7 +23,7 @@ export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
         ref={dialogRef}
         onClose={onClose}
         aria-labelledby="changelog-title"
-        className="m-auto max-h-[85vh] w-[min(44rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-white/15 bg-neutral-900 p-0 text-white shadow-2xl backdrop:bg-neutral-950/85 open:flex"
+        className="m-auto max-h-[85vh] w-[min(44rem,calc(100vw-2rem))] flex-col overflow-hidden  border border-white/15 bg-neutral-900 p-0 text-white shadow-2xl backdrop:bg-neutral-950/85 open:flex"
       >
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <h2 id="changelog-title" className="text-xl font-semibold">
@@ -53,7 +53,7 @@ export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
                 <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>
               ),
               code: ({ children }) => (
-                <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs text-white">
+                <code className="  bg-white/10 px-1 py-0.5 font-mono text-xs text-white">
                   {children}
                 </code>
               )

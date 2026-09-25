@@ -53,7 +53,7 @@ export function PurchaseConfirmModal({
         }}
       >
         <section
-          className="w-full max-w-md overflow-hidden rounded-xl border border-white/15 bg-neutral-950 shadow-2xl"
+          className="w-full max-w-md overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl"
           role="dialog"
           aria-modal="true"
           aria-labelledby="purchase-confirm-title"
@@ -92,7 +92,7 @@ export function PurchaseConfirmModal({
                     key={option.currency}
                     type="button"
                     className={[
-                      'flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition',
+                      'flex w-full items-center justify-between  border px-4 py-3 text-left transition',
                       active
                         ? 'border-sky-300/60 bg-sky-300/10'
                         : 'border-white/10 bg-white/[0.03] hover:border-white/20',

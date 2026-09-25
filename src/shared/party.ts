@@ -18,6 +18,7 @@ export interface PartyMember {
   lobbyWeaponSkinId: string | null
   lobbyWeaponKey: string
   lobbyWeaponModelPath: string | null
+  clientMode: 'desktop' | 'web' | 'offline'
 }
 
 export interface Party {

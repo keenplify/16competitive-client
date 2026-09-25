@@ -69,16 +69,17 @@ or a GitHub/publisher token in this file.
 
 1. Publish a `v<version>` tag from the private helper repository. Its protected
    `Release` environment signs the Windows x64, Linux x64, and Linux ARM64 builds
-   and registers their hashes with the backend.
+   plus the Linux x86 cosmetic module, and registers the signed bundle manifests
+   with the backend.
 2. Set the pinned version and public key in `helper-release.json` and commit them.
 3. Set `HELPER_REPOSITORY=owner/private-helper-repo` locally and authenticate `gh`
    with read access. Run `npm run release:check` to verify every target without
    changing Git or publishing anything.
 4. Run `npm run release` after committing changes. It runs normal client checks,
-   verifies all pinned helper assets and backend approval, then follows the
-   existing version/tag/push and web-update flow. It never builds or publishes
-   Rust source. Reusing an approved helper version is supported; helper changes
-   require a new private helper release first.
+   releases the private Rust bundle, verifies every pinned native asset and backend
+   approval, then builds every desktop target through GitHub Actions. It waits for
+   the desktop workflow before updating the web clients. Rust source remains in the
+   private repository. Reusing an approved helper version is supported.
 
 For the client's GitHub `Prod` environment configure:
 
@@ -89,7 +90,8 @@ For the client's GitHub `Prod` environment configure:
 
 The public release workflow downloads binaries only. The packaging hook verifies
 the signature, version, target, byte size, SHA-256, and backend approval before
-copying the helper and signed manifest outside ASAR. Failure aborts packaging.
+copying the helper, Linux cosmetic module, and signed manifest outside ASAR.
+Failure aborts packaging.
 No signing or backend publishing credential belongs in the public client workflow.
 
 Packaged clients and development clients configured for a remote backend verify the signed file before starting the helper and periodically
@@ -120,10 +122,10 @@ the private repository, and permission to push both repositories.
 The command increments the helper patch version in Cargo.toml and Cargo.lock,
 runs its locked Rust tests, commits the version changes, and pushes the helper
 branch and release tag. It waits up to 45 minutes for the private release
-workflow to build, sign, and register all targets. It then updates
+workflow to build, sign, and register all helper and cosmetic targets. It then updates
 helper-release.json and verifies all binaries, signatures, and backend approvals
-before committing and tagging the client release. Existing web deployment steps
-run afterward.
+before committing and tagging the client release. It waits up to 60 minutes for
+all Windows and Linux desktop packages to finish, then runs the web deployment steps.
 
 If the helper version is already ahead of the client pin, retrying resumes that
 version instead of incrementing it again. Existing tags are never moved. If

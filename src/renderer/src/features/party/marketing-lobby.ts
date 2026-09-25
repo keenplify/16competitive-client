@@ -36,7 +36,8 @@ const memberWithSkin = (
   lobbyPlayerModel: LOBBY_PLAYER_MODELS[slot % LOBBY_PLAYER_MODELS.length],
   lobbyWeaponSkinId: skin.id,
   lobbyWeaponKey: skin.weaponKey,
-  lobbyWeaponModelPath: skin.playerModelPath
+  lobbyWeaponModelPath: skin.playerModelPath,
+  clientMode: 'desktop'
 })
 
 export interface MarketingLobby {

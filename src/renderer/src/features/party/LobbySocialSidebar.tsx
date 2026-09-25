@@ -18,6 +18,7 @@ import type {
   IncomingFriendRequest
 } from '../../../../shared/friends'
 import { Button } from '../../components/ui/Button'
+import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
 import { TextField } from '../../components/ui/TextField'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
@@ -31,8 +32,6 @@ interface LobbySocialSidebarProps {
   onCollapsedChange: (collapsed: boolean) => void
   hoverOpenDisabledUntil?: number
 }
-
-const initials = (username: string): string => username.slice(0, 2).toUpperCase()
 
 function FriendRow({
   friend,
@@ -55,18 +54,11 @@ function FriendRow({
       title="Right-click for friend options"
       onContextMenu={onContextMenu}
     >
-      <div
-        className={`relative flex size-9 shrink-0 items-center justify-center bg-neutral-800 text-[11px] font-bold ${
-          online ? 'text-white' : 'text-neutral-500'
-        }`}
-      >
-        {initials(friend.username)}
-        <span
-          className={`absolute right-0 bottom-0 size-2.5 border-2 border-neutral-950 ${
-            inGame ? 'bg-violet-400' : online ? 'bg-emerald-400' : 'bg-neutral-600'
-          }`}
-        />
-      </div>
+      <PlayerAvatar
+        username={friend.username}
+        presence={inGame ? 'in-game' : online ? 'online' : 'offline'}
+        className="size-9"
+      />
       <div className="min-w-0 flex-1">
         <p
           className={`truncate text-xs font-semibold ${online ? 'text-neutral-100' : 'text-neutral-500'}`}
@@ -83,7 +75,7 @@ function FriendRow({
         {canInvite && friend.presence === 'ONLINE' && (
           <button
             type="button"
-            className="rounded p-1.5 text-sky-300 hover:bg-sky-400/15 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-400"
+            className="  p-1.5 text-sky-300 hover:bg-sky-400/15 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-400"
             aria-label={`Invite ${friend.username} to party`}
             title="Invite to party"
             disabled={busy}
@@ -114,9 +106,7 @@ function SearchResultRow({
   }[player.relationship]
   return (
     <div className="flex items-center gap-2 px-3 py-2 hover:bg-white/5">
-      <div className="flex size-8 items-center justify-center bg-neutral-800 text-[10px] font-bold text-neutral-200">
-        {initials(player.username)}
-      </div>
+      <PlayerAvatar username={player.username} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-semibold text-neutral-200">{player.username}</p>
         <p className="text-[10px] text-neutral-500">{player.mmr} MMR</p>
@@ -181,7 +171,7 @@ function FriendRequestsModal({
           </div>
           <button
             type="button"
-            className="rounded p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+            className="  p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
             aria-label="Close friend requests"
             onClick={onClose}
           >
@@ -200,9 +190,7 @@ function FriendRequestsModal({
                   key={request.id}
                   className="flex items-center gap-3 border border-white/10 bg-black/20 p-3"
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center bg-neutral-800 text-[10px] font-bold">
-                    {initials(request.player.username)}
-                  </div>
+                  <PlayerAvatar username={request.player.username} className="size-9" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-white">
                       {request.player.username}
@@ -212,7 +200,7 @@ function FriendRequestsModal({
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      className="rounded p-2 text-emerald-300 hover:bg-emerald-400/15 focus-visible:outline-2 focus-visible:outline-emerald-300"
+                      className="  p-2 text-emerald-300 hover:bg-emerald-400/15 focus-visible:outline-2 focus-visible:outline-emerald-300"
                       aria-label={`Accept ${request.player.username}'s friend request`}
                       disabled={actingRequestId === request.id}
                       onClick={() => onAccept(request.id)}
@@ -221,7 +209,7 @@ function FriendRequestsModal({
                     </button>
                     <button
                       type="button"
-                      className="rounded p-2 text-neutral-500 hover:bg-red-400/10 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-red-300"
+                      className="  p-2 text-neutral-500 hover:bg-red-400/10 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-red-300"
                       aria-label={`Discard ${request.player.username}'s friend request`}
                       disabled={actingRequestId === request.id}
                       onClick={() => onDiscard(request.id)}
@@ -387,7 +375,7 @@ export function LobbySocialSidebar({
       <div
         className={`fixed top-4 right-14 z-20 w-52 transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
       >
-        <MatchSearchPanel variant="compact" className="rounded-md" />
+        <MatchSearchPanel variant="compact" className="" />
       </div>
       <aside
         className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
@@ -403,7 +391,7 @@ export function LobbySocialSidebar({
           className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${collapsed ? 'translate-x-0 opacity-100 delay-100' : 'pointer-events-none translate-x-3 opacity-0'}`}
           aria-hidden={!collapsed}
         >
-          <div className="relative mt-5 rounded p-2">
+          <div className="relative mt-5   p-2">
             <Users className="size-4" aria-hidden="true" />
             {notificationCount > 0 && (
               <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
@@ -428,7 +416,7 @@ export function LobbySocialSidebar({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="relative rounded p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 disabled:cursor-default disabled:opacity-40"
+                className="relative   p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 disabled:cursor-default disabled:opacity-40"
                 aria-label={
                   friendRequests.length > 0
                     ? `Friend requests (${friendRequests.length})`
@@ -457,7 +445,7 @@ export function LobbySocialSidebar({
               )}
               <button
                 type="button"
-                className="rounded p-1 text-neutral-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+                className="  p-1 text-neutral-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
                 aria-label="Collapse Friends panel"
                 onClick={() => onCollapsedChange(true)}
               >

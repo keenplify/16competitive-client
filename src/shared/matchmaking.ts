@@ -21,19 +21,24 @@ export const MATCHMAKING_CHANNELS = {
   event: 'matchmaking:event'
 } as const
 
-export type MatchmakingMode = '5v5' | 'unrated' | 'casual'
+export const MATCHMAKING_MODES = ['5v5', 'unrated', 'casual', 'ffa'] as const
+export type MatchmakingMode = (typeof MATCHMAKING_MODES)[number]
+
+export const isMatchmakingMode = (value: unknown): value is MatchmakingMode =>
+  typeof value === 'string' && (MATCHMAKING_MODES as readonly string[]).includes(value)
 
 export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   '5v5': 'Competitive',
   unrated: 'Unrated',
-  casual: 'Casual'
+  casual: 'Casual',
+  ffa: 'FFA'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
-  mode === '5v5' || mode === 'unrated' || mode === 'casual' ? MATCHMAKING_MODE_LABELS[mode] : mode
+  isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
 
 export const allowsManualMatchConnection = (mode: unknown): boolean =>
-  mode === 'unrated' || mode === 'casual'
+  mode === 'unrated' || mode === 'casual' || mode === 'ffa'
 
 export function manualConnectionCommand(value: unknown): string {
   if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
@@ -291,6 +296,7 @@ export type MatchmakingServerMessage =
       mapId: string
       teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
       winner: 1 | 2
+      winnerPlayerId?: string
       teamAScore: number
       teamBScore: number
       players: {
