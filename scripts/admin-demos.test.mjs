@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import ts from 'typescript'
 const id = 'abed714b-7416-4318-b4de-ebb21182cd68'
+// JavaScript test fixture; TypeScript return annotations are not valid in .mjs.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async function fixture(options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'demo-test-'))
   await mkdir(join(directory, 'cstrike'))
