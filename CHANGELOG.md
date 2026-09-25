@@ -1241,3 +1241,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added FastDL support for preparing match assets.
 - Improved match asset preparation status updates.
+
+## v2026.925.1 — 2026-09-25
+
+### Matchmaking
+
+- Improved matchmaking recovery after a launcher restart.
+- Added automatic match reporting.
+
+### Game Integrity
+
+- Added game inspection support for match integrity checks.
+- Improved anti-cheat startup and match termination messaging.
