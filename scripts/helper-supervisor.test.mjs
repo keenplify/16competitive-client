@@ -60,6 +60,16 @@ async function harness() {
       REQUIRES_SIGNED_HELPER: false
     },
     './helper-integrity': { verifyPackagedHelper: async () => {} },
+    './game-screenshots': {
+      GameScreenshotCollector: class {
+        start() {
+          return undefined
+        }
+        stop() {
+          return undefined
+        }
+      }
+    },
     './helper-process': {
       async spawnHelper() {
         if (failSpawn) throw new Error('invalid signature')
