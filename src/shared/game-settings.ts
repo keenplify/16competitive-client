@@ -1,8 +1,11 @@
+import type { CrosshairProfile } from './crosshair'
+
 export const GAME_SETTINGS_CHANNELS = {
   get: 'game-settings:get',
   chooseFolder: 'game-settings:choose-folder',
   save: 'game-settings:save',
   setVoicePttKey: 'game-settings:set-voice-ptt-key',
+  setCrosshair: 'game-settings:set-crosshair',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
   syncAssets: 'game-settings:sync-assets',
   assetSyncProgress: 'game-settings:asset-sync-progress'
@@ -14,6 +17,7 @@ export interface GameSettings {
   configFilePath: string
   voicePttKey: string
   voicePttKeys: string[]
+  crosshair: CrosshairProfile
 }
 
 export type SkinAssetSyncMode = 'download' | 'repair'
@@ -30,6 +34,7 @@ export interface GameSettingsApi {
   chooseFolder(): Promise<string | null>
   save(folderPath: string): Promise<GameSettings>
   setVoicePttKey(key: string): Promise<GameSettings>
+  setCrosshair(profile: CrosshairProfile): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>
   syncAssets(mode: SkinAssetSyncMode): Promise<void>
   onAssetSyncProgress(listener: (progress: SkinAssetSyncProgress) => void): () => void

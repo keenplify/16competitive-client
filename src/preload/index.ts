@@ -184,6 +184,7 @@ const gameSettings: GameSettingsApi = {
   chooseFolder: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseFolder),
   save: (folderPath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, folderPath),
   setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
+  setCrosshair: (profile) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCrosshair, profile),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
   syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
   onAssetSyncProgress: (listener) => {

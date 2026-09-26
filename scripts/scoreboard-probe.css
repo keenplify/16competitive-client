@@ -1,0 +1,143 @@
+html,
+body,
+#root {
+  margin: 0;
+  width: 736px;
+  height: 512px;
+  background: transparent;
+  overflow: hidden;
+}
+* {
+  box-sizing: border-box;
+}
+.scoreboard {
+  width: 736px;
+  height: 512px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px 12px;
+  color: #e6e2d0;
+  background: rgba(24, 24, 18, 0.83);
+  border: 1px solid rgba(189, 163, 93, 0.52);
+  border-radius: 8px;
+  box-shadow: 0 12px 42px rgba(0, 0, 0, 0.45);
+  font:
+    12px Verdana,
+    Arial,
+    sans-serif;
+}
+.board-header {
+  height: 41px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #9c8757;
+  color: #d8b46d;
+  font-weight: bold;
+  letter-spacing: 0.4px;
+}
+.board-header b {
+  color: #f3cc75;
+  font-size: 16px;
+}
+.board-header span {
+  font-size: 11px;
+}
+.map-name {
+  color: #eee3bd;
+  text-transform: uppercase;
+}
+.player-count {
+  font-size: 10px;
+  color: #a8a696;
+}
+.board-table {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+.column-head,
+.player-row {
+  display: grid;
+  grid-template-columns: 37px minmax(0, 1fr) 67px 70px 70px 72px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+.column-head {
+  height: 25px;
+  border-bottom: 1px solid rgba(196, 167, 95, 0.72);
+  color: #d4b36b;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.4px;
+}
+.column-head span:nth-child(n + 3),
+.player-row span:nth-child(n + 3) {
+  text-align: right;
+}
+.player-row {
+  height: 13px;
+  border-bottom: 1px solid rgba(216, 199, 146, 0.08);
+  font-size: 11px;
+  line-height: 13px;
+}
+.player-row:nth-child(even) {
+  background: rgba(214, 203, 162, 0.055);
+}
+.player-row .rank {
+  color: #c8aa6e;
+}
+.player-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.empty {
+  padding: 40px 12px;
+  text-align: center;
+  color: #bbb6a3;
+  font-size: 11px;
+}
+.round-area {
+  height: 57px;
+  flex: none;
+  border-top: 1px solid rgba(196, 167, 95, 0.5);
+  padding: 7px 5px 0;
+}
+.round-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #b9a270;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.round-label strong {
+  color: #e8c47a;
+  font-size: 11px;
+}
+.round-track {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 9px;
+}
+.round-tick {
+  width: 22px;
+  height: 8px;
+  border: 1px solid #736c58;
+  background: rgba(118, 113, 94, 0.3);
+}
+.round-tick.past {
+  background: #86734e;
+  border-color: #b69a62;
+}
+.round-tick.current {
+  background: #f0c46b;
+  border-color: #ffe0a0;
+  box-shadow: 0 0 8px rgba(242, 188, 76, 0.7);
+}
+.round-tick.halftime {
+  margin-left: 8px;
+}

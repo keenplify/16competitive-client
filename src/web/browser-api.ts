@@ -1,6 +1,7 @@
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
+import { DEFAULT_CROSSHAIR, parseCrosshairProfile } from '../shared/crosshair'
 import type { LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
 import type { MatchHistoryEntry, MatchSummary, PlayerProfile } from '../shared/match-history'
 import type { NewsPost } from '../shared/news'
@@ -58,12 +59,20 @@ const getPttKeys = (): [string, string] => {
 
 const browserSettings = (): GameSettings => {
   const [team, party] = getPttKeys()
+  let crosshair = DEFAULT_CROSSHAIR
+  try {
+    const saved = localStorage.getItem('16c-crosshair-v1')
+    if (saved) crosshair = parseCrosshairProfile(JSON.parse(saved))
+  } catch {
+    // Use the default when browser storage contains an invalid profile.
+  }
   return {
     cs16ExecutablePath: 'steam://run/10',
     cs16FolderPath: null,
     configFilePath: 'Browser / Steam',
     voicePttKey: team,
-    voicePttKeys: [team, party]
+    voicePttKeys: [team, party],
+    crosshair
   }
 }
 
@@ -464,6 +473,10 @@ const api: Window['api'] = {
         throw new Error('Team and Party talk need different push-to-talk keys.')
       }
       localStorage.setItem(PTT_KEYS_KEY, JSON.stringify(next))
+      return browserSettings()
+    },
+    async setCrosshair(profile) {
+      localStorage.setItem('16c-crosshair-v1', JSON.stringify(parseCrosshairProfile(profile)))
       return browserSettings()
     },
     async getAssetSyncStatus(): Promise<SkinAssetSyncProgress> {
