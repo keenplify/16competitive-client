@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 
 export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 
@@ -61,6 +62,8 @@ const readableError = (error: unknown): string =>
     : 'Could not save the push-to-talk key.'
 
 export function VoicePttKeySetting(): JSX.Element {
+  const isFfaMatch = useMatchmakingStore((state) => state.match?.mode === 'ffa')
+  const matchChannelLabel = isFfaMatch ? 'All' : 'Team'
   const panelRef = useRef<HTMLDivElement>(null)
   const [teamPttKey, setTeamPttKey] = useState('K')
   const [partyPttKey, setPartyPttKey] = useState('V')
@@ -115,7 +118,7 @@ export function VoicePttKeySetting(): JSX.Element {
             })
           )
           setNotice(
-            `${channel === 'team' ? 'Team' : 'Party'} push-to-talk is now ${
+            `${channel === 'team' ? matchChannelLabel : 'Party'} push-to-talk is now ${
               channel === 'team' ? nextTeamKey : nextPartyKey
             }.`
           )
@@ -151,17 +154,17 @@ export function VoicePttKeySetting(): JSX.Element {
       window.removeEventListener('keydown', keyDown, true)
       window.removeEventListener('mousedown', mouseDown, true)
     }
-  }, [capturing])
+  }, [capturing, matchChannelLabel])
 
   const bindingRow = (channel: VoiceTalkChannel, key: string): JSX.Element => (
     <div className="flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-sm font-semibold text-white">
-          {channel === 'team' ? 'Team talk' : 'Party talk'}
+          {channel === 'team' ? `${matchChannelLabel} talk` : 'Party talk'}
         </p>
         <p className="mt-1 text-xs text-neutral-500">
           {channel === 'team'
-            ? 'Talk to every human teammate in your current match.'
+            ? 'Talk to teammates in team matches, or everyone in FFA.'
             : 'Talk only to party members who are also on your current team.'}
         </p>
       </div>
@@ -193,8 +196,8 @@ export function VoicePttKeySetting(): JSX.Element {
           <h3 className="text-lg font-semibold">Push-to-talk</h3>
         </div>
         <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-          Team and Party talk use separate keys. Team defaults to K and Party defaults to V.
-          Counter-Strike receives both bindings temporarily when a match launches.
+          Team (All in FFA) and Party talk use separate keys. Team defaults to K and Party defaults
+          to V. Counter-Strike receives both bindings temporarily when a match launches.
         </p>
       </div>
 
@@ -206,7 +209,7 @@ export function VoicePttKeySetting(): JSX.Element {
       {capturing && (
         <div className="mt-2 border border-sky-400/25 bg-sky-400/5 p-4 text-sm text-sky-200">
           Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for{' '}
-          {capturing === 'team' ? 'Team' : 'Party'} talk.
+          {capturing === 'team' ? matchChannelLabel : 'Party'} talk.
         </div>
       )}
 
