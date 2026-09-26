@@ -1291,3 +1291,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved anti-cheat logging.
 - Improved Windows watchdog process handling.
+
+## v2026.926.1 — 2026-09-26
+
+### Matchmaking
+
+- Added server moving support.
+- Improved matchmaking region selection.
+
+### Voice Chat
+
+- FFA match voice chat now uses an all-player channel.
+
+### Updates
+
+- Added support for scoped web updates during client releases.
