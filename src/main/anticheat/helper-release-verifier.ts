@@ -12,7 +12,7 @@ export interface HelperManifest {
 }
 
 export interface CosmeticModuleManifest {
-  fileName: 'papamo-cosmetic-module-linux-x86.so'
+  fileName: 'papamo-cosmetic-module-linux-x86.so' | 'papamo-cosmetic-module-win-x86.dll'
   sha256: string
   sizeBytes: number
 }
@@ -62,14 +62,15 @@ export function verifyHelperRelease(value: unknown, publicKeyPem: string): Helpe
     !Number.isSafeInteger(manifest.sizeBytes) ||
     manifest.sizeBytes < 1 ||
     manifest.sizeBytes > 32 * 1024 * 1024 ||
-    (manifest.platform === 'linux' &&
-      (!cosmetic ||
-        cosmetic.fileName !== 'papamo-cosmetic-module-linux-x86.so' ||
-        !/^[a-f0-9]{64}$/.test(cosmetic.sha256) ||
-        !Number.isSafeInteger(cosmetic.sizeBytes) ||
-        cosmetic.sizeBytes < 1 ||
-        cosmetic.sizeBytes > 32 * 1024 * 1024)) ||
-    (manifest.platform === 'win' && cosmetic !== undefined)
+    !cosmetic ||
+    cosmetic.fileName !==
+      (manifest.platform === 'win'
+        ? 'papamo-cosmetic-module-win-x86.dll'
+        : 'papamo-cosmetic-module-linux-x86.so') ||
+    !/^[a-f0-9]{64}$/.test(cosmetic.sha256) ||
+    !Number.isSafeInteger(cosmetic.sizeBytes) ||
+    cosmetic.sizeBytes < 1 ||
+    cosmetic.sizeBytes > 32 * 1024 * 1024
   )
     throw new Error('Invalid helper manifest fields')
   return manifest as HelperManifest
@@ -86,7 +87,6 @@ export function verifyHelperBinary(bytes: Uint8Array, manifest: HelperManifest):
 export function verifyCosmeticModule(bytes: Uint8Array, manifest: HelperManifest): void {
   const cosmetic = manifest.cosmeticModule
   if (
-    manifest.platform !== 'linux' ||
     !cosmetic ||
     bytes.byteLength !== cosmetic.sizeBytes ||
     createHash('sha256').update(bytes).digest('hex') !== cosmetic.sha256

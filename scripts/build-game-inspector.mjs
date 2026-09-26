@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, mkdirSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -17,30 +17,73 @@ const targets = {
   'mac-x64': 'x86_64-apple-darwin',
   'mac-arm64': 'aarch64-apple-darwin'
 }
+const cosmeticTargets = {
+  'win-x64': {
+    target: 'i686-pc-windows-msvc',
+    source: 'papamo_cosmetic_module.dll',
+    destination: 'papamo-cosmetic-module-win-x86.dll'
+  },
+  'linux-x64': {
+    target: 'i686-unknown-linux-gnu',
+    source: 'libpapamo_cosmetic_module.so',
+    destination: 'papamo-cosmetic-module-linux-x86.so'
+  }
+}
 
-export function buildGameInspector(platform, arch) {
-  const target = targets[`${platform}-${arch}`]
-  if (!target) throw new Error(`Unsupported native helper target: ${platform}-${arch}`)
-  const manifest = join(helperRoot, 'Cargo.toml')
-  const result = spawnSync(
-    'cargo',
-    ['build', '--locked', '--release', '--manifest-path', manifest, '--target', target],
-    {
-      stdio: 'inherit',
-      shell: false,
-      env: { ...process.env, CARGO_TARGET_DIR: join(helperRoot, 'target') }
-    }
-  )
+function windowsBuildEnvironment() {
+  if (process.platform !== 'win32') return process.env
+  const configured = process.env.COSMETIC_MSVC_TOOLS_DIR
+  const roots = configured
+    ? [configured]
+    : (() => {
+        const root = join(process.env.LOCALAPPDATA || '', 'PapamoBuildTools')
+        if (!existsSync(root)) return []
+        return readdirSync(root, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory() && entry.name.startsWith('llvm-mingw-'))
+          .map((entry) => join(root, entry.name, 'bin'))
+      })()
+  const tools = roots.find((directory) => existsSync(join(directory, 'llvm-lib.exe')))
+  return tools ? { ...process.env, PATH: `${tools};${process.env.PATH || ''}` } : process.env
+}
+
+function buildRust(args, target) {
+  const result = spawnSync('cargo', args, {
+    stdio: 'inherit',
+    shell: false,
+    env: { ...windowsBuildEnvironment(), CARGO_TARGET_DIR: join(helperRoot, 'target') }
+  })
   if (result.error) throw result.error
   if (result.status !== 0)
     throw new Error(
       `Rust helper build failed for ${target}. Install the Rust target and its linker; see docs/native-game-inspector.md.`
     )
+}
+
+export function buildGameInspector(platform, arch) {
+  const target = targets[`${platform}-${arch}`]
+  if (!target) throw new Error(`Unsupported native helper target: ${platform}-${arch}`)
+  const manifest = join(helperRoot, 'Cargo.toml')
+  buildRust(
+    ['build', '--locked', '--release', '--features', 'cosmetic-probe', '--manifest-path', manifest, '--target', target],
+    target
+  )
+  const cosmetic = cosmeticTargets[`${platform}-${arch}`]
+  if (cosmetic) {
+    buildRust(
+      ['build', '--locked', '--release', '-p', 'papamo-cosmetic-module', '--manifest-path', manifest, '--target', cosmetic.target],
+      cosmetic.target
+    )
+  }
   const name = platform === 'win' ? 'game-inspector.exe' : 'game-inspector'
   const destination = join(root, 'resources', 'native', `${platform}-${arch}`)
   mkdirSync(destination, { recursive: true })
   copyFileSync(join(helperRoot, 'target', target, 'release', name), join(destination, name))
   if (platform !== 'win') chmodSync(join(destination, name), 0o755)
+  if (cosmetic) {
+    const staged = join(destination, cosmetic.destination)
+    copyFileSync(join(helperRoot, 'target', cosmetic.target, 'release', cosmetic.source), staged)
+    if (platform !== 'win') chmodSync(staged, 0o755)
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

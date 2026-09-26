@@ -18,7 +18,10 @@ npm run dev
 If the Rust build fails, development startup stops.
 
 `HELPER_SOURCE_DIR` can override the sibling source location. `build:helper` builds
-the native host target and stages it under ignored `resources/native/`. Rust tests
+the latest sibling helper source with the cosmetic feature and, on Windows/Linux
+x64, the x86 cosmetic module. Both are staged under ignored `resources/native/`.
+On Windows, `COSMETIC_MSVC_TOOLS_DIR` may point to a directory containing
+`llvm-lib.exe` when the Visual Studio library tool is unavailable. Rust tests
 run in the private project with `cargo test --locked`. Public protocol/signature
 tests need no access to the private repository.
 
@@ -69,7 +72,7 @@ or a GitHub/publisher token in this file.
 
 1. Publish a `v<version>` tag from the private helper repository. Its protected
    `Release` environment signs the Windows x64, Linux x64, and Linux ARM64 builds
-   plus the Linux x86 cosmetic module, and registers the signed bundle manifests
+   plus the Windows and Linux x86 cosmetic modules, and registers the signed bundle manifests
    with the backend.
 2. Set the pinned version and public key in `helper-release.json` and commit them.
 3. Set `HELPER_REPOSITORY=owner/private-helper-repo` locally and authenticate `gh`
@@ -90,7 +93,7 @@ For the client's GitHub `Prod` environment configure:
 
 The public release workflow downloads binaries only. The packaging hook verifies
 the signature, version, target, byte size, SHA-256, and backend approval before
-copying the helper, Linux cosmetic module, and signed manifest outside ASAR.
+copying the helper, platform cosmetic module, and signed manifest outside ASAR.
 Failure aborts packaging.
 No signing or backend publishing credential belongs in the public client workflow.
 
