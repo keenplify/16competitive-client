@@ -197,9 +197,10 @@ export function VoiceChatDock(): JSX.Element | null {
       players.some(({ id }) => id === currentPlayerId)
     )
     if (!team) return peers.map((peer) => ({ peer, simulated: false }))
+    const roster = match.mode === 'ffa' ? [...match.teams.teamA, ...match.teams.teamB] : team
 
     const livePeers = new Map(peers.map((peer) => [peer.id, peer]))
-    return team
+    return roster
       .filter(({ id }) => id !== currentPlayerId)
       .map(({ id, username }) => {
         const peer = livePeers.get(id)
@@ -740,14 +741,17 @@ export function VoiceChatDock(): JSX.Element | null {
 
   if (!desiredContext && !joinedContext) return null
 
-  const contextLabel = activeContext?.kind === 'match' ? 'Team voice' : 'Party voice'
+  const matchVoiceLabel = match?.mode === 'ffa' ? 'All voice' : 'Team voice'
+  const contextLabel = activeContext?.kind === 'match' ? matchVoiceLabel : 'Party voice'
   const connectedPeers = voiceRoster.filter(
     ({ peer, simulated }) => simulated || peerStates[peer.id] === 'connected'
   ).length
   const configuredPttAvailable = Boolean(
     activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey
   )
-  const talkingLabel = pttChannel ? `Talking to: ${pttChannel === 'team' ? 'Team' : 'Party'}` : null
+  const talkingLabel = pttChannel
+    ? `Talking to: ${pttChannel === 'team' ? (match?.mode === 'ffa' ? 'All' : 'Team') : 'Party'}`
+    : null
   const testChannel: VoiceTalkChannel = activeContext?.kind === 'match' ? 'team' : 'party'
 
   const disconnect = (): void => {
