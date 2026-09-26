@@ -21,6 +21,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { ChangelogModal } from './ChangelogModal'
+import { CrosshairSettings } from './CrosshairSettings'
 import { LanguageSettings } from '../i18n/LanguageSettings'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
@@ -502,6 +503,7 @@ export function SettingsPage(): JSX.Element {
                   )}
                 </div>
               )}
+              <CrosshairSettings />
             </section>
 
             <section

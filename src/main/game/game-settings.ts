@@ -2,12 +2,18 @@ import { app, dialog } from 'electron'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
+import {
+  DEFAULT_CROSSHAIR,
+  parseCrosshairProfile,
+  type CrosshairProfile
+} from '../../shared/crosshair'
 import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
   voicePttKey?: string
   partyVoicePttKey?: string
+  crosshair?: CrosshairProfile
 }
 
 const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
@@ -154,6 +160,12 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
     const parsed = JSON.parse(await readFile(configPath(), 'utf8')) as unknown
     if (typeof parsed !== 'object' || parsed === null) return {}
     const settings = parsed as Partial<StoredGameSettings>
+    let crosshair: CrosshairProfile | undefined
+    try {
+      if (settings.crosshair !== undefined) crosshair = parseCrosshairProfile(settings.crosshair)
+    } catch {
+      // Ignore a damaged local cosmetic profile.
+    }
     return {
       ...(typeof settings.cs16ExecutablePath === 'string'
         ? { cs16ExecutablePath: settings.cs16ExecutablePath }
@@ -161,7 +173,8 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.voicePttKey === 'string' ? { voicePttKey: settings.voicePttKey } : {}),
       ...(typeof settings.partyVoicePttKey === 'string'
         ? { partyVoicePttKey: settings.partyVoicePttKey }
-        : {})
+        : {}),
+      ...(crosshair ? { crosshair } : {})
     }
   } catch {
     return {}
@@ -239,7 +252,8 @@ const resolvePartyVoicePttKey = (
 const buildSettings = (
   cs16ExecutablePath: string | null,
   teamVoicePttKey: string,
-  partyVoicePttKey: string
+  partyVoicePttKey: string,
+  crosshair: CrosshairProfile
 ): GameSettings => ({
   cs16ExecutablePath,
   cs16FolderPath: cs16ExecutablePath ? dirname(cs16ExecutablePath) : null,
@@ -247,18 +261,21 @@ const buildSettings = (
   // Keep voicePttKey as the team binding for compatibility with older renderer code.
   voicePttKey: teamVoicePttKey,
   // Index 0 is Team, index 1 is Party. This preserves the existing IPC contract.
-  voicePttKeys: [teamVoicePttKey, partyVoicePttKey]
+  voicePttKeys: [teamVoicePttKey, partyVoicePttKey],
+  crosshair
 })
 
 const persistResolvedSettings = async (
   cs16ExecutablePath: string | null,
   teamVoicePttKey: string,
-  partyVoicePttKey: string
+  partyVoicePttKey: string,
+  crosshair: CrosshairProfile | undefined
 ): Promise<void> => {
   await writeStoredSettings({
     ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
     voicePttKey: teamVoicePttKey,
-    partyVoicePttKey
+    partyVoicePttKey,
+    crosshair: crosshair ?? DEFAULT_CROSSHAIR
   })
 }
 
@@ -276,9 +293,14 @@ export const getGameSettings = async (): Promise<GameSettings> => {
   if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
 
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, storedSettings.crosshair)
 
-  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+  )
 }
 
 export const chooseCs16Folder = async (): Promise<string | null> => {
@@ -295,8 +317,13 @@ export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSett
   const cs16ExecutablePath = await validateInstallationFolder(untrustedPath)
   const storedSettings = await readStoredSettings()
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
-  return buildSettings(cs16ExecutablePath, keys.team, keys.party)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, storedSettings.crosshair)
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+  )
 }
 
 export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettings> => {
@@ -316,8 +343,27 @@ export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettin
     throw new Error('Team and Party talk need different push-to-talk keys.')
   }
 
-  await persistResolvedSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
-  return buildSettings(cs16ExecutablePath, teamVoicePttKey, partyVoicePttKey)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    teamVoicePttKey,
+    partyVoicePttKey,
+    storedSettings.crosshair
+  )
+  return buildSettings(
+    cs16ExecutablePath,
+    teamVoicePttKey,
+    partyVoicePttKey,
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+  )
+}
+
+export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSettings> => {
+  const crosshair = parseCrosshairProfile(untrustedProfile)
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, crosshair)
+  return buildSettings(cs16ExecutablePath, keys.team, keys.party, crosshair)
 }
 
 export const getSavedCs16Executable = async (): Promise<string | null> => {
@@ -327,7 +373,12 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
 
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
   if (storedSettings.voicePttKey !== keys.team || storedSettings.partyVoicePttKey !== keys.party) {
-    await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party)
+    await persistResolvedSettings(
+      cs16ExecutablePath,
+      keys.team,
+      keys.party,
+      storedSettings.crosshair
+    )
   }
   return cs16ExecutablePath
 }

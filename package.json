@@ -21,6 +21,7 @@
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",
     "overlay:probe": "node scripts/start-cosmetic-overlay-probe.cjs",
+    "scoreboard:probe": "node scripts/start-cosmetic-overlay-probe.cjs scoreboard",
     "preview": "electron-vite preview",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",

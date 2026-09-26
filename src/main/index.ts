@@ -68,7 +68,8 @@ import {
   chooseCs16Folder,
   getGameSettings,
   saveGameSettings,
-  saveVoicePttKey
+  saveVoicePttKey,
+  saveCrosshair
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
@@ -702,6 +703,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, (_, profile: unknown) =>
+    saveCrosshair(profile)
+  )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')

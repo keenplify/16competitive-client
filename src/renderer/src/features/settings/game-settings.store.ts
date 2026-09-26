@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
 
 interface GameSettingsState {
   folderPath: string
@@ -8,6 +9,8 @@ interface GameSettingsState {
   error: string | null
   notice: string | null
   requiresGameSetup: boolean
+  crosshair: CrosshairProfile
+  setCrosshair: (profile: CrosshairProfile) => Promise<void>
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
@@ -27,6 +30,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   error: null,
   notice: null,
   requiresGameSetup: false,
+  crosshair: DEFAULT_CROSSHAIR,
+
+  setCrosshair: async (profile) => {
+    const settings = await window.api.gameSettings.setCrosshair(profile)
+    set({ crosshair: settings.crosshair })
+  },
 
   load: async () => {
     set({ status: 'loading', error: null })
@@ -37,7 +46,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,
         status: 'idle',
-        requiresGameSetup: !settings.cs16ExecutablePath
+        requiresGameSetup: !settings.cs16ExecutablePath,
+        crosshair: settings.crosshair
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
