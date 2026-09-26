@@ -37,6 +37,21 @@ test('accepts a signed manifest and matching binary', () => {
   verifyCosmeticModule(cosmeticBytes, approved)
 })
 
+test('accepts a signed Windows cosmetic module and rejects its altered bytes', () => {
+  const windows = {
+    ...manifest,
+    platform: 'win',
+    fileName: 'game-inspector-win-x64.exe',
+    cosmeticModule: {
+      ...manifest.cosmeticModule,
+      fileName: 'papamo-cosmetic-module-win-x86.dll'
+    }
+  }
+  const approved = verifyHelperRelease(envelopeFor(windows), pem)
+  verifyCosmeticModule(cosmeticBytes, approved)
+  assert.throws(() => verifyCosmeticModule(Buffer.from('altered'), approved))
+})
+
 test('rejects altered bytes, altered metadata, another key, and unsigned manifests', () => {
   const envelope = envelopeFor(manifest)
   assert.throws(() => verifyHelperBinary(Buffer.from('modified-binary'), manifest))

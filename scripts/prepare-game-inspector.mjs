@@ -48,7 +48,9 @@ async function prepare(platform, arch, checkOnly) {
   if (!['win-x64', 'linux-x64', 'linux-arm64'].includes(`${platform}-${arch}`))
     throw new Error(`No approved helper target for ${platform}-${arch}`)
   const asset = `game-inspector-${platform}-${arch}${platform === 'win' ? '.exe' : ''}`
-  const cosmeticAsset = 'papamo-cosmetic-module-linux-x86.so'
+  const cosmeticAsset = platform === 'win'
+    ? 'papamo-cosmetic-module-win-x86.dll'
+    : 'papamo-cosmetic-module-linux-x86.so'
   const temporary = await mkdtemp(join(tmpdir(), 'competitive-helper-'))
   try {
     execFileSync(
@@ -63,7 +65,7 @@ async function prepare(platform, arch, checkOnly) {
         asset,
         '--pattern',
         `${asset}.manifest.json`,
-        ...(platform === 'linux' ? ['--pattern', cosmeticAsset] : []),
+        '--pattern', cosmeticAsset,
         '--dir',
         temporary
       ],
@@ -78,9 +80,7 @@ async function prepare(platform, arch, checkOnly) {
     )
       throw new Error('Helper release does not match the pinned version and target')
     verifyHelperBinary(await readFile(join(temporary, asset)), manifest)
-    if (platform === 'linux') {
-      verifyCosmeticModule(await readFile(join(temporary, cosmeticAsset)), manifest)
-    }
+    verifyCosmeticModule(await readFile(join(temporary, cosmeticAsset)), manifest)
     const response = await fetch(
       new URL(`/helper-releases/${config.version}/${platform}/${arch}`, registry),
       {
@@ -100,10 +100,8 @@ async function prepare(platform, arch, checkOnly) {
       const binary = join(destination, platform === 'win' ? 'game-inspector.exe' : 'game-inspector')
       await copyFile(join(temporary, asset), binary)
       await writeFile(join(destination, 'manifest.json'), JSON.stringify(envelope) + '\n')
-      if (platform === 'linux') {
-        await copyFile(join(temporary, cosmeticAsset), join(destination, cosmeticAsset))
-        await chmod(join(destination, cosmeticAsset), 0o755)
-      }
+      await copyFile(join(temporary, cosmeticAsset), join(destination, cosmeticAsset))
+      if (platform === 'linux') await chmod(join(destination, cosmeticAsset), 0o755)
       if (platform !== 'win') await chmod(binary, 0o755)
     }
     console.log(`Verified approved helper ${config.version} (${platform}-${arch}).`)

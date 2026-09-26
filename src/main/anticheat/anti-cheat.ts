@@ -4,6 +4,7 @@ import { API_BASE_URL, LOCAL_DEVELOPMENT, REQUIRES_SIGNED_HELPER } from '../conf
 import type { Cs16Distribution } from '../game/cs16-installation'
 import { spawnHelper, writeHelper } from './helper-process'
 import { verifyPackagedHelper } from './helper-integrity'
+import { GameScreenshotCollector } from './game-screenshots'
 
 interface AntiCheatSessionOptions {
   matchId: string
@@ -28,8 +29,11 @@ export class AntiCheatSession {
   private recovering = false
   private integrityChecking = false
   private lastIntegrityCheck = 0
+  private readonly screenshots: GameScreenshotCollector
 
-  constructor(private readonly options: AntiCheatSessionOptions) {}
+  constructor(private readonly options: AntiCheatSessionOptions) {
+    this.screenshots = new GameScreenshotCollector(options.matchId, () => this.targetPid !== null)
+  }
 
   async start(): Promise<void> {
     const token = getSessionToken()
@@ -164,6 +168,7 @@ export class AntiCheatSession {
       }
     }, 1000)
     this.timer.unref()
+    this.screenshots.start()
     if (this.targetPid) this.send({ command: 'attach', pid: this.targetPid })
     else if (this.discover) this.send({ command: 'discover' })
   }
@@ -223,6 +228,7 @@ export class AntiCheatSession {
     if (this.stopped) return
     this.send({ command: 'stop', reason: reason.slice(0, 120) || 'session-ended' })
     this.stopped = true
+    this.screenshots.stop()
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     const child = this.child
