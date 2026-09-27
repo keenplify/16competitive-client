@@ -1306,3 +1306,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - Added support for scoped web updates during client releases.
+
+## v2026.927.1 — 2026-09-27
+
+### Crosshair
+
+- Added a desktop crosshair editor.
+- Apply and save crosshair changes during active games.
+- Added saved crosshair overlays and save confirmations.
+
+### Scoreboard
+
+- Added Linux match scoreboard support.
+- Added FFA and competitive scoreboard layouts.
+- Show MR12 round winners.
+- Highlighted your own scoreboard row.
+- Improved scoreboard headers and round-history handling.
+
+### Fair Play
+
+- Added game screenshot capture for anti-cheat checks.
