@@ -703,6 +703,7 @@ class MatchmakingConnection {
       ...connection,
       forceRestart: true,
       onVoicePtt: (active) => this.notifyLocalVoicePtt(connection.matchId, active),
+      apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
       onExit: ({ code, signal }) => {
         discordPresence.setInGame(false)
         this.focusLauncher()
@@ -1118,6 +1119,7 @@ class MatchmakingConnection {
             }
             await launchCounterStrikeForMatch({
               ...parsed,
+              apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
               onVoicePtt: (active) => this.notifyLocalVoicePtt(parsed.matchId, active),
               onExit: ({ code, signal }) => {
                 discordPresence.setInGame(false)

@@ -18,6 +18,8 @@ asarUnpack:
 extraResources:
   - from: resources/native/${os}-${arch}
     to: native
+  - from: resources/scoreboard
+    to: scoreboard
   - from: resources/lobby-models
     to: lobby-models
 win:

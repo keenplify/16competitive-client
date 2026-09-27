@@ -16,18 +16,18 @@ npm run dev
 
 `npm run dev` automatically runs `npm run build:helper` through the `predev` lifecycle.
 If the Rust build fails, development startup stops.
-On Fedora, the Linux x86 cosmetic module also needs the 32-bit C development
-files and Rust target. Install them once with:
+On Fedora, the Linux x86 cosmetic module needs the 32-bit C development files,
+OpenGL runtime, and Rust target. Install them once with:
 
 ```sh
-sudo dnf install glibc-devel.i686 libglvnd-devel.i686
+sudo dnf install glibc-devel.i686 libglvnd-glx.i686
 rustup target add i686-unknown-linux-gnu
 ```
 
 Missing `glibc-devel.i686` appears as linker errors for `crti.o`, `crtn.o`,
-`-lc`, and other 32-bit system libraries. Missing `libglvnd-devel.i686` appears
-as `unable to find library -lGL` when building the in-game overlay. The installed
-Rust target alone does not provide those files.
+`-lc`, and other 32-bit system libraries. Missing `libglvnd-glx.i686` leaves
+the in-game overlay without the 32-bit `libGL.so.1` runtime. The installed Rust
+target alone does not provide those files.
 
 `HELPER_SOURCE_DIR` can override the sibling source location. `build:helper` builds
 the latest sibling helper source with the cosmetic feature and, on Windows/Linux

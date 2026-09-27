@@ -10,3 +10,4 @@ out
 *.log*
 /native/
 /resources/native/
+/resources/scoreboard/

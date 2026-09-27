@@ -10,6 +10,8 @@ type Player = {
   assists: number
   deaths: number
   ping: number
+  alive: boolean
+  bot: boolean
 }
 type Snapshot = {
   map: string
@@ -20,7 +22,10 @@ type Snapshot = {
 
 declare global {
   interface Window {
-    scoreboardProbe?: { onSnapshot(listener: (snapshot: Snapshot) => void): () => void }
+    scoreboardProbe?: {
+      onSnapshot(listener: (snapshot: Snapshot) => void): () => void
+      onSelf(listener: (username: string) => void): () => void
+    }
   }
 }
 
@@ -47,12 +52,14 @@ function RoundTrack({ round }: { round: number }) {
   )
 }
 
-function PlayerRow({ player, rank }: { player: Player; rank: number }) {
+function PlayerRow({ player, rank, selfName }: { player: Player; rank: number; selfName: string }) {
   return (
-    <div className="player-row">
+    <div className={`player-row${player.alive ? '' : ' dead'}`}>
       <span className="rank">{String(rank).padStart(2, '0')}</span>
       <span className="player-name" title={player.name}>
         {player.name}
+        {player.name === selfName && <small>YOU</small>}
+        {!player.alive && <small>DEAD</small>}
       </span>
       <span>{player.kills}</span>
       <span>{player.assists}</span>
@@ -64,8 +71,12 @@ function PlayerRow({ player, rank }: { player: Player; rank: number }) {
 
 function Scoreboard() {
   const [snapshot, setSnapshot] = useState<Snapshot>(null)
+  const [selfName, setSelfName] = useState('')
   useEffect(() => window.scoreboardProbe?.onSnapshot(setSnapshot), [])
-  const players = snapshot?.players ?? []
+  useEffect(() => window.scoreboardProbe?.onSelf(setSelfName), [])
+  const players = snapshot?.players.filter((player) => player.team === 1 || player.team === 2) ?? []
+  const spectators =
+    snapshot?.players.filter((player) => player.team !== 1 && player.team !== 2) ?? []
   const competitive = snapshot?.mode === 'competitive'
 
   return (
@@ -99,9 +110,7 @@ function Scoreboard() {
           competitive ? (
             [
               { team: 2, label: 'COUNTER-TERRORISTS', className: 'counter-terrorists' },
-              { team: 1, label: 'TERRORISTS', className: 'terrorists' },
-              { team: 3, label: 'SPECTATORS', className: 'spectators' },
-              { team: 0, label: 'UNASSIGNED', className: 'spectators' }
+              { team: 1, label: 'TERRORISTS', className: 'terrorists' }
             ].map((group) => {
               const members = players.filter((player) => player.team === group.team)
               return members.length ? (
@@ -110,14 +119,19 @@ function Scoreboard() {
                     {group.label} · {members.length}
                   </div>
                   {members.map((player, index) => (
-                    <PlayerRow key={player.id} player={player} rank={index + 1} />
+                    <PlayerRow
+                      key={player.id}
+                      player={player}
+                      rank={index + 1}
+                      selfName={selfName}
+                    />
                   ))}
                 </div>
               ) : null
             })
           ) : (
             players.map((player, index) => (
-              <PlayerRow key={player.id} player={player} rank={index + 1} />
+              <PlayerRow key={player.id} player={player} rank={index + 1} selfName={selfName} />
             ))
           )
         ) : (
@@ -126,6 +140,12 @@ function Scoreboard() {
           </div>
         )}
       </section>
+      {spectators.length > 0 && (
+        <div className="spectator-footer">
+          <strong>SPECTATORS · {spectators.length}</strong>
+          <span>{spectators.map((player) => player.name).join(' · ')}</span>
+        </div>
+      )}
       {competitive && <RoundTrack round={snapshot?.round ?? 0} />}
     </main>
   )
