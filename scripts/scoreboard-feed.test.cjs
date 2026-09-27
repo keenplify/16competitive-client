@@ -13,7 +13,7 @@ test('parses a unified leaderboard with assists and sorts by score', () => {
     map: 'de_dust2',
     round: 0,
     mode: 'ffa',
-    roundWinners: '',
+    roundWinners: null,
     players: [
       { id: 1, team: 2, name: 'Alpha', kills: 8, assists: 0, deaths: 4, ping: 31, alive: true, bot: false },
       { id: 2, team: 1, name: 'Bravo', kills: 3, assists: 2, deaths: 1, ping: 42, alive: false, bot: false }

@@ -35,7 +35,7 @@ const readBoundedFeed = async (response: Response): Promise<string | null> => {
 type Snapshot = {
   map: string
   round: number
-  roundWinners: string
+  roundWinners: string | null
   mode: 'ffa' | 'competitive'
   players: {
     id: number
