@@ -28,7 +28,8 @@ import {
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import type { CrosshairProfile } from '../../shared/crosshair'
-import { ensureSteamScoreboardOption } from './steam-scoreboard-options'
+import { disableSteamScoreboardWrapper, ensureSteamScoreboardOption } from './steam-scoreboard-options'
+import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -553,6 +554,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (process.platform === 'win32') {
     await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
   }
+  if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
   await prepareManagedSkinAudio(input.matchId)
 
@@ -662,7 +664,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  if (process.platform === 'linux' || process.platform === 'win32') {
+  if (CUSTOM_HUD_ENABLED && (process.platform === 'linux' || process.platform === 'win32')) {
     try {
       const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl,
         process.platform === 'win32' ? cwd : undefined)

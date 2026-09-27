@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
+import { CUSTOM_HUD_ENABLED } from '../../../../shared/custom-hud'
 import { Button } from '../../components/ui/Button'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
@@ -521,9 +522,17 @@ export function SettingsPage(): JSX.Element {
                 <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
                   Game appearance
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Crosshair editor</h2>
+                <h2 className="mt-2 text-2xl font-semibold">Crosshair</h2>
               </div>
-              {webRuntime ? (
+              {!CUSTOM_HUD_ENABLED ? (
+                <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <p className="text-sm leading-relaxed text-neutral-300">
+                    Custom in-game crosshairs are temporarily disabled while we revise compatibility
+                    with different Counter-Strike clients. Your game&apos;s normal crosshair remains
+                    active.
+                  </p>
+                </div>
+              ) : webRuntime ? (
                 <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                   <p className="text-sm leading-relaxed text-neutral-300">
                     Custom crosshairs are available in the desktop launcher. Download it to edit
