@@ -1,4 +1,5 @@
 import { useRef, useState, type JSX } from 'react'
+import { toast } from 'react-toastify'
 import { parseCrosshairProfile, type CrosshairProfile } from '../../../../shared/crosshair'
 import { Button } from '../../components/ui/Button'
 import { useGameSettingsStore } from './game-settings.store'
@@ -32,9 +33,10 @@ function CrosshairEditor({ saved }: { saved: CrosshairProfile }): JSX.Element {
     setSaving(true)
     try {
       await saveProfile(parseCrosshairProfile(profile))
-      setMessage('Crosshair saved on this device.')
+      setMessage('')
+      toast.success('Crosshair saved. It will apply when you join your next match.')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not save crosshair.')
+      toast.error(error instanceof Error ? error.message : 'Could not save crosshair.')
     } finally {
       setSaving(false)
     }

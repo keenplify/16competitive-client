@@ -16,7 +16,7 @@ type Player = {
 type Snapshot = {
   map: string
   round: number
-  roundWinners: string
+  roundWinners: string | null
   mode: 'ffa' | 'competitive'
   players: Player[]
 } | null
@@ -30,7 +30,7 @@ declare global {
   }
 }
 
-function RoundTrack({ round, roundWinners }: { round: number; roundWinners: string }) {
+function RoundTrack({ round, roundWinners }: { round: number; roundWinners: string | null }) {
   const current = Math.min(round, 24)
   return (
     <div className="round-area">
@@ -40,15 +40,23 @@ function RoundTrack({ round, roundWinners }: { round: number; roundWinners: stri
         </strong>
         <span>HALF 12</span>
       </div>
-      <div className="round-track" aria-label={`Round ${round} of 24`}>
-        {Array.from({ length: 24 }, (_, index) => (
-          <span
-            key={index}
-            className={`round-tick ${roundWinners[index] === 'C' ? 'ct-win' : roundWinners[index] === 'T' ? 't-win' : ''} ${index + 1 === current && !roundWinners[index] ? 'current' : ''} ${index === 12 ? 'halftime' : ''}`}
-            title={roundWinners[index] === 'C' ? `Round ${index + 1}: CT won` : roundWinners[index] === 'T' ? `Round ${index + 1}: T won` : `Round ${index + 1}: ongoing or unplayed`}
-          />
-        ))}
-      </div>
+      {roundWinners !== null && (
+        <div className="round-track" aria-label={`Round ${round} of 24`}>
+          {Array.from({ length: 24 }, (_, index) => (
+            <span
+              key={index}
+              className={`round-tick ${roundWinners[index] === 'C' ? 'ct-win' : roundWinners[index] === 'T' ? 't-win' : ''} ${index + 1 === current && !roundWinners[index] ? 'current' : ''} ${index === 12 ? 'halftime' : ''}`}
+              title={
+                roundWinners[index] === 'C'
+                  ? `Round ${index + 1}: CT won`
+                  : roundWinners[index] === 'T'
+                    ? `Round ${index + 1}: T won`
+                    : `Round ${index + 1}: ongoing or unplayed`
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -144,7 +152,9 @@ function Scoreboard() {
           <span>{spectators.map((player) => player.name).join(' · ')}</span>
         </div>
       )}
-      {competitive && <RoundTrack round={snapshot?.round ?? 0} roundWinners={snapshot?.roundWinners ?? ''} />}
+      {competitive && (
+        <RoundTrack round={snapshot?.round ?? 0} roundWinners={snapshot?.roundWinners ?? null} />
+      )}
     </main>
   )
 }
