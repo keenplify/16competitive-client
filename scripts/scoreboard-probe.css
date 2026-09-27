@@ -88,6 +88,28 @@ body,
 .player-row .rank {
   color: #c8aa6e;
 }
+.team-heading {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.6px;
+}
+.counter-terrorists .team-heading {
+  color: #a8c8e8;
+  background: rgba(52, 91, 124, 0.35);
+}
+.terrorists .team-heading {
+  color: #dfbb80;
+  background: rgba(126, 84, 45, 0.35);
+}
+.spectators .team-heading {
+  color: #aaa899;
+  background: rgba(100, 100, 90, 0.2);
+}
 .player-name {
   overflow: hidden;
   white-space: nowrap;

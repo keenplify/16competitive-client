@@ -4,13 +4,19 @@ import { createRoot } from 'react-dom/client'
 
 type Player = {
   id: number
+  team: number
   name: string
   kills: number
   assists: number
   deaths: number
   ping: number
 }
-type Snapshot = { map: string; round: number; players: Player[] } | null
+type Snapshot = {
+  map: string
+  round: number
+  mode: 'ffa' | 'competitive'
+  players: Player[]
+} | null
 
 declare global {
   interface Window {
@@ -41,24 +47,46 @@ function RoundTrack({ round }: { round: number }) {
   )
 }
 
+function PlayerRow({ player, rank }: { player: Player; rank: number }) {
+  return (
+    <div className="player-row">
+      <span className="rank">{String(rank).padStart(2, '0')}</span>
+      <span className="player-name" title={player.name}>
+        {player.name}
+      </span>
+      <span>{player.kills}</span>
+      <span>{player.assists}</span>
+      <span>{player.deaths}</span>
+      <span>{player.ping}</span>
+    </div>
+  )
+}
+
 function Scoreboard() {
   const [snapshot, setSnapshot] = useState<Snapshot>(null)
   useEffect(() => window.scoreboardProbe?.onSnapshot(setSnapshot), [])
   const players = snapshot?.players ?? []
+  const competitive = snapshot?.mode === 'competitive'
 
   return (
     <main className="scoreboard">
       <header className="board-header">
         <div>
           <b>16C</b>
-          <span> SCOREBOARD</span>
+          <span>
+            {' '}
+            {snapshot ? (competitive ? 'MATCH SCOREBOARD' : 'FFA SCOREBOARD') : 'SCOREBOARD'}
+          </span>
         </div>
         <div className="map-name">{snapshot?.map ?? 'WAITING FOR AMXX DATA'}</div>
         <div className="player-count">
           {players.length} PLAYER{players.length === 1 ? '' : 'S'}
         </div>
       </header>
-      <section className="board-table" aria-label="Single ranked leaderboard">
+      <section
+        className="board-table"
+        aria-label={competitive ? 'Team scoreboard' : 'Single ranked leaderboard'}
+      >
         <div className="column-head">
           <span>#</span>
           <span>PLAYER</span>
@@ -68,25 +96,37 @@ function Scoreboard() {
           <span>LATENCY</span>
         </div>
         {players.length ? (
-          players.map((player, index) => (
-            <div className="player-row" key={player.id}>
-              <span className="rank">{String(index + 1).padStart(2, '0')}</span>
-              <span className="player-name" title={player.name}>
-                {player.name}
-              </span>
-              <span>{player.kills}</span>
-              <span>{player.assists}</span>
-              <span>{player.deaths}</span>
-              <span>{player.ping}</span>
-            </div>
-          ))
+          competitive ? (
+            [
+              { team: 2, label: 'COUNTER-TERRORISTS', className: 'counter-terrorists' },
+              { team: 1, label: 'TERRORISTS', className: 'terrorists' },
+              { team: 3, label: 'SPECTATORS', className: 'spectators' },
+              { team: 0, label: 'UNASSIGNED', className: 'spectators' }
+            ].map((group) => {
+              const members = players.filter((player) => player.team === group.team)
+              return members.length ? (
+                <div className={`team-section ${group.className}`} key={group.team}>
+                  <div className="team-heading">
+                    {group.label} · {members.length}
+                  </div>
+                  {members.map((player, index) => (
+                    <PlayerRow key={player.id} player={player} rank={index + 1} />
+                  ))}
+                </div>
+              ) : null
+            })
+          ) : (
+            players.map((player, index) => (
+              <PlayerRow key={player.id} player={player} rank={index + 1} />
+            ))
+          )
         ) : (
           <div className="empty">
             {snapshot ? 'No players connected' : 'Waiting for the local AMXX scoreboard feed'}
           </div>
         )}
       </section>
-      <RoundTrack round={snapshot?.round ?? 0} />
+      {competitive && <RoundTrack round={snapshot?.round ?? 0} />}
     </main>
   )
 }
