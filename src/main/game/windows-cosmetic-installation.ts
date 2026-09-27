@@ -32,6 +32,13 @@ export class WindowsCosmeticInstallation {
     this.sessionDirectory = join(gameRoot, '16competitive', 'live-session')
   }
 
+  /** Undo a proxy left behind by an interrupted 2026.927.2 launch. */
+  static async restorePreviousInstall(gameRoot: string): Promise<void> {
+    if (process.platform !== 'win32') return
+    await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
+    await new WindowsCosmeticInstallation(gameRoot).restore()
+  }
+
   static async install(gameRoot: string): Promise<WindowsCosmeticInstallation> {
     if (process.platform !== 'win32') throw new Error('Windows cosmetic installation requires Windows')
     await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
