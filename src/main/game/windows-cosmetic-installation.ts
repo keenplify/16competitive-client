@@ -6,6 +6,10 @@ import { app } from 'electron'
 import releaseConfig from '../../../helper-release.json'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
 import { verifyCosmeticModule, verifyHelperRelease } from '../anticheat/helper-release-verifier'
+import {
+  isNextClientInstallation,
+  supportsWindowsCosmeticClient
+} from './windows-cosmetic-compatibility'
 
 const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -39,9 +43,23 @@ export class WindowsCosmeticInstallation {
     await new WindowsCosmeticInstallation(gameRoot).restore()
   }
 
-  static async install(gameRoot: string): Promise<WindowsCosmeticInstallation> {
+  static async install(gameRoot: string): Promise<WindowsCosmeticInstallation | null> {
     if (process.platform !== 'win32') throw new Error('Windows cosmetic installation requires Windows')
     await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
+    const installation = new WindowsCosmeticInstallation(gameRoot)
+    await installation.recover()
+    if (await isNextClientInstallation(gameRoot)) {
+      console.info('[Scoreboard] NextClient uses its own client hooks; using stock HUD')
+      return null
+    }
+    const original = await readFile(installation.clientPath)
+    const clientSha256 = hash(original)
+    if (!supportsWindowsCosmeticClient(clientSha256)) {
+      console.info('[Scoreboard] Windows client build is not verified for cosmetic overlay', {
+        clientSha256
+      })
+      return null
+    }
     const native = app.isPackaged
       ? join(process.resourcesPath, 'native')
       : join(app.getAppPath(), 'resources', 'native', 'win-x64')
@@ -53,8 +71,6 @@ export class WindowsCosmeticInstallation {
     const module = await readFile(join(native, 'papamo-cosmetic-module-win-x86.dll'))
     verifyCosmeticModule(module, manifest)
 
-    const installation = new WindowsCosmeticInstallation(gameRoot)
-    await installation.recover()
     for (const path of [gameRoot, join(gameRoot, 'cstrike'), join(gameRoot, 'cstrike', 'cl_dlls')]) {
       const entry = await lstat(path)
       if (!entry.isDirectory() || entry.isSymbolicLink())
@@ -66,7 +82,6 @@ export class WindowsCosmeticInstallation {
     const managed = await lstat(join(gameRoot, '16competitive')).catch(missingOnly)
     if (managed && (!managed.isDirectory() || managed.isSymbolicLink()))
       throw new Error('Counter-Strike managed directory contains an unsupported link')
-    const original = await readFile(installation.clientPath)
     if ((await lstat(installation.journalPath).catch(missingOnly)) ||
         (await lstat(installation.sessionDirectory).catch(missingOnly)))
       throw new Error('Existing cosmetic installation or client backup needs inspection')
