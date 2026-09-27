@@ -16,6 +16,7 @@ type Player = {
 type Snapshot = {
   map: string
   round: number
+  roundWinners: string
   mode: 'ffa' | 'competitive'
   players: Player[]
 } | null
@@ -29,12 +30,11 @@ declare global {
   }
 }
 
-function RoundTrack({ round }: { round: number }) {
+function RoundTrack({ round, roundWinners }: { round: number; roundWinners: string }) {
   const current = Math.min(round, 24)
   return (
     <div className="round-area">
       <div className="round-label">
-        <span>MR12</span>
         <strong>
           {round ? `ROUND ${round}${round <= 24 ? ' / 24' : ' · OVERTIME'}` : 'WAITING FOR ROUND'}
         </strong>
@@ -44,7 +44,8 @@ function RoundTrack({ round }: { round: number }) {
         {Array.from({ length: 24 }, (_, index) => (
           <span
             key={index}
-            className={`round-tick ${index + 1 < current ? 'past' : ''} ${index + 1 === current ? 'current' : ''} ${index === 12 ? 'halftime' : ''}`}
+            className={`round-tick ${roundWinners[index] === 'C' ? 'ct-win' : roundWinners[index] === 'T' ? 't-win' : ''} ${index + 1 === current && !roundWinners[index] ? 'current' : ''} ${index === 12 ? 'halftime' : ''}`}
+            title={roundWinners[index] === 'C' ? `Round ${index + 1}: CT won` : roundWinners[index] === 'T' ? `Round ${index + 1}: T won` : `Round ${index + 1}: ongoing or unplayed`}
           />
         ))}
       </div>
@@ -84,16 +85,12 @@ function Scoreboard() {
     <main className="scoreboard">
       <header className="board-header">
         <div>
-          <b>16C</b>
           <span>
             {' '}
             {snapshot ? (competitive ? 'MATCH SCOREBOARD' : 'FFA SCOREBOARD') : 'SCOREBOARD'}
           </span>
         </div>
         <div className="map-name">{snapshot?.map ?? 'WAITING FOR AMXX DATA'}</div>
-        <div className="player-count">
-          {players.length} PLAYER{players.length === 1 ? '' : 'S'}
-        </div>
       </header>
       <section
         className="board-table"
@@ -147,7 +144,7 @@ function Scoreboard() {
           <span>{spectators.map((player) => player.name).join(' · ')}</span>
         </div>
       )}
-      {competitive && <RoundTrack round={snapshot?.round ?? 0} />}
+      {competitive && <RoundTrack round={snapshot?.round ?? 0} roundWinners={snapshot?.roundWinners ?? ''} />}
     </main>
   )
 }
