@@ -14,21 +14,28 @@ const FRAME_WIDTH = 1104
 const FRAME_HEIGHT = 720
 const INTERVAL_MS = 500
 
-const writeCrosshairConfig = async (directory: string, crosshair: CrosshairProfile): Promise<void> => {
+const writeCrosshairConfig = async (
+  directory: string,
+  crosshair: CrosshairProfile
+): Promise<void> => {
   const color = [1, 3, 5].map((index) => parseInt(crosshair.color.slice(index, index + 2), 16))
   const destination = join(directory, 'crosshair.conf')
   const temporary = `${destination}.${randomUUID()}.tmp`
   try {
-    await writeFile(temporary, [
-      ...color,
-      crosshair.size,
-      crosshair.gap,
-      crosshair.thickness,
-      crosshair.outline,
-      crosshair.opacity,
-      Number(crosshair.dot),
-      Number(crosshair.dynamic)
-    ].join(' ') + '\n', { mode: 0o600 })
+    await writeFile(
+      temporary,
+      [
+        ...color,
+        crosshair.size,
+        crosshair.gap,
+        crosshair.thickness,
+        crosshair.outline,
+        crosshair.opacity,
+        Number(crosshair.dot),
+        Number(crosshair.dynamic)
+      ].join(' ') + '\n',
+      { mode: 0o600 }
+    )
     await rename(temporary, destination)
   } finally {
     await unlink(temporary).catch(() => undefined)
@@ -85,7 +92,6 @@ export class ScoreboardOverlaySession {
   private stopped = false
   private feedAvailable = false
   private reportedUnavailable = false
-  private crosshairAlive = true
 
   private constructor(
     private readonly matchId: string,
@@ -263,14 +269,6 @@ export class ScoreboardOverlaySession {
         // The renderer attaches its listeners after loadFile resolves. Keep the
         // identity alongside snapshots so a late listener still receives it.
         this.window.webContents.send('scoreboard-self', username ?? '')
-        const ownPlayer = snapshot?.players.find((player) => player.name === username)
-        const alive = ownPlayer?.alive
-        if (alive !== undefined && alive !== this.crosshairAlive) {
-          this.crosshairAlive = alive
-          void writeFile(join(this.directory, 'crosshair.visible'), alive ? '1\n' : '0\n', {
-            mode: 0o600
-          }).catch(() => undefined)
-        }
         this.window.webContents.send('scoreboard-snapshot', snapshot)
         this.window.webContents.invalidate()
       }
