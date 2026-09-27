@@ -93,10 +93,7 @@ function Scoreboard() {
     <main className="scoreboard">
       <header className="board-header">
         <div>
-          <span>
-            {' '}
-            {snapshot ? (competitive ? 'MATCH SCOREBOARD' : 'FFA SCOREBOARD') : 'SCOREBOARD'}
-          </span>
+          <span> {snapshot ? (competitive ? 'MATCH SCOREBOARD' : 'FFA') : 'SCOREBOARD'}</span>
         </div>
         <div className="map-name">{snapshot?.map ?? 'WAITING FOR AMXX DATA'}</div>
       </header>
