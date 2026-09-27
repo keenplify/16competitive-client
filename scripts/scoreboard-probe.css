@@ -89,6 +89,9 @@ body,
 .player-row:nth-child(even) {
   background: rgba(214, 203, 162, 0.055);
 }
+.player-row.self {
+  background: rgba(255, 255, 255, 0.25);
+}
 .player-row .rank {
   color: #c8aa6e;
 }
