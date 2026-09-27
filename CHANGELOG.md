@@ -1364,3 +1364,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Improved matchmaking state management.
+
+## v2026.927.5 — 2026-09-27
+
+### Settings
+
+- Added a setting to disable the Steam scoreboard wrapper.
+- Added a custom HUD option for crosshair settings.
