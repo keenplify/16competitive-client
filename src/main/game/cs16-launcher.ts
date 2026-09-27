@@ -474,6 +474,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // content goes into.
   const launchGameDirectory = await ensureLauncherContentDirectory(cwd)
   const launchTarget = await resolveCs16LaunchTarget(executable)
+  if (
+    process.platform === 'win32' &&
+    !(await stat(join(launchGameDirectory, 'cl_dlls', 'client.dll')).catch(() => null))?.isFile()
+  ) {
+    throw new Error(
+      launchTarget.distribution === 'steam'
+        ? 'Counter-Strike client files are incomplete. Verify the game files in Steam, then reconnect.'
+        : 'Counter-Strike client files are incomplete. Reinstall the selected game, then reconnect.'
+    )
+  }
   console.info('[GameLaunch] Counter-Strike installation classified', {
     distribution: launchTarget.distribution,
     selectedExecutable: executable,

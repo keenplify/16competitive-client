@@ -469,7 +469,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           })
           break
         }
-        set({
+        set((state) => ({
           ...(event.code === 'NOT_QUEUED' || event.code === 'SERVER_RESTARTING'
             ? {
                 queueStatus: 'idle' as const,
@@ -479,8 +479,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 queueStartedAt: null
               }
             : {}),
+          ...((event.code === 'MATCH_PREPARATION_FAILED' ||
+            event.code === 'MATCH_ASSET_PRELOAD_FAILED') &&
+          state.connectionDetails
+            ? { gameExited: true }
+            : {}),
           error: event.message
-        })
+        }))
         break
       case 'pong':
       case 'party_invitation_received':
