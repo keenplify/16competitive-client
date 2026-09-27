@@ -1,6 +1,6 @@
 {
   "name": "16competitive-client",
-  "version": "2026.927.2",
+  "version": "2026.927.3",
   "description": "Ranked Launcher for CS 1.6",
   "main": "./out/main/index.js",
   "author": "papamo.dev",
@@ -18,7 +18,7 @@
     "build:helper": "node scripts/build-game-inspector.mjs",
     "build:scoreboard": "node scripts/build-scoreboard-overlay.cjs",
     "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs scripts/release-helper.test.mjs",
-    "test:scoreboard": "node --experimental-strip-types --test scripts/scoreboard-feed.test.cjs scripts/crosshair-config.test.mjs",
+    "test:scoreboard": "node --experimental-strip-types --test scripts/scoreboard-feed.test.cjs scripts/crosshair-config.test.mjs scripts/windows-cosmetic-compatibility.test.mjs",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",
