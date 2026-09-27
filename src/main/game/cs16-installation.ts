@@ -106,7 +106,10 @@ export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16L
       basename(executable).toLowerCase() === GOLD_SRC_WINDOWS_EXECUTABLE
         ? await hasCsXtremeLaunchScript(installRoot)
         : false
-    const usesSteamEmulation = isCsXtreme || (await hasStandaloneSteamEmulator(installRoot))
+    // CS16Launcher.exe normally starts hl.exe with -steam even when rev.ini is
+    // absent. Supplying match arguments bypasses that default command line.
+    const usesSteamEmulation =
+      isWrapper || isCsXtreme || (await hasStandaloneSteamEmulator(installRoot))
     const gameExecutable = isWrapper ? join(installRoot, GOLD_SRC_WINDOWS_EXECUTABLE) : executable
 
     if (isWrapper && !(await stat(gameExecutable).catch(() => null))?.isFile()) {
