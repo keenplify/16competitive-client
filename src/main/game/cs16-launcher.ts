@@ -644,12 +644,13 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  if (process.platform === 'linux') {
+  if (process.platform === 'linux' || process.platform === 'win32') {
     try {
-      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl)
+      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl,
+        process.platform === 'win32' ? cwd : undefined)
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
-        if (launchTarget.distribution === 'steam') {
+        if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
           steamExitWatchGeneration++
           const configured = await ensureSteamScoreboardOption(
             session.steamWrapperPath,
@@ -778,7 +779,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
             process.platform === 'linux' && directLaunch
               ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
               : process.env.LD_LIBRARY_PATH,
-          ...(activeScoreboardSession?.matchId === input.matchId
+          ...(process.platform === 'linux' && activeScoreboardSession?.matchId === input.matchId
             ? {
                 LD_PRELOAD: [activeScoreboardSession.session.modulePath, process.env.LD_PRELOAD]
                   .filter(Boolean)
