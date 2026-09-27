@@ -28,7 +28,7 @@ import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
-type SettingsSection = 'general' | 'audio' | 'assets' | 'credentials'
+type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
 const socialProviderLabel = (provider: SocialAuthProvider): string =>
   provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
@@ -40,6 +40,7 @@ const readableError = (error: unknown): string =>
 export function SettingsPage(): JSX.Element {
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
+  const crosshairRef = useRef<HTMLElement>(null)
   const audioRef = useRef<HTMLElement>(null)
   const assetsRef = useRef<HTMLElement>(null)
   const credentialsRef = useRef<HTMLElement>(null)
@@ -102,12 +103,14 @@ export function SettingsPage(): JSX.Element {
 
   const updateActiveSection = (): void => {
     const container = scrollRef.current
+    const crosshair = crosshairRef.current
     const audio = audioRef.current
     const assets = assetsRef.current
     const credentials = credentialsRef.current
-    if (!container || !audio || !assets || !credentials) return
+    if (!container || !crosshair || !audio || !assets || !credentials) return
 
     const containerTop = container.getBoundingClientRect().top
+    const crosshairTop = crosshair.getBoundingClientRect().top - containerTop
     const audioTop = audio.getBoundingClientRect().top - containerTop
     const assetsTop = assets.getBoundingClientRect().top - containerTop
     const credentialsTop = credentials.getBoundingClientRect().top - containerTop
@@ -119,6 +122,8 @@ export function SettingsPage(): JSX.Element {
       setActiveSection('assets')
     } else if (audioTop <= activationLine) {
       setActiveSection('audio')
+    } else if (crosshairTop <= activationLine) {
+      setActiveSection('crosshair')
     } else {
       setActiveSection('general')
     }
@@ -135,11 +140,13 @@ export function SettingsPage(): JSX.Element {
     const target =
       section === 'general'
         ? generalRef.current
-        : section === 'audio'
-          ? audioRef.current
-          : section === 'assets'
-            ? assetsRef.current
-            : credentialsRef.current
+        : section === 'crosshair'
+          ? crosshairRef.current
+          : section === 'audio'
+            ? audioRef.current
+            : section === 'assets'
+              ? assetsRef.current
+              : credentialsRef.current
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -358,6 +365,7 @@ export function SettingsPage(): JSX.Element {
           <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
+              {sectionButton('crosshair', 'Crosshair')}
               {sectionButton('audio', 'Voice & Audio')}
               {sectionButton('assets', 'Assets')}
               {sectionButton('credentials', 'Credentials')}
@@ -503,6 +511,18 @@ export function SettingsPage(): JSX.Element {
                   )}
                 </div>
               )}
+            </section>
+
+            <section
+              ref={crosshairRef}
+              className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+            >
+              <div className="mb-5">
+                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+                  Game appearance
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">Crosshair editor</h2>
+              </div>
               <CrosshairSettings />
             </section>
 

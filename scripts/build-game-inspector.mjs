@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -59,30 +67,67 @@ function buildRust(args, target) {
     )
 }
 
+function stageBinary(source, destination, executable) {
+  if (process.platform === 'win32') {
+    copyFileSync(source, destination)
+    return
+  }
+  const temporary = `${destination}.${process.pid}.tmp`
+  try {
+    copyFileSync(source, temporary)
+    if (executable) chmodSync(temporary, 0o755)
+    renameSync(temporary, destination)
+  } finally {
+    rmSync(temporary, { force: true })
+  }
+}
+
 export function buildGameInspector(platform, arch) {
   const target = targets[`${platform}-${arch}`]
   if (!target) throw new Error(`Unsupported native helper target: ${platform}-${arch}`)
   const manifest = join(helperRoot, 'Cargo.toml')
   buildRust(
-    ['build', '--locked', '--release', '--features', 'cosmetic-probe', '--manifest-path', manifest, '--target', target],
+    [
+      'build',
+      '--locked',
+      '--release',
+      '--features',
+      'cosmetic-probe',
+      '--manifest-path',
+      manifest,
+      '--target',
+      target
+    ],
     target
   )
   const cosmetic = cosmeticTargets[`${platform}-${arch}`]
   if (cosmetic) {
     buildRust(
-      ['build', '--locked', '--release', '-p', 'papamo-cosmetic-module', '--manifest-path', manifest, '--target', cosmetic.target],
+      [
+        'build',
+        '--locked',
+        '--release',
+        '-p',
+        'papamo-cosmetic-module',
+        '--manifest-path',
+        manifest,
+        '--target',
+        cosmetic.target
+      ],
       cosmetic.target
     )
   }
   const name = platform === 'win' ? 'game-inspector.exe' : 'game-inspector'
   const destination = join(root, 'resources', 'native', `${platform}-${arch}`)
   mkdirSync(destination, { recursive: true })
-  copyFileSync(join(helperRoot, 'target', target, 'release', name), join(destination, name))
-  if (platform !== 'win') chmodSync(join(destination, name), 0o755)
+  stageBinary(join(helperRoot, 'target', target, 'release', name), join(destination, name), true)
   if (cosmetic) {
     const staged = join(destination, cosmetic.destination)
-    copyFileSync(join(helperRoot, 'target', cosmetic.target, 'release', cosmetic.source), staged)
-    if (platform !== 'win') chmodSync(staged, 0o755)
+    stageBinary(
+      join(helperRoot, 'target', cosmetic.target, 'release', cosmetic.source),
+      staged,
+      true
+    )
   }
 }
 
