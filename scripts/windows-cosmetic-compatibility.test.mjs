@@ -4,9 +4,19 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import {
+  isNextClientExecutable,
   isNextClientInstallation,
-  supportsWindowsCosmeticClient
+  supportsWindowsCosmeticClient,
+  WINDOWS_STANDALONE_EXECUTABLE_NAMES
 } from '../src/main/game/windows-cosmetic-compatibility.ts'
+
+test('includes the official NextClient executable in Windows folder detection', () => {
+  assert.deepEqual(WINDOWS_STANDALONE_EXECUTABLE_NAMES, [
+    'CS16Launcher.exe',
+    'cstrike.exe',
+    'hl.exe'
+  ])
+})
 
 test('only the Windows client DLL builds verified by the native proxy are admitted', () => {
   assert.equal(
@@ -39,6 +49,9 @@ test('detects NextClient only when both native hook modules are present', async 
     assert.equal(await isNextClientInstallation(root), false)
     await writeFile(join(root, 'nitro_api2.dll'), '')
     assert.equal(await isNextClientInstallation(root), true)
+    await writeFile(join(root, 'cstrike.exe'), '')
+    assert.equal(await isNextClientExecutable(join(root, 'cstrike.exe')), true)
+    assert.equal(await isNextClientExecutable(join(root, 'hl.exe')), false)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

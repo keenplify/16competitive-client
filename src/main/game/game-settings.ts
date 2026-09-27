@@ -8,6 +8,10 @@ import {
   type CrosshairProfile
 } from '../../shared/crosshair'
 import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
+import {
+  isNextClientExecutable,
+  WINDOWS_STANDALONE_EXECUTABLE_NAMES
+} from './windows-cosmetic-compatibility'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
@@ -67,6 +71,13 @@ const STANDALONE_SCAN_LIMIT = 64
 
 const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
   if (!(await stat(executable).catch(() => null))?.isFile()) return false
+  if (
+    process.platform === 'win32' &&
+    basename(executable).toLowerCase() === 'cstrike.exe' &&
+    !(await isNextClientExecutable(executable))
+  ) {
+    return false
+  }
   const cstrike = join(dirname(executable), 'cstrike')
   if (!(await stat(cstrike).catch(() => null))?.isDirectory()) return false
   if ((await stat(join(cstrike, 'liblist.gam')).catch(() => null))?.isFile()) return true
@@ -80,9 +91,12 @@ const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
 }
 
 const executableNamesForPlatform = (): string[] =>
-  // WaRzOnE needs its supported wrapper; CS Xtreme V6 has launcher.exe instead
-  // and continues to use hl.exe with its installation-specific arguments.
-  process.platform === 'win32' ? ['CS16Launcher.exe', 'hl.exe'] : ['hl_linux', 'hl.sh']
+  // WaRzOnE needs its supported wrapper, NextClient uses cstrike.exe, and CS
+  // Xtreme V6 has launcher.exe instead and continues to use hl.exe with its
+  // installation-specific arguments.
+  process.platform === 'win32'
+    ? [...WINDOWS_STANDALONE_EXECUTABLE_NAMES]
+    : ['hl_linux', 'hl.sh']
 
 const detectStandaloneExecutables = async (): Promise<string[]> => {
   const executableNames = executableNamesForPlatform()
