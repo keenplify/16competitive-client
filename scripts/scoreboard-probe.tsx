@@ -54,11 +54,12 @@ function RoundTrack({ round }: { round: number }) {
 
 function PlayerRow({ player, rank, selfName }: { player: Player; rank: number; selfName: string }) {
   return (
-    <div className={`player-row${player.alive ? '' : ' dead'}`}>
+    <div
+      className={`player-row${player.alive ? '' : ' dead'}${player.name === selfName ? ' self' : ''}`}
+    >
       <span className="rank">{String(rank).padStart(2, '0')}</span>
       <span className="player-name" title={player.name}>
         {player.name}
-        {player.name === selfName && <small>YOU</small>}
         {!player.alive && <small>DEAD</small>}
       </span>
       <span>{player.kills}</span>
