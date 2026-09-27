@@ -7,6 +7,7 @@ import { getSessionToken, getSessionUsername } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import { getGameSettings } from './game-settings'
+import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -92,6 +93,7 @@ export class ScoreboardOverlaySession {
   private stopped = false
   private feedAvailable = false
   private reportedUnavailable = false
+  private readonly windowsInstallation: WindowsCosmeticInstallation | null
 
   private constructor(
     private readonly matchId: string,
@@ -99,13 +101,15 @@ export class ScoreboardOverlaySession {
     directory: string,
     modulePath: string,
     window: BrowserWindow,
-    readSnapshot: (directory: string) => Snapshot
+    readSnapshot: (directory: string) => Snapshot,
+    windowsInstallation: WindowsCosmeticInstallation | null
   ) {
     this.directory = directory
     this.modulePath = modulePath
     this.steamWrapperPath = join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh')
     this.window = window
     this.readSnapshot = readSnapshot
+    this.windowsInstallation = windowsInstallation
     this.feedPath = join(directory, 'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv')
   }
 
@@ -115,11 +119,11 @@ export class ScoreboardOverlaySession {
 
   static async start(
     matchId: string,
-    apiUrl = API_BASE_URL
+    apiUrl = API_BASE_URL,
+    gameRoot?: string
   ): Promise<ScoreboardOverlaySession | null> {
-    // The current GoldSrc binding is native Linux x86. Windows needs a private
-    // client.dll proxy installation before this session can be enabled there.
-    if (process.platform !== 'linux' || process.arch !== 'x64') return null
+    if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') return null
+    if (process.platform === 'win32' && !gameRoot) return null
     const backend = new URL(apiUrl)
     if (
       backend.protocol !== 'https:' &&
@@ -130,11 +134,15 @@ export class ScoreboardOverlaySession {
       ? join(process.resourcesPath, 'native')
       : join(app.getAppPath(), 'resources/native/linux-x64')
     const modulePath = join(native, 'papamo-cosmetic-module-linux-x86.so')
-    if (!(await stat(modulePath).catch(() => null))?.isFile()) return null
+    if (process.platform === 'linux' && !(await stat(modulePath).catch(() => null))?.isFile()) return null
     const assets = app.isPackaged
       ? join(process.resourcesPath, 'scoreboard')
       : join(app.getAppPath(), 'resources/scoreboard')
-    const directory = await mkdtemp(join(app.getPath('userData'), `scoreboard-${randomUUID()}-`))
+    const windowsInstallation = process.platform === 'win32'
+      ? await WindowsCosmeticInstallation.install(gameRoot!)
+      : null
+    const directory = windowsInstallation?.sessionDirectory ??
+      await mkdtemp(join(app.getPath('userData'), `scoreboard-${randomUUID()}-`))
     let window: BrowserWindow | null = null
     try {
       await mkdir(join(directory, 'game/cstrike/addons/amxmodx/data'), { recursive: true })
@@ -191,7 +199,8 @@ export class ScoreboardOverlaySession {
         directory,
         modulePath,
         window,
-        readSnapshot
+        readSnapshot,
+        windowsInstallation
       )
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       window.webContents.on('will-navigate', (event) => event.preventDefault())
@@ -222,6 +231,7 @@ export class ScoreboardOverlaySession {
     } catch (error) {
       if (window && !window.isDestroyed()) window.close()
       await rm(directory, { recursive: true, force: true })
+      await windowsInstallation?.restore().catch(() => undefined)
       throw error
     }
   }
@@ -281,8 +291,14 @@ export class ScoreboardOverlaySession {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     if (!this.window.isDestroyed()) this.window.close()
-    void rm(this.directory, { recursive: true, force: true }).catch((error: unknown) =>
-      console.warn('[Scoreboard] cleanup failed', error)
-    )
+    if (this.windowsInstallation) {
+      void this.windowsInstallation.queueRestore().catch((error: unknown) =>
+        console.warn('[Scoreboard] Windows client restore failed', error)
+      )
+    } else {
+      void rm(this.directory, { recursive: true, force: true }).catch((error: unknown) =>
+        console.warn('[Scoreboard] cleanup failed', error)
+      )
+    }
   }
 }
