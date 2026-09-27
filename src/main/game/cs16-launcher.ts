@@ -652,9 +652,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  if (process.platform === 'linux') {
+  if (process.platform === 'linux' || process.platform === 'win32') {
     try {
-      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl)
+      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl,
+        process.platform === 'win32' ? cwd : undefined)
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
         if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
