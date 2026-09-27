@@ -10,8 +10,8 @@ const { readSnapshot } = require('./scoreboard-feed.cjs')
 const session = process.argv[2]
 const html = process.argv[3]
 const scoreboard = process.argv[4] === 'scoreboard'
-const width = scoreboard ? 736 : 360
-const height = scoreboard ? 512 : 96
+const width = scoreboard ? 1104 : 360
+const height = scoreboard ? 720 : 96
 if (
   !session ||
   !html ||
@@ -48,7 +48,7 @@ app.whenReady().then(async () => {
   let firstFrame = true
   window.webContents.on('paint', (_event, _dirty, image) => {
     const { width, height } = image.getSize()
-    if (width !== (scoreboard ? 736 : 360) || height !== (scoreboard ? 512 : 96)) return
+    if (width !== (scoreboard ? 1104 : 360) || height !== (scoreboard ? 720 : 96)) return
     const bytes = image.toPNG()
     if (bytes.length > 512 * 1024) return
     const temporary = path.join(session, 'overlay.png.tmp')

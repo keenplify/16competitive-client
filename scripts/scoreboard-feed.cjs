@@ -8,7 +8,9 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!header?.startsWith('#16c-scoreboard-v2\t') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v[234]\t/.test(header ?? '') || lines.length > 34) return null
+  const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
+  const withBot = header.startsWith('#16c-scoreboard-v4\t')
   const headerFields = header.slice(19).split('\t')
   if (headerFields.length !== 3) return null
   const [map, roundText, modeText] = headerFields
@@ -21,9 +23,11 @@ function parseSnapshot(text) {
   for (const line of lines) {
     if (!line) continue
     const parts = line.replace(/\r$/, '').split('\t')
-    if (parts.length !== 7) return null
-    const [id, team, kills, assists, deaths, ping] = parts.slice(0, 6).map(Number)
-    const name = parts[6]
+    if (parts.length !== (withBot ? 9 : withAlive ? 8 : 7)) return null
+    const [id, team, kills, assists, deaths, ping, alive, bot] = parts
+      .slice(0, withBot ? 8 : withAlive ? 7 : 6)
+      .map(Number)
+    const name = parts[withBot ? 8 : withAlive ? 7 : 6]
     if (
       !Number.isInteger(id) ||
       id < 1 ||
@@ -44,6 +48,8 @@ function parseSnapshot(text) {
       !Number.isInteger(ping) ||
       ping < 0 ||
       ping > 9999 ||
+      (withAlive && alive !== 0 && alive !== 1) ||
+      (withBot && bot !== 0 && bot !== 1) ||
       !name ||
       name.length > 32 ||
       Array.from(name).some((character) => {
@@ -53,7 +59,7 @@ function parseSnapshot(text) {
     )
       return null
     seen.add(id)
-    players.push({ id, team, name, kills, assists, deaths, ping })
+    players.push({ id, team, name, kills, assists, deaths, ping, alive: !withAlive || alive === 1, bot: withBot && bot === 1 })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
   return { map, round, mode: modeText === '1' ? 'ffa' : 'competitive', players }

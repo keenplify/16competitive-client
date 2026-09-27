@@ -17,6 +17,7 @@ import { resolveCs16LaunchTarget } from './cs16-installation'
 import { ensureLauncherContentDirectory } from './game-directory'
 import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
 import { prepareMatchIdentityConfig } from './match-identity-config'
+import { captureCrosshairConfig } from './crosshair-config'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 import {
@@ -24,6 +25,8 @@ import {
   restoreManagedSkinAudio,
   startManagedSkinAudioConnectionGuard
 } from './skin-audio-override'
+import { ScoreboardOverlaySession } from './scoreboard-overlay'
+import { ensureSteamScoreboardOption } from './steam-scoreboard-options'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -43,6 +46,7 @@ interface MatchLaunchInput {
   port: number
   password: string
   joinToken: string
+  apiUrl?: string
   forceRestart?: boolean
   onVoicePtt?: (active: boolean) => void
   onExit?: (event: { code: number | null; signal: string | null }) => void
@@ -62,6 +66,7 @@ let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = n
 let steamExitWatchGeneration = 0
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
+let activeScoreboardSession: { matchId: string; session: ScoreboardOverlaySession } | null = null
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -79,7 +84,18 @@ const finishVoicePttSession = async (matchId?: string): Promise<void> => {
 
 const stopAntiCheatSession = (session: AntiCheatSession, reason: string): void => {
   session.stop(reason)
-  if (activeAntiCheatSession?.session === session) activeAntiCheatSession = null
+  if (activeAntiCheatSession?.session === session) {
+    const matchId = activeAntiCheatSession.matchId
+    activeAntiCheatSession = null
+    finishScoreboardSession(matchId)
+  }
+}
+
+const finishScoreboardSession = (matchId?: string): void => {
+  const active = activeScoreboardSession
+  if (!active || (matchId && active.matchId !== matchId)) return
+  activeScoreboardSession = null
+  active.session.stop()
 }
 
 const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): void => {
@@ -87,6 +103,7 @@ const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): voi
   if (!active || (matchId && active.matchId !== matchId)) return
   activeAntiCheatSession = null
   active.session.stop(reason)
+  finishScoreboardSession(matchId)
 }
 
 const clearMatchConfig = (generation?: number): void => {
@@ -622,13 +639,71 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
+  if (process.platform === 'linux') {
+    try {
+      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl)
+      if (session) {
+        activeScoreboardSession = { matchId: input.matchId, session }
+        if (launchTarget.distribution === 'steam') {
+          steamExitWatchGeneration++
+          const configured = await ensureSteamScoreboardOption(
+            session.steamWrapperPath,
+            isSteamRunning
+          )
+          if (!configured) {
+            console.warn('[Scoreboard] Steam launch wrapper unavailable; using stock board')
+            finishScoreboardSession(input.matchId)
+          }
+        }
+      }
+      if (activeScoreboardSession?.matchId === input.matchId) {
+        console.info('[Scoreboard] in-game board prepared', {
+          matchId: input.matchId,
+          distribution: launchTarget.distribution
+        })
+      }
+    } catch (error) {
+      console.warn('[Scoreboard] could not prepare in-game board; using stock board', error)
+      finishScoreboardSession(input.matchId)
+    }
+  }
+
+  if (activeScoreboardSession?.matchId === input.matchId) {
+    try {
+      const restoreCrosshair = await captureCrosshairConfig(join(launchGameDirectory, 'config.cfg'))
+      const connectLine = `connect ${input.host}:${input.port}`
+      const config = await readFile(matchConfigPath, 'utf8')
+      if (!config.includes(connectLine)) throw new Error('Match config lost its connect command')
+      await writeFile(
+        matchConfigPath,
+        config.replace(connectLine, `crosshair "0"\n${connectLine}`),
+        {
+          mode: 0o600
+        }
+      )
+      const restoreIdentity = restoreMatchIdentity
+      restoreMatchIdentity = async () => {
+        await restoreIdentity?.()
+        await restoreCrosshair()
+      }
+    } catch (error) {
+      console.warn('[Scoreboard] could not prepare custom crosshair; using stock HUD', error)
+      finishScoreboardSession(input.matchId)
+    }
+  }
+
   // The match configuration carries the join identity and password and is
   // written directly into the game directory the engine runs on, so `+exec`
   // always finds it. The secret values therefore never appear in the process
   // list.
   // Only the config connects, after reasserting the fresh identity. A second
   // +connect can bypass that ordering during Steam's existing-process handoff.
-  const directMatchArgs = ['-condebug', '+exec', matchConfigName]
+  const directMatchArgs = [
+    ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
+    '-condebug',
+    '+exec',
+    matchConfigName
+  ]
   const gameArgs = directMatchArgs
   const launchArgs = [
     ...launchTarget.argumentPrefix,
@@ -697,7 +772,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
           LD_LIBRARY_PATH:
             process.platform === 'linux' && directLaunch
               ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
-              : process.env.LD_LIBRARY_PATH
+              : process.env.LD_LIBRARY_PATH,
+          ...(activeScoreboardSession?.matchId === input.matchId
+            ? {
+                LD_PRELOAD: [activeScoreboardSession.session.modulePath, process.env.LD_PRELOAD]
+                  .filter(Boolean)
+                  .join(' '),
+                PAPAMO_SKIN_PROBE_SESSION: activeScoreboardSession.session.directory
+              }
+            : {})
         }
       })
       child.once('error', reject)

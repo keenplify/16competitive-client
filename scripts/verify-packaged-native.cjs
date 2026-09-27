@@ -21,4 +21,25 @@ module.exports = async function verifyPackagedNative(context) {
       throw new Error(`Packaged native artifact is invalid: ${name}`)
     }
   }
+  if (platform === 'linux' || platform === 'win32') {
+    const scoreboardDirectory = join(context.appOutDir, 'resources', 'scoreboard')
+    for (const name of [
+      'index.html',
+      'renderer.js',
+      'scoreboard.css',
+      'preload.cjs',
+      'scoreboard-feed.cjs'
+    ]) {
+      const file = join(scoreboardDirectory, name)
+      let metadata
+      try {
+        metadata = statSync(file)
+      } catch {
+        throw new Error(`Packaged scoreboard artifact is missing: ${name}`)
+      }
+      if (!metadata.isFile() || metadata.size < 1) {
+        throw new Error(`Packaged scoreboard artifact is invalid: ${name}`)
+      }
+    }
+  }
 }
