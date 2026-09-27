@@ -76,6 +76,7 @@ import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
 import { closeCounterStrikeForMatch, updateActiveCrosshair } from './game/cs16-launcher'
+import { disableSteamScoreboardWrapper } from './game/steam-scoreboard-options'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -382,6 +383,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  await disableSteamScoreboardWrapper().catch((error: unknown) => {
+    console.error('[Scoreboard] could not disable an earlier Steam launch wrapper', error)
+  })
   void registerDemoProtocol().catch((error) => {
     console.error('[DemoPlayback] Protocol registration failed:', error)
     void dialog.showMessageBox({

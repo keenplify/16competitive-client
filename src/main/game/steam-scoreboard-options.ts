@@ -1,8 +1,23 @@
 import { spawn } from 'node:child_process'
 import { constants } from 'node:fs'
 import { homedir } from 'node:os'
-import { copyFile, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises'
+import { copyFile, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { app } from 'electron'
+
+/** Neutralize launch options installed by an earlier release without breaking Steam launches. */
+export const disableSteamScoreboardWrapper = async (): Promise<void> => {
+  if (process.platform !== 'linux') return
+  const wrapper = join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh')
+  const temporary = `${wrapper}.disabled-tmp`
+  await writeFile(temporary, '#!/bin/sh\nexec "$@"\n', { mode: 0o700 })
+  try {
+    await rename(temporary, wrapper)
+  } catch (error) {
+    await rm(temporary, { force: true }).catch(() => undefined)
+    throw error
+  }
+}
 
 const APP_BLOCK = /^(\t{5}"10"\s*\n\t{5}\{\n)([\s\S]*?)(^\t{5}\})/gm
 const OPTION_LINE = /^(\t{6}"LaunchOptions"\s*)"((?:\\.|[^"\\])*)"/m
