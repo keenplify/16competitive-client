@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { getSessionToken, getSessionUsername } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
+import type { CrosshairProfile } from '../../shared/crosshair'
 import { getGameSettings } from './game-settings'
 
 const MAX_FEED_BYTES = 8192
@@ -12,6 +13,27 @@ const MAX_FRAME_BYTES = 512 * 1024
 const FRAME_WIDTH = 1104
 const FRAME_HEIGHT = 720
 const INTERVAL_MS = 500
+
+const writeCrosshairConfig = async (directory: string, crosshair: CrosshairProfile): Promise<void> => {
+  const color = [1, 3, 5].map((index) => parseInt(crosshair.color.slice(index, index + 2), 16))
+  const destination = join(directory, 'crosshair.conf')
+  const temporary = `${destination}.${randomUUID()}.tmp`
+  try {
+    await writeFile(temporary, [
+      ...color,
+      crosshair.size,
+      crosshair.gap,
+      crosshair.thickness,
+      crosshair.outline,
+      crosshair.opacity,
+      Number(crosshair.dot),
+      Number(crosshair.dynamic)
+    ].join(' ') + '\n', { mode: 0o600 })
+    await rename(temporary, destination)
+  } finally {
+    await unlink(temporary).catch(() => undefined)
+  }
+}
 
 const readBoundedFeed = async (response: Response): Promise<string | null> => {
   if (!response.body) return null
@@ -81,6 +103,10 @@ export class ScoreboardOverlaySession {
     this.feedPath = join(directory, 'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv')
   }
 
+  async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
+    if (!this.stopped) await writeCrosshairConfig(this.directory, crosshair)
+  }
+
   static async start(
     matchId: string,
     apiUrl = API_BASE_URL
@@ -113,22 +139,7 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
       await writeFile(join(directory, 'crosshair.visible'), '1\n', { mode: 0o600 })
-      const crosshair = (await getGameSettings()).crosshair
-      const color = [1, 3, 5].map((index) => parseInt(crosshair.color.slice(index, index + 2), 16))
-      await writeFile(
-        join(directory, 'crosshair.conf'),
-        [
-          ...color,
-          crosshair.size,
-          crosshair.gap,
-          crosshair.thickness,
-          crosshair.outline,
-          crosshair.opacity,
-          Number(crosshair.dot),
-          Number(crosshair.dynamic)
-        ].join(' ') + '\n',
-        { mode: 0o600 }
-      )
+      await writeCrosshairConfig(directory, (await getGameSettings()).crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
       // the authenticated launch and reads this per-match session. It also

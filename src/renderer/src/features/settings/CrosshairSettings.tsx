@@ -34,7 +34,7 @@ function CrosshairEditor({ saved }: { saved: CrosshairProfile }): JSX.Element {
     try {
       await saveProfile(parseCrosshairProfile(profile))
       setMessage('')
-      toast.success('Crosshair saved. It will apply when you join your next match.')
+      toast.success('Crosshair saved. Active matches update automatically.')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save crosshair.')
     } finally {
@@ -87,8 +87,8 @@ function CrosshairEditor({ saved }: { saved: CrosshairProfile }): JSX.Element {
     <section className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
       <h3 className="text-lg font-semibold">Crosshair</h3>
       <p className="mt-1 text-sm text-neutral-400">
-        Design a crosshair and share it as a JSON file. Saved changes apply when you join your next
-        match with the native overlay enabled.
+        Design a crosshair and share it as a JSON file. Save changes while playing to update the
+        in-game crosshair.
       </p>
       <div className="mt-5 grid gap-6 md:grid-cols-[200px_1fr]">
         <div
