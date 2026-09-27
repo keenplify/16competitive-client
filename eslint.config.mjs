@@ -13,6 +13,7 @@ export default defineConfig(
       '**/out',
       '**/build',
       '**/dist-web',
+      'resources/scoreboard/**',
       'src/renderer/src/libs/web-hlmv/**'
     ]
   },
