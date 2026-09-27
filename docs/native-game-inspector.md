@@ -16,6 +16,17 @@ npm run dev
 
 `npm run dev` automatically runs `npm run build:helper` through the `predev` lifecycle.
 If the Rust build fails, development startup stops.
+On Fedora, the Linux x86 cosmetic module also needs the 32-bit C development
+files and Rust target. Install them once with:
+
+```sh
+sudo dnf install glibc-devel.i686
+rustup target add i686-unknown-linux-gnu
+```
+
+Missing `glibc-devel.i686` appears as linker errors for `crti.o`, `crtn.o`,
+`-lc`, and other 32-bit system libraries. The installed Rust target alone does
+not provide those files.
 
 `HELPER_SOURCE_DIR` can override the sibling source location. `build:helper` builds
 the latest sibling helper source with the cosmetic feature and, on Windows/Linux
