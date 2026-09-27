@@ -26,6 +26,7 @@ import {
   startManagedSkinAudioConnectionGuard
 } from './skin-audio-override'
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
+import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import { ensureSteamScoreboardOption } from './steam-scoreboard-options'
 
@@ -536,6 +537,13 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
+  // The Windows proxy in 2026.927.2 crashed some GoldSrc distributions while
+  // loading client.dll. Restore any interrupted installation before launching
+  // the original game client, including on a forced reconnect.
+  if (process.platform === 'win32') {
+    await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
+  }
+
   await prepareManagedSkinAudio(input.matchId)
 
   const voicePttSession = await prepareVoicePtt(
@@ -644,10 +652,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  if (process.platform === 'linux' || process.platform === 'win32') {
+  if (process.platform === 'linux') {
     try {
-      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl,
-        process.platform === 'win32' ? cwd : undefined)
+      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl)
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
         if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
