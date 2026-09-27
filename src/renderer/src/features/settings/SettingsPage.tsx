@@ -523,7 +523,25 @@ export function SettingsPage(): JSX.Element {
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Crosshair editor</h2>
               </div>
-              <CrosshairSettings />
+              {webRuntime ? (
+                <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <p className="text-sm leading-relaxed text-neutral-300">
+                    Custom crosshairs are available in the desktop launcher. Download it to edit
+                    your crosshair and use it in Counter-Strike.
+                  </p>
+                  <a
+                    href="https://papamo.dev/16competitive"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                  >
+                    <Download className="mr-2 size-4" aria-hidden="true" />
+                    Download desktop launcher
+                  </a>
+                </div>
+              ) : (
+                <CrosshairSettings />
+              )}
             </section>
 
             <section
