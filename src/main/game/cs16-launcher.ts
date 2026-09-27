@@ -26,6 +26,7 @@ import {
   startManagedSkinAudioConnectionGuard
 } from './skin-audio-override'
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
+import type { CrosshairProfile } from '../../shared/crosshair'
 import { ensureSteamScoreboardOption } from './steam-scoreboard-options'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
@@ -67,6 +68,10 @@ let steamExitWatchGeneration = 0
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
 let activeScoreboardSession: { matchId: string; session: ScoreboardOverlaySession } | null = null
+
+export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<void> => {
+  await activeScoreboardSession?.session.updateCrosshair(profile)
+}
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))

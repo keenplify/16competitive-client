@@ -75,7 +75,7 @@ import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
-import { closeCounterStrikeForMatch } from './game/cs16-launcher'
+import { closeCounterStrikeForMatch, updateActiveCrosshair } from './game/cs16-launcher'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
   equipSkin,
@@ -703,9 +703,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, (_, profile: unknown) =>
-    saveCrosshair(profile)
-  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, async (_, profile: unknown) => {
+    const settings = await saveCrosshair(profile)
+    await updateActiveCrosshair(settings.crosshair)
+    return settings
+  })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
