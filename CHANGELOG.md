@@ -1326,3 +1326,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Fair Play
 
 - Added game screenshot capture for anti-cheat checks.
+
+## v2026.927.2 — 2026-09-27
+
+### Compatibility
+
+- Improved Steam emulation detection for CS16Launcher.
+
+### Overlay
+
+- Improved scoreboard overlay behavior.
+
+### Windows
+
+- Added Windows cosmetic installation support.
