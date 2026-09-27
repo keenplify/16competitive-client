@@ -1340,3 +1340,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Added Windows cosmetic installation support.
+
+## v2026.927.3 — 2026-09-27
+
+### Fixed
+
+- Restored interrupted Windows installations.
+- Improved Windows cosmetic installation handling.
