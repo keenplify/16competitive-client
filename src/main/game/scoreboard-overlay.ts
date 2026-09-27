@@ -35,6 +35,7 @@ const readBoundedFeed = async (response: Response): Promise<string | null> => {
 type Snapshot = {
   map: string
   round: number
+  roundWinners: string
   mode: 'ffa' | 'competitive'
   players: {
     id: number
@@ -224,7 +225,7 @@ export class ScoreboardOverlaySession {
       )
       if (!response.ok || response.status === 204) throw new Error('Scoreboard unavailable')
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v[234]\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v[2345]\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       const temporary = `${this.feedPath}.tmp`
       await writeFile(temporary, feed, { mode: 0o600 })

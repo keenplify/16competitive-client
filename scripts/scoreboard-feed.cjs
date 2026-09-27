@@ -8,16 +8,18 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v[234]\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v[2345]\t/.test(header ?? '') || lines.length > 34) return null
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = header.startsWith('#16c-scoreboard-v4\t')
+  const withBot = /^#16c-scoreboard-v[45]\t/.test(header)
+  const withRoundWinners = header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(19).split('\t')
-  if (headerFields.length !== 3) return null
-  const [map, roundText, modeText] = headerFields
+  if (headerFields.length !== (withRoundWinners ? 4 : 3)) return null
+  const [map, roundText, modeText, roundWinners = ''] = headerFields
   if (!/^[a-zA-Z0-9_]{1,32}$/.test(map)) return null
   const round = Number(roundText)
   if (!Number.isInteger(round) || round < 0 || round > 99) return null
   if (modeText !== '0' && modeText !== '1') return null
+  if (!/^[CT]{0,99}$/.test(roundWinners) || roundWinners.length > round) return null
   const players = []
   const seen = new Set()
   for (const line of lines) {
@@ -62,7 +64,7 @@ function parseSnapshot(text) {
     players.push({ id, team, name, kills, assists, deaths, ping, alive: !withAlive || alive === 1, bot: withBot && bot === 1 })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
-  return { map, round, mode: modeText === '1' ? 'ffa' : 'competitive', players }
+  return { map, round, mode: modeText === '1' ? 'ffa' : 'competitive', roundWinners, players }
 }
 
 function readSnapshot(session) {

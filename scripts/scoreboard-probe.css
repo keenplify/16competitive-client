@@ -41,20 +41,12 @@ body,
   font-weight: bold;
   letter-spacing: 0.4px;
 }
-.board-header b {
-  color: #f3cc75;
-  font-size: 23px;
-}
 .board-header span {
   font-size: 16px;
 }
 .map-name {
   color: #eee3bd;
   text-transform: uppercase;
-}
-.player-count {
-  font-size: 14px;
-  color: #a8a696;
 }
 .board-table {
   overflow: hidden;
@@ -193,14 +185,18 @@ body,
   border: 1px solid #736c58;
   background: rgba(118, 113, 94, 0.3);
 }
-.round-tick.past {
-  background: #86734e;
-  border-color: #b69a62;
+.round-tick.ct-win {
+  background: #4c86b4;
+  border-color: #8bc4ed;
+}
+.round-tick.t-win {
+  background: #b98541;
+  border-color: #e7b96e;
 }
 .round-tick.current {
-  background: #f0c46b;
-  border-color: #ffe0a0;
-  box-shadow: 0 0 8px rgba(242, 188, 76, 0.7);
+  background: #77766f;
+  border-color: #aaa9a1;
+  box-shadow: 0 0 8px rgba(180, 180, 175, 0.5);
 }
 .round-tick.halftime {
   margin-left: 8px;
