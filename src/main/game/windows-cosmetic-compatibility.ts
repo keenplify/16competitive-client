@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 
 // These exact 32-bit client builds have the 87-name/ordinal ABI verified by
 // the private helper's Windows cosmetic probe. Other builds must use stock HUD.
@@ -7,6 +7,12 @@ const VERIFIED_CLIENT_SHA256 = new Set([
   'ef7a0f40989cb79ba95d40f528534da36866892ee871147ca82e133b7a5edc3d',
   '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc'
 ])
+
+export const WINDOWS_STANDALONE_EXECUTABLE_NAMES = [
+  'CS16Launcher.exe',
+  'cstrike.exe',
+  'hl.exe'
+] as const
 
 export const supportsWindowsCosmeticClient = (sha256: string): boolean =>
   VERIFIED_CLIENT_SHA256.has(sha256)
@@ -28,3 +34,8 @@ export const isNextClientInstallation = async (gameRoot: string): Promise<boolea
   ])
   return clientMini && nitroApi
 }
+
+/** Official NextClient builds are launched through cstrike.exe, not hl.exe. */
+export const isNextClientExecutable = async (executable: string): Promise<boolean> =>
+  basename(executable).toLowerCase() === 'cstrike.exe' &&
+  (await isNextClientInstallation(dirname(executable)))
