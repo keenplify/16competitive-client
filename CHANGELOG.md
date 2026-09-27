@@ -1347,3 +1347,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Restored interrupted Windows installations.
 - Improved Windows cosmetic installation handling.
+
+## v2026.927.4 — 2026-09-27
+
+### Windows Compatibility
+
+- Improved Counter-Strike client file verification and error handling on Windows.
+- Added detection for the NextClient executable.
+- Expanded Windows compatibility checks.
+
+### Cosmetic Support
+
+- Improved Windows cosmetic overlay compatibility.
+- Added additional checks for cosmetic installations.
+
+### Matchmaking
+
+- Improved matchmaking state management.
