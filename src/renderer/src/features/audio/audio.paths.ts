@@ -1,10 +1,10 @@
 export const MUSIC_SETS = [
   {
-    id: 'hip-hop',
-    label: 'Hip-Hop',
+    id: 'rock',
+    label: 'Rock',
     backgroundMusic: {
-      title: 'Enth E Nd',
-      path: 'audio/bgm/enth-e-nd.mp3'
+      title: 'Rock',
+      path: 'audio/bgm/default.mp3'
     },
     cues: {
       matchFound: 'audio/sfx/match-found.mp3'
