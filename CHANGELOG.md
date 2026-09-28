@@ -1371,3 +1371,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a setting to disable the Steam scoreboard wrapper.
 - Added a custom HUD option for crosshair settings.
+
+## v2026.928.1 — 2026-09-28
+
+### Audio
+
+- Updated the background music to the default track.
+- Removed the previous background music track.
