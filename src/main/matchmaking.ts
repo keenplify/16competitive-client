@@ -429,7 +429,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
           'PLAYER_DECLINED',
           'PLAYER_NOT_READY',
           'SERVER_START_FAILED',
-          'PLAYER_DID_NOT_CONNECT'
+          'PLAYER_DID_NOT_CONNECT',
+          'CUSTOM_ROOM_EMPTY'
         ].includes(message.reason) &&
         typeof message.message === 'string'
       )
