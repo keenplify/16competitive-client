@@ -1403,3 +1403,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Improved client code organization and readability for easier maintenance.
+
+## v2026.929.4 — 2026-09-29
+
+### Match Results
+
+- Added an FFA leaderboard to match results.
+- Added player ranking displays.
