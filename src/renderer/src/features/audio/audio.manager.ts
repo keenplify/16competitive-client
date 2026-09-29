@@ -206,7 +206,7 @@ class LauncherAudioManager {
     if (this.fadeFrame !== null) cancelAnimationFrame(this.fadeFrame)
 
     const startVolume = this.bgmPlaybackVolume
-    const target = this.bgmFocused ? clampUnit(targetVolume) : 0
+    const target = clampUnit(targetVolume)
     if (durationMs <= 0 || startVolume === target) {
       this.bgmPlaybackVolume = target
       this.applyBgmVolume()
