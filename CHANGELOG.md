@@ -1378,3 +1378,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Updated the background music to the default track.
 - Removed the previous background music track.
+
+## v2026.929.1 — 2026-09-29
+
+### Match Flow
+
+- Fixed post-match reconnect behavior and launcher focus.
+- Restored lobby music after matches.
+- Extended the match-found backdrop behind navigation.
+- Added support for cancelling empty custom rooms.
+
+### Voice Chat
+
+- Improved voice push-to-talk configuration.
