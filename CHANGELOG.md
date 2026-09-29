@@ -1432,3 +1432,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Launching
 
 - Improved Counter-Strike launch and installation handling.
+
+## v2026.929.6 — 2026-09-29
+
+### Changes
+
+- No changes were provided.
