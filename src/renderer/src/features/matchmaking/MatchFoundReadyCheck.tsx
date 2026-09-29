@@ -58,19 +58,20 @@ export function MatchFoundReadyCheck({
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
 
   return (
-    <main className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden bg-transparent px-5 py-12 text-white">
-      <div
-        className="fixed inset-0 -z-20 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
-        style={{ backgroundImage: `url(${localMapPreviews[match.mapId]})` }}
-        aria-hidden="true"
-      />
+    <main className="relative isolate flex h-full min-h-0 min-w-0 items-center justify-center overflow-x-hidden overflow-y-auto bg-transparent px-4 py-4 text-white sm:px-6">
+      <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute inset-0 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
+          style={{ backgroundImage: `url(${localMapPreviews[match.mapId]})` }}
+        />
+      </div>
       <div
         className="fixed inset-0 -z-10 bg-[linear-gradient(to_top,rgba(2,6,23,0.98)_0%,rgba(2,6,23,0.82)_36%,rgba(2,6,23,0.42)_68%,rgba(2,6,23,0.08)_88%,transparent_100%)]"
         aria-hidden="true"
       />
 
-      <div className="w-full max-w-[46rem]">
-        <section className="border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-6 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-9">
+      <div className="my-auto w-full max-w-[46rem] min-w-0">
+        <section className="border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-4 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-6">
           <header className="text-center">
             <h1 className="inline-block border-b border-emerald-300/70 pb-1 text-2xl font-light tracking-wide text-emerald-200 sm:text-3xl">
               YOUR MATCH IS READY!
@@ -80,10 +81,10 @@ export function MatchFoundReadyCheck({
             </p>
           </header>
 
-          <MatchAssetPreparation className="mt-6" preparation={assetPreparation} />
+          <MatchAssetPreparation className="mt-4" preparation={assetPreparation} />
 
           <div
-            className="mt-8 flex flex-wrap justify-center gap-2.5 sm:gap-3"
+            className="mt-5 flex flex-wrap justify-center gap-2.5 sm:gap-3"
             role="list"
             aria-label="Player ready status"
           >
@@ -100,7 +101,7 @@ export function MatchFoundReadyCheck({
             {acceptedPlayerIds.length} / {playersRequired} Players Ready
           </p>
 
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="font-mono text-3xl font-bold tabular-nums text-emerald-200">
               {secondsRemaining}
             </p>
@@ -109,7 +110,7 @@ export function MatchFoundReadyCheck({
             </p>
           </div>
 
-          <div className="mt-7 flex justify-center gap-3">
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Button
               className="min-w-40 rounded-none bg-emerald-400 text-base font-extrabold text-emerald-950 shadow-[0_4px_0_rgb(5,100,55)] hover:bg-emerald-300 disabled:bg-emerald-400/50"
               disabled={readyResponse !== 'pending'}
@@ -132,7 +133,7 @@ export function MatchFoundReadyCheck({
           </div>
         </section>
 
-        <aside className="mt-5 flex gap-4 bg-black/85 px-5 py-4 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
+        <aside className="mt-3 flex gap-4 bg-black/85 px-5 py-3 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
           <Info className="mt-0.5 size-5 shrink-0 text-white" aria-hidden="true" />
           <p>
             By accepting, you commit to this competitive match. Leaving after acceptance may result
