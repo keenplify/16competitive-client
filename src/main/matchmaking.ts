@@ -876,10 +876,7 @@ class MatchmakingConnection {
     })
   }
 
-  private focusLauncher(
-    urgent = false,
-    attentionDurationMs = MATCH_ATTENTION_DURATION_MS
-  ): void {
+  private focusLauncher(urgent = false, attentionDurationMs = MATCH_ATTENTION_DURATION_MS): void {
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
     if (window.isMinimized()) window.restore()

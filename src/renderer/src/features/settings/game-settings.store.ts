@@ -58,7 +58,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     set({ status: 'choosing', error: null, notice: null })
     try {
       const folderPath = await window.api.gameSettings.chooseFolder()
-      set({ status: 'idle', ...(folderPath ? { folderPath } : {}) })
+      if (!folderPath) {
+        set({ status: 'idle' })
+        return
+      }
+      set({ folderPath })
+      await get().save()
     } catch (error) {
       set({ status: 'idle', error: message(error) })
     }

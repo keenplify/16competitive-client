@@ -94,9 +94,7 @@ const executableNamesForPlatform = (): string[] =>
   // WaRzOnE needs its supported wrapper, NextClient uses cstrike.exe, and CS
   // Xtreme V6 has launcher.exe instead and continues to use hl.exe with its
   // installation-specific arguments.
-  process.platform === 'win32'
-    ? [...WINDOWS_STANDALONE_EXECUTABLE_NAMES]
-    : ['hl_linux', 'hl.sh']
+  process.platform === 'win32' ? [...WINDOWS_STANDALONE_EXECUTABLE_NAMES] : ['hl_linux', 'hl.sh']
 
 const detectStandaloneExecutables = async (): Promise<string[]> => {
   const executableNames = executableNamesForPlatform()

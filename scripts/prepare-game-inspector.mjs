@@ -48,9 +48,10 @@ async function prepare(platform, arch, checkOnly) {
   if (!['win-x64', 'linux-x64', 'linux-arm64'].includes(`${platform}-${arch}`))
     throw new Error(`No approved helper target for ${platform}-${arch}`)
   const asset = `game-inspector-${platform}-${arch}${platform === 'win' ? '.exe' : ''}`
-  const cosmeticAsset = platform === 'win'
-    ? 'papamo-cosmetic-module-win-x86.dll'
-    : 'papamo-cosmetic-module-linux-x86.so'
+  const cosmeticAsset =
+    platform === 'win'
+      ? 'papamo-cosmetic-module-win-x86.dll'
+      : 'papamo-cosmetic-module-linux-x86.so'
   const temporary = await mkdtemp(join(tmpdir(), 'competitive-helper-'))
   try {
     execFileSync(
@@ -65,7 +66,8 @@ async function prepare(platform, arch, checkOnly) {
         asset,
         '--pattern',
         `${asset}.manifest.json`,
-        '--pattern', cosmeticAsset,
+        '--pattern',
+        cosmeticAsset,
         '--dir',
         temporary
       ],

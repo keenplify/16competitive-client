@@ -285,7 +285,11 @@ export type MatchmakingServerMessage =
       type: 'match_cancelled'
       matchId: string
       reason:
-        'PLAYER_DECLINED' | 'PLAYER_NOT_READY' | 'SERVER_START_FAILED' | 'PLAYER_DID_NOT_CONNECT' | 'CUSTOM_ROOM_EMPTY'
+        | 'PLAYER_DECLINED'
+        | 'PLAYER_NOT_READY'
+        | 'SERVER_START_FAILED'
+        | 'PLAYER_DID_NOT_CONNECT'
+        | 'CUSTOM_ROOM_EMPTY'
       connectionFailed?: boolean
       message: string
     }

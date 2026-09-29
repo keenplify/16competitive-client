@@ -28,7 +28,10 @@ import {
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import type { CrosshairProfile } from '../../shared/crosshair'
-import { disableSteamScoreboardWrapper, ensureSteamScoreboardOption } from './steam-scoreboard-options'
+import {
+  disableSteamScoreboardWrapper,
+  ensureSteamScoreboardOption
+} from './steam-scoreboard-options'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
@@ -326,21 +329,26 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   void restoreManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] restore after managed match close failed', error)
   })
-  terminateSpawnedGameProcess(gameProcess)
+  if (process.platform !== 'win32') terminateSpawnedGameProcess(gameProcess)
   if (process.platform === 'linux' && launchedGameDirectory) {
     void closeLinuxCounterStrikeProcesses(launchedGameDirectory)
       .catch((error: unknown) => console.error('[GameLaunch] could not close Linux game', error))
       .finally(() => finishVoicePttSession(matchId))
   }
   if (process.platform === 'win32' && launchedExecutablePath) {
-    void closeWindowsCounterStrikeProcesses(launchedExecutablePath).finally(() =>
-      finishVoicePttSession(matchId)
-    )
+    const closingConfigGeneration = launchedMatchConfigGeneration
+    void closeWindowsCounterStrikeProcesses(launchedExecutablePath)
+      .catch((error: unknown) => console.error('[GameLaunch] could not close Windows game', error))
+      .finally(async () => {
+        await finishVoicePttSession(matchId)
+        clearMatchConfig(closingConfigGeneration)
+      })
+  } else {
+    clearMatchConfig()
   }
   launchedMatchId = null
   launchedGameDirectory = null
   launchedExecutablePath = null
-  clearMatchConfig()
 }
 
 const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<number> => {
@@ -376,7 +384,7 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
     '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
-    '$matches | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
+    '$matches | ForEach-Object { $game = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue; if ($game) { try { if ($game.CloseMainWindow()) { $game.WaitForExit(3000) | Out-Null }; if (-not $game.HasExited) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } }',
     'Write-Output $matches.Count'
   ].join('; ')
 
@@ -524,7 +532,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     linuxMonitorGeneration++
     stopGameWatchdog(input.matchId)
     finishAntiCheatSession(input.matchId, 'relaunch')
-    terminateSpawnedGameProcess(gameProcess)
+    if (process.platform !== 'win32') terminateSpawnedGameProcess(gameProcess)
     if (process.platform === 'win32')
       await closeWindowsCounterStrikeProcesses(launchTarget.gameExecutable)
     if (process.platform === 'linux') await closeLinuxCounterStrikeProcesses(cwd)
@@ -666,8 +674,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   if (CUSTOM_HUD_ENABLED && (process.platform === 'linux' || process.platform === 'win32')) {
     try {
-      const session = await ScoreboardOverlaySession.start(input.matchId, input.apiUrl,
-        process.platform === 'win32' ? cwd : undefined)
+      const session = await ScoreboardOverlaySession.start(
+        input.matchId,
+        input.apiUrl,
+        process.platform === 'win32' ? cwd : undefined
+      )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
         if (process.platform === 'linux' && launchTarget.distribution === 'steam') {

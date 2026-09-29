@@ -212,12 +212,18 @@ const writeConfigAtomically = async (configPath: string, contents: string): Prom
   await rename(temporary, configPath)
 }
 
+const readConfigIfPresent = async (configPath: string): Promise<string | null> =>
+  readFile(configPath, 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null
+    throw error
+  })
+
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
 export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
   const configPath = configPathFor(gameDirectory)
-  const existing = await readFile(configPath, 'utf8').catch(() => '')
+  const existing = (await readConfigIfPresent(configPath)) ?? ''
   return [...new Set(teamVoiceKeysFromConfig(existing))]
 }
 
@@ -236,7 +242,8 @@ export const readVoicePttKey = async (gameDirectory: string): Promise<string | n
 export const prepareVoicePtt = async (
   gameDirectory: string,
   _onPtt: (active: boolean) => void = () => undefined,
-  configuredKeys?: string
+  configuredKeys?: string,
+  platform: NodeJS.Platform = process.platform
 ): Promise<VoicePttSession> => {
   void _onPtt
   const { teamKey, partyKey } = parseConfiguredVoiceKeys(configuredKeys)
@@ -251,10 +258,16 @@ export const prepareVoicePtt = async (
   ]
   const keys = [...new Set(bindings.map(({ key }) => key))]
   const configPath = configPathFor(gameDirectory)
-  const originalConfig = await readFile(configPath, 'utf8').catch(() => '')
-  const installedBindings = installVoiceBindings(originalConfig, bindings)
+  const originalConfig = await readConfigIfPresent(configPath)
+  // The match config applies these bindings at launch. Never create or replace
+  // the player's config.cfg just because it was absent during preparation.
+  const installedBindings = installVoiceBindings(originalConfig ?? '', bindings)
 
-  if (installedBindings.contents !== originalConfig) {
+  if (
+    platform !== 'win32' &&
+    originalConfig !== null &&
+    installedBindings.contents !== originalConfig
+  ) {
     await writeConfigAtomically(configPath, installedBindings.contents)
     console.info('[VoicePTT] installed temporary Counter-Strike voice bindings', {
       teamKeys,
@@ -276,8 +289,8 @@ export const prepareVoicePtt = async (
     launchArguments: [],
     restoreBindings: async () => {
       await delay(RESTORE_SETTLE_MS)
-      const current = await readFile(configPath, 'utf8').catch(() => '')
-      if (!current) return
+      const current = await readConfigIfPresent(configPath)
+      if (current === null) return
       const restored = restoreVoiceBindings(current, installedBindings.snapshots)
       if (restored === current) return
 
