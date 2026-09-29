@@ -381,13 +381,15 @@ const japanese: Record<TranslationKey, string> = {
   'auth.finishSocial': 'ブラウザーで{{provider}}を使って{{action}}を完了してください。',
   'auth.finishSigningIn': 'サインイン',
   'auth.finishCreatingAccount': 'アカウントの作成',
-  'auth.facebookEmailHint': 'Facebookからメールアドレスを取得できませんでした。続行するには追加してください。',
+  'auth.facebookEmailHint':
+    'Facebookからメールアドレスを取得できませんでした。続行するには追加してください。',
   'gift.arrived': 'ギフトが届きました',
   'gift.welcomeTitle': 'ウェルカムギフト',
   'gift.intro': '報酬を1つ選べます。慎重に選びましょう。',
   'gift.newPlayerReward': '新規プレイヤー報酬',
   'gift.specialReward': '特別報酬',
-  'gift.welcomeMessage': '1.6 Competitiveの早期アルファ版をプレイしていただきありがとうございます！ウェルカムギフトとして、以下から報酬を1つ選んでください。',
+  'gift.welcomeMessage':
+    '1.6 Competitiveの早期アルファ版をプレイしていただきありがとうございます！ウェルカムギフトとして、以下から報酬を1つ選んでください。',
   'gift.choose': 'この報酬を選ぶ',
   'gift.skinReward': 'カスタム武器スキン。',
   'gift.currencyReward': '通貨報酬はアカウントに直接追加されます。',

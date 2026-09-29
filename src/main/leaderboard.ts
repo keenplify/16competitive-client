@@ -1,6 +1,11 @@
 import { API_BASE_URL } from './config'
 import { getSessionToken } from './auth'
-import type { FeaturedRankedLadder, LeaderboardEntry, RankedLadderEntry, TopMmrLeaderboard } from '../shared/leaderboard'
+import type {
+  FeaturedRankedLadder,
+  LeaderboardEntry,
+  RankedLadderEntry,
+  TopMmrLeaderboard
+} from '../shared/leaderboard'
 
 const isTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value))
@@ -10,7 +15,7 @@ const isCountryCode = (value: unknown): value is string =>
 
 const isEntry = (value: unknown): value is LeaderboardEntry => {
   if (typeof value !== 'object' || value === null) return false
-  const entry = value as Record<string, unknown>
+  const entry = value as unknown as Record<string, unknown>
   return (
     typeof entry.rank === 'number' &&
     Number.isInteger(entry.rank) &&
@@ -79,10 +84,9 @@ export const getTopMmrLeaderboard = async (continentOf?: string): Promise<TopMmr
   return { ...body, currentPlayer }
 }
 
-
 const isRankedLadderEntry = (value: unknown): value is RankedLadderEntry => {
   if (!isEntry(value)) return false
-  const entry = value as Record<string, unknown>
+  const entry = value as unknown as Record<string, unknown>
   return (
     typeof entry.gamesPlayed === 'number' &&
     Number.isInteger(entry.gamesPlayed) &&
@@ -94,7 +98,11 @@ const isRankedLadderEntry = (value: unknown): value is RankedLadderEntry => {
 const isFeaturedRankedLadder = (value: unknown): value is FeaturedRankedLadder => {
   if (typeof value !== 'object' || value === null) return false
   const body = value as Record<string, unknown>
-  if (!isTimestamp(body.generatedAt) || !isTimestamp(body.refreshAt) || !Array.isArray(body.entries)) {
+  if (
+    !isTimestamp(body.generatedAt) ||
+    !isTimestamp(body.refreshAt) ||
+    !Array.isArray(body.entries)
+  ) {
     return false
   }
   if (!body.entries.every(isRankedLadderEntry)) return false

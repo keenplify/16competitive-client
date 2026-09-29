@@ -21,6 +21,7 @@ export function LeaderboardPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<'global' | 'continental' | 'featured'>('global')
   const [featured, setFeatured] = useState<FeaturedRankedLadder | null>(null)
   const [featuredStatus, setFeaturedStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [now, setNow] = useState(() => Date.now())
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -40,7 +41,8 @@ export function LeaderboardPage(): JSX.Element {
 
   useEffect(() => {
     void load()
-    void window.api.leaderboard.getFeaturedLadder()
+    void window.api.leaderboard
+      .getFeaturedLadder()
       .then((result) => {
         setFeatured(result)
         setFeaturedStatus('ready')
@@ -51,16 +53,20 @@ export function LeaderboardPage(): JSX.Element {
       })
   }, [load])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const featuredVisible = useMemo(() => {
     if (!featured?.ladder) return false
-    const now = Date.now()
-    return new Date(featured.ladder.publicFrom).getTime() <= now &&
+    return (
+      new Date(featured.ladder.publicFrom).getTime() <= now &&
       new Date(featured.ladder.publicUntil).getTime() > now
-  }, [featured])
+    )
+  }, [featured, now])
 
-  useEffect(() => {
-    if (activeTab === 'featured' && !featuredVisible) setActiveTab('global')
-  }, [activeTab, featuredVisible])
+  const visibleTab = activeTab === 'featured' && !featuredVisible ? 'global' : activeTab
 
   const switchScope = (nextScope: 'global' | 'continental' | 'featured'): void => {
     if (nextScope === 'featured') {
@@ -156,9 +162,9 @@ export function LeaderboardPage(): JSX.Element {
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
           <p className="mt-2 text-sm text-neutral-200">
-            {activeTab === 'featured' && featured?.ladder
-              ? featured.ladder.description ?? `Eligible players for ${featured.ladder.title}`
-              : activeTab === 'continental'
+            {visibleTab === 'featured' && featured?.ladder
+              ? (featured.ladder.description ?? `Eligible players for ${featured.ladder.title}`)
+              : visibleTab === 'continental'
                 ? 'Top players on your continent by matchmaking rating'
                 : 'Top players worldwide by matchmaking rating'}
           </p>
@@ -185,12 +191,14 @@ export function LeaderboardPage(): JSX.Element {
               : 'Set your country in your profile to unlock continental rankings'
           },
           ...(featuredVisible && featured?.ladder
-            ? [{
-                value: 'featured' as const,
-                label: featured.ladder.rewardText || 'Challenge',
-                icon: <Trophy className="size-4" aria-hidden="true" />,
-                title: featured.ladder.title
-              }]
+            ? [
+                {
+                  value: 'featured' as const,
+                  label: featured.ladder.rewardText || 'Challenge',
+                  icon: <Trophy className="size-4" aria-hidden="true" />,
+                  title: featured.ladder.title
+                }
+              ]
             : [])
         ]}
         onChange={switchScope}
@@ -206,16 +214,24 @@ export function LeaderboardPage(): JSX.Element {
         <p className="py-16 text-center text-sm text-neutral-400">Loading challenge leaderboard…</p>
       )}
       {activeTab === 'featured' && featuredStatus === 'error' && (
-        <p className="py-16 text-center text-sm text-rose-300">Could not load the challenge leaderboard right now.</p>
+        <p className="py-16 text-center text-sm text-rose-300">
+          Could not load the challenge leaderboard right now.
+        </p>
       )}
       {activeTab === 'featured' && featuredVisible && featured?.ladder && (
         <section className="mx-auto mt-8 max-w-3xl overflow-hidden border border-amber-300/20 bg-neutral-900/90">
           <header className="border-b border-white/10 px-5 py-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold tracking-[.18em] text-amber-300 uppercase">Ranked challenge</p>
+                <p className="text-[10px] font-bold tracking-[.18em] text-amber-300 uppercase">
+                  Ranked challenge
+                </p>
                 <h2 className="mt-1 text-xl font-semibold">{featured.ladder.title}</h2>
-                {featured.ladder.rewardText && <p className="mt-1 text-sm font-semibold text-amber-200">{featured.ladder.rewardText}</p>}
+                {featured.ladder.rewardText && (
+                  <p className="mt-1 text-sm font-semibold text-amber-200">
+                    {featured.ladder.rewardText}
+                  </p>
+                )}
               </div>
               <div className="text-right text-xs text-neutral-400">
                 <p>Minimum {featured.ladder.minimumGames} ranked games</p>
@@ -224,25 +240,47 @@ export function LeaderboardPage(): JSX.Element {
             </div>
           </header>
           <div className="grid grid-cols-[3.5rem_1fr_auto_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
-            <span>Rank</span><span>Player</span><span>Games</span><span>MMR</span>
+            <span>Rank</span>
+            <span>Player</span>
+            <span>Games</span>
+            <span>MMR</span>
           </div>
           {featured.entries.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-neutral-400">No players have met the eligibility requirement yet.</p>
-          ) : featured.entries.map((entry) => (
-            <div key={entry.playerId} className="grid grid-cols-[3.5rem_1fr_auto_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0">
-              <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
-                {entry.rank <= 3 ? <Trophy className="size-4" aria-label={`Rank ${entry.rank}`} /> : entry.rank}
-              </span>
-              <button type="button" className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300" onClick={() => openProfile(entry.playerId)} title={`View ${entry.username}'s profile`}>
-                <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
-                <span className="truncate">{entry.username}</span>
-              </button>
-              <span className="font-mono text-sm text-neutral-300">{entry.gamesPlayed}</span>
-              <span className="font-mono text-sm font-semibold text-amber-200">{entry.mmr.toLocaleString()}</span>
-            </div>
-          ))}
+            <p className="px-5 py-10 text-center text-sm text-neutral-400">
+              No players have met the eligibility requirement yet.
+            </p>
+          ) : (
+            featured.entries.map((entry) => (
+              <div
+                key={entry.playerId}
+                className="grid grid-cols-[3.5rem_1fr_auto_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
+              >
+                <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
+                  {entry.rank <= 3 ? (
+                    <Trophy className="size-4" aria-label={`Rank ${entry.rank}`} />
+                  ) : (
+                    entry.rank
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
+                  onClick={() => openProfile(entry.playerId)}
+                  title={`View ${entry.username}'s profile`}
+                >
+                  <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                  <span className="truncate">{entry.username}</span>
+                </button>
+                <span className="font-mono text-sm text-neutral-300">{entry.gamesPlayed}</span>
+                <span className="font-mono text-sm font-semibold text-amber-200">
+                  {entry.mmr.toLocaleString()}
+                </span>
+              </div>
+            ))
+          )}
           <footer className="border-t border-white/10 px-5 py-3 text-xs text-neutral-500">
-            Updated {formatTimestamp(featured.generatedAt)} · Visible until {formatTimestamp(featured.ladder.publicUntil)}
+            Updated {formatTimestamp(featured.generatedAt)} · Visible until{' '}
+            {formatTimestamp(featured.ladder.publicUntil)}
           </footer>
         </section>
       )}

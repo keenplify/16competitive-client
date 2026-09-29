@@ -60,8 +60,12 @@ test('Windows leaves config unchanged before launch and removes saved temporary 
     await writeFile(configPath, original)
     const session = await prepareVoicePtt(gameDirectory, undefined, 'K|V', 'win32')
     assert.equal(await readFile(configPath, 'utf8'), original)
-    assert.ok(session.configCommands.some((command) => command.includes('+16competitive_team_voice')))
-    assert.ok(session.configCommands.some((command) => command.includes('+16competitive_party_voice')))
+    assert.ok(
+      session.configCommands.some((command) => command.includes('+16competitive_team_voice'))
+    )
+    assert.ok(
+      session.configCommands.some((command) => command.includes('+16competitive_party_voice'))
+    )
 
     // GoldSrc can save the temporary match bindings when it exits.
     await writeFile(
