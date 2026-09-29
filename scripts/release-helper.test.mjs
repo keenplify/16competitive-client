@@ -12,7 +12,9 @@ test('bumps patch, resumes pending releases, and rejects stale or invalid versio
 
 test('uses a new helper patch when commits follow an existing release tag', () => {
   assert.equal(versionForHelperHead('0.1.21', '0.1.20', 'tag', 'head', true), '0.1.22')
+  assert.equal(versionForHelperHead('0.1.21', '0.1.21', 'tag', 'head', true), '0.1.22')
   assert.equal(versionForHelperHead('0.1.21', '0.1.20', 'head', 'head', true), '0.1.21')
+  assert.equal(versionForHelperHead('0.1.21', '0.1.21', 'head', 'head', true), '0.1.21')
   assert.equal(versionForHelperHead('0.1.21', '0.1.20', '', 'head', false), '0.1.21')
   assert.throws(() => versionForHelperHead('0.1.21', '0.1.20', 'tag', 'head', false))
 })

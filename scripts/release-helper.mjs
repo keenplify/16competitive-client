@@ -19,7 +19,8 @@ export function nextHelperVersion(current, pinned) {
 
 export function versionForHelperHead(current, pinned, taggedSha, headSha, tagIsAncestor) {
   const version = nextHelperVersion(current, pinned)
-  if (version !== current || !taggedSha || taggedSha === headSha) return version
+  if (!taggedSha) return version
+  if (taggedSha === headSha) return current
   if (!tagIsAncestor) throw new Error(`v${current} is not an ancestor of the helper checkout`)
   return nextHelperVersion(current, current)
 }
@@ -72,7 +73,7 @@ export async function releaseHelper(config) {
   const current = /^version = "([^"]+)"/m.exec(cargo)?.[1]
   let version = nextHelperVersion(current, config.version)
   const currentTag = `v${current}`
-  if (version === current && git('tag', '--list', currentTag)) {
+  if (git('tag', '--list', currentTag)) {
     const taggedSha = git('rev-parse', `${currentTag}^{commit}`)
     const headSha = git('rev-parse', 'HEAD')
     let tagIsAncestor = taggedSha === headSha
