@@ -17,6 +17,13 @@ export function nextHelperVersion(current, pinned) {
   return `${a[0]}.${a[1]}.${a[2] + 1}`
 }
 
+export function versionForHelperHead(current, pinned, taggedSha, headSha, tagIsAncestor) {
+  const version = nextHelperVersion(current, pinned)
+  if (version !== current || !taggedSha || taggedSha === headSha) return version
+  if (!tagIsAncestor) throw new Error(`v${current} is not an ancestor of the helper checkout`)
+  return nextHelperVersion(current, current)
+}
+
 export function bumpCargoFile(text, section, name, version) {
   let updated = false
   const result = text.replace(section, (block) => {
@@ -63,7 +70,22 @@ export async function releaseHelper(config) {
   const cargo = await readFile(cargoPath, 'utf8')
   const lock = await readFile(lockPath, 'utf8')
   const current = /^version = "([^"]+)"/m.exec(cargo)?.[1]
-  const version = nextHelperVersion(current, config.version)
+  let version = nextHelperVersion(current, config.version)
+  const currentTag = `v${current}`
+  if (version === current && git('tag', '--list', currentTag)) {
+    const taggedSha = git('rev-parse', `${currentTag}^{commit}`)
+    const headSha = git('rev-parse', 'HEAD')
+    let tagIsAncestor = taggedSha === headSha
+    if (!tagIsAncestor) {
+      try {
+        git('merge-base', '--is-ancestor', taggedSha, headSha)
+        tagIsAncestor = true
+      } catch {
+        // An unrelated tag must not silently create a new release.
+      }
+    }
+    version = versionForHelperHead(current, config.version, taggedSha, headSha, tagIsAncestor)
+  }
   const tag = `v${version}`
   if (version !== current) {
     if (git('tag', '--list', tag))

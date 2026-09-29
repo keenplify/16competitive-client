@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { nextHelperVersion, bumpCargoFile } from './release-helper.mjs'
+import { nextHelperVersion, versionForHelperHead, bumpCargoFile } from './release-helper.mjs'
 
 test('bumps patch, resumes pending releases, and rejects stale or invalid versions', () => {
   assert.equal(nextHelperVersion('0.1.1', '0.1.1'), '0.1.2')
@@ -8,6 +8,13 @@ test('bumps patch, resumes pending releases, and rejects stale or invalid versio
   assert.equal(nextHelperVersion('0.2.0', '0.1.9'), '0.2.0')
   assert.throws(() => nextHelperVersion('0.1.0', '0.1.1'))
   assert.throws(() => nextHelperVersion('bad', '0.1.1'))
+})
+
+test('uses a new helper patch when commits follow an existing release tag', () => {
+  assert.equal(versionForHelperHead('0.1.21', '0.1.20', 'tag', 'head', true), '0.1.22')
+  assert.equal(versionForHelperHead('0.1.21', '0.1.20', 'head', 'head', true), '0.1.21')
+  assert.equal(versionForHelperHead('0.1.21', '0.1.20', '', 'head', false), '0.1.21')
+  assert.throws(() => versionForHelperHead('0.1.21', '0.1.20', 'tag', 'head', false))
 })
 
 test('updates only the helper package in Cargo.lock and preserves dependencies', () => {
