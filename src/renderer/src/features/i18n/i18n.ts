@@ -8,7 +8,8 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'th', label: 'ไทย' },
   { code: 'id', label: 'Bahasa Indonesia' },
   { code: 'hi', label: 'हिन्दी' },
-  { code: 'pt', label: 'Português' }
+  { code: 'pt', label: 'Português' },
+  { code: 'ja', label: '日本語' }
 ] as const
 
 // Kept for the original Russian/Taglish runtime catalogs so they do not need
@@ -345,6 +346,59 @@ const portuguese: Record<TranslationKey, string> = {
   'gift.decideLater': 'Ainda não consigo decidir'
 }
 
+const japanese: Record<TranslationKey, string> = {
+  'nav.lobbyNavigation': 'ロビー ナビゲーション',
+  'nav.home': 'ホーム',
+  'nav.settings': '設定',
+  'nav.inventory': 'インベントリ',
+  'nav.leaderboard': 'ランキング',
+  'nav.play': 'プレイ',
+  'nav.store': 'ストア',
+  'nav.news': 'ニュース',
+  'settings.language.title': '言語',
+  'settings.language.description': 'ランチャーの表示言語を選択してください。',
+  'settings.language.help': '変更はすぐに反映され、このデバイスに保存されます。',
+  'auth.restoring': 'セッションを復元しています',
+  'auth.welcomeBack': 'おかえりなさい',
+  'auth.createAccount': 'アカウントを作成',
+  'auth.loginDescription': 'マッチメイキングを続けるにはサインインしてください。',
+  'auth.registerDescription': 'アカウントの作成方法を選択してください。',
+  'auth.login': 'ログイン',
+  'auth.register': '登録',
+  'auth.or': 'または',
+  'auth.username': 'ユーザー名',
+  'auth.usernameHint': '3～32文字：英字、数字、アンダースコア',
+  'auth.email': 'メールアドレス',
+  'auth.password': 'パスワード',
+  'auth.passwordPlaceholder': '8文字以上',
+  'auth.signingIn': 'サインイン中…',
+  'auth.signIn': 'サインイン',
+  'auth.createAccountButton': 'アカウントを作成',
+  'auth.continueFacebook': 'Facebookで続行',
+  'auth.exitDesktop': 'デスクトップに戻る',
+  'auth.privacyPolicy': 'プライバシーポリシー',
+  'auth.terms': '利用規約',
+  'auth.finishSocial': 'ブラウザーで{{provider}}を使って{{action}}を完了してください。',
+  'auth.finishSigningIn': 'サインイン',
+  'auth.finishCreatingAccount': 'アカウントの作成',
+  'auth.facebookEmailHint': 'Facebookからメールアドレスを取得できませんでした。続行するには追加してください。',
+  'gift.arrived': 'ギフトが届きました',
+  'gift.welcomeTitle': 'ウェルカムギフト',
+  'gift.intro': '報酬を1つ選べます。慎重に選びましょう。',
+  'gift.newPlayerReward': '新規プレイヤー報酬',
+  'gift.specialReward': '特別報酬',
+  'gift.welcomeMessage': '1.6 Competitiveの早期アルファ版をプレイしていただきありがとうございます！ウェルカムギフトとして、以下から報酬を1つ選んでください。',
+  'gift.choose': 'この報酬を選ぶ',
+  'gift.skinReward': 'カスタム武器スキン。',
+  'gift.currencyReward': '通貨報酬はアカウントに直接追加されます。',
+  'gift.owned': '所持済み',
+  'gift.claiming': '受け取り中',
+  'gift.unlocked': '解除済み',
+  'gift.yours': 'あなたのもの',
+  'gift.previewUnavailable': 'プレビューを利用できません',
+  'gift.decideLater': 'あとで決める'
+}
+
 const hindi: Record<TranslationKey, string> = {
   'nav.lobbyNavigation': 'लॉबी नेविगेशन',
   'nav.home': 'होम',
@@ -406,7 +460,8 @@ const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>
   th: thai,
   id: indonesian,
   hi: hindi,
-  pt: portuguese
+  pt: portuguese,
+  ja: japanese
 }
 
 const STORAGE_KEY = '16competitive.language'
