@@ -61,10 +61,26 @@ function parseSnapshot(text) {
     )
       return null
     seen.add(id)
-    players.push({ id, team, name, kills, assists, deaths, ping, alive: !withAlive || alive === 1, bot: withBot && bot === 1 })
+    players.push({
+      id,
+      team,
+      name,
+      kills,
+      assists,
+      deaths,
+      ping,
+      alive: !withAlive || alive === 1,
+      bot: withBot && bot === 1
+    })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
-  return { map, round, mode: modeText === '1' ? 'ffa' : 'competitive', roundWinners: withRoundWinners ? roundWinners : null, players }
+  return {
+    map,
+    round,
+    mode: modeText === '1' ? 'ffa' : 'competitive',
+    roundWinners: withRoundWinners ? roundWinners : null,
+    players
+  }
 }
 
 function readSnapshot(session) {

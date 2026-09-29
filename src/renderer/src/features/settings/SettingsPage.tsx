@@ -456,7 +456,7 @@ export function SettingsPage(): JSX.Element {
                   <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>
                   <p className="mt-2 text-sm text-neutral-400">
                     Choose the game folder or its cstrike subfolder. The launcher will find the
-                    executable automatically.
+                    executable and save your selection automatically.
                   </p>
 
                   {status !== 'loading' && !folderPath && (
@@ -492,12 +492,11 @@ export function SettingsPage(): JSX.Element {
                     >
                       {status === 'choosing' ? 'Opening…' : 'Browse'}
                     </Button>
-                    <Button
-                      disabled={status !== 'idle' || !folderPath || folderPath === savedPath}
-                      onClick={() => void save()}
-                    >
-                      {status === 'saving' ? 'Saving…' : 'Save'}
-                    </Button>
+                    {error && folderPath && folderPath !== savedPath && (
+                      <Button disabled={status !== 'idle'} onClick={() => void save()}>
+                        Retry save
+                      </Button>
+                    )}
                   </div>
 
                   <div className="mt-4 min-h-5 text-sm" aria-live="polite">

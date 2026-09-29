@@ -44,7 +44,8 @@ export class WindowsCosmeticInstallation {
   }
 
   static async install(gameRoot: string): Promise<WindowsCosmeticInstallation | null> {
-    if (process.platform !== 'win32') throw new Error('Windows cosmetic installation requires Windows')
+    if (process.platform !== 'win32')
+      throw new Error('Windows cosmetic installation requires Windows')
     await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
     const installation = new WindowsCosmeticInstallation(gameRoot)
     await installation.recover()
@@ -71,7 +72,11 @@ export class WindowsCosmeticInstallation {
     const module = await readFile(join(native, 'papamo-cosmetic-module-win-x86.dll'))
     verifyCosmeticModule(module, manifest)
 
-    for (const path of [gameRoot, join(gameRoot, 'cstrike'), join(gameRoot, 'cstrike', 'cl_dlls')]) {
+    for (const path of [
+      gameRoot,
+      join(gameRoot, 'cstrike'),
+      join(gameRoot, 'cstrike', 'cl_dlls')
+    ]) {
       const entry = await lstat(path)
       if (!entry.isDirectory() || entry.isSymbolicLink())
         throw new Error('Counter-Strike directory contains an unsupported link')
@@ -82,13 +87,19 @@ export class WindowsCosmeticInstallation {
     const managed = await lstat(join(gameRoot, '16competitive')).catch(missingOnly)
     if (managed && (!managed.isDirectory() || managed.isSymbolicLink()))
       throw new Error('Counter-Strike managed directory contains an unsupported link')
-    if ((await lstat(installation.journalPath).catch(missingOnly)) ||
-        (await lstat(installation.sessionDirectory).catch(missingOnly)))
+    if (
+      (await lstat(installation.journalPath).catch(missingOnly)) ||
+      (await lstat(installation.sessionDirectory).catch(missingOnly))
+    )
       throw new Error('Existing cosmetic installation or client backup needs inspection')
     await mkdir(join(gameRoot, '16competitive'), { recursive: true })
     const existingBackup = await lstat(installation.originalPath).catch(missingOnly)
-    if (existingBackup && (!existingBackup.isFile() || existingBackup.isSymbolicLink() ||
-        hash(await readFile(installation.originalPath)) !== hash(original)))
+    if (
+      existingBackup &&
+      (!existingBackup.isFile() ||
+        existingBackup.isSymbolicLink() ||
+        hash(await readFile(installation.originalPath)) !== hash(original))
+    )
       throw new Error('Existing original client backup does not match Counter-Strike')
     if (!existingBackup)
       await copyFile(installation.clientPath, installation.originalPath, constants.COPYFILE_EXCL)
@@ -97,7 +108,9 @@ export class WindowsCosmeticInstallation {
       if (hash(await readFile(installation.originalPath)) !== hash(original))
         throw new Error('Original Counter-Strike client changed during backup')
       const journal: Journal = {
-        originalSha256: hash(original), moduleSha256: hash(module), ownsBackup: !existingBackup
+        originalSha256: hash(original),
+        moduleSha256: hash(module),
+        ownsBackup: !existingBackup
       }
       await writeFile(installation.journalPath, JSON.stringify(journal), { flag: 'wx' })
       await writeFile(temporary, module, { flag: 'wx' })
@@ -107,8 +120,11 @@ export class WindowsCosmeticInstallation {
     } catch (error) {
       await installation.restore().catch(() => undefined)
       await rm(temporary, { force: true }).catch(() => undefined)
-      if (!existingBackup && !(await lstat(installation.journalPath).catch(missingOnly)) &&
-          hash(await readFile(installation.clientPath)) === hash(original))
+      if (
+        !existingBackup &&
+        !(await lstat(installation.journalPath).catch(missingOnly)) &&
+        hash(await readFile(installation.clientPath)) === hash(original)
+      )
         await rm(installation.originalPath, { force: true }).catch(() => undefined)
       throw error
     }
@@ -119,15 +135,20 @@ export class WindowsCosmeticInstallation {
     if (!journalBytes) return
     if (journalBytes.length > 256) throw new Error('Invalid cosmetic installation journal')
     const journal = JSON.parse(journalBytes.toString('utf8')) as Partial<Journal>
-    if (!journal.originalSha256 || !journal.moduleSha256 ||
-        typeof journal.ownsBackup !== 'boolean' ||
-        !/^[a-f0-9]{64}$/.test(journal.originalSha256) ||
-        !/^[a-f0-9]{64}$/.test(journal.moduleSha256))
+    if (
+      !journal.originalSha256 ||
+      !journal.moduleSha256 ||
+      typeof journal.ownsBackup !== 'boolean' ||
+      !/^[a-f0-9]{64}$/.test(journal.originalSha256) ||
+      !/^[a-f0-9]{64}$/.test(journal.moduleSha256)
+    )
       throw new Error('Invalid cosmetic installation journal')
     const original = await readFile(this.originalPath)
     const current = await readFile(this.clientPath)
-    if (hash(original) !== journal.originalSha256 ||
-        (hash(current) !== journal.moduleSha256 && hash(current) !== journal.originalSha256))
+    if (
+      hash(original) !== journal.originalSha256 ||
+      (hash(current) !== journal.moduleSha256 && hash(current) !== journal.originalSha256)
+    )
       throw new Error('Counter-Strike client changed after cosmetic installation')
     if (hash(current) === journal.moduleSha256) await copyFile(this.originalPath, this.clientPath)
     await rm(this.sessionDirectory, { recursive: true, force: true })
