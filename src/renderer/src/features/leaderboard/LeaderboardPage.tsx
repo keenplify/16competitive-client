@@ -2,7 +2,7 @@ import { ChevronLeft, Globe2, LoaderCircle, Map, Trophy, UserRound } from 'lucid
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
-import { useLeaderboardStore, type LeaderboardScope } from './leaderboard.store'
+import { useLeaderboardStore } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import type { FeaturedRankedLadder } from '../../../../shared/leaderboard'
 import { CountryFlag } from '../../components/CountryFlag'
