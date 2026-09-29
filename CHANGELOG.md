@@ -1410,3 +1410,25 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added an FFA leaderboard to match results.
 - Added player ranking displays.
+
+## v2026.929.5 — 2026-09-29
+
+### Cosmetics
+
+- Added resilient Windows NextClient cosmetic support.
+- Improved cosmetic helper release handling.
+
+### Settings
+
+- Added crosshair customization options.
+- Improved game settings persistence and handling.
+
+### Overlays and Input
+
+- Added NextClient overlay support.
+- Added voice push-to-talk support.
+- Improved scoreboard overlay behavior.
+
+### Launching
+
+- Improved Counter-Strike launch and installation handling.
