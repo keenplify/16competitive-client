@@ -1448,3 +1448,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### CS 1.6
 
 - Enabled the native HUD for CS 1.6.
+
+## v2026.929.8 — 2026-09-29
+
+### Language
+
+- Added Japanese language support and translations.
+
+### Leaderboards
+
+- Added a ranked challenge leaderboard tab.
+- Fixed the challenge leaderboard for the web build.
+
+### Improvements
+
+- Improved code formatting and readability.
