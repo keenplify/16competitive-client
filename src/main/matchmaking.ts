@@ -55,6 +55,7 @@ const MATCH_ASSET_FASTDL_WAIT_MS = 20_000
 const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
+const MATCH_END_ATTENTION_DURATION_MS = 5_000
 const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -488,6 +489,7 @@ class MatchmakingConnection {
   private manuallyDisconnected = false
   private freshProcess = true
   private authenticated = false
+  private authenticatedPlayer: QueuedPlayer | null = null
   private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
   private manualConnectionMatchId: string | null = null
@@ -528,18 +530,41 @@ class MatchmakingConnection {
     this.manuallyDisconnected = false
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
+
     if (
-      this.socket?.readyState === WebSocket.OPEN ||
-      this.socket?.readyState === WebSocket.CONNECTING
+      this.socket?.readyState === WebSocket.OPEN &&
+      this.authenticated &&
+      this.authenticatedPlayer
     ) {
+      const websocketUrl = this.activeApiUrl
+        ? toMatchmakingWsUrl(this.activeApiUrl)
+        : MATCHMAKING_WS_URL
+      this.notify({
+        type: 'connection_endpoint',
+        apiUrl: this.activeApiUrl,
+        websocketUrl
+      })
+      this.notify({ type: 'authenticated', player: this.authenticatedPlayer })
       return
     }
+
+    if (this.socket?.readyState === WebSocket.CONNECTING) return
+
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      const staleSocket = this.socket
+      this.socket = null
+      this.authenticated = false
+      this.stopPing()
+      staleSocket.close()
+    }
+
     this.openSocket(false)
   }
 
   disconnect(): void {
     this.manuallyDisconnected = true
     this.authenticated = false
+    this.authenticatedPlayer = null
     this.recoveryStatusPending = false
     this.desiredMode = null
     this.desiredMapIds = []
@@ -560,6 +585,7 @@ class MatchmakingConnection {
   shutdown(): void {
     this.manuallyDisconnected = true
     this.authenticated = false
+    this.authenticatedPlayer = null
     this.recoveryStatusPending = false
     this.desiredMode = null
     this.desiredMapIds = []
@@ -850,7 +876,10 @@ class MatchmakingConnection {
     })
   }
 
-  private focusLauncher(urgent = false): void {
+  private focusLauncher(
+    urgent = false,
+    attentionDurationMs = MATCH_ATTENTION_DURATION_MS
+  ): void {
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
     if (window.isMinimized()) window.restore()
@@ -871,7 +900,7 @@ class MatchmakingConnection {
         if (!window.isDestroyed() && this.restoreMatchWindowTopmost) window.setAlwaysOnTop(false)
         this.matchAttentionWindow = null
         this.restoreMatchWindowTopmost = false
-      }, MATCH_ATTENTION_DURATION_MS)
+      }, attentionDurationMs)
       window.moveTop()
     }
     app.focus({ steal: urgent })
@@ -998,6 +1027,7 @@ class MatchmakingConnection {
       }
       if (parsed.type === 'authenticated') {
         socketAuthenticated = true
+        this.authenticatedPlayer = parsed.player
         discordPresence.setAuthenticated(true)
         this.refreshDiscordPartyPresence()
         clearTimeout(connectionTimeout)
@@ -1185,16 +1215,14 @@ class MatchmakingConnection {
         this.manualConnectionMatchId = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
+        this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
         const timer = setTimeout(() => {
           this.matchEndTimers.delete(parsed.matchId)
           closeCounterStrikeForMatch(parsed.matchId)
-          const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
-          if (!window || window.isDestroyed()) return
-          if (window.isMinimized()) window.restore()
-          window.show()
-          window.focus()
+          this.focusLauncher()
         }, MATCH_RESULT_GRACE_PERIOD_MS)
         this.matchEndTimers.set(parsed.matchId, timer)
+        setTimeout(() => this.reconnectAfterMatch(), 0)
       } else if (parsed.type === 'error' && this.recoveryStatusPending) {
         this.recoveryStatusPending = false
         if (parsed.code === 'NOT_QUEUED') return
@@ -1258,6 +1286,25 @@ class MatchmakingConnection {
         .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
       available[0].publicApiUrl
     )
+  }
+
+  private reconnectAfterMatch(): void {
+    if (this.manuallyDisconnected || !this.renderer || this.renderer.isDestroyed()) return
+
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+
+    const previous = this.socket
+    this.socket = null
+    this.authenticated = false
+    this.recoveryStatusPending = false
+    this.activeApiUrl = null
+    this.hostApiUrl = null
+    this.reconnectAttempt = 0
+    this.stopPing()
+    previous?.close()
+
+    this.openSocket(true)
   }
 
   private startPing(): void {
