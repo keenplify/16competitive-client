@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, LoaderCircle, UserPlus, UserRound } from 'lucide-react'
+import { ArrowRight, ChevronLeft, LoaderCircle, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
@@ -42,6 +42,13 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         : match.winner === 1
           ? [match.teamAScore, match.teamBScore]
           : [match.teamBScore, match.teamAScore]
+  const ffaPlayers =
+    match.mode === 'ffa'
+      ? [...match.players].sort((a, b) => b.kills - a.kills || a.deaths - b.deaths)
+      : []
+  const ffaWinner = ffaPlayers.find((player) => player.id === match.winnerPlayerId)
+  const currentFfaRank = ffaPlayers.findIndex((player) => player.id === currentPlayerId)
+  const currentFfaPlayer = currentFfaRank >= 0 ? ffaPlayers[currentFfaRank] : null
   const [contextMenu, setContextMenu] = useState<{
     playerId: string
     x: number
@@ -194,7 +201,125 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         </div>
       )}
 
-      {resultsStep === 'summary' && (
+      {resultsStep === 'summary' && match.mode === 'ffa' && (
+        <div className="relative z-10 mx-auto w-full max-w-5xl text-left">
+          <header className="border-b border-white/10 pb-6">
+            <p className="text-xs font-bold tracking-[0.22em] text-sky-300 uppercase">
+              Match complete · FFA / Unranked
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Final standings
+            </h1>
+            <p className="mt-2 text-sm text-neutral-300">
+              {ffaWinner
+                ? `${ffaWinner.username} won with ${ffaWinner.kills} kills.`
+                : 'The match has ended.'}
+            </p>
+          </header>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center gap-4 border border-amber-300/25 bg-amber-400/10 p-5">
+              <div className="flex size-12 shrink-0 items-center justify-center bg-amber-400/15 text-amber-300">
+                <Trophy className="size-6" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-amber-300 uppercase">
+                  Winner
+                </p>
+                <p className="mt-1 truncate text-xl font-semibold text-white">
+                  {ffaWinner?.username ?? '—'}
+                </p>
+                <p className="mt-1 text-xs text-neutral-300">
+                  {ffaWinner
+                    ? `${ffaWinner.kills} kills · ${ffaWinner.deaths} deaths`
+                    : 'Result unavailable'}
+                </p>
+              </div>
+            </div>
+            {currentFfaPlayer && (
+              <div className="flex items-center justify-between gap-4 border border-sky-300/25 bg-sky-400/10 p-5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                    Your result
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-white">
+                    #{currentFfaRank + 1}{' '}
+                    <span className="text-sm font-normal text-neutral-300">
+                      of {ffaPlayers.length}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-300">
+                    {currentFfaPlayer.kills} kills · {currentFfaPlayer.deaths} deaths
+                  </p>
+                </div>
+                <span className="text-3xl font-bold tabular-nums text-sky-200">
+                  #{currentFfaRank + 1}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <section className="mt-6 overflow-hidden border border-white/10 bg-neutral-950/80 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <h2 className="text-sm font-semibold tracking-[0.12em] text-white uppercase">
+                Leaderboard
+              </h2>
+              <span className="text-xs text-neutral-400">{ffaPlayers.length} players</span>
+            </div>
+            <div className="grid grid-cols-[3rem_minmax(0,1fr)_3.5rem_3.5rem] gap-3 border-b border-white/10 px-5 py-2 text-[11px] font-bold tracking-[0.12em] text-neutral-400 uppercase sm:grid-cols-[3rem_minmax(0,1fr)_5rem_5rem_5rem]">
+              <span>Rank</span>
+              <span>Player</span>
+              <span className="text-right">Kills</span>
+              <span className="text-right">Deaths</span>
+              <span className="hidden text-right sm:block">K/D</span>
+            </div>
+            <ol>
+              {ffaPlayers.map((player, index) => (
+                <li
+                  key={player.id}
+                  className={`grid cursor-context-menu grid-cols-[3rem_minmax(0,1fr)_3.5rem_3.5rem] items-center gap-3 border-b border-white/5 px-5 py-3 text-sm last:border-0 sm:grid-cols-[3rem_minmax(0,1fr)_5rem_5rem_5rem] ${
+                    player.id === currentPlayerId
+                      ? 'bg-sky-400/10'
+                      : index === 0
+                        ? 'bg-amber-400/5'
+                        : 'hover:bg-white/5'
+                  }`}
+                  onContextMenu={(event) => showPlayerMenu(event, player.id)}
+                  title="Right-click to view profile"
+                >
+                  <span
+                    className={`font-semibold tabular-nums ${index === 0 ? 'text-amber-300' : 'text-neutral-400'}`}
+                  >
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium text-white">{player.username}</span>
+                    {index === 0 && (
+                      <Trophy className="size-3.5 shrink-0 text-amber-300" aria-label="Winner" />
+                    )}
+                    {player.id === currentPlayerId && (
+                      <span className="shrink-0 text-[10px] font-bold tracking-wide text-sky-300 uppercase">
+                        You
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-right font-semibold tabular-nums text-white">
+                    {player.kills}
+                  </span>
+                  <span className="text-right tabular-nums text-neutral-300">{player.deaths}</span>
+                  <span className="hidden text-right tabular-nums text-neutral-400 sm:block">
+                    {player.deaths === 0
+                      ? player.kills.toFixed(2)
+                      : (player.kills / player.deaths).toFixed(2)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+      )}
+
+      {resultsStep === 'summary' && match.mode !== 'ffa' && (
         <div className="relative z-10">
           <p className={`text-xs font-bold tracking-[.3em] uppercase ${resultClassName}`}>
             Match complete
@@ -202,62 +327,28 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           <h1 className={`mt-2 text-6xl font-black tracking-[.12em] uppercase ${resultClassName}`}>
             {resultLabel}
           </h1>
-          {match.mode === 'ffa' ? (
-            <p className="mt-2 text-xl font-bold text-white">
-              {match.players.find((player) => player.id === match.winnerPlayerId)?.username ??
-                'Winner'}{' '}
-              reached 90 kills
-            </p>
-          ) : (
-            <p className="mt-2 text-3xl font-bold text-white">
-              {score[0]} <span className="text-neutral-500">—</span> {score[1]}
-            </p>
-          )}
+          <p className="mt-2 text-3xl font-bold text-white">
+            {score[0]} <span className="text-neutral-500">—</span> {score[1]}
+          </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
             {getMatchmakingModeLabel(match.mode)} · {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
           </p>
-          {match.mode === 'ffa' ? (
-            <div className="mt-8 border-t border-white/10 pt-4">
-              <h2 className="text-sm font-bold tracking-widest text-white uppercase">
-                FFA leaderboard
-              </h2>
-              <ol className="mt-3 space-y-2">
-                {[...match.players]
-                  .sort((a, b) => b.kills - a.kills || a.deaths - b.deaths)
-                  .map((player, index) => (
-                    <li
-                      key={player.id}
-                      className="flex items-center justify-between border border-white/10 px-4 py-2 text-sm"
-                    >
-                      <span>
-                        {index + 1}. {player.username}
-                        {player.id === match.winnerPlayerId ? ' · Winner' : ''}
-                      </span>
-                      <span>
-                        {player.kills} K / {player.deaths} D
-                      </span>
-                    </li>
-                  ))}
-              </ol>
-            </div>
-          ) : (
-            <>
-              <Team
-                label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
-                players={match.teams.teamA}
-                stats={match.players}
-                ratedMatch={match.mode === '5v5'}
-                onPlayerContextMenu={showPlayerMenu}
-              />
-              <Team
-                label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
-                players={match.teams.teamB}
-                stats={match.players}
-                ratedMatch={match.mode === '5v5'}
-                onPlayerContextMenu={showPlayerMenu}
-              />
-            </>
-          )}
+          <>
+            <Team
+              label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
+              players={match.teams.teamA}
+              stats={match.players}
+              ratedMatch={match.mode === '5v5'}
+              onPlayerContextMenu={showPlayerMenu}
+            />
+            <Team
+              label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
+              players={match.teams.teamB}
+              stats={match.players}
+              ratedMatch={match.mode === '5v5'}
+              onPlayerContextMenu={showPlayerMenu}
+            />
+          </>
         </div>
       )}
 
