@@ -11,7 +11,13 @@ import {
   writeFile
 } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
-import { getSavedCs16Executable, getSavedVoicePttKey } from './game-settings'
+import { isIP } from 'node:net'
+import {
+  disableNextClientIntegrationAfterCrash,
+  getGameSettings,
+  getSavedCs16Executable,
+  getSavedVoicePttKey
+} from './game-settings'
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { ensureLauncherContentDirectory } from './game-directory'
@@ -27,6 +33,8 @@ import {
 } from './skin-audio-override'
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
+import { WindowsNextClientInstallation } from './windows-nextclient-installation'
+import { isNextClientInstallation } from './windows-cosmetic-compatibility'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import {
   disableSteamScoreboardWrapper,
@@ -73,6 +81,7 @@ let steamExitWatchGeneration = 0
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
 let activeScoreboardSession: { matchId: string; session: ScoreboardOverlaySession } | null = null
+const suppressedNextClientMatches = new Set<string>()
 
 export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<void> => {
   await activeScoreboardSession?.session.updateCrosshair(profile)
@@ -493,6 +502,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         : 'Counter-Strike client files are incomplete. Reinstall the selected game, then reconnect.'
     )
   }
+  const nextClient = process.platform === 'win32' && (await isNextClientInstallation(cwd))
+  const nextClientExpectedHost =
+    isIP(input.host) === 4 ? input.host.split('.').map(Number).join('.') : null
+  const gameSettings = await getGameSettings()
+  const allowNextClientIntegration =
+    nextClient &&
+    nextClientExpectedHost !== null &&
+    gameSettings.nextClientIntegrationEnabled &&
+    !suppressedNextClientMatches.has(input.matchId)
   console.info('[GameLaunch] Counter-Strike installation classified', {
     distribution: launchTarget.distribution,
     selectedExecutable: executable,
@@ -561,6 +579,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // the original game client, including on a forced reconnect.
   if (process.platform === 'win32') {
     await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
+    await WindowsNextClientInstallation.restorePreviousInstall(cwd)
   }
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
@@ -672,12 +691,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
-  if (CUSTOM_HUD_ENABLED && (process.platform === 'linux' || process.platform === 'win32')) {
+  if (
+    (CUSTOM_HUD_ENABLED || allowNextClientIntegration) &&
+    (process.platform === 'linux' || process.platform === 'win32')
+  ) {
     try {
       const session = await ScoreboardOverlaySession.start(
         input.matchId,
         input.apiUrl,
-        process.platform === 'win32' ? cwd : undefined
+        process.platform === 'win32' ? cwd : undefined,
+        allowNextClientIntegration
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
@@ -705,7 +728,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  if (activeScoreboardSession?.matchId === input.matchId) {
+  if (
+    activeScoreboardSession?.matchId === input.matchId &&
+    !activeScoreboardSession.session.usesNextClientHost
+  ) {
     try {
       const restoreCrosshair = await captureCrosshairConfig(join(launchGameDirectory, 'config.cfg'))
       const connectLine = `connect ${input.host}:${input.port}`
@@ -729,6 +755,29 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
+  if (activeScoreboardSession?.session.usesNextClientHost) {
+    try {
+      if (!nextClientExpectedHost) throw new Error('NextClient server endpoint is not IPv4')
+      await writeFile(
+        join(activeScoreboardSession.session.directory, 'server.endpoint'),
+        `${nextClientExpectedHost}:${input.port}\n`,
+        { encoding: 'ascii', mode: 0o600, flag: 'wx' }
+      )
+      const connectLine = `connect ${input.host}:${input.port}`
+      const config = await readFile(matchConfigPath, 'utf8')
+      if (!config.includes(connectLine)) throw new Error('Match config lost its connect command')
+      await writeFile(
+        matchConfigPath,
+        config.replace(connectLine, `papamo_skin_probe "1"\n${connectLine}`),
+        { mode: 0o600 }
+      )
+    } catch (error) {
+      console.warn('[NextClient] could not enable the cosmetic host; using stock NextClient', error)
+      finishScoreboardSession(input.matchId)
+      await WindowsNextClientInstallation.restorePreviousInstall(cwd).catch(() => undefined)
+    }
+  }
+
   // The match configuration carries the join identity and password and is
   // written directly into the game directory the engine runs on, so `+exec`
   // always finds it. The secret values therefore never appear in the process
@@ -737,6 +786,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // +connect can bypass that ordering during Steam's existing-process handoff.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
+    ...(activeScoreboardSession?.session.usesNextClientHost ? ['-noupdate'] : []),
     '-condebug',
     '+exec',
     matchConfigName
@@ -817,6 +867,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
                   .join(' '),
                 PAPAMO_SKIN_PROBE_SESSION: activeScoreboardSession.session.directory
               }
+            : {}),
+          ...(process.platform === 'win32' &&
+          activeScoreboardSession?.matchId === input.matchId &&
+          activeScoreboardSession.session.usesNextClientHost
+            ? { PAPAMO_SKIN_PROBE_SESSION: activeScoreboardSession.session.directory }
             : {})
         }
       })
@@ -850,6 +905,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
 
   console.info('[GameLaunch] process spawned', { matchId: input.matchId, pid: spawnedProcess.pid })
+  const nextClientHostActive = activeScoreboardSession?.session.usesNextClientHost === true
+  const gameStartedAt = Date.now()
   let gameOutput = ''
   const appendGameOutput = (chunk: Buffer): void => {
     gameOutput = `${gameOutput}${chunk.toString('utf8')}`.slice(-8_000)
@@ -911,6 +968,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       })
       return
     }
+    const suspectedNextClientIntegrationCrash =
+      nextClientHostActive &&
+      (code !== 0 || signal !== null) &&
+      Date.now() - gameStartedAt <= 45_000
     stopGameWatchdog(input.matchId)
     void restoreManagedSkinAudio().catch((error: unknown) => {
       console.error('[SkinAudio] restore after game exit failed', error)
@@ -919,6 +980,24 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     launchedGameDirectory = null
     launchedExecutablePath = null
     clearMatchConfig(matchConfigGeneration)
+    if (suspectedNextClientIntegrationCrash) {
+      suppressedNextClientMatches.add(input.matchId)
+      console.warn(
+        '[GameLaunch] NextClient exited abnormally during integration startup; disabling the integration and retrying stock',
+        { matchId: input.matchId, code, signal }
+      )
+      void disableNextClientIntegrationAfterCrash()
+        .catch((error: unknown) => {
+          console.error('[GameLaunch] could not persist automatic NextClient opt-out', error)
+        })
+        .then(() => WindowsNextClientInstallation.restorePreviousInstall(cwd))
+        .then(() => launchCounterStrikeForMatch({ ...input, forceRestart: true }))
+        .catch((error: unknown) => {
+          console.error('[GameLaunch] stock NextClient fallback failed', error)
+          input.onExit?.({ code, signal })
+        })
+      return
+    }
     if (launchTarget.distribution === 'steam') watchSteamExit(input.matchId)
     input.onExit?.({ code, signal })
   })

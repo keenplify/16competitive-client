@@ -9,10 +9,17 @@ export interface HelperManifest {
   sha256: string
   sizeBytes: number
   cosmeticModule?: CosmeticModuleManifest
+  nextClientModule?: NextClientModuleManifest
 }
 
 export interface CosmeticModuleManifest {
   fileName: 'papamo-cosmetic-module-linux-x86.so' | 'papamo-cosmetic-module-win-x86.dll'
+  sha256: string
+  sizeBytes: number
+}
+
+export interface NextClientModuleManifest {
+  fileName: 'papamo-nextclient-client-mini-win-x86.dll'
   sha256: string
   sizeBytes: number
 }
@@ -46,6 +53,7 @@ export function verifyHelperRelease(value: unknown, publicKeyPem: string): Helpe
     throw new Error('Helper manifest signature verification failed')
   const manifest = JSON.parse(envelope.manifest) as Partial<HelperManifest> | null
   const cosmetic = manifest?.cosmeticModule
+  const nextClient = manifest?.nextClientModule
   if (
     !manifest ||
     manifest.schemaVersion !== 1 ||
@@ -70,7 +78,14 @@ export function verifyHelperRelease(value: unknown, publicKeyPem: string): Helpe
     !/^[a-f0-9]{64}$/.test(cosmetic.sha256) ||
     !Number.isSafeInteger(cosmetic.sizeBytes) ||
     cosmetic.sizeBytes < 1 ||
-    cosmetic.sizeBytes > 32 * 1024 * 1024
+    cosmetic.sizeBytes > 32 * 1024 * 1024 ||
+    (nextClient !== undefined &&
+      (manifest.platform !== 'win' ||
+        nextClient.fileName !== 'papamo-nextclient-client-mini-win-x86.dll' ||
+        !/^[a-f0-9]{64}$/.test(nextClient.sha256) ||
+        !Number.isSafeInteger(nextClient.sizeBytes) ||
+        nextClient.sizeBytes < 1 ||
+        nextClient.sizeBytes > 32 * 1024 * 1024))
   )
     throw new Error('Invalid helper manifest fields')
   return manifest as HelperManifest
@@ -92,4 +107,14 @@ export function verifyCosmeticModule(bytes: Uint8Array, manifest: HelperManifest
     createHash('sha256').update(bytes).digest('hex') !== cosmetic.sha256
   )
     throw new Error('Cosmetic module hash or size does not match its signed manifest')
+}
+
+export function verifyNextClientModule(bytes: Uint8Array, manifest: HelperManifest): void {
+  const module = manifest.nextClientModule
+  if (
+    !module ||
+    bytes.byteLength !== module.sizeBytes ||
+    createHash('sha256').update(bytes).digest('hex') !== module.sha256
+  )
+    throw new Error('NextClient module hash or size does not match its signed manifest')
 }

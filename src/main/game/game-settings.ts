@@ -18,6 +18,8 @@ interface StoredGameSettings {
   voicePttKey?: string
   partyVoicePttKey?: string
   crosshair?: CrosshairProfile
+  nextClientIntegrationEnabled?: boolean
+  nextClientIntegrationDisabledReason?: string
 }
 
 const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
@@ -186,7 +188,14 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.partyVoicePttKey === 'string'
         ? { partyVoicePttKey: settings.partyVoicePttKey }
         : {}),
-      ...(crosshair ? { crosshair } : {})
+      ...(crosshair ? { crosshair } : {}),
+      ...(typeof settings.nextClientIntegrationEnabled === 'boolean'
+        ? { nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled }
+        : {}),
+      ...(typeof settings.nextClientIntegrationDisabledReason === 'string' &&
+      settings.nextClientIntegrationDisabledReason.length <= 160
+        ? { nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason }
+        : {})
     }
   } catch {
     return {}
@@ -261,12 +270,13 @@ const resolvePartyVoicePttKey = (
   return 'B'
 }
 
-const buildSettings = (
+const buildSettings = async (
   cs16ExecutablePath: string | null,
   teamVoicePttKey: string,
   partyVoicePttKey: string,
-  crosshair: CrosshairProfile
-): GameSettings => ({
+  crosshair: CrosshairProfile,
+  storedSettings: StoredGameSettings
+): Promise<GameSettings> => ({
   cs16ExecutablePath,
   cs16FolderPath: cs16ExecutablePath ? dirname(cs16ExecutablePath) : null,
   configFilePath: configPath(),
@@ -274,20 +284,31 @@ const buildSettings = (
   voicePttKey: teamVoicePttKey,
   // Index 0 is Team, index 1 is Party. This preserves the existing IPC contract.
   voicePttKeys: [teamVoicePttKey, partyVoicePttKey],
-  crosshair
+  crosshair,
+  nextClientDetected:
+    process.platform === 'win32' && cs16ExecutablePath !== null
+      ? await isNextClientExecutable(cs16ExecutablePath)
+      : false,
+  nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
+  nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason ?? null
 })
 
 const persistResolvedSettings = async (
   cs16ExecutablePath: string | null,
   teamVoicePttKey: string,
   partyVoicePttKey: string,
-  crosshair: CrosshairProfile | undefined
+  crosshair: CrosshairProfile | undefined,
+  storedSettings: StoredGameSettings
 ): Promise<void> => {
   await writeStoredSettings({
     ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
     voicePttKey: teamVoicePttKey,
     partyVoicePttKey,
-    crosshair: crosshair ?? DEFAULT_CROSSHAIR
+    crosshair: crosshair ?? DEFAULT_CROSSHAIR,
+    nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
+    ...(storedSettings.nextClientIntegrationDisabledReason
+      ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
+      : {})
   })
 }
 
@@ -305,13 +326,20 @@ export const getGameSettings = async (): Promise<GameSettings> => {
   if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
 
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, storedSettings.crosshair)
-
-  return buildSettings(
+  await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
     keys.party,
-    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+    storedSettings.crosshair,
+    storedSettings
+  )
+
+  return await buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR,
+    storedSettings
   )
 }
 
@@ -329,12 +357,19 @@ export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSett
   const cs16ExecutablePath = await validateInstallationFolder(untrustedPath)
   const storedSettings = await readStoredSettings()
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, storedSettings.crosshair)
-  return buildSettings(
+  await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
     keys.party,
-    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+    storedSettings.crosshair,
+    storedSettings
+  )
+  return await buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR,
+    storedSettings
   )
 }
 
@@ -359,13 +394,15 @@ export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettin
     cs16ExecutablePath,
     teamVoicePttKey,
     partyVoicePttKey,
-    storedSettings.crosshair
+    storedSettings.crosshair,
+    storedSettings
   )
-  return buildSettings(
+  return await buildSettings(
     cs16ExecutablePath,
     teamVoicePttKey,
     partyVoicePttKey,
-    storedSettings.crosshair ?? DEFAULT_CROSSHAIR
+    storedSettings.crosshair ?? DEFAULT_CROSSHAIR,
+    storedSettings
   )
 }
 
@@ -374,8 +411,14 @@ export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSett
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
-  await persistResolvedSettings(cs16ExecutablePath, keys.team, keys.party, crosshair)
-  return buildSettings(cs16ExecutablePath, keys.team, keys.party, crosshair)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    crosshair,
+    storedSettings
+  )
+  return await buildSettings(cs16ExecutablePath, keys.team, keys.party, crosshair, storedSettings)
 }
 
 export const getSavedCs16Executable = async (): Promise<string | null> => {
@@ -389,10 +432,59 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
       cs16ExecutablePath,
       keys.team,
       keys.party,
-      storedSettings.crosshair
+      storedSettings.crosshair,
+      storedSettings
     )
   }
   return cs16ExecutablePath
+}
+
+export const saveNextClientIntegration = async (
+  untrustedEnabled: unknown
+): Promise<GameSettings> => {
+  if (typeof untrustedEnabled !== 'boolean')
+    throw new Error('Invalid NextClient integration setting')
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = {
+    ...storedSettings,
+    nextClientIntegrationEnabled: untrustedEnabled,
+    nextClientIntegrationDisabledReason: undefined
+  }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated, cs16ExecutablePath)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return await buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
+}
+
+export const disableNextClientIntegrationAfterCrash = async (): Promise<void> => {
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = {
+    ...storedSettings,
+    nextClientIntegrationEnabled: false,
+    nextClientIntegrationDisabledReason:
+      'Automatically disabled after NextClient exited abnormally during integration startup.'
+  }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated, cs16ExecutablePath)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
 }
 
 export const getSavedVoicePttKey = async (): Promise<string> => {

@@ -5,13 +5,15 @@ import { generateKeyPairSync, sign, createHash } from 'node:crypto'
 import {
   verifyCosmeticModule,
   verifyHelperBinary,
-  verifyHelperRelease
+  verifyHelperRelease,
+  verifyNextClientModule
 } from '../src/main/anticheat/helper-release-verifier.ts'
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519')
 const pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
 const bytes = Buffer.from('fixture-helper')
 const cosmeticBytes = Buffer.from('fixture-cosmetic-module')
+const nextClientBytes = Buffer.from('fixture-nextclient-mini')
 const manifest = {
   schemaVersion: 1,
   version: '0.1.0',
@@ -45,11 +47,18 @@ test('accepts a signed Windows cosmetic module and rejects its altered bytes', (
     cosmeticModule: {
       ...manifest.cosmeticModule,
       fileName: 'papamo-cosmetic-module-win-x86.dll'
+    },
+    nextClientModule: {
+      fileName: 'papamo-nextclient-client-mini-win-x86.dll',
+      sha256: createHash('sha256').update(nextClientBytes).digest('hex'),
+      sizeBytes: nextClientBytes.length
     }
   }
   const approved = verifyHelperRelease(envelopeFor(windows), pem)
   verifyCosmeticModule(cosmeticBytes, approved)
+  verifyNextClientModule(nextClientBytes, approved)
   assert.throws(() => verifyCosmeticModule(Buffer.from('altered'), approved))
+  assert.throws(() => verifyNextClientModule(Buffer.from('altered'), approved))
 })
 
 test('rejects altered bytes, altered metadata, another key, and unsigned manifests', () => {
@@ -76,6 +85,11 @@ test('even signed manifests cannot introduce traversal, invalid platforms, overs
     { version: '../release' },
     { cosmeticModule: undefined },
     { cosmeticModule: { ...manifest.cosmeticModule, fileName: '../module.so' } },
+    {
+      platform: 'win',
+      fileName: 'game-inspector-win-x64.exe',
+      nextClientModule: { fileName: '../client_mini.dll', sha256: '0'.repeat(64), sizeBytes: 1 }
+    },
     { platform: 'win', arch: 'arm64', fileName: 'game-inspector-win-arm64.exe' }
   ])
     assert.throws(() => verifyHelperRelease(envelopeFor({ ...manifest, ...changes }), pem))

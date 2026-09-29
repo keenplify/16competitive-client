@@ -69,7 +69,8 @@ import {
   getGameSettings,
   saveGameSettings,
   saveVoicePttKey,
-  saveCrosshair
+  saveCrosshair,
+  saveNextClientIntegration
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
@@ -718,6 +719,9 @@ app.whenReady().then(async () => {
     await updateActiveCrosshair(settings.crosshair)
     return settings
   })
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setNextClientIntegration, (_, enabled: unknown) =>
+    saveNextClientIntegration(enabled)
+  )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')

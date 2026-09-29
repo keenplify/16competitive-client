@@ -57,6 +57,14 @@ export function SettingsPage(): JSX.Element {
   const load = useGameSettingsStore((state) => state.load)
   const choose = useGameSettingsStore((state) => state.choose)
   const save = useGameSettingsStore((state) => state.save)
+  const nextClientDetected = useGameSettingsStore((state) => state.nextClientDetected)
+  const nextClientIntegrationEnabled = useGameSettingsStore(
+    (state) => state.nextClientIntegrationEnabled
+  )
+  const nextClientIntegrationDisabledReason = useGameSettingsStore(
+    (state) => state.nextClientIntegrationDisabledReason
+  )
+  const setNextClientIntegration = useGameSettingsStore((state) => state.setNextClientIntegration)
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -509,6 +517,36 @@ export function SettingsPage(): JSX.Element {
                       Saved locally in: <span className="font-mono">{configFilePath}</span>
                     </p>
                   )}
+
+                  <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-100">
+                        NextClient integration
+                      </p>
+                      <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
+                        When NextClient is detected, use the signed 1.6 Competitive cosmetic and
+                        in-game UI host. Installation is restored after the game exits. Disable this
+                        to launch NextClient unchanged.
+                      </p>
+                      {!nextClientIntegrationEnabled && nextClientIntegrationDisabledReason && (
+                        <p className="mt-2 text-xs text-amber-300">
+                          {nextClientIntegrationDisabledReason}
+                        </p>
+                      )}
+                    </div>
+                    <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={nextClientIntegrationEnabled}
+                        onChange={(event) =>
+                          void setNextClientIntegration(event.currentTarget.checked)
+                        }
+                      />
+                      <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-violet-400 peer-checked:bg-violet-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                      <span className="sr-only">Enable NextClient integration</span>
+                    </label>
+                  </div>
                 </div>
               )}
             </section>
@@ -521,9 +559,13 @@ export function SettingsPage(): JSX.Element {
                 <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
                   Game appearance
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Crosshair</h2>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  {nextClientDetected ? 'NextClient crosshair' : 'Crosshair editor'}
+                </h2>
               </div>
-              {!CUSTOM_HUD_ENABLED ? (
+              {nextClientDetected ? (
+                <CrosshairSettings />
+              ) : !CUSTOM_HUD_ENABLED ? (
                 <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                   <p className="text-sm leading-relaxed text-neutral-300">
                     Custom in-game crosshairs are temporarily disabled while we revise compatibility

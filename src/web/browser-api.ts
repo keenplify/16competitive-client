@@ -65,7 +65,10 @@ const browserSettings = (): GameSettings => {
     configFilePath: 'Browser / Steam',
     voicePttKey: team,
     voicePttKeys: [team, party],
-    crosshair: DEFAULT_CROSSHAIR
+    crosshair: DEFAULT_CROSSHAIR,
+    nextClientDetected: false,
+    nextClientIntegrationEnabled: false,
+    nextClientIntegrationDisabledReason: null
   }
 }
 
@@ -470,6 +473,9 @@ const api: Window['api'] = {
     },
     async setCrosshair() {
       throw new Error('Custom crosshairs require the desktop launcher.')
+    },
+    async setNextClientIntegration() {
+      throw new Error('NextClient integration requires the desktop launcher.')
     },
     async getAssetSyncStatus(): Promise<SkinAssetSyncProgress> {
       return { status: 'ready', completedFiles: 0, totalFiles: 0 }
