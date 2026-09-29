@@ -408,11 +408,14 @@ app.whenReady().then(async () => {
   }
   if (REQUIRES_SIGNED_HELPER) {
     let checkingHelper = false
+    let shuttingDown = false
     const helperGuard = setInterval(() => {
-      if (checkingHelper) return
+      if (checkingHelper || shuttingDown) return
       checkingHelper = true
       void assertHelperForBackend()
-        .catch(() => {
+        .catch((error: unknown) => {
+          if (shuttingDown) return
+          console.error('[AntiCheat] periodic helper verification failed', error)
           dialog.showErrorBox(
             'Anti-cheat verification unavailable',
             'The helper could not be verified. Restart or repair the launcher before reconnecting. This is not a cheating ban.'
@@ -424,7 +427,10 @@ app.whenReady().then(async () => {
         })
     }, 60_000)
     helperGuard.unref()
-    app.once('before-quit', () => clearInterval(helperGuard))
+    app.once('before-quit', () => {
+      shuttingDown = true
+      clearInterval(helperGuard)
+    })
   }
 
   electronApp.setAppUserModelId('com.electron')
