@@ -50,7 +50,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
       set({
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
-        notice: enabled ? 'NextClient integration enabled.' : 'NextClient integration disabled.',
+        notice: enabled ? 'In-game enhancements enabled.' : 'In-game enhancements disabled.',
         error: null
       })
     } catch (error) {

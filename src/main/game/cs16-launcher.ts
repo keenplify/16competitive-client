@@ -692,7 +692,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
   if (
-    (CUSTOM_HUD_ENABLED || allowNextClientIntegration) &&
+    CUSTOM_HUD_ENABLED &&
+    gameSettings.nextClientIntegrationEnabled &&
     (process.platform === 'linux' || process.platform === 'win32')
   ) {
     try {

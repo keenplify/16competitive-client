@@ -58,13 +58,13 @@ export function SettingsPage(): JSX.Element {
   const choose = useGameSettingsStore((state) => state.choose)
   const save = useGameSettingsStore((state) => state.save)
   const nextClientDetected = useGameSettingsStore((state) => state.nextClientDetected)
-  const nextClientIntegrationEnabled = useGameSettingsStore(
+  const inGameEnhancementsEnabled = useGameSettingsStore(
     (state) => state.nextClientIntegrationEnabled
   )
   const nextClientIntegrationDisabledReason = useGameSettingsStore(
     (state) => state.nextClientIntegrationDisabledReason
   )
-  const setNextClientIntegration = useGameSettingsStore((state) => state.setNextClientIntegration)
+  const setInGameEnhancements = useGameSettingsStore((state) => state.setNextClientIntegration)
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -520,15 +520,14 @@ export function SettingsPage(): JSX.Element {
 
                   <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
                     <div>
-                      <p className="text-sm font-semibold text-neutral-100">
-                        NextClient integration
-                      </p>
+                      <p className="text-sm font-semibold text-neutral-100">In-game enhancements</p>
                       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
-                        When NextClient is detected, use the signed 1.6 Competitive cosmetic and
-                        in-game UI host. Installation is restored after the game exits. Disable this
-                        to launch NextClient unchanged.
+                        Show the 1.6 Competitive scoreboard and crosshair in supported
+                        Counter-Strike 1.6 clients on Steam and standalone installations on Windows
+                        or Linux. NextClient uses its own compatible host and crosshair settings.
+                        Game files are restored after exit.
                       </p>
-                      {!nextClientIntegrationEnabled && nextClientIntegrationDisabledReason && (
+                      {!inGameEnhancementsEnabled && nextClientIntegrationDisabledReason && (
                         <p className="mt-2 text-xs text-amber-300">
                           {nextClientIntegrationDisabledReason}
                         </p>
@@ -538,13 +537,13 @@ export function SettingsPage(): JSX.Element {
                       <input
                         type="checkbox"
                         className="peer sr-only"
-                        checked={nextClientIntegrationEnabled}
+                        checked={inGameEnhancementsEnabled}
                         onChange={(event) =>
-                          void setNextClientIntegration(event.currentTarget.checked)
+                          void setInGameEnhancements(event.currentTarget.checked)
                         }
                       />
                       <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-violet-400 peer-checked:bg-violet-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                      <span className="sr-only">Enable NextClient integration</span>
+                      <span className="sr-only">Enable in-game enhancements</span>
                     </label>
                   </div>
                 </div>

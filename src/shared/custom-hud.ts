@@ -1,3 +1,3 @@
-// Keep the native scoreboard and crosshair implementation available for a later approach.
-// The current integration is disabled for every installation.
-export const CUSTOM_HUD_ENABLED = false
+// The native HUD runs for supported CS 1.6 installations. Windows client DLLs
+// are checked against the verified build allowlist before installation.
+export const CUSTOM_HUD_ENABLED = true
