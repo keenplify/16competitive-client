@@ -4,6 +4,10 @@ import changelog from '../../../../../CHANGELOG.md?raw'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 
+const changelogSections = changelog.split(/(?=^## )/m)
+const changelogIntro = changelogSections.shift() ?? ''
+const newestFirstChangelog = [changelogIntro, ...changelogSections.reverse()].join('')
+
 interface ChangelogModalProps {
   onClose: () => void
 }
@@ -59,7 +63,7 @@ export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
               )
             }}
           >
-            {changelog}
+            {newestFirstChangelog}
           </ReactMarkdown>
         </div>
       </dialog>
