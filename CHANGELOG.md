@@ -1391,3 +1391,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Improved voice push-to-talk configuration.
+
+## v2026.929.2 — 2026-09-29
+
+### Match Found
+
+- Improved layout and responsiveness for match found screens.
