@@ -101,7 +101,7 @@ import {
   restartAndInstallUpdate
 } from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
-import { getTopMmrLeaderboard } from './leaderboard'
+import { getFeaturedRankedLadder, getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import { NEWS_CHANNELS } from '../shared/news'
 import { getLobbyNewsPosts, getNewsPosts } from './news'
@@ -749,6 +749,7 @@ app.whenReady().then(async () => {
     }
     return getTopMmrLeaderboard(continentOf)
   })
+  ipcMain.handle(LEADERBOARD_CHANNELS.getFeaturedLadder, () => getFeaturedRankedLadder())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
   ipcMain.handle(OPERATION_CHANNELS.getActive, () => getActiveOperation())

@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './config'
 import { getSessionToken } from './auth'
-import type { LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
+import type { FeaturedRankedLadder, LeaderboardEntry, RankedLadderEntry, TopMmrLeaderboard } from '../shared/leaderboard'
 
 const isTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value))
@@ -77,4 +77,54 @@ export const getTopMmrLeaderboard = async (continentOf?: string): Promise<TopMmr
 
   const currentPlayer = await getCurrentPlayerStanding(continentOf)
   return { ...body, currentPlayer }
+}
+
+
+const isRankedLadderEntry = (value: unknown): value is RankedLadderEntry => {
+  if (!isEntry(value)) return false
+  const entry = value as Record<string, unknown>
+  return (
+    typeof entry.gamesPlayed === 'number' &&
+    Number.isInteger(entry.gamesPlayed) &&
+    entry.gamesPlayed >= 0 &&
+    (entry.lastPlayedAt === null || isTimestamp(entry.lastPlayedAt))
+  )
+}
+
+const isFeaturedRankedLadder = (value: unknown): value is FeaturedRankedLadder => {
+  if (typeof value !== 'object' || value === null) return false
+  const body = value as Record<string, unknown>
+  if (!isTimestamp(body.generatedAt) || !isTimestamp(body.refreshAt) || !Array.isArray(body.entries)) {
+    return false
+  }
+  if (!body.entries.every(isRankedLadderEntry)) return false
+  if (body.ladder === null) return body.entries.length === 0
+  if (typeof body.ladder !== 'object') return false
+  const ladder = body.ladder as Record<string, unknown>
+  return (
+    typeof ladder.id === 'string' &&
+    typeof ladder.slug === 'string' &&
+    typeof ladder.title === 'string' &&
+    (ladder.description === null || typeof ladder.description === 'string') &&
+    (ladder.rewardText === null || typeof ladder.rewardText === 'string') &&
+    isTimestamp(ladder.startsAt) &&
+    isTimestamp(ladder.endsAt) &&
+    typeof ladder.minimumGames === 'number' &&
+    Number.isInteger(ladder.minimumGames) &&
+    isTimestamp(ladder.publicFrom) &&
+    isTimestamp(ladder.publicUntil)
+  )
+}
+
+export const getFeaturedRankedLadder = async (): Promise<FeaturedRankedLadder> => {
+  const response = await fetch(`${API_BASE_URL}/leaderboard/featured-ladder`, {
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => {
+    throw new Error('Could not reach the matchmaking server')
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok || !isFeaturedRankedLadder(body)) {
+    throw new Error('Could not load the ranked ladder')
+  }
+  return body
 }

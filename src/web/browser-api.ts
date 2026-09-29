@@ -2,7 +2,7 @@ import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
 import { DEFAULT_CROSSHAIR } from '../shared/crosshair'
-import type { LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
+import type { FeaturedRankedLadder, LeaderboardEntry, TopMmrLeaderboard } from '../shared/leaderboard'
 import type { MatchHistoryEntry, MatchSummary, PlayerProfile } from '../shared/match-history'
 import type { NewsPost } from '../shared/news'
 import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
@@ -505,6 +505,9 @@ const api: Window['api'] = {
         }
       }
       return { ...leaderboard, currentPlayer }
+    },
+    getFeaturedLadder(): Promise<FeaturedRankedLadder> {
+      return requestJson('/leaderboard/featured-ladder')
     }
   },
 
