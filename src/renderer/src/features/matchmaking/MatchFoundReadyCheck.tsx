@@ -60,12 +60,12 @@ export function MatchFoundReadyCheck({
   return (
     <main className="relative isolate flex min-h-[calc(100vh-5rem)] items-center justify-center overflow-hidden bg-transparent px-5 py-12 text-white">
       <div
-        className="absolute inset-0 -z-20 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
+        className="fixed inset-0 -z-20 scale-110 bg-cover bg-center opacity-35 blur-[5px]"
         style={{ backgroundImage: `url(${localMapPreviews[match.mapId]})` }}
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgba(2,6,23,0.98)_0%,rgba(2,6,23,0.82)_36%,rgba(2,6,23,0.42)_68%,rgba(2,6,23,0.08)_88%,transparent_100%)]"
+        className="fixed inset-0 -z-10 bg-[linear-gradient(to_top,rgba(2,6,23,0.98)_0%,rgba(2,6,23,0.82)_36%,rgba(2,6,23,0.42)_68%,rgba(2,6,23,0.08)_88%,transparent_100%)]"
         aria-hidden="true"
       />
 
