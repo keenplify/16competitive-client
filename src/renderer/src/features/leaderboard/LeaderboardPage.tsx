@@ -1,9 +1,10 @@
 import { ChevronLeft, Globe2, LoaderCircle, Map, Trophy, UserRound } from 'lucide-react'
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useMemo, useState, type JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
 import { useLeaderboardStore, type LeaderboardScope } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
+import type { FeaturedRankedLadder } from '../../../../shared/leaderboard'
 import { CountryFlag } from '../../components/CountryFlag'
 
 const formatTimestamp = (value: string): string =>
@@ -17,6 +18,9 @@ export function LeaderboardPage(): JSX.Element {
   const status = useLeaderboardStore((state) => state.status)
   const playerCountryCode = useLeaderboardStore((state) => state.playerCountryCode)
   const load = useLeaderboardStore((state) => state.load)
+  const [activeTab, setActiveTab] = useState<'global' | 'continental' | 'featured'>('global')
+  const [featured, setFeatured] = useState<FeaturedRankedLadder | null>(null)
+  const [featuredStatus, setFeaturedStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -36,12 +40,38 @@ export function LeaderboardPage(): JSX.Element {
 
   useEffect(() => {
     void load()
+    void window.api.leaderboard.getFeaturedLadder()
+      .then((result) => {
+        setFeatured(result)
+        setFeaturedStatus('ready')
+      })
+      .catch((error: unknown) => {
+        console.error('[Leaderboard] failed to load featured ladder', error)
+        setFeaturedStatus('error')
+      })
   }, [load])
 
-  const switchScope = (nextScope: LeaderboardScope): void => {
-    if (nextScope === scope) return
+  const featuredVisible = useMemo(() => {
+    if (!featured?.ladder) return false
+    const now = Date.now()
+    return new Date(featured.ladder.publicFrom).getTime() <= now &&
+      new Date(featured.ladder.publicUntil).getTime() > now
+  }, [featured])
+
+  useEffect(() => {
+    if (activeTab === 'featured' && !featuredVisible) setActiveTab('global')
+  }, [activeTab, featuredVisible])
+
+  const switchScope = (nextScope: 'global' | 'continental' | 'featured'): void => {
+    if (nextScope === 'featured') {
+      if (featuredVisible) setActiveTab('featured')
+      return
+    }
     if (nextScope === 'continental' && !playerCountryCode) return
-    void load(nextScope === 'continental' ? (playerCountryCode ?? undefined) : undefined)
+    setActiveTab(nextScope)
+    if (nextScope !== scope) {
+      void load(nextScope === 'continental' ? (playerCountryCode ?? undefined) : undefined)
+    }
   }
 
   const currentPlayer = leaderboard?.currentPlayer ?? null
@@ -126,9 +156,11 @@ export function LeaderboardPage(): JSX.Element {
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
           <p className="mt-2 text-sm text-neutral-200">
-            {scope === 'continental'
-              ? 'Top players on your continent by matchmaking rating'
-              : 'Top players worldwide by matchmaking rating'}
+            {activeTab === 'featured' && featured?.ladder
+              ? featured.ladder.description ?? `Eligible players for ${featured.ladder.title}`
+              : activeTab === 'continental'
+                ? 'Top players on your continent by matchmaking rating'
+                : 'Top players worldwide by matchmaking rating'}
           </p>
         </div>
       </header>
@@ -136,7 +168,7 @@ export function LeaderboardPage(): JSX.Element {
       <TabList
         className="mx-auto mt-6 max-w-3xl"
         ariaLabel="Leaderboard scope"
-        value={scope}
+        value={activeTab}
         items={[
           {
             value: 'global',
@@ -151,26 +183,79 @@ export function LeaderboardPage(): JSX.Element {
             title: playerCountryCode
               ? 'Your continental leaderboard'
               : 'Set your country in your profile to unlock continental rankings'
-          }
+          },
+          ...(featuredVisible && featured?.ladder
+            ? [{
+                value: 'featured' as const,
+                label: featured.ladder.rewardText || 'Challenge',
+                icon: <Trophy className="size-4" aria-hidden="true" />,
+                title: featured.ladder.title
+              }]
+            : [])
         ]}
         onChange={switchScope}
       />
 
-      {!playerCountryCode && scope === 'global' && leaderboard && (
+      {!playerCountryCode && activeTab === 'global' && leaderboard && (
         <p className="mx-auto mt-3 max-w-3xl text-xs text-neutral-500">
           Set your country in your profile to unlock the continental leaderboard.
         </p>
       )}
 
-      {status === 'loading' && (
+      {activeTab === 'featured' && featuredStatus === 'loading' && (
+        <p className="py-16 text-center text-sm text-neutral-400">Loading challenge leaderboard…</p>
+      )}
+      {activeTab === 'featured' && featuredStatus === 'error' && (
+        <p className="py-16 text-center text-sm text-rose-300">Could not load the challenge leaderboard right now.</p>
+      )}
+      {activeTab === 'featured' && featuredVisible && featured?.ladder && (
+        <section className="mx-auto mt-8 max-w-3xl overflow-hidden border border-amber-300/20 bg-neutral-900/90">
+          <header className="border-b border-white/10 px-5 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold tracking-[.18em] text-amber-300 uppercase">Ranked challenge</p>
+                <h2 className="mt-1 text-xl font-semibold">{featured.ladder.title}</h2>
+                {featured.ladder.rewardText && <p className="mt-1 text-sm font-semibold text-amber-200">{featured.ladder.rewardText}</p>}
+              </div>
+              <div className="text-right text-xs text-neutral-400">
+                <p>Minimum {featured.ladder.minimumGames} ranked games</p>
+                <p>Ends {formatTimestamp(featured.ladder.endsAt)}</p>
+              </div>
+            </div>
+          </header>
+          <div className="grid grid-cols-[3.5rem_1fr_auto_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+            <span>Rank</span><span>Player</span><span>Games</span><span>MMR</span>
+          </div>
+          {featured.entries.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-neutral-400">No players have met the eligibility requirement yet.</p>
+          ) : featured.entries.map((entry) => (
+            <div key={entry.playerId} className="grid grid-cols-[3.5rem_1fr_auto_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0">
+              <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
+                {entry.rank <= 3 ? <Trophy className="size-4" aria-label={`Rank ${entry.rank}`} /> : entry.rank}
+              </span>
+              <button type="button" className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300" onClick={() => openProfile(entry.playerId)} title={`View ${entry.username}'s profile`}>
+                <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                <span className="truncate">{entry.username}</span>
+              </button>
+              <span className="font-mono text-sm text-neutral-300">{entry.gamesPlayed}</span>
+              <span className="font-mono text-sm font-semibold text-amber-200">{entry.mmr.toLocaleString()}</span>
+            </div>
+          ))}
+          <footer className="border-t border-white/10 px-5 py-3 text-xs text-neutral-500">
+            Updated {formatTimestamp(featured.generatedAt)} · Visible until {formatTimestamp(featured.ladder.publicUntil)}
+          </footer>
+        </section>
+      )}
+
+      {activeTab !== 'featured' && status === 'loading' && (
         <p className="py-16 text-center text-sm text-neutral-400">Loading leaderboard…</p>
       )}
-      {status === 'error' && (
+      {activeTab !== 'featured' && status === 'error' && (
         <p className="py-16 text-center text-sm text-rose-300">
           Could not load the leaderboard right now.
         </p>
       )}
-      {status === 'ready' && leaderboard && (
+      {activeTab !== 'featured' && status === 'ready' && leaderboard && (
         <section className="mx-auto mt-8 max-w-3xl overflow-hidden border border-white/10 bg-neutral-900/90">
           <div className="grid grid-cols-[3.5rem_1fr_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             <span>Rank</span>
