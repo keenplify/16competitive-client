@@ -1438,3 +1438,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No changes were provided.
+
+## v2026.929.7 — 2026-09-29
+
+### Settings
+
+- Updated in-game enhancements settings for a clearer configuration experience.
+
+### CS 1.6
+
+- Enabled the native HUD for CS 1.6.
