@@ -1,6 +1,6 @@
 const STORAGE_KEY = '16competitive.language'
 
-type SupportedLanguage = 'en' | 'ru' | 'tl' | 'th' | 'id' | 'hi' | 'pt'
+type SupportedLanguage = 'en' | 'ru' | 'tl' | 'th' | 'id' | 'hi' | 'pt' | 'ja'
 
 const localeLanguageMap: Record<string, SupportedLanguage> = {
   en: 'en',
@@ -11,10 +11,11 @@ const localeLanguageMap: Record<string, SupportedLanguage> = {
   id: 'id',
   in: 'id',
   hi: 'hi',
-  pt: 'pt'
+  pt: 'pt',
+  ja: 'ja'
 }
 
-const supportedLanguages: SupportedLanguage[] = ['en', 'ru', 'tl', 'th', 'id', 'hi', 'pt']
+const supportedLanguages: SupportedLanguage[] = ['en', 'ru', 'tl', 'th', 'id', 'hi', 'pt', 'ja']
 
 const detectPreferredLanguage = (): SupportedLanguage => {
   const locales = [

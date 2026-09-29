@@ -6,6 +6,7 @@ import { translateRuntimePortuguese } from './ui-translations-portuguese'
 import { translateRuntimeHindi } from './ui-translations-hindi'
 import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
+import { translateRuntimeJapanese } from './ui-translations-japanese'
 
 const translatableAttributes = [
   'aria-label',
@@ -29,6 +30,7 @@ export function I18nRuntime(): null {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
     const translate = (source: string): string => {
+      if (language === 'ja') return translateRuntimeJapanese(source)
       if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
       if (language === 'pt') return translateRuntimePortuguese(language, source)
       if (language === 'hi') return translateRuntimeHindi(language, source)
