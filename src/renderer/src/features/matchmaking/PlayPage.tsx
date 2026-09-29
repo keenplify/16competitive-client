@@ -228,8 +228,8 @@ export function PlayPage(): JSX.Element {
 
   if (match && queueStatus === 'match_found') {
     return (
-      <main className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/95 p-5 text-white sm:p-10">
-        <section className="w-full max-w-xl border border-sky-400/30 bg-sky-400/10 p-8 text-center">
+      <main className="relative flex h-full min-h-0 min-w-0 items-center justify-center overflow-x-hidden overflow-y-auto bg-neutral-950/95 p-4 text-white sm:p-6">
+        <section className="my-auto w-full max-w-xl border border-sky-400/30 bg-sky-400/10 p-8 text-center">
           <p className="text-xs font-bold tracking-[0.22em] text-sky-300 uppercase">Match found</p>
           <h1 className="mt-3 text-3xl font-semibold">Preparing ready check</h1>
           <p className="mt-3 text-sm text-sky-100/70">
