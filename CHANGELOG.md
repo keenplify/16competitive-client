@@ -1397,3 +1397,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Found
 
 - Improved layout and responsiveness for match found screens.
+
+## v2026.929.3 — 2026-09-29
+
+### Improvements
+
+- Improved client code organization and readability for easier maintenance.
