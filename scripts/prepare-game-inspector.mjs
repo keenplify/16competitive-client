@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   verifyCosmeticModule,
+  verifyNextClientModule,
   verifyHelperRelease,
   verifyHelperBinary
 } from '../src/main/anticheat/helper-release-verifier.ts'
@@ -52,6 +53,7 @@ async function prepare(platform, arch, checkOnly) {
     platform === 'win'
       ? 'papamo-cosmetic-module-win-x86.dll'
       : 'papamo-cosmetic-module-linux-x86.so'
+  const nextClientAsset = 'papamo-nextclient-client-mini-win-x86.dll'
   const temporary = await mkdtemp(join(tmpdir(), 'competitive-helper-'))
   try {
     execFileSync(
@@ -68,6 +70,7 @@ async function prepare(platform, arch, checkOnly) {
         `${asset}.manifest.json`,
         '--pattern',
         cosmeticAsset,
+        ...(platform === 'win' ? ['--pattern', nextClientAsset] : []),
         '--dir',
         temporary
       ],
@@ -83,6 +86,8 @@ async function prepare(platform, arch, checkOnly) {
       throw new Error('Helper release does not match the pinned version and target')
     verifyHelperBinary(await readFile(join(temporary, asset)), manifest)
     verifyCosmeticModule(await readFile(join(temporary, cosmeticAsset)), manifest)
+    if (platform === 'win')
+      verifyNextClientModule(await readFile(join(temporary, nextClientAsset)), manifest)
     const response = await fetch(
       new URL(`/helper-releases/${config.version}/${platform}/${arch}`, registry),
       {
@@ -103,6 +108,8 @@ async function prepare(platform, arch, checkOnly) {
       await copyFile(join(temporary, asset), binary)
       await writeFile(join(destination, 'manifest.json'), JSON.stringify(envelope) + '\n')
       await copyFile(join(temporary, cosmeticAsset), join(destination, cosmeticAsset))
+      if (platform === 'win')
+        await copyFile(join(temporary, nextClientAsset), join(destination, nextClientAsset))
       if (platform === 'linux') await chmod(join(destination, cosmeticAsset), 0o755)
       if (platform !== 'win') await chmod(binary, 0o755)
     }

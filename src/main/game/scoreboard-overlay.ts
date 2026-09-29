@@ -8,6 +8,8 @@ import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import { getGameSettings } from './game-settings'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
+import { isNextClientInstallation } from './windows-cosmetic-compatibility'
+import { WindowsNextClientInstallation } from './windows-nextclient-installation'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -84,6 +86,7 @@ export class ScoreboardOverlaySession {
   readonly directory: string
   readonly modulePath: string
   readonly steamWrapperPath: string
+  readonly usesNextClientHost: boolean
   private readonly feedPath: string
   private readonly window: BrowserWindow
   private readonly readSnapshot: (directory: string) => Snapshot
@@ -93,7 +96,8 @@ export class ScoreboardOverlaySession {
   private stopped = false
   private feedAvailable = false
   private reportedUnavailable = false
-  private readonly windowsInstallation: WindowsCosmeticInstallation | null
+  private readonly windowsInstallation:
+    WindowsCosmeticInstallation | WindowsNextClientInstallation | null
 
   private constructor(
     private readonly matchId: string,
@@ -102,7 +106,7 @@ export class ScoreboardOverlaySession {
     modulePath: string,
     window: BrowserWindow,
     readSnapshot: (directory: string) => Snapshot,
-    windowsInstallation: WindowsCosmeticInstallation | null
+    windowsInstallation: WindowsCosmeticInstallation | WindowsNextClientInstallation | null
   ) {
     this.directory = directory
     this.modulePath = modulePath
@@ -110,17 +114,20 @@ export class ScoreboardOverlaySession {
     this.window = window
     this.readSnapshot = readSnapshot
     this.windowsInstallation = windowsInstallation
+    this.usesNextClientHost = windowsInstallation instanceof WindowsNextClientInstallation
     this.feedPath = join(directory, 'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv')
   }
 
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
-    if (!this.stopped) await writeCrosshairConfig(this.directory, crosshair)
+    if (!this.stopped && !this.usesNextClientHost)
+      await writeCrosshairConfig(this.directory, crosshair)
   }
 
   static async start(
     matchId: string,
     apiUrl = API_BASE_URL,
-    gameRoot?: string
+    gameRoot?: string,
+    allowNextClientIntegration = true
   ): Promise<ScoreboardOverlaySession | null> {
     if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') return null
     if (process.platform === 'win32' && !gameRoot) return null
@@ -139,8 +146,15 @@ export class ScoreboardOverlaySession {
     const assets = app.isPackaged
       ? join(process.resourcesPath, 'scoreboard')
       : join(app.getAppPath(), 'resources/scoreboard')
+    const nextClient = process.platform === 'win32' && (await isNextClientInstallation(gameRoot!))
     const windowsInstallation =
-      process.platform === 'win32' ? await WindowsCosmeticInstallation.install(gameRoot!) : null
+      process.platform === 'win32'
+        ? nextClient
+          ? allowNextClientIntegration
+            ? await WindowsNextClientInstallation.install(gameRoot!)
+            : null
+          : await WindowsCosmeticInstallation.install(gameRoot!)
+        : null
     if (process.platform === 'win32' && !windowsInstallation) return null
     const directory =
       windowsInstallation?.sessionDirectory ??
@@ -154,8 +168,10 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
-      await writeFile(join(directory, 'crosshair.visible'), '1\n', { mode: 0o600 })
-      await writeCrosshairConfig(directory, (await getGameSettings()).crosshair)
+      await writeFile(join(directory, 'crosshair.visible'), nextClient ? '0\n' : '1\n', {
+        mode: 0o600
+      })
+      if (!nextClient) await writeCrosshairConfig(directory, (await getGameSettings()).crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
       // the authenticated launch and reads this per-match session. It also

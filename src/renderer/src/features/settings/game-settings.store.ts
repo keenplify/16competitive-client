@@ -10,7 +10,11 @@ interface GameSettingsState {
   notice: string | null
   requiresGameSetup: boolean
   crosshair: CrosshairProfile
+  nextClientDetected: boolean
+  nextClientIntegrationEnabled: boolean
+  nextClientIntegrationDisabledReason: string | null
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
+  setNextClientIntegration: (enabled: boolean) => Promise<void>
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
@@ -31,10 +35,27 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   notice: null,
   requiresGameSetup: false,
   crosshair: DEFAULT_CROSSHAIR,
+  nextClientDetected: false,
+  nextClientIntegrationEnabled: true,
+  nextClientIntegrationDisabledReason: null,
 
   setCrosshair: async (profile) => {
     const settings = await window.api.gameSettings.setCrosshair(profile)
     set({ crosshair: settings.crosshair })
+  },
+
+  setNextClientIntegration: async (enabled) => {
+    try {
+      const settings = await window.api.gameSettings.setNextClientIntegration(enabled)
+      set({
+        nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
+        nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
+        notice: enabled ? 'NextClient integration enabled.' : 'NextClient integration disabled.',
+        error: null
+      })
+    } catch (error) {
+      set({ error: message(error) })
+    }
   },
 
   load: async () => {
@@ -47,7 +68,10 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         configFilePath: settings.configFilePath,
         status: 'idle',
         requiresGameSetup: !settings.cs16ExecutablePath,
-        crosshair: settings.crosshair
+        crosshair: settings.crosshair,
+        nextClientDetected: settings.nextClientDetected,
+        nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
+        nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
@@ -78,9 +102,15 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         folderPath: settings.cs16FolderPath ?? '',
         savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,
+        crosshair: settings.crosshair,
+        nextClientDetected: settings.nextClientDetected,
+        nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
+        nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
         status: 'idle',
         requiresGameSetup: false,
-        notice: 'Counter-Strike path saved.'
+        notice: settings.nextClientDetected
+          ? 'NextClient detected. Use NextClient settings to adjust your crosshair.'
+          : 'Counter-Strike path saved.'
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })

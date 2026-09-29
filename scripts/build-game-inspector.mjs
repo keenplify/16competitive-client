@@ -129,6 +129,24 @@ export function buildGameInspector(platform, arch) {
       true
     )
   }
+  if (platform === 'win' && arch === 'x64') {
+    const nextClient = join(destination, 'papamo-nextclient-client-mini-win-x86.dll')
+    if (!existsSync(nextClient)) {
+      const build = spawnSync(
+        'pwsh',
+        [
+          '-NoProfile',
+          '-File',
+          join(helperRoot, 'scripts', 'build-nextclient-client-mini.ps1'),
+          '-OutputDirectory',
+          destination
+        ],
+        { stdio: 'inherit', shell: false }
+      )
+      if (build.error) throw build.error
+      if (build.status !== 0) throw new Error('NextClient client_mini build failed')
+    }
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

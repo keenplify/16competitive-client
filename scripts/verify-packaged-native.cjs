@@ -7,7 +7,8 @@ module.exports = async function verifyPackagedNative(context) {
   const nativeDirectory = join(context.appOutDir, 'resources', 'native')
   const required = [platform === 'win32' ? 'game-inspector.exe' : 'game-inspector', 'manifest.json']
   if (platform === 'linux') required.push('papamo-cosmetic-module-linux-x86.so')
-  if (platform === 'win32') required.push('papamo-cosmetic-module-win-x86.dll')
+  if (platform === 'win32')
+    required.push('papamo-cosmetic-module-win-x86.dll', 'papamo-nextclient-client-mini-win-x86.dll')
 
   for (const name of required) {
     const file = join(nativeDirectory, name)

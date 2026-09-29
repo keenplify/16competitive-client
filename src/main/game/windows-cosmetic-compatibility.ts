@@ -26,7 +26,12 @@ const optionalFile = async (path: string): Promise<boolean> => {
   }
 }
 
-/** NextClient hooks the stock client through its own native modules. */
+/**
+ * NextClient scans and patches byte patterns in client.dll. In an isolated
+ * 2.5.3 test, replacing that DLL with our proxy made client_mini.dll's lookup
+ * return null, then crash at RVA 0xC0BC (0xC0000005). The stock DLL hash being
+ * allowlisted for other games does not make this installation compatible.
+ */
 export const isNextClientInstallation = async (gameRoot: string): Promise<boolean> => {
   const [clientMini, nitroApi] = await Promise.all([
     optionalFile(join(gameRoot, 'cstrike', 'cl_dlls', 'client_mini.dll')),
