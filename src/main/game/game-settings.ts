@@ -442,8 +442,7 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
 export const saveNextClientIntegration = async (
   untrustedEnabled: unknown
 ): Promise<GameSettings> => {
-  if (typeof untrustedEnabled !== 'boolean')
-    throw new Error('Invalid NextClient integration setting')
+  if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid in-game enhancements setting')
   const storedSettings = await readStoredSettings()
   const updated: StoredGameSettings = {
     ...storedSettings,
