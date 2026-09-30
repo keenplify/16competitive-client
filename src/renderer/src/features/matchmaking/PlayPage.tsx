@@ -547,7 +547,7 @@ export function PlayPage(): JSX.Element {
               <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
               <div className="mt-3 flex max-w-3xl flex-wrap gap-3">
                 {availableModes.map((mode) =>
-                  (mode === '5v5' || mode === '3v3') && rankedBlockedForHost ? (
+                  mode === '5v5' && rankedBlockedForHost ? (
                     <div
                       key={mode}
                       className="flex-1   border border-white/10 bg-neutral-900 px-4 py-3 text-left text-neutral-300"
@@ -588,7 +588,7 @@ export function PlayPage(): JSX.Element {
                         {mode === '5v5'
                           ? 'Rated. MMR changes and full competitive progression.'
                           : mode === '3v3'
-                            ? 'Rated 3v3. MMR changes and desktop anti-cheat is required.'
+                            ? 'Unrated 3v3. Same competitive round rules, no MMR changes.'
                             : mode === 'ffa'
                               ? 'Drop-in deathmatch. First player to 90 kills wins; no MMR changes.'
                               : mode === 'fight_yard'
