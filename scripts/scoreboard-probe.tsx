@@ -17,6 +17,10 @@ type Snapshot = {
   map: string
   round: number
   roundWinners: string | null
+  halfRounds: number
+  winTarget: number
+  ctWins: number | null
+  tWins: number | null
   mode: 'ffa' | 'competitive'
   players: Player[]
 } | null
@@ -30,22 +34,23 @@ declare global {
   }
 }
 
-function RoundTrack({ round, roundWinners }: { round: number; roundWinners: string | null }) {
-  const current = Math.min(round, 24)
+function RoundTrack({ round, roundWinners, halfRounds, winTarget }: { round: number; roundWinners: string | null; halfRounds: number; winTarget: number }) {
+  const regulationRounds = halfRounds * 2
+  const current = Math.min(round, regulationRounds)
   return (
     <div className="round-area">
       <div className="round-label">
         <strong>
-          {round ? `ROUND ${round}${round <= 24 ? ' / 24' : ' · OVERTIME'}` : 'WAITING FOR ROUND'}
+          {round ? `ROUND ${round}${round <= regulationRounds ? ` / ${regulationRounds}` : ' · OVERTIME'}` : 'WAITING FOR ROUND'}
         </strong>
-        <span>HALF 12</span>
+        <span>HALF {halfRounds} · FIRST TO {winTarget}</span>
       </div>
       {roundWinners !== null && (
-        <div className="round-track" aria-label={`Round ${round} of 24`}>
-          {Array.from({ length: 24 }, (_, index) => (
+        <div className="round-track" aria-label={`Round ${round} of ${regulationRounds}`}>
+          {Array.from({ length: regulationRounds }, (_, index) => (
             <span
               key={index}
-              className={`round-tick ${roundWinners[index] === 'C' ? 'ct-win' : roundWinners[index] === 'T' ? 't-win' : ''} ${index + 1 === current && !roundWinners[index] ? 'current' : ''} ${index === 12 ? 'halftime' : ''}`}
+              className={`round-tick ${roundWinners[index] === 'C' ? 'ct-win' : roundWinners[index] === 'T' ? 't-win' : ''} ${index + 1 === current && !roundWinners[index] ? 'current' : ''} ${index === halfRounds ? 'halftime' : ''}`}
               title={
                 roundWinners[index] === 'C'
                   ? `Round ${index + 1}: CT won`
@@ -112,14 +117,14 @@ function Scoreboard() {
         {players.length ? (
           competitive ? (
             [
-              { team: 2, label: 'COUNTER-TERRORISTS', className: 'counter-terrorists' },
-              { team: 1, label: 'TERRORISTS', className: 'terrorists' }
+              { team: 2, label: 'COUNTER-TERRORISTS', className: 'counter-terrorists', wins: snapshot?.ctWins },
+              { team: 1, label: 'TERRORISTS', className: 'terrorists', wins: snapshot?.tWins }
             ].map((group) => {
               const members = players.filter((player) => player.team === group.team)
               return members.length ? (
                 <div className={`team-section ${group.className}`} key={group.team}>
                   <div className="team-heading">
-                    {group.label} · {members.length}
+                    {group.label} · {group.wins === null ? members.length : `${group.wins} WINS`}
                   </div>
                   {members.map((player, index) => (
                     <PlayerRow
@@ -150,7 +155,7 @@ function Scoreboard() {
         </div>
       )}
       {competitive && (
-        <RoundTrack round={snapshot?.round ?? 0} roundWinners={snapshot?.roundWinners ?? null} />
+        <RoundTrack round={snapshot?.round ?? 0} roundWinners={snapshot?.roundWinners ?? null} halfRounds={snapshot?.halfRounds ?? 12} winTarget={snapshot?.winTarget ?? 13} />
       )}
     </main>
   )
