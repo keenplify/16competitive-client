@@ -12,6 +12,7 @@ import { create } from 'zustand'
 import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
+import { readMatchmakingPreferences, saveMatchmakingPreferences } from './matchmaking-preferences'
 
 type ConnectionStatus =
   'disconnected' | 'connecting' | 'reconnecting' | 'handoff' | 'authenticating' | 'ready'
@@ -554,17 +555,31 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     loadMaps: async () => {
       if (get().mapsStatus === 'loading') return
-      set({ mapsStatus: 'loading', error: null })
+      const playerId = useAuthStore.getState().session?.player.id
+      const saved = readMatchmakingPreferences(playerId)
+      const initialMode =
+        get().mapsStatus === 'idle' && get().queueStatus === 'idle'
+          ? (saved.lastMode ?? get().selectedMode)
+          : get().selectedMode
+      set({ mapsStatus: 'loading', selectedMode: initialMode, error: null })
       try {
         const maps = await window.api.matchmaking.getMaps()
-        const { selectedMapIds, selectedMode } = get()
+        const selectedMode = get().selectedMode
+        const currentPreferences = readMatchmakingPreferences(playerId)
         const availableMapIds = new Set(
           maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
         )
+        const selectedMapIds =
+          get().queueStatus === 'idle'
+            ? currentPreferences.mapIdsByMode?.[selectedMode]
+            : get().selectedMapIds
         set({
           maps,
           mapsStatus: 'ready',
-          selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId))
+          selectedMode,
+          selectedMapIds: selectedMapIds
+            ? selectedMapIds.filter((mapId) => availableMapIds.has(mapId))
+            : [...availableMapIds]
         })
       } catch (error) {
         const message = readableError(error)
@@ -611,13 +626,18 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     selectMode: (selectedMode) => {
-      const { maps, selectedMapIds } = get()
+      const { maps } = get()
       const availableMapIds = new Set(
         maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
       )
+      const playerId = useAuthStore.getState().session?.player.id
+      const selectedMapIds = readMatchmakingPreferences(playerId).mapIdsByMode?.[selectedMode]
+      saveMatchmakingPreferences(playerId, { lastMode: selectedMode })
       set({
         selectedMode,
-        selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId)),
+        selectedMapIds: selectedMapIds
+          ? selectedMapIds.filter((mapId) => availableMapIds.has(mapId))
+          : [...availableMapIds],
         error: null
       })
     },
@@ -631,12 +651,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       ) {
         return
       }
-      set((state) => ({
-        selectedMapIds: state.selectedMapIds.includes(selectedMapId)
-          ? state.selectedMapIds.filter((mapId) => mapId !== selectedMapId)
-          : [...state.selectedMapIds, selectedMapId],
-        error: null
-      }))
+      const { selectedMapIds, selectedMode } = get()
+      const nextMapIds = selectedMapIds.includes(selectedMapId)
+        ? selectedMapIds.filter((mapId) => mapId !== selectedMapId)
+        : [...selectedMapIds, selectedMapId]
+      saveMatchmakingPreferences(useAuthStore.getState().session?.player.id, {
+        mode: selectedMode,
+        mapIds: nextMapIds
+      })
+      set({ selectedMapIds: nextMapIds, error: null })
     },
 
     joinQueue: async () => {

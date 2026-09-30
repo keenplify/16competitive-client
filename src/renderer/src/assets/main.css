@@ -1,10 +1,22 @@
 @import 'tailwindcss';
 @source '../';
 @import '@fontsource/audiowide';
+@import '@fontsource/rajdhani/400.css';
+@import '@fontsource/rajdhani/500.css';
+@import '@fontsource/rajdhani/600.css';
+@import '@fontsource/rajdhani/700.css';
 
 @theme {
-  /* 2. Create the variable. This generates the 'font-audiowide' class */
+  --font-sans: 'Rajdhani', sans-serif;
   --font-audiowide: 'Audiowide', sans-serif;
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
+  --text-base: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.375rem;
 }
 
 @layer base {
@@ -24,14 +36,8 @@
     min-height: 100vh;
     overflow: auto;
     background: #0a0a0a;
-    font-family:
-      Inter,
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      sans-serif;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     user-select: none;
@@ -293,6 +299,42 @@
   animation: match-ambient-breathe 9s ease-in-out infinite;
 }
 
+.play-find-match-cta {
+  background-image: linear-gradient(90deg, #07520c, #0a650d 48%, #06410a);
+  box-shadow: inset 0 0 0 1px rgb(7 31 9 / 65%), 0 0 12px rgb(14 119 20 / 24%);
+}
+
+.play-find-match-cta:hover:not(:disabled) {
+  background-image: linear-gradient(90deg, #096511, #0c7612 48%, #07500d);
+}
+
+.play-find-match-cta:disabled {
+  opacity: 0.55;
+}
+
+.play-map-grid {
+  grid-template-columns: repeat(var(--play-map-columns-small), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  min-width: var(--play-map-min-width-small);
+}
+
+@media (min-width: 1280px) {
+  .play-map-grid {
+    grid-template-columns: repeat(var(--play-map-columns-wide), minmax(0, 1fr));
+    min-width: var(--play-map-min-width-wide);
+  }
+}
+
+.play-find-match-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-radial-gradient(ellipse 90px 44px at 18% 10%, transparent 0 8px, rgb(87 209 58 / 13%) 9px 10px, transparent 11px 18px),
+    repeating-radial-gradient(ellipse 75px 52px at 82% 85%, transparent 0 9px, rgb(87 209 58 / 11%) 10px 11px, transparent 12px 21px);
+  pointer-events: none;
+}
+
 @keyframes match-ambient-breathe {
   0%,
   100% {
@@ -311,7 +353,6 @@
     animation: none;
   }
 }
-
 
 @keyframes match-survey-enter {
   from {

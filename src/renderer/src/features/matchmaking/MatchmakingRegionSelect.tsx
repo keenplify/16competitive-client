@@ -103,11 +103,13 @@ export function MatchmakingRegionSelect({
         isClearable={false}
         isSearchable={false}
         isDisabled={disabled}
+        menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
         options={options}
         value={selectedOption}
         isOptionDisabled={(option) => !option.automatic && !option.available}
         onChange={(option) => onChange(option?.value || null)}
         styles={{
+          menuPortal: (base) => ({ ...base, zIndex: 60 }),
           // react-select clips both wrappers by default. The latency indicator
           // intentionally has an outer glow, so let it paint into the control.
           valueContainer: (base) => ({ ...base, overflow: 'visible' }),
