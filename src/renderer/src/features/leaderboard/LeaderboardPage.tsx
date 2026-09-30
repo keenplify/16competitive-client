@@ -160,7 +160,11 @@ export function LeaderboardPage(): JSX.Element {
       <header className="mx-auto flex max-w-3xl items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <div>
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
-          <h1 className="mt-2 text-3xl font-semibold">Leaderboard</h1>
+          <h1 className="mt-2 text-3xl font-semibold">
+            {visibleTab === 'featured' && featured?.ladder
+              ? featured.ladder.title
+              : 'Leaderboard'}
+          </h1>
           <p className="mt-2 text-sm text-neutral-200">
             {visibleTab === 'featured' && featured?.ladder
               ? (featured.ladder.description ?? `Eligible players for ${featured.ladder.title}`)
@@ -226,7 +230,6 @@ export function LeaderboardPage(): JSX.Element {
                 <p className="text-[10px] font-bold tracking-[.18em] text-amber-300 uppercase">
                   Ranked challenge
                 </p>
-                <h2 className="mt-1 text-xl font-semibold">{featured.ladder.title}</h2>
                 {featured.ladder.rewardText && (
                   <p className="mt-1 text-sm font-semibold text-amber-200">
                     {featured.ladder.rewardText}
@@ -239,6 +242,17 @@ export function LeaderboardPage(): JSX.Element {
               </div>
             </div>
           </header>
+          <div className="border-b border-white/10 px-5 py-4 text-sm text-neutral-300">
+            <span>Prerequisite: </span>
+            <a
+              className="font-semibold text-sky-300 underline decoration-sky-300/50 underline-offset-4 hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              href="https://discord.gg/uZwKyf2EHp"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Join our Discord
+            </a>
+          </div>
           <div className="grid grid-cols-[3.5rem_1fr_auto_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             <span>Rank</span>
             <span>Player</span>
