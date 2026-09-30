@@ -25,6 +25,7 @@ import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
+  const refreshSession = useAuthStore((state) => state.refreshSession)
   const questSnapshot = useDailyQuestStore((state) => state.snapshot)
   const rewards = useDailyQuestStore((state) =>
     state.lastMatchId === match.matchId ? state.lastMatchRewards : null
@@ -163,10 +164,12 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     setSurveyStatus('submitting')
     void window.api.matchHistory
       .submitSurvey(match.matchId, funRating, fairnessRating)
-      .then(() => {
+      .then((result) => {
         setSurveyStatus('submitted')
+        void refreshSession()
+        const reward = result.pointsAwarded > 0 ? ` · +${result.pointsAwarded} Points` : ''
         toast.success(
-          `Thanks for the feedback! ${mapDisplayName} · ${getMatchmakingModeLabel(match.mode)}`
+          `Thanks for the feedback! ${mapDisplayName} · ${getMatchmakingModeLabel(match.mode)}${reward}`
         )
       })
       .catch((reason: unknown) => {
@@ -424,9 +427,14 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-                    Match feedback
-                  </p>
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                      Match feedback
+                    </p>
+                    <p className="text-[11px] font-bold tracking-[0.14em] text-amber-300 uppercase">
+                      +500 Points
+                    </p>
+                  </div>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {mapDisplayName} · {getMatchmakingModeLabel(match.mode)}
                   </p>
