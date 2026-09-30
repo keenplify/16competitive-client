@@ -1532,3 +1532,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved matchmaking support for legacy maps.
 - Updated selected game mode handling for a smoother queue experience.
+
+## v2026.930.8 — 2026-09-30
+
+### Custom Games
+
+- Improved custom game creation and management.
+- Updated the custom games panel for a smoother experience.
+- Added clearer validation for custom game settings.
+
+### Matchmaking
+
+- Expanded support for matchmaking modes and maps.
+- Updated matchmaking interfaces and browser support.
+- Improved validation for matchmaking options.
