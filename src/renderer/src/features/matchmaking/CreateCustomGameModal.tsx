@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type JSX } from 'react'
 import { X } from 'lucide-react'
 import type { CustomGameMode } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
@@ -30,10 +30,29 @@ export function CreateCustomGameModal({
   const [submitting, setSubmitting] = useState(false)
   const dialogRef = useRef<HTMLElement>(null)
 
-  const supportedMaps = maps.filter(({ supportedModes }) => supportedModes.includes(mode))
+  const modeOptions = useMemo(
+    () =>
+      ([
+        { id: '5v5', label: '5v5' },
+        { id: '3v3', label: '3v3' },
+        { id: 'unrated', label: 'Unrated' },
+        { id: 'ffa', label: 'FFA' },
+        { id: 'fight_yard', label: 'Fight Yard' }
+      ] as const).filter(({ id }) =>
+        maps.some(({ customModes }) => customModes.includes(id))
+      ),
+    [maps]
+  )
+  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(mode))
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)
     ? mapId
     : (supportedMaps[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!modeOptions.some(({ id }) => id === mode) && modeOptions[0]) {
+      setMode(modeOptions[0].id)
+    }
+  }, [mode, modeOptions])
 
   useEffect(() => {
     const previousFocus =
@@ -124,10 +143,12 @@ export function CreateCustomGameModal({
                 <select
                   className={fieldClass}
                   value={mode}
+                  disabled={modeOptions.length === 0}
                   onChange={(event) => setMode(event.target.value as CustomGameMode)}
                 >
-                  <option value="unrated">Unranked</option>
-                  <option value="ffa">FFA</option>
+                  {modeOptions.map(({ id, label }) => (
+                    <option key={id} value={id}>{label}</option>
+                  ))}
                 </select>
               </label>
               <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
@@ -171,7 +192,7 @@ export function CreateCustomGameModal({
               <Button variant="ghost" type="button" disabled={submitting} onClick={close}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={disabled || submitting || !selectedMapId}>
+              <Button type="submit" disabled={disabled || submitting || !selectedMapId || modeOptions.length === 0}>
                 {submitting ? 'Creating…' : 'Create room'}
               </Button>
             </footer>
