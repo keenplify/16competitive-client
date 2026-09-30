@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import {
   allowsManualMatchConnection,
   getMatchmakingModeLabel,
+  MATCHMAKING_MODES,
   type MatchmakingMap
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
@@ -143,6 +144,8 @@ export function PlayPage(): JSX.Element {
 
   useEffect(() => {
     void loadMaps()
+    const timer = window.setInterval(() => void loadMaps(), 15_000)
+    return () => window.clearInterval(timer)
   }, [loadMaps])
 
   useEffect(() => {
@@ -220,6 +223,9 @@ export function PlayPage(): JSX.Element {
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
   const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
+  const availableModes = MATCHMAKING_MODES.filter((mode) =>
+    maps.some((map) => map.supportedModes.includes(mode))
+  )
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
   const hasSelectedMaps = selectedMapIds.length > 0
   const matchMapPreview = match
@@ -539,9 +545,9 @@ export function PlayPage(): JSX.Element {
           <>
             <section className="mt-8">
               <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
-              <div className="mt-3 flex max-w-xl gap-3">
-                {(['5v5', 'unrated', 'ffa', 'fight_yard'] as const).map((mode) =>
-                  mode === '5v5' && rankedBlockedForHost ? (
+              <div className="mt-3 flex max-w-3xl flex-wrap gap-3">
+                {availableModes.map((mode) =>
+                  (mode === '5v5' || mode === '3v3') && rankedBlockedForHost ? (
                     <div
                       key={mode}
                       className="flex-1   border border-white/10 bg-neutral-900 px-4 py-3 text-left text-neutral-300"
@@ -581,16 +587,23 @@ export function PlayPage(): JSX.Element {
                       <span className="mt-1 block text-xs text-neutral-400">
                         {mode === '5v5'
                           ? 'Rated. MMR changes and full competitive progression.'
-                          : mode === 'ffa'
-                            ? 'Drop-in deathmatch. First player to 90 kills wins; no MMR changes.'
-                            : mode === 'fight_yard'
-                              ? 'Team deathmatch. First team to 90 kills wins; no MMR changes.'
-                              : 'Same 5v5 rules, but the result does not change MMR.'}
+                          : mode === '3v3'
+                            ? 'Rated 3v3. MMR changes and desktop anti-cheat is required.'
+                            : mode === 'ffa'
+                              ? 'Drop-in deathmatch. First player to 90 kills wins; no MMR changes.'
+                              : mode === 'fight_yard'
+                                ? 'Team deathmatch. First team to 90 kills wins; no MMR changes.'
+                                : 'Same 5v5 rules, but the result does not change MMR.'}
                       </span>
                     </button>
                   )
                 )}
               </div>
+              {mapsStatus === 'ready' && availableModes.length === 0 && (
+                <p className="mt-3 text-sm text-amber-300">
+                  No matchmaking modes are currently enabled.
+                </p>
+              )}
             </section>
 
             <section className="mt-8">
