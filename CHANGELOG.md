@@ -1492,3 +1492,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added the Papamo wordmark to authentication screens.
 - Refined authentication and text-field styling.
+
+## v2026.930.4 — 2026-09-30
+
+### Reliability
+
+- Improved reliability when downloading the game inspector helper.
