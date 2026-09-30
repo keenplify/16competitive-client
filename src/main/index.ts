@@ -43,6 +43,7 @@ import {
   getMatchHistory,
   getMatchSummary,
   getMatchSurvey,
+  getPendingMatchSurvey,
   getPlayerProfile,
   submitMatchSurvey
 } from './match-history'
@@ -609,6 +610,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getSurvey, (_, matchId: unknown) =>
     getMatchSurvey(matchId)
+  )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getPendingSurvey, () =>
+    getPendingMatchSurvey()
   )
   ipcMain.handle(
     MATCH_HISTORY_CHANNELS.submitSurvey,
