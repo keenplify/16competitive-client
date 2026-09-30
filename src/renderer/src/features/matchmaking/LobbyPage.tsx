@@ -129,8 +129,9 @@ export function LobbyPage(): JSX.Element {
     'starting_server',
     'server_ready'
   ].includes(queueStatus)
+  const matchNeedsAttention = queueStatus === 'match_found' || queueStatus === 'ready_check'
   const showingMatchFoundScreen =
-    page === 'play' && (queueStatus === 'match_found' || queueStatus === 'ready_check')
+    page === 'play' && matchNeedsAttention
   const showingPlaySelection =
     page === 'play' &&
     playView === 'matchmaking' &&
@@ -245,8 +246,10 @@ export function LobbyPage(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (installationReady === false && page !== 'settings') navigate('settings')
-  }, [installationReady, navigate, page])
+    if (installationReady === false && page !== 'settings' && !matchNeedsAttention) {
+      navigate('settings')
+    }
+  }, [installationReady, matchNeedsAttention, navigate, page])
 
   useEffect(() => {
     const currentPage = useNavigationStore.getState().page
@@ -258,11 +261,11 @@ export function LobbyPage(): JSX.Element {
       queueStatus !== 'idle' &&
       queueStatus !== 'joining' &&
       queueStatus !== 'leaving' &&
-      currentPage !== 'settings'
+      (currentPage !== 'settings' || matchNeedsAttention)
     ) {
       navigate('play')
     }
-  }, [navigate, queueStatus])
+  }, [matchNeedsAttention, navigate, queueStatus])
 
   useEffect(() => {
     useAdminDemosStore.getState().reset()
@@ -292,7 +295,7 @@ export function LobbyPage(): JSX.Element {
     )
   }
 
-  const content = requiresGameSetup ? (
+  const content = requiresGameSetup && !(matchNeedsAttention && page === 'play') ? (
     <SettingsPage />
   ) : completedMatch ? (
     <MatchResultsPage match={completedMatch} />
