@@ -49,7 +49,6 @@ export function MatchSurveyPrompt({
         if (!active) return
         if (survey) {
           setStatus('submitted')
-          onAnswered?.()
         } else {
           setStatus('pending')
         }
@@ -61,7 +60,7 @@ export function MatchSurveyPrompt({
     return () => {
       active = false
     }
-  }, [matchId, onAnswered])
+  }, [matchId])
 
   if (status === 'loading' || status === 'submitted') return null
 
