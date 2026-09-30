@@ -564,7 +564,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       set({ mapsStatus: 'loading', selectedMode: initialMode, error: null })
       try {
         const maps = await window.api.matchmaking.getMaps()
-        const selectedMode = get().selectedMode
+        const selectedMode =
+          get().queueStatus === 'idle' &&
+          get().selectedMode === 'legacy' &&
+          !maps.some((map) => map.supportedModes.includes('legacy'))
+            ? 'unrated'
+            : get().selectedMode
         const currentPreferences = readMatchmakingPreferences(playerId)
         const availableMapIds = new Set(
           maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
@@ -573,6 +578,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           get().queueStatus === 'idle'
             ? currentPreferences.mapIdsByMode?.[selectedMode]
             : get().selectedMapIds
+        if (selectedMode !== get().selectedMode) {
+          saveMatchmakingPreferences(playerId, { lastMode: selectedMode })
+        }
         set({
           maps,
           mapsStatus: 'ready',

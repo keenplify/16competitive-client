@@ -264,6 +264,7 @@ export function PlayPage({
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
   const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
+  const hasLegacyMaps = maps.some((map) => map.supportedModes.includes('legacy'))
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
   const smallMapColumns = Math.max(1, Math.ceil(availableMaps.length / 2))
   const wideMapColumns =
@@ -596,19 +597,21 @@ export function PlayPage({
               className="shrink-0"
               ariaLabel="Matchmaking mode"
               value={selectedMode}
-              items={(['5v5', 'unrated', 'legacy', 'ffa'] as const).map((mode) => ({
-                value: mode,
-                label: getMatchmakingModeLabel(mode),
-                disabled: isSearching || !isLeader,
-                title:
-                  mode === '5v5'
-                    ? 'Rated 5v5 with MMR progression'
-                    : mode === 'ffa'
-                      ? 'Drop-in deathmatch, first to 90 kills'
-                      : mode === 'legacy'
-                        ? 'Unrated 5v5 with CS 1.3 movement'
-                        : 'Unrated 5v5 without MMR changes'
-              }))}
+              items={(['5v5', 'unrated', 'legacy', 'ffa'] as const)
+                .filter((mode) => mode !== 'legacy' || hasLegacyMaps)
+                .map((mode) => ({
+                  value: mode,
+                  label: getMatchmakingModeLabel(mode),
+                  disabled: isSearching || !isLeader,
+                  title:
+                    mode === '5v5'
+                      ? 'Rated 5v5 with MMR progression'
+                      : mode === 'ffa'
+                        ? 'Drop-in deathmatch, first to 90 kills'
+                        : mode === 'legacy'
+                          ? 'Unrated 5v5 with CS 1.3 movement'
+                          : 'Unrated 5v5 without MMR changes'
+                }))}
               onChange={(mode) => {
                 if (mode === '5v5' && rankedBlockedForHost) toast.error(rankedBlockReason)
                 else selectMode(mode)
