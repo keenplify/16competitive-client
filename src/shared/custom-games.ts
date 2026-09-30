@@ -13,7 +13,7 @@ export const CUSTOM_GAME_CHANNELS = {
   kick: 'custom-games:kick'
 } as const
 
-export type CustomGameMode = 'unrated' | 'ffa' | 'fight_yard'
+export type CustomGameMode = '3v3' | '5v5' | 'unrated' | 'ffa' | 'fight_yard'
 export type CustomGameState = 'WAITING' | 'READY_CHECK' | 'LIVE' | 'FINISHED'
 
 export interface CustomGameMember {
