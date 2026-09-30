@@ -1,4 +1,16 @@
-import { ArrowRight, ChevronLeft, LoaderCircle, Trophy, UserPlus, UserRound } from 'lucide-react'
+import {
+  Annoyed,
+  ArrowRight,
+  ChevronLeft,
+  Frown,
+  Laugh,
+  LoaderCircle,
+  Meh,
+  Smile,
+  Trophy,
+  UserPlus,
+  UserRound
+} from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
@@ -9,7 +21,7 @@ import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { OperationMatchProgress } from '../operations/OperationMatchProgress'
-import type { CompletedMatch } from './matchmaking.store'
+import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
@@ -19,6 +31,8 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   )
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
+  const maps = useMatchmakingStore((state) => state.maps)
+  const mapDisplayName = maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId
   const currentPlayerTeam = match.teams.teamA.some((player) => player.id === currentPlayerId)
     ? 1
     : match.teams.teamB.some((player) => player.id === currentPlayerId)
@@ -60,6 +74,11 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   const [resultsStep, setResultsStep] = useState<'missions' | 'summary'>(() =>
     rewards || questSnapshot ? 'missions' : 'summary'
   )
+  const [funRating, setFunRating] = useState<number | null>(null)
+  const [fairnessRating, setFairnessRating] = useState<number | null>(null)
+  const [surveyStatus, setSurveyStatus] = useState<
+    'loading' | 'pending' | 'submitting' | 'submitted'
+  >('loading')
 
   useEffect(() => {
     const closeContextMenu = (): void => setContextMenu(null)
@@ -111,6 +130,50 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       document.removeEventListener('visibilitychange', onFocusChange)
     }
   }, [resultsStep])
+
+  useEffect(() => {
+    let active = true
+    setFunRating(null)
+    setFairnessRating(null)
+    setSurveyStatus('loading')
+
+    void window.api.matchHistory
+      .getSurvey(match.matchId)
+      .then((survey) => {
+        if (!active) return
+        if (survey) {
+          setFunRating(survey.funRating)
+          setFairnessRating(survey.fairnessRating)
+          setSurveyStatus('submitted')
+        } else {
+          setSurveyStatus('pending')
+        }
+      })
+      .catch(() => {
+        if (active) setSurveyStatus('pending')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [match.matchId])
+
+  const submitSurvey = (): void => {
+    if (funRating === null || fairnessRating === null || surveyStatus === 'submitting') return
+    setSurveyStatus('submitting')
+    void window.api.matchHistory
+      .submitSurvey(match.matchId, funRating, fairnessRating)
+      .then(() => {
+        setSurveyStatus('submitted')
+        toast.success(
+          `Thanks for the feedback! ${mapDisplayName} · ${getMatchmakingModeLabel(match.mode)}`
+        )
+      })
+      .catch((reason: unknown) => {
+        setSurveyStatus('pending')
+        toast.error(reason instanceof Error ? reason.message : 'Could not save your feedback.')
+      })
+  }
 
   const showPlayerMenu = (event: MouseEvent<HTMLElement>, playerId: string): void => {
     event.preventDefault()
@@ -352,6 +415,59 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         </div>
       )}
 
+      {resultsStep === 'summary' &&
+        (surveyStatus === 'pending' || surveyStatus === 'submitting') && (
+          <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2">
+            <section
+              className="match-survey-enter pointer-events-auto border border-sky-300/35 border-l-[3px] border-l-sky-400 bg-[linear-gradient(90deg,rgba(14,116,144,0.18),transparent_42%),rgba(9,14,20,0.97)] px-5 py-4 text-left shadow-[0_12px_28px_rgba(0,0,0,0.46)]"
+              aria-label="Match feedback"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                    Match feedback
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {mapDisplayName} · {getMatchmakingModeLabel(match.mode)}
+                  </p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <SurveyRating
+                      label="How fun was this match?"
+                      value={funRating}
+                      labels={['Not fun', 'A little fun', 'Okay', 'Fun', 'Very fun']}
+                      onChange={setFunRating}
+                    />
+                    <SurveyRating
+                      label="How fair was this match?"
+                      value={fairnessRating}
+                      labels={['Very unfair', 'Unfair', 'Neutral', 'Fair', 'Very fair']}
+                      onChange={setFairnessRating}
+                    />
+                  </div>
+                </div>
+                <Button
+                  className="shrink-0"
+                  disabled={
+                    surveyStatus === 'submitting' ||
+                    funRating === null ||
+                    fairnessRating === null
+                  }
+                  onClick={submitSurvey}
+                >
+                  {surveyStatus === 'submitting' ? (
+                    <>
+                      <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                      Sending…
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
+                </Button>
+              </div>
+            </section>
+          </div>
+        )}
+
       {contextMenu && (
         <div
           className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
@@ -501,5 +617,49 @@ function Team({
         })}
       </div>
     </div>
+  )
+}
+
+
+const surveyFaces = [Frown, Annoyed, Meh, Smile, Laugh] as const
+
+function SurveyRating({
+  label,
+  value,
+  labels,
+  onChange
+}: {
+  label: string
+  value: number | null
+  labels: readonly [string, string, string, string, string]
+  onChange: (value: number) => void
+}): React.JSX.Element {
+  return (
+    <fieldset>
+      <legend className="text-xs font-semibold text-neutral-300">{label}</legend>
+      <div className="mt-2 flex gap-1.5">
+        {surveyFaces.map((Icon, index) => {
+          const rating = index + 1
+          const selected = value === rating
+          return (
+            <button
+              key={rating}
+              type="button"
+              className={`flex size-9 items-center justify-center border transition focus-visible:outline-2 focus-visible:outline-sky-300 ${
+                selected
+                  ? 'border-sky-300 bg-sky-400/20 text-sky-200'
+                  : 'border-white/10 bg-black/20 text-neutral-500 hover:border-white/25 hover:bg-white/5 hover:text-white'
+              }`}
+              aria-label={labels[index]}
+              aria-pressed={selected}
+              title={labels[index]}
+              onClick={() => onChange(rating)}
+            >
+              <Icon className="size-5" aria-hidden="true" />
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }
