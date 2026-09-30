@@ -42,16 +42,16 @@ export function MatchSurveyPrompt({
     let active = true
     void window.api.matchHistory
       .getSurvey(matchId)
-      .then((survey) => {
+      .then(({ eligible, survey }) => {
         if (!active) return
-        if (survey) {
+        if (!eligible || survey) {
           setStatus('submitted')
         } else {
           setStatus('pending')
         }
       })
       .catch(() => {
-        if (active) setStatus('pending')
+        if (active) setStatus('submitted')
       })
 
     return () => {
@@ -77,7 +77,7 @@ export function MatchSurveyPrompt({
         void refreshSession()
         const reward = result.pointsAwarded > 0 ? ' · +' + result.pointsAwarded + ' Points' : ''
         toast.success(
-          'Thanks for the feedback! ' +
+          'Thanks for rating ' +
             mapDisplayName +
             ' · ' +
             getMatchmakingModeLabel(mode as MatchmakingMode) +
@@ -87,21 +87,21 @@ export function MatchSurveyPrompt({
       })
       .catch((reason: unknown) => {
         setStatus('pending')
-        toast.error(reason instanceof Error ? reason.message : 'Could not save your feedback.')
+        toast.error(reason instanceof Error ? reason.message : 'Could not save your map feedback.')
       })
   }
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2">
       <section
-        className="match-survey-enter pointer-events-auto border border-sky-300/35 border-l-[3px] border-l-sky-400 bg-[linear-gradient(90deg,rgba(14,116,144,0.18),transparent_42%),rgba(9,14,20,0.97)] px-5 py-4 text-left shadow-[0_12px_28px_rgba(0,0,0,0.46)]"
-        aria-label="Match feedback"
+        className="match-survey-enter pointer-events-auto border border-sky-300/35 border-l-[3px] border-l-sky-400 bg-neutral-950 px-5 py-4 text-left shadow-[0_12px_28px_rgba(0,0,0,0.7)]"
+        aria-label="Map feedback"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-4">
               <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-                Match feedback
+                Map contest feedback
               </p>
               <p className="text-[11px] font-bold tracking-[0.14em] text-amber-300 uppercase">
                 +500 Points
@@ -112,13 +112,13 @@ export function MatchSurveyPrompt({
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <SurveyRating
-                label="How fun was this match?"
+                label="How fun is this map?"
                 value={funRating}
                 labels={['Not fun', 'A little fun', 'Okay', 'Fun', 'Very fun']}
                 onChange={setFunRating}
               />
               <SurveyRating
-                label="How fair was this match?"
+                label="How balanced is this map?"
                 value={fairnessRating}
                 labels={['Very unfair', 'Unfair', 'Neutral', 'Fair', 'Very fair']}
                 onChange={setFairnessRating}

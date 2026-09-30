@@ -10,7 +10,7 @@ import type {
 import type {
   MatchHistoryEntry,
   MatchSummary,
-  MatchSurvey,
+  MatchSurveyStatus,
   MatchSurveySubmission,
   PendingMatchSurvey,
   PlayerProfile
@@ -537,11 +537,10 @@ const api: Window['api'] = {
       const body = await authenticatedGet<{ player: PlayerProfile }>(`/profile/players/${playerId}`)
       return body.player
     },
-    async getSurvey(matchId: string): Promise<MatchSurvey | null> {
-      const body = await authenticatedGet<{ survey: MatchSurvey | null }>(
+    async getSurvey(matchId: string): Promise<MatchSurveyStatus> {
+      return authenticatedGet<MatchSurveyStatus>(
         `/profile/matches/${matchId}/survey`
       )
-      return body.survey
     },
     async getPendingSurvey(): Promise<PendingMatchSurvey | null> {
       const body = await authenticatedGet<{ match: PendingMatchSurvey | null }>(
