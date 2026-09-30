@@ -62,6 +62,11 @@ export interface MatchSurvey {
   updatedAt: string
 }
 
+export interface MatchSurveyStatus {
+  eligible: boolean
+  survey: MatchSurvey | null
+}
+
 export interface PendingMatchSurvey {
   matchId: string
   mapId: string
@@ -92,7 +97,7 @@ export interface MatchHistoryApi {
   get(): Promise<MatchHistoryEntry[]>
   getSummary(matchId: string): Promise<MatchSummary>
   getPlayerProfile(playerId: string): Promise<PlayerProfile>
-  getSurvey(matchId: string): Promise<MatchSurvey | null>
+  getSurvey(matchId: string): Promise<MatchSurveyStatus>
   getPendingSurvey(): Promise<PendingMatchSurvey | null>
   submitSurvey(
     matchId: string,

@@ -5,6 +5,7 @@ import type {
   MatchSummary,
   MatchSummaryPlayer,
   MatchSurvey,
+  MatchSurveyStatus,
   MatchSurveySubmission,
   PendingMatchSurvey,
   PlayerProfile
@@ -243,12 +244,12 @@ export const getPlayerProfile = async (playerId: unknown): Promise<PlayerProfile
 }
 
 
-export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurvey | null> => {
+export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurveyStatus> => {
   if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
     throw new Error('Invalid match ID')
   }
   const token = getSessionToken()
-  if (!token) throw new Error('Sign in before rating a match')
+  if (!token) throw new Error('Sign in before rating a map')
   const response = await fetch(`${API_BASE_URL}/profile/matches/${matchId}/survey`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
@@ -267,15 +268,16 @@ export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurvey | nu
       serverError === 'UNAUTHORIZED'
         ? 'Your session expired. Sign in again.'
         : serverError === 'MATCH_NOT_FOUND'
-          ? 'This match is unavailable for feedback.'
-          : 'Could not load match feedback'
+          ? 'This map is unavailable for feedback.'
+          : 'Could not load map feedback'
     )
   }
-  const survey =
-    typeof body === 'object' && body !== null ? (body as Record<string, unknown>).survey : null
-  if (survey === null) return null
-  if (!isMatchSurvey(survey)) throw new Error('The matchmaking server returned invalid feedback')
-  return survey
+  const envelope = typeof body === 'object' && body !== null ? body as Record<string, unknown> : null
+  const survey = envelope?.survey
+  if (typeof envelope?.eligible !== 'boolean' || (survey !== null && !isMatchSurvey(survey))) {
+    throw new Error('The matchmaking server returned invalid map feedback')
+  }
+  return { eligible: envelope.eligible, survey }
 }
 
 export const submitMatchSurvey = async (
@@ -299,7 +301,7 @@ export const submitMatchSurvey = async (
     throw new Error('Choose both feedback ratings.')
   }
   const token = getSessionToken()
-  if (!token) throw new Error('Sign in before rating a match')
+  if (!token) throw new Error('Sign in before rating a map')
   const response = await fetch(`${API_BASE_URL}/profile/matches/${matchId}/survey`, {
     method: 'POST',
     headers: {
@@ -323,8 +325,10 @@ export const submitMatchSurvey = async (
       serverError === 'UNAUTHORIZED'
         ? 'Your session expired. Sign in again.'
         : serverError === 'MATCH_NOT_FOUND'
-          ? 'This match is unavailable for feedback.'
-          : 'Could not save match feedback'
+          ? 'This map is unavailable for feedback.'
+          : serverError === 'MAP_FEEDBACK_DISABLED'
+            ? 'Map feedback is closed for this map.'
+            : 'Could not save map feedback'
     )
   }
   const envelope =
@@ -345,7 +349,7 @@ export const submitMatchSurvey = async (
 
 export const getPendingMatchSurvey = async (): Promise<PendingMatchSurvey | null> => {
   const token = getSessionToken()
-  if (!token) throw new Error('Sign in before viewing match feedback')
+  if (!token) throw new Error('Sign in before viewing map feedback')
   const response = await fetch(`${API_BASE_URL}/profile/matches/pending-survey`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
@@ -363,7 +367,7 @@ export const getPendingMatchSurvey = async (): Promise<PendingMatchSurvey | null
     throw new Error(
       serverError === 'UNAUTHORIZED'
         ? 'Your session expired. Sign in again.'
-        : 'Could not load pending match feedback'
+        : 'Could not load pending map feedback'
     )
   }
   const match =
