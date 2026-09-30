@@ -8,18 +8,28 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v[2345]\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v[23456]\t/.test(header ?? '') || lines.length > 34) return null
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = /^#16c-scoreboard-v[45]\t/.test(header)
-  const withRoundWinners = header.startsWith('#16c-scoreboard-v5\t')
+  const withBot = /^#16c-scoreboard-v[456]\t/.test(header)
+  const withFormat = header.startsWith('#16c-scoreboard-v6\t')
+  const withRoundWinners = withFormat || header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(19).split('\t')
-  if (headerFields.length !== (withRoundWinners ? 4 : 3)) return null
-  const [map, roundText, modeText, roundWinners = ''] = headerFields
+  if (headerFields.length !== (withFormat ? 8 : withRoundWinners ? 4 : 3)) return null
+  const [map, roundText, modeText, roundWinners = '', halfRoundsText, winTargetText, ctWinsText, tWinsText] = headerFields
   if (!/^[a-zA-Z0-9_]{1,32}$/.test(map)) return null
   const round = Number(roundText)
   if (!Number.isInteger(round) || round < 0 || round > 99) return null
   if (modeText !== '0' && modeText !== '1') return null
   if (!/^[CT]{0,99}$/.test(roundWinners) || roundWinners.length > round) return null
+  const halfRounds = withFormat ? Number(halfRoundsText) : 12
+  const winTarget = withFormat ? Number(winTargetText) : 13
+  const ctWins = withFormat ? Number(ctWinsText) : null
+  const tWins = withFormat ? Number(tWinsText) : null
+  if (!Number.isInteger(halfRounds) || halfRounds < 0 || halfRounds > 49 ||
+      !Number.isInteger(winTarget) || winTarget < 1 || winTarget > 99 ||
+      (withFormat && (!Number.isInteger(ctWins) || ctWins < 0 || ctWins > 99 ||
+                      !Number.isInteger(tWins) || tWins < 0 || tWins > 99)) ||
+      (modeText === '0' && halfRounds === 0)) return null
   const players = []
   const seen = new Set()
   for (const line of lines) {
@@ -79,6 +89,10 @@ function parseSnapshot(text) {
     round,
     mode: modeText === '1' ? 'ffa' : 'competitive',
     roundWinners: withRoundWinners ? roundWinners : null,
+    halfRounds,
+    winTarget,
+    ctWins,
+    tWins,
     players
   }
 }

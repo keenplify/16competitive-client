@@ -14,6 +14,10 @@ test('parses a unified leaderboard with assists and sorts by score', () => {
     round: 0,
     mode: 'ffa',
     roundWinners: null,
+    halfRounds: 12,
+    winTarget: 13,
+    ctWins: null,
+    tWins: null,
     players: [
       {
         id: 1,
@@ -74,6 +78,18 @@ test('reads CT and T round winners while keeping the live round unassigned', () 
   assert.equal(snapshot?.round, 3)
   assert.equal(snapshot?.roundWinners, 'CT')
   assert.equal(parseSnapshot('#16c-scoreboard-v5\tde_dust2\t2\t0\tCTX\n'), null)
+})
+
+test('reads the server supplied MR8 match format', () => {
+  const snapshot = parseSnapshot(
+    '#16c-scoreboard-v6\tde_dust2\t9\t0\tCTCTCTCT\t8\t9\t5\t3\n1\t2\t2\t1\t0\t25\t1\t0\tAlpha\n'
+  )
+  assert.equal(snapshot?.halfRounds, 8)
+  assert.equal(snapshot?.winTarget, 9)
+  assert.equal(snapshot?.roundWinners, 'CTCTCTCT')
+  assert.equal(snapshot?.ctWins, 5)
+  assert.equal(snapshot?.tWins, 3)
+  assert.equal(parseSnapshot('#16c-scoreboard-v6\tde_dust2\t9\t0\tCT\t0\t9\t1\t0\n'), null)
 })
 
 test('rejects malformed and duplicate player rows', () => {
