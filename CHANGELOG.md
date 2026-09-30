@@ -1525,3 +1525,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Lobby
 
 - Improved navigation based on the current match status.
+
+## v2026.930.7 — 2026-09-30
+
+### Matchmaking
+
+- Improved matchmaking support for legacy maps.
+- Updated selected game mode handling for a smoother queue experience.
