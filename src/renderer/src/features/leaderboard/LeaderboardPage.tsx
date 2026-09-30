@@ -198,9 +198,9 @@ export function LeaderboardPage(): JSX.Element {
             ? [
                 {
                   value: 'featured' as const,
-                  label: featured.ladder.rewardText || 'Challenge',
+                  label: featured.ladder.title,
                   icon: <Trophy className="size-4" aria-hidden="true" />,
-                  title: featured.ladder.title
+                  title: featured.ladder.description ?? featured.ladder.rewardText ?? 'Challenge'
                 }
               ]
             : [])
