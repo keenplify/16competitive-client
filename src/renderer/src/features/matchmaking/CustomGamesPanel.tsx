@@ -210,7 +210,7 @@ export function CustomGamesPanel({
                 {room.mode === 'ffa'
                   ? 'FFA · first to 90'
                   : room.mode === 'fight_yard'
-                    ? 'Fight Yard · 5v5 · first team to 90'
+                    ? `Fight Yard · ${room.teamOneCapacity}v${room.teamTwoCapacity} · first team to 90`
                     : room.mode === '3v3'
                       ? 'Unrated 3v3'
                       : room.mode === '5v5'
@@ -453,7 +453,7 @@ export function CustomGamesPanel({
                                   <Bot className="size-4" aria-hidden="true" />
                                 </button>
                               )}
-                              {room.mode !== 'fight_yard' && capacity > 1 && !blocked && index === capacity - 1 && (
+                              {capacity > 1 && !blocked && index === capacity - 1 && (
                                 <button
                                   type="button"
                                   className="text-xs font-semibold text-amber-300 hover:text-amber-200"
@@ -465,7 +465,7 @@ export function CustomGamesPanel({
                                   Block
                                 </button>
                               )}
-                              {room.mode !== 'fight_yard' && blocked && index === capacity && (
+                              {blocked && index === capacity && (
                                 <button
                                   type="button"
                                   className="text-xs font-semibold text-sky-300 hover:text-sky-200"
