@@ -1,6 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import { isMatchmakingMode, type MatchmakingMap } from '../shared/matchmaking'
+import { isServerCustomGameMode } from '../shared/custom-games'
 
 const MAP_ID_PATTERN = /^[a-z0-9_]{1,64}$/
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -29,7 +30,9 @@ const isMap = (value: unknown): value is MatchmakingMap =>
   value.game.length <= 32 &&
   isPreviewUrl(value.previewUrl) &&
   Array.isArray(value.supportedModes) &&
-  value.supportedModes.every(isMatchmakingMode)
+  value.supportedModes.every(isMatchmakingMode) &&
+  Array.isArray(value.customModes) &&
+  value.customModes.every(isServerCustomGameMode)
 
 export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
   const token = getSessionToken()

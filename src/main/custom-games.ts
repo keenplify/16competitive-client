@@ -6,6 +6,7 @@ import type {
   CustomGameSettings,
   CustomGameSettingsUpdate
 } from '../shared/custom-games'
+import { isCustomGameMode } from '../shared/custom-games'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MAP_PATTERN = /^[a-z0-9_]{1,64}$/
@@ -27,7 +28,7 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
   UUID_PATTERN.test(value.id) &&
   typeof value.ownerId === 'string' &&
   typeof value.name === 'string' &&
-  (value.mode === 'unrated' || value.mode === 'ffa') &&
+  isCustomGameMode(value.mode) &&
   typeof value.mapId === 'string' &&
   MAP_PATTERN.test(value.mapId) &&
   ['WAITING', 'READY_CHECK', 'LIVE', 'FINISHED'].includes(String(value.state)) &&
@@ -64,7 +65,7 @@ const validateSettings = (value: unknown): CustomGameSettings => {
   if (typeof rawName !== 'string') throw new Error('Invalid room name')
   const name = rawName.trim()
   if (name.length < 3 || name.length > 48) throw new Error('Room name must be 3–48 characters')
-  if (mode !== 'unrated' && mode !== 'ffa') throw new Error('Invalid custom game mode')
+  if (!isCustomGameMode(mode)) throw new Error('Invalid custom game mode')
   if (typeof mapId !== 'string' || !MAP_PATTERN.test(mapId)) throw new Error('Invalid map')
   const password = validatePassword(value.password) as string | undefined
   return { name, mode, mapId, ...(password === undefined ? {} : { password }) }
@@ -80,8 +81,7 @@ const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
     update.name = name
   }
   if (value.mode !== undefined) {
-    if (value.mode !== 'unrated' && value.mode !== 'ffa')
-      throw new Error('Invalid custom game mode')
+    if (!isCustomGameMode(value.mode)) throw new Error('Invalid custom game mode')
     update.mode = value.mode
   }
   if (value.mapId !== undefined) {

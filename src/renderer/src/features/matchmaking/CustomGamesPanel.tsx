@@ -1,10 +1,13 @@
 import { useEffect, useState, type JSX, type MouseEvent } from 'react'
 import { Bot, LockKeyhole, Plus, RefreshCw, UserPlus, UserX } from 'lucide-react'
 import { toast } from 'react-toastify'
-import type {
-  CustomGameMember,
-  CustomGameMode,
-  CustomGameRoom
+import {
+  CUSTOM_GAME_MODES,
+  CUSTOM_GAME_MODE_LABELS,
+  type CustomGameMember,
+  type CustomGameMode,
+  type CustomGameRoom,
+  type CustomGameSettingsUpdate
 } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
@@ -47,6 +50,99 @@ const serverTextClass = (latencyMs: number | null, available: boolean): string =
   return 'text-red-400'
 }
 
+function RoomSettingsForm({
+  room,
+  maps,
+  onSave
+}: {
+  room: CustomGameRoom
+  maps: MatchmakingMap[]
+  onSave: (settings: CustomGameSettingsUpdate) => Promise<void>
+}): JSX.Element {
+  const [mode, setMode] = useState<CustomGameMode>(room.mode)
+  const [mapId, setMapId] = useState(room.mapId)
+  const availableModes = CUSTOM_GAME_MODES.filter(
+    (candidate) =>
+      candidate === room.mode || maps.some(({ customModes }) => customModes.includes(candidate))
+  )
+  const selectedMode = availableModes.includes(mode) ? mode : room.mode
+  const availableMaps = maps.filter(
+    (map) =>
+      map.customModes.includes(selectedMode) ||
+      (selectedMode === room.mode && map.id === room.mapId)
+  )
+  const selectedMapId = availableMaps.some((map) => map.id === mapId)
+    ? mapId
+    : (availableMaps[0]?.id ?? '')
+
+  return (
+    <form
+      className="mt-4 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-[1.2fr_.7fr_.9fr_1.2fr_auto] md:items-end"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (!selectedMapId) return
+        const form = new FormData(event.currentTarget)
+        const nextPassword = String(form.get('password') ?? '')
+        void onSave({
+          name: String(form.get('name') ?? ''),
+          mode: selectedMode,
+          mapId: selectedMapId,
+          ...(nextPassword ? { password: nextPassword } : {})
+        })
+      }}
+    >
+      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+        Room title
+        <input className={fieldClass} name="name" defaultValue={room.name} maxLength={48} />
+      </label>
+      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+        Mode
+        <select
+          className={fieldClass}
+          name="mode"
+          value={selectedMode}
+          onChange={(event) => setMode(event.target.value as CustomGameMode)}
+        >
+          {availableModes.map((availableMode) => (
+            <option key={availableMode} value={availableMode}>
+              {CUSTOM_GAME_MODE_LABELS[availableMode]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+        Map
+        <select
+          className={fieldClass}
+          name="mapId"
+          value={selectedMapId}
+          disabled={availableMaps.length === 0}
+          onChange={(event) => setMapId(event.target.value)}
+        >
+          {availableMaps.map((map) => (
+            <option key={map.id} value={map.id}>
+              {map.displayName}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
+        Password
+        <input
+          className={fieldClass}
+          name="password"
+          maxLength={64}
+          type="password"
+          placeholder={room.hasPassword ? 'Replace password' : 'Optional password'}
+        />
+      </label>
+      <Button variant="secondary" type="submit" disabled={!selectedMapId}>
+        Save
+      </Button>
+    </form>
+  )
+}
+
 export function CustomGamesPanel({
   currentPlayerId,
   maps,
@@ -71,9 +167,7 @@ export function CustomGamesPanel({
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
   const selectNode = useMatchmakingStore((state) => state.selectNode)
-  const supportedMaps = maps.filter(
-    ({ supportedModes }) => supportedModes.includes('unrated') || supportedModes.includes('ffa')
-  )
+  const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const [passwordRoom, setPasswordRoom] = useState<CustomGameRoom | null>(null)
   const [movingToTeam, setMovingToTeam] = useState<0 | 1 | 2 | null>(null)
   const [memberMenu, setMemberMenu] = useState<{
@@ -81,6 +175,10 @@ export function CustomGamesPanel({
     x: number
     y: number
   } | null>(null)
+
+  useEffect(() => {
+    void loadMaps()
+  }, [loadMaps])
 
   useEffect(() => {
     void refresh()
@@ -203,8 +301,8 @@ export function CustomGamesPanel({
                 {room.mode === 'ffa'
                   ? 'FFA · first to 90'
                   : room.teamOneCapacity === room.teamTwoCapacity
-                    ? `Unranked ${room.teamOneCapacity}v${room.teamTwoCapacity}`
-                    : 'Unranked custom'}{' '}
+                    ? `${CUSTOM_GAME_MODE_LABELS[room.mode]} ${room.teamOneCapacity}v${room.teamTwoCapacity}`
+                    : `${CUSTOM_GAME_MODE_LABELS[room.mode]} custom`}{' '}
                 · {room.state.replace('_', ' ')}
               </p>
             </div>
@@ -225,56 +323,12 @@ export function CustomGamesPanel({
           </div>
 
           {editable && (
-            <form
+            <RoomSettingsForm
               key={`${room.id}:${room.name}:${room.mode}:${room.mapId}:${room.hasPassword}`}
-              className="mt-4 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-[1.2fr_.7fr_.9fr_1.2fr_auto] md:items-end"
-              onSubmit={(event) => {
-                event.preventDefault()
-                const form = new FormData(event.currentTarget)
-                const nextPassword = String(form.get('password') ?? '')
-                void updateRoom({
-                  name: String(form.get('name') ?? ''),
-                  mode: String(form.get('mode') ?? 'unrated') as CustomGameMode,
-                  mapId: String(form.get('mapId') ?? ''),
-                  ...(nextPassword ? { password: nextPassword } : {})
-                })
-              }}
-            >
-              <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                Room title
-                <input className={fieldClass} name="name" defaultValue={room.name} maxLength={48} />
-              </label>
-              <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                Mode
-                <select className={fieldClass} name="mode" defaultValue={room.mode}>
-                  <option value="unrated">Unranked</option>
-                  <option value="ffa">FFA</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                Map
-                <select className={fieldClass} name="mapId" defaultValue={room.mapId}>
-                  {supportedMaps.map((map) => (
-                    <option key={map.id} value={map.id}>
-                      {map.displayName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                Password
-                <input
-                  className={fieldClass}
-                  name="password"
-                  maxLength={64}
-                  type="password"
-                  placeholder={room.hasPassword ? 'Replace password' : 'Optional password'}
-                />
-              </label>
-              <Button variant="secondary" type="submit">
-                Save
-              </Button>
-            </form>
+              room={room}
+              maps={maps}
+              onSave={updateRoom}
+            />
           )}
 
           {room.state === 'READY_CHECK' && (
@@ -526,7 +580,10 @@ export function CustomGamesPanel({
                   disabled={status === 'loading'}
                   aria-label="Refresh rooms"
                   title="Refresh rooms"
-                  onClick={() => void refresh()}
+                  onClick={() => {
+                    void refresh()
+                    void loadMaps()
+                  }}
                 >
                   <RefreshCw
                     className={`size-4 ${status === 'loading' ? 'animate-spin' : ''}`}
@@ -585,7 +642,7 @@ export function CustomGamesPanel({
                         <span className="truncate">{candidate.name}</span>
                       </p>
                       <p className="mt-1 text-[10px] text-neutral-500 md:hidden">
-                        {candidate.mode === 'ffa' ? 'FFA' : 'Unranked'} · {mapName} ·{' '}
+                        {CUSTOM_GAME_MODE_LABELS[candidate.mode]} · {mapName} ·{' '}
                         {candidate.members.length}/
                         {candidate.teamOneCapacity + candidate.teamTwoCapacity + 2}
                       </p>
@@ -596,7 +653,7 @@ export function CustomGamesPanel({
                       </p>
                     </div>
                     <span className="hidden text-xs text-neutral-300 md:block">
-                      {candidate.mode === 'ffa' ? 'FFA' : 'Unranked'}
+                      {CUSTOM_GAME_MODE_LABELS[candidate.mode]}
                     </span>
                     <span className="hidden truncate font-mono text-xs text-neutral-300 md:block">
                       {mapName}

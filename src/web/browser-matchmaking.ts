@@ -25,6 +25,47 @@ let navigating = false
 let nodesCache: MatchmakingNode[] = []
 let nodesCacheUpdatedAt = 0
 let lastConnection: Extract<MatchmakingServerMessage, { type: 'match_connect' }> | null = null
+let readyNotificationKey: string | null = null
+let readyNotification: Notification | null = null
+let currentReadyCheck: Extract<MatchmakingServerMessage, { type: 'match_ready_check' }> | null =
+  null
+const defaultTitle = document.title
+
+const clearReadyAlert = (): void => {
+  readyNotification?.close()
+  readyNotification = null
+  readyNotificationKey = null
+  currentReadyCheck = null
+  document.title = defaultTitle
+}
+
+const alertReadyCheck = (
+  message: Extract<MatchmakingServerMessage, { type: 'match_ready_check' }>
+): void => {
+  if (Date.parse(message.deadline) <= Date.now()) return
+  currentReadyCheck = message
+  const key = `${message.matchId}:${message.deadline}`
+  if (readyNotificationKey === key && (!document.hidden || readyNotification)) return
+  readyNotification?.close()
+  readyNotificationKey = key
+  document.title = 'Match ready — 1.6 Competitive'
+  if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted')
+    return
+  try {
+    readyNotification = new Notification('Your match is ready!', {
+      body: 'Return to 1.6 Competitive and accept before the timer ends.',
+      tag: `match-ready-${message.matchId}`,
+      requireInteraction: true
+    })
+    readyNotification.onclick = () => {
+      window.focus()
+      readyNotification?.close()
+      readyNotification = null
+    }
+  } catch (error) {
+    console.warn('[WebMatchmaking] could not show ready notification', error)
+  }
+}
 
 const emit = (event: MatchmakingEvent): void => {
   for (const listener of listeners) listener(event)
@@ -186,13 +227,38 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
   }
 
   if (message.type === 'match_connect') {
+    clearReadyAlert()
     lastConnection = message
     emit(message)
     return
   }
 
+  if (message.type === 'match_ready_check') alertReadyCheck(message)
+  if (
+    message.type === 'match_countdown' ||
+    message.type === 'match_cancelled' ||
+    message.type === 'queue_left'
+  ) {
+    clearReadyAlert()
+  }
+
   emit(message)
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (currentReadyCheck) alertReadyCheck(currentReadyCheck)
+    return
+  }
+  readyNotification?.close()
+  readyNotification = null
+  if (navigating || !getWebSessionToken()) return
+  if (socket?.readyState === WebSocket.OPEN && authenticated) {
+    send({ type: 'get_queue_status' })
+  } else {
+    void openSocket().catch(() => undefined)
+  }
+})
 
 const openSocket = (): Promise<void> => {
   if (socket?.readyState === WebSocket.OPEN && authenticated) return Promise.resolve()
