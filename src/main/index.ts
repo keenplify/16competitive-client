@@ -39,7 +39,13 @@ import { MODEL_CHANNELS } from '../shared/models'
 import { readCounterStrikeModel } from './models'
 import { readModelThumbnail, writeModelThumbnail } from './model-thumbnail-cache'
 import { getMatchmakingMaps } from './matchmaking-maps'
-import { getMatchHistory, getMatchSummary, getPlayerProfile } from './match-history'
+import {
+  getMatchHistory,
+  getMatchSummary,
+  getMatchSurvey,
+  getPlayerProfile,
+  submitMatchSurvey
+} from './match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import { PARTY_CHANNELS } from '../shared/party'
 import { FRIEND_CHANNELS } from '../shared/friends'
@@ -600,6 +606,14 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
     getPlayerProfile(playerId)
+  )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSurvey, (_, matchId: unknown) =>
+    getMatchSurvey(matchId)
+  )
+  ipcMain.handle(
+    MATCH_HISTORY_CHANNELS.submitSurvey,
+    (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
+      submitMatchSurvey(matchId, funRating, fairnessRating)
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
