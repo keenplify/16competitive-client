@@ -6,6 +6,7 @@ import type {
   MatchSummaryPlayer,
   MatchSurvey,
   MatchSurveySubmission,
+  PendingMatchSurvey,
   PlayerProfile
 } from '../shared/match-history'
 
@@ -87,6 +88,18 @@ const isMatchSurvey = (value: unknown): value is MatchSurvey => {
     survey.fairnessRating <= 5 &&
     typeof survey.createdAt === 'string' &&
     typeof survey.updatedAt === 'string'
+  )
+}
+
+const isPendingMatchSurvey = (value: unknown): value is PendingMatchSurvey => {
+  if (typeof value !== 'object' || value === null) return false
+  const pending = value as Record<string, unknown>
+  return (
+    typeof pending.matchId === 'string' &&
+    typeof pending.mapId === 'string' &&
+    typeof pending.mapDisplayName === 'string' &&
+    typeof pending.mode === 'string' &&
+    (pending.completedAt === null || typeof pending.completedAt === 'string')
   )
 }
 
@@ -327,4 +340,37 @@ export const submitMatchSurvey = async (
     throw new Error('The matchmaking server returned invalid feedback')
   }
   return { survey, pointsAwarded }
+}
+
+
+export const getPendingMatchSurvey = async (): Promise<PendingMatchSurvey | null> => {
+  const token = getSessionToken()
+  if (!token) throw new Error('Sign in before viewing match feedback')
+  const response = await fetch(`${API_BASE_URL}/profile/matches/pending-survey`, {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => {
+    throw new Error('Could not reach the matchmaking server')
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const serverError =
+      typeof body === 'object' &&
+      body !== null &&
+      typeof (body as Record<string, unknown>).error === 'string'
+        ? (body as Record<string, unknown>).error
+        : `HTTP ${response.status}`
+    throw new Error(
+      serverError === 'UNAUTHORIZED'
+        ? 'Your session expired. Sign in again.'
+        : 'Could not load pending match feedback'
+    )
+  }
+  const match =
+    typeof body === 'object' && body !== null ? (body as Record<string, unknown>).match : null
+  if (match === null) return null
+  if (!isPendingMatchSurvey(match)) {
+    throw new Error('The matchmaking server returned invalid pending feedback')
+  }
+  return match
 }
