@@ -1477,3 +1477,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Reduced noise from connection failures.
 - Discord IPC errors are now handled quietly.
+
+## v2026.930.3 — 2026-09-30
+
+### Post-match surveys
+
+- Share feedback through a new post-match satisfaction survey.
+- Defer a survey for the current session or complete it later.
+- Unanswered surveys appear in the lobby on your next launch.
+- Earn 500 points for completing a survey.
+- Your point balance refreshes after receiving a survey reward.
+
+### Visual updates
+
+- Added the Papamo wordmark to authentication screens.
+- Refined authentication and text-field styling.
