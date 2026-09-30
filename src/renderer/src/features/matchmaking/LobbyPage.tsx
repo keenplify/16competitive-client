@@ -15,6 +15,7 @@ import { LobbySocialSidebar } from '../party/LobbySocialSidebar'
 import { usePartyStore } from '../party/party.store'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import type { AuthPlayer } from '../../../../shared/auth'
+import type { PendingMatchSurvey } from '../../../../shared/match-history'
 import type { Party, PartyMember } from '../../../../shared/party'
 import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
@@ -24,6 +25,8 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
+import { MatchSurveyPrompt } from './MatchSurveyPrompt'
+import { isMatchSurveyDeferredForSession } from './match-survey-session'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
@@ -130,6 +133,7 @@ export function LobbyPage(): JSX.Element {
   const [friendsCollapsed, setFriendsCollapsed] = useState(false)
   const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
   const [dailyMissionsCollapsed, setDailyMissionsCollapsed] = useState(false)
+  const [pendingSurvey, setPendingSurvey] = useState<PendingMatchSurvey | null>(null)
   useEffect(() => {
     void refreshLobbyLoadout()
   }, [refreshLobbyLoadout])
@@ -151,6 +155,27 @@ export function LobbyPage(): JSX.Element {
     }
     setFriendsCollapsed(collapsed)
   }
+
+  useEffect(() => {
+    if (!player?.id || isMatchSurveyDeferredForSession()) {
+      setPendingSurvey(null)
+      return
+    }
+
+    let active = true
+    void window.api.matchHistory
+      .getPendingSurvey()
+      .then((pending) => {
+        if (active && !isMatchSurveyDeferredForSession()) setPendingSurvey(pending)
+      })
+      .catch(() => {
+        if (active) setPendingSurvey(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [player?.id])
 
   useEffect(() => {
     startParty()
@@ -328,6 +353,18 @@ export function LobbyPage(): JSX.Element {
           </section>
         </div>
       )}
+      {page === 'lobby' &&
+        !completedMatch &&
+        pendingSurvey &&
+        !isMatchSurveyDeferredForSession() && (
+          <MatchSurveyPrompt
+            matchId={pendingSurvey.matchId}
+            mapDisplayName={pendingSurvey.mapDisplayName}
+            mode={pendingSurvey.mode}
+            onAnswered={() => setPendingSurvey(null)}
+            onDeferred={() => setPendingSurvey(null)}
+          />
+        )}
       <LobbyNavigation
         activePage={page}
         onNavigate={handleNavigate}
