@@ -12,6 +12,7 @@ import type {
   MatchSummary,
   MatchSurvey,
   MatchSurveySubmission,
+  PendingMatchSurvey,
   PlayerProfile
 } from '../shared/match-history'
 import type { NewsPost } from '../shared/news'
@@ -541,6 +542,12 @@ const api: Window['api'] = {
         `/profile/matches/${matchId}/survey`
       )
       return body.survey
+    },
+    async getPendingSurvey(): Promise<PendingMatchSurvey | null> {
+      const body = await authenticatedGet<{ match: PendingMatchSurvey | null }>(
+        '/profile/matches/pending-survey'
+      )
+      return body.match
     },
     async submitSurvey(
       matchId: string,
