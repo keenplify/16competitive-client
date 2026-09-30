@@ -30,19 +30,16 @@ export function MatchSurveyPrompt({
   const refreshSession = useAuthStore((state) => state.refreshSession)
   const [funRating, setFunRating] = useState<number | null>(null)
   const [fairnessRating, setFairnessRating] = useState<number | null>(null)
-  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>('loading')
+  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(
+    () => (isMatchSurveyDeferredForSession() ? 'submitted' : 'loading')
+  )
 
   useEffect(() => {
     if (isMatchSurveyDeferredForSession()) {
-      setStatus('submitted')
       return
     }
 
     let active = true
-    setFunRating(null)
-    setFairnessRating(null)
-    setStatus('loading')
-
     void window.api.matchHistory
       .getSurvey(matchId)
       .then((survey) => {

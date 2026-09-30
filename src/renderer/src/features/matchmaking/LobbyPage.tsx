@@ -133,7 +133,14 @@ export function LobbyPage(): JSX.Element {
   const [friendsCollapsed, setFriendsCollapsed] = useState(false)
   const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
   const [dailyMissionsCollapsed, setDailyMissionsCollapsed] = useState(false)
-  const [pendingSurvey, setPendingSurvey] = useState<PendingMatchSurvey | null>(null)
+  const [pendingSurveyState, setPendingSurveyState] = useState<{
+    playerId: string
+    survey: PendingMatchSurvey | null
+  } | null>(null)
+  const pendingSurvey =
+    pendingSurveyState?.playerId === player?.id && !isMatchSurveyDeferredForSession()
+      ? pendingSurveyState.survey
+      : null
   useEffect(() => {
     void refreshLobbyLoadout()
   }, [refreshLobbyLoadout])
@@ -158,7 +165,6 @@ export function LobbyPage(): JSX.Element {
 
   useEffect(() => {
     if (!player?.id || isMatchSurveyDeferredForSession()) {
-      setPendingSurvey(null)
       return
     }
 
@@ -166,10 +172,12 @@ export function LobbyPage(): JSX.Element {
     void window.api.matchHistory
       .getPendingSurvey()
       .then((pending) => {
-        if (active && !isMatchSurveyDeferredForSession()) setPendingSurvey(pending)
+        if (active && !isMatchSurveyDeferredForSession()) {
+          setPendingSurveyState({ playerId: player.id, survey: pending })
+        }
       })
       .catch(() => {
-        if (active) setPendingSurvey(null)
+        if (active) setPendingSurveyState({ playerId: player.id, survey: null })
       })
 
     return () => {
@@ -358,11 +366,16 @@ export function LobbyPage(): JSX.Element {
         pendingSurvey &&
         !isMatchSurveyDeferredForSession() && (
           <MatchSurveyPrompt
+            key={pendingSurvey.matchId}
             matchId={pendingSurvey.matchId}
             mapDisplayName={pendingSurvey.mapDisplayName}
             mode={pendingSurvey.mode}
-            onAnswered={() => setPendingSurvey(null)}
-            onDeferred={() => setPendingSurvey(null)}
+            onAnswered={() =>
+              setPendingSurveyState({ playerId: player.id, survey: null })
+            }
+            onDeferred={() =>
+              setPendingSurveyState({ playerId: player.id, survey: null })
+            }
           />
         )}
       <LobbyNavigation
