@@ -540,7 +540,7 @@ export function PlayPage(): JSX.Element {
             <section className="mt-8">
               <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
               <div className="mt-3 flex max-w-xl gap-3">
-                {(['5v5', 'unrated', 'ffa'] as const).map((mode) =>
+                {(['5v5', 'unrated', 'ffa', 'fight_yard'] as const).map((mode) =>
                   mode === '5v5' && rankedBlockedForHost ? (
                     <div
                       key={mode}
@@ -583,7 +583,9 @@ export function PlayPage(): JSX.Element {
                           ? 'Rated. MMR changes and full competitive progression.'
                           : mode === 'ffa'
                             ? 'Drop-in deathmatch. First player to 90 kills wins; no MMR changes.'
-                            : 'Same 5v5 rules, but the result does not change MMR.'}
+                            : mode === 'fight_yard'
+                              ? 'Team deathmatch. First team to 90 kills wins; no MMR changes.'
+                              : 'Same 5v5 rules, but the result does not change MMR.'}
                       </span>
                     </button>
                   )
