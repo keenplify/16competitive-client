@@ -33,15 +33,17 @@ export function CreateCustomGameModal({
   const modeOptions = useMemo(
     () =>
       ([
+        { id: '5v5', label: '5v5' },
+        { id: '3v3', label: '3v3' },
         { id: 'unrated', label: 'Unrated' },
         { id: 'ffa', label: 'FFA' },
         { id: 'fight_yard', label: 'Fight Yard' }
       ] as const).filter(({ id }) =>
-        maps.some(({ supportedModes }) => supportedModes.includes(id))
+        maps.some(({ customModes }) => customModes.includes(id))
       ),
     [maps]
   )
-  const supportedMaps = maps.filter(({ supportedModes }) => supportedModes.includes(mode))
+  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(mode))
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)
     ? mapId
     : (supportedMaps[0]?.id ?? '')
