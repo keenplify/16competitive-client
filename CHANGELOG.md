@@ -1470,3 +1470,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added the featured ladder title to the leaderboard header.
 - Added a link to join the Discord community.
+
+## v2026.930.2 — 2026-09-30
+
+### Improvements
+
+- Reduced noise from connection failures.
+- Discord IPC errors are now handled quietly.
