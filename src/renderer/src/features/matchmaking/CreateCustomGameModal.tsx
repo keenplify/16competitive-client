@@ -128,6 +128,7 @@ export function CreateCustomGameModal({
                 >
                   <option value="unrated">Unranked</option>
                   <option value="ffa">FFA</option>
+                  <option value="fight_yard">Fight Yard</option>
                 </select>
               </label>
               <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
