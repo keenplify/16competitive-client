@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import { X } from 'lucide-react'
-import type { CustomGameMode } from '../../../../shared/custom-games'
+import {
+  CUSTOM_GAME_MODES,
+  CUSTOM_GAME_MODE_LABELS,
+  type CustomGameMode
+} from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
@@ -30,7 +34,11 @@ export function CreateCustomGameModal({
   const [submitting, setSubmitting] = useState(false)
   const dialogRef = useRef<HTMLElement>(null)
 
-  const supportedMaps = maps.filter(({ supportedModes }) => supportedModes.includes(mode))
+  const availableModes = CUSTOM_GAME_MODES.filter((candidate) =>
+    maps.some(({ customModes }) => customModes.includes(candidate))
+  )
+  const selectedMode = availableModes.includes(mode) ? mode : (availableModes[0] ?? 'unrated')
+  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(selectedMode))
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)
     ? mapId
     : (supportedMaps[0]?.id ?? '')
@@ -57,7 +65,7 @@ export function CreateCustomGameModal({
     setSubmitting(true)
     void createRoom({
       name: name.trim() || 'Custom Game',
-      mode,
+      mode: selectedMode,
       mapId: selectedMapId,
       ...(password ? { password } : {})
     }).then((created) => {
@@ -123,11 +131,15 @@ export function CreateCustomGameModal({
                 Mode
                 <select
                   className={fieldClass}
-                  value={mode}
+                  value={selectedMode}
+                  disabled={availableModes.length === 0}
                   onChange={(event) => setMode(event.target.value as CustomGameMode)}
                 >
-                  <option value="unrated">Unranked</option>
-                  <option value="ffa">FFA</option>
+                  {availableModes.map((availableMode) => (
+                    <option key={availableMode} value={availableMode}>
+                      {CUSTOM_GAME_MODE_LABELS[availableMode]}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">

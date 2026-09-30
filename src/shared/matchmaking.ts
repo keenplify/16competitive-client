@@ -1,3 +1,4 @@
+import type { ServerCustomGameMode } from './custom-games'
 import type { MatchRewardSummary } from './daily-quests'
 import type { FriendChatMessage } from './friends'
 
@@ -21,7 +22,14 @@ export const MATCHMAKING_CHANNELS = {
   event: 'matchmaking:event'
 } as const
 
-export const MATCHMAKING_MODES = ['5v5', 'unrated', 'legacy', 'casual', 'ffa'] as const
+export const MATCHMAKING_MODES = [
+  '5v5',
+  'unrated',
+  'legacy',
+  'casual',
+  'ffa',
+  'fight_yard'
+] as const
 export type MatchmakingMode = (typeof MATCHMAKING_MODES)[number]
 
 export const isMatchmakingMode = (value: unknown): value is MatchmakingMode =>
@@ -32,14 +40,19 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   unrated: 'Unrated',
   legacy: 'Legacy',
   casual: 'Casual',
-  ffa: 'FFA'
+  ffa: 'FFA',
+  fight_yard: 'Fight Yard'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
 
 export const allowsManualMatchConnection = (mode: unknown): boolean =>
-  mode === 'unrated' || mode === 'legacy' || mode === 'casual' || mode === 'ffa'
+  mode === 'unrated' ||
+  mode === 'legacy' ||
+  mode === 'casual' ||
+  mode === 'ffa' ||
+  mode === 'fight_yard'
 
 export function manualConnectionCommand(value: unknown): string {
   if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
@@ -93,6 +106,7 @@ export interface MatchmakingMap {
   game: string
   previewUrl: string | null
   supportedModes: MatchmakingMode[]
+  customModes: ServerCustomGameMode[]
 }
 
 export interface MatchmakingNode {

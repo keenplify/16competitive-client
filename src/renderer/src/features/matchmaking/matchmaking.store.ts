@@ -682,6 +682,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         selectedMode
       } = get()
       if (connectionStatus !== 'ready') return
+      // Ask while the Join Queue click still has browser user activation.
+      if (isWebRuntime() && 'Notification' in window && Notification.permission === 'default') {
+        void Notification.requestPermission().catch(() => undefined)
+      }
       const settings = await window.api.gameSettings.get().catch(() => null)
       if (!settings?.cs16ExecutablePath) {
         set({
