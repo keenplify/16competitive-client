@@ -7,7 +7,7 @@ import type {
   LeaderboardEntry,
   TopMmrLeaderboard
 } from '../shared/leaderboard'
-import type { MatchHistoryEntry, MatchSummary, PlayerProfile } from '../shared/match-history'
+import type { MatchHistoryEntry, MatchSummary, MatchSurvey, PlayerProfile } from '../shared/match-history'
 import type { NewsPost } from '../shared/news'
 import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
 import type {
@@ -529,6 +529,23 @@ const api: Window['api'] = {
     async getPlayerProfile(playerId: string): Promise<PlayerProfile> {
       const body = await authenticatedGet<{ player: PlayerProfile }>(`/profile/players/${playerId}`)
       return body.player
+    },
+    async getSurvey(matchId: string): Promise<MatchSurvey | null> {
+      const body = await authenticatedGet<{ survey: MatchSurvey | null }>(
+        `/profile/matches/${matchId}/survey`
+      )
+      return body.survey
+    },
+    async submitSurvey(
+      matchId: string,
+      funRating: number,
+      fairnessRating: number
+    ): Promise<MatchSurvey> {
+      const body = await jsonPost<{ survey: MatchSurvey }>(
+        `/profile/matches/${matchId}/survey`,
+        { funRating, fairnessRating }
+      )
+      return body.survey
     }
   },
 
