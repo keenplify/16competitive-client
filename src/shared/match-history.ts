@@ -3,6 +3,7 @@ export const MATCH_HISTORY_CHANNELS = {
   getSummary: 'match-history:get-summary',
   getPlayerProfile: 'match-history:get-player-profile',
   getSurvey: 'match-history:get-survey',
+  getPendingSurvey: 'match-history:get-pending-survey',
   submitSurvey: 'match-history:submit-survey'
 } as const
 
@@ -61,6 +62,14 @@ export interface MatchSurvey {
   updatedAt: string
 }
 
+export interface PendingMatchSurvey {
+  matchId: string
+  mapId: string
+  mapDisplayName: string
+  mode: string
+  completedAt: string | null
+}
+
 export interface MatchSurveySubmission {
   survey: MatchSurvey
   pointsAwarded: number
@@ -84,6 +93,7 @@ export interface MatchHistoryApi {
   getSummary(matchId: string): Promise<MatchSummary>
   getPlayerProfile(playerId: string): Promise<PlayerProfile>
   getSurvey(matchId: string): Promise<MatchSurvey | null>
+  getPendingSurvey(): Promise<PendingMatchSurvey | null>
   submitSurvey(
     matchId: string,
     funRating: number,
