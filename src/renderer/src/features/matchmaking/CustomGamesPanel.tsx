@@ -79,7 +79,6 @@ export function CustomGamesPanel({
     { id: 'ffa', label: 'FFA' },
     { id: 'fight_yard', label: 'Fight Yard' }
   ] as const).filter(({ id }) => maps.some(({ customModes }) => customModes.includes(id)))
-  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(room?.mode ?? 'unrated'))
   const [passwordRoom, setPasswordRoom] = useState<CustomGameRoom | null>(null)
   const [movingToTeam, setMovingToTeam] = useState<0 | 1 | 2 | null>(null)
   const [memberMenu, setMemberMenu] = useState<{
