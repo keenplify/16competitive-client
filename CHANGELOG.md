@@ -1463,3 +1463,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Improved code formatting and readability.
+
+## v2026.930.1 — 2026-09-30
+
+### Leaderboard
+
+- Added the featured ladder title to the leaderboard header.
+- Added a link to join the Discord community.
