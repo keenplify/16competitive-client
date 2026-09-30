@@ -5,6 +5,7 @@ import type {
   MatchSummary,
   MatchSummaryPlayer,
   MatchSurvey,
+  MatchSurveySubmission,
   PlayerProfile
 } from '../shared/match-history'
 
@@ -268,7 +269,7 @@ export const submitMatchSurvey = async (
   matchId: unknown,
   funRating: unknown,
   fairnessRating: unknown
-): Promise<MatchSurvey> => {
+): Promise<MatchSurveySubmission> => {
   if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
     throw new Error('Invalid match ID')
   }
@@ -313,8 +314,17 @@ export const submitMatchSurvey = async (
           : 'Could not save match feedback'
     )
   }
-  const survey =
-    typeof body === 'object' && body !== null ? (body as Record<string, unknown>).survey : null
-  if (!isMatchSurvey(survey)) throw new Error('The matchmaking server returned invalid feedback')
-  return survey
+  const envelope =
+    typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null
+  const survey = envelope?.survey
+  const pointsAwarded = envelope?.pointsAwarded
+  if (
+    !isMatchSurvey(survey) ||
+    typeof pointsAwarded !== 'number' ||
+    !Number.isInteger(pointsAwarded) ||
+    pointsAwarded < 0
+  ) {
+    throw new Error('The matchmaking server returned invalid feedback')
+  }
+  return { survey, pointsAwarded }
 }
