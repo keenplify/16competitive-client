@@ -29,7 +29,9 @@ const isMap = (value: unknown): value is MatchmakingMap =>
   value.game.length <= 32 &&
   isPreviewUrl(value.previewUrl) &&
   Array.isArray(value.supportedModes) &&
-  value.supportedModes.every(isMatchmakingMode)
+  value.supportedModes.every(isMatchmakingMode) &&
+  Array.isArray(value.customModes) &&
+  value.customModes.every(isMatchmakingMode)
 
 export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
   const token = getSessionToken()
