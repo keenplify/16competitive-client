@@ -1,19 +1,19 @@
-import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
+import { useEffect, useRef, type FormEvent, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
+import { PapamoWordmark } from '../../components/ui/PapamoWordmark'
 import { useAuthStore } from './auth.store'
 import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
 import { PlayPage } from '../matchmaking/PlayPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
-import { localMapPreviews } from '../matchmaking/map-previews'
 import { isWebRuntime } from '../../web-runtime'
+import operationBackground from '../../assets/operations/pixel-water-background.png'
 
-const mapPreviewSources = Object.values(localMapPreviews)
 const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): string =>
   provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
@@ -42,9 +42,6 @@ export function AuthPage(): JSX.Element {
   const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
   const restoreStarted = useRef(false)
-  const [backgroundPreview] = useState(
-    () => mapPreviewSources[Math.floor(Math.random() * mapPreviewSources.length)]
-  )
   const isLogin = mode === 'login'
   const isSubmitting = status === 'submitting'
   const webRuntime = isWebRuntime()
@@ -103,15 +100,15 @@ export function AuthPage(): JSX.Element {
         aria-label="Restoring your session"
         role="status"
       >
-        <LoaderCircle className="size-8 animate-spin text-amber-400" aria-hidden="true" />
+        <LoaderCircle className="size-8 animate-spin text-sky-400" aria-hidden="true" />
       </main>
     )
   }
 
   if (socialPollToken && socialProvider) {
     return (
-      <main className="grid min-h-screen place-items-center bg-neutral-950 p-6 text-white">
-        <section className="w-full max-w-md border border-white/10 bg-neutral-900/95 p-7 shadow-2xl sm:p-10">
+      <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
+        <section className="w-full max-w-md border border-sky-300/15 bg-slate-950/95 p-7 shadow-2xl sm:p-10">
           <Logo className="mb-8 size-16" />
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
             {socialPasswordRequired ? 'Account verification' : 'Step 1 of 2'}
@@ -147,6 +144,7 @@ export function AuthPage(): JSX.Element {
                   ? 'This email came from the existing account and cannot be changed here.'
                   : 'We use this to secure and identify your account.'
               }
+              className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
               onChange={(event) => setEmail(event.target.value)}
             />
 
@@ -162,6 +160,7 @@ export function AuthPage(): JSX.Element {
                 autoFocus
                 disabled={isSubmitting}
                 placeholder="Enter your existing password"
+                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
                 onChange={(event) => setPassword(event.target.value)}
               />
             )}
@@ -170,7 +169,11 @@ export function AuthPage(): JSX.Element {
               {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
 
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button
+              className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {isSubmitting
                 ? socialPasswordRequired
                   ? 'Verifying…'
@@ -200,23 +203,23 @@ export function AuthPage(): JSX.Element {
   }
 
   return (
-    <main className="relative isolate grid min-h-screen grid-cols-3 overflow-hidden bg-neutral-950 text-white">
+    <main className="relative isolate grid min-h-screen grid-cols-3 overflow-hidden bg-slate-950 text-white">
       <img
         className="absolute inset-0 -z-20 h-full w-full object-cover"
-        src={backgroundPreview}
+        src={operationBackground}
         alt=""
       />
-      <div className="flex flex-col justify-center items-center inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.55),rgba(10,10,10,0.78)_55%,rgba(10,10,10,0.94))]">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-950/35" />
+      <div className="flex flex-col justify-center items-center inset-0">
         <Logo className="z-10 size-10 md:top-12 md:left-[calc(27.5vw-16rem)] md:size-128" />
 
-        <p className="relative hidden overflow-hidden md:flex md:flex-col md:justify-between font-bold text-white/80 text-center">
-          COUNTER-STRIKE 1.6 RANKED CLIENT
-          <br />
-          BY PAPAMO GAMES
-        </p>
+        <div className="relative mt-8 hidden flex-col items-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
+          <p className="text-sm font-bold text-white">COUNTER-STRIKE 1.6 RANKED CLIENT</p>
+          <PapamoWordmark className="mt-3 text-xl" />
+        </div>
       </div>
 
-      <section className="flex items-center justify-center bg-neutral-950/80 p-6 backdrop-blur-sm sm:p-10 col-span-2">
+      <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 col-span-2">
         <div className="w-full max-w-sm">
           <div className="mb-8">
             <h2 className="text-3xl font-semibold tracking-tight">
@@ -229,10 +232,10 @@ export function AuthPage(): JSX.Element {
             </p>
           </div>
 
-          <div className="mb-6 grid grid-cols-2  bg-neutral-900 p-1">
+          <div className="mb-6 grid grid-cols-2 bg-slate-900 p-1">
             <Button
               variant="ghost"
-              className={isLogin ? 'bg-neutral-800 text-white hover:bg-neutral-800' : undefined}
+              className={isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
               disabled={isSubmitting}
               onClick={() => setMode('login')}
             >
@@ -240,7 +243,7 @@ export function AuthPage(): JSX.Element {
             </Button>
             <Button
               variant="ghost"
-              className={!isLogin ? 'bg-neutral-800 text-white hover:bg-neutral-800' : undefined}
+              className={!isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
               disabled={isSubmitting}
               onClick={() => setMode('register')}
             >
@@ -317,6 +320,7 @@ export function AuthPage(): JSX.Element {
               disabled={isSubmitting}
               placeholder="player_name"
               hint="3–32 characters: letters, numbers, and underscores"
+              className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
               onChange={(event) => setUsername(event.target.value)}
             />
             {(!isLogin || socialPollToken) && (
@@ -334,6 +338,7 @@ export function AuthPage(): JSX.Element {
                     ? `${socialProvider ? socialProviderLabel(socialProvider) : 'The provider'} did not provide an email address. Add one to continue.`
                     : undefined
                 }
+                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
                 onChange={(event) => setEmail(event.target.value)}
               />
             )}
@@ -348,6 +353,7 @@ export function AuthPage(): JSX.Element {
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                 disabled={isSubmitting}
                 placeholder="At least 8 characters"
+                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
                 onChange={(event) => setPassword(event.target.value)}
               />
             )}
@@ -356,7 +362,11 @@ export function AuthPage(): JSX.Element {
               {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
 
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button
+              className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
+              type="submit"
+              disabled={isSubmitting}
+            >
               {isSubmitting && !socialProvider
                 ? isLogin && !socialPollToken
                   ? 'Signing in…'
