@@ -4,6 +4,7 @@ import type {
   MatchHistoryEntry,
   MatchSummary,
   MatchSummaryPlayer,
+  MatchSurvey,
   PlayerProfile
 } from '../shared/match-history'
 
@@ -68,6 +69,23 @@ const isMatchSummary = (value: unknown): value is MatchSummary => {
     typeof summary.completedAt === 'string' &&
     Array.isArray(summary.players) &&
     summary.players.every(isSummaryPlayer)
+  )
+}
+
+const isMatchSurvey = (value: unknown): value is MatchSurvey => {
+  if (typeof value !== 'object' || value === null) return false
+  const survey = value as Record<string, unknown>
+  return (
+    typeof survey.funRating === 'number' &&
+    Number.isInteger(survey.funRating) &&
+    survey.funRating >= 1 &&
+    survey.funRating <= 5 &&
+    typeof survey.fairnessRating === 'number' &&
+    Number.isInteger(survey.fairnessRating) &&
+    survey.fairnessRating >= 1 &&
+    survey.fairnessRating <= 5 &&
+    typeof survey.createdAt === 'string' &&
+    typeof survey.updatedAt === 'string'
   )
 }
 
@@ -208,4 +226,95 @@ export const getPlayerProfile = async (playerId: unknown): Promise<PlayerProfile
     throw new Error('The matchmaking server returned an invalid player profile')
   }
   return (body as { player: PlayerProfile }).player
+}
+
+
+export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurvey | null> => {
+  if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
+    throw new Error('Invalid match ID')
+  }
+  const token = getSessionToken()
+  if (!token) throw new Error('Sign in before rating a match')
+  const response = await fetch(`${API_BASE_URL}/profile/matches/${matchId}/survey`, {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => {
+    throw new Error('Could not reach the matchmaking server')
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const serverError =
+      typeof body === 'object' &&
+      body !== null &&
+      typeof (body as Record<string, unknown>).error === 'string'
+        ? (body as Record<string, unknown>).error
+        : `HTTP ${response.status}`
+    throw new Error(
+      serverError === 'UNAUTHORIZED'
+        ? 'Your session expired. Sign in again.'
+        : serverError === 'MATCH_NOT_FOUND'
+          ? 'This match is unavailable for feedback.'
+          : 'Could not load match feedback'
+    )
+  }
+  const survey =
+    typeof body === 'object' && body !== null ? (body as Record<string, unknown>).survey : null
+  if (survey === null) return null
+  if (!isMatchSurvey(survey)) throw new Error('The matchmaking server returned invalid feedback')
+  return survey
+}
+
+export const submitMatchSurvey = async (
+  matchId: unknown,
+  funRating: unknown,
+  fairnessRating: unknown
+): Promise<MatchSurvey> => {
+  if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
+    throw new Error('Invalid match ID')
+  }
+  if (
+    typeof funRating !== 'number' ||
+    !Number.isInteger(funRating) ||
+    funRating < 1 ||
+    funRating > 5 ||
+    typeof fairnessRating !== 'number' ||
+    !Number.isInteger(fairnessRating) ||
+    fairnessRating < 1 ||
+    fairnessRating > 5
+  ) {
+    throw new Error('Choose both feedback ratings.')
+  }
+  const token = getSessionToken()
+  if (!token) throw new Error('Sign in before rating a match')
+  const response = await fetch(`${API_BASE_URL}/profile/matches/${matchId}/survey`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ funRating, fairnessRating }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => {
+    throw new Error('Could not reach the matchmaking server')
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const serverError =
+      typeof body === 'object' &&
+      body !== null &&
+      typeof (body as Record<string, unknown>).error === 'string'
+        ? (body as Record<string, unknown>).error
+        : `HTTP ${response.status}`
+    throw new Error(
+      serverError === 'UNAUTHORIZED'
+        ? 'Your session expired. Sign in again.'
+        : serverError === 'MATCH_NOT_FOUND'
+          ? 'This match is unavailable for feedback.'
+          : 'Could not save match feedback'
+    )
+  }
+  const survey =
+    typeof body === 'object' && body !== null ? (body as Record<string, unknown>).survey : null
+  if (!isMatchSurvey(survey)) throw new Error('The matchmaking server returned invalid feedback')
+  return survey
 }
