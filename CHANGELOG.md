@@ -1498,3 +1498,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Improved reliability when downloading the game inspector helper.
+
+## v2026.930.5 — 2026-09-30
+
+### Matchmaking
+
+- Added support for Legacy matchmaking mode.
+- Improved matchmaking preferences and region selection.
+
+### Map Feedback
+
+- Added a way to share feedback about map contests.
+
+### Interface
+
+- Refined UI components and visual styling.
+- Added the Rajdhani font for a refreshed look.
