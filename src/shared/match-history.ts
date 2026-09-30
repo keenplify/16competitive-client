@@ -61,6 +61,11 @@ export interface MatchSurvey {
   updatedAt: string
 }
 
+export interface MatchSurveySubmission {
+  survey: MatchSurvey
+  pointsAwarded: number
+}
+
 export interface PlayerProfile {
   id: string
   username: string
@@ -79,5 +84,9 @@ export interface MatchHistoryApi {
   getSummary(matchId: string): Promise<MatchSummary>
   getPlayerProfile(playerId: string): Promise<PlayerProfile>
   getSurvey(matchId: string): Promise<MatchSurvey | null>
-  submitSurvey(matchId: string, funRating: number, fairnessRating: number): Promise<MatchSurvey>
+  submitSurvey(
+    matchId: string,
+    funRating: number,
+    fairnessRating: number
+  ): Promise<MatchSurveySubmission>
 }
