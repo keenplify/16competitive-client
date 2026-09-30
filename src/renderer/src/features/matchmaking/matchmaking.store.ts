@@ -1,6 +1,7 @@
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 import {
   allowsManualMatchConnection,
+  MATCHMAKING_MODES,
   MatchmakingEvent,
   MatchmakingMap,
   MatchmakingMode,
@@ -558,12 +559,19 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       try {
         const maps = await window.api.matchmaking.getMaps()
         const { selectedMapIds, selectedMode } = get()
+        const availableModes = MATCHMAKING_MODES.filter((mode) =>
+          maps.some((map) => map.supportedModes.includes(mode))
+        )
+        const nextMode = availableModes.includes(selectedMode)
+          ? selectedMode
+          : (availableModes[0] ?? selectedMode)
         const availableMapIds = new Set(
-          maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
+          maps.filter((map) => map.supportedModes.includes(nextMode)).map((map) => map.id)
         )
         set({
           maps,
           mapsStatus: 'ready',
+          selectedMode: nextMode,
           selectedMapIds: selectedMapIds.filter((mapId) => availableMapIds.has(mapId))
         })
       } catch (error) {
@@ -612,6 +620,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     selectMode: (selectedMode) => {
       const { maps, selectedMapIds } = get()
+      if (!maps.some((map) => map.supportedModes.includes(selectedMode))) return
       const availableMapIds = new Set(
         maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
       )
