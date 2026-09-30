@@ -7,11 +7,15 @@ import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
 import { translateRuntimeHindi } from '../i18n/ui-translations-hindi'
 import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
+import { useNavigationStore } from '../navigation/navigation.store'
+import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const language = useLanguageStore((state) => state.language)
+  const page = useNavigationStore((state) => state.page)
+  const playView = useCustomGamesStore((state) => state.playView)
   const [progress, setProgress] = useState<Extract<
     MatchmakingEvent,
     { type: 'skin_assets_sync_progress' }
@@ -79,6 +83,14 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
       : railMode === 'collapsed'
         ? 'right-[3.75rem] bottom-4'
         : 'right-4 bottom-4'
+  const reportPositionForPlay =
+    page === 'play' && playView === 'matchmaking'
+      ? railMode === 'expanded'
+        ? 'right-4 bottom-24 md:right-[19rem] md:bottom-24'
+        : railMode === 'collapsed'
+          ? 'right-[3.75rem] bottom-24'
+          : 'right-4 bottom-24'
+      : reportPosition
 
   const reportIssue = async (): Promise<void> => {
     if (!description.trim()) {
@@ -104,7 +116,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
 
   return (
     <div
-      className={`fixed ${reportPosition} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
+      className={`fixed ${reportPositionForPlay} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
     >
       <p className=" border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
         Alpha Release Testing <b>Expect Bugs</b>

@@ -57,7 +57,6 @@ export function CustomGamesPanel({
   const rooms = useCustomGamesStore((state) => state.rooms)
   const room = useCustomGamesStore((state) => state.currentRoom)
   const status = useCustomGamesStore((state) => state.status)
-  const error = useCustomGamesStore((state) => state.error)
   const refresh = useCustomGamesStore((state) => state.refresh)
   const createModalOpen = useCustomGamesStore((state) => state.createModalOpen)
   const openCreateModal = useCustomGamesStore((state) => state.openCreateModal)
@@ -193,8 +192,6 @@ export function CustomGamesPanel({
           </div>
         </div>
       )}
-
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
       {room ? (
         <div className="border border-white/15 bg-neutral-950/75 p-4">

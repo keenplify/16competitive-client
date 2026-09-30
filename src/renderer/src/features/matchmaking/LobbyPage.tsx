@@ -19,6 +19,7 @@ import type { PendingMatchSurvey } from '../../../../shared/match-history'
 import type { Party, PartyMember } from '../../../../shared/party'
 import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
+import { useCustomGamesStore } from './custom-games.store'
 import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
 import { SettingsPage } from '../settings/SettingsPage'
 import { useGameSettingsStore } from '../settings/game-settings.store'
@@ -112,6 +113,7 @@ export function LobbyPage(): JSX.Element {
   const startDailyQuests = useDailyQuestStore((state) => state.start)
   const stopDailyQuests = useDailyQuestStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
+  const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
   const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
@@ -129,6 +131,11 @@ export function LobbyPage(): JSX.Element {
   ].includes(queueStatus)
   const showingMatchFoundScreen =
     page === 'play' && (queueStatus === 'match_found' || queueStatus === 'ready_check')
+  const showingPlaySelection =
+    page === 'play' &&
+    playView === 'matchmaking' &&
+    !completedMatch &&
+    ['idle', 'joining', 'queued', 'leaving'].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
   const [friendsCollapsed, setFriendsCollapsed] = useState(false)
   const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
@@ -290,7 +297,7 @@ export function LobbyPage(): JSX.Element {
   ) : completedMatch ? (
     <MatchResultsPage match={completedMatch} />
   ) : page === 'play' ? (
-    <PlayPage />
+    <PlayPage friendsCollapsed={friendsCollapsed} />
   ) : page === 'demos' ? (
     <AdminDemosPage />
   ) : page === 'settings' ? (
@@ -372,12 +379,8 @@ export function LobbyPage(): JSX.Element {
             matchId={pendingSurvey.matchId}
             mapDisplayName={pendingSurvey.mapDisplayName}
             mode={pendingSurvey.mode}
-            onAnswered={() =>
-              setPendingSurveyState({ playerId: player.id, survey: null })
-            }
-            onDeferred={() =>
-              setPendingSurveyState({ playerId: player.id, survey: null })
-            }
+            onAnswered={() => setPendingSurveyState({ playerId: player.id, survey: null })}
+            onDeferred={() => setPendingSurveyState({ playerId: player.id, survey: null })}
           />
         )}
       <LobbyNavigation
@@ -397,7 +400,7 @@ export function LobbyPage(): JSX.Element {
       />
       {content && (
         <div
-          className={`relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingMatchFoundScreen ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
+          className={`relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingMatchFoundScreen || showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
             // The friends rail renders nothing while a match needs attention, so
             // its reserved width must be released for the whole match lifecycle.
             matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'

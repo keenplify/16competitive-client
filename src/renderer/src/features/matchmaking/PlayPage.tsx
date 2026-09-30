@@ -1,5 +1,6 @@
-import { useEffect, useState, type JSX } from 'react'
-import { CircleHelp, Copy, LogOut } from 'lucide-react'
+import { useEffect, useState, type CSSProperties, type JSX } from 'react'
+import { Check, CircleHelp, Copy, LogOut } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import {
   allowsManualMatchConnection,
@@ -44,17 +45,18 @@ function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Eleme
     <button
       type="button"
       className={twMerge(
-        'group overflow-hidden  border border-white/10 bg-neutral-900 text-left transition hover:border-sky-400/40 disabled:cursor-not-allowed disabled:opacity-60',
-        selected && 'border-sky-400 bg-sky-400/10 ring-2 ring-sky-400/20'
+        'group relative h-full min-h-0 overflow-hidden border border-white/20 bg-neutral-900 text-left shadow-[0_12px_30px_rgba(0,0,0,0.35)] transition duration-200 hover:border-sky-300 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-60',
+        selected && 'border-sky-300 ring-2 ring-sky-300/40'
       )}
       disabled={disabled}
       aria-pressed={selected}
+      aria-label={`${map.displayName}, ${selected ? 'selected' : 'not selected'}`}
       onClick={onSelect}
     >
-      <div className="relative flex aspect-[16/8] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.24),transparent_38%),linear-gradient(135deg,#172033,#0a0a0a)]">
+      <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.24),transparent_38%),linear-gradient(135deg,#172033,#0a0a0a)]">
         {map.previewUrl || localMapPreviews[map.id] ? (
           <img
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             src={map.previewUrl ?? localMapPreviews[map.id]}
             alt=""
             onError={(event) => {
@@ -68,20 +70,30 @@ function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Eleme
             }}
           />
         ) : (
-          <span className="font-audiowide text-3xl text-white/20 uppercase">
-            {map.id.slice(0, 2)}
+          <span className="font-audiowide text-4xl text-white/25 uppercase">
+            {map.displayName.slice(0, 2)}
           </span>
         )}
       </div>
-      <div className="p-4">
-        <p className="font-semibold">{map.displayName}</p>
-        <p className="mt-1 font-mono text-xs text-neutral-500">{map.id}</p>
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-black/20" />
+      <div className="absolute top-2 right-2 flex size-6 items-center justify-center border border-white/70 bg-black/60 text-white">
+        {selected && <Check className="size-4" strokeWidth={3} aria-hidden="true" />}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 text-center drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
+        <p className="font-audiowide text-sm leading-tight text-white uppercase sm:text-base">
+          {map.displayName}
+        </p>
+        <p className="mt-1 font-mono text-[10px] text-white/75">{map.id}</p>
       </div>
     </button>
   )
 }
 
-export function PlayPage(): JSX.Element {
+export function PlayPage({
+  friendsCollapsed = false
+}: {
+  friendsCollapsed?: boolean
+}): JSX.Element {
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -156,6 +168,14 @@ export function PlayPage(): JSX.Element {
   }, [loadGameSettings])
 
   useEffect(() => {
+    if (error) toast.error(error)
+  }, [error])
+
+  useEffect(() => {
+    if (customRoomError) toast.error(customRoomError)
+  }, [customRoomError])
+
+  useEffect(() => {
     if (queueStatus !== 'ready_check' || !readyDeadline) return
     const update = (): void => {
       setSecondsToAccept(
@@ -196,6 +216,30 @@ export function PlayPage(): JSX.Element {
     }
   }
 
+  const handleFindMatch = (): void => {
+    if (!isConnected) {
+      toast.error('Connect to matchmaking before searching.')
+      return
+    }
+    if (mapsStatus !== 'ready') {
+      toast.info('Maps are still loading. Try again shortly.')
+      return
+    }
+    if (!hasSelectedMaps) {
+      toast.error('Select at least one map to find a match.')
+      return
+    }
+    if (!webRuntime && !gameExecutablePath) {
+      toast.error('Choose and save your Counter-Strike folder in Settings first.')
+      return
+    }
+    if (selectedMode === '5v5' && rankedBlockedForHost) {
+      toast.error(rankedBlockReason)
+      return
+    }
+    void joinQueue()
+  }
+
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   const isLeader = !party || party.leaderId === player.id
@@ -221,6 +265,11 @@ export function PlayPage(): JSX.Element {
   const retryWindowOpen = copyWaitSeconds === 0
   const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
   const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
+  const smallMapColumns = Math.max(1, Math.ceil(availableMaps.length / 2))
+  const wideMapColumns =
+    availableMaps.length <= 12
+      ? Math.max(1, Math.min(6, availableMaps.length))
+      : Math.ceil(availableMaps.length / 2)
   const hasSelectedMaps = selectedMapIds.length > 0
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
@@ -243,7 +292,6 @@ export function PlayPage(): JSX.Element {
           <p className="mt-5 text-sm text-neutral-400">
             Waiting for the server to open player acceptance…
           </p>
-          {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
         </section>
       </main>
     )
@@ -428,11 +476,6 @@ export function PlayPage(): JSX.Element {
               )}
             </div>
           )}
-
-          {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
-          {customRoomError && (
-            <p className="mt-4 text-center text-sm text-red-400">{customRoomError}</p>
-          )}
         </div>
       </main>
     )
@@ -441,31 +484,24 @@ export function PlayPage(): JSX.Element {
   return (
     <main
       className={twMerge(
-        'min-h-[calc(100vh-5rem)] p-5 text-white sm:p-8',
+        playView === 'matchmaking'
+          ? 'relative flex h-full min-h-0 flex-col overflow-hidden p-3 pb-20 text-white sm:p-4 sm:pb-20'
+          : 'min-h-[calc(100vh-5rem)] p-5 text-white sm:p-8',
         playView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
       <div
         className={twMerge(
-          'mx-auto max-w-6xl',
+          'mx-auto w-full max-w-7xl',
+          playView === 'matchmaking' && 'flex h-full min-h-0 flex-col',
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
-        <header className="flex flex-wrap items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
-            <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
-              {playView === 'matchmaking' ? 'Matchmaking' : 'Custom game'}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">
-              {playView === 'matchmaking' ? 'Choose your battlefield' : 'Browse custom games'}
+            <h1 className="text-3xl font-semibold text-white">
+              {playView === 'matchmaking' ? 'Find a match' : 'Browse custom games'}
             </h1>
-            <p className="mt-2 text-sm text-neutral-200">
-              {playView === 'custom'
-                ? 'Create a private room or join a game already in progress.'
-                : isLeader
-                  ? `Choose maps for ${getMatchmakingModeLabel(selectedMode)} matchmaking.`
-                  : `Your party leader chooses the ${getMatchmakingModeLabel(selectedMode)} map pool.`}
-            </p>
           </div>
           {playView === 'custom' ? (
             <div className="w-full max-w-sm">
@@ -512,20 +548,39 @@ export function PlayPage(): JSX.Element {
               />
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-neutral-200">
-              <span
-                className={twMerge(
-                  'size-2 rounded-full bg-neutral-600',
-                  isConnected && 'bg-emerald-400'
-                )}
+            <div className="w-full sm:w-72">
+              <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
+                <label
+                  className="font-semibold tracking-wide uppercase"
+                  htmlFor="matchmaking-region"
+                >
+                  Preferred region
+                </label>
+                <span>{connectionLabels[connectionStatus]}</span>
+              </div>
+              <MatchmakingRegionSelect
+                nodes={nodes}
+                selectedNodeId={selectedNodeId}
+                disabled={isSearching}
+                showHint={false}
+                onChange={(nodeId) => void selectNode(nodeId)}
               />
-              {connectionLabels[connectionStatus]}
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-sky-400"
+                  checked={allowRegionExpansion}
+                  disabled={isSearching}
+                  onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
+                />
+                Expand search after 90 seconds
+              </label>
             </div>
           )}
         </header>
 
         <TabList
-          className="mt-8"
+          className="mt-3 shrink-0"
           ariaLabel="Play modes"
           value={playView}
           items={[
@@ -536,154 +591,101 @@ export function PlayPage(): JSX.Element {
         />
 
         {playView === 'matchmaking' ? (
-          <>
-            <section className="mt-8">
-              <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">Mode</p>
-              <div className="mt-3 flex max-w-xl gap-3">
-                {(['5v5', 'unrated', 'ffa'] as const).map((mode) =>
-                  mode === '5v5' && rankedBlockedForHost ? (
-                    <div
-                      key={mode}
-                      className="flex-1   border border-white/10 bg-neutral-900 px-4 py-3 text-left text-neutral-300"
-                    >
-                      <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
-                      <span className="mt-1 block text-xs leading-5 text-amber-300">
-                        {rankedBlockReason}
-                      </span>
-                      {webRuntime && (
-                        <a
-                          href="https://papamo.dev/16competitive#download"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex text-xs font-semibold text-sky-300 transition hover:text-sky-200 hover:underline"
-                        >
-                          Download desktop app{' '}
-                          <span className="ml-1" aria-hidden="true">
-                            ↗
-                          </span>
-                        </a>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      key={mode}
-                      type="button"
-                      disabled={isSearching || !isLeader}
-                      onClick={() => selectMode(mode)}
-                      className={twMerge(
-                        'flex-1   border px-4 py-3 text-left transition',
-                        selectedMode === mode
-                          ? 'border-sky-400 bg-sky-400/10 text-white'
-                          : 'border-white/10 bg-neutral-900 text-neutral-300 hover:border-white/25'
-                      )}
-                    >
-                      <span className="block font-semibold">{getMatchmakingModeLabel(mode)}</span>
-                      <span className="mt-1 block text-xs text-neutral-400">
-                        {mode === '5v5'
-                          ? 'Rated. MMR changes and full competitive progression.'
-                          : mode === 'ffa'
-                            ? 'Drop-in deathmatch. First player to 90 kills wins; no MMR changes.'
-                            : 'Same 5v5 rules, but the result does not change MMR.'}
-                      </span>
-                    </button>
-                  )
-                )}
-              </div>
-            </section>
+          <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
+            <TabList
+              className="shrink-0"
+              ariaLabel="Matchmaking mode"
+              value={selectedMode}
+              items={(['5v5', 'unrated', 'legacy', 'ffa'] as const).map((mode) => ({
+                value: mode,
+                label: getMatchmakingModeLabel(mode),
+                disabled: isSearching || !isLeader,
+                title:
+                  mode === '5v5'
+                    ? 'Rated 5v5 with MMR progression'
+                    : mode === 'ffa'
+                      ? 'Drop-in deathmatch, first to 90 kills'
+                      : mode === 'legacy'
+                        ? 'Unrated 5v5 with CS 1.3 movement'
+                        : 'Unrated 5v5 without MMR changes'
+              }))}
+              onChange={(mode) => {
+                if (mode === '5v5' && rankedBlockedForHost) toast.error(rankedBlockReason)
+                else selectMode(mode)
+              }}
+            />
 
-            <section className="mt-8">
-              <label
-                className="block text-xs font-semibold tracking-wide text-neutral-200 uppercase"
-                htmlFor="matchmaking-region"
-              >
-                Preferred region
-              </label>
-              <MatchmakingRegionSelect
-                nodes={nodes}
-                selectedNodeId={selectedNodeId}
-                disabled={isSearching}
-                onChange={(nodeId) => void selectNode(nodeId)}
-              />
-              <label className="mt-4 flex max-w-xl cursor-pointer items-center gap-3 text-sm text-neutral-300">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-sky-400"
-                  checked={allowRegionExpansion}
-                  disabled={isSearching}
-                  onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
-                />
-                Expand search to other regions after 90 seconds
-              </label>
-            </section>
-
-            <section className="mt-8">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-xs font-semibold tracking-wide text-neutral-200 uppercase">
-                  Maps
+            <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
+              <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
+                <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                  Map pool
                 </p>
-                {availableMaps.length > 0 && (
-                  <p className="text-xs text-neutral-200">
-                    {selectedMapIds.length} of {availableMaps.length} selected
-                  </p>
-                )}
-              </div>
-              {mapsStatus === 'loading' && (
-                <p className="mt-4 text-sm text-neutral-400">Loading maps…</p>
-              )}
-              {mapsStatus === 'ready' && availableMaps.length === 0 && (
-                <p className="mt-4 text-sm text-neutral-400">
-                  {getMatchmakingModeLabel(selectedMode)} matchmaking is temporarily unavailable.
+                <p className="text-xs text-neutral-200">
+                  {selectedMapIds.length} / {availableMaps.length} selected
                 </p>
-              )}
-              <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {availableMaps.map((map) => (
-                  <MapCard
-                    key={map.id}
-                    map={map}
-                    selected={selectedMapIds.includes(map.id)}
-                    disabled={isSearching || !isLeader}
-                    onSelect={() => selectMap(map.id)}
-                  />
-                ))}
               </div>
+              {mapsStatus === 'ready' && availableMaps.length > 0 ? (
+                <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
+                  <div
+                    className="play-map-grid grid h-full min-h-0 gap-2"
+                    style={
+                      {
+                        '--play-map-columns-small': smallMapColumns,
+                        '--play-map-columns-wide': wideMapColumns,
+                        '--play-map-min-width-small': `${smallMapColumns * 136}px`,
+                        '--play-map-min-width-wide': `${wideMapColumns * 150}px`
+                      } as CSSProperties
+                    }
+                  >
+                    {availableMaps.map((map) => (
+                      <MapCard
+                        key={map.id}
+                        map={map}
+                        selected={selectedMapIds.includes(map.id)}
+                        disabled={isSearching || !isLeader}
+                        onSelect={() => selectMap(map.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
+                  {mapsStatus === 'loading'
+                    ? 'Loading maps…'
+                    : mapsStatus === 'error'
+                      ? 'Maps could not be loaded.'
+                      : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
+                </div>
+              )}
             </section>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-white/10 pt-6">
+            <div
+              className={twMerge(
+                'fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
+                friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
+              )}
+            >
+              <span className="hidden max-w-56 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:block">
+                {isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}
+              </span>
               <Button
-                className="min-w-44"
+                className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
                 data-audio-sfx="findMatch"
-                disabled={
-                  !isLeader ||
-                  !isConnected ||
-                  mapsStatus !== 'ready' ||
-                  !hasSelectedMaps ||
-                  (!webRuntime && !gameExecutablePath) ||
-                  (selectedMode === '5v5' && rankedBlockedForHost) ||
-                  isSearching ||
-                  queueStatus === 'joining'
-                }
-                onClick={() => void joinQueue()}
+                disabled={!isLeader || isSearching || queueStatus === 'joining'}
+                onClick={handleFindMatch}
               >
-                {isSearching
-                  ? 'Searching…'
-                  : queueStatus === 'joining'
-                    ? 'Joining queue…'
-                    : isLeader
-                      ? 'Find match'
-                      : 'Waiting for leader'}
+                <span className="relative z-10">
+                  {isSearching
+                    ? 'Searching…'
+                    : queueStatus === 'joining'
+                      ? 'Joining…'
+                      : isLeader
+                        ? 'Find match'
+                        : 'Waiting for leader'}
+                </span>
               </Button>
-              {!isLeader && (
-                <p className="text-sm text-neutral-500">
-                  You’ll be moved into the queue when your leader starts matchmaking.
-                </p>
-              )}
-              {isLeader && !webRuntime && !gameExecutablePath && (
-                <p className="text-sm text-amber-300">
-                  Choose and save your Counter-Strike folder in Settings first.
-                </p>
-              )}
             </div>
-          </>
+          </div>
         ) : (
           <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
             <CustomGamesPanel
@@ -695,10 +697,6 @@ export function PlayPage(): JSX.Element {
             />
           </div>
         )}
-
-        <div className="mt-4 min-h-5" aria-live="polite">
-          {error && <p className="text-sm text-red-400">{error}</p>}
-        </div>
       </div>
     </main>
   )
