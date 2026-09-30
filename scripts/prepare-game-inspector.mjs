@@ -56,9 +56,7 @@ async function prepare(platform, arch, checkOnly) {
   const nextClientAsset = 'papamo-nextclient-client-mini-win-x86.dll'
   const temporary = await mkdtemp(join(tmpdir(), 'competitive-helper-'))
   try {
-    execFileSync(
-      'gh',
-      [
+    const downloadArgs = [
         'release',
         'download',
         `v${config.version}`,
@@ -73,9 +71,21 @@ async function prepare(platform, arch, checkOnly) {
         ...(platform === 'win' ? ['--pattern', nextClientAsset] : []),
         '--dir',
         temporary
-      ],
-      { stdio: 'inherit', shell: false }
-    )
+      ]
+    const maxDownloadAttempts = 3
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        execFileSync('gh', downloadArgs, { stdio: 'inherit', shell: false })
+        break
+      } catch (error) {
+        if (attempt >= maxDownloadAttempts) throw error
+        const delayMs = attempt * 1_500
+        console.warn(
+          `Helper download failed (attempt ${attempt}/${maxDownloadAttempts}); retrying in ${delayMs / 1_000}s...`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
     const envelope = JSON.parse(await readFile(join(temporary, `${asset}.manifest.json`), 'utf8'))
     const manifest = verifyHelperRelease(envelope, config.publicKeyPem)
     if (
