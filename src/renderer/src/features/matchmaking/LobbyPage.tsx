@@ -138,7 +138,9 @@ export function LobbyPage(): JSX.Element {
     survey: PendingMatchSurvey | null
   } | null>(null)
   const pendingSurvey =
-    pendingSurveyState?.playerId === player?.id && !isMatchSurveyDeferredForSession()
+    pendingSurveyState &&
+    pendingSurveyState.playerId === player?.id &&
+    !isMatchSurveyDeferredForSession()
       ? pendingSurveyState.survey
       : null
   useEffect(() => {
