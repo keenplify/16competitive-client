@@ -21,7 +21,7 @@ export const MATCHMAKING_CHANNELS = {
   event: 'matchmaking:event'
 } as const
 
-export const MATCHMAKING_MODES = ['5v5', 'unrated', 'ffa', 'fight_yard'] as const
+export const MATCHMAKING_MODES = ['5v5', 'unrated', 'ffa', 'fight_yard', '3v3'] as const
 export type MatchmakingMode = (typeof MATCHMAKING_MODES)[number]
 
 export const isMatchmakingMode = (value: unknown): value is MatchmakingMode =>
@@ -31,7 +31,8 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   '5v5': 'Competitive',
   unrated: 'Unrated',
   ffa: 'FFA',
-  fight_yard: 'Fight Yard'
+  fight_yard: 'Fight Yard',
+  '3v3': '3v3'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
