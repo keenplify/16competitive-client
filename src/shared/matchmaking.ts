@@ -39,7 +39,7 @@ export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
 
 export const allowsManualMatchConnection = (mode: unknown): boolean =>
-  mode === 'unrated' || mode === 'ffa' || mode === 'fight_yard'
+  mode === '3v3' || mode === 'unrated' || mode === 'ffa' || mode === 'fight_yard'
 
 export function manualConnectionCommand(value: unknown): string {
   if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
