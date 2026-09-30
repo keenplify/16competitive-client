@@ -157,7 +157,6 @@ class DiscordPresence {
   private lastSentActivityKey: string | null = null
   private stopped = false
   private invalidClientIdLogged = false
-  private connectFailureLogged = false
   private joinHandler: ((secret: string) => Promise<void>) | null = null
 
   setJoinHandler(handler: (secret: string) => Promise<void>): void {
@@ -360,15 +359,10 @@ class DiscordPresence {
       .then(() => {
         this.flushCurrentActivity()
       })
-      .catch((error: unknown) => {
-        if (!this.connectFailureLogged) {
-          this.connectFailureLogged = true
-          console.warn(
-            '[DiscordPresence] Rich Presence unavailable:',
-            error instanceof Error ? error.message : String(error)
-          )
-        }
-      })
+      // Discord is an optional desktop integration. Missing Discord IPC is a
+      // normal condition, so keep reconnecting quietly without surfacing it as
+      // a warning in the launcher log.
+      .catch(() => {})
       .finally(() => {
         this.connectPromise = null
         if (!this.ready) this.scheduleReconnect()
