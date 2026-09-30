@@ -1514,3 +1514,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Refined UI components and visual styling.
 - Added the Rajdhani font for a refreshed look.
+
+## v2026.930.6 — 2026-09-30
+
+### Scoreboard
+
+- Added support for more scoreboard versions.
+- Improved scoreboard data parsing.
+
+### Match Lobby
+
+- Improved navigation based on the current match status.
