@@ -93,6 +93,7 @@ export interface MatchmakingMap {
   game: string
   previewUrl: string | null
   supportedModes: MatchmakingMode[]
+  customModes: MatchmakingMode[]
 }
 
 export interface MatchmakingNode {
