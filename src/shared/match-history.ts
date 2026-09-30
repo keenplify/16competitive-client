@@ -1,7 +1,9 @@
 export const MATCH_HISTORY_CHANNELS = {
   get: 'match-history:get',
   getSummary: 'match-history:get-summary',
-  getPlayerProfile: 'match-history:get-player-profile'
+  getPlayerProfile: 'match-history:get-player-profile',
+  getSurvey: 'match-history:get-survey',
+  submitSurvey: 'match-history:submit-survey'
 } as const
 
 export interface MatchHistoryEntry {
@@ -52,6 +54,13 @@ export interface MatchSummary {
   players: MatchSummaryPlayer[]
 }
 
+export interface MatchSurvey {
+  funRating: number
+  fairnessRating: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface PlayerProfile {
   id: string
   username: string
@@ -69,4 +78,6 @@ export interface MatchHistoryApi {
   get(): Promise<MatchHistoryEntry[]>
   getSummary(matchId: string): Promise<MatchSummary>
   getPlayerProfile(playerId: string): Promise<PlayerProfile>
+  getSurvey(matchId: string): Promise<MatchSurvey | null>
+  submitSurvey(matchId: string, funRating: number, fairnessRating: number): Promise<MatchSurvey>
 }
