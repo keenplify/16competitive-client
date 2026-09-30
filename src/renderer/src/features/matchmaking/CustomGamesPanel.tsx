@@ -72,9 +72,14 @@ export function CustomGamesPanel({
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
   const selectNode = useMatchmakingStore((state) => state.selectNode)
-  const supportedMaps = maps.filter(
-    ({ supportedModes }) => supportedModes.includes('unrated') || supportedModes.includes('ffa')
-  )
+  const customModeOptions = ([
+    { id: '5v5', label: '5v5' },
+    { id: '3v3', label: '3v3' },
+    { id: 'unrated', label: 'Unrated' },
+    { id: 'ffa', label: 'FFA' },
+    { id: 'fight_yard', label: 'Fight Yard' }
+  ] as const).filter(({ id }) => maps.some(({ customModes }) => customModes.includes(id)))
+  const supportedMaps = maps.filter(({ customModes }) => customModes.includes(room?.mode ?? 'unrated'))
   const [passwordRoom, setPasswordRoom] = useState<CustomGameRoom | null>(null)
   const [movingToTeam, setMovingToTeam] = useState<0 | 1 | 2 | null>(null)
   const [memberMenu, setMemberMenu] = useState<{
@@ -205,9 +210,15 @@ export function CustomGamesPanel({
                 {room.region} ·{' '}
                 {room.mode === 'ffa'
                   ? 'FFA · first to 90'
-                  : room.teamOneCapacity === room.teamTwoCapacity
-                    ? `Unranked ${room.teamOneCapacity}v${room.teamTwoCapacity}`
-                    : 'Unranked custom'}{' '}
+                  : room.mode === 'fight_yard'
+                    ? 'Fight Yard · 5v5 · first team to 90'
+                    : room.mode === '3v3'
+                      ? 'Unrated 3v3'
+                      : room.mode === '5v5'
+                        ? 'Custom 5v5'
+                        : room.teamOneCapacity === room.teamTwoCapacity
+                          ? `Unrated ${room.teamOneCapacity}v${room.teamTwoCapacity}`
+                          : 'Unrated custom'}{' '}
                 · {room.state.replace('_', ' ')}
               </p>
             </div>
@@ -250,14 +261,15 @@ export function CustomGamesPanel({
               <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
                 Mode
                 <select className={fieldClass} name="mode" defaultValue={room.mode}>
-                  <option value="unrated">Unranked</option>
-                  <option value="ffa">FFA</option>
+                  {customModeOptions.map(({ id, label }) => (
+                    <option key={id} value={id}>{label}</option>
+                  ))}
                 </select>
               </label>
               <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
                 Map
                 <select className={fieldClass} name="mapId" defaultValue={room.mapId}>
-                  {supportedMaps.map((map) => (
+                  {maps.filter(({ customModes }) => customModes.includes(room.mode)).map((map) => (
                     <option key={map.id} value={map.id}>
                       {map.displayName}
                     </option>
@@ -442,7 +454,7 @@ export function CustomGamesPanel({
                                   <Bot className="size-4" aria-hidden="true" />
                                 </button>
                               )}
-                              {capacity > 1 && !blocked && index === capacity - 1 && (
+                              {room.mode !== 'fight_yard' && capacity > 1 && !blocked && index === capacity - 1 && (
                                 <button
                                   type="button"
                                   className="text-xs font-semibold text-amber-300 hover:text-amber-200"
@@ -454,7 +466,7 @@ export function CustomGamesPanel({
                                   Block
                                 </button>
                               )}
-                              {blocked && index === capacity && (
+                              {room.mode !== 'fight_yard' && blocked && index === capacity && (
                                 <button
                                   type="button"
                                   className="text-xs font-semibold text-sky-300 hover:text-sky-200"
@@ -588,7 +600,15 @@ export function CustomGamesPanel({
                         <span className="truncate">{candidate.name}</span>
                       </p>
                       <p className="mt-1 text-[10px] text-neutral-500 md:hidden">
-                        {candidate.mode === 'ffa' ? 'FFA' : 'Unranked'} · {mapName} ·{' '}
+                        {candidate.mode === 'ffa'
+                          ? 'FFA'
+                          : candidate.mode === 'fight_yard'
+                            ? 'Fight Yard'
+                            : candidate.mode === '3v3'
+                              ? '3v3'
+                              : candidate.mode === '5v5'
+                                ? '5v5'
+                                : 'Unrated'} · {mapName} ·{' '}
                         {candidate.members.length}/
                         {candidate.teamOneCapacity + candidate.teamTwoCapacity + 2}
                       </p>
