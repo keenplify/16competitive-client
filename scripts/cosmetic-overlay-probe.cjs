@@ -9,9 +9,11 @@ const { readSnapshot } = require('./scoreboard-feed.cjs')
 
 const session = process.argv[2]
 const html = process.argv[3]
-const scoreboard = process.argv[4] === 'scoreboard'
-const width = scoreboard ? 1104 : 360
-const height = scoreboard ? 720 : 96
+const mode = process.argv[4]
+const scoreboard = mode === 'scoreboard'
+const allyTags = mode === 'ally-tags'
+const width = scoreboard ? 1104 : allyTags ? 960 : 360
+const height = scoreboard ? 720 : allyTags ? 540 : 96
 if (
   !session ||
   !html ||
@@ -32,7 +34,14 @@ app.whenReady().then(async () => {
     show: false,
     webPreferences: {
       offscreen: true,
-      ...(scoreboard ? { preload: path.join(__dirname, 'scoreboard-preload.cjs') } : {}),
+      ...(scoreboard || allyTags
+        ? {
+            preload: path.join(
+              __dirname,
+              scoreboard ? 'scoreboard-preload.cjs' : 'ally-tags-preload.cjs'
+            )
+          }
+        : {}),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -48,7 +57,11 @@ app.whenReady().then(async () => {
   let firstFrame = true
   window.webContents.on('paint', (_event, _dirty, image) => {
     const { width, height } = image.getSize()
-    if (width !== (scoreboard ? 1104 : 360) || height !== (scoreboard ? 720 : 96)) return
+    if (
+      width !== (scoreboard ? 1104 : allyTags ? 960 : 360) ||
+      height !== (scoreboard ? 720 : allyTags ? 540 : 96)
+    )
+      return
     const bytes = image.toPNG()
     if (bytes.length > 512 * 1024) return
     const temporary = path.join(session, 'overlay.png.tmp')
@@ -73,5 +86,18 @@ app.whenReady().then(async () => {
     }
     publish()
     setInterval(publish, 500)
+  } else if (allyTags) {
+    const publish = () => {
+      let value = ''
+      try {
+        value = fs.readFileSync(path.join(session, 'ally-tags.tsv'), 'utf8')
+      } catch {
+        value = ''
+      }
+      window.webContents.send('ally-tags', value)
+      window.webContents.invalidate()
+    }
+    publish()
+    setInterval(publish, 100)
   }
 })

@@ -6,8 +6,11 @@ const path = require('node:path')
 const { spawn } = require('node:child_process')
 
 async function main() {
-  const scoreboard = process.argv[2] === 'scoreboard'
-  const session = process.argv[scoreboard ? 3 : 2]
+  const root = path.resolve(__dirname, '..')
+  const mode = ['scoreboard', 'ally-tags'].includes(process.argv[2]) ? process.argv[2] : 'badge'
+  const scoreboard = mode === 'scoreboard'
+  const allyTags = mode === 'ally-tags'
+  const session = process.argv[mode === 'badge' ? 2 : 3]
   if (!session || !path.isAbsolute(session)) {
     throw new Error('Expected an absolute prepared cosmetic-probe session path')
   }
@@ -16,7 +19,14 @@ async function main() {
   const html = path.join(temp, 'index.html')
   await esbuild.build({
     entryPoints: [
-      path.join(__dirname, scoreboard ? 'scoreboard-probe.tsx' : 'cosmetic-overlay-probe.tsx')
+      path.join(
+        __dirname,
+        scoreboard
+          ? 'scoreboard-probe.tsx'
+          : allyTags
+            ? 'ally-tags-probe.tsx'
+            : 'cosmetic-overlay-probe.tsx'
+      )
     ],
     bundle: true,
     jsx: 'automatic',
@@ -29,6 +39,17 @@ async function main() {
     fs.writeFileSync(
       html,
       '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="scoreboard.css"><div id="root"></div><script src="renderer.js"></script>'
+    )
+  } else if (allyTags) {
+    fs.copyFileSync(path.join(__dirname, 'ally-tags-probe.css'), path.join(temp, 'ally-tags.css'))
+    fs.cpSync(
+      path.join(root, 'resources', 'weapon-category-icons', 'gamebanana'),
+      path.join(temp, 'weapon-icons'),
+      { recursive: true }
+    )
+    fs.writeFileSync(
+      html,
+      '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="ally-tags.css"><div id="root"></div><script src="renderer.js"></script>'
     )
   } else
     fs.writeFileSync(
@@ -45,12 +66,7 @@ async function main() {
   const electron = require('electron')
   const child = spawn(
     electron,
-    [
-      path.join(__dirname, 'cosmetic-overlay-probe.cjs'),
-      session,
-      html,
-      scoreboard ? 'scoreboard' : 'badge'
-    ],
+    [path.join(__dirname, 'cosmetic-overlay-probe.cjs'), session, html, mode],
     { stdio: 'inherit' }
   )
   child.once('exit', (code) => {

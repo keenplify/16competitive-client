@@ -23,6 +23,7 @@
     "dev": "electron-vite dev",
     "marketing:lobby": "electron-vite dev --mode marketing",
     "overlay:probe": "node scripts/start-cosmetic-overlay-probe.cjs",
+    "ally-tags:probe": "node scripts/start-cosmetic-overlay-probe.cjs ally-tags",
     "scoreboard:probe": "node scripts/start-cosmetic-overlay-probe.cjs scoreboard",
     "nextclient:overlay:probe": "node scripts/start-nextclient-overlay-probe.cjs",
     "preview": "electron-vite preview",
