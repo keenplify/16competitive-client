@@ -1586,3 +1586,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Recovered damaged NextClient bindings.
 - Diagnosed teammate marker issues.
+
+## v2026.1001.4 — 2026-10-01
+
+### Controls
+
+- Removed automatic launcher control-binding recovery.
+
+### Match Startup
+
+- Recovered controls are now replayed when starting a NextClient match.
