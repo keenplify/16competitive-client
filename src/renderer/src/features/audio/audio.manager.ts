@@ -135,11 +135,12 @@ class LauncherAudioManager {
   setBgmVolume(value: number): void {
     this.bgmVolume = Math.max(0, Math.min(100, value))
     this.bgmPlaybackVolume = volumeToUnit(this.bgmVolume)
+    if (this.bgm) this.applyBgmVolume()
     if (!this.canPlayBgm()) return
     const bgm = this.getBgm()
     this.resumeAudioContext()
     this.applyBgmVolume()
-    if (this.bgmVolume > 0) void bgm.play().catch(() => undefined)
+    void bgm.play().catch(() => undefined)
   }
 
   setSfxVolume(value: number): void {
@@ -166,7 +167,7 @@ class LauncherAudioManager {
         cancelAnimationFrame(this.fadeFrame)
         this.fadeFrame = null
       }
-      if (this.bgm) this.bgm.volume = 0
+      this.applyBgmVolume()
       return
     }
 
