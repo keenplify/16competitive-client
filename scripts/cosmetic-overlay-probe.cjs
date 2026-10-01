@@ -53,7 +53,7 @@ app.whenReady().then(async () => {
   window.webContents.on('did-fail-load', (_event, code, description) =>
     console.error('Overlay load:', code, description)
   )
-  window.webContents.setFrameRate(4)
+  window.webContents.setFrameRate(allyTags ? 20 : 4)
   let firstFrame = true
   window.webContents.on('paint', (_event, _dirty, image) => {
     const { width, height } = image.getSize()
@@ -87,6 +87,7 @@ app.whenReady().then(async () => {
     publish()
     setInterval(publish, 500)
   } else if (allyTags) {
+    let previous = null
     const publish = () => {
       let value = ''
       try {
@@ -94,10 +95,13 @@ app.whenReady().then(async () => {
       } catch {
         value = ''
       }
-      window.webContents.send('ally-tags', value)
-      window.webContents.invalidate()
+      if (value !== previous) {
+        previous = value
+        window.webContents.send('ally-tags', value)
+        window.webContents.invalidate()
+      }
     }
     publish()
-    setInterval(publish, 100)
+    setInterval(publish, 50)
   }
 })
