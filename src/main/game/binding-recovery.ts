@@ -71,7 +71,7 @@ const boundKeys = (contents: string): Map<string, string> => {
   return effective
 }
 
-export const recoverBrokenBindings = (contents: string): string | null => {
+export const bindingRecoveryCommands = (contents: string): string[] | null => {
   if (!/^\s*unbindall\s*$/im.test(contents)) return null
   const effective = boundKeys(contents)
   if (effective.size > 5) return null
@@ -81,16 +81,20 @@ export const recoverBrokenBindings = (contents: string): string | null => {
     )
   )
     return null
-  const eol = contents.includes('\r\n') ? '\r\n' : '\n'
   const missing = STOCK_BINDINGS.filter(([key]) => !effective.has(key.toLowerCase()))
-  return `${contents.replace(/[\r\n]*$/, '')}${eol}${missing
-    .map(([key, command]) => `bind "${key}" "${command}"`)
-    .join(eol)}${eol}`
+  return missing.map(([key, command]) => `bind "${key}" "${command}"`)
+}
+
+export const recoverBrokenBindings = (contents: string): string | null => {
+  const commands = bindingRecoveryCommands(contents)
+  if (commands === null) return null
+  const eol = contents.includes('\r\n') ? '\r\n' : '\n'
+  return `${contents.replace(/[\r\n]*$/, '')}${eol}${commands.join(eol)}${eol}`
 }
 
 export const repairBrokenBindings = async (
   gameDirectory: string
-): Promise<{ repaired: boolean; backupPath?: string }> => {
+): Promise<{ repaired: boolean; backupPath?: string; bindCommands?: string[] }> => {
   const configPath = join(gameDirectory, 'config.cfg')
   const entry = await lstat(configPath).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return null
@@ -100,8 +104,8 @@ export const repairBrokenBindings = async (
     return { repaired: false }
   // Latin-1 is a byte-preserving decode for legacy GoldSrc cfg encodings.
   const original = await readFile(configPath, 'latin1')
-  const repaired = recoverBrokenBindings(original)
-  if (repaired === null) return { repaired: false }
+  const bindCommands = bindingRecoveryCommands(original)
+  if (bindCommands === null) return { repaired: false }
   // Respect players who intentionally keep their controls in a separate cfg.
   for (const name of ['userconfig.cfg', 'autoexec.cfg']) {
     const extra = await readFile(join(gameDirectory, name), 'latin1').catch(
@@ -121,10 +125,12 @@ export const repairBrokenBindings = async (
   const temporary = `${configPath}.16competitive-bind-repair-${process.pid}.tmp`
   await copyFile(configPath, backupPath, constants.COPYFILE_EXCL)
   try {
+    const eol = original.includes('\r\n') ? '\r\n' : '\n'
+    const repaired = `${original.replace(/[\r\n]*$/, '')}${eol}${bindCommands.join(eol)}${eol}`
     await writeFile(temporary, repaired, { encoding: 'latin1', mode: entry.mode })
     await rename(temporary, configPath)
   } finally {
     await unlink(temporary).catch(() => undefined)
   }
-  return { repaired: true, backupPath }
+  return { repaired: true, backupPath, bindCommands }
 }

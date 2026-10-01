@@ -573,11 +573,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
+  let recoveredBindCommands: string[] = []
   if (process.platform === 'win32') {
     const recovery = await repairBrokenBindings(launchGameDirectory)
+    recoveredBindCommands = recovery.bindCommands ?? []
     if (recovery.repaired)
       console.warn('[GameLaunch] repaired legacy empty key bindings', {
-        backupPath: recovery.backupPath
+        backupPath: recovery.backupPath,
+        replayedBindings: recoveredBindCommands.length
       })
   }
 
@@ -607,11 +610,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
         `password "${input.password}"`,
+        // NextClient can write config.cfg during a profile reload while the
+        // engine still has an empty bind table. Apply recovered controls in
+        // memory before that reload and again after startup config processing.
+        ...recoveredBindCommands,
         // GoldSrc can process its normal user config after +exec during startup.
         // Wait a few frames, then reassert match identity before connecting.
         // Do not execute config.cfg here: an incomplete file with unbindall
         // would clear the engine's working default binds again.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
+        ...recoveredBindCommands,
         ...identityCommands,
         `password "${input.password}"`,
         `connect ${input.host}:${input.port}`,

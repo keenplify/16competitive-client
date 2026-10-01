@@ -12,7 +12,7 @@ const bundle = await build({
   format: 'esm',
   write: false
 })
-const { recoverBrokenBindings, repairBrokenBindings } = await import(
+const { bindingRecoveryCommands, recoverBrokenBindings, repairBrokenBindings } = await import(
   `data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`
 )
 
@@ -27,6 +27,8 @@ test('repairs only a legacy empty bind table and keeps an exact backup', async (
     await writeFile(configPath, original)
     const result = await repairBrokenBindings(directory)
     assert.equal(result.repaired, true)
+    assert.ok(result.bindCommands.includes('bind "w" "+forward"'))
+    assert.ok(result.bindCommands.includes('bind "MOUSE1" "+attack"'))
     assert.deepEqual(await readFile(result.backupPath), original)
     const repaired = await readFile(configPath)
     assert.equal(
@@ -46,6 +48,7 @@ test('repairs only a legacy empty bind table and keeps an exact backup', async (
 
 test('leaves custom binds and external control configs untouched', async () => {
   assert.equal(recoverBrokenBindings('unbindall\nbind "e" "+forward"\n'), null)
+  assert.equal(bindingRecoveryCommands('unbindall\nbind "e" "+forward"\n'), null)
   const directory = await mkdtemp(join(tmpdir(), '16c-bind-recovery-'))
   const original = 'unbindall\nbind "ESCAPE" "cancelselect"\nexec userconfig.cfg\n'
   try {
