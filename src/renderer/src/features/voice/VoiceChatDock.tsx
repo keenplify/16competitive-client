@@ -165,6 +165,7 @@ export function VoiceChatDock(): JSX.Element | null {
 
   const streamRef = useRef<MediaStream | null>(null)
   const microphonePromiseRef = useRef<Promise<MediaStream> | null>(null)
+  const requestMicrophoneRef = useRef<(() => Promise<MediaStream>) | null>(null)
   const microphoneGenerationRef = useRef(0)
   const runtimesRef = useRef(new Map<string, PeerRuntime>())
   const contextRef = useRef<VoiceContext | null>(null)
@@ -380,7 +381,10 @@ export function VoiceChatDock(): JSX.Element | null {
     const keyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return
       const channel = channelForKey(keyboardEventGoldSrcKey(event))
-      if (channel) setTalkChannel(channel)
+      if (channel) {
+        setTalkChannel(channel)
+        void requestMicrophoneRef.current?.().catch(() => undefined)
+      }
     }
     const keyUp = (event: KeyboardEvent): void => {
       const channel = channelForKey(keyboardEventGoldSrcKey(event))
@@ -388,7 +392,10 @@ export function VoiceChatDock(): JSX.Element | null {
     }
     const mouseDown = (event: MouseEvent): void => {
       const channel = channelForKey(mouseEventGoldSrcKey(event))
-      if (channel) setTalkChannel(channel)
+      if (channel) {
+        setTalkChannel(channel)
+        void requestMicrophoneRef.current?.().catch(() => undefined)
+      }
     }
     const mouseUp = (event: MouseEvent): void => {
       const channel = channelForKey(mouseEventGoldSrcKey(event))
@@ -500,6 +507,8 @@ export function VoiceChatDock(): JSX.Element | null {
       if (microphonePromiseRef.current === request) microphonePromiseRef.current = null
     }
   }
+
+  requestMicrophoneRef.current = ensureMicrophone
 
   const sendSignal = async (
     targetPlayerId: string,
