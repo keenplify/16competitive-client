@@ -277,11 +277,41 @@ const readConfigIfPresent = async (configPath: string): Promise<string | null> =
     throw error
   })
 
+const MOVEMENT_BIND_COMMANDS = new Set([
+  '+forward',
+  '+back',
+  '+moveleft',
+  '+moveright',
+  '+left',
+  '+right'
+])
+
 const restoreMissingStockBindings = (contents: string): { contents: string; repaired: boolean } => {
-  if (/^\s*bind(?:\s|$)/im.test(contents)) return { contents, repaired: false }
+  const parsedBindings = contents
+    .split(/\r?\n/)
+    .map(parseVoiceBind)
+    .filter((binding): binding is { key: string; command: string } => Boolean(binding))
+
+  const hasMovementBinding = parsedBindings.some(({ command }) =>
+    MOVEMENT_BIND_COMMANDS.has(command.trim().toLowerCase())
+  )
+  if (hasMovementBinding) return { contents, repaired: false }
 
   const eol = contents.includes('\r\n') ? '\r\n' : '\n'
-  const lines = contents.split(/\r?\n/)
+  const lines = contents.split(/\r?\n/).filter((line) => {
+    const binding = parseVoiceBind(line)
+    if (!binding) return true
+    const command = binding.command.trim().toLowerCase()
+    if (command === PARTY_VOICE_WRAPPER_COMMAND) return false
+    if (
+      command === LEGACY_VOICE_WRAPPER_COMMAND ||
+      command === TEAM_VOICE_WRAPPER_COMMAND
+    ) {
+      return false
+    }
+    return true
+  })
+
   while (lines.at(-1)?.trim() === '') lines.pop()
   lines.push(
     ...STOCK_CONTROL_BINDINGS.map(([key, command]) => `bind "${key}" "${command}"`),
