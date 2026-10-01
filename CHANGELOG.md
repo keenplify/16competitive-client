@@ -1569,3 +1569,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Browsing
 
 - Added category icons for weapons, equipment, player models, and other assets.
+
+## v2026.1001.2 — 2026-10-01
+
+### Controls
+
+- Player binds are now loaded when launching the game.
+
+### Teamplay
+
+- Ally markers are now enabled for NextClient players.
