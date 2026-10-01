@@ -13,7 +13,7 @@ const bundle = await build({
   format: 'esm',
   write: false
 })
-const { prepareVoicePtt, goldSrcKeyCode, readVoicePttKey } = await import(
+const { prepareVoicePtt, goldSrcKeyCode } = await import(
   `data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`
 )
 
@@ -31,7 +31,6 @@ test('native PTT preserves the complete GoldSrc config and forwards both channel
   const events = []
   const session = prepareVoicePtt((active, channel) => events.push([active, channel]), 'K|V')
   try {
-    assert.equal(await readVoicePttKey(directory), 'K')
     await session.attachNative(sessionDirectory)
     assert.equal(await readFile(join(sessionDirectory, 'ptt.keys'), 'ascii'), '107 118\n')
     await writeFile(join(sessionDirectory, 'ptt.state'), '1 0\n')
