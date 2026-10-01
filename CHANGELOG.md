@@ -1596,3 +1596,24 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Startup
 
 - Recovered controls are now replayed when starting a NextClient match.
+
+## v2026.1001.5 — 2026-10-01
+
+### Launcher
+
+- Polished authentication, news, matchmaking, and settings screens.
+- Improved matchmaking search presentation and status clarity.
+
+### Voice Chat
+
+- Improved voice chat controls and settings.
+- Added clearer push-to-talk key configuration.
+
+### Scoreboard
+
+- Updated scoreboard integration for improved match visibility.
+- Improved scoreboard overlay behavior and presentation.
+
+### Settings
+
+- Refined crosshair settings for a smoother configuration experience.
