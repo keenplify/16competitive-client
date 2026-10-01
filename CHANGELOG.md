@@ -1579,3 +1579,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Teamplay
 
 - Ally markers are now enabled for NextClient players.
+
+## v2026.1001.3 — 2026-10-01
+
+### Fixes
+
+- Recovered damaged NextClient bindings.
+- Diagnosed teammate marker issues.
