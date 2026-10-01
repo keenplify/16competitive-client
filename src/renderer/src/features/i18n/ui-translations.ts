@@ -148,10 +148,9 @@ const ru: Record<string, string> = {
     'Говорите только с участниками группы, которые находятся в вашей команде.',
   Cancel: 'Отмена',
   Change: 'Изменить',
-  'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. Counter-Strike receives both bindings temporarily when a match launches.':
-    'Для команды и группы используются разные клавиши. По умолчанию: K для команды и V для группы. При запуске матча Counter-Strike временно получает обе привязки.',
-  'Your previous Counter-Strike bindings are restored after the match.':
-    'После матча прежние привязки Counter-Strike восстанавливаются.',
+  'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. The in-game module detects these keys without changing Counter-Strike bindings.':
+    'Для команды и группы используются разные клавиши. По умолчанию: K для команды и V для группы. Игровой модуль распознаёт их, не меняя привязки Counter-Strike.',
+  'Your Counter-Strike bindings stay unchanged.': 'Привязки клавиш Counter-Strike не изменяются.',
   'Choose your Counter-Strike executable to launch matches.':
     'Выберите исполняемый файл Counter-Strike для запуска матчей.',
   'Could not save the push-to-talk key.': 'Не удалось сохранить клавишу голосовой связи.',
@@ -629,10 +628,9 @@ const tl: Record<string, string> = {
     'Party members lang na nasa current team mo ang makakarinig.',
   Cancel: 'Cancel',
   Change: 'Change',
-  'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. Counter-Strike receives both bindings temporarily when a match launches.':
-    'Magkaibang keys ang Team at Party talk. Default K ang Team at V ang Party. Temporary lang ilalagay sa Counter-Strike ang bindings kapag nag-launch ang match.',
-  'Your previous Counter-Strike bindings are restored after the match.':
-    'Ibabalik ang previous Counter-Strike bindings mo after ng match.',
+  'Team and Party talk use separate keys. Team defaults to K and Party defaults to V. The in-game module detects these keys without changing Counter-Strike bindings.':
+    'Magkaibang keys ang Team at Party talk. Default K ang Team at V ang Party. Hindi babaguhin ng in-game module ang Counter-Strike bindings.',
+  'Your Counter-Strike bindings stay unchanged.': 'Hindi babaguhin ang Counter-Strike bindings mo.',
   'Choose your Counter-Strike executable to launch matches.':
     'Piliin ang Counter-Strike executable para makapag-launch ng matches.',
   'Could not save the push-to-talk key.': 'Hindi ma-save ang push-to-talk key.',

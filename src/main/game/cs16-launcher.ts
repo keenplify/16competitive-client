@@ -21,9 +21,7 @@ import {
 import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { ensureLauncherContentDirectory } from './game-directory'
-import { prepareVoicePtt, type VoicePttSession } from './voice-ptt'
-import { prepareMatchIdentityConfig } from './match-identity-config'
-import { captureCrosshairConfig } from './crosshair-config'
+import { prepareVoicePtt, type VoicePttSession, type VoiceTalkChannel } from './voice-ptt'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 import {
@@ -45,8 +43,6 @@ import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
-let restoreMatchIdentity: (() => Promise<void>) | null = null
-let identityCleanup: Promise<void> = Promise.resolve()
 const RELAUNCH_SETTLE_MS = 500
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
 const LINUX_HANDOFF_POLL_MS = 1_000
@@ -62,7 +58,7 @@ interface MatchLaunchInput {
   joinToken: string
   apiUrl?: string
   forceRestart?: boolean
-  onVoicePtt?: (active: boolean) => void
+  onVoicePtt?: (active: boolean, channel: VoiceTalkChannel) => void
   onExit?: (event: { code: number | null; signal: string | null }) => void
 }
 
@@ -95,9 +91,9 @@ const finishVoicePttSession = async (matchId?: string): Promise<void> => {
   if (!active || (matchId && active.matchId !== matchId)) return
   activeVoicePttSession = null
   try {
-    await active.session.restoreBindings()
+    active.session.stop()
   } catch (error) {
-    console.warn('[VoicePTT] could not restore Counter-Strike voice settings', error)
+    console.warn('[VoicePTT] could not stop native push-to-talk', error)
   }
 }
 
@@ -131,13 +127,6 @@ const clearMatchConfig = (generation?: number): void => {
   launchedMatchConfigPath = null
   launchedMatchConfigGeneration = 0
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
-  const restore = restoreMatchIdentity
-  restoreMatchIdentity = null
-  if (restore) {
-    identityCleanup = identityCleanup.then(restore).catch((error: unknown) => {
-      console.error('[GameLaunch] could not restore saved match identity', error)
-    })
-  }
 }
 
 // Direct launches run in their own process group, so terminating the group also
@@ -585,9 +574,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   await prepareManagedSkinAudio(input.matchId)
 
-  const voicePttSession = await prepareVoicePtt(
-    launchGameDirectory,
-    input.onVoicePtt,
+  const voicePttSession = prepareVoicePtt(
+    input.onVoicePtt ?? (() => undefined),
     await getSavedVoicePttKey()
   )
   activeVoicePttSession = { matchId: input.matchId, session: voicePttSession }
@@ -601,28 +589,20 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
   try {
-    await identityCleanup
-    if (restoreMatchIdentity) await restoreMatchIdentity()
-    restoreMatchIdentity = await prepareMatchIdentityConfig(
-      join(launchGameDirectory, 'config.cfg'),
-      input.joinToken
-    )
     await writeFile(
       temporaryMatchConfigPath,
       [
         ...identityCommands,
-        ...voicePttSession.configCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
         `password "${input.password}"`,
         // GoldSrc can process its normal user config after +exec during startup.
-        // Wait a few frames, then reassert match identity and the PTT wrapper
+        // Wait a few frames, then reassert match identity
         // immediately before connecting.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
         ...identityCommands,
-        ...voicePttSession.configCommands,
         `password "${input.password}"`,
         `connect ${input.host}:${input.port}`,
         ''
@@ -705,6 +685,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
+        await voicePttSession.attachNative(session.directory)
         if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
           steamExitWatchGeneration++
           const configured = await ensureSteamScoreboardOption(
@@ -725,33 +706,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       }
     } catch (error) {
       console.warn('[Scoreboard] could not prepare in-game board; using stock board', error)
-      finishScoreboardSession(input.matchId)
-    }
-  }
-
-  if (
-    activeScoreboardSession?.matchId === input.matchId &&
-    !activeScoreboardSession.session.usesNextClientHost
-  ) {
-    try {
-      const restoreCrosshair = await captureCrosshairConfig(join(launchGameDirectory, 'config.cfg'))
-      const connectLine = `connect ${input.host}:${input.port}`
-      const config = await readFile(matchConfigPath, 'utf8')
-      if (!config.includes(connectLine)) throw new Error('Match config lost its connect command')
-      await writeFile(
-        matchConfigPath,
-        config.replace(connectLine, `crosshair "0"\n${connectLine}`),
-        {
-          mode: 0o600
-        }
-      )
-      const restoreIdentity = restoreMatchIdentity
-      restoreMatchIdentity = async () => {
-        await restoreIdentity?.()
-        await restoreCrosshair()
-      }
-    } catch (error) {
-      console.warn('[Scoreboard] could not prepare custom crosshair; using stock HUD', error)
       finishScoreboardSession(input.matchId)
     }
   }
@@ -793,11 +747,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     matchConfigName
   ]
   const gameArgs = directMatchArgs
-  const launchArgs = [
-    ...launchTarget.argumentPrefix,
-    ...voicePttSession.launchArguments,
-    ...gameArgs
-  ]
+  const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
   // Track the GoldSrc binary rather than the selected path: for a wrapper the
   // selected executable has already exited and match cleanup would miss the game.
