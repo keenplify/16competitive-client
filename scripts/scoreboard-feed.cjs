@@ -8,14 +8,30 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v[23456]\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v[23456789]\t/.test(header ?? '') || lines.length > 34) return null
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = /^#16c-scoreboard-v[456]\t/.test(header)
-  const withFormat = header.startsWith('#16c-scoreboard-v6\t')
+  const withBot = /^#16c-scoreboard-v[456789]\t/.test(header)
+  const withMoney = /^#16c-scoreboard-v[789]\t/.test(header)
+  const withWeapon = /^#16c-scoreboard-v[89]\t/.test(header)
+  const withRoundEvents = header.startsWith('#16c-scoreboard-v9\t')
+  const withFormat = /^#16c-scoreboard-v[6789]\t/.test(header)
   const withRoundWinners = withFormat || header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(19).split('\t')
-  if (headerFields.length !== (withFormat ? 8 : withRoundWinners ? 4 : 3)) return null
-  const [map, roundText, modeText, roundWinners = '', halfRoundsText, winTargetText, ctWinsText, tWinsText] = headerFields
+  if (headerFields.length !== (withRoundEvents ? 11 : withFormat ? 8 : withRoundWinners ? 4 : 3))
+    return null
+  const [
+    map,
+    roundText,
+    modeText,
+    roundWinners = '',
+    halfRoundsText,
+    winTargetText,
+    ctWinsText,
+    tWinsText,
+    roundEvents = '',
+    ctLossBonusText,
+    tLossBonusText
+  ] = headerFields
   if (!/^[a-zA-Z0-9_]{1,32}$/.test(map)) return null
   const round = Number(roundText)
   if (!Number.isInteger(round) || round < 0 || round > 99) return null
@@ -25,21 +41,47 @@ function parseSnapshot(text) {
   const winTarget = withFormat ? Number(winTargetText) : 13
   const ctWins = withFormat ? Number(ctWinsText) : null
   const tWins = withFormat ? Number(tWinsText) : null
-  if (!Number.isInteger(halfRounds) || halfRounds < 0 || halfRounds > 49 ||
-      !Number.isInteger(winTarget) || winTarget < 1 || winTarget > 99 ||
-      (withFormat && (!Number.isInteger(ctWins) || ctWins < 0 || ctWins > 99 ||
-                      !Number.isInteger(tWins) || tWins < 0 || tWins > 99)) ||
-      (modeText === '0' && halfRounds === 0)) return null
+  const ctLossBonus = withRoundEvents ? Number(ctLossBonusText) : null
+  const tLossBonus = withRoundEvents ? Number(tLossBonusText) : null
+  if (
+    !Number.isInteger(halfRounds) ||
+    halfRounds < 0 ||
+    halfRounds > 49 ||
+    !Number.isInteger(winTarget) ||
+    winTarget < 1 ||
+    winTarget > 99 ||
+    (withFormat &&
+      (!Number.isInteger(ctWins) ||
+        ctWins < 0 ||
+        ctWins > 99 ||
+        !Number.isInteger(tWins) ||
+        tWins < 0 ||
+        tWins > 99)) ||
+    (withRoundEvents &&
+      (!/^[DBCK]{0,99}$/.test(roundEvents) ||
+        roundEvents.length > round ||
+        !Number.isInteger(ctLossBonus) ||
+        ctLossBonus < 0 ||
+        ctLossBonus > 16000 ||
+        !Number.isInteger(tLossBonus) ||
+        tLossBonus < 0 ||
+        tLossBonus > 16000)) ||
+    (modeText === '0' && halfRounds === 0)
+  )
+    return null
   const players = []
   const seen = new Set()
   for (const line of lines) {
     if (!line) continue
     const parts = line.replace(/\r$/, '').split('\t')
-    if (parts.length !== (withBot ? 9 : withAlive ? 8 : 7)) return null
+    if (parts.length !== (withWeapon ? 11 : withMoney ? 10 : withBot ? 9 : withAlive ? 8 : 7))
+      return null
     const [id, team, kills, assists, deaths, ping, alive, bot] = parts
       .slice(0, withBot ? 8 : withAlive ? 7 : 6)
       .map(Number)
-    const name = parts[withBot ? 8 : withAlive ? 7 : 6]
+    const money = withMoney ? Number(parts[8]) : null
+    const primaryWeapon = withWeapon ? Number(parts[9]) : null
+    const name = parts[withWeapon ? 10 : withMoney ? 9 : withBot ? 8 : withAlive ? 7 : 6]
     if (
       !Number.isInteger(id) ||
       id < 1 ||
@@ -62,6 +104,9 @@ function parseSnapshot(text) {
       ping > 9999 ||
       (withAlive && alive !== 0 && alive !== 1) ||
       (withBot && bot !== 0 && bot !== 1) ||
+      (withMoney && (!Number.isInteger(money) || money < 0 || money > 16000)) ||
+      (withWeapon &&
+        (!Number.isInteger(primaryWeapon) || primaryWeapon < 0 || primaryWeapon > 31)) ||
       !name ||
       name.length > 32 ||
       Array.from(name).some((character) => {
@@ -80,7 +125,9 @@ function parseSnapshot(text) {
       deaths,
       ping,
       alive: !withAlive || alive === 1,
-      bot: withBot && bot === 1
+      bot: withBot && bot === 1,
+      money,
+      primaryWeapon
     })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
@@ -93,6 +140,9 @@ function parseSnapshot(text) {
     winTarget,
     ctWins,
     tWins,
+    roundEvents: withRoundEvents ? roundEvents : null,
+    ctLossBonus,
+    tLossBonus,
     players
   }
 }
