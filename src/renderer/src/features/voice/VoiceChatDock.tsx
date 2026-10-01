@@ -237,7 +237,13 @@ export function VoiceChatDock(): JSX.Element | null {
   const toggleOpenMic = (): void => {
     const nextOpenMic = !openMicRef.current
     openMicRef.current = nextOpenMic
-    if (nextOpenMic) setTalkChannel(null)
+    if (nextOpenMic) {
+      setTalkChannel(null)
+      void ensureMicrophone().catch(() => {
+        openMicRef.current = false
+        setOpenMic(false)
+      })
+    }
     setOpenMic(nextOpenMic)
   }
 
@@ -448,6 +454,13 @@ export function VoiceChatDock(): JSX.Element | null {
   const ensureMicrophone = async (): Promise<MediaStream> => {
     if (streamRef.current) return streamRef.current
     if (microphonePromiseRef.current) return microphonePromiseRef.current
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const message =
+        'Microphone access is unavailable. Open the PWA over HTTPS or localhost and try again.'
+      setMicReady(false)
+      setMicError(message)
+      throw new Error(message)
+    }
 
     const generation = microphoneGenerationRef.current
     const request = navigator.mediaDevices
@@ -766,6 +779,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const reconnect = (): void => {
     setEnabled(true)
     setMicError(null)
+    void ensureMicrophone().catch(() => undefined)
   }
 
   if (railMode === 'collapsed' && !expanded && activeContext?.kind !== 'match') {
@@ -871,7 +885,10 @@ export function VoiceChatDock(): JSX.Element | null {
                         ? 'border-sky-400/60 bg-sky-400/20 text-sky-100'
                         : 'border-white/15 bg-white/5 text-neutral-200'
                     }`}
-                    onPointerDown={() => setTalkChannel(testChannel)}
+                    onPointerDown={() => {
+                      setTalkChannel(testChannel)
+                      void ensureMicrophone().catch(() => undefined)
+                    }}
                     onPointerUp={() => setTalkChannel(null)}
                     onPointerCancel={() => setTalkChannel(null)}
                     onPointerLeave={() => setTalkChannel(null)}
@@ -961,9 +978,9 @@ export function VoiceChatDock(): JSX.Element | null {
             </div>
           )}
 
-          {!micReady && enabled && !micError && voiceRoster.length === 0 && (
+          {!micReady && enabled && !micError && (
             <p className="mt-3 text-xs text-neutral-500">
-              Microphone permission will be requested when another player joins voice.
+              Use Open mic or Hold to talk to allow microphone access in your browser.
             </p>
           )}
           {micError && <p className="mt-3 text-xs text-red-300">{micError}</p>}
