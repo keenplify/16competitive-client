@@ -1,5 +1,5 @@
 import { useEffect, useRef, type FormEvent, type JSX } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
@@ -12,6 +12,7 @@ import { PlayPage } from '../matchmaking/PlayPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { isWebRuntime } from '../../web-runtime'
+import { useAudioSettingsStore } from '../audio/audio.store'
 import operationBackground from '../../assets/operations/pixel-water-background.png'
 
 const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): string =>
@@ -45,6 +46,9 @@ export function AuthPage(): JSX.Element {
   const isLogin = mode === 'login'
   const isSubmitting = status === 'submitting'
   const webRuntime = isWebRuntime()
+  const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
+  const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
+  const lastAudibleVolume = useRef(bgmVolume > 0 ? bgmVolume : 50)
 
   useEffect(() => {
     if (restoreStarted.current) return
@@ -73,6 +77,10 @@ export function AuthPage(): JSX.Element {
       void window.api.window.focus()
     }
   }, [socialPollToken, socialProvider])
+
+  useEffect(() => {
+    if (bgmVolume > 0) lastAudibleVolume.current = bgmVolume
+  }, [bgmVolume])
 
   if (
     session &&
@@ -422,6 +430,37 @@ export function AuthPage(): JSX.Element {
           </p>
         </div>
       </section>
+
+      {webRuntime && (
+        <div className="fixed bottom-4 left-4 z-[80] flex items-center gap-2 border border-white/10 bg-slate-950/90 px-2 py-2 text-white shadow-xl backdrop-blur">
+          <button
+            type="button"
+            className="grid size-8 shrink-0 place-items-center text-neutral-300 transition hover:bg-white/5 hover:text-white"
+            aria-label={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
+            title={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
+            onClick={() => setBgmVolume(bgmVolume === 0 ? lastAudibleVolume.current : 0)}
+          >
+            {bgmVolume === 0 ? (
+              <VolumeX className="size-4" aria-hidden="true" />
+            ) : (
+              <Volume2 className="size-4" aria-hidden="true" />
+            )}
+          </button>
+          <input
+            className="w-28 cursor-pointer accent-sky-400"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={bgmVolume}
+            aria-label="Launcher music volume"
+            onChange={(event) => setBgmVolume(Number(event.currentTarget.value))}
+          />
+          <span className="w-9 text-right font-mono text-xs tabular-nums text-neutral-400">
+            {bgmVolume}%
+          </span>
+        </div>
+      )}
     </main>
   )
 }
