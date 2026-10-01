@@ -22,6 +22,7 @@ import { getSessionUsername } from '../auth'
 import { resolveCs16LaunchTarget } from './cs16-installation'
 import { ensureLauncherContentDirectory } from './game-directory'
 import { prepareVoicePtt, type VoicePttSession, type VoiceTalkChannel } from './voice-ptt'
+import { repairBrokenBindings } from './binding-recovery'
 import { startAntiCheatSession, type AntiCheatSession } from '../anticheat/anti-cheat'
 import { startGameWatchdog, stopGameWatchdog } from '../anticheat/game-watchdog'
 import {
@@ -572,6 +573,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
+  if (process.platform === 'win32') {
+    const recovery = await repairBrokenBindings(launchGameDirectory)
+    if (recovery.repaired)
+      console.warn('[GameLaunch] repaired legacy empty key bindings', {
+        backupPath: recovery.backupPath
+      })
+  }
+
   await prepareManagedSkinAudio(input.matchId)
 
   const voicePttSession = prepareVoicePtt(
@@ -599,11 +608,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'cl_downloadfilter "all"',
         `password "${input.password}"`,
         // GoldSrc can process its normal user config after +exec during startup.
-        // Wait a few frames, then load the player's normal bindings before
-        // reasserting match identity and connecting. This reads config.cfg
-        // without replacing or rewriting any of the player's binds.
+        // Wait a few frames, then reassert match identity before connecting.
+        // Do not execute config.cfg here: an incomplete file with unbindall
+        // would clear the engine's working default binds again.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
-        'exec config.cfg',
         ...identityCommands,
         `password "${input.password}"`,
         `connect ${input.host}:${input.port}`,
