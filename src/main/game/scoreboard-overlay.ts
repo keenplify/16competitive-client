@@ -95,6 +95,7 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private stopped = false
   private feedAvailable = false
+  private allyTagsAvailable = false
   private reportedUnavailable = false
   private readonly windowsInstallation:
     WindowsCosmeticInstallation | WindowsNextClientInstallation | null
@@ -121,6 +122,23 @@ export class ScoreboardOverlaySession {
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
     if (!this.stopped && !this.usesNextClientHost)
       await writeCrosshairConfig(this.directory, crosshair)
+  }
+
+  private async setAllyTagsAvailable(available: boolean): Promise<void> {
+    if (available && this.stopped) return
+    if (available === this.allyTagsAvailable) return
+    const marker = join(this.directory, 'ally-tags.enabled')
+    if (available) {
+      await writeFile(marker, '1\n', { mode: 0o600 })
+      if (this.stopped) {
+        await unlink(marker).catch(() => undefined)
+        return
+      }
+    }
+    else await unlink(marker).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    })
+    this.allyTagsAvailable = available
   }
 
   static async start(
@@ -270,11 +288,19 @@ export class ScoreboardOverlaySession {
       )
       if (!response.ok || response.status === 204) throw new Error('Scoreboard unavailable')
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v[23456]\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v[23456789]\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
+      if (this.stopped) return
       const temporary = `${this.feedPath}.tmp`
       await writeFile(temporary, feed, { mode: 0o600 })
       await rename(temporary, this.feedPath)
+      // Only an authenticated live match with the v8+ weapon feed can request
+      // native ally tags. The module independently checks the fresh mode-0 feed.
+      await this.setAllyTagsAvailable(
+        !this.usesNextClientHost &&
+          /^#16c-scoreboard-v[89]\t/.test(feed) &&
+          this.readSnapshot(this.directory)?.mode === 'competitive'
+      )
       if (!this.feedAvailable)
         console.info('[Scoreboard] live match feed ready', { matchId: this.matchId })
       this.feedAvailable = true
@@ -288,6 +314,9 @@ export class ScoreboardOverlaySession {
         this.reportedUnavailable = true
       }
       this.feedAvailable = false
+      await this.setAllyTagsAvailable(false).catch((markerError: unknown) =>
+        console.warn('[Scoreboard] ally tag marker cleanup failed', markerError)
+      )
       await unlink(this.feedPath).catch(() => undefined)
     } finally {
       this.busy = false
@@ -308,6 +337,9 @@ export class ScoreboardOverlaySession {
     this.stopped = true
     if (this.timer) clearInterval(this.timer)
     this.timer = null
+    void this.setAllyTagsAvailable(false).catch((error: unknown) =>
+      console.warn('[Scoreboard] ally tag marker cleanup failed', error)
+    )
     if (!this.window.isDestroyed()) this.window.close()
     if (this.windowsInstallation) {
       void this.windowsInstallation
