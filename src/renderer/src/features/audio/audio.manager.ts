@@ -20,6 +20,7 @@ class LauncherAudioManager {
   private audioContext: AudioContext | null = null
   private bgmSource: MediaElementAudioSourceNode | null = null
   private bgmFilter: BiquadFilterNode | null = null
+  private bgmGain: GainNode | null = null
   private bgmLowPass = false
   private bgmVolume = 50
   private bgmPlaybackVolume = volumeToUnit(this.bgmVolume)
@@ -49,18 +50,23 @@ class LauncherAudioManager {
   private connectBgmFilter(bgm: HTMLAudioElement): void {
     if (!this.playbackUnlocked || this.bgmSource || !window.AudioContext) return
 
-    const context = new AudioContext()
+    const context = this.audioContext ?? new AudioContext()
     const source = context.createMediaElementSource(bgm)
     const filter = context.createBiquadFilter()
+    const gain = context.createGain()
     filter.type = 'lowpass'
     filter.Q.value = 0.7
     filter.frequency.value = this.bgmLowPass ? LOBBY_LOWPASS_FREQUENCY : NORMAL_FILTER_FREQUENCY
     source.connect(filter)
-    filter.connect(context.destination)
+    filter.connect(gain)
+    gain.connect(context.destination)
 
     this.audioContext = context
     this.bgmSource = source
     this.bgmFilter = filter
+    this.bgmGain = gain
+    bgm.volume = 1
+    this.applyBgmVolume()
   }
 
   private resumeAudioContext(): void {
@@ -75,7 +81,13 @@ class LauncherAudioManager {
   }
 
   private applyBgmVolume(): void {
-    if (this.bgm) this.bgm.volume = this.bgmFocused ? this.getEffectiveBgmVolume() : 0
+    const volume = this.bgmFocused ? this.getEffectiveBgmVolume() : 0
+    if (this.bgmGain && this.audioContext) {
+      this.bgmGain.gain.setValueAtTime(volume, this.audioContext.currentTime)
+      if (this.bgm) this.bgm.volume = 1
+      return
+    }
+    if (this.bgm) this.bgm.volume = volume
   }
 
   setBgmTrack(trackId: LauncherBgmId): void {
@@ -87,9 +99,13 @@ class LauncherAudioManager {
     }
 
     this.bgm?.pause()
+    this.bgmSource?.disconnect()
+    this.bgmFilter?.disconnect()
+    this.bgmGain?.disconnect()
     this.bgm = null
     this.bgmSource = null
     this.bgmFilter = null
+    this.bgmGain = null
     this.bgmTrackId = trackId
 
     if (this.canPlayBgm()) {
