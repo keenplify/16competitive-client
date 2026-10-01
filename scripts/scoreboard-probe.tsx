@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Bomb, Clock8, Scissors, Skull, Trophy } from 'lucide-react'
+import { AlarmClockMinus, Bomb, Scissors, Skull } from 'lucide-react'
 
 type Player = {
   id: number
@@ -135,31 +135,31 @@ function RoundTrack({
                 key={index}
                 className={`round-tick ${markerWinner === 'C' ? 'ct-win' : markerWinner === 'T' ? 't-win' : ''} ${roundEvent ? 'has-event' : ''} ${index === winningRound ? 'match-winner' : ''} ${index + 1 === current && !roundWinner ? 'current' : ''} ${index === halfRounds ? 'halftime' : ''}`}
                 title={
-                  index === winningRound
-                    ? `Round ${index + 1}: match won`
-                    : roundEvent === 'D'
-                      ? `Round ${index + 1}: bomb defused`
-                      : roundEvent === 'B'
-                        ? `Round ${index + 1}: bomb exploded`
-                        : roundEvent === 'C'
-                          ? `Round ${index + 1}: timer expired`
-                          : roundEvent === 'K'
-                            ? `Round ${index + 1}: enemies eliminated`
-                            : roundWinner === 'C'
-                              ? `Round ${index + 1}: CT won`
-                              : roundWinner === 'T'
-                                ? `Round ${index + 1}: T won`
-                                : `Round ${index + 1}: ongoing or unplayed`
+                  roundEvent === 'D'
+                    ? `Round ${index + 1}: bomb defused`
+                    : roundEvent === 'B'
+                      ? `Round ${index + 1}: bomb exploded`
+                      : roundEvent === 'C'
+                        ? `Round ${index + 1}: time expired`
+                        : roundEvent === 'K'
+                          ? `Round ${index + 1}: enemies eliminated`
+                          : roundEvent === 'H'
+                            ? `Round ${index + 1}: hostages rescued`
+                            : roundEvent === 'U'
+                              ? `Round ${index + 1}: other win condition`
+                              : roundWinner === 'C'
+                                ? `Round ${index + 1}: CT won`
+                                : roundWinner === 'T'
+                                  ? `Round ${index + 1}: T won`
+                                  : `Round ${index + 1}: ongoing or unplayed`
                 }
               >
-                {index === winningRound ? (
-                  <Trophy className="round-trophy" aria-label="Match winner" />
-                ) : roundEvent === 'D' ? (
+                {roundEvent === 'D' ? (
                   <Scissors className="round-event-icon" aria-label="Bomb defused" />
                 ) : roundEvent === 'B' ? (
                   <Bomb className="round-event-icon" aria-label="Bomb exploded" />
                 ) : roundEvent === 'C' ? (
-                  <Clock8 className="round-event-icon" aria-label="Timer expired" />
+                  <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
                 ) : roundEvent === 'K' ? (
                   <Skull className="round-event-icon" aria-label="Enemies eliminated" />
                 ) : null}
@@ -201,11 +201,11 @@ function PlayerRow({
       {showWeapon && (
         <span
           className="primary-weapon"
-          title={canSeeWeapon ? (weapon?.name ?? 'No primary weapon') : 'Hidden'}
+          title={canSeeWeapon && player.alive ? (weapon?.name ?? 'No primary weapon') : 'Hidden'}
         >
-          {canSeeWeapon && weapon ? (
+          {canSeeWeapon && player.alive && weapon ? (
             <img src={weapon.src} alt={weapon.name} />
-          ) : canSeeWeapon ? (
+          ) : canSeeWeapon && player.alive ? (
             '—'
           ) : (
             ''

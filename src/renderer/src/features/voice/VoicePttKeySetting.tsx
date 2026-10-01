@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type JSX } from 'react'
 import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 
 export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 
@@ -62,6 +63,7 @@ const readableError = (error: unknown): string =>
     : 'Could not save the push-to-talk key.'
 
 export function VoicePttKeySetting(): JSX.Element {
+  const enhancementsEnabled = useGameSettingsStore((state) => state.nextClientIntegrationEnabled)
   const isFfaMatch = useMatchmakingStore((state) => state.match?.mode === 'ffa')
   const matchChannelLabel = isFfaMatch ? 'All' : 'Team'
   const panelRef = useRef<HTMLDivElement>(null)
@@ -92,7 +94,7 @@ export function VoicePttKeySetting(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (!capturing) return
+    if (!capturing || !enhancementsEnabled) return
 
     const saveKey = (key: string): void => {
       const channel = capturing
@@ -154,10 +156,18 @@ export function VoicePttKeySetting(): JSX.Element {
       window.removeEventListener('keydown', keyDown, true)
       window.removeEventListener('mousedown', mouseDown, true)
     }
-  }, [capturing, matchChannelLabel])
+  }, [capturing, enhancementsEnabled, matchChannelLabel])
+
+  /* eslint-disable react-hooks/set-state-in-effect -- Turning off enhancements must end an active key capture. */
+  useEffect(() => {
+    if (!enhancementsEnabled) setCapturing(null)
+  }, [enhancementsEnabled])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const bindingRow = (channel: VoiceTalkChannel, key: string): JSX.Element => (
-    <div className="flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={`flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between ${enhancementsEnabled ? '' : 'opacity-40'}`}
+    >
       <div>
         <p className="text-sm font-semibold text-white">
           {channel === 'team' ? `${matchChannelLabel} talk` : 'Party talk'}
@@ -175,7 +185,7 @@ export function VoicePttKeySetting(): JSX.Element {
         <Button
           variant="ghost"
           data-ptt-capture-control
-          disabled={saving}
+          disabled={saving || !enhancementsEnabled}
           onClick={() => {
             setCapturing((value) => (value === channel ? null : channel))
             setError(null)
@@ -199,6 +209,42 @@ export function VoicePttKeySetting(): JSX.Element {
           Team (All in FFA) and Party talk use separate keys. Team defaults to K and Party defaults
           to V. The in-game module detects these keys without changing Counter-Strike bindings.
         </p>
+        {!enhancementsEnabled && (
+          <div className="mt-4 border border-amber-300/25 bg-amber-300/5 p-4 text-sm text-amber-100">
+            <p>
+              Automatic push-to-talk keys are off with In-game enhancements. You can use Open mic,
+              or bind these 1.6 Competitive server commands yourself in the Counter-Strike console:
+            </p>
+            <div className="mt-3 space-y-2 text-xs">
+              <p>
+                Team / All:{' '}
+                <code className="select-all font-mono text-white">
+                  +16competitive_team_voice / -16competitive_team_voice
+                </code>
+              </p>
+              <p>
+                Party:{' '}
+                <code className="select-all font-mono text-white">
+                  +16competitive_party_voice / -16competitive_party_voice
+                </code>
+              </p>
+            </div>
+            <p className="mt-3 text-xs text-amber-100/75">
+              Bind the plus commands to keys of your choice, for example:
+            </p>
+            <div className="mt-1 flex flex-col gap-1 text-xs">
+              <code className="select-all font-mono text-white">
+                {'bind "k" "+16competitive_team_voice"'}
+              </code>
+              <code className="select-all font-mono text-white">
+                {'bind "v" "+16competitive_party_voice"'}
+              </code>
+            </div>
+            <p className="mt-2 text-xs text-amber-100/75">
+              Releasing the key sends the matching minus command to stop talking.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-4">
@@ -206,7 +252,7 @@ export function VoicePttKeySetting(): JSX.Element {
         {bindingRow('party', partyPttKey)}
       </div>
 
-      {capturing && (
+      {capturing && enhancementsEnabled && (
         <div className="mt-2 border border-sky-400/25 bg-sky-400/5 p-4 text-sm text-sky-200">
           Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for{' '}
           {capturing === 'team' ? matchChannelLabel : 'Party'} talk.

@@ -17,6 +17,13 @@ async function main() {
     outfile: path.join(output, 'renderer.js')
   })
   fs.copyFileSync(path.join(__dirname, 'scoreboard-probe.css'), path.join(output, 'scoreboard.css'))
+  const fontSource = path.join(path.dirname(require.resolve('@fontsource/rajdhani/package.json')), 'files')
+  const fontOutput = path.join(output, 'fonts')
+  fs.mkdirSync(fontOutput, { recursive: true })
+  for (const weight of [400, 500, 600, 700]) {
+    const filename = `rajdhani-latin-${weight}-normal.woff2`
+    fs.copyFileSync(path.join(fontSource, filename), path.join(fontOutput, filename))
+  }
   fs.copyFileSync(path.join(__dirname, 'scoreboard-preload.cjs'), path.join(output, 'preload.cjs'))
   const weaponIcons = path.join(output, 'weapon-icons')
   fs.mkdirSync(weaponIcons, { recursive: true })

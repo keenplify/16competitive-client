@@ -10,6 +10,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { MARKETING_LOBBY_ENABLED } from '../party/marketing-lobby'
 import { usePartyStore } from '../party/party.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 
 interface PeerRuntime {
@@ -26,7 +27,7 @@ interface PeerRuntime {
 
 type VoiceTalkChannel = 'team' | 'party'
 
-interface NativePttSignal {
+interface PttSignal {
   type: 'ptt'
   active: boolean
   channel?: VoiceTalkChannel
@@ -41,7 +42,7 @@ type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
 const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
-const NATIVE_PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
+const PTT_SIGNAL_PLAYER_ID = '__16competitive_ptt__'
 const sameContext = (left: VoiceContext | null, right: VoiceContext | null): boolean =>
   Boolean(left && right && left.kind === right.kind && left.id === right.id)
 
@@ -139,6 +140,8 @@ export function VoiceChatDock(): JSX.Element | null {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
   const match = useMatchmakingStore((state) => state.match)
+  const enhancementsEnabled = useGameSettingsStore((state) => state.nextClientIntegrationEnabled)
+  const loadGameSettings = useGameSettingsStore((state) => state.load)
 
   const desiredContext = useMemo<VoiceContext | null>(() => {
     if (!currentPlayerId) return null
@@ -247,6 +250,16 @@ export function VoiceChatDock(): JSX.Element | null {
     }
     setOpenMic(nextOpenMic)
   }
+
+  useEffect(() => {
+    void loadGameSettings()
+  }, [loadGameSettings])
+
+  /* eslint-disable react-hooks/set-state-in-effect -- A disabled PTT mode must release an active talk channel. */
+  useEffect(() => {
+    if (!enhancementsEnabled) setTalkChannel(null)
+  }, [enhancementsEnabled, setTalkChannel])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     playerIdRef.current = currentPlayerId
@@ -363,7 +376,8 @@ export function VoiceChatDock(): JSX.Element | null {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (MARKETING_LOBBY_ENABLED || !enabled || openMic || !activeContext) return
+    if (MARKETING_LOBBY_ENABLED || !enabled || !enhancementsEnabled || openMic || !activeContext)
+      return
 
     const teamKey = normalizeGoldSrcKey(teamVoicePttKey)
     const partyKey = normalizeGoldSrcKey(partyVoicePttKey)
@@ -417,7 +431,16 @@ export function VoiceChatDock(): JSX.Element | null {
       window.removeEventListener('blur', reset)
       reset()
     }
-  }, [activeContext, enabled, openMic, party, partyVoicePttKey, setTalkChannel, teamVoicePttKey])
+  }, [
+    activeContext,
+    enabled,
+    enhancementsEnabled,
+    openMic,
+    party,
+    partyVoicePttKey,
+    setTalkChannel,
+    teamVoicePttKey
+  ])
 
   const runtimePreferenceFor = (playerId: string) => preferenceFor(preferencesRef.current, playerId)
 
@@ -649,11 +672,11 @@ export function VoiceChatDock(): JSX.Element | null {
       if (event.type !== 'voice_signal') return
       if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
 
-      if (event.fromPlayerId === NATIVE_PTT_SIGNAL_PLAYER_ID) {
-        const nativePtt = parseSignal<NativePttSignal>(event.signal)
-        if (nativePtt?.type === 'ptt' && typeof nativePtt.active === 'boolean') {
-          const channel: VoiceTalkChannel = nativePtt.channel === 'party' ? 'party' : 'team'
-          if (nativePtt.active) {
+      if (event.fromPlayerId === PTT_SIGNAL_PLAYER_ID) {
+        const pttSignal = parseSignal<PttSignal>(event.signal)
+        if (pttSignal?.type === 'ptt' && typeof pttSignal.active === 'boolean') {
+          const channel: VoiceTalkChannel = pttSignal.channel === 'party' ? 'party' : 'team'
+          if (pttSignal.active) {
             if (channel === 'team' || partyMemberIdsRef.current.size > 0) setTalkChannel(channel)
           } else if (pttChannelRef.current === channel) {
             setTalkChannel(null)
@@ -717,7 +740,7 @@ export function VoiceChatDock(): JSX.Element | null {
 
     return removeListener
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [desiredContext, enabled, setTalkChannel])
+  }, [desiredContext, enabled, enhancementsEnabled, setTalkChannel])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Voice context transitions synchronously tear down stale media and UI state. */
   useEffect(() => {
@@ -770,9 +793,9 @@ export function VoiceChatDock(): JSX.Element | null {
   const connectedPeers = voiceRoster.filter(
     ({ peer, simulated }) => simulated || peerStates[peer.id] === 'connected'
   ).length
-  const configuredPttAvailable = Boolean(
-    activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey
-  )
+  const configuredPttAvailable =
+    enhancementsEnabled &&
+    Boolean(activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey)
   const talkingLabel = pttChannel
     ? `Talking to: ${pttChannel === 'team' ? (match?.mode === 'ffa' ? 'All' : 'Team') : 'Party'}`
     : null
@@ -888,7 +911,7 @@ export function VoiceChatDock(): JSX.Element | null {
                 >
                   Open mic {openMic ? 'on' : 'off'}
                 </button>
-                {!openMic && (
+                {!openMic && enhancementsEnabled && (
                   <button
                     type="button"
                     className={` border px-3 py-2 text-xs font-semibold ${
@@ -930,7 +953,13 @@ export function VoiceChatDock(): JSX.Element | null {
             <p className="mt-3 text-xs font-semibold text-sky-300">{talkingLabel}</p>
           )}
 
-          {enabled && !openMic && activeContext?.kind === 'party' && (
+          {enabled && !openMic && !enhancementsEnabled && (
+            <p className="mt-3 text-xs text-neutral-400">
+              Use Open mic or bind the game voice commands shown in Settings.
+            </p>
+          )}
+
+          {enabled && !openMic && enhancementsEnabled && activeContext?.kind === 'party' && (
             <p className="mt-3 text-xs text-neutral-400">
               Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party
               talk while the launcher is focused.
@@ -991,7 +1020,9 @@ export function VoiceChatDock(): JSX.Element | null {
 
           {!micReady && enabled && !micError && (
             <p className="mt-3 text-xs text-neutral-500">
-              Use Open mic or Hold to talk to allow microphone access in your browser.
+              {enhancementsEnabled
+                ? 'Use Open mic or Hold to talk to allow microphone access in your browser.'
+                : 'Use Open mic to allow microphone access in your browser.'}
             </p>
           )}
           {micError && <p className="mt-3 text-xs text-red-300">{micError}</p>}

@@ -431,36 +431,19 @@ export function AuthPage(): JSX.Element {
         </div>
       </section>
 
-      {webRuntime && (
-        <div className="fixed bottom-4 left-4 z-[80] flex items-center gap-2 border border-white/10 bg-slate-950/90 px-2 py-2 text-white shadow-xl backdrop-blur">
-          <button
-            type="button"
-            className="grid size-8 shrink-0 place-items-center text-neutral-300 transition hover:bg-white/5 hover:text-white"
-            aria-label={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
-            title={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
-            onClick={() => setBgmVolume(bgmVolume === 0 ? lastAudibleVolume.current : 0)}
-          >
-            {bgmVolume === 0 ? (
-              <VolumeX className="size-4" aria-hidden="true" />
-            ) : (
-              <Volume2 className="size-4" aria-hidden="true" />
-            )}
-          </button>
-          <input
-            className="w-28 cursor-pointer accent-sky-400"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={bgmVolume}
-            aria-label="Launcher music volume"
-            onChange={(event) => setBgmVolume(Number(event.currentTarget.value))}
-          />
-          <span className="w-9 text-right font-mono text-xs tabular-nums text-neutral-400">
-            {bgmVolume}%
-          </span>
-        </div>
-      )}
+      <button
+        type="button"
+        className="fixed bottom-4 left-4 z-[80] grid size-10 place-items-center border border-white/10 bg-slate-950/90 text-neutral-300 shadow-xl backdrop-blur transition hover:bg-slate-900 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+        aria-label={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
+        title={bgmVolume === 0 ? 'Unmute launcher music' : 'Mute launcher music'}
+        onClick={() => setBgmVolume(bgmVolume === 0 ? lastAudibleVolume.current : 0)}
+      >
+        {bgmVolume === 0 ? (
+          <VolumeX className="size-4" aria-hidden="true" />
+        ) : (
+          <Volume2 className="size-4" aria-hidden="true" />
+        )}
+      </button>
     </main>
   )
 }

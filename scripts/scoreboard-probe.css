@@ -1,3 +1,27 @@
+@font-face {
+  font-family: Rajdhani;
+  src: url('fonts/rajdhani-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: Rajdhani;
+  src: url('fonts/rajdhani-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: Rajdhani;
+  src: url('fonts/rajdhani-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: Rajdhani;
+  src: url('fonts/rajdhani-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
 html,
 body,
 #root {
@@ -24,11 +48,12 @@ body,
   color: #f3f0e7;
   background: rgba(24, 24, 18, 0.94);
   border: 1px solid rgba(189, 163, 93, 0.52);
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 12px 42px rgba(0, 0, 0, 0.45);
   font:
-    16px Verdana,
-    Arial,
+    400 16px Rajdhani,
+    'DejaVu Sans',
+    'Segoe UI Symbol',
     sans-serif;
 }
 .board-header {
@@ -211,7 +236,7 @@ body,
   left: 50%;
   width: 13px;
   height: 13px;
-  color: #e6edf1;
+  color: #fff;
   stroke-width: 2.5;
   transform: translate(-50%, -50%);
 }
@@ -224,20 +249,9 @@ body,
   border-color: #e7b96e;
 }
 .round-tick.match-winner {
-  position: relative;
-  background: #d9a441;
-  border-color: #ffe49a;
-  box-shadow: 0 0 9px rgba(255, 208, 92, 0.75);
-}
-.round-trophy {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 15px;
-  height: 15px;
-  color: #fff4c7;
-  stroke-width: 2.5;
-  transform: translate(-50%, -50%);
+  box-shadow:
+    inset 0 0 0 1px #fff,
+    0 0 9px rgba(255, 255, 255, 0.6);
 }
 .round-tick.current {
   background: #77766f;

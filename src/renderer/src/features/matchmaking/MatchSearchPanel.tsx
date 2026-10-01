@@ -1,4 +1,4 @@
-import { LoaderCircle, Search } from 'lucide-react'
+import { LoaderCircle, Search, X } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -98,6 +98,17 @@ export function MatchSearchPanel({
           <span className="shrink-0 font-mono text-[9px] tabular-nums text-neutral-300">
             {queueDuration}
           </span>
+          <button
+            type="button"
+            className="grid size-6 shrink-0 place-items-center border border-white/10 text-neutral-300 transition-colors hover:border-red-400/50 hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Cancel match search"
+            title="Cancel match search"
+            data-audio-sfx="backward"
+            disabled={isJoining || isLeaving}
+            onClick={() => void leaveQueue()}
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
         </div>
       </aside>
     )
