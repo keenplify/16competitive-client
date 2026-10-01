@@ -139,6 +139,11 @@ export class ScoreboardOverlaySession {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     })
     this.allyTagsAvailable = available
+    console.info('[Scoreboard] teammate markers availability changed', {
+      matchId: this.matchId,
+      available,
+      nextClient: this.usesNextClientHost
+    })
   }
 
   static async start(
