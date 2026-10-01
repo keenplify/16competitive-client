@@ -1546,3 +1546,26 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Expanded support for matchmaking modes and maps.
 - Updated matchmaking interfaces and browser support.
 - Improved validation for matchmaking options.
+
+## v2026.1001.1 — 2026-10-01
+
+### Voice Chat
+
+- Use native push-to-talk without changing your in-game binds.
+- Fixed microphone requests for configured PTT and party voice actions.
+- Mute and launcher volume controls now work correctly.
+- Added a login music control.
+
+### Game Setup
+
+- Fixed missing Counter-Strike key bindings.
+- Improved recovery for configurations with missing movement or PTT binds.
+
+### Match Features
+
+- Added ally tags for competitive launcher sessions.
+- Added tactical round details to the scoreboard.
+
+### Browsing
+
+- Added category icons for weapons, equipment, player models, and other assets.
