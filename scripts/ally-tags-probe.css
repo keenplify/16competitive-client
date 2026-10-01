@@ -1,0 +1,57 @@
+html,
+body,
+#root {
+  margin: 0;
+  width: 960px;
+  height: 540px;
+  background: transparent;
+  overflow: hidden;
+}
+* {
+  box-sizing: border-box;
+}
+.ally-tags {
+  position: relative;
+  width: 960px;
+  height: 540px;
+  font-family: Verdana, Arial, sans-serif;
+}
+.ally-tag {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 130px;
+  transform: translate(-50%, -100%);
+  color: #a7e7d1;
+  text-align: center;
+  text-shadow:
+    0 2px 2px #000,
+    0 0 4px #000;
+}
+.ally-arrow {
+  margin-bottom: 1px;
+  color: #f2fbf7;
+  font-size: 18px;
+  line-height: 14px;
+}
+.ally-loadout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ally-loadout img {
+  width: 34px;
+  height: 14px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px #000);
+}
+.ally-tag strong {
+  margin-top: 2px;
+  color: #97e1bc;
+  font-size: 14px;
+}
