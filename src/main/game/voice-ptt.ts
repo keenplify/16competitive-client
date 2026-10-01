@@ -1,6 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
-import { STOCK_GAME_DIR } from './game-directory'
+import { join } from 'node:path'
 
 export type VoiceTalkChannel = 'team' | 'party'
 const DEFAULT_TEAM_KEY = 'K'
@@ -34,11 +33,6 @@ const SPECIAL_KEYS: Record<string, number> = {
   MOUSE5: 245
 }
 
-const configPathFor = (gameDirectory: string): string =>
-  basename(gameDirectory).toLowerCase() === STOCK_GAME_DIR
-    ? join(gameDirectory, 'config.cfg')
-    : join(gameDirectory, STOCK_GAME_DIR, 'config.cfg')
-
 export const normalizeVoicePttKey = (value: unknown): string => {
   if (typeof value !== 'string') throw new Error('Choose a valid push-to-talk key.')
   const key = value.trim().toUpperCase()
@@ -51,30 +45,6 @@ export const goldSrcKeyCode = (key: string): number => {
   if (normalized.length === 1) return normalized.toLowerCase().charCodeAt(0)
   if (normalized.startsWith('F')) return 134 + Number(normalized.slice(1))
   return SPECIAL_KEYS[normalized]
-}
-
-export const readVoicePttKeys = async (gameDirectory: string): Promise<string[]> => {
-  const contents = await readFile(configPathFor(gameDirectory), 'utf8').catch(
-    (error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return ''
-      throw error
-    }
-  )
-  return contents.split(/\r?\n/).flatMap((line) => {
-    const match = /^\s*bind\s+"?([^"\s]+)"?\s+"?\+voicerecord"?\s*$/i.exec(line)
-    return match ? [match[1]] : []
-  })
-}
-
-export const readVoicePttKey = async (gameDirectory: string): Promise<string | null> => {
-  for (const key of await readVoicePttKeys(gameDirectory)) {
-    try {
-      return normalizeVoicePttKey(key)
-    } catch {
-      /* unsupported GoldSrc key */
-    }
-  }
-  return null
 }
 
 export interface VoicePttSession {

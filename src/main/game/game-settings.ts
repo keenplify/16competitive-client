@@ -1,13 +1,13 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join, normalize, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
 import type { GameSettings } from '../../shared/game-settings'
 import {
   DEFAULT_CROSSHAIR,
   parseCrosshairProfile,
   type CrosshairProfile
 } from '../../shared/crosshair'
-import { normalizeVoicePttKey, readVoicePttKey } from './voice-ptt'
+import { normalizeVoicePttKey } from './voice-ptt'
 import {
   isNextClientExecutable,
   WINDOWS_STANDALONE_EXECUTABLE_NAMES
@@ -228,28 +228,14 @@ const validateStoredPath = async (settings: StoredGameSettings): Promise<string 
   }
 }
 
-const gameDirectoryForExecutable = (executablePath: string): string => {
-  const configuredDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
-  return configuredDirectory ? resolve(configuredDirectory) : dirname(executablePath)
-}
-
-const resolveTeamVoicePttKey = async (
-  storedSettings: StoredGameSettings,
-  executablePath: string | null
-): Promise<string> => {
+const resolveTeamVoicePttKey = async (storedSettings: StoredGameSettings): Promise<string> => {
   if (storedSettings.voicePttKey) {
     try {
       return normalizeVoicePttKey(storedSettings.voicePttKey)
     } catch {
-      // Fall through to the player's current GoldSrc bind or the launcher default.
+      // Fall through to the launcher default.
     }
   }
-
-  if (executablePath) {
-    const currentGoldSrcKey = await readVoicePttKey(gameDirectoryForExecutable(executablePath))
-    if (currentGoldSrcKey) return currentGoldSrcKey
-  }
-
   return DEFAULT_TEAM_VOICE_PTT_KEY
 }
 
@@ -313,10 +299,9 @@ const persistResolvedSettings = async (
 }
 
 const resolveVoicePttKeys = async (
-  storedSettings: StoredGameSettings,
-  executablePath: string | null
+  storedSettings: StoredGameSettings
 ): Promise<{ team: string; party: string }> => {
-  const team = await resolveTeamVoicePttKey(storedSettings, executablePath)
+  const team = await resolveTeamVoicePttKey(storedSettings)
   return { team, party: resolvePartyVoicePttKey(storedSettings, team) }
 }
 
@@ -325,7 +310,7 @@ export const getGameSettings = async (): Promise<GameSettings> => {
   let cs16ExecutablePath = await validateStoredPath(storedSettings)
   if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
 
-  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings)
   await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
@@ -356,7 +341,7 @@ export const chooseCs16Folder = async (): Promise<string | null> => {
 export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSettings> => {
   const cs16ExecutablePath = await validateInstallationFolder(untrustedPath)
   const storedSettings = await readStoredSettings()
-  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings)
   await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
@@ -376,7 +361,7 @@ export const saveGameSettings = async (untrustedPath: unknown): Promise<GameSett
 export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettings> => {
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  const current = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const current = await resolveVoicePttKeys(storedSettings)
 
   let teamVoicePttKey = current.team
   let partyVoicePttKey = current.party
@@ -410,7 +395,7 @@ export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSett
   const crosshair = parseCrosshairProfile(untrustedProfile)
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings)
   await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
@@ -426,7 +411,7 @@ export const getSavedCs16Executable = async (): Promise<string | null> => {
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   if (!cs16ExecutablePath) return null
 
-  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings)
   if (storedSettings.voicePttKey !== keys.team || storedSettings.partyVoicePttKey !== keys.party) {
     await persistResolvedSettings(
       cs16ExecutablePath,
@@ -450,7 +435,7 @@ export const saveNextClientIntegration = async (
     nextClientIntegrationDisabledReason: undefined
   }
   const cs16ExecutablePath = await validateStoredPath(updated)
-  const keys = await resolveVoicePttKeys(updated, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
@@ -476,7 +461,7 @@ export const disableNextClientIntegrationAfterCrash = async (): Promise<void> =>
       'Automatically disabled after NextClient exited abnormally during integration startup.'
   }
   const cs16ExecutablePath = await validateStoredPath(updated)
-  const keys = await resolveVoicePttKeys(updated, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(
     cs16ExecutablePath,
     keys.team,
@@ -488,7 +473,6 @@ export const disableNextClientIntegrationAfterCrash = async (): Promise<void> =>
 
 export const getSavedVoicePttKey = async (): Promise<string> => {
   const storedSettings = await readStoredSettings()
-  const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  const keys = await resolveVoicePttKeys(storedSettings, cs16ExecutablePath)
+  const keys = await resolveVoicePttKeys(storedSettings)
   return `${keys.team}|${keys.party}`
 }
