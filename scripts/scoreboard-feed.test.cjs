@@ -18,6 +18,9 @@ test('parses a unified leaderboard with assists and sorts by score', () => {
     winTarget: 13,
     ctWins: null,
     tWins: null,
+    roundEvents: null,
+    ctLossBonus: null,
+    tLossBonus: null,
     players: [
       {
         id: 1,
@@ -28,7 +31,9 @@ test('parses a unified leaderboard with assists and sorts by score', () => {
         deaths: 4,
         ping: 31,
         alive: true,
-        bot: false
+        bot: false,
+        money: null,
+        primaryWeapon: null
       },
       {
         id: 2,
@@ -39,7 +44,9 @@ test('parses a unified leaderboard with assists and sorts by score', () => {
         deaths: 1,
         ping: 42,
         alive: false,
-        bot: false
+        bot: false,
+        money: null,
+        primaryWeapon: null
       }
     ]
   })
@@ -90,6 +97,47 @@ test('reads the server supplied MR8 match format', () => {
   assert.equal(snapshot?.ctWins, 5)
   assert.equal(snapshot?.tWins, 3)
   assert.equal(parseSnapshot('#16c-scoreboard-v6\tde_dust2\t9\t0\tCT\t0\t9\t1\t0\n'), null)
+})
+
+test('reads bounded player money from the v7 feed', () => {
+  const snapshot = parseSnapshot(
+    '#16c-scoreboard-v7\tde_dust2\t1\t0\tC\t8\t9\t1\t0\n' +
+      '1\t2\t2\t1\t0\t25\t1\t0\t16000\tAlpha\n'
+  )
+  assert.equal(snapshot?.players[0]?.money, 16000)
+  assert.equal(
+    parseSnapshot(
+      '#16c-scoreboard-v7\tde_dust2\t1\t0\tC\t8\t9\t1\t0\n' +
+        '1\t2\t2\t1\t0\t25\t1\t0\t16001\tAlpha\n'
+    ),
+    null
+  )
+})
+
+test('reads a primary weapon id from the v8 feed', () => {
+  const snapshot = parseSnapshot(
+    '#16c-scoreboard-v8\tde_dust2\t1\t0\tC\t8\t9\t1\t0\n' +
+      '1\t2\t2\t1\t0\t25\t1\t0\t16000\t28\tAlpha\n'
+  )
+  assert.equal(snapshot?.players[0]?.money, 16000)
+  assert.equal(snapshot?.players[0]?.primaryWeapon, 28)
+  assert.equal(
+    parseSnapshot(
+      '#16c-scoreboard-v8\tde_dust2\t1\t0\tC\t8\t9\t1\t0\n' +
+        '1\t2\t2\t1\t0\t25\t1\t0\t16000\t32\tAlpha\n'
+    ),
+    null
+  )
+})
+
+test('reads round event markers and loss bonuses from the v9 feed', () => {
+  const snapshot = parseSnapshot(
+    '#16c-scoreboard-v9\tde_dust2\t9\t0\tCTCTCTCTC\t8\t9\t5\t4\tDBCKC\t1900\t2900\n' +
+      '1\t2\t2\t1\t0\t25\t1\t0\t16000\t28\tAlpha\n'
+  )
+  assert.equal(snapshot?.roundEvents, 'DBCKC')
+  assert.equal(snapshot?.ctLossBonus, 1900)
+  assert.equal(snapshot?.tLossBonus, 2900)
 })
 
 test('rejects malformed and duplicate player rows', () => {

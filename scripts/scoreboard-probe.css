@@ -55,10 +55,14 @@ body,
 .column-head,
 .player-row {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 88px 96px 88px 94px;
+  grid-template-columns: 54px minmax(0, 1fr) 88px 96px 88px 108px 94px;
   align-items: center;
   gap: 8px;
   padding: 0 12px;
+}
+.column-head.has-weapon,
+.player-row.has-weapon {
+  grid-template-columns: 54px minmax(0, 1fr) 88px 96px 88px 48px 108px 94px;
 }
 .column-head {
   height: 34px;
@@ -149,6 +153,18 @@ body,
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.primary-weapon {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 18px;
+  color: #8e8f8c;
+}
+.primary-weapon img {
+  width: 38px;
+  height: 15px;
+  object-fit: contain;
+}
 .empty {
   padding: 40px 12px;
   text-align: center;
@@ -156,7 +172,7 @@ body,
   font-size: 15px;
 }
 .round-area {
-  height: 72px;
+  height: 82px;
   flex: none;
   border-top: 1px solid rgba(196, 167, 95, 0.5);
   padding: 10px 5px 0;
@@ -177,13 +193,27 @@ body,
   display: flex;
   justify-content: center;
   gap: 3px;
-  margin-top: 9px;
+  margin: 9px auto 0;
+  padding: 7px 10px;
+  background: rgba(30, 30, 25, 0.86);
+  border: 1px solid rgba(196, 167, 95, 0.32);
 }
 .round-tick {
   width: 34px;
-  height: 10px;
+  height: 18px;
   border: 1px solid #736c58;
   background: rgba(118, 113, 94, 0.3);
+  position: relative;
+}
+.round-event-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  color: #e6edf1;
+  stroke-width: 2.5;
+  transform: translate(-50%, -50%);
 }
 .round-tick.ct-win {
   background: #4c86b4;
@@ -192,6 +222,22 @@ body,
 .round-tick.t-win {
   background: #b98541;
   border-color: #e7b96e;
+}
+.round-tick.match-winner {
+  position: relative;
+  background: #d9a441;
+  border-color: #ffe49a;
+  box-shadow: 0 0 9px rgba(255, 208, 92, 0.75);
+}
+.round-trophy {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  color: #fff4c7;
+  stroke-width: 2.5;
+  transform: translate(-50%, -50%);
 }
 .round-tick.current {
   background: #77766f;
