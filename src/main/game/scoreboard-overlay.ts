@@ -297,8 +297,7 @@ export class ScoreboardOverlaySession {
       // Only an authenticated live match with the v8+ weapon feed can request
       // native ally tags. The module independently checks the fresh mode-0 feed.
       await this.setAllyTagsAvailable(
-        !this.usesNextClientHost &&
-          /^#16c-scoreboard-v[89]\t/.test(feed) &&
+        /^#16c-scoreboard-v[89]\t/.test(feed) &&
           this.readSnapshot(this.directory)?.mode === 'competitive'
       )
       if (!this.feedAvailable)
