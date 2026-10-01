@@ -599,9 +599,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'cl_downloadfilter "all"',
         `password "${input.password}"`,
         // GoldSrc can process its normal user config after +exec during startup.
-        // Wait a few frames, then reassert match identity
-        // immediately before connecting.
+        // Wait a few frames, then load the player's normal bindings before
+        // reasserting match identity and connecting. This reads config.cfg
+        // without replacing or rewriting any of the player's binds.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
+        'exec config.cfg',
         ...identityCommands,
         `password "${input.password}"`,
         `connect ${input.host}:${input.port}`,
