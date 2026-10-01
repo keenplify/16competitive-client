@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
-type AllyTag = { id: number; x: number; y: number; money: number; weapon: number; name: string }
+type AllyTag = { id: number; x: number; y: number; money: number; weapon: number; scale: number; name: string }
 
 declare global {
   interface Window {
@@ -46,9 +46,9 @@ function parseTags(value: string): AllyTag[] {
   for (const line of lines) {
     if (!line) continue
     const fields = line.split('\t')
-    if (fields.length !== 6) return []
-    const [id, x, y, money, weapon] = fields.slice(0, 5).map(Number)
-    const name = fields[5]
+    if (fields.length !== 7) return []
+    const [id, x, y, money, weapon, scale] = fields.slice(0, 6).map(Number)
+    const name = fields[6]
     if (
       !Number.isInteger(id) ||
       id < 1 ||
@@ -61,26 +61,40 @@ function parseTags(value: string): AllyTag[] {
       !Number.isInteger(weapon) ||
       weapon < 0 ||
       weapon > 30 ||
+      !Number.isInteger(scale) ||
+      scale < 55 ||
+      scale > 100 ||
       !name ||
       name.length > 32
     )
       return []
     if (seen.has(id)) return []
     seen.add(id)
-    tags.push({ id, x, y, money, weapon, name })
+    tags.push({ id, x, y, money, weapon, scale, name })
   }
   return tags
 }
 
 function AllyTags(): React.JSX.Element {
   const [tags, setTags] = useState<AllyTag[]>([])
-  useEffect(() => window.allyTags?.onTags((value) => setTags(parseTags(value))), [])
+  useEffect(() => {
+    let previous = ''
+    return window.allyTags?.onTags((value) => {
+      if (value === previous) return
+      previous = value
+      setTags(parseTags(value))
+    })
+  }, [])
   return (
     <main className="ally-tags" aria-label="Allied player tags">
       {tags.map((tag) => {
         const weapon = weaponAssets[tag.weapon]
         return (
-          <div className="ally-tag" key={tag.id} style={{ left: tag.x, top: tag.y }}>
+          <div className="ally-tag" key={tag.id} style={{
+            left: tag.x,
+            top: tag.y,
+            transform: `translate(-50%, -100%) scale(${tag.scale / 100})`
+          }}>
             <span className="ally-arrow">▼</span>
             <div className="ally-loadout">
               {weapon && <img src={weapon.src} alt={weapon.name} />}

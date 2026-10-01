@@ -23,6 +23,8 @@ body,
   align-items: center;
   min-width: 130px;
   transform: translate(-50%, -100%);
+  transform-origin: center bottom;
+  transition: left 50ms linear, top 50ms linear, transform 100ms ease-out;
   color: #a7e7d1;
   text-align: center;
   text-shadow:
