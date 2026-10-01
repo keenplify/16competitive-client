@@ -10,6 +10,65 @@ const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
 const DEFAULT_PARTY_VOICE_PTT_KEY = 'V'
 const RESTORE_SETTLE_MS = 250
 
+const STOCK_CONTROL_BINDINGS: ReadonlyArray<readonly [string, string]> = [
+  ['TAB', '+showscores'],
+  ['ENTER', '+attack'],
+  ['ESCAPE', 'cancelselect'],
+  ['SPACE', '+jump'],
+  [',', 'buyammo1'],
+  ['.', 'buyammo2'],
+  ['0', 'slot10'],
+  ['1', 'slot1'],
+  ['2', 'slot2'],
+  ['3', 'slot3'],
+  ['4', 'slot4'],
+  ['5', 'slot5'],
+  ['6', 'slot6'],
+  ['7', 'slot7'],
+  ['8', 'slot8'],
+  ['9', 'slot9'],
+  ['[', 'invprev'],
+  [']', 'invnext'],
+  ['`', 'toggleconsole'],
+  ['a', '+moveleft'],
+  ['b', 'buy'],
+  ['c', 'radio3'],
+  ['d', '+moveright'],
+  ['e', '+use'],
+  ['f', 'impulse 100'],
+  ['g', 'drop'],
+  ['h', '+commandmenu'],
+  ['i', 'showbriefing'],
+  ['k', '+voicerecord'],
+  ['m', 'chooseteam'],
+  ['n', 'nightvision'],
+  ['o', 'buyequip'],
+  ['q', 'lastinv'],
+  ['r', '+reload'],
+  ['s', '+back'],
+  ['t', 'impulse 201'],
+  ['u', 'messagemode2'],
+  ['w', '+forward'],
+  ['x', 'radio2'],
+  ['y', 'messagemode'],
+  ['z', 'radio1'],
+  ['~', 'toggleconsole'],
+  ['UPARROW', '+forward'],
+  ['DOWNARROW', '+back'],
+  ['LEFTARROW', '+left'],
+  ['RIGHTARROW', '+right'],
+  ['ALT', '+strafe'],
+  ['CTRL', '+duck'],
+  ['SHIFT', '+speed'],
+  ['F1', 'autobuy'],
+  ['F2', 'rebuy'],
+  ['F5', 'snapshot'],
+  ['MOUSE1', '+attack'],
+  ['MOUSE2', '+attack2'],
+  ['MWHEELDOWN', 'invnext'],
+  ['MWHEELUP', 'invprev']
+]
+
 /**
  * Callers pass either the stock `cstrike` game directory (the engine's only game
  * directory, and where launcher content lives) or the installation root that
@@ -218,6 +277,19 @@ const readConfigIfPresent = async (configPath: string): Promise<string | null> =
     throw error
   })
 
+const restoreMissingStockBindings = (contents: string): { contents: string; repaired: boolean } => {
+  if (/^\s*bind(?:\s|$)/im.test(contents)) return { contents, repaired: false }
+
+  const eol = contents.includes('\r\n') ? '\r\n' : '\n'
+  const lines = contents.split(/\r?\n/)
+  while (lines.at(-1)?.trim() === '') lines.pop()
+  lines.push(
+    ...STOCK_CONTROL_BINDINGS.map(([key, command]) => `bind "${key}" "${command}"`),
+    ''
+  )
+  return { contents: lines.join(eol), repaired: true }
+}
+
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
@@ -247,9 +319,23 @@ export const prepareVoicePtt = async (
 ): Promise<VoicePttSession> => {
   void _onPtt
   const { teamKey, partyKey } = parseConfiguredVoiceKeys(configuredKeys)
+  const configPath = configPathFor(gameDirectory)
+  let originalConfig = await readConfigIfPresent(configPath)
+
+  if (originalConfig !== null) {
+    const recovered = restoreMissingStockBindings(originalConfig)
+    if (recovered.repaired) {
+      await writeConfigAtomically(configPath, recovered.contents)
+      originalConfig = recovered.contents
+      console.warn('[VoicePTT] repaired Counter-Strike config with no key bindings')
+    }
+  }
+
   const partyKeyLower = partyKey.toLowerCase()
   const teamKeys = normalizeVoicePttKeys([
-    ...(await readVoicePttKeys(gameDirectory)).filter((key) => key.toLowerCase() !== partyKeyLower),
+    ...teamVoiceKeysFromConfig(originalConfig ?? '').filter(
+      (key) => key.toLowerCase() !== partyKeyLower
+    ),
     teamKey
   ])
   const bindings: VoiceBinding[] = [
@@ -257,8 +343,6 @@ export const prepareVoicePtt = async (
     { key: partyKey, command: PARTY_VOICE_WRAPPER_COMMAND }
   ]
   const keys = [...new Set(bindings.map(({ key }) => key))]
-  const configPath = configPathFor(gameDirectory)
-  const originalConfig = await readConfigIfPresent(configPath)
   // The match config applies these bindings at launch. Never create or replace
   // the player's config.cfg just because it was absent during preparation.
   const installedBindings = installVoiceBindings(originalConfig ?? '', bindings)
