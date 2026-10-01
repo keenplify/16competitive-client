@@ -508,7 +508,9 @@ export function VoiceChatDock(): JSX.Element | null {
     }
   }
 
-  requestMicrophoneRef.current = ensureMicrophone
+  useEffect(() => {
+    requestMicrophoneRef.current = ensureMicrophone
+  })
 
   const sendSignal = async (
     targetPlayerId: string,
