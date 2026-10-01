@@ -13,7 +13,7 @@ export function NewsPage(): JSX.Element {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
-      <header className="mx-auto max-w-5xl border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+      <header className="mx-auto max-w-6xl border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Community</p>
         <h1 className="mt-2 text-3xl font-semibold">News</h1>
         <p className="mt-2 text-sm text-neutral-200">Updates from 1.6 Competitive</p>
@@ -30,12 +30,20 @@ export function NewsPage(): JSX.Element {
       {status === 'ready' && posts.length === 0 && (
         <p className="py-16 text-center text-sm text-neutral-400">No news posts yet.</p>
       )}
-      <div className="mx-auto mt-8 max-w-5xl space-y-4">
+      <div className="mx-auto mt-8 max-w-6xl columns-1 gap-4 sm:columns-2 xl:columns-3">
         {posts.map((post) => (
           <article
             key={post.id}
-            className="overflow-hidden border border-white/10 bg-neutral-900/90"
+            className="mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90"
           >
+            {post.mediaUrl && (
+              <img
+                src={post.mediaUrl}
+                alt=""
+                loading="lazy"
+                className="aspect-square w-full object-cover"
+              />
+            )}
             <div className="p-5">
               {(() => {
                 const paragraphs = readableNewsContent(post.content)
@@ -46,14 +54,14 @@ export function NewsPage(): JSX.Element {
                 const body = paragraphs.slice(1).join('\n')
                 return (
                   <>
-                    <div className="flex items-center justify-between gap-4">
-                      <h2 className="text-lg font-semibold">{title}</h2>
-                      <time className="text-xs text-neutral-500" dateTime={post.createdAt}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <h2 className="min-w-0 text-lg font-semibold">{title}</h2>
+                      <time className="shrink-0 text-xs text-neutral-500" dateTime={post.createdAt}>
                         {new Date(post.createdAt).toLocaleDateString()}
                       </time>
                     </div>
                     {body && (
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-neutral-200">
+                      <p className="mt-4 break-words whitespace-pre-wrap text-sm leading-6 text-neutral-200">
                         {body}
                       </p>
                     )}
@@ -69,14 +77,6 @@ export function NewsPage(): JSX.Element {
                 View on Mastodon ↗
               </a>
             </div>
-            {post.mediaUrl && (
-              <img
-                src={post.mediaUrl}
-                alt=""
-                loading="lazy"
-                className="max-h-[28rem] w-full object-cover"
-              />
-            )}
           </article>
         ))}
       </div>

@@ -33,6 +33,14 @@ type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentia
 const socialProviderLabel = (provider: SocialAuthProvider): string =>
   provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
+const communityLinks = [
+  { label: 'Discord', href: 'https://discord.gg/uZwKyf2EHp' },
+  { label: 'Mastodon', href: 'https://mastodon.social/@16competitive' },
+  { label: 'Ko-fi', href: 'https://ko-fi.com/16competitive' },
+  { label: 'Facebook', href: 'https://www.facebook.com/1.6competitive' },
+  { label: 'Instagram', href: 'https://www.instagram.com/1.6competitive' }
+] as const
+
 const readableError = (error: unknown): string =>
   error instanceof Error
     ? error.message.replace(/^Error:\s*/, '')
@@ -426,6 +434,28 @@ export function SettingsPage(): JSX.Element {
                 {webRuntime ? 'Web' : 'Launcher'}{' '}
                 <span className="font-mono">{currentVersion ?? '…'}</span>
               </p>
+              <nav
+                className="col-span-2 mt-2 border-t border-white/10 px-3 pt-3 lg:col-span-1"
+                aria-label="Community links"
+              >
+                <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
+                  Follow &amp; support
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+                  {communityLinks.map(({ label, href }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-neutral-400 transition hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+                    >
+                      {label}
+                      <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+              </nav>
             </div>
           </aside>
 

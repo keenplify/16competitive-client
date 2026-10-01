@@ -138,6 +138,24 @@ test('reads round event markers and loss bonuses from the v9 feed', () => {
   assert.equal(snapshot?.roundEvents, 'DBCKC')
   assert.equal(snapshot?.ctLossBonus, 1900)
   assert.equal(snapshot?.tLossBonus, 2900)
+  const other = parseSnapshot(
+    '#16c-scoreboard-v9\tcs_office\t2\t0\tCC\t8\t9\t2\t0\tHU\t1400\t1900\n'
+  )
+  assert.equal(other?.roundEvents, 'HU')
+  assert.equal(
+    parseSnapshot('#16c-scoreboard-v9\tde_dust2\t1\t0\tC\t8\t9\t1\t0\tX\t1400\t1900\n'),
+    null
+  )
+})
+
+test('reads buy period and teammate health from the v10 feed', () => {
+  const row = '1\t2\t2\t1\t0\t25\t1\t0\t800\t16\t73\tAlpha\n'
+  const during = parseSnapshot('#16c-scoreboard-v10\tde_dust2\t1\t0\tC\t8\t9\t1\t0\t1\n' + row)
+  const after = parseSnapshot('#16c-scoreboard-v10\tde_dust2\t1\t0\tC\t8\t9\t1\t0\t0\n' + row)
+  assert.equal(during?.buytimeActive, true)
+  assert.equal(after?.buytimeActive, false)
+  assert.equal(after?.players[0]?.health, 73)
+  assert.equal(parseSnapshot('#16c-scoreboard-v10\tde_dust2\t1\t0\tC\t8\t9\t1\t0\t2\n' + row), null)
 })
 
 test('rejects malformed and duplicate player rows', () => {

@@ -39,6 +39,7 @@ import {
   ensureSteamScoreboardOption
 } from './steam-scoreboard-options'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
+import { stageMatchJoinToken } from './match-join-config'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
@@ -586,6 +587,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
   await unlink(join(launchGameDirectory, '16competitive-match.cfg')).catch(() => undefined)
 
+  // GoldSrc may restore config.cfg after processing Steam's +exec handoff.
+  // Replace only our join key so a stale manual token cannot reach the server.
+  await stageMatchJoinToken(join(launchGameDirectory, 'config.cfg'), input.joinToken)
+
   const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
 
   try {
@@ -809,7 +814,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
             process.platform === 'linux' && directLaunch
               ? [dirname(executable), process.env.LD_LIBRARY_PATH].filter(Boolean).join(':')
               : process.env.LD_LIBRARY_PATH,
-          ...(process.platform === 'linux' && activeScoreboardSession?.matchId === input.matchId
+          ...(process.platform === 'linux' &&
+          launchTarget.distribution !== 'steam' &&
+          activeScoreboardSession?.matchId === input.matchId
             ? {
                 LD_PRELOAD: [activeScoreboardSession.session.modulePath, process.env.LD_PRELOAD]
                   .filter(Boolean)

@@ -10,6 +10,7 @@ import { getGameSettings } from './game-settings'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
 import { WindowsNextClientInstallation } from './windows-nextclient-installation'
+import { buildSteamScoreboardWrapper } from './steam-scoreboard-wrapper'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -200,19 +201,7 @@ export class ScoreboardOverlaySession {
       // the authenticated launch and reads this per-match session. It also
       // works for normal Steam launches: without an active session it simply
       // executes Valve's original command.
-      const shellQuote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`
-      const wrapper = [
-        '#!/bin/sh',
-        `session=${shellQuote(directory)}`,
-        `module=${shellQuote(modulePath)}`,
-        'if [ -f "$session/overlay.enabled" ] && [ -f "$module" ]; then',
-        '  export PAPAMO_SKIN_PROBE_SESSION="$session"',
-        '  export LD_PRELOAD="$module${LD_PRELOAD:+ $LD_PRELOAD}"',
-        'fi',
-        'exec "$@"',
-        ''
-      ].join('\n')
-      await writeFile(join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'), wrapper, {
+      await writeFile(join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'), buildSteamScoreboardWrapper(directory, modulePath), {
         mode: 0o700
       })
       const requireResource = createRequire(import.meta.url)
@@ -293,7 +282,7 @@ export class ScoreboardOverlaySession {
       )
       if (!response.ok || response.status === 204) throw new Error('Scoreboard unavailable')
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v[23456789]\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|10)\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       if (this.stopped) return
       const temporary = `${this.feedPath}.tmp`
@@ -302,7 +291,7 @@ export class ScoreboardOverlaySession {
       // Only an authenticated live match with the v8+ weapon feed can request
       // native ally tags. The module independently checks the fresh mode-0 feed.
       await this.setAllyTagsAvailable(
-        /^#16c-scoreboard-v[89]\t/.test(feed) &&
+        /^#16c-scoreboard-v(?:[89]|10)\t/.test(feed) &&
           this.readSnapshot(this.directory)?.mode === 'competitive'
       )
       if (!this.feedAvailable)
