@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { test } from 'node:test'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { test } from 'node:test'
 import { build } from 'esbuild'
 
 const bundle = await build({
@@ -12,80 +13,51 @@ const bundle = await build({
   format: 'esm',
   write: false
 })
-const { prepareVoicePtt } = await import(
+const { prepareVoicePtt, goldSrcKeyCode, readVoicePttKey } = await import(
   `data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`
 )
 
-test('does not replace GoldSrc first-launch config with voice bindings', async () => {
-  const directory = await mkdtemp(join(tmpdir(), '16c-voice-first-launch-'))
-  const cstrike = join(directory, 'cstrike')
-  await mkdir(cstrike)
-  try {
-    const session = await prepareVoicePtt(directory)
-    await assert.rejects(stat(join(cstrike, 'config.cfg')), { code: 'ENOENT' })
-    assert.equal(session.configCommands.length, 2)
-    await writeFile(join(cstrike, 'config.cfg'), 'unbindall\nbind "w" "+forward"\n')
-    await session.restoreBindings()
-    assert.match(await readFile(join(cstrike, 'config.cfg'), 'utf8'), /bind "w" "\+forward"/)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
+const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-
-test('repairs an existing config that has no gameplay bindings', async () => {
-  const directory = await mkdtemp(join(tmpdir(), '16c-voice-empty-bindings-'))
+test('native PTT preserves the complete GoldSrc config and forwards both channels', async () => {
+  const directory = await mkdtemp(join(tmpdir(), '16c-native-ptt-'))
   const cstrike = join(directory, 'cstrike')
-  const configPath = join(cstrike, 'config.cfg')
-  await mkdir(cstrike)
-  try {
-    await writeFile(configPath, 'unbindall\nsensitivity "2.5"\n')
-    await prepareVoicePtt(directory, undefined, 'K|V', 'win32')
-    const repaired = await readFile(configPath, 'utf8')
-    assert.match(repaired, /bind "w" "\+forward"/)
-    assert.match(repaired, /bind "a" "\+moveleft"/)
-    assert.match(repaired, /bind "s" "\+back"/)
-    assert.match(repaired, /bind "d" "\+moveright"/)
-    assert.match(repaired, /bind "MOUSE1" "\+attack"/)
-    assert.match(repaired, /sensitivity "2\.5"/)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
-
-test('repairs the legacy PTT-only config that made the keyboard menu appear empty', async () => {
-  const directory = await mkdtemp(join(tmpdir(), '16c-voice-ptt-only-'))
-  const cstrike = join(directory, 'cstrike')
-  const configPath = join(cstrike, 'config.cfg')
-  await mkdir(cstrike)
-  try {
-    await writeFile(
-      configPath,
-      'bind "k" "+16competitive_team_voice"\nbind "v" "+16competitive_party_voice"\n'
-    )
-    await prepareVoicePtt(directory, undefined, 'K|V', 'win32')
-    const repaired = await readFile(configPath, 'utf8')
-    assert.match(repaired, /bind "w" "\+forward"/)
-    assert.match(repaired, /bind "a" "\+moveleft"/)
-    assert.match(repaired, /bind "k" "\+voicerecord"/)
-    assert.doesNotMatch(repaired, /16competitive_(?:team|party)_voice/)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
-
-test('does not reset a valid custom movement layout', async () => {
-  const directory = await mkdtemp(join(tmpdir(), '16c-voice-custom-binds-'))
-  const cstrike = join(directory, 'cstrike')
-  const configPath = join(cstrike, 'config.cfg')
-  await mkdir(cstrike)
+  const sessionDirectory = join(directory, 'session')
   const original =
-    'bind "e" "+forward"\nbind "d" "+back"\nbind "s" "+moveleft"\nbind "f" "+moveright"\n'
+    'unbindall\nbind "w" "+forward"\nbind "k" "+voicerecord"\nbind "v" "impulse 100"\n'
+  await mkdir(cstrike)
+  await mkdir(sessionDirectory)
+  await writeFile(join(cstrike, 'config.cfg'), original)
+  const events = []
+  const session = prepareVoicePtt((active, channel) => events.push([active, channel]), 'K|V')
   try {
-    await writeFile(configPath, original)
-    await prepareVoicePtt(directory, undefined, 'K|V', 'win32')
-    assert.equal(await readFile(configPath, 'utf8'), original)
+    assert.equal(await readVoicePttKey(directory), 'K')
+    await session.attachNative(sessionDirectory)
+    assert.equal(await readFile(join(sessionDirectory, 'ptt.keys'), 'ascii'), '107 118\n')
+    await writeFile(join(sessionDirectory, 'ptt.state'), '1 0\n')
+    await pause(100)
+    await writeFile(join(sessionDirectory, 'ptt.state'), '1 1\n')
+    await pause(100)
+    await writeFile(join(sessionDirectory, 'ptt.state'), '0 1\n')
+    await pause(100)
+    session.stop()
+    assert.deepEqual(events, [
+      [true, 'team'],
+      [true, 'party'],
+      [false, 'team'],
+      [false, 'party']
+    ])
+    assert.equal(await readFile(join(cstrike, 'config.cfg'), 'utf8'), original)
   } finally {
+    session.stop()
     await rm(directory, { recursive: true, force: true })
   }
+})
+
+test('GoldSrc key codes cover supported keyboard and mouse keys', () => {
+  assert.equal(goldSrcKeyCode('K'), 107)
+  assert.equal(goldSrcKeyCode('F12'), 146)
+  assert.equal(goldSrcKeyCode('MOUSE1'), 241)
+  assert.equal(goldSrcKeyCode('MOUSE5'), 245)
+  assert.equal(goldSrcKeyCode('CTRL'), 133)
 })

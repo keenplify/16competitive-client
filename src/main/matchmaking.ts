@@ -729,7 +729,8 @@ class MatchmakingConnection {
     await launchCounterStrikeForMatch({
       ...connection,
       forceRestart: true,
-      onVoicePtt: (active) => this.notifyLocalVoicePtt(connection.matchId, active),
+      onVoicePtt: (active, channel) =>
+        this.notifyLocalVoicePtt(connection.matchId, active, channel),
       apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
       onExit: ({ code, signal }) => {
         discordPresence.setInGame(false)
@@ -1148,7 +1149,8 @@ class MatchmakingConnection {
             await launchCounterStrikeForMatch({
               ...parsed,
               apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
-              onVoicePtt: (active) => this.notifyLocalVoicePtt(parsed.matchId, active),
+              onVoicePtt: (active, channel) =>
+                this.notifyLocalVoicePtt(parsed.matchId, active, channel),
               onExit: ({ code, signal }) => {
                 discordPresence.setInGame(false)
                 this.focusLauncher()
@@ -1390,13 +1392,13 @@ class MatchmakingConnection {
     }
   }
 
-  private notifyLocalVoicePtt(matchId: string, active: boolean): void {
+  private notifyLocalVoicePtt(matchId: string, active: boolean, channel: 'team' | 'party'): void {
     this.notify({
       type: 'voice_signal',
       context: { kind: 'match', id: matchId },
       fromPlayerId: '__16competitive_ptt__',
       signalType: 'ice',
-      signal: JSON.stringify({ type: 'ptt', active })
+      signal: JSON.stringify({ type: 'ptt', active, channel })
     })
   }
 }

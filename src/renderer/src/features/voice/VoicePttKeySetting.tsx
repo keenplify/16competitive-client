@@ -197,7 +197,7 @@ export function VoicePttKeySetting(): JSX.Element {
         </div>
         <p className="mt-2 max-w-2xl text-sm text-neutral-400">
           Team (All in FFA) and Party talk use separate keys. Team defaults to K and Party defaults
-          to V. Counter-Strike receives both bindings temporarily when a match launches.
+          to V. The in-game module detects these keys without changing Counter-Strike bindings.
         </p>
       </div>
 
@@ -219,7 +219,7 @@ export function VoicePttKeySetting(): JSX.Element {
         {!notice && !error && (
           <p className="text-neutral-500">
             {hasGame
-              ? 'Your previous Counter-Strike bindings are restored after the match.'
+              ? 'Your Counter-Strike bindings stay unchanged.'
               : 'Choose your Counter-Strike folder to launch matches.'}
           </p>
         )}
