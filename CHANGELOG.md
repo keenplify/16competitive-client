@@ -1673,3 +1673,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a skin resale flow in the launcher.
 - Added a confirmation step before reselling a skin.
+
+## v2026.1002.7 — 2026-10-02
+
+### Scoreboard
+
+- Simplified round history display.
+- Added a clear indicator for the bomb carrier.
