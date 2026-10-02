@@ -44,6 +44,7 @@ const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-F
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
 const RELAUNCH_SETTLE_MS = 500
+const WINDOWS_GRACEFUL_CLOSE_TIMEOUT_MS = 10_000
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
 const LINUX_HANDOFF_POLL_MS = 1_000
 // Counter-Strike 1.6 on Steam. Direct launches export these so the client can
@@ -382,8 +383,9 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
     '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
-    '$matches | ForEach-Object { $game = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue; if ($game) { try { if ($game.CloseMainWindow()) { $game.WaitForExit(3000) | Out-Null }; if (-not $game.HasExited) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } }',
-    'Write-Output $matches.Count'
+    `$matches | ForEach-Object { $game = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue; if ($game) { try { if ($game.CloseMainWindow()) { $game.WaitForExit(${WINDOWS_GRACEFUL_CLOSE_TIMEOUT_MS}) | Out-Null } } catch {} } }`,
+    '$remaining = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',
+    'Write-Output "$($matches.Count)|$($remaining.Count)"'
   ].join('; ')
 
   const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
@@ -416,16 +418,29 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
   )
 
   if (result.code !== 0) {
-    console.warn('[GameLaunch] could not terminate existing Windows Counter-Strike process', {
+    console.warn('[GameLaunch] could not close existing Windows Counter-Strike process', {
       code: result.code,
       detail: result.stderr.trim() || 'PowerShell process lookup failed'
     })
     return 0
   }
 
-  const terminated = Number(result.stdout.trim()) || 0
-  console.info('[GameLaunch] Windows Counter-Strike processes terminated', { terminated })
-  return terminated
+  const [matchedText, remainingText] = result.stdout.trim().split('|')
+  const matched = Number(matchedText) || 0
+  const remaining = Number(remainingText) || 0
+  if (remaining > 0) {
+    console.warn('[GameLaunch] Windows Counter-Strike did not exit after graceful close', {
+      matched,
+      remaining,
+      timeoutMs: WINDOWS_GRACEFUL_CLOSE_TIMEOUT_MS
+    })
+    throw new Error(
+      'Counter-Strike is still running. Close it normally so it can save your settings, then try again.'
+    )
+  }
+
+  console.info('[GameLaunch] Windows Counter-Strike processes closed gracefully', { matched })
+  return matched
 }
 
 const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
