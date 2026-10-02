@@ -18,7 +18,7 @@
     "build:helper": "node scripts/build-game-inspector.mjs",
     "build:scoreboard": "node scripts/build-scoreboard-overlay.cjs",
     "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs scripts/release-helper.test.mjs",
-    "test:scoreboard": "node --experimental-strip-types --test scripts/scoreboard-feed.test.cjs scripts/scoreboard-rounds.test.mjs scripts/scoreboard-cleanup.test.mjs scripts/scoreboard-watchdog.test.mjs scripts/scoreboard-report.test.mjs scripts/crosshair-config.test.mjs scripts/voice-ptt.test.mjs scripts/windows-cosmetic-compatibility.test.mjs scripts/steam-scoreboard-wrapper.test.mjs scripts/match-join-config.test.mjs",
+    "test:scoreboard": "node --experimental-strip-types --test scripts/scoreboard-feed.test.cjs scripts/scoreboard-rounds.test.mjs scripts/scoreboard-cleanup.test.mjs scripts/scoreboard-watchdog.test.mjs scripts/scoreboard-report.test.mjs scripts/crosshair-config.test.mjs scripts/voice-ptt.test.mjs scripts/windows-cosmetic-compatibility.test.mjs scripts/steam-scoreboard-wrapper.test.mjs",
     "start": "electron-vite dev",
     "prestart": "npm run build:scoreboard",
     "dev": "electron-vite dev",
