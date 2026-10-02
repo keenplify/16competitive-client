@@ -1649,3 +1649,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Counter-Strike’s `config.cfg` is no longer modified.
 - Removed obsolete configuration mutation behavior and coverage.
+
+## v2026.1002.4 — 2026-10-02
+
+### Scoreboard
+
+- Custom HUD activation now uses the live scoreboard feed.
