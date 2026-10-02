@@ -725,13 +725,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  const useNativeNextClientMatchHandoff =
-    activeScoreboardSession?.session.usesNextClientHost === true
+  const nativeNextClientSession = activeScoreboardSession?.session.usesNextClientHost
+    ? activeScoreboardSession
+    : null
+  const useNativeNextClientMatchHandoff = nativeNextClientSession !== null
 
-  if (useNativeNextClientMatchHandoff) {
+  if (nativeNextClientSession) {
     try {
       if (!nextClientExpectedHost) throw new Error('NextClient server endpoint is not IPv4')
-      const sessionDirectory = activeScoreboardSession.session.directory
+      const sessionDirectory = nativeNextClientSession.session.directory
       const handoffFiles: ReadonlyArray<readonly [string, string]> = [
         ['server.endpoint', `${nextClientExpectedHost}:${input.port}\n`],
         ['player.name', `${playerName}\n`],
