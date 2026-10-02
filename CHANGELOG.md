@@ -1655,3 +1655,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - Custom HUD activation now uses the live scoreboard feed.
+
+## v2026.1002.5 — 2026-10-02
+
+### Match Handoff
+
+- Improved session handoff reliability for NextClient matches.
+- Prevented unnecessary startup behavior when joining NextClient matches.
+
+### Relaunching
+
+- Windows Counter-Strike now closes gracefully before being relaunched.
