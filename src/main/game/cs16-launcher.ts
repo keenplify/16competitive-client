@@ -725,41 +725,52 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  if (activeScoreboardSession?.session.usesNextClientHost) {
+  const useNativeNextClientMatchHandoff =
+    activeScoreboardSession?.session.usesNextClientHost === true
+
+  if (useNativeNextClientMatchHandoff) {
     try {
       if (!nextClientExpectedHost) throw new Error('NextClient server endpoint is not IPv4')
-      await writeFile(
-        join(activeScoreboardSession.session.directory, 'server.endpoint'),
-        `${nextClientExpectedHost}:${input.port}\n`,
-        { encoding: 'ascii', mode: 0o600, flag: 'wx' }
-      )
-      const connectLine = `connect ${input.host}:${input.port}`
-      const config = await readFile(matchConfigPath, 'utf8')
-      if (!config.includes(connectLine)) throw new Error('Match config lost its connect command')
-      await writeFile(
-        matchConfigPath,
-        config.replace(connectLine, `papamo_skin_probe "1"\n${connectLine}`),
-        { mode: 0o600 }
-      )
+      const sessionDirectory = activeScoreboardSession.session.directory
+      const handoffFiles: ReadonlyArray<readonly [string, string]> = [
+        ['server.endpoint', `${nextClientExpectedHost}:${input.port}\n`],
+        ['player.name', `${playerName}\n`],
+        ['join.token', `${input.joinToken}\n`],
+        ['server.password', `${input.password}\n`],
+        ['texture.size', `${launchTarget.textureSize}\n`]
+      ]
+      for (const [name, contents] of handoffFiles) {
+        await writeFile(join(sessionDirectory, name), contents, {
+          encoding: 'ascii',
+          mode: 0o600,
+          flag: 'wx'
+        })
+      }
+      console.info('[NextClient] native match handoff prepared', {
+        matchId: input.matchId,
+        endpoint: `${nextClientExpectedHost}:${input.port}`
+      })
     } catch (error) {
-      console.warn('[NextClient] could not enable the cosmetic host; using stock NextClient', error)
+      console.warn('[NextClient] could not prepare native match handoff', error)
       finishScoreboardSession(input.matchId)
       await WindowsNextClientInstallation.restorePreviousInstall(cwd).catch(() => undefined)
+      throw new Error(
+        'Could not prepare the NextClient match connection. Restart the launcher and try again.'
+      )
     }
   }
 
-  // The match configuration carries the join identity and password and is
-  // written directly into the game directory the engine runs on, so `+exec`
-  // always finds it. The secret values therefore never appear in the process
-  // list.
-  // Only the config connects, after reasserting the fresh identity. A second
-  // +connect can bypass that ordering during Steam's existing-process handoff.
+  // NextClient must not receive a startup +exec. A/B testing showed that even
+  // an otherwise empty cfg passed through +exec leaves its live bind table empty.
+  // The signed client_mini host consumes the private per-match handoff files
+  // after NextClient has initialized, then applies identity/password and connects.
+  // Other GoldSrc clients keep the launcher-owned cfg path so secrets stay out of
+  // the process command line.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
-    ...(activeScoreboardSession?.session.usesNextClientHost ? ['-noupdate'] : []),
+    ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
-    '+exec',
-    matchConfigName
+    ...(useNativeNextClientMatchHandoff ? [] : ['+exec', matchConfigName])
   ]
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
