@@ -1637,3 +1637,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Press Escape to toggle the lobby and settings.
 - Windows launcher focus is released when the game starts.
 - Other players’ MMR changes are hidden.
+
+## v2026.1002.3 — 2026-10-02
+
+### HUD
+
+- Added clearer explanations for custom HUD availability.
+- Improved the scoreboard overlay.
+
+### Game Configuration
+
+- Counter-Strike’s `config.cfg` is no longer modified.
+- Removed obsolete configuration mutation behavior and coverage.
