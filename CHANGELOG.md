@@ -1617,3 +1617,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Refined crosshair settings for a smoother configuration experience.
+
+## v2026.1002.1 — 2026-10-02
+
+### Changes
+
+- No player-facing changes provided.
