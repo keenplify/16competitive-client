@@ -113,6 +113,7 @@ export class ScoreboardOverlaySession {
   private stopped = false
   private feedAvailable = false
   private allyTagsAvailable = false
+  private allyTagsReason: string | null = null
   private reportedUnavailable = false
   private feedOutageAt: number | null = null
   private readonly reportIncident = createScoreboardReporter(reportDiagnosticIssue)
@@ -143,24 +144,30 @@ export class ScoreboardOverlaySession {
       await writeCrosshairConfig(this.directory, crosshair)
   }
 
-  private async setAllyTagsAvailable(available: boolean): Promise<void> {
+  private async setAllyTagsAvailable(available: boolean, reason: string): Promise<void> {
     if (available && this.stopped) return
-    if (available === this.allyTagsAvailable) return
+    const availabilityChanged = available !== this.allyTagsAvailable
+    const reasonChanged = reason !== this.allyTagsReason
+    if (!availabilityChanged && !reasonChanged) return
     const marker = join(this.directory, 'ally-tags.enabled')
-    if (available) {
-      await writeFile(marker, '1\n', { mode: 0o600 })
-      if (this.stopped) {
-        await unlink(marker).catch(() => undefined)
-        return
-      }
-    } else
-      await unlink(marker).catch((error: unknown) => {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-      })
-    this.allyTagsAvailable = available
-    console.info('[Scoreboard] teammate markers availability changed', {
+    if (availabilityChanged) {
+      if (available) {
+        await writeFile(marker, '1\n', { mode: 0o600 })
+        if (this.stopped) {
+          await unlink(marker).catch(() => undefined)
+          return
+        }
+      } else
+        await unlink(marker).catch((error: unknown) => {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+        })
+      this.allyTagsAvailable = available
+    }
+    this.allyTagsReason = reason
+    console.info('[Scoreboard] teammate markers state', {
       matchId: this.matchId,
       available,
+      reason,
       nextClient: this.usesNextClientHost
     })
   }
@@ -172,20 +179,46 @@ export class ScoreboardOverlaySession {
     allowNextClientIntegration = true
   ): Promise<ScoreboardOverlaySession | null> {
     await cleanupQueue.wait()
-    if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') return null
-    if (process.platform === 'win32' && !gameRoot) return null
+    if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') {
+      console.warn('[Scoreboard] custom HUD unavailable', {
+        matchId,
+        reason: 'unsupported platform or architecture',
+        platform: process.platform,
+        architecture: process.arch
+      })
+      return null
+    }
+    if (process.platform === 'win32' && !gameRoot) {
+      console.warn('[Scoreboard] custom HUD unavailable', {
+        matchId,
+        reason: 'Windows game root was not provided'
+      })
+      return null
+    }
     const backend = new URL(apiUrl)
     if (
       backend.protocol !== 'https:' &&
       !(LOCAL_DEVELOPMENT && ['localhost', '127.0.0.1', '[::1]'].includes(backend.hostname))
-    )
+    ) {
+      console.warn('[Scoreboard] custom HUD unavailable', {
+        matchId,
+        reason: 'live scoreboard endpoint is not HTTPS',
+        protocol: backend.protocol
+      })
       return null
+    }
     const native = app.isPackaged
       ? join(process.resourcesPath, 'native')
       : join(app.getAppPath(), 'resources/native/linux-x64')
     const modulePath = join(native, 'papamo-cosmetic-module-linux-x86.so')
-    if (process.platform === 'linux' && !(await stat(modulePath).catch(() => null))?.isFile())
+    if (process.platform === 'linux' && !(await stat(modulePath).catch(() => null))?.isFile()) {
+      console.warn('[Scoreboard] custom HUD unavailable', {
+        matchId,
+        reason: 'packaged Linux cosmetic module is missing',
+        modulePath
+      })
       return null
+    }
     const assets = app.isPackaged
       ? join(process.resourcesPath, 'scoreboard')
       : join(app.getAppPath(), 'resources/scoreboard')
@@ -198,7 +231,26 @@ export class ScoreboardOverlaySession {
             : null
           : await WindowsCosmeticInstallation.install(gameRoot!)
         : null
-    if (process.platform === 'win32' && !windowsInstallation) return null
+    if (process.platform === 'win32' && !windowsInstallation) {
+      console.warn('[Scoreboard] custom HUD unavailable', {
+        matchId,
+        reason:
+          nextClient && !allowNextClientIntegration
+            ? 'NextClient native HUD integration is disabled for this match after an earlier startup failure'
+            : 'Windows native HUD integration could not be installed',
+        nextClient,
+        allowNextClientIntegration
+      })
+      return null
+    }
+    if (nextClient) {
+      console.info('[Scoreboard] NextClient HUD diagnostics', {
+        matchId,
+        scoreboard: 'waiting for authenticated live scoreboard feed',
+        teammateTags: 'requires a competitive v8+ live scoreboard feed',
+        crosshair: 'disabled by the current NextClient integration'
+      })
+    }
     const directory =
       windowsInstallation?.sessionDirectory ??
       (await mkdtemp(join(app.getPath('userData'), `scoreboard-${randomUUID()}-`)))
@@ -405,14 +457,26 @@ export class ScoreboardOverlaySession {
       await rename(temporary, this.feedPath)
       // Only an authenticated live match with the v8+ weapon feed can request
       // native ally tags. The module independently checks the fresh mode-0 feed.
-      await this.setAllyTagsAvailable(
-        /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(feed) &&
-          this.readSnapshot(this.directory)?.mode === 'competitive'
-      )
+      const snapshot = this.readSnapshot(this.directory)
+      const allyFeedSupported = /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(feed)
+      const allyTagsAvailable = allyFeedSupported && snapshot?.mode === 'competitive'
+      const allyTagsReason = allyTagsAvailable
+        ? 'competitive v8+ live scoreboard feed ready'
+        : !allyFeedSupported
+          ? 'teammate tags require scoreboard feed v8 or newer'
+          : snapshot
+            ? `teammate tags are disabled in ${snapshot.mode} mode`
+            : 'scoreboard snapshot is not ready'
+      await this.setAllyTagsAvailable(allyTagsAvailable, allyTagsReason)
+      const feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
       if (!this.feedAvailable)
-        console.info('[Scoreboard] live match feed ready', { matchId: this.matchId })
+        console.info('[Scoreboard] live match feed ready', {
+          matchId: this.matchId,
+          feedVersion,
+          mode: snapshot?.mode ?? null
+        })
       this.feedAvailable = true
-      this.feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
+      this.feedVersion = feedVersion
       this.lastFeedAt = Date.now()
       this.reportedUnavailable = false
       this.feedOutageAt = null
@@ -438,8 +502,10 @@ export class ScoreboardOverlaySession {
         this.reportedUnavailable = true
       }
       this.feedAvailable = false
-      await this.setAllyTagsAvailable(false).catch((markerError: unknown) =>
-        console.warn('[Scoreboard] ally tag marker cleanup failed', markerError)
+      const feedError = error instanceof Error ? error.message : String(error)
+      await this.setAllyTagsAvailable(false, `live scoreboard unavailable: ${feedError}`).catch(
+        (markerError: unknown) =>
+          console.warn('[Scoreboard] ally tag marker cleanup failed', markerError)
       )
       await unlink(this.feedPath).catch(() => undefined)
     } finally {
@@ -466,7 +532,7 @@ export class ScoreboardOverlaySession {
     if (!this.window.isDestroyed()) this.window.close()
     cleanupQueue.enqueue(async () => {
       await Promise.allSettled([this.refreshTask, this.frameTask, watchdogTask])
-      await this.setAllyTagsAvailable(false)
+      await this.setAllyTagsAvailable(false, 'HUD session stopping')
       if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
       else await rm(this.directory, { recursive: true, force: true })
     })
