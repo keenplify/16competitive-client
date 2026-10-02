@@ -1623,3 +1623,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes provided.
+
+## v2026.1002.2 — 2026-10-02
+
+### Match Results
+
+- Round-end icons now appear correctly on the scoreboard.
+- Overtime and loss bonuses are shown in match results.
+- Scoreboard recovery and automatic reports improve match result reliability.
+
+### Interface
+
+- Press Escape to toggle the lobby and settings.
+- Windows launcher focus is released when the game starts.
+- Other players’ MMR changes are hidden.
