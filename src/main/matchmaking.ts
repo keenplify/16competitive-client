@@ -738,6 +738,7 @@ class MatchmakingConnection {
         this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
       }
     })
+    this.yieldLauncherToGame()
     discordPresence.setInGame(true)
   }
 
@@ -903,6 +904,34 @@ class MatchmakingConnection {
     }
     app.focus({ steal: urgent })
     window.focus()
+  }
+
+  private yieldLauncherToGame(): void {
+    if (process.platform !== 'win32') return
+    const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
+    if (!window || window.isDestroyed()) return
+
+    if (this.matchAttentionTimer) {
+      clearTimeout(this.matchAttentionTimer)
+      this.matchAttentionTimer = null
+    }
+    if (
+      this.matchAttentionWindow &&
+      !this.matchAttentionWindow.isDestroyed() &&
+      this.restoreMatchWindowTopmost
+    ) {
+      this.matchAttentionWindow.setAlwaysOnTop(false)
+    } else if (window.isAlwaysOnTop()) {
+      window.setAlwaysOnTop(false)
+    }
+    this.matchAttentionWindow = null
+    this.restoreMatchWindowTopmost = false
+
+    // The launcher is a real fullscreen Electron window on Windows. Leaving it
+    // visible behind GoldSrc can retain foreground/pointer ownership after the
+    // match-found attention window. Minimize it once the game process has
+    // successfully started; focusLauncher() restores it when the game exits.
+    if (!window.isMinimized()) window.minimize()
   }
 
   private openSocket(reconnecting: boolean, apiUrl?: string, handoff = false): void {
@@ -1162,6 +1191,7 @@ class MatchmakingConnection {
                 })
               }
             })
+            this.yieldLauncherToGame()
             discordPresence.setInGame(true)
           })
           .catch((error: unknown) => {
