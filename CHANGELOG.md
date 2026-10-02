@@ -1666,3 +1666,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Relaunching
 
 - Windows Counter-Strike now closes gracefully before being relaunched.
+
+## v2026.1002.6 — 2026-10-02
+
+### Skins
+
+- Added a skin resale flow in the launcher.
+- Added a confirmation step before reselling a skin.
