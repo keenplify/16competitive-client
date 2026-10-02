@@ -43,6 +43,14 @@ Browse your weapon collection and equip skins for Terrorist or Counter-Terrorist
 - **A smoother launch flow** — Select your game installation and launch into assigned servers when they are ready.
 - **Windows and Linux support** — Built for both platforms from the start. macOS support is planned for the future.
 
+## Counter-Strike configuration safety
+
+`config.cfg` is owned entirely by Counter-Strike and the player. **The launcher must never touch it.**
+
+This is a hard project rule. Launcher code must not read, write, create, replace, append to, rename, delete, repair, seed, or otherwise modify `config.cfg`, even temporarily and even when trying to recover missing bindings or stage match credentials.
+
+Any launcher-owned commands required for a match must use launcher-owned temporary configuration such as `16competitive_match.cfg`, launch arguments, native integration, or another isolated mechanism that does not mutate the player's `config.cfg`.
+
 ## Match flow
 
 ```text
