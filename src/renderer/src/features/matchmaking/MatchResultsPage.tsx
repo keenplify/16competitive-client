@@ -16,11 +16,17 @@ import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { OperationMatchProgress } from '../operations/OperationMatchProgress'
+import { usePartyStore } from '../party/party.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
 import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
+  const party = usePartyStore((state) => state.party)
+  const visibleMmrPlayerIds = new Set([
+    ...(currentPlayerId ? [currentPlayerId] : []),
+    ...(party?.members.map((member) => member.id) ?? [])
+  ])
   const questSnapshot = useDailyQuestStore((state) => state.snapshot)
   const rewards = useDailyQuestStore((state) =>
     state.lastMatchId === match.matchId ? state.lastMatchRewards : null
@@ -350,6 +356,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               players={match.teams.teamA}
               stats={match.players}
               ratedMatch={match.mode === '5v5'}
+              visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />
             <Team
@@ -357,6 +364,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               players={match.teams.teamB}
               stats={match.players}
               ratedMatch={match.mode === '5v5'}
+              visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />
           </>
@@ -465,12 +473,14 @@ function Team({
   players,
   stats,
   ratedMatch,
+  visibleMmrPlayerIds,
   onPlayerContextMenu
 }: {
   label: string
   players: CompletedMatch['teams']['teamA']
   stats: CompletedMatch['players']
   ratedMatch: boolean
+  visibleMmrPlayerIds: Set<string>
   onPlayerContextMenu: (event: MouseEvent<HTMLElement>, playerId: string) => void
 }): React.JSX.Element {
   return (
@@ -481,6 +491,7 @@ function Team({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {players.map((p) => {
           const playerStats = stats.find((item) => item.id === p.id)
+          const canViewMmrChange = visibleMmrPlayerIds.has(p.id)
           return (
             <article
               key={p.id}
@@ -498,7 +509,7 @@ function Team({
               <p className="mt-3 text-xs text-neutral-400">MMR</p>
               <p
                 className={`font-mono text-sm font-semibold tabular-nums ${
-                  ratedMatch && playerStats
+                  ratedMatch && playerStats && canViewMmrChange
                     ? playerStats.mmrChange > 0
                       ? 'text-emerald-400'
                       : playerStats.mmrChange < 0
@@ -509,7 +520,9 @@ function Team({
               >
                 {playerStats
                   ? ratedMatch
-                    ? `${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange}`
+                    ? canViewMmrChange
+                      ? `${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange}`
+                      : '—'
                     : 'Unranked'
                   : '—'}
               </p>
