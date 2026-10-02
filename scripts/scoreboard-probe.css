@@ -178,6 +178,15 @@ body,
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.bomb-carrier-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 7px;
+  color: #e7b96e;
+  vertical-align: -2px;
+  filter: drop-shadow(0 0 3px rgba(231, 185, 110, 0.65));
+}
 .primary-weapon {
   display: flex;
   align-items: center;
@@ -197,32 +206,13 @@ body,
   font-size: 15px;
 }
 .round-area {
-  height: 130px;
+  height: 86px;
   flex: none;
-  border-top: 1px solid rgba(196, 167, 95, 0.5);
-  padding: 10px 5px 0;
-}
-.round-label {
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 3px;
-  justify-content: space-between;
-  color: #b9a270;
-  font-size: 14px;
-  letter-spacing: 1px;
+  padding: 8px 5px;
 }
 .round-area.overtime {
-  border-top-color: #e8c47a;
   background: rgba(196, 167, 95, 0.06);
 }
-.round-summary {
-  display: flex;
-  gap: 24px;
-  margin-top: 5px;
-  font-weight: 600;
-}
-.round-summary .ct,
 .loss-bonus.ct,
 .half-scores .ct {
   color: #8bc4ed;
@@ -234,7 +224,9 @@ body,
 }
 .half-scores {
   display: flex;
-  gap: 12px;
+  flex: none;
+  gap: 14px;
+  min-width: 78px;
   text-align: center;
 }
 .half-scores div {
@@ -247,14 +239,14 @@ body,
   font-size: 12px;
 }
 .loss-bonuses {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  flex: none;
+  width: 104px;
 }
 .round-progress {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
+  height: 100%;
 }
 .round-progress .round-track {
   flex: 1;
@@ -262,77 +254,113 @@ body,
 }
 .round-progress .round-tick {
   flex: 1;
-  min-width: 8px;
+  min-width: 5px;
 }
 .loss-bonus {
-  min-width: 145px;
-  font-size: 12px;
-}
-.loss-bonus b {
-  float: right;
-  margin-left: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #c6c0ac;
 }
 .loss-bars {
   display: flex;
-  gap: 4px;
-  margin-top: 5px;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 6px;
 }
 .loss-bars i {
-  width: 24px;
-  height: 4px;
+  width: 14px;
+  height: 3px;
   background: #45453e;
 }
 .loss-bars i.filled {
   background: currentColor;
 }
-.round-label strong {
-  color: #e8c47a;
-  font-size: 15px;
-}
 .round-track {
   display: flex;
-  justify-content: center;
-  gap: 3px;
-  margin: 9px auto 0;
-  padding: 7px 10px;
-  background: rgba(30, 30, 25, 0.86);
-  border: 1px solid rgba(196, 167, 95, 0.32);
+  align-items: center;
+  gap: 0;
+  height: 55px;
+  margin: 0;
+  padding: 0 4px;
+  background: linear-gradient(
+    to bottom,
+    transparent 27px,
+    rgba(190, 181, 158, 0.35) 27px,
+    rgba(190, 181, 158, 0.35) 30px,
+    transparent 30px
+  );
 }
 .round-tick {
-  width: 34px;
-  height: 18px;
-  border: 1px solid #736c58;
-  background: rgba(118, 113, 94, 0.3);
+  height: 55px;
   position: relative;
+}
+.round-tick::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
 }
 .round-event-icon {
   position: absolute;
-  top: 50%;
   left: 50%;
-  width: 13px;
-  height: 13px;
-  color: #fff;
-  stroke-width: 2.5;
-  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  fill: rgba(0, 0, 0, 0.72);
+  stroke-width: 2.4;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.round-number {
+  position: absolute;
+  top: 21px;
+  left: 50%;
+  color: #9d9b91;
+  background: #25251f;
+  font-size: 11px;
+  line-height: 12px;
+  padding: 1px 2px;
+  transform: translateX(-50%);
+  z-index: 2;
 }
 .round-tick.ct-win {
-  background: #4c86b4;
-  border-color: #8bc4ed;
+  color: #8bc4ed;
+  background: linear-gradient(to top, rgba(139, 196, 237, 0.48), transparent) center 16px / 20px
+    11px no-repeat;
 }
 .round-tick.t-win {
-  background: #b98541;
-  border-color: #e7b96e;
+  color: #e7b96e;
+  background: linear-gradient(to bottom, rgba(231, 185, 110, 0.48), transparent) center 30px / 20px
+    11px no-repeat;
 }
-.round-tick.match-winner {
-  box-shadow:
-    inset 0 0 0 1px #fff,
-    0 0 9px rgba(255, 255, 255, 0.6);
+.round-tick.ct-win::before {
+  top: 27px;
+  background: currentColor;
 }
-.round-tick.current {
-  background: #77766f;
-  border-color: #aaa9a1;
-  box-shadow: 0 0 8px rgba(180, 180, 175, 0.5);
+.round-tick.t-win::before {
+  top: 27px;
+  background: currentColor;
+}
+.round-tick.ct-win .round-event-icon {
+  top: 7px;
+}
+.round-tick.t-win .round-event-icon {
+  bottom: 6px;
+}
+.round-tick.match-winner::before {
+  filter: brightness(1.4);
+}
+.round-tick.current::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  bottom: 8px;
+  left: 50%;
+  width: 2px;
+  background: #d8d7d0;
+  box-shadow: 0 0 8px #d8d7d0;
 }
 .round-tick.halftime {
-  margin-left: 8px;
+  border-left: 1px solid rgba(221, 211, 184, 0.55);
 }

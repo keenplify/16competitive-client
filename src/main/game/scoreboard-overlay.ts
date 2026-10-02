@@ -416,7 +416,7 @@ export class ScoreboardOverlaySession {
       if (!response.ok || response.status === 204)
         throw new Error(`Scoreboard unavailable (HTTP ${response.status})`)
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-3])\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-4])\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       if (this.stopped) return
       const temporary = `${this.feedPath}.tmp`

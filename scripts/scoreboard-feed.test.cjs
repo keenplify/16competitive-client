@@ -3,6 +3,19 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { parseSnapshot } = require('./scoreboard-feed.cjs')
 
+test('v14 identifies only a living terrorist C4 carrier', () => {
+  const header = '#16c-scoreboard-v14\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\t\t1\n'
+  const row = '1\t1\t0\t0\t0\t24\t1\t0\t800\t16\t100\t1\t1\tAlpha\n'
+  assert.equal(parseSnapshot(header + row)?.players[0].hasBomb, true)
+  assert.equal(
+    parseSnapshot(header + row.replace('\t1\tAlpha', '\t0\tAlpha'))?.players[0].hasBomb,
+    false
+  )
+  assert.equal(parseSnapshot(header + row.replace('\t1\tAlpha', '\t2\tAlpha')), null)
+  assert.equal(parseSnapshot(header + row.replace('1\t1\t0\t', '1\t2\t0\t')), null)
+  assert.equal(parseSnapshot(header + row + row.replace(/^1\t/, '2\t')), null)
+})
+
 test('v12 carries per-player buy-zone state alongside health and the overtime header', () => {
   const header = '#16c-scoreboard-v12\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\n'
   const row = '1\t2\t0\t0\t0\t24\t1\t0\t800\t16\t73\t1\tAlpha\n'
