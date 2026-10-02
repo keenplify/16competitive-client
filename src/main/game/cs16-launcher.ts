@@ -564,6 +564,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
+  await ScoreboardOverlaySession.waitForCleanup()
+
   // The Windows proxy in 2026.927.2 crashed some GoldSrc distributions while
   // loading client.dll. Restore any interrupted installation before launching
   // the original game client, including on a forced reconnect.

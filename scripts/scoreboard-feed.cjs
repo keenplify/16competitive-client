@@ -8,19 +8,31 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v(?:[2-9]|10)\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v(?:[2-9]|1[0-2])\t/.test(header ?? '') || lines.length > 34) return null
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = /^#16c-scoreboard-v(?:[4-9]|10)\t/.test(header)
-  const withMoney = /^#16c-scoreboard-v(?:[7-9]|10)\t/.test(header)
-  const withWeapon = /^#16c-scoreboard-v(?:[89]|10)\t/.test(header)
-  const withHealth = header.startsWith('#16c-scoreboard-v10\t')
+  const withBot = /^#16c-scoreboard-v(?:[4-9]|1[0-2])\t/.test(header)
+  const withMoney = /^#16c-scoreboard-v(?:[7-9]|1[0-2])\t/.test(header)
+  const withWeapon = /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(header)
+  const withBuyZone = header.startsWith('#16c-scoreboard-v12\t')
+  const withOvertime = withBuyZone || header.startsWith('#16c-scoreboard-v11\t')
+  const withHealth = withOvertime || header.startsWith('#16c-scoreboard-v10\t')
   const withRoundEvents = header.startsWith('#16c-scoreboard-v9\t')
-  const withFormat = /^#16c-scoreboard-v(?:[6-9]|10)\t/.test(header)
+  const withFormat = /^#16c-scoreboard-v(?:[6-9]|1[0-2])\t/.test(header)
   const withRoundWinners = withFormat || header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(header.indexOf('\t') + 1).split('\t')
   if (
     headerFields.length !==
-    (withRoundEvents ? 11 : withHealth ? 9 : withFormat ? 8 : withRoundWinners ? 4 : 3)
+    (withOvertime
+      ? 13
+      : withRoundEvents
+        ? 11
+        : withHealth
+          ? 9
+          : withFormat
+            ? 8
+            : withRoundWinners
+              ? 4
+              : 3)
   )
     return null
   const [
@@ -47,8 +59,16 @@ function parseSnapshot(text) {
   const winTarget = withFormat ? Number(winTargetText) : 13
   const ctWins = withFormat ? Number(ctWinsText) : null
   const tWins = withFormat ? Number(tWinsText) : null
-  const ctLossBonus = withRoundEvents ? Number(ctLossBonusText) : null
-  const tLossBonus = withRoundEvents ? Number(tLossBonusText) : null
+  const ctLossBonus = withOvertime
+    ? Number(headerFields[9])
+    : withRoundEvents
+      ? Number(ctLossBonusText)
+      : null
+  const tLossBonus = withOvertime
+    ? Number(headerFields[10])
+    : withRoundEvents
+      ? Number(tLossBonusText)
+      : null
   if (
     !Number.isInteger(halfRounds) ||
     halfRounds < 0 ||
@@ -75,6 +95,20 @@ function parseSnapshot(text) {
     (modeText === '0' && halfRounds === 0)
   )
     return null
+  if (
+    withOvertime &&
+    (!Number.isInteger(ctLossBonus) ||
+      ctLossBonus < 0 ||
+      ctLossBonus > 16000 ||
+      !Number.isInteger(tLossBonus) ||
+      tLossBonus < 0 ||
+      tLossBonus > 16000 ||
+      !Number.isInteger(Number(headerFields[11])) ||
+      Number(headerFields[11]) < 1 ||
+      Number(headerFields[11]) > 12 ||
+      (headerFields[12] !== '0' && headerFields[12] !== '1'))
+  )
+    return null
   const players = []
   const seen = new Set()
   for (const line of lines) {
@@ -82,7 +116,19 @@ function parseSnapshot(text) {
     const parts = line.replace(/\r$/, '').split('\t')
     if (
       parts.length !==
-      (withHealth ? 12 : withWeapon ? 11 : withMoney ? 10 : withBot ? 9 : withAlive ? 8 : 7)
+      (withBuyZone
+        ? 13
+        : withHealth
+          ? 12
+          : withWeapon
+            ? 11
+            : withMoney
+              ? 10
+              : withBot
+                ? 9
+                : withAlive
+                  ? 8
+                  : 7)
     )
       return null
     const [id, team, kills, assists, deaths, ping, alive, bot] = parts
@@ -91,8 +137,23 @@ function parseSnapshot(text) {
     const money = withMoney ? Number(parts[8]) : null
     const primaryWeapon = withWeapon ? Number(parts[9]) : null
     const health = withHealth ? Number(parts[10]) : null
+    const inBuyZone = withBuyZone ? parts[11] : null
     const name =
-      parts[withHealth ? 11 : withWeapon ? 10 : withMoney ? 9 : withBot ? 8 : withAlive ? 7 : 6]
+      parts[
+        withBuyZone
+          ? 12
+          : withHealth
+            ? 11
+            : withWeapon
+              ? 10
+              : withMoney
+                ? 9
+                : withBot
+                  ? 8
+                  : withAlive
+                    ? 7
+                    : 6
+      ]
     if (
       !Number.isInteger(id) ||
       id < 1 ||
@@ -119,6 +180,7 @@ function parseSnapshot(text) {
       (withWeapon &&
         (!Number.isInteger(primaryWeapon) || primaryWeapon < 0 || primaryWeapon > 31)) ||
       (withHealth && (!Number.isInteger(health) || health < 0 || health > 255)) ||
+      (withBuyZone && inBuyZone !== '0' && inBuyZone !== '1') ||
       !name ||
       name.length > 32 ||
       Array.from(name).some((character) => {
@@ -140,7 +202,8 @@ function parseSnapshot(text) {
       bot: withBot && bot === 1,
       money,
       primaryWeapon,
-      ...(withHealth ? { health } : {})
+      ...(withHealth ? { health } : {}),
+      ...(withBuyZone ? { inBuyZone: inBuyZone === '1' } : {})
     })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
@@ -157,6 +220,9 @@ function parseSnapshot(text) {
     ctLossBonus,
     tLossBonus,
     ...(withHealth ? { buytimeActive: buytimeText === '1' } : {}),
+    ...(withOvertime
+      ? { overtimeHalfRounds: Number(headerFields[11]), sidesSwapped: headerFields[12] === '1' }
+      : {}),
     players
   }
 }
