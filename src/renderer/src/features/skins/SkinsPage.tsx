@@ -1,7 +1,7 @@
 import { Check, Crosshair, LoaderCircle, Power, PowerOff, Users } from 'lucide-react'
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
-import type { OwnedSkin } from '../../../../shared/skins'
+import type { OwnedSkin, SkinResaleQuote } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
@@ -12,6 +12,7 @@ import { toast } from 'react-toastify'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { SellConfirmModal } from './SellConfirmModal'
 import {
   GRENADE_WEAPON_KEYS,
   KNIFE_WEAPON_KEY,
@@ -95,6 +96,9 @@ export function SkinsPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [changingId, setChangingId] = useState<string | null>(null)
   const [previewSkin, setPreviewSkin] = useState<OwnedSkin['skin'] | null>(null)
+  const [sale, setSale] = useState<{ owned: OwnedSkin; quote: SkinResaleQuote } | null>(null)
+  const [quotingId, setQuotingId] = useState<string | null>(null)
+  const [selling, setSelling] = useState(false)
   const [team, setTeam] = useState<Team>('ct')
   const [category, setCategory] = useState<WeaponCategory>('all')
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
@@ -271,6 +275,46 @@ export function SkinsPage(): JSX.Element {
       .then((inventory) => setSkins(inventory))
       .catch((reason: unknown) => setError(errorText(reason)))
       .finally(() => setUnequippingTeam(false))
+  }
+
+  const requestSale = (owned: OwnedSkin): void => {
+    if (loadoutLocked || quotingId || selling) return
+    setQuotingId(owned.skin.id)
+    void window.api.skins
+      .resaleQuote(owned.skin.id)
+      .then((quote) => setSale({ owned, quote }))
+      .catch((reason: unknown) => toast.error(errorText(reason)))
+      .finally(() => setQuotingId(null))
+  }
+
+  const confirmSale = (): void => {
+    if (!sale || selling) return
+    setSelling(true)
+    const { owned, quote } = sale
+    void window.api.skins
+      .sell(owned.skin.id, quote)
+      .then((result) => {
+        setSkins((current) => current.filter((item) => item.skin.id !== owned.skin.id))
+        setSale(null)
+        if (result.currency === 'POINTS') useAuthStore.getState().setPoints(result.balance)
+        toast.success(
+          `${owned.skin.name} sold for ${result.payout.toLocaleString()} ${result.currency === 'POINTS' ? 'Points' : 'Papa Cash'}.`
+        )
+        void Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()])
+          .then(([inventory, lobbyLoadout]) => {
+            setSkins(inventory)
+            setLobbyWeaponKey(lobbyLoadout.weaponKey)
+            setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
+            updateLobbyWeapon(
+              lobbyLoadout.weaponKey,
+              lobbyLoadout.weaponModelPath,
+              lobbyLoadout.weaponSkinId
+            )
+          })
+          .catch((reason: unknown) => setError(errorText(reason)))
+      })
+      .catch((reason: unknown) => toast.error(errorText(reason)))
+      .finally(() => setSelling(false))
   }
 
   const renderLoadoutCard = (weaponKey: string): JSX.Element => {
@@ -456,7 +500,9 @@ export function SkinsPage(): JSX.Element {
                   key={owned.skin.id}
                   owned={owned}
                   changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
+                  selling={selling || quotingId !== null}
                   onEquip={() => setEquipped(owned)}
+                  onSell={() => requestSale(owned)}
                   onPreview={() => setPreviewSkin(owned.skin)}
                 />
               ))}
@@ -473,6 +519,15 @@ export function SkinsPage(): JSX.Element {
           />
         </ModalPortal>
       )}
+      {sale && (
+        <SellConfirmModal
+          skinName={sale.owned.skin.name}
+          quote={sale.quote}
+          busy={selling}
+          onClose={() => setSale(null)}
+          onConfirm={confirmSale}
+        />
+      )}
     </section>
   )
 }
@@ -480,12 +535,16 @@ export function SkinsPage(): JSX.Element {
 function InventoryCard({
   owned,
   changing,
+  selling,
   onEquip,
+  onSell,
   onPreview
 }: {
   owned: OwnedSkin
   changing: boolean
+  selling: boolean
   onEquip: () => void
+  onSell: () => void
   onPreview: () => void
 }): JSX.Element {
   const equipped = owned.equippedAt !== null
@@ -496,7 +555,15 @@ function InventoryCard({
         {owned.skin.weaponKey}
       </p>
       <h3 className="mt-1 text-sm font-semibold">{owned.skin.name}</h3>
-      <div className="mt-auto flex justify-end border-t border-white/10 pt-3">
+      <div className="mt-auto flex justify-end gap-2 border-t border-white/10 pt-3">
+        <Button
+          className="h-8 px-3 text-xs"
+          variant="ghost"
+          disabled={changing || selling}
+          onClick={onSell}
+        >
+          {selling ? 'Loading…' : 'Sell'}
+        </Button>
         <Button
           className="h-8 min-w-28 px-3 text-xs"
           variant={equipped ? 'ghost' : 'primary'}
