@@ -90,6 +90,7 @@ import {
   equipSkin,
   getLobbyLoadout,
   getOwnedSkins,
+  getSkinResaleQuote,
   getSkinPreviewModel,
   getSkinPreviewExplosionSprite,
   getPendingSkinGift,
@@ -98,6 +99,7 @@ import {
   setLobbyPlayerModel,
   setLobbyWeapon,
   setLobbyWeaponKey,
+  sellSkin,
   unequipSkin,
   unlockSkin
 } from './skins'
@@ -608,12 +610,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPlayerProfile, (_, playerId: unknown) =>
     getPlayerProfile(playerId)
   )
-  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSurvey, (_, matchId: unknown) =>
-    getMatchSurvey(matchId)
-  )
-  ipcMain.handle(MATCH_HISTORY_CHANNELS.getPendingSurvey, () =>
-    getPendingMatchSurvey()
-  )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getSurvey, (_, matchId: unknown) => getMatchSurvey(matchId))
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.getPendingSurvey, () => getPendingMatchSurvey())
   ipcMain.handle(
     MATCH_HISTORY_CHANNELS.submitSurvey,
     (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
@@ -621,6 +619,10 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
+  ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
+  ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>
+    sellSkin(skinId, quote)
+  )
   ipcMain.handle(SKIN_CHANNELS.getLobbyLoadout, () => getLobbyLoadout())
   ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown, currency: unknown) =>
     unlockSkin(skinId, currency)

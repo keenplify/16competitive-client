@@ -33,6 +33,8 @@ import type {
   SkinCurrency,
   SkinGift,
   SkinGiftChoice,
+  SkinResaleQuote,
+  SkinResaleResult,
   UnlockResult
 } from '../shared/skins'
 import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
@@ -349,6 +351,15 @@ const skins = {
   },
   mine(): Promise<OwnedSkin[]> {
     return authenticatedGet('/skins/mine')
+  },
+  resaleQuote(skinId: string): Promise<SkinResaleQuote> {
+    return authenticatedGet(`/skins/${encodeURIComponent(skinId)}/resale-quote`)
+  },
+  sell(skinId: string, quote: SkinResaleQuote): Promise<SkinResaleResult> {
+    return jsonPost(`/skins/${encodeURIComponent(skinId)}/sell`, {
+      currency: quote.currency,
+      payout: quote.payout
+    })
   },
   getLobbyLoadout(): Promise<LobbyLoadout> {
     return authenticatedGet('/skins/lobby-loadout')

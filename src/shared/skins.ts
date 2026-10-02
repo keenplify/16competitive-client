@@ -1,6 +1,8 @@
 export const SKIN_CHANNELS = {
   list: 'skins:list',
   mine: 'skins:mine',
+  resaleQuote: 'skins:resale-quote',
+  sell: 'skins:sell',
   getLobbyLoadout: 'skins:get-lobby-loadout',
   unlock: 'skins:unlock',
   equip: 'skins:equip',
@@ -46,6 +48,17 @@ export interface OwnedSkin {
   acquiredForPoints: number
   equippedAt: string | null
   lobbySelected: boolean
+}
+
+export interface SkinResaleQuote {
+  skinId: string
+  currency: SkinCurrency
+  purchasePrice: number
+  payout: number
+}
+
+export interface SkinResaleResult extends SkinResaleQuote {
+  balance: number
 }
 
 export interface UnlockResult {
@@ -105,6 +118,8 @@ export interface SkinGift {
 export interface SkinsApi {
   list(weaponKey?: string): Promise<Skin[]>
   mine(): Promise<OwnedSkin[]>
+  resaleQuote(skinId: string): Promise<SkinResaleQuote>
+  sell(skinId: string, quote: SkinResaleQuote): Promise<SkinResaleResult>
   getLobbyLoadout(): Promise<LobbyLoadout>
   unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult>
   equip(skinId: string): Promise<void>

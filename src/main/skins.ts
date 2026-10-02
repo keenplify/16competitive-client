@@ -8,6 +8,8 @@ import type {
   SkinCurrency,
   SkinGift,
   SkinGiftChoice,
+  SkinResaleQuote,
+  SkinResaleResult,
   UnlockResult
 } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
@@ -141,6 +143,46 @@ export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   if (!Array.isArray(data) || !data.every(isOwnedSkin))
     throw new Error('The server returned an invalid inventory.')
   return data
+}
+
+const isResaleQuote = (value: unknown): value is SkinResaleQuote => {
+  if (typeof value !== 'object' || value === null) return false
+  const quote = value as Record<string, unknown>
+  return (
+    typeof quote.skinId === 'string' &&
+    (quote.currency === 'POINTS' || quote.currency === 'P_CASH') &&
+    Number.isSafeInteger(quote.purchasePrice) &&
+    Number(quote.purchasePrice) > 0 &&
+    Number.isSafeInteger(quote.payout) &&
+    Number(quote.payout) > 0
+  )
+}
+
+export const getSkinResaleQuote = async (skinId: unknown): Promise<SkinResaleQuote> => {
+  const id = validateSkinId(skinId)
+  const data = await playerRequest(`/skins/${id}/resale-quote`)
+  if (!isResaleQuote(data) || data.skinId !== id)
+    throw new Error('The server returned an invalid sale price.')
+  return data
+}
+
+export const sellSkin = async (skinId: unknown, quote: unknown): Promise<SkinResaleResult> => {
+  const id = validateSkinId(skinId)
+  if (!isResaleQuote(quote) || quote.skinId !== id) throw new Error('Invalid sale price.')
+  const data = await playerRequest(`/skins/${id}/sell`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ currency: quote.currency, payout: quote.payout })
+  })
+  if (
+    !isResaleQuote(data) ||
+    data.skinId !== id ||
+    !('balance' in data) ||
+    !Number.isSafeInteger(data.balance)
+  ) {
+    throw new Error('The server returned an invalid sale result.')
+  }
+  return data as SkinResaleResult
 }
 
 export const getLobbyLoadout = async (): Promise<LobbyLoadout> => {
