@@ -29,6 +29,7 @@ type Player = {
   bot: boolean
   money: number | null
   primaryWeapon: number | null
+  hasBomb?: boolean
 }
 type Snapshot = {
   map: string
@@ -102,11 +103,9 @@ function LossBonus({ team, bonus }: { team: 'CT' | 'T'; bonus: number | null }) 
   return (
     <div
       className={`loss-bonus ${team === 'CT' ? 'ct' : 't'}`}
-      title="Team payout on the next lost round; individual survival rules may apply"
+      title={`${team} next loss bonus: ${bonus === null ? 'unavailable' : `$${bonus.toLocaleString()}`}; individual survival rules may apply`}
     >
-      <span>
-        {team} LOSS BONUS <b>{bonus === null ? '—' : `$${bonus.toLocaleString()}`}</b>
-      </span>
+      <span>LOSS BONUS</span>
       <div className="loss-bars" aria-label={`${team} loss bonus ${bonus ?? 'unavailable'}`}>
         {Array.from({ length: 5 }, (_, index) => (
           <i key={index} className={index < segments ? 'filled' : ''} />
@@ -126,6 +125,7 @@ function RoundTrack({
   roundEvents,
   ctLossBonus,
   tLossBonus,
+  selfTeam,
   overtimeHalfRounds = 3,
   sidesSwapped
 }: {
@@ -138,6 +138,7 @@ function RoundTrack({
   roundEvents: string | null
   ctLossBonus: number | null
   tLossBonus: number | null
+  selfTeam: number | null | undefined
   overtimeHalfRounds?: number
   sidesSwapped?: boolean
 }) {
@@ -152,23 +153,12 @@ function RoundTrack({
     sidesSwapped
   )
   const winningRound = roundWinners ? getWinningRound(roundWinners, ctWins, tWins, winTarget) : -1
+  const visibleSplits = splits.filter(({ label }) => label !== 'OT' || phase.overtime)
   return (
     <div className={`round-area ${phase.overtime ? 'overtime' : ''}`}>
-      <div className="round-label">
-        <strong>{phase.label}</strong>
-        <span>{phase.details}</span>
-      </div>
-      <div className="round-summary">
-        <span className="ct">
-          CT needs {ctWins === null ? '—' : Math.max(0, winTarget - ctWins)} wins
-        </span>
-        <span className="t">
-          T needs {tWins === null ? '—' : Math.max(0, winTarget - tWins)} wins
-        </span>
-      </div>
       <div className="round-progress">
         <div className="half-scores" aria-label="Scores by half for current CT and T teams">
-          {splits.map(({ label, ct, t }) => (
+          {visibleSplits.map(({ label, ct, t }) => (
             <div key={label}>
               <b className="ct">{ct}</b>
               <span>{label}</span>
@@ -216,6 +206,11 @@ function RoundTrack({
                                     : `Round ${index + 1}: ongoing or unplayed`
                   }
                 >
+                  {(historyIndex + 1) % 5 === 0 && (
+                    <span className="round-number" aria-hidden="true">
+                      {historyIndex + 1}
+                    </span>
+                  )}
                   {historyIndex === winningRound ? (
                     <Trophy className="round-event-icon" aria-label="Match won" />
                   ) : roundEvent === 'D' ? (
@@ -237,8 +232,8 @@ function RoundTrack({
           </div>
         )}
         <div className="loss-bonuses">
-          <LossBonus team="CT" bonus={ctLossBonus} />
-          <LossBonus team="T" bonus={tLossBonus} />
+          {selfTeam === 2 && <LossBonus team="CT" bonus={ctLossBonus} />}
+          {selfTeam === 1 && <LossBonus team="T" bonus={tLossBonus} />}
         </div>
       </div>
     </div>
@@ -250,13 +245,15 @@ function PlayerRow({
   rank,
   selfName,
   showWeapon,
-  canSeeWeapon
+  canSeeWeapon,
+  canSeeBomb
 }: {
   player: Player
   rank: number
   selfName: string
   showWeapon: boolean
   canSeeWeapon: boolean
+  canSeeBomb: boolean
 }) {
   const weapon = player.primaryWeapon === null ? null : weaponAssets[player.primaryWeapon]
   return (
@@ -266,6 +263,9 @@ function PlayerRow({
       <span className="rank">{String(rank).padStart(2, '0')}</span>
       <span className="player-name" title={player.name}>
         {player.name}
+        {canSeeBomb && player.hasBomb && (
+          <Bomb className="bomb-carrier-icon" aria-label="Bomb carrier" />
+        )}
         {!player.alive && <small>DEAD</small>}
       </span>
       <span>{player.kills}</span>
@@ -350,6 +350,7 @@ function Scoreboard() {
                         selfName={selfName}
                         showWeapon={competitive}
                         canSeeWeapon={player.team === selfTeam}
+                        canSeeBomb={selfTeam === 1 && player.team === 1}
                       />
                     ))}
                   </div>
@@ -364,6 +365,7 @@ function Scoreboard() {
                       roundEvents={snapshot?.roundEvents ?? null}
                       ctLossBonus={snapshot?.ctLossBonus ?? null}
                       tLossBonus={snapshot?.tLossBonus ?? null}
+                      selfTeam={selfTeam}
                       overtimeHalfRounds={snapshot?.overtimeHalfRounds ?? 3}
                       sidesSwapped={snapshot?.sidesSwapped}
                     />
@@ -380,6 +382,7 @@ function Scoreboard() {
                 selfName={selfName}
                 showWeapon={false}
                 canSeeWeapon={false}
+                canSeeBomb={false}
               />
             ))
           )
