@@ -625,6 +625,14 @@ Hash when:
 
 ---
 
+## Counter-Strike config.cfg rule
+
+`config.cfg` is user-owned and strictly out of bounds.
+
+Agents and application code must never read, write, create, replace, append to, rename, delete, repair, seed, back up, restore, or otherwise manipulate `config.cfg`. Do not add exceptions for first launch, missing bindings, matchmaking identity, voice controls, recovery, migration, or compatibility work.
+
+Use launcher-owned files such as `16competitive_match.cfg`, process arguments, or isolated native/server mechanisms instead. A fix that requires touching `config.cfg` is not an acceptable fix in this repository.
+
 ## Game Launching
 
 Use the Electron main process for launching Counter-Strike.
@@ -1229,3 +1237,4 @@ When working in this repository:
 23. Use unique custom model paths where possible.
 24. Document platform-specific behavior.
 25. When adding CS 1.3 or another game version, document verified differences instead of assuming CS 1.6 behavior.
+26. Never touch `config.cfg`. Do not read, write, create, replace, append, rename, delete, repair, seed, back up, restore, or otherwise manipulate it.
