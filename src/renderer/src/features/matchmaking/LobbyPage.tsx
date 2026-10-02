@@ -211,18 +211,19 @@ export function LobbyPage(): JSX.Element {
   }, [connectMatchmaking])
 
   useEffect(() => {
-    const returnToLobby = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return
+    const navigateOnEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.repeat || event.defaultPrevented) return
       if (document.querySelector('[role="dialog"]')) return
-      if (page === 'lobby' || matchNavigationLocked) return
+      if (matchNavigationLocked) return
       event.preventDefault()
       if (useMatchmakingStore.getState().completedMatch) dismissCompletedMatch()
-      launcherAudio.playSfx('backward')
-      navigate('lobby')
+      const nextPage = page === 'lobby' ? 'settings' : 'lobby'
+      launcherAudio.playSfx(nextPage === 'settings' ? 'forward' : 'backward')
+      navigate(nextPage)
     }
 
-    window.addEventListener('keydown', returnToLobby, true)
-    return () => window.removeEventListener('keydown', returnToLobby, true)
+    window.addEventListener('keydown', navigateOnEscape, true)
+    return () => window.removeEventListener('keydown', navigateOnEscape, true)
   }, [dismissCompletedMatch, matchNavigationLocked, navigate, page])
 
   useEffect(() => {
