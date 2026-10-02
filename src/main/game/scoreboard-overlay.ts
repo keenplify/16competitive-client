@@ -112,8 +112,6 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private stopped = false
   private feedAvailable = false
-  private allyTagsAvailable = false
-  private allyTagsReason: string | null = null
   private reportedUnavailable = false
   private feedOutageAt: number | null = null
   private readonly reportIncident = createScoreboardReporter(reportDiagnosticIssue)
@@ -142,34 +140,6 @@ export class ScoreboardOverlaySession {
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
     if (!this.stopped && !this.usesNextClientHost)
       await writeCrosshairConfig(this.directory, crosshair)
-  }
-
-  private async setAllyTagsAvailable(available: boolean, reason: string): Promise<void> {
-    if (available && this.stopped) return
-    const availabilityChanged = available !== this.allyTagsAvailable
-    const reasonChanged = reason !== this.allyTagsReason
-    if (!availabilityChanged && !reasonChanged) return
-    const marker = join(this.directory, 'ally-tags.enabled')
-    if (availabilityChanged) {
-      if (available) {
-        await writeFile(marker, '1\n', { mode: 0o600 })
-        if (this.stopped) {
-          await unlink(marker).catch(() => undefined)
-          return
-        }
-      } else
-        await unlink(marker).catch((error: unknown) => {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-        })
-      this.allyTagsAvailable = available
-    }
-    this.allyTagsReason = reason
-    console.info('[Scoreboard] teammate markers state', {
-      matchId: this.matchId,
-      available,
-      reason,
-      nextClient: this.usesNextClientHost
-    })
   }
 
   static async start(
@@ -247,7 +217,7 @@ export class ScoreboardOverlaySession {
       console.info('[Scoreboard] NextClient HUD diagnostics', {
         matchId,
         scoreboard: 'waiting for authenticated live scoreboard feed',
-        teammateTags: 'requires a competitive v8+ live scoreboard feed',
+        teammateTags: 'requires a competitive live scoreboard feed',
         crosshair: 'disabled by the current NextClient integration'
       })
     }
@@ -263,9 +233,6 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
-      await writeFile(join(directory, 'crosshair.visible'), nextClient ? '0\n' : '1\n', {
-        mode: 0o600
-      })
       if (!nextClient) await writeCrosshairConfig(directory, (await getGameSettings()).crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
@@ -449,25 +416,13 @@ export class ScoreboardOverlaySession {
       if (!response.ok || response.status === 204)
         throw new Error(`Scoreboard unavailable (HTTP ${response.status})`)
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-2])\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-3])\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       if (this.stopped) return
       const temporary = `${this.feedPath}.tmp`
       await writeFile(temporary, feed, { mode: 0o600 })
       await rename(temporary, this.feedPath)
-      // Only an authenticated live match with the v8+ weapon feed can request
-      // native ally tags. The module independently checks the fresh mode-0 feed.
       const snapshot = this.readSnapshot(this.directory)
-      const allyFeedSupported = /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(feed)
-      const allyTagsAvailable = allyFeedSupported && snapshot?.mode === 'competitive'
-      const allyTagsReason = allyTagsAvailable
-        ? 'competitive v8+ live scoreboard feed ready'
-        : !allyFeedSupported
-          ? 'teammate tags require scoreboard feed v8 or newer'
-          : snapshot
-            ? `teammate tags are disabled in ${snapshot.mode} mode`
-            : 'scoreboard snapshot is not ready'
-      await this.setAllyTagsAvailable(allyTagsAvailable, allyTagsReason)
       const feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
       if (!this.feedAvailable)
         console.info('[Scoreboard] live match feed ready', {
@@ -502,11 +457,6 @@ export class ScoreboardOverlaySession {
         this.reportedUnavailable = true
       }
       this.feedAvailable = false
-      const feedError = error instanceof Error ? error.message : String(error)
-      await this.setAllyTagsAvailable(false, `live scoreboard unavailable: ${feedError}`).catch(
-        (markerError: unknown) =>
-          console.warn('[Scoreboard] ally tag marker cleanup failed', markerError)
-      )
       await unlink(this.feedPath).catch(() => undefined)
     } finally {
       this.busy = false
@@ -532,7 +482,6 @@ export class ScoreboardOverlaySession {
     if (!this.window.isDestroyed()) this.window.close()
     cleanupQueue.enqueue(async () => {
       await Promise.allSettled([this.refreshTask, this.frameTask, watchdogTask])
-      await this.setAllyTagsAvailable(false, 'HUD session stopping')
       if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
       else await rm(this.directory, { recursive: true, force: true })
     })
