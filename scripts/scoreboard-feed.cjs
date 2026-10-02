@@ -8,22 +8,25 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v(?:[2-9]|1[0-2])\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v(?:[2-9]|1[0-3])\t/.test(header ?? '') || lines.length > 34) return null
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = /^#16c-scoreboard-v(?:[4-9]|1[0-2])\t/.test(header)
-  const withMoney = /^#16c-scoreboard-v(?:[7-9]|1[0-2])\t/.test(header)
-  const withWeapon = /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(header)
-  const withBuyZone = header.startsWith('#16c-scoreboard-v12\t')
+  const withBot = /^#16c-scoreboard-v(?:[4-9]|1[0-3])\t/.test(header)
+  const withMoney = /^#16c-scoreboard-v(?:[7-9]|1[0-3])\t/.test(header)
+  const withWeapon = /^#16c-scoreboard-v(?:[89]|1[0-3])\t/.test(header)
+  const withBuyZone = /^#16c-scoreboard-v1[23]\t/.test(header)
   const withOvertime = withBuyZone || header.startsWith('#16c-scoreboard-v11\t')
   const withHealth = withOvertime || header.startsWith('#16c-scoreboard-v10\t')
-  const withRoundEvents = header.startsWith('#16c-scoreboard-v9\t')
-  const withFormat = /^#16c-scoreboard-v(?:[6-9]|1[0-2])\t/.test(header)
+  const withRoundEvents =
+    header.startsWith('#16c-scoreboard-v9\t') || header.startsWith('#16c-scoreboard-v13\t')
+  const withFormat = /^#16c-scoreboard-v(?:[6-9]|1[0-3])\t/.test(header)
   const withRoundWinners = withFormat || header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(header.indexOf('\t') + 1).split('\t')
   if (
     headerFields.length !==
     (withOvertime
-      ? 13
+      ? withRoundEvents
+        ? 14
+        : 13
       : withRoundEvents
         ? 11
         : withHealth
@@ -59,6 +62,7 @@ function parseSnapshot(text) {
   const winTarget = withFormat ? Number(winTargetText) : 13
   const ctWins = withFormat ? Number(ctWinsText) : null
   const tWins = withFormat ? Number(tWinsText) : null
+  const eventHistory = withOvertime ? headerFields[13] : roundEvents
   const ctLossBonus = withOvertime
     ? Number(headerFields[9])
     : withRoundEvents
@@ -84,8 +88,8 @@ function parseSnapshot(text) {
         tWins < 0 ||
         tWins > 99)) ||
     (withRoundEvents &&
-      (!/^[DBCKHU]{0,99}$/.test(roundEvents) ||
-        roundEvents.length > round ||
+      (!/^[DBCKHU]{0,99}$/.test(eventHistory) ||
+        eventHistory.length > round ||
         !Number.isInteger(ctLossBonus) ||
         ctLossBonus < 0 ||
         ctLossBonus > 16000 ||
@@ -216,7 +220,7 @@ function parseSnapshot(text) {
     winTarget,
     ctWins,
     tWins,
-    roundEvents: withRoundEvents ? roundEvents : null,
+    roundEvents: withRoundEvents ? eventHistory : null,
     ctLossBonus,
     tLossBonus,
     ...(withHealth ? { buytimeActive: buytimeText === '1' } : {}),

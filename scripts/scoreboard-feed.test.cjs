@@ -15,6 +15,20 @@ test('v12 carries per-player buy-zone state alongside health and the overtime he
   assert.equal(parseSnapshot(header + row).players[0].health, 73)
 })
 
+test('v13 carries round events through MR12 and MR8 overtime', () => {
+  for (const half of [12, 8]) {
+    const regulation = 'CT'.repeat(half)
+    const events = 'K'.repeat(half * 2) + 'DBCHU'
+    const round = half * 2 + 6
+    const header = `#16c-scoreboard-v13\tde_dust2\t${round}\t0\t${regulation}CTCTC\t${half}\t${half + 4}\t${half + 3}\t${half + 2}\t0\t1900\t2400\t3\t1\t${events}\n`
+    const snapshot = parseSnapshot(header)
+    assert.equal(snapshot?.roundEvents, events)
+    assert.equal(snapshot?.roundEvents[half * 2], 'D')
+    assert.equal(snapshot?.halfRounds, half)
+    assert.equal(snapshot?.overtimeHalfRounds, 3)
+  }
+})
+
 test('v11 preserves health and buytime while providing team loss bonuses and overtime format', () => {
   const row = '1\t2\t5\t1\t2\t31\t1\t0\t16000\t22\t100\tAlpha\n'
   const header =

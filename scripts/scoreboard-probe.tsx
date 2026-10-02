@@ -1,7 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AlarmClockMinus, Bomb, Scissors, Skull, Trophy } from 'lucide-react'
+import {
+  AlarmClockMinus,
+  Bomb,
+  CircleHelp,
+  Scissors,
+  Skull,
+  Trophy,
+  UsersRound
+} from 'lucide-react'
 import {
   scoreboardRounds,
   lossBonusSegments,
@@ -216,6 +224,10 @@ function RoundTrack({
                     <Bomb className="round-event-icon" aria-label="Bomb exploded" />
                   ) : roundEvent === 'C' ? (
                     <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
+                  ) : roundEvent === 'H' ? (
+                    <UsersRound className="round-event-icon" aria-label="Hostages rescued" />
+                  ) : roundEvent === 'U' ? (
+                    <CircleHelp className="round-event-icon" aria-label="Other win condition" />
                   ) : roundEvent === 'K' || roundWinner ? (
                     <Skull className="round-event-icon" aria-label="Enemies eliminated" />
                   ) : null}
