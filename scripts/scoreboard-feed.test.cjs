@@ -3,6 +3,35 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { parseSnapshot } = require('./scoreboard-feed.cjs')
 
+test('v12 carries per-player buy-zone state alongside health and the overtime header', () => {
+  const header = '#16c-scoreboard-v12\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\n'
+  const row = '1\t2\t0\t0\t0\t24\t1\t0\t800\t16\t73\t1\tAlpha\n'
+  assert.equal(parseSnapshot(header + row).players[0].inBuyZone, true)
+  assert.equal(
+    parseSnapshot(header + row.replace('\t73\t1\t', '\t73\t0\t')).players[0].inBuyZone,
+    false
+  )
+  assert.equal(parseSnapshot(header + row.replace('\t73\t1\t', '\t73\t2\t')), null)
+  assert.equal(parseSnapshot(header + row).players[0].health, 73)
+})
+
+test('v11 preserves health and buytime while providing team loss bonuses and overtime format', () => {
+  const row = '1\t2\t5\t1\t2\t31\t1\t0\t16000\t22\t100\tAlpha\n'
+  const header =
+    '#16c-scoreboard-v11\tde_dust2\t25\t0\t' +
+    'CT'.repeat(12) +
+    '\t12\t16\t12\t12\t1\t1900\t3400\t3\t0\n'
+  const snapshot = parseSnapshot(header + row)
+  assert.equal(snapshot.ctLossBonus, 1900)
+  assert.equal(snapshot.tLossBonus, 3400)
+  assert.equal(snapshot.overtimeHalfRounds, 3)
+  assert.equal(snapshot.buytimeActive, true)
+  assert.equal(snapshot.players[0].health, 100)
+  assert.equal(parseSnapshot(header.replace('1900', 'NaN') + row), null)
+  assert.equal(parseSnapshot(header.replace('3400', '16001') + row), null)
+  assert.equal(parseSnapshot(header.replace('\t3\t0\n', '\t0\t0\n') + row), null)
+})
+
 test('parses a unified leaderboard with assists and sorts by score', () => {
   const snapshot = parseSnapshot(
     '#16c-scoreboard-v3\tde_dust2\t0\t1\n' +

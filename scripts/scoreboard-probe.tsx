@@ -1,7 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AlarmClockMinus, Bomb, Scissors, Skull } from 'lucide-react'
+import { AlarmClockMinus, Bomb, Scissors, Skull, Trophy } from 'lucide-react'
+import {
+  scoreboardRounds,
+  lossBonusSegments,
+  currentSideWinner,
+  scoreByHalf
+} from './scoreboard-rounds'
 
 type Player = {
   id: number
@@ -27,6 +33,8 @@ type Snapshot = {
   roundEvents: string | null
   ctLossBonus: number | null
   tLossBonus: number | null
+  overtimeHalfRounds?: number
+  sidesSwapped?: boolean
   mode: 'ffa' | 'competitive'
   players: Player[]
 } | null
@@ -78,12 +86,26 @@ function getWinningRound(
     ctWins !== null && ctWins >= winTarget ? 'C' : tWins !== null && tWins >= winTarget ? 'T' : null
   if (!winner) return -1
 
-  let wins = 0
-  for (let index = 0; index < roundWinners.length; index++) {
-    if (roundWinners[index] === winner) wins++
-    if (wins === winTarget) return index
-  }
-  return -1
+  return roundWinners.length - 1
+}
+
+function LossBonus({ team, bonus }: { team: 'CT' | 'T'; bonus: number | null }) {
+  const segments = lossBonusSegments(bonus)
+  return (
+    <div
+      className={`loss-bonus ${team === 'CT' ? 'ct' : 't'}`}
+      title="Team payout on the next lost round; individual survival rules may apply"
+    >
+      <span>
+        {team} LOSS BONUS <b>{bonus === null ? '—' : `$${bonus.toLocaleString()}`}</b>
+      </span>
+      <div className="loss-bars" aria-label={`${team} loss bonus ${bonus ?? 'unavailable'}`}>
+        {Array.from({ length: 5 }, (_, index) => (
+          <i key={index} className={index < segments ? 'filled' : ''} />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function RoundTrack({
@@ -95,7 +117,9 @@ function RoundTrack({
   tWins,
   roundEvents,
   ctLossBonus,
-  tLossBonus
+  tLossBonus,
+  overtimeHalfRounds = 3,
+  sidesSwapped
 }: {
   round: number
   roundWinners: string | null
@@ -106,68 +130,105 @@ function RoundTrack({
   roundEvents: string | null
   ctLossBonus: number | null
   tLossBonus: number | null
+  overtimeHalfRounds?: number
+  sidesSwapped?: boolean
 }) {
-  const regulationRounds = halfRounds * 2
-  const current = Math.min(round, regulationRounds)
+  const phase = scoreboardRounds(round, halfRounds, winTarget, overtimeHalfRounds)
+  const current = phase.current
+  const currentIndex = Math.max(phase.start, round - 1)
+  const splits = scoreByHalf(
+    roundWinners ?? '',
+    halfRounds,
+    currentIndex,
+    overtimeHalfRounds,
+    sidesSwapped
+  )
   const winningRound = roundWinners ? getWinningRound(roundWinners, ctWins, tWins, winTarget) : -1
   return (
-    <div className="round-area">
+    <div className={`round-area ${phase.overtime ? 'overtime' : ''}`}>
       <div className="round-label">
-        <strong>
-          {round
-            ? `ROUND ${round}${round <= regulationRounds ? ` / ${regulationRounds}` : ' · OVERTIME'}`
-            : 'WAITING FOR ROUND'}
-        </strong>
-        <span>
-          HALF {halfRounds} · FIRST TO {winTarget} · LOSS BONUS CT ${ctLossBonus ?? '—'} / T $
-          {tLossBonus ?? '—'}
+        <strong>{phase.label}</strong>
+        <span>{phase.details}</span>
+      </div>
+      <div className="round-summary">
+        <span className="ct">
+          CT needs {ctWins === null ? '—' : Math.max(0, winTarget - ctWins)} wins
+        </span>
+        <span className="t">
+          T needs {tWins === null ? '—' : Math.max(0, winTarget - tWins)} wins
         </span>
       </div>
-      {roundWinners !== null && (
-        <div className="round-track" aria-label={`Round ${round} of ${regulationRounds}`}>
-          {Array.from({ length: regulationRounds }, (_, index) => {
-            const roundWinner = roundWinners[index]
-            const roundEvent = roundEvents?.[index]
-            const markerWinner =
-              index >= halfRounds && roundWinner ? (roundWinner === 'C' ? 'T' : 'C') : roundWinner
-            return (
-              <span
-                key={index}
-                className={`round-tick ${markerWinner === 'C' ? 'ct-win' : markerWinner === 'T' ? 't-win' : ''} ${roundEvent ? 'has-event' : ''} ${index === winningRound ? 'match-winner' : ''} ${index + 1 === current && !roundWinner ? 'current' : ''} ${index === halfRounds ? 'halftime' : ''}`}
-                title={
-                  roundEvent === 'D'
-                    ? `Round ${index + 1}: bomb defused`
-                    : roundEvent === 'B'
-                      ? `Round ${index + 1}: bomb exploded`
-                      : roundEvent === 'C'
-                        ? `Round ${index + 1}: time expired`
-                        : roundEvent === 'K'
-                          ? `Round ${index + 1}: enemies eliminated`
-                          : roundEvent === 'H'
-                            ? `Round ${index + 1}: hostages rescued`
-                            : roundEvent === 'U'
-                              ? `Round ${index + 1}: other win condition`
-                              : roundWinner === 'C'
-                                ? `Round ${index + 1}: CT won`
-                                : roundWinner === 'T'
-                                  ? `Round ${index + 1}: T won`
-                                  : `Round ${index + 1}: ongoing or unplayed`
-                }
-              >
-                {roundEvent === 'D' ? (
-                  <Scissors className="round-event-icon" aria-label="Bomb defused" />
-                ) : roundEvent === 'B' ? (
-                  <Bomb className="round-event-icon" aria-label="Bomb exploded" />
-                ) : roundEvent === 'C' ? (
-                  <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
-                ) : roundEvent === 'K' ? (
-                  <Skull className="round-event-icon" aria-label="Enemies eliminated" />
-                ) : null}
-              </span>
-            )
-          })}
+      <div className="round-progress">
+        <div className="half-scores" aria-label="Scores by half for current CT and T teams">
+          {splits.map(({ label, ct, t }) => (
+            <div key={label}>
+              <b className="ct">{ct}</b>
+              <span>{label}</span>
+              <b className="t">{t}</b>
+            </div>
+          ))}
         </div>
-      )}
+        {roundWinners !== null && (
+          <div className="round-track" aria-label={phase.label}>
+            {Array.from({ length: phase.total }, (_, index) => {
+              const historyIndex = phase.start + index
+              const roundWinner = roundWinners[historyIndex]
+              const roundEvent = roundEvents?.[historyIndex]
+              const markerWinner =
+                roundWinner &&
+                currentSideWinner(
+                  roundWinner,
+                  historyIndex,
+                  currentIndex,
+                  halfRounds,
+                  overtimeHalfRounds,
+                  sidesSwapped
+                )
+              return (
+                <span
+                  key={index}
+                  className={`round-tick ${markerWinner === 'C' ? 'ct-win' : markerWinner === 'T' ? 't-win' : ''} ${roundEvent ? 'has-event' : ''} ${historyIndex === winningRound ? 'match-winner' : ''} ${index + 1 === current && !roundWinner ? 'current' : ''} ${index === phase.half ? 'halftime' : ''}`}
+                  title={
+                    roundEvent === 'D'
+                      ? `Round ${index + 1}: bomb defused`
+                      : roundEvent === 'B'
+                        ? `Round ${index + 1}: bomb exploded`
+                        : roundEvent === 'C'
+                          ? `Round ${index + 1}: time expired`
+                          : roundEvent === 'K'
+                            ? `Round ${index + 1}: enemies eliminated`
+                            : roundEvent === 'H'
+                              ? `Round ${index + 1}: hostages rescued`
+                              : roundEvent === 'U'
+                                ? `Round ${index + 1}: other win condition`
+                                : roundWinner === 'C'
+                                  ? `Round ${index + 1}: CT won`
+                                  : roundWinner === 'T'
+                                    ? `Round ${index + 1}: T won`
+                                    : `Round ${index + 1}: ongoing or unplayed`
+                  }
+                >
+                  {historyIndex === winningRound ? (
+                    <Trophy className="round-event-icon" aria-label="Match won" />
+                  ) : roundEvent === 'D' ? (
+                    <Scissors className="round-event-icon" aria-label="Bomb defused" />
+                  ) : roundEvent === 'B' ? (
+                    <Bomb className="round-event-icon" aria-label="Bomb exploded" />
+                  ) : roundEvent === 'C' ? (
+                    <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
+                  ) : roundEvent === 'K' || roundWinner ? (
+                    <Skull className="round-event-icon" aria-label="Enemies eliminated" />
+                  ) : null}
+                </span>
+              )
+            })}
+          </div>
+        )}
+        <div className="loss-bonuses">
+          <LossBonus team="CT" bonus={ctLossBonus} />
+          <LossBonus team="T" bonus={tLossBonus} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -291,6 +352,8 @@ function Scoreboard() {
                       roundEvents={snapshot?.roundEvents ?? null}
                       ctLossBonus={snapshot?.ctLossBonus ?? null}
                       tLossBonus={snapshot?.tLossBonus ?? null}
+                      overtimeHalfRounds={snapshot?.overtimeHalfRounds ?? 3}
+                      sidesSwapped={snapshot?.sidesSwapped}
                     />
                   )}
                 </div>

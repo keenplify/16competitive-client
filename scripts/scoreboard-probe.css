@@ -197,18 +197,93 @@ body,
   font-size: 15px;
 }
 .round-area {
-  height: 82px;
+  height: 130px;
   flex: none;
   border-top: 1px solid rgba(196, 167, 95, 0.5);
   padding: 10px 5px 0;
 }
 .round-label {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
   justify-content: space-between;
   color: #b9a270;
   font-size: 14px;
   letter-spacing: 1px;
+}
+.round-area.overtime {
+  border-top-color: #e8c47a;
+  background: rgba(196, 167, 95, 0.06);
+}
+.round-summary {
+  display: flex;
+  gap: 24px;
+  margin-top: 5px;
+  font-weight: 600;
+}
+.round-summary .ct,
+.loss-bonus.ct,
+.half-scores .ct {
+  color: #8bc4ed;
+}
+.round-summary .t,
+.loss-bonus.t,
+.half-scores .t {
+  color: #e7b96e;
+}
+.half-scores {
+  display: flex;
+  gap: 12px;
+  text-align: center;
+}
+.half-scores div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.half-scores span {
+  color: #9c9b8e;
+  font-size: 12px;
+}
+.loss-bonuses {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.round-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.round-progress .round-track {
+  flex: 1;
+  min-width: 0;
+}
+.round-progress .round-tick {
+  flex: 1;
+  min-width: 8px;
+}
+.loss-bonus {
+  min-width: 145px;
+  font-size: 12px;
+}
+.loss-bonus b {
+  float: right;
+  margin-left: 6px;
+}
+.loss-bars {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+.loss-bars i {
+  width: 24px;
+  height: 4px;
+  background: #45453e;
+}
+.loss-bars i.filled {
+  background: currentColor;
 }
 .round-label strong {
   color: #e8c47a;

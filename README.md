@@ -53,6 +53,30 @@ The backend remains authoritative for matchmaking, player identity, inventory, r
 
 ## Project status
 
+During a match, the launcher checks scoreboard feed, renderer, frame freshness,
+and session markers every two seconds. It retries renderer/frame failures after
+an eight-second startup grace, with at least 15 seconds between repair attempts.
+NextClient sessions wait for the previous match's feed/frame writes and cleanup
+before reusing its shared directory. These checks cannot confirm native in-game
+hook visibility and do not restart Counter-Strike.
+
+Scoreboard failures are automatically sent to the existing authenticated issue
+report API. Reports include detected NextClient versus other/unknown Windows
+GoldSrc or Linux GoldSrc, OS release, launcher architecture/version, match ID,
+map/round/player count when available, feed version and age, renderer exit reason,
+frame/marker health, recovery attempt outcome, and existing launcher diagnostic
+logs. They do not collect arbitrary files or scan other processes. Each problem
+is reported once per match session (also deduplicated by the API), with up to
+three submission attempts. Feed outages must persist for 30 seconds before a
+report is sent; brief loading/network gaps are tolerated.
+
+The overtime progress, half-score breakdown, and loss bonus display require the
+matching server plugin's v11+ scoreboard feed. The v12 feed also supplies each
+player's buy-zone state: the matching native module shows money only during
+buy time inside that player's buy zone, shows health otherwise, and suppresses
+dead/zero-health tags. This requires a coordinated server, launcher, and signed
+native module release. Older feeds remain readable.
+
 1.6 Competitive is under active development. This public repository contains the Electron desktop client and its launcher UI. Features and visuals will continue to evolve as the platform approaches wider release.
 
 ## Download

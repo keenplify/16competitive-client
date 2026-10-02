@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdir, mkdtemp, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { release } from 'node:os'
 import { app, BrowserWindow } from 'electron'
 import { getSessionToken, getSessionUsername } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
@@ -11,12 +12,19 @@ import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
 import { WindowsNextClientInstallation } from './windows-nextclient-installation'
 import { buildSteamScoreboardWrapper } from './steam-scoreboard-wrapper'
+import { ScoreboardCleanupQueue } from './scoreboard-cleanup'
+import { ScoreboardWatchdog } from './scoreboard-watchdog'
+import type { ScoreboardHealth } from './scoreboard-watchdog'
+import { createScoreboardReporter } from './scoreboard-report'
+import type { ScoreboardIncident } from './scoreboard-report'
+import { reportDiagnosticIssue } from '../diagnostic-logs'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
 const FRAME_WIDTH = 1104
 const FRAME_HEIGHT = 720
 const INTERVAL_MS = 500
+const cleanupQueue = new ScoreboardCleanupQueue()
 
 const writeCrosshairConfig = async (
   directory: string,
@@ -93,11 +101,21 @@ export class ScoreboardOverlaySession {
   private readonly readSnapshot: (directory: string) => Snapshot
   private timer: NodeJS.Timeout | null = null
   private busy = false
+  private refreshTask: Promise<void> | null = null
+  private frameTask: Promise<void> | null = null
+  private watchdog: ScoreboardWatchdog | null = null
+  private rendererCrashed = false
+  private rendererExitReason: string | null = null
+  private feedVersion: string | null = null
+  private lastFeedAt: number | null = null
+  private readonly requests = new AbortController()
   private frameWriting = false
   private stopped = false
   private feedAvailable = false
   private allyTagsAvailable = false
   private reportedUnavailable = false
+  private feedOutageAt: number | null = null
+  private readonly reportIncident = createScoreboardReporter(reportDiagnosticIssue)
   private readonly windowsInstallation:
     WindowsCosmeticInstallation | WindowsNextClientInstallation | null
 
@@ -135,10 +153,10 @@ export class ScoreboardOverlaySession {
         await unlink(marker).catch(() => undefined)
         return
       }
-    }
-    else await unlink(marker).catch((error: unknown) => {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-    })
+    } else
+      await unlink(marker).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      })
     this.allyTagsAvailable = available
     console.info('[Scoreboard] teammate markers availability changed', {
       matchId: this.matchId,
@@ -153,6 +171,7 @@ export class ScoreboardOverlaySession {
     gameRoot?: string,
     allowNextClientIntegration = true
   ): Promise<ScoreboardOverlaySession | null> {
+    await cleanupQueue.wait()
     if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') return null
     if (process.platform === 'win32' && !gameRoot) return null
     const backend = new URL(apiUrl)
@@ -201,9 +220,13 @@ export class ScoreboardOverlaySession {
       // the authenticated launch and reads this per-match session. It also
       // works for normal Steam launches: without an active session it simply
       // executes Valve's original command.
-      await writeFile(join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'), buildSteamScoreboardWrapper(directory, modulePath), {
-        mode: 0o700
-      })
+      await writeFile(
+        join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'),
+        buildSteamScoreboardWrapper(directory, modulePath),
+        {
+          mode: 0o700
+        }
+      )
       const requireResource = createRequire(import.meta.url)
       const { readSnapshot } = requireResource(join(assets, 'scoreboard-feed.cjs')) as {
         readSnapshot: (directory: string) => Snapshot
@@ -235,6 +258,12 @@ export class ScoreboardOverlaySession {
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       window.webContents.on('will-navigate', (event) => event.preventDefault())
       window.webContents.setFrameRate(4)
+      window.webContents.on('render-process-gone', (_event, details) => {
+        if (createdSession.stopped) return
+        createdSession.rendererCrashed = true
+        createdSession.rendererExitReason = details.reason
+        console.warn('[Scoreboard] renderer exited', { matchId, reason: details.reason })
+      })
       window.webContents.on('paint', (_event, _dirty, image) => {
         if (createdSession.stopped || createdSession.frameWriting) return
         const size = image.getSize()
@@ -244,7 +273,7 @@ export class ScoreboardOverlaySession {
         const destination = join(directory, 'overlay.png')
         const temporary = `${destination}.tmp`
         createdSession.frameWriting = true
-        void writeFile(temporary, png, { mode: 0o600 })
+        createdSession.frameTask = writeFile(temporary, png, { mode: 0o600 })
           .then(() => rename(temporary, destination))
           .catch((error: unknown) => console.warn('[Scoreboard] frame write failed', error))
           .finally(() => {
@@ -254,9 +283,47 @@ export class ScoreboardOverlaySession {
       await window.loadFile(join(assets, 'index.html'))
       window.webContents.send('scoreboard-self', getSessionUsername() ?? '')
       window.webContents.startPainting()
-      createdSession.timer = setInterval(() => void createdSession.refresh(), INTERVAL_MS)
+      createdSession.timer = setInterval(() => createdSession.scheduleRefresh(), INTERVAL_MS)
       createdSession.timer.unref()
-      void createdSession.refresh()
+      createdSession.scheduleRefresh()
+      createdSession.watchdog = new ScoreboardWatchdog(
+        async () => {
+          const [frame, enabled, mode] = await Promise.all([
+            stat(join(directory, 'overlay.png')).catch(() => null),
+            stat(join(directory, 'overlay.enabled')).catch(() => null),
+            stat(join(directory, 'overlay.mode')).catch(() => null)
+          ])
+          return {
+            feedReady:
+              createdSession.feedAvailable && createdSession.readSnapshot(directory) !== null,
+            rendererCrashed: createdSession.rendererCrashed,
+            frameAgeMs: frame ? Date.now() - frame.mtimeMs : null,
+            markersPresent: Boolean(enabled?.isFile() && mode?.isFile())
+          }
+        },
+        async (reason, health) => {
+          if (createdSession.stopped || createdSession.window.isDestroyed()) return
+          console.warn('[Scoreboard] watchdog recovering overlay', { matchId, reason })
+          try {
+            await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
+            await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
+            if (createdSession.stopped) return
+            if (reason !== 'session markers missing') {
+              await createdSession.window.loadFile(join(assets, 'index.html'))
+              if (createdSession.stopped) return
+              createdSession.rendererCrashed = false
+            }
+            createdSession.window.webContents.startPainting()
+            createdSession.window.webContents.invalidate()
+            createdSession.scheduleRefresh()
+            createdSession.reportProblem(reason, health, 'request completed')
+          } catch (error) {
+            createdSession.reportProblem(reason, health, 'failed', error)
+            throw error
+          }
+        }
+      )
+      createdSession.watchdog.start()
       return createdSession
     } catch (error) {
       if (window && !window.isDestroyed()) window.close()
@@ -264,6 +331,53 @@ export class ScoreboardOverlaySession {
       await windowsInstallation?.restore().catch(() => undefined)
       throw error
     }
+  }
+
+  static waitForCleanup(): Promise<void> {
+    return cleanupQueue.wait()
+  }
+
+  private reportProblem(
+    reason: string,
+    health: Partial<ScoreboardHealth>,
+    recovery: ScoreboardIncident['recovery'],
+    error?: unknown
+  ): void {
+    if (this.stopped) return
+    const snapshot = this.readSnapshot(this.directory)
+    void this.reportIncident({
+      matchId: this.matchId,
+      client: this.usesNextClientHost
+        ? 'NextClient'
+        : process.platform === 'win32'
+          ? 'Windows GoldSrc (other/unknown)'
+          : 'Linux GoldSrc',
+      platform: process.platform,
+      architecture: process.arch,
+      osRelease: release(),
+      feedVersion: this.feedVersion,
+      lastFeedAgeMs: this.lastFeedAt === null ? null : Date.now() - this.lastFeedAt,
+      rendererExitReason: this.rendererExitReason,
+      matchState: snapshot
+        ? {
+            map: snapshot.map,
+            round: snapshot.round,
+            mode: snapshot.mode,
+            playerCount: snapshot.players.length
+          }
+        : null,
+      reason,
+      health,
+      recovery,
+      ...(error instanceof Error ? { error: error.message } : {})
+    })
+  }
+
+  private scheduleRefresh(): void {
+    if (this.stopped || this.busy) return
+    this.refreshTask = this.refresh().catch((error: unknown) =>
+      console.warn('[Scoreboard] refresh failed', error)
+    )
   }
 
   private async refresh(): Promise<void> {
@@ -277,12 +391,13 @@ export class ScoreboardOverlaySession {
         {
           headers: { Authorization: `Bearer ${token}` },
           redirect: 'error',
-          signal: AbortSignal.timeout(3000)
+          signal: AbortSignal.any([this.requests.signal, AbortSignal.timeout(3000)])
         }
       )
-      if (!response.ok || response.status === 204) throw new Error('Scoreboard unavailable')
+      if (!response.ok || response.status === 204)
+        throw new Error(`Scoreboard unavailable (HTTP ${response.status})`)
       const feed = await readBoundedFeed(response)
-      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|10)\t/.test(feed))
+      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-2])\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       if (this.stopped) return
       const temporary = `${this.feedPath}.tmp`
@@ -291,14 +406,30 @@ export class ScoreboardOverlaySession {
       // Only an authenticated live match with the v8+ weapon feed can request
       // native ally tags. The module independently checks the fresh mode-0 feed.
       await this.setAllyTagsAvailable(
-        /^#16c-scoreboard-v(?:[89]|10)\t/.test(feed) &&
+        /^#16c-scoreboard-v(?:[89]|1[0-2])\t/.test(feed) &&
           this.readSnapshot(this.directory)?.mode === 'competitive'
       )
       if (!this.feedAvailable)
         console.info('[Scoreboard] live match feed ready', { matchId: this.matchId })
       this.feedAvailable = true
+      this.feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
+      this.lastFeedAt = Date.now()
       this.reportedUnavailable = false
+      this.feedOutageAt = null
     } catch (error) {
+      if (this.stopped) return
+      this.feedOutageAt ??= Date.now()
+      if (Date.now() - this.feedOutageAt >= 30000) {
+        this.reportProblem(
+          'live scoreboard feed unavailable',
+          {
+            feedReady: false,
+            rendererCrashed: this.rendererCrashed
+          },
+          'not attempted',
+          error
+        )
+      }
       if (!this.reportedUnavailable) {
         console.warn('[Scoreboard] live match feed unavailable; stock board remains active', {
           matchId: this.matchId,
@@ -328,22 +459,16 @@ export class ScoreboardOverlaySession {
   stop(): void {
     if (this.stopped) return
     this.stopped = true
+    this.requests.abort()
+    const watchdogTask = this.watchdog?.stop()
     if (this.timer) clearInterval(this.timer)
     this.timer = null
-    void this.setAllyTagsAvailable(false).catch((error: unknown) =>
-      console.warn('[Scoreboard] ally tag marker cleanup failed', error)
-    )
     if (!this.window.isDestroyed()) this.window.close()
-    if (this.windowsInstallation) {
-      void this.windowsInstallation
-        .queueRestore()
-        .catch((error: unknown) =>
-          console.warn('[Scoreboard] Windows client restore failed', error)
-        )
-    } else {
-      void rm(this.directory, { recursive: true, force: true }).catch((error: unknown) =>
-        console.warn('[Scoreboard] cleanup failed', error)
-      )
-    }
+    cleanupQueue.enqueue(async () => {
+      await Promise.allSettled([this.refreshTask, this.frameTask, watchdogTask])
+      await this.setAllyTagsAvailable(false)
+      if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
+      else await rm(this.directory, { recursive: true, force: true })
+    })
   }
 }
