@@ -80,7 +80,7 @@ body,
 .column-head,
 .player-row {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 88px 96px 88px 108px 94px;
+  grid-template-columns: 54px minmax(0, 1fr) 88px 96px 88px 94px;
   align-items: center;
   gap: 8px;
   padding: 0 12px;
@@ -238,10 +238,6 @@ body,
   color: #9c9b8e;
   font-size: 12px;
 }
-.loss-bonuses {
-  flex: none;
-  width: 104px;
-}
 .round-progress {
   display: flex;
   align-items: center;
@@ -260,6 +256,15 @@ body,
   font-size: 11px;
   text-align: center;
   color: #c6c0ac;
+}
+.team-heading .loss-bonus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 18px;
+}
+.team-heading .loss-bars {
+  margin-top: 0;
 }
 .loss-bars {
   display: flex;
