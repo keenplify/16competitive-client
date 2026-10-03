@@ -123,9 +123,6 @@ function RoundTrack({
   ctWins,
   tWins,
   roundEvents,
-  ctLossBonus,
-  tLossBonus,
-  selfTeam,
   overtimeHalfRounds = 3,
   sidesSwapped
 }: {
@@ -136,9 +133,6 @@ function RoundTrack({
   ctWins: number | null
   tWins: number | null
   roundEvents: string | null
-  ctLossBonus: number | null
-  tLossBonus: number | null
-  selfTeam: number | null | undefined
   overtimeHalfRounds?: number
   sidesSwapped?: boolean
 }) {
@@ -231,10 +225,6 @@ function RoundTrack({
             })}
           </div>
         )}
-        <div className="loss-bonuses">
-          {selfTeam === 2 && <LossBonus team="CT" bonus={ctLossBonus} />}
-          {selfTeam === 1 && <LossBonus team="T" bonus={tLossBonus} />}
-        </div>
       </div>
     </div>
   )
@@ -285,7 +275,9 @@ function PlayerRow({
           )}
         </span>
       )}
-      <span>{player.money === null ? '—' : `$${player.money.toLocaleString('en-US')}`}</span>
+      {showWeapon && (
+        <span>{player.money === null ? '—' : `$${player.money.toLocaleString('en-US')}`}</span>
+      )}
       <span>{player.ping}</span>
     </div>
   )
@@ -321,7 +313,7 @@ function Scoreboard() {
           <span>ASSISTS</span>
           <span>DEATHS</span>
           {competitive && <span>WPN</span>}
-          <span>MONEY</span>
+          {competitive && <span>MONEY</span>}
           <span>LATENCY</span>
         </div>
         {players.length ? (
@@ -331,16 +323,27 @@ function Scoreboard() {
                 team: 2,
                 label: 'COUNTER-TERRORISTS',
                 className: 'counter-terrorists',
-                wins: snapshot?.ctWins
+                wins: snapshot?.ctWins,
+                lossBonus: snapshot?.ctLossBonus ?? null
               },
-              { team: 1, label: 'TERRORISTS', className: 'terrorists', wins: snapshot?.tWins }
+              {
+                team: 1,
+                label: 'TERRORISTS',
+                className: 'terrorists',
+                wins: snapshot?.tWins,
+                lossBonus: snapshot?.tLossBonus ?? null
+              }
             ].map((group, groupIndex) => {
               const members = players.filter((player) => player.team === group.team)
               return members.length ? (
                 <div key={group.team}>
                   <div className={`team-section ${group.className}`}>
                     <div className="team-heading">
-                      {group.label} · {group.wins === null ? members.length : `${group.wins} WINS`}
+                      <span>
+                        {group.label} ·{' '}
+                        {group.wins === null ? members.length : `${group.wins} WINS`}
+                      </span>
+                      <LossBonus team={group.team === 2 ? 'CT' : 'T'} bonus={group.lossBonus} />
                     </div>
                     {members.map((player, index) => (
                       <PlayerRow
@@ -363,9 +366,6 @@ function Scoreboard() {
                       ctWins={snapshot?.ctWins ?? null}
                       tWins={snapshot?.tWins ?? null}
                       roundEvents={snapshot?.roundEvents ?? null}
-                      ctLossBonus={snapshot?.ctLossBonus ?? null}
-                      tLossBonus={snapshot?.tLossBonus ?? null}
-                      selfTeam={selfTeam}
                       overtimeHalfRounds={snapshot?.overtimeHalfRounds ?? 3}
                       sidesSwapped={snapshot?.sidesSwapped}
                     />
