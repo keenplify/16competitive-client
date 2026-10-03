@@ -1680,3 +1680,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Simplified round history display.
 - Added a clear indicator for the bomb carrier.
+
+## v2026.1003.1 — 2026-10-03
+
+### Scoreboard
+
+- Updated scoreboard columns for FFA and team loss bonuses.
