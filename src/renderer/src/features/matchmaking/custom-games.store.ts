@@ -14,6 +14,7 @@ interface CustomGamesState {
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
   movingServer: boolean
+  addingBot: boolean
   refresh: () => Promise<void>
   restoreRoom: (hostApiUrl: string) => Promise<void>
   setPlayView: (view: 'matchmaking' | 'custom') => void
@@ -43,6 +44,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   status: 'idle',
   error: null,
   movingServer: false,
+  addingBot: false,
   setPlayView: (playView) => set({ playView }),
   openCreateModal: () => set({ createModalOpen: true, error: null }),
   closeCreateModal: () => set({ createModalOpen: false }),
@@ -63,6 +65,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     }
   },
   refresh: async () => {
+    const previousRoom = get().currentRoom
     set({ status: 'loading', error: null })
     try {
       const [rooms, currentRoom] = await Promise.all([
@@ -71,7 +74,12 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
           get().currentRoom?.hostApiUrl ?? useMatchmakingStore.getState().match?.hostApiUrl
         )
       ])
-      set({ rooms, currentRoom, status: 'ready' })
+      set({
+        rooms,
+        currentRoom:
+          get().addingBot || get().currentRoom !== previousRoom ? get().currentRoom : currentRoom,
+        status: 'ready'
+      })
     } catch (error) {
       set({ status: 'error', error: message(error) })
     }
@@ -135,10 +143,12 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   addBot: async (team) => {
     const room = get().currentRoom
-    if (!room) return
-    set({ error: null })
+    if (!room || get().addingBot) return
+    set({ error: null, addingBot: true })
     try {
       const roomWithBot = await window.api.customGames.addBot(room.id, room.hostApiUrl)
+      if (get().currentRoom?.id !== room.id) return
+      set({ currentRoom: roomWithBot })
       const previousMemberIds = new Set(room.members.map(({ id }) => id))
       const addedBot = roomWithBot.members.find(
         (member) => member.isBot && !previousMemberIds.has(member.id)
@@ -147,9 +157,11 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
         team && addedBot && addedBot.team !== team
           ? await window.api.customGames.moveMember(room.id, addedBot.id, team, room.hostApiUrl)
           : roomWithBot
-      set({ currentRoom })
+      if (get().currentRoom?.id === room.id) set({ currentRoom })
     } catch (error) {
-      set({ error: message(error) })
+      if (get().currentRoom?.id === room.id) set({ error: message(error) })
+    } finally {
+      set({ addingBot: false })
     }
   },
   setTeamCapacity: async (team, capacity) => {
@@ -215,5 +227,5 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       set({ error: message(error) })
     }
   },
-  reset: () => set({ rooms: [], currentRoom: null, status: 'idle', error: null })
+  reset: () => set({ rooms: [], currentRoom: null, status: 'idle', error: null, addingBot: false })
 }))

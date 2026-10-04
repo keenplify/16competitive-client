@@ -190,7 +190,7 @@ function parseSnapshot(text) {
       ping > 9999 ||
       (withAlive && alive !== 0 && alive !== 1) ||
       (withBot && bot !== 0 && bot !== 1) ||
-      (withMoney && (!Number.isInteger(money) || money < 0 || money > 16000)) ||
+      (withMoney && (!Number.isInteger(money) || money < -1 || money > 16000)) ||
       (withWeapon &&
         (!Number.isInteger(primaryWeapon) || primaryWeapon < 0 || primaryWeapon > 31)) ||
       (withHealth && (!Number.isInteger(health) || health < 0 || health > 255)) ||
@@ -216,7 +216,7 @@ function parseSnapshot(text) {
       ping,
       alive: !withAlive || alive === 1,
       bot: withBot && bot === 1,
-      money,
+      money: money === -1 ? null : money,
       primaryWeapon,
       ...(withHealth ? { health } : {}),
       ...(withBuyZone ? { inBuyZone: inBuyZone === '1' } : {}),

@@ -17,7 +17,14 @@ async function main() {
     outfile: path.join(output, 'renderer.js')
   })
   fs.copyFileSync(path.join(__dirname, 'scoreboard-probe.css'), path.join(output, 'scoreboard.css'))
-  const fontSource = path.join(path.dirname(require.resolve('@fontsource/rajdhani/package.json')), 'files')
+  fs.copyFileSync(
+    path.join(root, 'src', 'renderer', 'public', 'favicon.svg'),
+    path.join(output, 'favicon.svg')
+  )
+  const fontSource = path.join(
+    path.dirname(require.resolve('@fontsource/rajdhani/package.json')),
+    'files'
+  )
   const fontOutput = path.join(output, 'fonts')
   fs.mkdirSync(fontOutput, { recursive: true })
   for (const weight of [400, 500, 600, 700]) {

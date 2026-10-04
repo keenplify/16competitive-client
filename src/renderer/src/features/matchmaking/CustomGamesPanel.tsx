@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX, type MouseEvent } from 'react'
-import { Bot, LockKeyhole, Plus, RefreshCw, UserPlus, UserX } from 'lucide-react'
+import { Bot, LoaderCircle, LockKeyhole, Plus, RefreshCw, UserPlus, UserX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import {
   CUSTOM_GAME_MODES,
@@ -161,6 +161,7 @@ export function CustomGamesPanel({
   const leaveRoom = useCustomGamesStore((state) => state.leaveRoom)
   const startRoom = useCustomGamesStore((state) => state.startRoom)
   const addBot = useCustomGamesStore((state) => state.addBot)
+  const addingBot = useCustomGamesStore((state) => state.addingBot)
   const setTeamCapacity = useCustomGamesStore((state) => state.setTeamCapacity)
   const moveMember = useCustomGamesStore((state) => state.moveMember)
   const kick = useCustomGamesStore((state) => state.kick)
@@ -170,11 +171,21 @@ export function CustomGamesPanel({
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const [passwordRoom, setPasswordRoom] = useState<CustomGameRoom | null>(null)
   const [movingToTeam, setMovingToTeam] = useState<0 | 1 | 2 | null>(null)
+  const [pendingBotButton, setPendingBotButton] = useState<string | null>(null)
   const [memberMenu, setMemberMenu] = useState<{
     member: CustomGameMember
     x: number
     y: number
   } | null>(null)
+
+  const handleAddBot = async (button: string, team?: 1 | 2): Promise<void> => {
+    setPendingBotButton(button)
+    try {
+      await addBot(team)
+    } finally {
+      setPendingBotButton(null)
+    }
+  }
 
   useEffect(() => {
     void loadMaps()
@@ -384,9 +395,14 @@ export function CustomGamesPanel({
                               className="grid size-7 place-items-center text-neutral-500 transition hover:bg-white/10 hover:text-sky-300"
                               aria-label="Add bot"
                               title="Add bot"
-                              onClick={() => void addBot()}
+                              disabled={addingBot}
+                              onClick={() => void handleAddBot(`ffa:${index}`)}
                             >
-                              <Bot className="size-4" aria-hidden="true" />
+                              {addingBot && pendingBotButton === `ffa:${index}` ? (
+                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Bot className="size-4" aria-hidden="true" />
+                              )}
                             </button>
                           )}
                           {!blocked && index === ffaCapacity - 1 && canBlockFfa && (
@@ -485,12 +501,20 @@ export function CustomGamesPanel({
                                   className="grid size-7 place-items-center text-neutral-500 transition hover:bg-white/10 hover:text-sky-300"
                                   aria-label={`Add bot to Team ${team}`}
                                   title={`Add bot to Team ${team}`}
+                                  disabled={addingBot}
                                   onClick={(event) => {
                                     event.stopPropagation()
-                                    void addBot(team)
+                                    void handleAddBot(`team:${team}:${index}`, team)
                                   }}
                                 >
-                                  <Bot className="size-4" aria-hidden="true" />
+                                  {addingBot && pendingBotButton === `team:${team}:${index}` ? (
+                                    <LoaderCircle
+                                      className="size-4 animate-spin"
+                                      aria-hidden="true"
+                                    />
+                                  ) : (
+                                    <Bot className="size-4" aria-hidden="true" />
+                                  )}
                                 </button>
                               )}
                               {capacity > 1 && !blocked && index === capacity - 1 && (

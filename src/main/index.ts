@@ -78,13 +78,18 @@ import {
   saveVoicePttKey,
   saveCrosshair,
   saveNextClientIntegration,
-  saveFastSwitch
+  saveFastSwitch,
+  saveKillCards
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
-import { closeCounterStrikeForMatch, updateActiveCrosshair } from './game/cs16-launcher'
+import {
+  closeCounterStrikeForMatch,
+  updateActiveCrosshair,
+  updateActiveKillCards
+} from './game/cs16-launcher'
 import { disableSteamScoreboardWrapper } from './game/steam-scoreboard-options'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
@@ -746,6 +751,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
     saveFastSwitch(enabled)
   )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setKillCards, async (_, enabled: unknown) => {
+    const settings = await saveKillCards(enabled)
+    await updateActiveKillCards(settings.killCardsEnabled)
+    return settings
+  })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')

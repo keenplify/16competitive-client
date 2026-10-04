@@ -84,6 +84,10 @@ export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<
   await activeScoreboardSession?.session.updateCrosshair(profile)
 }
 
+export const updateActiveKillCards = async (enabled: boolean): Promise<void> => {
+  await activeScoreboardSession?.session.updateKillCards(enabled)
+}
+
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 
@@ -643,6 +647,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   launchedMatchConfigPath = matchConfigPath
   launchedMatchConfigGeneration = matchConfigGeneration
 
+  // Screenshot review belongs to the anti-cheat session, independent of optional in-game HUDs.
   const antiCheatSession = await startAntiCheatSession({
     matchId: input.matchId,
     executablePath: executable,

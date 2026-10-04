@@ -783,6 +783,16 @@ Reconnect Available
 
 Avoid UI that makes the player wonder whether the launcher is frozen.
 
+### Layout Stability
+
+Prevent cumulative layout shift (CLS) in all renderer changes. Loading, pending, success, and error states must preserve the geometry of controls and surrounding content wherever practical.
+
+- Replace an icon with a spinner inside the same fixed-size button; keep icon and spinner dimensions equal.
+- Reserve space for content that arrives asynchronously, or use a fixed-size skeleton or overlay.
+- Do not insert status text, banners, or validation messages above existing content if that pushes the page around. Use reserved space or an overlay when feedback is needed.
+- Keep button width stable when labels or pending states change.
+- Check the affected screen at the start and end of async actions, including errors, before considering UI work complete.
+
 ### Component Architecture
 
 Build the renderer from reusable React components instead of repeatedly assembling bare Tailwind markup inside pages and feature screens.

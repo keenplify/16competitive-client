@@ -20,6 +20,7 @@ interface StoredGameSettings {
   crosshair?: CrosshairProfile
   nextClientIntegrationEnabled?: boolean
   fastSwitchEnabled?: boolean
+  killCardsEnabled?: boolean
   nextClientIntegrationDisabledReason?: string
 }
 
@@ -196,6 +197,9 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.fastSwitchEnabled === 'boolean'
         ? { fastSwitchEnabled: settings.fastSwitchEnabled }
         : {}),
+      ...(typeof settings.killCardsEnabled === 'boolean'
+        ? { killCardsEnabled: settings.killCardsEnabled }
+        : {}),
       ...(typeof settings.nextClientIntegrationDisabledReason === 'string' &&
       settings.nextClientIntegrationDisabledReason.length <= 160
         ? { nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason }
@@ -281,6 +285,7 @@ const buildSettings = async (
       : false,
   nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
+  killCardsEnabled: storedSettings.killCardsEnabled !== false,
   nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason ?? null
 })
 
@@ -298,6 +303,7 @@ const persistResolvedSettings = async (
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
+    killCardsEnabled: storedSettings.killCardsEnabled !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
       : {})
@@ -462,6 +468,28 @@ export const saveFastSwitch = async (untrustedEnabled: unknown): Promise<GameSet
   if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid fast switch setting')
   const storedSettings = await readStoredSettings()
   const updated: StoredGameSettings = { ...storedSettings, fastSwitchEnabled: untrustedEnabled }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
+}
+
+export const saveKillCards = async (untrustedEnabled: unknown): Promise<GameSettings> => {
+  if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid kill cards setting')
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = { ...storedSettings, killCardsEnabled: untrustedEnabled }
   const cs16ExecutablePath = await validateStoredPath(updated)
   const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(

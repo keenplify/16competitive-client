@@ -14,9 +14,11 @@ interface GameSettingsState {
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
   fastSwitchEnabled: boolean
+  killCardsEnabled: boolean
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
   setNextClientIntegration: (enabled: boolean) => Promise<void>
   setFastSwitch: (enabled: boolean) => Promise<void>
+  setKillCards: (enabled: boolean) => Promise<void>
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
@@ -41,6 +43,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   nextClientIntegrationEnabled: true,
   nextClientIntegrationDisabledReason: null,
   fastSwitchEnabled: true,
+  killCardsEnabled: true,
 
   setCrosshair: async (profile) => {
     const settings = await window.api.gameSettings.setCrosshair(profile)
@@ -70,6 +73,15 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     }
   },
 
+  setKillCards: async (enabled) => {
+    try {
+      const settings = await window.api.gameSettings.setKillCards(enabled)
+      set({ killCardsEnabled: settings.killCardsEnabled, error: null })
+    } catch (error) {
+      set({ error: message(error) })
+    }
+  },
+
   load: async () => {
     set({ status: 'loading', error: null })
     try {
@@ -84,7 +96,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
-        fastSwitchEnabled: settings.fastSwitchEnabled
+        fastSwitchEnabled: settings.fastSwitchEnabled,
+        killCardsEnabled: settings.killCardsEnabled
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
@@ -120,6 +133,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
         fastSwitchEnabled: settings.fastSwitchEnabled,
+        killCardsEnabled: settings.killCardsEnabled,
         status: 'idle',
         requiresGameSetup: false,
         notice: settings.nextClientDetected

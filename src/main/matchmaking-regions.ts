@@ -161,7 +161,7 @@ export const saveMatchmakingPreferences = async (
   return preferences
 }
 
-export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
+export const getMatchmakingNodes = async (measureLatency = true): Promise<MatchmakingNode[]> => {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before loading regions')
   let response: Response
@@ -180,6 +180,7 @@ export const getMatchmakingNodes = async (): Promise<MatchmakingNode[]> => {
   const nodes = LOCAL_DEVELOPMENT
     ? body.nodes.filter((node) => isLoopbackBackend(node.publicApiUrl))
     : body.nodes
+  if (!measureLatency) return nodes
   const measuredNodes = await attachNodeLatencies(nodes)
   void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
