@@ -1686,3 +1686,27 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - Updated scoreboard columns for FFA and team loss bonuses.
+
+## v2026.1004.1 — 2026-10-04
+
+### Matchmaking
+
+- Added FFA matchmaking.
+- Improved lobby and match result experiences.
+- Added clearer guidance when idle.
+
+### Profiles
+
+- Added profile level progress and rank insignia displays.
+
+### Social
+
+- Improved lobby social features.
+- Updated chat and voice chat experiences.
+- Added community links.
+
+### Launcher
+
+- Added launcher and game settings updates.
+- Improved settings management.
+- Updated news presentation.
