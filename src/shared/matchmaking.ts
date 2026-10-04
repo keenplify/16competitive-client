@@ -1,6 +1,7 @@
 import type { ServerCustomGameMode } from './custom-games'
 import type { MatchRewardSummary } from './daily-quests'
 import type { FriendChatMessage } from './friends'
+import type { ProfileXpAward } from './profile-level'
 
 export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
@@ -333,6 +334,7 @@ export type MatchmakingServerMessage =
         mmrChange: number
       }[]
       rewards?: MatchRewardSummary
+      profileXp?: ProfileXpAward
     }
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }

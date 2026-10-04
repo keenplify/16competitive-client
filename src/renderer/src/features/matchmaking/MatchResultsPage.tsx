@@ -1,14 +1,8 @@
-import {
-  ArrowRight,
-  ChevronLeft,
-  LoaderCircle,
-  Trophy,
-  UserPlus,
-  UserRound
-} from 'lucide-react'
+import { ArrowRight, ChevronLeft, LoaderCircle, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
+import { ProfileLevelProgress } from '../../components/ui/ProfileLevelProgress'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
@@ -74,7 +68,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   const [profileStatus, setProfileStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [profileError, setProfileError] = useState<string | null>(null)
   const [resultsStep, setResultsStep] = useState<'missions' | 'summary'>(() =>
-    rewards || questSnapshot ? 'missions' : 'summary'
+    rewards || questSnapshot || match.profileXp ? 'missions' : 'summary'
   )
 
   useEffect(() => {
@@ -127,7 +121,6 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       document.removeEventListener('visibilitychange', onFocusChange)
     }
   }, [resultsStep])
-
 
   const showPlayerMenu = (event: MouseEvent<HTMLElement>, playerId: string): void => {
     event.preventDefault()
@@ -190,10 +183,10 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                   Match rewards
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                  Daily mission report
+                  Match progress
                 </h1>
                 <p className="mt-2 text-sm text-white/50">
-                  Your match progress has been added to today&apos;s missions.
+                  Your account level and mission progress from this match.
                 </p>
               </div>
               <Button
@@ -204,12 +197,17 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                 <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
               </Button>
             </div>
-            <DailyQuestsPanel
-              snapshot={rewards ? null : questSnapshot}
-              rewards={rewards}
-              title="Mission progress"
-              revealMatchProgress
-            />
+            {match.profileXp && (
+              <ProfileLevelProgress key={match.matchId} award={match.profileXp} className="mb-4" />
+            )}
+            {(rewards || questSnapshot) && (
+              <DailyQuestsPanel
+                snapshot={rewards ? null : questSnapshot}
+                rewards={rewards}
+                title="Mission progress"
+                revealMatchProgress
+              />
+            )}
             <OperationMatchProgress />
             <p className="mt-5 text-center text-xs font-medium tracking-wide text-white/35">
               MATCH SUMMARY OPENS AUTOMATICALLY IN 8 SECONDS
@@ -378,7 +376,6 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           mode={match.mode}
         />
       )}
-
 
       {contextMenu && (
         <div

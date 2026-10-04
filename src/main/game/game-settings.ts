@@ -19,6 +19,7 @@ interface StoredGameSettings {
   partyVoicePttKey?: string
   crosshair?: CrosshairProfile
   nextClientIntegrationEnabled?: boolean
+  fastSwitchEnabled?: boolean
   nextClientIntegrationDisabledReason?: string
 }
 
@@ -192,6 +193,9 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.nextClientIntegrationEnabled === 'boolean'
         ? { nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled }
         : {}),
+      ...(typeof settings.fastSwitchEnabled === 'boolean'
+        ? { fastSwitchEnabled: settings.fastSwitchEnabled }
+        : {}),
       ...(typeof settings.nextClientIntegrationDisabledReason === 'string' &&
       settings.nextClientIntegrationDisabledReason.length <= 160
         ? { nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason }
@@ -276,6 +280,7 @@ const buildSettings = async (
       ? await isNextClientExecutable(cs16ExecutablePath)
       : false,
   nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
+  fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason ?? null
 })
 
@@ -292,6 +297,7 @@ const persistResolvedSettings = async (
     partyVoicePttKey,
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
+    fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
       : {})
@@ -444,6 +450,28 @@ export const saveNextClientIntegration = async (
     updated
   )
   return await buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
+}
+
+export const saveFastSwitch = async (untrustedEnabled: unknown): Promise<GameSettings> => {
+  if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid fast switch setting')
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = { ...storedSettings, fastSwitchEnabled: untrustedEnabled }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return buildSettings(
     cs16ExecutablePath,
     keys.team,
     keys.party,

@@ -7,6 +7,7 @@ export const GAME_SETTINGS_CHANNELS = {
   setVoicePttKey: 'game-settings:set-voice-ptt-key',
   setCrosshair: 'game-settings:set-crosshair',
   setNextClientIntegration: 'game-settings:set-nextclient-integration',
+  setFastSwitch: 'game-settings:set-fast-switch',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
   syncAssets: 'game-settings:sync-assets',
   assetSyncProgress: 'game-settings:asset-sync-progress'
@@ -22,6 +23,7 @@ export interface GameSettings {
   nextClientDetected: boolean
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
+  fastSwitchEnabled: boolean
 }
 
 export type SkinAssetSyncMode = 'download' | 'repair'
@@ -40,6 +42,7 @@ export interface GameSettingsApi {
   setVoicePttKey(key: string): Promise<GameSettings>
   setCrosshair(profile: CrosshairProfile): Promise<GameSettings>
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
+  setFastSwitch(enabled: boolean): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>
   syncAssets(mode: SkinAssetSyncMode): Promise<void>
   onAssetSyncProgress(listener: (progress: SkinAssetSyncProgress) => void): () => void

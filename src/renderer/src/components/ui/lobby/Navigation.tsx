@@ -1,10 +1,21 @@
 import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.store'
 import type { JSX } from 'react'
-import { House, Newspaper, Play, Settings, ShoppingBag, Trophy, UserRound } from 'lucide-react'
+import {
+  ClipboardList,
+  House,
+  Newspaper,
+  Play,
+  Settings,
+  ShoppingBag,
+  Trophy,
+  UserRound
+} from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import type { TranslationKey } from '../../../features/i18n/i18n'
 import { useTranslation } from '../../../features/i18n/i18n'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
+import { DailyQuestsPanel } from '../../../features/daily-quests/DailyQuestsPanel'
+import type { DailyQuestSnapshot } from '../../../../../shared/daily-quests'
 
 const pages = [
   { id: 'profile', labelKey: 'nav.inventory', icon: UserRound },
@@ -24,18 +35,31 @@ interface LobbyNavigationProps {
   className?: string
   showBackToLobby?: boolean
   locked?: boolean
+  missionsOpen: boolean
+  onToggleMissions: () => void
+  missionSnapshot: DailyQuestSnapshot | null
+  missionLoading: boolean
+  missionError: string | null
 }
 
 export function LobbyNavigation({
   activePage,
   onNavigate,
   className,
-  locked = false
+  locked = false,
+  missionsOpen,
+  onToggleMissions,
+  missionSnapshot,
+  missionLoading,
+  missionError
 }: LobbyNavigationProps): JSX.Element {
   const { t } = useTranslation()
   const canReview = useAdminDemosStore((state) => state.allowed)
   const canNavigate = (page: LobbyPageId): boolean =>
     !locked || page === 'settings' || page === 'play'
+  const activeMissions =
+    missionSnapshot?.quests.filter((quest) => !quest.completed && quest.progress < quest.target)
+      .length ?? 0
 
   return (
     <nav
@@ -65,6 +89,43 @@ export function LobbyNavigation({
         >
           <Settings className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
         </IconButton>
+        <div className="relative" data-missions-ui>
+          <button
+            type="button"
+            data-audio-sfx="forward"
+            data-idle-hint-target="missions"
+            aria-label={`Daily missions${activeMissions ? `, ${activeMissions} active` : ''}`}
+            aria-expanded={missionsOpen}
+            aria-controls="nav-daily-missions"
+            onClick={onToggleMissions}
+            disabled={locked}
+            className={twMerge(
+              'relative grid size-8 place-items-center text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 sm:size-9',
+              missionsOpen && 'bg-white/10 text-sky-200'
+            )}
+          >
+            <ClipboardList className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
+            {activeMissions > 0 && (
+              <span className="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-sky-400 px-0.5 text-[10px] font-bold leading-4 text-neutral-950">
+                {activeMissions}
+              </span>
+            )}
+          </button>
+          {missionsOpen && (
+            <div
+              id="nav-daily-missions"
+              className="absolute top-full left-0 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-white/15 bg-neutral-950/95 p-2 shadow-2xl backdrop-blur-md"
+            >
+              <h2 className="px-2 pb-2 text-sm font-semibold text-white">Daily missions</h2>
+              <DailyQuestsPanel
+                snapshot={missionSnapshot}
+                loading={missionLoading}
+                error={missionError}
+                compact
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">
@@ -88,6 +149,7 @@ export function LobbyNavigation({
               key={id}
               type="button"
               data-audio-sfx="forward"
+              data-idle-hint-target={isPlay ? 'play' : undefined}
               disabled={!canNavigate(id)}
               aria-current={active ? 'page' : undefined}
               onClick={() => onNavigate(id)}
@@ -101,18 +163,10 @@ export function LobbyNavigation({
                   'bg-sky-500 text-white shadow-[0_0_22px_rgba(14,165,233,0.65)] hover:bg-sky-400'
               )}
             >
-              {isPlay && !active && (
-                <>
-                  <span className="pointer-events-none absolute -inset-2  bg-sky-400/20 blur-md motion-safe:animate-pulse" />
-                  <span className="pointer-events-none absolute -inset-1  border border-sky-300/45 opacity-0 motion-safe:animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" />
-                  <span className="pointer-events-none absolute inset-0  border border-sky-200/80 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]" />
-                </>
-              )}
               <Icon
                 className={twMerge(
                   'relative z-10 size-3.5 transition-transform group-hover:scale-110 sm:size-4',
-                  isPlay &&
-                    'fill-current text-sky-300 motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]'
+                  isPlay && 'fill-current text-sky-300'
                 )}
                 aria-hidden="true"
               />

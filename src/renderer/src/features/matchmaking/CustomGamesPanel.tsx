@@ -299,7 +299,7 @@ export function CustomGamesPanel({
               <p className="mt-1 text-xs tracking-wide text-neutral-400 uppercase">
                 {room.region} ·{' '}
                 {room.mode === 'ffa'
-                  ? 'FFA · first to 90'
+                  ? 'FFA · first to 50'
                   : room.teamOneCapacity === room.teamTwoCapacity
                     ? `${CUSTOM_GAME_MODE_LABELS[room.mode]} ${room.teamOneCapacity}v${room.teamTwoCapacity}`
                     : `${CUSTOM_GAME_MODE_LABELS[room.mode]} custom`}{' '}

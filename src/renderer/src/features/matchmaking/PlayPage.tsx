@@ -607,7 +607,7 @@ export function PlayPage({
                     mode === '5v5'
                       ? 'Rated 5v5 with MMR progression'
                       : mode === 'ffa'
-                        ? 'Drop-in deathmatch, first to 90 kills'
+                        ? 'Drop-in deathmatch, first to 50 kills'
                         : mode === 'legacy'
                           ? 'Unrated 5v5 with CS 1.3 movement'
                           : 'Unrated 5v5 without MMR changes'
@@ -674,6 +674,7 @@ export function PlayPage({
               <Button
                 className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
                 data-audio-sfx="findMatch"
+                data-idle-hint-target="find-match"
                 disabled={!isLeader || isSearching || queueStatus === 'joining'}
                 onClick={handleFindMatch}
               >

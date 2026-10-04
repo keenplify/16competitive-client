@@ -128,6 +128,9 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     })
 
     removePartyEventListener = window.api.matchmaking.onEvent((event) => {
+      if (event.type === 'authenticated') {
+        set({ chatEntries: [], globalChatEntries: [], languageChatEntries: [] })
+      }
       if (event.type === 'party_chat_message' || event.type === 'party_chat_notification') {
         if (event.type === 'party_chat_message') {
           const playerId = useAuthStore.getState().session?.player.id
@@ -163,14 +166,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         })
       }
       if (event.type === 'global_chat_history') {
-        set((state) => {
-          if (event.scope === 'global') {
-            return { globalChatEntries: event.messages }
-          }
-          return event.language === state.globalChatLanguage
-            ? { languageChatEntries: event.messages }
-            : {}
-        })
+        // Global rooms show messages received during this session only.
+        return
       }
       if (event.type === 'match_found') {
         const partyId = get().party?.id
@@ -283,6 +280,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatSending: false,
       chatError: null,
       globalChatEntries: [],
+      languageChatEntries: [],
       globalChatDraft: '',
       globalChatSending: false,
       globalChatError: null

@@ -77,7 +77,8 @@ import {
   saveGameSettings,
   saveVoicePttKey,
   saveCrosshair,
-  saveNextClientIntegration
+  saveNextClientIntegration,
+  saveFastSwitch
 } from './game/game-settings'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
@@ -741,6 +742,9 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setNextClientIntegration, (_, enabled: unknown) =>
     saveNextClientIntegration(enabled)
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
+    saveFastSwitch(enabled)
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
   ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
