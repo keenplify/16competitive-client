@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { mkdir, mkdtemp, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { constants, watch, type FSWatcher } from 'node:fs'
+import { lstat, mkdir, mkdtemp, open, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { release } from 'node:os'
 import { app, BrowserWindow } from 'electron'
@@ -18,12 +19,16 @@ import type { ScoreboardHealth } from './scoreboard-watchdog'
 import { createScoreboardReporter } from './scoreboard-report'
 import type { ScoreboardIncident } from './scoreboard-report'
 import { reportDiagnosticIssue } from '../diagnostic-logs'
+import { KillCardTracker, type KillCardView } from './kill-card-tracker'
+import { KillCardPrediction, parseLocalDeathNotices } from './kill-card-prediction'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
 const FRAME_WIDTH = 1104
 const FRAME_HEIGHT = 720
-const INTERVAL_MS = 500
+const CARD_WIDTH = 480
+const CARD_HEIGHT = 280
+const INTERVAL_MS = 100
 const cleanupQueue = new ScoreboardCleanupQueue()
 
 const writeCrosshairConfig = async (
@@ -97,12 +102,22 @@ export class ScoreboardOverlaySession {
   readonly steamWrapperPath: string
   readonly usesNextClientHost: boolean
   private readonly feedPath: string
+  private readonly killCardTracker = new KillCardTracker()
+  private readonly killCardPrediction = new KillCardPrediction()
+  private killCardsEnabled = true
+  private lastKillCardState: string | null = null
+  private cardStateTask: Promise<void> = Promise.resolve()
+  private eventWatcher: FSWatcher | null = null
+  private eventReadTask: Promise<void> | null = null
+  private eventOffset = 0
   private readonly window: BrowserWindow
+  private readonly cardsWindow: BrowserWindow
   private readonly readSnapshot: (directory: string) => Snapshot
   private timer: NodeJS.Timeout | null = null
   private busy = false
   private refreshTask: Promise<void> | null = null
   private frameTask: Promise<void> | null = null
+  private cardFrameTask: Promise<void> | null = null
   private watchdog: ScoreboardWatchdog | null = null
   private rendererCrashed = false
   private rendererExitReason: string | null = null
@@ -110,6 +125,7 @@ export class ScoreboardOverlaySession {
   private lastFeedAt: number | null = null
   private readonly requests = new AbortController()
   private frameWriting = false
+  private cardFrameWriting = false
   private stopped = false
   private feedAvailable = false
   private reportedUnavailable = false
@@ -124,6 +140,7 @@ export class ScoreboardOverlaySession {
     directory: string,
     modulePath: string,
     window: BrowserWindow,
+    cardsWindow: BrowserWindow,
     readSnapshot: (directory: string) => Snapshot,
     windowsInstallation: WindowsCosmeticInstallation | WindowsNextClientInstallation | null
   ) {
@@ -131,6 +148,7 @@ export class ScoreboardOverlaySession {
     this.modulePath = modulePath
     this.steamWrapperPath = join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh')
     this.window = window
+    this.cardsWindow = cardsWindow
     this.readSnapshot = readSnapshot
     this.windowsInstallation = windowsInstallation
     this.usesNextClientHost = windowsInstallation instanceof WindowsNextClientInstallation
@@ -140,6 +158,97 @@ export class ScoreboardOverlaySession {
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
     if (!this.stopped && !this.usesNextClientHost)
       await writeCrosshairConfig(this.directory, crosshair)
+  }
+
+  async updateKillCards(enabled: boolean): Promise<void> {
+    this.killCardsEnabled = enabled
+    await this.syncKillCards(this.readSnapshot(this.directory))
+  }
+
+  private async syncKillCards(snapshot: Snapshot): Promise<void> {
+    const username = getSessionUsername()
+    const authoritative = this.killCardTracker.update(snapshot, username)
+    const cards = this.killCardPrediction.updateAuthoritative(
+      authoritative,
+      snapshot,
+      username,
+      Date.now()
+    )
+    await this.queueKillCardDisplay(cards)
+  }
+
+  private queueKillCardDisplay(cards: KillCardView | null): Promise<void> {
+    const task = this.cardStateTask.then(() => this.writeKillCardDisplay(cards))
+    this.cardStateTask = task.catch((error: unknown) =>
+      console.warn('[Scoreboard] kill card state write failed', error)
+    )
+    return task
+  }
+
+  private async writeKillCardDisplay(cards: KillCardView | null): Promise<void> {
+    if (this.stopped) return
+    const state =
+      this.killCardsEnabled && cards
+        ? `${cards.mode} ${cards.count} ${cards.aceAt ?? 0} ${cards.side}\n`
+        : null
+    if (state === this.lastKillCardState) return
+    if (!this.cardsWindow.isDestroyed())
+      this.cardsWindow.webContents.send(
+        'kill-cards-count',
+        this.killCardsEnabled ? (cards?.count ?? 0) : 0,
+        cards?.mode ?? 'C',
+        this.killCardsEnabled ? (cards?.aceAt ?? null) : null,
+        cards?.side ?? 'T'
+      )
+    const destination = join(this.directory, 'kill-cards.state')
+    if (state === null) {
+      await unlink(destination).catch(() => undefined)
+      await unlink(join(this.directory, 'kill-cards.png')).catch(() => undefined)
+    } else {
+      const temporary = `${destination}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, state, { mode: 0o600 })
+        await rename(temporary, destination)
+      } finally {
+        await unlink(temporary).catch(() => undefined)
+      }
+    }
+    this.lastKillCardState = state
+    if (state !== null && !this.cardsWindow.isDestroyed()) this.cardsWindow.webContents.invalidate()
+  }
+
+  private scheduleLocalDeathRead(): void {
+    if (this.stopped || this.eventReadTask) return
+    this.eventReadTask = this.readLocalDeathEvents()
+      .catch((error: unknown) => console.warn('[Scoreboard] local death notice read failed', error))
+      .finally(() => {
+        this.eventReadTask = null
+      })
+  }
+
+  private async readLocalDeathEvents(): Promise<void> {
+    const path = join(this.directory, 'kill-cards.events')
+    const info = await lstat(path).catch(() => null)
+    if (!info?.isFile() || info.size > 64 * 1024) return
+    const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+    let bytes: Buffer
+    try {
+      const opened = await file.stat()
+      if (!opened.isFile() || opened.size > 64 * 1024) return
+      bytes = await file.readFile()
+    } finally {
+      await file.close()
+    }
+    if (this.stopped || bytes.length > 64 * 1024) return
+    if (bytes.length < this.eventOffset) this.eventOffset = 0
+    const end = bytes.lastIndexOf(10)
+    if (end < this.eventOffset) return
+    const lines = bytes.subarray(this.eventOffset, end + 1).toString('utf8')
+    this.eventOffset = end + 1
+    if (!this.killCardsEnabled || !this.feedAvailable) return
+    const now = Date.now()
+    for (const notice of parseLocalDeathNotices(lines)) this.killCardPrediction.predict(notice, now)
+    await this.queueKillCardDisplay(this.killCardPrediction.view(now))
   }
 
   static async start(
@@ -225,6 +334,8 @@ export class ScoreboardOverlaySession {
       windowsInstallation?.sessionDirectory ??
       (await mkdtemp(join(app.getPath('userData'), `scoreboard-${randomUUID()}-`)))
     let window: BrowserWindow | null = null
+    let cardsWindow: BrowserWindow | null = null
+    let eventWatcher: FSWatcher | null = null
     try {
       await mkdir(join(directory, 'game/cstrike/addons/amxmodx/data'), { recursive: true })
       await writeFile(join(directory, 'manifest.json'), JSON.stringify({ matchId }), {
@@ -233,7 +344,8 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
-      if (!nextClient) await writeCrosshairConfig(directory, (await getGameSettings()).crosshair)
+      const gameSettings = await getGameSettings()
+      if (!nextClient) await writeCrosshairConfig(directory, gameSettings.crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
       // the authenticated launch and reads this per-match session. It also
@@ -265,15 +377,64 @@ export class ScoreboardOverlaySession {
           backgroundThrottling: false
         }
       })
+      cardsWindow = new BrowserWindow({
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        frame: false,
+        transparent: true,
+        show: false,
+        webPreferences: {
+          offscreen: true,
+          preload: join(assets, 'preload.cjs'),
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          backgroundThrottling: false
+        }
+      })
       const createdSession = new ScoreboardOverlaySession(
         matchId,
         backend,
         directory,
         modulePath,
         window,
+        cardsWindow,
         readSnapshot,
         windowsInstallation
       )
+      createdSession.killCardsEnabled = gameSettings.killCardsEnabled
+      cardsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+      cardsWindow.webContents.on('will-navigate', (event) => event.preventDefault())
+      cardsWindow.webContents.setFrameRate(30)
+      cardsWindow.webContents.on('paint', (_event, _dirty, image) => {
+        if (
+          createdSession.stopped ||
+          createdSession.cardFrameWriting ||
+          !createdSession.killCardsEnabled ||
+          !createdSession.feedAvailable
+        )
+          return
+        if (
+          createdSession.lastKillCardState === null ||
+          /^. 0 /.test(createdSession.lastKillCardState)
+        )
+          return
+        const size = image.getSize()
+        if (size.width !== CARD_WIDTH || size.height !== CARD_HEIGHT) return
+        const png = image.toPNG()
+        if (!png.length || png.length > 128 * 1024) return
+        const destination = join(directory, 'kill-cards.png')
+        const temporary = `${destination}.tmp`
+        createdSession.cardFrameWriting = true
+        createdSession.cardFrameTask = writeFile(temporary, png, { mode: 0o600 })
+          .then(() => rename(temporary, destination))
+          .catch((error: unknown) =>
+            console.warn('[Scoreboard] kill card frame write failed', error)
+          )
+          .finally(() => {
+            createdSession.cardFrameWriting = false
+          })
+      })
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       window.webContents.on('will-navigate', (event) => event.preventDefault())
       window.webContents.setFrameRate(4)
@@ -300,6 +461,17 @@ export class ScoreboardOverlaySession {
           })
       })
       await window.loadFile(join(assets, 'index.html'))
+      await cardsWindow.loadFile(join(assets, 'index.html'), { query: { overlay: 'kill-cards' } })
+      cardsWindow.webContents.startPainting()
+      eventWatcher = watch(directory, (_event, filename) => {
+        if (filename?.toString() === 'kill-cards.events') createdSession.scheduleLocalDeathRead()
+      })
+      createdSession.eventWatcher = eventWatcher
+      createdSession.eventWatcher.on('error', (error) => {
+        console.warn('[Scoreboard] local death notice watcher failed', error)
+        createdSession.eventWatcher?.close()
+        createdSession.eventWatcher = null
+      })
       window.webContents.send('scoreboard-self', getSessionUsername() ?? '')
       window.webContents.startPainting()
       createdSession.timer = setInterval(() => createdSession.scheduleRefresh(), INTERVAL_MS)
@@ -345,7 +517,9 @@ export class ScoreboardOverlaySession {
       createdSession.watchdog.start()
       return createdSession
     } catch (error) {
+      eventWatcher?.close()
       if (window && !window.isDestroyed()) window.close()
+      if (cardsWindow && !cardsWindow.isDestroyed()) cardsWindow.close()
       await rm(directory, { recursive: true, force: true })
       await windowsInstallation?.restore().catch(() => undefined)
       throw error
@@ -435,8 +609,16 @@ export class ScoreboardOverlaySession {
       this.lastFeedAt = Date.now()
       this.reportedUnavailable = false
       this.feedOutageAt = null
+      await this.syncKillCards(snapshot)
+      this.scheduleLocalDeathRead()
     } catch (error) {
       if (this.stopped) return
+      // The server may be replacing its snapshot during a kill. Keep the last
+      // authenticated frame through one short read gap instead of flashing off.
+      if (this.feedAvailable && this.lastFeedAt !== null && Date.now() - this.lastFeedAt < 1000) {
+        await this.queueKillCardDisplay(this.killCardPrediction.view(Date.now()))
+        return
+      }
       this.feedOutageAt ??= Date.now()
       if (Date.now() - this.feedOutageAt >= 30000) {
         this.reportProblem(
@@ -458,6 +640,7 @@ export class ScoreboardOverlaySession {
       }
       this.feedAvailable = false
       await unlink(this.feedPath).catch(() => undefined)
+      await this.syncKillCards(null)
     } finally {
       this.busy = false
       if (!this.stopped && !this.window.isDestroyed()) {
@@ -468,6 +651,8 @@ export class ScoreboardOverlaySession {
         this.window.webContents.send('scoreboard-self', username ?? '')
         this.window.webContents.send('scoreboard-snapshot', snapshot)
         this.window.webContents.invalidate()
+        if (this.lastKillCardState !== null && !this.cardsWindow.isDestroyed())
+          this.cardsWindow.webContents.invalidate()
       }
     }
   }
@@ -476,12 +661,22 @@ export class ScoreboardOverlaySession {
     if (this.stopped) return
     this.stopped = true
     this.requests.abort()
+    this.eventWatcher?.close()
+    this.eventWatcher = null
     const watchdogTask = this.watchdog?.stop()
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     if (!this.window.isDestroyed()) this.window.close()
+    if (!this.cardsWindow.isDestroyed()) this.cardsWindow.close()
     cleanupQueue.enqueue(async () => {
-      await Promise.allSettled([this.refreshTask, this.frameTask, watchdogTask])
+      await Promise.allSettled([
+        this.refreshTask,
+        this.frameTask,
+        this.cardFrameTask,
+        this.cardStateTask,
+        this.eventReadTask,
+        watchdogTask
+      ])
       if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
       else await rm(this.directory, { recursive: true, force: true })
     })

@@ -68,6 +68,8 @@ export function SettingsPage(): JSX.Element {
   const setInGameEnhancements = useGameSettingsStore((state) => state.setNextClientIntegration)
   const fastSwitchEnabled = useGameSettingsStore((state) => state.fastSwitchEnabled)
   const setFastSwitch = useGameSettingsStore((state) => state.setFastSwitch)
+  const killCardsEnabled = useGameSettingsStore((state) => state.killCardsEnabled)
+  const setKillCards = useGameSettingsStore((state) => state.setKillCards)
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -377,7 +379,7 @@ export function SettingsPage(): JSX.Element {
           <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
-              {sectionButton('crosshair', 'Crosshair')}
+              {sectionButton('crosshair', 'In-game appearance')}
               {sectionButton('audio', 'Voice & Audio')}
               {sectionButton('assets', 'Assets')}
               {sectionButton('credentials', 'Credentials')}
@@ -567,10 +569,11 @@ export function SettingsPage(): JSX.Element {
                     <div>
                       <p className="text-sm font-semibold text-neutral-100">In-game enhancements</p>
                       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
-                        Show the 1.6 Competitive scoreboard and crosshair in supported
-                        Counter-Strike 1.6 clients on Steam and standalone installations on Windows
-                        or Linux. NextClient uses its own compatible host and crosshair settings.
-                        Game files are restored after exit.
+                        Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill
+                        cards in supported Counter-Strike 1.6 clients on Steam and standalone
+                        installations on Windows or Linux. NextClient uses its own compatible host
+                        and crosshair settings. Game files are restored after exit. This setting
+                        does not control match screenshot review.
                       </p>
                       {!inGameEnhancementsEnabled && nextClientIntegrationDisabledReason && (
                         <p className="mt-2 text-xs text-amber-300">
@@ -601,12 +604,37 @@ export function SettingsPage(): JSX.Element {
             >
               <div className="mb-5">
                 <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
-                  Game appearance
+                  In-game appearance
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">
-                  {nextClientDetected ? 'NextClient crosshair' : 'Crosshair editor'}
-                </h2>
+                <h2 className="mt-2 text-2xl font-semibold">HUD and crosshair</h2>
               </div>
+              {!webRuntime && (
+                <div className="mb-5 flex items-start justify-between gap-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <div>
+                    <h3 className="text-lg font-semibold">Animated kill cards</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-400">
+                      Show an animated card for each kill above the round timer. The last card is
+                      ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.
+                    </p>
+                    {!inGameEnhancementsEnabled && (
+                      <p className="mt-2 text-xs text-neutral-500">
+                        Enable In-game enhancements in General to use kill cards.
+                      </p>
+                    )}
+                  </div>
+                  <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      className="peer sr-only"
+                      checked={killCardsEnabled}
+                      disabled={!inGameEnhancementsEnabled}
+                      onChange={(event) => void setKillCards(event.currentTarget.checked)}
+                    />
+                    <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-amber-400 peer-checked:bg-amber-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 peer-disabled:opacity-40 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                    <span className="sr-only">Enable animated kill cards</span>
+                  </label>
+                </div>
+              )}
               {nextClientDetected ? (
                 <CrosshairSettings />
               ) : !CUSTOM_HUD_ENABLED ? (

@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { KillCardsCanvas } from '../src/renderer/src/components/KillCardsCanvas'
 import {
   AlarmClockMinus,
   Bomb,
@@ -81,6 +82,14 @@ declare global {
     scoreboardProbe?: {
       onSnapshot(listener: (snapshot: Snapshot) => void): () => void
       onSelf(listener: (username: string) => void): () => void
+      onKillCards(
+        listener: (
+          count: number,
+          mode: 'C' | 'F',
+          aceAt: number | null,
+          side: 'CT' | 'T' | 'F'
+        ) => void
+      ): () => void
     }
   }
 }
@@ -276,7 +285,7 @@ function PlayerRow({
         </span>
       )}
       {showWeapon && (
-        <span>{player.money === null ? '—' : `$${player.money.toLocaleString('en-US')}`}</span>
+        <span>{!canSeeWeapon || player.money === null ? '—' : `$${player.money.toLocaleString('en-US')}`}</span>
       )}
       <span>{player.ping}</span>
     </div>
@@ -402,4 +411,29 @@ function Scoreboard() {
   )
 }
 
-createRoot(document.getElementById('root')!).render(<Scoreboard />)
+function KillCardsOnly() {
+  const [count, setCount] = useState(() => {
+    const previewCount = Number(new URLSearchParams(window.location.search).get('previewCount'))
+    return Number.isInteger(previewCount) ? Math.max(0, Math.min(9999, previewCount)) : 0
+  })
+  const [mode, setMode] = useState<'C' | 'F'>('C')
+  const [aceAt, setAceAt] = useState<number | null>(null)
+  const [side, setSide] = useState<'CT' | 'T' | 'F'>('T')
+  useEffect(
+    () =>
+      window.scoreboardProbe?.onKillCards((nextCount, nextMode, nextAceAt, nextSide) => {
+        setCount(nextCount)
+        setMode(nextMode)
+        setAceAt(nextAceAt)
+        setSide(nextSide)
+      }),
+    []
+  )
+  return <KillCardsCanvas count={count} mode={mode} aceAt={aceAt} side={side} />
+}
+
+const killCardsOnly = new URLSearchParams(window.location.search).get('overlay') === 'kill-cards'
+if (killCardsOnly) document.documentElement.classList.add('kill-cards-only')
+createRoot(document.getElementById('root')!).render(
+  killCardsOnly ? <KillCardsOnly /> : <Scoreboard />
+)

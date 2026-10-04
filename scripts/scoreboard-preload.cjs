@@ -11,5 +11,10 @@ contextBridge.exposeInMainWorld('scoreboardProbe', {
     const handler = (_event, username) => listener(username)
     ipcRenderer.on('scoreboard-self', handler)
     return () => ipcRenderer.removeListener('scoreboard-self', handler)
+  },
+  onKillCards(listener) {
+    const handler = (_event, count, mode, aceAt, side) => listener(count, mode, aceAt, side)
+    ipcRenderer.on('kill-cards-count', handler)
+    return () => ipcRenderer.removeListener('kill-cards-count', handler)
   }
 })

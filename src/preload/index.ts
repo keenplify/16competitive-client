@@ -188,6 +188,7 @@ const gameSettings: GameSettingsApi = {
   setNextClientIntegration: (enabled) =>
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setNextClientIntegration, enabled),
   setFastSwitch: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setFastSwitch, enabled),
+  setKillCards: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setKillCards, enabled),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
   syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
   onAssetSyncProgress: (listener) => {

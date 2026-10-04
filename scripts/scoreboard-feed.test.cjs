@@ -16,6 +16,13 @@ test('v14 identifies only a living terrorist C4 carrier', () => {
   assert.equal(parseSnapshot(header + row + row.replace(/^1\t/, '2\t')), null)
 })
 
+test('renders server-redacted enemy money as hidden', () => {
+  const header = '#16c-scoreboard-v14\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\t\t1\n'
+  const row = '2\t2\t0\t0\t0\t24\t1\t0\t-1\t0\t0\t0\t0\tBravo\n'
+  assert.equal(parseSnapshot(header + row)?.players[0].money, null)
+  assert.equal(parseSnapshot(header + row.replace('\t-1\t', '\t-2\t')), null)
+})
+
 test('v12 carries per-player buy-zone state alongside health and the overtime header', () => {
   const header = '#16c-scoreboard-v12\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\n'
   const row = '1\t2\t0\t0\t0\t24\t1\t0\t800\t16\t73\t1\tAlpha\n'

@@ -82,7 +82,8 @@ const browserSettings = (): GameSettings => {
     nextClientDetected: false,
     nextClientIntegrationEnabled: false,
     nextClientIntegrationDisabledReason: null,
-    fastSwitchEnabled: true
+    fastSwitchEnabled: true,
+    killCardsEnabled: false
   }
 }
 
@@ -503,6 +504,9 @@ const api: Window['api'] = {
     async setFastSwitch() {
       throw new Error('Fast switch is managed by the desktop launcher.')
     },
+    async setKillCards() {
+      throw new Error('Kill cards require the desktop launcher.')
+    },
     async getAssetSyncStatus(): Promise<SkinAssetSyncProgress> {
       return { status: 'ready', completedFiles: 0, totalFiles: 0 }
     },
@@ -553,9 +557,7 @@ const api: Window['api'] = {
       return body.player
     },
     async getSurvey(matchId: string): Promise<MatchSurveyStatus> {
-      return authenticatedGet<MatchSurveyStatus>(
-        `/profile/matches/${matchId}/survey`
-      )
+      return authenticatedGet<MatchSurveyStatus>(`/profile/matches/${matchId}/survey`)
     },
     async getPendingSurvey(): Promise<PendingMatchSurvey | null> {
       const body = await authenticatedGet<{ match: PendingMatchSurvey | null }>(
@@ -568,10 +570,10 @@ const api: Window['api'] = {
       funRating: number,
       fairnessRating: number
     ): Promise<MatchSurveySubmission> {
-      return jsonPost<MatchSurveySubmission>(
-        `/profile/matches/${matchId}/survey`,
-        { funRating, fairnessRating }
-      )
+      return jsonPost<MatchSurveySubmission>(`/profile/matches/${matchId}/survey`, {
+        funRating,
+        fairnessRating
+      })
     }
   },
 

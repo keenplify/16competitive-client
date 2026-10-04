@@ -485,9 +485,10 @@ export function PlayPage({
   return (
     <main
       className={twMerge(
+        'relative min-h-0 p-3 text-white sm:p-4',
         playView === 'matchmaking'
-          ? 'relative flex h-full min-h-0 flex-col overflow-hidden p-3 pb-20 text-white sm:p-4 sm:pb-20'
-          : 'min-h-[calc(100vh-5rem)] p-5 text-white sm:p-8',
+          ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
+          : 'min-h-[calc(100vh-5rem)]',
         playView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
@@ -498,48 +499,71 @@ export function PlayPage({
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
-          <div>
-            <h1 className="text-3xl font-semibold text-white">
+        <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+          <div className="w-full sm:w-80">
+            <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
               {playView === 'matchmaking' ? 'Find a match' : 'Browse custom games'}
             </h1>
           </div>
-          {playView === 'custom' ? (
-            <div className="w-full max-w-sm">
-              <div className="flex items-center justify-between gap-4">
-                <label
-                  className="text-xs font-semibold tracking-wide text-neutral-200 uppercase"
-                  htmlFor="custom-game-region"
-                >
-                  Server
+          <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:w-auto">
+            <label
+              className={twMerge(
+                'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
+                playView === 'custom' && 'invisible pointer-events-none'
+              )}
+              aria-hidden={playView === 'custom'}
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-sky-400"
+                checked={allowRegionExpansion}
+                disabled={playView === 'custom' || isSearching}
+                tabIndex={playView === 'custom' ? -1 : undefined}
+                onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
+              />
+              Expand search after 90 seconds
+            </label>
+            <div className="w-72">
+              <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
+                <label className="font-semibold tracking-wide uppercase" htmlFor="play-region">
+                  {playView === 'custom' ? 'Server' : 'Preferred region'}
                 </label>
-                <div className="flex items-center gap-2 text-xs text-neutral-200">
+                <span className="flex items-center gap-2">
                   <span
                     className={twMerge(
                       'size-2 rounded-full bg-neutral-600',
                       isConnected && 'bg-emerald-400'
                     )}
+                    aria-hidden="true"
                   />
                   {connectionLabels[connectionStatus]}
-                </div>
+                </span>
               </div>
               <MatchmakingRegionSelect
-                id="custom-game-region"
-                ariaLabel="Custom game server"
-                showHint={false}
-                nodes={nodes}
-                selectedNodeId={currentCustomRoom?.hostNodeId ?? selectedNodeId}
-                allowAutomatic={!currentCustomRoom}
-                disabled={
-                  movingCustomRoom ||
-                  Boolean(
-                    currentCustomRoom &&
-                    (currentCustomRoom.ownerId !== player?.id ||
-                      currentCustomRoom.state !== 'WAITING')
-                  )
+                id="play-region"
+                ariaLabel={
+                  playView === 'custom' ? 'Custom game server' : 'Preferred matchmaking region'
                 }
+                nodes={nodes}
+                selectedNodeId={
+                  playView === 'custom'
+                    ? (currentCustomRoom?.hostNodeId ?? selectedNodeId)
+                    : selectedNodeId
+                }
+                allowAutomatic={playView !== 'custom' || !currentCustomRoom}
+                disabled={
+                  playView === 'matchmaking'
+                    ? isSearching
+                    : movingCustomRoom ||
+                      Boolean(
+                        currentCustomRoom &&
+                        (currentCustomRoom.ownerId !== player?.id ||
+                          currentCustomRoom.state !== 'WAITING')
+                      )
+                }
+                showHint={false}
                 onChange={(nodeId) => {
-                  if (currentCustomRoom) {
+                  if (playView === 'custom' && currentCustomRoom) {
                     if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
                       void moveCustomRoom(nodeId)
                   } else {
@@ -548,36 +572,7 @@ export function PlayPage({
                 }}
               />
             </div>
-          ) : (
-            <div className="w-full sm:w-72">
-              <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
-                <label
-                  className="font-semibold tracking-wide uppercase"
-                  htmlFor="matchmaking-region"
-                >
-                  Preferred region
-                </label>
-                <span>{connectionLabels[connectionStatus]}</span>
-              </div>
-              <MatchmakingRegionSelect
-                nodes={nodes}
-                selectedNodeId={selectedNodeId}
-                disabled={isSearching}
-                showHint={false}
-                onChange={(nodeId) => void selectNode(nodeId)}
-              />
-              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-sky-400"
-                  checked={allowRegionExpansion}
-                  disabled={isSearching}
-                  onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
-                />
-                Expand search after 90 seconds
-              </label>
-            </div>
-          )}
+          </div>
         </header>
 
         <TabList

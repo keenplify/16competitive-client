@@ -36,6 +36,16 @@ body,
   align-items: center;
   justify-content: center;
 }
+html.kill-cards-only,
+html.kill-cards-only body,
+html.kill-cards-only #root {
+  width: 480px;
+  height: 280px;
+}
+html.kill-cards-only canvas {
+  width: 480px;
+  height: 280px;
+}
 * {
   box-sizing: border-box;
 }
