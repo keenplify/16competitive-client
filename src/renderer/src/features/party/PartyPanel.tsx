@@ -24,7 +24,7 @@ export function PartyPanel({ playerId }: PartyPanelProps): JSX.Element {
             {party
               ? isLeader
                 ? 'You are the leader. Manage invitations from the Friends sidebar.'
-                : 'Only the party leader can invite players or start matchmaking.'
+                : 'Invite friends from the sidebar. The leader starts matchmaking.'
               : 'Invite a player from the Friends sidebar to create a party.'}
           </p>
         </div>

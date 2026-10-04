@@ -17,6 +17,9 @@ export interface FriendPlayer {
   id: string
   username: string
   mmr: number
+  profileXp: number
+  level: number
+  levelTitle: string
   presence: FriendPresence
 }
 

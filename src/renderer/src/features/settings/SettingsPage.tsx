@@ -19,6 +19,7 @@ import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
+import { communityLinks, desktopAppUrl } from '../community/links'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { ChangelogModal } from './ChangelogModal'
@@ -32,14 +33,6 @@ const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
 const socialProviderLabel = (provider: SocialAuthProvider): string =>
   provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
-
-const communityLinks = [
-  { label: 'Discord', href: 'https://discord.gg/uZwKyf2EHp' },
-  { label: 'Mastodon', href: 'https://mastodon.social/@16competitive' },
-  { label: 'Ko-fi', href: 'https://ko-fi.com/16competitive' },
-  { label: 'Facebook', href: 'https://www.facebook.com/1.6competitive' },
-  { label: 'Instagram', href: 'https://www.instagram.com/1.6competitive' }
-] as const
 
 const readableError = (error: unknown): string =>
   error instanceof Error
@@ -73,6 +66,8 @@ export function SettingsPage(): JSX.Element {
     (state) => state.nextClientIntegrationDisabledReason
   )
   const setInGameEnhancements = useGameSettingsStore((state) => state.setNextClientIntegration)
+  const fastSwitchEnabled = useGameSettingsStore((state) => state.fastSwitchEnabled)
+  const setFastSwitch = useGameSettingsStore((state) => state.setFastSwitch)
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -421,7 +416,7 @@ export function SettingsPage(): JSX.Element {
               </Button>
               {webRuntime && (
                 <a
-                  href="https://papamo.dev/16competitive"
+                  href={desktopAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex h-11 items-center justify-start  border border-sky-400/20 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
@@ -550,6 +545,26 @@ export function SettingsPage(): JSX.Element {
 
                   <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
                     <div>
+                      <p className="text-sm font-semibold text-neutral-100">Fast weapon switch</p>
+                      <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+                        Select weapons immediately with number keys. Enabled by default; turn this
+                        off to use hud_fastswitch 0 in launcher matches.
+                      </p>
+                    </div>
+                    <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={fastSwitchEnabled}
+                        onChange={(event) => void setFastSwitch(event.currentTarget.checked)}
+                      />
+                      <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-violet-400 peer-checked:bg-violet-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                      <span className="sr-only">Enable fast weapon switch</span>
+                    </label>
+                  </div>
+
+                  <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
+                    <div>
                       <p className="text-sm font-semibold text-neutral-100">In-game enhancements</p>
                       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
                         Show the 1.6 Competitive scoreboard and crosshair in supported
@@ -609,7 +624,7 @@ export function SettingsPage(): JSX.Element {
                     your crosshair and use it in Counter-Strike.
                   </p>
                   <a
-                    href="https://papamo.dev/16competitive"
+                    href={desktopAppUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"

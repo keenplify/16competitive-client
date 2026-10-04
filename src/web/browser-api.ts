@@ -81,7 +81,8 @@ const browserSettings = (): GameSettings => {
     crosshair: DEFAULT_CROSSHAIR,
     nextClientDetected: false,
     nextClientIntegrationEnabled: false,
-    nextClientIntegrationDisabledReason: null
+    nextClientIntegrationDisabledReason: null,
+    fastSwitchEnabled: true
   }
 }
 
@@ -498,6 +499,9 @@ const api: Window['api'] = {
     },
     async setNextClientIntegration() {
       throw new Error('NextClient integration requires the desktop launcher.')
+    },
+    async setFastSwitch() {
+      throw new Error('Fast switch is managed by the desktop launcher.')
     },
     async getAssetSyncStatus(): Promise<SkinAssetSyncProgress> {
       return { status: 'ready', completedFiles: 0, totalFiles: 0 }

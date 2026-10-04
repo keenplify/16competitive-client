@@ -184,6 +184,29 @@ const isMatchPlayerStats = (value: unknown): boolean => {
   )
 }
 
+const isProfileXpAward = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false
+  const award = value as Record<string, unknown>
+  const integerInRange = (key: string, min: number, max: number): boolean =>
+    Number.isInteger(award[key]) && (award[key] as number) >= min && (award[key] as number) <= max
+  return (
+    integerInRange('xpBefore', 0, 156_000) &&
+    integerInRange('xpAfter', 0, 156_000) &&
+    integerInRange('xpEarned', 0, 1_000) &&
+    integerInRange('levelBefore', 1, 40) &&
+    integerInRange('levelAfter', 1, 40) &&
+    integerInRange('xpIntoLevelBefore', 0, 4_000) &&
+    integerInRange('xpIntoLevelAfter', 0, 4_000) &&
+    award.xpForNextLevel === 4_000 &&
+    typeof award.titleBefore === 'string' &&
+    award.titleBefore.length <= 64 &&
+    typeof award.titleAfter === 'string' &&
+    award.titleAfter.length <= 64 &&
+    award.xpAfter === (award.xpBefore as number) + (award.xpEarned as number) &&
+    (award.levelAfter as number) >= (award.levelBefore as number)
+  )
+}
+
 const isGlobalChatMessage = (value: unknown): value is GlobalChatMessage => {
   if (typeof value !== 'object' || value === null) return false
   const message = value as Record<string, unknown>
@@ -447,7 +470,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         typeof message.teamAScore === 'number' &&
         typeof message.teamBScore === 'number' &&
         Array.isArray(message.players) &&
-        message.players.every(isMatchPlayerStats)
+        message.players.every(isMatchPlayerStats) &&
+        (message.profileXp === undefined || isProfileXpAward(message.profileXp))
       )
     case 'game_process_exited':
       return (

@@ -9,6 +9,7 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
+import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
@@ -45,6 +46,7 @@ export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'
   winnerPlayerId?: string
   teamAScore: number
   teamBScore: number
+  profileXp?: ProfileXpAward
   players: {
     id: string
     username: string
@@ -383,6 +385,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             winnerPlayerId: event.winnerPlayerId,
             teamAScore: event.teamAScore,
             teamBScore: event.teamBScore,
+            profileXp: event.profileXp,
             players: event.players
           },
           match: null,

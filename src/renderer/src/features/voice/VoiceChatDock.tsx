@@ -1,5 +1,6 @@
 import { Mic2, MicOff } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { createPortal } from 'react-dom'
 import type {
   MatchmakingEvent,
   VoiceContext,
@@ -39,6 +40,8 @@ interface VoicePttKeyChangedDetail {
 }
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
+const VOICE_CONNECTION_TIMEOUT_MS = 15_000
+const MAX_VOICE_RECOVERY_ATTEMPTS = 2
 
 const OPEN_MIC_KEY = '16competitive.voice.open-mic'
 const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
@@ -180,6 +183,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const partyMemberIdsRef = useRef<Set<string>>(new Set())
   const peersRef = useRef(peers)
   const preferencesRef = useRef(preferences)
+  const recoveryAttemptsRef = useRef(0)
   const iceConfigurationRef = useRef<RTCConfiguration>({
     iceServers: [],
     iceTransportPolicy: 'relay'
@@ -308,7 +312,7 @@ export function VoiceChatDock(): JSX.Element | null {
       const rail = document.querySelector<HTMLElement>(
         'aside[aria-label="Friends panel"], aside[aria-label="Expand Friends panel"]'
       )
-      if (!rail) {
+      if (!rail || getComputedStyle(rail).display === 'none') {
         setRailMode('absent')
         return
       }
@@ -323,9 +327,13 @@ export function VoiceChatDock(): JSX.Element | null {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['aria-label']
+      attributeFilter: ['aria-label', 'class']
     })
-    return () => observer.disconnect()
+    window.addEventListener('resize', detectRail)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', detectRail)
+    }
   }, [])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Player identity changes require resetting persisted PTT keys before the async settings read. */
@@ -580,9 +588,28 @@ export function VoiceChatDock(): JSX.Element | null {
     }
     runtimesRef.current.set(peer.id, runtime)
     runtime.connectionTimeout = window.setTimeout(() => {
-      if (runtime.connection.connectionState === 'connected') return
-      setMicError('Voice relay could not connect. Check your network and try reconnecting voice.')
-    }, 15_000)
+      if (
+        runtimesRef.current.get(peer.id) !== runtime ||
+        runtime.connection.connectionState === 'connected'
+      )
+        return
+      const context = desiredContextRef.current
+      if (!context || !enabledRef.current) return
+      if (recoveryAttemptsRef.current < MAX_VOICE_RECOVERY_ATTEMPTS) {
+        recoveryAttemptsRef.current += 1
+        setMicError('Voice connection is taking longer than expected. Retrying…')
+        closeAllPeers()
+        void window.api.matchmaking.voiceJoin(context).catch((error: unknown) => {
+          setMicError(error instanceof Error ? error.message : 'Could not reconnect voice chat.')
+        })
+        return
+      }
+      setMicError(
+        iceConfigurationRef.current.iceTransportPolicy === 'relay'
+          ? 'Voice relay could not connect. Check your network and try reconnecting voice.'
+          : 'Party voice could not connect. Check your network and try reconnecting voice.'
+      )
+    }, VOICE_CONNECTION_TIMEOUT_MS)
     applyPreference(runtime, runtimePreferenceFor(peer.id))
 
     connection.addTrack(senderTrack, outboundStream)
@@ -599,6 +626,7 @@ export function VoiceChatDock(): JSX.Element | null {
     connection.addEventListener('connectionstatechange', () => {
       setPeerStates((current) => ({ ...current, [peer.id]: connection.connectionState }))
       if (connection.connectionState === 'connected') {
+        recoveryAttemptsRef.current = 0
         if (runtime.connectionTimeout !== undefined) {
           window.clearTimeout(runtime.connectionTimeout)
           runtime.connectionTimeout = undefined
@@ -616,9 +644,13 @@ export function VoiceChatDock(): JSX.Element | null {
     return runtime
   }
 
-  const makeOffer = async (peer: VoicePeer, iceRestart = false): Promise<void> => {
+  const makeOffer = async (
+    peer: VoicePeer,
+    iceRestart = false,
+    peerJustJoined = false
+  ): Promise<void> => {
     const currentPlayer = playerIdRef.current
-    if (!currentPlayer || (!iceRestart && currentPlayer >= peer.id)) return
+    if (!currentPlayer || (!iceRestart && !peerJustJoined && currentPlayer >= peer.id)) return
     const runtime = await ensurePeer(peer)
     if (runtime.makingOffer || runtime.connection.signalingState !== 'stable') return
 
@@ -646,27 +678,32 @@ export function VoiceChatDock(): JSX.Element | null {
     const removeListener = window.api.matchmaking.onEvent((event: MatchmakingEvent) => {
       if (event.type === 'voice_session') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
+        closeAllPeers()
         iceConfigurationRef.current = {
           iceServers: event.iceServers,
           iceTransportPolicy: event.iceTransportPolicy
         }
         setJoinedContext(event.context)
         setPeers(event.peers)
-        for (const peer of event.peers) void makeOffer(peer).catch(() => undefined)
         return
       }
       if (event.type === 'voice_peer_joined') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
+        closePeer(event.peer.id)
         setPeers((current) =>
           current.some(({ id }) => id === event.peer.id) ? current : [...current, event.peer]
         )
-        void makeOffer(event.peer).catch(() => undefined)
+        void makeOffer(event.peer, false, true).catch(() => undefined)
         return
       }
       if (event.type === 'voice_peer_left') {
         if (!sameContext(event.context, contextRef.current)) return
         closePeer(event.playerId)
         setPeers((current) => current.filter(({ id }) => id !== event.playerId))
+        if (peersRef.current.length <= 1) {
+          recoveryAttemptsRef.current = 0
+          setMicError(null)
+        }
         return
       }
       if (event.type !== 'voice_signal') return
@@ -746,6 +783,7 @@ export function VoiceChatDock(): JSX.Element | null {
   useEffect(() => {
     if (MARKETING_LOBBY_ENABLED) return
     if (!enabled || !desiredContext || connectionStatus !== 'ready') {
+      recoveryAttemptsRef.current = 0
       if (joinedContext) void window.api.matchmaking.voiceLeave().catch(() => undefined)
       setTalkChannel(null)
       closeAllPeers()
@@ -755,6 +793,7 @@ export function VoiceChatDock(): JSX.Element | null {
     }
 
     if (!sameContext(joinedContext, desiredContext)) {
+      recoveryAttemptsRef.current = 0
       setTalkChannel(null)
       closeAllPeers()
       stopMicrophone()
@@ -816,50 +855,29 @@ export function VoiceChatDock(): JSX.Element | null {
     void ensureMicrophone().catch(() => undefined)
   }
 
-  if (railMode === 'collapsed' && !expanded && activeContext?.kind !== 'match') {
-    return (
-      <button
-        type="button"
-        className={`fixed right-0 bottom-5 z-[70] grid h-11 w-11 place-items-center border-y border-l bg-neutral-950/95 shadow-xl backdrop-blur transition-colors ${
-          enabled
-            ? pttActive
-              ? 'border-sky-400/60 text-sky-300'
-              : 'border-white/15 text-neutral-300 hover:bg-neutral-900 hover:text-white'
-            : 'border-red-400/30 text-red-300'
-        }`}
-        title={`${contextLabel}: ${enabled ? `${connectedPeers}/${voiceRoster.length} connected` : 'disconnected'}`}
-        aria-label={`Open ${contextLabel.toLowerCase()} controls`}
-        onClick={() => setExpanded(true)}
-      >
-        {enabled ? (
-          <Mic2 className="size-4" aria-hidden="true" />
-        ) : (
-          <MicOff className="size-4" aria-hidden="true" />
-        )}
-        {enabled && voiceRoster.length > 0 && (
-          <span
-            className={`absolute right-1 bottom-1 size-1.5 rounded-full ${
-              connectedPeers > 0 ? 'bg-emerald-400' : 'bg-amber-300'
-            }`}
-            aria-hidden="true"
-          />
-        )}
-      </button>
-    )
+  const retryVoice = (): void => {
+    if (!desiredContext) return
+    recoveryAttemptsRef.current = 0
+    setMicError(null)
+    closeAllPeers()
+    void window.api.matchmaking.voiceJoin(desiredContext).catch((error: unknown) => {
+      setMicError(error instanceof Error ? error.message : 'Could not reconnect voice chat.')
+    })
   }
 
-  const dockPosition =
-    railMode === 'expanded'
-      ? 'right-0 bottom-0 w-72 rounded-none border-r-0 border-b-0'
-      : railMode === 'collapsed'
-        ? 'right-12 bottom-5 w-[min(24rem,calc(100vw-4.5rem))] '
-        : 'right-5 top-24 w-[min(24rem,calc(100vw-2.5rem))] '
-
   if (activeContext?.kind === 'match') return null
+  if (railMode === 'collapsed') return null
 
-  return (
-    <aside
-      className={`fixed z-[70] overflow-hidden border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur ${dockPosition}`}
+  const railSlot =
+    railMode === 'expanded' ? document.getElementById('friends-rail-voice-slot') : null
+
+  const controls = (
+    <section
+      className={
+        railSlot
+          ? 'w-full overflow-hidden border-t border-white/15 bg-neutral-950/95 text-white'
+          : 'fixed top-24 right-5 z-[70] w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur'
+      }
       aria-label={contextLabel}
     >
       <button
@@ -937,6 +955,15 @@ export function VoiceChatDock(): JSX.Element | null {
                 >
                   Disconnect voice
                 </button>
+                {micError && (
+                  <button
+                    type="button"
+                    className="border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-200"
+                    onClick={retryVoice}
+                  >
+                    Retry voice
+                  </button>
+                )}
               </>
             ) : (
               <button
@@ -1028,6 +1055,8 @@ export function VoiceChatDock(): JSX.Element | null {
           {micError && <p className="mt-3 text-xs text-red-300">{micError}</p>}
         </div>
       )}
-    </aside>
+    </section>
   )
+
+  return railSlot ? createPortal(controls, railSlot) : controls
 }

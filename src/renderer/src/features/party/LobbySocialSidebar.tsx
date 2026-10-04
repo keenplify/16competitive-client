@@ -1,16 +1,25 @@
 import {
   Check,
-  ChevronRight,
   Gamepad2,
   Mail,
   MessageCircle,
+  Pin,
   Search,
   UserMinus,
   UserPlus,
   Users,
   X
 } from 'lucide-react'
-import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type JSX,
+  type KeyboardEvent,
+  type MouseEvent
+} from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'react-toastify'
 import type {
   FriendPlayer,
@@ -19,6 +28,7 @@ import type {
 } from '../../../../shared/friends'
 import { Button } from '../../components/ui/Button'
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
+import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { TextField } from '../../components/ui/TextField'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
@@ -29,8 +39,92 @@ import { usePartyStore } from './party.store'
 interface LobbySocialSidebarProps {
   playerId: string
   collapsed: boolean
-  onCollapsedChange: (collapsed: boolean) => void
+  pinned: boolean
+  onHoverOpen: () => void
+  onPinnedOpen: () => void
+  onAutoClose: () => void
+  onPinToggle: () => void
   hoverOpenDisabledUntil?: number
+}
+
+function RankPopover({
+  player,
+  className,
+  nameClassName
+}: {
+  player: FriendPlayer
+  className?: string
+  nameClassName?: string
+}): JSX.Element {
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const tooltipId = useId()
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const presence =
+    player.presence === 'IN_GAME' ? 'In game' : player.presence === 'ONLINE' ? 'Online' : 'Offline'
+  const xpIntoLevel = player.level === 40 ? 4_000 : player.profileXp % 4_000
+  const progressPercent = Math.min(100, Math.round((xpIntoLevel / 4_000) * 100))
+  const remainingPercent = player.level === 40 ? 0 : 100 - progressPercent
+  const show = (): void => {
+    const bounds = anchorRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    const railLeft =
+      anchorRef.current?.closest('aside')?.getBoundingClientRect().left ?? bounds.left
+    setPosition({
+      left: Math.max(8, railLeft - 216),
+      top: Math.max(8, Math.min(window.innerHeight - 136, bounds.top + bounds.height / 2 - 68))
+    })
+  }
+  return (
+    <>
+      <div
+        ref={anchorRef}
+        className="flex min-w-0 flex-1 items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        tabIndex={0}
+        aria-label={`${player.username}, level ${player.level}, ${player.levelTitle}, ${presence}, ${player.mmr} MMR`}
+        aria-describedby={position ? tooltipId : undefined}
+        onMouseEnter={show}
+        onMouseLeave={() => setPosition(null)}
+        onFocus={show}
+        onBlur={() => setPosition(null)}
+      >
+        <ProfileRankInsignia level={player.level} title={player.levelTitle} className={className} />
+        <span className={nameClassName}>{player.username}</span>
+      </div>
+      {position &&
+        createPortal(
+          <div
+            id={tooltipId}
+            className="pointer-events-none fixed z-[100] w-52 border border-amber-200/35 bg-[#15191d] p-3 text-left shadow-xl"
+            style={position}
+            role="tooltip"
+          >
+            <p className="truncate text-sm font-bold text-white">{player.username}</p>
+            <p className="mt-1 text-xs font-semibold text-amber-200">
+              {player.levelTitle} · Level {player.level}
+            </p>
+            <div
+              className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"
+              role="progressbar"
+              aria-label="Progress to next level"
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div className="h-full bg-amber-300" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <p className="mt-1 text-[11px] text-neutral-300">
+              {player.level === 40
+                ? 'Max level'
+                : `${progressPercent}% complete · ${remainingPercent}% to next level`}
+            </p>
+            <p className="mt-2 text-[11px] text-neutral-400">
+              {presence} · {player.mmr} MMR
+            </p>
+          </div>,
+          document.body
+        )}
+    </>
+  )
 }
 
 function FriendRow({
@@ -46,31 +140,17 @@ function FriendRow({
   onInvite: () => void
   onContextMenu: (event: MouseEvent<HTMLDivElement>) => void
 }): JSX.Element {
-  const inGame = friend.presence === 'IN_GAME'
   const online = friend.presence !== 'OFFLINE'
   return (
     <div
-      className="group flex cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-4 py-2 transition hover:border-l-sky-400 hover:bg-white/5"
-      title="Right-click for friend options"
+      className="group flex cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-4 py-1 transition hover:border-l-sky-400 hover:bg-white/5"
       onContextMenu={onContextMenu}
     >
-      <PlayerAvatar
-        username={friend.username}
-        presence={inGame ? 'in-game' : online ? 'online' : 'offline'}
-        className="size-9"
+      <RankPopover
+        player={friend}
+        className="size-8"
+        nameClassName={`min-w-0 truncate text-xs font-semibold ${online ? 'text-neutral-100' : 'text-neutral-500'}`}
       />
-      <div className="min-w-0 flex-1">
-        <p
-          className={`truncate text-xs font-semibold ${online ? 'text-neutral-100' : 'text-neutral-500'}`}
-        >
-          {friend.username}
-        </p>
-        <p
-          className={`text-[10px] uppercase ${inGame ? 'text-violet-300' : online ? 'text-emerald-400' : 'text-neutral-600'}`}
-        >
-          {inGame ? 'In game' : online ? 'Online' : 'Offline'} · {friend.mmr} MMR
-        </p>
-      </div>
       <div className="flex items-center opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         {canInvite && friend.presence === 'ONLINE' && (
           <button
@@ -105,12 +185,12 @@ function SearchResultRow({
     FRIEND: 'Friends'
   }[player.relationship]
   return (
-    <div className="flex items-center gap-2 px-3 py-2 hover:bg-white/5">
-      <PlayerAvatar username={player.username} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold text-neutral-200">{player.username}</p>
-        <p className="text-[10px] text-neutral-500">{player.mmr} MMR</p>
-      </div>
+    <div className="flex items-center gap-2 px-3 py-1 hover:bg-white/5">
+      <RankPopover
+        player={player}
+        className="size-8"
+        nameClassName="min-w-0 truncate text-xs font-semibold text-neutral-200"
+      />
       <Button
         variant={player.relationship === 'NONE' ? 'primary' : 'ghost'}
         className="h-7 rounded-none px-2 text-[9px] uppercase"
@@ -230,7 +310,11 @@ function FriendRequestsModal({
 export function LobbySocialSidebar({
   playerId,
   collapsed,
-  onCollapsedChange,
+  pinned,
+  onHoverOpen,
+  onPinnedOpen,
+  onAutoClose,
+  onPinToggle,
   hoverOpenDisabledUntil = 0
 }: LobbySocialSidebarProps): JSX.Element | null {
   const hoverOpenTimer = useRef<number | null>(null)
@@ -269,7 +353,7 @@ export function LobbySocialSidebar({
     queueStatus === 'joining' || queueStatus === 'queued' || queueStatus === 'leaving'
   const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
-  const canInvite = isLeader && !isFull && !isSearching
+  const canInvite = !isFull && !isSearching
   const notificationCount = partyInvitations.length + friendRequests.length
   const matchNeedsAttention = [
     'match_found',
@@ -335,23 +419,25 @@ export function LobbySocialSidebar({
   const expandCollapsedSidebar = (): void => {
     if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
     hoverOpenTimer.current = null
-    if (collapsed) onCollapsedChange(false)
+    if (collapsed) onPinnedOpen()
   }
   const handleMouseEnter = (): void => {
-    if (!collapsed || Date.now() < hoverOpenDisabledUntil) return
+    if (!collapsed || hoverOpenTimer.current !== null) return
+    const delay = Math.max(100, hoverOpenDisabledUntil - Date.now())
     hoverOpenTimer.current = window.setTimeout(() => {
       hoverOpenTimer.current = null
-      if (Date.now() >= hoverOpenDisabledUntil) onCollapsedChange(false)
-    }, 100)
+      onHoverOpen()
+    }, delay)
   }
   const handleMouseLeave = (): void => {
     if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
     hoverOpenTimer.current = null
+    if (!collapsed && !pinned) onAutoClose()
   }
   const handleCollapsedKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
     if (!collapsed || (event.key !== 'Enter' && event.key !== ' ')) return
     event.preventDefault()
-    onCollapsedChange(false)
+    onPinnedOpen()
   }
   const showFriendMenu = (event: MouseEvent<HTMLDivElement>, friend: FriendPlayer): void => {
     event.preventDefault()
@@ -385,6 +471,7 @@ export function LobbySocialSidebar({
         onClick={expandCollapsedSidebar}
         onKeyDown={handleCollapsedKeyDown}
         onMouseEnter={handleMouseEnter}
+        onMouseMove={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <div
@@ -445,11 +532,17 @@ export function LobbySocialSidebar({
               )}
               <button
                 type="button"
-                className="  p-1 text-neutral-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
-                aria-label="Collapse Friends panel"
-                onClick={() => onCollapsedChange(true)}
+                className={`p-1 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 ${pinned ? 'text-sky-300' : 'text-neutral-500'}`}
+                aria-label={pinned ? 'Unpin and close Friends panel' : 'Pin Friends panel open'}
+                aria-pressed={pinned}
+                title={pinned ? 'Unpin and close' : 'Pin Friends panel'}
+                onClick={onPinToggle}
               >
-                <ChevronRight className="size-4" aria-hidden="true" />
+                <Pin
+                  className="size-4"
+                  fill={pinned ? 'currentColor' : 'none'}
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </header>
@@ -518,6 +611,7 @@ export function LobbySocialSidebar({
               </div>
             )}
           </div>
+          <div id="friends-rail-voice-slot" className="shrink-0" />
         </div>
       </aside>
       {friendMenu && (

@@ -1,12 +1,11 @@
 import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
 import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
-import { ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { memo, useEffect, useState, type JSX } from 'react'
 import dustBackground from '../../assets/dust.jpg'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
-import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
+import { IdleActionHint } from '../guidance/IdleActionHint'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
 import { modelForSlot, presentationModelPath } from '../party/party-models'
@@ -130,17 +129,18 @@ export function LobbyPage(): JSX.Element {
     'server_ready'
   ].includes(queueStatus)
   const matchNeedsAttention = queueStatus === 'match_found' || queueStatus === 'ready_check'
-  const showingMatchFoundScreen =
-    page === 'play' && matchNeedsAttention
+  const showingMatchFoundScreen = page === 'play' && matchNeedsAttention
   const showingPlaySelection =
     page === 'play' &&
     playView === 'matchmaking' &&
     !completedMatch &&
     ['idle', 'joining', 'queued', 'leaving'].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
-  const [friendsCollapsed, setFriendsCollapsed] = useState(false)
+  const [friendsRailMode, setFriendsRailMode] = useState<'collapsed' | 'peek' | 'pinned'>('pinned')
+  const friendsCollapsed = friendsRailMode === 'collapsed'
   const [friendsHoverOpenDisabledUntil, setFriendsHoverOpenDisabledUntil] = useState(0)
-  const [dailyMissionsCollapsed, setDailyMissionsCollapsed] = useState(false)
+  const [missionsOpen, setMissionsOpen] = useState(false)
+  const [seenMissionsKey, setSeenMissionsKey] = useState<string | null>(null)
   const [pendingSurveyState, setPendingSurveyState] = useState<{
     playerId: string
     survey: PendingMatchSurvey | null
@@ -151,6 +151,23 @@ export function LobbyPage(): JSX.Element {
     !isMatchSurveyDeferredForSession()
       ? pendingSurveyState.survey
       : null
+  const missionsKey = questSnapshot
+    ? `${questSnapshot.date}:${questSnapshot.quests.map((quest) => `${quest.id}:${quest.progress}:${quest.completed}`).join('|')}`
+    : null
+  const missionsNeedAttention =
+    Boolean(questSnapshot?.quests.length) && missionsKey !== seenMissionsKey
+  const idleHintTarget =
+    matchNavigationLocked || completedMatch || pendingSurvey || requiresGameSetup
+      ? null
+      : page === 'lobby'
+        ? missionsNeedAttention && !missionsOpen
+          ? 'missions'
+          : queueStatus === 'idle'
+            ? 'play'
+            : null
+        : page === 'play' && playView === 'matchmaking' && queueStatus === 'idle'
+          ? 'find-match'
+          : null
   useEffect(() => {
     void refreshLobbyLoadout()
   }, [refreshLobbyLoadout])
@@ -158,19 +175,35 @@ export function LobbyPage(): JSX.Element {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
+    setMissionsOpen(false)
     navigate(nextPage)
   }
 
+  const handleToggleMissions = (): void => {
+    setMissionsOpen((open) => !open)
+    setSeenMissionsKey(missionsKey)
+  }
+
+  useEffect(() => {
+    if (!missionsOpen) return
+    const closeOnOutsideClick = (event: PointerEvent): void => {
+      if (!(event.target instanceof Element) || !event.target.closest('[data-missions-ui]')) {
+        setMissionsOpen(false)
+        setSeenMissionsKey(missionsKey)
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [missionsKey, missionsOpen])
+
   const collapseFriendsSidebar = (): void => {
-    setFriendsCollapsed(true)
+    setFriendsRailMode('collapsed')
     setFriendsHoverOpenDisabledUntil(Date.now() + 1_000)
   }
 
-  const handleFriendsCollapsedChange = (collapsed: boolean): void => {
-    if (collapsed) {
-      setFriendsHoverOpenDisabledUntil(Date.now() + 1_000)
-    }
-    setFriendsCollapsed(collapsed)
+  const handleFriendsPinToggle = (): void => {
+    if (friendsRailMode === 'pinned') collapseFriendsSidebar()
+    else setFriendsRailMode('pinned')
   }
 
   useEffect(() => {
@@ -214,6 +247,12 @@ export function LobbyPage(): JSX.Element {
     const navigateOnEscape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape' || event.repeat || event.defaultPrevented) return
       if (document.querySelector('[role="dialog"]')) return
+      if (missionsOpen) {
+        event.preventDefault()
+        setMissionsOpen(false)
+        setSeenMissionsKey(missionsKey)
+        return
+      }
       if (matchNavigationLocked) return
       event.preventDefault()
       if (useMatchmakingStore.getState().completedMatch) dismissCompletedMatch()
@@ -224,7 +263,7 @@ export function LobbyPage(): JSX.Element {
 
     window.addEventListener('keydown', navigateOnEscape, true)
     return () => window.removeEventListener('keydown', navigateOnEscape, true)
-  }, [dismissCompletedMatch, matchNavigationLocked, navigate, page])
+  }, [dismissCompletedMatch, matchNavigationLocked, missionsKey, missionsOpen, navigate, page])
 
   useEffect(() => {
     let active = true
@@ -296,34 +335,35 @@ export function LobbyPage(): JSX.Element {
     )
   }
 
-  const content = requiresGameSetup && !(matchNeedsAttention && page === 'play') ? (
-    <SettingsPage />
-  ) : completedMatch ? (
-    <MatchResultsPage match={completedMatch} />
-  ) : page === 'play' ? (
-    <PlayPage friendsCollapsed={friendsCollapsed} />
-  ) : page === 'demos' ? (
-    <AdminDemosPage />
-  ) : page === 'settings' ? (
-    <SettingsPage />
-  ) : page === 'profile' ? (
-    <ProfilePage />
-  ) : page === 'store' ? (
-    <ShopPage />
-  ) : page === 'news' ? (
-    <NewsPage />
-  ) : page === 'leaderboard' ? (
-    <LeaderboardPage />
-  ) : page === 'lobby' ? null : (
-    <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
-      <div className="text-center">
-        <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
-          {pageLabels[page]}
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
-      </div>
-    </main>
-  )
+  const content =
+    requiresGameSetup && !(matchNeedsAttention && page === 'play') ? (
+      <SettingsPage />
+    ) : completedMatch ? (
+      <MatchResultsPage match={completedMatch} />
+    ) : page === 'play' ? (
+      <PlayPage friendsCollapsed={friendsCollapsed} />
+    ) : page === 'demos' ? (
+      <AdminDemosPage />
+    ) : page === 'settings' ? (
+      <SettingsPage />
+    ) : page === 'profile' ? (
+      <ProfilePage />
+    ) : page === 'store' ? (
+      <ShopPage />
+    ) : page === 'news' ? (
+      <NewsPage />
+    ) : page === 'leaderboard' ? (
+      <LeaderboardPage />
+    ) : page === 'lobby' ? null : (
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
+        <div className="text-center">
+          <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
+            {pageLabels[page]}
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
+        </div>
+      </main>
+    )
 
   return (
     <main
@@ -331,49 +371,6 @@ export function LobbyPage(): JSX.Element {
       style={{ backgroundImage: `url(${dustBackground})` }}
     >
       <LobbyScene player={player} party={party} />
-      {page === 'lobby' && !completedMatch && (
-        <div
-          className={`fixed top-20 right-4 z-20 w-[min(20rem,calc(100vw-2rem))] transition-[right] duration-300 ease-out sm:top-24 ${
-            friendsCollapsed ? 'md:right-16' : 'md:right-[calc(18rem+1rem)]'
-          }`}
-        >
-          <section className="overflow-hidden border border-white/10 bg-neutral-950/90 shadow-2xl backdrop-blur-md">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none"
-              aria-expanded={!dailyMissionsCollapsed}
-              aria-controls="lobby-daily-missions"
-              onClick={() => setDailyMissionsCollapsed((collapsed) => !collapsed)}
-            >
-              <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                <ClipboardList className="size-4 text-sky-300" aria-hidden="true" /> Daily missions
-              </span>
-              {dailyMissionsCollapsed ? (
-                <ChevronDown className="size-4 text-white/55" aria-hidden="true" />
-              ) : (
-                <ChevronUp className="size-4 text-white/55" aria-hidden="true" />
-              )}
-            </button>
-            <div
-              id="lobby-daily-missions"
-              className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-                dailyMissionsCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
-              }`}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div className="border-t border-white/10">
-                  <DailyQuestsPanel
-                    snapshot={questSnapshot}
-                    loading={questStatus === 'loading'}
-                    error={questError}
-                    compact
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
       {page === 'lobby' &&
         !completedMatch &&
         pendingSurvey &&
@@ -392,14 +389,33 @@ export function LobbyPage(): JSX.Element {
         onNavigate={handleNavigate}
         showBackToLobby={!completedMatch && !matchNavigationLocked}
         locked={matchNavigationLocked}
+        missionsOpen={missionsOpen && !matchNavigationLocked}
+        onToggleMissions={handleToggleMissions}
+        missionSnapshot={questSnapshot}
+        missionLoading={questStatus === 'loading'}
+        missionError={questError}
         className="fixed top-0 left-0 z-30"
+      />
+      <IdleActionHint
+        targetId={idleHintTarget}
+        label={
+          idleHintTarget === 'missions'
+            ? 'Daily missions updated'
+            : idleHintTarget === 'find-match'
+              ? 'Find a match'
+              : 'Play'
+        }
       />
       <PartyInvitationModal />
       <PartyChat />
       <LobbySocialSidebar
         playerId={player.id}
         collapsed={friendsCollapsed}
-        onCollapsedChange={handleFriendsCollapsedChange}
+        pinned={friendsRailMode === 'pinned'}
+        onHoverOpen={() => setFriendsRailMode('peek')}
+        onPinnedOpen={() => setFriendsRailMode('pinned')}
+        onAutoClose={() => setFriendsRailMode((mode) => (mode === 'peek' ? 'collapsed' : mode))}
+        onPinToggle={handleFriendsPinToggle}
         hoverOpenDisabledUntil={friendsHoverOpenDisabledUntil}
       />
       {content && (

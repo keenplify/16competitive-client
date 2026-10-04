@@ -1,6 +1,10 @@
 import { useEffect, type JSX } from 'react'
+import { ExternalLink } from 'lucide-react'
+import { communityLinks, desktopAppUrl } from '../community/links'
 import { readableNewsContent } from './news.api'
 import { useNewsStore } from './news.store'
+
+const newsLinks = [...communityLinks, { label: 'Get desktop app', href: desktopAppUrl }] as const
 
 export function NewsPage(): JSX.Element {
   const posts = useNewsStore((state) => state.allPosts)
@@ -18,6 +22,23 @@ export function NewsPage(): JSX.Element {
         <h1 className="mt-2 text-3xl font-semibold">News</h1>
         <p className="mt-2 text-sm text-neutral-200">Updates from 1.6 Competitive</p>
       </header>
+      <nav className="mx-auto mt-8 max-w-6xl" aria-label="Community links">
+        <h2 className="text-sm font-semibold text-white">Follow &amp; support</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {newsLinks.map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 items-center gap-2 border border-white/15 bg-neutral-900/90 px-3 text-sm text-neutral-200 transition hover:border-sky-400/40 hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+            >
+              {label}
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      </nav>
       {status === 'loading' && posts.length === 0 && (
         <p className="py-16 text-center text-sm text-neutral-400">Loading news…</p>
       )}

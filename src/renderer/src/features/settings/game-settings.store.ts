@@ -13,8 +13,10 @@ interface GameSettingsState {
   nextClientDetected: boolean
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
+  fastSwitchEnabled: boolean
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
   setNextClientIntegration: (enabled: boolean) => Promise<void>
+  setFastSwitch: (enabled: boolean) => Promise<void>
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
@@ -38,6 +40,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   nextClientDetected: false,
   nextClientIntegrationEnabled: true,
   nextClientIntegrationDisabledReason: null,
+  fastSwitchEnabled: true,
 
   setCrosshair: async (profile) => {
     const settings = await window.api.gameSettings.setCrosshair(profile)
@@ -58,6 +61,15 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     }
   },
 
+  setFastSwitch: async (enabled) => {
+    try {
+      const settings = await window.api.gameSettings.setFastSwitch(enabled)
+      set({ fastSwitchEnabled: settings.fastSwitchEnabled, error: null })
+    } catch (error) {
+      set({ error: message(error) })
+    }
+  },
+
   load: async () => {
     set({ status: 'loading', error: null })
     try {
@@ -71,7 +83,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         crosshair: settings.crosshair,
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
-        nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason
+        nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
+        fastSwitchEnabled: settings.fastSwitchEnabled
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
@@ -106,6 +119,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
+        fastSwitchEnabled: settings.fastSwitchEnabled,
         status: 'idle',
         requiresGameSetup: false,
         notice: settings.nextClientDetected
