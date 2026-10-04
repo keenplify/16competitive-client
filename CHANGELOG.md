@@ -1722,3 +1722,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Kept the friend menu above the rank popover.
 - Simplified the idle action arrow.
+
+## v2026.1004.3 — 2026-10-04
+
+### Diagnostics
+
+- Issue reports now include redacted configuration snapshots.
+- Game console reports are attached to help diagnose problems.
+
+### Reliability
+
+- Launcher integration failures are handled more gracefully.
+
+### Linux
+
+- Native in-game features now work on ARM64 Linux.
