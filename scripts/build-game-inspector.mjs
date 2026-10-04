@@ -35,6 +35,11 @@ const cosmeticTargets = {
     target: 'i686-unknown-linux-gnu',
     source: 'libpapamo_cosmetic_module.so',
     destination: 'papamo-cosmetic-module-linux-x86.so'
+  },
+  'linux-arm64': {
+    target: 'i686-unknown-linux-gnu',
+    source: 'libpapamo_cosmetic_module.so',
+    destination: 'papamo-cosmetic-module-linux-x86.so'
   }
 }
 
