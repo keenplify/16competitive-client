@@ -258,7 +258,12 @@ export class ScoreboardOverlaySession {
     allowNextClientIntegration = true
   ): Promise<ScoreboardOverlaySession | null> {
     await cleanupQueue.wait()
-    if (!['linux', 'win32'].includes(process.platform) || process.arch !== 'x64') {
+    // The module follows GoldSrc's x86 architecture, not the launcher's host
+    // architecture. ARM64 Linux runs the same game/module through translation.
+    const supportedHost =
+      (process.platform === 'linux' && ['x64', 'arm64'].includes(process.arch)) ||
+      (process.platform === 'win32' && process.arch === 'x64')
+    if (!supportedHost) {
       console.warn('[Scoreboard] custom HUD unavailable', {
         matchId,
         reason: 'unsupported platform or architecture',
@@ -288,7 +293,7 @@ export class ScoreboardOverlaySession {
     }
     const native = app.isPackaged
       ? join(process.resourcesPath, 'native')
-      : join(app.getAppPath(), 'resources/native/linux-x64')
+      : join(app.getAppPath(), `resources/native/linux-${process.arch}`)
     const modulePath = join(native, 'papamo-cosmetic-module-linux-x86.so')
     if (process.platform === 'linux' && !(await stat(modulePath).catch(() => null))?.isFile()) {
       console.warn('[Scoreboard] custom HUD unavailable', {
