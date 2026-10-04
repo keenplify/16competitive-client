@@ -1,10 +1,11 @@
 import { app } from 'electron'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import { DEMO_PROTOCOL } from '../shared/demo-link'
+import { setDefaultMimeHandler } from './linux-mimeapps'
 const run = promisify(execFile)
 
 // Desktop Exec is not a shell command. Quote its reserved characters and escape
@@ -54,12 +55,24 @@ export async function registerDemoProtocol(): Promise<void> {
     ].join('\n'),
     { mode: 0o600 }
   )
-  await run('xdg-mime', ['default', desktopId, `x-scheme-handler/${DEMO_PROTOCOL}`], {
-    timeout: 10000
+  // Some KDE xdg-mime versions depend on unavailable Qt tools. Write the
+  // standard user association directly instead of invoking a desktop opener.
+  const configHome = process.env.XDG_CONFIG_HOME
+  const configDirectory =
+    configHome && isAbsolute(configHome) ? configHome : join(homedir(), '.config')
+  await mkdir(configDirectory, { recursive: true })
+  const mimeappsPath = join(configDirectory, 'mimeapps.list')
+  const previous = await readFile(mimeappsPath, 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return ''
+    throw error
   })
-  const result = await run('xdg-mime', ['query', 'default', `x-scheme-handler/${DEMO_PROTOCOL}`], {
-    timeout: 10000
+  await writeFile(
+    mimeappsPath,
+    setDefaultMimeHandler(previous, `x-scheme-handler/${DEMO_PROTOCOL}`, desktopId),
+    { mode: 0o600 }
+  )
+  // Refreshing the MIME cache is optional; minimal installations may omit it.
+  await run('update-desktop-database', [directory], { timeout: 5000 }).catch((error: unknown) => {
+    console.warn('[DemoPlayback] Could not refresh desktop MIME cache:', error)
   })
-  if (result.stdout.trim() !== desktopId)
-    throw new Error('Desktop did not select the demo link handler')
 }

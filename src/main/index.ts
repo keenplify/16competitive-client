@@ -403,13 +403,10 @@ app.whenReady().then(async () => {
     console.error('[Scoreboard] could not disable an earlier Steam launch wrapper', error)
   })
   void registerDemoProtocol().catch((error) => {
-    console.error('[DemoPlayback] Protocol registration failed:', error)
-    void dialog.showMessageBox({
-      type: 'warning',
-      title: 'Demo links unavailable',
-      message:
-        'Could not register demo links with your desktop. You can still use the Demos page in the client.'
-    })
+    console.warn(
+      '[DemoPlayback] External demo links unavailable; in-app playback remains available:',
+      error
+    )
   })
   // Gate production/remote access before creating the renderer or restoring a session.
   try {

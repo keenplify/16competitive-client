@@ -7,10 +7,13 @@ let installStarted = false
 let forcedExitTimer: ReturnType<typeof setTimeout> | null = null
 let requiredUpdateVersion: string | null = null
 let updaterInitialized = false
+let lastSuccessfulUpdateCheck = 0
 let updateCheckInFlight: Promise<void> | null = null
 
 const INSTALL_QUIT_TIMEOUT_MS = 2_000
-const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 15_000
+const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 7_500
+const UPDATE_CHECK_FRESH_MS = 5 * 60_000
+const UPDATE_CHECK_GRACE_MS = 24 * 60 * 60_000
 
 function setStatus(nextStatus: AppUpdateStatus): void {
   status = nextStatus
@@ -75,10 +78,12 @@ function initializeUpdater(): void {
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.on('checking-for-update', () => setStatus({ state: 'checking' }))
   autoUpdater.on('update-available', (info) => {
+    lastSuccessfulUpdateCheck = 0
     requiredUpdateVersion = info.version
     setStatus({ state: 'available', version: info.version })
   })
   autoUpdater.on('update-not-available', () => {
+    lastSuccessfulUpdateCheck = Date.now()
     requiredUpdateVersion = null
     setStatus({ state: 'idle' })
   })
@@ -166,47 +171,47 @@ export function checkForAppUpdates(): void {
   void runUpdateCheck().catch(() => undefined)
 }
 
-/**
- * Performs a fresh update check before a player is allowed to enter matchmaking.
- * Development builds and Linux packages that electron-updater cannot self-update
- * are intentionally exempt so local development and deb/snap installs still work.
- */
+/** Reuse recent successful checks, retry failures, and keep known updates mandatory. */
 export async function ensureLatestClientForMatchmaking(): Promise<void> {
   if (!supportsSelfUpdate()) return
   initializeUpdater()
-
-  if (hasPendingUpdate()) {
-    throw requiredUpdateError()
+  if (hasPendingUpdate()) throw requiredUpdateError()
+  const hasRecentSuccess = (maxAge: number): boolean => {
+    const age = Date.now() - lastSuccessfulUpdateCheck
+    return lastSuccessfulUpdateCheck > 0 && age >= 0 && age < maxAge
   }
+  if (hasRecentSuccess(UPDATE_CHECK_FRESH_MS)) return
 
-  let timeout: ReturnType<typeof setTimeout> | null = null
-  try {
-    await Promise.race([
-      runUpdateCheck(),
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error('Launcher update check timed out.')),
-          MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS
-        )
-      })
-    ])
-  } catch {
-    if (hasPendingUpdate()) {
-      throw requiredUpdateError()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    let timedOut = false
+    try {
+      await Promise.race([
+        runUpdateCheck(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            timedOut = true
+            reject(new Error('Launcher update check timed out.'))
+          }, MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS)
+        })
+      ])
+      if (hasPendingUpdate()) throw requiredUpdateError()
+      if (status.state !== 'error' && hasRecentSuccess(UPDATE_CHECK_GRACE_MS)) return
+    } catch (error) {
+      if (hasPendingUpdate()) throw requiredUpdateError()
+      console.warn('[Updater] Matchmaking update check failed:', error)
+    } finally {
+      if (timeout) clearTimeout(timeout)
     }
-    throw new Error(
-      'Could not verify that this launcher is up to date. Check your connection and try matchmaking again.'
-    )
-  } finally {
-    if (timeout) clearTimeout(timeout)
+    // A timed-out check is still in flight; starting another won't retry it.
+    if (timedOut) break
   }
-
-  if (hasPendingUpdate()) {
-    throw requiredUpdateError()
+  if (hasPendingUpdate()) throw requiredUpdateError()
+  if (hasRecentSuccess(UPDATE_CHECK_GRACE_MS)) {
+    console.warn('[Updater] Allowing matchmaking using a successful check from this session.')
+    return
   }
-  if (status.state === 'error') {
-    throw new Error(
-      'Could not verify that this launcher is up to date. Check your connection and try matchmaking again.'
-    )
-  }
+  throw new Error(
+    'Could not verify that this launcher is up to date. Check your connection and try matchmaking again.'
+  )
 }

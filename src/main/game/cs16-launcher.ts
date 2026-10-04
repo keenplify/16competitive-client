@@ -38,6 +38,7 @@ import {
   disableSteamScoreboardWrapper,
   ensureSteamScoreboardOption
 } from './steam-scoreboard-options'
+import { setGameConsoleDirectory } from './game-console-logs'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
@@ -783,6 +784,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
+  setGameConsoleDirectory(cwd)
   // Track the GoldSrc binary rather than the selected path: for a wrapper the
   // selected executable has already exited and match cleanup would miss the game.
   launchedExecutablePath = launchTarget.gameExecutable
