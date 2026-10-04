@@ -1,6 +1,9 @@
 import { app } from 'electron'
+import { dirname } from 'node:path'
+import { getSavedCs16Executable } from './game/game-settings'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
+import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -24,7 +27,15 @@ export async function reportDiagnosticIssue(
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
-  const logs = [...entries, ...rendererLogs].join('\n').slice(-500_000)
+  const launcherLogs = redactReportLogs([...entries, ...rendererLogs].join('\n')).slice(-350_000)
+  const savedExecutable = await getSavedCs16Executable().catch((error: unknown) => {
+    console.warn('[IssueReport] Could not resolve saved game installation:', error)
+    return null
+  })
+  const gameLogs = await collectGameConsoleLogs(
+    savedExecutable ? dirname(savedExecutable) : undefined
+  )
+  const logs = `${launcherLogs}\n\n${gameLogs}`
   const response = await fetch(`${API_BASE_URL}/auth/issue-reports`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
