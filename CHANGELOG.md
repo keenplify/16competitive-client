@@ -1710,3 +1710,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added launcher and game settings updates.
 - Improved settings management.
 - Updated news presentation.
+
+## v2026.1004.2 — 2026-10-04
+
+### In-Game Experience
+
+- Added kill cards.
+- Improved in-game overlays and scoreboard visibility.
+
+### Interface
+
+- Kept the friend menu above the rank popover.
+- Simplified the idle action arrow.
