@@ -396,16 +396,7 @@ export function LobbyPage(): JSX.Element {
         missionError={questError}
         className="fixed top-0 left-0 z-30"
       />
-      <IdleActionHint
-        targetId={idleHintTarget}
-        label={
-          idleHintTarget === 'missions'
-            ? 'Daily missions updated'
-            : idleHintTarget === 'find-match'
-              ? 'Find a match'
-              : 'Play'
-        }
-      />
+      <IdleActionHint targetId={idleHintTarget} />
       <PartyInvitationModal />
       <PartyChat />
       <LobbySocialSidebar
