@@ -6,22 +6,15 @@ const IDLE_DELAY_MS = 25_000
 
 interface IdleActionHintProps {
   targetId: string | null
-  label: string
 }
 
 /** A reusable, non-interactive pointer to an action after the player goes idle. */
-export function IdleActionHint({ targetId, label }: IdleActionHintProps): JSX.Element | null {
+export function IdleActionHint({ targetId }: IdleActionHintProps): JSX.Element | null {
   if (!targetId) return null
-  return <ActiveIdleActionHint key={targetId} targetId={targetId} label={label} />
+  return <ActiveIdleActionHint key={targetId} targetId={targetId} />
 }
 
-function ActiveIdleActionHint({
-  targetId,
-  label
-}: {
-  targetId: string
-  label: string
-}): JSX.Element | null {
+function ActiveIdleActionHint({ targetId }: { targetId: string }): JSX.Element | null {
   const [idle, setIdle] = useState(false)
   const [position, setPosition] = useState<{ x: number; y: number; pointsUp: boolean } | null>(null)
 
@@ -73,7 +66,7 @@ function ActiveIdleActionHint({
       }
       const pointsUp = rect.top < window.innerHeight / 2
       setPosition({
-        x: Math.max(70, Math.min(window.innerWidth - 70, rect.left + rect.width / 2)),
+        x: Math.max(20, Math.min(window.innerWidth - 20, rect.left + rect.width / 2)),
         y: pointsUp ? rect.bottom + 10 : rect.top - 10,
         pointsUp
       })
@@ -92,7 +85,7 @@ function ActiveIdleActionHint({
   return createPortal(
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed z-50 flex -translate-x-1/2 flex-col items-center gap-1 text-sky-200 drop-shadow-[0_2px_5px_black]"
+      className="pointer-events-none fixed z-50 flex -translate-x-1/2 flex-col items-center text-sky-200 drop-shadow-[0_2px_5px_black]"
       style={{
         left: position.x,
         top: position.y,
@@ -102,9 +95,6 @@ function ActiveIdleActionHint({
       {position.pointsUp && (
         <ArrowUp className="size-7 motion-safe:animate-bounce" strokeWidth={3} />
       )}
-      <span className="rounded bg-neutral-950/90 px-2 py-1 text-xs font-bold whitespace-nowrap uppercase tracking-wide">
-        {label}
-      </span>
       {!position.pointsUp && (
         <ArrowDown className="size-7 motion-safe:animate-bounce" strokeWidth={3} />
       )}

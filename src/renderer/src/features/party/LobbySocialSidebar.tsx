@@ -614,33 +614,35 @@ export function LobbySocialSidebar({
           <div id="friends-rail-voice-slot" className="shrink-0" />
         </div>
       </aside>
-      {friendMenu && (
-        <div
-          className="fixed z-50 min-w-40 overflow-hidden border border-white/15 bg-neutral-800 py-1 shadow-xl"
-          style={{ right: Math.max(8, window.innerWidth - friendMenu.x + 8), top: friendMenu.y }}
-          role="menu"
-          aria-label={`Friend options for ${friendMenu.friend.username}`}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
-            role="menuitem"
-            onClick={handleOpenChat}
+      {friendMenu &&
+        createPortal(
+          <div
+            className="fixed z-[110] min-w-40 overflow-hidden border border-white/15 bg-neutral-800 py-1 shadow-xl"
+            style={{ right: Math.max(8, window.innerWidth - friendMenu.x + 8), top: friendMenu.y }}
+            role="menu"
+            aria-label={`Friend options for ${friendMenu.friend.username}`}
+            onClick={(event) => event.stopPropagation()}
           >
-            <MessageCircle className="size-4 text-sky-300" aria-hidden="true" /> Message
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10 focus-visible:bg-red-400/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            role="menuitem"
-            disabled={actingPlayerId === friendMenu.friend.id}
-            onClick={handleRemoveFriend}
-          >
-            <UserMinus className="size-4" aria-hidden="true" /> Remove friend
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
+              role="menuitem"
+              onClick={handleOpenChat}
+            >
+              <MessageCircle className="size-4 text-sky-300" aria-hidden="true" /> Message
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10 focus-visible:bg-red-400/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              role="menuitem"
+              disabled={actingPlayerId === friendMenu.friend.id}
+              onClick={handleRemoveFriend}
+            >
+              <UserMinus className="size-4" aria-hidden="true" /> Remove friend
+            </button>
+          </div>,
+          document.body
+        )}
       <FriendRequestsModal
         open={friendRequestsOpen}
         requests={friendRequests}
