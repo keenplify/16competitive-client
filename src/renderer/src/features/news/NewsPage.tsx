@@ -1,12 +1,14 @@
 import { useEffect, type JSX } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { communityLinks, desktopAppUrl } from '../community/links'
+import { isWebRuntime } from '../../web-runtime'
 import { readableNewsContent } from './news.api'
 import { useNewsStore } from './news.store'
 
-const newsLinks = [...communityLinks, { label: 'Get desktop app', href: desktopAppUrl }] as const
-
 export function NewsPage(): JSX.Element {
+  const newsLinks = isWebRuntime()
+    ? [...communityLinks, { label: 'Get desktop app', href: desktopAppUrl }]
+    : communityLinks
   const posts = useNewsStore((state) => state.allPosts)
   const status = useNewsStore((state) => state.allStatus)
   const loadAll = useNewsStore((state) => state.loadAll)

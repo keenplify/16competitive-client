@@ -87,7 +87,8 @@ declare global {
           count: number,
           mode: 'C' | 'F',
           aceAt: number | null,
-          side: 'CT' | 'T' | 'F'
+          side: 'CT' | 'T' | 'F',
+          kinds: ('skull' | 'grenade')[]
         ) => void
       ): () => void
     }
@@ -285,7 +286,11 @@ function PlayerRow({
         </span>
       )}
       {showWeapon && (
-        <span>{!canSeeWeapon || player.money === null ? '—' : `$${player.money.toLocaleString('en-US')}`}</span>
+        <span>
+          {!canSeeWeapon || player.money === null
+            ? '—'
+            : `$${player.money.toLocaleString('en-US')}`}
+        </span>
       )}
       <span>{player.ping}</span>
     </div>
@@ -419,21 +424,100 @@ function KillCardsOnly() {
   const [mode, setMode] = useState<'C' | 'F'>('C')
   const [aceAt, setAceAt] = useState<number | null>(null)
   const [side, setSide] = useState<'CT' | 'T' | 'F'>('T')
+  const [kinds, setKinds] = useState<('skull' | 'grenade')[]>([])
   useEffect(
     () =>
-      window.scoreboardProbe?.onKillCards((nextCount, nextMode, nextAceAt, nextSide) => {
+      window.scoreboardProbe?.onKillCards((nextCount, nextMode, nextAceAt, nextSide, nextKinds) => {
         setCount(nextCount)
         setMode(nextMode)
         setAceAt(nextAceAt)
         setSide(nextSide)
+        setKinds(nextKinds)
       }),
     []
   )
-  return <KillCardsCanvas count={count} mode={mode} aceAt={aceAt} side={side} />
+  return <KillCardsCanvas count={count} mode={mode} aceAt={aceAt} side={side} kinds={kinds} />
+}
+
+function KillCardsPreview() {
+  const [count, setCount] = useState(3)
+  const [mode, setMode] = useState<'C' | 'F'>('C')
+  const [kinds, setKinds] = useState<('skull' | 'grenade')[]>(['skull', 'grenade', 'skull'])
+  const [aceAt, setAceAt] = useState<number | null>(null)
+  const [side, setSide] = useState<'CT' | 'T'>('CT')
+  const maxCards = mode === 'F' ? 16 : 5
+  const add = (kind: 'skull' | 'grenade') => {
+    if (count >= maxCards) return
+    setKinds((previous) => [...previous, kind])
+    setCount((previous) => previous + 1)
+  }
+  const changeMode = (nextMode: 'C' | 'F') => {
+    setMode(nextMode)
+    setAceAt(null)
+    if (nextMode === 'C') {
+      setCount((previous) => Math.min(previous, 5))
+      setKinds((previous) => previous.slice(0, 5))
+    }
+  }
+  const reset = () => {
+    setCount(0)
+    setKinds([])
+    setAceAt(null)
+  }
+  const ace = () => {
+    reset()
+    window.setTimeout(() => {
+      setKinds(['skull', 'skull', 'grenade', 'skull', 'skull'])
+      setAceAt(5)
+      setCount(5)
+    }, 320)
+  }
+  return (
+    <main className="kill-card-preview">
+      <header>
+        <span>1.6 COMPETITIVE · HUD PREVIEW</span>
+        <h1>Kill cards</h1>
+        <p>
+          Local kill notices animate immediately. The live launcher keeps each card only after the
+          server confirms the kill.
+        </p>
+      </header>
+      <div className="kill-card-preview-stage">
+        <KillCardsCanvas count={count} mode={mode} aceAt={aceAt} side={side} kinds={kinds} />
+      </div>
+      <div className="kill-card-preview-controls">
+        <button onClick={() => add('skull')} disabled={count >= maxCards}>
+          Normal kill
+        </button>
+        <button onClick={() => add('grenade')} disabled={count >= maxCards}>
+          Grenade kill
+        </button>
+        {mode === 'C' && <button onClick={ace}>Play 5v5 ace</button>}
+        <button onClick={reset}>Reset</button>
+        <label>
+          Mode{' '}
+          <select value={mode} onChange={(event) => changeMode(event.target.value as 'C' | 'F')}>
+            <option value="C">Competitive</option>
+            <option value="F">FFA</option>
+          </select>
+        </label>
+        <label>
+          Team{' '}
+          <select value={side} onChange={(event) => setSide(event.target.value as 'CT' | 'T')}>
+            <option value="CT">CT</option>
+            <option value="T">T</option>
+          </select>
+        </label>
+      </div>
+    </main>
+  )
 }
 
 const killCardsOnly = new URLSearchParams(window.location.search).get('overlay') === 'kill-cards'
+const killCardsPreview =
+  new URLSearchParams(window.location.search).get('overlay') === 'kill-cards-preview'
 if (killCardsOnly) document.documentElement.classList.add('kill-cards-only')
+if (killCardsPreview) document.documentElement.classList.add('kill-cards-preview-page')
 createRoot(document.getElementById('root')!).render(
-  killCardsOnly ? <KillCardsOnly /> : <Scoreboard />
+  killCardsPreview ? <KillCardsPreview /> : killCardsOnly ? <KillCardsOnly /> : <Scoreboard />
 )

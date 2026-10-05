@@ -16,8 +16,14 @@ const snapshot = (mode, round, kills, deaths, victimAlive = true) => ({
   ],
   kills
 })
-const cards = (mode, count) => ({ mode, side: mode === 'F' ? 'F' : 'CT', count, aceAt: null })
-const notice = (killer = 4, victim = 8) => ({ at, killer, victim, local: 4 })
+const cards = (mode, count, kinds) => ({
+  mode,
+  side: mode === 'F' ? 'F' : 'CT',
+  count,
+  aceAt: null,
+  ...(kinds ? { kinds } : {})
+})
+const notice = (killer = 4, victim = 8, kind = 'skull') => ({ at, killer, victim, local: 4, kind })
 
 test('accepts only bounded local death notice records', () => {
   assert.deepEqual(parseLocalDeathNotices(`${at} 4 8 4\ninvalid\n`), [notice()])
@@ -27,7 +33,7 @@ test('accepts only bounded local death notice records', () => {
 test('shows a provisional card immediately and keeps it when the server confirms', () => {
   const prediction = new KillCardPrediction()
   prediction.updateAuthoritative(cards('C', 0), snapshot('competitive', 1, 0, 0), 'Player', at)
-  assert.deepEqual(prediction.predict(notice(), at + 10), cards('C', 1))
+  assert.deepEqual(prediction.predict(notice(), at + 10), cards('C', 1, ['skull']))
   assert.deepEqual(
     prediction.updateAuthoritative(
       cards('C', 0),
@@ -35,7 +41,7 @@ test('shows a provisional card immediately and keeps it when the server confirms
       'Player',
       at + 50
     ),
-    cards('C', 1)
+    cards('C', 1, ['skull'])
   )
   assert.deepEqual(
     prediction.updateAuthoritative(
@@ -44,17 +50,48 @@ test('shows a provisional card immediately and keeps it when the server confirms
       'Player',
       at + 100
     ),
-    cards('C', 1)
+    cards('C', 1, ['skull'])
   )
-  assert.deepEqual(prediction.view(at + 1600), cards('C', 1))
+  assert.deepEqual(prediction.view(at + 1600), cards('C', 1, ['skull']))
+})
+
+test('grenade kind persists after server confirmation and resets with the round', () => {
+  const prediction = new KillCardPrediction()
+  prediction.updateAuthoritative(cards('C', 0), snapshot('competitive', 1, 0, 0), 'Player', at)
+  const grenade = notice(4, 8, 'grenade')
+  assert.deepEqual(parseLocalDeathNotices(`${at} 4 8 4 grenade\n`), [grenade])
+  assert.deepEqual(prediction.predict(grenade, at + 10)?.kinds, ['grenade'])
+  assert.deepEqual(
+    prediction.updateAuthoritative(
+      cards('C', 1),
+      snapshot('competitive', 1, 1, 0, false),
+      'Player',
+      at + 100
+    )?.kinds,
+    ['grenade']
+  )
+  assert.deepEqual(prediction.view(at + 2000)?.kinds, ['grenade'])
+  assert.deepEqual(
+    prediction.updateAuthoritative(
+      cards('C', 0),
+      snapshot('competitive', 2, 1, 0),
+      'Player',
+      at + 3000
+    )?.kinds,
+    []
+  )
 })
 
 test('unconfirmed death notice expires to the prior server count', () => {
   const prediction = new KillCardPrediction()
   prediction.updateAuthoritative(cards('C', 2), snapshot('competitive', 1, 2, 0), 'Player', at)
-  assert.equal(prediction.predict(notice(), at + 10)?.count, 3)
+  assert.deepEqual(prediction.predict(notice(4, 8, 'grenade'), at + 10)?.kinds, [
+    'skull',
+    'skull',
+    'grenade'
+  ])
   assert.equal(prediction.view(at + 1499)?.count, 3)
-  assert.equal(prediction.view(at + 1501)?.count, 2)
+  assert.deepEqual(prediction.view(at + 1501)?.kinds, ['skull', 'skull'])
 })
 
 test('team kills, stale notices, and notices for another player cannot predict', () => {
@@ -74,7 +111,12 @@ test('competitive death hides cards immediately and stays cleared when confirmed
   prediction.updateAuthoritative(cards('C', 3), snapshot('competitive', 1, 3, 0), 'Player', at)
   assert.equal(prediction.predict(notice(8, 4), at)?.count, 0)
   assert.equal(
-    prediction.updateAuthoritative(cards('C', 0), snapshot('competitive', 1, 3, 1), 'Player', at + 100)?.count,
+    prediction.updateAuthoritative(
+      cards('C', 0),
+      snapshot('competitive', 1, 3, 1),
+      'Player',
+      at + 100
+    )?.count,
     0
   )
   assert.equal(prediction.view(at + 1600)?.count, 0)

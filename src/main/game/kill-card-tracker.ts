@@ -4,6 +4,7 @@ export interface KillCardView {
   side: 'F' | 'CT' | 'T'
   count: number
   aceAt: number | null
+  kinds?: ('skull' | 'grenade')[]
 }
 
 export class KillCardTracker {

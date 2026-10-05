@@ -5,6 +5,7 @@ export interface LocalDeathNotice {
   killer: number
   victim: number
   local: number
+  kind?: 'skull' | 'grenade'
 }
 
 interface Snapshot {
@@ -22,6 +23,7 @@ interface Snapshot {
 interface PendingKill {
   victim: number
   at: number
+  kind: 'skull' | 'grenade'
 }
 
 const CONFIRMATION_MS = 1500
@@ -32,14 +34,17 @@ export function parseLocalDeathNotices(text: string): LocalDeathNotice[] {
     .filter(Boolean)
     .flatMap((line) => {
       const match =
-        /^(\d{13}) ([1-9]|[12]\d|3[0-2]) ([1-9]|[12]\d|3[0-2]) ([1-9]|[12]\d|3[0-2])$/.exec(line)
+        /^(\d{13}) ([1-9]|[12]\d|3[0-2]) ([1-9]|[12]\d|3[0-2]) ([1-9]|[12]\d|3[0-2])(?: (grenade|skull))?$/.exec(
+          line
+        )
       if (!match) return []
       return [
         {
           at: Number(match[1]),
           killer: Number(match[2]),
           victim: Number(match[3]),
-          local: Number(match[4])
+          local: Number(match[4]),
+          kind: match[5] === 'grenade' ? 'grenade' : 'skull'
         }
       ]
     })
@@ -51,6 +56,7 @@ export class KillCardPrediction {
   private snapshot: Snapshot | null = null
   private username: string | null = null
   private pending: PendingKill[] = []
+  private confirmedKinds: ('skull' | 'grenade')[] = []
   private pendingDeathAt: number | null = null
   private lastRound: number | null = null
   private lastPlayerId: number | null = null
@@ -74,14 +80,19 @@ export class KillCardPrediction {
         this.authoritative?.mode !== cards.mode)
     if (changed || (this.authoritative && cards.count < this.authoritative.count)) {
       this.pending = []
+      this.confirmedKinds = Array(cards.count).fill('skull')
       this.pendingDeathAt = null
     } else if (this.authoritative) {
       const confirmed = Math.max(0, cards.count - this.authoritative.count)
-      this.pending.splice(0, confirmed)
+      this.confirmedKinds.push(...this.pending.splice(0, confirmed).map((event) => event.kind))
+      while (this.confirmedKinds.length < cards.count) this.confirmedKinds.push('skull')
+    } else {
+      this.confirmedKinds = Array(cards.count).fill('skull')
     }
     if (player.deaths > this.lastDeaths) {
       this.pendingDeathAt = null
       this.pending = []
+      this.confirmedKinds = Array(cards.count).fill('skull')
     }
     this.authoritative = cards
     this.snapshot = snapshot
@@ -121,7 +132,7 @@ export class KillCardPrediction {
       this.pending.some((event) => event.victim === notice.victim && notice.at - event.at < 1000)
     )
       return this.view(now)
-    this.pending.push({ victim: notice.victim, at: notice.at })
+    this.pending.push({ victim: notice.victim, at: notice.at, kind: notice.kind ?? 'skull' })
     return this.view(now)
   }
 
@@ -130,14 +141,15 @@ export class KillCardPrediction {
     this.pending = this.pending.filter((event) => now - event.at < CONFIRMATION_MS)
     if (this.pendingDeathAt !== null) {
       if (now - this.pendingDeathAt < CONFIRMATION_MS)
-        return { ...this.authoritative, count: 0, aceAt: null }
+        return { ...this.authoritative, count: 0, aceAt: null, kinds: [] }
       this.pendingDeathAt = null
     }
     const maximum = this.authoritative.mode === 'F' ? 16 : 5
     return {
       ...this.authoritative,
       count: Math.min(maximum, this.authoritative.count + this.pending.length),
-      aceAt: this.authoritative.aceAt
+      aceAt: this.authoritative.aceAt,
+      kinds: [...this.confirmedKinds, ...this.pending.map((event) => event.kind)].slice(0, maximum)
     }
   }
 
@@ -146,6 +158,7 @@ export class KillCardPrediction {
     this.snapshot = null
     this.username = null
     this.pending = []
+    this.confirmedKinds = []
     this.pendingDeathAt = null
     this.lastRound = null
     this.lastPlayerId = null

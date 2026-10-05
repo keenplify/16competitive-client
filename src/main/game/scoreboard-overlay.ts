@@ -106,6 +106,7 @@ export class ScoreboardOverlaySession {
   private readonly killCardPrediction = new KillCardPrediction()
   private killCardsEnabled = true
   private lastKillCardState: string | null = null
+  private lastKillCardKinds = ''
   private cardStateTask: Promise<void> = Promise.resolve()
   private eventWatcher: FSWatcher | null = null
   private eventReadTask: Promise<void> | null = null
@@ -191,14 +192,16 @@ export class ScoreboardOverlaySession {
       this.killCardsEnabled && cards
         ? `${cards.mode} ${cards.count} ${cards.aceAt ?? 0} ${cards.side}\n`
         : null
-    if (state === this.lastKillCardState) return
+    const kinds = this.killCardsEnabled ? (cards?.kinds ?? []).join(',') : ''
+    if (state === this.lastKillCardState && kinds === this.lastKillCardKinds) return
     if (!this.cardsWindow.isDestroyed())
       this.cardsWindow.webContents.send(
         'kill-cards-count',
         this.killCardsEnabled ? (cards?.count ?? 0) : 0,
         cards?.mode ?? 'C',
         this.killCardsEnabled ? (cards?.aceAt ?? null) : null,
-        cards?.side ?? 'T'
+        cards?.side ?? 'T',
+        this.killCardsEnabled ? (cards?.kinds ?? []) : []
       )
     const destination = join(this.directory, 'kill-cards.state')
     if (state === null) {
@@ -214,6 +217,7 @@ export class ScoreboardOverlaySession {
       }
     }
     this.lastKillCardState = state
+    this.lastKillCardKinds = kinds
     if (state !== null && !this.cardsWindow.isDestroyed()) this.cardsWindow.webContents.invalidate()
   }
 
