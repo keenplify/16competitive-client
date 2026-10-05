@@ -53,7 +53,20 @@ export function OnboardingPage(): JSX.Element {
   const choose = useGameSettingsStore((state) => state.choose)
   const load = useGameSettingsStore((state) => state.load)
   const completeSetup = useGameSettingsStore((state) => state.completeSetup)
+  const nextClientInstallStatus = useGameSettingsStore((state) => state.nextClientInstallStatus)
+  const nextClientInstallProgress = useGameSettingsStore((state) => state.nextClientInstallProgress)
+  const nextClientInstallError = useGameSettingsStore((state) => state.nextClientInstallError)
+  const installNextClient = useGameSettingsStore((state) => state.installNextClient)
+  const detectNextClient = useGameSettingsStore((state) => state.detectNextClient)
+  const cancelNextClientDetection = useGameSettingsStore((state) => state.cancelNextClientDetection)
   const busy = status !== 'idle' || completionPhase === 'finishing'
+  const nextClientBusy = [
+    'checking_source',
+    'downloading',
+    'extracting',
+    'launching',
+    'detecting'
+  ].includes(nextClientInstallStatus)
   const referralBusy = referralStatus === 'loading' || referralStatus === 'claiming'
   const referralChecking =
     !!playerId &&
@@ -64,6 +77,8 @@ export function OnboardingPage(): JSX.Element {
   useEffect(() => {
     resetOnboarding()
   }, [playerId, resetOnboarding])
+
+  useEffect(() => () => cancelNextClientDetection(), [cancelNextClientDetection])
 
   useEffect(() => {
     if (!playerId) return
@@ -175,7 +190,7 @@ export function OnboardingPage(): JSX.Element {
                 <Button
                   variant="secondary"
                   className="w-full gap-2"
-                  disabled={busy}
+                  disabled={busy || nextClientBusy}
                   onClick={() => void choose()}
                 >
                   {busy ? (
@@ -214,8 +229,82 @@ export function OnboardingPage(): JSX.Element {
                         </span>
                       </p>
                       <p className="mt-1 text-xs leading-5 text-neutral-400">
-                        Already have NextClient for CS 1.6? Select its installation folder above.
+                        Install NextClient from its official download, or select an existing
+                        installation above.
                       </p>
+                      <Button
+                        variant="ghost"
+                        className="mt-3 h-8 gap-2 px-0 text-sky-300"
+                        disabled={busy || nextClientBusy || nextClientInstallStatus === 'waiting'}
+                        onClick={() => void installNextClient()}
+                      >
+                        {nextClientBusy ? (
+                          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Download className="size-4" aria-hidden="true" />
+                        )}
+                        {nextClientInstallStatus === 'error'
+                          ? 'Retry installer'
+                          : nextClientInstallStatus === 'waiting'
+                            ? 'Installer opened'
+                            : 'Install NextClient'}
+                      </Button>
+                      <div
+                        className="mt-2 min-h-10 text-xs leading-5 text-neutral-400"
+                        role="status"
+                      >
+                        {nextClientInstallStatus === 'downloading' && (
+                          <span>
+                            Downloading installer
+                            {nextClientInstallProgress?.totalBytes
+                              ? ` · ${Math.round((nextClientInstallProgress.downloadedBytes / nextClientInstallProgress.totalBytes) * 100)}%`
+                              : '…'}
+                          </span>
+                        )}
+                        {nextClientInstallStatus === 'checking_source' && 'Finding the download…'}
+                        {nextClientInstallStatus === 'extracting' && 'Preparing installer…'}
+                        {nextClientInstallStatus === 'launching' && 'Opening installer…'}
+                        {(nextClientInstallStatus === 'waiting' ||
+                          nextClientInstallStatus === 'detecting') && (
+                          <span>
+                            Finish the Windows installer. We’ll detect the folder you choose.
+                          </span>
+                        )}
+                        {nextClientInstallStatus === 'ready' && 'NextClient installation detected.'}
+                        {nextClientInstallStatus === 'error' && (
+                          <span className="text-red-400">{nextClientInstallError}</span>
+                        )}
+                      </div>
+                      {(nextClientInstallStatus === 'waiting' ||
+                        nextClientInstallStatus === 'error') && (
+                        <Button
+                          variant="ghost"
+                          className="h-7 px-0 text-xs text-sky-300"
+                          onClick={() => void detectNextClient()}
+                        >
+                          Detect installation now
+                        </Button>
+                      )}
+                      <div className="mt-2 h-1 overflow-hidden bg-white/10" aria-hidden="true">
+                        <div
+                          className="h-full bg-sky-400 transition-[width] duration-200"
+                          style={{
+                            width:
+                              nextClientInstallProgress?.phase === 'downloading' &&
+                              nextClientInstallProgress.totalBytes
+                                ? `${Math.min(100, (nextClientInstallProgress.downloadedBytes / nextClientInstallProgress.totalBytes) * 100)}%`
+                                : [
+                                      'extracting',
+                                      'launching',
+                                      'waiting',
+                                      'detecting',
+                                      'ready'
+                                    ].includes(nextClientInstallStatus)
+                                  ? '100%'
+                                  : '0%'
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -354,7 +443,9 @@ export function OnboardingPage(): JSX.Element {
             {step === 'installation' ? (
               <Button
                 className="w-full bg-sky-400 hover:bg-sky-300"
-                disabled={!savedPath || busy}
+                disabled={
+                  !savedPath || busy || nextClientBusy || nextClientInstallStatus === 'waiting'
+                }
                 onClick={() => setStep('preferences')}
               >
                 Continue

@@ -3,6 +3,10 @@ import type { CrosshairProfile } from './crosshair'
 export const GAME_SETTINGS_CHANNELS = {
   get: 'game-settings:get',
   chooseFolder: 'game-settings:choose-folder',
+  installNextClient: 'game-settings:install-nextclient',
+  cancelNextClientInstall: 'game-settings:cancel-nextclient-install',
+  detectNextClient: 'game-settings:detect-nextclient',
+  nextClientInstallProgress: 'game-settings:nextclient-install-progress',
   save: 'game-settings:save',
   setVoicePttKey: 'game-settings:set-voice-ptt-key',
   setCrosshair: 'game-settings:set-crosshair',
@@ -37,6 +41,12 @@ export interface GameSettings {
   platform: 'win32' | 'linux' | 'other'
 }
 
+export interface NextClientInstallProgress {
+  phase: 'checking_source' | 'downloading' | 'extracting' | 'launching'
+  downloadedBytes: number
+  totalBytes: number | null
+}
+
 export type SkinAssetSyncMode = 'download' | 'repair'
 
 export interface SkinAssetSyncProgress {
@@ -49,6 +59,10 @@ export interface SkinAssetSyncProgress {
 export interface GameSettingsApi {
   get(): Promise<GameSettings>
   chooseFolder(): Promise<string | null>
+  installNextClient(): Promise<void>
+  cancelNextClientInstall(): Promise<void>
+  detectNextClient(): Promise<string | null>
+  onNextClientInstallProgress(listener: (progress: NextClientInstallProgress) => void): () => void
   save(folderPath: string): Promise<GameSettings>
   setVoicePttKey(key: string): Promise<GameSettings>
   setCrosshair(profile: CrosshairProfile): Promise<GameSettings>

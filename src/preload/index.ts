@@ -16,7 +16,11 @@ import type { PartyApi } from '../shared/party'
 import { PARTY_CHANNELS } from '../shared/party'
 import type { FriendsApi } from '../shared/friends'
 import { FRIEND_CHANNELS } from '../shared/friends'
-import type { GameSettingsApi, SkinAssetSyncProgress } from '../shared/game-settings'
+import type {
+  GameSettingsApi,
+  NextClientInstallProgress,
+  SkinAssetSyncProgress
+} from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
 import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
@@ -184,6 +188,18 @@ const friends: FriendsApi = {
 const gameSettings: GameSettingsApi = {
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseFolder: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseFolder),
+  installNextClient: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.installNextClient),
+  cancelNextClientInstall: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.cancelNextClientInstall),
+  detectNextClient: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.detectNextClient),
+  onNextClientInstallProgress: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      progress: NextClientInstallProgress
+    ): void => listener(progress)
+    ipcRenderer.on(GAME_SETTINGS_CHANNELS.nextClientInstallProgress, handler)
+    return () =>
+      ipcRenderer.removeListener(GAME_SETTINGS_CHANNELS.nextClientInstallProgress, handler)
+  },
   save: (folderPath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, folderPath),
   setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
   setCrosshair: (profile) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCrosshair, profile),

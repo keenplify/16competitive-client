@@ -486,6 +486,18 @@ const api: Window['api'] = {
     async chooseFolder() {
       return null
     },
+    async installNextClient() {
+      throw new Error('NextClient installation requires the Windows launcher.')
+    },
+    async cancelNextClientInstall() {
+      // The browser cannot start an installer.
+    },
+    async detectNextClient() {
+      return null
+    },
+    onNextClientInstallProgress() {
+      return () => undefined
+    },
     async save() {
       throw new Error('Browser mode launches the Steam copy of Counter-Strike directly.')
     },
