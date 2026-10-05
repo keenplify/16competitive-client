@@ -785,6 +785,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
   setGameConsoleDirectory(cwd)
+  // Steam resolves its own bootstrap/runtime files relative to steam.exe on
+  // Windows. The selected GoldSrc directory is still the correct location for
+  // match configs and downloaded assets, but using it as Steam's cwd can leave
+  // `-applaunch 10` acknowledged without starting Counter-Strike.
+  const launchCwd =
+    process.platform === 'win32' && launchTarget.distribution === 'steam'
+      ? dirname(launchTarget.executable)
+      : cwd
   // Track the GoldSrc binary rather than the selected path: for a wrapper the
   // selected executable has already exited and match cleanup would miss the game.
   launchedExecutablePath = launchTarget.gameExecutable
@@ -823,7 +831,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   try {
     spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
       const child = spawn(launchTarget.executable, launchArgs, {
-        cwd,
+        cwd: launchCwd,
         shell: false,
         // A direct launch becomes its own process group so the match lifecycle
         // (reconnect, match closed, launcher exit) can terminate the whole tree
