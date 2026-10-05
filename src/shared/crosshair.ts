@@ -68,6 +68,16 @@ const CURRENT_CS2_DEFAULT: CrosshairV1 = {
 function toCurrentCs2(value: Crosshair): CrosshairV1 {
   if (value.format === 'cs2-v1') return value
   if (value.format === 'legacy-v1') {
+    // CS:GO's palette selection overrides the RGB fields unless "Custom" (5)
+    // is selected. Preset codes commonly carry 255/255/255 in those fields.
+    const preset = [
+      [255, 0, 0],
+      [0, 255, 0],
+      [255, 255, 0],
+      [0, 0, 255],
+      [0, 255, 255]
+    ][value.color]
+    const [red, green, blue] = preset ?? [value.red, value.green, value.blue]
     return {
       ...CURRENT_CS2_DEFAULT,
       style: bounded(value.style, 0, 5),
@@ -75,9 +85,9 @@ function toCurrentCs2(value: Crosshair): CrosshairV1 {
       centerDotEnabled: value.centerDotEnabled,
       tStyleEnabled: value.tStyleEnabled,
       outlineMode: value.outlineEnabled ? 1 : 0,
-      red: value.red,
-      green: value.green,
-      blue: value.blue,
+      red,
+      green,
+      blue,
       alpha: value.alphaEnabled ? value.alpha : 255,
       gap: bounded(value.gap, -128, 127),
       length: bounded(value.length, 0, 255),
