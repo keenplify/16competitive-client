@@ -739,6 +739,24 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     : null
   const useNativeNextClientMatchHandoff = nativeNextClientSession !== null
 
+  // Never fall back to a startup +exec for NextClient. NextClient can clear its
+  // live bind table when any cfg is supplied through +exec during startup. If
+  // the native handoff is unavailable, abort instead of risking the player's
+  // bindings. Other GoldSrc clients keep the launcher-owned cfg flow.
+  if (nextClient && !useNativeNextClientMatchHandoff) {
+    console.error('[NextClient] native match handoff unavailable; refusing unsafe +exec fallback', {
+      matchId: input.matchId,
+      integrationEnabled: gameSettings.nextClientIntegrationEnabled,
+      integrationAllowed: allowNextClientIntegration
+    })
+    await finishVoicePttSession(input.matchId)
+    await restoreManagedSkinAudio().catch(() => undefined)
+    clearMatchConfig(matchConfigGeneration)
+    throw new Error(
+      'NextClient match integration is unavailable. Restart the launcher and try again. Your game bindings were left untouched.'
+    )
+  }
+
   if (nativeNextClientSession) {
     try {
       if (!nextClientExpectedHost) throw new Error('NextClient server endpoint is not IPv4')
@@ -771,17 +789,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  // NextClient must not receive a startup +exec. A/B testing showed that even
-  // an otherwise empty cfg passed through +exec leaves its live bind table empty.
-  // The signed client_mini host consumes the private per-match handoff files
-  // after NextClient has initialized, then applies identity/password and connects.
-  // Other GoldSrc clients keep the launcher-owned cfg path so secrets stay out of
-  // the process command line.
+  // NextClient must never receive a startup +exec. The guard above guarantees
+  // that every NextClient launch reaches this point only with the native handoff
+  // active. Other GoldSrc clients keep the launcher-owned cfg path so secrets stay
+  // out of the process command line.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
-    ...(useNativeNextClientMatchHandoff ? [] : ['+exec', matchConfigName])
+    ...(nextClient ? [] : ['+exec', matchConfigName])
   ]
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
