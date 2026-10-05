@@ -5,6 +5,13 @@ import { verifyHelperBinary, verifyHelperRelease } from './helper-release-verifi
 
 let approvedUntil = 0
 
+export class HelperApprovalConnectionError extends Error {
+  constructor(cause: unknown) {
+    super('Could not connect to the helper approval service', { cause })
+    this.name = 'HelperApprovalConnectionError'
+  }
+}
+
 /** Local integrity check only: neither the helper nor this launcher is remote attestation. */
 export async function verifyPackagedHelper(binary: string): Promise<void> {
   const envelope: unknown = JSON.parse(
@@ -25,7 +32,9 @@ export async function verifyPackagedHelper(binary: string): Promise<void> {
     const response = await fetch(
       new URL(`/helper-releases/${manifest.version}/${manifest.platform}/${manifest.arch}`, origin),
       { signal: AbortSignal.timeout(5000), redirect: 'error', cache: 'no-store' }
-    )
+    ).catch((error: unknown) => {
+      throw new HelperApprovalConnectionError(error)
+    })
     if (!response.ok) throw new Error('Helper release is not currently approved')
     const approved: unknown = await response.json()
     const approvedManifest = verifyHelperRelease(approved, releaseConfig.publicKeyPem)

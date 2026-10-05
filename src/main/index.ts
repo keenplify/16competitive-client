@@ -149,6 +149,7 @@ import { getActiveOperation, getMyOperation, markOperationViewed } from './opera
 import { discordPresence } from './discord-presence'
 import { DISCORD_CLIENT_ID, REQUIRES_SIGNED_HELPER } from './config'
 import { assertHelperForBackend } from './anticheat/helper-process'
+import { HelperApprovalConnectionError } from './anticheat/helper-integrity'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -411,11 +412,19 @@ app.whenReady().then(async () => {
   // Gate production/remote access before creating the renderer or restoring a session.
   try {
     await assertHelperForBackend()
-  } catch {
-    dialog.showErrorBox(
-      'Approved helper required',
-      'This backend requires an approved signed anti-cheat helper. Install the pinned helper with npm run prepare:helper, or use the local development backend.'
-    )
+  } catch (error) {
+    console.error('[AntiCheat] startup helper verification failed', error)
+    if (error instanceof HelperApprovalConnectionError) {
+      dialog.showErrorBox(
+        'Internet connection needed',
+        'Connect to the internet and restart the launcher to verify the anti-cheat helper.'
+      )
+    } else {
+      dialog.showErrorBox(
+        'Approved helper required',
+        'The anti-cheat helper could not be verified. Repair or reinstall the launcher, then try again.'
+      )
+    }
     app.quit()
     return
   }
@@ -430,8 +439,12 @@ app.whenReady().then(async () => {
           if (shuttingDown) return
           console.error('[AntiCheat] periodic helper verification failed', error)
           dialog.showErrorBox(
-            'Anti-cheat verification unavailable',
-            'The helper could not be verified. Restart or repair the launcher before reconnecting. This is not a cheating ban.'
+            error instanceof HelperApprovalConnectionError
+              ? 'Internet connection needed'
+              : 'Anti-cheat verification unavailable',
+            error instanceof HelperApprovalConnectionError
+              ? 'Connect to the internet and restart the launcher to verify the anti-cheat helper.'
+              : 'The helper could not be verified. Restart or repair the launcher before reconnecting. This is not a cheating ban.'
           )
           app.quit()
         })

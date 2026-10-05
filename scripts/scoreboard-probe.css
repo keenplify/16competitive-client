@@ -46,6 +46,93 @@ html.kill-cards-only canvas {
   width: 480px;
   height: 280px;
 }
+html.kill-cards-preview-page,
+html.kill-cards-preview-page body,
+html.kill-cards-preview-page #root {
+  width: 100%;
+  min-height: 100%;
+  height: auto;
+  overflow: auto;
+  background: #0b1219;
+}
+html.kill-cards-preview-page #root {
+  display: block;
+}
+.kill-card-preview {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  color: #d9e8f0;
+  font:
+    500 17px Rajdhani,
+    sans-serif;
+}
+.kill-card-preview header span {
+  color: #80c6ef;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+.kill-card-preview h1 {
+  margin: 8px 0;
+  font-size: 42px;
+}
+.kill-card-preview p {
+  max-width: 570px;
+  margin: 0 0 28px;
+  color: #9eb0be;
+}
+.kill-card-preview-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 330px;
+  border: 1px solid #29404f;
+  background: radial-gradient(circle at center, #243b49 0%, #101d28 55%, #0b1219 100%);
+}
+.kill-card-preview-stage canvas {
+  width: 480px;
+  height: 280px;
+}
+.kill-card-preview-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.kill-card-preview button,
+.kill-card-preview select {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #5c899f;
+  border-radius: 4px;
+  background: #1b3341;
+  color: #e9f6ff;
+  font:
+    600 16px Rajdhani,
+    sans-serif;
+  cursor: pointer;
+}
+.kill-card-preview button:hover,
+.kill-card-preview button:focus-visible,
+.kill-card-preview select:focus-visible {
+  border-color: #b0e5ff;
+  outline: 2px solid #b0e5ff;
+  outline-offset: 2px;
+}
+.kill-card-preview button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.kill-card-preview button:disabled:hover {
+  border-color: #5c899f;
+  outline: none;
+}
+.kill-card-preview label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 * {
   box-sizing: border-box;
 }
