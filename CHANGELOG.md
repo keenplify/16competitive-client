@@ -1776,3 +1776,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added referral onboarding.
 - Added referral settings so referral information can be managed later.
+
+## v2026.1005.4 — 2026-10-05
+
+- Install NextClient from official website during Windows setup
