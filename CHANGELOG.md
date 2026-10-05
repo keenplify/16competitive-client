@@ -1749,3 +1749,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed several launcher issues.
 - Improved scoreboard overlay behavior.
+
+## v2026.1005.2 — 2026-10-05
+
+### Matchmaking
+
+- Matchmaking connection now restores when the launcher regains focus.
+
+### Issue Reports
+
+- Issue reports now include relevant match diagnostics without uploading user configuration snapshots.
+
+### Windows
+
+- Fixed launching Counter-Strike through Steam on Windows.
