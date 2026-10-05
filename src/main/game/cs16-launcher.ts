@@ -146,25 +146,13 @@ let nextClientUserConfigBackup: {
 } | null = null
 
 const stripManagedNextClientUserConfigBlock = (contents: string): string => {
-  const escapedBegin = NEXTCLIENT_USERCONFIG_BEGIN.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\const clearMatchConfig = (generation?: number): void => {
-  if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
-  const matchConfigPath = launchedMatchConfigPath
-  launchedMatchConfigPath = null
-  launchedMatchConfigGeneration = 0
-  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
-}
-')
-  const escapedEnd = NEXTCLIENT_USERCONFIG_END.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\const clearMatchConfig = (generation?: number): void => {
-  if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
-  const matchConfigPath = launchedMatchConfigPath
-  launchedMatchConfigPath = null
-  launchedMatchConfigGeneration = 0
-  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
-}
-')
-  return contents
-    .replace(new RegExp(`(?:\\r?\\n)?${escapedBegin}[\\s\\S]*?${escapedEnd}(?:\\r?\\n)?`, 'g'), '\n')
-    .replace(/^\s+|\s+$/g, '')
+  const begin = contents.indexOf(NEXTCLIENT_USERCONFIG_BEGIN)
+  if (begin < 0) return contents
+  const end = contents.indexOf(NEXTCLIENT_USERCONFIG_END, begin)
+  if (end < 0) return contents.slice(0, begin).trimEnd()
+  const before = contents.slice(0, begin).trimEnd()
+  const after = contents.slice(end + NEXTCLIENT_USERCONFIG_END.length).trimStart()
+  return [before, after].filter(Boolean).join('\n')
 }
 
 const prepareNextClientUserConfigHandoff = async (
@@ -184,7 +172,7 @@ const prepareNextClientUserConfigHandoff = async (
     `exec "${matchConfigName}"`,
     NEXTCLIENT_USERCONFIG_END
   ].join('\n')
-  const next = [clean, managedBlock, ''].filter((part, index) => index > 0 || part.length > 0).join('\n')
+  const next = [clean, managedBlock].filter(Boolean).join('\n') + '\n'
 
   nextClientUserConfigBackup = { path, existed, contents }
   await writeFile(path, next, { encoding: 'utf8', mode: 0o600 })
