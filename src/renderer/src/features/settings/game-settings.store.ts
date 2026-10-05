@@ -193,9 +193,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         platform: settings.platform,
         status: 'idle',
         requiresGameSetup: false,
-        notice: settings.nextClientDetected
-          ? 'NextClient detected. Use NextClient settings to adjust your crosshair.'
-          : 'Counter-Strike path saved.'
+        notice: 'Counter-Strike path saved.'
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
