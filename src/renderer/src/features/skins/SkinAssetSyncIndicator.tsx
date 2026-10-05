@@ -9,6 +9,7 @@ import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useCustomGamesStore } from '../matchmaking/custom-games.store'
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
@@ -16,6 +17,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)
+  const matchId = useMatchmakingStore((state) =>
+    state.match?.matchId ?? state.connectionDetails?.matchId ?? state.completedMatch?.matchId
+  )
   const [progress, setProgress] = useState<Extract<
     MatchmakingEvent,
     { type: 'skin_assets_sync_progress' }
@@ -100,7 +104,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     setReporting(true)
     setReportStatus('')
     try {
-      await window.api.diagnosticLogs.report(description.trim(), getRendererDiagnosticLogs())
+      await window.api.diagnosticLogs.report(description.trim(), getRendererDiagnosticLogs(), matchId ?? undefined)
       setReportStatus('Issue reported. Thank you!')
       setDescription('')
       window.setTimeout(() => {

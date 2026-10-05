@@ -5,7 +5,7 @@ type Cancellation = {
 }
 
 export function createAutomaticMatchReporter(
-  report: (description: string, logs: string[], deduplicationKey: string) => Promise<unknown>,
+  report: (description: string, logs: string[], deduplicationKey: string, matchId?: string) => Promise<unknown>,
   wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 ): (event: Cancellation) => Promise<void> {
   const submitted = new Set<string>()
@@ -22,7 +22,7 @@ export function createAutomaticMatchReporter(
     ].join('\n')
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await report(description, [], `match-connect-timeout:${event.matchId}`)
+        await report(description, [], `match-connect-timeout:${event.matchId}`, event.matchId)
         console.info('[IssueReport] automatic connection failure report submitted', {
           matchId: event.matchId
         })
