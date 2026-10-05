@@ -1780,3 +1780,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ## v2026.1005.4 — 2026-10-05
 
 - Install NextClient from official website during Windows setup
+
+## v2026.1005.5 — 2026-10-05
+
+### Crosshair
+
+- Edit your CS2 crosshair live during matches.
+- Import and share CS2 crosshair codes.
+- Use 1.6 Competitive crosshair settings with NextClient.
+
+### Fixes
+
+- Fixed stale skin asset setup notifications.
