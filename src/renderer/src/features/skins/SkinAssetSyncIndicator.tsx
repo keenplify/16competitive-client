@@ -1,6 +1,6 @@
 import { Clipboard, Download, LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { MatchmakingEvent } from '../../../../shared/matchmaking'
+import type { SkinAssetSyncProgress } from '../../../../shared/game-settings'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
 import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
@@ -20,10 +20,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const matchId = useMatchmakingStore((state) =>
     state.match?.matchId ?? state.connectionDetails?.matchId ?? state.completedMatch?.matchId
   )
-  const [progress, setProgress] = useState<Extract<
-    MatchmakingEvent,
-    { type: 'skin_assets_sync_progress' }
-  > | null>(null)
+  const [progress, setProgress] = useState<SkinAssetSyncProgress | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
   const [description, setDescription] = useState('')
   const [reporting, setReporting] = useState(false)
@@ -31,9 +28,22 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const [railMode, setRailMode] = useState<RailMode>('absent')
 
   useEffect(() => {
-    return window.api.matchmaking.onEvent((event) => {
-      if (event.type === 'skin_assets_sync_progress') setProgress(event)
+    let active = true
+    const applyProgress = (nextProgress: SkinAssetSyncProgress): void => {
+      if (active) setProgress(nextProgress)
+    }
+    const unsubscribeSettings = window.api.gameSettings.onAssetSyncProgress(applyProgress)
+    const unsubscribeMatchmaking = window.api.matchmaking.onEvent((event) => {
+      if (event.type === 'skin_assets_sync_progress') {
+        applyProgress(event)
+      }
     })
+    void window.api.gameSettings.getAssetSyncStatus().then(applyProgress).catch(() => undefined)
+    return () => {
+      active = false
+      unsubscribeSettings()
+      unsubscribeMatchmaking()
+    }
   }, [])
 
   useEffect(() => {
