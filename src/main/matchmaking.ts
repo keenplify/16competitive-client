@@ -21,7 +21,7 @@ import type {
   GlobalChatMessageDeleted,
   GlobalChatScope
 } from '../shared/matchmaking'
-import { getSessionToken } from './auth'
+import { clearSessionToken, getSessionToken } from './auth'
 import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
@@ -967,14 +967,19 @@ class MatchmakingConnection {
       type: 'connection_state',
       state: handoff ? 'handoff' : reconnecting ? 'reconnecting' : 'connecting'
     })
-    void this.createSocket(token, apiUrl, handoff).then(
-      () => {
+    void this.createSocket(token, apiUrl, handoff)
+      .catch((error: unknown) => {
+        console.warn('[Matchmaking] WebSocket setup failed', error)
+        if (handoff) {
+          this.socket?.close()
+        } else {
+          this.notify({ type: 'connection_state', state: 'reconnecting' })
+          this.scheduleReconnect()
+        }
+      })
+      .finally(() => {
         this.socketOpening = false
-      },
-      () => {
-        this.socketOpening = false
-      }
-    )
+      })
   }
 
   private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
@@ -1026,6 +1031,12 @@ class MatchmakingConnection {
       }
       if (!isServerMessage(parsed, websocketUrl)) {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
+        return
+      }
+      if (parsed.type === 'error' && parsed.code === 'UNAUTHORIZED' && !socketAuthenticated) {
+        this.notify(parsed)
+        this.disconnect()
+        clearSessionToken()
         return
       }
       if (parsed.type === 'pong') {

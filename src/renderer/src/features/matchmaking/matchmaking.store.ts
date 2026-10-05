@@ -429,6 +429,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'error':
+        if (event.code === 'UNAUTHORIZED') {
+          get().reset()
+          useAuthStore.getState().expireSession()
+          break
+        }
         if (event.code === 'MATCH_ABANDON_WARNING' || event.code === 'MATCH_ABANDON_PENALTY') {
           set({
             matchAbandonNotice: {
@@ -548,7 +553,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         removeEventListener = window.api.matchmaking.onEvent(handleEvent)
       }
 
-      set({ connectionStatus: 'connecting', error: null })
+      if (get().connectionStatus !== 'ready') {
+        set({ connectionStatus: 'connecting', error: null })
+      }
       try {
         await window.api.matchmaking.connect()
       } catch (error) {

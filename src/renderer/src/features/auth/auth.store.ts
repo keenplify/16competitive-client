@@ -29,6 +29,7 @@ interface AuthState {
   changeFlagCountryCode: (flagCountryCode: string | null) => Promise<boolean>
   restore: () => Promise<void>
   refreshSession: () => Promise<void>
+  expireSession: () => void
   logout: () => Promise<void>
   setMmr: (mmr: number) => void
   setPoints: (points: number) => void
@@ -77,6 +78,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // A transient refresh failure must not sign out an active player.
     }
   },
+
+  expireSession: () =>
+    set({
+      mode: 'login',
+      status: 'idle',
+      session: null,
+      password: '',
+      socialProvider: null,
+      socialPollToken: null,
+      socialPasswordRequired: false,
+      error: 'Your session expired. Sign in again.'
+    }),
 
   setMode: (mode) =>
     set({
