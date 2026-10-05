@@ -1,6 +1,13 @@
 import { useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
-import { parseCrosshairProfile, type CrosshairProfile } from '../../../../shared/crosshair'
+import {
+  getCs2Crosshair,
+  importCrosshairShareCode,
+  parseCrosshairProfile,
+  updateCs2Crosshair,
+  upgradeCrosshairToCs2,
+  type CrosshairProfile
+} from '../../../../shared/crosshair'
 import { Button } from '../../components/ui/Button'
 import { useGameSettingsStore } from './game-settings.store'
 
@@ -11,6 +18,19 @@ const limits = {
   outline: [0, 4],
   opacity: [10, 100]
 } as const
+
+const cs2Styles = [
+  'Dynamic cross',
+  'Dynamic circle',
+  'Dynamic split cross',
+  'Static circle',
+  'Static cross',
+  'Static cross with shot feedback',
+  'Dot only',
+  'Dynamic quadrant',
+  'Static square',
+  'Static quadrant'
+]
 
 export function CrosshairSettings(): JSX.Element {
   const saved = useGameSettingsStore((state) => state.crosshair)
@@ -37,11 +57,31 @@ function CrosshairEditor({
   const [profile, setProfile] = useState<CrosshairProfile>(saved)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [codeInput, setCodeInput] = useState(saved.shareCode ?? '')
   const importRef = useRef<HTMLInputElement>(null)
+  const cs2 = getCs2Crosshair(profile)
 
   const update = <K extends keyof CrosshairProfile>(key: K, value: CrosshairProfile[K]): void => {
     setProfile((current) => ({ ...current, [key]: value }))
     setMessage('')
+  }
+
+  const updateCs2 = (patch: Parameters<typeof updateCs2Crosshair>[1]): void => {
+    const updated = updateCs2Crosshair(profile, patch)
+    setProfile(updated)
+    setCodeInput(updated.shareCode ?? '')
+    setMessage('Preview updated. Save to use it in matches.')
+  }
+
+  const importCode = (): void => {
+    try {
+      const imported = importCrosshairShareCode(codeInput)
+      setProfile(imported)
+      setCodeInput(imported.shareCode ?? '')
+      setMessage('CS2 crosshair imported. Save to use it in matches.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Invalid crosshair code.')
+    }
   }
 
   const save = async (): Promise<void> => {
@@ -64,6 +104,7 @@ function CrosshairEditor({
       if (file.size > 4096) throw new Error('Crosshair file exceeds 4 KB.')
       const imported = parseCrosshairProfile(JSON.parse(await file.text()))
       setProfile(imported)
+      setCodeInput(imported.shareCode ?? '')
       setMessage('Crosshair imported. Save to keep it on this device.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Invalid crosshair file.')
@@ -89,23 +130,32 @@ function CrosshairEditor({
       className="absolute"
       style={{
         backgroundColor: profile.color,
-        opacity: profile.opacity / 100,
-        boxShadow: profile.outline ? `0 0 0 ${profile.outline}px #080808` : 'none',
+        opacity: cs2 ? cs2.alpha / 255 : profile.opacity / 100,
+        boxShadow: cs2?.outlineMode
+          ? `0 0 0 ${cs2.outlineMode === 2 ? 1 : 2}px rgba(${cs2.outlineRed},${cs2.outlineGreen},${cs2.outlineBlue},${cs2.outlineAlpha / 255})`
+          : profile.outline
+            ? `0 0 0 ${profile.outline}px #080808`
+            : 'none',
         ...style
       }}
     />
   )
 
-  const scale = 2
-  const gap = profile.gap * scale
-  const length = profile.size * scale
-  const thickness = profile.thickness * scale
+  const scale = cs2 ? 3 : 2
+  const gap = (cs2?.gap ?? profile.gap) * scale
+  const length = (cs2?.length ?? profile.size) * scale
+  const thickness = Math.max(1, (cs2?.thickness ?? profile.thickness) * scale)
+  const style = cs2?.style ?? 4
+  const circle = style === 1 || style === 3
+  const square = style === 8
+  const quadrant = style === 7 || style === 9
+  const dotOnly = style === 6
   return (
     <section className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
       <h3 className="text-lg font-semibold">Crosshair</h3>
       <p className="mt-1 text-sm text-neutral-400">
-        Design a crosshair and share it as a JSON file. Save changes while playing to update the
-        in-game crosshair.
+        Import a current CS2 code, tune its settings, and save it for 1.6 Competitive matches.
+        Existing JSON crosshairs still work.
       </p>
       {!enabled && (
         <p className="mt-3 text-sm text-amber-300" role="status">
@@ -113,6 +163,35 @@ function CrosshairEditor({
         </p>
       )}
       <fieldset disabled={!enabled} className={!enabled ? 'opacity-40' : undefined}>
+        <div className="mt-5">
+          <label className="block text-sm text-neutral-200" htmlFor="cs2-crosshair-code">
+            CS2 crosshair code
+          </label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input
+              id="cs2-crosshair-code"
+              value={codeInput}
+              maxLength={64}
+              onChange={(event) => setCodeInput(event.currentTarget.value)}
+              placeholder="CS… or CSGO-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+              className="min-w-0 flex-1 border border-white/20 bg-neutral-950 px-3 py-2 font-mono text-xs text-white"
+            />
+            <Button variant="ghost" onClick={importCode}>
+              Import code
+            </Button>
+            {cs2 && (
+              <Button
+                variant="ghost"
+                onClick={() => void navigator.clipboard.writeText(profile.shareCode ?? '')}
+              >
+                Copy code
+              </Button>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">
+            Current CS2 codes begin with CS. Older CSGO codes are converted to the current format.
+          </p>
+        </div>
         <div className="mt-5 grid gap-6 md:grid-cols-[200px_1fr]">
           <div
             className="relative h-48 overflow-hidden border border-white/10 bg-[#444]"
@@ -120,11 +199,72 @@ function CrosshairEditor({
           >
             <div className="absolute inset-0 bg-[linear-gradient(135deg,#5b6550_0%,#454b3c_50%,#776c55_100%)]" />
             <div className="absolute left-1/2 top-1/2">
-              {arm({ width: length, height: thickness, left: gap, top: -thickness / 2 }, 'right')}
-              {arm({ width: length, height: thickness, right: gap, top: -thickness / 2 }, 'left')}
-              {arm({ width: thickness, height: length, top: gap, left: -thickness / 2 }, 'down')}
-              {arm({ width: thickness, height: length, bottom: gap, left: -thickness / 2 }, 'up')}
-              {profile.dot &&
+              {circle &&
+                arm(
+                  {
+                    width: 2 * (gap + length),
+                    height: 2 * (gap + length),
+                    left: -(gap + length),
+                    top: -(gap + length),
+                    border: `${thickness}px solid ${profile.color}`,
+                    borderRadius: '50%',
+                    background: 'transparent'
+                  },
+                  'circle'
+                )}
+              {square &&
+                arm(
+                  {
+                    width: 2 * (gap + length),
+                    height: 2 * (gap + length),
+                    left: -(gap + length),
+                    top: -(gap + length),
+                    border: `${thickness}px solid ${profile.color}`,
+                    background: 'transparent'
+                  },
+                  'square'
+                )}
+              {quadrant &&
+                [-1, 1].flatMap((sx) =>
+                  [-1, 1].map((sy) =>
+                    arm(
+                      {
+                        width: length,
+                        height: length,
+                        left: sx < 0 ? -gap - length : gap,
+                        top: sy < 0 ? -gap - length : gap,
+                        borderTop: sy < 0 ? `${thickness}px solid ${profile.color}` : undefined,
+                        borderBottom: sy > 0 ? `${thickness}px solid ${profile.color}` : undefined,
+                        borderLeft: sx < 0 ? `${thickness}px solid ${profile.color}` : undefined,
+                        borderRight: sx > 0 ? `${thickness}px solid ${profile.color}` : undefined,
+                        background: 'transparent'
+                      },
+                      `quad-${sx}-${sy}`
+                    )
+                  )
+                )}
+              {!circle && !square && !quadrant && !dotOnly && (
+                <>
+                  {arm(
+                    { width: length, height: thickness, left: gap, top: -thickness / 2 },
+                    'right'
+                  )}
+                  {arm(
+                    { width: length, height: thickness, right: gap, top: -thickness / 2 },
+                    'left'
+                  )}
+                  {arm(
+                    { width: thickness, height: length, top: gap, left: -thickness / 2 },
+                    'down'
+                  )}
+                  {!cs2?.tStyleEnabled &&
+                    arm(
+                      { width: thickness, height: length, bottom: gap, left: -thickness / 2 },
+                      'up'
+                    )}
+                </>
+              )}
+              {(dotOnly || profile.dot) &&
                 arm(
                   {
                     width: thickness,
@@ -136,51 +276,159 @@ function CrosshairEditor({
                 )}
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm text-neutral-200">
-              Color
-              <input
-                type="color"
-                className="mt-1 block h-10 w-full"
-                value={profile.color}
-                onChange={(event) => update('color', event.currentTarget.value.toUpperCase())}
-              />
-            </label>
-            {Object.entries(limits).map(([key, [min, max]]) => (
-              <label key={key} className="text-sm text-neutral-200">
-                <span className="flex justify-between">
-                  <span className="capitalize">{key}</span>
-                  <span>{profile[key as keyof typeof limits]}</span>
-                </span>
+          {cs2 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm text-neutral-200 sm:col-span-2">
+                Style
+                <select
+                  className="mt-1 block h-10 w-full border border-white/20 bg-neutral-950 px-2"
+                  value={cs2.style}
+                  onChange={(event) => updateCs2({ style: Number(event.currentTarget.value) })}
+                >
+                  {cs2Styles.map((name, index) => (
+                    <option key={name} value={index}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm text-neutral-200">
+                Color
                 <input
-                  type="range"
-                  className="mt-2 w-full accent-sky-400"
-                  min={min}
-                  max={max}
-                  value={profile[key as keyof typeof limits]}
-                  onChange={(event) =>
-                    update(key as keyof typeof limits, Number(event.currentTarget.value))
-                  }
+                  type="color"
+                  className="mt-1 block h-10 w-full"
+                  value={profile.color}
+                  onChange={(event) => {
+                    const hex = event.currentTarget.value
+                    updateCs2({
+                      red: parseInt(hex.slice(1, 3), 16),
+                      green: parseInt(hex.slice(3, 5), 16),
+                      blue: parseInt(hex.slice(5, 7), 16)
+                    })
+                  }}
                 />
               </label>
-            ))}
-            <label className="flex items-center gap-2 text-sm text-neutral-200">
-              <input
-                type="checkbox"
-                checked={profile.dot}
-                onChange={(event) => update('dot', event.currentTarget.checked)}
-              />{' '}
-              Center dot
-            </label>
-            <label className="flex items-center gap-2 text-sm text-neutral-200">
-              <input
-                type="checkbox"
-                checked={profile.dynamic}
-                onChange={(event) => update('dynamic', event.currentTarget.checked)}
-              />{' '}
-              Dynamic gap
-            </label>
-          </div>
+              <label className="text-sm text-neutral-200">
+                Outline color
+                <input
+                  type="color"
+                  className="mt-1 block h-10 w-full"
+                  value={`#${[cs2.outlineRed, cs2.outlineGreen, cs2.outlineBlue].map((value) => value.toString(16).padStart(2, '0')).join('')}`}
+                  onChange={(event) => {
+                    const hex = event.currentTarget.value
+                    updateCs2({
+                      outlineRed: parseInt(hex.slice(1, 3), 16),
+                      outlineGreen: parseInt(hex.slice(3, 5), 16),
+                      outlineBlue: parseInt(hex.slice(5, 7), 16)
+                    })
+                  }}
+                />
+              </label>
+              {(
+                [
+                  ['length', 'Length', 0, 255],
+                  ['gap', 'Gap', -128, 127],
+                  ['thickness', 'Thickness', 0, 255],
+                  ['alpha', 'Opacity', 0, 255]
+                ] as const
+              ).map(([key, label, min, max]) => (
+                <label key={key} className="text-sm text-neutral-200">
+                  <span className="flex justify-between">
+                    <span>{label}</span>
+                    <span>{cs2[key]}</span>
+                  </span>
+                  <input
+                    type="range"
+                    className="mt-2 w-full accent-sky-400"
+                    min={min}
+                    max={max}
+                    value={cs2[key]}
+                    onChange={(event) => updateCs2({ [key]: Number(event.currentTarget.value) })}
+                  />
+                </label>
+              ))}
+              <label className="text-sm text-neutral-200">
+                Outline
+                <select
+                  className="mt-1 block h-10 w-full border border-white/20 bg-neutral-950 px-2"
+                  value={cs2.outlineMode}
+                  onChange={(event) =>
+                    updateCs2({ outlineMode: Number(event.currentTarget.value) })
+                  }
+                >
+                  <option value={0}>None</option>
+                  <option value={1}>Full</option>
+                  <option value={2}>Half</option>
+                </select>
+              </label>
+              {(
+                [
+                  ['centerDotEnabled', 'Center dot'],
+                  ['tStyleEnabled', 'T shape'],
+                  ['followRecoil', 'Follow recoil']
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-neutral-200">
+                  <input
+                    type="checkbox"
+                    checked={cs2[key]}
+                    onChange={(event) => updateCs2({ [key]: event.currentTarget.checked })}
+                  />
+                  {label}
+                </label>
+              ))}
+              <p className="text-xs text-neutral-500 sm:col-span-2">
+                CS2 pixel sizes scale with the game resolution. Movement and recoil follow GoldSrc
+                game data.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm text-neutral-200">
+                Color
+                <input
+                  type="color"
+                  className="mt-1 block h-10 w-full"
+                  value={profile.color}
+                  onChange={(event) => update('color', event.currentTarget.value.toUpperCase())}
+                />
+              </label>
+              {Object.entries(limits).map(([key, [min, max]]) => (
+                <label key={key} className="text-sm text-neutral-200">
+                  <span className="flex justify-between">
+                    <span className="capitalize">{key}</span>
+                    <span>{profile[key as keyof typeof limits]}</span>
+                  </span>
+                  <input
+                    type="range"
+                    className="mt-2 w-full accent-sky-400"
+                    min={min}
+                    max={max}
+                    value={profile[key as keyof typeof limits]}
+                    onChange={(event) =>
+                      update(key as keyof typeof limits, Number(event.currentTarget.value))
+                    }
+                  />
+                </label>
+              ))}
+              <label className="flex items-center gap-2 text-sm text-neutral-200">
+                <input
+                  type="checkbox"
+                  checked={profile.dot}
+                  onChange={(event) => update('dot', event.currentTarget.checked)}
+                />{' '}
+                Center dot
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-200">
+                <input
+                  type="checkbox"
+                  checked={profile.dynamic}
+                  onChange={(event) => update('dynamic', event.currentTarget.checked)}
+                />{' '}
+                Dynamic gap
+              </label>
+            </div>
+          )}
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button disabled={saving} onClick={() => void save()}>
@@ -192,6 +440,18 @@ function CrosshairEditor({
           <Button variant="ghost" onClick={exportFile}>
             Export JSON
           </Button>
+          {!cs2 && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const upgraded = upgradeCrosshairToCs2(profile)
+                setProfile(upgraded)
+                setCodeInput(upgraded.shareCode ?? '')
+              }}
+            >
+              Use CS2 controls
+            </Button>
+          )}
           <input
             ref={importRef}
             type="file"

@@ -7,7 +7,7 @@ import { release } from 'node:os'
 import { app, BrowserWindow } from 'electron'
 import { getSessionToken, getSessionUsername } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
-import type { CrosshairProfile } from '../../shared/crosshair'
+import { serializeCrosshairConfig, type CrosshairProfile } from '../../shared/crosshair'
 import { getGameSettings } from './game-settings'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
@@ -35,24 +35,10 @@ const writeCrosshairConfig = async (
   directory: string,
   crosshair: CrosshairProfile
 ): Promise<void> => {
-  const color = [1, 3, 5].map((index) => parseInt(crosshair.color.slice(index, index + 2), 16))
   const destination = join(directory, 'crosshair.conf')
   const temporary = `${destination}.${randomUUID()}.tmp`
   try {
-    await writeFile(
-      temporary,
-      [
-        ...color,
-        crosshair.size,
-        crosshair.gap,
-        crosshair.thickness,
-        crosshair.outline,
-        crosshair.opacity,
-        Number(crosshair.dot),
-        Number(crosshair.dynamic)
-      ].join(' ') + '\n',
-      { mode: 0o600 }
-    )
+    await writeFile(temporary, serializeCrosshairConfig(crosshair), { mode: 0o600 })
     await rename(temporary, destination)
   } finally {
     await unlink(temporary).catch(() => undefined)
@@ -157,8 +143,7 @@ export class ScoreboardOverlaySession {
   }
 
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
-    if (!this.stopped)
-      await writeCrosshairConfig(this.directory, crosshair)
+    if (!this.stopped) await writeCrosshairConfig(this.directory, crosshair)
   }
 
   async updateKillCards(enabled: boolean): Promise<void> {
