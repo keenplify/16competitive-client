@@ -1737,3 +1737,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Native in-game features now work on ARM64 Linux.
+
+## v2026.1005.1 — 2026-10-05
+
+### Kill Cards
+
+- Added a kill card preview.
+- Improved kill card tracking and display.
+
+### Launcher
+
+- Fixed several launcher issues.
+- Improved scoreboard overlay behavior.
