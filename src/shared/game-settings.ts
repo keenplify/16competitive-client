@@ -9,10 +9,14 @@ export const GAME_SETTINGS_CHANNELS = {
   setNextClientIntegration: 'game-settings:set-nextclient-integration',
   setFastSwitch: 'game-settings:set-fast-switch',
   setKillCards: 'game-settings:set-kill-cards',
+  completeSetup: 'game-settings:complete-setup',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
   syncAssets: 'game-settings:sync-assets',
   assetSyncProgress: 'game-settings:asset-sync-progress'
 } as const
+
+export type SetupMode = 'recommended' | 'custom'
+export type ClientType = 'steam' | 'nextclient' | 'standalone'
 
 export interface GameSettings {
   cs16ExecutablePath: string | null
@@ -25,7 +29,12 @@ export interface GameSettings {
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
   fastSwitchEnabled: boolean
+  fastSwitchManaged: boolean
   killCardsEnabled: boolean
+  setupCompleted: boolean
+  setupMode: SetupMode | null
+  clientType: ClientType | null
+  platform: 'win32' | 'linux' | 'other'
 }
 
 export type SkinAssetSyncMode = 'download' | 'repair'
@@ -46,6 +55,7 @@ export interface GameSettingsApi {
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
   setFastSwitch(enabled: boolean): Promise<GameSettings>
   setKillCards(enabled: boolean): Promise<GameSettings>
+  completeSetup(mode: SetupMode): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>
   syncAssets(mode: SkinAssetSyncMode): Promise<void>
   onAssetSyncProgress(listener: (progress: SkinAssetSyncProgress) => void): () => void

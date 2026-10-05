@@ -50,6 +50,8 @@ const auth: AuthApi = {
   connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),
+  getReferralStatus: () => ipcRenderer.invoke(AUTH_CHANNELS.referralStatus),
+  claimReferralCode: (code) => ipcRenderer.invoke(AUTH_CHANNELS.referralClaim, code),
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   changeFlagCountryCode: (flagCountryCode) =>
     ipcRenderer.invoke(AUTH_CHANNELS.flagChange, flagCountryCode),
@@ -187,6 +189,7 @@ const gameSettings: GameSettingsApi = {
   setCrosshair: (profile) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCrosshair, profile),
   setNextClientIntegration: (enabled) =>
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setNextClientIntegration, enabled),
+  completeSetup: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.completeSetup, mode),
   setFastSwitch: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setFastSwitch, enabled),
   setKillCards: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setKillCards, enabled),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),

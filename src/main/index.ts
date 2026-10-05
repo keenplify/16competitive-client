@@ -19,6 +19,8 @@ import {
   connectSocial,
   getSessionToken,
   getSocialConnections,
+  getReferralStatus,
+  claimReferralCode,
   reopenSocialAuthorization,
   restoreSession
 } from './auth'
@@ -78,6 +80,7 @@ import {
   saveVoicePttKey,
   saveCrosshair,
   saveNextClientIntegration,
+  completeGameSetup,
   saveFastSwitch,
   saveKillCards
 } from './game/game-settings'
@@ -493,9 +496,17 @@ app.whenReady().then(async () => {
         throw new Error('Issue description is invalid.')
       if (!Array.isArray(rendererLogs) || rendererLogs.some((log) => typeof log !== 'string'))
         throw new Error('Diagnostic logs are invalid.')
-      if (matchId !== undefined && (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)))
+      if (
+        matchId !== undefined &&
+        (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId))
+      )
         throw new Error('Match ID is invalid.')
-      return reportDiagnosticIssue(description.trim(), rendererLogs.slice(0, 2_000), undefined, matchId)
+      return reportDiagnosticIssue(
+        description.trim(),
+        rendererLogs.slice(0, 2_000),
+        undefined,
+        matchId
+      )
     }
   )
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
@@ -519,6 +530,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
+  ipcMain.handle(AUTH_CHANNELS.referralStatus, () => getReferralStatus())
+  ipcMain.handle(AUTH_CHANNELS.referralClaim, (_, code: unknown) => claimReferralCode(code))
   ipcMain.handle(AUTH_CHANNELS.passwordChange, (_, credentials: unknown) =>
     changePassword(credentials)
   )
@@ -759,6 +772,9 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setNextClientIntegration, (_, enabled: unknown) =>
     saveNextClientIntegration(enabled)
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.completeSetup, (_, mode: unknown) =>
+    completeGameSetup(mode)
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
     saveFastSwitch(enabled)

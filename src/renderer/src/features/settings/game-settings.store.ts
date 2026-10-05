@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
+import type { ClientType, SetupMode } from '../../../../shared/game-settings'
 
 interface GameSettingsState {
   folderPath: string
   savedPath: string | null
   configFilePath: string | null
   status: 'idle' | 'loading' | 'choosing' | 'saving'
+  loaded: boolean
   error: string | null
   notice: string | null
   requiresGameSetup: boolean
@@ -14,7 +16,12 @@ interface GameSettingsState {
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
   fastSwitchEnabled: boolean
+  fastSwitchManaged: boolean
   killCardsEnabled: boolean
+  setupCompleted: boolean
+  setupMode: SetupMode | null
+  clientType: ClientType | null
+  platform: 'win32' | 'linux' | 'other'
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
   setNextClientIntegration: (enabled: boolean) => Promise<void>
   setFastSwitch: (enabled: boolean) => Promise<void>
@@ -22,6 +29,7 @@ interface GameSettingsState {
   load: () => Promise<void>
   choose: () => Promise<void>
   save: () => Promise<void>
+  completeSetup: (mode: SetupMode) => Promise<boolean>
   promptToConfigureForMatch: () => void
 }
 
@@ -35,6 +43,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   savedPath: null,
   configFilePath: null,
   status: 'idle',
+  loaded: false,
   error: null,
   notice: null,
   requiresGameSetup: false,
@@ -43,7 +52,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   nextClientIntegrationEnabled: true,
   nextClientIntegrationDisabledReason: null,
   fastSwitchEnabled: true,
+  fastSwitchManaged: true,
   killCardsEnabled: true,
+  setupCompleted: false,
+  setupMode: null,
+  clientType: null,
+  platform: 'other',
 
   setCrosshair: async (profile) => {
     const settings = await window.api.gameSettings.setCrosshair(profile)
@@ -67,7 +81,11 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   setFastSwitch: async (enabled) => {
     try {
       const settings = await window.api.gameSettings.setFastSwitch(enabled)
-      set({ fastSwitchEnabled: settings.fastSwitchEnabled, error: null })
+      set({
+        fastSwitchEnabled: settings.fastSwitchEnabled,
+        fastSwitchManaged: settings.fastSwitchManaged,
+        error: null
+      })
     } catch (error) {
       set({ error: message(error) })
     }
@@ -91,16 +109,22 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,
         status: 'idle',
+        loaded: true,
         requiresGameSetup: !settings.cs16ExecutablePath,
         crosshair: settings.crosshair,
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
         fastSwitchEnabled: settings.fastSwitchEnabled,
-        killCardsEnabled: settings.killCardsEnabled
+        fastSwitchManaged: settings.fastSwitchManaged,
+        killCardsEnabled: settings.killCardsEnabled,
+        setupCompleted: settings.setupCompleted,
+        setupMode: settings.setupMode,
+        clientType: settings.clientType,
+        platform: settings.platform
       })
     } catch (error) {
-      set({ status: 'idle', error: message(error) })
+      set({ status: 'idle', loaded: true, error: message(error) })
     }
   },
 
@@ -133,7 +157,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
         fastSwitchEnabled: settings.fastSwitchEnabled,
+        fastSwitchManaged: settings.fastSwitchManaged,
         killCardsEnabled: settings.killCardsEnabled,
+        setupCompleted: settings.setupCompleted,
+        setupMode: settings.setupMode,
+        clientType: settings.clientType,
+        platform: settings.platform,
         status: 'idle',
         requiresGameSetup: false,
         notice: settings.nextClientDetected
@@ -142,6 +171,28 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
       })
     } catch (error) {
       set({ status: 'idle', error: message(error) })
+    }
+  },
+
+  completeSetup: async (mode) => {
+    set({ status: 'saving', error: null })
+    try {
+      const settings = await window.api.gameSettings.completeSetup(mode)
+      set({
+        status: 'idle',
+        setupCompleted: settings.setupCompleted,
+        setupMode: settings.setupMode,
+        clientType: settings.clientType,
+        nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
+        fastSwitchEnabled: settings.fastSwitchEnabled,
+        fastSwitchManaged: settings.fastSwitchManaged,
+        killCardsEnabled: settings.killCardsEnabled,
+        error: null
+      })
+      return true
+    } catch (error) {
+      set({ status: 'idle', error: message(error) })
+      return false
     }
   },
 

@@ -3,6 +3,7 @@ import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
+import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { PapamoWordmark } from '../../components/ui/PapamoWordmark'
 import { useAuthStore } from './auth.store'
@@ -11,6 +12,8 @@ import { LobbyPage } from '../matchmaking/LobbyPage'
 import { PlayPage } from '../matchmaking/PlayPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
+import { OnboardingPage } from '../settings/OnboardingPage'
+import { useOnboardingStore } from '../settings/onboarding.store'
 import { isWebRuntime } from '../../web-runtime'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import operationBackground from '../../assets/operations/pixel-water-background.png'
@@ -29,9 +32,15 @@ export function AuthPage(): JSX.Element {
   const socialPasswordRequired = useAuthStore((state) => state.socialPasswordRequired)
   const error = useAuthStore((state) => state.error)
   const session = useAuthStore((state) => state.session)
+  const registeredThisSession = useAuthStore((state) => state.registeredThisSession)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const gameExited = useMatchmakingStore((state) => state.gameExited)
   const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
+  const gameSettingsLoaded = useGameSettingsStore((state) => state.loaded)
+  const setupCompleted = useGameSettingsStore((state) => state.setupCompleted)
+  const setupCompletionPhase = useOnboardingStore((state) => state.completionPhase)
+  const resetOnboarding = useOnboardingStore((state) => state.reset)
+  const loadGameSettings = useGameSettingsStore((state) => state.load)
   const setMode = useAuthStore((state) => state.setMode)
   const setUsername = useAuthStore((state) => state.setUsername)
   const setEmail = useAuthStore((state) => state.setEmail)
@@ -43,9 +52,16 @@ export function AuthPage(): JSX.Element {
   const restore = useAuthStore((state) => state.restore)
   const hasMaximized = useRef(false)
   const restoreStarted = useRef(false)
+  const gameSettingsLoadStarted = useRef(false)
   const isLogin = mode === 'login'
   const isSubmitting = status === 'submitting'
   const webRuntime = isWebRuntime()
+  const showOnboarding =
+    !setupCompleted ||
+    requiresGameSetup ||
+    setupCompletionPhase === 'finishing' ||
+    setupCompletionPhase === 'success' ||
+    (import.meta.env.DEV && registeredThisSession && setupCompletionPhase !== 'done')
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
   const lastAudibleVolume = useRef(bgmVolume > 0 ? bgmVolume : 50)
@@ -55,6 +71,16 @@ export function AuthPage(): JSX.Element {
     restoreStarted.current = true
     void restore()
   }, [restore])
+
+  useEffect(() => {
+    if (!session || gameSettingsLoadStarted.current) return
+    gameSettingsLoadStarted.current = true
+    void loadGameSettings()
+  }, [loadGameSettings, session])
+
+  useEffect(() => {
+    if (import.meta.env.DEV && !session) resetOnboarding()
+  }, [resetOnboarding, session])
 
   useEffect(() => {
     if (
@@ -94,6 +120,29 @@ export function AuthPage(): JSX.Element {
     (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
     session
   ) {
+    if (!gameSettingsLoaded) {
+      return (
+        <SetupCard
+          eyebrow="Client setup"
+          title="Checking your game"
+          description="Finding your Counter-Strike installation and loading your launcher preferences."
+        >
+          <div className="flex items-center gap-3 text-sm text-sky-300" role="status">
+            <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+            Detecting installation…
+          </div>
+          <div
+            className="setup-loading-track mt-5 h-1 overflow-hidden bg-white/10"
+            aria-hidden="true"
+          >
+            <span className="setup-loading-bar block h-full w-1/3 bg-sky-400" />
+          </div>
+        </SetupCard>
+      )
+    }
+    if (!webRuntime && showOnboarding) {
+      return <OnboardingPage />
+    }
     // Once Counter-Strike is running, unmount the lobby entirely. The lobby
     // owns the animated Three.js party scene and several chat/social surfaces;
     // keeping them mounted competes with the game for GPU and memory.
@@ -115,93 +164,87 @@ export function AuthPage(): JSX.Element {
 
   if (socialPollToken && socialProvider) {
     return (
-      <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
-        <section className="w-full max-w-md border border-sky-300/15 bg-slate-950/95 p-7 shadow-2xl sm:p-10">
-          <Logo className="mb-8 size-16" />
-          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
-            {socialPasswordRequired ? 'Account verification' : 'Step 1 of 2'}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold">
-            {socialPasswordRequired ? 'Confirm your account' : 'Add your email'}
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-neutral-400">
-            {socialPasswordRequired
-              ? `An account already uses this email. Enter its password to connect ${socialProviderLabel(socialProvider)} and sign in.`
-              : `${socialProviderLabel(socialProvider)} did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.`}
-          </p>
+      <SetupCard
+        eyebrow={socialPasswordRequired ? 'Account verification' : 'Account setup'}
+        title={socialPasswordRequired ? 'Confirm your account' : 'Add your email'}
+        description={
+          socialPasswordRequired
+            ? `An account already uses this email. Enter its password to connect ${socialProviderLabel(socialProvider)} and sign in.`
+            : `${socialProviderLabel(socialProvider)} did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.`
+        }
+        className="max-w-md"
+      >
+        <form
+          className="grid gap-5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void (socialPasswordRequired ? submitSocialPassword() : submitSocialEmail())
+          }}
+        >
+          <TextField
+            id="social-email"
+            label="Email"
+            type="email"
+            value={email}
+            maxLength={254}
+            autoComplete="email"
+            autoFocus
+            disabled={isSubmitting || socialPasswordRequired}
+            placeholder="player@example.com"
+            hint={
+              socialPasswordRequired
+                ? 'This email came from the existing account and cannot be changed here.'
+                : 'We use this to secure and identify your account.'
+            }
+            className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-          <form
-            className="mt-7 grid gap-5"
-            onSubmit={(event) => {
-              event.preventDefault()
-              void (socialPasswordRequired ? submitSocialPassword() : submitSocialEmail())
-            }}
-          >
+          {socialPasswordRequired && (
             <TextField
-              id="social-email"
-              label="Email"
-              type="email"
-              value={email}
-              maxLength={254}
-              autoComplete="email"
+              id="social-account-password"
+              label="Account password"
+              type="password"
+              value={password}
+              minLength={8}
+              maxLength={128}
+              autoComplete="current-password"
               autoFocus
-              disabled={isSubmitting || socialPasswordRequired}
-              placeholder="player@example.com"
-              hint={
-                socialPasswordRequired
-                  ? 'This email came from the existing account and cannot be changed here.'
-                  : 'We use this to secure and identify your account.'
-              }
-              className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-
-            {socialPasswordRequired && (
-              <TextField
-                id="social-account-password"
-                label="Account password"
-                type="password"
-                value={password}
-                minLength={8}
-                maxLength={128}
-                autoComplete="current-password"
-                autoFocus
-                disabled={isSubmitting}
-                placeholder="Enter your existing password"
-                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            )}
-
-            <div className="min-h-5" aria-live="polite">
-              {error && <p className="text-sm text-red-400">{error}</p>}
-            </div>
-
-            <Button
-              className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
-              type="submit"
               disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? socialPasswordRequired
-                  ? 'Verifying…'
-                  : 'Checking email…'
-                : socialPasswordRequired
-                  ? `Connect ${socialProviderLabel(socialProvider)} and sign in`
-                  : 'Continue'}
-            </Button>
-          </form>
+              placeholder="Enter your existing password"
+              className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          )}
+
+          <div className="min-h-5" aria-live="polite">
+            {error && <p className="text-sm text-red-400">{error}</p>}
+          </div>
 
           <Button
-            className="mt-3 w-full"
-            variant="ghost"
+            className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
+            type="submit"
             disabled={isSubmitting}
-            onClick={() => setMode('login')}
           >
-            Back to login
+            {isSubmitting
+              ? socialPasswordRequired
+                ? 'Verifying…'
+                : 'Checking email…'
+              : socialPasswordRequired
+                ? `Connect ${socialProviderLabel(socialProvider)} and sign in`
+                : 'Continue'}
           </Button>
-        </section>
-      </main>
+        </form>
+
+        <Button
+          className="mt-3 w-full"
+          variant="ghost"
+          disabled={isSubmitting}
+          onClick={() => setMode('login')}
+        >
+          Back to login
+        </Button>
+      </SetupCard>
     )
   }
 
