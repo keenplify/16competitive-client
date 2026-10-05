@@ -43,6 +43,15 @@ Browse your weapon collection and equip skins for Terrorist or Counter-Terrorist
 - **A smoother launch flow** — Select your game installation and launch into assigned servers when they are ready.
 - **Windows and Linux support** — Built for both platforms from the start. macOS support is planned for the future.
 
+## Crosshair share codes
+
+The desktop crosshair editor imports current CS2 `CS…` share codes and converts
+older `CSGO-…` codes to the current format. It uses the MIT-licensed
+[csgo-sharecode decoder](https://github.com/akiver/csgo-sharecode), pinned in
+`package.json`. Crosshairs are rendered locally during 1.6 Competitive matches;
+CS2 weapon spread and scope behavior are approximated from GoldSrc's available
+game state.
+
 ## Counter-Strike configuration safety
 
 `config.cfg` is owned entirely by Counter-Strike and the player. **The launcher must never touch it.**
