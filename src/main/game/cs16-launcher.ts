@@ -135,6 +135,76 @@ const clearMatchConfig = (generation?: number): void => {
   if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
 }
 
+
+const NEXTCLIENT_USERCONFIG_BEGIN = '// 16competitive managed match handoff begin'
+const NEXTCLIENT_USERCONFIG_END = '// 16competitive managed match handoff end'
+
+let nextClientUserConfigBackup: {
+  path: string
+  existed: boolean
+  contents: Buffer
+} | null = null
+
+const stripManagedNextClientUserConfigBlock = (contents: string): string => {
+  const escapedBegin = NEXTCLIENT_USERCONFIG_BEGIN.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\const clearMatchConfig = (generation?: number): void => {
+  if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
+  const matchConfigPath = launchedMatchConfigPath
+  launchedMatchConfigPath = null
+  launchedMatchConfigGeneration = 0
+  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+}
+')
+  const escapedEnd = NEXTCLIENT_USERCONFIG_END.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\const clearMatchConfig = (generation?: number): void => {
+  if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
+  const matchConfigPath = launchedMatchConfigPath
+  launchedMatchConfigPath = null
+  launchedMatchConfigGeneration = 0
+  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
+}
+')
+  return contents
+    .replace(new RegExp(`(?:\\r?\\n)?${escapedBegin}[\\s\\S]*?${escapedEnd}(?:\\r?\\n)?`, 'g'), '\n')
+    .replace(/^\s+|\s+$/g, '')
+}
+
+const prepareNextClientUserConfigHandoff = async (
+  launchGameDirectory: string,
+  matchConfigName: string
+): Promise<void> => {
+  const path = join(launchGameDirectory, 'userconfig.cfg')
+  const original = await readFile(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null
+    throw error
+  })
+  const existed = original !== null
+  const contents = original ?? Buffer.alloc(0)
+  const clean = stripManagedNextClientUserConfigBlock(contents.toString('utf8'))
+  const managedBlock = [
+    NEXTCLIENT_USERCONFIG_BEGIN,
+    `exec "${matchConfigName}"`,
+    NEXTCLIENT_USERCONFIG_END
+  ].join('\n')
+  const next = [clean, managedBlock, ''].filter((part, index) => index > 0 || part.length > 0).join('\n')
+
+  nextClientUserConfigBackup = { path, existed, contents }
+  await writeFile(path, next, { encoding: 'utf8', mode: 0o600 })
+  console.info('[NextClient] userconfig match handoff prepared', { path })
+}
+
+const restoreNextClientUserConfig = async (): Promise<void> => {
+  const backup = nextClientUserConfigBackup
+  nextClientUserConfigBackup = null
+  if (!backup) return
+  if (backup.existed) {
+    await writeFile(backup.path, backup.contents, { mode: 0o600 })
+  } else {
+    await unlink(backup.path).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error
+    })
+  }
+  console.info('[NextClient] userconfig restored', { path: backup.path })
+}
+
 // Direct launches run in their own process group, so terminating the group also
 // stops the launcher script, any emulation wrapper and the game itself. Without
 // that, killing the wrapper leaves Counter-Strike running on hosts where the
@@ -332,6 +402,9 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   finishAntiCheatSession(matchId, 'match-closed')
   void restoreManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] restore after managed match close failed', error)
+  })
+  void restoreNextClientUserConfig().catch((error: unknown) => {
+    console.error('[NextClient] could not restore userconfig after managed match close', error)
   })
   if (process.platform !== 'win32') terminateSpawnedGameProcess(gameProcess)
   if (process.platform === 'linux' && launchedGameDirectory) {
@@ -675,6 +748,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
             stopGameWatchdog(input.matchId)
             finishAntiCheatSession(input.matchId, 'game-exit')
             void finishVoicePttSession(input.matchId)
+            void restoreNextClientUserConfig().catch((error: unknown) => {
+              console.error('[NextClient] could not restore userconfig after handoff exit', error)
+            })
             void restoreManagedSkinAudio().catch((error: unknown) => {
               console.error('[SkinAudio] restore after Windows game exit failed', error)
             })
@@ -739,22 +815,25 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     : null
   const useNativeNextClientMatchHandoff = nativeNextClientSession !== null
 
-  // Never fall back to a startup +exec for NextClient. NextClient can clear its
-  // live bind table when any cfg is supplied through +exec during startup. If
-  // the native handoff is unavailable, abort instead of risking the player's
-  // bindings. Other GoldSrc clients keep the launcher-owned cfg flow.
+  // NextClient must never receive +exec on its process command line. When the
+  // native host is unavailable, use the game's normal userconfig.cfg startup
+  // path to execute the launcher-owned per-match cfg instead. Preserve and
+  // restore the player's userconfig.cfg exactly; config.cfg is never touched.
   if (nextClient && !useNativeNextClientMatchHandoff) {
-    console.error('[NextClient] native match handoff unavailable; refusing unsafe +exec fallback', {
-      matchId: input.matchId,
-      integrationEnabled: gameSettings.nextClientIntegrationEnabled,
-      integrationAllowed: allowNextClientIntegration
-    })
-    await finishVoicePttSession(input.matchId)
-    await restoreManagedSkinAudio().catch(() => undefined)
-    clearMatchConfig(matchConfigGeneration)
-    throw new Error(
-      'NextClient match integration is unavailable. Restart the launcher and try again. Your game bindings were left untouched.'
-    )
+    try {
+      await prepareNextClientUserConfigHandoff(launchGameDirectory, matchConfigName)
+    } catch (error) {
+      console.error('[NextClient] could not prepare userconfig match handoff', {
+        matchId: input.matchId,
+        error
+      })
+      await finishVoicePttSession(input.matchId)
+      await restoreManagedSkinAudio().catch(() => undefined)
+      clearMatchConfig(matchConfigGeneration)
+      throw new Error(
+        'Could not prepare the NextClient match connection without changing your game bindings.'
+      )
+    }
   }
 
   if (nativeNextClientSession) {
@@ -789,10 +868,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  // NextClient must never receive a startup +exec. The guard above guarantees
-  // that every NextClient launch reaches this point only with the native handoff
-  // active. Other GoldSrc clients keep the launcher-owned cfg path so secrets stay
-  // out of the process command line.
+  // NextClient never receives a startup +exec. Native-host launches use the
+  // private handoff files; fallback launches enter through userconfig.cfg.
+  // Other GoldSrc clients keep the launcher-owned +exec path.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
@@ -897,6 +975,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     stopAntiCheatSession(antiCheatSession, 'launch-failed')
     await finishVoicePttSession(input.matchId)
     await restoreManagedSkinAudio().catch(() => undefined)
+    await restoreNextClientUserConfig().catch(() => undefined)
     clearMatchConfig(matchConfigGeneration)
     throw error
   }
@@ -965,6 +1044,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     })
     stopAntiCheatSession(antiCheatSession, 'game-exit')
     void finishVoicePttSession(input.matchId)
+    void restoreNextClientUserConfig().catch((error: unknown) => {
+      console.error('[NextClient] could not restore userconfig after game exit', error)
+    })
     if (gameOutput.trim()) {
       const safeOutput = gameOutput
         .replaceAll(input.password, '[redacted]')
