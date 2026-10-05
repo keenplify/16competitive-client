@@ -157,7 +157,7 @@ export class ScoreboardOverlaySession {
   }
 
   async updateCrosshair(crosshair: CrosshairProfile): Promise<void> {
-    if (!this.stopped && !this.usesNextClientHost)
+    if (!this.stopped)
       await writeCrosshairConfig(this.directory, crosshair)
   }
 
@@ -336,7 +336,7 @@ export class ScoreboardOverlaySession {
         matchId,
         scoreboard: 'waiting for authenticated live scoreboard feed',
         teammateTags: 'requires a competitive live scoreboard feed',
-        crosshair: 'disabled by the current NextClient integration'
+        crosshair: 'using the 1.6 Competitive profile when the native host is ready'
       })
     }
     const directory =
@@ -354,7 +354,7 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
       const gameSettings = await getGameSettings()
-      if (!nextClient) await writeCrosshairConfig(directory, gameSettings.crosshair)
+      await writeCrosshairConfig(directory, gameSettings.crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
       // the authenticated launch and reads this per-match session. It also

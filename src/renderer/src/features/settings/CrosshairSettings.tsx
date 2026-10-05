@@ -14,21 +14,9 @@ const limits = {
 
 export function CrosshairSettings(): JSX.Element {
   const saved = useGameSettingsStore((state) => state.crosshair)
-  const nextClientDetected = useGameSettingsStore((state) => state.nextClientDetected)
   const inGameEnhancementsEnabled = useGameSettingsStore(
     (state) => state.nextClientIntegrationEnabled
   )
-  if (nextClientDetected) {
-    return (
-      <section className="mt-5 border border-violet-400/20 bg-violet-400/5 p-5 sm:p-7">
-        <h3 className="text-lg font-semibold">NextClient crosshair</h3>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-300">
-          NextClient already includes its own crosshair editor. Adjust your crosshair in NextClient
-          settings; 1.6 Competitive will leave it unchanged when launching a match.
-        </p>
-      </section>
-    )
-  }
   return (
     <CrosshairEditor
       key={JSON.stringify(saved)}
