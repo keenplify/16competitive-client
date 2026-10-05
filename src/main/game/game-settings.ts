@@ -1,7 +1,7 @@
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
-import type { GameSettings } from '../../shared/game-settings'
+import type { GameSettings, SetupMode } from '../../shared/game-settings'
 import {
   DEFAULT_CROSSHAIR,
   parseCrosshairProfile,
@@ -12,6 +12,7 @@ import {
   isNextClientExecutable,
   WINDOWS_STANDALONE_EXECUTABLE_NAMES
 } from './windows-cosmetic-compatibility'
+import { classifyCs16Distribution } from './cs16-installation'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
@@ -20,8 +21,11 @@ interface StoredGameSettings {
   crosshair?: CrosshairProfile
   nextClientIntegrationEnabled?: boolean
   fastSwitchEnabled?: boolean
+  fastSwitchManaged?: boolean
   killCardsEnabled?: boolean
   nextClientIntegrationDisabledReason?: string
+  setupCompleted?: boolean
+  setupMode?: SetupMode
 }
 
 const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
@@ -197,12 +201,21 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.fastSwitchEnabled === 'boolean'
         ? { fastSwitchEnabled: settings.fastSwitchEnabled }
         : {}),
+      ...(typeof settings.fastSwitchManaged === 'boolean'
+        ? { fastSwitchManaged: settings.fastSwitchManaged }
+        : {}),
       ...(typeof settings.killCardsEnabled === 'boolean'
         ? { killCardsEnabled: settings.killCardsEnabled }
         : {}),
       ...(typeof settings.nextClientIntegrationDisabledReason === 'string' &&
       settings.nextClientIntegrationDisabledReason.length <= 160
         ? { nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason }
+        : {}),
+      ...(typeof settings.setupCompleted === 'boolean'
+        ? { setupCompleted: settings.setupCompleted }
+        : {}),
+      ...(settings.setupMode === 'recommended' || settings.setupMode === 'custom'
+        ? { setupMode: settings.setupMode }
         : {})
     }
   } catch {
@@ -285,7 +298,19 @@ const buildSettings = async (
       : false,
   nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
+  fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
   killCardsEnabled: storedSettings.killCardsEnabled !== false,
+  setupCompleted: storedSettings.setupCompleted === true,
+  setupMode: storedSettings.setupMode ?? null,
+  clientType: cs16ExecutablePath
+    ? process.platform === 'win32' && (await isNextClientExecutable(cs16ExecutablePath))
+      ? 'nextclient'
+      : classifyCs16Distribution(cs16ExecutablePath) === 'steam'
+        ? 'steam'
+        : 'standalone'
+    : null,
+  platform:
+    process.platform === 'win32' || process.platform === 'linux' ? process.platform : 'other',
   nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason ?? null
 })
 
@@ -303,10 +328,15 @@ const persistResolvedSettings = async (
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
+    fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
     killCardsEnabled: storedSettings.killCardsEnabled !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
-      : {})
+      : {}),
+    ...(storedSettings.setupCompleted !== undefined
+      ? { setupCompleted: storedSettings.setupCompleted }
+      : {}),
+    ...(storedSettings.setupMode ? { setupMode: storedSettings.setupMode } : {})
   })
 }
 
@@ -320,6 +350,10 @@ const resolveVoicePttKeys = async (
 export const getGameSettings = async (): Promise<GameSettings> => {
   const storedSettings = await readStoredSettings()
   let cs16ExecutablePath = await validateStoredPath(storedSettings)
+  // An existing configured player should not be sent through first-run setup.
+  if (storedSettings.setupCompleted === undefined) {
+    storedSettings.setupCompleted = cs16ExecutablePath !== null
+  }
   if (!cs16ExecutablePath) cs16ExecutablePath = await detectCs16Executable()
 
   const keys = await resolveVoicePttKeys(storedSettings)
@@ -337,6 +371,53 @@ export const getGameSettings = async (): Promise<GameSettings> => {
     keys.party,
     storedSettings.crosshair ?? DEFAULT_CROSSHAIR,
     storedSettings
+  )
+}
+
+export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSettings> => {
+  if (untrustedMode !== 'recommended' && untrustedMode !== 'custom') {
+    throw new Error('Choose a valid setup preference.')
+  }
+  const storedSettings = await readStoredSettings()
+  const cs16ExecutablePath = await validateStoredPath(storedSettings)
+  if (!cs16ExecutablePath || !(await isGoldSrcInstallation(cs16ExecutablePath))) {
+    throw new Error('Choose a valid Counter-Strike 1.6 installation before finishing setup.')
+  }
+  const updated: StoredGameSettings = {
+    ...storedSettings,
+    setupCompleted: true,
+    setupMode: untrustedMode as SetupMode,
+    // Custom disables optional launcher features and leaves the game's own
+    // fast-switch value alone; neither mode touches config.cfg.
+    ...(untrustedMode === 'recommended'
+      ? {
+          nextClientIntegrationEnabled: true,
+          nextClientIntegrationDisabledReason: undefined,
+          fastSwitchEnabled: true,
+          fastSwitchManaged: true,
+          killCardsEnabled: true
+        }
+      : {
+          nextClientIntegrationEnabled: false,
+          fastSwitchEnabled: false,
+          fastSwitchManaged: false,
+          killCardsEnabled: false
+        })
+  }
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
   )
 }
 
@@ -467,7 +548,11 @@ export const saveNextClientIntegration = async (
 export const saveFastSwitch = async (untrustedEnabled: unknown): Promise<GameSettings> => {
   if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid fast switch setting')
   const storedSettings = await readStoredSettings()
-  const updated: StoredGameSettings = { ...storedSettings, fastSwitchEnabled: untrustedEnabled }
+  const updated: StoredGameSettings = {
+    ...storedSettings,
+    fastSwitchEnabled: untrustedEnabled,
+    fastSwitchManaged: true
+  }
   const cs16ExecutablePath = await validateStoredPath(updated)
   const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(

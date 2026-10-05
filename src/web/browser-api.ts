@@ -83,7 +83,12 @@ const browserSettings = (): GameSettings => {
     nextClientIntegrationEnabled: false,
     nextClientIntegrationDisabledReason: null,
     fastSwitchEnabled: true,
-    killCardsEnabled: false
+    fastSwitchManaged: false,
+    killCardsEnabled: false,
+    setupCompleted: true,
+    setupMode: null,
+    clientType: 'steam',
+    platform: 'other'
   }
 }
 
@@ -500,6 +505,9 @@ const api: Window['api'] = {
     },
     async setNextClientIntegration() {
       throw new Error('NextClient integration requires the desktop launcher.')
+    },
+    async completeSetup() {
+      throw new Error('Game setup requires the desktop launcher.')
     },
     async setFastSwitch() {
       throw new Error('Fast switch is managed by the desktop launcher.')

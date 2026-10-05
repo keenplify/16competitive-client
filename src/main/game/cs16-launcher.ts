@@ -616,7 +616,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       [
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
-        `hud_fastswitch "${gameSettings.fastSwitchEnabled ? 1 : 0}"`,
+        ...(gameSettings.fastSwitchManaged
+          ? [`hud_fastswitch "${gameSettings.fastSwitchEnabled ? 1 : 0}"`]
+          : []),
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',

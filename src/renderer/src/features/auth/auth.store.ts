@@ -16,6 +16,7 @@ interface AuthState {
   socialPasswordRequired: boolean
   error: string | null
   session: AuthSession | null
+  registeredThisSession: boolean
   setMode: (mode: AuthMode) => void
   setUsername: (username: string) => void
   setEmail: (email: string) => void
@@ -57,15 +58,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   socialPasswordRequired: false,
   error: null,
   session: null,
+  registeredThisSession: false,
 
   restore: async () => {
     if (get().status !== 'idle' && get().status !== 'restoring') return
     set({ status: 'restoring', error: null })
     try {
       const session = await window.api.auth.restore()
-      set(session ? { session, status: 'authenticated' } : { session: null, status: 'idle' })
+      set(
+        session
+          ? { session, status: 'authenticated', registeredThisSession: false }
+          : { session: null, status: 'idle', registeredThisSession: false }
+      )
     } catch {
-      set({ session: null, status: 'idle' })
+      set({ session: null, status: 'idle', registeredThisSession: false })
     }
   },
 
@@ -84,6 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       mode: 'login',
       status: 'idle',
       session: null,
+      registeredThisSession: false,
       password: '',
       socialProvider: null,
       socialPollToken: null,
@@ -146,7 +153,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         mode === 'register'
           ? await window.api.auth.register({ username, email: normalizedEmail, password })
           : await window.api.auth.login({ username, password })
-      set({ session, status: 'authenticated', socialProvider: null, password: '' })
+      set({
+        session,
+        status: 'authenticated',
+        socialProvider: null,
+        password: '',
+        registeredThisSession: mode === 'register'
+      })
     } catch (error) {
       set({ status: 'idle', socialProvider: null, error: readableError(error) })
     }
@@ -182,6 +195,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         session: result,
         status: 'authenticated',
+        registeredThisSession: result.player.requiresUsernameSetup,
         socialProvider: null,
         socialPollToken: null,
         socialPasswordRequired: false,
@@ -231,6 +245,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         session,
         status: 'authenticated',
+        registeredThisSession: session.player.requiresUsernameSetup,
         socialProvider: null,
         socialPollToken: null,
         socialPasswordRequired: false,
@@ -263,6 +278,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         session,
         status: 'authenticated',
+        registeredThisSession: false,
         socialProvider: null,
         socialPollToken: null,
         socialPasswordRequired: false,
@@ -350,7 +366,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         socialPollToken: null,
         socialPasswordRequired: false,
         error: null,
-        session: null
+        session: null,
+        registeredThisSession: false
       })
     }
   }

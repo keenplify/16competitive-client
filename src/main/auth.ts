@@ -8,6 +8,7 @@ import type {
   SocialAuthProvider,
   SocialAuthResult,
   SocialConnections,
+  ReferralStatus,
   UsernameAvailability,
   UsernameChangeResult
 } from '../shared/auth'
@@ -509,6 +510,57 @@ export const getSocialConnections = async (): Promise<SocialConnections> => {
     throw new Error('The server returned invalid social connection status')
   }
   return body
+}
+
+export const getReferralStatus = async (): Promise<ReferralStatus> => {
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/referral`, {
+    headers: { authorization: `Bearer ${sessionToken}` },
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    typeof (body as Record<string, unknown>).code !== 'string' ||
+    !/^R-[A-F0-9]{12}$/.test((body as ReferralStatus).code) ||
+    typeof (body as Record<string, unknown>).claimed !== 'boolean'
+  ) {
+    throw new Error('The server returned an invalid referral status')
+  }
+  return body as ReferralStatus
+}
+
+export const claimReferralCode = async (untrustedCode: unknown): Promise<{ claimed: true }> => {
+  if (
+    typeof untrustedCode !== 'string' ||
+    !/^R-[A-F0-9]{12}$/.test(untrustedCode.trim().toUpperCase())
+  ) {
+    throw new Error('Enter a valid referral code')
+  }
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/referral/claim`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ code: untrustedCode.trim().toUpperCase() }),
+    signal: AbortSignal.timeout(10_000)
+  }).catch(() => null)
+  if (!response) throw new Error('Could not reach the authentication server')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    (body as Record<string, unknown>).claimed !== true
+  ) {
+    throw new Error('The server returned an invalid referral result')
+  }
+  return { claimed: true }
 }
 
 export const connectSocial = async (untrustedProvider: unknown): Promise<SocialConnections> => {

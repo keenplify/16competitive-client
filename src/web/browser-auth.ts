@@ -387,6 +387,17 @@ export const browserAuthApi: AuthApi = {
     })
   },
 
+  async getReferralStatus() {
+    return requestJson('/auth/referral', { authenticated: true })
+  },
+
+  async claimReferralCode(code) {
+    return requestJson('/auth/referral/claim', {
+      authenticated: true,
+      init: { method: 'POST', body: JSON.stringify({ code }) }
+    })
+  },
+
   async changePassword(credentials) {
     return requestJson('/auth/password', {
       authenticated: true,

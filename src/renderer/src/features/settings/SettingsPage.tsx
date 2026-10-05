@@ -22,6 +22,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { communityLinks, desktopAppUrl } from '../community/links'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
+import { ReferralSettings } from './ReferralSettings'
 import { ChangelogModal } from './ChangelogModal'
 import { CrosshairSettings } from './CrosshairSettings'
 import { LanguageSettings } from '../i18n/LanguageSettings'
@@ -67,6 +68,9 @@ export function SettingsPage(): JSX.Element {
   )
   const setInGameEnhancements = useGameSettingsStore((state) => state.setNextClientIntegration)
   const fastSwitchEnabled = useGameSettingsStore((state) => state.fastSwitchEnabled)
+  const fastSwitchManaged = useGameSettingsStore((state) => state.fastSwitchManaged)
+  const setupMode = useGameSettingsStore((state) => state.setupMode)
+  const completeSetup = useGameSettingsStore((state) => state.completeSetup)
   const setFastSwitch = useGameSettingsStore((state) => state.setFastSwitch)
   const killCardsEnabled = useGameSettingsStore((state) => state.killCardsEnabled)
   const setKillCards = useGameSettingsStore((state) => state.setKillCards)
@@ -545,13 +549,36 @@ export function SettingsPage(): JSX.Element {
                     </p>
                   )}
 
+                  {setupMode && (
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-100">
+                          {setupMode === 'recommended' ? 'Recommended Setup' : 'Custom Setup'}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-neutral-400">
+                          Your first-run preference. You can adjust each feature below.
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        disabled={status !== 'idle'}
+                        onClick={() => void completeSetup('recommended')}
+                      >
+                        Restore recommended
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
                     <div>
                       <p className="text-sm font-semibold text-neutral-100">Fast weapon switch</p>
                       <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                        Select weapons immediately with number keys. Enabled by default; turn this
-                        off to use hud_fastswitch 0 in launcher matches.
+                        Select weapons immediately with number keys. Custom Setup leaves your game
+                        preference alone until you change this switch.
                       </p>
+                      {!fastSwitchManaged && (
+                        <p className="mt-1 text-xs text-sky-300">Using your game preference</p>
+                      )}
                     </div>
                     <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
                       <input
@@ -758,6 +785,8 @@ export function SettingsPage(): JSX.Element {
                   Manage your username, sign-in methods, and password.
                 </p>
               </div>
+
+              <ReferralSettings />
 
               <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Username</h3>

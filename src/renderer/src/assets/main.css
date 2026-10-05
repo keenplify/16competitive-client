@@ -74,6 +74,101 @@
   }
 }
 
+@keyframes setup-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes setup-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes setup-ambient-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes setup-loading-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(410%);
+  }
+}
+
+@keyframes setup-success-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.setup-card-enter {
+  animation: setup-card-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.setup-step-enter {
+  animation: setup-step-enter 260ms ease-out both;
+}
+.setup-ambient {
+  animation: setup-ambient-breathe 8s ease-in-out infinite;
+}
+.setup-progress {
+  transition:
+    background-color 300ms ease,
+    box-shadow 300ms ease;
+}
+.setup-progress-active {
+  box-shadow: 0 0 13px rgb(56 189 248 / 35%);
+}
+.setup-loading-bar {
+  animation: setup-loading-sweep 1.5s ease-in-out infinite;
+}
+.setup-success svg {
+  animation: setup-success-pop 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-card-enter,
+  .setup-step-enter,
+  .setup-ambient,
+  .setup-loading-bar,
+  .setup-success svg {
+    animation: none !important;
+  }
+  .setup-card-enter .animate-spin {
+    animation: none !important;
+  }
+  .setup-progress {
+    transition: none;
+  }
+  .setup-loading-bar {
+    transform: translateX(100%);
+  }
+}
+
 .nav-active-bg {
   height: 100%;
 
@@ -301,7 +396,9 @@
 
 .play-find-match-cta {
   background-image: linear-gradient(90deg, #07520c, #0a650d 48%, #06410a);
-  box-shadow: inset 0 0 0 1px rgb(7 31 9 / 65%), 0 0 12px rgb(14 119 20 / 24%);
+  box-shadow:
+    inset 0 0 0 1px rgb(7 31 9 / 65%),
+    0 0 12px rgb(14 119 20 / 24%);
 }
 
 .play-find-match-cta:hover:not(:disabled) {
@@ -330,8 +427,18 @@
   position: absolute;
   inset: 0;
   background-image:
-    repeating-radial-gradient(ellipse 90px 44px at 18% 10%, transparent 0 8px, rgb(87 209 58 / 13%) 9px 10px, transparent 11px 18px),
-    repeating-radial-gradient(ellipse 75px 52px at 82% 85%, transparent 0 9px, rgb(87 209 58 / 11%) 10px 11px, transparent 12px 21px);
+    repeating-radial-gradient(
+      ellipse 90px 44px at 18% 10%,
+      transparent 0 8px,
+      rgb(87 209 58 / 13%) 9px 10px,
+      transparent 11px 18px
+    ),
+    repeating-radial-gradient(
+      ellipse 75px 52px at 82% 85%,
+      transparent 0 9px,
+      rgb(87 209 58 / 11%) 10px 11px,
+      transparent 12px 21px
+    );
   pointer-events: none;
 }
 

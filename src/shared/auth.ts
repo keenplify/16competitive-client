@@ -9,6 +9,8 @@ export const AUTH_CHANNELS = {
   socialConnect: 'auth:social-connect',
   usernameCheck: 'auth:username-check',
   usernameChange: 'auth:username-change',
+  referralStatus: 'auth:referral-status',
+  referralClaim: 'auth:referral-claim',
   passwordChange: 'auth:password-change',
   flagChange: 'auth:flag-change',
   logout: 'auth:logout',
@@ -69,6 +71,11 @@ export interface UsernameChangeResult {
   usernameChangeAvailableAt: string | null
 }
 
+export interface ReferralStatus {
+  code: string
+  claimed: boolean
+}
+
 export interface PasswordChangeCredentials {
   currentPassword?: string
   newPassword: string
@@ -108,6 +115,8 @@ export interface AuthApi {
   connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
   checkUsername(username: string): Promise<UsernameAvailability>
   changeUsername(username: string): Promise<UsernameChangeResult>
+  getReferralStatus(): Promise<ReferralStatus>
+  claimReferralCode(code: string): Promise<{ claimed: true }>
   changePassword(credentials: PasswordChangeCredentials): Promise<PasswordChangeResult>
   changeFlagCountryCode(flagCountryCode: string | null): Promise<FlagChangeResult>
   restore(): Promise<AuthSession | null>
