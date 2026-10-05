@@ -9,7 +9,7 @@ import { PapamoWordmark } from '../../components/ui/PapamoWordmark'
 import { useAuthStore } from './auth.store'
 import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
-import { PlayPage } from '../matchmaking/PlayPage'
+import { MatchLauncherPage } from '../matchmaking/MatchLauncherPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { OnboardingPage } from '../settings/OnboardingPage'
@@ -147,7 +147,7 @@ export function AuthPage(): JSX.Element {
     // owns the animated Three.js party scene and several chat/social surfaces;
     // keeping them mounted competes with the game for GPU and memory.
     const gameStarted = queueStatus === 'server_ready' && !gameExited && !requiresGameSetup
-    return gameStarted ? <PlayPage /> : <LobbyPage />
+    return gameStarted ? <MatchLauncherPage /> : <LobbyPage />
   }
 
   if (status === 'restoring') {

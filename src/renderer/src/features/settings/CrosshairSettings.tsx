@@ -1,4 +1,4 @@
-import { useRef, useState, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import {
   getCs2Crosshair,
@@ -37,13 +37,7 @@ export function CrosshairSettings(): JSX.Element {
   const inGameEnhancementsEnabled = useGameSettingsStore(
     (state) => state.nextClientIntegrationEnabled
   )
-  return (
-    <CrosshairEditor
-      key={JSON.stringify(saved)}
-      saved={saved}
-      enabled={inGameEnhancementsEnabled}
-    />
-  )
+  return <CrosshairEditor saved={saved} enabled={inGameEnhancementsEnabled} />
 }
 
 function CrosshairEditor({
@@ -56,72 +50,79 @@ function CrosshairEditor({
   const saveProfile = useGameSettingsStore((state) => state.setCrosshair)
   const [profile, setProfile] = useState<CrosshairProfile>(saved)
   const [message, setMessage] = useState('')
-  const [saving, setSaving] = useState(false)
   const [codeInput, setCodeInput] = useState(saved.shareCode ?? '')
-  const importRef = useRef<HTMLInputElement>(null)
+  const pendingRef = useRef<CrosshairProfile | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savingRef = useRef(false)
+  const touchedRef = useRef(false)
+  const mountedRef = useRef(true)
+  const flushRef = useRef<() => Promise<void>>(async () => undefined)
   const cs2 = getCs2Crosshair(profile)
 
+  useEffect(() => {
+    mountedRef.current = true
+    flushRef.current = async () => {
+      if (savingRef.current || !pendingRef.current) return
+      const next = pendingRef.current
+      pendingRef.current = null
+      savingRef.current = true
+      try {
+        await saveProfile(parseCrosshairProfile(next))
+        if (mountedRef.current && !pendingRef.current) setMessage('Saved automatically.')
+      } catch (error) {
+        if (mountedRef.current) {
+          setMessage(error instanceof Error ? error.message : 'Could not save crosshair.')
+          toast.error('Could not save crosshair.')
+        }
+      } finally {
+        savingRef.current = false
+        if (pendingRef.current) {
+          timerRef.current = setTimeout(() => void flushRef.current(), 180)
+        }
+      }
+    }
+    return () => {
+      mountedRef.current = false
+      if (timerRef.current) clearTimeout(timerRef.current)
+      void flushRef.current()
+    }
+  }, [saveProfile])
+
+  useEffect(() => {
+    if (!touchedRef.current) {
+      setProfile(saved)
+      setCodeInput(saved.shareCode ?? '')
+    }
+  }, [saved])
+
+  const queueSave = (next: CrosshairProfile, immediate = false): void => {
+    touchedRef.current = true
+    setProfile(next)
+    pendingRef.current = next
+    setMessage('Saving…')
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => void flushRef.current(), immediate ? 0 : 180)
+  }
+
   const update = <K extends keyof CrosshairProfile>(key: K, value: CrosshairProfile[K]): void => {
-    setProfile((current) => ({ ...current, [key]: value }))
-    setMessage('')
+    queueSave({ ...profile, [key]: value })
   }
 
   const updateCs2 = (patch: Parameters<typeof updateCs2Crosshair>[1]): void => {
     const updated = updateCs2Crosshair(profile, patch)
-    setProfile(updated)
     setCodeInput(updated.shareCode ?? '')
-    setMessage('Preview updated. Save to use it in matches.')
+    queueSave(updated)
   }
 
-  const importCode = (): void => {
+  const importCode = (code = codeInput): void => {
+    setCodeInput(code)
     try {
-      const imported = importCrosshairShareCode(codeInput)
-      setProfile(imported)
+      const imported = importCrosshairShareCode(code)
       setCodeInput(imported.shareCode ?? '')
-      setMessage('CS2 crosshair imported. Save to use it in matches.')
+      queueSave(imported, true)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Invalid crosshair code.')
     }
-  }
-
-  const save = async (): Promise<void> => {
-    if (!enabled) return
-    setSaving(true)
-    try {
-      await saveProfile(parseCrosshairProfile(profile))
-      setMessage('')
-      toast.success('Crosshair saved. Active matches update automatically.')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save crosshair.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const importFile = async (file: File | undefined): Promise<void> => {
-    if (!enabled || !file) return
-    try {
-      if (file.size > 4096) throw new Error('Crosshair file exceeds 4 KB.')
-      const imported = parseCrosshairProfile(JSON.parse(await file.text()))
-      setProfile(imported)
-      setCodeInput(imported.shareCode ?? '')
-      setMessage('Crosshair imported. Save to keep it on this device.')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Invalid crosshair file.')
-    }
-  }
-
-  const exportFile = (): void => {
-    if (!enabled) return
-    const blob = new Blob([`${JSON.stringify(parseCrosshairProfile(profile), null, 2)}\n`], {
-      type: 'application/json'
-    })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = '16competitive-crosshair.json'
-    anchor.click()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   const arm = (style: React.CSSProperties, key: string): JSX.Element => (
@@ -132,7 +133,7 @@ function CrosshairEditor({
         backgroundColor: profile.color,
         opacity: cs2 ? cs2.alpha / 255 : profile.opacity / 100,
         boxShadow: cs2?.outlineMode
-          ? `0 0 0 ${cs2.outlineMode === 2 ? 1 : 2}px rgba(${cs2.outlineRed},${cs2.outlineGreen},${cs2.outlineBlue},${cs2.outlineAlpha / 255})`
+          ? `0 0 0 1px rgba(${cs2.outlineRed},${cs2.outlineGreen},${cs2.outlineBlue},${(cs2.outlineAlpha / 255) * (cs2.outlineMode === 2 ? 0.5 : 1)})`
           : profile.outline
             ? `0 0 0 ${profile.outline}px #080808`
             : 'none',
@@ -141,8 +142,8 @@ function CrosshairEditor({
     />
   )
 
-  const scale = cs2 ? 3 : 2
-  const gap = (cs2?.gap ?? profile.gap) * scale
+  const scale = 2
+  const gap = cs2 ? Math.max(0, cs2.gap + 2) * scale : profile.gap * scale
   const length = (cs2?.length ?? profile.size) * scale
   const thickness = Math.max(1, (cs2?.thickness ?? profile.thickness) * scale)
   const style = cs2?.style ?? 4
@@ -154,18 +155,19 @@ function CrosshairEditor({
     <section className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
       <h3 className="text-lg font-semibold">Crosshair</h3>
       <p className="mt-1 text-sm text-neutral-400">
-        Import a current CS2 code, tune its settings, and save it for 1.6 Competitive matches.
-        Existing JSON crosshairs still work.
+        Paste a CS2 or CSGO code or tune the controls. Changes save automatically for 1.6
+        Competitive matches.
       </p>
       {!enabled && (
         <p className="mt-3 text-sm text-amber-300" role="status">
-          Turn on In-game enhancements in General to edit your crosshair.
+          Changes save automatically. Turn on In-game enhancements in General to use the crosshair
+          during matches.
         </p>
       )}
-      <fieldset disabled={!enabled} className={!enabled ? 'opacity-40' : undefined}>
+      <fieldset>
         <div className="mt-5">
           <label className="block text-sm text-neutral-200" htmlFor="cs2-crosshair-code">
-            CS2 crosshair code
+            CS2 / CSGO crosshair code
           </label>
           <div className="mt-2 flex flex-wrap gap-2">
             <input
@@ -173,10 +175,17 @@ function CrosshairEditor({
               value={codeInput}
               maxLength={64}
               onChange={(event) => setCodeInput(event.currentTarget.value)}
+              onPaste={(event) => {
+                event.preventDefault()
+                importCode(event.clipboardData.getData('text'))
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') importCode()
+              }}
               placeholder="CS… or CSGO-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
               className="min-w-0 flex-1 border border-white/20 bg-neutral-950 px-3 py-2 font-mono text-xs text-white"
             />
-            <Button variant="ghost" onClick={importCode}>
+            <Button variant="ghost" onClick={() => importCode()}>
               Import code
             </Button>
             {cs2 && (
@@ -189,7 +198,8 @@ function CrosshairEditor({
             )}
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            Current CS2 codes begin with CS. Older CSGO codes are converted to the current format.
+            Paste a CS2 or CSGO crosshair code to import and save it immediately. Older CSGO codes
+            are converted to the current format.
           </p>
         </div>
         <div className="mt-5 grid gap-6 md:grid-cols-[200px_1fr]">
@@ -378,8 +388,8 @@ function CrosshairEditor({
                 </label>
               ))}
               <p className="text-xs text-neutral-500 sm:col-span-2">
-                CS2 pixel sizes scale with the game resolution. Movement and recoil follow GoldSrc
-                game data.
+                CS2 pixel sizes scale with the game resolution. Dynamic spread uses GoldSrc movement
+                and shots. Follow recoil is saved in the share code but is not yet drawn in game.
               </p>
             </div>
           ) : (
@@ -431,37 +441,18 @@ function CrosshairEditor({
           )}
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Button disabled={saving} onClick={() => void save()}>
-            {saving ? 'Saving…' : 'Save crosshair'}
-          </Button>
-          <Button variant="ghost" onClick={() => importRef.current?.click()}>
-            Import JSON
-          </Button>
-          <Button variant="ghost" onClick={exportFile}>
-            Export JSON
-          </Button>
           {!cs2 && (
             <Button
               variant="ghost"
               onClick={() => {
                 const upgraded = upgradeCrosshairToCs2(profile)
-                setProfile(upgraded)
                 setCodeInput(upgraded.shareCode ?? '')
+                queueSave(upgraded)
               }}
             >
               Use CS2 controls
             </Button>
           )}
-          <input
-            ref={importRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(event) => {
-              void importFile(event.currentTarget.files?.[0])
-              event.currentTarget.value = ''
-            }}
-          />
         </div>
         <p className="mt-3 min-h-5 text-xs text-neutral-400" role="status">
           {message}

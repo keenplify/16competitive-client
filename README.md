@@ -50,7 +50,9 @@ older `CSGO-…` codes to the current format. It uses the MIT-licensed
 [csgo-sharecode decoder](https://github.com/akiver/csgo-sharecode), pinned in
 `package.json`. Crosshairs are rendered locally during 1.6 Competitive matches;
 CS2 weapon spread and scope behavior are approximated from GoldSrc's available
-game state.
+game state. In-game rendering of these codes requires a native cosmetic module
+that understands the `cs2` crosshair profile format. Older modules continue to
+render legacy JSON profiles, but do not draw imported CS2 codes.
 
 ## Counter-Strike configuration safety
 
