@@ -3,7 +3,6 @@ import { open } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const MAX_CONSOLE_BYTES = 64 * 1024
-const MAX_CONFIG_BYTES = 32 * 1024
 let lastGameDirectory: string | null = null
 
 // Keep the last launch location after exit so late/manual reports include it.
@@ -82,19 +81,4 @@ export async function collectGameConsoleLogs(fallbackDirectory?: string): Promis
     if (section !== null) sections.push(section)
   }
   return sections.join('\n\n') || '[qconsole.log] Not found in the last game installation.'
-}
-
-/** Capture the on-disk Counter-Strike config at report time, without changing it. */
-export async function collectGameConfigSnapshot(fallbackDirectory?: string): Promise<string> {
-  const directory = lastGameDirectory ?? fallbackDirectory
-  if (!directory) return '[config.cfg snapshot] No game installation available.'
-  return (
-    (await readReportFile(
-      directory,
-      join('cstrike', 'config.cfg'),
-      'config.cfg snapshot',
-      MAX_CONFIG_BYTES,
-      false
-    )) ?? '[config.cfg snapshot] Not found in the last game installation.'
-  )
 }

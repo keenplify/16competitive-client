@@ -3,11 +3,7 @@ import { dirname } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
-import {
-  collectGameConsoleLogs,
-  collectGameConfigSnapshot,
-  redactReportLogs
-} from './game/game-console-logs'
+import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -27,7 +23,8 @@ export const getDiagnosticLogs = (): string[] => [...entries]
 export async function reportDiagnosticIssue(
   description: string,
   rendererLogs: string[],
-  deduplicationKey?: string
+  deduplicationKey?: string,
+  matchId?: string
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
@@ -37,17 +34,15 @@ export async function reportDiagnosticIssue(
     return null
   })
   const fallbackDirectory = savedExecutable ? dirname(savedExecutable) : undefined
-  const [gameLogs, configSnapshot] = await Promise.all([
-    collectGameConsoleLogs(fallbackDirectory),
-    collectGameConfigSnapshot(fallbackDirectory)
-  ])
-  const logs = `${launcherLogs}\n\n${gameLogs}\n\n${configSnapshot}`
+  const gameLogs = await collectGameConsoleLogs(fallbackDirectory)
+  const logs = `${launcherLogs}\n\n${gameLogs}`
   const response = await fetch(`${API_BASE_URL}/auth/issue-reports`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       description,
       ...(deduplicationKey ? { deduplicationKey } : {}),
+      ...(matchId ? { matchId } : {}),
       logs: logs || 'No diagnostic logs recorded.',
       clientVersion: app.getVersion()
     }),

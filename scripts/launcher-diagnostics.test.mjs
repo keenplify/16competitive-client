@@ -6,7 +6,6 @@ import { join } from 'node:path'
 import { setDefaultMimeHandler } from '../src/main/linux-mimeapps.ts'
 import {
   collectGameConsoleLogs,
-  collectGameConfigSnapshot,
   setGameConsoleDirectory,
   redactReportLogs
 } from '../src/main/game/game-console-logs.ts'
@@ -64,31 +63,6 @@ test('reports include bounded console tails after exit with credentials removed'
       await symlink(join(directory, 'private.txt'), join(directory, 'qconsole.log'))
       assert.ok(!(await collectGameConsoleLogs()).includes('private file'))
     }
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
-
-test('config snapshots preserve movement settings and binds while redacting secrets', async () => {
-  const directory = await mkdtemp(join(tmpdir(), '16c-config-report-'))
-  try {
-    await mkdir(join(directory, 'cstrike'))
-    await writeFile(
-      join(directory, 'cstrike', 'config.cfg'),
-      'fps_max "999"\nfps_override "1"\ncl_cmdrate "101"\nbind "w" "+forward"\npassword "secret"\nsetinfo "_16c" "private-token"\n' +
-        '// padding\n'.repeat(5000)
-    )
-    setGameConsoleDirectory(directory)
-    const snapshot = await collectGameConfigSnapshot()
-    assert.ok(snapshot.includes('fps_max "999"'))
-    assert.ok(snapshot.includes('bind "w" "+forward"'))
-    assert.ok(snapshot.includes('cl_cmdrate "101"'))
-    assert.ok(!snapshot.includes('secret'))
-    assert.ok(!snapshot.includes('private-token'))
-    assert.ok(snapshot.includes('truncated'))
-    assert.ok(snapshot.length < 33000)
-    await rm(join(directory, 'cstrike', 'config.cfg'))
-    assert.match(await collectGameConfigSnapshot(), /Not found/)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

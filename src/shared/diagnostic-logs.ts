@@ -7,6 +7,7 @@ export interface DiagnosticLogsApi {
   get: () => Promise<string[]>
   report: (
     description: string,
-    rendererLogs: string[]
+    rendererLogs: string[],
+    matchId?: string
   ) => Promise<{ id: string; createdAt: string }>
 }

@@ -484,7 +484,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
   ipcMain.handle(
     DIAGNOSTIC_LOG_CHANNELS.report,
-    (_, description: unknown, rendererLogs: unknown) => {
+    (_, description: unknown, rendererLogs: unknown, matchId: unknown) => {
       if (
         typeof description !== 'string' ||
         description.trim().length < 1 ||
@@ -493,7 +493,9 @@ app.whenReady().then(async () => {
         throw new Error('Issue description is invalid.')
       if (!Array.isArray(rendererLogs) || rendererLogs.some((log) => typeof log !== 'string'))
         throw new Error('Diagnostic logs are invalid.')
-      return reportDiagnosticIssue(description.trim(), rendererLogs.slice(0, 2_000))
+      if (matchId !== undefined && (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)))
+        throw new Error('Match ID is invalid.')
+      return reportDiagnosticIssue(description.trim(), rendererLogs.slice(0, 2_000), undefined, matchId)
     }
   )
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>

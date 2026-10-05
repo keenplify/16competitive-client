@@ -712,9 +712,10 @@ const api: Window['api'] = {
     async get() {
       return []
     },
-    async report(description: string, rendererLogs: string[]) {
+    async report(description: string, rendererLogs: string[], matchId?: string) {
       return jsonPost('/auth/issue-reports', {
         description,
+        ...(matchId ? { matchId } : {}),
         logs: rendererLogs.join('\n').slice(0, 500_000) || '[no renderer logs]',
         clientVersion: 'web'
       })

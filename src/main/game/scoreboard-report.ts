@@ -17,7 +17,7 @@ export type ScoreboardIncident = {
 }
 
 export function createScoreboardReporter(
-  report: (description: string, logs: string[], key: string) => Promise<unknown>,
+  report: (description: string, logs: string[], key: string, matchId?: string) => Promise<unknown>,
   wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 ): (incident: ScoreboardIncident) => Promise<void> {
   const submitted = new Set<string>()
@@ -36,7 +36,7 @@ export function createScoreboardReporter(
     ].join('\n')
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await report(description, [JSON.stringify({ scoreboardIncident: incident })], key)
+        await report(description, [JSON.stringify({ scoreboardIncident: incident })], key, incident.matchId)
         console.info('[Scoreboard] automatic issue report submitted', { key })
         return
       } catch (error) {
