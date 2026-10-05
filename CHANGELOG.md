@@ -1792,3 +1792,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Fixes
 
 - Fixed stale skin asset setup notifications.
+
+## v2026.1005.6 — 2026-10-05
+
+### Fixes
+
+- Improved NextClient launch compatibility.
+- Fixed launch settings not being handed off correctly.
+- Fixed NextClient fallback launches.
