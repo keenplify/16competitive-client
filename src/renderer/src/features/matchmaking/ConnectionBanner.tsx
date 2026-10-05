@@ -1,29 +1,33 @@
 import { LoaderCircle, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from './matchmaking.store'
 
 export function ConnectionBanner(): React.JSX.Element | null {
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const connect = useMatchmakingStore((state) => state.connect)
+  const hasSession = useAuthStore((state) => state.session !== null)
   const [isOnline, setIsOnline] = useState(() => navigator.onLine)
 
   useEffect(() => {
     const handleOffline = (): void => setIsOnline(false)
     const handleOnline = (): void => {
       setIsOnline(true)
-      // If the socket is still healthy, leave it alone. Calling connect while
-      // the main process already has an open socket would otherwise leave the
-      // renderer displaying a permanent "connecting" state.
-      if (connectionStatus !== 'ready') void connect()
+      if (hasSession) void connect()
+    }
+    const handleFocus = (): void => {
+      if (hasSession) void connect()
     }
 
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online', handleOnline)
+    window.addEventListener('focus', handleFocus)
     return () => {
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)
+      window.removeEventListener('focus', handleFocus)
     }
-  }, [connect, connectionStatus])
+  }, [connect, hasSession])
 
   const isReconnecting = connectionStatus === 'reconnecting'
   if (isOnline && !isReconnecting) return null
