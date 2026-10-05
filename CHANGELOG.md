@@ -1763,3 +1763,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Fixed launching Counter-Strike through Steam on Windows.
+
+## v2026.1005.3 — 2026-10-05
+
+### Setup
+
+- Added an animated client setup experience.
+- Added guided onboarding for username and game settings.
+- Improved authentication and setup flows.
+
+### Referrals
+
+- Added referral onboarding.
+- Added referral settings so referral information can be managed later.
