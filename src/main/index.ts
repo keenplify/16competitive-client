@@ -70,6 +70,7 @@ import {
 } from './friends'
 import {
   GAME_SETTINGS_CHANNELS,
+  type NextClientInstallProgress,
   type SkinAssetSyncMode,
   type SkinAssetSyncProgress
 } from '../shared/game-settings'
@@ -84,6 +85,11 @@ import {
   saveFastSwitch,
   saveKillCards
 } from './game/game-settings'
+import {
+  cancelNextClientInstaller,
+  detectNextClientFolder,
+  launchNextClientInstaller
+} from './game/nextclient-installer'
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
@@ -764,6 +770,15 @@ app.whenReady().then(async () => {
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.installNextClient, (event) =>
+    launchNextClientInstaller((progress: NextClientInstallProgress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(GAME_SETTINGS_CHANNELS.nextClientInstallProgress, progress)
+      }
+    })
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.cancelNextClientInstall, () => cancelNextClientInstaller())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.detectNextClient, () => detectNextClientFolder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, async (_, profile: unknown) => {
     const settings = await saveCrosshair(profile)

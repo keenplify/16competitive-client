@@ -1,6 +1,23 @@
 import { create } from 'zustand'
 import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
-import type { ClientType, SetupMode } from '../../../../shared/game-settings'
+import type {
+  ClientType,
+  NextClientInstallProgress,
+  SetupMode
+} from '../../../../shared/game-settings'
+
+type NextClientInstallStatus =
+  | 'idle'
+  | 'checking_source'
+  | 'downloading'
+  | 'extracting'
+  | 'launching'
+  | 'waiting'
+  | 'detecting'
+  | 'ready'
+  | 'error'
+
+let nextClientDetectionRun = 0
 
 interface GameSettingsState {
   folderPath: string
@@ -22,6 +39,9 @@ interface GameSettingsState {
   setupMode: SetupMode | null
   clientType: ClientType | null
   platform: 'win32' | 'linux' | 'other'
+  nextClientInstallStatus: NextClientInstallStatus
+  nextClientInstallProgress: NextClientInstallProgress | null
+  nextClientInstallError: string | null
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
   setNextClientIntegration: (enabled: boolean) => Promise<void>
   setFastSwitch: (enabled: boolean) => Promise<void>
@@ -30,6 +50,9 @@ interface GameSettingsState {
   choose: () => Promise<void>
   save: () => Promise<void>
   completeSetup: (mode: SetupMode) => Promise<boolean>
+  installNextClient: () => Promise<void>
+  detectNextClient: () => Promise<boolean>
+  cancelNextClientDetection: () => void
   promptToConfigureForMatch: () => void
 }
 
@@ -58,6 +81,9 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   setupMode: null,
   clientType: null,
   platform: 'other',
+  nextClientInstallStatus: 'idle',
+  nextClientInstallProgress: null,
+  nextClientInstallError: null,
 
   setCrosshair: async (profile) => {
     const settings = await window.api.gameSettings.setCrosshair(profile)
@@ -129,6 +155,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   choose: async () => {
+    nextClientDetectionRun += 1
+    set({ nextClientInstallStatus: 'idle' })
     set({ status: 'choosing', error: null, notice: null })
     try {
       const folderPath = await window.api.gameSettings.chooseFolder()
@@ -193,6 +221,86 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     } catch (error) {
       set({ status: 'idle', error: message(error) })
       return false
+    }
+  },
+
+  installNextClient: async () => {
+    if (get().platform !== 'win32') {
+      set({
+        nextClientInstallStatus: 'error',
+        nextClientInstallError: 'NextClient requires Windows.'
+      })
+      return
+    }
+    const run = ++nextClientDetectionRun
+    set({
+      nextClientInstallStatus: 'checking_source',
+      nextClientInstallProgress: null,
+      nextClientInstallError: null
+    })
+    const unsubscribe = window.api.gameSettings.onNextClientInstallProgress((progress) => {
+      if (run !== nextClientDetectionRun) return
+      set({ nextClientInstallStatus: progress.phase, nextClientInstallProgress: progress })
+    })
+    try {
+      await window.api.gameSettings.installNextClient()
+      if (run !== nextClientDetectionRun) return
+      set({ nextClientInstallStatus: 'waiting' })
+      for (let attempt = 0; attempt < 200 && run === nextClientDetectionRun; attempt += 1) {
+        if (await get().detectNextClient()) return
+        if (get().nextClientInstallStatus === 'error') return
+        await new Promise((resolve) => window.setTimeout(resolve, 3_000))
+      }
+      if (run === nextClientDetectionRun) {
+        set({
+          nextClientInstallStatus: 'error',
+          nextClientInstallError: 'NextClient was not detected. Choose its installation folder.'
+        })
+      }
+    } catch (error) {
+      if (run === nextClientDetectionRun) {
+        set({ nextClientInstallStatus: 'error', nextClientInstallError: message(error) })
+      }
+    } finally {
+      unsubscribe()
+    }
+  },
+
+  detectNextClient: async () => {
+    if (get().nextClientInstallStatus === 'detecting') return false
+    set({ nextClientInstallStatus: 'detecting', nextClientInstallError: null })
+    try {
+      const folder = await window.api.gameSettings.detectNextClient()
+      if (!folder) {
+        set({ nextClientInstallStatus: 'waiting' })
+        return false
+      }
+      set({ folderPath: folder })
+      await get().save()
+      if (
+        get().error ||
+        !get().nextClientDetected ||
+        get().savedPath?.toLowerCase() !== folder.toLowerCase()
+      ) {
+        throw new Error(get().error ?? 'NextClient installation could not be selected.')
+      }
+      nextClientDetectionRun += 1
+      set({ nextClientInstallStatus: 'ready', nextClientInstallError: null })
+      return true
+    } catch (error) {
+      set({ nextClientInstallStatus: 'error', nextClientInstallError: message(error) })
+      return false
+    }
+  },
+
+  cancelNextClientDetection: () => {
+    const status = get().nextClientInstallStatus
+    nextClientDetectionRun += 1
+    if (['checking_source', 'downloading', 'extracting', 'launching'].includes(status)) {
+      void window.api.gameSettings.cancelNextClientInstall()
+    }
+    if (status !== 'ready') {
+      set({ nextClientInstallStatus: 'idle' })
     }
   },
 
