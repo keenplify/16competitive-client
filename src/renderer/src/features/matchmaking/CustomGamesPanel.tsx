@@ -18,7 +18,6 @@ import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useFriendsStore } from '../friends/friends.store'
-import { regionLabel } from './region-label'
 
 interface CustomGamesPanelProps {
   currentPlayerId: string
@@ -30,6 +29,14 @@ interface CustomGamesPanelProps {
 
 const fieldClass =
   'h-10 border border-white/15 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-sky-400'
+
+const regionLabel = (region: string): string =>
+  region === 'sea'
+    ? 'SEA'
+    : region
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
 
 const nodeLatency = (node: MatchmakingNode | undefined): number | null =>
   typeof node?.latencyMs === 'number' && Number.isFinite(node.latencyMs)
