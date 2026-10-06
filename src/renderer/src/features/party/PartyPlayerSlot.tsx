@@ -3,6 +3,7 @@ import { twMerge } from 'tailwind-merge'
 import type { PartyMember } from '../../../../shared/party'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useGameSettingsStore } from '../settings/game-settings.store'
+import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { modelForSlot } from './party-models'
 const AK47_MODEL_ROTATION = [0, 90, 90] as const
 const AK47_HAND_ROTATION = [0, 180, 0] as const
@@ -46,7 +47,14 @@ export function PartyPlayerSlot({
         cameraLocked
         className="absolute inset-0"
       />
-      <footer className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-52 -translate-x-1/2 border border-white/15 bg-neutral-950/80 px-3 py-2.5 text-center font-sans shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <footer className="absolute bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-52 -translate-x-1/2 px-3 py-2.5 text-center font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+        {member.level && member.levelTitle && (
+          <ProfileRankInsignia
+            level={member.level}
+            title={member.levelTitle}
+            className="mx-auto mb-1 size-9"
+          />
+        )}
         <div className="flex items-center justify-center gap-2">
           <p className="truncate text-sm font-semibold">{member.username}</p>
           {isLeader && (

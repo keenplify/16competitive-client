@@ -33,6 +33,8 @@ const memberWithSkin = (
   id,
   username,
   mmr,
+  level: [9, 15, 16, 22, 28][slot],
+  levelTitle: ['Skirmisher IV', 'Vanguard V', 'Sentinel I', 'Tactician II', 'Commander III'][slot],
   lobbyPlayerModel: LOBBY_PLAYER_MODELS[slot % LOBBY_PLAYER_MODELS.length],
   lobbyWeaponSkinId: skin.id,
   lobbyWeaponKey: skin.weaponKey,

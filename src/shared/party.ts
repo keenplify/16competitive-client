@@ -14,6 +14,8 @@ export interface PartyMember {
   id: string
   username: string
   mmr: number
+  level?: number
+  levelTitle?: string
   lobbyPlayerModel: string | null
   lobbyWeaponSkinId: string | null
   lobbyWeaponKey: string
