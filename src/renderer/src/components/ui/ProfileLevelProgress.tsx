@@ -1,29 +1,10 @@
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
+import { profileRankProgress } from '../../../../shared/profile-ranks'
 import { ProfileRankInsignia } from './ProfileRankInsignia'
 
-const LEVEL_TITLES = [
-  'Pathfinder',
-  'Skirmisher',
-  'Vanguard',
-  'Sentinel',
-  'Tactician',
-  'Commander',
-  'Champion',
-  'Icon'
-] as const
-const GRADES = ['I', 'II', 'III', 'IV', 'V'] as const
 const ANIMATION_MS = 2600
-
-function levelAt(
-  xp: number,
-  xpPerLevel: number
-): { level: number; title: string; intoLevel: number } {
-  const level = Math.min(40, Math.floor(xp / xpPerLevel) + 1)
-  const title = `${LEVEL_TITLES[Math.floor((level - 1) / 5)]} ${GRADES[(level - 1) % 5]}`
-  return { level, title, intoLevel: level === 40 ? xpPerLevel : xp % xpPerLevel }
-}
 
 interface ProfileLevelProgressProps {
   award: ProfileXpAward
@@ -83,11 +64,9 @@ export function ProfileLevelProgress({ award, className }: ProfileLevelProgressP
     }
   }, [award])
 
-  const current = levelAt(displayedXp, award.xpForNextLevel)
-  const percent = Math.min(100, (current.intoLevel / award.xpForNextLevel) * 100)
-  const leveledUp =
-    displayedXp >= award.levelAfter * award.xpForNextLevel - award.xpForNextLevel &&
-    award.levelAfter > award.levelBefore
+  const current = profileRankProgress(displayedXp)
+  const percent = Math.min(100, (current.xpIntoLevel / current.xpForNextLevel) * 100)
+  const leveledUp = current.level > award.levelBefore
 
   return (
     <section
@@ -110,9 +89,9 @@ export function ProfileLevelProgress({ award, className }: ProfileLevelProgressP
         className="mt-5 h-3 overflow-hidden rounded-full bg-white/10"
         role="progressbar"
         aria-label="Level XP"
-        aria-valuenow={current.intoLevel}
+        aria-valuenow={current.xpIntoLevel}
         aria-valuemin={0}
-        aria-valuemax={award.xpForNextLevel}
+        aria-valuemax={current.xpForNextLevel}
       >
         <div
           className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-300 to-amber-300 shadow-[0_0_14px_rgba(125,211,252,0.6)]"
@@ -121,7 +100,7 @@ export function ProfileLevelProgress({ award, className }: ProfileLevelProgressP
       </div>
       <div className="mt-2 flex justify-between text-xs text-white/55">
         <span>
-          {current.intoLevel.toLocaleString()} / {award.xpForNextLevel.toLocaleString()} XP
+          {current.xpIntoLevel.toLocaleString()} / {current.xpForNextLevel.toLocaleString()} XP
         </span>
         <span>
           {leveledUp

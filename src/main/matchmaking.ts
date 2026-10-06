@@ -195,9 +195,9 @@ const isProfileXpAward = (value: unknown): boolean => {
     integerInRange('xpEarned', 0, 1_000) &&
     integerInRange('levelBefore', 1, 40) &&
     integerInRange('levelAfter', 1, 40) &&
-    integerInRange('xpIntoLevelBefore', 0, 4_000) &&
-    integerInRange('xpIntoLevelAfter', 0, 4_000) &&
-    award.xpForNextLevel === 4_000 &&
+    integerInRange('xpIntoLevelBefore', 0, 6_700) &&
+    integerInRange('xpIntoLevelAfter', 0, 6_700) &&
+    integerInRange('xpForNextLevel', 1_300, 6_700) &&
     typeof award.titleBefore === 'string' &&
     award.titleBefore.length <= 64 &&
     typeof award.titleAfter === 'string' &&

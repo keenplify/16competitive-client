@@ -1,4 +1,5 @@
 import type { AuthPlayer } from '../../../../shared/auth'
+import { profileRankTitle, profileXpForNextLevel } from '../../../../shared/profile-ranks'
 import type { PartyChatEvent } from '../../../../shared/matchmaking'
 import type { Party, PartyMember } from '../../../../shared/party'
 import type { Skin } from '../../../../shared/skins'
@@ -34,7 +35,9 @@ const memberWithSkin = (
   username,
   mmr,
   level: [9, 15, 16, 22, 28][slot],
-  levelTitle: ['Skirmisher IV', 'Vanguard V', 'Sentinel I', 'Tactician II', 'Commander III'][slot],
+  levelTitle: profileRankTitle([9, 15, 16, 22, 28][slot]),
+  xpIntoLevel: [1_200, 1_500, 800, 1_800, 1_600][slot],
+  xpForNextLevel: profileXpForNextLevel([9, 15, 16, 22, 28][slot]),
   lobbyPlayerModel: LOBBY_PLAYER_MODELS[slot % LOBBY_PLAYER_MODELS.length],
   lobbyWeaponSkinId: skin.id,
   lobbyWeaponKey: skin.weaponKey,
@@ -93,13 +96,13 @@ export const buildMarketingLobby = (player: AuthPlayer, catalog: Skin[]): Market
     { length: 5 },
     (_, index) => availableSkins[index % availableSkins.length]
   )
-  const currentPlayerMember = memberWithSkin(
-    player.id,
-    player.username,
-    player.mmr,
-    selectedSkins[0],
-    0
-  )
+  const currentPlayerMember = {
+    ...memberWithSkin(player.id, player.username, player.mmr, selectedSkins[0], 0),
+    level: player.level ?? 9,
+    levelTitle: player.levelTitle ?? profileRankTitle(9),
+    xpIntoLevel: player.xpIntoLevel ?? 1_200,
+    xpForNextLevel: player.xpForNextLevel ?? profileXpForNextLevel(player.level ?? 9)
+  }
   const guests = MARKETING_PLAYERS.map(({ username, mmrOffset }, index) =>
     memberWithSkin(
       `marketing-player-${index + 1}`,

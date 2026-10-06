@@ -30,6 +30,10 @@ interface BackendAuthResponse {
     username: string
     email: string
     mmr: number
+    level?: number
+    levelTitle?: string
+    xpIntoLevel?: number
+    xpForNextLevel?: number
     points: number
     flagCountryCode: string | null
     createdAt: string
@@ -166,6 +170,20 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     typeof (player as Record<string, unknown>).username === 'string' &&
     typeof (player as Record<string, unknown>).email === 'string' &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
+    ((player as Record<string, unknown>).level === undefined ||
+      (Number.isInteger((player as Record<string, unknown>).level) &&
+        Number((player as Record<string, unknown>).level) >= 1 &&
+        Number((player as Record<string, unknown>).level) <= 40)) &&
+    ((player as Record<string, unknown>).levelTitle === undefined ||
+      typeof (player as Record<string, unknown>).levelTitle === 'string') &&
+    ((player as Record<string, unknown>).xpIntoLevel === undefined ||
+      (Number.isInteger((player as Record<string, unknown>).xpIntoLevel) &&
+        Number((player as Record<string, unknown>).xpIntoLevel) >= 0 &&
+        Number((player as Record<string, unknown>).xpIntoLevel) <= 6_700)) &&
+    ((player as Record<string, unknown>).xpForNextLevel === undefined ||
+      (Number.isInteger((player as Record<string, unknown>).xpForNextLevel) &&
+        Number((player as Record<string, unknown>).xpForNextLevel) >= 1_300 &&
+        Number((player as Record<string, unknown>).xpForNextLevel) <= 6_700)) &&
     typeof (player as Record<string, unknown>).points === 'number' &&
     ((player as Record<string, unknown>).flagCountryCode === null ||
       (typeof (player as Record<string, unknown>).flagCountryCode === 'string' &&

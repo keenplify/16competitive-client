@@ -20,6 +20,17 @@ const isMember = (value: unknown): boolean =>
   typeof value.id === 'string' &&
   typeof value.username === 'string' &&
   typeof value.mmr === 'number' &&
+  (value.level === undefined ||
+    (Number.isInteger(value.level) && Number(value.level) >= 1 && Number(value.level) <= 40)) &&
+  (value.levelTitle === undefined || typeof value.levelTitle === 'string') &&
+  (value.xpIntoLevel === undefined ||
+    (Number.isInteger(value.xpIntoLevel) &&
+      Number(value.xpIntoLevel) >= 0 &&
+      Number(value.xpIntoLevel) <= 6_700)) &&
+  (value.xpForNextLevel === undefined ||
+    (Number.isInteger(value.xpForNextLevel) &&
+      Number(value.xpForNextLevel) >= 1_300 &&
+      Number(value.xpForNextLevel) <= 6_700)) &&
   (typeof value.lobbyPlayerModel === 'string' || value.lobbyPlayerModel === null) &&
   (typeof value.lobbyWeaponSkinId === 'string' || value.lobbyWeaponSkinId === null) &&
   typeof value.lobbyWeaponKey === 'string' &&

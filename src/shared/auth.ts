@@ -33,6 +33,10 @@ export interface AuthPlayer {
   username: string
   email: string
   mmr: number
+  level?: number
+  levelTitle?: string
+  xpIntoLevel?: number
+  xpForNextLevel?: number
   points: number
   flagCountryCode: string | null
   createdAt: string
