@@ -120,13 +120,13 @@ export function MatchmakingRegionSelect({
           container: () => 'mt-3 w-full text-sm',
           control: ({ isFocused, isDisabled }) =>
             twMerge(
-              'min-h-11 cursor-pointer  border border-white/10 bg-neutral-900 text-white transition',
+              'min-h-11 flex-nowrap cursor-pointer border border-white/10 bg-neutral-900 text-white transition',
               isFocused && 'border-sky-400/60 ring-1 ring-sky-400/20',
               isDisabled && 'cursor-not-allowed opacity-60'
             ),
-          valueContainer: () => 'px-3 py-1',
-          singleValue: () => 'w-full',
-          indicatorsContainer: () => 'px-2 text-neutral-400',
+          valueContainer: () => 'min-w-0 flex-1 px-3 py-1',
+          singleValue: () => 'min-w-0',
+          indicatorsContainer: () => 'shrink-0 self-center px-2 text-neutral-400',
           dropdownIndicator: ({ isFocused }) =>
             twMerge('transition-colors', isFocused && 'text-sky-300'),
           indicatorSeparator: () => 'hidden',
@@ -141,8 +141,27 @@ export function MatchmakingRegionSelect({
             ),
           noOptionsMessage: () => 'px-3 py-3 text-neutral-500'
         }}
-        formatOptionLabel={(option) => {
+        formatOptionLabel={(option, { context }) => {
           const node = option.node
+          if (context === 'value') {
+            return (
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className={twMerge(
+                    'size-2.5 shrink-0 rounded-full shadow-[0_0_8px_currentColor]',
+                    latencyDotClass(option.latencyMs, option.available)
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {option.automatic ? 'Automatic' : node ? regionLabel(node.region) : ''}
+                </span>
+                <span className="shrink-0 font-mono text-xs tabular-nums text-neutral-300">
+                  {latencyLabel(option.latencyMs, option.available)}
+                </span>
+              </div>
+            )
+          }
           return (
             <div className="flex min-w-0 items-center gap-2.5">
               <span

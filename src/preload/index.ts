@@ -74,6 +74,7 @@ const dailyQuests: DailyQuestsApi = {
 const matchmaking: MatchmakingApi = {
   connect: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.connect),
   getNodes: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getNodes),
+  getOnlinePlayers: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getOnlinePlayers),
   selectNode: (nodeId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.selectNode, nodeId),
   getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
   setAllowRegionExpansion: (value) =>

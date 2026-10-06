@@ -6,6 +6,7 @@ import type { ProfileXpAward } from './profile-level'
 export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
   getNodes: 'matchmaking:get-nodes',
+  getOnlinePlayers: 'matchmaking:get-online-players',
   selectNode: 'matchmaking:select-node',
   getPreferences: 'matchmaking:get-preferences',
   setAllowRegionExpansion: 'matchmaking:set-allow-region-expansion',
@@ -373,6 +374,7 @@ export type MatchmakingEvent =
 export interface MatchmakingApi {
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>
+  getOnlinePlayers(): Promise<number>
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>

@@ -359,6 +359,14 @@ export const browserMatchmakingApi: MatchmakingApi = {
 
   getNodes,
 
+  async getOnlinePlayers() {
+    const body = await requestJson<{ onlinePlayers: number }>('/online-players')
+    if (!Number.isInteger(body.onlinePlayers) || body.onlinePlayers < 0) {
+      throw new Error('Could not load online player count')
+    }
+    return body.onlinePlayers
+  },
+
   async selectNode(nodeId) {
     const nodes = nodesCache.length ? nodesCache : await getNodes()
     const target = nodeId ? nodes.find((node) => node.id === nodeId) : null
