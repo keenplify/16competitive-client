@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import THREE from '../../libs/web-hlmv/lib/three'
 import { parseModelCached, type ModelData } from '../../libs/web-hlmv/lib/modelDataParser'
 import { buildTexture } from '../../libs/web-hlmv/lib/textureBuilder'
@@ -10,6 +11,7 @@ import {
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import type { PartyMember } from '../../../../shared/party'
+import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { isGrenadeWeapon } from '../skins/weapon-categories'
 import {
   readCachedLobbyPresentation,
@@ -475,71 +477,72 @@ const addMesh = (
   return mesh
 }
 
-const roundedRectPath = (
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-): void => {
-  const clampedRadius = Math.min(radius, width / 2, height / 2)
-  context.beginPath()
-  context.moveTo(x + clampedRadius, y)
-  context.lineTo(x + width - clampedRadius, y)
-  context.quadraticCurveTo(x + width, y, x + width, y + clampedRadius)
-  context.lineTo(x + width, y + height - clampedRadius)
-  context.quadraticCurveTo(x + width, y + height, x + width - clampedRadius, y + height)
-  context.lineTo(x + clampedRadius, y + height)
-  context.quadraticCurveTo(x, y + height, x, y + height - clampedRadius)
-  context.lineTo(x, y + clampedRadius)
-  context.quadraticCurveTo(x, y, x + clampedRadius, y)
-  context.closePath()
-}
-
 const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
   // Size each plate for its actual username. A fixed wide texture made short
   // names waste space, while changing just the sprite width distorts the text.
   const canvas = document.createElement('canvas')
-  canvas.height = 256
+  canvas.height = 180
   const context = canvas.getContext('2d')!
-  const titleFontSize = 64
-  const subtitleFontSize = 36
-  const subtitle = `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}`
+  const titleFontSize = 54
   context.font = `700 ${titleFontSize}px sans-serif`
   const titleWidth = context.measureText(actor.member.username).width
-  context.font = `600 ${subtitleFontSize}px sans-serif`
-  const subtitleWidth = context.measureText(subtitle).width
-  canvas.width = Math.ceil(Math.min(512, Math.max(420, Math.max(titleWidth, subtitleWidth) + 160)))
+  canvas.width = Math.ceil(Math.min(700, Math.max(480, titleWidth + 175)))
 
-  const cardX = 24
-  const cardY = 24
-  const cardWidth = canvas.width - cardX * 2
-  const cardHeight = canvas.height - cardY * 2
-
-  roundedRectPath(context, cardX, cardY, cardWidth, cardHeight, 42)
-  context.fillStyle = '#0b0f16'
-  context.fill()
-  context.lineWidth = 6
-  context.strokeStyle = actor.isCurrentPlayer ? '#38bdf8' : '#525866'
-  context.stroke()
-
-  context.textAlign = 'center'
+  context.textAlign = 'left'
   context.textBaseline = 'middle'
+  context.shadowColor = 'rgba(0, 0, 0, 0.95)'
+  context.shadowBlur = 10
+  context.shadowOffsetY = 3
   context.fillStyle = '#ffffff'
-  context.font = `700 ${Math.min(titleFontSize, ((cardWidth - 48) / titleWidth) * titleFontSize)}px sans-serif`
-  context.fillText(actor.member.username, canvas.width / 2, 100)
-
-  context.fillStyle = '#cbd5e1'
-  context.font = `600 ${Math.min(subtitleFontSize, ((cardWidth - 48) / subtitleWidth) * subtitleFontSize)}px sans-serif`
-  context.fillText(subtitle, canvas.width / 2, 170)
+  context.font = `700 ${titleFontSize}px sans-serif`
+  context.fillText(actor.member.username, 133, 49, canvas.width - 155)
+  if (actor.member.level && actor.member.levelTitle) {
+    context.fillStyle = '#f4e5c7'
+    context.font = '700 27px sans-serif'
+    context.fillText(
+      `LEVEL ${actor.member.level} · ${actor.member.levelTitle.toUpperCase()}`,
+      133,
+      97,
+      canvas.width - 155
+    )
+  }
+  context.fillStyle = '#e2e8f0'
+  context.font = '600 27px sans-serif'
+  context.fillText(
+    `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}${actor.isLeader ? ' · LEADER' : ''}`,
+    133,
+    135,
+    canvas.width - 155
+  )
+  context.shadowColor = 'transparent'
+  context.fillStyle = actor.isCurrentPlayer ? '#38bdf8' : '#d6ad64'
+  context.fillRect(133, 163, canvas.width - 160, 3)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.minFilter = THREE.LinearFilter
   texture.magFilter = THREE.LinearFilter
   texture.needsUpdate = true
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }))
-  const height = 9.5
+  if (actor.member.level && actor.member.levelTitle) {
+    const markup = renderToStaticMarkup(
+      <ProfileRankInsignia level={actor.member.level} title={actor.member.levelTitle} />
+    ).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" ')
+    const badge = new Image()
+    badge.onload = (): void => {
+      context.drawImage(badge, 26, 39, 98, 98)
+      texture.needsUpdate = true
+    }
+    badge.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`
+  }
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    })
+  )
+  sprite.renderOrder = 10
+  const height = 8.5
   sprite.scale.set((canvas.width / canvas.height) * height, height, 1)
   return sprite
 }
@@ -680,7 +683,7 @@ const createActor = (
     const centeredBounds = new THREE.Box3().setFromObject(group)
     const nameplatePosition = centeredBounds
       .getCenter(new THREE.Vector3())
-      .setY(centeredBounds.max.y + 8)
+      .setY(centeredBounds.min.y + (centeredBounds.max.y - centeredBounds.min.y) * 0.31)
     group.worldToLocal(nameplatePosition)
     nameplate.position.copy(nameplatePosition)
     group.add(nameplate)
@@ -725,7 +728,7 @@ export function PartyModelScene({
         isLeader,
         forceWeaponSkinPreview
       }) =>
-        `${member.id}:${member.username}:${member.mmr}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
+        `${member.id}:${member.username}:${member.mmr}:${member.level ?? ''}:${member.levelTitle ?? ''}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
     )
     .join('|')
 

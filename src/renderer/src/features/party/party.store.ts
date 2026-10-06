@@ -257,7 +257,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         event.type === 'authenticated' ||
         event.type === 'party_invitation_received' ||
         event.type === 'party_updated' ||
-        event.type === 'party_disbanded'
+        event.type === 'party_disbanded' ||
+        event.type === 'match_finished'
       ) {
         void get().refresh()
       }

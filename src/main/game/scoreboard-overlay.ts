@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { constants, watch, type FSWatcher } from 'node:fs'
-import { lstat, mkdir, mkdtemp, open, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, mkdtemp, open, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { release } from 'node:os'
 import { app, BrowserWindow } from 'electron'
@@ -21,6 +21,7 @@ import type { ScoreboardIncident } from './scoreboard-report'
 import { reportDiagnosticIssue } from '../diagnostic-logs'
 import { KillCardTracker, type KillCardView } from './kill-card-tracker'
 import { KillCardPrediction, parseLocalDeathNotices } from './kill-card-prediction'
+import { writeLiveSessionFile } from './live-session-file'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -36,13 +37,7 @@ const writeCrosshairConfig = async (
   crosshair: CrosshairProfile
 ): Promise<void> => {
   const destination = join(directory, 'crosshair.conf')
-  const temporary = `${destination}.${randomUUID()}.tmp`
-  try {
-    await writeFile(temporary, serializeCrosshairConfig(crosshair), { mode: 0o600 })
-    await rename(temporary, destination)
-  } finally {
-    await unlink(temporary).catch(() => undefined)
-  }
+  await writeLiveSessionFile(destination, serializeCrosshairConfig(crosshair))
 }
 
 const readBoundedFeed = async (response: Response): Promise<string | null> => {
@@ -193,13 +188,7 @@ export class ScoreboardOverlaySession {
       await unlink(destination).catch(() => undefined)
       await unlink(join(this.directory, 'kill-cards.png')).catch(() => undefined)
     } else {
-      const temporary = `${destination}.${randomUUID()}.tmp`
-      try {
-        await writeFile(temporary, state, { mode: 0o600 })
-        await rename(temporary, destination)
-      } finally {
-        await unlink(temporary).catch(() => undefined)
-      }
+      await writeLiveSessionFile(destination, state)
     }
     this.lastKillCardState = state
     this.lastKillCardKinds = kinds
@@ -418,10 +407,8 @@ export class ScoreboardOverlaySession {
         const png = image.toPNG()
         if (!png.length || png.length > 128 * 1024) return
         const destination = join(directory, 'kill-cards.png')
-        const temporary = `${destination}.tmp`
         createdSession.cardFrameWriting = true
-        createdSession.cardFrameTask = writeFile(temporary, png, { mode: 0o600 })
-          .then(() => rename(temporary, destination))
+        createdSession.cardFrameTask = writeLiveSessionFile(destination, png)
           .catch((error: unknown) =>
             console.warn('[Scoreboard] kill card frame write failed', error)
           )
@@ -445,10 +432,8 @@ export class ScoreboardOverlaySession {
         const png = image.toPNG()
         if (!png.length || png.length > MAX_FRAME_BYTES) return
         const destination = join(directory, 'overlay.png')
-        const temporary = `${destination}.tmp`
         createdSession.frameWriting = true
-        createdSession.frameTask = writeFile(temporary, png, { mode: 0o600 })
-          .then(() => rename(temporary, destination))
+        createdSession.frameTask = writeLiveSessionFile(destination, png)
           .catch((error: unknown) => console.warn('[Scoreboard] frame write failed', error))
           .finally(() => {
             createdSession.frameWriting = false
@@ -587,9 +572,7 @@ export class ScoreboardOverlaySession {
       if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-4])\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
       if (this.stopped) return
-      const temporary = `${this.feedPath}.tmp`
-      await writeFile(temporary, feed, { mode: 0o600 })
-      await rename(temporary, this.feedPath)
+      await writeLiveSessionFile(this.feedPath, feed)
       const snapshot = this.readSnapshot(this.directory)
       const feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
       if (!this.feedAvailable)

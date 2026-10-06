@@ -66,7 +66,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   refresh: async () => {
     const previousRoom = get().currentRoom
-    set({ status: 'loading', error: null })
+    set({ status: 'loading' })
     try {
       const [rooms, currentRoom] = await Promise.all([
         window.api.customGames.list(useMatchmakingStore.getState().selectedNodeId),
@@ -78,7 +78,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
         rooms,
         currentRoom:
           get().addingBot || get().currentRoom !== previousRoom ? get().currentRoom : currentRoom,
-        status: 'ready'
+        status: 'ready',
+        error: null
       })
     } catch (error) {
       set({ status: 'error', error: message(error) })

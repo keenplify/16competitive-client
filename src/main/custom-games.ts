@@ -163,11 +163,8 @@ export const listCustomGames = async (selectedNodeId?: unknown): Promise<CustomG
   }
 
   const nodes = await getMatchmakingNodes()
-  const availableNodes = nodes.filter((node) => node.available)
   const targetNodes =
-    typeof selectedNodeId === 'string'
-      ? availableNodes.filter((node) => node.id === selectedNodeId)
-      : availableNodes
+    typeof selectedNodeId === 'string' ? nodes.filter((node) => node.id === selectedNodeId) : nodes
 
   if (targetNodes.length === 0) {
     throw new Error(

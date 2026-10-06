@@ -107,10 +107,7 @@ const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
 const customGames: CustomGamesApi = {
   async list(selectedNodeId) {
     const nodes = await browserMatchmakingApi.getNodes()
-    const availableNodes = nodes.filter((node) => node.available)
-    const targets = selectedNodeId
-      ? availableNodes.filter((node) => node.id === selectedNodeId)
-      : availableNodes
+    const targets = selectedNodeId ? nodes.filter((node) => node.id === selectedNodeId) : nodes
     if (targets.length === 0) {
       throw new Error(
         selectedNodeId
