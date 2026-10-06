@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Party nameplate preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: #f6f2e8;
+        font-family: Arial, sans-serif;
+      }
+      main {
+        max-width: 1300px;
+        margin: auto;
+        padding: 32px 24px 64px;
+      }
+      h1,
+      h2 {
+        margin: 0 0 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 18px;
+      }
+      .nameplate-section {
+        min-height: 460px;
+      }
+      #preview {
+        width: min(90vw, 600px);
+        margin: 40px auto;
+      }
+      .insignia-section {
+        padding: 26px;
+        background: rgba(9, 14, 20, 0.92);
+        border: 1px solid #765c36;
+      }
+      #insignias {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .insignia-card {
+        display: flex;
+        min-height: 150px;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 6px;
+        background: #17212b;
+        border: 1px solid #36424a;
+      }
+      .insignia-card svg {
+        width: 74px;
+        height: 74px;
+        filter: drop-shadow(0 3px 3px #000);
+      }
+      .insignia-card span {
+        color: #aeb9be;
+        font-size: 12px;
+      }
+      .insignia-card strong {
+        font-size: 14px;
+      }
+      @media (max-width: 700px) {
+        #insignias {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        main {
+          padding: 20px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="nameplate-section">
+        <h1>Party nameplate preview</h1>
+        <div id="preview"></div>
+      </section>
+      <section class="insignia-section">
+        <h2>All 40 level insignias</h2>
+        <div id="insignias"></div>
+      </section>
+    </main>
+    <script type="module" src="./party-nameplate-preview.ts"></script>
+  </body>
+</html>

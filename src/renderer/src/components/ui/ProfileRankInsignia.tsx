@@ -1,38 +1,31 @@
 import { useId, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-const PALETTES = [
-  { light: '#f3dba7', metal: '#b9894d', dark: '#573923', enamel: '#263e48' },
-  { light: '#f4dfad', metal: '#c69b5a', dark: '#654323', enamel: '#315449' },
-  { light: '#fff0c1', metal: '#d1a969', dark: '#735021', enamel: '#324b70' },
-  { light: '#fff0ca', metal: '#dab16c', dark: '#784a25', enamel: '#413d72' },
-  { light: '#fff1c9', metal: '#dfb86c', dark: '#7c4d21', enamel: '#284d75' },
-  { light: '#fff1ce', metal: '#e4bd70', dark: '#804820', enamel: '#63394a' },
-  { light: '#fff4d2', metal: '#e9c579', dark: '#865322', enamel: '#284c67' },
-  { light: '#fff7dc', metal: '#efd18b', dark: '#8f5425', enamel: '#553b6d' }
-] as const
-
 interface ProfileRankInsigniaProps {
   level: number
   title: string
   className?: string
 }
 
-function Star({
-  x = 32,
-  y = 32,
-  size = 8
-}: {
-  x?: number
-  y?: number
-  size?: number
-}): JSX.Element {
+// Original rank artwork: broken stripes, slanted bars, crystal leaves, winged
+// crests and four-point compass stars. Inline paths also work in canvas nameplates.
+const STRIPE = 'M9 13 28 3V10L9 20ZM36 3 55 13V20L36 10Z'
+const COMPASS = 'M0 -10 3 -3 10 0 3 3 0 10 -3 3 -10 0 -3 -3Z'
+const LEAF =
+  'M32 5 38 17 35 25 48 16 48 28 38 34 49 33 43 44 35 43 35 50H29V43L21 44 15 33 26 34 16 28V16L29 25 26 17Z'
+const STAR_POSITIONS = [[], [32], [21, 43], [15, 32, 49], [11, 25, 39, 53], [9, 20.5, 32, 43.5, 55]]
+
+function Stripes({ count, fill }: { count: number; fill: string }): JSX.Element {
   return (
-    <path
-      d="M0 -1 0.24 -0.3 0.95 -0.3 0.38 0.12 0.59 0.82 0 0.41 -0.59 0.82 -0.38 0.12 -0.95 -0.3 -0.24 -0.3Z"
-      transform={`translate(${x} ${y}) scale(${size})`}
-      fill="currentColor"
-    />
+    <g fill={fill} stroke="#544126" strokeWidth="0.6">
+      {Array.from({ length: count }, (_, index) => (
+        <path
+          key={index}
+          d={STRIPE}
+          transform={`translate(0 ${10 + index * 12 - (count - 1) * 5})`}
+        />
+      ))}
+    </g>
   )
 }
 
@@ -44,256 +37,176 @@ export function ProfileRankInsignia({
   const safeLevel = Number.isFinite(level) ? Math.max(1, Math.min(40, Math.floor(level))) : 1
   const tier = Math.floor((safeLevel - 1) / 5)
   const grade = ((safeLevel - 1) % 5) + 1
-  const colors = PALETTES[tier]
-  const rawId = useId().replace(/:/g, '')
-  const metalId = `rank-metal-${rawId}`
-  const enamelId = `rank-enamel-${rawId}`
-  const glintId = `rank-glint-${rawId}`
-  const gradeMarks = Array.from({ length: grade }, (_, index) => index)
+  const id = useId().replace(/:/g, '')
+  const gold = `url(#rank-gold-${id})`
+  const silver = `url(#rank-silver-${id})`
 
   return (
     <svg
       viewBox="0 0 64 64"
       role="img"
       aria-label={`Level ${safeLevel}, ${title}`}
-      className={twMerge('block size-10 shrink-0 drop-shadow-[0_2px_3px_rgba(0,0,0,0.85)]', className)}
+      className={twMerge(
+        'block size-10 shrink-0 drop-shadow-[0_2px_3px_rgba(0,0,0,0.85)]',
+        className
+      )}
     >
       <defs>
-        <linearGradient id={metalId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={colors.dark} />
-          <stop offset="0.23" stopColor={colors.light} />
-          <stop offset="0.52" stopColor={colors.metal} />
-          <stop offset="0.78" stopColor={colors.light} />
-          <stop offset="1" stopColor={colors.dark} />
+        <linearGradient id={`rank-gold-${id}`} x1="0" y1="0" x2="0.7" y2="1">
+          <stop stopColor="#fff0b4" />
+          <stop offset="0.45" stopColor="#ddb458" />
+          <stop offset="1" stopColor="#8c612a" />
         </linearGradient>
-        <linearGradient id={enamelId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={colors.enamel} />
-          <stop offset="1" stopColor="#101b28" />
+        <linearGradient id={`rank-silver-${id}`} x1="0" y1="0" x2="0.7" y2="1">
+          <stop stopColor="#ffffff" />
+          <stop offset="0.45" stopColor="#c9d7dc" />
+          <stop offset="1" stopColor="#647d89" />
         </linearGradient>
-        <radialGradient id={glintId}>
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.8" />
-          <stop offset="1" stopColor={colors.light} stopOpacity="0" />
-        </radialGradient>
       </defs>
 
       {tier === 0 && (
-        <g
-          fill={`url(#${metalId})`}
-          stroke={colors.dark}
-          strokeWidth="1.2"
-          strokeLinejoin="round"
-          transform={`translate(0 ${-13.5 + (grade - 1) * 4.5})`}
-        >
-          {gradeMarks.map((mark) => (
-            <path
-              key={mark}
-              d={`M13 ${48 - mark * 9} 32 ${36 - mark * 9} 51 ${48 - mark * 9} 51 ${55 - mark * 9} 32 ${43 - mark * 9} 13 ${55 - mark * 9}Z`}
-            />
-          ))}
+        <g>
+          {grade !== 4 && <Stripes count={grade === 5 ? 2 : 1} fill={gold} />}
+          {grade === 3 && <path d="M17 35 28 41V47L17 41ZM47 35 36 41V47L47 41Z" fill={gold} />}
+          {grade === 4 && (
+            <g fill={gold} stroke="#604827" strokeWidth="0.8">
+              <path
+                d="M22 7H42L54 19V37L42 49H22L10 37V19ZM24 14 17 21V35L24 42H40L47 35V21L40 14Z"
+                fillRule="evenodd"
+              />
+              <path d="M32 17 40 28 32 39 24 28Z" />
+            </g>
+          )}
         </g>
       )}
 
       {tier === 1 && (
-        <g strokeLinejoin="round">
-          <path
-            d="M8 29 32 8 56 29 32 55Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
-          />
-          <path
-            d="M15 30 32 15 49 30 32 47Z"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1.5"
-          />
-          <path
-            d="M19 31 32 21 45 31 32 41Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="1"
-          />
-          {gradeMarks.map((mark) => (
-            <path key={mark} d={`M${22 + mark * 5} 27v9`} stroke={colors.light} strokeWidth="2.4" />
-          ))}
+        <g>
+          <Stripes count={3} fill={gold} />
+          {grade >= 3 && <path d="M9 43H25V48H9ZM39 43H55V48H39Z" fill={silver} />}
+          {grade === 5 && <path d="M32 38 36 43 32 48 28 43Z" fill={gold} />}
         </g>
       )}
 
       {tier === 2 && (
-        <g strokeLinejoin="round">
+        <g>
+          <Stripes count={3} fill={gold} />
           <path
-            d="M12 14h40l5 11-5 25H12L7 25Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
+            d="M5 24V43L15 50H25M59 24V43L49 50H39"
+            fill="none"
+            stroke={silver}
+            strokeWidth="2.5"
           />
           <path
-            d="M14 20h36l2 6-3 17H15l-3-17Z"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1.2"
+            d={COMPASS}
+            transform={`translate(32 43) scale(${grade >= 3 ? 0.65 : 0.4})`}
+            fill={gold}
           />
-          {gradeMarks.map((mark) => (
+          {grade >= 4 && (
             <path
-              key={mark}
-              d={`M${18 + mark * 7} 23v19`}
-              stroke={colors.light}
-              strokeWidth="3.5"
+              d="M19 41 16 45 20 48M45 41 48 45 44 48"
+              fill="none"
+              stroke={gold}
+              strokeWidth="2"
             />
-          ))}
-          <path d="M9 49h46v4H9Z" fill={`url(#${metalId})`} stroke={colors.dark} />
+          )}
         </g>
       )}
 
       {tier === 3 && (
-        <g strokeLinejoin="round">
-          <path
-            d="M32 5 53 16 50 43 32 58 14 43 11 16Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
-          />
-          <path
-            d="M32 12 47 20 44 40 32 51 20 40 17 20Z"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1.2"
-          />
-          <path
-            d="M32 18 36 28 47 29 39 35 42 46 32 39 22 46 25 35 17 29 28 28Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="1.2"
-          />
-          {gradeMarks.map((mark) => (
-            <circle key={mark} cx={20 + mark * 6} cy="13" r="1.5" fill={colors.light} />
+        <g>
+          <path d="M16 12 26 6V47L16 52ZM38 6 48 12V52L38 47Z" fill={silver} stroke="#52656b" />
+          {Array.from({ length: grade }, (_, index) => (
+            <path key={index} d={`M27 ${12 + index * 8}h10v4H27Z`} fill={gold} />
           ))}
         </g>
       )}
 
-      {tier === 4 && (
-        <g strokeLinejoin="round">
-          <circle
-            cx="32"
-            cy="31"
-            r="26"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
-          />
-          <circle
-            cx="32"
-            cy="31"
-            r="20"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1.5"
-          />
-          <circle cx="32" cy="31" r="15" fill="none" stroke={colors.metal} strokeWidth="1" />
-          <g color={colors.light}>
-            <Star x={32} y={31} size={10} />
-          </g>
-          {gradeMarks.map((mark) => (
-            <circle
-              key={mark}
-              cx={20 + mark * 6}
-              cy="55"
-              r="2.2"
-              fill={`url(#${metalId})`}
-              stroke={colors.dark}
-              strokeWidth="0.7"
+      {tier === 4 &&
+        (grade <= 3 ? (
+          <g fill={grade === 1 ? gold : silver} stroke="#52656b" strokeWidth="0.8">
+            <path
+              d="M22 13 32 6 42 13V43L32 50 22 43ZM29 19V37L32 40 35 37V19L32 16Z"
+              fillRule="evenodd"
             />
-          ))}
-        </g>
-      )}
+            {grade === 3 && <path d="M11 15 17 11V45L11 49ZM47 11 53 15V49L47 45Z" />}
+          </g>
+        ) : (
+          <g>
+            <path d={LEAF} fill={grade === 4 ? gold : silver} stroke="#536064" strokeWidth="0.8" />
+            <path
+              d="M32 12V47M32 34 21 23M32 34 43 23M32 39 23 38M32 39 41 38"
+              fill="none"
+              stroke="#182730"
+              strokeWidth="1.3"
+              strokeOpacity="0.65"
+            />
+          </g>
+        ))}
 
       {tier === 5 && (
-        <g strokeLinejoin="round">
-          <path
-            d="M4 24 21 17 32 5 43 17 60 24 53 47 32 59 11 47Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
-          />
-          <path
-            d="M12 27 24 22 32 13 40 22 52 27 48 42 32 52 16 42Z"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1.4"
-          />
-          <path
-            d="M32 18v26M25 27l7-9 7 9M23 37h18"
-            fill="none"
-            stroke={`url(#${metalId})`}
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          {gradeMarks.map((mark) => (
-            <circle key={mark} cx={20 + mark * 6} cy="47" r="1.7" fill={colors.light} />
-          ))}
+        <g fill={silver} stroke="#536773" strokeWidth="0.7">
+          <path d="M3 12 24 19 24 27 8 22ZM8 26 23 31 23 37 13 33ZM14 37 25 41 27 47 19 44Z" />
+          <path d="M61 12 40 19 40 27 56 22ZM56 26 41 31 41 37 51 33ZM50 37 39 41 37 47 45 44Z" />
+          <path d="M32 5 38 15 36 24 40 34 32 49 24 34 28 24 26 15Z" fill={gold} />
+          <path d="M32 22 35 33 32 40 29 33Z" fill="#172830" stroke="none" />
         </g>
       )}
 
       {tier === 6 && (
-        <g strokeLinejoin="round">
+        <g>
           <path
-            d="M32 15 9 9 3 15 13 25 5 25 15 34 11 36 27 43 32 54 37 43 53 36 49 34 59 25 51 25 61 15 55 9Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="1.7"
+            d="M7 18V11H18M57 18V11H46M7 38V45H18M57 38V45H46"
+            fill="none"
+            stroke={gold}
+            strokeWidth="2"
           />
-          <path
-            d="M32 18 13 15 25 27 10 27 28 37 32 49 36 37 54 27 39 27 51 15Z"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="1"
-          />
-          <path
-            d="M32 15 40 29 32 42 24 29Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="1.2"
-          />
-          {gradeMarks.map((mark) => (
-            <circle
-              key={mark}
-              cx={20 + mark * 6}
-              cy="8"
-              r="2"
-              fill={colors.light}
-              stroke={colors.dark}
-              strokeWidth="0.6"
+          {STAR_POSITIONS[grade].map((x) => (
+            <path
+              key={x}
+              d={COMPASS}
+              transform={`translate(${x} 28) scale(${grade <= 2 ? 0.9 : grade === 3 ? 0.72 : 0.52})`}
+              fill={silver}
             />
           ))}
         </g>
       )}
 
       {tier === 7 && (
-        <g strokeLinejoin="round">
+        <g>
           <path
-            d="M32 3 40 14 55 11 51 25 62 32 51 39 55 53 40 50 32 61 24 50 9 53 13 39 2 32 13 25 9 11 24 14Z"
-            fill={`url(#${metalId})`}
-            stroke={colors.dark}
-            strokeWidth="2"
+            d="M22 5 9 14V39L22 49M42 5 55 14V39L42 49"
+            fill="none"
+            stroke={gold}
+            strokeWidth="3"
           />
-          <circle
-            cx="32"
-            cy="32"
-            r="20"
-            fill={`url(#${enamelId})`}
-            stroke={colors.light}
-            strokeWidth="2"
-          />
-          <circle cx="32" cy="32" r="15" fill="none" stroke={colors.metal} strokeWidth="1.5" />
-          <g color={colors.light}>
-            <Star x={32} y={32} size={11} />
-          </g>
-          {gradeMarks.map((mark) => (
-            <circle key={mark} cx={20 + mark * 6} cy="56" r="1.8" fill={colors.light} />
+          <path d="M5 21V34M59 21V34" stroke={silver} strokeWidth="2" />
+          {[
+            [32, 13],
+            [20, 26],
+            [44, 26],
+            [32, 40]
+          ].map(([x, y]) => (
+            <path
+              key={`${x}-${y}`}
+              d={COMPASS}
+              transform={`translate(${x} ${y}) scale(0.58)`}
+              fill={gold}
+            />
           ))}
+          <path d="M32 21 37 26 32 31 27 26Z" fill={silver} />
         </g>
       )}
-      {tier >= 4 && <circle cx="23" cy="19" r="9" fill={`url(#${glintId})`} opacity="0.55" />}
+
+      {Array.from({ length: 5 }, (_, index) => (
+        <path
+          key={index}
+          d={`M${11 + index * 9} 57h7v5h-7Z`}
+          fill={index < grade ? gold : '#243139'}
+          stroke={index < grade ? '#8c612a' : '#101a20'}
+          strokeWidth="0.6"
+        />
+      ))}
     </svg>
   )
 }

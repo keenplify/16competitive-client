@@ -477,46 +477,67 @@ const addMesh = (
   return mesh
 }
 
-const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
-  // Size each plate for its actual username. A fixed wide texture made short
-  // names waste space, while changing just the sprite width distorts the text.
+// Exposed for the local nameplate and insignia design preview.
+// eslint-disable-next-line react-refresh/only-export-components
+export const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
+  // Size the texture for the widest line so long military ranks stay readable.
   const canvas = document.createElement('canvas')
   canvas.height = 180
   const context = canvas.getContext('2d')!
   const titleFontSize = 54
   context.font = `700 ${titleFontSize}px sans-serif`
-  const titleWidth = context.measureText(actor.member.username).width
-  canvas.width = Math.ceil(Math.min(700, Math.max(480, titleWidth + 175)))
+  const usernameWidth = context.measureText(actor.member.username).width
+  const rankLabel =
+    actor.member.level && actor.member.levelTitle
+      ? `LEVEL ${actor.member.level} · ${actor.member.levelTitle.toUpperCase()}`
+      : ''
+  context.font = '700 27px sans-serif'
+  const rankWidth = context.measureText(rankLabel).width
+  const mmrLabel = `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}${actor.isLeader ? ' · LEADER' : ''}`
+  context.font = '600 27px sans-serif'
+  const mmrWidth = context.measureText(mmrLabel).width
+  canvas.width = Math.ceil(
+    Math.min(760, Math.max(480, usernameWidth + 175, rankWidth + 160, mmrWidth + 160))
+  )
 
   context.textAlign = 'left'
   context.textBaseline = 'middle'
   context.shadowColor = 'rgba(0, 0, 0, 0.95)'
   context.shadowBlur = 10
   context.shadowOffsetY = 3
+  context.strokeStyle = 'rgba(0, 0, 0, 0.65)'
+  context.lineWidth = 2
+  context.lineJoin = 'round'
   context.fillStyle = '#ffffff'
   context.font = `700 ${titleFontSize}px sans-serif`
+  context.strokeText(actor.member.username, 133, 49, canvas.width - 155)
   context.fillText(actor.member.username, 133, 49, canvas.width - 155)
-  if (actor.member.level && actor.member.levelTitle) {
+  if (rankLabel) {
     context.fillStyle = '#f4e5c7'
     context.font = '700 27px sans-serif'
-    context.fillText(
-      `LEVEL ${actor.member.level} · ${actor.member.levelTitle.toUpperCase()}`,
-      133,
-      97,
-      canvas.width - 155
-    )
+    context.strokeText(rankLabel, 133, 97, canvas.width - 155)
+    context.fillText(rankLabel, 133, 97, canvas.width - 155)
   }
   context.fillStyle = '#e2e8f0'
   context.font = '600 27px sans-serif'
-  context.fillText(
-    `${actor.member.mmr} MMR${actor.isCurrentPlayer ? ' · YOU' : ''}${actor.isLeader ? ' · LEADER' : ''}`,
-    133,
-    135,
-    canvas.width - 155
-  )
+  context.strokeText(mmrLabel, 133, 135, canvas.width - 155)
+  context.fillText(mmrLabel, 133, 135, canvas.width - 155)
   context.shadowColor = 'transparent'
-  context.fillStyle = actor.isCurrentPlayer ? '#38bdf8' : '#d6ad64'
-  context.fillRect(133, 163, canvas.width - 160, 3)
+  if (
+    actor.member.xpIntoLevel !== undefined &&
+    actor.member.xpForNextLevel !== undefined &&
+    actor.member.xpForNextLevel > 0
+  ) {
+    const progress = Math.max(
+      0,
+      Math.min(1, actor.member.xpIntoLevel / actor.member.xpForNextLevel)
+    )
+    const barWidth = canvas.width - 160
+    context.fillStyle = 'rgba(255, 255, 255, 0.28)'
+    context.fillRect(133, 159, barWidth, 5)
+    context.fillStyle = actor.isCurrentPlayer ? '#38bdf8' : '#d6ad64'
+    context.fillRect(133, 159, barWidth * progress, 5)
+  }
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.minFilter = THREE.LinearFilter
@@ -528,7 +549,13 @@ const createNameplate = (actor: PartySceneActor): THREE.Sprite => {
     ).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" ')
     const badge = new Image()
     badge.onload = (): void => {
+      context.save()
+      context.shadowColor = 'rgba(0, 0, 0, 0.85)'
+      context.shadowBlur = 7
+      context.shadowOffsetX = 0
+      context.shadowOffsetY = 3
       context.drawImage(badge, 26, 39, 98, 98)
+      context.restore()
       texture.needsUpdate = true
     }
     badge.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`
@@ -728,7 +755,7 @@ export function PartyModelScene({
         isLeader,
         forceWeaponSkinPreview
       }) =>
-        `${member.id}:${member.username}:${member.mmr}:${member.level ?? ''}:${member.levelTitle ?? ''}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
+        `${member.id}:${member.username}:${member.mmr}:${member.level ?? ''}:${member.levelTitle ?? ''}:${member.xpIntoLevel ?? ''}:${member.xpForNextLevel ?? ''}:${modelPath}:${weaponPath}:${weaponSkinId ?? ''}:${weaponKey}:${isLeader}:${isCurrentPlayer}:${forceWeaponSkinPreview === true}`
     )
     .join('|')
 

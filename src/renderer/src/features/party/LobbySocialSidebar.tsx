@@ -26,6 +26,7 @@ import type {
   FriendSearchResult,
   IncomingFriendRequest
 } from '../../../../shared/friends'
+import { profileRankProgress } from '../../../../shared/profile-ranks'
 import { Button } from '../../components/ui/Button'
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
 import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
@@ -61,8 +62,11 @@ function RankPopover({
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const presence =
     player.presence === 'IN_GAME' ? 'In game' : player.presence === 'ONLINE' ? 'Online' : 'Offline'
-  const xpIntoLevel = player.level === 40 ? 4_000 : player.profileXp % 4_000
-  const progressPercent = Math.min(100, Math.round((xpIntoLevel / 4_000) * 100))
+  const progress = profileRankProgress(player.profileXp)
+  const progressPercent = Math.min(
+    100,
+    Math.round((progress.xpIntoLevel / progress.xpForNextLevel) * 100)
+  )
   const remainingPercent = player.level === 40 ? 0 : 100 - progressPercent
   const show = (): void => {
     const bounds = anchorRef.current?.getBoundingClientRect()
