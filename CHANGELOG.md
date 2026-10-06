@@ -1800,3 +1800,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved NextClient launch compatibility.
 - Fixed launch settings not being handed off correctly.
 - Fixed NextClient fallback launches.
+
+## v2026.1006.1 — 2026-10-06
+
+### Party
+
+- Party members’ levels are now visible in the party lobby.
+
+### Live Updates
+
+- Improved reliability for live session and match updates.
+- Custom game and scoreboard updates are now handled more consistently.
