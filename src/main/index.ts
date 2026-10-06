@@ -31,6 +31,7 @@ import { getDailyQuests } from './daily-quests'
 import { matchmakingConnection } from './matchmaking'
 import {
   getMatchmakingNodes,
+  getOnlinePlayers,
   getMatchmakingPreferences,
   resolvePreferredMatchmakingApiUrl,
   saveMatchmakingPreferences,
@@ -555,6 +556,7 @@ app.whenReady().then(async () => {
     matchmakingConnection.connect(event.sender)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
+  ipcMain.handle(MATCHMAKING_CHANNELS.getOnlinePlayers, () => getOnlinePlayers())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
   ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, async (_, nodeId: unknown) => {
     if (nodeId !== null && (typeof nodeId !== 'string' || nodeId.length > 80)) {

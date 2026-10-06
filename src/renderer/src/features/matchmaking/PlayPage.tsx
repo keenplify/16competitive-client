@@ -103,6 +103,7 @@ export function PlayPage({
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const nodes = useMatchmakingStore((state) => state.nodes)
+  const onlinePlayers = useMatchmakingStore((state) => state.onlinePlayers)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
   const preferHumans = useMatchmakingStore((state) => state.preferHumans)
@@ -682,9 +683,15 @@ export function PlayPage({
                 friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
               )}
             >
-              <span className="hidden max-w-56 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:block">
-                {isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}
-              </span>
+              <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
+                <span>{isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}</span>
+                <span aria-hidden="true">•</span>
+                <span aria-live="polite">
+                  {onlinePlayers === null
+                    ? 'Players active: —'
+                    : `${onlinePlayers} ${onlinePlayers === 1 ? 'player' : 'players'} active`}
+                </span>
+              </div>
               <Button
                 className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
                 data-audio-sfx="findMatch"

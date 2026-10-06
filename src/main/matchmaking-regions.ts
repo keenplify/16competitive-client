@@ -167,6 +167,21 @@ export const saveMatchmakingPreferences = async (
   return preferences
 }
 
+export const getOnlinePlayers = async (): Promise<number> => {
+  const token = getSessionToken()
+  if (!token) throw new Error('Sign in before loading online players')
+  const response = await fetch(`${API_BASE_URL}/online-players`, {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000)
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok || !isObject(body) || typeof body.onlinePlayers !== 'number' ||
+      !Number.isInteger(body.onlinePlayers) || body.onlinePlayers < 0) {
+    throw new Error('Could not load online player count')
+  }
+  return body.onlinePlayers
+}
+
 export const getMatchmakingNodes = async (measureLatency = true): Promise<MatchmakingNode[]> => {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before loading regions')

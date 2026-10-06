@@ -632,12 +632,18 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     loadRegions: async () => {
       try {
-        const nodes = await window.api.matchmaking.getNodes()
-        const preferences = await window.api.matchmaking.getPreferences()
+        const [nodes, preferences, onlinePlayers] = await Promise.all([
+          window.api.matchmaking.getNodes(),
+          window.api.matchmaking.getPreferences(),
+          typeof window.api.matchmaking.getOnlinePlayers === 'function'
+            ? window.api.matchmaking.getOnlinePlayers().catch(() => null)
+            : Promise.resolve(null)
+        ])
         set({
           nodes,
           selectedNodeId: preferences.selectedNodeId,
-          allowRegionExpansion: preferences.allowRegionExpansion
+          allowRegionExpansion: preferences.allowRegionExpansion,
+          ...(onlinePlayers !== null ? { onlinePlayers } : {})
         })
       } catch (error) {
         set({ error: readableError(error) })
