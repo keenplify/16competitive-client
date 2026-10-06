@@ -30,13 +30,14 @@ interface CustomGamesPanelProps {
 const fieldClass =
   'h-10 border border-white/15 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-sky-400'
 
-const regionLabel = (region: string): string =>
-  region === 'sea'
-    ? 'SEA'
-    : region
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
+const regionLabel = (region: string): string => {
+  if (region === 'sea') return 'SEA'
+  if (region === 'sa') return 'South America'
+  return region
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
 
 const nodeLatency = (node: MatchmakingNode | undefined): number | null =>
   typeof node?.latencyMs === 'number' && Number.isFinite(node.latencyMs)
