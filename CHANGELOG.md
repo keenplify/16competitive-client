@@ -1844,3 +1844,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Region selection now checks latency to help choose a more responsive matchmaking region.
 - Improved matchmaking region handling.
+
+## v2026.1006.6 — 2026-10-06
+
+### Matchmaking
+
+- See the current online player count while matchmaking.
+- Choose from available matchmaking regions.
+- Enjoy improved matchmaking and lobby status updates.
+
+### Match Launch
+
+- More reliable handoff from matchmaking to the game.
+- Improved match join information during launch.
