@@ -463,7 +463,7 @@ export function LobbySocialSidebar({
   return (
     <>
       <div
-        className={`fixed top-4 right-14 z-20 w-52 transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
+        className={`fixed top-4 right-14 z-20 w-64 max-w-[calc(100vw-4.5rem)] transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
       >
         <MatchSearchPanel variant="compact" className="" />
       </div>

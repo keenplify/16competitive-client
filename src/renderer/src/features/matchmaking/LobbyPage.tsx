@@ -118,6 +118,7 @@ export function LobbyPage(): JSX.Element {
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
+  const setProfileTab = useNavigationStore((state) => state.setProfileTab)
   const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -179,6 +180,7 @@ export function LobbyPage(): JSX.Element {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
+    if (nextPage === 'profile') setProfileTab('skins')
     setMissionsOpen(false)
     navigate(nextPage)
   }

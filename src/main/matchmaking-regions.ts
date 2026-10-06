@@ -11,7 +11,7 @@ import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmak
 type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
 
 const LATENCY_PROBE_TIMEOUT_MS = 1_500
-const MAX_PREFERRED_LATENCY_MS = 200
+const MAX_PREFERRED_LATENCY_MS = 300
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
 
@@ -67,7 +67,7 @@ const measuredLatency = (node: MatchmakingNode): number | null => {
 
 const isUsablePreference = (node: MatchmakingNode): boolean => {
   const latencyMs = measuredLatency(node)
-  return node.available && latencyMs !== null && latencyMs <= MAX_PREFERRED_LATENCY_MS
+  return node.available && latencyMs !== null && Math.round(latencyMs) < MAX_PREFERRED_LATENCY_MS
 }
 
 const probeUdpLatency = (

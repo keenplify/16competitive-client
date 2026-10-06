@@ -126,8 +126,8 @@ export function ProfilePage(): JSX.Element {
             ariaLabel="Profile sections"
             value={tab}
             items={[
-              { value: 'matches', label: 'Match history' },
               { value: 'skins', label: 'Loadout' },
+              { value: 'matches', label: 'Match history' },
               { value: 'operation', label: 'Operation' }
             ]}
             onChange={setTab}

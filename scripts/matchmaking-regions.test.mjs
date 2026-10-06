@@ -82,10 +82,10 @@ const node = (id, latencyMs, available = true) => ({
   latencyMs
 })
 
-test('a saved server above 200 ms gives way to a lower latency server', async () => {
+test('a saved server in the orange ping range remains preferred', async () => {
   const { selectMatchmakingApiUrl } = await loadRegionsModule()
   const result = await selectMatchmakingApiUrl([node('saved', 240), node('better', 42)], 'saved')
-  assert.equal(result, 'https://better.example')
+  assert.equal(result, 'https://saved.example')
 })
 
 test('an unavailable saved server is never selected', async () => {
@@ -97,14 +97,20 @@ test('an unavailable saved server is never selected', async () => {
   assert.equal(result, 'https://healthy.example')
 })
 
-test('launch probes clear a saved server above 200 ms', async () => {
+test('launch probes keep a saved server in the orange ping range', async () => {
   const regions = await loadRegionsModule({
     selectedNodeId: 'saved',
     nodes: [node('saved', null)],
     probeLatencyMs: 240
   })
   await regions.getMatchmakingNodes()
-  assert.equal(regions.saved().selectedNodeId, null)
+  assert.equal(regions.saved().selectedNodeId, 'saved')
+})
+
+test('a saved server at 300 ms gives way to a lower latency server', async () => {
+  const { selectMatchmakingApiUrl } = await loadRegionsModule()
+  const result = await selectMatchmakingApiUrl([node('saved', 300), node('better', 42)], 'saved')
+  assert.equal(result, 'https://better.example')
 })
 
 test('launch probes clear a saved server that is unreachable', async () => {

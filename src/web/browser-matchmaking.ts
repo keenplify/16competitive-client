@@ -381,7 +381,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
     return preferences()
   },
 
-  async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) {
+  async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions, preferHumans) {
     if (!allowsManualMatchConnection(mode)) {
       throw new Error('Ranked matchmaking requires the 1.6 Competitive desktop app.')
     }
@@ -391,9 +391,15 @@ export const browserMatchmakingApi: MatchmakingApi = {
       mode,
       mapIds,
       allowRegionExpansion,
+      preferHumans: preferHumans ?? false,
       ...(preferredRegion ? { preferredRegion } : {}),
       ...(eligibleRegions?.length ? { eligibleRegions } : {})
     })
+  },
+
+  async playWithBots() {
+    await openSocket()
+    send({ type: 'play_with_bots' })
   },
 
   async leaveQueue() {

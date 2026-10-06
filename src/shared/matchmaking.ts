@@ -11,6 +11,7 @@ export const MATCHMAKING_CHANNELS = {
   setAllowRegionExpansion: 'matchmaking:set-allow-region-expansion',
   joinQueue: 'matchmaking:join-queue',
   leaveQueue: 'matchmaking:leave-queue',
+  playWithBots: 'matchmaking:play-with-bots',
   getQueueStatus: 'matchmaking:get-queue-status',
   getMaps: 'matchmaking:get-maps',
   respondReady: 'matchmaking:respond-ready',
@@ -228,6 +229,9 @@ export type MatchmakingServerMessage =
       allowRegionExpansion: boolean
       queuedAt?: string
       autoFillAt?: string
+      botFillOptInAvailableAt?: string
+      botFillOptIn?: boolean
+      preferHumans?: boolean
       searchStage?: MatchmakingSearchStage
     }
   | {
@@ -235,12 +239,16 @@ export type MatchmakingServerMessage =
       mode: MatchmakingMode
       mapIds: string[]
       queuedPlayers: number
+      onlinePlayers?: number
       playersRequired: number
       position: number
       region: string
       allowRegionExpansion: boolean
       queuedAt?: string
       autoFillAt?: string
+      botFillOptInAvailableAt?: string
+      botFillOptIn?: boolean
+      preferHumans?: boolean
       searchStage?: MatchmakingSearchStage
     }
   | { type: 'queue_left'; mode: MatchmakingMode; mapIds: string[] }
@@ -373,8 +381,10 @@ export interface MatchmakingApi {
     mapIds: string[],
     allowRegionExpansion: boolean,
     preferredRegion?: string | null,
-    eligibleRegions?: string[]
+    eligibleRegions?: string[],
+    preferHumans?: boolean
   ): Promise<void>
+  playWithBots(): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMap[]>

@@ -324,6 +324,9 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         typeof message.allowRegionExpansion === 'boolean' &&
         isOptionalTimestamp(message.queuedAt) &&
         isOptionalTimestamp(message.autoFillAt) &&
+        isOptionalTimestamp(message.botFillOptInAvailableAt) &&
+        (message.botFillOptIn === undefined || typeof message.botFillOptIn === 'boolean') &&
+        (message.preferHumans === undefined || typeof message.preferHumans === 'boolean') &&
         isOptionalSearchStage(message.searchStage)
       )
     case 'queue_left':
@@ -333,12 +336,18 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         isMatchmakingMode(message.mode) &&
         isMapIds(message.mapIds) &&
         typeof message.queuedPlayers === 'number' &&
+        (message.onlinePlayers === undefined ||
+          (typeof message.onlinePlayers === 'number' &&
+            Number.isInteger(message.onlinePlayers) && message.onlinePlayers >= 0)) &&
         typeof message.playersRequired === 'number' &&
         typeof message.position === 'number' &&
         typeof message.region === 'string' &&
         typeof message.allowRegionExpansion === 'boolean' &&
         isOptionalTimestamp(message.queuedAt) &&
         isOptionalTimestamp(message.autoFillAt) &&
+        isOptionalTimestamp(message.botFillOptInAvailableAt) &&
+        (message.botFillOptIn === undefined || typeof message.botFillOptIn === 'boolean') &&
+        (message.preferHumans === undefined || typeof message.preferHumans === 'boolean') &&
         isOptionalSearchStage(message.searchStage)
       )
     case 'party_invitation_received':
@@ -499,6 +508,7 @@ class MatchmakingConnection {
   private pongTimer: ReturnType<typeof setTimeout> | null = null
   private desiredMode: MatchmakingMode | null = null
   private desiredMapIds: string[] = []
+  private desiredPreferHumans = false
   private desiredAllowRegionExpansion = true
   private desiredPreferredRegion: string | null = null
   private desiredEligibleRegions: string[] = []
@@ -640,7 +650,8 @@ class MatchmakingConnection {
     mapIds: unknown,
     allowRegionExpansion: unknown,
     preferredRegion: unknown,
-    eligibleRegions: unknown
+    eligibleRegions: unknown,
+    preferHumans: unknown
   ): void {
     if (!isMatchmakingMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
@@ -648,19 +659,26 @@ class MatchmakingConnection {
       throw new Error('Invalid regional search preference')
     if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
     if (!isEligibleRegions(eligibleRegions)) throw new Error('Invalid eligible matchmaking regions')
+    if (typeof preferHumans !== 'boolean') throw new Error('Invalid human preference')
     this.desiredMode = mode
     this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
     this.desiredPreferredRegion = preferredRegion ?? null
     this.desiredEligibleRegions = [...eligibleRegions]
+    this.desiredPreferHumans = preferHumans
     this.send({
       type: 'join_queue',
       mode,
       mapIds,
       allowRegionExpansion,
+      preferHumans,
       eligibleRegions,
       ...(preferredRegion ? { preferredRegion } : {})
     })
+  }
+
+  playWithBots(): void {
+    this.send({ type: 'play_with_bots' })
   }
 
   leaveQueue(): void {
@@ -1116,6 +1134,7 @@ class MatchmakingConnection {
                 mode: this.desiredMode,
                 mapIds: this.desiredMapIds,
                 allowRegionExpansion: this.desiredAllowRegionExpansion,
+                preferHumans: this.desiredPreferHumans,
                 eligibleRegions: this.desiredEligibleRegions,
                 ...(this.desiredPreferredRegion
                   ? { preferredRegion: this.desiredPreferredRegion }

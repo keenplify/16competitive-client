@@ -76,7 +76,12 @@ interface MatchmakingState {
   activeApiUrl: string | null
   websocketUrl: string | null
   allowRegionExpansion: boolean
+  preferHumans: boolean
+  botFillOptIn: boolean
+  setPreferHumans: (value: boolean) => void
+  playWithBots: () => Promise<void>
   queuedPlayers: number
+  onlinePlayers: number | null
   playersRequired: number
   position: number
   queuedAt: string | null
@@ -119,6 +124,7 @@ interface MatchmakingState {
 }
 
 let removeEventListener: (() => void) | null = null
+let queueStatusPollTimer: number | null = null
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Matchmaking request failed.'
@@ -172,6 +178,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 selectedMapIds: event.mapIds,
                 activeRegion: event.region,
                 allowRegionExpansion: event.allowRegionExpansion,
+                preferHumans: event.preferHumans ?? state.preferHumans,
+                botFillOptIn: event.botFillOptIn ?? false,
                 queuedAt: event.queuedAt ?? state.queuedAt,
                 autoFillAt: event.autoFillAt ?? state.autoFillAt,
                 searchStage: event.searchStage ?? state.searchStage,
@@ -189,10 +197,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 selectedMode: event.mode,
                 selectedMapIds: event.mapIds,
                 queuedPlayers: event.queuedPlayers,
+                onlinePlayers: event.onlinePlayers ?? state.onlinePlayers,
                 playersRequired: event.playersRequired,
                 position: event.position,
                 activeRegion: event.region,
                 allowRegionExpansion: event.allowRegionExpansion,
+                preferHumans: event.preferHumans ?? state.preferHumans,
+                botFillOptIn: event.botFillOptIn ?? false,
                 queuedAt: event.queuedAt ?? state.queuedAt,
                 autoFillAt: event.autoFillAt ?? state.autoFillAt,
                 searchStage: event.searchStage ?? state.searchStage,
@@ -207,6 +218,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           selectedMode: event.mode,
           selectedMapIds: event.mapIds,
           queuedPlayers: 0,
+          onlinePlayers: null,
           playersRequired: 0,
           position: 0,
           queuedAt: null,
@@ -518,7 +530,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     activeApiUrl: null,
     websocketUrl: null,
     allowRegionExpansion: true,
+    preferHumans: false,
+    botFillOptIn: false,
     queuedPlayers: 0,
+    onlinePlayers: null,
     playersRequired: 0,
     position: 0,
     queuedAt: null,
@@ -551,6 +566,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     connect: async () => {
       if (!removeEventListener) {
         removeEventListener = window.api.matchmaking.onEvent(handleEvent)
+      }
+      if (!queueStatusPollTimer) {
+        queueStatusPollTimer = window.setInterval(() => {
+          if (get().connectionStatus === 'ready' && get().queueStatus === 'queued') {
+            void window.api.matchmaking.getQueueStatus().catch(() => undefined)
+          }
+        }, 10_000)
       }
 
       if (get().connectionStatus !== 'ready') {
@@ -678,6 +700,17 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       set({ selectedMapIds: nextMapIds, error: null })
     },
 
+    setPreferHumans: (value) => set({ preferHumans: value }),
+
+    playWithBots: async () => {
+      try {
+        await window.api.matchmaking.playWithBots()
+        set({ error: null })
+      } catch (error) {
+        set({ error: readableError(error) })
+      }
+    },
+
     joinQueue: async () => {
       const {
         connectionStatus,
@@ -687,6 +720,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         selectedNodeId,
         nodes,
         allowRegionExpansion,
+        preferHumans,
         selectedMode
       } = get()
       if (connectionStatus !== 'ready') return
@@ -720,6 +754,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         queueStatus: 'joining',
         completedMatch: null,
         queuedAt: null,
+        onlinePlayers: null,
         autoFillAt: null,
         searchStage: null,
         queueStartedAt: null,
@@ -732,7 +767,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             node.available &&
             typeof node.latencyMs === 'number' &&
             Number.isFinite(node.latencyMs) &&
-            node.latencyMs <= 200
+            Math.round(node.latencyMs) < 300
         )
         const preferredNode =
           selectedNode ??
@@ -752,7 +787,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                   node.available &&
                   typeof node.latencyMs === 'number' &&
                   Number.isFinite(node.latencyMs) &&
-                  node.latencyMs <= 200
+                  Math.round(node.latencyMs) < 300
               )
               .map((node) => node.region)
           )
@@ -765,7 +800,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           selectedMapIds,
           allowRegionExpansion,
           preferredNode?.region ?? null,
-          eligibleRegions
+          eligibleRegions,
+          preferHumans
         )
       } catch (error) {
         set({ queueStatus: 'idle', queueStartedAt: null, error: readableError(error) })
@@ -864,6 +900,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         websocketUrl: null,
         allowRegionExpansion: true,
         queuedPlayers: 0,
+        onlinePlayers: null,
         playersRequired: 0,
         position: 0,
         queuedAt: null,

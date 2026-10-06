@@ -105,6 +105,8 @@ export function PlayPage({
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
+  const preferHumans = useMatchmakingStore((state) => state.preferHumans)
+  const setPreferHumans = useMatchmakingStore((state) => state.setPreferHumans)
   const match = useMatchmakingStore((state) => state.match)
   const readyDeadline = useMatchmakingStore((state) => state.readyDeadline)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
@@ -138,7 +140,7 @@ export function PlayPage({
   const leaveCustomRoom = useCustomGamesStore((state) => state.leaveRoom)
   const restoreCustomRoom = useCustomGamesStore((state) => state.restoreRoom)
   const customRoomError = useCustomGamesStore((state) => state.error)
-  const [secondsToAccept, setSecondsToAccept] = useState(20)
+  const [secondsToAccept, setSecondsToAccept] = useState(120)
   const [clockNow, setClockNow] = useState(Date.now)
   const [leavingCustomMatch, setLeavingCustomMatch] = useState(false)
   const webRuntime = isWebRuntime()
@@ -506,6 +508,23 @@ export function PlayPage({
             </h1>
           </div>
           <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:w-auto">
+            <label
+              className={twMerge(
+                'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
+                playView === 'custom' && 'invisible pointer-events-none'
+              )}
+              aria-hidden={playView === 'custom'}
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-emerald-400"
+                checked={preferHumans}
+                disabled={playView === 'custom' || isSearching}
+                tabIndex={playView === 'custom' ? -1 : undefined}
+                onChange={(event) => setPreferHumans(event.target.checked)}
+              />
+              Prefer humans
+            </label>
             <label
               className={twMerge(
                 'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',

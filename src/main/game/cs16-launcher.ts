@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { app, dialog } from 'electron'
 import {
   readFile,
@@ -7,6 +7,7 @@ import {
   readlink,
   realpath,
   rename,
+  lstat,
   stat,
   unlink,
   writeFile
@@ -45,10 +46,18 @@ import {
   type MatchUserConfigHandoff
 } from './match-userconfig-handoff'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
+import {
+  matchJoinCleanupConfig,
+  matchJoinInfoKey,
+  matchJoinKeysInConfig,
+  matchJoinLaunchArgs
+} from './match-join-info-key'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
+const MAX_MATCH_CONFIG_BYTES = 64 * 1024
+const MAX_TRACKED_JOIN_KEYS = 16
 const RELAUNCH_SETTLE_MS = 500
 const WINDOWS_GRACEFUL_CLOSE_TIMEOUT_MS = 10_000
 const LINUX_HANDOFF_DISCOVERY_TIMEOUT_MS = 30_000
@@ -75,6 +84,7 @@ let launchedGameDirectory: string | null = null
 let launchedExecutablePath: string | null = null
 let launchedMatchConfigPath: string | null = null
 let launchedMatchConfigGeneration = 0
+let launchedMatchJoinKeys: string[] = []
 let nextMatchConfigGeneration = 0
 let gameProcessGeneration = 0
 let linuxMonitorGeneration = 0
@@ -90,6 +100,7 @@ let activeUserConfigHandoff: {
   session: MatchUserConfigHandoff
 } | null = null
 const suppressedNextClientMatches = new Set<string>()
+let matchConfigCleanup: Promise<void> = Promise.resolve()
 
 export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<void> => {
   await activeScoreboardSession?.session.updateCrosshair(profile)
@@ -140,16 +151,32 @@ const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): voi
 const clearMatchConfig = (generation?: number): void => {
   if (generation !== undefined && launchedMatchConfigGeneration !== generation) return
   const matchConfigPath = launchedMatchConfigPath
+  const keys = launchedMatchJoinKeys
   launchedMatchConfigPath = null
   launchedMatchConfigGeneration = 0
+  launchedMatchJoinKeys = []
   if (matchConfigPath) {
-    void unlink(matchConfigPath)
-      .then(() => {
-        console.info('[GameLaunch] match config removed', { generation })
+    matchConfigCleanup = matchConfigCleanup
+      .then(async () => {
+        const temporaryPath = `${matchConfigPath}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temporaryPath, matchJoinCleanupConfig(keys), {
+            encoding: 'utf8',
+            mode: 0o600,
+            flag: 'wx'
+          })
+          await rename(temporaryPath, matchConfigPath)
+          console.info('[GameLaunch] match config sanitized for next launch', {
+            generation,
+            keysToClear: keys.length
+          })
+        } finally {
+          await unlink(temporaryPath).catch(() => undefined)
+        }
       })
       .catch((error: NodeJS.ErrnoException) => {
         if (error.code === 'ENOENT') return
-        console.error('[GameLaunch] could not remove match config', { generation, error })
+        console.error('[GameLaunch] could not sanitize match config', { generation, error })
       })
   }
 }
@@ -650,11 +677,27 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   const matchConfigName = '16competitive_match.cfg'
   const matchConfigPath = join(launchGameDirectory, matchConfigName)
+  await matchConfigCleanup
+  const previousMatchConfigStat = await lstat(matchConfigPath).catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return null
+      throw error
+    }
+  )
+  if (
+    previousMatchConfigStat &&
+    (!previousMatchConfigStat.isFile() || previousMatchConfigStat.size > MAX_MATCH_CONFIG_BYTES)
+  ) {
+    throw new Error('The launcher-owned match config needs inspection before connecting.')
+  }
+  const previousMatchConfig = previousMatchConfigStat ? await readFile(matchConfigPath, 'utf8') : ''
+  const previousJoinKeys = matchJoinKeysInConfig(previousMatchConfig).slice(-MAX_TRACKED_JOIN_KEYS)
+  const joinInfoKey = matchJoinInfoKey(input.matchId)
   const matchConfigGeneration = ++nextMatchConfigGeneration
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
   await unlink(join(launchGameDirectory, '16competitive-match.cfg')).catch(() => undefined)
 
-  const identityCommands = [`name "${playerName}"`, `setinfo "_16c" "${input.joinToken}"`]
+  const identityCommands = [`name "${playerName}"`, `setinfo "${joinInfoKey}" "${input.joinToken}"`]
 
   try {
     await writeFile(
@@ -663,6 +706,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'echo "[1.6 Competitive] Match config loaded"',
         'disconnect',
         'setinfo "_16c" ""',
+        ...previousJoinKeys.map((key) => `setinfo "${key}" ""`),
+        `setinfo "${joinInfoKey}" ""`,
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         ...(gameSettings.fastSwitchManaged
@@ -705,6 +750,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   launchedMatchConfigPath = matchConfigPath
   launchedMatchConfigGeneration = matchConfigGeneration
+  launchedMatchJoinKeys = [...new Set([...previousJoinKeys, joinInfoKey])].slice(
+    -MAX_TRACKED_JOIN_KEYS
+  )
 
   // Screenshot review belongs to the anti-cheat session, independent of optional in-game HUDs.
   const antiCheatSession = await startAntiCheatSession({
@@ -838,6 +886,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       const handoffFiles: ReadonlyArray<readonly [string, string]> = [
         ['server.endpoint', `${nextClientExpectedHost}:${input.port}\n`],
         ['player.name', `${playerName}\n`],
+        ['join.key', `${joinInfoKey}\n`],
+        ['join.cleanup', `${previousJoinKeys.join('\n')}\n`],
         ['join.token', `${input.joinToken}\n`],
         ['server.password', `${input.password}\n`],
         ['texture.size', `${launchTarget.textureSize}\n`]
@@ -868,7 +918,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
-    '-condebug'
+    '-condebug',
+    ...matchJoinLaunchArgs(input.matchId, input.joinToken)
   ]
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
