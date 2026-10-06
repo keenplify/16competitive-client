@@ -29,6 +29,7 @@ import { reportDiagnosticIssue } from './diagnostic-logs'
 import {
   getMatchmakingNodes,
   getMatchmakingPreferences,
+  selectMatchmakingApiUrl,
   toMatchmakingWsUrl
 } from './matchmaking-regions'
 import {
@@ -990,7 +991,7 @@ class MatchmakingConnection {
           getMatchmakingNodes(),
           getMatchmakingPreferences()
         ])
-        targetApiUrl = await this.selectApiUrl(nodes, preferences.selectedNodeId)
+        targetApiUrl = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
       } catch {
         // A bootstrap node may be the only node during development or an outage.
       }
@@ -1320,36 +1321,6 @@ class MatchmakingConnection {
       }
       this.handleSocketDisconnect(socket)
     })
-  }
-
-  private async selectApiUrl(
-    nodes: Awaited<ReturnType<typeof getMatchmakingNodes>>,
-    selectedNodeId: string | null
-  ): Promise<string | null> {
-    const selected = nodes.find((node) => node.id === selectedNodeId && node.available)
-    if (selected) return selected.publicApiUrl
-    const available = nodes.filter((node) => node.available)
-    if (available.length === 0) return null
-    const measurements = await Promise.all(
-      available.map(async (node) => {
-        const startedAt = performance.now()
-        try {
-          await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
-          return { node, latency: performance.now() - startedAt }
-        } catch {
-          return null
-        }
-      })
-    )
-    return (
-      measurements
-        .filter(
-          (measurement): measurement is { node: (typeof available)[number]; latency: number } =>
-            Boolean(measurement)
-        )
-        .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
-      available[0].publicApiUrl
-    )
   }
 
   private reconnectAfterMatch(): void {

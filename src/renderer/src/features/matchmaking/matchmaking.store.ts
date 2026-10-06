@@ -610,10 +610,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     loadRegions: async () => {
       try {
-        const [nodes, preferences] = await Promise.all([
-          window.api.matchmaking.getNodes(),
-          window.api.matchmaking.getPreferences()
-        ])
+        const nodes = await window.api.matchmaking.getNodes()
+        const preferences = await window.api.matchmaking.getPreferences()
         set({
           nodes,
           selectedNodeId: preferences.selectedNodeId,
@@ -728,7 +726,14 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         error: null
       })
       try {
-        const selectedNode = nodes.find((node) => node.id === selectedNodeId && node.available)
+        const selectedNode = nodes.find(
+          (node) =>
+            node.id === selectedNodeId &&
+            node.available &&
+            typeof node.latencyMs === 'number' &&
+            Number.isFinite(node.latencyMs) &&
+            node.latencyMs <= 200
+        )
         const preferredNode =
           selectedNode ??
           [...nodes]
@@ -738,10 +743,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 typeof node.latencyMs === 'number' &&
                 Number.isFinite(node.latencyMs)
             )
-            .sort(
-              (left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity)
-            )[0] ??
-          nodes.find((node) => node.available)
+            .sort((left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity))[0]
         const eligibleRegions = [
           ...new Set(
             nodes
