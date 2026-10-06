@@ -11,6 +11,7 @@ import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmak
 type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
 
 const LATENCY_PROBE_TIMEOUT_MS = 1_500
+const MAX_PREFERRED_LATENCY_MS = 200
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
 
@@ -62,6 +63,11 @@ const isNode = (value: unknown): value is MatchmakingNode =>
 const measuredLatency = (node: MatchmakingNode): number | null => {
   const latencyMs = (node as Partial<MeasuredMatchmakingNode>).latencyMs
   return typeof latencyMs === 'number' && Number.isFinite(latencyMs) ? latencyMs : null
+}
+
+const isUsablePreference = (node: MatchmakingNode): boolean => {
+  const latencyMs = measuredLatency(node)
+  return node.available && latencyMs !== null && latencyMs <= MAX_PREFERRED_LATENCY_MS
 }
 
 const probeUdpLatency = (
@@ -182,6 +188,13 @@ export const getMatchmakingNodes = async (measureLatency = true): Promise<Matchm
     : body.nodes
   if (!measureLatency) return nodes
   const measuredNodes = await attachNodeLatencies(nodes)
+  const { selectedNodeId } = await getMatchmakingPreferences()
+  if (
+    selectedNodeId &&
+    !measuredNodes.some((node) => node.id === selectedNodeId && isUsablePreference(node))
+  ) {
+    await saveMatchmakingPreferences({ selectedNodeId: null })
+  }
   void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
 }
@@ -190,7 +203,7 @@ export const selectMatchmakingApiUrl = async (
   nodes: MatchmakingNode[],
   selectedNodeId: string | null
 ): Promise<string | null> => {
-  const selected = nodes.find((node) => node.id === selectedNodeId && node.available)
+  const selected = nodes.find((node) => node.id === selectedNodeId && isUsablePreference(node))
   if (selected) return selected.publicApiUrl
 
   const available = nodes.filter((node) => node.available)
@@ -216,8 +229,7 @@ export const selectMatchmakingApiUrl = async (
         (measurement): measurement is { node: MatchmakingNode; latency: number } =>
           measurement.latency !== null
       )
-      .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ??
-    available[0].publicApiUrl
+      .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ?? null
   )
 }
 

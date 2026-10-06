@@ -33,7 +33,8 @@ import {
   getMatchmakingNodes,
   getMatchmakingPreferences,
   resolvePreferredMatchmakingApiUrl,
-  saveMatchmakingPreferences
+  saveMatchmakingPreferences,
+  selectMatchmakingApiUrl
 } from './matchmaking-regions'
 import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import { WINDOW_CHANNELS } from '../shared/window'
@@ -559,10 +560,18 @@ app.whenReady().then(async () => {
     if (nodeId !== null && (typeof nodeId !== 'string' || nodeId.length > 80)) {
       throw new Error('Invalid matchmaking region')
     }
-    const preferences = await saveMatchmakingPreferences({ selectedNodeId: nodeId })
     const nodes = await getMatchmakingNodes()
-    const selected = nodes.find((node) => node.id === nodeId && node.available)
-    if (selected) matchmakingConnection.switchApiUrl(selected.publicApiUrl)
+    const selected = nodes.find(
+      (node) =>
+        node.id === nodeId &&
+        node.available &&
+        typeof node.latencyMs === 'number' &&
+        Number.isFinite(node.latencyMs) &&
+        node.latencyMs <= 200
+    )
+    const preferences = await saveMatchmakingPreferences({ selectedNodeId: selected?.id ?? null })
+    const apiUrl = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
+    if (apiUrl) matchmakingConnection.switchApiUrl(apiUrl)
     return preferences
   })
   ipcMain.handle(MATCHMAKING_CHANNELS.setAllowRegionExpansion, (_, value: unknown) => {

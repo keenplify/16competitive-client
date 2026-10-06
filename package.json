@@ -19,7 +19,7 @@
     "build:scoreboard": "node scripts/build-scoreboard-overlay.cjs",
     "prekill-cards:preview": "npm run build:scoreboard",
     "kill-cards:preview": "node scripts/serve-kill-cards-preview.cjs",
-    "test:launcher": "node --experimental-strip-types --experimental-vm-modules --test scripts/updater-tolerance.test.mjs scripts/launcher-diagnostics.test.mjs scripts/nextclient-installer-source.test.mjs scripts/match-userconfig-handoff.test.mjs",
+    "test:launcher": "node --experimental-strip-types --experimental-vm-modules --test scripts/updater-tolerance.test.mjs scripts/launcher-diagnostics.test.mjs scripts/nextclient-installer-source.test.mjs scripts/match-userconfig-handoff.test.mjs scripts/matchmaking-regions.test.mjs",
     "test:helper": "node --experimental-strip-types --experimental-vm-modules --test scripts/helper-release.test.mjs scripts/helper-supervisor.test.mjs scripts/backend-policy.test.mjs scripts/release-helper.test.mjs",
     "test:scoreboard": "node --experimental-strip-types --test scripts/scoreboard-feed.test.cjs scripts/scoreboard-rounds.test.mjs scripts/scoreboard-cleanup.test.mjs scripts/scoreboard-watchdog.test.mjs scripts/scoreboard-report.test.mjs scripts/live-session-file.test.mjs scripts/crosshair-config.test.mjs scripts/crosshair-sharecode.test.mjs scripts/voice-ptt.test.mjs scripts/windows-cosmetic-compatibility.test.mjs scripts/steam-scoreboard-wrapper.test.mjs scripts/kill-card-tracker.test.mjs scripts/kill-card-prediction.test.mjs",
     "start": "electron-vite dev",
