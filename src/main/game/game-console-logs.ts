@@ -14,7 +14,7 @@ export function redactReportLogs(logs: string): string {
   return logs
     .split('\n')
     .map((line) =>
-      /\b(?:_16c|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
+      /\b(?:_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
         line
       )
         ? '[redacted line containing credentials]'

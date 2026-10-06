@@ -14,7 +14,7 @@ interface NavigationState {
 
 export const useNavigationStore = create<NavigationState>((set) => ({
   page: 'lobby',
-  profileTab: 'matches',
+  profileTab: 'skins',
   navigate: (page) => set({ page }),
   setProfileTab: (profileTab) => set({ profileTab })
 }))

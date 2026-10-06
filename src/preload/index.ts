@@ -78,15 +78,17 @@ const matchmaking: MatchmakingApi = {
   getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
   setAllowRegionExpansion: (value) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.setAllowRegionExpansion, value),
-  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) =>
+  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions, preferHumans) =>
     ipcRenderer.invoke(
       MATCHMAKING_CHANNELS.joinQueue,
       mode,
       mapIds,
       allowRegionExpansion,
       preferredRegion,
-      eligibleRegions
+      eligibleRegions,
+      preferHumans
     ),
+  playWithBots: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.playWithBots),
   leaveQueue: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveQueue),
   getQueueStatus: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getQueueStatus),
   getMaps: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getMaps),

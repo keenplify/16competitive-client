@@ -567,7 +567,7 @@ app.whenReady().then(async () => {
         node.available &&
         typeof node.latencyMs === 'number' &&
         Number.isFinite(node.latencyMs) &&
-        node.latencyMs <= 200
+        Math.round(node.latencyMs) < 300
     )
     const preferences = await saveMatchmakingPreferences({ selectedNodeId: selected?.id ?? null })
     const apiUrl = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
@@ -586,7 +586,8 @@ app.whenReady().then(async () => {
       mapIds: unknown,
       allowRegionExpansion: unknown,
       preferredRegion: unknown,
-      eligibleRegions: unknown
+      eligibleRegions: unknown,
+      preferHumans: unknown
     ) => {
       await ensureLatestClientForMatchmaking()
       return matchmakingConnection.joinQueue(
@@ -594,10 +595,12 @@ app.whenReady().then(async () => {
         mapIds,
         allowRegionExpansion,
         preferredRegion,
-        eligibleRegions
+        eligibleRegions,
+        preferHumans
       )
     }
   )
+  ipcMain.handle(MATCHMAKING_CHANNELS.playWithBots, () => matchmakingConnection.playWithBots())
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())

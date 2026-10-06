@@ -37,7 +37,7 @@ test('reports include bounded console tails after exit with credentials removed'
     await writeFile(
       join(directory, 'qconsole.log'),
       'old line\n'.repeat(20000) +
-        'password "secret-password"\nsetinfo "_16c" "secret-token"\nBad command character in client command\n'
+        'password "secret-password"\nsetinfo "_16c" "secret-token"\nsetinfo "_16c_0123456789abcdef" "new-secret-token"\nBad command character in client command\n'
     )
     await writeFile(
       join(directory, 'cstrike', 'qconsole.log'),
@@ -50,6 +50,7 @@ test('reports include bounded console tails after exit with credentials removed'
     assert.ok(logs.length < 132000)
     assert.ok(!logs.includes('secret-password'))
     assert.ok(!logs.includes('secret-token'))
+    assert.ok(!logs.includes('new-secret-token'))
     assert.ok(
       !redactReportLogs('{"joinToken":"private"}\nAuthorization: Bearer private').includes(
         'private'
