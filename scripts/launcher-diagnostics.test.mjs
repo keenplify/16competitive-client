@@ -55,6 +55,7 @@ test('reports include bounded console tails after exit with credentials removed'
         'private'
       )
     )
+    assert.match(redactReportLogs('{"tokenFingerprint":"8f9a12b3c4d5"}'), /8f9a12b3c4d5/)
     await rm(join(directory, 'qconsole.log'))
     await rm(join(directory, 'cstrike', 'qconsole.log'))
     assert.match(await collectGameConsoleLogs(), /Not found/)

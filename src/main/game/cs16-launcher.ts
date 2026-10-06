@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { app, dialog } from 'electron'
 import {
   readFile,
@@ -39,6 +40,10 @@ import {
   ensureSteamScoreboardOption
 } from './steam-scoreboard-options'
 import { setGameConsoleDirectory } from './game-console-logs'
+import {
+  prepareMatchUserConfigHandoff,
+  type MatchUserConfigHandoff
+} from './match-userconfig-handoff'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
@@ -79,6 +84,11 @@ let steamExitWatchGeneration = 0
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
 let activeScoreboardSession: { matchId: string; session: ScoreboardOverlaySession } | null = null
+let activeUserConfigHandoff: {
+  matchId: string
+  generation: number
+  session: MatchUserConfigHandoff
+} | null = null
 const suppressedNextClientMatches = new Set<string>()
 
 export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<void> => {
@@ -132,65 +142,28 @@ const clearMatchConfig = (generation?: number): void => {
   const matchConfigPath = launchedMatchConfigPath
   launchedMatchConfigPath = null
   launchedMatchConfigGeneration = 0
-  if (matchConfigPath) void unlink(matchConfigPath).catch(() => undefined)
-}
-
-
-const NEXTCLIENT_USERCONFIG_BEGIN = '// 16competitive managed match handoff begin'
-const NEXTCLIENT_USERCONFIG_END = '// 16competitive managed match handoff end'
-
-let nextClientUserConfigBackup: {
-  path: string
-  existed: boolean
-  contents: Buffer
-} | null = null
-
-const stripManagedNextClientUserConfigBlock = (contents: string): string => {
-  const begin = contents.indexOf(NEXTCLIENT_USERCONFIG_BEGIN)
-  if (begin < 0) return contents
-  const end = contents.indexOf(NEXTCLIENT_USERCONFIG_END, begin)
-  if (end < 0) return contents.slice(0, begin).trimEnd()
-  const before = contents.slice(0, begin).trimEnd()
-  const after = contents.slice(end + NEXTCLIENT_USERCONFIG_END.length).trimStart()
-  return [before, after].filter(Boolean).join('\n')
-}
-
-const prepareNextClientUserConfigHandoff = async (
-  launchGameDirectory: string,
-  matchConfigName: string
-): Promise<void> => {
-  const path = join(launchGameDirectory, 'userconfig.cfg')
-  const original = await readFile(path).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') return null
-    throw error
-  })
-  const existed = original !== null
-  const contents = original ?? Buffer.alloc(0)
-  const clean = stripManagedNextClientUserConfigBlock(contents.toString('utf8'))
-  const managedBlock = [
-    NEXTCLIENT_USERCONFIG_BEGIN,
-    `exec "${matchConfigName}"`,
-    NEXTCLIENT_USERCONFIG_END
-  ].join('\n')
-  const next = [clean, managedBlock].filter(Boolean).join('\n') + '\n'
-
-  nextClientUserConfigBackup = { path, existed, contents }
-  await writeFile(path, next, { encoding: 'utf8', mode: 0o600 })
-  console.info('[NextClient] userconfig match handoff prepared', { path })
-}
-
-const restoreNextClientUserConfig = async (): Promise<void> => {
-  const backup = nextClientUserConfigBackup
-  nextClientUserConfigBackup = null
-  if (!backup) return
-  if (backup.existed) {
-    await writeFile(backup.path, backup.contents, { mode: 0o600 })
-  } else {
-    await unlink(backup.path).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw error
-    })
+  if (matchConfigPath) {
+    void unlink(matchConfigPath)
+      .then(() => {
+        console.info('[GameLaunch] match config removed', { generation })
+      })
+      .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return
+        console.error('[GameLaunch] could not remove match config', { generation, error })
+      })
   }
-  console.info('[NextClient] userconfig restored', { path: backup.path })
+}
+
+const restoreMatchUserConfig = async (generation?: number): Promise<void> => {
+  const active = activeUserConfigHandoff
+  if (!active || (generation !== undefined && active.generation !== generation)) return
+  const outcome = await active.session.restore()
+  if (activeUserConfigHandoff === active) activeUserConfigHandoff = null
+  console.info('[GameLaunch] userconfig match handoff cleaned up', {
+    matchId: active.matchId,
+    generation: active.generation,
+    outcome
+  })
 }
 
 // Direct launches run in their own process group, so terminating the group also
@@ -367,9 +340,15 @@ const monitorLinuxCounterStrikeHandoff = async (
       if (generation === linuxMonitorGeneration && launchedMatchId === matchId) {
         stopGameWatchdog(matchId)
         stopAntiCheatSession(antiCheatSession, 'game-exit')
+        await restoreMatchUserConfig(matchConfigGeneration).catch((error: unknown) => {
+          console.error('[GameLaunch] could not remove userconfig handoff after game exit', error)
+        })
         clearMatchConfig(matchConfigGeneration)
         await finishVoicePttSession(matchId)
         await restoreManagedSkinAudio().catch(() => undefined)
+        launchedMatchId = null
+        launchedGameDirectory = null
+        launchedExecutablePath = null
         watchSteamExit(matchId)
         onExit?.({ code: null, signal: null })
       }
@@ -391,8 +370,8 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   void restoreManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] restore after managed match close failed', error)
   })
-  void restoreNextClientUserConfig().catch((error: unknown) => {
-    console.error('[NextClient] could not restore userconfig after managed match close', error)
+  void restoreMatchUserConfig(launchedMatchConfigGeneration).catch((error: unknown) => {
+    console.error('[GameLaunch] could not remove userconfig handoff after match close', error)
   })
   if (process.platform !== 'win32') terminateSpawnedGameProcess(gameProcess)
   if (process.platform === 'linux' && launchedGameDirectory) {
@@ -510,11 +489,6 @@ const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promi
 }
 
 const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
-  console.info('[GameLaunch] match_connect received', {
-    matchId: input.matchId,
-    host: input.host,
-    port: input.port
-  })
   if (!/^[A-Za-z0-9_-]{1,80}$/.test(input.matchId)) throw new Error('Invalid match ID')
   if (!SAFE_HOST.test(input.host)) throw new Error('Invalid game server host')
   if (!Number.isInteger(input.port) || input.port < 1 || input.port > 65535) {
@@ -522,6 +496,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   if (!SAFE_PASSWORD.test(input.password)) throw new Error('Invalid game server password')
   if (!/^[A-Za-z0-9_-]{32,64}$/.test(input.joinToken)) throw new Error('Invalid match join token')
+  console.info('[GameLaunch] match_connect received', {
+    matchId: input.matchId,
+    host: input.host,
+    port: input.port,
+    tokenFingerprint: createHash('sha256')
+      .update(input.joinToken, 'utf8')
+      .digest('hex')
+      .slice(0, 12)
+  })
   if (launchedMatchId === input.matchId && !input.forceRestart) return
 
   const relaunchingSameMatch = launchedMatchId === input.matchId && input.forceRestart === true
@@ -644,6 +627,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
+  await restoreMatchUserConfig()
+
   await ScoreboardOverlaySession.waitForCleanup()
 
   // The Windows proxy in 2026.927.2 crashed some GoldSrc distributions while
@@ -675,6 +660,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     await writeFile(
       temporaryMatchConfigPath,
       [
+        'echo "[1.6 Competitive] Match config loaded"',
+        'disconnect',
+        'setinfo "_16c" ""',
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         ...(gameSettings.fastSwitchManaged
@@ -694,6 +682,13 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       { encoding: 'utf8', mode: 0o600 }
     )
     await rename(temporaryMatchConfigPath, matchConfigPath)
+    console.info('[GameLaunch] match config prepared', {
+      matchId: input.matchId,
+      generation: matchConfigGeneration,
+      identityReassertions: 2,
+      waitFrames: MATCH_IDENTITY_WAIT_FRAMES,
+      connectionCommandPresent: true
+    })
   } catch (error) {
     console.error('[GameLaunch] could not prepare match config', {
       matchId: input.matchId,
@@ -736,8 +731,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
             stopGameWatchdog(input.matchId)
             finishAntiCheatSession(input.matchId, 'game-exit')
             void finishVoicePttSession(input.matchId)
-            void restoreNextClientUserConfig().catch((error: unknown) => {
-              console.error('[NextClient] could not restore userconfig after handoff exit', error)
+            void restoreMatchUserConfig(matchConfigGeneration).catch((error: unknown) => {
+              console.error(
+                '[GameLaunch] could not remove userconfig handoff after game exit',
+                error
+              )
             })
             void restoreManagedSkinAudio().catch((error: unknown) => {
               console.error('[SkinAudio] restore after Windows game exit failed', error)
@@ -803,15 +801,24 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     : null
   const useNativeNextClientMatchHandoff = nativeNextClientSession !== null
 
-  // NextClient must never receive +exec on its process command line. When the
-  // native host is unavailable, use the game's normal userconfig.cfg startup
-  // path to execute the launcher-owned per-match cfg instead. Preserve and
-  // restore the player's userconfig.cfg exactly; config.cfg is never touched.
-  if (nextClient && !useNativeNextClientMatchHandoff) {
+  // Use the game's userconfig.cfg startup path for every normal GoldSrc launch.
+  // The NextClient native host supplies its own private handoff instead.
+  if (!useNativeNextClientMatchHandoff) {
     try {
-      await prepareNextClientUserConfigHandoff(launchGameDirectory, matchConfigName)
+      const session = await prepareMatchUserConfigHandoff(launchGameDirectory, matchConfigName)
+      activeUserConfigHandoff = {
+        matchId: input.matchId,
+        generation: matchConfigGeneration,
+        session
+      }
+      console.info('[GameLaunch] userconfig match handoff prepared', {
+        matchId: input.matchId,
+        generation: matchConfigGeneration,
+        launchGameDirectory,
+        ...session.diagnostics
+      })
     } catch (error) {
-      console.error('[NextClient] could not prepare userconfig match handoff', {
+      console.error('[GameLaunch] could not prepare userconfig match handoff', {
         matchId: input.matchId,
         error
       })
@@ -819,7 +826,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       await restoreManagedSkinAudio().catch(() => undefined)
       clearMatchConfig(matchConfigGeneration)
       throw new Error(
-        'Could not prepare the NextClient match connection without changing your game bindings.'
+        'Could not prepare the Counter-Strike match connection. Check that userconfig.cfg is writable.'
       )
     }
   }
@@ -856,14 +863,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  // NextClient never receives a startup +exec. Native-host launches use the
-  // private handoff files; fallback launches enter through userconfig.cfg.
-  // Other GoldSrc clients keep the launcher-owned +exec path.
+  // Engine startup flags remain on the process command line. Console commands
+  // run from the launcher-owned match cfg through userconfig.cfg.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
-    '-condebug',
-    ...(nextClient ? [] : ['+exec', matchConfigName])
+    '-condebug'
   ]
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
@@ -963,7 +968,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     stopAntiCheatSession(antiCheatSession, 'launch-failed')
     await finishVoicePttSession(input.matchId)
     await restoreManagedSkinAudio().catch(() => undefined)
-    await restoreNextClientUserConfig().catch(() => undefined)
+    await restoreMatchUserConfig(matchConfigGeneration).catch(() => undefined)
     clearMatchConfig(matchConfigGeneration)
     throw error
   }
@@ -1032,8 +1037,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     })
     stopAntiCheatSession(antiCheatSession, 'game-exit')
     void finishVoicePttSession(input.matchId)
-    void restoreNextClientUserConfig().catch((error: unknown) => {
-      console.error('[NextClient] could not restore userconfig after game exit', error)
+    void restoreMatchUserConfig(matchConfigGeneration).catch((error: unknown) => {
+      console.error('[GameLaunch] could not remove userconfig handoff after game exit', error)
     })
     if (gameOutput.trim()) {
       const safeOutput = gameOutput
