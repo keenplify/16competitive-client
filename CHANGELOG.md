@@ -1811,3 +1811,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved reliability for live session and match updates.
 - Custom game and scoreboard updates are now handled more consistently.
+
+## v2026.1006.2 — 2026-10-06
+
+### Profile Ranks
+
+- Added profile rank progression and level indicators.
+- Improved profile rank insignia visuals.
+
+### Party
+
+- Added a preview for party nameplates.
+- Party lobbies now display rank information on player nameplates.
