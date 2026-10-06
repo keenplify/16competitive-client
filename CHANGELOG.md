@@ -1823,3 +1823,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a preview for party nameplates.
 - Party lobbies now display rank information on player nameplates.
+
+## v2026.1006.3 — 2026-10-06
+
+### Matchmaking
+
+- South America is now shown as a matchmaking region.
+- South America is labeled consistently in matchmaking and custom games.
