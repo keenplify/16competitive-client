@@ -2,6 +2,7 @@ import Select from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
+import { nodeLabel, regionLabel } from './region-label'
 
 type MatchmakingNodeWithLatency = MatchmakingNode & { latencyMs?: number | null }
 
@@ -13,14 +14,6 @@ interface RegionOption {
   available: boolean
   automatic: boolean
 }
-
-const regionLabel = (region: string): string =>
-  region === 'sea'
-    ? 'SEA'
-    : region
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
 
 interface MatchmakingRegionSelectProps {
   id?: string
@@ -82,7 +75,7 @@ export function MatchmakingRegionSelect({
     })
     .map((node) => ({
       value: node.id,
-      label: `${regionLabel(node.region)} · ${node.id}`,
+      label: `${regionLabel(node.region)} · ${nodeLabel(node.id)}`,
       node,
       latencyMs: nodeLatency(node),
       available: node.available,
@@ -158,9 +151,11 @@ export function MatchmakingRegionSelect({
                 <span className="block truncate text-[11px] text-neutral-500">
                   {option.automatic
                     ? node
-                      ? `Currently ${regionLabel(node.region)} · ${node.id}`
+                      ? `Currently ${regionLabel(node.region)} · ${nodeLabel(node.id)}`
                       : 'Chooses the lowest-latency healthy region'
-                    : node?.id}
+                    : node
+                      ? nodeLabel(node.id)
+                      : ''}
                 </span>
               </span>
               <span
