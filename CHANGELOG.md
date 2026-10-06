@@ -1830,3 +1830,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - South America is now shown as a matchmaking region.
 - South America is labeled consistently in matchmaking and custom games.
+
+## v2026.1006.4 — 2026-10-06
+
+### Match Setup
+
+- Improved handoff of player configuration when launching matches.
+- Added coverage to help ensure match configuration is handled correctly.
