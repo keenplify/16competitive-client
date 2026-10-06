@@ -14,13 +14,14 @@ interface RegionOption {
   automatic: boolean
 }
 
-const regionLabel = (region: string): string =>
-  region === 'sea'
-    ? 'SEA'
-    : region
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
+const regionLabel = (region: string): string => {
+  if (region === 'sea') return 'SEA'
+  if (region === 'sa') return 'South America'
+  return region
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
 
 interface MatchmakingRegionSelectProps {
   id?: string
