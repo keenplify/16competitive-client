@@ -129,12 +129,11 @@ try {
   const webHosts = process.env.RELEASE_WEB_HOSTS?.split(',').map((host) => host.trim()) ?? [
     'sg',
     'na',
-    'india',
     'ws',
     'sa'
   ]
-  if (webHosts.some((host) => !['sg', 'na', 'india', 'ws', 'sa'].includes(host))) {
-    fail('RELEASE_WEB_HOSTS must contain only sg, na, india, ws, or sa.')
+  if (webHosts.some((host) => !['sg', 'na', 'ws', 'sa'].includes(host))) {
+    fail('RELEASE_WEB_HOSTS must contain only sg, na, ws, or sa.')
   }
 
   for (const host of webHosts) {

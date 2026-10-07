@@ -30,7 +30,7 @@ export interface DailyQuestMatchProgress extends DailyQuest {
 }
 
 export interface PointChange {
-  source: 'MATCH_WIN' | 'MATCH_LOSS' | 'DAILY_QUEST'
+  source: 'MATCH_WIN' | 'MATCH_LOSS' | 'DAILY_QUEST' | 'PLAY_WINDOW'
   label: string
   amount: number
 }

@@ -16,6 +16,9 @@ import { useTranslation } from '../../../features/i18n/i18n'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
 import { DailyQuestsPanel } from '../../../features/daily-quests/DailyQuestsPanel'
 import type { DailyQuestSnapshot } from '../../../../../shared/daily-quests'
+import { useMatchmakingStore } from '../../../features/matchmaking/matchmaking.store'
+import { displayedPlayWindowNode } from '../../../features/matchmaking/play-window-node'
+import { PlayWindowStatus } from '../../../features/matchmaking/PlayWindowStatus'
 
 const pages = [
   { id: 'profile', labelKey: 'nav.inventory', icon: UserRound },
@@ -55,6 +58,9 @@ export function LobbyNavigation({
 }: LobbyNavigationProps): JSX.Element {
   const { t } = useTranslation()
   const canReview = useAdminDemosStore((state) => state.allowed)
+  const nodes = useMatchmakingStore((state) => state.nodes)
+  const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
+  const playWindowNode = displayedPlayWindowNode(nodes, selectedNodeId)
   const canNavigate = (page: LobbyPageId): boolean =>
     !locked || page === 'settings' || page === 'play'
   const activeMissions =
@@ -117,6 +123,11 @@ export function LobbyNavigation({
               className="absolute top-full left-0 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-white/15 bg-neutral-950/95 p-2 shadow-2xl backdrop-blur-md"
             >
               <h2 className="px-2 pb-2 text-sm font-semibold text-white">Daily missions</h2>
+              <PlayWindowStatus
+                playWindow={playWindowNode?.playWindow}
+                visible={missionsOpen}
+                className="mx-2 mb-2"
+              />
               <DailyQuestsPanel
                 snapshot={missionSnapshot}
                 loading={missionLoading}

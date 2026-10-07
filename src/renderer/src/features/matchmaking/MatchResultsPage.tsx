@@ -12,6 +12,7 @@ import { useFriendsStore } from '../friends/friends.store'
 import { OperationMatchProgress } from '../operations/OperationMatchProgress'
 import { usePartyStore } from '../party/party.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
+import { PlayWindowMatchResult } from './PlayWindowMatchResult'
 import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
@@ -173,6 +174,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.46)_0%,rgba(0,0,0,0.12)_42%,rgba(0,0,0,0.18)_100%)]"
         aria-hidden="true"
       />
+      <PlayWindowMatchResult rewards={rewards} className="absolute top-4 right-5 z-20" />
 
       {resultsStep === 'missions' && (
         <div className="relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center py-8">
