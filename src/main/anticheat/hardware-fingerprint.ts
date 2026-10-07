@@ -1,4 +1,5 @@
-import { API_BASE_URL, LOCAL_DEVELOPMENT } from '../config'
+import { resolveServiceApiUrl } from '../matchmaking-regions'
+import { LOCAL_DEVELOPMENT } from '../config'
 import type { DeviceStatus } from '../../shared/anti-cheat'
 import { requestHelperDevice } from './helper-process'
 
@@ -31,5 +32,8 @@ export function parseDeviceStatus(value: unknown): DeviceStatus {
 
 export const getDeviceBanStatus = async (): Promise<DeviceStatus> =>
   parseDeviceStatus(
-    await requestHelperDevice({ apiUrl: API_BASE_URL, allowInsecureLocal: LOCAL_DEVELOPMENT })
+    await requestHelperDevice({
+      apiUrl: await resolveServiceApiUrl(),
+      allowInsecureLocal: LOCAL_DEVELOPMENT
+    })
   )

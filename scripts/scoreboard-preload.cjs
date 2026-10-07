@@ -1,19 +1,32 @@
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/explicit-function-return-type */
 const { contextBridge, ipcRenderer } = require('electron')
 
+// Capture before React mounts, so unchanged snapshots need not be retransmitted.
+const cached = new Map()
+const listeners = new Map()
+for (const channel of ['scoreboard-snapshot', 'scoreboard-self']) {
+  listeners.set(channel, new Set())
+  ipcRenderer.on(channel, (_event, value) => {
+    cached.set(channel, value)
+    for (const listener of listeners.get(channel)) listener(value)
+  })
+}
+function subscribe(channel, listener) {
+  listeners.get(channel).add(listener)
+  if (cached.has(channel)) listener(cached.get(channel))
+  return () => listeners.get(channel).delete(listener)
+}
+
 contextBridge.exposeInMainWorld('scoreboardProbe', {
   onSnapshot(listener) {
-    const handler = (_event, snapshot) => listener(snapshot)
-    ipcRenderer.on('scoreboard-snapshot', handler)
-    return () => ipcRenderer.removeListener('scoreboard-snapshot', handler)
+    return subscribe('scoreboard-snapshot', listener)
   },
   onSelf(listener) {
-    const handler = (_event, username) => listener(username)
-    ipcRenderer.on('scoreboard-self', handler)
-    return () => ipcRenderer.removeListener('scoreboard-self', handler)
+    return subscribe('scoreboard-self', listener)
   },
   onKillCards(listener) {
-    const handler = (_event, count, mode, aceAt, side, kinds) => listener(count, mode, aceAt, side, kinds)
+    const handler = (_event, count, mode, aceAt, side, kinds) =>
+      listener(count, mode, aceAt, side, kinds)
     ipcRenderer.on('kill-cards-count', handler)
     return () => ipcRenderer.removeListener('kill-cards-count', handler)
   }

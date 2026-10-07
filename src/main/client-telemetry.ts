@@ -1,10 +1,11 @@
+import { resolveServiceApiUrl } from './matchmaking-regions'
 import { app, ipcMain } from 'electron'
 import { arch, cpus, platform, release, totalmem, version } from 'node:os'
 import type { DeviceStatus } from '../shared/anti-cheat'
 import { ANTICHEAT_CHANNELS } from '../shared/anti-cheat'
 import { getDeviceBanStatus, parseDeviceStatus } from './anticheat/hardware-fingerprint'
 import { requestHelperDevice } from './anticheat/helper-process'
-import { API_BASE_URL, LOCAL_DEVELOPMENT } from './config'
+import { LOCAL_DEVELOPMENT } from './config'
 
 const trimText = (value: unknown, maxLength: number): string | undefined => {
   if (typeof value !== 'string') return undefined
@@ -58,7 +59,7 @@ export const reportClientTelemetry = async (token: string): Promise<DeviceStatus
 
     return parseDeviceStatus(
       await requestHelperDevice({
-        apiUrl: API_BASE_URL,
+        apiUrl: await resolveServiceApiUrl(),
         allowInsecureLocal: LOCAL_DEVELOPMENT,
         token,
         telemetry: body

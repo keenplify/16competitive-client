@@ -41,6 +41,7 @@ import {
   ensureSteamScoreboardOption
 } from './steam-scoreboard-options'
 import { setGameConsoleDirectory } from './game-console-logs'
+import { disableConflictingGtProtector } from './gtprotector-compatibility'
 import {
   prepareMatchUserConfigHandoff,
   type MatchUserConfigHandoff
@@ -669,6 +670,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
+  await disableConflictingGtProtector(cwd, {
+    platform: process.platform,
+    distribution: launchTarget.distribution,
+    nextClient
+  })
+
   await prepareManagedSkinAudio(input.matchId)
 
   const voicePttSession = prepareVoicePtt(
@@ -710,6 +717,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'setinfo "_16c" ""',
         ...previousJoinKeys.map((key) => `setinfo "${key}" ""`),
         `setinfo "${joinInfoKey}" ""`,
+        'echo "[1.6 Competitive] Join stage: identity-initial"',
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         ...(gameSettings.fastSwitchManaged
@@ -718,11 +726,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
+        'echo "[1.6 Competitive] Join stage: access-initial"',
         `password "${input.password}"`,
         // Wait a few frames, then reassert match identity before connecting.
         ...Array.from({ length: MATCH_IDENTITY_WAIT_FRAMES }, () => 'wait'),
+        'echo "[1.6 Competitive] Join stage: identity-final"',
         ...identityCommands,
+        'echo "[1.6 Competitive] Join stage: access-final"',
         `password "${input.password}"`,
+        'echo "[1.6 Competitive] Join stage: connect"',
         `connect ${input.host}:${input.port}`,
         ''
       ].join('\n'),
@@ -735,6 +747,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       identityReassertions: 2,
       waitFrames: MATCH_IDENTITY_WAIT_FRAMES,
       connectionCommandPresent: true
+    })
+    console.info('[GameLaunch] connection info budget', {
+      matchId: input.matchId,
+      generation: matchConfigGeneration,
+      previousManagedKeysToClear: previousJoinKeys.length,
+      // Wire-format contributions only. The engine's existing userinfo is
+      // unknown; these numbers must not be presented as total buffer usage.
+      joinEntryBytes: Buffer.byteLength(joinInfoKey) + Buffer.byteLength(input.joinToken) + 2,
+      accessEntryBytes: Buffer.byteLength('password') + Buffer.byteLength(input.password) + 2,
+      nameEntryBytes: Buffer.byteLength('name') + Buffer.byteLength(playerName) + 2
     })
   } catch (error) {
     console.error('[GameLaunch] could not prepare match config', {
@@ -758,6 +780,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   // Screenshot review belongs to the anti-cheat session, independent of optional in-game HUDs.
   const antiCheatSession = await startAntiCheatSession({
+    apiUrl: input.apiUrl,
     matchId: input.matchId,
     executablePath: executable,
     runtimeExecutablePath: launchTarget.gameExecutable,

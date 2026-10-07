@@ -14,6 +14,24 @@ import {
   saveMatchLaunchDiagnostics
 } from '../src/main/game/match-launch-diagnostics.ts'
 
+test('connection rejection categories survive redaction without leaking accompanying secrets', () => {
+  const logs = redactReportLogs(
+    'No password set. Clean your userinfo. password secret-one\r\n' +
+      'No password set. Clean your user info\n' +
+      'Invalid server password secret-two\n' +
+      'password secret-three\n' +
+      'Info string length exceeded\n' +
+      '[1.6 Competitive] Join stage: identity-final\n'
+  )
+  assert.equal(logs.split('\n')[0], '[Connection diagnostic] missing-server-password')
+  assert.equal(logs.split('\n')[1], '[Connection diagnostic] missing-server-password')
+  assert.match(logs, /rejected-server-password/)
+  assert.ok(!logs.includes('secret-'))
+  assert.match(logs, /Info string length exceeded/)
+  assert.match(logs, /Join stage: identity-final/)
+  assert.equal(redactReportLogs(logs), logs)
+})
+
 test('MIME registration preserves unrelated defaults and replaces only demo handlers', () => {
   const previous =
     '[Default Applications]\ntext/plain=editor.desktop;\nx-scheme-handler/competitive16=old.desktop;\n[Added Associations]\nimage/png=view.desktop;\n'
