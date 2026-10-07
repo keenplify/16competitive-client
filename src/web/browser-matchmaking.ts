@@ -6,7 +6,7 @@ import type {
   MatchmakingPreferences,
   MatchmakingServerMessage
 } from '../shared/matchmaking'
-import { allowsManualMatchConnection, manualConnectionCommand } from '../shared/matchmaking'
+import { manualConnectionCommand } from '../shared/matchmaking'
 import { getWebSessionToken, requestJson } from './browser-session'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
@@ -164,7 +164,7 @@ let manualConnectionMatchId: string | null = null
 const launchCounterStrike = (): void => {
   if (!lastConnection) throw new Error('The match server is not ready yet.')
   if (manualConnectionMatchId !== lastConnection.matchId)
-    throw new Error('Ranked matches require the desktop launcher.')
+    throw new Error('This match is no longer available.')
   window.location.href = steamLaunchUrl(lastConnection)
 }
 
@@ -211,7 +211,8 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
   }
 
   if (message.type === 'match_found' || message.type === 'match_roster') {
-    manualConnectionMatchId = allowsManualMatchConnection(message.mode) ? message.matchId : null
+    // Queue access is enforced by the backend, including admin enabled Ranked Web Play.
+    manualConnectionMatchId = message.matchId
     emit(message)
     emit({
       type: 'match_assets_progress',
@@ -389,10 +390,14 @@ export const browserMatchmakingApi: MatchmakingApi = {
     return preferences()
   },
 
-  async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions, preferHumans) {
-    if (!allowsManualMatchConnection(mode)) {
-      throw new Error('Ranked matchmaking requires the 1.6 Competitive desktop app.')
-    }
+  async joinQueue(
+    mode,
+    mapIds,
+    allowRegionExpansion,
+    preferredRegion,
+    eligibleRegions,
+    preferHumans
+  ) {
     await openSocket()
     send({
       type: 'join_queue',
@@ -437,8 +442,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async copyConnection(matchId) {
-    if (manualConnectionMatchId !== matchId)
-      throw new Error('Ranked matches require the desktop launcher.')
+    if (manualConnectionMatchId !== matchId) throw new Error('This match is no longer available.')
     if (!UUID_PATTERN.test(matchId) || lastConnection?.matchId !== matchId) {
       throw new Error('This match is no longer available.')
     }
