@@ -26,6 +26,7 @@ import { ReferralSettings } from './ReferralSettings'
 import { ChangelogModal } from './ChangelogModal'
 import { CrosshairSettings } from './CrosshairSettings'
 import { LanguageSettings } from '../i18n/LanguageSettings'
+import { ChatTranslationSettings } from './ChatTranslationSettings'
 import { useTranslation } from '../i18n/i18n'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
@@ -475,6 +476,7 @@ export function SettingsPage(): JSX.Element {
               </div>
 
               <LanguageSettings />
+              <ChatTranslationSettings />
 
               {webRuntime ? (
                 <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">

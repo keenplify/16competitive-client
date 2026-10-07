@@ -3,7 +3,8 @@ import type {
   AuthSession,
   SocialAuthProvider,
   SocialAuthResult,
-  SocialConnections
+  SocialConnections,
+  ChatTranslationPreference
 } from '../shared/auth'
 import {
   clearWebSessionToken,
@@ -409,6 +410,17 @@ export const browserAuthApi: AuthApi = {
     return requestJson('/auth/flag', {
       authenticated: true,
       init: { method: 'POST', body: JSON.stringify({ flagCountryCode }) }
+    })
+  },
+
+  async getChatTranslation() {
+    return requestJson<ChatTranslationPreference>('/auth/chat-translation', { authenticated: true })
+  },
+
+  async setChatTranslation(language) {
+    return requestJson<ChatTranslationPreference>('/auth/chat-translation', {
+      authenticated: true,
+      init: { method: 'POST', body: JSON.stringify({ language }) }
     })
   },
 

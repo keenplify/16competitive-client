@@ -15,6 +15,8 @@ import {
   completeSocialWithPassword,
   changePassword,
   changeFlagCountryCode,
+  getChatTranslation,
+  setChatTranslation,
   changeUsername,
   checkUsername,
   clearSessionToken,
@@ -604,6 +606,10 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(AUTH_CHANNELS.flagChange, (_, flagCountryCode: unknown) =>
     changeFlagCountryCode(flagCountryCode)
+  )
+  ipcMain.handle(AUTH_CHANNELS.chatTranslationGet, () => getChatTranslation())
+  ipcMain.handle(AUTH_CHANNELS.chatTranslationSet, (_, language: unknown) =>
+    setChatTranslation(language)
   )
   ipcMain.handle(AUTH_CHANNELS.restore, () => withClientTelemetry(restoreSession()))
   ipcMain.handle(AUTH_CHANNELS.logout, () => {

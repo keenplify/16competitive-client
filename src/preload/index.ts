@@ -59,6 +59,8 @@ const auth: AuthApi = {
   changePassword: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.passwordChange, credentials),
   changeFlagCountryCode: (flagCountryCode) =>
     ipcRenderer.invoke(AUTH_CHANNELS.flagChange, flagCountryCode),
+  getChatTranslation: () => ipcRenderer.invoke(AUTH_CHANNELS.chatTranslationGet),
+  setChatTranslation: (language) => ipcRenderer.invoke(AUTH_CHANNELS.chatTranslationSet, language),
   restore: () => ipcRenderer.invoke(AUTH_CHANNELS.restore),
   logout: () => ipcRenderer.invoke(AUTH_CHANNELS.logout)
 }
