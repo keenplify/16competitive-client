@@ -1,11 +1,13 @@
 import { Languages } from 'lucide-react'
 import { useMemo, type JSX } from 'react'
+import { createFilter } from 'react-select'
 import CreatableSelect from 'react-select/creatable'
 import { useTranslation } from '../i18n/i18n'
 import { CHAT_TRANSLATION_LANGUAGES } from './chat-translation-languages'
 import { useChatTranslationStore } from './chat-translation.store'
 
 type LanguageOption = { value: string; label: string }
+const languageFilter = createFilter<LanguageOption>()
 
 const isValidLanguageCode = (value: string): boolean =>
   value.length <= 35 && /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(value)
@@ -71,6 +73,9 @@ export function ChatTranslationSettings(): JSX.Element {
               menuPortalTarget={document.body}
               menuPosition="fixed"
               options={options}
+              filterOption={(option, input) =>
+                option.value === 'off' || languageFilter(option, input)
+              }
               value={options.find((option) => option.value === language) ?? null}
               getOptionLabel={(option) => `${option.label} (${option.value})`}
               getOptionValue={(option) => option.value}
@@ -101,8 +106,8 @@ export function ChatTranslationSettings(): JSX.Element {
                 menu: () =>
                   'overflow-hidden border border-white/15 bg-neutral-950 shadow-2xl shadow-black/60',
                 menuList: () => 'max-h-72 p-1',
-                option: ({ isFocused, isSelected }) =>
-                  `cursor-pointer px-3 py-2 text-sm ${isSelected ? 'bg-sky-500/20 text-sky-200' : isFocused ? 'bg-white/10 text-white' : 'text-neutral-200'}`,
+                option: ({ data, isFocused, isSelected }) =>
+                  `cursor-pointer px-3 py-2 text-sm ${data.value === 'off' ? 'sticky top-0 z-10 border-b border-white/15 ' : ''}${isSelected ? 'bg-sky-500/20 text-sky-200' : isFocused ? 'bg-neutral-800 text-white' : data.value === 'off' ? 'bg-neutral-950 text-white' : 'text-neutral-200'}`,
                 noOptionsMessage: () => 'px-3 py-3 text-sm text-neutral-500'
               }}
             />

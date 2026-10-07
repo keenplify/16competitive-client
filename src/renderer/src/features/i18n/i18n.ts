@@ -39,7 +39,7 @@ const english = {
   'settings.language.help': 'Changes apply immediately and are saved on this device.',
   'settings.chatTranslation.title': 'In-game chat translation',
   'settings.chatTranslation.description':
-    'Show labeled translations of other players’ text chat in your chosen language. Original messages stay visible. Chat text is sent to DeepSeek.',
+    'Show labeled translations of other players’ text chat in your chosen language. Original messages stay visible.',
   'settings.chatTranslation.off': 'Off',
   'settings.chatTranslation.help':
     'Your choice is saved to your account. Translation may arrive after the original message.',
@@ -144,7 +144,7 @@ const russian: Record<TranslationKey, string> = {
   'settings.language.help': 'Изменения применяются сразу и сохраняются на этом устройстве.',
   'settings.chatTranslation.title': 'Перевод чата в игре',
   'settings.chatTranslation.description':
-    'Показывать помеченный перевод сообщений других игроков на выбранном языке. Оригинал остаётся видимым. Текст чата отправляется в DeepSeek.',
+    'Показывать помеченный перевод сообщений других игроков на выбранном языке. Оригинал остаётся видимым.',
   'settings.chatTranslation.off': 'Выкл.',
   'settings.chatTranslation.help':
     'Выбор сохраняется в аккаунте. Перевод может появиться позже оригинала.',
@@ -247,7 +247,7 @@ const taglish: Record<TranslationKey, string> = {
   'settings.language.help': 'Apply agad ang changes at mase-save sa device na ito.',
   'settings.chatTranslation.title': 'Pagsasalin ng chat sa laro',
   'settings.chatTranslation.description':
-    'Ipakita ang may label na salin ng text chat ng ibang manlalaro sa napili mong wika. Makikita pa rin ang orihinal. Ipinapadala ang chat text sa DeepSeek.',
+    'Ipakita ang may label na salin ng text chat ng ibang manlalaro sa napili mong wika. Makikita pa rin ang orihinal.',
   'settings.chatTranslation.off': 'Naka-off',
   'settings.chatTranslation.help':
     'Naka-save sa account mo ang pinili mo. Maaaring mauna ang orihinal bago ang salin.',
@@ -351,7 +351,7 @@ const thai: Record<TranslationKey, string> = {
   'settings.language.help': 'การเปลี่ยนแปลงมีผลทันทีและจะบันทึกไว้ในอุปกรณ์นี้',
   'settings.chatTranslation.title': 'แปลแชตในเกม',
   'settings.chatTranslation.description':
-    'แสดงคำแปลแชตของผู้เล่นคนอื่นพร้อมป้ายกำกับในภาษาที่เลือก โดยยังเห็นข้อความต้นฉบับ ข้อความแชตจะถูกส่งไปยัง DeepSeek',
+    'แสดงคำแปลแชตของผู้เล่นคนอื่นพร้อมป้ายกำกับในภาษาที่เลือก โดยยังเห็นข้อความต้นฉบับ',
   'settings.chatTranslation.off': 'ปิด',
   'settings.chatTranslation.help': 'บันทึกตัวเลือกไว้ในบัญชีของคุณ คำแปลอาจมาหลังข้อความต้นฉบับ',
   'settings.chatTranslation.error': 'บันทึกการตั้งค่าการแปลไม่ได้ โปรดลองอีกครั้ง',
@@ -454,7 +454,7 @@ const indonesian: Record<TranslationKey, string> = {
   'settings.language.help': 'Perubahan diterapkan langsung dan disimpan di perangkat ini.',
   'settings.chatTranslation.title': 'Terjemahan chat dalam game',
   'settings.chatTranslation.description':
-    'Tampilkan terjemahan chat pemain lain dengan label dalam bahasa pilihan Anda. Pesan asli tetap terlihat. Teks chat dikirim ke DeepSeek.',
+    'Tampilkan terjemahan chat pemain lain dengan label dalam bahasa pilihan Anda. Pesan asli tetap terlihat.',
   'settings.chatTranslation.off': 'Mati',
   'settings.chatTranslation.help':
     'Pilihan disimpan di akun Anda. Terjemahan mungkin muncul setelah pesan asli.',
@@ -561,7 +561,7 @@ const portuguese: Record<TranslationKey, string> = {
   'settings.language.help': 'As alterações são aplicadas imediatamente e salvas neste dispositivo.',
   'settings.chatTranslation.title': 'Tradução do chat no jogo',
   'settings.chatTranslation.description':
-    'Mostre traduções identificadas das mensagens de outros jogadores no idioma escolhido. O original continua visível. O texto do chat é enviado à DeepSeek.',
+    'Mostre traduções identificadas das mensagens de outros jogadores no idioma escolhido. O original continua visível.',
   'settings.chatTranslation.off': 'Desativado',
   'settings.chatTranslation.help':
     'Sua escolha é salva na conta. A tradução pode chegar depois da mensagem original.',
@@ -669,7 +669,7 @@ const japanese: Record<TranslationKey, string> = {
   'settings.language.help': '変更はすぐに反映され、このデバイスに保存されます。',
   'settings.chatTranslation.title': 'ゲーム内チャットの翻訳',
   'settings.chatTranslation.description':
-    '他のプレイヤーのテキストチャットを選択した言語に翻訳して表示します。元のメッセージも表示されます。チャット本文はDeepSeekに送信されます。',
+    '他のプレイヤーのテキストチャットを選択した言語に翻訳して表示します。元のメッセージも表示されます。',
   'settings.chatTranslation.off': 'オフ',
   'settings.chatTranslation.help':
     '設定はアカウントに保存されます。翻訳は元のメッセージより後に届く場合があります。',
@@ -773,7 +773,7 @@ const hindi: Record<TranslationKey, string> = {
   'settings.language.help': 'बदलाव तुरंत लागू होते हैं और इस डिवाइस पर सहेजे जाते हैं।',
   'settings.chatTranslation.title': 'गेम चैट अनुवाद',
   'settings.chatTranslation.description':
-    'दूसरे खिलाड़ियों के टेक्स्ट चैट का चिह्नित अनुवाद चुनी हुई भाषा में दिखाएँ। मूल संदेश भी दिखेगा। चैट का पाठ DeepSeek को भेजा जाता है।',
+    'दूसरे खिलाड़ियों के टेक्स्ट चैट का चिह्नित अनुवाद चुनी हुई भाषा में दिखाएँ। मूल संदेश भी दिखेगा।',
   'settings.chatTranslation.off': 'बंद',
   'settings.chatTranslation.help':
     'यह चुनाव आपके खाते में सहेजा जाता है। अनुवाद मूल संदेश के बाद आ सकता है।',
