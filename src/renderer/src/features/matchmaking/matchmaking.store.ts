@@ -851,7 +851,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     copyConnection: async () => {
-      if (!allowsManualMatchConnection(get().match?.mode)) {
+      const matchMode = get().match?.mode
+      const rankedWebEnabled =
+        matchMode === '5v5' && get().maps.some((map) => map.webModes.includes('5v5'))
+      if (!allowsManualMatchConnection(matchMode) && !rankedWebEnabled) {
         set({ error: 'Ranked matches require the desktop launcher.', copyConnectionStatus: 'idle' })
         return
       }

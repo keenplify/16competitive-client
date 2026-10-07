@@ -4,8 +4,7 @@ import { app, BrowserWindow, clipboard } from 'electron'
 import {
   isMatchmakingMode,
   MATCHMAKING_CHANNELS,
-  manualConnectionCommand,
-  allowsManualMatchConnection
+  manualConnectionCommand
 } from '../shared/matchmaking'
 import type {
   MatchmakingEvent,
@@ -338,7 +337,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         typeof message.queuedPlayers === 'number' &&
         (message.onlinePlayers === undefined ||
           (typeof message.onlinePlayers === 'number' &&
-            Number.isInteger(message.onlinePlayers) && message.onlinePlayers >= 0)) &&
+            Number.isInteger(message.onlinePlayers) &&
+            message.onlinePlayers >= 0)) &&
         typeof message.playersRequired === 'number' &&
         typeof message.position === 'number' &&
         typeof message.region === 'string' &&
@@ -1080,9 +1080,8 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'match_found' || parsed.type === 'match_roster') {
-        this.manualConnectionMatchId = allowsManualMatchConnection(parsed.mode)
-          ? parsed.matchId
-          : null
+        // The backend decides whether Ranked currently permits manual Web Play connections.
+        this.manualConnectionMatchId = parsed.matchId
       }
       if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) return
       if (
