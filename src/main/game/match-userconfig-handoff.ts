@@ -110,6 +110,10 @@ export const prepareMatchUserConfigHandoff = async (
     if (!currentStat) return 'missing'
     if (!currentStat.isFile()) throw new Error('userconfig.cfg changed to a non-file')
     const current = await readFile(path)
+    console.info('[GameLaunch] userconfig handoff cleanup state', {
+      unchangedSincePreparation: current.equals(installed),
+      managedBlockStillPresent: current.includes(BEGIN) && current.includes(END)
+    })
     if (current.equals(installed)) {
       if (existing) await writeAtomically(path, clean, mode)
       else await unlink(path)

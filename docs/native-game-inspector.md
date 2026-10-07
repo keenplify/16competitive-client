@@ -146,3 +146,41 @@ If the helper version is already ahead of the client pin, retrying resumes that
 version instead of incrementing it again. Existing tags are never moved. If
 Actions fails, follow the printed run URL and fix/retry that workflow first.
 No signing or registry publishing secret is required on the release workstation.
+
+
+## Regional routing and operational failure reports
+
+The launcher passes the match host API to the helper session and uses that same
+origin for periodic signed approval checks and screenshot review requests. Session
+recovery retains the original match origin. Outside a match, startup verification,
+device checks, telemetry, and automatic issue reports use the saved usable region
+or the lowest measured latency region. `/nodes` discovery is public and works
+before login. Production node URLs must use HTTPS. Service selection is cached for
+60 seconds and invalidated when region preferences change. If discovery fails,
+the configured bootstrap API remains the fallback.
+
+Signed helper verification is unchanged: local binary hashes and pinned signatures
+must pass, and the selected backend must approve the exact manifest. Approval
+caches are scoped to origin and release. An explicit rejection, mismatched manifest,
+or failed approval request never becomes approval through fallback.
+
+Operational helper failures automatically enter the existing admin issue reports.
+The launcher queues the occurrence time, failure stage, launcher/helper versions,
+OS release and architecture, match/distribution, API origin when known, retry count,
+exit status and sanitized error details. It does not persist helper control-channel
+messages or raw helper stdout/stderr. The existing issue-report upload attaches
+redacted launcher and game diagnostics available at submission time; these may be
+from a later launch when the original failure occurred offline.
+
+The local `anticheat-failure-reports.json` queue is restricted to 32 records, expires
+after seven days, and deduplicates each stage/match/version/account per hour. Failed
+uploads retry every minute and after sign-in. Pre-login incidents wait for login
+and bind to the first submitting account. Operational reports are diagnostic
+information, not cheating verdicts or automatic bans.
+
+Backend `HELPER_SIGNING_PUBLIC_KEY` and `HELPER_RELEASE_PUBLISH_TOKEN` configure
+release registration. Regional readers can serve already-approved releases from
+the shared database without publisher credentials. Demo recording uses optional
+`ANTICHEAT_RECORDING_SCORE_THRESHOLD` (default 20) and
+`ANTICHEAT_DEMO_STORAGE_PATH` (default `data/anticheat-demos`); the service account
+must be able to write that directory.

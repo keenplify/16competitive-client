@@ -20,10 +20,11 @@ export async function assertHelperForBackend(): Promise<void> {
 }
 
 export async function spawnHelper(
-  mode: '--session' | '--device'
+  mode: '--session' | '--device',
+  apiUrl?: string
 ): Promise<ChildProcessWithoutNullStreams> {
   const binary = helperBinary()
-  if (REQUIRES_SIGNED_HELPER) await verifyPackagedHelper(binary)
+  if (REQUIRES_SIGNED_HELPER) await verifyPackagedHelper(binary, apiUrl)
   return spawn(binary, [mode], {
     windowsHide: true,
     shell: false,
@@ -43,8 +44,13 @@ export function writeHelper(child: ChildProcessWithoutNullStreams, value: unknow
   child.stdin.write(line)
 }
 
-export async function requestHelperDevice(value: unknown): Promise<unknown> {
-  const child = await spawnHelper('--device')
+export async function requestHelperDevice(value: {
+  apiUrl: string
+  allowInsecureLocal: boolean
+  token?: string
+  telemetry?: unknown
+}): Promise<unknown> {
+  const child = await spawnHelper('--device', value.apiUrl)
   return new Promise((resolve, reject) => {
     let output = ''
     const timeout = setTimeout(() => {

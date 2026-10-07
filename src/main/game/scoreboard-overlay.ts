@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { constants, watch, type FSWatcher } from 'node:fs'
 import { lstat, mkdir, mkdtemp, open, rm, stat, unlink, writeFile } from 'node:fs/promises'
@@ -22,6 +22,8 @@ import { reportDiagnosticIssue } from '../diagnostic-logs'
 import { KillCardTracker, type KillCardView } from './kill-card-tracker'
 import { KillCardPrediction, parseLocalDeathNotices } from './kill-card-prediction'
 import { writeLiveSessionFile } from './live-session-file'
+import { decodeScoreboardDelta } from './scoreboard-transport'
+import { mergeNativeScores, readNativeScores } from './native-scoreboard'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -29,7 +31,7 @@ const FRAME_WIDTH = 1104
 const FRAME_HEIGHT = 720
 const CARD_WIDTH = 480
 const CARD_HEIGHT = 280
-const INTERVAL_MS = 100
+const INTERVAL_MS = 500
 const cleanupQueue = new ScoreboardCleanupQueue()
 
 const writeCrosshairConfig = async (
@@ -96,6 +98,13 @@ export class ScoreboardOverlaySession {
   private readonly cardsWindow: BrowserWindow
   private readonly readSnapshot: (directory: string) => Snapshot
   private timer: NodeJS.Timeout | null = null
+  private presentationTimer: NodeJS.Timeout | null = null
+  private presenting = false
+  private transportFeed: string | null = null
+  private transportRevision: string | null = null
+  private transportMode = false
+  private forceFullFeed = false
+  private lastPresentation = ''
   private busy = false
   private refreshTask: Promise<void> | null = null
   private frameTask: Promise<void> | null = null
@@ -109,6 +118,7 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private cardFrameWriting = false
   private stopped = false
+  private lastSnapshot: Snapshot = null
   private feedAvailable = false
   private reportedUnavailable = false
   private feedOutageAt: number | null = null
@@ -124,6 +134,7 @@ export class ScoreboardOverlaySession {
     window: BrowserWindow,
     cardsWindow: BrowserWindow,
     readSnapshot: (directory: string) => Snapshot,
+    private readonly parseSnapshot: (feed: string) => Snapshot,
     windowsInstallation: WindowsCosmeticInstallation | WindowsNextClientInstallation | null
   ) {
     this.directory = directory
@@ -321,6 +332,14 @@ export class ScoreboardOverlaySession {
     let eventWatcher: FSWatcher | null = null
     try {
       await mkdir(join(directory, 'game/cstrike/addons/amxmodx/data'), { recursive: true })
+      await Promise.all(
+        [
+          'native-scoreboard.tsv',
+          'native-scoreboard.tmp',
+          'overlay.png',
+          'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv'
+        ].map((name) => rm(join(directory, name), { force: true }))
+      )
       await writeFile(join(directory, 'manifest.json'), JSON.stringify({ matchId }), {
         mode: 0o600
       })
@@ -342,8 +361,11 @@ export class ScoreboardOverlaySession {
         }
       )
       const requireResource = createRequire(import.meta.url)
-      const { readSnapshot } = requireResource(join(assets, 'scoreboard-feed.cjs')) as {
+      const { readSnapshot, parseSnapshot } = requireResource(
+        join(assets, 'scoreboard-feed.cjs')
+      ) as {
         readSnapshot: (directory: string) => Snapshot
+        parseSnapshot: (feed: string) => Snapshot
       }
       window = new BrowserWindow({
         width: FRAME_WIDTH,
@@ -383,6 +405,7 @@ export class ScoreboardOverlaySession {
         window,
         cardsWindow,
         readSnapshot,
+        parseSnapshot,
         windowsInstallation
       )
       createdSession.killCardsEnabled = gameSettings.killCardsEnabled
@@ -419,6 +442,9 @@ export class ScoreboardOverlaySession {
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       window.webContents.on('will-navigate', (event) => event.preventDefault())
       window.webContents.setFrameRate(4)
+      window.webContents.on('did-finish-load', () => {
+        createdSession.lastPresentation = ''
+      })
       window.webContents.on('render-process-gone', (_event, details) => {
         if (createdSession.stopped) return
         createdSession.rendererCrashed = true
@@ -455,6 +481,12 @@ export class ScoreboardOverlaySession {
       window.webContents.startPainting()
       createdSession.timer = setInterval(() => createdSession.scheduleRefresh(), INTERVAL_MS)
       createdSession.timer.unref()
+      createdSession.presentationTimer = setInterval(() => {
+        void createdSession
+          .present()
+          .catch((error: unknown) => console.warn('[Scoreboard] presentation failed', error))
+      }, 250)
+      createdSession.presentationTimer.unref()
       createdSession.scheduleRefresh()
       createdSession.watchdog = new ScoreboardWatchdog(
         async () => {
@@ -552,28 +584,130 @@ export class ScoreboardOverlaySession {
     )
   }
 
+  private async present(): Promise<void> {
+    if (this.stopped || this.presenting || this.window.isDestroyed()) return
+    this.presenting = true
+    try {
+      const native = await readNativeScores(join(this.directory, 'native-scoreboard.tsv'))
+      if (this.stopped || this.window.isDestroyed()) return
+      if (this.lastSnapshot && native)
+        this.lastSnapshot = mergeNativeScores(this.lastSnapshot, native)
+      const username = getSessionUsername() ?? ''
+      const signature = JSON.stringify([username, this.lastSnapshot])
+      if (signature !== this.lastPresentation) {
+        this.window.webContents.send('scoreboard-self', username)
+        this.window.webContents.send('scoreboard-snapshot', this.lastSnapshot)
+        this.lastPresentation = signature
+      }
+      this.window.webContents.invalidate()
+    } finally {
+      this.presenting = false
+    }
+  }
+
   private async refresh(): Promise<void> {
     if (this.stopped || this.busy) return
     this.busy = true
     try {
       const token = getSessionToken()
-      if (!token) throw new Error('No session')
+      if (!token) {
+        this.lastSnapshot = null
+        this.feedAvailable = false
+        this.transportFeed = null
+        this.transportRevision = null
+        await unlink(this.feedPath).catch(() => undefined)
+        throw new Error('No session')
+      }
+      const native = await readNativeScores(join(this.directory, 'native-scoreboard.tsv'))
+      const nativeMode =
+        !this.forceFullFeed &&
+        !!(
+          this.lastSnapshot?.players.length &&
+          native &&
+          this.lastSnapshot.players.every((player) =>
+            native.some((row) => row.id === player.id && row.name === player.name)
+          )
+        )
+      if (nativeMode !== this.transportMode) this.transportRevision = null
+      this.transportMode = nativeMode
       const response = await fetch(
         new URL(`/matches/${encodeURIComponent(this.matchId)}/live-scoreboard`, this.apiUrl),
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(nativeMode ? { 'X-Scoreboard-Mode': 'native-v1' } : {}),
+            ...(this.transportRevision ? { 'X-Scoreboard-Base': this.transportRevision } : {})
+          },
           redirect: 'error',
           signal: AbortSignal.any([this.requests.signal, AbortSignal.timeout(3000)])
         }
       )
-      if (!response.ok || response.status === 204)
+      if (response.status === 401 || response.status === 403) {
+        this.lastSnapshot = null
+        this.feedAvailable = false
+        this.transportFeed = null
+        this.transportRevision = null
+        await unlink(this.feedPath).catch(() => undefined)
+      }
+      if ((!response.ok && response.status !== 304) || response.status === 204)
         throw new Error(`Scoreboard unavailable (HTTP ${response.status})`)
-      const feed = await readBoundedFeed(response)
+      const revision = response.headers.get('x-scoreboard-revision')
+      let feed: string | null
+      if (response.status === 304) {
+        if (!this.transportFeed || !this.transportRevision || revision !== this.transportRevision)
+          throw new Error('Scoreboard baseline missing')
+        feed = this.transportFeed
+      } else {
+        feed = await readBoundedFeed(response)
+        if (
+          response.headers
+            .get('content-type')
+            ?.startsWith('application/vnd.16c.scoreboard-delta+json')
+        ) {
+          if (!feed || !this.transportFeed || !this.transportRevision)
+            throw new Error('Scoreboard baseline missing')
+          feed = decodeScoreboardDelta(this.transportFeed, this.transportRevision, feed)
+        }
+      }
       if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-4])\t/.test(feed))
         throw new Error('Invalid scoreboard feed')
+      if (
+        revision &&
+        (!/^[a-f0-9]{64}$/.test(revision) ||
+          createHash('sha256').update(feed).digest('hex') !== revision)
+      )
+        throw new Error('Scoreboard revision mismatch')
+      const snapshot = this.parseSnapshot(feed)
+      if (!snapshot) throw new Error('Invalid scoreboard snapshot')
+      const nativePayload = response.headers.get('x-scoreboard-mode') === 'native-v1'
+      if (
+        nativePayload &&
+        !snapshot.players.every((player) =>
+          native?.some((row) => row.id === player.id && row.name === player.name)
+        )
+      ) {
+        this.forceFullFeed = true
+        throw new Error('Native scoreboard roster changed; requesting full snapshot')
+      }
+      this.forceFullFeed = false
       if (this.stopped) return
+      if (getSessionToken() !== token) {
+        this.lastSnapshot = null
+        this.feedAvailable = false
+        this.transportFeed = null
+        this.transportRevision = null
+        await unlink(this.feedPath).catch(() => undefined)
+        throw new Error('Scoreboard session changed')
+      }
       await writeLiveSessionFile(this.feedPath, feed)
-      const snapshot = this.readSnapshot(this.directory)
+      this.transportFeed = feed
+      this.transportRevision = revision
+      // Missing native rows retain their last displayed values until a full resync.
+      const display =
+        nativePayload && this.lastSnapshot
+          ? mergeNativeScores(snapshot, this.lastSnapshot.players)
+          : snapshot
+      this.lastSnapshot = native ? mergeNativeScores(display, native) : display
       const feedVersion = feed.match(/^#16c-scoreboard-(v\d+)/)?.[1] ?? null
       if (!this.feedAvailable)
         console.info('[Scoreboard] live match feed ready', {
@@ -590,6 +724,7 @@ export class ScoreboardOverlaySession {
       this.scheduleLocalDeathRead()
     } catch (error) {
       if (this.stopped) return
+      this.transportRevision = null
       // The server may be replacing its snapshot during a kill. Keep the last
       // authenticated frame through one short read gap instead of flashing off.
       if (this.feedAvailable && this.lastFeedAt !== null && Date.now() - this.lastFeedAt < 1000) {
@@ -609,28 +744,21 @@ export class ScoreboardOverlaySession {
         )
       }
       if (!this.reportedUnavailable) {
-        console.warn('[Scoreboard] live match feed unavailable; stock board remains active', {
+        console.warn('[Scoreboard] live match feed unavailable; retaining last scoreboard', {
           matchId: this.matchId,
           error: error instanceof Error ? error.message : String(error)
         })
         this.reportedUnavailable = true
       }
       this.feedAvailable = false
-      await unlink(this.feedPath).catch(() => undefined)
+      // Retain the last match-scoped file without refreshing its timestamp.
+      // Native live features still expire; Tab can display the previous board.
       await this.syncKillCards(null)
     } finally {
       this.busy = false
-      if (!this.stopped && !this.window.isDestroyed()) {
-        const snapshot = this.readSnapshot(this.directory)
-        const username = getSessionUsername()
-        // The renderer attaches its listeners after loadFile resolves. Keep the
-        // identity alongside snapshots so a late listener still receives it.
-        this.window.webContents.send('scoreboard-self', username ?? '')
-        this.window.webContents.send('scoreboard-snapshot', snapshot)
-        this.window.webContents.invalidate()
-        if (this.lastKillCardState !== null && !this.cardsWindow.isDestroyed())
-          this.cardsWindow.webContents.invalidate()
-      }
+      await this.present()
+      if (!this.stopped && this.lastKillCardState !== null && !this.cardsWindow.isDestroyed())
+        this.cardsWindow.webContents.invalidate()
     }
   }
 
@@ -643,6 +771,8 @@ export class ScoreboardOverlaySession {
     const watchdogTask = this.watchdog?.stop()
     if (this.timer) clearInterval(this.timer)
     this.timer = null
+    if (this.presentationTimer) clearInterval(this.presentationTimer)
+    this.presentationTimer = null
     if (!this.window.isDestroyed()) this.window.close()
     if (!this.cardsWindow.isDestroyed()) this.cardsWindow.close()
     cleanupQueue.enqueue(async () => {

@@ -6,6 +6,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 async function loadRegionsModule({
+  token = 'test-token',
   selectedNodeId = null,
   nodes = [],
   probeLatencyMs = 0,
@@ -34,7 +35,7 @@ async function loadRegionsModule({
       }
     },
     'node:path': { dirname: () => '/tmp', join: () => '/tmp/matchmaking-preferences.json' },
-    './auth': { getSessionToken: () => 'test-token' },
+    './auth': { getSessionToken: () => token },
     './config': { API_BASE_URL: 'https://bootstrap.example', LOCAL_DEVELOPMENT: false },
     './backend-policy': { isLoopbackBackend: () => false }
   }
@@ -133,4 +134,9 @@ test('node discovery falls back to a bundled regional HTTPS endpoint', async () 
   })
   const discovered = await regions.getMatchmakingNodes(false)
   assert.equal(discovered[0]?.id, 'regional')
+})
+
+test('public regional discovery works before sign-in', async () => {
+  const h = await loadRegionsModule({ token: null })
+  assert.deepEqual(Array.from(await h.getMatchmakingNodes()), [])
 })

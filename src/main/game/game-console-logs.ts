@@ -13,13 +13,24 @@ export function setGameConsoleDirectory(directory: string): void {
 export function redactReportLogs(logs: string): string {
   return logs
     .split('\n')
-    .map((line) =>
-      /\b(?:_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
+    .map((line) => {
+      if (/^\[Connection diagnostic\] (?:missing|rejected)-server-password\r?$/.test(line)) {
+        return line.trimEnd()
+      }
+      // Emit only a fixed category, never the original line: engine errors can
+      // share a line with echoed commands or credentials.
+      if (/no password set\.\s*clean your user\s*info/i.test(line)) {
+        return '[Connection diagnostic] missing-server-password'
+      }
+      if (/invalid server password|bad server password/i.test(line)) {
+        return '[Connection diagnostic] rejected-server-password'
+      }
+      return /\b(?:_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
         line
       )
         ? '[redacted line containing credentials]'
         : line
-    )
+    })
     .join('\n')
 }
 

@@ -1,3 +1,4 @@
+import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
 import { parseDemoLink } from '../shared/demo-link'
 import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
@@ -384,6 +385,7 @@ async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
   const token = getSessionToken()
   if (token) {
     void reportClientTelemetry(token)
+    void flushAntiCheatFailureReports()
     void processPendingDemo()
   }
   return result
@@ -465,6 +467,7 @@ app.whenReady().then(async () => {
     await assertHelperForBackend()
   } catch (error) {
     console.error('[AntiCheat] startup helper verification failed', error)
+    await recordAntiCheatFailure('app-verification', { error })
     if (error instanceof HelperApprovalConnectionError) {
       dialog.showErrorBox(
         'Internet connection needed',
@@ -486,8 +489,10 @@ app.whenReady().then(async () => {
       if (checkingHelper || shuttingDown) return
       checkingHelper = true
       void assertHelperForBackend()
-        .catch((error: unknown) => {
+        .catch(async (error: unknown) => {
           if (shuttingDown) return
+          shuttingDown = true
+          await recordAntiCheatFailure('periodic-verification', { error })
           console.error('[AntiCheat] periodic helper verification failed', error)
           dialog.showErrorBox(
             error instanceof HelperApprovalConnectionError
@@ -509,6 +514,12 @@ app.whenReady().then(async () => {
       clearInterval(helperGuard)
     })
   }
+
+  const reportRetry = setInterval(() => {
+    void flushAntiCheatFailureReports()
+  }, 60_000)
+  reportRetry.unref()
+  app.once('before-quit', () => clearInterval(reportRetry))
 
   electronApp.setAppUserModelId('com.electron')
   try {

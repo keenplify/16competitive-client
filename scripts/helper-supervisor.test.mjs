@@ -18,6 +18,7 @@ const settle = () => new Promise((resolve) => setImmediate(resolve))
 async function harness() {
   const children = []
   const intervals = []
+  const reports = []
   let token = 'fixture-session-bearer'
   let clock = Date.now()
   let failSpawn = false
@@ -53,11 +54,15 @@ async function harness() {
   })
   const dependencies = {
     electron: { app: { isPackaged: false } },
+    '../matchmaking-regions': { resolveServiceApiUrl: async () => 'https://regional.example.test' },
     '../auth': { getSessionToken: () => token },
     '../config': {
       API_BASE_URL: 'https://api.example.test',
       LOCAL_DEVELOPMENT: false,
       REQUIRES_SIGNED_HELPER: false
+    },
+    './failure-reports': {
+      reportAntiCheatFailure: (stage, context) => reports.push({ stage, ...context })
     },
     './helper-integrity': { verifyPackagedHelper: async () => {} },
     './game-screenshots': {
@@ -71,7 +76,7 @@ async function harness() {
       }
     },
     './helper-process': {
-      async spawnHelper() {
+      async spawnHelper(_mode, apiUrl) {
         if (failSpawn) throw new Error('invalid signature')
         const child = new EventEmitter()
         Object.assign(child, {
@@ -79,6 +84,7 @@ async function harness() {
           stderr: new PassThrough(),
           stdin: new PassThrough(),
           commands: [],
+          apiUrl,
           kill() {
             child.emit('exit', 1)
           }
@@ -107,6 +113,7 @@ async function harness() {
   await module.evaluate()
   return {
     children,
+    reports,
     start: module.namespace.startAntiCheatSession,
     setToken(value) {
       token = value
@@ -176,4 +183,68 @@ test('stalled heartbeat triggers recovery; invalid signature prevents startup', 
   bad.failSpawn()
   await assert.rejects(bad.start(options), /invalid signature/)
   assert.equal(bad.children.length, 0)
+})
+
+test('unexpected helper exits report exit details and exhausted recovery without credentials', async () => {
+  const h = await harness()
+  const session = await h.start(options)
+  h.children[0].emit('exit', 17, null)
+  await settle()
+  await settle()
+  assert.equal(h.reports[0].stage, 'unexpected-exit')
+  assert.equal(h.reports[0].exitCode, 17)
+  assert.equal(h.reports[0].matchId, options.matchId)
+  h.children[1].emit('exit', 18, null)
+  await settle()
+  assert(h.reports.some((report) => report.stage === 'recovery-exhausted'))
+  assert(!JSON.stringify(h.reports).includes('fixture-session-bearer'))
+  const count = h.reports.length
+  session.stop('done')
+  h.children[1].emit('exit', 0)
+  assert.equal(h.reports.length, count)
+})
+
+test('startup and heartbeat failures report their own stages; logout does not', async () => {
+  const bad = await harness()
+  bad.failSpawn()
+  await assert.rejects(bad.start(options))
+  assert.equal(bad.reports[0].stage, 'session-start')
+  assert.equal(bad.reports[0].error.message, 'invalid signature')
+  const h = await harness()
+  const session = await h.start(options)
+  h.tick(31_000)
+  await settle()
+  await settle()
+  assert.equal(h.reports[0].stage, 'heartbeat-timeout')
+  h.setToken(null)
+  h.tick()
+  assert.equal(h.reports.length, 1)
+  session.stop('done')
+})
+
+test('invalid protocol reports a category without leaking raw helper output', async () => {
+  const h = await harness()
+  const session = await h.start(options)
+  h.children[0].stdout.write('invalid fixture-secret-output\n')
+  await settle()
+  await settle()
+  assert.equal(h.reports[0].stage, 'invalid-protocol')
+  assert(!h.reports.some((report) => report.stage === 'unexpected-exit'))
+  assert(!JSON.stringify(h.reports).includes('fixture-secret-output'))
+  session.stop('done')
+})
+
+test('match API is retained for helper startup and recovery; no match uses preferred region', async () => {
+  const h = await harness()
+  const session = await h.start({ ...options, apiUrl: 'https://match.example.test' })
+  assert.equal(h.children[0].apiUrl, 'https://match.example.test')
+  assert.equal(h.children[0].commands[0].apiUrl, 'https://match.example.test')
+  h.children[0].emit('exit', 1)
+  await settle()
+  await settle()
+  assert.equal(h.children[1].commands[0].apiUrl, 'https://match.example.test')
+  session.stop('test')
+  const preferred = await h.start(options)
+  assert.equal(h.children.at(-1).commands[0].apiUrl, 'https://regional.example.test')
+  preferred.stop('test')
 })

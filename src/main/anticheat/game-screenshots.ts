@@ -16,7 +16,8 @@ export class GameScreenshotCollector {
 
   constructor(
     private readonly matchId: string,
-    private readonly attached: () => boolean
+    private readonly attached: () => boolean,
+    private readonly apiUrl: () => string = () => API_BASE_URL
   ) {}
 
   start(): void {
@@ -36,7 +37,7 @@ export class GameScreenshotCollector {
     if (this.busy || this.stopped || !this.attached()) return
     const token = getSessionToken()
     if (!token) return
-    const base = new URL(API_BASE_URL)
+    const base = new URL(this.apiUrl())
     if (
       base.protocol !== 'https:' &&
       !(LOCAL_DEVELOPMENT && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname))

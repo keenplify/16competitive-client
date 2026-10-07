@@ -25,7 +25,8 @@ export async function reportDiagnosticIssue(
   description: string,
   rendererLogs: string[],
   deduplicationKey?: string,
-  matchId?: string
+  matchId?: string,
+  apiUrl = API_BASE_URL
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
@@ -43,8 +44,9 @@ export async function reportDiagnosticIssue(
       )
     : ''
   const logs = `${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
-  const response = await fetch(`${API_BASE_URL}/auth/issue-reports`, {
+  const response = await fetch(`${apiUrl}/auth/issue-reports`, {
     method: 'POST',
+    redirect: 'error',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       description,

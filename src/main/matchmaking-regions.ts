@@ -27,7 +27,11 @@ const isApiUrl = (value: unknown): value is string => {
   if (typeof value !== 'string') return false
   try {
     const url = new URL(value)
-    return (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password
+    return (
+      (url.protocol === 'https:' || (LOCAL_DEVELOPMENT && isLoopbackBackend(value))) &&
+      !url.username &&
+      !url.password
+    )
   } catch {
     return false
   }
@@ -195,6 +199,7 @@ export const saveMatchmakingPreferences = async (
   await mkdir(dirname(destination), { recursive: true })
   await writeFile(temporary, `${JSON.stringify(preferences, null, 2)}\n`, { mode: 0o600 })
   await rename(temporary, destination)
+  preferredServiceApi = null
   return preferences
 }
 
@@ -220,10 +225,9 @@ export const getOnlinePlayers = async (): Promise<number> => {
 
 export const getMatchmakingNodes = async (measureLatency = true): Promise<MatchmakingNode[]> => {
   const token = getSessionToken()
-  if (!token) throw new Error('Sign in before loading regions')
   const fetchNodes = async (origin: string, timeoutMs: number): Promise<MatchmakingNode[]> => {
     const response = await fetch(`${origin}/nodes`, {
-      headers: { authorization: `Bearer ${token}` },
+      redirect: 'error',
       signal: AbortSignal.timeout(timeoutMs)
     })
     const body: unknown = await response.json().catch(() => null)
@@ -262,7 +266,7 @@ export const getMatchmakingNodes = async (measureLatency = true): Promise<Matchm
   ) {
     await saveMatchmakingPreferences({ selectedNodeId: null })
   }
-  void reportNodeLatencies(measuredNodes, token)
+  if (token) void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
 }
 
@@ -320,4 +324,16 @@ export const toMatchmakingWsUrl = (apiUrl: string): string => {
   url.search = ''
   url.hash = ''
   return url.toString()
+}
+
+// Shared by pre-login verification, device checks and diagnostics. Discovery is public.
+let preferredServiceApi: { until: number; pending: Promise<string> } | null = null
+export const resolveServiceApiUrl = (): Promise<string> => {
+  if (!preferredServiceApi || Date.now() >= preferredServiceApi.until) {
+    preferredServiceApi = {
+      until: Date.now() + 60_000,
+      pending: resolvePreferredMatchmakingApiUrl()
+    }
+  }
+  return preferredServiceApi.pending
 }

@@ -2,12 +2,15 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process'
 import { getSessionToken } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT, REQUIRES_SIGNED_HELPER } from '../config'
 import type { Cs16Distribution } from '../game/cs16-installation'
+import { resolveServiceApiUrl } from '../matchmaking-regions'
 import { spawnHelper, writeHelper } from './helper-process'
 import { verifyPackagedHelper } from './helper-integrity'
 import { GameScreenshotCollector } from './game-screenshots'
+import { reportAntiCheatFailure, type AntiCheatFailureStage } from './failure-reports'
 
 interface AntiCheatSessionOptions {
   matchId: string
+  apiUrl?: string
   executablePath: string
   runtimeExecutablePath: string
   gameDirectory: string
@@ -18,6 +21,7 @@ interface AntiCheatSessionOptions {
 
 /** Electron supervises the process. All scanning and observation uploads live in the private Rust helper. */
 export class AntiCheatSession {
+  private apiUrl: string | undefined
   private child: ChildProcessWithoutNullStreams | null = null
   private stopped = false
   private timer: NodeJS.Timeout | null = null
@@ -32,13 +36,38 @@ export class AntiCheatSession {
   private readonly screenshots: GameScreenshotCollector
 
   constructor(private readonly options: AntiCheatSessionOptions) {
-    this.screenshots = new GameScreenshotCollector(options.matchId, () => this.targetPid !== null)
+    this.screenshots = new GameScreenshotCollector(
+      options.matchId,
+      () => this.targetPid !== null,
+      () => this.apiUrl ?? API_BASE_URL
+    )
+  }
+
+  private report(
+    stage: AntiCheatFailureStage,
+    context: {
+      error?: unknown
+      exitCode?: number | null
+      signal?: string | null
+    } = {}
+  ): void {
+    reportAntiCheatFailure(stage, {
+      ...context,
+      apiUrl: this.apiUrl,
+      matchId: this.options.matchId,
+      distribution: this.options.distribution,
+      restartCount: this.restarts
+    })
   }
 
   async start(): Promise<void> {
     const token = getSessionToken()
     if (!token) throw new Error('Sign in before starting a competitive match.')
-    const child = await spawnHelper('--session')
+    this.apiUrl ??= this.options.apiUrl ?? (await resolveServiceApiUrl())
+    const child = await spawnHelper('--session', this.apiUrl).catch((error: unknown) => {
+      if (!this.stopped) this.report('session-start', { error })
+      throw error
+    })
     if (this.stopped) {
       child.kill()
       return
@@ -50,24 +79,49 @@ export class AntiCheatSession {
     let output = ''
     await new Promise<void>((resolve, reject) => {
       let ready = false
+      let failureRecorded = false
+      const reportFailure = (
+        stage: AntiCheatFailureStage,
+        context: {
+          error?: unknown
+          exitCode?: number | null
+          signal?: string | null
+        } = {}
+      ): void => {
+        if (failureRecorded || this.stopped || this.child !== child) return
+        failureRecorded = true
+        this.report(stage, context)
+      }
       const startupTimeout = setTimeout(() => {
+        reportFailure('startup-timeout')
         child.kill()
         reject(new Error('Anti-cheat helper did not start. Please repair the launcher.'))
       }, 10_000)
       child.stderr.resume()
-      const failed = (): void => {
+      const failed = (
+        stage: AntiCheatFailureStage,
+        context: {
+          error?: unknown
+          exitCode?: number | null
+          signal?: string | null
+        } = {}
+      ): void => {
         clearTimeout(startupTimeout)
+        reportFailure(stage, context)
         if (!ready)
           reject(new Error('Anti-cheat helper could not start. Please repair the launcher.'))
         else if (!this.stopped && this.child === child) void this.recover()
       }
-      child.once('error', failed)
-      child.stdin.on('error', failed)
-      child.once('exit', failed)
+      child.once('error', (error: Error) => failed('process-error', { error }))
+      child.stdin.on('error', (error: Error) => failed('control-channel', { error }))
+      child.once('exit', (exitCode: number | null, signal: string | null) =>
+        failed('unexpected-exit', { exitCode, signal })
+      )
       child.stdout.on('data', (chunk: Buffer) => {
         if (this.stopped || this.child !== child) return
         output += chunk.toString('utf8')
         if (Buffer.byteLength(output) > 8192) {
+          reportFailure('invalid-protocol')
           child.kill()
           return
         }
@@ -111,6 +165,7 @@ export class AntiCheatSession {
               })
             }
           } catch {
+            reportFailure('invalid-protocol')
             child.kill()
             return
           }
@@ -119,7 +174,7 @@ export class AntiCheatSession {
       try {
         writeHelper(child, {
           command: 'start',
-          apiUrl: API_BASE_URL,
+          apiUrl: this.apiUrl,
           token,
           allowInsecureLocal: LOCAL_DEVELOPMENT,
           matchId: this.options.matchId,
@@ -128,15 +183,16 @@ export class AntiCheatSession {
           gameDirectory: this.options.gameDirectory,
           distribution: this.options.distribution
         })
-      } catch {
+      } catch (error) {
+        failed('control-channel', { error })
         child.kill()
-        failed()
       }
     })
     if (this.stopped || this.child !== child) return
     if (this.timer) clearInterval(this.timer)
     this.timer = setInterval(() => {
       if (Date.now() - this.lastHeartbeat > 30_000) {
+        this.report('heartbeat-timeout')
         void this.recover()
         return
       }
@@ -155,12 +211,15 @@ export class AntiCheatSession {
         Date.now() - this.lastIntegrityCheck >= 60_000
       ) {
         this.integrityChecking = true
-        void verifyPackagedHelper(child.spawnfile)
+        void verifyPackagedHelper(child.spawnfile, this.apiUrl)
           .then(() => {
             this.lastIntegrityCheck = Date.now()
           })
-          .catch(() => {
-            if (!this.stopped && this.child === child) void this.recover()
+          .catch((error: unknown) => {
+            if (!this.stopped && this.child === child) {
+              this.report('session-verification', { error })
+              void this.recover()
+            }
           })
           .finally(() => {
             this.integrityChecking = false
@@ -177,7 +236,8 @@ export class AntiCheatSession {
     if (!this.child || this.stopped) return
     try {
       writeHelper(this.child, value)
-    } catch {
+    } catch (error) {
+      this.report('control-channel', { error })
       void this.recover()
     }
   }
@@ -191,12 +251,14 @@ export class AntiCheatSession {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     if (this.restarts++ >= 1) {
+      this.report('recovery-exhausted')
       this.failClosed()
       return
     }
     try {
       await this.start()
-    } catch {
+    } catch (error) {
+      if (!this.stopped) this.report('recovery-exhausted', { error })
       this.failClosed()
     } finally {
       this.recovering = false
