@@ -97,6 +97,7 @@ test('bounds and expires saved reports', () => {
   const now = Date.now()
   const old = { ...make(), at: now - 8 * 86400000 }
   const invalid = { ...make(), details: 'x'.repeat(4001) }
-  assert.equal(parseFailureReports(JSON.stringify([old, invalid, make()]), now).length, 1)
-  assert.equal(parseFailureReports(JSON.stringify(Array(40).fill(make())), now).length, 32)
+  const recent = { ...make(), at: now - 1 }
+  assert.equal(parseFailureReports(JSON.stringify([old, invalid, recent]), now).length, 1)
+  assert.equal(parseFailureReports(JSON.stringify(Array(40).fill(recent)), now).length, 32)
 })
