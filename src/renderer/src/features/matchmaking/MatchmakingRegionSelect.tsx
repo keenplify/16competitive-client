@@ -2,7 +2,6 @@ import Select from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
-import { PlayWindowStatus } from './PlayWindowStatus'
 import { displayedPlayWindowNode, nodeLatency } from './play-window-node'
 
 type MatchmakingNodeWithLatency = MatchmakingNode & { latencyMs?: number | null }
@@ -29,7 +28,6 @@ interface MatchmakingRegionSelectProps {
   id?: string
   ariaLabel?: string
   showHint?: boolean
-  showPlayWindow?: boolean
   allowAutomatic?: boolean
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
@@ -54,7 +52,6 @@ export function MatchmakingRegionSelect({
   id = 'matchmaking-region',
   ariaLabel = 'Preferred matchmaking region',
   showHint = true,
-  showPlayWindow = true,
   allowAutomatic = true,
   nodes,
   selectedNodeId,
@@ -201,7 +198,6 @@ export function MatchmakingRegionSelect({
             : 'Manual region selection overrides automatic latency routing.'}
         </p>
       )}
-      <PlayWindowStatus playWindow={selectedOption.node?.playWindow} visible={showPlayWindow} />
     </div>
   )
 }

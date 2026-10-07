@@ -23,6 +23,8 @@ import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
+import { PlayWindowStatus } from './PlayWindowStatus'
+import { displayedPlayWindowNode } from './play-window-node'
 import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
 import { desktopAppUrl } from '../community/links'
@@ -159,6 +161,20 @@ export function PlayPage({
   const [clockNow, setClockNow] = useState(Date.now)
   const [leavingCustomMatch, setLeavingCustomMatch] = useState(false)
   const webRuntime = isWebRuntime()
+  const partyRequiresWeb =
+    webRuntime || Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
+  const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+
+  useEffect(() => {
+    if (mapsStatus !== 'ready' || queueStatus !== 'idle') return
+    const modeAvailable = (mode: (typeof queueModes)[number]): boolean =>
+      maps.some((map) =>
+        partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
+      )
+    if (queueModes.some((mode) => mode === selectedMode && modeAvailable(mode))) return
+    const fallback = queueModes.find(modeAvailable)
+    if (fallback) selectMode(fallback)
+  }, [maps, mapsStatus, partyRequiresWeb, queueStatus, selectedMode, selectMode])
 
   useEffect(() => {
     if (!match?.hostApiUrl) return
@@ -264,13 +280,17 @@ export function PlayPage({
   if (!player) return <main className="min-h-screen bg-neutral-950" />
 
   const isLeader = !party || party.leaderId === player.id
-  const nonDesktopPartyMembers =
-    party?.members.filter(({ clientMode }) => clientMode !== 'desktop') ?? []
-  const partyRequiresWeb = webRuntime || nonDesktopPartyMembers.length > 0
   const modeAllowsWeb = maps.some((map) => map.webModes.includes(selectedMode))
   const desktopOnlyMode = partyRequiresWeb && !modeAllowsWeb
   const isConnected = connectionStatus === 'ready'
-  const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+  const visibleQueueModes =
+    mapsStatus === 'ready'
+      ? queueModes.filter((mode) =>
+          maps.some((map) =>
+            partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
+          )
+        )
+      : queueModes
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
@@ -515,7 +535,7 @@ export function PlayPage({
     >
       <div
         className={twMerge(
-          'mx-auto w-full max-w-7xl',
+          'relative mx-auto w-full max-w-7xl',
           playView === 'matchmaking' && 'flex h-full min-h-0 flex-col',
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
@@ -602,7 +622,6 @@ export function PlayPage({
                       )
                 }
                 showHint={false}
-                showPlayWindow={playView === 'matchmaking'}
                 onChange={(nodeId) => {
                   if (playView === 'custom' && currentCustomRoom) {
                     if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
@@ -633,7 +652,7 @@ export function PlayPage({
               className="shrink-0"
               ariaLabel="Matchmaking mode"
               value={selectedMode}
-              items={queueModes.map((mode) => ({
+              items={visibleQueueModes.map((mode) => ({
                 value: mode,
                 label: getMatchmakingModeLabel(mode),
                 helpText: t(modeHelpKeys[mode]),
@@ -731,6 +750,12 @@ export function PlayPage({
                 </div>
               )}
             </section>
+
+            <PlayWindowStatus
+              playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
+              visible
+              className="absolute right-52 bottom-4 left-0 z-40 max-w-2xl bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:right-0 max-sm:bottom-20"
+            />
 
             <div
               className={twMerge(
