@@ -1986,3 +1986,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved match launch diagnostics for GoldSrc clients.
 - Improved handling of match connection configuration.
+
+## v2026.1007.15 — 2026-10-07
+
+### Play Window
+
+- Play window checks now align with the six-hour schedule.
