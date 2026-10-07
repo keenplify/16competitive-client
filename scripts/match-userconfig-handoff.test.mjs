@@ -3,7 +3,10 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { prepareMatchUserConfigHandoff } from '../src/main/game/match-userconfig-handoff.ts'
+import {
+  prepareMatchUserConfigHandoff,
+  removeStaleMatchUserConfigHandoff
+} from '../src/main/game/match-userconfig-handoff.ts'
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async function withGameDirectory(run) {
@@ -67,6 +70,18 @@ test('replaces a stale handoff left by a previous launcher crash', async () => {
     assert.equal(current.match(/16competitive managed match handoff begin/g)?.length, 1)
     await handoff.restore()
     assert.equal(await readFile(path, 'utf8'), 'bind "x" "+use"\n')
+  })
+})
+
+test('startup recovery removes only a stale managed handoff', async () => {
+  await withGameDirectory(async (directory, path) => {
+    const original = Buffer.from('bind "x" "+use"\r\n// player note\r\n')
+    await writeFile(path, original, { mode: 0o640 })
+    await prepareMatchUserConfigHandoff(directory, '16competitive_match.cfg')
+    assert.equal(await removeStaleMatchUserConfigHandoff(directory), true)
+    assert.deepEqual(await readFile(path), original)
+    assert.equal((await stat(path)).mode & 0o777, 0o640)
+    assert.equal(await removeStaleMatchUserConfigHandoff(directory), false)
   })
 })
 

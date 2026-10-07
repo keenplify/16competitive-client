@@ -7,8 +7,10 @@ import { ensureLauncherContentDirectory } from './game-directory'
 
 const ASSET_PATH =
   /^(?:models|sound|sprites)\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w|action|explosion)\.(mdl|wav|spr)$/
+const MAP_BSP_PATH = /^maps\/[a-z0-9_]{1,64}\.bsp$/
 const SHA256 = /^[a-f0-9]{64}$/
 const MAX_ASSET_SIZE = 20 * 1024 * 1024
+const MAX_MAP_SIZE = 128 * 1024 * 1024
 // Some players connect over high-latency or lossy routes. Fetching the three
 // GoldSrc models at once made one request prone to stalling behind the others.
 // Keep the transfer small and give each model several bounded chances instead.
@@ -46,9 +48,15 @@ class NonRetryableAssetError extends Error {}
 const preloads = new Map<string, Promise<void>>()
 const preloadControllers = new Map<string, AbortController>()
 const fastDlEligibleMatches = new Set<string>()
+const mapPreloadMatches = new Set<string>()
 
 export const canUseMatchFastDlFallback = (matchId: string): boolean =>
   fastDlEligibleMatches.has(matchId)
+
+export const isPreloadingMatchMap = (matchId: string): boolean => mapPreloadMatches.has(matchId)
+
+const maxAssetSize = (path: string): number =>
+  MAP_BSP_PATH.test(path) ? MAX_MAP_SIZE : MAX_ASSET_SIZE
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
@@ -60,7 +68,8 @@ const isRetryableHttpStatus = (status: number): boolean =>
   status === 404 || status === 408 || status === 425 || status === 429 || status >= 500
 
 const isValidGoldSrcAsset = (path: string, bytes: Buffer): boolean => {
-  if (bytes.length < 16 || bytes.length > MAX_ASSET_SIZE) return false
+  if (bytes.length < 16 || bytes.length > maxAssetSize(path)) return false
+  if (MAP_BSP_PATH.test(path)) return bytes.readInt32LE(0) === 30
   if (path.endsWith('.mdl')) return bytes.subarray(0, 4).toString() === 'IDST'
   if (path.endsWith('.spr')) return bytes.subarray(0, 4).toString() === 'IDSP'
   if (path.endsWith('.wav')) {
@@ -103,7 +112,7 @@ const getGameDirectory = async (): Promise<string> => {
 }
 
 const destinationFor = (assetRoot: string, assetPath: string): string => {
-  if (!ASSET_PATH.test(assetPath))
+  if (!ASSET_PATH.test(assetPath) && !MAP_BSP_PATH.test(assetPath))
     throw new Error(`Match manifest contains an unsafe asset path: ${assetPath}`)
   const destination = resolve(assetRoot, assetPath)
   if (relative(assetRoot, destination).startsWith('..')) {
@@ -122,6 +131,10 @@ const catalogDestinationFor = (assetRoot: string, assetPath: string): string => 
 }
 
 const expectedHashFor = (asset: MatchAsset): string => {
+  if (MAP_BSP_PATH.test(asset.path)) {
+    if (!asset.sha256) throw new Error(`Match map is missing a SHA-256 hash: ${asset.path}`)
+    return asset.sha256
+  }
   const pathHash = ASSET_PATH.exec(asset.path)?.[1]
   if (!pathHash) throw new Error(`Match manifest contains an unsafe asset path: ${asset.path}`)
   if (asset.sha256 && !asset.sha256.startsWith(pathHash)) {
@@ -130,9 +143,13 @@ const expectedHashFor = (asset: MatchAsset): string => {
   return asset.sha256 ?? pathHash
 }
 
-const hasExpectedHash = async (destination: string, expectedHash: string): Promise<boolean> => {
+const hasExpectedHash = async (
+  destination: string,
+  expectedHash: string,
+  assetPath: string
+): Promise<boolean> => {
   const metadata = await stat(destination).catch(() => null)
-  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > MAX_ASSET_SIZE) {
+  if (!metadata?.isFile() || metadata.size < 16 || metadata.size > maxAssetSize(assetPath)) {
     console.debug('[MatchAssets] cache miss', {
       destination,
       reason: metadata ? 'invalid-size-or-type' : 'missing'
@@ -201,7 +218,7 @@ const fetchAssetBytes = async (
       const contentLength = Number(response.headers.get('content-length'))
       if (
         Number.isFinite(contentLength) &&
-        (contentLength < 16 || contentLength > MAX_ASSET_SIZE)
+        (contentLength < 16 || contentLength > maxAssetSize(asset.path))
       ) {
         throw new NonRetryableAssetError(`Match asset has an unsupported size: ${asset.path}`)
       }
@@ -214,7 +231,7 @@ const fetchAssetBytes = async (
         bytes: bytes.length
       })
       if (!isValidGoldSrcAsset(asset.path, bytes)) {
-        throw new Error(`Match asset is not a valid GoldSrc skin asset: ${asset.path}`)
+        throw new Error(`Match asset is not a valid GoldSrc asset: ${asset.path}`)
       }
       const actualHash = createHash('sha256').update(bytes).digest('hex')
       console.debug('[MatchAssets] asset validated', {
@@ -267,7 +284,7 @@ const downloadAsset = async (
 ): Promise<void> => {
   const destination = destinationFor(assetRoot, asset.path)
   const expectedHash = expectedHashFor(asset)
-  if (await hasExpectedHash(destination, expectedHash)) {
+  if (await hasExpectedHash(destination, expectedHash, asset.path)) {
     console.info('[MatchAssets] using cached asset', { matchId, path: asset.path })
     return
   }
@@ -364,7 +381,7 @@ const syncSkinAssets = async (
     catalog.map((asset) => async () => {
       console.info('[MatchAssets] catalog asset started', { path: asset.path })
       const destination = catalogDestinationFor(assetRoot, asset.path)
-      if (!(await hasExpectedHash(destination, asset.sha256))) {
+      if (!(await hasExpectedHash(destination, asset.sha256, asset.path))) {
         const fileUrl = new URL('/skins/assets/file', base)
         fileUrl.searchParams.set('path', asset.path)
         const result = await fetch(fileUrl, {
@@ -397,7 +414,7 @@ const syncSkinAssets = async (
         const temporary = `${destination}.${randomUUID()}.partial`
         try {
           await writeFile(temporary, bytes, { mode: 0o600 })
-          if (!(await hasExpectedHash(temporary, asset.sha256))) {
+          if (!(await hasExpectedHash(temporary, asset.sha256, asset.path))) {
             throw new Error(`Skin asset failed on-disk hash validation: ${asset.path}`)
           }
           await rename(temporary, destination)
@@ -550,13 +567,16 @@ const preload = async (
       throw new Error(`Match manifest has a duplicate asset: ${asset.path}`)
     uniqueAssets.set(asset.path, asset)
   }
+  if ([...uniqueAssets.keys()].some((path) => MAP_BSP_PATH.test(path))) {
+    mapPreloadMatches.add(matchId)
+  }
   // GoldSrc only requests missing resources. Remove any invalid launcher-managed
   // copy before allowing an in-game download fallback.
   for (const asset of uniqueAssets.values()) {
     const destination = destinationFor(assetRoot, asset.path)
     if (
       (await stat(destination).catch(() => null)) &&
-      !(await hasExpectedHash(destination, expectedHashFor(asset)))
+      !(await hasExpectedHash(destination, expectedHashFor(asset), asset.path))
     ) {
       await unlink(destination)
       console.warn('[MatchAssets] removed invalid managed asset before FastDL fallback', {
@@ -600,6 +620,7 @@ export const startMatchAssetPreload = (
   const current = preloads.get(matchId)
   if (current) return current
   fastDlEligibleMatches.delete(matchId)
+  mapPreloadMatches.delete(matchId)
   const controller = new AbortController()
   const task = preload(matchId, hostApiUrl, onProgress, controller.signal)
   preloads.set(matchId, task)
@@ -636,6 +657,7 @@ export const waitForMatchAssetPreload = async (matchId: string): Promise<void> =
 export const clearMatchAssetPreload = (matchId: string): void => {
   console.info('[MatchAssets] match preload cancelled', { matchId })
   fastDlEligibleMatches.delete(matchId)
+  mapPreloadMatches.delete(matchId)
   preloadControllers.get(matchId)?.abort()
   preloadControllers.delete(matchId)
   preloads.delete(matchId)
