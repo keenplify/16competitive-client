@@ -7,6 +7,7 @@ import { translateRuntimeHindi } from './ui-translations-hindi'
 import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
 import { translateRuntimeJapanese } from './ui-translations-japanese'
+import { translateRuntimeSettings } from './ui-translations-settings'
 
 const translatableAttributes = [
   'aria-label',
@@ -29,17 +30,42 @@ export function I18nRuntime(): null {
   useEffect(() => {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
-    const translate = (source: string): string => {
-      if (language === 'ja') return translateRuntimeJapanese(source)
-      if (language === 'th' || language === 'id') return translateRuntimeSea(language, source)
-      if (language === 'pt') return translateRuntimePortuguese(language, source)
-      if (language === 'hi') return translateRuntimeHindi(language, source)
-      if (!isLegacyRuntimeLanguage(language)) return source
+    const translateKnown = (source: string): string => {
+      if (language === 'ja') {
+        const translated = translateRuntimeJapanese(source)
+        return translated !== source ? translated : translateRuntimeSettings(language, source)
+      }
+      if (language === 'th' || language === 'id') {
+        const translated = translateRuntimeSea(language, source)
+        return translated !== source ? translated : translateRuntimeSettings(language, source)
+      }
+      if (language === 'pt') {
+        const translated = translateRuntimePortuguese(language, source)
+        return translated !== source ? translated : translateRuntimeSettings(language, source)
+      }
+      if (language === 'hi') {
+        const translated = translateRuntimeHindi(language, source)
+        return translated !== source ? translated : translateRuntimeSettings(language, source)
+      }
+      if (!isLegacyRuntimeLanguage(language)) return translateRuntimeSettings(language, source)
 
       const primary = translateRuntimeText(language, source)
       if (primary !== source) return primary
       const fragment = translateRuntimeFragment(language, source)
-      return fragment !== source ? fragment : translateRuntimeFinal(language, source)
+      if (fragment !== source) return fragment
+      const final = translateRuntimeFinal(language, source)
+      return final !== source ? final : translateRuntimeSettings(language, source)
+    }
+    const translate = (source: string): string => {
+      const direct = translateKnown(source)
+      if (direct !== source) return direct
+      const match = source.match(/^(\s*)([\s\S]*?)(\s*)$/)
+      if (!match) return source
+      const [, leading, body, trailing] = match
+      const normalized = body.replace(/\s+/g, ' ')
+      if (normalized === body) return source
+      const translated = translateKnown(normalized)
+      return translated === normalized ? source : `${leading}${translated}${trailing}`
     }
 
     const markAttribute = (element: Element, attribute: TranslatableAttribute): void => {

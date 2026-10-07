@@ -593,18 +593,23 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         get().mapsStatus === 'idle' && get().queueStatus === 'idle'
           ? (saved.lastMode ?? get().selectedMode)
           : get().selectedMode
-      set({ mapsStatus: 'loading', selectedMode: initialMode, error: null })
+      set({
+        ...(get().mapsStatus === 'ready' ? {} : { mapsStatus: 'loading' as const }),
+        selectedMode: initialMode,
+        error: null
+      })
       try {
         const maps = await window.api.matchmaking.getMaps()
+        const availableModesFor = (map: MatchmakingMap): MatchmakingMode[] =>
+          isWebRuntime() ? map.webModes : map.supportedModes
         const selectedMode =
           get().queueStatus === 'idle' &&
-          get().selectedMode === 'legacy' &&
-          !maps.some((map) => map.supportedModes.includes('legacy'))
-            ? 'unrated'
+          !maps.some((map) => availableModesFor(map).includes(get().selectedMode))
+            ? (maps.flatMap(availableModesFor)[0] ?? get().selectedMode)
             : get().selectedMode
         const currentPreferences = readMatchmakingPreferences(playerId)
         const availableMapIds = new Set(
-          maps.filter((map) => map.supportedModes.includes(selectedMode)).map((map) => map.id)
+          maps.filter((map) => availableModesFor(map).includes(selectedMode)).map((map) => map.id)
         )
         const selectedMapIds =
           get().queueStatus === 'idle'

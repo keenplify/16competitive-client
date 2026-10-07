@@ -23,6 +23,7 @@ import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
+import { desktopAppUrl } from '../community/links'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -158,6 +159,8 @@ export function PlayPage({
 
   useEffect(() => {
     void loadMaps()
+    const timer = window.setInterval(() => void loadMaps(), 30_000)
+    return () => window.clearInterval(timer)
   }, [loadMaps])
 
   useEffect(() => {
@@ -236,8 +239,10 @@ export function PlayPage({
       toast.error('Choose and save your Counter-Strike folder in Settings first.')
       return
     }
-    if (selectedMode === '5v5' && rankedBlockedForHost) {
-      toast.error(rankedBlockReason)
+    if (partyRequiresWeb && !modeAllowsWeb) {
+      toast.error(
+        'This game mode is not available for Web Play. Choose another mode or use a desktop-only party.'
+      )
       return
     }
     void joinQueue()
@@ -248,18 +253,9 @@ export function PlayPage({
   const isLeader = !party || party.leaderId === player.id
   const nonDesktopPartyMembers =
     party?.members.filter(({ clientMode }) => clientMode !== 'desktop') ?? []
-  const rankedBlockedForHost = isLeader && (webRuntime || nonDesktopPartyMembers.length > 0)
-  const rankedBlockReason =
-    nonDesktopPartyMembers.length > 0
-      ? `${nonDesktopPartyMembers
-          .map(
-            ({ username, clientMode }) =>
-              `${username} (${clientMode === 'web' ? 'Web Play' : 'offline'})`
-          )
-          .join(
-            ', '
-          )} ${nonDesktopPartyMembers.length === 1 ? 'is' : 'are'} not connected through Papamo Guard.`
-      : 'Rated matchmaking requires the Papamo Guard desktop client.'
+  const partyRequiresWeb = webRuntime || nonDesktopPartyMembers.length > 0
+  const modeAllowsWeb = maps.some((map) => map.webModes.includes(selectedMode))
+  const desktopOnlyMode = partyRequiresWeb && !modeAllowsWeb
   const isConnected = connectionStatus === 'ready'
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const copyWaitSeconds = matchReadyAt
@@ -267,8 +263,11 @@ export function PlayPage({
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
   const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
-  const hasLegacyMaps = maps.some((map) => map.supportedModes.includes('legacy'))
-  const availableMaps = maps.filter((map) => map.supportedModes.includes(selectedMode))
+  const availableMaps = maps.filter(
+    (map) =>
+      map.supportedModes.includes(selectedMode) &&
+      (!partyRequiresWeb || map.webModes.includes(selectedMode))
+  )
   const smallMapColumns = Math.max(1, Math.ceil(availableMaps.length / 2))
   const wideMapColumns =
     availableMaps.length <= 12
@@ -612,24 +611,34 @@ export function PlayPage({
               className="shrink-0"
               ariaLabel="Matchmaking mode"
               value={selectedMode}
-              items={(['5v5', 'unrated', 'legacy', 'ffa'] as const)
-                .filter((mode) => mode !== 'legacy' || hasLegacyMaps)
-                .map((mode) => ({
+              items={(['5v5', 'unrated', 'legacy', 'ffa', 'fight_yard', '3v3'] as const).map(
+                (mode) => ({
                   value: mode,
                   label: getMatchmakingModeLabel(mode),
-                  disabled: isSearching || !isLeader,
+                  disabled:
+                    isSearching ||
+                    !isLeader ||
+                    !maps.some((map) => map.supportedModes.includes(mode)),
                   title:
-                    mode === '5v5'
-                      ? 'Rated 5v5 with MMR progression'
-                      : mode === 'ffa'
-                        ? 'Drop-in deathmatch, first to 50 kills'
-                        : mode === 'legacy'
-                          ? 'Unrated 5v5 with CS 1.3 movement'
-                          : 'Unrated 5v5 without MMR changes'
-                }))}
+                    mapsStatus === 'ready' && !maps.some((map) => map.supportedModes.includes(mode))
+                      ? 'No maps are available for this mode'
+                      : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
+                        ? 'This mode is unavailable for Web Play or mixed parties'
+                        : mode === '5v5'
+                          ? 'Rated 5v5 with MMR progression'
+                          : mode === 'ffa'
+                            ? 'Drop-in deathmatch, first to 50 kills'
+                            : mode === 'fight_yard'
+                              ? 'Fight Yard match'
+                              : mode === '3v3'
+                                ? 'Unrated 3v3 match'
+                                : mode === 'legacy'
+                                  ? 'Unrated 5v5 with CS 1.3 movement'
+                                  : 'Unrated 5v5 without MMR changes'
+                })
+              )}
               onChange={(mode) => {
-                if (mode === '5v5' && rankedBlockedForHost) toast.error(rankedBlockReason)
-                else selectMode(mode)
+                selectMode(mode)
               }}
             />
 
@@ -639,10 +648,33 @@ export function PlayPage({
                   Map pool
                 </p>
                 <p className="text-xs text-neutral-200">
-                  {selectedMapIds.length} / {availableMaps.length} selected
+                  {desktopOnlyMode
+                    ? 'Desktop only'
+                    : `${selectedMapIds.length} / ${availableMaps.length} selected`}
                 </p>
               </div>
-              {mapsStatus === 'ready' && availableMaps.length > 0 ? (
+              {mapsStatus === 'ready' && desktopOnlyMode ? (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
+                  <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
+                    Desktop client required
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    {getMatchmakingModeLabel(selectedMode)}
+                  </h2>
+                  <p className="mt-2 max-w-lg text-sm text-neutral-300">
+                    1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in
+                    your party must use the desktop client before the leader can queue.
+                  </p>
+                  <a
+                    href={desktopAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                  >
+                    Get the desktop client
+                  </a>
+                </div>
+              ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
                 <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
                   <div
                     className="play-map-grid grid h-full min-h-0 gap-2"
@@ -672,7 +704,9 @@ export function PlayPage({
                     ? 'Loading maps…'
                     : mapsStatus === 'error'
                       ? 'Maps could not be loaded.'
-                      : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
+                      : partyRequiresWeb && !modeAllowsWeb
+                        ? 'This mode is unavailable for Web Play or mixed parties.'
+                        : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
                 </div>
               )}
             </section>
@@ -684,7 +718,9 @@ export function PlayPage({
               )}
             >
               <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
-                <span>{isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}</span>
+                <span>
+                  {isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}
+                </span>
                 <span aria-hidden="true">•</span>
                 <span aria-live="polite">
                   {onlinePlayers === null
@@ -696,7 +732,12 @@ export function PlayPage({
                 className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
                 data-audio-sfx="findMatch"
                 data-idle-hint-target="find-match"
-                disabled={!isLeader || isSearching || queueStatus === 'joining'}
+                disabled={
+                  !isLeader ||
+                  isSearching ||
+                  queueStatus === 'joining' ||
+                  (partyRequiresWeb && !modeAllowsWeb)
+                }
                 onClick={handleFindMatch}
               >
                 <span className="relative z-10">

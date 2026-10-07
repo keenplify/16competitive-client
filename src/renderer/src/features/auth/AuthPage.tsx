@@ -265,7 +265,9 @@ export function AuthPage(): JSX.Element {
         <Logo className="z-10 size-10 md:top-12 md:left-[calc(27.5vw-16rem)] md:size-128" />
 
         <div className="relative mt-8 hidden flex-col items-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
-          <p className="text-sm font-bold text-white">COUNTER-STRIKE 1.6 RANKED CLIENT</p>
+          <p className="text-sm font-bold text-white">
+            {webRuntime ? 'COUNTER-STRIKE 1.6 WEB PLAY' : 'COUNTER-STRIKE 1.6 RANKED CLIENT'}
+          </p>
           <PapamoWordmark className="mt-3 text-xl" />
         </div>
       </div>
@@ -281,6 +283,12 @@ export function AuthPage(): JSX.Element {
                 ? 'Sign in to continue to matchmaking.'
                 : 'Choose how you want to create your account.'}
             </p>
+            {webRuntime && (
+              <p className="mt-2 text-xs text-neutral-400">
+                Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop
+                client.
+              </p>
+            )}
           </div>
 
           <div className="mb-6 grid grid-cols-2 bg-slate-900 p-1">

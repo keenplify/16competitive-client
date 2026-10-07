@@ -31,6 +31,9 @@ const isMap = (value: unknown): value is MatchmakingMap =>
   isPreviewUrl(value.previewUrl) &&
   Array.isArray(value.supportedModes) &&
   value.supportedModes.every(isMatchmakingMode) &&
+  Array.isArray(value.webModes) &&
+  value.webModes.every(isMatchmakingMode) &&
+  value.webModes.every((mode) => (value.supportedModes as unknown[]).includes(mode)) &&
   Array.isArray(value.customModes) &&
   value.customModes.every(isServerCustomGameMode)
 
