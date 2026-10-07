@@ -1979,3 +1979,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Chat translation
 
 - The **Off** option now remains visible in chat translation settings.
+
+## v2026.1007.14 — 2026-10-07
+
+### Match Launching
+
+- Improved match launch diagnostics for GoldSrc clients.
+- Improved handling of match connection configuration.
