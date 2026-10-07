@@ -4,11 +4,14 @@ import { createHash } from 'node:crypto'
 export const matchJoinInfoKey = (matchId: string): string =>
   `_16c_${createHash('sha256').update(matchId, 'utf8').digest('hex').slice(0, 16)}`
 
-export const matchJoinLaunchArgs = (matchId: string, token: string): string[] => [
-  '+setinfo',
-  matchJoinInfoKey(matchId),
-  token
-]
+export const matchJoinLaunchArgs = (
+  matchId: string,
+  token: string,
+  handoff: 'userconfig' | 'native-nextclient' = 'userconfig'
+): string[] =>
+  // The native host applies and verifies identity after profile loading.
+  // NextClient executes command-line setinfo before that profile reload.
+  handoff === 'native-nextclient' ? [] : ['+setinfo', matchJoinInfoKey(matchId), token]
 
 const MATCH_KEY_PATTERN = /\b_16c_[0-9a-f]{16}\b/g
 
