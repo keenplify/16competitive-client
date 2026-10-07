@@ -1967,3 +1967,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Chat Translation
 
 - Added a searchable language selector for chat translation settings.
+
+## v2026.1007.12 — 2026-10-07
+
+### Chat translation
+
+- All chat translation language options now display their full language names.
