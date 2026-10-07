@@ -15,7 +15,7 @@ export interface MatchLaunchDiagnostics {
   platform: string
   endpoint: string
   tokenFingerprint: string
-  handoff: 'native-nextclient' | 'userconfig'
+  handoff: 'native-nextclient' | 'userconfig' | 'startup-exec'
   distribution: string
 }
 
@@ -53,7 +53,7 @@ function parseRecord(value: unknown): MatchLaunchDiagnostics {
     !MATCH_ID.test(record.matchId as string) ||
     !/^[a-f0-9]{12}$/.test(record.tokenFingerprint as string) ||
     !Number.isFinite(Date.parse(record.preparedAt as string)) ||
-    !['native-nextclient', 'userconfig'].includes(record.handoff as string)
+    !['native-nextclient', 'userconfig', 'startup-exec'].includes(record.handoff as string)
   )
     throw new Error('Invalid launch diagnostics')
   return Object.fromEntries(
