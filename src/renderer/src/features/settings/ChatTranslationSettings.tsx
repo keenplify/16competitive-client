@@ -2,7 +2,7 @@ import { Languages } from 'lucide-react'
 import { useMemo, type JSX } from 'react'
 import CreatableSelect from 'react-select/creatable'
 import { useTranslation } from '../i18n/i18n'
-import { CHAT_TRANSLATION_LANGUAGE_CODES } from './chat-translation-languages'
+import { CHAT_TRANSLATION_LANGUAGES } from './chat-translation-languages'
 import { useChatTranslationStore } from './chat-translation.store'
 
 type LanguageOption = { value: string; label: string }
@@ -20,12 +20,25 @@ export function ChatTranslationSettings(): JSX.Element {
   const options = useMemo(() => {
     const names = new Intl.DisplayNames([interfaceLanguage], { type: 'language' })
     const collator = new Intl.Collator(interfaceLanguage, { sensitivity: 'base' })
-    const languages: LanguageOption[] = CHAT_TRANSLATION_LANGUAGE_CODES.map((code) => ({
-      value: code,
-      label: code === 'tl' ? 'Taglish' : (names.of(code) ?? code)
-    }))
+    const languages: LanguageOption[] = CHAT_TRANSLATION_LANGUAGES.map(({ code, name }) => {
+      const localizedName = names.of(code)
+      return {
+        value: code,
+        label:
+          code !== 'tl' && localizedName && localizedName.toLowerCase() !== code
+            ? localizedName
+            : name
+      }
+    })
     if (language && language !== 'off' && !languages.some(({ value }) => value === language)) {
-      languages.push({ value: language, label: names.of(language) ?? language })
+      const localizedName = names.of(language)
+      languages.push({
+        value: language,
+        label:
+          localizedName && localizedName.toLowerCase() !== language
+            ? localizedName
+            : t('settings.chatTranslation.customLabel')
+      })
     }
     languages.sort((a, b) => collator.compare(a.label, b.label) || a.value.localeCompare(b.value))
     return [{ value: 'off', label: t('settings.chatTranslation.off') }, ...languages]
