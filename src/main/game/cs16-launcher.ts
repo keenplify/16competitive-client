@@ -46,6 +46,8 @@ import {
   type MatchUserConfigHandoff
 } from './match-userconfig-handoff'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
+import helperRelease from '../../../helper-release.json'
+import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
 import {
   matchJoinCleanupConfig,
   matchJoinInfoKey,
@@ -919,7 +921,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
-    ...matchJoinLaunchArgs(input.matchId, input.joinToken)
+    ...matchJoinLaunchArgs(
+      input.matchId,
+      input.joinToken,
+      useNativeNextClientMatchHandoff ? 'native-nextclient' : 'userconfig'
+    )
   ]
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
@@ -969,6 +975,22 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
 
   let spawnedProcess: ChildProcess
   try {
+    await saveMatchLaunchDiagnostics(join(app.getPath('userData'), 'match-launch-diagnostics'), {
+      matchId: input.matchId,
+      preparedAt: new Date().toISOString(),
+      clientVersion: app.getVersion(),
+      helperVersion: helperRelease.version,
+      platform: process.platform,
+      endpoint: `${input.host}:${input.port}`,
+      tokenFingerprint: createHash('sha256')
+        .update(input.joinToken, 'utf8')
+        .digest('hex')
+        .slice(0, 12),
+      handoff: useNativeNextClientMatchHandoff ? 'native-nextclient' : 'userconfig',
+      distribution: launchTarget.distribution
+    }).catch((error: unknown) => {
+      console.warn('[GameLaunch] could not save launch diagnostics', error)
+    })
     spawnedProcess = await new Promise<ChildProcess>((resolveProcess, reject) => {
       const child = spawn(launchTarget.executable, launchArgs, {
         cwd: launchCwd,

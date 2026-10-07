@@ -2,6 +2,8 @@ import Select from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
+import { PlayWindowStatus } from './PlayWindowStatus'
+import { displayedPlayWindowNode, nodeLatency } from './play-window-node'
 
 type MatchmakingNodeWithLatency = MatchmakingNode & { latencyMs?: number | null }
 
@@ -27,17 +29,13 @@ interface MatchmakingRegionSelectProps {
   id?: string
   ariaLabel?: string
   showHint?: boolean
+  showPlayWindow?: boolean
   allowAutomatic?: boolean
   nodes: MatchmakingNode[]
   selectedNodeId: string | null
   disabled: boolean
   onChange: (nodeId: string | null) => void
 }
-
-const nodeLatency = (node: MatchmakingNodeWithLatency): number | null =>
-  typeof node.latencyMs === 'number' && Number.isFinite(node.latencyMs)
-    ? Math.max(0, Math.round(node.latencyMs))
-    : null
 
 const latencyDotClass = (latencyMs: number | null, available: boolean): string => {
   if (!available || latencyMs === null) return 'bg-neutral-600'
@@ -56,6 +54,7 @@ export function MatchmakingRegionSelect({
   id = 'matchmaking-region',
   ariaLabel = 'Preferred matchmaking region',
   showHint = true,
+  showPlayWindow = true,
   allowAutomatic = true,
   nodes,
   selectedNodeId,
@@ -63,9 +62,7 @@ export function MatchmakingRegionSelect({
   onChange
 }: MatchmakingRegionSelectProps): JSX.Element {
   const measuredNodes = nodes as MatchmakingNodeWithLatency[]
-  const bestNode = measuredNodes
-    .filter((node) => node.available && nodeLatency(node) !== null)
-    .sort((left, right) => (nodeLatency(left) ?? Infinity) - (nodeLatency(right) ?? Infinity))[0]
+  const bestNode = displayedPlayWindowNode(nodes, null) as MatchmakingNodeWithLatency | null
 
   const automaticOption: RegionOption = {
     value: '',
@@ -204,6 +201,7 @@ export function MatchmakingRegionSelect({
             : 'Manual region selection overrides automatic latency routing.'}
         </p>
       )}
+      <PlayWindowStatus playWindow={selectedOption.node?.playWindow} visible={showPlayWindow} />
     </div>
   )
 }

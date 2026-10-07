@@ -1887,3 +1887,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Required match maps are now verified before the game launches.
 - Match setup now confirms the correct maps are ready before connecting.
+
+## v2026.1007.5 — 2026-10-07
+
+### Matchmaking
+
+- Show each node’s 8 PM–8 AM playtime bonus window in Play and Daily Missions, with +150 points per eligible completed match.
+- Show awarded playtime bonuses after matches.
+- Add help tooltips for matchmaking modes, playtime bonuses, and Prefer humans in all supported languages.
+
+### Fixes
+
+- Fixed NextClient startup ordering that could restore an old match token, leave a matched player in spectators, and cause a kick.
+- Verify the current match identity before NextClient connects.
+- Keep match launch details available in issue reports submitted after restarting the launcher.
