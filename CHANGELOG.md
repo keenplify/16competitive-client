@@ -1954,3 +1954,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Added additional launcher, game, and helper diagnostics.
+
+## v2026.1007.10 — 2026-10-07
+
+### Settings
+
+- Added account chat translation settings.
+- Configure chat translation preferences from Settings.
