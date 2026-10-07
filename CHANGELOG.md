@@ -1933,3 +1933,24 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Peak Bonus
 
 - Clarified the peak bonus information in the player-facing text.
+
+## v2026.1007.9 — 2026-10-07
+
+### Matchmaking
+
+- Improved queue management and matchmaking region handling.
+
+### Anti-Cheat
+
+- Added failure reporting to help diagnose anti-cheat issues.
+- Improved anti-cheat helper integrity checks and diagnostics.
+
+### In-Game
+
+- Added native scoreboard and scoreboard overlay support.
+- Improved compatibility with GTProtector.
+- Improved game launch and match configuration handling.
+
+### Diagnostics
+
+- Added additional launcher, game, and helper diagnostics.
