@@ -34,3 +34,12 @@ test('extracts only match-specific keys for clearing after the match', () => {
     `setinfo "${first}" ""\nsetinfo "${second}" ""\n`
   )
 })
+
+test('native NextClient identity is not injected before the engine reloads its profile', () => {
+  assert.deepEqual(matchJoinLaunchArgs('match', 'private-token', 'native-nextclient'), [])
+  assert.deepEqual(matchJoinLaunchArgs('match', 'private-token', 'userconfig'), [
+    '+setinfo',
+    matchJoinInfoKey('match'),
+    'private-token'
+  ])
+})

@@ -5,6 +5,7 @@ import type {
   MatchRewardSummary
 } from '../../../../shared/daily-quests'
 import { twMerge } from 'tailwind-merge'
+import { useTranslation } from '../i18n/i18n'
 
 interface DailyQuestsPanelProps {
   snapshot?: DailyQuestSnapshot | null
@@ -36,6 +37,7 @@ export function DailyQuestsPanel({
   compact = false,
   revealMatchProgress = false
 }: DailyQuestsPanelProps): React.JSX.Element {
+  const { t } = useTranslation()
   const quests = useMemo<DailyQuest[]>(
     () => rewards?.quests ?? snapshot?.quests ?? [],
     [rewards, snapshot]
@@ -193,7 +195,11 @@ export function DailyQuestsPanel({
                 key={`${change.source}-${change.label}-${index}`}
                 className="flex justify-between gap-3 text-sm"
               >
-                <span className="text-white/65">{change.label}</span>
+                <span className="text-white/65">
+                  {change.source === 'PLAY_WINDOW'
+                    ? t('matchmaking.playWindowReward')
+                    : change.label}
+                </span>
                 <span
                   className={
                     change.amount >= 0

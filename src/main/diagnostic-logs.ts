@@ -1,9 +1,10 @@
 import { app } from 'electron'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
+import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -35,7 +36,13 @@ export async function reportDiagnosticIssue(
   })
   const fallbackDirectory = savedExecutable ? dirname(savedExecutable) : undefined
   const gameLogs = await collectGameConsoleLogs(fallbackDirectory)
-  const logs = `${launcherLogs}\n\n${gameLogs}`
+  const launchContext = matchId
+    ? await readMatchLaunchDiagnostics(
+        join(app.getPath('userData'), 'match-launch-diagnostics'),
+        matchId
+      )
+    : ''
+  const logs = `${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
   const response = await fetch(`${API_BASE_URL}/auth/issue-reports`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

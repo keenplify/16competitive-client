@@ -42,6 +42,30 @@ const isLatencyProbe = (value: unknown): value is NonNullable<MatchmakingNode['l
   )
 }
 
+const isPlayWindow = (value: unknown): value is NonNullable<MatchmakingNode['playWindow']> => {
+  if (
+    !isObject(value) ||
+    typeof value.timeZone !== 'string' ||
+    value.timeZone.length === 0 ||
+    value.timeZone.length > 64 ||
+    typeof value.startsAt !== 'string' ||
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.startsAt) ||
+    typeof value.endsAt !== 'string' ||
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.endsAt) ||
+    value.startsAt === value.endsAt ||
+    typeof value.bonusPoints !== 'number' ||
+    !Number.isSafeInteger(value.bonusPoints) ||
+    value.bonusPoints <= 0 ||
+    value.bonusPoints > 10_000
+  ) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value.timeZone })
+    return true
+  } catch {
+    return false
+  }
+}
+
 const isNode = (value: unknown): value is MatchmakingNode =>
   isObject(value) &&
   typeof value.id === 'string' &&
@@ -51,6 +75,7 @@ const isNode = (value: unknown): value is MatchmakingNode =>
   value.region.length > 0 &&
   value.region.length <= 32 &&
   isApiUrl(value.publicApiUrl) &&
+  (value.playWindow === undefined || value.playWindow === null || isPlayWindow(value.playWindow)) &&
   (value.latencyProbe === undefined || isLatencyProbe(value.latencyProbe)) &&
   typeof value.capacity === 'number' &&
   Number.isFinite(value.capacity) &&
@@ -175,8 +200,13 @@ export const getOnlinePlayers = async (): Promise<number> => {
     signal: AbortSignal.timeout(10_000)
   })
   const body: unknown = await response.json().catch(() => null)
-  if (!response.ok || !isObject(body) || typeof body.onlinePlayers !== 'number' ||
-      !Number.isInteger(body.onlinePlayers) || body.onlinePlayers < 0) {
+  if (
+    !response.ok ||
+    !isObject(body) ||
+    typeof body.onlinePlayers !== 'number' ||
+    !Number.isInteger(body.onlinePlayers) ||
+    body.onlinePlayers < 0
+  ) {
     throw new Error('Could not load online player count')
   }
   return body.onlinePlayers

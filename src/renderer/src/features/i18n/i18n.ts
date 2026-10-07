@@ -69,7 +69,27 @@ const english = {
   'gift.unlocked': 'Unlocked',
   'gift.yours': 'Yours',
   'gift.previewUnavailable': 'Preview unavailable',
-  'gift.decideLater': "I can't decide yet"
+  'gift.decideLater': "I can't decide yet",
+  'matchmaking.playWindow':
+    '+{{points}} points per eligible completed match · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'Playtime window bonus',
+  'matchmaking.playWindowActive': 'Bonus active now',
+  'matchmaking.playWindowInactive': 'Outside bonus hours',
+  'matchmaking.playWindowUnavailable': 'Bonus hours unavailable',
+  'matchmaking.playWindowEarned': '+{{points}} bonus points earned',
+  'matchmaking.playWindowNotEarned': 'No playtime bonus this match',
+  'matchmaking.playWindowResultUnavailable': 'Bonus result unavailable',
+  'matchmaking.preferHumans': 'Prefer humans',
+  'matchmaking.modeHelp5v5': 'Rated 5v5 with MMR progression. First team to 13 rounds wins.',
+  'matchmaking.modeHelpUnrated': 'Unrated 5v5. First team to 9 rounds wins; MMR does not change.',
+  'matchmaking.modeHelpLegacy': 'Unrated 5v5 with CS 1.3 movement. First team to 9 rounds wins.',
+  'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
+  'matchmaking.modeHelpFightYard': 'Team Fight Yard. First team to 90 kills wins.',
+  'matchmaking.modeHelp3v3': 'Unrated 3v3. First team to 13 rounds wins.',
+  'matchmaking.preferHumansTooltip':
+    'Prioritizes human players and delays automatic bot fill. Bots can still join if another player opts in or the mode allows them.',
+  'matchmaking.playWindowTooltip':
+    'The assigned match node decides the bonus when the match starts. Connect and complete an all-human matchmaking match during its published hours. Custom games and bot matches do not qualify.'
 } as const
 
 export type TranslationKey = keyof typeof english
@@ -127,7 +147,29 @@ const russian: Record<TranslationKey, string> = {
   'gift.unlocked': 'Разблокировано',
   'gift.yours': 'Ваш',
   'gift.previewUnavailable': 'Предпросмотр недоступен',
-  'gift.decideLater': 'Я пока не могу выбрать'
+  'gift.decideLater': 'Я пока не могу выбрать',
+  'matchmaking.playWindow':
+    '+{{points}} очков за завершённый подходящий матч · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'Бонус игрового времени',
+  'matchmaking.playWindowActive': 'Бонус сейчас действует',
+  'matchmaking.playWindowInactive': 'Вне бонусных часов',
+  'matchmaking.playWindowUnavailable': 'Бонусные часы недоступны',
+  'matchmaking.playWindowEarned': 'Получено +{{points}} бонусных очков',
+  'matchmaking.playWindowNotEarned': 'Без бонуса за этот матч',
+  'matchmaking.playWindowResultUnavailable': 'Результат бонуса недоступен',
+  'matchmaking.preferHumans': 'Предпочитать игроков',
+  'matchmaking.modeHelp5v5':
+    'Рейтинговый 5 на 5 с изменением MMR. Побеждает команда, первой выигравшая 13 раундов.',
+  'matchmaking.modeHelpUnrated': 'Нерейтинговый 5 на 5. Победа за 9 раундов; MMR не меняется.',
+  'matchmaking.modeHelpLegacy': 'Нерейтинговый 5 на 5 с движением CS 1.3. Победа за 9 раундов.',
+  'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
+  'matchmaking.modeHelpFightYard':
+    'Командный Fight Yard. Побеждает первая команда с 90 убийствами.',
+  'matchmaking.modeHelp3v3': 'Нерейтинговый 3 на 3. Победа за 13 раундов.',
+  'matchmaking.preferHumansTooltip':
+    'Приоритет живым игрокам и более позднее автоматическое добавление ботов. Боты всё же возможны, если другой игрок согласится или режим их допускает.',
+  'matchmaking.playWindowTooltip':
+    'Бонус определяется назначенным сервером при начале матча. Подключитесь и завершите матч подбора только с людьми в опубликованные часы сервера. Пользовательские игры и матчи с ботами не подходят.'
 }
 
 const taglish: Record<TranslationKey, string> = {
@@ -182,7 +224,30 @@ const taglish: Record<TranslationKey, string> = {
   'gift.unlocked': 'Unlocked',
   'gift.yours': 'Sa iyo na',
   'gift.previewUnavailable': 'Walang preview',
-  'gift.decideLater': 'Di pa ako makapag-decide'
+  'gift.decideLater': 'Di pa ako makapag-decide',
+  'matchmaking.playWindow':
+    '+{{points}} points kada eligible na natapos na match · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'Playtime window bonus',
+  'matchmaking.playWindowActive': 'Active ang bonus ngayon',
+  'matchmaking.playWindowInactive': 'Labas sa bonus hours',
+  'matchmaking.playWindowUnavailable': 'Walang bonus hours na available',
+  'matchmaking.playWindowEarned': 'Nakuha ang +{{points}} bonus points',
+  'matchmaking.playWindowNotEarned': 'Walang playtime bonus sa match na ito',
+  'matchmaking.playWindowResultUnavailable': 'Hindi available ang bonus result',
+  'matchmaking.preferHumans': 'Mas piliin ang tao',
+  'matchmaking.modeHelp5v5':
+    'Rated 5v5 na may MMR progression. Unang team sa 13 rounds ang panalo.',
+  'matchmaking.modeHelpUnrated':
+    'Unrated 5v5. Unang team sa 9 rounds ang panalo; walang pagbabago sa MMR.',
+  'matchmaking.modeHelpLegacy':
+    'Unrated 5v5 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
+  'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
+  'matchmaking.modeHelpFightYard': 'Team Fight Yard. Unang team sa 90 kills ang panalo.',
+  'matchmaking.modeHelp3v3': 'Unrated 3v3. Unang team sa 13 rounds ang panalo.',
+  'matchmaking.preferHumansTooltip':
+    'Mas inuuna ang mga taong player at pinapahuli ang automatic bot fill. Posible pa rin ang bots kung may ibang player na mag-opt in o pinapayagan ng mode.',
+  'matchmaking.playWindowTooltip':
+    'Ang assigned match node ang magtatakda ng bonus sa simula ng match. Kumonekta at tapusin ang matchmade game na puro tao sa published hours nito. Hindi eligible ang custom games at matches na may bots.'
 }
 
 const thai: Record<TranslationKey, string> = {
@@ -237,7 +302,29 @@ const thai: Record<TranslationKey, string> = {
   'gift.unlocked': 'ปลดล็อกแล้ว',
   'gift.yours': 'เป็นของคุณแล้ว',
   'gift.previewUnavailable': 'ไม่มีตัวอย่าง',
-  'gift.decideLater': 'ฉันยังตัดสินใจไม่ได้'
+  'gift.decideLater': 'ฉันยังตัดสินใจไม่ได้',
+  'matchmaking.playWindow':
+    '+{{points}} แต้มต่อแมตช์ที่เข้าเงื่อนไขและเล่นจบ · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'โบนัสช่วงเวลาเล่น',
+  'matchmaking.playWindowActive': 'โบนัสเปิดใช้อยู่ตอนนี้',
+  'matchmaking.playWindowInactive': 'อยู่นอกช่วงเวลาโบนัส',
+  'matchmaking.playWindowUnavailable': 'ไม่พบเวลาโบนัส',
+  'matchmaking.playWindowEarned': 'ได้รับโบนัส +{{points}} แต้ม',
+  'matchmaking.playWindowNotEarned': 'แมตช์นี้ไม่ได้รับโบนัสช่วงเวลาเล่น',
+  'matchmaking.playWindowResultUnavailable': 'ไม่สามารถแสดงผลโบนัสได้',
+  'matchmaking.preferHumans': 'ให้ความสำคัญกับผู้เล่นจริง',
+  'matchmaking.modeHelp5v5': '5v5 แบบจัดอันดับ มีการเปลี่ยนแปลง MMR ทีมที่ชนะ 13 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpUnrated':
+    '5v5 ไม่จัดอันดับ ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ และ MMR ไม่เปลี่ยน',
+  'matchmaking.modeHelpLegacy':
+    '5v5 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpFightYard': 'Fight Yard แบบทีม ทีมที่ได้ 90 คิลก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelp3v3': '3v3 ไม่จัดอันดับ ทีมที่ชนะ 13 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.preferHumansTooltip':
+    'ให้ความสำคัญกับผู้เล่นจริงและชะลอการเติมบอทอัตโนมัติ บอทอาจเข้าร่วมได้หากผู้เล่นอื่นยินยอมหรือโหมดอนุญาต',
+  'matchmaking.playWindowTooltip':
+    'โบนัสขึ้นอยู่กับโหนดที่จัดแมตช์เมื่อเริ่มเกม ต้องเชื่อมต่อและเล่นแมตช์จับคู่ที่มีแต่ผู้เล่นจริงจนจบภายในเวลาที่ประกาศไว้ เกมแบบกำหนดเองและแมตช์ที่มีบอตไม่เข้าเกณฑ์'
 }
 
 const indonesian: Record<TranslationKey, string> = {
@@ -293,7 +380,31 @@ const indonesian: Record<TranslationKey, string> = {
   'gift.unlocked': 'Terbuka',
   'gift.yours': 'Milikmu',
   'gift.previewUnavailable': 'Pratinjau tidak tersedia',
-  'gift.decideLater': 'Saya belum bisa memutuskan'
+  'gift.decideLater': 'Saya belum bisa memutuskan',
+  'matchmaking.playWindow':
+    '+{{points}} poin per pertandingan selesai yang memenuhi syarat · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'Bonus waktu bermain',
+  'matchmaking.playWindowActive': 'Bonus aktif sekarang',
+  'matchmaking.playWindowInactive': 'Di luar jam bonus',
+  'matchmaking.playWindowUnavailable': 'Jam bonus tidak tersedia',
+  'matchmaking.playWindowEarned': 'Mendapat +{{points}} poin bonus',
+  'matchmaking.playWindowNotEarned': 'Tidak ada bonus waktu bermain untuk pertandingan ini',
+  'matchmaking.playWindowResultUnavailable': 'Hasil bonus tidak tersedia',
+  'matchmaking.preferHumans': 'Utamakan pemain manusia',
+  'matchmaking.modeHelp5v5':
+    '5v5 berperingkat dengan perubahan MMR. Tim pertama yang menang 13 ronde menjadi pemenang.',
+  'matchmaking.modeHelpUnrated':
+    '5v5 tanpa peringkat. Tim pertama yang menang 9 ronde menjadi pemenang; MMR tidak berubah.',
+  'matchmaking.modeHelpLegacy':
+    '5v5 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
+  'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
+  'matchmaking.modeHelpFightYard': 'Fight Yard beregu. Tim pertama dengan 90 kill menang.',
+  'matchmaking.modeHelp3v3':
+    '3v3 tanpa peringkat. Tim pertama yang menang 13 ronde menjadi pemenang.',
+  'matchmaking.preferHumansTooltip':
+    'Mengutamakan pemain manusia dan menunda pengisian bot otomatis. Bot tetap bisa bergabung jika pemain lain setuju atau mode mengizinkannya.',
+  'matchmaking.playWindowTooltip':
+    'Node pertandingan yang ditetapkan menentukan bonus saat pertandingan dimulai. Terhubung dan selesaikan pertandingan matchmaking berisi pemain manusia saja selama jam yang diumumkan. Game khusus dan pertandingan dengan bot tidak memenuhi syarat.'
 }
 
 const portuguese: Record<TranslationKey, string> = {
@@ -349,7 +460,32 @@ const portuguese: Record<TranslationKey, string> = {
   'gift.unlocked': 'Desbloqueada',
   'gift.yours': 'É sua',
   'gift.previewUnavailable': 'Prévia indisponível',
-  'gift.decideLater': 'Ainda não consigo decidir'
+  'gift.decideLater': 'Ainda não consigo decidir',
+  'matchmaking.playWindow':
+    '+{{points}} pontos por partida elegível concluída · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'Bônus da janela de jogo',
+  'matchmaking.playWindowActive': 'Bônus ativo agora',
+  'matchmaking.playWindowInactive': 'Fora do horário de bônus',
+  'matchmaking.playWindowUnavailable': 'Horário de bônus indisponível',
+  'matchmaking.playWindowEarned': '+{{points}} pontos de bônus recebidos',
+  'matchmaking.playWindowNotEarned': 'Sem bônus de horário nesta partida',
+  'matchmaking.playWindowResultUnavailable': 'Resultado do bônus indisponível',
+  'matchmaking.preferHumans': 'Preferir pessoas',
+  'matchmaking.modeHelp5v5':
+    '5v5 ranqueado com progressão de MMR. Vence a primeira equipe a ganhar 13 rodadas.',
+  'matchmaking.modeHelpUnrated':
+    '5v5 sem ranking. Vence a primeira equipe a ganhar 9 rodadas; o MMR não muda.',
+  'matchmaking.modeHelpLegacy':
+    '5v5 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
+  'matchmaking.modeHelpFfa':
+    'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
+  'matchmaking.modeHelpFightYard':
+    'Fight Yard em equipes. Vence a primeira equipe a conseguir 90 abates.',
+  'matchmaking.modeHelp3v3': '3v3 sem ranking. Vence a primeira equipe a ganhar 13 rodadas.',
+  'matchmaking.preferHumansTooltip':
+    'Prioriza jogadores humanos e atrasa o preenchimento automático com bots. Bots ainda podem entrar se outro jogador aceitar ou o modo permitir.',
+  'matchmaking.playWindowTooltip':
+    'O nó atribuído à partida determina o bônus quando ela começa. Conecte-se e conclua uma partida de matchmaking só com jogadores humanos durante o horário publicado. Jogos personalizados e partidas com bots não são elegíveis.'
 }
 
 const japanese: Record<TranslationKey, string> = {
@@ -405,7 +541,29 @@ const japanese: Record<TranslationKey, string> = {
   'gift.unlocked': '解除済み',
   'gift.yours': 'あなたのもの',
   'gift.previewUnavailable': 'プレビューを利用できません',
-  'gift.decideLater': 'あとで決める'
+  'gift.decideLater': 'あとで決める',
+  'matchmaking.playWindow':
+    '完了した対象試合ごとに+{{points}}ポイント · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'プレイ時間ボーナス',
+  'matchmaking.playWindowActive': '現在ボーナス有効',
+  'matchmaking.playWindowInactive': 'ボーナス時間外',
+  'matchmaking.playWindowUnavailable': 'ボーナス時間を取得できません',
+  'matchmaking.playWindowEarned': 'ボーナスポイント +{{points}} を獲得',
+  'matchmaking.playWindowNotEarned': 'この試合の時間帯ボーナスなし',
+  'matchmaking.playWindowResultUnavailable': 'ボーナス結果を取得できません',
+  'matchmaking.preferHumans': '人間のプレイヤーを優先',
+  'matchmaking.modeHelp5v5': 'MMRが変動するランク戦5v5。先に13ラウンドを取ったチームが勝利。',
+  'matchmaking.modeHelpUnrated':
+    '非ランク戦5v5。先に9ラウンドを取ったチームが勝利し、MMRは変動しません。',
+  'matchmaking.modeHelpLegacy':
+    'CS 1.3の移動仕様を使う非ランク戦5v5。先に9ラウンドを取ったチームが勝利。',
+  'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
+  'matchmaking.modeHelpFightYard': 'チーム戦のFight Yard。先に90キルしたチームが勝利。',
+  'matchmaking.modeHelp3v3': '非ランク戦3v3。先に13ラウンドを取ったチームが勝利。',
+  'matchmaking.preferHumansTooltip':
+    '人間のプレイヤーを優先し、自動のボット補充を遅らせます。他のプレイヤーが同意するか、モードが許可する場合はボットが参加することもあります。',
+  'matchmaking.playWindowTooltip':
+    'ボーナスは試合開始時に割り当てられたノードで決まります。公開時間内に接続し、人間のみのマッチメイキング試合を完了してください。カスタムゲームとボット入りの試合は対象外です。'
 }
 
 const hindi: Record<TranslationKey, string> = {
@@ -460,7 +618,30 @@ const hindi: Record<TranslationKey, string> = {
   'gift.unlocked': 'अनलॉक हो गया',
   'gift.yours': 'आपका है',
   'gift.previewUnavailable': 'पूर्वावलोकन उपलब्ध नहीं है',
-  'gift.decideLater': 'मैं बाद में चुनूँगा'
+  'gift.decideLater': 'मैं बाद में चुनूँगा',
+  'matchmaking.playWindow':
+    'हर पात्र पूरे मैच पर +{{points}} अंक · {{start}}–{{end}} ({{timeZone}})',
+  'matchmaking.playWindowReward': 'खेल समय बोनस',
+  'matchmaking.playWindowActive': 'बोनस अभी सक्रिय है',
+  'matchmaking.playWindowInactive': 'बोनस समय के बाहर',
+  'matchmaking.playWindowUnavailable': 'बोनस समय उपलब्ध नहीं है',
+  'matchmaking.playWindowEarned': '+{{points}} बोनस अंक मिले',
+  'matchmaking.playWindowNotEarned': 'इस मैच में खेल समय बोनस नहीं मिला',
+  'matchmaking.playWindowResultUnavailable': 'बोनस परिणाम उपलब्ध नहीं है',
+  'matchmaking.preferHumans': 'मानव खिलाड़ियों को प्राथमिकता दें',
+  'matchmaking.modeHelp5v5':
+    'MMR प्रगति के साथ रैंक वाला 5v5। पहले 13 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.modeHelpUnrated':
+    'बिना रैंक वाला 5v5। पहले 9 राउंड जीतने वाली टीम विजेता होगी; MMR नहीं बदलेगा।',
+  'matchmaking.modeHelpLegacy':
+    'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 5v5। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
+  'matchmaking.modeHelpFightYard': 'टीम Fight Yard। पहले 90 किल करने वाली टीम जीतेगी।',
+  'matchmaking.modeHelp3v3': 'बिना रैंक वाला 3v3। पहले 13 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.preferHumansTooltip':
+    'मानव खिलाड़ियों को प्राथमिकता देता है और अपने आप बॉट जोड़ने में देरी करता है। कोई दूसरा खिलाड़ी सहमति दे या मोड अनुमति दे तो बॉट फिर भी आ सकते हैं।',
+  'matchmaking.playWindowTooltip':
+    'मैच शुरू होने पर चुना गया नोड बोनस तय करता है। उसके घोषित समय में केवल असली खिलाड़ियों वाला मैचमेकिंग मैच कनेक्ट होकर पूरा करें। कस्टम गेम और बॉट वाले मैच पात्र नहीं हैं।'
 }
 
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
