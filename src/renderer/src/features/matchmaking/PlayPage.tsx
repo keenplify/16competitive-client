@@ -412,7 +412,11 @@ export function PlayPage({
             <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3">
               <Button
                 className="w-full "
-                disabled={webRuntime ? !manualConnectionAllowed : !gameExited || !retryWindowOpen}
+                disabled={
+                  webRuntime
+                    ? !manualConnectionAllowed || !retryWindowOpen
+                    : !gameExited || !retryWindowOpen
+                }
                 variant="primary"
                 onClick={() => void handleReconnect()}
               >

@@ -6,7 +6,7 @@ import type {
   MatchmakingPreferences,
   MatchmakingServerMessage
 } from '../shared/matchmaking'
-import { manualConnectionCommand } from '../shared/matchmaking'
+import { manualConnectionCommand, parseManualConnectionDetails } from '../shared/matchmaking'
 import { getWebSessionToken, requestJson } from './browser-session'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
@@ -133,39 +133,34 @@ export const navigateToNode = async (
   window.location.assign(targetUrl)
 }
 
-const STEAM_STARTUP_WAIT_FRAMES = 20
-
-const steamLaunchUrl = (
-  connection: Extract<MatchmakingServerMessage, { type: 'match_connect' }>
-): string => {
-  // The current GoldSrc/Anniversary client can process its normal startup
-  // config after Steam hands launch parameters to it. Mirror the desktop
-  // launcher's proven sequence: establish identity/password, wait through
-  // startup, reassert both values, then connect.
-  const waits = Array.from({ length: STEAM_STARTUP_WAIT_FRAMES }, () => '+wait').join(' ')
-  const args = [
-    '+setinfo _16c',
-    connection.joinToken,
-    '+password',
-    connection.password,
-    waits,
-    '+setinfo _16c',
-    connection.joinToken,
-    '+password',
-    connection.password,
-    '+connect',
-    `${connection.host}:${connection.port}`
-  ].join(' ')
+const steamLaunchUrl = (connection: unknown): string => {
+  const { host, port, password, manualToken } = parseManualConnectionDetails(connection)
+  // Steam forwards these as launch arguments. A manual token is required for
+  // Web Play; the roster join token from match_connect is for desktop clients.
+  // Keep the command short so GoldSrc executes connect on initial launch and
+  // when Steam forwards parameters to an already running game.
+  const args = `+setinfo _16c ${manualToken} +password ${password} +connect ${host}:${port}`
   return `steam://run/10//${encodeURIComponent(args)}/`
 }
 
 let manualConnectionMatchId: string | null = null
 
-const launchCounterStrike = (): void => {
+const getManualConnection = async (matchId: string): Promise<unknown> =>
+  requestJson<unknown>(`/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`, {
+    authenticated: true,
+    init: { method: 'POST' },
+    timeoutMs: 15_000
+  })
+
+const launchCounterStrike = async (): Promise<void> => {
   if (!lastConnection) throw new Error('The match server is not ready yet.')
-  if (manualConnectionMatchId !== lastConnection.matchId)
+  const matchId = lastConnection.matchId
+  if (manualConnectionMatchId !== matchId || !UUID_PATTERN.test(matchId))
     throw new Error('This match is no longer available.')
-  window.location.href = steamLaunchUrl(lastConnection)
+  const connection = await getManualConnection(matchId)
+  if (manualConnectionMatchId !== matchId || lastConnection?.matchId !== matchId)
+    throw new Error('This match is no longer available.')
+  window.location.href = steamLaunchUrl(connection)
 }
 
 const handleMessage = async (message: MatchmakingServerMessage): Promise<void> => {
@@ -438,7 +433,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async reconnectGame() {
-    launchCounterStrike()
+    await launchCounterStrike()
   },
 
   async copyConnection(matchId) {
@@ -446,10 +441,7 @@ export const browserMatchmakingApi: MatchmakingApi = {
     if (!UUID_PATTERN.test(matchId) || lastConnection?.matchId !== matchId) {
       throw new Error('This match is no longer available.')
     }
-    const connection = await requestJson<unknown>(
-      `/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`,
-      { authenticated: true, init: { method: 'POST' }, timeoutMs: 15_000 }
-    )
+    const connection = await getManualConnection(matchId)
     await navigator.clipboard.writeText(manualConnectionCommand(connection))
   },
 

@@ -60,7 +60,14 @@ export const allowsManualMatchConnection = (mode: unknown): boolean =>
   mode === 'ffa' ||
   mode === 'fight_yard'
 
-export function manualConnectionCommand(value: unknown): string {
+export interface ManualConnectionDetails {
+  host: string
+  port: number
+  password: string
+  manualToken: string
+}
+
+export function parseManualConnectionDetails(value: unknown): ManualConnectionDetails {
   if (!value || typeof value !== 'object') throw new Error('Invalid manual connection response')
   const { host, port, password, manualToken } = value as Record<string, unknown>
   if (
@@ -76,6 +83,11 @@ export function manualConnectionCommand(value: unknown): string {
   ) {
     throw new Error('Invalid manual connection response')
   }
+  return { host, port: port as number, password, manualToken }
+}
+
+export function manualConnectionCommand(value: unknown): string {
+  const { host, port, password, manualToken } = parseManualConnectionDetails(value)
   return `setinfo "_16c" "${manualToken}"; password "${password}"; connect ${host}:${port}`
 }
 
