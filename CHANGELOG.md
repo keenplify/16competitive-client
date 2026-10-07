@@ -1857,3 +1857,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - More reliable handoff from matchmaking to the game.
 - Improved match join information during launch.
+
+## v2026.1007.1 — 2026-10-07
+
+### Matchmaking
+
+- Ranked browser connections are now supported when enabled.
+- Web Play modes can now be configured.
+
+### Settings
+
+- Client settings are now available in localized languages.
