@@ -1868,3 +1868,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Client settings are now available in localized languages.
+
+## v2026.1007.2 — 2026-10-07
+
+### Matchmaking
+
+- Web Play now respects whether the ranked queue has been enabled by an admin.
