@@ -535,7 +535,7 @@ export function PlayPage({
     >
       <div
         className={twMerge(
-          'relative mx-auto w-full max-w-7xl',
+          'mx-auto w-full max-w-7xl',
           playView === 'matchmaking' && 'flex h-full min-h-0 flex-col',
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
@@ -754,7 +754,7 @@ export function PlayPage({
             <PlayWindowStatus
               playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
               visible
-              className="absolute right-52 bottom-4 left-0 z-40 max-w-2xl bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:right-0 max-sm:bottom-20"
+              className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
             />
 
             <div

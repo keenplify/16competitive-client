@@ -1,4 +1,4 @@
-import { useId, useState, type JSX } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type JSX } from 'react'
 import { createPortal } from 'react-dom'
 import { CircleHelp } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
@@ -16,18 +16,39 @@ export function HelpTooltip({
   placement = 'bottom'
 }: HelpTooltipProps): JSX.Element {
   const tooltipId = useId()
-  const [position, setPosition] = useState<{ left: number; top: number; above: boolean } | null>(
-    null
-  )
+  const tooltipRef = useRef<HTMLSpanElement>(null)
+  const [position, setPosition] = useState<{
+    left: number
+    top: number
+    anchorTop: number
+    anchorBottom: number
+    ready: boolean
+  } | null>(null)
+  useLayoutEffect(() => {
+    if (!position || position.ready || !tooltipRef.current) return
+    const height = tooltipRef.current.getBoundingClientRect().height
+    const spaceAbove = position.anchorTop - 24
+    const spaceBelow = window.innerHeight - position.anchorBottom - 24
+    const above =
+      placement === 'top'
+        ? spaceAbove >= height || spaceAbove > spaceBelow
+        : spaceBelow < height && spaceAbove > spaceBelow
+    const desiredTop = above ? position.anchorTop - height - 8 : position.anchorBottom + 8
+    setPosition({
+      ...position,
+      top: Math.max(16, Math.min(desiredTop, window.innerHeight - height - 16)),
+      ready: true
+    })
+  }, [placement, position])
   const show = (element: HTMLButtonElement): void => {
     const rect = element.getBoundingClientRect()
     const width = Math.min(288, window.innerWidth - 32)
-    const estimatedHeight = Math.ceil(text.length / 42) * 17 + 24
-    const above = placement === 'top' && rect.top > estimatedHeight + 8
     setPosition({
       left: Math.max(16, Math.min(rect.right - width, window.innerWidth - width - 16)),
-      top: above ? rect.top - 8 : rect.bottom + 8,
-      above
+      top: 0,
+      anchorTop: rect.top,
+      anchorBottom: rect.bottom,
+      ready: false
     })
   }
   return (
@@ -47,13 +68,14 @@ export function HelpTooltip({
       {position &&
         createPortal(
           <span
+            ref={tooltipRef}
             id={tooltipId}
             role="tooltip"
-            className="pointer-events-none fixed z-[100] w-72 max-w-[calc(100vw-2rem)] border border-white/15 bg-neutral-950 px-3 py-2 text-left text-xs leading-relaxed font-normal whitespace-normal text-white shadow-xl"
+            className="pointer-events-none fixed z-[100] max-h-[calc(100vh-2rem)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto border border-white/15 bg-neutral-950 px-3 py-2 text-left text-xs leading-relaxed font-normal whitespace-normal text-white shadow-xl"
             style={{
               left: position.left,
               top: position.top,
-              transform: position.above ? 'translateY(-100%)' : undefined
+              visibility: position.ready ? 'visible' : 'hidden'
             }}
           >
             {text}
