@@ -9,7 +9,8 @@ async function loadRegionsModule({
   selectedNodeId = null,
   nodes = [],
   probeLatencyMs = 0,
-  probeFails = false
+  probeFails = false,
+  bootstrapFails = false
 } = {}) {
   let saved = JSON.stringify({ selectedNodeId, allowRegionExpansion: true })
   const source = ts.transpileModule(
@@ -49,8 +50,10 @@ async function loadRegionsModule({
     },
     fetch: async (url) => {
       if (url === 'https://bootstrap.example/nodes') {
+        if (bootstrapFails) throw new Error('Primary node discovery unavailable')
         return { ok: true, json: async () => ({ nodes }) }
       }
+      if (url.endsWith('/nodes')) return { ok: true, json: async () => ({ nodes }) }
       if (probeFails) throw new Error('Node unreachable')
       return { ok: true }
     }
@@ -121,4 +124,13 @@ test('launch probes clear a saved server that is unreachable', async () => {
   })
   await regions.getMatchmakingNodes()
   assert.equal(regions.saved().selectedNodeId, null)
+})
+
+test('node discovery falls back to a bundled regional HTTPS endpoint', async () => {
+  const regions = await loadRegionsModule({
+    nodes: [node('regional', null)],
+    bootstrapFails: true
+  })
+  const discovered = await regions.getMatchmakingNodes(false)
+  assert.equal(discovered[0]?.id, 'regional')
 })

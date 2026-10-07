@@ -98,7 +98,7 @@ const english = {
   'matchmaking.preferHumansTooltip':
     'Prioritizes human players and delays automatic bot fill. Bots can still join if another player opts in or the mode allows them.',
   'matchmaking.playWindowTooltip':
-    'The assigned match node decides the bonus when the match starts. Connect and complete an all-human matchmaking match during its published hours. Custom games and bot matches do not qualify.'
+    'The assigned node sets the bonus at match start. Finish a matchmaking game during its published hours to earn it, including games with bots. Custom games do not qualify.'
 } as const
 
 export type TranslationKey = keyof typeof english
@@ -188,7 +188,7 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'Приоритет живым игрокам и более позднее автоматическое добавление ботов. Боты всё же возможны, если другой игрок согласится или режим их допускает.',
   'matchmaking.playWindowTooltip':
-    'Бонус определяется назначенным сервером при начале матча. Подключитесь и завершите матч подбора только с людьми в опубликованные часы сервера. Пользовательские игры и матчи с ботами не подходят.'
+    'Бонус определяется назначенным сервером при начале матча. Завершите матч подбора в опубликованные часы, чтобы получить его. Матчи с ботами подходят, пользовательские игры — нет.'
 }
 
 const taglish: Record<TranslationKey, string> = {
@@ -275,7 +275,7 @@ const taglish: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'Mas inuuna ang mga taong player at pinapahuli ang automatic bot fill. Posible pa rin ang bots kung may ibang player na mag-opt in o pinapayagan ng mode.',
   'matchmaking.playWindowTooltip':
-    'Ang assigned match node ang magtatakda ng bonus sa simula ng match. Kumonekta at tapusin ang matchmade game na puro tao sa published hours nito. Hindi eligible ang custom games at matches na may bots.'
+    'Ang assigned node ang magtatakda ng bonus sa simula ng match. Tapusin ang matchmaking game sa published hours nito para makuha ang bonus, kasama ang games na may bots. Hindi eligible ang custom games.'
 }
 
 const thai: Record<TranslationKey, string> = {
@@ -361,7 +361,7 @@ const thai: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'ให้ความสำคัญกับผู้เล่นจริงและชะลอการเติมบอทอัตโนมัติ บอทอาจเข้าร่วมได้หากผู้เล่นอื่นยินยอมหรือโหมดอนุญาต',
   'matchmaking.playWindowTooltip':
-    'โบนัสขึ้นอยู่กับโหนดที่จัดแมตช์เมื่อเริ่มเกม ต้องเชื่อมต่อและเล่นแมตช์จับคู่ที่มีแต่ผู้เล่นจริงจนจบภายในเวลาที่ประกาศไว้ เกมแบบกำหนดเองและแมตช์ที่มีบอตไม่เข้าเกณฑ์'
+    'โหนดที่จัดแมตช์กำหนดโบนัสเมื่อเริ่มเกม เล่นแมตช์จับคู่ให้จบในเวลาที่ประกาศไว้เพื่อรับโบนัส แมตช์ที่มีบอตก็เข้าเกณฑ์ แต่เกมแบบกำหนดเองไม่เข้าเกณฑ์'
 }
 
 const indonesian: Record<TranslationKey, string> = {
@@ -451,7 +451,7 @@ const indonesian: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'Mengutamakan pemain manusia dan menunda pengisian bot otomatis. Bot tetap bisa bergabung jika pemain lain setuju atau mode mengizinkannya.',
   'matchmaking.playWindowTooltip':
-    'Node pertandingan yang ditetapkan menentukan bonus saat pertandingan dimulai. Terhubung dan selesaikan pertandingan matchmaking berisi pemain manusia saja selama jam yang diumumkan. Game khusus dan pertandingan dengan bot tidak memenuhi syarat.'
+    'Node pertandingan yang ditetapkan menentukan bonus saat pertandingan dimulai. Selesaikan pertandingan matchmaking selama jam yang diumumkan untuk mendapatkannya, termasuk pertandingan dengan bot. Game khusus tidak memenuhi syarat.'
 }
 
 const portuguese: Record<TranslationKey, string> = {
@@ -542,7 +542,7 @@ const portuguese: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'Prioriza jogadores humanos e atrasa o preenchimento automático com bots. Bots ainda podem entrar se outro jogador aceitar ou o modo permitir.',
   'matchmaking.playWindowTooltip':
-    'O nó atribuído à partida determina o bônus quando ela começa. Conecte-se e conclua uma partida de matchmaking só com jogadores humanos durante o horário publicado. Jogos personalizados e partidas com bots não são elegíveis.'
+    'O nó atribuído à partida define o bônus no início. Conclua uma partida de matchmaking durante o horário publicado para recebê-lo, inclusive com bots. Jogos personalizados não são elegíveis.'
 }
 
 const japanese: Record<TranslationKey, string> = {
@@ -630,7 +630,7 @@ const japanese: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     '人間のプレイヤーを優先し、自動のボット補充を遅らせます。他のプレイヤーが同意するか、モードが許可する場合はボットが参加することもあります。',
   'matchmaking.playWindowTooltip':
-    'ボーナスは試合開始時に割り当てられたノードで決まります。公開時間内に接続し、人間のみのマッチメイキング試合を完了してください。カスタムゲームとボット入りの試合は対象外です。'
+    'ボーナスは試合開始時に割り当てられたノードで決まります。公開時間内にマッチメイキングの試合を完了すると獲得できます。ボット入りの試合も対象ですが、カスタムゲームは対象外です。'
 }
 
 const hindi: Record<TranslationKey, string> = {
@@ -717,7 +717,7 @@ const hindi: Record<TranslationKey, string> = {
   'matchmaking.preferHumansTooltip':
     'मानव खिलाड़ियों को प्राथमिकता देता है और अपने आप बॉट जोड़ने में देरी करता है। कोई दूसरा खिलाड़ी सहमति दे या मोड अनुमति दे तो बॉट फिर भी आ सकते हैं।',
   'matchmaking.playWindowTooltip':
-    'मैच शुरू होने पर चुना गया नोड बोनस तय करता है। उसके घोषित समय में केवल असली खिलाड़ियों वाला मैचमेकिंग मैच कनेक्ट होकर पूरा करें। कस्टम गेम और बॉट वाले मैच पात्र नहीं हैं।'
+    'मैच शुरू होने पर चुना गया नोड बोनस तय करता है। उसके घोषित समय में मैचमेकिंग मैच पूरा करने पर बोनस मिलता है। बॉट वाले मैच पात्र हैं, लेकिन कस्टम गेम नहीं।'
 }
 
 const translations: Record<SupportedLanguageCode, Record<TranslationKey, string>> = {
