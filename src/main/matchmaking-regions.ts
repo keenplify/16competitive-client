@@ -12,6 +12,11 @@ type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
 
 const LATENCY_PROBE_TIMEOUT_MS = 1_500
 const MAX_PREFERRED_LATENCY_MS = 300
+const FALLBACK_NODE_DISCOVERY_ORIGINS = [
+  'https://euw.16competitive.papamo.dev',
+  'https://na.16competitive.papamo.dev',
+  'https://sa.16competitive.papamo.dev'
+] as const
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
 
@@ -57,7 +62,8 @@ const isPlayWindow = (value: unknown): value is NonNullable<MatchmakingNode['pla
     !Number.isSafeInteger(value.bonusPoints) ||
     value.bonusPoints <= 0 ||
     value.bonusPoints > 10_000
-  ) return false
+  )
+    return false
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: value.timeZone })
     return true
@@ -215,22 +221,38 @@ export const getOnlinePlayers = async (): Promise<number> => {
 export const getMatchmakingNodes = async (measureLatency = true): Promise<MatchmakingNode[]> => {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before loading regions')
-  let response: Response
-  try {
-    response = await fetch(`${API_BASE_URL}/nodes`, {
+  const fetchNodes = async (origin: string, timeoutMs: number): Promise<MatchmakingNode[]> => {
+    const response = await fetch(`${origin}/nodes`, {
       headers: { authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(10_000)
+      signal: AbortSignal.timeout(timeoutMs)
     })
-  } catch {
-    throw new Error('Could not reach the regional matchmaking service')
+    const body: unknown = await response.json().catch(() => null)
+    if (
+      !response.ok ||
+      !isObject(body) ||
+      !Array.isArray(body.nodes) ||
+      !body.nodes.every(isNode)
+    ) {
+      throw new Error('The regional matchmaking service returned invalid nodes')
+    }
+    return body.nodes
   }
-  const body: unknown = await response.json().catch(() => null)
-  if (!response.ok || !isObject(body) || !Array.isArray(body.nodes) || !body.nodes.every(isNode)) {
-    throw new Error('The regional matchmaking service returned invalid nodes')
+  let discoveredNodes: MatchmakingNode[]
+  try {
+    discoveredNodes = await fetchNodes(API_BASE_URL, LOCAL_DEVELOPMENT ? 10_000 : 3_500)
+  } catch {
+    if (LOCAL_DEVELOPMENT) throw new Error('Could not reach the regional matchmaking service')
+    try {
+      discoveredNodes = await Promise.any(
+        FALLBACK_NODE_DISCOVERY_ORIGINS.map((origin) => fetchNodes(origin, 5_000))
+      )
+    } catch {
+      throw new Error('Could not reach the regional matchmaking service')
+    }
   }
   const nodes = LOCAL_DEVELOPMENT
-    ? body.nodes.filter((node) => isLoopbackBackend(node.publicApiUrl))
-    : body.nodes
+    ? discoveredNodes.filter((node) => isLoopbackBackend(node.publicApiUrl))
+    : discoveredNodes
   if (!measureLatency) return nodes
   const measuredNodes = await attachNodeLatencies(nodes)
   const { selectedNodeId } = await getMatchmakingPreferences()
