@@ -1923,3 +1923,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved the peak hours layout.
 - Adjusted tooltips to stay visible within the screen.
+
+## v2026.1007.8 — 2026-10-07
+
+### Matchmaking
+
+- Added regional discovery fallbacks to help find available regions more reliably.
+
+### Peak Bonus
+
+- Clarified the peak bonus information in the player-facing text.
