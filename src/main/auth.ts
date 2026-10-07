@@ -4,6 +4,8 @@ import type {
   PasswordChangeCredentials,
   PasswordChangeResult,
   FlagChangeResult,
+  ChatTranslationLanguage,
+  ChatTranslationPreference,
   RegistrationCredentials,
   SocialAuthProvider,
   SocialAuthResult,
@@ -727,6 +729,49 @@ export const changeFlagCountryCode = async (
     throw new Error('The server returned an invalid flag response')
   }
   return body as FlagChangeResult
+}
+
+const isChatTranslationLanguage = (value: unknown): value is ChatTranslationLanguage =>
+  value === null ||
+  value === 'off' ||
+  (typeof value === 'string' && value.length <= 35 && /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(value))
+
+const validateChatTranslationPreference = (body: unknown): ChatTranslationPreference => {
+  if (!body || typeof body !== 'object' || !('language' in body)) {
+    throw new Error('The server returned an invalid chat translation preference')
+  }
+  const language = (body as Record<string, unknown>).language
+  if (!isChatTranslationLanguage(language)) {
+    throw new Error('The server returned an invalid chat translation language')
+  }
+  return { language }
+}
+
+export const getChatTranslation = async (): Promise<ChatTranslationPreference> => {
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/chat-translation`, {
+    headers: { authorization: `Bearer ${sessionToken}` },
+    signal: AbortSignal.timeout(10_000)
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  return validateChatTranslationPreference(body)
+}
+
+export const setChatTranslation = async (language: unknown): Promise<ChatTranslationPreference> => {
+  if (!isChatTranslationLanguage(language)) {
+    throw new Error('Invalid chat translation language')
+  }
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetch(`${API_BASE_URL}/auth/chat-translation`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${sessionToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ language: language as ChatTranslationLanguage }),
+    signal: AbortSignal.timeout(10_000)
+  })
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(body, response.status))
+  return validateChatTranslationPreference(body)
 }
 
 export const changePassword = async (

@@ -13,6 +13,8 @@ export const AUTH_CHANNELS = {
   referralClaim: 'auth:referral-claim',
   passwordChange: 'auth:password-change',
   flagChange: 'auth:flag-change',
+  chatTranslationGet: 'auth:chat-translation-get',
+  chatTranslationSet: 'auth:chat-translation-set',
   logout: 'auth:logout',
   restore: 'auth:restore'
 } as const
@@ -93,6 +95,11 @@ export interface FlagChangeResult {
   flagCountryCode: string | null
 }
 
+export type ChatTranslationLanguage = string | null
+export interface ChatTranslationPreference {
+  language: ChatTranslationLanguage
+}
+
 export interface SocialConnectionState {
   connected: boolean
   email: string | null
@@ -123,6 +130,8 @@ export interface AuthApi {
   claimReferralCode(code: string): Promise<{ claimed: true }>
   changePassword(credentials: PasswordChangeCredentials): Promise<PasswordChangeResult>
   changeFlagCountryCode(flagCountryCode: string | null): Promise<FlagChangeResult>
+  getChatTranslation(): Promise<ChatTranslationPreference>
+  setChatTranslation(language: ChatTranslationLanguage): Promise<ChatTranslationPreference>
   restore(): Promise<AuthSession | null>
   logout(): Promise<void>
 }

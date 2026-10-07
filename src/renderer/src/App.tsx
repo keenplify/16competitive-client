@@ -3,6 +3,7 @@ import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheat
 import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
 import { AudioController } from './features/audio/AudioController'
 import { AuthLanguageOverlay } from './features/i18n/AuthLanguageOverlay'
+import { ChatTranslationInitializer } from './features/settings/ChatTranslationInitializer'
 import { I18nRuntime } from './features/i18n/I18nRuntime'
 import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
 import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
@@ -19,6 +20,7 @@ function App(): React.JSX.Element {
     <DeviceBanGate>
       <>
         <I18nRuntime />
+        <ChatTranslationInitializer />
         <AudioController />
         <UpdateBanner />
         <ConnectionBanner />
