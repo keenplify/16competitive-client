@@ -1880,3 +1880,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web Play
 
 - Steam launches now use your activated manual token.
+
+## v2026.1007.4 — 2026-10-07
+
+### Match Readiness
+
+- Required match maps are now verified before the game launches.
+- Match setup now confirms the correct maps are ready before connecting.
