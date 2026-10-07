@@ -160,8 +160,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     None: 'Нет',
     Retry: 'Повторить попытку',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'COUNTER-STRIKE 1.6 ОНЛАЙН-ИГРА',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Режимы Web Play различаются. Для рейтингового боя 5 на 5 и эксклюзивных функций запуска требуется клиент для настольного компьютера.'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Режимы Web Play различаются. За ранг 5 на 5 выдается награда MMR при включении для браузеров. Эксклюзивные функции запуска требуют настольного клиента.'
   },
   tl: {
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
@@ -354,8 +354,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Verify password': 'I-verify ang password',
     'Voice & Audio': 'Boses at Audio',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'KONTRA-STRIKE 1.6 WEB PLAY',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Ang mga mode ng Web Play ay nag-iiba. Ang ranggo na 5v5 at eksklusibong mga feature ng launcher ay nangangailangan ng desktop client.'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Ang mga mode ng Web Play ay nag-iiba. Niraranggo ang 5v5 na parangal na MMR kapag pinagana para sa mga browser. Ang mga eksklusibong feature ng launcher ay nangangailangan ng desktop client.'
   },
   th: {
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
@@ -537,8 +537,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Visible to other players. You can change it once every 7 days.':
       'ผู้เล่นคนอื่นมองเห็นได้ คุณสามารถเปลี่ยนได้ทุกๆ 7 วัน',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'COUNTER-Strike 1.6 เล่นบนเว็บ',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'โหมด Web Play จะแตกต่างกันไป อันดับ 5v5 และฟีเจอร์ตัวเรียกใช้งานพิเศษต้องใช้ไคลเอนต์เดสก์ท็อป'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'โหมด Web Play จะแตกต่างกันไป อันดับ 5v5 มอบรางวัล MMR เมื่อเปิดใช้งานสำหรับเบราว์เซอร์ คุณสมบัติตัวเรียกใช้งานพิเศษต้องใช้ไคลเอนต์เดสก์ท็อป'
   },
   id: {
     Audio: 'Suara',
@@ -725,8 +725,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Visible to other players. You can change it once every 7 days.':
       'Terlihat oleh pemain lain. Anda dapat mengubahnya setiap 7 hari sekali.',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'MAIN WEB COUNTER-STRIKE 1.6',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Mode Web Play bervariasi. Peringkat 5v5 dan fitur peluncur eksklusif memerlukan klien desktop.'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Mode Web Play bervariasi. Memberi peringkat 5v5 memberikan penghargaan MMR saat diaktifkan untuk browser. Fitur peluncur eksklusif memerlukan klien desktop.'
   },
   hi: {
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
@@ -919,8 +919,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Visible to other players. You can change it once every 7 days.':
       'अन्य खिलाड़ियों के लिए दृश्यमान. आप इसे हर 7 दिन में एक बार बदल सकते हैं।',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'काउंटर-स्ट्राइक 1.6 वेब प्ले',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Web Play मोड भिन्न-भिन्न होते हैं। 5v5 रैंक और विशिष्ट लॉन्चर सुविधाओं के लिए डेस्कटॉप क्लाइंट की आवश्यकता होती है।'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Web Play मोड भिन्न-भिन्न होते हैं। ब्राउज़रों के लिए सक्षम होने पर 5v5 पुरस्कार MMR रैंक किया गया। विशिष्ट लॉन्चर सुविधाओं के लिए डेस्कटॉप क्लाइंट की आवश्यकता होती है।'
   },
   pt: {
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
@@ -1104,8 +1104,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Visible to other players. You can change it once every 7 days.':
       'Visível para outros jogadores. Você pode alterá-lo uma vez a cada 7 dias.',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'COUNTER-STRIKE 1.6 JOGO NA WEB',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Os modos Web Play variam. A classificação 5v5 e os recursos exclusivos do iniciador exigem o cliente de desktop.'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Os modos Web Play variam. A classificação 5v5 concede MMR quando habilitada para navegadores. Os recursos exclusivos do iniciador exigem o cliente de desktop.'
   },
   ja: {
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
@@ -1333,8 +1333,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     'Voice & Audio': '音声とオーディオ',
     'Voice and launcher audio': '音声とランチャーオーディオ',
     'COUNTER-STRIKE 1.6 WEB PLAY': 'カウンターストライク 1.6 ウェブプレイ',
-    'Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop client.':
-      'Web Play モードはさまざまです。ランク 5v5 および専用ランチャー機能にはデスクトップ クライアントが必要です。'
+    'Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive launcher features require the desktop client.':
+      'Web Play モードはさまざまです。ブラウザで有効にすると、ランク 5v5 で MMR が授与されます。専用のランチャー機能にはデスクトップ クライアントが必要です。'
   }
 }
 

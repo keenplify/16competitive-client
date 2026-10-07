@@ -262,7 +262,9 @@ export function PlayPage({
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
   const retryWindowOpen = copyWaitSeconds === 0
-  const manualConnectionAllowed = allowsManualMatchConnection(match?.mode)
+  const manualConnectionAllowed =
+    allowsManualMatchConnection(match?.mode) ||
+    (match?.mode === '5v5' && maps.some((map) => map.webModes.includes('5v5')))
   const availableMaps = maps.filter(
     (map) =>
       map.supportedModes.includes(selectedMode) &&

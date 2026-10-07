@@ -285,8 +285,8 @@ export function AuthPage(): JSX.Element {
             </p>
             {webRuntime && (
               <p className="mt-2 text-xs text-neutral-400">
-                Web Play modes vary. Ranked 5v5 and exclusive launcher features require the desktop
-                client.
+                Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive
+                launcher features require the desktop client.
               </p>
             )}
           </div>
