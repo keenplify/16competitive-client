@@ -140,6 +140,12 @@ export interface MatchmakingNode {
   activeConnections: number
   activeMatches: number
   available: boolean
+  playWindow?: {
+    timeZone: string
+    startsAt: string
+    endsAt: string
+    bonusPoints: number
+  } | null
   latencyMs?: number | null
 }
 
