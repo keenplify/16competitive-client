@@ -9,6 +9,8 @@ import {
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
+import { HelpTooltip } from '../../components/ui/HelpTooltip'
+import { useTranslation, type TranslationKey } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CustomGamesPanel } from './CustomGamesPanel'
 import { useCustomGamesStore } from './custom-games.store'
@@ -33,6 +35,16 @@ const connectionLabels = {
   authenticating: 'Authenticating',
   ready: 'Connected'
 } as const
+
+const queueModes = ['5v5', 'unrated', 'legacy', 'ffa', 'fight_yard', '3v3'] as const
+const modeHelpKeys = {
+  '5v5': 'matchmaking.modeHelp5v5',
+  unrated: 'matchmaking.modeHelpUnrated',
+  legacy: 'matchmaking.modeHelpLegacy',
+  ffa: 'matchmaking.modeHelpFfa',
+  fight_yard: 'matchmaking.modeHelpFightYard',
+  '3v3': 'matchmaking.modeHelp3v3'
+} satisfies Record<(typeof queueModes)[number], TranslationKey>
 
 interface MapCardProps {
   map: MatchmakingMap
@@ -95,6 +107,7 @@ export function PlayPage({
 }: {
   friendsCollapsed?: boolean
 }): JSX.Element {
+  const { t } = useTranslation()
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -514,23 +527,25 @@ export function PlayPage({
             </h1>
           </div>
           <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:w-auto">
-            <label
+            <div
               className={twMerge(
-                'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
+                'flex items-center gap-1 pb-3 text-xs text-neutral-300',
                 playView === 'custom' && 'invisible pointer-events-none'
               )}
-              aria-hidden={playView === 'custom'}
             >
-              <input
-                type="checkbox"
-                className="size-4 accent-emerald-400"
-                checked={preferHumans}
-                disabled={playView === 'custom' || isSearching}
-                tabIndex={playView === 'custom' ? -1 : undefined}
-                onChange={(event) => setPreferHumans(event.target.checked)}
-              />
-              Prefer humans
-            </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-emerald-400"
+                  checked={preferHumans}
+                  disabled={playView === 'custom' || isSearching}
+                  tabIndex={playView === 'custom' ? -1 : undefined}
+                  onChange={(event) => setPreferHumans(event.target.checked)}
+                />
+                {t('matchmaking.preferHumans')}
+              </label>
+              <HelpTooltip text={t('matchmaking.preferHumansTooltip')} placement="bottom" />
+            </div>
             <label
               className={twMerge(
                 'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
@@ -587,6 +602,7 @@ export function PlayPage({
                       )
                 }
                 showHint={false}
+                showPlayWindow={playView === 'matchmaking'}
                 onChange={(nodeId) => {
                   if (playView === 'custom' && currentCustomRoom) {
                     if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
@@ -617,32 +633,31 @@ export function PlayPage({
               className="shrink-0"
               ariaLabel="Matchmaking mode"
               value={selectedMode}
-              items={(['5v5', 'unrated', 'legacy', 'ffa', 'fight_yard', '3v3'] as const).map(
-                (mode) => ({
-                  value: mode,
-                  label: getMatchmakingModeLabel(mode),
-                  disabled:
-                    isSearching ||
-                    !isLeader ||
-                    !maps.some((map) => map.supportedModes.includes(mode)),
-                  title:
-                    mapsStatus === 'ready' && !maps.some((map) => map.supportedModes.includes(mode))
-                      ? 'No maps are available for this mode'
-                      : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
-                        ? 'This mode is unavailable for Web Play or mixed parties'
-                        : mode === '5v5'
-                          ? 'Rated 5v5 with MMR progression'
-                          : mode === 'ffa'
-                            ? 'Drop-in deathmatch, first to 50 kills'
-                            : mode === 'fight_yard'
-                              ? 'Fight Yard match'
-                              : mode === '3v3'
-                                ? 'Unrated 3v3 match'
-                                : mode === 'legacy'
-                                  ? 'Unrated 5v5 with CS 1.3 movement'
-                                  : 'Unrated 5v5 without MMR changes'
-                })
-              )}
+              items={queueModes.map((mode) => ({
+                value: mode,
+                label: getMatchmakingModeLabel(mode),
+                helpText: t(modeHelpKeys[mode]),
+                disabled:
+                  isSearching ||
+                  !isLeader ||
+                  !maps.some((map) => map.supportedModes.includes(mode)),
+                title:
+                  mapsStatus === 'ready' && !maps.some((map) => map.supportedModes.includes(mode))
+                    ? 'No maps are available for this mode'
+                    : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
+                      ? 'This mode is unavailable for Web Play or mixed parties'
+                      : mode === '5v5'
+                        ? 'Rated 5v5 with MMR progression'
+                        : mode === 'ffa'
+                          ? 'Drop-in deathmatch, first to 50 kills'
+                          : mode === 'fight_yard'
+                            ? 'Fight Yard match'
+                            : mode === '3v3'
+                              ? 'Unrated 3v3 match'
+                              : mode === 'legacy'
+                                ? 'Unrated 5v5 with CS 1.3 movement'
+                                : 'Unrated 5v5 without MMR changes'
+              }))}
               onChange={(mode) => {
                 selectMode(mode)
               }}
