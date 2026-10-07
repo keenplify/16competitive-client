@@ -1916,3 +1916,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Localization
 
 - Expanded localized text support across the launcher.
+
+## v2026.1007.7 — 2026-10-07
+
+### Matchmaking
+
+- Improved the peak hours layout.
+- Adjusted tooltips to stay visible within the screen.
