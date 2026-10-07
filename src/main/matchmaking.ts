@@ -38,6 +38,7 @@ import {
 } from './game/cs16-launcher'
 import {
   canUseMatchFastDlFallback,
+  isPreloadingMatchMap,
   clearMatchAssetPreload,
   startMatchAssetPreload,
   startSkinAssetSync,
@@ -885,7 +886,12 @@ class MatchmakingConnection {
     const deadline = Date.now() + MATCH_ASSET_FASTDL_WAIT_MS
     const fastDlReady = new Promise<'fastdl'>((resolve) => {
       fallbackTimer = setInterval(() => {
-        if (Date.now() >= deadline && canUseMatchFastDlFallback(matchId)) resolve('fastdl')
+        if (
+          Date.now() >= deadline &&
+          canUseMatchFastDlFallback(matchId) &&
+          !isPreloadingMatchMap(matchId)
+        )
+          resolve('fastdl')
       }, 1_000)
     })
     let reason = 'launcher download exceeded the wait limit'
@@ -904,7 +910,7 @@ class MatchmakingConnection {
         return
       }
     } catch (error) {
-      if (!canUseMatchFastDlFallback(matchId)) throw error
+      if (!canUseMatchFastDlFallback(matchId) || isPreloadingMatchMap(matchId)) throw error
       reason = error instanceof Error ? error.message : String(error)
     } finally {
       if (fallbackTimer) clearInterval(fallbackTimer)

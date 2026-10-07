@@ -3,7 +3,7 @@ import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
-import { join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
@@ -79,6 +79,7 @@ import {
 import {
   chooseCs16Folder,
   getGameSettings,
+  getSavedCs16Executable,
   saveGameSettings,
   saveVoicePttKey,
   saveCrosshair,
@@ -87,6 +88,7 @@ import {
   saveFastSwitch,
   saveKillCards
 } from './game/game-settings'
+import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
 import {
   cancelNextClientInstaller,
   detectNextClientFolder,
@@ -471,6 +473,14 @@ app.whenReady().then(async () => {
   }
 
   electronApp.setAppUserModelId('com.electron')
+  try {
+    const executable = await getSavedCs16Executable()
+    if (executable && (await removeStaleMatchUserConfigHandoff(dirname(executable)))) {
+      console.info('[GameLaunch] removed stale match handoff from userconfig at startup')
+    }
+  } catch (error) {
+    console.warn('[GameLaunch] could not remove stale match handoff at startup', error)
+  }
   await restoreStaleManagedSkinAudio().catch((error: unknown) => {
     console.error('[SkinAudio] startup overlay cleanup failed', error)
   })

@@ -54,6 +54,24 @@ export interface MatchUserConfigHandoff {
   restore(): Promise<'restored' | 'removed-created-file' | 'preserved-player-edits' | 'missing'>
 }
 
+/** Remove a handoff left by a launcher that exited before match cleanup ran. */
+export const removeStaleMatchUserConfigHandoff = async (
+  launchGameDirectory: string
+): Promise<boolean> => {
+  const path = join(launchGameDirectory, 'userconfig.cfg')
+  const existing = await lstat(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null
+    throw error
+  })
+  if (!existing) return false
+  if (!existing.isFile()) throw new Error('userconfig.cfg is not a regular file')
+  const original = await readFile(path)
+  if (!original.includes(BEGIN)) return false
+  const clean = removeManagedBlock(original)
+  await writeAtomically(path, clean, existing.mode & 0o777)
+  return true
+}
+
 export const prepareMatchUserConfigHandoff = async (
   launchGameDirectory: string,
   matchConfigName: string
