@@ -26,6 +26,7 @@ import { ReferralSettings } from './ReferralSettings'
 import { ChangelogModal } from './ChangelogModal'
 import { CrosshairSettings } from './CrosshairSettings'
 import { LanguageSettings } from '../i18n/LanguageSettings'
+import { useTranslation } from '../i18n/i18n'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
@@ -41,6 +42,7 @@ const readableError = (error: unknown): string =>
     : 'Something went wrong. Please try again.'
 
 export function SettingsPage(): JSX.Element {
+  const { language, t } = useTranslation()
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
   const crosshairRef = useRef<HTMLElement>(null)
@@ -286,7 +288,7 @@ export function SettingsPage(): JSX.Element {
 
   const cooldownLabel =
     usernameCooldownActive && usernameAvailableAt
-      ? new Date(usernameAvailableAt).toLocaleString()
+      ? new Date(usernameAvailableAt).toLocaleString(language === 'tl' ? 'fil-PH' : language)
       : null
 
   const sectionButton = (section: SettingsSection, label: string): JSX.Element => {
@@ -841,7 +843,7 @@ export function SettingsPage(): JSX.Element {
                   <div className="mt-3 min-h-6 text-sm" aria-live="polite">
                     {cooldownLabel && (
                       <p className="text-amber-300">
-                        You can change your username again on {cooldownLabel}.
+                        {t('settings.usernameCooldown', { date: cooldownLabel })}
                       </p>
                     )}
                     {!usernameCooldownActive && displayedAvailability === 'checking' && (

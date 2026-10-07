@@ -136,8 +136,8 @@ export function MatchFoundReadyCheck({
         <aside className="mt-3 flex gap-4 bg-black/85 px-5 py-3 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
           <Info className="mt-0.5 size-5 shrink-0 text-white" aria-hidden="true" />
           <p>
-            By accepting, you commit to this competitive match. Leaving after acceptance may result
-            in a penalty. Please ensure you are ready to play before continuing.
+            By accepting, you commit to this match. Leaving after acceptance may result in a
+            penalty. Please ensure you are ready to play before continuing.
           </p>
         </aside>
       </div>

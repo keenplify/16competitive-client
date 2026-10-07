@@ -783,6 +783,15 @@ Reconnect Available
 
 Avoid UI that makes the player wonder whether the launcher is frozen.
 
+### Internationalization
+
+Always internationalize user-facing text when adding or changing UI. Include labels,
+descriptions, placeholders, tooltips, accessibility names, loading states, notices,
+and actionable errors in every supported language. Use the existing renderer i18n
+catalogs and patterns; do not leave new English-only strings behind in Settings,
+matchmaking, or other screens. Keep technical identifiers, file paths, and game
+commands untranslated.
+
 ### Layout Stability
 
 Prevent cumulative layout shift (CLS) in all renderer changes. Loading, pending, success, and error states must preserve the geometry of controls and surrounding content wherever practical.

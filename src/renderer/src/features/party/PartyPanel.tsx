@@ -12,6 +12,7 @@ export function PartyPanel({ playerId }: PartyPanelProps): JSX.Element {
   const leave = usePartyStore((state) => state.leave)
 
   const isLeader = !party || party.leaderId === playerId
+  const hasWebPlayMember = party?.members.some(({ clientMode }) => clientMode === 'web') ?? false
 
   return (
     <aside className="border-b border-white/10 bg-neutral-950/75 px-4 py-3 backdrop-blur-md sm:px-6 md:mr-72">
@@ -21,11 +22,13 @@ export function PartyPanel({ playerId }: PartyPanelProps): JSX.Element {
             Party · {party?.members.length ?? 1} / 5
           </p>
           <p className="mt-1 truncate text-sm text-neutral-400">
-            {party
-              ? isLeader
-                ? 'You are the leader. Manage invitations from the Friends sidebar.'
-                : 'Invite friends from the sidebar. The leader starts matchmaking.'
-              : 'Invite a player from the Friends sidebar to create a party.'}
+            {hasWebPlayMember
+              ? 'Web Play party: the leader can choose modes enabled for browser players.'
+              : party
+                ? isLeader
+                  ? 'You are the leader. Manage invitations from the Friends sidebar.'
+                  : 'Invite friends from the sidebar. The leader starts matchmaking.'
+                : 'Invite a player from the Friends sidebar to create a party.'}
           </p>
         </div>
 

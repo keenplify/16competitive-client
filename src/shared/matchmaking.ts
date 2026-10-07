@@ -26,6 +26,7 @@ export const MATCHMAKING_CHANNELS = {
 } as const
 
 export const MATCHMAKING_MODES = [
+  '3v3',
   '5v5',
   'unrated',
   'legacy',
@@ -39,6 +40,7 @@ export const isMatchmakingMode = (value: unknown): value is MatchmakingMode =>
   typeof value === 'string' && (MATCHMAKING_MODES as readonly string[]).includes(value)
 
 export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
+  '3v3': '3v3',
   '5v5': 'Competitive',
   unrated: 'Unrated',
   legacy: 'Legacy',
@@ -51,6 +53,7 @@ export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
 
 export const allowsManualMatchConnection = (mode: unknown): boolean =>
+  mode === '3v3' ||
   mode === 'unrated' ||
   mode === 'legacy' ||
   mode === 'casual' ||
@@ -109,6 +112,7 @@ export interface MatchmakingMap {
   game: string
   previewUrl: string | null
   supportedModes: MatchmakingMode[]
+  webModes: MatchmakingMode[]
   customModes: ServerCustomGameMode[]
 }
 
