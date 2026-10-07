@@ -1901,3 +1901,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Fixed NextClient startup ordering that could restore an old match token, leave a matched player in spectators, and cause a kick.
 - Verify the current match identity before NextClient connects.
 - Keep match launch details available in issue reports submitted after restarting the launcher.
+
+## v2026.1007.6 — 2026-10-07
+
+### Play Window
+
+- Improved the play window layout and status presentation.
+- Refined party and matchmaking screen visuals.
+
+### Reliability
+
+- Added launcher crash reporting to help diagnose unexpected errors.
+
+### Localization
+
+- Expanded localized text support across the launcher.
