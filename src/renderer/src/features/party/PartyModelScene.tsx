@@ -805,8 +805,17 @@ export function PartyModelScene({
     if (loadedScene.weaponBuffers.length !== loadedScene.actors.length) return
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 2000)
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    } catch (error) {
+      console.error(
+        '[Lobby] Could not initialize the 3D scene; leaving the lobby UI available',
+        error
+      )
+      return
+    }
     const ambient = new THREE.AmbientLight(0xffffff, 1.2)
     scene.add(ambient)
     const sceneActors = loadedScene.actors

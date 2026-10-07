@@ -3,6 +3,7 @@ import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
+import { appendFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -198,7 +199,44 @@ function registerDiscordApplicationProtocol(): void {
 
 registerDiscordApplicationProtocol()
 
+let lastAutomaticProcessReportAt = 0
+
+const recordProcessFailure = (processType: string, reason: string, exitCode: number): void => {
+  if (!app.isReady()) return
+  const entry = JSON.stringify({
+    at: new Date().toISOString(),
+    version: app.getVersion(),
+    processType,
+    reason,
+    exitCode
+  })
+  void appendFile(join(app.getPath('userData'), 'process-failures.jsonl'), `${entry}\n`, {
+    mode: 0o600
+  }).catch((error: unknown) =>
+    console.error('[WindowDebug] Could not record process failure', error)
+  )
+  if (Date.now() - lastAutomaticProcessReportAt < 30_000) return
+  lastAutomaticProcessReportAt = Date.now()
+  void reportDiagnosticIssue(
+    `Launcher ${processType} process stopped: ${reason} (exit code ${exitCode}).`,
+    [],
+    `launcher-${app.getVersion()}-${processType}-${reason}`
+  ).catch((error: unknown) => console.warn('[WindowDebug] Could not report process failure', error))
+}
+
+app.on('child-process-gone', (_event, details) => {
+  if (details.type === 'GPU' && details.reason !== 'clean-exit') {
+    console.error('[WindowDebug] GPU process gone', details.reason, details.exitCode)
+    recordProcessFailure('GPU', details.reason, details.exitCode)
+  }
+})
+
 function installWindowDiagnostics(window: BrowserWindow): void {
+  window.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'clean-exit') return
+    console.error('[WindowDebug] Renderer process gone', details.reason, details.exitCode)
+    recordProcessFailure('renderer', details.reason, details.exitCode)
+  })
   const state = (): Record<string, unknown> => ({
     focused: window.isFocused(),
     visible: window.isVisible(),

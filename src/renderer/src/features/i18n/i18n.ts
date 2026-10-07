@@ -18,6 +18,14 @@ export type LanguageCode = 'en' | 'ru' | 'tl'
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
+  'app.renderErrorTitle': 'The launcher ran into a problem',
+  'app.renderErrorDescription':
+    'This screen could not load. The launcher will report the error automatically. Reload to try again.',
+  'app.renderErrorRetryReport': 'Retry report',
+  'app.renderErrorReporting': 'Reporting…',
+  'app.renderErrorReported': 'Issue reported. Thank you!',
+  'app.renderErrorReportFailed': 'Could not send the report. Please share the error shown above.',
+  'app.renderErrorReload': 'Reload launcher',
   'nav.lobbyNavigation': 'Lobby navigation',
   'nav.home': 'Home',
   'nav.settings': 'Settings',
@@ -73,6 +81,7 @@ const english = {
   'matchmaking.playWindow':
     '+{{points}} points per eligible completed match · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'Playtime window bonus',
+  'matchmaking.peakHours': 'Peak hours',
   'matchmaking.playWindowActive': 'Bonus active now',
   'matchmaking.playWindowInactive': 'Outside bonus hours',
   'matchmaking.playWindowUnavailable': 'Bonus hours unavailable',
@@ -96,6 +105,15 @@ export type TranslationKey = keyof typeof english
 export type TranslationParams = Record<string, string | number>
 
 const russian: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'В лаунчере произошла ошибка',
+  'app.renderErrorDescription':
+    'Не удалось открыть этот экран. Лаунчер сообщит об ошибке автоматически. Перезагрузите его, чтобы повторить попытку.',
+  'app.renderErrorRetryReport': 'Повторить отправку',
+  'app.renderErrorReporting': 'Отправка…',
+  'app.renderErrorReported': 'Сообщение отправлено. Спасибо!',
+  'app.renderErrorReportFailed':
+    'Не удалось отправить сообщение. Передайте ошибку, показанную выше.',
+  'app.renderErrorReload': 'Перезагрузить лаунчер',
   'nav.lobbyNavigation': 'Навигация лобби',
   'nav.home': 'Главная',
   'nav.settings': 'Настройки',
@@ -151,6 +169,7 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '+{{points}} очков за завершённый подходящий матч · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'Бонус игрового времени',
+  'matchmaking.peakHours': 'Часы пик',
   'matchmaking.playWindowActive': 'Бонус сейчас действует',
   'matchmaking.playWindowInactive': 'Вне бонусных часов',
   'matchmaking.playWindowUnavailable': 'Бонусные часы недоступны',
@@ -173,6 +192,14 @@ const russian: Record<TranslationKey, string> = {
 }
 
 const taglish: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'Nagka-problema ang launcher',
+  'app.renderErrorDescription':
+    'Hindi ma-load ang screen na ito. Awtomatikong ire-report ng launcher ang error. I-reload para subukan ulit.',
+  'app.renderErrorRetryReport': 'Subukang i-report ulit',
+  'app.renderErrorReporting': 'Nire-report…',
+  'app.renderErrorReported': 'Na-report ang issue. Salamat!',
+  'app.renderErrorReportFailed': 'Hindi naipadala ang report. I-share ang error sa itaas.',
+  'app.renderErrorReload': 'I-reload ang launcher',
   'nav.lobbyNavigation': 'Lobby navigation',
   'nav.home': 'Home',
   'nav.settings': 'Settings',
@@ -228,6 +255,7 @@ const taglish: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '+{{points}} points kada eligible na natapos na match · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'Playtime window bonus',
+  'matchmaking.peakHours': 'Peak hours',
   'matchmaking.playWindowActive': 'Active ang bonus ngayon',
   'matchmaking.playWindowInactive': 'Labas sa bonus hours',
   'matchmaking.playWindowUnavailable': 'Walang bonus hours na available',
@@ -251,6 +279,14 @@ const taglish: Record<TranslationKey, string> = {
 }
 
 const thai: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'ตัวเปิดเกมพบปัญหา',
+  'app.renderErrorDescription':
+    'ไม่สามารถเปิดหน้านี้ได้ ตัวเปิดเกมจะรายงานข้อผิดพลาดอัตโนมัติ โปรดโหลดใหม่เพื่อลองอีกครั้ง',
+  'app.renderErrorRetryReport': 'ลองรายงานอีกครั้ง',
+  'app.renderErrorReporting': 'กำลังรายงาน…',
+  'app.renderErrorReported': 'รายงานปัญหาแล้ว ขอบคุณ!',
+  'app.renderErrorReportFailed': 'ส่งรายงานไม่ได้ โปรดแจ้งข้อผิดพลาดที่แสดงด้านบน',
+  'app.renderErrorReload': 'โหลดตัวเปิดเกมใหม่',
   'nav.lobbyNavigation': 'เมนูล็อบบี้',
   'nav.home': 'หน้าหลัก',
   'nav.settings': 'การตั้งค่า',
@@ -306,6 +342,7 @@ const thai: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '+{{points}} แต้มต่อแมตช์ที่เข้าเงื่อนไขและเล่นจบ · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'โบนัสช่วงเวลาเล่น',
+  'matchmaking.peakHours': 'ช่วงเวลาคนเล่นเยอะ',
   'matchmaking.playWindowActive': 'โบนัสเปิดใช้อยู่ตอนนี้',
   'matchmaking.playWindowInactive': 'อยู่นอกช่วงเวลาโบนัส',
   'matchmaking.playWindowUnavailable': 'ไม่พบเวลาโบนัส',
@@ -328,6 +365,15 @@ const thai: Record<TranslationKey, string> = {
 }
 
 const indonesian: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'Launcher mengalami masalah',
+  'app.renderErrorDescription':
+    'Halaman ini tidak dapat dimuat. Launcher akan melaporkan kesalahan secara otomatis. Muat ulang untuk mencoba lagi.',
+  'app.renderErrorRetryReport': 'Coba kirim laporan lagi',
+  'app.renderErrorReporting': 'Melaporkan…',
+  'app.renderErrorReported': 'Masalah dilaporkan. Terima kasih!',
+  'app.renderErrorReportFailed':
+    'Laporan tidak terkirim. Bagikan kesalahan yang ditampilkan di atas.',
+  'app.renderErrorReload': 'Muat ulang launcher',
   'nav.lobbyNavigation': 'Navigasi lobi',
   'nav.home': 'Beranda',
   'nav.settings': 'Pengaturan',
@@ -384,6 +430,7 @@ const indonesian: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '+{{points}} poin per pertandingan selesai yang memenuhi syarat · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'Bonus waktu bermain',
+  'matchmaking.peakHours': 'Jam ramai',
   'matchmaking.playWindowActive': 'Bonus aktif sekarang',
   'matchmaking.playWindowInactive': 'Di luar jam bonus',
   'matchmaking.playWindowUnavailable': 'Jam bonus tidak tersedia',
@@ -408,6 +455,15 @@ const indonesian: Record<TranslationKey, string> = {
 }
 
 const portuguese: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'O launcher encontrou um problema',
+  'app.renderErrorDescription':
+    'Não foi possível carregar esta tela. O launcher enviará o erro automaticamente. Recarregue para tentar novamente.',
+  'app.renderErrorRetryReport': 'Tentar enviar novamente',
+  'app.renderErrorReporting': 'Enviando…',
+  'app.renderErrorReported': 'Problema relatado. Obrigado!',
+  'app.renderErrorReportFailed':
+    'Não foi possível enviar o relato. Compartilhe o erro mostrado acima.',
+  'app.renderErrorReload': 'Recarregar launcher',
   'nav.lobbyNavigation': 'Navegação do lobby',
   'nav.home': 'Início',
   'nav.settings': 'Configurações',
@@ -464,6 +520,7 @@ const portuguese: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '+{{points}} pontos por partida elegível concluída · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'Bônus da janela de jogo',
+  'matchmaking.peakHours': 'Horário de pico',
   'matchmaking.playWindowActive': 'Bônus ativo agora',
   'matchmaking.playWindowInactive': 'Fora do horário de bônus',
   'matchmaking.playWindowUnavailable': 'Horário de bônus indisponível',
@@ -489,6 +546,15 @@ const portuguese: Record<TranslationKey, string> = {
 }
 
 const japanese: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'ランチャーで問題が発生しました',
+  'app.renderErrorDescription':
+    'この画面を読み込めませんでした。ランチャーがエラーを自動報告します。再読み込みしてお試しください。',
+  'app.renderErrorRetryReport': '報告を再試行',
+  'app.renderErrorReporting': '報告中…',
+  'app.renderErrorReported': '問題を報告しました。ありがとうございます。',
+  'app.renderErrorReportFailed':
+    '報告を送信できませんでした。上に表示されたエラーを共有してください。',
+  'app.renderErrorReload': 'ランチャーを再読み込み',
   'nav.lobbyNavigation': 'ロビー ナビゲーション',
   'nav.home': 'ホーム',
   'nav.settings': '設定',
@@ -545,6 +611,7 @@ const japanese: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     '完了した対象試合ごとに+{{points}}ポイント · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'プレイ時間ボーナス',
+  'matchmaking.peakHours': 'ピーク時間',
   'matchmaking.playWindowActive': '現在ボーナス有効',
   'matchmaking.playWindowInactive': 'ボーナス時間外',
   'matchmaking.playWindowUnavailable': 'ボーナス時間を取得できません',
@@ -567,6 +634,14 @@ const japanese: Record<TranslationKey, string> = {
 }
 
 const hindi: Record<TranslationKey, string> = {
+  'app.renderErrorTitle': 'लॉन्चर में समस्या आई',
+  'app.renderErrorDescription':
+    'यह स्क्रीन नहीं खुल सकी। लॉन्चर त्रुटि की रिपोर्ट अपने आप भेजेगा। फिर से कोशिश करने के लिए दोबारा लोड करें।',
+  'app.renderErrorRetryReport': 'रिपोर्ट फिर भेजें',
+  'app.renderErrorReporting': 'रिपोर्ट भेजी जा रही है…',
+  'app.renderErrorReported': 'समस्या की रिपोर्ट भेज दी गई। धन्यवाद!',
+  'app.renderErrorReportFailed': 'रिपोर्ट नहीं भेजी जा सकी। ऊपर दिखी त्रुटि साझा करें।',
+  'app.renderErrorReload': 'लॉन्चर दोबारा लोड करें',
   'nav.lobbyNavigation': 'लॉबी नेविगेशन',
   'nav.home': 'होम',
   'nav.settings': 'सेटिंग्स',
@@ -622,6 +697,7 @@ const hindi: Record<TranslationKey, string> = {
   'matchmaking.playWindow':
     'हर पात्र पूरे मैच पर +{{points}} अंक · {{start}}–{{end}} ({{timeZone}})',
   'matchmaking.playWindowReward': 'खेल समय बोनस',
+  'matchmaking.peakHours': 'पीक समय',
   'matchmaking.playWindowActive': 'बोनस अभी सक्रिय है',
   'matchmaking.playWindowInactive': 'बोनस समय के बाहर',
   'matchmaking.playWindowUnavailable': 'बोनस समय उपलब्ध नहीं है',

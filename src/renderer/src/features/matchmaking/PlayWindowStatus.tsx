@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Clock3 } from 'lucide-react'
 import type { NodePlayWindow } from '../../../../shared/play-window'
 import { isPlayWindowActive } from '../../../../shared/play-window'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
@@ -45,27 +46,23 @@ export function PlayWindowStatus({
 
   return (
     <div
-      className={twMerge('mt-1 h-10 text-xs', !visible && 'invisible', className)}
+      className={twMerge('min-h-12 text-xs', !visible && 'invisible', className)}
       aria-hidden={!visible}
     >
       <div
         className={twMerge(
-          'flex h-5 items-center gap-1.5 font-semibold',
+          'flex min-h-5 items-center gap-1.5 font-semibold',
           active && playWindow ? 'text-emerald-300' : 'text-neutral-400'
         )}
         aria-live="polite"
       >
-        <span
-          className={twMerge(
-            'size-1.5 shrink-0 rounded-full',
-            active && playWindow ? 'bg-emerald-400' : 'bg-neutral-500'
-          )}
-          aria-hidden="true"
-        />
-        <span className="truncate">{status}</span>
+        <Clock3 className="size-4 shrink-0" aria-hidden="true" />
+        <span className="shrink-0">{t('matchmaking.peakHours')}</span>
+        <span aria-hidden="true">·</span>
+        <span>{status}</span>
         <HelpTooltip text={tooltip} />
       </div>
-      <p className="h-5 truncate text-emerald-300" title={schedule}>
+      <p className="min-h-5 break-words text-emerald-300" title={schedule}>
         {schedule}
       </p>
     </div>

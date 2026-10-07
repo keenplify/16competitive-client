@@ -1,6 +1,14 @@
 import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
 import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
-import { memo, useEffect, useState, type JSX } from 'react'
+import {
+  Component,
+  memo,
+  useEffect,
+  useState,
+  type ErrorInfo,
+  type JSX,
+  type ReactNode
+} from 'react'
 import dustBackground from '../../assets/dust.jpg'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useAuthStore } from '../auth/auth.store'
@@ -45,6 +53,22 @@ const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
 const defaultWeaponModelPath = (weaponKey: string): string =>
   `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
 
+class LobbyModelErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('[Lobby] 3D scene failed; leaving the launcher UI available', error, info)
+  }
+
+  render(): ReactNode {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
 interface LobbySceneProps {
   player: AuthPlayer
   party: Party | null
@@ -76,28 +100,30 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
     <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
       <div className="relative flex min-h-0 flex-1">
         <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
-        <PartyModelScene
-          actors={members.map((member, index) => {
-            const isCurrentPlayer = member.id === player.id
-            const fallbackModelPath = modelForSlot(index, member)
-            const selectedModelPath = isCurrentPlayer
-              ? lobbyPlayerModel
-              : (member.lobbyPlayerModel ?? fallbackModelPath)
-            return {
-              member,
-              modelPath: presentationModelPath(selectedModelPath),
-              fallbackModelPath,
-              weaponPath: isCurrentPlayer
-                ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
-                : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
-              weaponSkinId: isCurrentPlayer ? lobbyWeaponSkinId : member.lobbyWeaponSkinId,
-              weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
-              isLeader: party?.leaderId === member.id,
-              isCurrentPlayer
-            }
-          })}
-          className="h-full min-h-[calc(100vh-5rem)] w-full"
-        />
+        <LobbyModelErrorBoundary>
+          <PartyModelScene
+            actors={members.map((member, index) => {
+              const isCurrentPlayer = member.id === player.id
+              const fallbackModelPath = modelForSlot(index, member)
+              const selectedModelPath = isCurrentPlayer
+                ? lobbyPlayerModel
+                : (member.lobbyPlayerModel ?? fallbackModelPath)
+              return {
+                member,
+                modelPath: presentationModelPath(selectedModelPath),
+                fallbackModelPath,
+                weaponPath: isCurrentPlayer
+                  ? (lobbyWeaponModelPath ?? defaultWeaponModelPath(lobbyWeaponKey))
+                  : (member.lobbyWeaponModelPath ?? defaultWeaponModelPath(member.lobbyWeaponKey)),
+                weaponSkinId: isCurrentPlayer ? lobbyWeaponSkinId : member.lobbyWeaponSkinId,
+                weaponKey: isCurrentPlayer ? lobbyWeaponKey : member.lobbyWeaponKey,
+                isLeader: party?.leaderId === member.id,
+                isCurrentPlayer
+              }
+            })}
+            className="h-full min-h-[calc(100vh-5rem)] w-full"
+          />
+        </LobbyModelErrorBoundary>
       </div>
     </div>
   )
