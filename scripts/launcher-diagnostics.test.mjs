@@ -120,6 +120,11 @@ test('delayed reports retain the launch version and fingerprint without storing 
     assert.match(report, /2026\.1006\.5/)
     assert.match(report, /c14104d3d89b/)
     assert.match(report, /2026-10-06T19:07:33/)
+    await saveMatchLaunchDiagnostics(directory, {
+      ...launchContext('standard-launch'),
+      handoff: 'startup-exec'
+    })
+    assert.match(await readMatchLaunchDiagnostics(directory, 'standard-launch'), /startup-exec/)
     assert.match(
       await readMatchLaunchDiagnostics(directory, 'missing'),
       /reporting client version may differ/

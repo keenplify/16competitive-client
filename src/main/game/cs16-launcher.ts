@@ -50,6 +50,7 @@ import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import helperRelease from '../../../helper-release.json'
 import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
 import {
+  matchConfigLaunchArgs,
   matchJoinCleanupConfig,
   matchJoinInfoKey,
   matchJoinKeysInConfig,
@@ -873,10 +874,15 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     ? activeScoreboardSession
     : null
   const useNativeNextClientMatchHandoff = nativeNextClientSession !== null
+  const connectionHandoff = useNativeNextClientMatchHandoff
+    ? 'native-nextclient'
+    : nextClient
+      ? 'userconfig'
+      : 'startup-exec'
 
-  // Use the game's userconfig.cfg startup path for every normal GoldSrc launch.
-  // The NextClient native host supplies its own private handoff instead.
-  if (!useNativeNextClientMatchHandoff) {
+  // NextClient cannot safely run startup +exec. Other GoldSrc clients use the
+  // explicit exec path; some standalone builds never execute userconfig.cfg.
+  if (nextClient && !useNativeNextClientMatchHandoff) {
     try {
       const session = await prepareMatchUserConfigHandoff(launchGameDirectory, matchConfigName)
       activeUserConfigHandoff = {
@@ -938,18 +944,20 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     }
   }
 
-  // Engine startup flags remain on the process command line. Console commands
-  // run from the launcher-owned match cfg through userconfig.cfg.
+  // Restore the standard GoldSrc startup exec so the password, identity
+  // reassertion and 20 wait frames run even without a userconfig startup hook.
   const directMatchArgs = [
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
-    ...matchJoinLaunchArgs(
-      input.matchId,
-      input.joinToken,
-      useNativeNextClientMatchHandoff ? 'native-nextclient' : 'userconfig'
-    )
+    ...matchJoinLaunchArgs(input.matchId, input.joinToken, connectionHandoff),
+    ...matchConfigLaunchArgs(matchConfigName, nextClient)
   ]
+  console.info('[GameLaunch] connection config execution selected', {
+    matchId: input.matchId,
+    handoff: connectionHandoff,
+    waitFrames: MATCH_IDENTITY_WAIT_FRAMES
+  })
   const gameArgs = directMatchArgs
   const launchArgs = [...launchTarget.argumentPrefix, ...gameArgs]
   launchedGameDirectory = cwd
@@ -1009,7 +1017,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         .update(input.joinToken, 'utf8')
         .digest('hex')
         .slice(0, 12),
-      handoff: useNativeNextClientMatchHandoff ? 'native-nextclient' : 'userconfig',
+      handoff: connectionHandoff,
       distribution: launchTarget.distribution
     }).catch((error: unknown) => {
       console.warn('[GameLaunch] could not save launch diagnostics', error)

@@ -1,11 +1,20 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  matchConfigLaunchArgs,
   matchJoinInfoKey,
   matchJoinKeysInConfig,
   matchJoinLaunchArgs,
   matchJoinCleanupConfig
 } from '../src/main/game/match-join-info-key.ts'
+
+test('standard GoldSrc explicitly executes the match cfg while NextClient never receives +exec', () => {
+  assert.deepEqual(matchConfigLaunchArgs('16competitive_match.cfg', false), [
+    '+exec',
+    '16competitive_match.cfg'
+  ])
+  assert.deepEqual(matchConfigLaunchArgs('16competitive_match.cfg', true), [])
+})
 
 test('derives a distinct bounded userinfo key for each match', () => {
   const first = matchJoinInfoKey('61f32a61-691b-4dcd-86da-ef133fb800d2')

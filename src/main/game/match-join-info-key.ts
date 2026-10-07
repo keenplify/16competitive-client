@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto'
 
+/** Standard GoldSrc executes the managed cfg explicitly after startup.
+ * NextClient must use its native/userconfig handoff because +exec can crash it.
+ */
+export const matchConfigLaunchArgs = (configName: string, nextClient: boolean): string[] =>
+  nextClient ? [] : ['+exec', configName]
+
 /** The match server derives the same key from competitive_match_id. */
 export const matchJoinInfoKey = (matchId: string): string =>
   `_16c_${createHash('sha256').update(matchId, 'utf8').digest('hex').slice(0, 16)}`
@@ -7,7 +13,7 @@ export const matchJoinInfoKey = (matchId: string): string =>
 export const matchJoinLaunchArgs = (
   matchId: string,
   token: string,
-  handoff: 'userconfig' | 'native-nextclient' = 'userconfig'
+  handoff: 'userconfig' | 'native-nextclient' | 'startup-exec' = 'userconfig'
 ): string[] =>
   // The native host applies and verifies identity after profile loading.
   // NextClient executes command-line setinfo before that profile reload.
