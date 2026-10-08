@@ -25,7 +25,8 @@ import type {
   SentPartyInvitation
 } from '../shared/party'
 import type { RedeemCodeResponse } from '../shared/redeem-codes'
-import type { CustomGameRoom, CustomGamesApi } from '../shared/custom-games'
+import type { CustomGameChatMessage, CustomGameRoom, CustomGamesApi } from '../shared/custom-games'
+import { isCustomGameChatMessage } from '../shared/custom-games'
 import type {
   LobbyLoadout,
   OwnedSkin,
@@ -142,6 +143,33 @@ const customGames: CustomGamesApi = {
         baseUrl: host
       })
     ).room
+  },
+  async getChatHistory(roomId, host) {
+    const result = await requestJson<{ messages: CustomGameChatMessage[] }>(
+      `/custom-games/${encodeURIComponent(roomId)}/messages`,
+      { authenticated: true, baseUrl: host }
+    )
+    if (
+      !Array.isArray(result.messages) ||
+      !result.messages.every((entry) => isCustomGameChatMessage(entry) && entry.roomId === roomId)
+    ) {
+      throw new Error('The custom game server returned invalid chat messages')
+    }
+    return result.messages
+  },
+  async sendChatMessage(roomId, message, host) {
+    const result = await requestJson<{ message: CustomGameChatMessage }>(
+      `/custom-games/${encodeURIComponent(roomId)}/messages`,
+      {
+        authenticated: true,
+        baseUrl: host,
+        init: { method: 'POST', body: JSON.stringify({ message }) }
+      }
+    )
+    if (!isCustomGameChatMessage(result.message) || result.message.roomId !== roomId) {
+      throw new Error('The custom game server returned an invalid chat message')
+    }
+    return result.message
   },
   async create(settings) {
     const [nodes, preferences] = await Promise.all([

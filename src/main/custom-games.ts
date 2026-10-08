@@ -2,11 +2,12 @@ import { getSessionToken } from './auth'
 import { getMatchmakingNodes, resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 import type {
   CustomGameMember,
+  CustomGameChatMessage,
   CustomGameRoom,
   CustomGameSettings,
   CustomGameSettingsUpdate
 } from '../shared/custom-games'
-import { isCustomGameMode } from '../shared/custom-games'
+import { isCustomGameChatMessage, isCustomGameMode } from '../shared/custom-games'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MAP_PATTERN = /^[a-z0-9_]{1,64}$/
@@ -324,4 +325,42 @@ export const kickCustomGameMember = async (
   if (typeof playerId !== 'string' || !UUID_PATTERN.test(playerId))
     throw new Error('Invalid player')
   return roomAction(roomId, `/members/${playerId}`, { method: 'DELETE' }, host)
+}
+
+export const getCustomGameChatHistory = async (
+  roomId: unknown,
+  host?: unknown
+): Promise<CustomGameChatMessage[]> => {
+  if (typeof roomId !== 'string' || !UUID_PATTERN.test(roomId)) throw new Error('Invalid room')
+  if (host !== undefined && typeof host !== 'string') throw new Error('Invalid custom game server')
+  const body = await request(`/custom-games/${roomId}/messages`, {}, host)
+  if (
+    !isObject(body) ||
+    !Array.isArray(body.messages) ||
+    !body.messages.every((entry) => isCustomGameChatMessage(entry) && entry.roomId === roomId)
+  ) {
+    throw new Error('The custom game server returned invalid chat messages')
+  }
+  return body.messages
+}
+
+export const sendCustomGameChatMessage = async (
+  roomId: unknown,
+  rawMessage: unknown,
+  host?: unknown
+): Promise<CustomGameChatMessage> => {
+  if (typeof roomId !== 'string' || !UUID_PATTERN.test(roomId)) throw new Error('Invalid room')
+  if (host !== undefined && typeof host !== 'string') throw new Error('Invalid custom game server')
+  if (typeof rawMessage !== 'string' || !rawMessage.trim() || rawMessage.trim().length > 300) {
+    throw new Error('Chat messages must contain 1–300 characters')
+  }
+  const body = await request(
+    `/custom-games/${roomId}/messages`,
+    { method: 'POST', body: JSON.stringify({ message: rawMessage.trim() }) },
+    host
+  )
+  if (!isObject(body) || !isCustomGameChatMessage(body.message) || body.message.roomId !== roomId) {
+    throw new Error('The custom game server returned an invalid chat message')
+  }
+  return body.message
 }

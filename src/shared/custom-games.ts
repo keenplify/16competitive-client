@@ -10,7 +10,9 @@ export const CUSTOM_GAME_CHANNELS = {
   setTeamCapacity: 'custom-games:set-team-capacity',
   moveServer: 'custom-games:move-server',
   moveMember: 'custom-games:move-member',
-  kick: 'custom-games:kick'
+  kick: 'custom-games:kick',
+  chatHistory: 'custom-games:chat-history',
+  chatSend: 'custom-games:chat-send'
 } as const
 
 export const SERVER_CUSTOM_GAME_MODES = [
@@ -67,6 +69,36 @@ export interface CustomGameRoom {
   members: CustomGameMember[]
 }
 
+export interface CustomGameChatMessage {
+  id: string
+  roomId: string
+  sender: { id: string; username: string }
+  message: string
+  sentAt: string
+}
+
+const CHAT_MESSAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export const isCustomGameChatMessage = (value: unknown): value is CustomGameChatMessage => {
+  if (typeof value !== 'object' || value === null) return false
+  const entry = value as Record<string, unknown>
+  if (typeof entry.sender !== 'object' || entry.sender === null) return false
+  const sender = entry.sender as Record<string, unknown>
+  return (
+    typeof entry.id === 'string' &&
+    CHAT_MESSAGE_ID.test(entry.id) &&
+    typeof entry.roomId === 'string' &&
+    CHAT_MESSAGE_ID.test(entry.roomId) &&
+    typeof sender.id === 'string' &&
+    typeof sender.username === 'string' &&
+    typeof entry.message === 'string' &&
+    entry.message.length > 0 &&
+    entry.message.length <= 300 &&
+    typeof entry.sentAt === 'string' &&
+    Number.isFinite(Date.parse(entry.sentAt))
+  )
+}
+
 export interface CustomGameSettings {
   name: string
   mode: CustomGameMode
@@ -105,4 +137,10 @@ export interface CustomGamesApi {
   ): Promise<CustomGameRoom>
   moveServer(roomId: string, targetNodeId: string, hostApiUrl?: string): Promise<CustomGameRoom>
   kick(roomId: string, playerId: string, hostApiUrl?: string): Promise<CustomGameRoom | null>
+  getChatHistory(roomId: string, hostApiUrl?: string): Promise<CustomGameChatMessage[]>
+  sendChatMessage(
+    roomId: string,
+    message: string,
+    hostApiUrl?: string
+  ): Promise<CustomGameChatMessage>
 }

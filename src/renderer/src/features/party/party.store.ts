@@ -10,9 +10,17 @@ import { useAuthStore } from '../auth/auth.store'
 import { playChatMessageSound } from '../chat/chat-message-sound'
 import { useLobbyLoadoutStore } from './lobby-loadout.store'
 import { buildMarketingLobby, MARKETING_LOBBY_ENABLED } from './marketing-lobby'
+import { communityLinks } from '../community/links'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
-export type ChatTab = 'party' | 'language' | 'global'
+export type ChatTab = 'party' | 'room' | 'language' | 'global'
+
+export interface CommunityChatAnnouncement {
+  id: string
+  label: string
+  href: string
+  sentAt: string
+}
 
 interface PartyState {
   party: Party | null
@@ -27,6 +35,7 @@ interface PartyState {
   chatError: string | null
   chatTab: ChatTab
   globalChatEntries: GlobalChatMessage[]
+  communityAnnouncement: CommunityChatAnnouncement | null
   languageChatEntries: GlobalChatMessage[]
   globalChatLanguage: string
   globalChatDraft: string
@@ -51,15 +60,68 @@ interface PartyState {
   setLanguageChatDraft: (message: string) => void
   setGlobalChatLanguage: (language: string) => Promise<void>
   sendGlobalChat: () => Promise<void>
+  maybeShowCommunityAnnouncement: () => void
   sendLanguageChat: () => Promise<void>
   reset: () => void
 }
 
 let removePartyEventListener: (() => void) | null = null
 let removeDiscordJoinListener: (() => void) | null = null
+let chatExpiryTimer: ReturnType<typeof setInterval> | null = null
 let partyRefreshInFlight: Promise<void> | null = null
 let partyRefreshQueued = false
 const MAX_CHAT_ENTRIES = 100
+const PUBLIC_CHAT_WINDOW_MS = 24 * 60 * 60 * 1000
+const COMMUNITY_ANNOUNCEMENT_COOLDOWN_MS = 30 * 60 * 1000
+const COMMUNITY_ANNOUNCEMENT_STORAGE_KEY = '16competitive.community-announcement'
+const socialLinks = communityLinks.filter(({ label }) => label !== 'Ko-fi')
+const communityAnnouncementMemory = new Map<string, { shownAt: number; index: number }>()
+
+const readCommunityAnnouncementState = (
+  playerId: string
+): { shownAt: number; index: number } | null => {
+  const fallback = communityAnnouncementMemory.get(playerId) ?? null
+  try {
+    const raw = window.localStorage.getItem(`${COMMUNITY_ANNOUNCEMENT_STORAGE_KEY}.${playerId}`)
+    if (!raw) return fallback
+    const value: unknown = JSON.parse(raw)
+    if (typeof value !== 'object' || value === null) return fallback
+    const { shownAt, index } = value as Record<string, unknown>
+    return typeof shownAt === 'number' &&
+      Number.isFinite(shownAt) &&
+      typeof index === 'number' &&
+      Number.isInteger(index) &&
+      index >= 0 &&
+      index < socialLinks.length
+      ? { shownAt, index }
+      : fallback
+  } catch {
+    return fallback
+  }
+}
+
+const writeCommunityAnnouncementState = (
+  playerId: string,
+  state: { shownAt: number; index: number }
+): void => {
+  communityAnnouncementMemory.set(playerId, state)
+  try {
+    window.localStorage.setItem(
+      `${COMMUNITY_ANNOUNCEMENT_STORAGE_KEY}.${playerId}`,
+      JSON.stringify(state)
+    )
+  } catch {
+    // Keep the in-memory cooldown when local storage is unavailable.
+  }
+}
+
+const recentGlobalChatEntries = (entries: GlobalChatMessage[]): GlobalChatMessage[] => {
+  const now = serverClockNow()
+  return entries.filter(({ sentAt }) => {
+    const timestamp = Date.parse(sentAt)
+    return Number.isFinite(timestamp) && timestamp > now - PUBLIC_CHAT_WINDOW_MS
+  })
+}
 
 const appendChatEntry = (entries: PartyChatEvent[], entry: PartyChatEvent): PartyChatEvent[] => {
   if (entries.some(({ id }) => id === entry.id)) return entries
@@ -72,7 +134,7 @@ const mergeGlobalChatEntries = (
 ): GlobalChatMessage[] => {
   const messages = new Map(entries.map((entry) => [entry.id, entry]))
   for (const entry of incoming) messages.set(entry.id, entry)
-  return [...messages.values()]
+  return recentGlobalChatEntries([...messages.values()])
     .sort((left, right) => left.sentAt.localeCompare(right.sentAt))
     .slice(-MAX_CHAT_ENTRIES)
 }
@@ -96,6 +158,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   chatError: null,
   chatTab: 'language',
   globalChatEntries: [],
+  communityAnnouncement: null,
   languageChatEntries: [],
   globalChatLanguage: 'en',
   globalChatDraft: '',
@@ -167,7 +230,21 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         })
       }
       if (event.type === 'global_chat_history') {
-        // Global rooms show messages received during this session only.
+        set((state) => {
+          if (event.scope === 'global') {
+            return {
+              globalChatEntries: mergeGlobalChatEntries(state.globalChatEntries, event.messages)
+            }
+          }
+          return event.language === state.globalChatLanguage
+            ? {
+                languageChatEntries: mergeGlobalChatEntries(
+                  state.languageChatEntries,
+                  event.messages
+                )
+              }
+            : {}
+        })
         return
       }
       if (event.type === 'match_found') {
@@ -265,6 +342,13 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       }
     })
 
+    chatExpiryTimer = setInterval(() => {
+      set((state) => ({
+        globalChatEntries: recentGlobalChatEntries(state.globalChatEntries),
+        languageChatEntries: recentGlobalChatEntries(state.languageChatEntries)
+      }))
+    }, 60_000)
+
     void get().refresh()
     void window.api.matchmaking.connect().catch((error: unknown) => {
       set({ error: readableError(error) })
@@ -276,6 +360,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     removePartyEventListener = null
     removeDiscordJoinListener?.()
     removeDiscordJoinListener = null
+    if (chatExpiryTimer) clearInterval(chatExpiryTimer)
+    chatExpiryTimer = null
     set({
       chatEntries: [],
       chatDraft: '',
@@ -527,6 +613,33 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     }
   },
 
+  maybeShowCommunityAnnouncement: () => {
+    const playerId = useAuthStore.getState().session?.player.id
+    if (!playerId || socialLinks.length === 0) return
+    const now = Date.now()
+    const previous = readCommunityAnnouncementState(playerId)
+    if (
+      previous &&
+      now >= previous.shownAt &&
+      now - previous.shownAt < COMMUNITY_ANNOUNCEMENT_COOLDOWN_MS
+    )
+      return
+    const index = previous
+      ? (previous.index + 1) % socialLinks.length
+      : Math.floor(Math.random() * socialLinks.length)
+    const link = socialLinks[index]
+    if (!link) return
+    writeCommunityAnnouncementState(playerId, { shownAt: now, index })
+    set({
+      communityAnnouncement: {
+        id: `community:${now}:${index}`,
+        label: link.label,
+        href: link.href,
+        sentAt: new Date(now).toISOString()
+      }
+    })
+  },
+
   sendLanguageChat: async () => {
     const message = get().languageChatDraft.trim()
     if (!message || get().languageChatSending) return
@@ -554,6 +667,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatError: null,
       chatTab: 'language',
       globalChatEntries: [],
+      communityAnnouncement: null,
       languageChatEntries: [],
       globalChatLanguage: 'en',
       globalChatDraft: '',

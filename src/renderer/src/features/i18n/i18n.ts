@@ -18,6 +18,16 @@ export type LanguageCode = 'en' | 'ru' | 'tl'
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
+  'chat.communityAnnouncement': 'Announcement',
+  'chat.communityVisit': 'Visit us on {{platform}}',
+  'chat.roomTab': 'Room Chat',
+  'chat.roomTabsLabel': 'Room and public chat',
+  'chat.roomPlaceholder': 'Say to the room',
+  'chat.roomMessageLabel': 'Room chat message',
+  'chat.roomMessagesLabel': 'Room chat messages',
+  'chat.roomEmpty': 'Room messages appear here.',
+  'chat.roomLoadError': 'Could not load room messages. Retrying…',
+  'chat.roomSendError': 'Could not send your message. Try again.',
   'app.renderErrorTitle': 'The launcher ran into a problem',
   'app.renderErrorDescription':
     'This screen could not load. The launcher will report the error automatically. Reload to try again.',
@@ -141,6 +151,16 @@ export type TranslationKey = keyof typeof english
 export type TranslationParams = Record<string, string | number>
 
 const russian: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'Объявление',
+  'chat.communityVisit': 'Посетите нас в {{platform}}',
+  'chat.roomTab': 'Чат комнаты',
+  'chat.roomTabsLabel': 'Чат комнаты и общий чат',
+  'chat.roomPlaceholder': 'Написать в комнату',
+  'chat.roomMessageLabel': 'Сообщение в чат комнаты',
+  'chat.roomMessagesLabel': 'Сообщения чата комнаты',
+  'chat.roomEmpty': 'Сообщения комнаты появятся здесь.',
+  'chat.roomLoadError': 'Не удалось загрузить сообщения. Повторяем попытку…',
+  'chat.roomSendError': 'Не удалось отправить сообщение. Попробуйте ещё раз.',
   'app.renderErrorTitle': 'В лаунчере произошла ошибка',
   'app.renderErrorDescription':
     'Не удалось открыть этот экран. Лаунчер сообщит об ошибке автоматически. Перезагрузите его, чтобы повторить попытку.',
@@ -264,6 +284,16 @@ const russian: Record<TranslationKey, string> = {
 }
 
 const taglish: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'Anunsyo',
+  'chat.communityVisit': 'Bisitahin kami sa {{platform}}',
+  'chat.roomTab': 'Room Chat',
+  'chat.roomTabsLabel': 'Room at public chat',
+  'chat.roomPlaceholder': 'Mag-message sa room',
+  'chat.roomMessageLabel': 'Mensahe sa room chat',
+  'chat.roomMessagesLabel': 'Mga mensahe sa room chat',
+  'chat.roomEmpty': 'Dito lalabas ang mga mensahe sa room.',
+  'chat.roomLoadError': 'Hindi ma-load ang mga mensahe. Susubukan ulit…',
+  'chat.roomSendError': 'Hindi naipadala ang mensahe. Subukan ulit.',
   'app.renderErrorTitle': 'Nagka-problema ang launcher',
   'app.renderErrorDescription':
     'Hindi ma-load ang screen na ito. Awtomatikong ire-report ng launcher ang error. I-reload para subukan ulit.',
@@ -387,6 +417,16 @@ const taglish: Record<TranslationKey, string> = {
 }
 
 const thai: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'ประกาศ',
+  'chat.communityVisit': 'เยี่ยมชมเราที่ {{platform}}',
+  'chat.roomTab': 'แชตห้อง',
+  'chat.roomTabsLabel': 'แชตห้องและแชตสาธารณะ',
+  'chat.roomPlaceholder': 'ส่งข้อความถึงห้อง',
+  'chat.roomMessageLabel': 'ข้อความแชตห้อง',
+  'chat.roomMessagesLabel': 'ข้อความในแชตห้อง',
+  'chat.roomEmpty': 'ข้อความในห้องจะปรากฏที่นี่',
+  'chat.roomLoadError': 'โหลดข้อความไม่ได้ กำลังลองอีกครั้ง…',
+  'chat.roomSendError': 'ส่งข้อความไม่ได้ โปรดลองอีกครั้ง',
   'app.renderErrorTitle': 'ตัวเปิดเกมพบปัญหา',
   'app.renderErrorDescription':
     'ไม่สามารถเปิดหน้านี้ได้ ตัวเปิดเกมจะรายงานข้อผิดพลาดอัตโนมัติ โปรดโหลดใหม่เพื่อลองอีกครั้ง',
@@ -508,6 +548,16 @@ const thai: Record<TranslationKey, string> = {
 }
 
 const indonesian: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'Pengumuman',
+  'chat.communityVisit': 'Kunjungi kami di {{platform}}',
+  'chat.roomTab': 'Obrolan Ruang',
+  'chat.roomTabsLabel': 'Obrolan ruang dan publik',
+  'chat.roomPlaceholder': 'Kirim pesan ke ruang',
+  'chat.roomMessageLabel': 'Pesan obrolan ruang',
+  'chat.roomMessagesLabel': 'Pesan obrolan ruang',
+  'chat.roomEmpty': 'Pesan ruang akan muncul di sini.',
+  'chat.roomLoadError': 'Tidak dapat memuat pesan. Mencoba lagi…',
+  'chat.roomSendError': 'Pesan tidak terkirim. Coba lagi.',
   'app.renderErrorTitle': 'Launcher mengalami masalah',
   'app.renderErrorDescription':
     'Halaman ini tidak dapat dimuat. Launcher akan melaporkan kesalahan secara otomatis. Muat ulang untuk mencoba lagi.',
@@ -634,6 +684,16 @@ const indonesian: Record<TranslationKey, string> = {
 }
 
 const portuguese: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'Aviso',
+  'chat.communityVisit': 'Visite-nos no {{platform}}',
+  'chat.roomTab': 'Chat da sala',
+  'chat.roomTabsLabel': 'Chat da sala e público',
+  'chat.roomPlaceholder': 'Enviar mensagem à sala',
+  'chat.roomMessageLabel': 'Mensagem do chat da sala',
+  'chat.roomMessagesLabel': 'Mensagens do chat da sala',
+  'chat.roomEmpty': 'As mensagens da sala aparecerão aqui.',
+  'chat.roomLoadError': 'Não foi possível carregar as mensagens. Tentando novamente…',
+  'chat.roomSendError': 'Não foi possível enviar a mensagem. Tente novamente.',
   'app.renderErrorTitle': 'O launcher encontrou um problema',
   'app.renderErrorDescription':
     'Não foi possível carregar esta tela. O launcher enviará o erro automaticamente. Recarregue para tentar novamente.',
@@ -761,6 +821,16 @@ const portuguese: Record<TranslationKey, string> = {
 }
 
 const japanese: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'お知らせ',
+  'chat.communityVisit': '{{platform}}をご覧ください',
+  'chat.roomTab': 'ルームチャット',
+  'chat.roomTabsLabel': 'ルームと公開チャット',
+  'chat.roomPlaceholder': 'ルームに送信',
+  'chat.roomMessageLabel': 'ルームチャットのメッセージ',
+  'chat.roomMessagesLabel': 'ルームチャットのメッセージ',
+  'chat.roomEmpty': 'ルームのメッセージはここに表示されます。',
+  'chat.roomLoadError': 'メッセージを読み込めません。再試行中…',
+  'chat.roomSendError': 'メッセージを送信できません。もう一度お試しください。',
   'app.renderErrorTitle': 'ランチャーで問題が発生しました',
   'app.renderErrorDescription':
     'この画面を読み込めませんでした。ランチャーがエラーを自動報告します。再読み込みしてお試しください。',
@@ -885,6 +955,16 @@ const japanese: Record<TranslationKey, string> = {
 }
 
 const hindi: Record<TranslationKey, string> = {
+  'chat.communityAnnouncement': 'घोषणा',
+  'chat.communityVisit': '{{platform}} पर हमें देखें',
+  'chat.roomTab': 'रूम चैट',
+  'chat.roomTabsLabel': 'रूम और सार्वजनिक चैट',
+  'chat.roomPlaceholder': 'रूम में संदेश भेजें',
+  'chat.roomMessageLabel': 'रूम चैट संदेश',
+  'chat.roomMessagesLabel': 'रूम चैट संदेश',
+  'chat.roomEmpty': 'रूम के संदेश यहाँ दिखाई देंगे।',
+  'chat.roomLoadError': 'संदेश लोड नहीं हो सके। फिर कोशिश की जा रही है…',
+  'chat.roomSendError': 'संदेश नहीं भेजा जा सका। फिर कोशिश करें।',
   'app.renderErrorTitle': 'लॉन्चर में समस्या आई',
   'app.renderErrorDescription':
     'यह स्क्रीन नहीं खुल सकी। लॉन्चर त्रुटि की रिपोर्ट अपने आप भेजेगा। फिर से कोशिश करने के लिए दोबारा लोड करें।',

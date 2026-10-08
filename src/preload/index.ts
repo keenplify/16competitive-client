@@ -162,6 +162,10 @@ const party: PartyApi = {
 const customGames: CustomGamesApi = {
   list: (selectedNodeId) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.list, selectedNodeId),
   mine: (host) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.mine, host),
+  getChatHistory: (roomId, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.chatHistory, roomId, host),
+  sendChatMessage: (roomId, message, host) =>
+    ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.chatSend, roomId, message, host),
   create: (settings) => ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.create, settings),
   update: (roomId, settings, host) =>
     ipcRenderer.invoke(CUSTOM_GAME_CHANNELS.update, roomId, settings, host),

@@ -31,7 +31,12 @@ import {
 } from './auth'
 import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
-import { activateIcafeBranch, getIcafeBranchInfo, linkIcafeBranch, unlinkIcafeBranch } from './icafe-branch'
+import {
+  activateIcafeBranch,
+  getIcafeBranchInfo,
+  linkIcafeBranch,
+  unlinkIcafeBranch
+} from './icafe-branch'
 import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
 import { getDailyQuests } from './daily-quests'
 import { matchmakingConnection } from './matchmaking'
@@ -145,6 +150,7 @@ import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 import {
   addCustomGameBot,
   createCustomGame,
+  getCustomGameChatHistory,
   getMyCustomGame,
   joinCustomGame,
   kickCustomGameMember,
@@ -153,6 +159,7 @@ import {
   moveCustomGameMember,
   moveCustomGameServer,
   setCustomGameTeamCapacity,
+  sendCustomGameChatMessage,
   startCustomGame,
   updateCustomGame
 } from './custom-games'
@@ -687,6 +694,14 @@ app.whenReady().then(async () => {
     listCustomGames(selectedNodeId)
   )
   ipcMain.handle(CUSTOM_GAME_CHANNELS.mine, (_, host: unknown) => getMyCustomGame(host))
+  ipcMain.handle(CUSTOM_GAME_CHANNELS.chatHistory, (_, roomId: unknown, host: unknown) =>
+    getCustomGameChatHistory(roomId, host)
+  )
+  ipcMain.handle(
+    CUSTOM_GAME_CHANNELS.chatSend,
+    (_, roomId: unknown, message: unknown, host: unknown) =>
+      sendCustomGameChatMessage(roomId, message, host)
+  )
   ipcMain.handle(CUSTOM_GAME_CHANNELS.create, (_, settings: unknown) => createCustomGame(settings))
   ipcMain.handle(
     CUSTOM_GAME_CHANNELS.update,

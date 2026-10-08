@@ -1,10 +1,12 @@
 import { create } from 'zustand'
 import type {
   CustomGameRoom,
+  CustomGameChatMessage,
   CustomGameSettings,
   CustomGameSettingsUpdate
 } from '../../../../shared/custom-games'
 import { useMatchmakingStore } from './matchmaking.store'
+import { usePartyStore } from '../party/party.store'
 
 interface CustomGamesState {
   playView: 'matchmaking' | 'custom'
@@ -15,6 +17,14 @@ interface CustomGamesState {
   error: string | null
   movingServer: boolean
   addingBot: boolean
+  chatRoomId: string | null
+  chatEntries: CustomGameChatMessage[]
+  chatDraft: string
+  chatSending: boolean
+  chatError: 'load' | 'send' | null
+  refreshChat: () => Promise<void>
+  setChatDraft: (draft: string) => void
+  sendChat: () => Promise<void>
   refresh: () => Promise<void>
   restoreRoom: (hostApiUrl: string) => Promise<void>
   setPlayView: (view: 'matchmaking' | 'custom') => void
@@ -36,6 +46,11 @@ interface CustomGamesState {
 const message = (error: unknown): string =>
   error instanceof Error ? error.message : 'Custom game request failed'
 
+const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMessage[]) =>
+  [...new Map([...existing, ...incoming].map((entry) => [entry.id, entry])).values()]
+    .sort((left, right) => left.sentAt.localeCompare(right.sentAt))
+    .slice(-100)
+
 export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   playView: 'matchmaking',
   createModalOpen: false,
@@ -45,6 +60,58 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   error: null,
   movingServer: false,
   addingBot: false,
+  chatRoomId: null,
+  chatEntries: [],
+  chatDraft: '',
+  chatSending: false,
+  chatError: null,
+  setChatDraft: (chatDraft) => set({ chatDraft: chatDraft.slice(0, 300), chatError: null }),
+  refreshChat: async () => {
+    const room = get().currentRoom
+    if (!room) {
+      set({ chatRoomId: null, chatEntries: [], chatDraft: '', chatSending: false, chatError: null })
+      return
+    }
+    if (get().chatRoomId !== room.id)
+      set({
+        chatRoomId: room.id,
+        chatEntries: [],
+        chatDraft: '',
+        chatSending: false,
+        chatError: null
+      })
+    try {
+      const incoming = await window.api.customGames.getChatHistory(room.id, room.hostApiUrl)
+      if (get().currentRoom?.id !== room.id || get().currentRoom?.hostApiUrl !== room.hostApiUrl)
+        return
+      set((state) => ({
+        chatEntries: mergeChat(state.chatEntries, incoming),
+        chatError: state.chatError === 'load' ? null : state.chatError
+      }))
+    } catch {
+      if (get().currentRoom?.id === room.id) set({ chatError: 'load' })
+    }
+  },
+  sendChat: async () => {
+    const room = get().currentRoom
+    const draft = get().chatDraft.trim()
+    if (!room || !draft || get().chatSending) return
+    set({ chatSending: true, chatError: null })
+    try {
+      const entry = await window.api.customGames.sendChatMessage(room.id, draft, room.hostApiUrl)
+      if (get().currentRoom?.id !== room.id) return
+      set((state) => ({
+        chatRoomId: room.id,
+        chatEntries: mergeChat(state.chatRoomId === room.id ? state.chatEntries : [], [entry]),
+        chatDraft: '',
+        chatSending: false
+      }))
+    } catch {
+      if (get().currentRoom?.id === room.id) set({ chatError: 'send', chatSending: false })
+    } finally {
+      if (get().currentRoom?.id === room.id) set({ chatSending: false })
+    }
+  },
   setPlayView: (playView) => set({ playView }),
   openCreateModal: () => set({ createModalOpen: true, error: null }),
   closeCreateModal: () => set({ createModalOpen: false }),
@@ -90,6 +157,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     try {
       const currentRoom = await window.api.customGames.create(settings)
       set({ currentRoom, status: 'ready' })
+      void usePartyStore.getState().refresh()
       await get().refresh()
       return true
     } catch (error) {
@@ -112,6 +180,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     set({ error: null })
     try {
       set({ currentRoom: await window.api.customGames.join(roomId, password, hostApiUrl) })
+      void usePartyStore.getState().refresh()
       await get().refresh()
       return true
     } catch (error) {
@@ -228,5 +297,17 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       set({ error: message(error) })
     }
   },
-  reset: () => set({ rooms: [], currentRoom: null, status: 'idle', error: null, addingBot: false })
+  reset: () =>
+    set({
+      rooms: [],
+      currentRoom: null,
+      status: 'idle',
+      error: null,
+      addingBot: false,
+      chatRoomId: null,
+      chatEntries: [],
+      chatDraft: '',
+      chatSending: false,
+      chatError: null
+    })
 }))
