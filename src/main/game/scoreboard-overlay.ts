@@ -105,6 +105,7 @@ export class ScoreboardOverlaySession {
   private transportMode = false
   private forceFullFeed = false
   private lastPresentation = ''
+  private lastRoundAccolade: string | null = null
   private busy = false
   private refreshTask: Promise<void> | null = null
   private frameTask: Promise<void> | null = null
@@ -337,6 +338,8 @@ export class ScoreboardOverlaySession {
           'native-scoreboard.tsv',
           'native-scoreboard.tmp',
           'overlay.png',
+          'round-accolade.state',
+          'round-accolade.support',
           'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv'
         ].map((name) => rm(join(directory, name), { force: true }))
       )
@@ -345,6 +348,7 @@ export class ScoreboardOverlaySession {
       })
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
+      await writeFile(join(directory, 'round-accolade.support'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
       const gameSettings = await getGameSettings()
       await writeCrosshairConfig(directory, gameSettings.crosshair)
@@ -679,6 +683,24 @@ export class ScoreboardOverlaySession {
         throw new Error('Scoreboard revision mismatch')
       const snapshot = this.parseSnapshot(feed)
       if (!snapshot) throw new Error('Invalid scoreboard snapshot')
+      const accoladeHeader = response.headers.get('x-round-accolade')
+      if (!accoladeHeader && this.lastRoundAccolade !== null) {
+        await unlink(join(this.directory, 'round-accolade.state')).catch(() => undefined)
+        this.lastRoundAccolade = null
+      }
+      if (accoladeHeader && accoladeHeader.length <= 220) {
+        const accolade = Buffer.from(accoladeHeader, 'base64').toString('utf8')
+        const fields = accolade.trimEnd().split('\t')
+        if (
+          /^\d{1,2}\t[12]\t[1-8]\t\d{1,2}\t\d{1,5}\t[^\t\r\n]{1,31}\n$/.test(accolade) &&
+          Number(fields[0]) <= snapshot.round &&
+          snapshot.players.some((player) => player.id === Number(fields[3]) && player.name === fields[5]) &&
+          accolade !== this.lastRoundAccolade
+        ) {
+          await writeLiveSessionFile(join(this.directory, 'round-accolade.state'), accolade)
+          this.lastRoundAccolade = accolade
+        }
+      }
       const nativePayload = response.headers.get('x-scoreboard-mode') === 'native-v1'
       if (
         nativePayload &&
