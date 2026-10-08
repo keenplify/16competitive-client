@@ -50,6 +50,7 @@ import {
 import { API_BASE_URL } from './config'
 import { getParty } from './party'
 import { discordPresence } from './discord-presence'
+import { checkForAppUpdates } from './updater'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_BASE_DELAY_MS = 1_000
@@ -788,9 +789,7 @@ class MatchmakingConnection {
         this.notifyLocalVoicePtt(connection.matchId, active, channel),
       apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
       onExit: ({ code, signal }) => {
-        discordPresence.setInGame(false)
-        this.focusLauncher()
-        this.notify({ type: 'game_process_exited', matchId: connection.matchId, code, signal })
+        this.handleGameProcessExit(connection.matchId, code, signal)
       }
     })
     this.yieldLauncherToGame()
@@ -936,6 +935,13 @@ class MatchmakingConnection {
       completedFiles: 0,
       totalFiles: 0
     })
+  }
+
+  private handleGameProcessExit(matchId: string, code: number | null, signal: string | null): void {
+    discordPresence.setInGame(false)
+    this.focusLauncher()
+    this.notify({ type: 'game_process_exited', matchId, code, signal })
+    checkForAppUpdates()
   }
 
   private focusLauncher(urgent = false, attentionDurationMs = MATCH_ATTENTION_DURATION_MS): void {
@@ -1266,14 +1272,7 @@ class MatchmakingConnection {
               onVoicePtt: (active, channel) =>
                 this.notifyLocalVoicePtt(parsed.matchId, active, channel),
               onExit: ({ code, signal }) => {
-                discordPresence.setInGame(false)
-                this.focusLauncher()
-                this.notify({
-                  type: 'game_process_exited',
-                  matchId: parsed.matchId,
-                  code,
-                  signal
-                })
+                this.handleGameProcessExit(parsed.matchId, code, signal)
               }
             })
             this.yieldLauncherToGame()
