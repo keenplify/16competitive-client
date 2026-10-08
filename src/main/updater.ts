@@ -9,6 +9,7 @@ let requiredUpdateVersion: string | null = null
 let updaterInitialized = false
 let lastSuccessfulUpdateCheck = 0
 let updateCheckInFlight: Promise<void> | null = null
+let postGameCheckPending = false
 
 const INSTALL_QUIT_TIMEOUT_MS = 2_000
 const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 7_500
@@ -169,6 +170,17 @@ export function checkForAppUpdates(): void {
   if (!supportsSelfUpdate()) return
   initializeUpdater()
   void runUpdateCheck().catch(() => undefined)
+}
+
+/** Defer the post-game check until the player has left the results screen. */
+export function markPostGameUpdateCheckPending(): void {
+  postGameCheckPending = true
+}
+
+export function checkForPostGameUpdateAtLobby(): void {
+  if (!postGameCheckPending) return
+  postGameCheckPending = false
+  checkForAppUpdates()
 }
 
 /** Reuse recent successful checks, retry failures, and keep known updates mandatory. */

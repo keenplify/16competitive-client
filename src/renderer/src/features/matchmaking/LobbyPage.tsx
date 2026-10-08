@@ -148,6 +148,7 @@ export function LobbyPage(): JSX.Element {
   const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const gameExitCount = useMatchmakingStore((state) => state.gameExitCount)
   const serverRestarting = useMatchmakingStore((state) => state.serverRestarting)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
   const dismissCompletedMatch = useMatchmakingStore((state) => state.dismissCompletedMatch)
@@ -274,6 +275,13 @@ export function LobbyPage(): JSX.Element {
   useEffect(() => {
     void connectMatchmaking()
   }, [connectMatchmaking])
+
+  useEffect(() => {
+    if (page !== 'lobby' || queueStatus !== 'idle' || completedMatch) return
+    void window.api.updater.checkAfterGameAtLobby().catch((error: unknown) => {
+      console.warn('[Updater] Post-game check could not start:', error)
+    })
+  }, [completedMatch, gameExitCount, page, queueStatus])
 
   useEffect(() => {
     const navigateOnEscape = (event: KeyboardEvent): void => {

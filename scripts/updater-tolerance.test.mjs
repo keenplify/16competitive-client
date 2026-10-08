@@ -83,6 +83,8 @@ async function harness() {
   await module.evaluate()
   return {
     ensure: module.namespace.ensureLatestClientForMatchmaking,
+    markPostGame: module.namespace.markPostGameUpdateCheckPending,
+    checkAtLobby: module.namespace.checkForPostGameUpdateAtLobby,
     actions,
     get checks() {
       return checks
@@ -95,6 +97,16 @@ async function harness() {
     }
   }
 }
+
+test('post-game update checks wait until the lobby and run once', async () => {
+  const client = await harness()
+  client.markPostGame()
+  assert.equal(client.checks, 0)
+  client.checkAtLobby()
+  assert.equal(client.checks, 1)
+  client.checkAtLobby()
+  assert.equal(client.checks, 1)
+})
 
 test('a first network failure retries before blocking matchmaking', async () => {
   const client = await harness()

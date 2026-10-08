@@ -50,7 +50,7 @@ import {
 import { API_BASE_URL } from './config'
 import { getParty } from './party'
 import { discordPresence } from './discord-presence'
-import { checkForAppUpdates } from './updater'
+import { markPostGameUpdateCheckPending } from './updater'
 type MatchConnection = Extract<MatchmakingServerMessage, { type: 'match_connect' }>
 
 const RECONNECT_BASE_DELAY_MS = 1_000
@@ -938,10 +938,10 @@ class MatchmakingConnection {
   }
 
   private handleGameProcessExit(matchId: string, code: number | null, signal: string | null): void {
+    markPostGameUpdateCheckPending()
     discordPresence.setInGame(false)
     this.focusLauncher()
     this.notify({ type: 'game_process_exited', matchId, code, signal })
-    checkForAppUpdates()
   }
 
   private focusLauncher(urgent = false, attentionDurationMs = MATCH_ATTENTION_DURATION_MS): void {

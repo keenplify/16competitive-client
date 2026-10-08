@@ -704,6 +704,9 @@ const api: Window['api'] = {
     async getStatus() {
       return { state: 'idle' }
     },
+    async checkAfterGameAtLobby() {
+      return
+    },
     async restartAndInstall() {
       window.location.reload()
     },

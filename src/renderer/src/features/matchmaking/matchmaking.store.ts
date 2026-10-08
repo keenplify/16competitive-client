@@ -100,6 +100,7 @@ interface MatchmakingState {
   assetPreparation: AssetPreparation
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
+  gameExitCount: number
   matchReadyAt: number | null
   copyConnectionStatus: 'idle' | 'copying' | 'copied'
   serverRestarting: { message: string; retryAfterMs: number } | null
@@ -375,9 +376,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? {
                 queueStatus: 'server_ready',
                 gameExited: true,
+                gameExitCount: state.gameExitCount + 1,
                 error: 'Counter-Strike closed. Reconnect to continue the match.'
               }
-            : {}
+            : { gameExitCount: state.gameExitCount + 1 }
         )
         break
       case 'match_finished':
@@ -556,6 +558,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
     connectionDetails: null,
     gameExited: false,
+    gameExitCount: 0,
     matchReadyAt: null,
     copyConnectionStatus: 'idle',
     serverRestarting: null,

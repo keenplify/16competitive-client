@@ -130,6 +130,7 @@ import {
 } from './skins'
 import {
   checkForAppUpdates,
+  checkForPostGameUpdateAtLobby,
   ensureLatestClientForMatchmaking,
   getAppUpdateStatus,
   restartAndInstallUpdate
@@ -905,6 +906,7 @@ app.whenReady().then(async () => {
     return settings
   })
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
+  ipcMain.handle(UPDATE_CHANNELS.checkAfterGameAtLobby, () => checkForPostGameUpdateAtLobby())
   ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, (_, continentOf: unknown) => {

@@ -260,6 +260,7 @@ const skins: SkinsApi = {
 const updater: UpdaterApi = {
   getCurrentVersion: () => ipcRenderer.invoke(UPDATE_CHANNELS.getCurrentVersion),
   getStatus: () => ipcRenderer.invoke(UPDATE_CHANNELS.getStatus),
+  checkAfterGameAtLobby: () => ipcRenderer.invoke(UPDATE_CHANNELS.checkAfterGameAtLobby),
   restartAndInstall: () => ipcRenderer.invoke(UPDATE_CHANNELS.restartAndInstall),
   onStatus: (listener) => {
     const handler = (
