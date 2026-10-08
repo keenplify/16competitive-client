@@ -41,6 +41,12 @@ export async function verifyPackagedHelper(binary: string, apiUrl?: string): Pro
     ).catch((error: unknown) => {
       throw new HelperApprovalConnectionError(error, origin.origin)
     })
+    if ([502, 503, 504].includes(response.status)) {
+      throw new HelperApprovalConnectionError(
+        new Error(`Helper approval service temporarily unavailable (HTTP ${response.status})`),
+        origin.origin
+      )
+    }
     if (!response.ok)
       throw new Error(
         `Helper release is not currently approved (${origin.origin}, HTTP ${response.status})`

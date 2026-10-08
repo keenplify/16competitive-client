@@ -124,6 +124,15 @@ session. Signature/hash verification does not prove that memory is unmodified or
 that an attacker follows this source code. Modified clients can omit these checks.
 Server evidence remains authoritative.
 
+An already verified, heartbeating session retries transport errors and HTTP
+502/503/504 from the same approval origin for at most 60 seconds, every two
+seconds. The helper keeps running during that brief API outage. This never
+creates a cached approval or permits a new session without approval. Every
+retry still checks local bytes and signatures. Explicit rejection, altered
+bytes, invalid signatures, logout, or an expired retry window retain fail-closed
+behavior. Deploy this launcher update before relying on uninterrupted live API
+releases; older launchers may terminate the game if an approval poll hits downtime.
+
 ## Initial setup still required
 
 The public-key field is deliberately blank until you create the production signing

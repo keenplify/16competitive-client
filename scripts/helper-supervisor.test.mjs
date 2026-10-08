@@ -15,7 +15,10 @@ const source = ts.transpileModule(
 ).outputText
 const settle = () => new Promise((resolve) => setImmediate(resolve))
 
-async function harness() {
+async function harness({ signed = false } = {}) {
+  class HelperApprovalConnectionError extends Error {}
+  let verificationError = null
+  let verificationCalls = 0
   const children = []
   const intervals = []
   const reports = []
@@ -59,12 +62,18 @@ async function harness() {
     '../config': {
       API_BASE_URL: 'https://api.example.test',
       LOCAL_DEVELOPMENT: false,
-      REQUIRES_SIGNED_HELPER: false
+      REQUIRES_SIGNED_HELPER: signed
     },
     './failure-reports': {
       reportAntiCheatFailure: (stage, context) => reports.push({ stage, ...context })
     },
-    './helper-integrity': { verifyPackagedHelper: async () => {} },
+    './helper-integrity': {
+      HelperApprovalConnectionError,
+      verifyPackagedHelper: async () => {
+        verificationCalls++
+        if (verificationError) throw verificationError
+      }
+    },
     './game-screenshots': {
       GameScreenshotCollector: class {
         start() {
@@ -121,8 +130,18 @@ async function harness() {
     failSpawn() {
       failSpawn = true
     },
-    tick(milliseconds = 0) {
+    setVerificationFailure(kind) {
+      verificationError =
+        kind === 'offline'
+          ? new HelperApprovalConnectionError('offline')
+          : kind
+            ? new Error(kind)
+            : null
+    },
+    verificationCalls: () => verificationCalls,
+    tick(milliseconds = 0, heartbeat = false) {
       clock += milliseconds
+      if (heartbeat) children.at(-1)?.stdout.write('{"event":"heartbeat"}\n')
       for (const interval of [...intervals]) if (interval.active) interval.callback()
     }
   }
@@ -247,4 +266,60 @@ test('match API is retained for helper startup and recovery; no match uses prefe
   const preferred = await h.start(options)
   assert.equal(h.children.at(-1).commands[0].apiUrl, 'https://regional.example.test')
   preferred.stop('test')
+})
+
+test('an active signed session keeps its helper and game during a short approval outage', async () => {
+  const h = await harness({ signed: true })
+  let failures = 0
+  const session = await h.start({ ...options, onIntegrityFailure: () => failures++ })
+  h.setVerificationFailure('offline')
+  h.tick(60_001, true)
+  await settle()
+  assert.equal(h.children.length, 1)
+  assert.equal(failures, 0)
+  h.tick(1_000, true)
+  await settle()
+  assert.equal(h.verificationCalls(), 1, 'retries are spaced apart')
+  h.setVerificationFailure(null)
+  h.tick(1_000, true)
+  await settle()
+  assert.equal(h.verificationCalls(), 2)
+  assert.equal(h.children.length, 1)
+  assert.equal(failures, 0)
+  session.stop('done')
+})
+
+test('continued approval outage fails closed after a bounded minute', async () => {
+  const h = await harness({ signed: true })
+  let failures = 0
+  const session = await h.start({ ...options, onIntegrityFailure: () => failures++ })
+  h.setVerificationFailure('offline')
+  h.tick(60_001, true)
+  await settle()
+  h.tick(30_000, true)
+  await settle()
+  assert.equal(failures, 0)
+  h.tick(30_000, true)
+  await settle()
+  assert.equal(failures, 1)
+  assert.equal(h.children.length, 1, 'does not restart the helper to reset the grace')
+  session.stop('done')
+})
+
+test('explicit rejection or changed bytes cannot use the temporary outage grace', async () => {
+  for (const error of ['not approved', 'signature verification failed', 'binary hash mismatch']) {
+    const h = await harness({ signed: true })
+    let failures = 0
+    const session = await h.start({ ...options, onIntegrityFailure: () => failures++ })
+    h.setVerificationFailure('offline')
+    h.tick(60_001, true)
+    await settle()
+    h.setVerificationFailure(error)
+    h.failSpawn()
+    h.tick(2_000, true)
+    await settle()
+    await settle()
+    assert.equal(failures, 1)
+    session.stop('done')
+  }
 })

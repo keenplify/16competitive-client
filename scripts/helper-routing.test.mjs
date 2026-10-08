@@ -24,8 +24,8 @@ async function harness() {
       calls.push({ url: String(url), options })
       if (response === 'offline') throw new Error('unreachable')
       return {
-        ok: response !== 'revoked',
-        status: response === 'revoked' ? 404 : 200,
+        ok: response !== 'revoked' && typeof response !== 'number',
+        status: typeof response === 'number' ? response : response === 'revoked' ? 404 : 200,
         json: async () =>
           response === 'mismatch' ? { ...manifest, sha256: 'different' } : manifest
       }
@@ -109,4 +109,19 @@ test('connection failure identifies the regional endpoint and is not cached as a
   h.setResponse('approved')
   await h.verify('/helper/binary')
   assert.equal(h.calls.length, 2)
+})
+
+test('only temporary gateway/service errors are retryable, never authorization rejections', async () => {
+  for (const status of [502, 503, 504, 401, 403, 404, 500]) {
+    const h = await harness()
+    h.setResponse(status)
+    await assert.rejects(h.verify('/helper/binary'), (error) =>
+      [502, 503, 504].includes(status)
+        ? error.name === 'HelperApprovalConnectionError'
+        : error.name !== 'HelperApprovalConnectionError'
+    )
+    h.setResponse('approved')
+    await h.verify('/helper/binary')
+    assert.equal(h.calls.length, 2, 'service errors never count as cached approval')
+  }
 })

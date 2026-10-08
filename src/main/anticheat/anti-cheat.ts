@@ -4,7 +4,7 @@ import { API_BASE_URL, LOCAL_DEVELOPMENT, REQUIRES_SIGNED_HELPER } from '../conf
 import type { Cs16Distribution } from '../game/cs16-installation'
 import { resolveServiceApiUrl } from '../matchmaking-regions'
 import { spawnHelper, writeHelper } from './helper-process'
-import { verifyPackagedHelper } from './helper-integrity'
+import { HelperApprovalConnectionError, verifyPackagedHelper } from './helper-integrity'
 import { GameScreenshotCollector } from './game-screenshots'
 import { reportAntiCheatFailure, type AntiCheatFailureStage } from './failure-reports'
 
@@ -33,6 +33,8 @@ export class AntiCheatSession {
   private recovering = false
   private integrityChecking = false
   private lastIntegrityCheck = 0
+  private approvalRetryUntil = 0
+  private nextIntegrityAttempt = 0
   private readonly screenshots: GameScreenshotCollector
 
   constructor(private readonly options: AntiCheatSessionOptions) {
@@ -76,6 +78,8 @@ export class AntiCheatSession {
     this.currentToken = token
     this.lastHeartbeat = Date.now()
     this.lastIntegrityCheck = Date.now()
+    this.approvalRetryUntil = 0
+    this.nextIntegrityAttempt = 0
     let output = ''
     await new Promise<void>((resolve, reject) => {
       let ready = false
@@ -205,18 +209,37 @@ export class AntiCheatSession {
         this.currentToken = token
         this.send({ command: 'auth', token })
       }
+      if (this.approvalRetryUntil && Date.now() >= this.approvalRetryUntil) {
+        this.report('session-verification', {
+          error: new Error('Helper approval service remained unavailable for 60 seconds')
+        })
+        this.failClosed()
+        return
+      }
       if (
         REQUIRES_SIGNED_HELPER &&
         !this.integrityChecking &&
+        Date.now() >= this.nextIntegrityAttempt &&
         Date.now() - this.lastIntegrityCheck >= 60_000
       ) {
         this.integrityChecking = true
         void verifyPackagedHelper(child.spawnfile, this.apiUrl)
           .then(() => {
+            if (this.stopped || this.child !== child) return
             this.lastIntegrityCheck = Date.now()
+            this.approvalRetryUntil = 0
+            this.nextIntegrityAttempt = 0
           })
           .catch((error: unknown) => {
             if (!this.stopped && this.child === child) {
+              // Keep an already verified, heartbeating helper alive during a
+              // short API restart. Every retry still verifies local bytes and
+              // signatures; rejection/tampering never receives this grace.
+              if (error instanceof HelperApprovalConnectionError) {
+                this.approvalRetryUntil ||= Date.now() + 60_000
+                this.nextIntegrityAttempt = Date.now() + 2_000
+                return
+              }
               this.report('session-verification', { error })
               void this.recover()
             }
