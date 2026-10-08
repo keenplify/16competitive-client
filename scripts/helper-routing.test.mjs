@@ -19,15 +19,20 @@ async function harness() {
     URL,
     AbortSignal,
     Date,
+    setTimeout: (callback) => callback(),
     process: { platform: 'linux', arch: 'x64' },
     fetch: async (url, options) => {
       calls.push({ url: String(url), options })
-      if (response === 'offline') throw new Error('unreachable')
+      const current = Array.isArray(response) ? response.shift() : response
+      if (current === 'offline') throw new Error('unreachable')
+      if (current === 'timeout')
+        throw Object.assign(new Error('The operation was aborted due to timeout'), {
+          name: 'TimeoutError'
+        })
       return {
-        ok: response !== 'revoked' && typeof response !== 'number',
-        status: typeof response === 'number' ? response : response === 'revoked' ? 404 : 200,
-        json: async () =>
-          response === 'mismatch' ? { ...manifest, sha256: 'different' } : manifest
+        ok: current !== 'revoked' && typeof current !== 'number',
+        status: typeof current === 'number' ? current : current === 'revoked' ? 404 : 200,
+        json: async () => (current === 'mismatch' ? { ...manifest, sha256: 'different' } : manifest)
       }
     }
   })
@@ -108,7 +113,17 @@ test('connection failure identifies the regional endpoint and is not cached as a
   )
   h.setResponse('approved')
   await h.verify('/helper/binary')
-  assert.equal(h.calls.length, 2)
+  assert.equal(h.calls.length, 3)
+})
+
+test('temporary timeout or gateway failure retries the same approval service', async () => {
+  for (const first of ['timeout', 503]) {
+    const h = await harness()
+    h.setResponse([first, 'approved'])
+    await h.verify('/helper/binary')
+    assert.equal(h.calls.length, 2)
+    assert.equal(h.calls[0].url, h.calls[1].url)
+  }
 })
 
 test('only temporary gateway/service errors are retryable, never authorization rejections', async () => {
@@ -122,6 +137,10 @@ test('only temporary gateway/service errors are retryable, never authorization r
     )
     h.setResponse('approved')
     await h.verify('/helper/binary')
-    assert.equal(h.calls.length, 2, 'service errors never count as cached approval')
+    assert.equal(
+      h.calls.length,
+      [502, 503, 504].includes(status) ? 3 : 2,
+      'service errors never count as cached approval'
+    )
   }
 })

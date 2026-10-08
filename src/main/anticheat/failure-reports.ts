@@ -11,6 +11,7 @@ import { reportDiagnosticIssue } from '../diagnostic-logs'
 import { redactReportLogs } from '../game/game-console-logs'
 import { writeLiveSessionFile } from '../game/live-session-file'
 import { FailureReportQueue, parseFailureReports } from './failure-report-queue'
+import { APPROVAL_TIMEOUT_MS } from './helper-integrity'
 
 export type AntiCheatFailureStage =
   | 'app-verification'
@@ -102,7 +103,7 @@ export async function recordAntiCheatFailure(
       osRelease: release(),
       apiOrigin,
       approvalOrigin: apiOrigin,
-      approvalTimeoutMs: 5000,
+      approvalTimeoutMs: APPROVAL_TIMEOUT_MS,
       matchId: context.matchId,
       distribution: context.distribution,
       restartCount: context.restartCount,

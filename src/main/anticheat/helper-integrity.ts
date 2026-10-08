@@ -6,6 +6,9 @@ import { verifyHelperBinary, verifyHelperRelease } from './helper-release-verifi
 import { resolveServiceApiUrl } from '../matchmaking-regions'
 
 const approvals = new Map<string, number>()
+export const APPROVAL_TIMEOUT_MS = 10_000
+const APPROVAL_RETRY_DELAY_MS = 750
+const APPROVAL_ATTEMPTS = 2
 
 export class HelperApprovalConnectionError extends Error {
   constructor(
@@ -35,26 +38,38 @@ export async function verifyPackagedHelper(binary: string, apiUrl?: string): Pro
     throw new Error('Invalid helper registry')
   const key = `${origin.origin}/${manifest.version}/${manifest.platform}/${manifest.arch}`
   if (Date.now() >= (approvals.get(key) ?? 0)) {
-    const response = await fetch(
-      new URL(`/helper-releases/${manifest.version}/${manifest.platform}/${manifest.arch}`, origin),
-      { signal: AbortSignal.timeout(5000), redirect: 'error', cache: 'no-store' }
-    ).catch((error: unknown) => {
-      throw new HelperApprovalConnectionError(error, origin.origin)
-    })
-    if ([502, 503, 504].includes(response.status)) {
-      throw new HelperApprovalConnectionError(
-        new Error(`Helper approval service temporarily unavailable (HTTP ${response.status})`),
-        origin.origin
-      )
+    for (let attempt = 0; attempt < APPROVAL_ATTEMPTS; attempt++) {
+      try {
+        const response = await fetch(
+          new URL(
+            `/helper-releases/${manifest.version}/${manifest.platform}/${manifest.arch}`,
+            origin
+          ),
+          { signal: AbortSignal.timeout(APPROVAL_TIMEOUT_MS), redirect: 'error', cache: 'no-store' }
+        ).catch((error: unknown) => {
+          throw new HelperApprovalConnectionError(error, origin.origin)
+        })
+        if ([502, 503, 504].includes(response.status)) {
+          throw new HelperApprovalConnectionError(
+            new Error(`Helper approval service temporarily unavailable (HTTP ${response.status})`),
+            origin.origin
+          )
+        }
+        if (!response.ok)
+          throw new Error(
+            `Helper release is not currently approved (${origin.origin}, HTTP ${response.status})`
+          )
+        const approved: unknown = await response.json()
+        const approvedManifest = verifyHelperRelease(approved, releaseConfig.publicKeyPem)
+        if (JSON.stringify(approvedManifest) !== JSON.stringify(manifest))
+          throw new Error('Helper release differs from backend approval')
+        approvals.set(key, Date.now() + 60_000)
+        return
+      } catch (error) {
+        if (!(error instanceof HelperApprovalConnectionError) || attempt === APPROVAL_ATTEMPTS - 1)
+          throw error
+        await new Promise((resolve) => setTimeout(resolve, APPROVAL_RETRY_DELAY_MS))
+      }
     }
-    if (!response.ok)
-      throw new Error(
-        `Helper release is not currently approved (${origin.origin}, HTTP ${response.status})`
-      )
-    const approved: unknown = await response.json()
-    const approvedManifest = verifyHelperRelease(approved, releaseConfig.publicKeyPem)
-    if (JSON.stringify(approvedManifest) !== JSON.stringify(manifest))
-      throw new Error('Helper release differs from backend approval')
-    approvals.set(key, Date.now() + 60_000)
   }
 }
