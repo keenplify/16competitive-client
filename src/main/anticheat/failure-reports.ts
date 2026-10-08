@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { createHash } from 'node:crypto'
 import { lstat, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { serverClockNow } from '../../shared/server-clock'
 import { release } from 'node:os'
 import helperRelease from '../../../helper-release.json'
 import { resolveServiceApiUrl } from '../matchmaking-regions'
@@ -30,7 +31,7 @@ const queue = new FailureReportQueue({
     try {
       const info = await lstat(path())
       if (!info.isFile() || info.size > 256_000) return []
-      return parseFailureReports(await readFile(path(), 'utf8'), Date.now())
+      return parseFailureReports(await readFile(path(), 'utf8'), serverClockNow())
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
         console.warn('[AntiCheatReport] could not read pending reports')
@@ -84,7 +85,7 @@ export async function recordAntiCheatFailure(
         )
       ).slice(0, 600)
     const cause = error?.cause instanceof Error ? error.cause : null
-    const at = Date.now()
+    const at = serverClockNow()
     const owner = getSessionUsername()
     const apiOrigin = context.apiUrl
       ? new URL(context.apiUrl).origin

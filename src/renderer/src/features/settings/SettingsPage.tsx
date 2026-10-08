@@ -13,6 +13,7 @@ import {
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { CUSTOM_HUD_ENABLED } from '../../../../shared/custom-hud'
+import { serverClockNow } from '../../../../shared/server-clock'
 import { Button } from '../../components/ui/Button'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
@@ -98,7 +99,7 @@ export function SettingsPage(): JSX.Element {
     'idle'
   )
   const [usernameNotice, setUsernameNotice] = useState<string | null>(null)
-  const [currentTime, setCurrentTime] = useState(() => Date.now())
+  const [currentTime, setCurrentTime] = useState(serverClockNow)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -184,7 +185,7 @@ export function SettingsPage(): JSX.Element {
     usernameCooldownActive || !usernameIsValid || usernameMatchesCurrent ? 'idle' : availability
 
   useEffect(() => {
-    const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000)
+    const timer = window.setInterval(() => setCurrentTime(serverClockNow()), 30_000)
     return () => window.clearInterval(timer)
   }, [])
 

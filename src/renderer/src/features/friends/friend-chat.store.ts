@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { FriendChatMessage, FriendPlayer } from '../../../../shared/friends'
+import { serverClockNow } from '../../../../shared/server-clock'
 import { useAuthStore } from '../auth/auth.store'
 import { playChatMessageSound } from '../chat/chat-message-sound'
 
@@ -77,7 +78,7 @@ const readOfflineMarker = (playerId: string): string | null => {
   }
 }
 
-const writeOfflineMarker = (playerId: string, at = new Date().toISOString()): void => {
+const writeOfflineMarker = (playerId: string, at = new Date(serverClockNow()).toISOString()): void => {
   try {
     window.localStorage.setItem(offlineMarkerKey(playerId), at)
   } catch {

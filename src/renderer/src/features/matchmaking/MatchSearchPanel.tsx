@@ -3,6 +3,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { serverClockNow } from '../../../../shared/server-clock'
 import { useMatchmakingStore } from './matchmaking.store'
 import { usePartyStore } from '../party/party.store'
 import { useAuthStore } from '../auth/auth.store'
@@ -37,7 +38,7 @@ export function MatchSearchPanel({
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
   const maps = useMatchmakingStore((state) => state.maps)
   const leaveQueue = useMatchmakingStore((state) => state.leaveQueue)
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(serverClockNow)
 
   const isJoining = queueStatus === 'joining'
   const isLeaving = queueStatus === 'leaving'
@@ -45,7 +46,7 @@ export function MatchSearchPanel({
 
   useEffect(() => {
     if (!isSearching) return
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000)
+    const timer = window.setInterval(() => setNow(serverClockNow()), 1_000)
     return () => window.clearInterval(timer)
   }, [isSearching])
 

@@ -18,11 +18,19 @@ import { API_BASE_URL } from './config'
 import { app, safeStorage, shell } from 'electron'
 import { readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { serverClockNow, syncServerClock } from '../shared/server-clock'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,32}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SOCIAL_POLL_INTERVAL_MS = 1_250
 const SOCIAL_LOGIN_MAX_MS = 10 * 60 * 1000
+
+const fetchWithServerClock = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+  const response = await globalThis.fetch(...args)
+  const serverDate = response.headers.get('date')
+  if (serverDate) syncServerClock(serverDate)
+  return response
+}
 
 interface BackendAuthResponse {
   token: string
@@ -257,7 +265,7 @@ const getErrorMessage = (value: unknown, status: number): string => {
 }
 
 const fetchUsernameStatus = async (token: string): Promise<UsernameStatus> => {
-  const response = await fetch(`${API_BASE_URL}/auth/username/status`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/username/status`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
@@ -303,8 +311,8 @@ const validateAuthorizationUrl = (value: string): URL => {
 const socialDeadline = (expiresAt: string): number => {
   const serverExpiry = Date.parse(expiresAt)
   return Math.min(
-    Number.isFinite(serverExpiry) ? serverExpiry : Date.now() + SOCIAL_LOGIN_MAX_MS,
-    Date.now() + SOCIAL_LOGIN_MAX_MS
+    Number.isFinite(serverExpiry) ? serverExpiry : serverClockNow() + SOCIAL_LOGIN_MAX_MS,
+    serverClockNow() + SOCIAL_LOGIN_MAX_MS
   )
 }
 
@@ -325,7 +333,7 @@ const activateSocialAuthorization = (
 export const reopenSocialAuthorization = async (untrustedProvider: unknown): Promise<void> => {
   const provider = validateSocialProvider(untrustedProvider)
   const active = activeSocialAuthorization
-  if (!active || active.provider !== provider || active.expiresAt <= Date.now()) {
+  if (!active || active.provider !== provider || active.expiresAt <= serverClockNow()) {
     throw new Error('This social login is no longer active. Please start it again.')
   }
   await shell.openExternal(active.url)
@@ -339,7 +347,7 @@ export const authenticate = async (
   let response: Response
 
   try {
-    response = await fetch(`${API_BASE_URL}/auth/${action}`, {
+    response = await fetchWithServerClock(`${API_BASE_URL}/auth/${action}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -366,7 +374,7 @@ export const authenticateWithSocial = async (
   untrustedProvider: unknown
 ): Promise<SocialAuthResult> => {
   const provider = validateSocialProvider(untrustedProvider)
-  const startResponse = await fetch(`${API_BASE_URL}/auth/social/start`, {
+  const startResponse = await fetchWithServerClock(`${API_BASE_URL}/auth/social/start`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ provider }),
@@ -390,10 +398,10 @@ export const authenticateWithSocial = async (
 
   try {
     await shell.openExternal(active.url)
-    while (Date.now() < deadline) {
+    while (serverClockNow() < deadline) {
       await delay(SOCIAL_POLL_INTERVAL_MS)
 
-      const response = await fetch(`${API_BASE_URL}/auth/social/complete`, {
+      const response = await fetchWithServerClock(`${API_BASE_URL}/auth/social/complete`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ pollToken: startBody.pollToken }),
@@ -447,7 +455,7 @@ export const completeSocialWithEmail = async (
     throw new Error('Enter a valid email address')
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/social/complete-email`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/social/complete-email`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ pollToken: untrustedPollToken, email: untrustedEmail.trim() }),
@@ -457,10 +465,10 @@ export const completeSocialWithEmail = async (
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) throw new Error(getErrorMessage(body, response.status))
 
-  const deadline = Date.now() + SOCIAL_LOGIN_MAX_MS
-  while (Date.now() < deadline) {
+  const deadline = serverClockNow() + SOCIAL_LOGIN_MAX_MS
+  while (serverClockNow() < deadline) {
     await delay(SOCIAL_POLL_INTERVAL_MS)
-    const pollResponse = await fetch(`${API_BASE_URL}/auth/social/complete`, {
+    const pollResponse = await fetchWithServerClock(`${API_BASE_URL}/auth/social/complete`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ pollToken: untrustedPollToken }),
@@ -502,7 +510,7 @@ export const completeSocialWithPassword = async (
     throw new Error('Enter your account password')
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/social/complete-password`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/social/complete-password`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ pollToken: untrustedPollToken, password: untrustedPassword }),
@@ -519,7 +527,7 @@ export const completeSocialWithPassword = async (
 
 export const getSocialConnections = async (): Promise<SocialConnections> => {
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/social/connections`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/social/connections`, {
     headers: { authorization: `Bearer ${sessionToken}` },
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
@@ -534,7 +542,7 @@ export const getSocialConnections = async (): Promise<SocialConnections> => {
 
 export const getReferralStatus = async (): Promise<ReferralStatus> => {
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/referral`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/referral`, {
     headers: { authorization: `Bearer ${sessionToken}` },
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
@@ -561,7 +569,7 @@ export const claimReferralCode = async (untrustedCode: unknown): Promise<{ claim
     throw new Error('Enter a valid referral code')
   }
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/referral/claim`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/referral/claim`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -587,7 +595,7 @@ export const connectSocial = async (untrustedProvider: unknown): Promise<SocialC
   const provider = validateSocialProvider(untrustedProvider)
   if (!sessionToken) throw new Error('Authentication required')
 
-  const startResponse = await fetch(`${API_BASE_URL}/auth/social/link/start`, {
+  const startResponse = await fetchWithServerClock(`${API_BASE_URL}/auth/social/link/start`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -613,9 +621,9 @@ export const connectSocial = async (untrustedProvider: unknown): Promise<SocialC
 
   try {
     await shell.openExternal(active.url)
-    while (Date.now() < deadline) {
+    while (serverClockNow() < deadline) {
       await delay(SOCIAL_POLL_INTERVAL_MS)
-      const response = await fetch(`${API_BASE_URL}/auth/social/link/complete`, {
+      const response = await fetchWithServerClock(`${API_BASE_URL}/auth/social/link/complete`, {
         method: 'POST',
         headers: {
           authorization: `Bearer ${sessionToken}`,
@@ -644,7 +652,7 @@ export const connectSocial = async (untrustedProvider: unknown): Promise<SocialC
 export const checkUsername = async (untrustedUsername: unknown): Promise<UsernameAvailability> => {
   const username = validateUsername(untrustedUsername)
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/username/check`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/username/check`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -669,7 +677,7 @@ export const checkUsername = async (untrustedUsername: unknown): Promise<Usernam
 export const changeUsername = async (untrustedUsername: unknown): Promise<UsernameChangeResult> => {
   const username = validateUsername(untrustedUsername)
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/username`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/username`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -706,7 +714,7 @@ export const changeFlagCountryCode = async (
   if (!sessionToken) throw new Error('Authentication required')
   const flagCountryCode =
     typeof untrustedFlagCountryCode === 'string' ? untrustedFlagCountryCode.toUpperCase() : null
-  const response = await fetch(`${API_BASE_URL}/auth/flag`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/flag`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -749,7 +757,7 @@ const validateChatTranslationPreference = (body: unknown): ChatTranslationPrefer
 
 export const getChatTranslation = async (): Promise<ChatTranslationPreference> => {
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/chat-translation`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/chat-translation`, {
     headers: { authorization: `Bearer ${sessionToken}` },
     signal: AbortSignal.timeout(10_000)
   })
@@ -763,7 +771,7 @@ export const setChatTranslation = async (language: unknown): Promise<ChatTransla
     throw new Error('Invalid chat translation language')
   }
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/chat-translation`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/chat-translation`, {
     method: 'POST',
     headers: { authorization: `Bearer ${sessionToken}`, 'content-type': 'application/json' },
     body: JSON.stringify({ language: language as ChatTranslationLanguage }),
@@ -779,7 +787,7 @@ export const changePassword = async (
 ): Promise<PasswordChangeResult> => {
   const credentials = validatePasswordChange(untrustedCredentials)
   if (!sessionToken) throw new Error('Authentication required')
-  const response = await fetch(`${API_BASE_URL}/auth/password`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/password`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${sessionToken}`,
@@ -809,7 +817,7 @@ export const restoreSession = async (): Promise<AuthSession | null> => {
   } catch {
     return null
   }
-  const response = await fetch(`${API_BASE_URL}/auth/session`, {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/session`, {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(5_000)
   }).catch(() => null)

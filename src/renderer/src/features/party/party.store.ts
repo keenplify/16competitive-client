@@ -5,6 +5,7 @@ import type {
   PendingPartyInvitation
 } from '../../../../shared/party'
 import type { GlobalChatMessage, PartyChatEvent } from '../../../../shared/matchmaking'
+import { serverClockNow } from '../../../../shared/server-clock'
 import { useAuthStore } from '../auth/auth.store'
 import { playChatMessageSound } from '../chat/chat-message-sound'
 import { useLobbyLoadoutStore } from './lobby-loadout.store'
@@ -179,7 +180,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
               partyId,
               code: 'MATCH_FOUND',
               message: `Match found on ${event.mapId} for ${event.mode}.`,
-              sentAt: new Date().toISOString()
+              sentAt: new Date(serverClockNow()).toISOString()
             },
             {
               type: 'party_chat_notification',
@@ -189,7 +190,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
               message: `Players: ${[...event.teams.teamA, ...event.teams.teamB]
                 .map(({ username }) => username)
                 .join(', ')}.`,
-              sentAt: new Date().toISOString()
+              sentAt: new Date(serverClockNow()).toISOString()
             }
           ]
           set((state) => ({
@@ -248,7 +249,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
             type: 'party_chat_notification',
             partyId,
             ...notification,
-            sentAt: new Date().toISOString()
+            sentAt: new Date(serverClockNow()).toISOString()
           }
           set((state) => ({ chatEntries: appendChatEntry(state.chatEntries, entry) }))
         }
@@ -469,7 +470,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
         partyId: party.id,
         sender: { id: player.id, username: player.username },
         message,
-        sentAt: new Date().toISOString()
+        sentAt: new Date(serverClockNow()).toISOString()
       }
       set((state) => ({
         chatEntries: appendChatEntry(state.chatEntries, entry),

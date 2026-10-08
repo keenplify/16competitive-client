@@ -6,6 +6,7 @@ import { useLeaderboardStore } from './leaderboard.store'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import type { FeaturedRankedLadder } from '../../../../shared/leaderboard'
 import { CountryFlag } from '../../components/CountryFlag'
+import { serverClockNow } from '../../../../shared/server-clock'
 
 const formatTimestamp = (value: string): string =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -21,7 +22,7 @@ export function LeaderboardPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<'global' | 'continental' | 'featured'>('global')
   const [featured, setFeatured] = useState<FeaturedRankedLadder | null>(null)
   const [featuredStatus, setFeaturedStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(serverClockNow)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -54,7 +55,7 @@ export function LeaderboardPage(): JSX.Element {
   }, [load])
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    const timer = window.setInterval(() => setNow(serverClockNow()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
 

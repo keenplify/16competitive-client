@@ -14,6 +14,7 @@ import {
 } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { isIP } from 'node:net'
+import { serverClockNow } from '../../shared/server-clock'
 import {
   disableNextClientIntegrationAfterCrash,
   getGameSettings,
@@ -1022,7 +1023,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   try {
     await saveMatchLaunchDiagnostics(join(app.getPath('userData'), 'match-launch-diagnostics'), {
       matchId: input.matchId,
-      preparedAt: new Date().toISOString(),
+      preparedAt: new Date(serverClockNow()).toISOString(),
       clientVersion: app.getVersion(),
       helperVersion: helperRelease.version,
       platform: process.platform,

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
+import { serverClockNow } from '../shared/server-clock'
 import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
 import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 
@@ -65,7 +66,7 @@ export function installDiagnosticLogCapture(): void {
   for (const level of ['log', 'info', 'warn', 'error', 'debug'] as const) {
     const original = console[level].bind(console)
     console[level] = (...args: unknown[]) => {
-      entries.push(`${new Date().toISOString()} [${level}] ${args.map(formatValue).join(' ')}`)
+      entries.push(`${new Date(serverClockNow()).toISOString()} [${level}] ${args.map(formatValue).join(' ')}`)
       if (entries.length > MAX_LOG_ENTRIES) entries.shift()
       original(...args)
     }
