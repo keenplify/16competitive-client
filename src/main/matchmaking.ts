@@ -1,4 +1,6 @@
 import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
+import { readyCheckRemainingMs } from '../shared/matchmaking-ready-time'
+import { serverClockNow, syncServerClock } from '../shared/server-clock'
 import type { WebContents } from 'electron'
 import { app, BrowserWindow, clipboard } from 'electron'
 import {
@@ -293,7 +295,10 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         message.retryAfterMs >= 0
       )
     case 'authenticated':
-      return isPlayer(message.player)
+      return (
+        isPlayer(message.player) &&
+        (message.serverNow === undefined || typeof message.serverNow === 'string')
+      )
     case 'voice_session':
       return (
         isVoiceContext(message.context) &&
@@ -428,6 +433,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       return (
         typeof message.matchId === 'string' &&
         typeof message.deadline === 'string' &&
+        (message.serverNow === undefined || typeof message.serverNow === 'string') &&
         Array.isArray(message.acceptedPlayerIds) &&
         message.acceptedPlayerIds.every((id) => typeof id === 'string') &&
         typeof message.playersRequired === 'number'
@@ -494,7 +500,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'error':
       return typeof message.code === 'string' && typeof message.message === 'string'
     case 'pong':
-      return true
+      return message.serverNow === undefined || typeof message.serverNow === 'string'
     default:
       return false
   }
@@ -581,7 +587,11 @@ class MatchmakingConnection {
         apiUrl: this.activeApiUrl,
         websocketUrl
       })
-      this.notify({ type: 'authenticated', player: this.authenticatedPlayer })
+      this.notify({
+        type: 'authenticated',
+        player: this.authenticatedPlayer,
+        serverNow: new Date(serverClockNow()).toISOString()
+      })
       return
     }
 
@@ -1073,6 +1083,9 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'pong') {
+        if (parsed.serverNow && syncServerClock(parsed.serverNow)) {
+          this.notify({ type: 'clock_sync', serverNow: parsed.serverNow })
+        }
         this.clearPongTimeout()
         return
       }
@@ -1097,7 +1110,10 @@ class MatchmakingConnection {
         // The backend decides whether Ranked currently permits manual Web Play connections.
         this.manualConnectionMatchId = parsed.matchId
       }
-      if (parsed.type === 'match_ready_check' && Date.parse(parsed.deadline) <= Date.now()) return
+      if (
+        parsed.type === 'match_ready_check' &&
+        (readyCheckRemainingMs(parsed.deadline, parsed.serverNow, serverClockNow()) ?? 0) <= 0
+      ) return
       if (
         parsed.type === 'match_found' &&
         this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)
@@ -1120,6 +1136,7 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'authenticated') {
+        if (parsed.serverNow) syncServerClock(parsed.serverNow)
         socketAuthenticated = true
         this.authenticatedPlayer = parsed.player
         discordPresence.setAuthenticated(true)

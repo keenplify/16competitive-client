@@ -3,6 +3,7 @@ import { twMerge } from 'tailwind-merge'
 import { Clock3 } from 'lucide-react'
 import type { NodePlayWindow } from '../../../../shared/play-window'
 import { isPlayWindowActive } from '../../../../shared/play-window'
+import { serverClockNow } from '../../../../shared/server-clock'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { useTranslation } from '../i18n/i18n'
 
@@ -18,11 +19,11 @@ export function PlayWindowStatus({
   className
 }: PlayWindowStatusProps): JSX.Element {
   const { t } = useTranslation()
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState(() => new Date(serverClockNow()))
 
   useEffect(() => {
     if (!visible) return
-    const timer = window.setInterval(() => setNow(new Date()), 15_000)
+    const timer = window.setInterval(() => setNow(new Date(serverClockNow())), 15_000)
     return () => window.clearInterval(timer)
   }, [visible])
 

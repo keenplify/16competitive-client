@@ -1,5 +1,6 @@
 import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
 import { parseDemoLink } from '../shared/demo-link'
+import { serverClockNow } from '../shared/server-clock'
 import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo } from './admin-demos'
@@ -208,7 +209,7 @@ let lastAutomaticProcessReportAt = 0
 const recordProcessFailure = (processType: string, reason: string, exitCode: number): void => {
   if (!app.isReady()) return
   const entry = JSON.stringify({
-    at: new Date().toISOString(),
+    at: new Date(serverClockNow()).toISOString(),
     version: app.getVersion(),
     processType,
     reason,

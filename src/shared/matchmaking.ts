@@ -227,7 +227,7 @@ export type MatchmakingServerMessage =
       restartInMs: number
       retryAfterMs: number
     }
-  | { type: 'authenticated'; player: QueuedPlayer }
+  | { type: 'authenticated'; player: QueuedPlayer; serverNow?: string }
   | {
       type: 'voice_session'
       context: VoiceContext
@@ -309,6 +309,7 @@ export type MatchmakingServerMessage =
       type: 'match_ready_check'
       matchId: string
       deadline: string
+      serverNow?: string
       acceptedPlayerIds: string[]
       playersRequired: number
     }
@@ -369,10 +370,11 @@ export type MatchmakingServerMessage =
     }
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }
-  | { type: 'pong' }
+  | { type: 'pong'; serverNow?: string }
 
 export type MatchmakingEvent =
   | MatchmakingServerMessage
+  | { type: 'clock_sync'; serverNow: string }
   | {
       type: 'match_assets_progress'
       matchId: string

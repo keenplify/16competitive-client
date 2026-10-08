@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { MatchmakingMode } from '../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../shared/matchmaking'
 import type { Party } from '../shared/party'
+import { serverClockNow } from '../shared/server-clock'
 import { DISCORD_CLIENT_ID, DISCORD_IPC_PATH, DISCORD_LARGE_IMAGE_KEY } from './config'
 
 const HANDSHAKE_OPCODE = 0
@@ -208,7 +209,7 @@ class DiscordPresence {
     this.state.inGame = inGame
     if (inGame) {
       this.state.matchStarted = true
-      this.state.gameStartedAt ??= Math.floor(Date.now() / 1000)
+      this.state.gameStartedAt ??= Math.floor(serverClockNow() / 1000)
     }
     this.publish()
   }

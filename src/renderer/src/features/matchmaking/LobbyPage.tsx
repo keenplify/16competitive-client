@@ -426,7 +426,9 @@ export function LobbyPage(): JSX.Element {
         missionSnapshot={questSnapshot}
         missionLoading={questStatus === 'loading'}
         missionError={questError}
-        className="fixed top-0 left-0 z-30"
+        className={`fixed top-0 left-0 z-30 ${
+          matchNeedsAttention ? 'bg-neutral-950/95 brightness-50' : ''
+        }`}
       />
       <IdleActionHint targetId={idleHintTarget} />
       <PartyInvitationModal />

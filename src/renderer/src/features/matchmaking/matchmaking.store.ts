@@ -9,6 +9,8 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
+import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
+import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
 import type { AssetPreparation } from './MatchAssetPreparation'
@@ -145,6 +147,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
   const handleEvent = (event: MatchmakingEvent): void => {
     switch (event.type) {
+      case 'clock_sync':
+        syncServerClock(event.serverNow)
+        break
       case 'connection_state':
         set({ connectionStatus: event.state })
         break
@@ -155,6 +160,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ connectionStatus: 'authenticating', error: null })
         break
       case 'authenticated':
+        if (event.serverNow) syncServerClock(event.serverNow)
         set({ connectionStatus: 'ready', serverRestarting: null, error: null })
         break
       case 'server_restarting':
@@ -297,18 +303,18 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'match_ready_check':
         set((state) => {
-          const deadline = timestampMs(event.deadline)
+          const remainingMs = readyCheckRemainingMs(event.deadline, event.serverNow, serverClockNow())
           if (
             terminalMatchIds.has(event.matchId) ||
             state.match?.matchId !== event.matchId ||
-            deadline === null ||
-            deadline <= Date.now()
+            remainingMs === null ||
+            remainingMs <= 0
           ) {
             return {}
           }
           return {
             queueStatus: 'ready_check',
-            readyDeadline: event.deadline,
+            readyDeadline: new Date(Date.now() + remainingMs).toISOString(),
             acceptedPlayerIds: event.acceptedPlayerIds,
             readyPlayersRequired: event.playersRequired,
             readyResponse: state.readyResponse === 'accepted' ? 'accepted' : 'pending',
