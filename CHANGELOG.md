@@ -2019,3 +2019,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Account
 
 - Account timing now stays synchronized with the server clock.
+
+## v2026.1008.4 — 2026-10-08
+
+### Performance
+
+- Helper builds now reuse cached results when available.
+
+### Scoreboard
+
+- Scoreboard overlay now displays round accolades.
