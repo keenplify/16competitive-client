@@ -666,8 +666,22 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // loading client.dll. Restore any interrupted installation before launching
   // the original game client, including on a forced reconnect.
   if (process.platform === 'win32') {
-    await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
-    await WindowsNextClientInstallation.restorePreviousInstall(cwd)
+    console.info('[GameLaunch] restoring previous Windows cosmetic integration', {
+      matchId: input.matchId
+    })
+    try {
+      await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
+      await WindowsNextClientInstallation.restorePreviousInstall(cwd)
+    } catch (error) {
+      console.error('[GameLaunch] Windows cosmetic integration recovery failed', {
+        matchId: input.matchId,
+        reason: error instanceof Error ? error.message : String(error)
+      })
+      throw error
+    }
+    console.info('[GameLaunch] previous Windows cosmetic integration restored', {
+      matchId: input.matchId
+    })
   }
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
