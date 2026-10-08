@@ -2003,3 +2003,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows client compatibility
 
 - Updated terminology for Windows client DLL admission.
+
+## v2026.1008.2 — 2026-10-08
+
+### Compatibility
+
+- Unverified Steam cosmetic proxy builds are now rejected.
