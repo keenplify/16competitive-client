@@ -2029,3 +2029,54 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - Scoreboard overlay now displays round accolades.
+
+## v2026.1008.5 — 2026-10-08
+
+### Matchmaking
+
+- Added ranked browser matchmaking when enabled.
+- Added custom games and configurable Web Play modes.
+- Improved regional matchmaking selection and latency checks.
+- Added regional discovery fallbacks and online player counts.
+- Added iCafe branch linking.
+- Improved match launch diagnostics and reconnection handling.
+- Added peak-hour matchmaking UI and schedule checks.
+
+### In-Game
+
+- Added round accolades to the scoreboard.
+- Added kill cards and improved in-game overlays.
+- Added tactical scoreboard details, overtime, loss bonuses, and round history.
+- Added crosshair editing and sharing support.
+- Added ally tags and improved scoreboard updates.
+- Added demo playback support.
+
+### Chat and Voice
+
+- Added chat translation settings with searchable, named language options.
+- Added support for Japanese, Hindi, Portuguese, Thai, Indonesian, and Taglish translations.
+- Added separate team and party voice controls.
+- Improved push-to-talk support and voice reconnect behavior.
+- Added friend messaging, Discord Rich Presence, and party invitations.
+
+### Profile and Progression
+
+- Added profile ranks, levels, and party nameplates.
+- Added national, continental, FFA, and challenge leaderboard views.
+- Added daily missions and post-match surveys.
+- Added player flags and improved match history statistics.
+- Added skin gifting, currency rewards, operations, and store improvements.
+
+### Downloads and Updates
+
+- Improved skin asset caching, verification, repair, and background downloads.
+- Added retry handling for temporary helper and asset download failures.
+- Helper builds can now be reused when the matching release is available.
+- The launcher now checks for updates after the game closes.
+
+### Reliability
+
+- Improved Windows, Linux, Steam, and GoldSrc launch handling.
+- Added clearer match cancellation notices and launcher diagnostics.
+- Improved recovery after network interruptions and launcher focus changes.
+- Strengthened client integrity and anti-cheat failure reporting.
