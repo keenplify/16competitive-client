@@ -18,7 +18,7 @@ test('includes the official NextClient executable in Windows folder detection', 
   ])
 })
 
-test('only the Windows client DLL builds verified by the native proxy are admitted', () => {
+test('only explicitly admitted Windows client DLL builds use the native proxy', () => {
   assert.equal(
     supportsWindowsCosmeticClient(
       'ef7a0f40989cb79ba95d40f528534da36866892ee871147ca82e133b7a5edc3d'
@@ -28,6 +28,12 @@ test('only the Windows client DLL builds verified by the native proxy are admitt
   assert.equal(
     supportsWindowsCosmeticClient(
       '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc'
+    ),
+    true
+  )
+  assert.equal(
+    supportsWindowsCosmeticClient(
+      'b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2'
     ),
     true
   )

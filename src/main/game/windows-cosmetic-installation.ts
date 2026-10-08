@@ -56,7 +56,7 @@ export class WindowsCosmeticInstallation {
     const original = await readFile(installation.clientPath)
     const clientSha256 = hash(original)
     if (!supportsWindowsCosmeticClient(clientSha256)) {
-      console.info('[Scoreboard] Windows client build is not verified for cosmetic overlay', {
+      console.info('[Scoreboard] Windows client build is not admitted for cosmetic overlay', {
         clientSha256
       })
       return null
