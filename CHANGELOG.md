@@ -2009,3 +2009,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Unverified Steam cosmetic proxy builds are now rejected.
+
+## v2026.1008.3 — 2026-10-08
+
+### Matchmaking
+
+- Match readiness and queue timing now use the server clock for more accurate, consistent status updates.
+
+### Account
+
+- Account timing now stays synchronized with the server clock.
