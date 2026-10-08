@@ -2080,3 +2080,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added clearer match cancellation notices and launcher diagnostics.
 - Improved recovery after network interruptions and launcher focus changes.
 - Strengthened client integrity and anti-cheat failure reporting.
+
+## v2026.1008.6 — 2026-10-08
+
+### Match Integrity
+
+- Helper integrity checks now retry automatically after approval timeouts.
+
+### Custom Games
+
+- Added chat for custom game lobbies.
+
+### Updates
+
+- Post-game update checks now wait until you return to the lobby.
