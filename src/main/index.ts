@@ -30,6 +30,7 @@ import {
 } from './auth'
 import { reportClientTelemetry } from './client-telemetry'
 import { AUTH_CHANNELS } from '../shared/auth'
+import { activateIcafeBranch, getIcafeBranchInfo, linkIcafeBranch, unlinkIcafeBranch } from './icafe-branch'
 import { DAILY_QUEST_CHANNELS } from '../shared/daily-quests'
 import { getDailyQuests } from './daily-quests'
 import { matchmakingConnection } from './matchmaking'
@@ -553,6 +554,15 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('login', credentials))
   )
+  ipcMain.handle(AUTH_CHANNELS.icafeBranchInfo, () => getIcafeBranchInfo())
+  ipcMain.handle(AUTH_CHANNELS.icafeBranchLink, async (_, code: unknown) => {
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) throw new Error('ICAFE_INVALID_CODE')
+    const status = await linkIcafeBranch(code)
+    const token = getSessionToken()
+    if (token) await activateIcafeBranch(token)
+    return status
+  })
+  ipcMain.handle(AUTH_CHANNELS.icafeBranchUnlink, () => unlinkIcafeBranch(getSessionToken()))
   ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
   ipcMain.handle(
     DIAGNOSTIC_LOG_CHANNELS.report,

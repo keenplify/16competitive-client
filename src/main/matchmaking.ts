@@ -21,6 +21,7 @@ import type {
   GlobalChatScope
 } from '../shared/matchmaking'
 import { clearSessionToken, getSessionToken } from './auth'
+import { activateIcafeBranch } from './icafe-branch'
 import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
@@ -1008,6 +1009,7 @@ class MatchmakingConnection {
   }
 
   private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
+    await activateIcafeBranch(token)
     let targetApiUrl = apiUrl ?? this.hostApiUrl
     if (!targetApiUrl) {
       try {
@@ -1038,6 +1040,12 @@ class MatchmakingConnection {
     }
     if (!handoff) this.socket = socket
     let socketAuthenticated = false
+    const branchRefresh = setInterval(() => {
+      if (socketAuthenticated && socket.readyState === WebSocket.OPEN) {
+        void activateIcafeBranch(token)
+      }
+    }, 2 * 60_000)
+    branchRefresh.unref?.()
     const connectionTimeout = setTimeout(() => {
       if (socketAuthenticated || socket.readyState === WebSocket.CLOSED) return
       console.warn('[Matchmaking] connection handshake timed out; reconnecting')
@@ -1332,6 +1340,7 @@ class MatchmakingConnection {
     })
     socket.addEventListener('close', () => {
       clearTimeout(connectionTimeout)
+      clearInterval(branchRefresh)
       if (handoff && this.socket !== socket) {
         if (!this.manuallyDisconnected) {
           this.notify({

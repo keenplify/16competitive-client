@@ -15,6 +15,8 @@ export interface RedeemCodeResult {
   code: string
   pointsGranted: number
   points: number
+  pCashGranted?: number
+  pCash?: number | null
   skinId: string | null
   skinGranted: boolean
 }

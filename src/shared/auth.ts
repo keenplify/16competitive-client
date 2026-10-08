@@ -16,8 +16,22 @@ export const AUTH_CHANNELS = {
   chatTranslationGet: 'auth:chat-translation-get',
   chatTranslationSet: 'auth:chat-translation-set',
   logout: 'auth:logout',
-  restore: 'auth:restore'
+  restore: 'auth:restore',
+  icafeBranchInfo: 'auth:icafe-branch-info',
+  icafeBranchLink: 'auth:icafe-branch-link',
+  icafeBranchUnlink: 'auth:icafe-branch-unlink'
 } as const
+
+export interface IcafeBranchInfo {
+  branchName: string
+  xpMultiplier: 1.2
+}
+
+export interface IcafeBranchStatus {
+  info: IcafeBranchInfo | null
+  hasConfig: boolean
+  managedExternally: boolean
+}
 
 export type SocialAuthProvider = 'google' | 'facebook' | 'discord'
 
@@ -112,6 +126,9 @@ export interface SocialConnections {
 }
 
 export interface AuthApi {
+  getIcafeBranchInfo(): Promise<IcafeBranchStatus>
+  linkIcafeBranch(code: string): Promise<IcafeBranchStatus>
+  unlinkIcafeBranch(): Promise<IcafeBranchStatus>
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
   social(provider: SocialAuthProvider): Promise<SocialAuthResult>

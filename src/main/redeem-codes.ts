@@ -36,6 +36,8 @@ const isRedeemResult = (value: unknown): value is RedeemCodeResult => {
     (result.pointsGranted as number) >= 0 &&
     Number.isInteger(result.points) &&
     (result.points as number) >= 0 &&
+    (result.pCashGranted === undefined || (Number.isInteger(result.pCashGranted) && (result.pCashGranted as number) >= 0)) &&
+    (result.pCash === undefined || result.pCash === null || (Number.isInteger(result.pCash) && (result.pCash as number) >= 0)) &&
     (result.skinId === null ||
       (typeof result.skinId === 'string' && uuidPattern.test(result.skinId))) &&
     typeof result.skinGranted === 'boolean'

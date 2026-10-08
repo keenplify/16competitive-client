@@ -42,6 +42,9 @@ import type { CustomGamesApi } from '../shared/custom-games'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 
 const auth: AuthApi = {
+  getIcafeBranchInfo: () => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchInfo),
+  linkIcafeBranch: (code) => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchLink, code),
+  unlinkIcafeBranch: () => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchUnlink),
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),

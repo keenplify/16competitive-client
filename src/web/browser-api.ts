@@ -625,6 +625,8 @@ const api: Window['api'] = {
           code: string
           pointsGranted: number
           points: number
+          pCashGranted?: number
+          pCash?: number | null
           skinId: string | null
           skinGranted: boolean
         }>('/redeem-codes/redeem', { code: code.trim() })
