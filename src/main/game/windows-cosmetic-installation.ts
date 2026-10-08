@@ -166,7 +166,8 @@ export class WindowsCosmeticInstallation {
         await this.recover()
         return
       } catch (error) {
-        if (attempt === 29) throw error
+        const code = (error as NodeJS.ErrnoException).code
+        if (attempt === 29 || !['EACCES', 'EBUSY', 'EPERM'].includes(code ?? '')) throw error
         await pause(500)
       }
     }

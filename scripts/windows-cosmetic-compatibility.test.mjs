@@ -35,7 +35,7 @@ test('only explicitly admitted Windows client DLL builds use the native proxy', 
     supportsWindowsCosmeticClient(
       'b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2'
     ),
-    true
+    false
   )
   assert.equal(supportsWindowsCosmeticClient('0'.repeat(64)), false)
   assert.equal(

@@ -4,11 +4,11 @@ import { basename, dirname, join } from 'node:path'
 // These exact 32-bit client builds have the 87-name/ordinal ABI expected by
 // the Windows cosmetic proxy. Keep admission scoped to inspected binaries;
 // other builds must use the stock HUD.
+// The 2026-10-08 Steam DLL (b434b1c0...) has matching exports, but a live
+// 2026.1008.1 launch did not reach the game. Do not admit it on exports alone.
 const ADMITTED_CLIENT_SHA256 = new Set([
   'ef7a0f40989cb79ba95d40f528534da36866892ee871147ca82e133b7a5edc3d',
-  '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc',
-  // Steam client.dll observed on 2026-10-08; all 87 exports and ordinals match.
-  'b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2'
+  '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc'
 ])
 
 export const WINDOWS_STANDALONE_EXECUTABLE_NAMES = [
