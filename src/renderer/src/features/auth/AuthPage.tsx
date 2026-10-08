@@ -7,6 +7,8 @@ import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { PapamoWordmark } from '../../components/ui/PapamoWordmark'
 import { useAuthStore } from './auth.store'
+import { useIcafeBranchStore } from './icafe-branch.store'
+import { useTranslation } from '../i18n/i18n'
 import { UsernameSetupPage } from './UsernameSetupPage'
 import { LobbyPage } from '../matchmaking/LobbyPage'
 import { MatchLauncherPage } from '../matchmaking/MatchLauncherPage'
@@ -22,6 +24,9 @@ const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): strin
   provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
 
 export function AuthPage(): JSX.Element {
+  const { t } = useTranslation()
+  const icafeBranch = useIcafeBranchStore((state) => state.status.info)
+  const loadIcafeBranch = useIcafeBranchStore((state) => state.load)
   const mode = useAuthStore((state) => state.mode)
   const username = useAuthStore((state) => state.username)
   const email = useAuthStore((state) => state.email)
@@ -65,6 +70,10 @@ export function AuthPage(): JSX.Element {
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
   const lastAudibleVolume = useRef(bgmVolume > 0 ? bgmVolume : 50)
+
+  useEffect(() => {
+    void loadIcafeBranch()
+  }, [loadIcafeBranch])
 
   useEffect(() => {
     if (restoreStarted.current) return
@@ -288,6 +297,16 @@ export function AuthPage(): JSX.Element {
                 Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive
                 launcher features require the desktop client.
               </p>
+            )}
+            {!webRuntime && (
+              <div className="mt-4 min-h-20" aria-live="polite">
+                {icafeBranch && (
+                  <div className="border border-sky-400/35 bg-sky-400/10 px-4 py-3 text-sm text-sky-100">
+                    <p className="font-semibold">{t('auth.icafeBranch', { branch: icafeBranch.branchName })}</p>
+                    <p className="mt-1 text-xs text-sky-200">{t('auth.icafeBenefit')}</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

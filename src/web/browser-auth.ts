@@ -318,6 +318,15 @@ const beginSocial = async (
 }
 
 export const browserAuthApi: AuthApi = {
+  async getIcafeBranchInfo() {
+    return { info: null, hasConfig: false, managedExternally: false }
+  },
+  async linkIcafeBranch() {
+    return { info: null, hasConfig: false, managedExternally: false }
+  },
+  async unlinkIcafeBranch() {
+    return { info: null, hasConfig: false, managedExternally: false }
+  },
   async login(credentials) {
     const body = await requestJson<AuthResponse>('/auth/login', {
       init: { method: 'POST', body: JSON.stringify(credentials) }

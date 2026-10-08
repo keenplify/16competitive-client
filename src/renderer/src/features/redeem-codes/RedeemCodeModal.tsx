@@ -100,10 +100,13 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
                 <CheckCircle2 className="size-5 text-emerald-300" aria-hidden="true" />
                 Code redeemed
               </p>
-              <p className="mt-3">
+              {result.pointsGranted > 0 && <p className="mt-3">
                 You received {result.pointsGranted.toLocaleString()} points. Your new balance is{' '}
                 {result.points.toLocaleString()} points.
-              </p>
+              </p>}
+              {(result.pCashGranted ?? 0) > 0 && <p className="mt-3">
+                +{(result.pCashGranted ?? 0).toLocaleString()} P Cash{typeof result.pCash === 'number' ? ` · ${result.pCash.toLocaleString()} P Cash` : ''}
+              </p>}
               {result.skinGranted && (
                 <p className="mt-2">The reward skin was added to your inventory.</p>
               )}

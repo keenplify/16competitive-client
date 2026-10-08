@@ -1,4 +1,5 @@
 import { AuthPage } from './features/auth/AuthPage'
+import { IcafeBranchPanel } from './features/auth/IcafeBranchPanel'
 import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
 import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
 import { AudioController } from './features/audio/AudioController'
@@ -39,6 +40,7 @@ function App(): React.JSX.Element {
           className="launcher-toast-container"
         />
         <AuthPage />
+        <IcafeBranchPanel />
       </>
     </DeviceBanGate>
   )
