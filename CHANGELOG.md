@@ -1992,3 +1992,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Play Window
 
 - Play window checks now align with the six-hour schedule.
+
+## v2026.1008.1 — 2026-10-08
+
+### iCafe branches
+
+- Link your account to an iCafe branch from the client.
+- View and manage your linked iCafe branch.
+
+### Windows client compatibility
+
+- Updated terminology for Windows client DLL admission.
