@@ -32,6 +32,14 @@ target alone does not provide those files.
 `HELPER_SOURCE_DIR` can override the sibling source location. `build:helper` builds
 the latest sibling helper source with the cosmetic feature and, on Windows/Linux
 x64, the x86 cosmetic module. Both are staged under ignored `resources/native/`.
+After a successful build, the client records the helper checkout's commit per
+platform/architecture. Subsequent runs skip building and staging when that commit,
+the build script, and the staged binaries are unchanged. This compares the local
+helper `HEAD`; it does not fetch remote commits. Dirty checkouts (including
+untracked files), missing/replaced outputs, or missing build records rebuild.
+The first run after this change builds once to create the record. Use
+`npm run build:helper -- --force` to rebuild after changing toolchains or build
+environment settings without changing source.
 On Windows, `COSMETIC_MSVC_TOOLS_DIR` may point to a directory containing
 `llvm-lib.exe` when the Visual Studio library tool is unavailable. Rust tests
 run in the private project with `cargo test --locked`. Public protocol/signature
