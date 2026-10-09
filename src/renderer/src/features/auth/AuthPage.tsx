@@ -1,5 +1,6 @@
 import { useEffect, useRef, type FormEvent, type JSX } from 'react'
 import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { Logo } from '../../components/ui/Logo'
 import { TextField } from '../../components/ui/TextField'
@@ -76,6 +77,26 @@ export function AuthPage(): JSX.Element {
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const setBgmVolume = useAudioSettingsStore((state) => state.setBgmVolume)
   const lastAudibleVolume = useRef(bgmVolume > 0 ? bgmVolume : 50)
+
+  useEffect(() => {
+    if (!error) return
+    toast.error(error)
+    useAuthStore.setState({ error: null })
+  }, [error])
+
+  useEffect(() => {
+    if (!socialProvider || socialPollToken) return
+    const toastId = toast.info(
+      socialProvider === 'steam'
+        ? t('auth.steam.waiting')
+        : t('auth.finishSocial', {
+            action: t(isLogin ? 'auth.finishSigningIn' : 'auth.finishCreatingAccount'),
+            provider: socialProviderLabel(socialProvider)
+          }),
+      { autoClose: false, toastId: 'auth-social-status' }
+    )
+    return () => toast.dismiss(toastId)
+  }, [isLogin, socialPollToken, socialProvider, t])
 
   useEffect(() => {
     void loadIcafeBranch()
@@ -234,10 +255,6 @@ export function AuthPage(): JSX.Element {
             />
           )}
 
-          <div className="h-20 overflow-y-auto" aria-live="polite">
-            {error && <p className="text-sm text-red-400">{error}</p>}
-          </div>
-
           <Button
             className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
             type="submit"
@@ -303,22 +320,14 @@ export function AuthPage(): JSX.Element {
 
       <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 col-span-2">
         <div className="w-full max-w-sm">
-          <div className="mb-8">
-            <h2 className="text-3xl font-semibold tracking-tight">
-              {isLogin ? 'Welcome back' : 'Create an account'}
-            </h2>
-            <p className="mt-2 text-sm text-neutral-500">
-              {isLogin
-                ? 'Sign in to continue to matchmaking.'
-                : 'Choose how you want to create your account.'}
-            </p>
-            {webRuntime && (
-              <p className="mt-2 text-xs text-neutral-400">
-                Web Play modes vary. Ranked 5v5 awards MMR when enabled for browsers. Exclusive
-                launcher features require the desktop client.
+          {!isLogin && (
+            <div className="mb-8">
+              <h2 className="text-3xl font-semibold tracking-tight">Create an account</h2>
+              <p className="mt-2 text-sm text-neutral-500">
+                Choose how you want to create your account.
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="mb-6 grid grid-cols-2 bg-slate-900 p-1">
             <Button
@@ -394,22 +403,6 @@ export function AuthPage(): JSX.Element {
             </Button> */}
           </div>
 
-          <div
-            className="mt-3 h-16 overflow-y-auto text-center text-xs text-neutral-400"
-            role="status"
-          >
-            {socialProvider &&
-              (socialProvider === 'steam' ? (
-                t('auth.steam.waiting')
-              ) : (
-                <>
-                  Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
-                  {socialProviderLabel(socialProvider)} in your browser. Click it again to reopen
-                  the browser.
-                </>
-              ))}
-          </div>
-
           <div className="my-5 flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-neutral-800" />
             <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
@@ -427,8 +420,7 @@ export function AuthPage(): JSX.Element {
               autoComplete="username"
               autoFocus
               disabled={isSubmitting}
-              placeholder="player_name"
-              hint="3–32 characters: letters, numbers, and underscores"
+              placeholder={isLogin ? t('auth.loginPlaceholder') : 'player_name'}
               className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
               onChange={(event) => setUsername(event.target.value)}
             />
@@ -466,10 +458,6 @@ export function AuthPage(): JSX.Element {
                 onChange={(event) => setPassword(event.target.value)}
               />
             )}
-
-            <div className="h-20 overflow-y-auto" aria-live="polite">
-              {error && <p className="text-sm text-red-400">{error}</p>}
-            </div>
 
             <Button
               className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"

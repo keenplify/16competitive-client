@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronLeft, LoaderCircle, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
+import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { ProfileLevelProgress } from '../../components/ui/ProfileLevelProgress'
 import type { PlayerProfile } from '../../../../shared/match-history'
@@ -356,6 +357,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               players={match.teams.teamA}
               stats={match.players}
               ratedMatch={match.mode === '5v5'}
+              compact={match.mode === 'legacy_3v3' || match.mode === '3v3'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />
@@ -364,6 +366,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               players={match.teams.teamB}
               stats={match.players}
               ratedMatch={match.mode === '5v5'}
+              compact={match.mode === 'legacy_3v3' || match.mode === '3v3'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />
@@ -472,6 +475,8 @@ function Team({
   players,
   stats,
   ratedMatch,
+  compact = false,
+  className,
   visibleMmrPlayerIds,
   onPlayerContextMenu
 }: {
@@ -479,15 +484,19 @@ function Team({
   players: CompletedMatch['teams']['teamA']
   stats: CompletedMatch['players']
   ratedMatch: boolean
+  compact?: boolean
+  className?: string
   visibleMmrPlayerIds: Set<string>
   onPlayerContextMenu: (event: MouseEvent<HTMLElement>, playerId: string) => void
 }): React.JSX.Element {
   return (
-    <div className="mx-auto mt-8 max-w-6xl">
+    <div className={twMerge('mx-auto mt-8 max-w-6xl', compact && 'max-w-[43rem]', className)}>
       <h2 className="mb-3 text-left text-xs font-bold tracking-[.2em] text-neutral-300 uppercase">
         {label}
       </h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div
+        className={twMerge('grid gap-3 sm:grid-cols-2 lg:grid-cols-5', compact && 'lg:grid-cols-3')}
+      >
         {players.map((p) => {
           const playerStats = stats.find((item) => item.id === p.id)
           const canViewMmrChange = visibleMmrPlayerIds.has(p.id)
