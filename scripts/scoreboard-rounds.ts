@@ -34,6 +34,19 @@ export function lossBonusSegments(bonus: number | null) {
   return bonus === null ? 0 : Math.max(0, Math.min(5, Math.floor((bonus - 1400) / 500) + 1))
 }
 
+export function targetRoundMarkers(
+  completedRounds: number,
+  winTarget: number,
+  ctWins: number | null,
+  tWins: number | null
+): { ct: number; t: number } {
+  const marker = (wins: number | null): number =>
+    wins !== null && wins >= winTarget - 2 && wins < winTarget
+      ? completedRounds + (winTarget - wins) - 1
+      : -1
+  return { ct: marker(ctWins), t: marker(tWins) }
+}
+
 export function sideAtRound(index: number, half: number, overtimeHalf = 3) {
   if (index < half) return 0
   if (index < half * 2) return 1

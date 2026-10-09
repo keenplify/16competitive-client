@@ -33,7 +33,7 @@ The backend is authoritative for:
 
 The desktop client must be treated as untrusted.
 
-The backend repository is available at `../16competitive`. Inspect its implementation when needed to verify API contracts, authentication behavior, WebSocket events, matchmaking flows, validation rules, and other authoritative backend logic. Do not guess backend behavior when it can be confirmed there. Treat the backend repository as reference-only while working on this client unless backend changes are explicitly requested.
+The backend repository is available at `../16competitive`. Inspect its implementation when needed to verify API contracts, authentication behavior, WebSocket events, matchmaking flows, validation rules, and other authoritative backend logic. Do not guess backend behavior when it can be confirmed there.
 
 ---
 

@@ -450,6 +450,14 @@ html.kill-cards-preview-page #root {
 .round-tick.t-win .round-event-icon {
   bottom: 6px;
 }
+.round-tick .round-event-icon.target-ct {
+  top: 7px;
+  color: #8bc4ed;
+}
+.round-tick .round-event-icon.target-t {
+  bottom: 6px;
+  color: #e7b96e;
+}
 .round-tick.match-winner::before {
   filter: brightness(1.4);
 }

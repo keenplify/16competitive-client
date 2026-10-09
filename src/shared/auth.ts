@@ -33,7 +33,7 @@ export interface IcafeBranchStatus {
   managedExternally: boolean
 }
 
-export type SocialAuthProvider = 'google' | 'facebook' | 'discord'
+export type SocialAuthProvider = 'google' | 'facebook' | 'discord' | 'steam'
 
 export interface AuthCredentials {
   username: string
@@ -47,7 +47,7 @@ export interface RegistrationCredentials extends AuthCredentials {
 export interface AuthPlayer {
   id: string
   username: string
-  email: string
+  email: string | null
   mmr: number
   level?: number
   levelTitle?: string
@@ -123,6 +123,7 @@ export interface SocialConnections {
   google: SocialConnectionState
   facebook: SocialConnectionState
   discord: SocialConnectionState
+  steam: SocialConnectionState
 }
 
 export interface AuthApi {
@@ -151,4 +152,19 @@ export interface AuthApi {
   setChatTranslation(language: ChatTranslationLanguage): Promise<ChatTranslationPreference>
   restore(): Promise<AuthSession | null>
   logout(): Promise<void>
+}
+
+/** Restrict browser handoff for Steam to its HTTPS OpenID endpoint. */
+export const validateSteamAuthorizationUrl = (value: string): string => {
+  const url = new URL(value)
+  if (
+    url.origin !== 'https://steamcommunity.com' ||
+    url.pathname !== '/openid/login' ||
+    url.username ||
+    url.password ||
+    url.hash
+  ) {
+    throw new Error('The authentication server returned an invalid Steam authorization URL')
+  }
+  return url.toString()
 }

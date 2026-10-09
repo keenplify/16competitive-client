@@ -47,6 +47,17 @@ test('competitive cards count kills within a round and reset on a new round', ()
   })
 })
 
+test('hides and resets local cards on death while observing another player', () => {
+  const tracker = new KillCardTracker()
+  tracker.update(snapshot('competitive', 2, 1, 0), 'Player')
+  assert.equal(tracker.update(snapshot('competitive', 2, 3, 0), 'Player')?.count, 2)
+  const dead = snapshot('competitive', 2, 3, 1)
+  dead.players[0].alive = false
+  assert.equal(tracker.update(dead, 'Player'), null)
+  assert.equal(tracker.update(dead, 'Player'), null)
+  assert.equal(tracker.update(snapshot('competitive', 3, 3, 1), 'Player')?.count, 0)
+})
+
 test('third card is ACE after eliminating all three opponents in 3v3', () => {
   const tracker = new KillCardTracker()
   tracker.update(snapshot('competitive', 1, 0, 0, [true, true, true]), 'Player')

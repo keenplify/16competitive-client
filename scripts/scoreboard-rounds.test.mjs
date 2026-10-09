@@ -4,7 +4,8 @@ import {
   scoreboardRounds,
   lossBonusSegments,
   currentSideWinner,
-  scoreByHalf
+  scoreByHalf,
+  targetRoundMarkers
 } from './scoreboard-rounds.ts'
 
 test('keeps regulation separate from overtime', () => {
@@ -38,6 +39,13 @@ test('supports shorter regulation formats and excludes deathmatch', () => {
 
 test('loss bonus bars cover all five tiers and unknown older feeds', () => {
   assert.deepEqual([null, 1400, 1900, 2400, 2900, 3400].map(lossBonusSegments), [0, 1, 2, 3, 4, 5])
+})
+
+test('marks the future target round when either side is two wins away', () => {
+  assert.deepEqual(targetRoundMarkers(20, 13, 11, 9), { ct: 21, t: -1 })
+  assert.deepEqual(targetRoundMarkers(21, 13, 11, 11), { ct: 22, t: 22 })
+  assert.deepEqual(targetRoundMarkers(22, 13, 12, 11), { ct: 22, t: 23 })
+  assert.deepEqual(targetRoundMarkers(23, 13, 13, 10), { ct: -1, t: -1 })
 })
 
 test('round winners follow their team across regulation and overtime side swaps', () => {

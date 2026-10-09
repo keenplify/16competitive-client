@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n/i18n'
 import { useEffect, useState, type FormEvent, type JSX } from 'react'
 import { CheckCircle2, LoaderCircle, XCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
@@ -8,6 +9,7 @@ import { useAuthStore } from './auth.store'
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 
 export function UsernameSetupPage(): JSX.Element {
+  const { t } = useTranslation()
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
   const error = useAuthStore((state) => state.error)
@@ -50,7 +52,11 @@ export function UsernameSetupPage(): JSX.Element {
       description="This is the name other players will see in 1.6 Competitive. After you choose it, you can change it again from Settings once every 7 days."
       footer={
         <>
-          <p className="mb-3 text-xs text-neutral-500">Signed in as {session?.player.email}</p>
+          <p data-i18n-skip className="mb-3 text-xs text-neutral-500">
+            {t('auth.signedInAs', {
+              account: session?.player.email ?? session?.player.username ?? ''
+            })}
+          </p>
           <Button variant="ghost" className="w-full" onClick={() => void logout()}>
             Use a different account
           </Button>

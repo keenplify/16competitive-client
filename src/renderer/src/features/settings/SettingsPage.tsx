@@ -36,7 +36,13 @@ import { isWebRuntime } from '../../web-runtime'
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
 const socialProviderLabel = (provider: SocialAuthProvider): string =>
-  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
+  provider === 'steam'
+    ? 'Steam'
+    : provider === 'google'
+      ? 'Google'
+      : provider === 'facebook'
+        ? 'Facebook'
+        : 'Discord'
 
 const readableError = (error: unknown): string =>
   error instanceof Error
@@ -280,9 +286,15 @@ export function SettingsPage(): JSX.Element {
     try {
       const connections = await window.api.auth.connectSocial(provider)
       setSocialConnections(connections)
-      setSocialNotice(`${socialProviderLabel(provider)} connected.`)
+      setSocialNotice(
+        provider === 'steam'
+          ? t('auth.steam.connected')
+          : `${socialProviderLabel(provider)} connected.`
+      )
     } catch (connectionError) {
-      setSocialError(readableError(connectionError))
+      setSocialError(
+        provider === 'steam' ? t('auth.steam.linkError') : readableError(connectionError)
+      )
     } finally {
       setConnectingProvider(null)
     }
@@ -332,7 +344,9 @@ export function SettingsPage(): JSX.Element {
                 ? 'Checking connection…'
                 : connected
                   ? (connection.email ?? 'Connected')
-                  : `Connect ${label} as another way to sign in.`}
+                  : provider === 'steam'
+                    ? t('auth.steam.connect')
+                    : `Connect ${label} as another way to sign in.`}
             </p>
           </div>
         </div>
@@ -341,8 +355,8 @@ export function SettingsPage(): JSX.Element {
           variant="ghost"
           className={
             connected
-              ? 'border border-emerald-400/20 text-emerald-300 hover:bg-transparent'
-              : 'border border-white/15 text-neutral-200 hover:bg-white/10'
+              ? 'min-w-36 border border-emerald-400/20 text-emerald-300 hover:bg-transparent'
+              : 'min-w-36 border border-white/15 text-neutral-200 hover:bg-white/10'
           }
           disabled={
             socialLoading ||
@@ -358,7 +372,13 @@ export function SettingsPage(): JSX.Element {
           ) : (
             <Link2 className="mr-2 size-4" aria-hidden="true" />
           )}
-          {connecting ? 'Reopen browser' : connected ? 'Connected' : `Connect ${label}`}
+          {connecting
+            ? 'Reopen browser'
+            : connected
+              ? 'Connected'
+              : provider === 'steam'
+                ? t('auth.steam.link')
+                : `Connect ${label}`}
         </Button>
       </div>
     )
@@ -872,12 +892,10 @@ export function SettingsPage(): JSX.Element {
 
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Connected accounts</h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Connect Google, Facebook, or Discord so any provider can authenticate this same
-                  player account.
-                </p>
+                <p className="mt-1 text-sm text-neutral-400">{t('auth.steam.accounts')}</p>
 
                 <div className="mt-5 grid gap-3">
+                  {socialProviderRow('steam')}
                   {socialProviderRow('google')}
                   {socialProviderRow('facebook')}
                   {socialProviderRow('discord')}

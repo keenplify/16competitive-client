@@ -86,6 +86,11 @@ export class KillCardTracker {
       (newRound && !this.awaitingRespawn) || newPlayer
         ? opponents.length
         : Math.max(this.maxOpponents, opponents.length)
+    if (!player.alive) {
+      this.cards = 0
+      this.awaitingRespawn = false
+      return null
+    }
     const aceAt =
       mode === 'C' &&
       this.maxOpponents > 0 &&

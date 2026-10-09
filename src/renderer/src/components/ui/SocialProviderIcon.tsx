@@ -11,6 +11,25 @@ export function SocialProviderIcon({
   className,
   ...props
 }: SocialProviderIconProps): React.JSX.Element {
+  if (provider === 'steam') {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className={twMerge('size-5 shrink-0', className)}
+        aria-hidden="true"
+        {...props}
+      >
+        <circle cx="12" cy="12" r="11" fill="#171d25" />
+        <g fill="none" stroke="currentColor" strokeWidth="1.6">
+          <circle cx="16" cy="8" r="4" />
+          <circle cx="16" cy="8" r="2.2" />
+          <circle cx="8" cy="16" r="3" />
+          <path d="m10 14 3-5m-2 7 6-4M1.5 12l7.5 3" />
+        </g>
+      </svg>
+    )
+  }
+
   if (provider === 'google') {
     return (
       <svg

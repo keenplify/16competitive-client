@@ -1,3 +1,4 @@
+import { validateSteamAuthorizationUrl } from '../shared/auth'
 import type {
   AuthApi,
   AuthSession,
@@ -295,6 +296,8 @@ const beginSocial = async (
       authenticated: linking,
       init: { method: 'POST', body: JSON.stringify({ provider }) }
     })
+    if (provider === 'steam')
+      start.authorizationUrl = validateSteamAuthorizationUrl(start.authorizationUrl)
     const expiresAt = Math.min(
       Number.isFinite(Date.parse(start.expiresAt))
         ? Date.parse(start.expiresAt)

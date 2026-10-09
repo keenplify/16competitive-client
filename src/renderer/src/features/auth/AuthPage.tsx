@@ -20,8 +20,14 @@ import { isWebRuntime } from '../../web-runtime'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import operationBackground from '../../assets/operations/pixel-water-background.png'
 
-const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord'): string =>
-  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
+const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord' | 'steam'): string =>
+  provider === 'steam'
+    ? 'Steam'
+    : provider === 'google'
+      ? 'Google'
+      : provider === 'facebook'
+        ? 'Facebook'
+        : 'Discord'
 
 export function AuthPage(): JSX.Element {
   const { t } = useTranslation()
@@ -177,9 +183,11 @@ export function AuthPage(): JSX.Element {
         eyebrow={socialPasswordRequired ? 'Account verification' : 'Account setup'}
         title={socialPasswordRequired ? 'Confirm your account' : 'Add your email'}
         description={
-          socialPasswordRequired
-            ? `An account already uses this email. Enter its password to connect ${socialProviderLabel(socialProvider)} and sign in.`
-            : `${socialProviderLabel(socialProvider)} did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.`
+          socialProvider === 'steam'
+            ? t(socialPasswordRequired ? 'auth.steam.confirm' : 'auth.steam.email')
+            : socialPasswordRequired
+              ? `An account already uses this email. Enter its password to connect ${socialProviderLabel(socialProvider)} and sign in.`
+              : `${socialProviderLabel(socialProvider)} did not share an email address. Add one to create your 1.6 Competitive account. You’ll choose your username next.`
         }
         className="max-w-md"
       >
@@ -226,7 +234,7 @@ export function AuthPage(): JSX.Element {
             />
           )}
 
-          <div className="min-h-5" aria-live="polite">
+          <div className="h-20 overflow-y-auto" aria-live="polite">
             {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
 
@@ -270,6 +278,18 @@ export function AuthPage(): JSX.Element {
         alt=""
       />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-950/35" />
+      {!webRuntime && (
+        <div className="fixed left-6 top-6 z-20 w-80 max-w-[calc(100vw-3rem)]" aria-live="polite">
+          {icafeBranch && (
+            <div className="border border-sky-400/35 bg-sky-400/10 px-4 py-3 text-sm text-sky-100 backdrop-blur-sm">
+              <p className="font-semibold">
+                {t('auth.icafeBranch', { branch: icafeBranch.branchName })}
+              </p>
+              <p className="mt-1 text-xs text-sky-200">{t('auth.icafeBenefit')}</p>
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex flex-col justify-center items-center inset-0">
         <Logo className="z-10 size-10 md:top-12 md:left-[calc(27.5vw-16rem)] md:size-128" />
 
@@ -298,16 +318,6 @@ export function AuthPage(): JSX.Element {
                 launcher features require the desktop client.
               </p>
             )}
-            {!webRuntime && (
-              <div className="mt-4 min-h-20" aria-live="polite">
-                {icafeBranch && (
-                  <div className="border border-sky-400/35 bg-sky-400/10 px-4 py-3 text-sm text-sky-100">
-                    <p className="font-semibold">{t('auth.icafeBranch', { branch: icafeBranch.branchName })}</p>
-                    <p className="mt-1 text-xs text-sky-200">{t('auth.icafeBenefit')}</p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="mb-6 grid grid-cols-2 bg-slate-900 p-1">
@@ -330,6 +340,19 @@ export function AuthPage(): JSX.Element {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="ghost"
+              className="col-span-2 gap-2 border border-sky-400/30 bg-slate-900 text-white hover:bg-slate-800"
+              disabled={isSubmitting && socialProvider !== 'steam'}
+              onClick={() => void loginWithSocial('steam')}
+            >
+              {socialProvider === 'steam' ? (
+                <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <SocialProviderIcon provider="steam" />
+              )}
+              {t('auth.steam.signIn')}
+            </Button>
             <Button
               variant="ghost"
               className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
@@ -371,13 +394,21 @@ export function AuthPage(): JSX.Element {
             </Button> */}
           </div>
 
-          {socialProvider && (
-            <p className="mt-3 text-center text-xs text-neutral-400" role="status">
-              Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
-              {socialProviderLabel(socialProvider)} in your browser. Click it again to reopen the
-              browser.
-            </p>
-          )}
+          <div
+            className="mt-3 h-16 overflow-y-auto text-center text-xs text-neutral-400"
+            role="status"
+          >
+            {socialProvider &&
+              (socialProvider === 'steam' ? (
+                t('auth.steam.waiting')
+              ) : (
+                <>
+                  Finish {isLogin ? 'signing in' : 'creating your account'} with{' '}
+                  {socialProviderLabel(socialProvider)} in your browser. Click it again to reopen
+                  the browser.
+                </>
+              ))}
+          </div>
 
           <div className="my-5 flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-neutral-800" />
@@ -436,7 +467,7 @@ export function AuthPage(): JSX.Element {
               />
             )}
 
-            <div className="min-h-5" aria-live="polite">
+            <div className="h-20 overflow-y-auto" aria-live="polite">
               {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
 

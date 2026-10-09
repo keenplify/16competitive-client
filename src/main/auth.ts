@@ -1,3 +1,4 @@
+import { validateSteamAuthorizationUrl } from '../shared/auth'
 import type {
   AuthCredentials,
   AuthSession,
@@ -38,7 +39,7 @@ interface BackendAuthResponse {
   player: {
     id: string
     username: string
-    email: string
+    email: string | null
     mmr: number
     level?: number
     levelTitle?: string
@@ -158,7 +159,7 @@ const validatePasswordChange = (value: unknown): PasswordChangeCredentials => {
 }
 
 const validateSocialProvider = (value: unknown): SocialAuthProvider => {
-  if (value !== 'google' && value !== 'facebook' && value !== 'discord') {
+  if (value !== 'google' && value !== 'facebook' && value !== 'discord' && value !== 'steam') {
     throw new Error('Invalid social login provider')
   }
   return value
@@ -178,7 +179,8 @@ const isAuthResponse = (value: unknown): value is BackendAuthResponse => {
     player !== null &&
     typeof (player as Record<string, unknown>).id === 'string' &&
     typeof (player as Record<string, unknown>).username === 'string' &&
-    typeof (player as Record<string, unknown>).email === 'string' &&
+    ((player as Record<string, unknown>).email === null ||
+      typeof (player as Record<string, unknown>).email === 'string') &&
     typeof (player as Record<string, unknown>).mmr === 'number' &&
     ((player as Record<string, unknown>).level === undefined ||
       (Number.isInteger((player as Record<string, unknown>).level) &&
@@ -234,7 +236,7 @@ const isSocialPasswordRequiredResponse = (
 const isSocialConnections = (value: unknown): value is SocialConnections => {
   if (typeof value !== 'object' || value === null) return false
   const connections = value as Record<string, unknown>
-  return ['google', 'facebook', 'discord'].every((provider) => {
+  return ['google', 'facebook', 'discord', 'steam'].every((provider) => {
     const connection = connections[provider]
     if (typeof connection !== 'object' || connection === null) return false
     const state = connection as Record<string, unknown>
@@ -323,7 +325,10 @@ const activateSocialAuthorization = (
 ): ActiveSocialAuthorization => {
   const active = {
     provider,
-    url: validateAuthorizationUrl(authorizationUrl).toString(),
+    url:
+      provider === 'steam'
+        ? validateSteamAuthorizationUrl(authorizationUrl)
+        : validateAuthorizationUrl(authorizationUrl).toString(),
     expiresAt: socialDeadline(expiresAt)
   }
   activeSocialAuthorization = active

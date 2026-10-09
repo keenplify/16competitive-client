@@ -15,7 +15,8 @@ import {
   scoreboardRounds,
   lossBonusSegments,
   currentSideWinner,
-  scoreByHalf
+  scoreByHalf,
+  targetRoundMarkers
 } from './scoreboard-rounds'
 
 type Player = {
@@ -157,6 +158,7 @@ function RoundTrack({
     sidesSwapped
   )
   const winningRound = roundWinners ? getWinningRound(roundWinners, ctWins, tWins, winTarget) : -1
+  const targetMarkers = targetRoundMarkers(roundWinners?.length ?? 0, winTarget, ctWins, tWins)
   const visibleSplits = splits.filter(({ label }) => label !== 'OT' || phase.overtime)
   return (
     <div className={`round-area ${phase.overtime ? 'overtime' : ''}`}>
@@ -214,6 +216,12 @@ function RoundTrack({
                     <span className="round-number" aria-hidden="true">
                       {historyIndex + 1}
                     </span>
+                  )}
+                  {historyIndex === targetMarkers.ct && (
+                    <Trophy className="round-event-icon target-ct" aria-label="CT target round" />
+                  )}
+                  {historyIndex === targetMarkers.t && (
+                    <Trophy className="round-event-icon target-t" aria-label="T target round" />
                   )}
                   {historyIndex === winningRound ? (
                     <Trophy className="round-event-icon" aria-label="Match won" />

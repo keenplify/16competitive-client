@@ -1,3 +1,4 @@
+import { steamTranslations } from './steam-translations'
 import { useEffect, useRef } from 'react'
 import { isLegacyRuntimeLanguage, useLanguageStore } from './i18n'
 import { translateRuntimeFragment } from './ui-translations-extra'
@@ -8,6 +9,14 @@ import { translateRuntimeSea } from './ui-translations-sea'
 import { translateRuntimeText } from './ui-translations'
 import { translateRuntimeJapanese } from './ui-translations-japanese'
 import { translateRuntimeSettings } from './ui-translations-settings'
+
+// Explicit Steam translations and the legacy DOM translator share these strings.
+// Recognize every language so the observer cannot restore an older language.
+const steamTextKeys = new Map<string, keyof typeof steamTranslations.en>(
+  Object.values(steamTranslations).flatMap((catalog) =>
+    Object.entries(catalog).map(([key, value]) => [value, key as keyof typeof steamTranslations.en])
+  )
+)
 
 const translatableAttributes = [
   'aria-label',
@@ -31,6 +40,8 @@ export function I18nRuntime(): null {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
     const translateKnown = (source: string): string => {
+      const steamKey = steamTextKeys.get(source)
+      if (steamKey) return steamTranslations[language][steamKey]
       if (language === 'ja') {
         const translated = translateRuntimeJapanese(source)
         return translated !== source ? translated : translateRuntimeSettings(language, source)

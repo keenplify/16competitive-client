@@ -1,3 +1,4 @@
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
 import type { AuthSession, SocialAuthProvider } from '../../../../shared/auth'
 
@@ -39,7 +40,13 @@ interface AuthState {
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const socialProviderLabel = (provider: SocialAuthProvider): string =>
-  provider === 'google' ? 'Google' : provider === 'facebook' ? 'Facebook' : 'Discord'
+  provider === 'steam'
+    ? 'Steam'
+    : provider === 'google'
+      ? 'Google'
+      : provider === 'facebook'
+        ? 'Facebook'
+        : 'Discord'
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Authentication failed. Please try again.'
@@ -209,9 +216,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         socialProvider: null,
         socialPollToken: null,
         socialPasswordRequired: false,
-        error: message.includes('already exists')
-          ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > ${socialProviderLabel(provider)}.`
-          : message
+        error:
+          provider === 'steam'
+            ? translate(useLanguageStore.getState().language, 'auth.steam.error')
+            : message.includes('already exists')
+              ? `${message} Sign in, then go to Settings > Credentials > Connected accounts > ${socialProviderLabel(provider)}.`
+              : message
       })
     }
   },

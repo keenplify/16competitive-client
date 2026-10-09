@@ -684,21 +684,23 @@ export class ScoreboardOverlaySession {
       const snapshot = this.parseSnapshot(feed)
       if (!snapshot) throw new Error('Invalid scoreboard snapshot')
       const accoladeHeader = response.headers.get('x-round-accolade')
-      if (!accoladeHeader && this.lastRoundAccolade !== null) {
-        await unlink(join(this.directory, 'round-accolade.state')).catch(() => undefined)
-        this.lastRoundAccolade = null
-      }
+      // A missing header can be a transient server-file read during replacement.
+      // The native HUD enforces its own six-second expiry on the last valid award.
       if (accoladeHeader && accoladeHeader.length <= 220) {
         const accolade = Buffer.from(accoladeHeader, 'base64').toString('utf8')
         const fields = accolade.trimEnd().split('\t')
         if (
           /^\d{1,2}\t[12]\t[1-8]\t\d{1,2}\t\d{1,5}\t[^\t\r\n]{1,31}\n$/.test(accolade) &&
           Number(fields[0]) <= snapshot.round &&
-          snapshot.players.some((player) => player.id === Number(fields[3]) && player.name === fields[5]) &&
           accolade !== this.lastRoundAccolade
         ) {
           await writeLiveSessionFile(join(this.directory, 'round-accolade.state'), accolade)
           this.lastRoundAccolade = accolade
+          console.info('[Scoreboard] round accolade received', {
+            matchId: this.matchId,
+            round: Number(fields[0]),
+            code: Number(fields[2])
+          })
         }
       }
       const nativePayload = response.headers.get('x-scoreboard-mode') === 'native-v1'
