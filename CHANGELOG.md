@@ -2148,3 +2148,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Results
 
 - Fixed delayed confirmation of ACE cards.
+
+## v2026.1009.6 — 2026-10-09
+
+### Authentication
+
+- Added clearer login error handling.
+- Added status notifications for social sign-in providers.
+
+### Localization
+
+- Updated translations for the login placeholder.
