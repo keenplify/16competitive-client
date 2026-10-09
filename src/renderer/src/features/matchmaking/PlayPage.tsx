@@ -37,11 +37,12 @@ const connectionLabels = {
   ready: 'Connected'
 } as const
 
-const queueModes = ['5v5', 'unrated', 'legacy', 'ffa', 'fight_yard', '3v3'] as const
+const queueModes = ['5v5', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'fight_yard', '3v3'] as const
 const modeHelpKeys = {
   '5v5': 'matchmaking.modeHelp5v5',
   unrated: 'matchmaking.modeHelpUnrated',
   legacy: 'matchmaking.modeHelpLegacy',
+  legacy_3v3: 'matchmaking.modeHelpLegacy3v3',
   ffa: 'matchmaking.modeHelpFfa',
   fight_yard: 'matchmaking.modeHelpFightYard',
   '3v3': 'matchmaking.modeHelp3v3'
@@ -618,9 +619,11 @@ export function PlayPage({
                             ? 'Fight Yard match'
                             : mode === '3v3'
                               ? 'Unrated 3v3 match'
-                              : mode === 'legacy'
-                                ? 'Unrated 5v5 with CS 1.3 movement'
-                                : 'Unrated 5v5 without MMR changes'
+                              : mode === 'legacy_3v3'
+                                ? t('matchmaking.modeHelpLegacy3v3')
+                                : mode === 'legacy'
+                                  ? 'Unrated 5v5 with CS 1.3 movement'
+                                  : 'Unrated 5v5 without MMR changes'
               }))}
               onChange={(mode) => {
                 selectMode(mode)

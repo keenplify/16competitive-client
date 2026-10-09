@@ -1,3 +1,4 @@
+import { friendlyFireMessage } from './friendly-fire-message'
 import { create } from 'zustand'
 import type {
   CustomGameRoom,
@@ -44,7 +45,7 @@ interface CustomGamesState {
 }
 
 const message = (error: unknown): string =>
-  error instanceof Error ? error.message : 'Custom game request failed'
+  error instanceof Error ? friendlyFireMessage(error.message) : 'Custom game request failed'
 
 const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMessage[]) =>
   [...new Map([...existing, ...incoming].map((entry) => [entry.id, entry])).values()]

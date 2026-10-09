@@ -156,10 +156,11 @@ export class AntiCheatSession {
               value.event === 'attached' &&
               Number.isInteger(value.pid) &&
               Number(value.pid) > 0 &&
-              this.discover
+              Number(value.pid) <= 2147483647 &&
+              (this.discover || value.pid === this.targetPid)
             ) {
               this.targetPid = Number(value.pid)
-              console.info('[AntiCheat] game process attached', {
+              console.info('[AntiCheat] helper attached successfully to game process', {
                 matchId: this.options.matchId,
                 pid: this.targetPid
               })

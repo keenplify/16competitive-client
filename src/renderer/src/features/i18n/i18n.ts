@@ -1,3 +1,4 @@
+import { friendlyFireTranslations } from './friendly-fire-translations'
 import { readyCheckTranslations } from './ready-check-translations'
 import { steamTranslations } from './steam-translations'
 import { useCallback } from 'react'
@@ -22,6 +23,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 const english = {
   ...steamTranslations.en,
   ...readyCheckTranslations.en,
+  ...friendlyFireTranslations.en,
   'auth.signedInAs': 'Signed in as {{account}}',
   'chat.communityAnnouncement': 'Announcement',
   'chat.communityVisit': 'Visit us on {{platform}}',
@@ -143,6 +145,8 @@ const english = {
   'matchmaking.modeHelp5v5': 'Rated 5v5 with MMR progression. First team to 13 rounds wins.',
   'matchmaking.modeHelpUnrated': 'Unrated 5v5. First team to 9 rounds wins; MMR does not change.',
   'matchmaking.modeHelpLegacy': 'Unrated 5v5 with CS 1.3 movement. First team to 9 rounds wins.',
+  'matchmaking.modeHelpLegacy3v3':
+    'Unrated 3v3 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
   'matchmaking.modeHelpFightYard': 'Team Fight Yard. First team to 90 kills wins.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. First team to 13 rounds wins.',
@@ -158,6 +162,7 @@ export type TranslationParams = Record<string, string | number>
 const russian: Record<TranslationKey, string> = {
   ...steamTranslations.ru,
   ...readyCheckTranslations.ru,
+  ...friendlyFireTranslations.ru,
   'auth.signedInAs': 'Выполнен вход: {{account}}',
   'chat.communityAnnouncement': 'Объявление',
   'chat.communityVisit': 'Посетите нас в {{platform}}',
@@ -281,6 +286,8 @@ const russian: Record<TranslationKey, string> = {
     'Рейтинговый 5 на 5 с изменением MMR. Побеждает команда, первой выигравшая 13 раундов.',
   'matchmaking.modeHelpUnrated': 'Нерейтинговый 5 на 5. Победа за 9 раундов; MMR не меняется.',
   'matchmaking.modeHelpLegacy': 'Нерейтинговый 5 на 5 с движением CS 1.3. Победа за 9 раундов.',
+  'matchmaking.modeHelpLegacy3v3':
+    'Нерейтинговый 3 на 3 с движением CS 1.3. Победа за 9 раундов.',
   'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
   'matchmaking.modeHelpFightYard':
     'Командный Fight Yard. Побеждает первая команда с 90 убийствами.',
@@ -294,6 +301,7 @@ const russian: Record<TranslationKey, string> = {
 const taglish: Record<TranslationKey, string> = {
   ...steamTranslations.tl,
   ...readyCheckTranslations.tl,
+  ...friendlyFireTranslations.tl,
   'auth.signedInAs': 'Naka-sign in bilang {{account}}',
   'chat.communityAnnouncement': 'Anunsyo',
   'chat.communityVisit': 'Bisitahin kami sa {{platform}}',
@@ -418,6 +426,8 @@ const taglish: Record<TranslationKey, string> = {
     'Unrated 5v5. Unang team sa 9 rounds ang panalo; walang pagbabago sa MMR.',
   'matchmaking.modeHelpLegacy':
     'Unrated 5v5 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
+  'matchmaking.modeHelpLegacy3v3':
+    'Unrated 3v3 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
   'matchmaking.modeHelpFightYard': 'Team Fight Yard. Unang team sa 90 kills ang panalo.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. Unang team sa 13 rounds ang panalo.',
@@ -430,6 +440,7 @@ const taglish: Record<TranslationKey, string> = {
 const thai: Record<TranslationKey, string> = {
   ...steamTranslations.th,
   ...readyCheckTranslations.th,
+  ...friendlyFireTranslations.th,
   'auth.signedInAs': 'เข้าสู่ระบบเป็น {{account}}',
   'chat.communityAnnouncement': 'ประกาศ',
   'chat.communityVisit': 'เยี่ยมชมเราที่ {{platform}}',
@@ -552,6 +563,8 @@ const thai: Record<TranslationKey, string> = {
     '5v5 ไม่จัดอันดับ ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ และ MMR ไม่เปลี่ยน',
   'matchmaking.modeHelpLegacy':
     '5v5 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpLegacy3v3':
+    '3v3 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpFightYard': 'Fight Yard แบบทีม ทีมที่ได้ 90 คิลก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelp3v3': '3v3 ไม่จัดอันดับ ทีมที่ชนะ 13 รอบก่อนเป็นผู้ชนะ',
@@ -564,6 +577,7 @@ const thai: Record<TranslationKey, string> = {
 const indonesian: Record<TranslationKey, string> = {
   ...steamTranslations.id,
   ...readyCheckTranslations.id,
+  ...friendlyFireTranslations.id,
   'auth.signedInAs': 'Masuk sebagai {{account}}',
   'chat.communityAnnouncement': 'Pengumuman',
   'chat.communityVisit': 'Kunjungi kami di {{platform}}',
@@ -690,6 +704,8 @@ const indonesian: Record<TranslationKey, string> = {
     '5v5 tanpa peringkat. Tim pertama yang menang 9 ronde menjadi pemenang; MMR tidak berubah.',
   'matchmaking.modeHelpLegacy':
     '5v5 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
+  'matchmaking.modeHelpLegacy3v3':
+    '3v3 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
   'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
   'matchmaking.modeHelpFightYard': 'Fight Yard beregu. Tim pertama dengan 90 kill menang.',
   'matchmaking.modeHelp3v3':
@@ -703,6 +719,7 @@ const indonesian: Record<TranslationKey, string> = {
 const portuguese: Record<TranslationKey, string> = {
   ...steamTranslations.pt,
   ...readyCheckTranslations.pt,
+  ...friendlyFireTranslations.pt,
   'auth.signedInAs': 'Conectado como {{account}}',
   'chat.communityAnnouncement': 'Aviso',
   'chat.communityVisit': 'Visite-nos no {{platform}}',
@@ -829,6 +846,8 @@ const portuguese: Record<TranslationKey, string> = {
     '5v5 sem ranking. Vence a primeira equipe a ganhar 9 rodadas; o MMR não muda.',
   'matchmaking.modeHelpLegacy':
     '5v5 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
+  'matchmaking.modeHelpLegacy3v3':
+    '3v3 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
   'matchmaking.modeHelpFfa':
     'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
   'matchmaking.modeHelpFightYard':
@@ -843,6 +862,7 @@ const portuguese: Record<TranslationKey, string> = {
 const japanese: Record<TranslationKey, string> = {
   ...steamTranslations.ja,
   ...readyCheckTranslations.ja,
+  ...friendlyFireTranslations.ja,
   'auth.signedInAs': '{{account}}としてログイン中',
   'chat.communityAnnouncement': 'お知らせ',
   'chat.communityVisit': '{{platform}}をご覧ください',
@@ -968,6 +988,8 @@ const japanese: Record<TranslationKey, string> = {
     '非ランク戦5v5。先に9ラウンドを取ったチームが勝利し、MMRは変動しません。',
   'matchmaking.modeHelpLegacy':
     'CS 1.3の移動仕様を使う非ランク戦5v5。先に9ラウンドを取ったチームが勝利。',
+  'matchmaking.modeHelpLegacy3v3':
+    'CS 1.3の移動仕様を使う非ランク戦3v3。先に9ラウンドを取ったチームが勝利。',
   'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
   'matchmaking.modeHelpFightYard': 'チーム戦のFight Yard。先に90キルしたチームが勝利。',
   'matchmaking.modeHelp3v3': '非ランク戦3v3。先に13ラウンドを取ったチームが勝利。',
@@ -980,6 +1002,7 @@ const japanese: Record<TranslationKey, string> = {
 const hindi: Record<TranslationKey, string> = {
   ...steamTranslations.hi,
   ...readyCheckTranslations.hi,
+  ...friendlyFireTranslations.hi,
   'auth.signedInAs': '{{account}} के रूप में साइन इन किया गया',
   'chat.communityAnnouncement': 'घोषणा',
   'chat.communityVisit': '{{platform}} पर हमें देखें',
@@ -1104,6 +1127,8 @@ const hindi: Record<TranslationKey, string> = {
     'बिना रैंक वाला 5v5। पहले 9 राउंड जीतने वाली टीम विजेता होगी; MMR नहीं बदलेगा।',
   'matchmaking.modeHelpLegacy':
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 5v5। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.modeHelpLegacy3v3':
+    'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 3v3। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
   'matchmaking.modeHelpFightYard': 'टीम Fight Yard। पहले 90 किल करने वाली टीम जीतेगी।',
   'matchmaking.modeHelp3v3': 'बिना रैंक वाला 3v3। पहले 13 राउंड जीतने वाली टीम विजेता होगी।',

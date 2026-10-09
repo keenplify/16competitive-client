@@ -30,6 +30,7 @@ export const MATCHMAKING_MODES = [
   '5v5',
   'unrated',
   'legacy',
+  'legacy_3v3',
   'casual',
   'ffa',
   'fight_yard'
@@ -44,6 +45,7 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   '5v5': 'Competitive',
   unrated: 'Unrated',
   legacy: 'Legacy',
+  legacy_3v3: 'Legacy 3v3',
   casual: 'Casual',
   ffa: 'FFA',
   fight_yard: 'Fight Yard'
@@ -56,6 +58,7 @@ export const allowsManualMatchConnection = (mode: unknown): boolean =>
   mode === '3v3' ||
   mode === 'unrated' ||
   mode === 'legacy' ||
+  mode === 'legacy_3v3' ||
   mode === 'casual' ||
   mode === 'ffa' ||
   mode === 'fight_yard'

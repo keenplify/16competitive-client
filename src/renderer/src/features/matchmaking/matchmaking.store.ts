@@ -1,3 +1,4 @@
+import { friendlyFireMessage } from './friendly-fire-message'
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 import {
   allowsManualMatchConnection,
@@ -449,6 +450,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'error':
+        if (event.code.startsWith('FRIENDLY_FIRE_')) {
+          set((state) => ({
+            error: friendlyFireMessage(event.message),
+            ...(event.code === 'FRIENDLY_FIRE_KICKED'
+              ? { connectionDetails: null, gameExited: true }
+              : {}),
+            ...(state.queueStatus === 'joining' ? { queueStatus: 'idle' as const } : {})
+          }))
+          break
+        }
         if (event.code === 'UNAUTHORIZED') {
           get().reset()
           useAuthStore.getState().expireSession()

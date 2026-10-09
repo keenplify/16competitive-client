@@ -20,6 +20,7 @@ export const SERVER_CUSTOM_GAME_MODES = [
   '5v5',
   'unrated',
   'legacy',
+  'legacy_3v3',
   'ffa',
   'fight_yard'
 ] as const
@@ -28,12 +29,13 @@ export type ServerCustomGameMode = (typeof SERVER_CUSTOM_GAME_MODES)[number]
 export const isServerCustomGameMode = (value: unknown): value is ServerCustomGameMode =>
   SERVER_CUSTOM_GAME_MODES.some((mode) => mode === value)
 
-export const CUSTOM_GAME_MODES = ['unrated', 'legacy', 'ffa', 'fight_yard'] as const
+export const CUSTOM_GAME_MODES = ['unrated', 'legacy', 'legacy_3v3', 'ffa', 'fight_yard'] as const
 export type CustomGameMode = (typeof CUSTOM_GAME_MODES)[number]
 
 export const CUSTOM_GAME_MODE_LABELS: Record<CustomGameMode, string> = {
   unrated: 'Unranked',
   legacy: 'Legacy',
+  legacy_3v3: 'Legacy 3v3',
   ffa: 'FFA',
   fight_yard: 'Fight Yard'
 }

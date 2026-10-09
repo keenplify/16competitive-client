@@ -22,6 +22,7 @@ async function harness({ signed = false } = {}) {
   const children = []
   const intervals = []
   const reports = []
+  const logs = []
   let token = 'fixture-session-bearer'
   let clock = Date.now()
   let failSpawn = false
@@ -29,6 +30,9 @@ async function harness({ signed = false } = {}) {
     Buffer,
     process,
     console: {
+      info(message, details) {
+        logs.push({ message, ...details })
+      },
       warn() {
         return undefined
       }
@@ -123,6 +127,7 @@ async function harness({ signed = false } = {}) {
   return {
     children,
     reports,
+    logs,
     start: module.namespace.startAntiCheatSession,
     setToken(value) {
       token = value
@@ -153,6 +158,24 @@ const options = {
   gameDirectory: '/game',
   distribution: 'standalone'
 }
+
+test('attachment success is logged only after the helper confirms the requested process', async () => {
+  const h = await harness()
+  const session = await h.start(options)
+  const child = h.children[0]
+  session.attachProcess(123)
+  assert.equal(h.logs.length, 0, 'sending attach is not confirmation')
+  child.stdout.write('{"event":"attached","pid":456}\n')
+  assert.equal(h.logs.length, 0, 'an unrelated PID cannot confirm attachment')
+  child.stdout.write('{"event":"attached","pid":123}\n')
+  assert.equal(h.logs.length, 1)
+  assert.equal(h.logs[0].message, '[AntiCheat] helper attached successfully to game process')
+  assert.equal(h.logs[0].matchId, options.matchId)
+  assert.equal(h.logs[0].pid, 123)
+  assert(!JSON.stringify(h.logs).includes('fixture-session-bearer'))
+  session.stop('done')
+  child.emit('exit', 0)
+})
 
 test('supervisor forwards auth over control channel and stops on logout', async () => {
   const h = await harness()
