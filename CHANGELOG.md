@@ -2126,3 +2126,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Account Setup
 
 - Improved username setup when creating or signing in with Steam.
+
+## v2026.1009.4 — 2026-10-09
+
+### Match Readiness
+
+- Ready checks now appear directly on the current page.
+- Added clearer ready-check status and actions during matchmaking.
+
+### Scoreboard
+
+- Fixed scoreboard round indicators.
