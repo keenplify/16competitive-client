@@ -382,7 +382,7 @@ export const authenticateWithSocial = async (
   const startResponse = await fetchWithServerClock(`${API_BASE_URL}/auth/social/start`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ provider }),
+    body: JSON.stringify({ provider, client: 'desktop' }),
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
 
@@ -606,7 +606,7 @@ export const connectSocial = async (untrustedProvider: unknown): Promise<SocialC
       authorization: `Bearer ${sessionToken}`,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({ provider }),
+    body: JSON.stringify({ provider, client: 'desktop' }),
     signal: AbortSignal.timeout(10_000)
   }).catch(() => null)
   if (!startResponse) throw new Error('Could not reach the authentication server')

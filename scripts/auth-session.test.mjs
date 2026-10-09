@@ -11,8 +11,9 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 
-async function harness(email) {
+async function harness(email, socialResult) {
   const writes = []
+  const requests = []
   const player = {
     id: 'test-player',
     username: 'steam_player',
@@ -27,12 +28,37 @@ async function harness(email) {
     URL,
     Date,
     AbortSignal,
-    fetch: async (url) =>
-      Response.json(
+    setTimeout: (callback) => {
+      callback()
+    },
+    fetch: async (url, options) => {
+      requests.push({ url, body: options?.body ? JSON.parse(options.body) : null })
+      if (url.endsWith('/start')) {
+        return Response.json({
+          authorizationUrl: 'https://steamcommunity.com/openid/login',
+          pollToken: 'test-only-poll-token'.repeat(3),
+          expiresAt: new Date(Date.now() + 60_000).toISOString()
+        })
+      }
+      if (url.endsWith('/social/complete') && socialResult) {
+        return Response.json(socialResult, { status: 202 })
+      }
+      if (url.endsWith('/social/link/complete')) {
+        return Response.json(
+          Object.fromEntries(
+            ['steam', 'google', 'facebook', 'discord'].map((provider) => [
+              provider,
+              { connected: provider === 'steam', email: null }
+            ])
+          )
+        )
+      }
+      return Response.json(
         url.endsWith('/username/status')
           ? { requiresUsernameSetup: true, usernameChangeAvailableAt: null }
           : { token: 'test-only-token', expiresAt: '2099-01-01T00:00:00Z', player }
       )
+    }
   })
   const dependencies = {
     '../shared/auth': { validateSteamAuthorizationUrl: (url) => url },
@@ -40,7 +66,7 @@ async function harness(email) {
     '../shared/server-clock': { serverClockNow: () => Date.now(), syncServerClock: () => {} },
     electron: {
       app: { getPath: () => '/test-only' },
-      shell: {},
+      shell: { openExternal: async () => {} },
       safeStorage: {
         isEncryptionAvailable: () => true,
         encryptString: (token) => Buffer.from('encrypted:' + token),
@@ -69,8 +95,34 @@ async function harness(email) {
     )
   })
   await module.evaluate()
-  return { api: module.namespace, writes }
+  return { api: module.namespace, writes, requests }
 }
+
+test('desktop social sign-in declares its return target, including first-signup completion', async () => {
+  const { api, requests } = await harness(null)
+  const session = await api.authenticateWithSocial('steam')
+  assert.equal(session.player.username, 'steam_player')
+  assert.deepEqual(requests.find((request) => request.url.endsWith('/start')).body, {
+    provider: 'steam',
+    client: 'desktop'
+  })
+})
+
+test('desktop social sign-in preserves additional account confirmation steps', async () => {
+  const { api } = await harness(null, { pending: true, requiresEmail: true })
+  assert.equal((await api.authenticateWithSocial('steam')).kind, 'email_required')
+})
+
+test('desktop account linking also declares its return target', async () => {
+  const { api, requests } = await harness(null)
+  await api.restoreSession()
+  const connections = await api.connectSocial('steam')
+  assert.equal(connections.steam.connected, true)
+  assert.deepEqual(requests.find((request) => request.url.endsWith('/link/start')).body, {
+    provider: 'steam',
+    client: 'desktop'
+  })
+})
 
 for (const email of [null, 'player@example.test']) {
   test(`accepts and securely persists a session with email ${email}`, async () => {

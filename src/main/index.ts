@@ -1,5 +1,6 @@
 import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
 import { parseDemoLink } from '../shared/demo-link'
+import { isAuthReturnLink } from '../shared/auth-link'
 import { serverClockNow } from '../shared/server-clock'
 import { registerDemoProtocol } from './demo-protocol'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
@@ -388,9 +389,21 @@ function acceptDemoLink(value: string): void {
 }
 app.on('open-url', (event, url) => {
   event.preventDefault()
-  acceptDemoLink(url)
+  acceptAppLink(url)
 })
-for (const argument of process.argv) acceptDemoLink(argument)
+function acceptAppLink(value: string): void {
+  if (isAuthReturnLink(value)) focusMainWindow()
+  else acceptDemoLink(value)
+}
+for (const argument of process.argv) acceptAppLink(argument)
+
+async function withAuthFocus<T>(authentication: Promise<T>): Promise<T> {
+  try {
+    return await authentication
+  } finally {
+    focusMainWindow()
+  }
+}
 
 async function withClientTelemetry<T>(authentication: Promise<T>): Promise<T> {
   const result = await authentication
@@ -407,7 +420,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', (_event, argv) => {
-    for (const argument of argv) acceptDemoLink(argument)
+    for (const argument of argv) acceptAppLink(argument)
     focusMainWindow()
   })
 }
@@ -601,7 +614,7 @@ app.whenReady().then(async () => {
     withClientTelemetry(authenticate('register', credentials))
   )
   ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) =>
-    withClientTelemetry(authenticateWithSocial(provider))
+    withClientTelemetry(withAuthFocus(authenticateWithSocial(provider)))
   )
   ipcMain.handle(AUTH_CHANNELS.socialReopen, (_, provider: unknown) =>
     reopenSocialAuthorization(provider)
@@ -615,7 +628,9 @@ app.whenReady().then(async () => {
     withClientTelemetry(completeSocialWithPassword(pollToken, password))
   )
   ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
-  ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) => connectSocial(provider))
+  ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) =>
+    withAuthFocus(connectSocial(provider))
+  )
   ipcMain.handle(AUTH_CHANNELS.usernameCheck, (_, username: unknown) => checkUsername(username))
   ipcMain.handle(AUTH_CHANNELS.usernameChange, (_, username: unknown) => changeUsername(username))
   ipcMain.handle(AUTH_CHANNELS.referralStatus, () => getReferralStatus())
