@@ -2104,3 +2104,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Parties
 
 - Improved party state handling during matchmaking.
+
+## v2026.1009.2 — 2026-10-09
+
+### Windows Compatibility
+
+- Improved Windows cosmetic compatibility checks.
+- Added clearer logging to help diagnose compatibility issues.
