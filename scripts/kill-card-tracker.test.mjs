@@ -165,11 +165,23 @@ test('a non-ACE round-ending kill does not become a stuck first card', () => {
 test('competitive cards clear when the player dies before the round ends', () => {
   const tracker = new KillCardTracker()
   tracker.update(snapshot('competitive', 1, 0, 0, [true, true, true]), 'Player')
-  assert.equal(tracker.update(snapshot('competitive', 1, 2, 0, [false, false, true]), 'Player')?.count, 2)
-  assert.deepEqual(tracker.update(snapshot('competitive', 1, 2, 1, [false, false, true]), 'Player'), {
-    mode: 'C', side: 'T', count: 0, aceAt: null
-  })
-  assert.equal(tracker.update(snapshot('competitive', 1, 2, 1, [false, false, true]), 'Player')?.count, 0)
+  assert.equal(
+    tracker.update(snapshot('competitive', 1, 2, 0, [false, false, true]), 'Player')?.count,
+    2
+  )
+  assert.deepEqual(
+    tracker.update(snapshot('competitive', 1, 2, 1, [false, false, true]), 'Player'),
+    {
+      mode: 'C',
+      side: 'T',
+      count: 0,
+      aceAt: null
+    }
+  )
+  assert.equal(
+    tracker.update(snapshot('competitive', 1, 2, 1, [false, false, true]), 'Player')?.count,
+    0
+  )
 })
 
 test('FFA cards reset on death, have no ACE, and cap at sixteen', () => {
@@ -205,4 +217,46 @@ test('FFA cards reset on death, have no ACE, and cap at sixteen', () => {
     count: 16,
     aceAt: null
   })
+})
+
+for (const delayed of ['kills', 'alive', 'both']) {
+  test(`5v5 ACE survives round advancement with delayed ${delayed}`, () => {
+    const tracker = new KillCardTracker()
+    tracker.update(snapshot('competitive', 1, 0, 0, Array(5).fill(true)), 'Player')
+    tracker.update(snapshot('competitive', 1, 4, 0, [false, false, false, false, true]), 'Player')
+    tracker.update(
+      snapshot(
+        'competitive',
+        2,
+        delayed === 'alive' ? 5 : 4,
+        0,
+        delayed === 'kills' ? Array(5).fill(false) : [false, false, false, false, true]
+      ),
+      'Player'
+    )
+    assert.deepEqual(
+      tracker.update(snapshot('competitive', 2, 5, 0, Array(5).fill(false)), 'Player'),
+      { mode: 'C', side: 'T', count: 5, aceAt: 5 }
+    )
+    assert.equal(
+      tracker.update(snapshot('competitive', 2, 5, 0, Array(5).fill(true)), 'Player')?.count,
+      0
+    )
+    assert.deepEqual(
+      tracker.update(snapshot('competitive', 2, 6, 0, [false, true, true, true, true]), 'Player'),
+      { mode: 'C', side: 'T', count: 1, aceAt: null }
+    )
+  })
+}
+
+test('unfinished round progress cannot turn next round kills into an ACE', () => {
+  const tracker = new KillCardTracker()
+  tracker.update(snapshot('competitive', 1, 0, 0, Array(5).fill(true)), 'Player')
+  tracker.update(snapshot('competitive', 1, 4, 0, [false, false, false, false, true]), 'Player')
+  tracker.update(snapshot('competitive', 2, 4, 0, [false, false, false, false, true]), 'Player')
+  tracker.update(snapshot('competitive', 2, 4, 0, Array(5).fill(true)), 'Player')
+  assert.deepEqual(
+    tracker.update(snapshot('competitive', 2, 5, 0, Array(5).fill(false)), 'Player'),
+    { mode: 'C', side: 'T', count: 1, aceAt: null }
+  )
 })

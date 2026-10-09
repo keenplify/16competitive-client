@@ -17,6 +17,7 @@ export class KillCardTracker {
   private cards = 0
   private maxOpponents = 0
   private awaitingRespawn = false
+  private deadOpponents = new Set<number>()
 
   update(
     snapshot: {
@@ -56,25 +57,24 @@ export class KillCardTracker {
       // A death and kill in one feed interval have unknown order. Reset conservatively.
       this.cards = 0
       this.awaitingRespawn = false
-    } else if (mode === 'C' && newRound) {
-      // The round number advances at round end. Its last kill still belongs to the old round.
-      const expected = this.maxOpponents || opponents.length
-      const completedAce =
-        expected > 0 &&
-        this.cards + gained >= expected &&
-        opponents.length === expected &&
-        opponents.every((entry) => !entry.alive)
-      this.cards = completedAce ? this.cards + gained : 0
-      this.awaitingRespawn = completedAce
-    } else if (mode === 'C' && this.awaitingRespawn) {
-      if (opponents.some((entry) => entry.alive)) {
+    } else if (mode === 'C' && (newRound || this.awaitingRespawn)) {
+      // Round numbers advance at round end, potentially before the final kill
+      // count/alive flags arrive. Keep that round's progress until a previously
+      // dead opponent respawns; only expose it after the server confirms ACE.
+      const respawned = opponents.some((entry) => entry.alive && this.deadOpponents.has(entry.id))
+      const noProgress = this.cards + gained === 0 && opponents.every((entry) => entry.alive)
+      if (respawned || noProgress || opponents.length === 0) {
         this.cards = gained
         this.awaitingRespawn = false
+      } else {
+        this.cards += gained
+        this.awaitingRespawn = true
       }
     } else {
       this.cards += gained
     }
 
+    this.deadOpponents = new Set(opponents.filter((entry) => !entry.alive).map((entry) => entry.id))
     this.round = snapshot.round
     this.mode = mode
     this.playerId = player.id
@@ -99,6 +99,7 @@ export class KillCardTracker {
       opponents.every((entry) => !entry.alive)
         ? this.maxOpponents
         : null
-    return { mode, side, count: mode === 'F' ? Math.min(this.cards, 16) : this.cards, aceAt }
+    const count = this.awaitingRespawn && aceAt === null ? 0 : this.cards
+    return { mode, side, count: mode === 'F' ? Math.min(count, 16) : count, aceAt }
   }
 }
