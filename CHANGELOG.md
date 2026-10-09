@@ -2094,3 +2094,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - Post-game update checks now wait until you return to the lobby.
+
+## v2026.1009.1 — 2026-10-09
+
+### Cosmetics
+
+- Improved recovery when cosmetic installation encounters a problem.
+
+### Parties
+
+- Improved party state handling during matchmaking.
