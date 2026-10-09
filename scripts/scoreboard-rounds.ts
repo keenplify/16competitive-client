@@ -31,7 +31,10 @@ export function scoreboardRounds(
 }
 
 export function lossBonusSegments(bonus: number | null) {
-  return bonus === null ? 0 : Math.max(0, Math.min(5, Math.floor((bonus - 1400) / 500) + 1))
+  // GoldSrc caps the payout at $3,000 (not CS:GO's $3,400).
+  if (bonus === null || bonus < 1400) return 0
+  if (bonus >= 3000) return 5
+  return Math.min(4, Math.floor((bonus - 1400) / 500) + 1)
 }
 
 export function targetRoundMarkers(
@@ -40,10 +43,10 @@ export function targetRoundMarkers(
   ctWins: number | null,
   tWins: number | null
 ): { ct: number; t: number } {
+  if (winTarget <= 0 || Math.max(ctWins ?? 0, tWins ?? 0) >= winTarget) return { ct: -1, t: -1 }
+  const leader = Math.max(ctWins ?? -1, tWins ?? -1)
   const marker = (wins: number | null): number =>
-    wins !== null && wins >= winTarget - 2 && wins < winTarget
-      ? completedRounds + (winTarget - wins) - 1
-      : -1
+    wins !== null && wins === leader ? completedRounds + (winTarget - wins) - 1 : -1
   return { ct: marker(ctWins), t: marker(tWins) }
 }
 

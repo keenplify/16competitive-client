@@ -18,7 +18,6 @@ import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useMatchmakingStore } from './matchmaking.store'
-import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
@@ -125,10 +124,7 @@ export function PlayPage({
   const preferHumans = useMatchmakingStore((state) => state.preferHumans)
   const setPreferHumans = useMatchmakingStore((state) => state.setPreferHumans)
   const match = useMatchmakingStore((state) => state.match)
-  const readyDeadline = useMatchmakingStore((state) => state.readyDeadline)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
-  const readyPlayersRequired = useMatchmakingStore((state) => state.readyPlayersRequired)
-  const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const countdown = useMatchmakingStore((state) => state.countdown)
   const assetPreparation = useMatchmakingStore((state) => state.assetPreparation)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
@@ -141,7 +137,6 @@ export function PlayPage({
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
-  const respondReady = useMatchmakingStore((state) => state.respondReady)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
   const copyConnection = useMatchmakingStore((state) => state.copyConnection)
   const copyConnectionStatus = useMatchmakingStore((state) => state.copyConnectionStatus)
@@ -157,7 +152,6 @@ export function PlayPage({
   const leaveCustomRoom = useCustomGamesStore((state) => state.leaveRoom)
   const restoreCustomRoom = useCustomGamesStore((state) => state.restoreRoom)
   const customRoomError = useCustomGamesStore((state) => state.error)
-  const [secondsToAccept, setSecondsToAccept] = useState(120)
   const [clockNow, setClockNow] = useState(Date.now)
   const [leavingCustomMatch, setLeavingCustomMatch] = useState(false)
   const webRuntime = isWebRuntime()
@@ -209,18 +203,6 @@ export function PlayPage({
   useEffect(() => {
     if (customRoomError) toast.error(customRoomError)
   }, [customRoomError])
-
-  useEffect(() => {
-    if (queueStatus !== 'ready_check' || !readyDeadline) return
-    const update = (): void => {
-      setSecondsToAccept(
-        Math.max(0, Math.ceil((new Date(readyDeadline).getTime() - Date.now()) / 1_000))
-      )
-    }
-    update()
-    const timer = window.setInterval(update, 250)
-    return () => window.clearInterval(timer)
-  }, [queueStatus, readyDeadline])
 
   useEffect(() => {
     if (queueStatus !== 'server_ready' || !matchReadyAt) return
@@ -312,43 +294,6 @@ export function PlayPage({
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
-
-  if (match && queueStatus === 'match_found') {
-    return (
-      <main className="relative flex h-full min-h-0 min-w-0 items-center justify-center overflow-x-hidden overflow-y-auto bg-neutral-950/95 p-4 text-white sm:p-6">
-        <section className="my-auto w-full max-w-xl border border-sky-400/30 bg-sky-400/10 p-8 text-center">
-          <p className="text-xs font-bold tracking-[0.22em] text-sky-300 uppercase">Match found</p>
-          <h1 className="mt-3 text-3xl font-semibold">Preparing ready check</h1>
-          <p className="mt-3 text-sm text-sky-100/70">
-            {maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} ·{' '}
-            {getMatchmakingModeLabel(match.mode)}
-          </p>
-          <MatchAssetPreparation
-            className="mx-auto mt-5 max-w-md text-left"
-            preparation={assetPreparation}
-          />
-          <p className="mt-5 text-sm text-neutral-400">
-            Waiting for the server to open player acceptance…
-          </p>
-        </section>
-      </main>
-    )
-  }
-
-  if (match && queueStatus === 'ready_check') {
-    return (
-      <MatchFoundReadyCheck
-        acceptedPlayerIds={acceptedPlayerIds}
-        match={match}
-        playersRequired={readyPlayersRequired}
-        readyResponse={readyResponse}
-        secondsRemaining={secondsToAccept}
-        assetPreparation={assetPreparation}
-        onAccept={() => void respondReady(true)}
-        onDecline={() => void respondReady(false)}
-      />
-    )
-  }
 
   if (
     (match && (queueStatus === 'countdown' || queueStatus === 'starting_server')) ||

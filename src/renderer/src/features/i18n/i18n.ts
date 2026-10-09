@@ -1,3 +1,4 @@
+import { readyCheckTranslations } from './ready-check-translations'
 import { steamTranslations } from './steam-translations'
 import { useCallback } from 'react'
 import { create } from 'zustand'
@@ -20,6 +21,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
   ...steamTranslations.en,
+  ...readyCheckTranslations.en,
   'auth.signedInAs': 'Signed in as {{account}}',
   'chat.communityAnnouncement': 'Announcement',
   'chat.communityVisit': 'Visit us on {{platform}}',
@@ -155,6 +157,7 @@ export type TranslationParams = Record<string, string | number>
 
 const russian: Record<TranslationKey, string> = {
   ...steamTranslations.ru,
+  ...readyCheckTranslations.ru,
   'auth.signedInAs': 'Выполнен вход: {{account}}',
   'chat.communityAnnouncement': 'Объявление',
   'chat.communityVisit': 'Посетите нас в {{platform}}',
@@ -290,6 +293,7 @@ const russian: Record<TranslationKey, string> = {
 
 const taglish: Record<TranslationKey, string> = {
   ...steamTranslations.tl,
+  ...readyCheckTranslations.tl,
   'auth.signedInAs': 'Naka-sign in bilang {{account}}',
   'chat.communityAnnouncement': 'Anunsyo',
   'chat.communityVisit': 'Bisitahin kami sa {{platform}}',
@@ -425,6 +429,7 @@ const taglish: Record<TranslationKey, string> = {
 
 const thai: Record<TranslationKey, string> = {
   ...steamTranslations.th,
+  ...readyCheckTranslations.th,
   'auth.signedInAs': 'เข้าสู่ระบบเป็น {{account}}',
   'chat.communityAnnouncement': 'ประกาศ',
   'chat.communityVisit': 'เยี่ยมชมเราที่ {{platform}}',
@@ -558,6 +563,7 @@ const thai: Record<TranslationKey, string> = {
 
 const indonesian: Record<TranslationKey, string> = {
   ...steamTranslations.id,
+  ...readyCheckTranslations.id,
   'auth.signedInAs': 'Masuk sebagai {{account}}',
   'chat.communityAnnouncement': 'Pengumuman',
   'chat.communityVisit': 'Kunjungi kami di {{platform}}',
@@ -696,6 +702,7 @@ const indonesian: Record<TranslationKey, string> = {
 
 const portuguese: Record<TranslationKey, string> = {
   ...steamTranslations.pt,
+  ...readyCheckTranslations.pt,
   'auth.signedInAs': 'Conectado como {{account}}',
   'chat.communityAnnouncement': 'Aviso',
   'chat.communityVisit': 'Visite-nos no {{platform}}',
@@ -835,6 +842,7 @@ const portuguese: Record<TranslationKey, string> = {
 
 const japanese: Record<TranslationKey, string> = {
   ...steamTranslations.ja,
+  ...readyCheckTranslations.ja,
   'auth.signedInAs': '{{account}}としてログイン中',
   'chat.communityAnnouncement': 'お知らせ',
   'chat.communityVisit': '{{platform}}をご覧ください',
@@ -971,6 +979,7 @@ const japanese: Record<TranslationKey, string> = {
 
 const hindi: Record<TranslationKey, string> = {
   ...steamTranslations.hi,
+  ...readyCheckTranslations.hi,
   'auth.signedInAs': '{{account}} के रूप में साइन इन किया गया',
   'chat.communityAnnouncement': 'घोषणा',
   'chat.communityVisit': '{{platform}} पर हमें देखें',

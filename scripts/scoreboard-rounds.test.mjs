@@ -38,13 +38,16 @@ test('supports shorter regulation formats and excludes deathmatch', () => {
 })
 
 test('loss bonus bars cover all five tiers and unknown older feeds', () => {
-  assert.deepEqual([null, 1400, 1900, 2400, 2900, 3400].map(lossBonusSegments), [0, 1, 2, 3, 4, 5])
+  assert.deepEqual([null, 1400, 1900, 2400, 2900, 3000].map(lossBonusSegments), [0, 1, 2, 3, 4, 5])
 })
 
-test('marks the future target round when either side is two wins away', () => {
+test('marks the future target round for the nearest winner throughout the match', () => {
+  assert.deepEqual(targetRoundMarkers(0, 13, 0, 0), { ct: 12, t: 12 })
+  assert.deepEqual(targetRoundMarkers(5, 9, 1, 4), { ct: -1, t: 9 })
+  assert.deepEqual(targetRoundMarkers(24, 16, 12, 12), { ct: 27, t: 27 })
   assert.deepEqual(targetRoundMarkers(20, 13, 11, 9), { ct: 21, t: -1 })
   assert.deepEqual(targetRoundMarkers(21, 13, 11, 11), { ct: 22, t: 22 })
-  assert.deepEqual(targetRoundMarkers(22, 13, 12, 11), { ct: 22, t: 23 })
+  assert.deepEqual(targetRoundMarkers(22, 13, 12, 11), { ct: 22, t: -1 })
   assert.deepEqual(targetRoundMarkers(23, 13, 13, 10), { ct: -1, t: -1 })
 })
 

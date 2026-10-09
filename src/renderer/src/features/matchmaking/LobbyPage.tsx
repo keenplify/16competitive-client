@@ -24,6 +24,7 @@ import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import type { AuthPlayer } from '../../../../shared/auth'
 import type { PendingMatchSurvey } from '../../../../shared/match-history'
 import type { Party, PartyMember } from '../../../../shared/party'
+import { MatchReadyOverlay } from './MatchReadyOverlay'
 import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useCustomGamesStore } from './custom-games.store'
@@ -161,7 +162,6 @@ export function LobbyPage(): JSX.Element {
     'server_ready'
   ].includes(queueStatus)
   const matchNeedsAttention = queueStatus === 'match_found' || queueStatus === 'ready_check'
-  const showingMatchFoundScreen = page === 'play' && matchNeedsAttention
   const showingPlaySelection =
     page === 'play' &&
     playView === 'matchmaking' &&
@@ -338,6 +338,7 @@ export function LobbyPage(): JSX.Element {
       return
     }
     if (
+      !matchNeedsAttention &&
       queueStatus !== 'idle' &&
       queueStatus !== 'joining' &&
       queueStatus !== 'leaving' &&
@@ -375,35 +376,34 @@ export function LobbyPage(): JSX.Element {
     )
   }
 
-  const content =
-    requiresGameSetup && !(matchNeedsAttention && page === 'play') ? (
-      <SettingsPage />
-    ) : completedMatch ? (
-      <MatchResultsPage match={completedMatch} />
-    ) : page === 'play' ? (
-      <PlayPage friendsCollapsed={friendsCollapsed} />
-    ) : page === 'demos' ? (
-      <AdminDemosPage />
-    ) : page === 'settings' ? (
-      <SettingsPage />
-    ) : page === 'profile' ? (
-      <ProfilePage />
-    ) : page === 'store' ? (
-      <ShopPage />
-    ) : page === 'news' ? (
-      <NewsPage />
-    ) : page === 'leaderboard' ? (
-      <LeaderboardPage />
-    ) : page === 'lobby' ? null : (
-      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
-        <div className="text-center">
-          <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
-            {pageLabels[page]}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
-        </div>
-      </main>
-    )
+  const content = requiresGameSetup ? (
+    <SettingsPage />
+  ) : completedMatch ? (
+    <MatchResultsPage match={completedMatch} />
+  ) : page === 'play' ? (
+    <PlayPage friendsCollapsed={friendsCollapsed} />
+  ) : page === 'demos' ? (
+    <AdminDemosPage />
+  ) : page === 'settings' ? (
+    <SettingsPage />
+  ) : page === 'profile' ? (
+    <ProfilePage />
+  ) : page === 'store' ? (
+    <ShopPage />
+  ) : page === 'news' ? (
+    <NewsPage />
+  ) : page === 'leaderboard' ? (
+    <LeaderboardPage />
+  ) : page === 'lobby' ? null : (
+    <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-neutral-950/90 p-6">
+      <div className="text-center">
+        <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
+          {pageLabels[page]}
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold">Coming soon</h1>
+      </div>
+    </main>
+  )
 
   return (
     <main
@@ -453,7 +453,7 @@ export function LobbyPage(): JSX.Element {
       />
       {content && (
         <div
-          className={`relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingMatchFoundScreen || showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
+          className={`relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
             // The friends rail renders nothing while a match needs attention, so
             // its reserved width must be released for the whole match lifecycle.
             matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'
@@ -462,6 +462,7 @@ export function LobbyPage(): JSX.Element {
           {content}
         </div>
       )}
+      {matchNeedsAttention && <MatchReadyOverlay />}
     </main>
   )
 }

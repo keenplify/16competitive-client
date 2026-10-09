@@ -646,6 +646,13 @@ export class ScoreboardOverlaySession {
           signal: AbortSignal.any([this.requests.signal, AbortSignal.timeout(3000)])
         }
       )
+      // Only an authenticated match member receives 410 for a terminal match.
+      // Stop the HUD lifecycle instead of filing a false outage after shutdown.
+      if (response.status === 410) {
+        console.info('[Scoreboard] match ended; stopping live HUD', { matchId: this.matchId })
+        this.stop()
+        return
+      }
       if (response.status === 401 || response.status === 403) {
         this.lastSnapshot = null
         this.feedAvailable = false
