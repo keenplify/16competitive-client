@@ -2166,3 +2166,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved social authentication.
 - Added more reliable handling of authentication links.
+
+## v2026.1009.8 — 2026-10-09
+
+### Player Pings
+
+- Added player ping settings.
+- Added ping sound cues for general, enemy, and item pings.
+- Added cooldowns for entity pings.
+- Added new ping visuals and gun-drop assets.
+
+### Game Sessions
+
+- Improved managed game session safety and recovery.
+- Improved switching between managed and standalone game sessions.
+- Added safeguards to prevent stale session data from carrying over.
