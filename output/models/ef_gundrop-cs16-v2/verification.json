@@ -1,0 +1,30 @@
+{
+  "format": "IDST version 10",
+  "bytes": 332056,
+  "nonTextureBytesUnchanged": true,
+  "changedTextureBytes": 328566,
+  "textures": [
+    {
+      "name": "portal02.bmp",
+      "width": 512,
+      "height": 512,
+      "bitsPerPixel": 8,
+      "compression": 0,
+      "paletteEntries": 256,
+      "flags": 36,
+      "roundTripExact": true
+    },
+    {
+      "name": "portal03.bmp",
+      "width": 256,
+      "height": 256,
+      "bitsPerPixel": 8,
+      "compression": 0,
+      "paletteEntries": 256,
+      "flags": 36,
+      "roundTripExact": true
+    }
+  ],
+  "originalSha256": "6204fce61e21d6c43c98a44b438feb7ca8376aa03116e9cc5626ee609f526764",
+  "rebuiltSha256": "32f40cd37652ac705fbd08aa225a54a52e6c267888d20b343c5fb21081ee0354"
+}

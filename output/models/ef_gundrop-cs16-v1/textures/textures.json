@@ -1,0 +1,22 @@
+{
+  "format": "goldsrc-mdl-textures-v1",
+  "sourceModel": "ef_gundrop.mdl",
+  "textures": [
+    {
+      "index": 0,
+      "name": "portal02.bmp",
+      "file": "000_portal02.bmp",
+      "width": 512,
+      "height": 512,
+      "flags": 36
+    },
+    {
+      "index": 1,
+      "name": "portal03.bmp",
+      "file": "001_portal03.bmp",
+      "width": 256,
+      "height": 256,
+      "flags": 36
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+[en]
+PING_KIT = %s pinged a defuse kit
+PING_ENEMY = %s pinged an enemy
+PING_BOMB = %s pinged the bomb
+PING_AK47 = %s pinged an AK-47
+PING_WEAPON = %s pinged a weapon (%s)
+PING_LOCATION = %s pinged %s
+PING_GENERIC = %s pinged a location
+PING_AT =  at %s
+
+[ru]
+PING_KIT = %s отметил набор для разминирования
+PING_ENEMY = %s отметил противника
+PING_BOMB = %s отметил бомбу
+PING_AK47 = %s отметил AK-47
+PING_WEAPON = %s отметил оружие (%s)
+PING_LOCATION = %s отметил %s
+PING_GENERIC = %s отметил место
+PING_AT =  — %s
+
+[tl]
+PING_KIT = Nag-ping si %s ng defuse kit
+PING_ENEMY = Nag-ping si %s ng kalaban
+PING_BOMB = Nag-ping si %s ng bomba
+PING_AK47 = Nag-ping si %s ng AK-47
+PING_WEAPON = Nag-ping si %s ng armas (%s)
+PING_LOCATION = Nag-ping si %s sa %s
+PING_GENERIC = Nag-ping si %s ng lokasyon
+PING_AT =  sa %s
+
+[th]
+PING_KIT = %s ปักหมุดชุดกู้ระเบิด
+PING_ENEMY = %s ปักหมุดศัตรู
+PING_BOMB = %s ปักหมุดระเบิด
+PING_AK47 = %s ปักหมุด AK-47
+PING_WEAPON = %s ปักหมุดอาวุธ (%s)
+PING_LOCATION = %s ปักหมุดที่ %s
+PING_GENERIC = %s ปักหมุดตำแหน่ง
+PING_AT =  ที่ %s
+
+[id]
+PING_KIT = %s menandai kit penjinak bom
+PING_ENEMY = %s menandai musuh
+PING_BOMB = %s menandai bom
+PING_AK47 = %s menandai AK-47
+PING_WEAPON = %s menandai senjata (%s)
+PING_LOCATION = %s menandai %s
+PING_GENERIC = %s menandai lokasi
+PING_AT =  di %s
+
+[pt]
+PING_KIT = %s marcou um kit de desarme
+PING_ENEMY = %s marcou um inimigo
+PING_BOMB = %s marcou a bomba
+PING_AK47 = %s marcou uma AK-47
+PING_WEAPON = %s marcou uma arma (%s)
+PING_LOCATION = %s marcou %s
+PING_GENERIC = %s marcou um local
+PING_AT =  em %s
+
+[ja]
+PING_KIT = %s が解除キットをピンしました
+PING_ENEMY = %s が敵をピンしました
+PING_BOMB = %s が爆弾をピンしました
+PING_AK47 = %s が AK-47 をピンしました
+PING_WEAPON = %s が武器 (%s) をピンしました
+PING_LOCATION = %s が %s をピンしました
+PING_GENERIC = %s が地点をピンしました
+PING_AT =  — %s
+
+[hi]
+PING_KIT = %s ने डिफ्यूज़ किट को पिंग किया
+PING_ENEMY = %s ने दुश्मन को पिंग किया
+PING_BOMB = %s ने बम को पिंग किया
+PING_AK47 = %s ने AK-47 को पिंग किया
+PING_WEAPON = %s ने हथियार (%s) को पिंग किया
+PING_LOCATION = %s ने %s को पिंग किया
+PING_GENERIC = %s ने एक जगह पिंग की
+PING_AT =  — %s

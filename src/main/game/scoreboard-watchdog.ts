@@ -2,6 +2,7 @@ export type ScoreboardHealth = {
   feedReady: boolean
   rendererCrashed: boolean
   frameAgeMs: number | null
+  frameExpected?: boolean
   markersPresent: boolean
 }
 
@@ -58,7 +59,8 @@ export class ScoreboardWatchdog {
         ? null
         : !health.markersPresent
           ? 'session markers missing'
-          : this.now() - this.startedAt >= 8000 &&
+          : health.frameExpected !== false &&
+              this.now() - this.startedAt >= 8000 &&
               (health.frameAgeMs === null || health.frameAgeMs > 8000)
             ? 'scoreboard frame stalled'
             : null

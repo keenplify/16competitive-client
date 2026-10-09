@@ -1,3 +1,4 @@
+import { PlayerPingSetting } from './PlayerPingSetting'
 import {
   BookOpen,
   CheckCircle2,
@@ -596,13 +597,16 @@ export function SettingsPage(): JSX.Element {
 
                   <div className="mt-6 flex items-start justify-between gap-5 border-t border-white/10 pt-5">
                     <div>
-                      <p className="text-sm font-semibold text-neutral-100">Fast weapon switch</p>
+                      <p className="text-sm font-semibold text-neutral-100">
+                        {t('settings.fastSwitch')}
+                      </p>
                       <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                        Select weapons immediately with number keys. Custom Setup leaves your game
-                        preference alone until you change this switch.
+                        {t('settings.fastSwitchDescription')}
                       </p>
                       {!fastSwitchManaged && (
-                        <p className="mt-1 text-xs text-sky-300">Using your game preference</p>
+                        <p className="mt-1 text-xs text-sky-300">
+                          {t('settings.fastSwitchInherited')}
+                        </p>
                       )}
                     </div>
                     <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
@@ -613,7 +617,7 @@ export function SettingsPage(): JSX.Element {
                         onChange={(event) => void setFastSwitch(event.currentTarget.checked)}
                       />
                       <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-violet-400 peer-checked:bg-violet-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                      <span className="sr-only">Enable fast weapon switch</span>
+                      <span className="sr-only">{t('settings.fastSwitchEnable')}</span>
                     </label>
                   </div>
 
@@ -626,6 +630,9 @@ export function SettingsPage(): JSX.Element {
                         installations on Windows or Linux. NextClient uses its own compatible host
                         and crosshair settings. Game files are restored after exit. This setting
                         does not control match screenshot review.
+                      </p>
+                      <p className="mt-3 max-w-2xl text-xs leading-relaxed text-amber-300">
+                        {t('settings.anticheatNotice')}
                       </p>
                       {!inGameEnhancementsEnabled && nextClientIntegrationDisabledReason && (
                         <p className="mt-2 text-xs text-amber-300">
@@ -777,6 +784,7 @@ export function SettingsPage(): JSX.Element {
                 </div>
               </section>
 
+              {!isWebRuntime() && <PlayerPingSetting />}
               <VoicePttKeySetting />
             </section>
 

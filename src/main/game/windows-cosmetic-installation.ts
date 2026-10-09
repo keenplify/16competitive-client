@@ -4,6 +4,10 @@ import { copyFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs
 import { join } from 'node:path'
 import { app } from 'electron'
 import { recoverWindowsCosmeticInstallation } from './windows-cosmetic-recovery'
+import {
+  armWindowsIntegrationRecovery,
+  restoreWindowsIntegration
+} from './windows-integration-recovery'
 import releaseConfig from '../../../helper-release.json'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
 import { verifyCosmeticModule, verifyHelperRelease } from '../anticheat/helper-release-verifier'
@@ -117,6 +121,7 @@ export class WindowsCosmeticInstallation {
         ownsBackup: !existingBackup
       }
       await writeFile(installation.journalPath, JSON.stringify(journal), { flag: 'wx' })
+      await armWindowsIntegrationRecovery(gameRoot, join(native, 'game-inspector.exe'))
       await writeFile(temporary, module, { flag: 'wx' })
       await rename(temporary, installation.clientPath)
       await mkdir(installation.sessionDirectory, { recursive: false })
@@ -135,12 +140,14 @@ export class WindowsCosmeticInstallation {
   }
 
   private async recover(): Promise<void> {
+    if (await restoreWindowsIntegration(this.gameRoot)) return
     await recoverWindowsCosmeticInstallation(this.gameRoot)
   }
 
   async restore(): Promise<void> {
     // An exiting hl.exe can briefly hold client.dll open. Leave the journal and
     // original in place if restoration fails; the next launch recovers them.
+    if (await restoreWindowsIntegration(this.gameRoot)) return
     await rm(this.sessionDirectory, { recursive: true, force: true }).catch(() => undefined)
     for (let attempt = 0; attempt < 30; attempt++) {
       try {

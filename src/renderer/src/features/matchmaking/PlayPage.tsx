@@ -510,7 +510,14 @@ export function PlayPage({
                 />
                 {t('matchmaking.preferHumans')}
               </label>
-              <HelpTooltip text={t('matchmaking.preferHumansTooltip')} placement="bottom" />
+              <HelpTooltip
+                text={t(
+                  selectedMode === '3v3' || selectedMode === 'legacy_3v3'
+                    ? 'matchmaking.preferHumans3v3Tooltip'
+                    : 'matchmaking.preferHumansTooltip'
+                )}
+                placement="bottom"
+              />
             </div>
             <label
               className={twMerge(

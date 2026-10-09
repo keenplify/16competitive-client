@@ -11,6 +11,7 @@ export default defineConfig(
       '**/node_modules',
       '**/dist',
       '**/out',
+      'output/**',
       '**/build',
       '**/dist-web',
       'resources/scoreboard/**',

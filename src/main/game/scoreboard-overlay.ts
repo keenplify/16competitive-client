@@ -1,7 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { constants, watch, type FSWatcher } from 'node:fs'
-import { lstat, mkdir, mkdtemp, open, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rm,
+  stat,
+  unlink,
+  writeFile
+} from 'node:fs/promises'
 import { join } from 'node:path'
 import { release } from 'node:os'
 import { app, BrowserWindow } from 'electron'
@@ -24,6 +34,7 @@ import { KillCardPrediction, parseLocalDeathNotices } from './kill-card-predicti
 import { writeLiveSessionFile } from './live-session-file'
 import { decodeScoreboardDelta } from './scoreboard-transport'
 import { mergeNativeScores, readNativeScores } from './native-scoreboard'
+import { SessionLease } from './session-lease'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -87,9 +98,12 @@ export class ScoreboardOverlaySession {
   private readonly feedPath: string
   private readonly killCardTracker = new KillCardTracker()
   private readonly killCardPrediction = new KillCardPrediction()
+  private boardVisible = false
+  private frameRequestedAt: number | null = null
   private killCardsEnabled = true
   private lastKillCardState: string | null = null
   private lastKillCardKinds = ''
+  private lastCardFrameAt = 0
   private cardStateTask: Promise<void> = Promise.resolve()
   private eventWatcher: FSWatcher | null = null
   private eventReadTask: Promise<void> | null = null
@@ -119,6 +133,7 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private cardFrameWriting = false
   private stopped = false
+  private readonly lease: SessionLease
   private lastSnapshot: Snapshot = null
   private feedAvailable = false
   private reportedUnavailable = false
@@ -139,6 +154,7 @@ export class ScoreboardOverlaySession {
     windowsInstallation: WindowsCosmeticInstallation | WindowsNextClientInstallation | null
   ) {
     this.directory = directory
+    this.lease = new SessionLease(directory)
     this.modulePath = modulePath
     this.steamWrapperPath = join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh')
     this.window = window
@@ -245,9 +261,13 @@ export class ScoreboardOverlaySession {
     matchId: string,
     apiUrl = API_BASE_URL,
     gameRoot?: string,
-    allowNextClientIntegration = true
+    allowNextClientIntegration = true,
+    serverEndpoint?: string,
+    onStandaloneRestart?: () => Promise<void>
   ): Promise<ScoreboardOverlaySession | null> {
     await cleanupQueue.wait()
+    if (!serverEndpoint || !/^\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(serverEndpoint))
+      throw new Error('Native HUD requires the assigned IPv4 server endpoint')
     // The module follows GoldSrc's x86 architecture, not the launcher's host
     // architecture. ARM64 Linux runs the same game/module through translation.
     const supportedHost =
@@ -331,6 +351,7 @@ export class ScoreboardOverlaySession {
     let window: BrowserWindow | null = null
     let cardsWindow: BrowserWindow | null = null
     let eventWatcher: FSWatcher | null = null
+    let startupLease: SessionLease | null = null
     try {
       await mkdir(join(directory, 'game/cstrike/addons/amxmodx/data'), { recursive: true })
       await Promise.all(
@@ -346,6 +367,7 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'manifest.json'), JSON.stringify({ matchId }), {
         mode: 0o600
       })
+      await writeFile(join(directory, 'server.endpoint'), `${serverEndpoint}\n`, { mode: 0o600 })
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'round-accolade.support'), '1\n', { mode: 0o600 })
@@ -412,6 +434,7 @@ export class ScoreboardOverlaySession {
         parseSnapshot,
         windowsInstallation
       )
+      startupLease = createdSession.lease
       createdSession.killCardsEnabled = gameSettings.killCardsEnabled
       cardsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       cardsWindow.webContents.on('will-navigate', (event) => event.preventDefault())
@@ -436,6 +459,9 @@ export class ScoreboardOverlaySession {
         const destination = join(directory, 'kill-cards.png')
         createdSession.cardFrameWriting = true
         createdSession.cardFrameTask = writeLiveSessionFile(destination, png)
+          .then(() => {
+            createdSession.lastCardFrameAt = Date.now()
+          })
           .catch((error: unknown) =>
             console.warn('[Scoreboard] kill card frame write failed', error)
           )
@@ -456,14 +482,20 @@ export class ScoreboardOverlaySession {
         console.warn('[Scoreboard] renderer exited', { matchId, reason: details.reason })
       })
       window.webContents.on('paint', (_event, _dirty, image) => {
-        if (createdSession.stopped || createdSession.frameWriting) return
+        if (createdSession.stopped || createdSession.frameWriting || !createdSession.boardVisible)
+          return
         const size = image.getSize()
         if (size.width !== FRAME_WIDTH || size.height !== FRAME_HEIGHT) return
         const png = image.toPNG()
         if (!png.length || png.length > MAX_FRAME_BYTES) return
+        const presentation = createdSession.lastPresentation
         const destination = join(directory, 'overlay.png')
         createdSession.frameWriting = true
         createdSession.frameTask = writeLiveSessionFile(destination, png)
+          .then(() => {
+            if (presentation === createdSession.lastPresentation)
+              createdSession.frameRequestedAt = null
+          })
           .catch((error: unknown) => console.warn('[Scoreboard] frame write failed', error))
           .finally(() => {
             createdSession.frameWriting = false
@@ -473,16 +505,36 @@ export class ScoreboardOverlaySession {
       await cardsWindow.loadFile(join(assets, 'index.html'), { query: { overlay: 'kill-cards' } })
       cardsWindow.webContents.startPainting()
       eventWatcher = watch(directory, (_event, filename) => {
+        if (filename?.toString() === 'scoreboard.visible')
+          void createdSession
+            .present()
+            .catch((error: unknown) => console.warn('[Scoreboard] visibility update failed', error))
         if (filename?.toString() === 'kill-cards.events') createdSession.scheduleLocalDeathRead()
+        if (filename?.toString() === 'restart.requested') {
+          void lstat(join(directory, 'restart.requested'))
+            .then(async () => {
+              if (createdSession.stopped) return
+              console.info('[Scoreboard] native module requested a clean standalone restart', {
+                matchId
+              })
+              await onStandaloneRestart?.()
+              await writeFile(join(directory, 'restart.ready'), '1\n', { mode: 0o600 })
+              createdSession.stop()
+            })
+            .catch((error: unknown) => {
+              console.error('[Scoreboard] standalone restart handoff failed', error)
+            })
+        }
       })
       createdSession.eventWatcher = eventWatcher
+      await createdSession.lease.start()
       createdSession.eventWatcher.on('error', (error) => {
         console.warn('[Scoreboard] local death notice watcher failed', error)
         createdSession.eventWatcher?.close()
         createdSession.eventWatcher = null
       })
       window.webContents.send('scoreboard-self', getSessionUsername() ?? '')
-      window.webContents.startPainting()
+      window.webContents.stopPainting()
       createdSession.timer = setInterval(() => createdSession.scheduleRefresh(), INTERVAL_MS)
       createdSession.timer.unref()
       createdSession.presentationTimer = setInterval(() => {
@@ -503,7 +555,13 @@ export class ScoreboardOverlaySession {
             feedReady:
               createdSession.feedAvailable && createdSession.readSnapshot(directory) !== null,
             rendererCrashed: createdSession.rendererCrashed,
-            frameAgeMs: frame ? Date.now() - frame.mtimeMs : null,
+            frameExpected: createdSession.boardVisible && createdSession.frameRequestedAt !== null,
+            frameAgeMs:
+              createdSession.frameRequestedAt !== null
+                ? Date.now() - createdSession.frameRequestedAt
+                : frame
+                  ? Date.now() - frame.mtimeMs
+                  : null,
             markersPresent: Boolean(enabled?.isFile() && mode?.isFile())
           }
         },
@@ -519,8 +577,8 @@ export class ScoreboardOverlaySession {
               if (createdSession.stopped) return
               createdSession.rendererCrashed = false
             }
-            createdSession.window.webContents.startPainting()
-            createdSession.window.webContents.invalidate()
+            createdSession.lastPresentation = ''
+            await createdSession.present()
             createdSession.scheduleRefresh()
             createdSession.reportProblem(reason, health, 'request completed')
           } catch (error) {
@@ -532,6 +590,11 @@ export class ScoreboardOverlaySession {
       createdSession.watchdog.start()
       return createdSession
     } catch (error) {
+      await startupLease
+        ?.stop()
+        .catch((leaseError: unknown) =>
+          console.error('[Scoreboard] startup lease cleanup failed', leaseError)
+        )
       eventWatcher?.close()
       if (window && !window.isDestroyed()) window.close()
       if (cardsWindow && !cardsWindow.isDestroyed()) cardsWindow.close()
@@ -592,6 +655,24 @@ export class ScoreboardOverlaySession {
     if (this.stopped || this.presenting || this.window.isDestroyed()) return
     this.presenting = true
     try {
+      const visibilityPath = join(this.directory, 'scoreboard.visible')
+      const metadata = await lstat(visibilityPath).catch(() => null)
+      const visible =
+        metadata?.isFile() &&
+        metadata.size === 2 &&
+        (await readFile(visibilityPath).catch(() => null))?.equals(Buffer.from('1\n'))
+      if (this.stopped || this.window.isDestroyed()) return
+      if (!visible) {
+        this.window.webContents.stopPainting()
+        this.boardVisible = false
+        this.frameRequestedAt = null
+        return
+      }
+      if (!this.boardVisible) {
+        this.boardVisible = true
+        this.lastPresentation = ''
+        this.window.webContents.startPainting()
+      }
       const native = await readNativeScores(join(this.directory, 'native-scoreboard.tsv'))
       if (this.stopped || this.window.isDestroyed()) return
       if (this.lastSnapshot && native)
@@ -599,11 +680,12 @@ export class ScoreboardOverlaySession {
       const username = getSessionUsername() ?? ''
       const signature = JSON.stringify([username, this.lastSnapshot])
       if (signature !== this.lastPresentation) {
+        this.frameRequestedAt ??= Date.now()
         this.window.webContents.send('scoreboard-self', username)
         this.window.webContents.send('scoreboard-snapshot', this.lastSnapshot)
         this.lastPresentation = signature
+        this.window.webContents.invalidate()
       }
-      this.window.webContents.invalidate()
     } finally {
       this.presenting = false
     }
@@ -639,6 +721,7 @@ export class ScoreboardOverlaySession {
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            'X-Scoreboard-Utilities': 'v1',
             ...(nativeMode ? { 'X-Scoreboard-Mode': 'native-v1' } : {}),
             ...(this.transportRevision ? { 'X-Scoreboard-Base': this.transportRevision } : {})
           },
@@ -680,8 +763,8 @@ export class ScoreboardOverlaySession {
           feed = decodeScoreboardDelta(this.transportFeed, this.transportRevision, feed)
         }
       }
-      if (!feed || !/^#16c-scoreboard-v(?:[2-9]|1[0-4])\t/.test(feed))
-        throw new Error('Invalid scoreboard feed')
+      // parseSnapshot below is the single version/shape validator.
+      if (!feed) throw new Error('Invalid scoreboard feed')
       if (
         revision &&
         (!/^[a-f0-9]{64}$/.test(revision) ||
@@ -788,7 +871,13 @@ export class ScoreboardOverlaySession {
     } finally {
       this.busy = false
       await this.present()
-      if (!this.stopped && this.lastKillCardState !== null && !this.cardsWindow.isDestroyed())
+      if (
+        !this.stopped &&
+        this.lastKillCardState !== null &&
+        !/^. 0 /.test(this.lastKillCardState) &&
+        Date.now() - this.lastCardFrameAt >= 1500 &&
+        !this.cardsWindow.isDestroyed()
+      )
         this.cardsWindow.webContents.invalidate()
     }
   }
@@ -796,6 +885,9 @@ export class ScoreboardOverlaySession {
   stop(): void {
     if (this.stopped) return
     this.stopped = true
+    const leaseCleanup = this.lease
+      .stop()
+      .catch((error: unknown) => console.error('[Scoreboard] launcher lease cleanup failed', error))
     this.requests.abort()
     this.eventWatcher?.close()
     this.eventWatcher = null
@@ -808,6 +900,7 @@ export class ScoreboardOverlaySession {
     if (!this.cardsWindow.isDestroyed()) this.cardsWindow.close()
     cleanupQueue.enqueue(async () => {
       await Promise.allSettled([
+        leaseCleanup,
         this.refreshTask,
         this.frameTask,
         this.cardFrameTask,

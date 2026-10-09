@@ -1,3 +1,4 @@
+import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
@@ -79,6 +80,7 @@ const browserSettings = (): GameSettings => {
     configFilePath: 'Browser / Steam',
     voicePttKey: team,
     voicePttKeys: [team, party],
+    playerPingKey: DEFAULT_PLAYER_PING_KEY,
     crosshair: DEFAULT_CROSSHAIR,
     nextClientDetected: false,
     nextClientIntegrationEnabled: false,
@@ -545,6 +547,9 @@ const api: Window['api'] = {
     },
     async completeSetup() {
       throw new Error('Game setup requires the desktop launcher.')
+    },
+    async setPlayerPingKey() {
+      throw new Error('Player Ping bindings require the desktop launcher.')
     },
     async setFastSwitch() {
       throw new Error('Fast switch is managed by the desktop launcher.')

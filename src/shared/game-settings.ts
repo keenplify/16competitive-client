@@ -1,3 +1,4 @@
+import type { PlayerPingKey } from './player-ping'
 import type { CrosshairProfile } from './crosshair'
 
 export const GAME_SETTINGS_CHANNELS = {
@@ -12,6 +13,7 @@ export const GAME_SETTINGS_CHANNELS = {
   setCrosshair: 'game-settings:set-crosshair',
   setNextClientIntegration: 'game-settings:set-nextclient-integration',
   setFastSwitch: 'game-settings:set-fast-switch',
+  setPlayerPingKey: 'game-settings:set-player-ping-key',
   setKillCards: 'game-settings:set-kill-cards',
   completeSetup: 'game-settings:complete-setup',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
@@ -28,6 +30,7 @@ export interface GameSettings {
   configFilePath: string
   voicePttKey: string
   voicePttKeys: string[]
+  playerPingKey: PlayerPingKey
   crosshair: CrosshairProfile
   nextClientDetected: boolean
   nextClientIntegrationEnabled: boolean
@@ -68,6 +71,7 @@ export interface GameSettingsApi {
   setCrosshair(profile: CrosshairProfile): Promise<GameSettings>
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
   setFastSwitch(enabled: boolean): Promise<GameSettings>
+  setPlayerPingKey(key: PlayerPingKey): Promise<GameSettings>
   setKillCards(enabled: boolean): Promise<GameSettings>
   completeSetup(mode: SetupMode): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>

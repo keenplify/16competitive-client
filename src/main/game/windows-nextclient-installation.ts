@@ -11,6 +11,10 @@ import {
   verifyNextClientModule
 } from '../anticheat/helper-release-verifier'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
+import {
+  armWindowsIntegrationRecovery,
+  restoreWindowsIntegration
+} from './windows-integration-recovery'
 
 const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -36,7 +40,7 @@ export class WindowsNextClientInstallation {
   private readonly cosmeticPath: string
   private readonly journalPath: string
 
-  private constructor(gameRoot: string) {
+  private constructor(private readonly gameRoot: string) {
     const managed = join(gameRoot, '16competitive')
     this.managedPath = managed
     this.miniPath = join(gameRoot, 'cstrike', 'cl_dlls', 'client_mini.dll')
@@ -138,6 +142,7 @@ export class WindowsNextClientInstallation {
         flag: 'wx',
         mode: 0o600
       })
+      await armWindowsIntegrationRecovery(gameRoot, join(native, 'game-inspector.exe'))
       await writeFile(miniTemporary, customMini, { flag: 'wx' })
       await rename(miniTemporary, installation.miniPath)
       if (!existingCosmeticEntry) {
@@ -155,6 +160,7 @@ export class WindowsNextClientInstallation {
   }
 
   private async recover(): Promise<void> {
+    if (await restoreWindowsIntegration(this.gameRoot)) return
     const journalBytes = await readFile(this.journalPath).catch(missingOnly)
     if (!journalBytes) return
     if (journalBytes.length > 512) throw new Error('Invalid NextClient integration journal')
@@ -196,6 +202,7 @@ export class WindowsNextClientInstallation {
   }
 
   async restore(): Promise<void> {
+    if (await restoreWindowsIntegration(this.gameRoot)) return
     await rm(this.sessionDirectory, { recursive: true, force: true }).catch(() => undefined)
     for (let attempt = 0; attempt < 30; attempt++) {
       try {

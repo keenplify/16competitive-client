@@ -1,3 +1,4 @@
+import { playerPingCommands } from '../../shared/player-ping'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { app, dialog } from 'electron'
@@ -34,6 +35,8 @@ import {
 } from './skin-audio-override'
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
+import { lookup } from 'node:dns/promises'
+import { fastSwitchCommands, fastSwitchPreference } from './fast-switch'
 import { WindowsNextClientInstallation } from './windows-nextclient-installation'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
 import type { CrosshairProfile } from '../../shared/crosshair'
@@ -143,6 +146,41 @@ const finishScoreboardSession = (matchId?: string): void => {
   if (!active || (matchId && active.matchId !== matchId)) return
   activeScoreboardSession = null
   active.session.stop()
+}
+
+/** A managed game already requires the launcher. Close it first so Windows
+ * releases its DLLs, then await every restoration before Electron exits. */
+export const shutdownManagedGame = async (): Promise<void> => {
+  const executable = launchedExecutablePath
+  const directory = launchedGameDirectory
+  const child = gameProcess
+  steamExitWatchGeneration++
+  linuxMonitorGeneration++
+  gameProcessGeneration++
+  finishAntiCheatSession(undefined, 'launcher-shutdown')
+  finishScoreboardSession()
+  const closing = (async (): Promise<void> => {
+    if (process.platform === 'win32' && executable)
+      await closeWindowsCounterStrikeProcesses(executable)
+    if (process.platform !== 'win32') terminateSpawnedGameProcess(child)
+    if (process.platform === 'linux' && directory) await closeLinuxCounterStrikeProcesses(directory)
+    stopGameWatchdog()
+  })()
+  const results = await Promise.allSettled([
+    closing,
+    ScoreboardOverlaySession.waitForCleanup(),
+    finishVoicePttSession(),
+    restoreMatchUserConfig(),
+    restoreManagedSkinAudio()
+  ])
+  clearMatchConfig()
+  await matchConfigCleanup
+  const failed = results.filter((result) => result.status === 'rejected')
+  if (failed.length)
+    throw new AggregateError(
+      failed.map((result) => result.reason),
+      'Managed game cleanup failed'
+    )
 }
 
 const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): void => {
@@ -736,9 +774,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         'echo "[1.6 Competitive] Join stage: identity-initial"',
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
-        ...(gameSettings.fastSwitchManaged
-          ? [`hud_fastswitch "${gameSettings.fastSwitchEnabled ? 1 : 0}"`]
-          : []),
+        ...fastSwitchCommands(gameSettings),
+        ...playerPingCommands(gameSettings.playerPingKey),
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
@@ -856,7 +893,29 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         input.matchId,
         input.apiUrl,
         process.platform === 'win32' ? cwd : undefined,
-        allowNextClientIntegration
+        allowNextClientIntegration,
+        `${isIP(input.host) === 4 ? input.host : (await lookup(input.host, { family: 4 })).address}:${input.port}`,
+        async () => {
+          // Release process ownership before the native worker starts a stock
+          // instance. Match callbacks must never close that new standalone game.
+          stopGameWatchdog(input.matchId)
+          finishAntiCheatSession(input.matchId, 'standalone-restart')
+          gameProcessGeneration++
+          linuxMonitorGeneration++
+          steamExitWatchGeneration++
+          launchedMatchId = null
+          launchedGameDirectory = null
+          launchedExecutablePath = null
+          gameProcess = null
+          await Promise.all([
+            finishVoicePttSession(input.matchId),
+            restoreMatchUserConfig(matchConfigGeneration),
+            restoreManagedSkinAudio()
+          ])
+          clearMatchConfig(matchConfigGeneration)
+          await matchConfigCleanup
+          input.onExit?.({ code: 0, signal: null })
+        }
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
@@ -895,11 +954,53 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       ? 'userconfig'
       : 'startup-exec'
 
-  // NextClient cannot safely run startup +exec. Other GoldSrc clients use the
-  // explicit exec path; some standalone builds never execute userconfig.cfg.
-  if (nextClient && !useNativeNextClientMatchHandoff) {
+  // Reapply the ping bind at the end of userconfig, after player startup binds.
+  // Classic clients still need startup +exec for connection credentials; their
+  // userconfig hook loads only the binding file and never reconnects the game.
+  const pingConfigName = '16competitive_ping.cfg'
+  const pingConfigPath = join(launchGameDirectory, pingConfigName)
+  const pingConfigContents = [
+    '// 16competitive launcher-owned player ping binding',
+    ...playerPingCommands(gameSettings.playerPingKey),
+    ''
+  ].join('\n')
+  const pingConfigStat = await lstat(pingConfigPath).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return null
+    throw error
+  })
+  if (
+    pingConfigStat &&
+    (!pingConfigStat.isFile() ||
+      pingConfigStat.size > 4096 ||
+      !(await readFile(pingConfigPath, 'utf8')).startsWith(
+        '// 16competitive launcher-owned player ping binding\n'
+      ))
+  ) {
+    throw new Error('The launcher-owned player ping config needs inspection before connecting.')
+  }
+  await writeFile(pingConfigPath, pingConfigContents, { encoding: 'utf8', mode: 0o600 })
+  {
     try {
-      const session = await prepareMatchUserConfigHandoff(launchGameDirectory, matchConfigName)
+      const handoff = await prepareMatchUserConfigHandoff(
+        launchGameDirectory,
+        nextClient && !useNativeNextClientMatchHandoff ? matchConfigName : pingConfigName
+      )
+      const session = {
+        diagnostics: handoff.diagnostics,
+        async restore(): Promise<Awaited<ReturnType<typeof handoff.restore>>> {
+          const outcome = await handoff.restore()
+          // Preserve unexpected player edits, including replacement with a symlink.
+          const current = await lstat(pingConfigPath).catch(() => null)
+          if (
+            current?.isFile() &&
+            current.size <= 4096 &&
+            (await readFile(pingConfigPath, 'utf8')) === pingConfigContents
+          ) {
+            await unlink(pingConfigPath).catch(() => undefined)
+          }
+          return outcome
+        }
+      }
       activeUserConfigHandoff = {
         matchId: input.matchId,
         generation: matchConfigGeneration,
@@ -930,13 +1031,14 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       if (!nextClientExpectedHost) throw new Error('NextClient server endpoint is not IPv4')
       const sessionDirectory = nativeNextClientSession.session.directory
       const handoffFiles: ReadonlyArray<readonly [string, string]> = [
-        ['server.endpoint', `${nextClientExpectedHost}:${input.port}\n`],
         ['player.name', `${playerName}\n`],
         ['join.key', `${joinInfoKey}\n`],
         ['join.cleanup', `${previousJoinKeys.join('\n')}\n`],
         ['join.token', `${input.joinToken}\n`],
         ['server.password', `${input.password}\n`],
-        ['texture.size', `${launchTarget.textureSize}\n`]
+        ['texture.size', `${launchTarget.textureSize}\n`],
+        ['fast-switch.preference', `${fastSwitchPreference(gameSettings)}\n`],
+        ['player-ping.key', `${gameSettings.playerPingKey}\n`]
       ]
       for (const [name, contents] of handoffFiles) {
         await writeFile(join(sessionDirectory, name), contents, {

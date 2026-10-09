@@ -236,3 +236,15 @@ test('rejects malformed and duplicate player rows', () => {
   assert.equal(parseSnapshot('#16c-scoreboard-v3\tde_dust2\t1\t2\n'), null)
   assert.equal(parseSnapshot('#16c-scoreboard-v3\tde_dust2\t1\t1\n1\t2\t0\t0\t0\t0\t2\tA\n'), null)
 })
+test('v15 validates utility counts and preserves player names and older feeds', () => {
+  const header = '#16c-scoreboard-v15\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\t\t1\n'
+  const row = '1\t2\t7\t0\t3\t24\t1\t0\t800\t22\t100\t1\t0\t29\tAlpha\n'
+  const snapshot = parseSnapshot(header + row)
+  assert.equal(snapshot.players[0].name, 'Alpha')
+  assert.equal(snapshot.players[0].utilities, 29)
+  assert.equal(snapshot.players[0].primaryWeapon, 22)
+  for (const invalid of ['6', '7', '30', '31', '32', '-1', '', '1.5'])
+    assert.equal(parseSnapshot(header + row.replace('\t29\tAlpha', `\t${invalid}\tAlpha`)), null)
+  assert.equal(parseSnapshot(header + row.replace('\t1\t0\t800', '\t0\t0\t800')), null)
+  assert.ok(parseSnapshot(header.replace('v15', 'v14') + row.replace('\t29\tAlpha', '\tAlpha')))
+})

@@ -959,6 +959,39 @@ A modified client can lie.
 
 ## Native Cosmetic Module (Verified Prototype)
 
+### Mandatory cleanup and standalone launches
+
+- Native game modifications are scoped to the managed 1.6 Competitive session.
+  Restore original DLLs and remove launcher-owned module/session files after game
+  exit and launcher shutdown. Await cleanup before Electron exits; keep recovery
+  available independently of the launcher for crashes and Windows file locks.
+- A leftover managed module loaded by a standalone `hl.exe`/NextClient must turn
+  off its custom features and request a clean restart. The recovery helper must
+  wait for the old game process to exit, verify and restore original DLL hashes,
+  remove managed launch credentials, and only then start the ordinary game menu.
+  Never carry match arguments/session variables into the replacement process.
+- Bind native features to a live launcher lease and the assigned server endpoint.
+  Missing/stale ownership or another server must fail closed. Restoration failure
+  must preserve backups/journals and prevent restart loops or a modified relaunch.
+  Preserve unknown player changes; never overwrite an unrecognized DLL.
+- Release the clean standalone process from match monitors, watchdogs, and helper
+  supervision. Old match events must never close or modify the replacement game.
+- Keep the notice under Settings → In-game enhancements in every supported
+  language: do not run 1.6 Competitive alongside another client-side anti-cheat;
+  close the managed game and launcher, then start the game normally before using
+  another anti-cheat client. Do not claim compatibility with third-party anti-cheat
+  or imply that detecting a different server after connecting is sufficient.
+- `config.cfg` remains strictly out of bounds during every cleanup/restart path.
+
+### Prototype background
+
+In-game enhancements must remain practical on low-end integrated graphics and
+CPUs. Filter teammate eligibility before OpenGL queries, deduplicate projection
+per player/frame, and cache roster parsing and text preparation. Do not continuously
+paint/encode the offscreen scoreboard while Tab is closed. Watchdogs must distinguish
+an idle renderer from a pending frame that failed to arrive. Preserve freshness and
+authorization gates when reducing polling; do not claim FPS gains without measurement.
+
 The private sibling repository `../16competitive-helper` contains an optional Rust
 cosmetic module under `cosmetic-module/` plus the `--skin-probe` helper workflow.
 Do not recreate this work in C or add it to the public Electron repository.

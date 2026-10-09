@@ -98,6 +98,7 @@ import {
   saveNextClientIntegration,
   completeGameSetup,
   saveFastSwitch,
+  savePlayerPingKey,
   saveKillCards
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
@@ -109,9 +110,10 @@ import {
 import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
-import { restoreManagedSkinAudio, restoreStaleManagedSkinAudio } from './game/skin-audio-override'
+import { restoreStaleManagedSkinAudio } from './game/skin-audio-override'
 import {
   closeCounterStrikeForMatch,
+  shutdownManagedGame,
   updateActiveCrosshair,
   updateActiveKillCards
 } from './game/cs16-launcher'
@@ -912,6 +914,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.completeSetup, (_, mode: unknown) =>
     completeGameSetup(mode)
   )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setPlayerPingKey, (_, key: unknown) =>
+    savePlayerPingKey(key)
+  )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
     saveFastSwitch(enabled)
   )
@@ -983,9 +988,9 @@ app.on('before-quit', (event) => {
 
   cleaningOverlayBeforeQuit = true
   event.preventDefault()
-  void restoreManagedSkinAudio()
+  void shutdownManagedGame()
     .catch((error: unknown) => {
-      console.error('[SkinAudio] overlay cleanup during launcher shutdown failed', error)
+      console.error('[GameLaunch] managed game cleanup during launcher shutdown failed', error)
     })
     .finally(() => app.quit())
 })

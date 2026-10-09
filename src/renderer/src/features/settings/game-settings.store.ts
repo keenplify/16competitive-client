@@ -1,3 +1,4 @@
+import { DEFAULT_PLAYER_PING_KEY, type PlayerPingKey } from '../../../../shared/player-ping'
 import { create } from 'zustand'
 import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
 import type {
@@ -32,6 +33,10 @@ interface GameSettingsState {
   nextClientDetected: boolean
   nextClientIntegrationEnabled: boolean
   nextClientIntegrationDisabledReason: string | null
+  playerPingKey: PlayerPingKey
+  pingSaving: boolean
+  pingSaveFailed: boolean
+  setPlayerPingKey: (key: PlayerPingKey) => Promise<void>
   fastSwitchEnabled: boolean
   fastSwitchManaged: boolean
   killCardsEnabled: boolean
@@ -74,6 +79,9 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   nextClientDetected: false,
   nextClientIntegrationEnabled: true,
   nextClientIntegrationDisabledReason: null,
+  playerPingKey: DEFAULT_PLAYER_PING_KEY,
+  pingSaving: false,
+  pingSaveFailed: false,
   fastSwitchEnabled: true,
   fastSwitchManaged: true,
   killCardsEnabled: true,
@@ -104,10 +112,24 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     }
   },
 
+  setPlayerPingKey: async (key) => {
+    if (get().pingSaving) return
+    set({ pingSaving: true, pingSaveFailed: false })
+    try {
+      const settings = await window.api.gameSettings.setPlayerPingKey(key)
+      set({ playerPingKey: settings.playerPingKey })
+    } catch {
+      set({ pingSaveFailed: true })
+    } finally {
+      set({ pingSaving: false })
+    }
+  },
+
   setFastSwitch: async (enabled) => {
     try {
       const settings = await window.api.gameSettings.setFastSwitch(enabled)
       set({
+        playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
         error: null
@@ -141,6 +163,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
+        playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
         killCardsEnabled: settings.killCardsEnabled,
@@ -184,6 +207,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
         nextClientIntegrationDisabledReason: settings.nextClientIntegrationDisabledReason,
+        playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
         killCardsEnabled: settings.killCardsEnabled,
@@ -210,6 +234,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         setupMode: settings.setupMode,
         clientType: settings.clientType,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
+        playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
         killCardsEnabled: settings.killCardsEnabled,

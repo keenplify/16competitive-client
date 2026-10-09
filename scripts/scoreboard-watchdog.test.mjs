@@ -4,6 +4,33 @@ import { ScoreboardWatchdog } from '../src/main/game/scoreboard-watchdog.ts'
 
 const healthy = { feedReady: true, rendererCrashed: false, frameAgeMs: 500, markersPresent: true }
 
+test('idle or hidden boards do not require heartbeat images, but pending frames still recover', async () => {
+  let clock = 0
+  let health = { ...healthy, frameExpected: false, frameAgeMs: null }
+  const repairs = []
+  const monitor = new ScoreboardWatchdog(
+    async () => health,
+    async (reason) => repairs.push(reason),
+    60000,
+    () => clock
+  )
+  monitor.start()
+  try {
+    clock = 20000
+    await monitor.check()
+    assert.deepEqual(repairs, [])
+    health = { ...health, frameExpected: true, frameAgeMs: 9000 }
+    await monitor.check()
+    assert.deepEqual(repairs, ['scoreboard frame stalled'])
+    clock += 20000
+    health = { ...health, frameExpected: false, rendererCrashed: true }
+    await monitor.check()
+    assert.equal(repairs[1], 'renderer crashed')
+  } finally {
+    await monitor.stop()
+  }
+})
+
 test('recovers stalled frames, rate limits retries, and tolerates a missing backend feed', async () => {
   let clock = 0
   let health = { ...healthy, frameAgeMs: null }

@@ -1,3 +1,8 @@
+import {
+  DEFAULT_PLAYER_PING_KEY,
+  parsePlayerPingKey,
+  type PlayerPingKey
+} from '../../shared/player-ping'
 import { app, dialog } from 'electron'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
@@ -16,6 +21,7 @@ import { classifyCs16Distribution } from './cs16-installation'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
+  playerPingKey?: PlayerPingKey
   voicePttKey?: string
   partyVoicePttKey?: string
   crosshair?: CrosshairProfile
@@ -26,6 +32,14 @@ interface StoredGameSettings {
   nextClientIntegrationDisabledReason?: string
   setupCompleted?: boolean
   setupMode?: SetupMode
+}
+
+const resolvedPlayerPingKey = (value: unknown): PlayerPingKey => {
+  try {
+    return parsePlayerPingKey(value)
+  } catch {
+    return DEFAULT_PLAYER_PING_KEY
+  }
 }
 
 const DEFAULT_TEAM_VOICE_PTT_KEY = 'K'
@@ -194,6 +208,7 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.partyVoicePttKey === 'string'
         ? { partyVoicePttKey: settings.partyVoicePttKey }
         : {}),
+      playerPingKey: resolvedPlayerPingKey(settings.playerPingKey),
       ...(crosshair ? { crosshair } : {}),
       ...(typeof settings.nextClientIntegrationEnabled === 'boolean'
         ? { nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled }
@@ -291,6 +306,7 @@ const buildSettings = async (
   voicePttKey: teamVoicePttKey,
   // Index 0 is Team, index 1 is Party. This preserves the existing IPC contract.
   voicePttKeys: [teamVoicePttKey, partyVoicePttKey],
+  playerPingKey: resolvedPlayerPingKey(storedSettings.playerPingKey),
   crosshair,
   nextClientDetected:
     process.platform === 'win32' && cs16ExecutablePath !== null
@@ -323,6 +339,7 @@ const persistResolvedSettings = async (
 ): Promise<void> => {
   await writeStoredSettings({
     ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
+    playerPingKey: resolvedPlayerPingKey(storedSettings.playerPingKey),
     voicePttKey: teamVoicePttKey,
     partyVoicePttKey,
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
@@ -616,4 +633,20 @@ export const getSavedVoicePttKey = async (): Promise<string> => {
   const storedSettings = await readStoredSettings()
   const keys = await resolveVoicePttKeys(storedSettings)
   return `${keys.team}|${keys.party}`
+}
+
+export const savePlayerPingKey = async (value: unknown): Promise<GameSettings> => {
+  const playerPingKey = parsePlayerPingKey(value)
+  const storedSettings = await readStoredSettings()
+  const updated = { ...storedSettings, playerPingKey }
+  const executable = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(executable, keys.team, keys.party, updated.crosshair, updated)
+  return buildSettings(
+    executable,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
 }
