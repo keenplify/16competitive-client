@@ -2,15 +2,22 @@
 // Clients without that HUD retain the MDL. No tracking after a ping.
 #define PING_CLASS "16c_player_ping"
 #define PING_LIFETIME 8.0
-#define PING_COOLDOWN 1.0
+#define PING_BURST_LIMIT 3
+#define PING_BURST_COOLDOWN 5.0
 #define PING_SNAP_RADIUS 48.0
 
 new const PING_MODEL[] = "models/16competitive/ping/v2/ef_gundrop.mdl"
 new const PING_ENEMY_MODEL[] = "models/16competitive/ping/v2/ef_gundrop_red.mdl"
-new const PING_SOUND[] = "fvox/bell.wav"
+new const PING_SOUNDS[][] = {
+    "16competitive/ping/v1/ping.wav",
+    "16competitive/ping/v1/item.wav",
+    "16competitive/ping/v1/enemy.wav"
+}
 new pingModelIndex, pingEnemyModelIndex, pingEnabled, pingMessage
-new pingEntities[33], pingTeams[33]
+new pingEntities[33], pingTeams[33], pingTargets[33]
 new Float:pingExpires[33], Float:pingNextAllowed[33]
+new pingBurstCount[33]
+new Float:pingLastAccepted[33], Float:pingCooldownNoticeNext[33]
 new Float:pingBotNext[33], Float:pingBotTeamNext[3]
 new pingBotCursor
 
@@ -22,7 +29,7 @@ stock ping_precache()
     if (file_exists(PING_MODEL)) pingModelIndex = precache_model(PING_MODEL)
     else log_amx("Player Ping: missing %s; pings disabled", PING_MODEL)
     if (file_exists(PING_ENEMY_MODEL)) pingEnemyModelIndex = precache_model(PING_ENEMY_MODEL)
-    precache_sound(PING_SOUND)
+    for (new sound = 0; sound < sizeof PING_SOUNDS; sound++) precache_sound(PING_SOUNDS[sound])
 }
 
 stock ping_init()
@@ -56,14 +63,46 @@ stock ping_remove(id)
         }
     }
     if (pingEntities[id] > 32 && pev_valid(pingEntities[id])) engfunc(EngFunc_RemoveEntity, pingEntities[id])
-    pingEntities[id] = pingTeams[id] = 0
+    pingEntities[id] = pingTeams[id] = pingTargets[id] = 0
     pingExpires[id] = 0.0
+}
+
+// Replace team-visible entity markers, regardless of who sent the previous ping.
+// Locations have no entity identity and retain the normal one-marker-per-sender rule.
+stock ping_replace_target(id, target, team)
+{
+    if (target > 0)
+    {
+        for (new sender = 1; sender <= 32; sender++)
+            if (sender != id && pingEntities[sender] && pingTeams[sender] == team
+                && pingTargets[sender] == target) ping_remove(sender)
+    }
+    ping_remove(id)
+}
+
+stock bool:ping_rate_limited(id, Float:now)
+{
+    // A pause clears the burst; blocked attempts never extend the deadline.
+    if (now >= pingLastAccepted[id] + PING_BURST_COOLDOWN)
+    {
+        pingBurstCount[id] = 0
+        pingNextAllowed[id] = 0.0
+    }
+    return now < pingNextAllowed[id]
+}
+
+stock ping_rate_accept(id, Float:now)
+{
+    pingLastAccepted[id] = now
+    if (++pingBurstCount[id] >= PING_BURST_LIMIT)
+        pingNextAllowed[id] = now + PING_BURST_COOLDOWN
 }
 
 stock ping_reset_player(id)
 {
     ping_remove(id)
-    pingNextAllowed[id] = 0.0
+    pingNextAllowed[id] = pingLastAccepted[id] = pingCooldownNoticeNext[id] = 0.0
+    pingBurstCount[id] = 0
     pingBotNext[id] = 0.0
 }
 
@@ -178,7 +217,15 @@ stock ping_at_target(id, botEnemy = 0)
     new team = get_user_team(id)
     if (team != 1 && team != 2) return PLUGIN_HANDLED
     new Float:now = get_gametime()
-    if (now < pingNextAllowed[id]) return PLUGIN_HANDLED
+    if (ping_rate_limited(id, now))
+    {
+        if (!is_user_bot(id) && now >= pingCooldownNoticeNext[id])
+        {
+            client_print(id, print_center, "%L", id, "PING_COOLDOWN", pingNextAllowed[id] - now)
+            pingCooldownNoticeNext[id] = now + 1.0
+        }
+        return PLUGIN_HANDLED
+    }
 
     // Trace from the eye, not the feet, to avoid false wall hits.
     new Float:eye[3], Float:offset[3], Float:angles[3], Float:aimDirection[3], Float:end[3], Float:point[3]
@@ -215,6 +262,7 @@ stock ping_at_target(id, botEnemy = 0)
         && !is_aimbot_detection_probe(hit) && get_user_team(hit) != team)
     {
         enemy = true
+        target = hit
         pev(hit, pev_origin, point)
         pev(hit, pev_mins, offset)
         point[2] += offset[2] + 2.0
@@ -264,8 +312,9 @@ stock ping_at_target(id, botEnemy = 0)
         }
     }
 
-    ping_remove(id)
+    ping_replace_target(id, target, team)
     pingTeams[id] = team
+    pingTargets[id] = target
     pingEntities[id] = ping_create_entity(id, point,
         enemy && pingEnemyModelIndex ? pingEnemyModelIndex : pingModelIndex)
     if (!pingEntities[id])
@@ -274,7 +323,7 @@ stock ping_at_target(id, botEnemy = 0)
         return PLUGIN_HANDLED
     }
     pingExpires[id] = now + PING_LIFETIME
-    pingNextAllowed[id] = now + PING_COOLDOWN
+    ping_rate_accept(id, now)
     new playerName[32], location[32], item[32]
     get_user_name(id, playerName, charsmax(playerName))
     ping_location(point, location, charsmax(location))
@@ -288,7 +337,7 @@ stock ping_at_target(id, botEnemy = 0)
     for (new recipient = 1; recipient <= 32; recipient++)
     {
         if (!is_user_connected(recipient) || is_user_bot(recipient) || get_user_team(recipient) != team) continue
-        client_cmd(recipient, "spk %s", PING_SOUND)
+        client_cmd(recipient, "spk %s", PING_SOUNDS[enemy ? 2 : weapon > 0 ? 1 : 0])
         // Reliable per-teammate delivery, independent of entity PVS or distance.
         // Enhanced clients draw the image in screen space, including behind walls.
         ping_send_message(recipient, id, enemy ? 31 : weapon, point)

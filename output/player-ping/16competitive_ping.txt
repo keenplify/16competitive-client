@@ -1,4 +1,5 @@
 [en]
+PING_COOLDOWN = Player Ping: wait %.1f seconds
 PING_KIT = %s pinged a defuse kit
 PING_ENEMY = %s pinged an enemy
 PING_BOMB = %s pinged the bomb
@@ -9,6 +10,7 @@ PING_GENERIC = %s pinged a location
 PING_AT =  at %s
 
 [ru]
+PING_COOLDOWN = Метка: подождите %.1f сек.
 PING_KIT = %s отметил набор для разминирования
 PING_ENEMY = %s отметил противника
 PING_BOMB = %s отметил бомбу
@@ -19,6 +21,7 @@ PING_GENERIC = %s отметил место
 PING_AT =  — %s
 
 [tl]
+PING_COOLDOWN = Player Ping: maghintay ng %.1f segundo
 PING_KIT = Nag-ping si %s ng defuse kit
 PING_ENEMY = Nag-ping si %s ng kalaban
 PING_BOMB = Nag-ping si %s ng bomba
@@ -29,6 +32,7 @@ PING_GENERIC = Nag-ping si %s ng lokasyon
 PING_AT =  sa %s
 
 [th]
+PING_COOLDOWN = ปักหมุด: รอ %.1f วินาที
 PING_KIT = %s ปักหมุดชุดกู้ระเบิด
 PING_ENEMY = %s ปักหมุดศัตรู
 PING_BOMB = %s ปักหมุดระเบิด
@@ -39,6 +43,7 @@ PING_GENERIC = %s ปักหมุดตำแหน่ง
 PING_AT =  ที่ %s
 
 [id]
+PING_COOLDOWN = Ping pemain: tunggu %.1f detik
 PING_KIT = %s menandai kit penjinak bom
 PING_ENEMY = %s menandai musuh
 PING_BOMB = %s menandai bom
@@ -49,6 +54,7 @@ PING_GENERIC = %s menandai lokasi
 PING_AT =  di %s
 
 [pt]
+PING_COOLDOWN = Ping: aguarde %.1f segundos
 PING_KIT = %s marcou um kit de desarme
 PING_ENEMY = %s marcou um inimigo
 PING_BOMB = %s marcou a bomba
@@ -59,6 +65,7 @@ PING_GENERIC = %s marcou um local
 PING_AT =  em %s
 
 [ja]
+PING_COOLDOWN = ピン: あと %.1f 秒お待ちください
 PING_KIT = %s が解除キットをピンしました
 PING_ENEMY = %s が敵をピンしました
 PING_BOMB = %s が爆弾をピンしました
@@ -69,6 +76,7 @@ PING_GENERIC = %s が地点をピンしました
 PING_AT =  — %s
 
 [hi]
+PING_COOLDOWN = पिंग: %.1f सेकंड प्रतीक्षा करें
 PING_KIT = %s ने डिफ्यूज़ किट को पिंग किया
 PING_ENEMY = %s ने दुश्मन को पिंग किया
 PING_BOMB = %s ने बम को पिंग किया
