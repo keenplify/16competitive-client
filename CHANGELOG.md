@@ -2137,3 +2137,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - Fixed scoreboard round indicators.
+
+## v2026.1009.5 — 2026-10-09
+
+### Matchmaking
+
+- Improved friendly-fire handling and player-facing messaging.
+- Added clearer logging for friendly-fire events.
+
+### Match Results
+
+- Fixed delayed confirmation of ACE cards.
