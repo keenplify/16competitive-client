@@ -2159,3 +2159,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Localization
 
 - Updated translations for the login placeholder.
+
+## v2026.1009.7 — 2026-10-09
+
+### Sign-in
+
+- Improved social authentication.
+- Added more reliable handling of authentication links.
