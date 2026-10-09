@@ -3,6 +3,7 @@ import { constants } from 'node:fs'
 import { copyFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app } from 'electron'
+import { recoverWindowsCosmeticInstallation } from './windows-cosmetic-recovery'
 import releaseConfig from '../../../helper-release.json'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
 import { verifyCosmeticModule, verifyHelperRelease } from '../anticheat/helper-release-verifier'
@@ -28,7 +29,7 @@ export class WindowsCosmeticInstallation {
   private readonly originalPath: string
   private readonly journalPath: string
 
-  private constructor(gameRoot: string) {
+  private constructor(private readonly gameRoot: string) {
     this.clientPath = join(gameRoot, 'cstrike', 'cl_dlls', 'client.dll')
     // The proxy's PE forwarded exports resolve this name from the EXE root.
     this.originalPath = join(gameRoot, 'client_original.dll')
@@ -131,30 +132,7 @@ export class WindowsCosmeticInstallation {
   }
 
   private async recover(): Promise<void> {
-    const journalBytes = await readFile(this.journalPath).catch(missingOnly)
-    if (!journalBytes) return
-    if (journalBytes.length > 256) throw new Error('Invalid cosmetic installation journal')
-    const journal = JSON.parse(journalBytes.toString('utf8')) as Partial<Journal>
-    if (
-      !journal.originalSha256 ||
-      !journal.moduleSha256 ||
-      typeof journal.ownsBackup !== 'boolean' ||
-      !/^[a-f0-9]{64}$/.test(journal.originalSha256) ||
-      !/^[a-f0-9]{64}$/.test(journal.moduleSha256)
-    )
-      throw new Error('Invalid cosmetic installation journal')
-    const original = await readFile(this.originalPath)
-    const current = await readFile(this.clientPath)
-    if (
-      hash(original) !== journal.originalSha256 ||
-      (hash(current) !== journal.moduleSha256 && hash(current) !== journal.originalSha256)
-    )
-      throw new Error('Counter-Strike client changed after cosmetic installation')
-    if (hash(current) === journal.moduleSha256) await copyFile(this.originalPath, this.clientPath)
-    await rm(this.sessionDirectory, { recursive: true, force: true })
-    await rm(`${this.clientPath}.16competitive.tmp`, { force: true })
-    if (journal.ownsBackup) await rm(this.originalPath)
-    await rm(this.journalPath)
+    await recoverWindowsCosmeticInstallation(this.gameRoot)
   }
 
   async restore(): Promise<void> {

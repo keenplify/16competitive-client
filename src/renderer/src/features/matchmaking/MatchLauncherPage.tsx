@@ -2,7 +2,6 @@ import { useEffect, type JSX } from 'react'
 import { LobbyNavigation } from '../../components/ui/lobby/Navigation'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { SettingsPage } from '../settings/SettingsPage'
-import { PartyChat } from '../party/PartyChat'
 import { usePartyStore } from '../party/party.store'
 import { useCustomGamesStore } from './custom-games.store'
 import { PlayPage } from './PlayPage'
@@ -40,7 +39,6 @@ export function MatchLauncherPage(): JSX.Element {
       <div className="relative z-10 pt-16 sm:pt-20">
         {activePage === 'settings' ? <SettingsPage /> : <PlayPage />}
       </div>
-      {currentRoom && <PartyChat />}
     </main>
   )
 }

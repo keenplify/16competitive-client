@@ -70,6 +70,7 @@ let removeDiscordJoinListener: (() => void) | null = null
 let chatExpiryTimer: ReturnType<typeof setInterval> | null = null
 let partyRefreshInFlight: Promise<void> | null = null
 let partyRefreshQueued = false
+let chatPlayerId: string | null = null
 const MAX_CHAT_ENTRIES = 100
 const PUBLIC_CHAT_WINDOW_MS = 24 * 60 * 60 * 1000
 const COMMUNITY_ANNOUNCEMENT_COOLDOWN_MS = 30 * 60 * 1000
@@ -171,6 +172,17 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   start: () => {
     if (removePartyEventListener) return
 
+    const playerId = useAuthStore.getState().session?.player.id ?? null
+    if (chatPlayerId !== playerId) {
+      set({
+        chatEntries: [],
+        globalChatEntries: [],
+        languageChatEntries: [],
+        communityAnnouncement: null
+      })
+      chatPlayerId = playerId
+    }
+
     if (MARKETING_LOBBY_ENABLED) {
       // A no-op listener doubles as the existing started/stopped lifecycle marker.
       removePartyEventListener = () => undefined
@@ -192,9 +204,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     })
 
     removePartyEventListener = window.api.matchmaking.onEvent((event) => {
-      if (event.type === 'authenticated') {
-        set({ chatEntries: [], globalChatEntries: [], languageChatEntries: [] })
-      }
+      // Main may replay authenticated when connect() is called on an open socket.
+      // The server follows a real authentication with fresh chat history.
       if (event.type === 'party_chat_message' || event.type === 'party_chat_notification') {
         if (event.type === 'party_chat_message') {
           const playerId = useAuthStore.getState().session?.player.id
@@ -362,13 +373,17 @@ export const usePartyStore = create<PartyState>((set, get) => ({
     removeDiscordJoinListener = null
     if (chatExpiryTimer) clearInterval(chatExpiryTimer)
     chatExpiryTimer = null
+    const samePlayer =
+      chatPlayerId !== null && useAuthStore.getState().session?.player.id === chatPlayerId
+    if (!samePlayer) chatPlayerId = null
     set({
       chatEntries: [],
       chatDraft: '',
       chatSending: false,
       chatError: null,
-      globalChatEntries: [],
-      languageChatEntries: [],
+      ...(samePlayer
+        ? {}
+        : { globalChatEntries: [], languageChatEntries: [], communityAnnouncement: null }),
       globalChatDraft: '',
       globalChatSending: false,
       globalChatError: null
@@ -654,6 +669,7 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   reset: () => {
     get().stop()
+    chatPlayerId = null
     set({
       party: null,
       invitations: [],
