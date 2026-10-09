@@ -56,12 +56,15 @@ export class WindowsCosmeticInstallation {
     }
     const original = await readFile(installation.clientPath)
     const clientSha256 = hash(original)
-    if (!supportsWindowsCosmeticClient(clientSha256)) {
-      console.info('[Scoreboard] Windows client build is not admitted for cosmetic overlay', {
+    if (!supportsWindowsCosmeticClient(original)) {
+      console.info('[Scoreboard] Windows client is incompatible with the cosmetic proxy ABI', {
         clientSha256
       })
       return null
     }
+    console.info('[Scoreboard] Windows client passed cosmetic proxy ABI checks', {
+      clientSha256
+    })
     const native = app.isPackaged
       ? join(process.resourcesPath, 'native')
       : join(app.getAppPath(), 'resources', 'native', 'win-x64')

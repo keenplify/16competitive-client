@@ -7,6 +7,7 @@ import {
   isNextClientExecutable,
   isNextClientInstallation,
   supportsWindowsCosmeticClient,
+  WINDOWS_CLIENT_EXPORTS,
   WINDOWS_STANDALONE_EXECUTABLE_NAMES
 } from '../src/main/game/windows-cosmetic-compatibility.ts'
 
@@ -18,32 +19,75 @@ test('includes the official NextClient executable in Windows folder detection', 
   ])
 })
 
-test('only explicitly admitted Windows client DLL builds use the native proxy', () => {
+// Synthetic PE32 client: real export-table layout, no executable game code.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function clientFixture(exports = WINDOWS_CLIENT_EXPORTS) {
+  const bytes = Buffer.alloc(16384)
+  bytes.writeUInt16LE(0x5a4d, 0)
+  bytes.writeUInt32LE(0x80, 0x3c)
+  bytes.writeUInt32LE(0x4550, 0x80)
+  bytes.writeUInt16LE(0x14c, 0x84)
+  bytes.writeUInt16LE(1, 0x86)
+  bytes.writeUInt16LE(224, 0x94)
+  bytes.writeUInt16LE(0x2000, 0x96)
+  bytes.writeUInt16LE(0x10b, 0x98)
+  bytes.writeUInt32LE(16, 0x98 + 92)
+  bytes.writeUInt32LE(0x1000, 0x98 + 96)
+  bytes.writeUInt32LE(0x2000, 0x98 + 100)
+  const section = 0x98 + 224
+  bytes.writeUInt32LE(0x1000, section + 12)
+  bytes.writeUInt32LE(0x3e00, section + 16)
+  bytes.writeUInt32LE(0x200, section + 20)
+  bytes.writeUInt32LE(1, 0x200 + 16)
+  bytes.writeUInt32LE(exports.length, 0x200 + 20)
+  bytes.writeUInt32LE(exports.length, 0x200 + 24)
+  bytes.writeUInt32LE(0x1100, 0x200 + 28)
+  bytes.writeUInt32LE(0x1300, 0x200 + 32)
+  bytes.writeUInt32LE(0x1500, 0x200 + 36)
+  let name = 0x900
+  exports.forEach((value, i) => {
+    bytes.writeUInt32LE(0x4000 + i, 0x300 + i * 4)
+    bytes.writeUInt32LE(name + 0xe00, 0x500 + i * 4)
+    bytes.writeUInt16LE(i, 0x700 + i * 2)
+    bytes.write(value + '\0', name)
+    name += value.length + 1
+  })
+  return bytes
+}
+
+test('accepts compatible client builds regardless of contents or export order', () => {
+  const first = clientFixture()
+  const updated = clientFixture([...WINDOWS_CLIENT_EXPORTS].reverse())
+  updated[0x3200] = 0x42
+  assert.equal(supportsWindowsCosmeticClient(first), true)
+  assert.equal(supportsWindowsCosmeticClient(updated), true)
+})
+
+test('rejects missing required callbacks, x64, and forwarded proxies', () => {
   assert.equal(
     supportsWindowsCosmeticClient(
-      'ef7a0f40989cb79ba95d40f528534da36866892ee871147ca82e133b7a5edc3d'
-    ),
-    true
-  )
-  assert.equal(
-    supportsWindowsCosmeticClient(
-      '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc'
-    ),
-    true
-  )
-  assert.equal(
-    supportsWindowsCosmeticClient(
-      'b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2'
+      clientFixture(WINDOWS_CLIENT_EXPORTS.filter((name) => name !== 'HUD_Redraw'))
     ),
     false
   )
-  assert.equal(supportsWindowsCosmeticClient('0'.repeat(64)), false)
-  assert.equal(
-    supportsWindowsCosmeticClient(
-      'EF7A0F40989CB79BA95D40F528534DA36866892EE871147CA82E133B7A5EDC3D'
-    ),
-    false
-  )
+  const x64 = clientFixture()
+  x64.writeUInt16LE(0x8664, 0x84)
+  assert.equal(supportsWindowsCosmeticClient(x64), false)
+  const proxy = clientFixture()
+  proxy.writeUInt32LE(0x1700, 0x300)
+  assert.equal(supportsWindowsCosmeticClient(proxy), false)
+})
+
+test('rejects truncated headers and out-of-bounds export tables without throwing', () => {
+  const valid = clientFixture()
+  for (const length of [0, 2, 63, 128, 255, 1024])
+    assert.equal(supportsWindowsCosmeticClient(valid.subarray(0, length)), false)
+  const badNameTable = clientFixture()
+  badNameTable.writeUInt32LE(0xffffffff, 0x200 + 32)
+  assert.equal(supportsWindowsCosmeticClient(badNameTable), false)
+  const badOrdinal = clientFixture()
+  badOrdinal.writeUInt16LE(65535, 0x700)
+  assert.equal(supportsWindowsCosmeticClient(badOrdinal), false)
 })
 
 test('detects NextClient only when both native hook modules are present', async () => {
