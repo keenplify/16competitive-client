@@ -2111,3 +2111,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved Windows cosmetic compatibility checks.
 - Added clearer logging to help diagnose compatibility issues.
+
+## v2026.1009.3 — 2026-10-09
+
+### Sign-in
+
+- Added Steam social login.
+- Added Steam sign-in validation and clearer authentication states.
+
+### Localization
+
+- Added translated text for Steam sign-in and related authentication flows.
+
+### Account Setup
+
+- Improved username setup when creating or signing in with Steam.
