@@ -2192,3 +2192,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Issue Reports
 
 - Issue reports can now include game FPS diagnostics when available.
+
+## v2026.1010.2 — 2026-10-10
+
+### Game Sessions
+
+- Managed game sessions now use expiring authorization tickets.
+- Improved authorization handling for active sessions.
