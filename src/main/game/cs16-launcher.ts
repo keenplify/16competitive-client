@@ -920,6 +920,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
         await voicePttSession.attachNative(session.directory)
+        await writeFile(
+          join(session.directory, 'player-ping.key'),
+          `${gameSettings.playerPingKey}\n`,
+          { encoding: 'ascii', mode: 0o600 }
+        )
         if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
           steamExitWatchGeneration++
           const configured = await ensureSteamScoreboardOption(
@@ -1037,8 +1042,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         ['join.token', `${input.joinToken}\n`],
         ['server.password', `${input.password}\n`],
         ['texture.size', `${launchTarget.textureSize}\n`],
-        ['fast-switch.preference', `${fastSwitchPreference(gameSettings)}\n`],
-        ['player-ping.key', `${gameSettings.playerPingKey}\n`]
+        ['fast-switch.preference', `${fastSwitchPreference(gameSettings)}\n`]
       ]
       for (const [name, contents] of handoffFiles) {
         await writeFile(join(sessionDirectory, name), contents, {
