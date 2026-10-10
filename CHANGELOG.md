@@ -2212,3 +2212,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Launch
 
 - The player ping key is now saved to a file when launching a match.
+
+## v2026.1010.5 — 2026-10-10
+
+### Fixes
+
+- Fixed an issue that could prevent Warzone from launching.
