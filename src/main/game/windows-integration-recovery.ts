@@ -2,13 +2,9 @@ import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, readFile, rm, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
+import { app } from 'electron'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
-
-interface RecoveryDescriptor {
-  helperPath: string
-  helperSha256: string
-  sessionId: string
-}
+import { upgradeRecoveryHelper, type RecoveryDescriptor } from './recovery-helper-upgrade'
 
 const descriptorPath = (root: string): string => join(root, '16competitive', 'recovery.json')
 
@@ -100,7 +96,8 @@ export async function restoreWindowsIntegration(root: string): Promise<boolean> 
   if (!entry) return false
   if (!entry.isFile() || entry.isSymbolicLink() || entry.size > 4096)
     throw new Error('Invalid cosmetic recovery descriptor')
-  const value: unknown = JSON.parse(await readFile(path, 'utf8'))
+  const contents = await readFile(path, 'utf8')
+  const value: unknown = JSON.parse(contents)
   if (!value || typeof value !== 'object') throw new Error('Invalid cosmetic recovery descriptor')
   const descriptor = value as Partial<RecoveryDescriptor>
   if (
@@ -112,6 +109,16 @@ export async function restoreWindowsIntegration(root: string): Promise<boolean> 
     !/^[a-f0-9-]{36}$/.test(descriptor.sessionId)
   )
     throw new Error('Invalid cosmetic recovery descriptor')
-  await runRecovery(root, descriptor as RecoveryDescriptor, 'restore')
+  const currentHelperPath = app.isPackaged
+    ? join(process.resourcesPath, 'native', 'game-inspector.exe')
+    : join(app.getAppPath(), 'resources', 'native', 'win-x64', 'game-inspector.exe')
+  const currentDescriptor = await upgradeRecoveryHelper(
+    path,
+    contents,
+    descriptor as RecoveryDescriptor,
+    currentHelperPath,
+    verifyPackagedHelper
+  )
+  await runRecovery(root, currentDescriptor, 'restore')
   return true
 }

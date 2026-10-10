@@ -961,6 +961,11 @@ A modified client can lie.
 
 ### Mandatory cleanup and standalone launches
 
+- Recovery must survive launcher/helper updates. Before restoring an older
+  session, verify the current packaged helper and atomically refresh only its
+  path/hash in the recovery descriptor. Preserve the session ID and DLL journals;
+  never bypass signature approval or DLL hash checks to clear an update mismatch.
+
 - Managed native ownership uses `session.ticket` with a random per-launch ID,
   issue time and fixed two-hour expiry, paired with the matching short-lived
   launcher heartbeat. Every match/reconnect creates a fresh ticket; heartbeats
