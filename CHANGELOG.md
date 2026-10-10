@@ -2199,3 +2199,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Managed game sessions now use expiring authorization tickets.
 - Improved authorization handling for active sessions.
+
+## v2026.1010.3 — 2026-10-10
+
+### Fixes
+
+- Fixed an issue that could trigger duplicate standalone game restarts.
+- Improved reliability when handing off to a standalone game session.
