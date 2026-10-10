@@ -2206,3 +2206,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed an issue that could trigger duplicate standalone game restarts.
 - Improved reliability when handing off to a standalone game session.
+
+## v2026.1010.4 — 2026-10-10
+
+### Match Launch
+
+- The player ping key is now saved to a file when launching a match.
