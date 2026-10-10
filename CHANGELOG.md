@@ -2224,3 +2224,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Enhanced Game Sessions
 
 - Improved input handling for enhanced game sessions.
+
+## v2026.1010.7 — 2026-10-10
+
+### Changes
+
+- No player-facing changes were provided.
