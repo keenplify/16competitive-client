@@ -775,7 +775,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,
         ...fastSwitchCommands(gameSettings),
-        ...playerPingCommands(gameSettings.playerPingKey),
+        ...(gameSettings.nextClientIntegrationEnabled
+          ? []
+          : playerPingCommands(gameSettings.playerPingKey)),
         'cl_allowdownload "1"',
         'cl_download_ingame "1"',
         'cl_downloadfilter "all"',
@@ -883,6 +885,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   activeAntiCheatSession = { matchId: input.matchId, session: antiCheatSession }
 
+  console.info('[Scoreboard] native enhancement configuration', {
+    featureEnabled: CUSTOM_HUD_ENABLED,
+    userEnabled: gameSettings.nextClientIntegrationEnabled,
+    platform: process.platform
+  })
+
   if (
     CUSTOM_HUD_ENABLED &&
     gameSettings.nextClientIntegrationEnabled &&
@@ -966,7 +974,9 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   const pingConfigPath = join(launchGameDirectory, pingConfigName)
   const pingConfigContents = [
     '// 16competitive launcher-owned player ping binding',
-    ...playerPingCommands(gameSettings.playerPingKey),
+    ...(gameSettings.nextClientIntegrationEnabled
+      ? []
+      : playerPingCommands(gameSettings.playerPingKey)),
     ''
   ].join('\n')
   const pingConfigStat = await lstat(pingConfigPath).catch((error: NodeJS.ErrnoException) => {
