@@ -7,6 +7,8 @@ dist
 out
 .DS_Store
 .eslintcache
+*.tsbuildinfo
+/electron.vite.config.*.mjs
 *.log*
 /native/
 /resources/native/
