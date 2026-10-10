@@ -89,7 +89,8 @@ declare global {
           mode: 'C' | 'F',
           aceAt: number | null,
           side: 'CT' | 'T' | 'F',
-          kinds: ('skull' | 'grenade')[]
+          kinds: ('skull' | 'grenade')[],
+          lightweight: boolean
         ) => void
       ): () => void
     }
@@ -425,6 +426,7 @@ function Scoreboard() {
 }
 
 function KillCardsOnly() {
+  const [lightweight, setLightweight] = useState(false)
   const [count, setCount] = useState(() => {
     const previewCount = Number(new URLSearchParams(window.location.search).get('previewCount'))
     return Number.isInteger(previewCount) ? Math.max(0, Math.min(9999, previewCount)) : 0
@@ -435,16 +437,28 @@ function KillCardsOnly() {
   const [kinds, setKinds] = useState<('skull' | 'grenade')[]>([])
   useEffect(
     () =>
-      window.scoreboardProbe?.onKillCards((nextCount, nextMode, nextAceAt, nextSide, nextKinds) => {
-        setCount(nextCount)
-        setMode(nextMode)
-        setAceAt(nextAceAt)
-        setSide(nextSide)
-        setKinds(nextKinds)
-      }),
+      window.scoreboardProbe?.onKillCards(
+        (nextCount, nextMode, nextAceAt, nextSide, nextKinds, nextLightweight) => {
+          setLightweight(nextLightweight)
+          setCount(nextCount)
+          setMode(nextMode)
+          setAceAt(nextAceAt)
+          setSide(nextSide)
+          setKinds(nextKinds)
+        }
+      ),
     []
   )
-  return <KillCardsCanvas count={count} mode={mode} aceAt={aceAt} side={side} kinds={kinds} />
+  return (
+    <KillCardsCanvas
+      lightweight={lightweight}
+      count={count}
+      mode={mode}
+      aceAt={aceAt}
+      side={side}
+      kinds={kinds}
+    />
+  )
 }
 
 function KillCardsPreview() {

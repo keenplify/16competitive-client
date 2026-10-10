@@ -1,3 +1,4 @@
+import { LightweightHudSetting } from './LightweightHudSetting'
 import { PlayerPingSetting } from './PlayerPingSetting'
 import {
   BookOpen,
@@ -653,6 +654,7 @@ export function SettingsPage(): JSX.Element {
                       <span className="sr-only">Enable in-game enhancements</span>
                     </label>
                   </div>
+                  <LightweightHudSetting className="mt-5 mb-0" />
                 </div>
               )}
             </section>

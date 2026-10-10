@@ -9,6 +9,7 @@ interface KillCardsCanvasProps {
   aceAt: number | null
   side: 'CT' | 'T' | 'F'
   kinds?: ('skull' | 'grenade')[]
+  lightweight?: boolean
   className?: string
 }
 
@@ -283,6 +284,7 @@ export function KillCardsCanvas({
   aceAt,
   side,
   kinds = [],
+  lightweight = false,
   className
 }: KillCardsCanvasProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -298,9 +300,13 @@ export function KillCardsCanvas({
     ctx.setTransform(PIXEL_RATIO, 0, 0, PIXEL_RATIO, 0, 0)
     const colors = side === 'CT' ? COLORS.CT : COLORS.T
     const target = Math.max(0, Math.min(mode === 'F' ? MAX_FFA_CARDS : 5, Math.trunc(count)))
-    const initial = displayedCount.current
+    const initial = lightweight ? target : displayedCount.current
     const aceTriggered =
-      mode === 'C' && aceAt !== null && target >= aceAt && displayedAceAt.current !== aceAt
+      !lightweight &&
+      mode === 'C' &&
+      aceAt !== null &&
+      target >= aceAt &&
+      displayedAceAt.current !== aceAt
     displayedAceAt.current = aceAt
     const start = performance.now()
     const perCardMs = 280
@@ -395,7 +401,7 @@ export function KillCardsCanvas({
       for (const icon of Object.values(icons)) icon.onload = null
       if (animation.current !== null) cancelAnimationFrame(animation.current)
     }
-  }, [count, mode, aceAt, side, kinds])
+  }, [count, mode, aceAt, side, kinds, lightweight])
 
   return (
     <canvas

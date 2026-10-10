@@ -1,3 +1,4 @@
+import { beginGamePerformance, captureGamePerformance } from './game-performance'
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { constants, watch, type FSWatcher } from 'node:fs'
@@ -100,10 +101,13 @@ export class ScoreboardOverlaySession {
   private readonly killCardPrediction = new KillCardPrediction()
   private boardVisible = false
   private frameRequestedAt: number | null = null
+  private lightweightHud = false
+  private cardPaintTimer: ReturnType<typeof setTimeout> | null = null
   private killCardsEnabled = true
   private lastKillCardState: string | null = null
   private lastKillCardKinds = ''
   private lastCardFrameAt = 0
+  private lastCardPng: Buffer | null = null
   private cardStateTask: Promise<void> = Promise.resolve()
   private eventWatcher: FSWatcher | null = null
   private eventReadTask: Promise<void> | null = null
@@ -174,6 +178,17 @@ export class ScoreboardOverlaySession {
     await this.syncKillCards(this.readSnapshot(this.directory))
   }
 
+  private paintCardsFor(milliseconds: number): void {
+    if (this.stopped || this.cardsWindow.isDestroyed()) return
+    if (this.cardPaintTimer) clearTimeout(this.cardPaintTimer)
+    this.cardsWindow.webContents.startPainting()
+    this.cardsWindow.webContents.invalidate()
+    this.cardPaintTimer = setTimeout(() => {
+      this.cardPaintTimer = null
+      if (!this.cardsWindow.isDestroyed()) this.cardsWindow.webContents.stopPainting()
+    }, milliseconds)
+  }
+
   private async syncKillCards(snapshot: Snapshot): Promise<void> {
     const username = getSessionUsername()
     const authoritative = this.killCardTracker.update(snapshot, username)
@@ -202,6 +217,7 @@ export class ScoreboardOverlaySession {
         : null
     const kinds = this.killCardsEnabled ? (cards?.kinds ?? []).join(',') : ''
     if (state === this.lastKillCardState && kinds === this.lastKillCardKinds) return
+    this.lastCardPng = null
     if (!this.cardsWindow.isDestroyed())
       this.cardsWindow.webContents.send(
         'kill-cards-count',
@@ -209,7 +225,8 @@ export class ScoreboardOverlaySession {
         cards?.mode ?? 'C',
         this.killCardsEnabled ? (cards?.aceAt ?? null) : null,
         cards?.side ?? 'T',
-        this.killCardsEnabled ? (cards?.kinds ?? []) : []
+        this.killCardsEnabled ? (cards?.kinds ?? []) : [],
+        this.lightweightHud
       )
     const destination = join(this.directory, 'kill-cards.state')
     if (state === null) {
@@ -220,7 +237,15 @@ export class ScoreboardOverlaySession {
     }
     this.lastKillCardState = state
     this.lastKillCardKinds = kinds
-    if (state !== null && !this.cardsWindow.isDestroyed()) this.cardsWindow.webContents.invalidate()
+    if (!this.cardsWindow.isDestroyed()) {
+      if (state !== null && (cards?.count ?? 0) > 0) {
+        this.paintCardsFor(this.lightweightHud ? 500 : Math.min(cards!.count, 16) * 280 + 1100)
+      } else {
+        if (this.cardPaintTimer) clearTimeout(this.cardPaintTimer)
+        this.cardPaintTimer = null
+        this.cardsWindow.webContents.stopPainting()
+      }
+    }
   }
 
   private scheduleLocalDeathRead(): void {
@@ -436,9 +461,14 @@ export class ScoreboardOverlaySession {
       )
       startupLease = createdSession.lease
       createdSession.killCardsEnabled = gameSettings.killCardsEnabled
+      createdSession.lightweightHud = gameSettings.lightweightHud
+      await writeLiveSessionFile(
+        join(directory, 'hud-lightweight.enabled'),
+        gameSettings.lightweightHud ? '1\n' : '0\n'
+      )
       cardsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       cardsWindow.webContents.on('will-navigate', (event) => event.preventDefault())
-      cardsWindow.webContents.setFrameRate(30)
+      cardsWindow.webContents.setFrameRate(gameSettings.lightweightHud ? 4 : 30)
       cardsWindow.webContents.on('paint', (_event, _dirty, image) => {
         if (
           createdSession.stopped ||
@@ -456,6 +486,7 @@ export class ScoreboardOverlaySession {
         if (size.width !== CARD_WIDTH || size.height !== CARD_HEIGHT) return
         const png = image.toPNG()
         if (!png.length || png.length > 128 * 1024) return
+        createdSession.lastCardPng = png
         const destination = join(directory, 'kill-cards.png')
         createdSession.cardFrameWriting = true
         createdSession.cardFrameTask = writeLiveSessionFile(destination, png)
@@ -503,7 +534,7 @@ export class ScoreboardOverlaySession {
       })
       await window.loadFile(join(assets, 'index.html'))
       await cardsWindow.loadFile(join(assets, 'index.html'), { query: { overlay: 'kill-cards' } })
-      cardsWindow.webContents.startPainting()
+      cardsWindow.webContents.stopPainting()
       eventWatcher = watch(directory, (_event, filename) => {
         if (filename?.toString() === 'scoreboard.visible')
           void createdSession
@@ -527,6 +558,12 @@ export class ScoreboardOverlaySession {
         }
       })
       createdSession.eventWatcher = eventWatcher
+      beginGamePerformance(
+        directory,
+        matchId,
+        getSessionUsername() ?? '',
+        gameSettings.lightweightHud
+      )
       await createdSession.lease.start()
       createdSession.eventWatcher.on('error', (error) => {
         console.warn('[Scoreboard] local death notice watcher failed', error)
@@ -869,22 +906,40 @@ export class ScoreboardOverlaySession {
       // Native live features still expire; Tab can display the previous board.
       await this.syncKillCards(null)
     } finally {
+      if (!this.stopped) await captureGamePerformance(this.directory)
       this.busy = false
       await this.present()
       if (
         !this.stopped &&
         this.lastKillCardState !== null &&
         !/^. 0 /.test(this.lastKillCardState) &&
+        this.cardPaintTimer === null &&
         Date.now() - this.lastCardFrameAt >= 1500 &&
         !this.cardsWindow.isDestroyed()
-      )
-        this.cardsWindow.webContents.invalidate()
+      ) {
+        if (this.lastCardPng && !this.cardFrameWriting) {
+          // Retain the native freshness limit without waking Chromium to repaint.
+          this.cardFrameWriting = true
+          this.cardFrameTask = writeLiveSessionFile(
+            join(this.directory, 'kill-cards.png'),
+            this.lastCardPng
+          )
+            .then(() => {
+              this.lastCardFrameAt = Date.now()
+            })
+            .catch((error: unknown) => console.warn('[Scoreboard] card heartbeat failed', error))
+            .finally(() => {
+              this.cardFrameWriting = false
+            })
+        } else if (!this.lastCardPng) this.paintCardsFor(500)
+      }
     }
   }
 
   stop(): void {
     if (this.stopped) return
     this.stopped = true
+    if (this.cardPaintTimer) clearTimeout(this.cardPaintTimer)
     const leaseCleanup = this.lease
       .stop()
       .catch((error: unknown) => console.error('[Scoreboard] launcher lease cleanup failed', error))
@@ -898,8 +953,10 @@ export class ScoreboardOverlaySession {
     this.presentationTimer = null
     if (!this.window.isDestroyed()) this.window.close()
     if (!this.cardsWindow.isDestroyed()) this.cardsWindow.close()
+    const finalPerformance = captureGamePerformance(this.directory, true)
     cleanupQueue.enqueue(async () => {
       await Promise.allSettled([
+        finalPerformance,
         leaseCleanup,
         this.refreshTask,
         this.frameTask,

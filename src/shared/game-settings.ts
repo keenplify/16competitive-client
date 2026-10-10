@@ -15,6 +15,7 @@ export const GAME_SETTINGS_CHANNELS = {
   setFastSwitch: 'game-settings:set-fast-switch',
   setPlayerPingKey: 'game-settings:set-player-ping-key',
   setKillCards: 'game-settings:set-kill-cards',
+  setLightweightHud: 'game-settings:set-lightweight-hud',
   completeSetup: 'game-settings:complete-setup',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
   syncAssets: 'game-settings:sync-assets',
@@ -37,6 +38,7 @@ export interface GameSettings {
   nextClientIntegrationDisabledReason: string | null
   fastSwitchEnabled: boolean
   fastSwitchManaged: boolean
+  lightweightHud: boolean
   killCardsEnabled: boolean
   setupCompleted: boolean
   setupMode: SetupMode | null
@@ -72,6 +74,7 @@ export interface GameSettingsApi {
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
   setFastSwitch(enabled: boolean): Promise<GameSettings>
   setPlayerPingKey(key: PlayerPingKey): Promise<GameSettings>
+  setLightweightHud(enabled: boolean): Promise<GameSettings>
   setKillCards(enabled: boolean): Promise<GameSettings>
   completeSetup(mode: SetupMode): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>

@@ -28,6 +28,7 @@ interface StoredGameSettings {
   nextClientIntegrationEnabled?: boolean
   fastSwitchEnabled?: boolean
   fastSwitchManaged?: boolean
+  lightweightHud?: boolean
   killCardsEnabled?: boolean
   nextClientIntegrationDisabledReason?: string
   setupCompleted?: boolean
@@ -219,6 +220,9 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.fastSwitchManaged === 'boolean'
         ? { fastSwitchManaged: settings.fastSwitchManaged }
         : {}),
+      ...(typeof settings.lightweightHud === 'boolean'
+        ? { lightweightHud: settings.lightweightHud }
+        : {}),
       ...(typeof settings.killCardsEnabled === 'boolean'
         ? { killCardsEnabled: settings.killCardsEnabled }
         : {}),
@@ -316,6 +320,7 @@ const buildSettings = async (
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
   killCardsEnabled: storedSettings.killCardsEnabled !== false,
+  lightweightHud: storedSettings.lightweightHud === true,
   setupCompleted: storedSettings.setupCompleted === true,
   setupMode: storedSettings.setupMode ?? null,
   clientType: cs16ExecutablePath
@@ -347,6 +352,7 @@ const persistResolvedSettings = async (
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
     killCardsEnabled: storedSettings.killCardsEnabled !== false,
+    lightweightHud: storedSettings.lightweightHud === true,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
       : {}),
@@ -570,6 +576,28 @@ export const saveFastSwitch = async (untrustedEnabled: unknown): Promise<GameSet
     fastSwitchEnabled: untrustedEnabled,
     fastSwitchManaged: true
   }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
+}
+
+export const saveLightweightHud = async (untrustedEnabled: unknown): Promise<GameSettings> => {
+  if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid lightweight HUD setting')
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = { ...storedSettings, lightweightHud: untrustedEnabled }
   const cs16ExecutablePath = await validateStoredPath(updated)
   const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(

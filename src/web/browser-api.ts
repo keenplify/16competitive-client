@@ -87,6 +87,7 @@ const browserSettings = (): GameSettings => {
     nextClientIntegrationDisabledReason: null,
     fastSwitchEnabled: true,
     fastSwitchManaged: false,
+    lightweightHud: false,
     killCardsEnabled: false,
     setupCompleted: true,
     setupMode: null,
@@ -553,6 +554,9 @@ const api: Window['api'] = {
     },
     async setFastSwitch() {
       throw new Error('Fast switch is managed by the desktop launcher.')
+    },
+    async setLightweightHud() {
+      throw new Error('Lightweight HUD requires the desktop launcher.')
     },
     async setKillCards() {
       throw new Error('Kill cards require the desktop launcher.')

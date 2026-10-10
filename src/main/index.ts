@@ -99,7 +99,8 @@ import {
   completeGameSetup,
   saveFastSwitch,
   savePlayerPingKey,
-  saveKillCards
+  saveKillCards,
+  saveLightweightHud
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
 import {
@@ -919,6 +920,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
     saveFastSwitch(enabled)
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setLightweightHud, (_, enabled: unknown) =>
+    saveLightweightHud(enabled)
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setKillCards, async (_, enabled: unknown) => {
     const settings = await saveKillCards(enabled)

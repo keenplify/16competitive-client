@@ -992,6 +992,13 @@ paint/encode the offscreen scoreboard while Tab is closed. Watchdogs must distin
 an idle renderer from a pending frame that failed to arrive. Preserve freshness and
 authorization gates when reducing polling; do not claim FPS gains without measurement.
 
+HUD file reads, image decoding, glyph rasterization, and local HUD-file writes
+belong on the owned input worker, never the game draw callback. Keep its handoff
+bounded to the latest snapshot, preserve absolute lease/feed/image expiry, and
+join it before native-module unload (never from DllMain). Player pings must keep
+their team/session gates, eight-second expiry, and offscreen edge indicators.
+Lightweight HUD must retain tactical information and use translated settings.
+
 The private sibling repository `../16competitive-helper` contains an optional Rust
 cosmetic module under `cosmetic-module/` plus the `--skin-probe` helper workflow.
 Do not recreate this work in C or add it to the public Electron repository.
@@ -1023,6 +1030,15 @@ resuming that feature; do not assume those changes were discarded.
 ---
 
 ## Privacy
+
+Issue reports include recent native HUD-callback FPS when available: average FPS,
+slowest frame, sample duration/age, and the session HUD mode. Sampling uses bounded
+counters with worker-only file output, no per-frame disk IO or network traffic.
+The launcher retains up to three session samples in memory for at most ten minutes
+of report eligibility, scoped to the account and match. Missing samples must be
+reported as unavailable, never zero or launcher-renderer FPS. Only submitted
+issue reports upload these diagnostics. Loading/suspension gaps over one second
+are excluded; describe this as a game HUD-cadence estimate, not GPU timing.
 
 Avoid collecting unnecessary machine information.
 

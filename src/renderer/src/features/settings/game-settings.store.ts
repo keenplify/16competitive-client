@@ -39,6 +39,8 @@ interface GameSettingsState {
   setPlayerPingKey: (key: PlayerPingKey) => Promise<void>
   fastSwitchEnabled: boolean
   fastSwitchManaged: boolean
+  lightweightHud: boolean
+  lightweightHudStatus: 'idle' | 'saving' | 'error'
   killCardsEnabled: boolean
   setupCompleted: boolean
   setupMode: SetupMode | null
@@ -50,6 +52,7 @@ interface GameSettingsState {
   setCrosshair: (profile: CrosshairProfile) => Promise<void>
   setNextClientIntegration: (enabled: boolean) => Promise<void>
   setFastSwitch: (enabled: boolean) => Promise<void>
+  setLightweightHud: (enabled: boolean) => Promise<void>
   setKillCards: (enabled: boolean) => Promise<void>
   load: () => Promise<void>
   choose: () => Promise<void>
@@ -84,6 +87,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   pingSaveFailed: false,
   fastSwitchEnabled: true,
   fastSwitchManaged: true,
+  lightweightHud: false,
+  lightweightHudStatus: 'idle',
   killCardsEnabled: true,
   setupCompleted: false,
   setupMode: null,
@@ -139,6 +144,16 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     }
   },
 
+  setLightweightHud: async (enabled) => {
+    set({ lightweightHudStatus: 'saving' })
+    try {
+      const settings = await window.api.gameSettings.setLightweightHud(enabled)
+      set({ lightweightHud: settings.lightweightHud, lightweightHudStatus: 'idle' })
+    } catch {
+      set({ lightweightHudStatus: 'error' })
+    }
+  },
+
   setKillCards: async (enabled) => {
     try {
       const settings = await window.api.gameSettings.setKillCards(enabled)
@@ -166,6 +181,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         setupCompleted: settings.setupCompleted,
         setupMode: settings.setupMode,
@@ -210,6 +226,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         setupCompleted: settings.setupCompleted,
         setupMode: settings.setupMode,
@@ -237,6 +254,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         error: null
       })

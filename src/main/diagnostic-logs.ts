@@ -1,7 +1,8 @@
 import { app } from 'electron'
 import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
-import { getSessionToken } from './auth'
+import { getSessionToken, getSessionUsername } from './auth'
+import { gamePerformanceReport, refreshGamePerformance } from './game/game-performance'
 import { API_BASE_URL } from './config'
 import { serverClockNow } from '../shared/server-clock'
 import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
@@ -44,7 +45,10 @@ export async function reportDiagnosticIssue(
         matchId
       )
     : ''
-  const logs = `${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
+  const owner = getSessionUsername() ?? ''
+  await refreshGamePerformance(owner, matchId)
+  const performance = gamePerformanceReport(owner, matchId)
+  const logs = `${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
   const response = await fetch(`${apiUrl}/auth/issue-reports`, {
     method: 'POST',
     redirect: 'error',
@@ -66,7 +70,9 @@ export function installDiagnosticLogCapture(): void {
   for (const level of ['log', 'info', 'warn', 'error', 'debug'] as const) {
     const original = console[level].bind(console)
     console[level] = (...args: unknown[]) => {
-      entries.push(`${new Date(serverClockNow()).toISOString()} [${level}] ${args.map(formatValue).join(' ')}`)
+      entries.push(
+        `${new Date(serverClockNow()).toISOString()} [${level}] ${args.map(formatValue).join(' ')}`
+      )
       if (entries.length > MAX_LOG_ENTRIES) entries.shift()
       original(...args)
     }
