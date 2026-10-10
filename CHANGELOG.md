@@ -2218,3 +2218,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Fixes
 
 - Fixed an issue that could prevent Warzone from launching.
+
+## v2026.1010.6 — 2026-10-10
+
+### Enhanced Game Sessions
+
+- Improved input handling for enhanced game sessions.
