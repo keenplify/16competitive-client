@@ -1,4 +1,5 @@
 import { beginGamePerformance, captureGamePerformance } from './game-performance'
+import { createStandaloneRestartHandoff } from './standalone-restart'
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { constants, watch, type FSWatcher } from 'node:fs'
@@ -535,6 +536,39 @@ export class ScoreboardOverlaySession {
       await window.loadFile(join(assets, 'index.html'))
       await cardsWindow.loadFile(join(assets, 'index.html'), { query: { overlay: 'kill-cards' } })
       cardsWindow.webContents.stopPainting()
+      const handleStandaloneRestart = createStandaloneRestartHandoff(async () => {
+        await lstat(join(directory, 'restart.requested')).then(async () => {
+          if (createdSession.stopped) return
+          // Bounded, allowlisted diagnostics survive session cleanup in the
+          // launcher log and submitted reports. Old helpers write "1".
+          let restartReason = 'unavailable'
+          const request = await open(join(directory, 'restart.requested'), 'r')
+          try {
+            const buffer = Buffer.alloc(64)
+            const { bytesRead } = await request.read(buffer, 0, buffer.length, 0)
+            const reason = buffer.subarray(0, bytesRead).toString('ascii').trim()
+            if (
+              [
+                'lease-unavailable',
+                'managed-launch-flag-missing',
+                'server-mismatch',
+                'disconnected-timeout',
+                'connection-timeout'
+              ].includes(reason)
+            )
+              restartReason = reason
+          } finally {
+            await request.close()
+          }
+          console.info('[Scoreboard] native module requested a clean standalone restart', {
+            matchId,
+            reason: restartReason
+          })
+          await onStandaloneRestart?.()
+          await writeFile(join(directory, 'restart.ready'), '1\n', { mode: 0o600 })
+          createdSession.stop()
+        })
+      })
       eventWatcher = watch(directory, (_event, filename) => {
         if (filename?.toString() === 'scoreboard.visible')
           void createdSession
@@ -542,41 +576,9 @@ export class ScoreboardOverlaySession {
             .catch((error: unknown) => console.warn('[Scoreboard] visibility update failed', error))
         if (filename?.toString() === 'kill-cards.events') createdSession.scheduleLocalDeathRead()
         if (filename?.toString() === 'restart.requested') {
-          void lstat(join(directory, 'restart.requested'))
-            .then(async () => {
-              if (createdSession.stopped) return
-              // Bounded, allowlisted diagnostics survive session cleanup in the
-              // launcher log and submitted reports. Old helpers write "1".
-              let restartReason = 'unavailable'
-              const request = await open(join(directory, 'restart.requested'), 'r')
-              try {
-                const buffer = Buffer.alloc(64)
-                const { bytesRead } = await request.read(buffer, 0, buffer.length, 0)
-                const reason = buffer.subarray(0, bytesRead).toString('ascii').trim()
-                if (
-                  [
-                    'lease-unavailable',
-                    'managed-launch-flag-missing',
-                    'server-mismatch',
-                    'disconnected-timeout',
-                    'connection-timeout'
-                  ].includes(reason)
-                )
-                  restartReason = reason
-              } finally {
-                await request.close()
-              }
-              console.info('[Scoreboard] native module requested a clean standalone restart', {
-                matchId,
-                reason: restartReason
-              })
-              await onStandaloneRestart?.()
-              await writeFile(join(directory, 'restart.ready'), '1\n', { mode: 0o600 })
-              createdSession.stop()
-            })
-            .catch((error: unknown) => {
-              console.error('[Scoreboard] standalone restart handoff failed', error)
-            })
+          void handleStandaloneRestart().catch((error: unknown) => {
+            console.error('[Scoreboard] standalone restart handoff failed', error)
+          })
         }
       })
       createdSession.eventWatcher = eventWatcher
