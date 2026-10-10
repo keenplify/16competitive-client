@@ -2181,3 +2181,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved managed game session safety and recovery.
 - Improved switching between managed and standalone game sessions.
 - Added safeguards to prevent stale session data from carrying over.
+
+## v2026.1010.1 — 2026-10-10
+
+### Lightweight HUD
+
+- Added an optional lightweight in-game HUD for tactical information.
+- Added settings controls and translations for the lightweight HUD.
+
+### Issue Reports
+
+- Issue reports can now include game FPS diagnostics when available.
