@@ -961,6 +961,11 @@ A modified client can lie.
 
 ### Mandatory cleanup and standalone launches
 
+- Managed native ownership uses `session.ticket` with a random per-launch ID,
+  issue time and fixed two-hour expiry, paired with the matching short-lived
+  launcher heartbeat. Every match/reconnect creates a fresh ticket; heartbeats
+  never extend its expiry. Remove it on session cleanup. Windows ownership must
+  not depend on Steam forwarding `-insecure` into OS process arguments.
 - Native game modifications are scoped to the managed 1.6 Competitive session.
   Restore original DLLs and remove launcher-owned module/session files after game
   exit and launcher shutdown. Await cleanup before Electron exits; keep recovery

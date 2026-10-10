@@ -545,8 +545,30 @@ export class ScoreboardOverlaySession {
           void lstat(join(directory, 'restart.requested'))
             .then(async () => {
               if (createdSession.stopped) return
+              // Bounded, allowlisted diagnostics survive session cleanup in the
+              // launcher log and submitted reports. Old helpers write "1".
+              let restartReason = 'unavailable'
+              const request = await open(join(directory, 'restart.requested'), 'r')
+              try {
+                const buffer = Buffer.alloc(64)
+                const { bytesRead } = await request.read(buffer, 0, buffer.length, 0)
+                const reason = buffer.subarray(0, bytesRead).toString('ascii').trim()
+                if (
+                  [
+                    'lease-unavailable',
+                    'managed-launch-flag-missing',
+                    'server-mismatch',
+                    'disconnected-timeout',
+                    'connection-timeout'
+                  ].includes(reason)
+                )
+                  restartReason = reason
+              } finally {
+                await request.close()
+              }
               console.info('[Scoreboard] native module requested a clean standalone restart', {
-                matchId
+                matchId,
+                reason: restartReason
               })
               await onStandaloneRestart?.()
               await writeFile(join(directory, 'restart.ready'), '1\n', { mode: 0o600 })

@@ -25,7 +25,37 @@ test('stop drains pending lease writes and leaves a shutdown marker', async (t) 
   await lease.stop()
   await lease.stop()
   await assert.rejects(readFile(join(directory, 'launcher.lease')), { code: 'ENOENT' })
+  await assert.rejects(readFile(join(directory, 'session.ticket')), { code: 'ENOENT' })
   assert.equal(await readFile(join(directory, 'launcher.stopped'), 'utf8'), '1\n')
+})
+
+test('heartbeats cannot extend the two-hour ticket; a new game gets a new ticket', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), '16c-ticket-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  let now = 1000000
+  const first = new SessionLease(directory, () => now)
+  await first.start()
+  const ticket = await readFile(join(directory, 'session.ticket'), 'utf8')
+  assert.deepEqual(ticket.trim().split('\n').slice(2), ['1000000', '8200000'])
+  now += 7199999
+  await first.refresh()
+  assert.equal(await readFile(join(directory, 'session.ticket'), 'utf8'), ticket)
+  now++
+  await first.refresh()
+  assert.equal(first.timer, null)
+  await assert.rejects(readFile(join(directory, 'session.ticket')), { code: 'ENOENT' })
+  await assert.rejects(readFile(join(directory, 'launcher.lease')), { code: 'ENOENT' })
+  await first.start()
+  assert.equal(first.timer, null)
+  const next = new SessionLease(directory, () => now)
+  await next.start()
+  const renewed = await readFile(join(directory, 'session.ticket'), 'utf8')
+  await first.stop()
+  assert.equal(await readFile(join(directory, 'session.ticket'), 'utf8'), renewed)
+  assert.notEqual(renewed.split('\n')[1], ticket.split('\n')[1])
+  assert.deepEqual(renewed.trim().split('\n').slice(2), ['8200000', '15400000'])
+  await assert.rejects(readFile(join(directory, 'launcher.stopped')), { code: 'ENOENT' })
+  await next.stop()
 })
 
 test('stop racing startup cannot install a new heartbeat timer', async (t) => {
