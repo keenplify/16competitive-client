@@ -1,3 +1,4 @@
+import { encodeHudFrame } from './hud-frame'
 import { beginGamePerformance, captureGamePerformance } from './game-performance'
 import { createStandaloneRestartHandoff } from './standalone-restart'
 import { createHash, randomUUID } from 'node:crypto'
@@ -483,10 +484,8 @@ export class ScoreboardOverlaySession {
           /^. 0 /.test(createdSession.lastKillCardState)
         )
           return
-        const size = image.getSize()
-        if (size.width !== CARD_WIDTH || size.height !== CARD_HEIGHT) return
-        const png = image.toPNG()
-        if (!png.length || png.length > 128 * 1024) return
+        const png = encodeHudFrame(image, CARD_WIDTH, CARD_HEIGHT, 128 * 1024)
+        if (!png) return
         createdSession.lastCardPng = png
         const destination = join(directory, 'kill-cards.png')
         createdSession.cardFrameWriting = true
@@ -516,10 +515,8 @@ export class ScoreboardOverlaySession {
       window.webContents.on('paint', (_event, _dirty, image) => {
         if (createdSession.stopped || createdSession.frameWriting || !createdSession.boardVisible)
           return
-        const size = image.getSize()
-        if (size.width !== FRAME_WIDTH || size.height !== FRAME_HEIGHT) return
-        const png = image.toPNG()
-        if (!png.length || png.length > MAX_FRAME_BYTES) return
+        const png = encodeHudFrame(image, FRAME_WIDTH, FRAME_HEIGHT, MAX_FRAME_BYTES)
+        if (!png) return
         const presentation = createdSession.lastPresentation
         const destination = join(directory, 'overlay.png')
         createdSession.frameWriting = true
