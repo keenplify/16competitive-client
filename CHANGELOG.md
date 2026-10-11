@@ -2253,3 +2253,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking Rules
 
 - Friendly-fire violations now clearly explain ranked matchmaking suspensions.
+
+## v2026.1011.3 — 2026-10-11
+
+### Improvements
+
+- Added a lightweight HUD recommendation for translated and low-resource devices.
