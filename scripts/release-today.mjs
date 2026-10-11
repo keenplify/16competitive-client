@@ -123,7 +123,7 @@ try {
   }
 
   const remoteCommand =
-    'cd /root/16competitive && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'
+    'cd /root/16competitive && bash src/scripts/prepare-deployment-checkout.sh && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'
   const failedHosts = []
 
   const webHosts = process.env.RELEASE_WEB_HOSTS?.split(',').map((host) => host.trim()) ?? [
