@@ -809,7 +809,7 @@ const tl: Record<string, string> = {
     'Mag-invite ng player sa Friends sidebar para gumawa ng party.',
   'Leaving…': 'Leaving…',
   'Disband party': 'Disband party',
-  'Leave party': 'Leave party',
+  'Leave party': 'Umalis sa party',
   Leader: 'Leader',
   You: 'You',
   'Global Chat': 'Global Chat',

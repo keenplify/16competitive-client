@@ -9,6 +9,7 @@ const catalog: Record<string, string> = {
   Profile: 'プロフィール',
   Friends: 'フレンド',
   Party: 'パーティー',
+  'Leave party': 'パーティーを退出',
   Match: 'マッチ',
   'Match History': '試合履歴',
   Language: '言語',

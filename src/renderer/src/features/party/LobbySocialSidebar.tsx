@@ -312,7 +312,6 @@ function FriendRequestsModal({
 }
 
 export function LobbySocialSidebar({
-  playerId,
   collapsed,
   pinned,
   onHoverOpen,
@@ -355,7 +354,6 @@ export function LobbySocialSidebar({
 
   const isSearching =
     queueStatus === 'joining' || queueStatus === 'queued' || queueStatus === 'leaving'
-  const isLeader = !party || party.leaderId === playerId
   const isFull = party?.members.length === 5
   const canInvite = !isFull && !isSearching
   const notificationCount = partyInvitations.length + friendRequests.length
@@ -527,11 +525,11 @@ export function LobbySocialSidebar({
               {party && (
                 <Button
                   variant="ghost"
-                  className="h-7 px-2 text-[9px] uppercase"
+                  className="h-7 shrink-0 bg-red-400 px-2 text-[9px] text-neutral-950 uppercase hover:bg-red-300 hover:text-neutral-950 focus-visible:outline-red-300 disabled:bg-red-400/50"
                   disabled={partyStatus === 'leaving'}
                   onClick={() => void leave()}
                 >
-                  {isLeader ? 'Disband' : 'Leave'}
+                  Leave party
                 </Button>
               )}
               <button
