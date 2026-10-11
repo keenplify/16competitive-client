@@ -1,0 +1,52 @@
+1.6 Competitive — View-Only Source License
+
+Copyright (c) 2026 Papamo and the respective copyright holders.
+All rights reserved.
+
+1. Scope
+
+These terms apply to the original 1.6 Competitive source code, documentation,
+and project assets in this repository. This is proprietary, source-visible
+software, not an open-source license.
+
+2. Limited permission to view
+
+You may view and inspect the covered material solely for personal informational
+purposes. Incidental private copies necessary for that inspection are permitted
+only for the same purpose and must retain all copyright and license notices.
+
+3. Restrictions
+
+Without prior written permission from the applicable copyright holders, you may
+not use the source code to build or run software; modify or create derivative
+works; fork the project; distribute, publish, sublicense, or sell the covered
+material; or incorporate it into another product or service. No permission to
+submit or distribute modified versions is granted by making the source visible.
+
+4. Hosting-platform and statutory rights
+
+These terms do not override rights that applicable law or the hosting platform's
+terms independently grant. In particular, public GitHub repositories remain
+technically forkable under GitHub's platform terms. This license grants no
+additional permission to use, modify, distribute, or commercialize such a fork.
+
+5. Third-party materials and official releases
+
+Third-party components retain their own licenses and copyright notices; these
+terms do not replace or restrict permissions granted by those licenses. Official
+prebuilt releases are provided separately for end users. These source terms do
+not revoke permissions independently granted for those official releases.
+
+6. No other rights
+
+No rights to trademarks, private helpers, backend services, credentials, or
+other materials absent from this repository are granted. Any rights not
+expressly granted here are reserved. Separate written authorization may grant
+additional rights to a particular recipient.
+
+7. Disclaimer
+
+THE COVERED MATERIAL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT. TO THE EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDERS ARE NOT
+LIABLE FOR CLAIMS OR DAMAGES ARISING FROM THE MATERIAL OR ITS INSPECTION.
