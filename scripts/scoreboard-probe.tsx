@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { scoreboardLatency } from './scoreboard-latency'
 import { KillCardsCanvas } from '../src/renderer/src/components/KillCardsCanvas'
 import {
   AlarmClockMinus,
@@ -47,6 +48,7 @@ type Snapshot = {
   overtimeHalfRounds?: number
   sidesSwapped?: boolean
   mode: 'ffa' | 'competitive'
+  showBotTags?: boolean
   players: Player[]
 } | null
 
@@ -255,7 +257,8 @@ function PlayerRow({
   selfName,
   showWeapon,
   canSeeWeapon,
-  canSeeBomb
+  canSeeBomb,
+  showBotTags
 }: {
   player: Player
   rank: number
@@ -263,6 +266,7 @@ function PlayerRow({
   showWeapon: boolean
   canSeeWeapon: boolean
   canSeeBomb: boolean
+  showBotTags: boolean
 }) {
   const weapon = player.primaryWeapon === null ? null : weaponAssets[player.primaryWeapon]
   return (
@@ -301,7 +305,7 @@ function PlayerRow({
             : `$${player.money.toLocaleString('en-US')}`}
         </span>
       )}
-      <span>{player.ping}</span>
+      <span>{scoreboardLatency(player, showBotTags)}</span>
     </div>
   )
 }
@@ -377,6 +381,7 @@ function Scoreboard() {
                         showWeapon={competitive}
                         canSeeWeapon={player.team === selfTeam}
                         canSeeBomb={selfTeam === 1 && player.team === 1}
+                        showBotTags={snapshot?.showBotTags === true}
                       />
                     ))}
                   </div>
@@ -406,6 +411,7 @@ function Scoreboard() {
                 showWeapon={false}
                 canSeeWeapon={false}
                 canSeeBomb={false}
+                showBotTags={snapshot?.showBotTags === true}
               />
             ))
           )

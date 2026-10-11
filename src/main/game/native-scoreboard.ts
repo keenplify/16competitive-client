@@ -67,11 +67,15 @@ export function mergeNativeScores<
 >(snapshot: T, native: NativeScore[]): T {
   return {
     ...snapshot,
-    players: snapshot.players.map((player) => {
-      const local = native.find((row) => row.id === player.id && row.name === player.name)
-      return local
-        ? { ...player, kills: local.kills, deaths: local.deaths, ping: local.ping }
-        : player
-    })
+    players: snapshot.players
+      .map((player) => {
+        const local = native.find((row) => row.id === player.id && row.name === player.name)
+        return local
+          ? { ...player, kills: local.kills, deaths: local.deaths, ping: local.ping }
+          : player
+      })
+      // Native updates replace the scores used to order the server snapshot.
+      // Rank the displayed values, including when the feed omits native fields.
+      .sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
   }
 }

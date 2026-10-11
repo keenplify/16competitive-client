@@ -18,7 +18,6 @@
 #define TASK_AUTO_TEAM 500
 #define JOIN_TOKEN_GRACE_SECONDS 10.0
 #define TASK_RESPAWN 600
-#define TASK_MOTD 700
 #define TASK_SKIN_REAPPLY 800
 #define TASK_LOCATION_HUD 900
 #define TASK_TERMINATION_NOTICE 950
@@ -28,7 +27,6 @@
 #define FIGHT_YARD_ARMOURY_COUNT 9999
 #define MAX_TEAM_PLAYERS 10
 #define MAX_ROSTER_PLAYERS (MAX_TEAM_PLAYERS * 2)
-#define MAX_DAILY_QUESTS 3
 #define MAX_RECONNECT_WEAPONS 32
 #define MAX_CS_WEAPON_ID 30
 #define MAX_CLIENT_SERVER_NAME_LENGTH 31
@@ -157,12 +155,6 @@ new CsTeams:lockedTeam[33]
 new logicalTeam[33]
 new rosterNames[MAX_ROSTER_PLAYERS][32]
 new rosterTokens[MAX_ROSTER_PLAYERS][65]
-new rosterQuestCount[MAX_ROSTER_PLAYERS]
-new rosterQuestTitles[MAX_ROSTER_PLAYERS][MAX_DAILY_QUESTS][96]
-new rosterQuestProgress[MAX_ROSTER_PLAYERS][MAX_DAILY_QUESTS]
-new rosterQuestTargets[MAX_ROSTER_PLAYERS][MAX_DAILY_QUESTS]
-new rosterQuestRewards[MAX_ROSTER_PLAYERS][MAX_DAILY_QUESTS]
-new bool:rosterQuestCompleted[MAX_ROSTER_PLAYERS][MAX_DAILY_QUESTS]
 new rosterIps[MAX_ROSTER_PLAYERS][46]
 new rosterTeams[MAX_ROSTER_PLAYERS]
 new rosterKills[MAX_ROSTER_PLAYERS]
@@ -498,7 +490,6 @@ public plugin_init()
     register_srvcmd("competitive_roster_bot_name", "roster_bot_name")
     register_srvcmd("competitive_roster_bot_remove", "roster_bot_remove")
     register_srvcmd("competitive_roster_bot_quota", "roster_bot_quota")
-    register_srvcmd("competitive_roster_quest", "roster_quest")
     register_clcmd("chooseteam", "block_team_selection")
     register_clcmd("jointeam", "block_team_selection")
     register_clcmd("buy", "block_ffa_buy_menu")
@@ -906,7 +897,6 @@ public client_putinserver(id)
                 server_print("[1.6 Competitive][SkinDebug] bot skin choice player=%d weapon=%s choice=%d", id, skinWeapons[index], botSkinChoices[id][index])
     }
     set_task(0.5, "auto_assign_team", TASK_AUTO_TEAM + id)
-    set_task(1.5, "show_match_motd", TASK_MOTD + id)
 }
 
 public client_disconnected(id, bool:drop, message[], maxlen)
@@ -969,7 +959,6 @@ public client_disconnected(id, bool:drop, message[], maxlen)
     reportReasonIndex[id] = -1
     remove_task(TASK_AUTO_TEAM + id)
     remove_task(TASK_RESPAWN + id)
-    remove_task(TASK_MOTD + id)
     remove_task(TASK_SKIN_REAPPLY + id)
     remove_skin_player_model_entity(id)
 }
@@ -1997,26 +1986,6 @@ public on_weaponbox_set_model(weaponbox, const modelName[])
         server_print("[1.6 Competitive][SkinDebug] WeaponBoxNoSkin box=%d original=%s", weaponbox, modelName)
 }
 
-public show_match_motd(taskId)
-{
-    new id = taskId - TASK_MOTD
-    if (!is_user_connected(id)) return
-
-    new motd[1536]
-    new length = formatex(motd, charsmax(motd), "<html><head><style>body{margin:0;background:#10151c;color:#e9f1fb;font:14px Arial,sans-serif}.card{margin:16px;padding:18px;background:#18212c;border:1px solid #2e465d}.brand{color:#82d4ff;font-size:22px;font-weight:bold}.thanks{color:#9ab0c7;margin:5px 0 18px}.section{color:#82d4ff;font-weight:bold;border-bottom:1px solid #2e465d;padding-bottom:6px;margin:15px 0 7px}.quest{padding:7px 0;border-bottom:1px solid #243242}.done{color:#86db9b}.muted{color:#9ab0c7}</style></head><body><div class=^"card^"><div class=^"brand^">1.6 COMPETITIVE</div><div class=^"thanks^">Thank you for playing 1.6 Competitive.</div><div class=^"section^">YOUR DAILY MISSIONS</div>")
-
-    new rosterIndex = playerRosterIndex[id] - 1
-    if (rosterIndex >= 0 && rosterIndex < rosterCount && rosterQuestCount[rosterIndex] > 0)
-    {
-        for (new quest = 0; quest < rosterQuestCount[rosterIndex]; quest++)
-            length += formatex(motd[length], charsmax(motd) - length, "<div class=^"quest%s^">%s<br><span class=^"muted^">%d / %d &middot; +%d points%s</span></div>", rosterQuestCompleted[rosterIndex][quest] ? " done" : "", rosterQuestTitles[rosterIndex][quest], rosterQuestProgress[rosterIndex][quest], rosterQuestTargets[rosterIndex][quest], rosterQuestRewards[rosterIndex][quest], rosterQuestCompleted[rosterIndex][quest] ? " &middot; COMPLETE" : "")
-    }
-    else
-        length += formatex(motd[length], charsmax(motd) - length, "<span class=^"muted^">Daily missions are loading. Check your launcher shortly.</span>")
-
-    length += formatex(motd[length], charsmax(motd) - length, "<div class=^"thanks^">GLHF.</div></div></body></html>")
-    show_motd(id, motd, "1.6 Competitive")
-}
 
 public client_infochanged(id)
 {
@@ -3768,7 +3737,6 @@ public roster_reset()
     for (new index = 0; index < MAX_ROSTER_PLAYERS; index++)
     {
         rosterKills[index] = 0
-        rosterQuestCount[index] = 0
         rosterIps[index][0] = 0
         rosterDeaths[index] = 0
         rosterAssists[index] = 0
@@ -3785,14 +3753,6 @@ public roster_reset()
         rosterArmorType[index] = CS_ARMOR_NONE
         rosterActiveWeapon[index] = 0
         rosterWeaponCount[index] = 0
-        for (new quest = 0; quest < MAX_DAILY_QUESTS; quest++)
-        {
-            rosterQuestTitles[index][quest][0] = 0
-            rosterQuestProgress[index][quest] = 0
-            rosterQuestTargets[index][quest] = 0
-            rosterQuestRewards[index][quest] = 0
-            rosterQuestCompleted[index][quest] = false
-        }
         for (new weaponId = 0; weaponId <= MAX_CS_WEAPON_ID; weaponId++)
             rosterBpAmmo[index][weaponId] = 0
         for (new slot = 0; slot < MAX_RECONNECT_WEAPONS; slot++)
@@ -3852,7 +3812,6 @@ stock reset_reused_roster_slot(index)
     rosterHeadshots[index] = 0
     rosterDamage[index] = 0
     rosterGrenadeKills[index] = 0
-    rosterQuestCount[index] = 0
     rosterMoney[index] = 0
     rosterMoneyValid[index] = false
     rosterRoundStateValid[index] = false
@@ -3863,14 +3822,6 @@ stock reset_reused_roster_slot(index)
     rosterArmorType[index] = CS_ARMOR_NONE
     rosterActiveWeapon[index] = 0
     rosterWeaponCount[index] = 0
-    for (new quest = 0; quest < MAX_DAILY_QUESTS; quest++)
-    {
-        rosterQuestTitles[index][quest][0] = 0
-        rosterQuestProgress[index][quest] = 0
-        rosterQuestTargets[index][quest] = 0
-        rosterQuestRewards[index][quest] = 0
-        rosterQuestCompleted[index][quest] = false
-    }
     for (new weaponId = 0; weaponId <= MAX_CS_WEAPON_ID; weaponId++)
         rosterBpAmmo[index][weaponId] = 0
     for (new slot = 0; slot < MAX_RECONNECT_WEAPONS; slot++)
@@ -3983,23 +3934,6 @@ stock sync_bot_controller(const quotaCvar[], const modeCvar[], count)
     if (!equal(value, "normal")) set_pcvar_string(mode, "normal")
 }
 
-public roster_quest()
-{
-    new token[65]
-    read_argv(1, token, charsmax(token))
-    for (new index = 0; index < rosterCount; index++)
-    {
-        if (!equal(token, rosterTokens[index]) || rosterQuestCount[index] >= MAX_DAILY_QUESTS) continue
-        new quest = rosterQuestCount[index]
-        read_argv(2, rosterQuestTitles[index][quest], charsmax(rosterQuestTitles[][]))
-        rosterQuestProgress[index][quest] = read_argv_int(3)
-        rosterQuestTargets[index][quest] = read_argv_int(4)
-        rosterQuestRewards[index][quest] = read_argv_int(5)
-        rosterQuestCompleted[index][quest] = bool:read_argv_int(6)
-        rosterQuestCount[index]++
-        return
-    }
-}
 
 public on_t_win() { if (!is_full_deathmatch() && matchLive && !swappingSides) record_round(CS_TEAM_T); }
 public on_ct_win() { if (!is_full_deathmatch() && matchLive && !swappingSides) record_round(CS_TEAM_CT); }

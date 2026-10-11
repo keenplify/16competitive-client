@@ -65,6 +65,50 @@ test('native rows are bounded and cannot merge across slot reuse', () => {
     assert.equal(parseNativeScores(text), null)
 })
 
+test('native scores rank highest first after placeholder feeds and live score changes', () => {
+  const snapshot = {
+    mode: 'ffa',
+    players: [
+      { id: 1, name: 'Alpha', kills: 0, deaths: 0, ping: 0, assists: 4, team: 1 },
+      { id: 2, name: 'Bravo', kills: 0, deaths: 0, ping: 0, assists: 2, team: 2 },
+      { id: 3, name: 'Charlie', kills: 0, deaths: 0, ping: 0, assists: 1, team: 1 },
+      { id: 4, name: 'Delta', kills: 0, deaths: 0, ping: 0, assists: 0, team: 2 }
+    ]
+  }
+  const native = parseNativeScores(
+    '#16c-native-scoreboard-v1\n1\t3\t2\t30\tAlpha\n2\t8\t4\t31\tBravo\n3\t8\t2\t32\tCharlie\n4\t8\t2\t33\tDelta\n'
+  )
+  const merged = mergeNativeScores(snapshot, native)
+  assert.deepEqual(
+    merged.players.map((player) => player.id),
+    [3, 4, 2, 1]
+  )
+  assert.equal(merged.players.find((player) => player.id === 1).assists, 4)
+  assert.deepEqual(
+    snapshot.players.map((player) => player.id),
+    [1, 2, 3, 4]
+  )
+  assert.ok(snapshot.players.every((player) => player.kills === 0))
+
+  const updated = mergeNativeScores(merged, [
+    { id: 1, name: 'Alpha', kills: 9, deaths: 2, ping: 30 }
+  ])
+  assert.deepEqual(
+    updated.players.map((player) => player.id),
+    [1, 3, 4, 2]
+  )
+  // Competitive team sections preserve the same score ordering when filtered.
+  assert.deepEqual(
+    updated.players.filter((player) => player.team === 1).map((player) => player.id),
+    [1, 3]
+  )
+  assert.deepEqual(
+    updated.players.filter((player) => player.team === 2).map((player) => player.id),
+    [4, 2]
+  )
+  assert.equal(updated.mode, 'ffa')
+})
+
 test('preload replays data that arrived before React subscribed', async () => {
   const { EventEmitter } = await import('node:events')
   const { readFile } = await import('node:fs/promises')

@@ -80,6 +80,7 @@ type Snapshot = {
   round: number
   roundWinners: string | null
   mode: 'ffa' | 'competitive'
+  showBotTags?: boolean
   players: {
     id: number
     team: number
@@ -831,6 +832,10 @@ export class ScoreboardOverlaySession {
         throw new Error('Scoreboard revision mismatch')
       const snapshot = this.parseSnapshot(feed)
       if (!snapshot) throw new Error('Invalid scoreboard snapshot')
+      const botTags = response.headers.get('x-scoreboard-bot-tags')
+      if (botTags !== null && botTags !== '0' && botTags !== '1')
+        throw new Error('Invalid scoreboard bot-tag policy')
+      snapshot.showBotTags = botTags === '1'
       const accoladeHeader = response.headers.get('x-round-accolade')
       // A missing header can be a transient server-file read during replacement.
       // The native HUD enforces its own six-second expiry on the last valid award.

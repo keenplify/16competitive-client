@@ -6,8 +6,9 @@ import type {
   MatchmakingPreferences,
   MatchmakingServerMessage
 } from '../shared/matchmaking'
-import { manualConnectionCommand, parseManualConnectionDetails } from '../shared/matchmaking'
+import { manualConnectionCommand } from '../shared/matchmaking'
 import { getWebSessionToken, requestJson } from './browser-session'
+import { webSteamLaunchUrl } from './steam-launch'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
@@ -133,16 +134,6 @@ export const navigateToNode = async (
   window.location.assign(targetUrl)
 }
 
-const steamLaunchUrl = (connection: unknown): string => {
-  const { host, port, password, manualToken } = parseManualConnectionDetails(connection)
-  // Steam forwards these as launch arguments. A manual token is required for
-  // Web Play; the roster join token from match_connect is for desktop clients.
-  // Keep the command short so GoldSrc executes connect on initial launch and
-  // when Steam forwards parameters to an already running game.
-  const args = `+setinfo _16c ${manualToken} +password ${password} +connect ${host}:${port}`
-  return `steam://run/10//${encodeURIComponent(args)}/`
-}
-
 let manualConnectionMatchId: string | null = null
 
 const getManualConnection = async (matchId: string): Promise<unknown> =>
@@ -160,7 +151,7 @@ const launchCounterStrike = async (): Promise<void> => {
   const connection = await getManualConnection(matchId)
   if (manualConnectionMatchId !== matchId || lastConnection?.matchId !== matchId)
     throw new Error('This match is no longer available.')
-  window.location.href = steamLaunchUrl(connection)
+  window.location.href = webSteamLaunchUrl(connection)
 }
 
 const handleMessage = async (message: MatchmakingServerMessage): Promise<void> => {
