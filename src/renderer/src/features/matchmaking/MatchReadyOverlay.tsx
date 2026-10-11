@@ -13,7 +13,6 @@ export function MatchReadyOverlay(): JSX.Element | null {
   const required = useMatchmakingStore((state) => state.readyPlayersRequired)
   const response = useMatchmakingStore((state) => state.readyResponse)
   const error = useMatchmakingStore((state) => state.error)
-  const assets = useMatchmakingStore((state) => state.assetPreparation)
   const respond = useMatchmakingStore((state) => state.respondReady)
   const [now, setNow] = useState(Date.now)
 
@@ -49,7 +48,6 @@ export function MatchReadyOverlay(): JSX.Element | null {
           secondsRemaining={
             deadline ? Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000)) : 0
           }
-          assetPreparation={assets}
           responseError={Boolean(error)}
           preparing={status === 'match_found'}
           onAccept={() => void respond(true)}

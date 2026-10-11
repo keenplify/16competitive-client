@@ -1,6 +1,6 @@
 import { useTranslation } from '../i18n/i18n'
-import { Info, UserRound } from 'lucide-react'
-import type { JSX } from 'react'
+import { Info } from 'lucide-react'
+import { useEffect, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import {
   getMatchmakingModeLabel,
@@ -8,11 +8,13 @@ import {
   type QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
-import { AssetPreparation, MatchAssetPreparation } from './MatchAssetPreparation'
+import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
+import { useReadyPlayerRanksStore } from './ready-player-ranks.store'
 
 interface MatchFoundReadyCheckProps {
   acceptedPlayerIds: string[]
   match: {
+    matchId: string
     mapId: string
     mode: MatchmakingMode
     teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
@@ -20,7 +22,6 @@ interface MatchFoundReadyCheckProps {
   playersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   secondsRemaining: number
-  assetPreparation: AssetPreparation
   responseError?: boolean
   preparing?: boolean
   onAccept: () => void
@@ -28,18 +29,42 @@ interface MatchFoundReadyCheckProps {
 }
 
 function ReadyPlayer({ player, ready }: { player: QueuedPlayer; ready: boolean }): JSX.Element {
+  const { t } = useTranslation()
+  const rank = useReadyPlayerRanksStore((state) => state.ranks[player.id])
   return (
     <div
       className={twMerge(
-        'group relative flex aspect-square w-12 items-center justify-center border-2 transition-[background-color,border-color,box-shadow,color] duration-300 motion-reduce:transition-none sm:w-14',
+        'group relative flex size-10 shrink-0 min-[400px]:size-12 items-center justify-center border-2 transition-[background-color,border-color,box-shadow,color] duration-300 motion-reduce:transition-none sm:size-14',
         ready
           ? 'border-emerald-300 bg-emerald-400/25 text-white shadow-[0_0_0_3px_rgba(34,197,94,0.18),0_0_18px_rgba(34,197,94,0.65)]'
           : 'border-white/10 bg-black/45 text-white/20'
       )}
-      aria-label={`${player.username}: ${ready ? 'ready' : 'pending'}`}
-      title={`${player.username} · ${ready ? 'Ready' : 'Pending'}`}
+      role="listitem"
+      aria-label={t('match.ready.playerStatus', {
+        player: player.username,
+        status: t(ready ? 'match.ready.accepted' : 'match.ready.pending')
+      })}
+      title={
+        rank
+          ? `${player.username} · ${rank.levelTitle}`
+          : `${player.username} · ${t('match.ready.rankUnavailable')}`
+      }
     >
-      <UserRound className="size-7 fill-current sm:size-8" strokeWidth={1.5} aria-hidden="true" />
+      {rank ? (
+        <ProfileRankInsignia
+          level={rank.level}
+          title={rank.levelTitle}
+          ariaLabel={t('match.ready.rank', { level: rank.level, title: rank.levelTitle })}
+          className="size-8 min-[400px]:size-9 sm:size-10"
+        />
+      ) : (
+        <span
+          className="flex size-8 items-center justify-center text-lg text-white/40"
+          aria-label={t('match.ready.rankUnavailable')}
+        >
+          ?
+        </span>
+      )}
       <span className="sr-only">{player.username}</span>
     </div>
   )
@@ -51,21 +76,23 @@ export function MatchFoundReadyCheck({
   playersRequired,
   readyResponse,
   secondsRemaining,
-  assetPreparation,
   responseError = false,
   preparing = false,
   onAccept,
   onDecline
 }: MatchFoundReadyCheckProps): JSX.Element {
   const { t } = useTranslation()
-  const players = [...match.teams.teamA, ...match.teams.teamB]
+  const loadRanks = useReadyPlayerRanksStore((state) => state.load)
+  useEffect(() => {
+    void loadRanks(match.matchId, [...match.teams.teamA, ...match.teams.teamB])
+  }, [loadRanks, match.matchId, match.teams])
   const mapName = match.mapId.replace(/^de_/, '').replace(/_/g, ' ')
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
 
   return (
     <div className="w-full min-w-0 text-white">
       <div className="my-auto w-full max-w-[46rem] min-w-0">
-        <section className="border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-4 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-6">
+        <section className="relative border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-4 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-6">
           <header className="text-center">
             <h1
               id="match-ready-title"
@@ -78,30 +105,34 @@ export function MatchFoundReadyCheck({
             </p>
           </header>
 
-          <div className="mt-4 h-20 overflow-y-auto">
-            {responseError ? (
-              <p
-                role="alert"
-                className="border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-center text-sm text-amber-100"
-              >
+          {responseError && (
+            <div className="absolute inset-x-4 top-4 z-10 sm:inset-x-6" role="alert">
+              <p className="border border-amber-300/40 bg-neutral-950/95 px-4 py-3 text-center text-sm text-amber-100 shadow-xl">
                 {t('match.ready.responseError')}
               </p>
-            ) : (
-              <MatchAssetPreparation preparation={assetPreparation} />
-            )}
-          </div>
+            </div>
+          )}
 
           <div
             className="mt-5 flex flex-wrap justify-center gap-2.5 sm:gap-3"
-            role="list"
-            aria-label="Player ready status"
+            role="group"
+            aria-label={t('match.ready.playerList')}
           >
-            {players.map((player) => (
-              <ReadyPlayer
-                key={player.id}
-                player={player}
-                ready={acceptedPlayerIds.includes(player.id)}
-              />
+            {[match.teams.teamA, match.teams.teamB].map((team, teamIndex) => (
+              <div
+                key={teamIndex}
+                className="flex shrink-0 flex-nowrap justify-center gap-1.5 min-[400px]:gap-2.5 sm:gap-3"
+                role="list"
+                aria-label={t('match.ready.team', { team: teamIndex + 1 })}
+              >
+                {team.map((player) => (
+                  <ReadyPlayer
+                    key={player.id}
+                    player={player}
+                    ready={acceptedPlayerIds.includes(player.id)}
+                  />
+                ))}
+              </div>
             ))}
           </div>
 

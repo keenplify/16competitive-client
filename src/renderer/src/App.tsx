@@ -1,3 +1,4 @@
+import { MatchAssetPreparation } from './features/matchmaking/MatchAssetPreparation'
 import { AuthPage } from './features/auth/AuthPage'
 import { IcafeBranchPanel } from './features/auth/IcafeBranchPanel'
 import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
@@ -28,6 +29,7 @@ function App(): React.JSX.Element {
         <AntiCheatMatchCancellationNotice />
         <MatchAbandonNotice />
         <SkinAssetSyncIndicator />
+        <MatchAssetPreparation />
         <SkinGiftOverlay />
         <VoiceChatDock />
         <AuthLanguageOverlay />

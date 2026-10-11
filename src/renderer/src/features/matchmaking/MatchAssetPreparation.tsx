@@ -1,5 +1,7 @@
-import type { JSX } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { useEffect, useRef, type JSX } from 'react'
+import { Slide, ToastContainer, toast, type Id, type ToastOptions } from 'react-toastify'
+import { useTranslation } from '../i18n/i18n'
+import { useMatchmakingStore } from './matchmaking.store'
 
 export interface AssetPreparation {
   status: 'idle' | 'checking' | 'downloading' | 'ready' | 'fastdl'
@@ -7,75 +9,81 @@ export interface AssetPreparation {
   totalFiles: number
 }
 
-interface MatchAssetPreparationProps {
-  preparation: AssetPreparation
-  className?: string
-}
+export function MatchAssetPreparation(): JSX.Element {
+  const surface = useRef<HTMLDivElement>(null)
+  const toastId = useRef<Id | null>(null)
+  const preparation = useMatchmakingStore((state) => state.assetPreparation)
+  const { t } = useTranslation()
 
-export function MatchAssetPreparation({
-  preparation,
-  className
-}: MatchAssetPreparationProps): JSX.Element | null {
-  if (preparation.status === 'idle' || preparation.status === 'ready') return null
-  if (preparation.status === 'fastdl') {
-    return (
-      <section
-        className={twMerge('border border-sky-300/35 bg-black/25 px-4 py-3 text-center', className)}
-        role="status"
-      >
-        <p className="text-xs font-bold tracking-[0.14em] text-sky-100 uppercase">
-          Counter-Strike will download missing skins in game
-        </p>
-      </section>
-    )
-  }
-  const hasKnownTotal = preparation.totalFiles > 0
-  const progress = hasKnownTotal
-    ? Math.min(100, Math.round((preparation.completedFiles / preparation.totalFiles) * 100))
-    : 0
-  const label =
-    preparation.status === 'checking'
-      ? 'Checking required skins…'
-      : `Downloading required skins · ${preparation.completedFiles} / ${preparation.totalFiles}`
+  useEffect(() => {
+    if (preparation.status === 'idle' || preparation.status === 'ready') {
+      if (toastId.current !== null) toast.dismiss(toastId.current)
+      toastId.current = null
+      return
+    }
+    const progress =
+      preparation.totalFiles > 0
+        ? Math.min(1, Math.max(0, preparation.completedFiles / preparation.totalFiles))
+        : 0
+    const label =
+      preparation.status === 'fastdl'
+        ? t('match.assets.fastdl')
+        : preparation.status === 'checking'
+          ? t('match.assets.checking')
+          : t('match.assets.downloading', {
+              completed: preparation.completedFiles,
+              total: preparation.totalFiles
+            })
+    const options: ToastOptions = {
+      containerId: 'match-assets',
+      position: 'top-right',
+      type: 'info',
+      role: 'status',
+      autoClose: preparation.status === 'fastdl' ? 5000 : false,
+      closeButton: preparation.status === 'fastdl',
+      closeOnClick: false,
+      draggable: false,
+      hideProgressBar: preparation.status !== 'downloading',
+      progress: preparation.status === 'downloading' ? progress : undefined,
+      ariaLabel: label
+    }
+    if (toastId.current !== null) {
+      toast.update(toastId.current, { ...options, render: label, delay: 0 })
+    } else {
+      toastId.current = toast(label, options)
+    }
+    // Native dialogs occupy the top layer. Show after their effects so progress
+    // stays above the ready-check backdrop, in viewport coordinates.
+    const frame = requestAnimationFrame(() => {
+      const element = surface.current
+      if (!element) return
+      if (element.matches(':popover-open')) element.hidePopover()
+      element.showPopover()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [preparation, t])
 
+  useEffect(
+    () => () => {
+      if (toastId.current !== null) toast.dismiss(toastId.current)
+      toastId.current = null
+    },
+    []
+  )
   return (
-    <section
-      className={twMerge(
-        'border border-emerald-300/35 bg-black/25 px-4 py-3 text-center',
-        className
-      )}
-      aria-live="polite"
+    <div
+      ref={surface}
+      popover="manual"
+      className="pointer-events-none fixed inset-0 m-0 h-0 w-full overflow-visible border-0 bg-transparent p-0"
     >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-left text-xs font-bold tracking-[0.14em] text-emerald-100 uppercase">
-          {label}
-        </p>
-        {preparation.status === 'downloading' && hasKnownTotal && (
-          <span className="shrink-0 text-xs font-semibold text-emerald-200/80">{progress}%</span>
-        )}
-      </div>
-      <div
-        className="relative mt-2 h-1.5 overflow-hidden bg-black/40"
-        role="progressbar"
-        aria-label="Required skin download progress"
-        aria-valuemin={0}
-        aria-valuemax={hasKnownTotal ? preparation.totalFiles : undefined}
-        aria-valuenow={hasKnownTotal ? preparation.completedFiles : undefined}
-        aria-valuetext={
-          preparation.status === 'downloading' && hasKnownTotal
-            ? `${progress}% downloaded`
-            : undefined
-        }
-      >
-        <div
-          className={twMerge(
-            'h-full bg-emerald-300 transition-[width] duration-300',
-            preparation.status === 'checking' && 'w-1/3 animate-pulse',
-            preparation.status === 'downloading' && 'animate-pulse'
-          )}
-          style={preparation.status === 'downloading' ? { width: `${progress}%` } : undefined}
-        />
-      </div>
-    </section>
+      <ToastContainer
+        containerId="match-assets"
+        position="top-right"
+        theme="dark"
+        style={{ marginTop: '4rem' }}
+        transition={Slide}
+        className="launcher-toast-container pointer-events-auto"
+      />
+    </div>
   )
 }

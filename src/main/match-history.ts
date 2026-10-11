@@ -111,6 +111,10 @@ const isPlayerProfile = (value: unknown): value is PlayerProfile => {
     typeof player.id === 'string' &&
     typeof player.username === 'string' &&
     typeof player.mmr === 'number' &&
+    (player.level === undefined ||
+      (Number.isInteger(player.level) && Number(player.level) >= 1 && Number(player.level) <= 40)) &&
+    (player.levelTitle === undefined ||
+      (typeof player.levelTitle === 'string' && player.levelTitle.length <= 80)) &&
     (player.flagCountryCode === null ||
       (typeof player.flagCountryCode === 'string' && /^[A-Z]{2}$/.test(player.flagCountryCode))) &&
     typeof player.wins === 'number' &&

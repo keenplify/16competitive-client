@@ -81,6 +81,8 @@ export interface MatchSurveySubmission {
 }
 
 export interface PlayerProfile {
+  level?: number
+  levelTitle?: string
   id: string
   username: string
   mmr: number

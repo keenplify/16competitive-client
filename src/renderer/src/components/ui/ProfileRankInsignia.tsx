@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 interface ProfileRankInsigniaProps {
   level: number
   title: string
+  ariaLabel?: string
   className?: string
 }
 
@@ -32,6 +33,7 @@ function Stripes({ count, fill }: { count: number; fill: string }): JSX.Element 
 export function ProfileRankInsignia({
   level,
   title,
+  ariaLabel,
   className
 }: ProfileRankInsigniaProps): JSX.Element {
   const safeLevel = Number.isFinite(level) ? Math.max(1, Math.min(40, Math.floor(level))) : 1
@@ -45,7 +47,7 @@ export function ProfileRankInsignia({
     <svg
       viewBox="0 0 64 64"
       role="img"
-      aria-label={`Level ${safeLevel}, ${title}`}
+      aria-label={ariaLabel ?? `Level ${safeLevel}, ${title}`}
       className={twMerge(
         'block size-10 shrink-0 drop-shadow-[0_2px_3px_rgba(0,0,0,0.85)]',
         className

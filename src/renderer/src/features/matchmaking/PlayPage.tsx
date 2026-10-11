@@ -18,7 +18,6 @@ import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useMatchmakingStore } from './matchmaking.store'
-import { MatchAssetPreparation } from './MatchAssetPreparation'
 import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
@@ -127,7 +126,6 @@ export function PlayPage({
   const match = useMatchmakingStore((state) => state.match)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
   const countdown = useMatchmakingStore((state) => state.countdown)
-  const assetPreparation = useMatchmakingStore((state) => state.assetPreparation)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
   const gameExited = useMatchmakingStore((state) => state.gameExited)
   const error = useMatchmakingStore((state) => state.error)
@@ -355,10 +353,6 @@ export function PlayPage({
             {queueStatus === 'starting_server' && (
               <p className="mt-5 text-sm text-neutral-400">Waiting for the GoldSrc server…</p>
             )}
-            <MatchAssetPreparation
-              className="mx-auto mt-5 max-w-md"
-              preparation={assetPreparation}
-            />
           </div>
 
           {queueStatus === 'server_ready' && match ? (
