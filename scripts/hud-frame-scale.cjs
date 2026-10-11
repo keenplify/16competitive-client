@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Electron main-process test uses CommonJS. */
 // Run with Electron --force-device-scale-factor=1 (also test 1.25, 1.5 and 2).
 const { app, BrowserWindow, nativeImage } = require('electron')
 const assert = require('node:assert/strict')
@@ -39,6 +40,7 @@ app
         let loaded = false
         let done = false
         window.webContents.on('paint', (_event, _dirty, image) => {
+          if (!loaded || done || image.isEmpty()) return
           try {
             const png = encodeHudFrame(image, width, height, limit)
             if (!png) return
