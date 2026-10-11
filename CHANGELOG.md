@@ -2265,3 +2265,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Display Fixes
 
 - Fixed the scoreboard and kill cards not appearing correctly on scaled displays.
+
+## v2026.1011.5 — 2026-10-11
+
+### Party
+
+- Clarified the leave-party action.
+- Added improved translation coverage.
+
+### Scoreboard
+
+- Fixed scoreboard player ordering.
+- Improved bot labels.
+
+### Launcher
+
+- Improved handoffs between the launcher, web, and Steam.
