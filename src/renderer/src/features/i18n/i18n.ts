@@ -17,7 +17,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'th', label: 'ไทย' },
   { code: 'id', label: 'Bahasa Indonesia' },
   { code: 'hi', label: 'हिन्दी' },
-  { code: 'pt', label: 'Português' },
+  { code: 'pt', label: 'Português (Brasil)' },
   { code: 'ja', label: '日本語' }
 ] as const
 
@@ -1229,7 +1229,9 @@ const readStoredLanguage = (): SupportedLanguageCode => {
 }
 
 const applyDocumentLanguage = (language: SupportedLanguageCode): void => {
-  if (typeof document !== 'undefined') document.documentElement.lang = language
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = language === 'pt' ? 'pt-BR' : language
+  }
 }
 
 const persistLanguage = (language: SupportedLanguageCode): void => {

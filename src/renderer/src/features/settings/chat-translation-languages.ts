@@ -258,6 +258,7 @@ export const CHAT_TRANSLATION_LANGUAGES: ReadonlyArray<{ code: string; name: str
   { code: 'pon', name: 'Pohnpeian' },
   { code: 'ps', name: 'Pushto; Pashto' },
   { code: 'pt', name: 'Portuguese' },
+  { code: 'pt-br', name: 'Portuguese (Brazil)' },
   { code: 'qu', name: 'Quechua' },
   { code: 'rap', name: 'Rapanui' },
   { code: 'rar', name: 'Rarotongan; Cook Islands Maori' },

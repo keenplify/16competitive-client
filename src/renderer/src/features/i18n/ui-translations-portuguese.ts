@@ -1,6 +1,7 @@
 import type { SupportedLanguageCode } from './i18n'
 
 const catalog: Record<string, string> = {
+  'Get the desktop app': 'Baixar o aplicativo para computador',
   Settings: 'Configurações',
   'Launcher settings': 'Configurações do launcher',
   'Configure the game client, manage downloaded assets, and update your account credentials.':

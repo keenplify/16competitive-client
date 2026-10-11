@@ -34,6 +34,10 @@ platform and may change during the alpha.
 - **Desktop integration:** game installation selection, automatic launching,
   launcher updates, and Discord Rich Presence.
 
+The launcher interface includes **Português (Brasil)**. In-game text chat can
+also be translated into Brazilian Portuguese (`pt-br`) through **Settings**.
+Translation keeps the original message visible and may arrive afterward.
+
 ## Get started
 
 1. Download an official build from [Releases](https://github.com/keenplify/16competitive-client/releases).

@@ -19,7 +19,7 @@ export function ChatTranslationInitializer(): JSX.Element | null {
     }
     if (initializedPlayer.current === playerId) return
     initializedPlayer.current = playerId
-    void load(language)
+    void load(language === 'pt' ? 'pt-br' : language)
   }, [playerId, language, load, reset])
 
   return null
