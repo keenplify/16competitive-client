@@ -2242,3 +2242,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added translated messaging for asset preparation and readiness states.
 - Improved clarity during match asset preparation.
+
+## v2026.1011.2 — 2026-10-11
+
+### Language Support
+
+- Added Brazilian Portuguese UI support.
+- Added Brazilian Portuguese chat translation.
+
+### Matchmaking Rules
+
+- Friendly-fire violations now clearly explain ranked matchmaking suspensions.
