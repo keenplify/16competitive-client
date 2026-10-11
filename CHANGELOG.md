@@ -2230,3 +2230,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes were provided.
+
+## v2026.1011.1 — 2026-10-11
+
+### Matchmaking
+
+- Added player rank displays during matchmaking ready checks.
+- Improved match-found and ready-check experiences.
+
+### Match Preparation
+
+- Added translated messaging for asset preparation and readiness states.
+- Improved clarity during match asset preparation.
