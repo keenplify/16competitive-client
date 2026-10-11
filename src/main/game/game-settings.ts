@@ -4,6 +4,7 @@ import {
   type PlayerPingKey
 } from '../../shared/player-ping'
 import { app, dialog } from 'electron'
+import { recommendLightweightHud } from './recommended-hud'
 import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
 import type { GameSettings, SetupMode } from '../../shared/game-settings'
@@ -418,7 +419,8 @@ export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSet
           nextClientIntegrationDisabledReason: undefined,
           fastSwitchEnabled: true,
           fastSwitchManaged: true,
-          killCardsEnabled: true
+          killCardsEnabled: true,
+          lightweightHud: storedSettings.lightweightHud === true || recommendLightweightHud()
         }
       : {
           nextClientIntegrationEnabled: false,
