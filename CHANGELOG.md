@@ -2259,3 +2259,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Added a lightweight HUD recommendation for translated and low-resource devices.
+
+## v2026.1011.4 — 2026-10-11
+
+### Display Fixes
+
+- Fixed the scoreboard and kill cards not appearing correctly on scaled displays.
