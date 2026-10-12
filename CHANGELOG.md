@@ -2320,3 +2320,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved handoff reliability when launching matches.
 - Added current match credentials for native authentication checks.
+
+## v2026.1012.5 — 2026-10-12
+
+### Changes
+
+- No changes were provided.
