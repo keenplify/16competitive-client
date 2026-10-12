@@ -2,8 +2,9 @@
 
 Run `npm run release:local` from a clean client checkout. `npm run release`
 continues to use hosted build runners. Both commands publish the same GitHub
-Releases, updater metadata, and web clients. Workflows are dispatched explicitly
-by the command; pushing a tag alone no longer starts a hosted build.
+Releases, updater metadata, and web clients. Hosted workflows are dispatched
+explicitly by `release`; `release:local` does not use Actions. Pushing a tag alone
+no longer starts a hosted build.
 
 The local command checks Docker, GitHub CLI authentication, the Windows build VM,
 and production endpoints before creating tags. Linux x64/ARM64 builds run on the
@@ -66,22 +67,32 @@ Localhost and insecure endpoints are rejected before tagging. The packaged
 backend target and helper signatures/approval are checked again during packaging.
 Changing build settings invalidates a cached desktop artifact set.
 
-## Publication
+## Local signing and publication
 
-The command uploads unsigned helper binaries and provenance/checksums to a draft
-GitHub release, then dispatches `release-local.yml` on that exact tag. The protected
-helper `Release` environment verifies the source revision, expected file set and
-SHA-256 hashes, signs manifests, registers approved hashes, then publishes the
-release. The Ed25519 private key stays in protected CI. Desktop packaging consumes
-only these signed, backend-approved helper assets; it requires no GitHub token in
-the Windows VM. The protected desktop `Prod` job verifies the uploaded artifact
-set before publishing installers, AppImages and updater metadata.
+`release:local` builds, signs, registers backend approval, and publishes through
+the GitHub CLI on the Fedora host. It does not dispatch GitHub Actions. Hosted
+`npm run release` continues to use protected CI.
 
-Protected publication still uses a small hosted Actions job. An exhausted private
-Actions allowance or billing restriction can still block helper signing. Local
-compilation does not bypass signing or backend approval. Failed publication leaves
-the draft and local artifacts available for retry; published releases are never
-overwritten by the local upload path.
+Local credentials are stored outside Git in
+`~/.config/16competitive-release/credentials.json`, with mode `0600` and a `0700`
+parent directory. It contains `privateKeyPath`, `registryUrl` (HTTPS origin), and
+`publisherToken`. The referenced Ed25519 key must also be a regular owner-only
+file (`0600`) and must match `helper-release.json`'s pinned public key. Never put
+these credentials in the client `.env`, source archives, VM or containers.
+This machine uses `~/.config/papamo-guard-signing/private.pem` for the existing key.
+Protect and back up that key securely; GitHub secrets cannot be downloaded later.
+
+Credential checks run before tags or builds. After exact source/artifact hash
+verification, the host signs helper manifests, verifies the resulting signatures,
+uploads them to the draft, registers the approved hashes with the backend, and
+only then publishes the helper. Desktop packaging still verifies both helper
+signatures and backend approval. Desktop files and updater metadata are likewise
+verified before publishing directly with the GitHub CLI. Signing does not disable
+any runtime verification or backend trust gate.
+
+Local signing material stays outside the original artifact cache. Failed helper
+publication retains the cache and draft for retry; published assets are never
+overwritten. No Actions billing allowance is needed for local releases.
 
 Rebuild the local Linux tool images after Dockerfile changes:
 

@@ -8,6 +8,7 @@ import {
   preflightLocalRelease,
   submitLocalRelease
 } from './local-release/build.mjs'
+import { publishLocalDesktop } from './local-release/publish.mjs'
 
 const local = process.argv.includes('--local')
 
@@ -96,14 +97,21 @@ try {
     const artifacts = await buildLocalRelease('desktop', process.cwd(), version, releaseSha)
     dispatchedAt = Date.now()
     await submitLocalRelease('keenplify/16competitive-client', tag, artifacts)
+    await publishLocalDesktop(
+      'keenplify/16competitive-client',
+      tag,
+      artifacts,
+      releaseSha,
+      process.cwd()
+    )
   } else {
     dispatchedAt = Date.now()
     execFileSync('gh', ['workflow', 'run', 'release.yml', '--ref', tag], { stdio: 'inherit' })
   }
   const releaseDeadline = Date.now() + 60 * 60 * 1000
   let releaseUrl = ''
-  let releaseCompleted = false
-  while (Date.now() < releaseDeadline) {
+  let releaseCompleted = local
+  while (!releaseCompleted && Date.now() < releaseDeadline) {
     const runs = JSON.parse(
       execFileSync(
         'gh',

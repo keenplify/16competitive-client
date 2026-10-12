@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createArtifactManifest, expectedAssets, verifyArtifactManifest } from './artifacts.mjs'
 import { releaseEnvironment } from './environment.mjs'
+import { localSigningCredentials } from './publish.mjs'
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const state = join(homedir(), '.local/share/16competitive-build')
@@ -98,6 +99,8 @@ async function container(image, source, cmd, args, approved, buildEnv = {}) {
 
 export async function preflightLocalRelease() {
   await releaseEnvironment(clientRoot)
+  const helper = JSON.parse(await readFile(join(clientRoot, 'helper-release.json'), 'utf8'))
+  await localSigningCredentials(helper.publicKeyPem)
   if (process.platform !== 'linux' || process.arch !== 'x64')
     throw new Error('Local release currently requires the configured Fedora x64 build host')
   if (
@@ -264,7 +267,7 @@ export async function submitLocalRelease(repo, tag, directory) {
       '--title',
       tag,
       '--notes',
-      'Locally built artifacts awaiting protected CI publication.'
+      'Locally built artifacts awaiting verified publication.'
     ])
   const names = await readdir(directory)
   run('gh', [
@@ -275,16 +278,5 @@ export async function submitLocalRelease(repo, tag, directory) {
     repo,
     '--clobber',
     ...names.map((name) => join(directory, name))
-  ])
-  run('gh', [
-    'workflow',
-    'run',
-    'release-local.yml',
-    '--repo',
-    repo,
-    '--ref',
-    tag,
-    '-f',
-    `tag=${tag}`
   ])
 }

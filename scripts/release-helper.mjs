@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { buildLocalRelease, submitLocalRelease } from './local-release/build.mjs'
+import { publishLocalHelper } from './local-release/publish.mjs'
 
 export function nextHelperVersion(current, pinned) {
   const parse = (value) => {
@@ -136,8 +137,9 @@ export async function releaseHelper(config, { local = false } = {}) {
   if (published) return version
   if (local) {
     const artifacts = await buildLocalRelease('helper', cwd, version, sha)
-    dispatchedAt = Date.now()
     await submitLocalRelease(repo, tag, artifacts)
+    await publishLocalHelper(repo, tag, artifacts, cwd, config.publicKeyPem)
+    return version
   } else {
     dispatchedAt = Date.now()
     run('gh', ['workflow', 'run', 'release.yml', '--repo', repo, '--ref', tag], true)
