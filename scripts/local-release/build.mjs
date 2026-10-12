@@ -111,14 +111,22 @@ export async function preflightLocalRelease() {
   capture('docker', ['info', '--format', '{{.ServerVersion}}'])
   for (const image of images) capture('docker', ['image', 'inspect', `16c-release-${image}`])
   capture('gh', ['auth', 'status', '--hostname', 'github.com'])
-  try {
-    powershell(
-      "$env:Path='C:\\16c-build\\tools\\node;C:\\Program Files\\Git\\cmd;'+$env:USERPROFILE+'\\.cargo\\bin;'+$env:Path; $ErrorActionPreference='Stop'; if (!(Test-Path C:\\16c-build\\ready)) { throw 'Windows build tools are not ready' }; node --version; cargo --version; git --version"
-    )
-  } catch {
-    throw new Error(
-      'Windows build tools are not ready or VM SSH is unavailable. Finish Windows setup and check C:\\16c-build\\bootstrap.log; see docs/local-release.md.'
-    )
+  const vmDeadline = Date.now() + 180_000
+  while (true) {
+    try {
+      powershell(
+        "$env:Path='C:\\16c-build\\tools\\node;C:\\Program Files\\Git\\cmd;'+$env:USERPROFILE+'\\.cargo\\bin;'+$env:Path; $ErrorActionPreference='Stop'; if (!(Test-Path C:\\16c-build\\ready)) { throw 'Windows build tools are not ready' }; node --version; cargo --version; git --version"
+      )
+      break
+    } catch {
+      if (Date.now() >= vmDeadline) {
+        throw new Error(
+          'Windows build tools are not ready or VM SSH is unavailable. Finish Windows setup and check C:\\16c-build\\bootstrap.log; see docs/local-release.md.'
+        )
+      }
+      console.log('Waiting for the Windows build VM to finish starting...')
+      await new Promise((done) => setTimeout(done, 5000))
+    }
   }
 }
 
