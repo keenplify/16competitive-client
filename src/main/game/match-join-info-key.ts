@@ -32,6 +32,31 @@ export const matchJoinInfoCleanupCommands = (keys: readonly string[]): string[] 
     (key) => `setinfo "${key}" ""`
   )
 
+/** Reapply validated launch credentials after the engine reloads its profile.
+ * This hook must never disconnect or reconnect: NextClient already owns its
+ * native/fallback handoff, and classic clients have connected via startup exec.
+ */
+export const matchProfileIdentityCommands = (
+  input: {
+    matchId: string
+    playerName: string
+    joinToken: string
+    password: string
+    previousJoinKeys: readonly string[]
+  },
+  nextClient: boolean
+): string[] => {
+  if (nextClient) return []
+  const key = matchJoinInfoKey(input.matchId)
+  return [
+    'echo "[1.6 Competitive] Join stage: profile-identity"',
+    ...matchJoinInfoCleanupCommands([...input.previousJoinKeys, key]),
+    `name "${input.playerName}"`,
+    `setinfo "${key}" "${input.joinToken}"`,
+    `password "${input.password}"`
+  ]
+}
+
 const MATCH_KEY_PATTERN = /\b_16c_[0-9a-f]{16}\b/g
 
 /** Read only launcher-managed key names from the launcher-owned match cfg. */

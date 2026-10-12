@@ -6,7 +6,8 @@ import {
   matchJoinInfoCleanupCommands,
   matchJoinKeysInConfig,
   matchJoinLaunchArgs,
-  matchJoinCleanupConfig
+  matchJoinCleanupConfig,
+  matchProfileIdentityCommands
 } from '../src/main/game/match-join-info-key.ts'
 
 test('standard GoldSrc explicitly executes the match cfg while NextClient never receives +exec', () => {
@@ -56,6 +57,62 @@ test('native NextClient identity is not injected before the engine reloads its p
 
 test('startup exec waits for managed cleanup before adding match identity', () => {
   assert.deepEqual(matchJoinLaunchArgs('match', 'private-token', 'startup-exec'), [])
+})
+
+test('classic profile reload restores current identity without a second connection', () => {
+  const input = {
+    matchId: 'current-match',
+    playerName: 'keenplify',
+    joinToken: 'a'.repeat(32),
+    password: 'b'.repeat(22),
+    previousJoinKeys: [matchJoinInfoKey('old-match')]
+  }
+  const commands = matchProfileIdentityCommands(input, false)
+  // Simulate the affected engine replacing startup credentials with its profile.
+  const info = new Map([
+    ['name', '[FREE-USER]OlagueR'],
+    ['_16c', 'm_expired'],
+    [input.previousJoinKeys[0], 'expired'],
+    ['model', 'gordon'],
+    ['topcolor', '30'],
+    ['bottomcolor', '6']
+  ])
+  for (let reload = 0; reload < 2; reload++) {
+    for (const command of commands) {
+      assert.doesNotMatch(command, /^(?:connect|disconnect|exec|wait)\b/)
+      const setinfo = command.match(/^setinfo "([^"]+)" "([^"]*)"$/)
+      if (setinfo) {
+        if (setinfo[2]) info.set(setinfo[1], setinfo[2])
+        else info.delete(setinfo[1])
+      }
+      const cvar = command.match(/^(name|password) "([^"]*)"$/)
+      if (cvar) info.set(cvar[1], cvar[2])
+    }
+    assert.deepEqual(
+      info,
+      new Map([
+        ['name', input.playerName],
+        [matchJoinInfoKey(input.matchId), input.joinToken],
+        ['password', input.password]
+      ])
+    )
+  }
+})
+
+test('NextClient native and fallback handoffs do not receive classic profile credentials', () => {
+  assert.deepEqual(
+    matchProfileIdentityCommands(
+      {
+        matchId: 'match',
+        playerName: 'player',
+        joinToken: 'private-token',
+        password: 'private-password',
+        previousJoinKeys: []
+      },
+      true
+    ),
+    []
+  )
 })
 
 test('legacy connection budget fits after removing unused Half-Life model/color fields', () => {

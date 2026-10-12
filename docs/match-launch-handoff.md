@@ -17,7 +17,12 @@ space helps legacy clients fit the match token and server password in the
 userinfo can still exceed that limit. No saved player configuration is accessed.
 It then sets the current match key. A marked
 `exec "16competitive_ping.cfg"` line in `cstrike/userconfig.cfg` reapplies ping
-bindings without making a second connection. NextClient without its native host
+bindings and, on classic clients, the current identity and password after any
+engine profile reload. The hook clears stale identity keys again and never
+disconnects, connects, or waits. Some repacks reload their profile after startup
+`+exec` has returned; applying credentials only inside that startup script leaves
+their saved name and old token active when the connection completes.
+NextClient without its native host
 uses the match file through userconfig instead, because `+exec` can crash it.
 NextClient's native host continues to use its private
 handoff files and does not need this line. Its handoff clears previous keys and
@@ -62,6 +67,12 @@ compact dummy credentials. TURAN (`95.173.173.66:27015`) accepted the connection
 without userinfo overflow and the user confirmed it connected. This proves the
 affected client's public-server path, not competitive roster authorization or
 password validation by a password-protected server.
+
+An additional OlagueR probe reproduced the profile reset after the startup script
+returned: the public server observed the saved repack name. With the profile-end
+identity hook, the same installation retained the dummy launcher name after map
+loading. This verifies profile reload timing; competitive roster authorization
+still requires a live assigned match with fresh credentials.
 
 Regression tests preserve WarzOnE wrapper flags and existing startup files,
 Steam's Windows/Linux `-applaunch 10` handoff, and NextClient's native handoff

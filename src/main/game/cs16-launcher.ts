@@ -60,7 +60,8 @@ import {
   matchJoinInfoKey,
   matchJoinInfoCleanupCommands,
   matchJoinKeysInConfig,
-  matchJoinLaunchArgs
+  matchJoinLaunchArgs,
+  matchProfileIdentityCommands
 } from './match-join-info-key'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
@@ -967,13 +968,24 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       ? 'userconfig'
       : 'startup-exec'
 
-  // Reapply the ping bind at the end of userconfig, after player startup binds.
-  // Classic clients still need startup +exec for connection credentials; their
-  // userconfig hook loads only the binding file and never reconnects the game.
+  // Some classic builds reload their profile after startup +exec returns,
+  // replacing the name and token before the connection completes. Reapply
+  // identity and the ping bind at the end of that reload, without reconnecting.
+  // NextClient retains its existing native/fallback connection handoff.
   const pingConfigName = '16competitive_ping.cfg'
   const pingConfigPath = join(launchGameDirectory, pingConfigName)
   const pingConfigContents = [
     '// 16competitive launcher-owned player ping binding',
+    ...matchProfileIdentityCommands(
+      {
+        matchId: input.matchId,
+        playerName,
+        joinToken: input.joinToken,
+        password: input.password,
+        previousJoinKeys
+      },
+      nextClient
+    ),
     ...(gameSettings.nextClientIntegrationEnabled
       ? []
       : playerPingCommands(gameSettings.playerPingKey)),
