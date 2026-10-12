@@ -2291,3 +2291,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Connection
 
 - Fixed connection information overflowing in legacy Counter-Strike.
+
+## v2026.1012.2 — 2026-10-12
+
+### Game Launching
+
+- Restored standalone GoldSrc startup commands.
+- Improved safety and compatibility when starting Counter-Strike 1.6 matches.
+
+### Match Connections
+
+- Improved match startup and connection handling across supported launch methods.
