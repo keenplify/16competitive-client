@@ -2281,3 +2281,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Launcher
 
 - Improved handoffs between the launcher, web, and Steam.
+
+## v2026.1012.1 — 2026-10-12
+
+### News
+
+- Added localized news announcements tailored to your account.
+
+### Match Connection
+
+- Fixed connection information overflowing in legacy Counter-Strike.
