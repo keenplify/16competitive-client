@@ -22,6 +22,7 @@ test('preserves an existing userconfig exactly after the match', async () => {
   await withGameDirectory(async (directory, path) => {
     const original = Buffer.from('bind "x" "+use"\r\n// player note\r\n')
     await writeFile(path, original, { mode: 0o640 })
+    const originalMode = (await stat(path)).mode & 0o777
     const handoff = await prepareMatchUserConfigHandoff(directory, '16competitive_match.cfg')
     assert.deepEqual(handoff.diagnostics, {
       userConfigExisted: true,
@@ -33,7 +34,7 @@ test('preserves an existing userconfig exactly after the match', async () => {
     assert.match(installed, /bind "x" "\+use"/)
     assert.equal(await handoff.restore(), 'restored')
     assert.deepEqual(await readFile(path), original)
-    assert.equal((await stat(path)).mode & 0o777, 0o640)
+    assert.equal((await stat(path)).mode & 0o777, originalMode)
   })
 })
 
@@ -77,10 +78,11 @@ test('startup recovery removes only a stale managed handoff', async () => {
   await withGameDirectory(async (directory, path) => {
     const original = Buffer.from('bind "x" "+use"\r\n// player note\r\n')
     await writeFile(path, original, { mode: 0o640 })
+    const originalMode = (await stat(path)).mode & 0o777
     await prepareMatchUserConfigHandoff(directory, '16competitive_match.cfg')
     assert.equal(await removeStaleMatchUserConfigHandoff(directory), true)
     assert.deepEqual(await readFile(path), original)
-    assert.equal((await stat(path)).mode & 0o777, 0o640)
+    assert.equal((await stat(path)).mode & 0o777, originalMode)
     assert.equal(await removeStaleMatchUserConfigHandoff(directory), false)
   })
 })

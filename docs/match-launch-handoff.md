@@ -2,14 +2,23 @@
 
 Normal Counter-Strike launches keep engine startup flags on the process command
 line. Steam also needs `-applaunch 10` and `-game cstrike`. The launcher passes
-the match-specific `+setinfo` key and token as launch arguments, but does not
-pass `+exec` for the match.
+`+exec 16competitive_match.cfg` after engine startup. Standard clients receive
+their match identity from that file, after cleanup, rather than an early
+`+setinfo` which can consume legacy userinfo capacity before password insertion.
 
 Before starting GoldSrc, the launcher writes `cstrike/16competitive_match.cfg`
 with the current player identity, match-specific join key and token, server
 password, download settings, and connect command. It first clears the old fixed
-`_16c` key and previous match keys, then sets the current key. It adds a marked
-`exec "16competitive_match.cfg"` line to `cstrike/userconfig.cfg`.
+`_16c` key and previous match keys. It also clears the running session's `model`,
+`topcolor`, and `bottomcolor` userinfo fields: these Half-Life preferences are
+unused by Counter-Strike's server-selected player models, and freeing their
+space helps legacy clients fit the match token and server password in the
+256-byte connection buffer. It preserves other userinfo keys; arbitrarily full
+userinfo can still exceed that limit. No saved player configuration is accessed.
+It then sets the current match key. A marked
+`exec "16competitive_ping.cfg"` line in `cstrike/userconfig.cfg` reapplies ping
+bindings without making a second connection. NextClient without its native host
+uses the match file through userconfig instead, because `+exec` can crash it.
 NextClient's native host continues to use its private
 handoff files and does not need this line. Its handoff clears previous keys and
 sets the current match key before connecting.
@@ -33,8 +42,12 @@ fingerprint for roster tokens and the current match key observed during assignme
 `none` means no token was present. Compare fingerprints within the same match;
 the logs never include the usable token or server password.
 
-This path depends on the installed GoldSrc client executing `userconfig.cfg`
-during startup. Before release, verify one native Linux Steam launch and one
+The NextClient fallback depends on the installed client executing `userconfig.cfg`
+during startup. Standard GoldSrc needs its startup scripts to process command-line
+commands; an installation reporting `couldn't exec valve.rc` may skip that handoff.
+Do not silently seed or replace game startup files. Diagnose with
+`exec 16competitive_match.cfg` in the console during an active match.
+Before release, verify one native Linux Steam launch and one
 Windows Steam launch: the game console should show
 `[1.6 Competitive] Match config loaded`, followed by a successful rostered
 connection. Also verify the marked line is removed after exit and that reconnect

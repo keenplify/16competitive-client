@@ -57,6 +57,7 @@ import {
   matchConfigLaunchArgs,
   matchJoinCleanupConfig,
   matchJoinInfoKey,
+  matchJoinInfoCleanupCommands,
   matchJoinKeysInConfig,
   matchJoinLaunchArgs
 } from './match-join-info-key'
@@ -768,9 +769,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       [
         'echo "[1.6 Competitive] Match config loaded"',
         'disconnect',
-        'setinfo "_16c" ""',
-        ...previousJoinKeys.map((key) => `setinfo "${key}" ""`),
-        `setinfo "${joinInfoKey}" ""`,
+        ...matchJoinInfoCleanupCommands([...previousJoinKeys, joinInfoKey]),
         'echo "[1.6 Competitive] Join stage: identity-initial"',
         ...identityCommands,
         `gl_max_size "${launchTarget.textureSize}"`,

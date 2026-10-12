@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   matchConfigLaunchArgs,
   matchJoinInfoKey,
+  matchJoinInfoCleanupCommands,
   matchJoinKeysInConfig,
   matchJoinLaunchArgs,
   matchJoinCleanupConfig
@@ -51,4 +52,44 @@ test('native NextClient identity is not injected before the engine reloads its p
     matchJoinInfoKey('match'),
     'private-token'
   ])
+})
+
+test('startup exec waits for managed cleanup before adding match identity', () => {
+  assert.deepEqual(matchJoinLaunchArgs('match', 'private-token', 'startup-exec'), [])
+})
+
+test('legacy connection budget fits after removing unused Half-Life model/color fields', () => {
+  const key = matchJoinInfoKey('match')
+  const cleanup = matchJoinInfoCleanupCommands([key, key])
+  assert.equal(cleanup.filter((command) => command.includes(key)).length, 1)
+  // Runtime fields observed in the affected OlagueR installation, without
+  // inspecting any saved player configuration.
+  const info = new Map([
+    ['_cl_autowepswitch', '1'],
+    ['cl_dlmax', '512'],
+    ['cl_lc', '1'],
+    ['cl_lw', '1'],
+    ['name', 'keenplify'],
+    ['_vgui_menus', '1'],
+    ['_ah', '1'],
+    ['lefthand', '1'],
+    ['_pw', 'repack'],
+    ['cl_updaterate', '101'],
+    ['rate', '20000'],
+    ['hwp', '1'],
+    ['model', 'gordon'],
+    ['topcolor', '30'],
+    ['bottomcolor', '6'],
+    ['_16c', 'm_'.padEnd(50, 'a')]
+  ])
+  const bytes = () => [...info].reduce((size, [k, v]) => size + k.length + v.length + 2, 0)
+  info.delete('_16c')
+  info.set(key, 'a'.repeat(32))
+  assert.ok(bytes() + 42 >= 256, 'password insertion fails without budget cleanup')
+  for (const command of cleanup) info.delete(command.match(/^setinfo "([^"]+)" ""$/)[1])
+  info.set(key, 'a'.repeat(32))
+  info.set('password', 'a'.repeat(32))
+  assert.ok(bytes() < 256)
+  assert.equal(info.get('_pw'), 'repack')
+  assert.equal(info.get('_vgui_menus'), '1')
 })
