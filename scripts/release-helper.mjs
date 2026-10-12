@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { buildLocalRelease, submitLocalRelease } from './local-release/build.mjs'
 
 export function nextHelperVersion(current, pinned) {
   const parse = (value) => {
@@ -37,7 +38,7 @@ export function bumpCargoFile(text, section, name, version) {
   return result
 }
 
-export async function releaseHelper(config) {
+export async function releaseHelper(config, { local = false } = {}) {
   const cwd = resolve('../16competitive-helper')
   const run = (command, args, inherit = false) =>
     execFileSync(command, args, {
@@ -112,7 +113,7 @@ export async function releaseHelper(config) {
       throw error
     }
     git('add', 'Cargo.toml', 'Cargo.lock')
-    git('commit', '-m', `Release helper ${tag}`)
+    git('commit', '-m', `Release helper ${tag}${local ? ' [local-release]' : ''}`)
   }
   const sha = git('rev-parse', 'HEAD')
   if (git('tag', '--list', tag)) {
@@ -123,7 +124,29 @@ export async function releaseHelper(config) {
   }
   git('push', 'origin', branch)
   git('push', 'origin', `refs/tags/${tag}`)
-  console.log(`Waiting for private helper ${tag} to build, sign, and register...`)
+  let dispatchedAt
+  let published = false
+  try {
+    published =
+      JSON.parse(run('gh', ['release', 'view', tag, '--repo', repo, '--json', 'isDraft']))
+        .isDraft === false
+  } catch {
+    /* no published release yet */
+  }
+  if (published) return version
+  if (local) {
+    const artifacts = await buildLocalRelease('helper', cwd, version, sha)
+    dispatchedAt = Date.now()
+    await submitLocalRelease(repo, tag, artifacts)
+  } else {
+    dispatchedAt = Date.now()
+    run('gh', ['workflow', 'run', 'release.yml', '--repo', repo, '--ref', tag], true)
+  }
+  console.log(
+    local
+      ? `Waiting for protected signing and registration of local helper ${tag}...`
+      : `Waiting for private helper ${tag} to build, sign, and register...`
+  )
   const deadline = Date.now() + 45 * 60 * 1000
   while (Date.now() < deadline) {
     const runs = JSON.parse(
@@ -133,20 +156,22 @@ export async function releaseHelper(config) {
         '--repo',
         repo,
         '--workflow',
-        'release.yml',
+        local ? 'release-local.yml' : 'release.yml',
         '--branch',
         tag,
         '--limit',
         '10',
         '--json',
-        'headSha,status,conclusion,url'
+        'headSha,status,conclusion,url,createdAt'
       ])
     )
-    const latest = runs.find((entry) => entry.headSha === sha)
+    const latest = runs.find(
+      (entry) => entry.headSha === sha && Date.parse(entry.createdAt) >= dispatchedAt - 1000
+    )
     if (latest?.status === 'completed') {
       if (latest.conclusion !== 'success')
         throw new Error(
-          `Helper release failed: ${latest.url}. Fix the failed job and rerun it, then retry npm run release; ${tag} will be reused.`
+          `Helper release failed: ${latest.url}. Fix the failed job and rerun it, then retry npm run ${local ? 'release:local' : 'release'}; ${tag} will be reused.`
         )
       return version
     }

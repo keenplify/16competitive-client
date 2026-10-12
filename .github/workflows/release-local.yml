@@ -1,0 +1,34 @@
+name: Publish locally built desktop
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact locally built release tag
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    environment: Prod
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify local desktop artifacts and release tag
+        run: |
+          node --input-type=module -e 'import fs from "node:fs"; if (!/^v\d{4}\.\d{3,4}\.\d+$/.test(process.env.RELEASE_TAG) || process.env.RELEASE_TAG !== "v"+JSON.parse(fs.readFileSync("package.json")).version || process.env.RELEASE_TAG !== process.env.GITHUB_REF_NAME) throw Error("Release tag mismatch")'
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
+          gh release download "$RELEASE_TAG" --dir dist
+          node --input-type=module -e 'import {verifyArtifactManifest} from "./scripts/local-release/artifacts.mjs"; await verifyArtifactManifest("dist","desktop",process.env.RELEASE_TAG.slice(1),process.env.GITHUB_SHA)'
+      - name: Extract release notes
+        run: node scripts/extract-release-notes.mjs "$RELEASE_TAG" > release-notes.md
+      - name: Publish verified desktop and updater metadata
+        run: gh release edit "$RELEASE_TAG" --draft=false --notes-file release-notes.md

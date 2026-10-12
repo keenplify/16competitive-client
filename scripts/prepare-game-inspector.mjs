@@ -12,6 +12,7 @@ import {
 } from '../src/main/anticheat/helper-release-verifier.ts'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
+const localAssets = process.env.LOCAL_HELPER_ASSET_DIR
 const config = JSON.parse(await readFile(join(root, 'helper-release.json'), 'utf8'))
 if (!config.publicKeyPem || !/^\d{1,6}\.\d{1,6}\.\d{1,6}$/.test(config.version))
   throw new Error(
@@ -34,10 +35,11 @@ if (!repo || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo))
   )
 
 try {
-  execFileSync('gh', ['auth', 'status', '--hostname', 'github.com'], {
-    stdio: 'pipe',
-    shell: false
-  })
+  if (!localAssets)
+    execFileSync('gh', ['auth', 'status', '--hostname', 'github.com'], {
+      stdio: 'pipe',
+      shell: false
+    })
 } catch {
   throw new Error(
     'GitHub CLI authentication is required to download the private helper. Run gh auth login once, or provide GH_TOKEN with read access to the helper repository.'
@@ -57,35 +59,44 @@ async function prepare(platform, arch, checkOnly) {
   const temporary = await mkdtemp(join(tmpdir(), 'competitive-helper-'))
   try {
     const downloadArgs = [
-        'release',
-        'download',
-        `v${config.version}`,
-        '--repo',
-        repo,
-        '--pattern',
-        asset,
-        '--pattern',
-        `${asset}.manifest.json`,
-        '--pattern',
-        cosmeticAsset,
-        ...(platform === 'win' ? ['--pattern', nextClientAsset] : []),
-        '--dir',
-        temporary
-      ]
+      'release',
+      'download',
+      `v${config.version}`,
+      '--repo',
+      repo,
+      '--pattern',
+      asset,
+      '--pattern',
+      `${asset}.manifest.json`,
+      '--pattern',
+      cosmeticAsset,
+      ...(platform === 'win' ? ['--pattern', nextClientAsset] : []),
+      '--dir',
+      temporary
+    ]
     const maxDownloadAttempts = 3
-    for (let attempt = 1; ; attempt += 1) {
-      try {
-        execFileSync('gh', downloadArgs, { stdio: 'inherit', shell: false })
-        break
-      } catch (error) {
-        if (attempt >= maxDownloadAttempts) throw error
-        const delayMs = attempt * 1_500
-        console.warn(
-          `Helper download failed (attempt ${attempt}/${maxDownloadAttempts}); retrying in ${delayMs / 1_000}s...`
-        )
-        await new Promise((resolve) => setTimeout(resolve, delayMs))
+    if (localAssets) {
+      for (const name of [
+        asset,
+        `${asset}.manifest.json`,
+        cosmeticAsset,
+        ...(platform === 'win' ? [nextClientAsset] : [])
+      ])
+        await copyFile(join(localAssets, name), join(temporary, name))
+    } else
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          execFileSync('gh', downloadArgs, { stdio: 'inherit', shell: false })
+          break
+        } catch (error) {
+          if (attempt >= maxDownloadAttempts) throw error
+          const delayMs = attempt * 1_500
+          console.warn(
+            `Helper download failed (attempt ${attempt}/${maxDownloadAttempts}); retrying in ${delayMs / 1_000}s...`
+          )
+          await new Promise((resolve) => setTimeout(resolve, delayMs))
+        }
       }
-    }
     const envelope = JSON.parse(await readFile(join(temporary, `${asset}.manifest.json`), 'utf8'))
     const manifest = verifyHelperRelease(envelope, config.publicKeyPem)
     if (

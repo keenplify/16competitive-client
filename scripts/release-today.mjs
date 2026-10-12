@@ -3,6 +3,13 @@ import { execFileSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { releaseHelper } from './release-helper.mjs'
+import {
+  buildLocalRelease,
+  preflightLocalRelease,
+  submitLocalRelease
+} from './local-release/build.mjs'
+
+const local = process.argv.includes('--local')
 
 /** @param {string[]} args @returns {string} */
 function git(...args) {
@@ -22,12 +29,13 @@ try {
 
   const branch = git('branch', '--show-current')
   if (!branch) fail('Refusing to release from a detached HEAD.')
+  if (local) await preflightLocalRelease()
 
   git('pull', '--ff-only')
   const helperConfigPath = resolve('helper-release.json')
   const originalHelperConfig = await readFile(helperConfigPath, 'utf8')
   const helperConfig = JSON.parse(originalHelperConfig)
-  helperConfig.version = await releaseHelper(helperConfig)
+  helperConfig.version = await releaseHelper(helperConfig, { local })
   await writeFile(helperConfigPath, `${JSON.stringify(helperConfig, null, 2)}\n`)
   // Keep the previous pin if verification fails, so retries can resume the helper release.
   try {
@@ -72,13 +80,26 @@ try {
   await writeFile(lockPath, `${JSON.stringify(lockJson, null, 2)}\n`)
 
   git('add', 'package.json', 'package-lock.json', 'CHANGELOG.md', 'helper-release.json')
-  git('commit', '-m', `Release ${tag}`)
+  git('commit', '-m', `Release ${tag}${local ? ' [local-release]' : ''}`)
   git('tag', '-a', tag, '-m', `Release ${tag}`)
   git('push', 'origin', branch)
   git('push', 'origin', tag)
 
-  console.log(`${tag} pushed. Waiting for GitHub Actions to build every desktop package...`)
+  console.log(
+    local
+      ? `${tag} pushed. Building desktop packages locally...`
+      : `${tag} pushed. Waiting for GitHub Actions to build every desktop package...`
+  )
   const releaseSha = git('rev-parse', 'HEAD')
+  let dispatchedAt
+  if (local) {
+    const artifacts = await buildLocalRelease('desktop', process.cwd(), version, releaseSha)
+    dispatchedAt = Date.now()
+    await submitLocalRelease('keenplify/16competitive-client', tag, artifacts)
+  } else {
+    dispatchedAt = Date.now()
+    execFileSync('gh', ['workflow', 'run', 'release.yml', '--ref', tag], { stdio: 'inherit' })
+  }
   const releaseDeadline = Date.now() + 60 * 60 * 1000
   let releaseUrl = ''
   let releaseCompleted = false
@@ -90,18 +111,20 @@ try {
           'run',
           'list',
           '--workflow',
-          'release.yml',
+          local ? 'release-local.yml' : 'release.yml',
           '--branch',
           tag,
           '--limit',
           '10',
           '--json',
-          'headSha,status,conclusion,url'
+          'headSha,status,conclusion,url,createdAt'
         ],
         { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
       )
     )
-    const latest = runs.find((entry) => entry.headSha === releaseSha)
+    const latest = runs.find(
+      (entry) => entry.headSha === releaseSha && Date.parse(entry.createdAt) >= dispatchedAt - 1000
+    )
     releaseUrl = latest?.url || releaseUrl
     if (latest?.status === 'completed') {
       if (latest.conclusion !== 'success') {
