@@ -2302,3 +2302,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Connections
 
 - Improved match startup and connection handling across supported launch methods.
+
+## v2026.1012.3 — 2026-10-12
+
+### Match Joining
+
+- Fixed match identity after reloading the classic client profile.
