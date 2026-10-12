@@ -82,7 +82,7 @@ export function parseManualConnectionDetails(value: unknown): ManualConnectionDe
     typeof password !== 'string' ||
     !/^[A-Za-z0-9_-]{1,128}$/.test(password) ||
     typeof manualToken !== 'string' ||
-    !/^m_[0-9a-f]{48}$/.test(manualToken)
+    !/^m_(?:[A-Za-z0-9_-]{22}|[0-9a-f]{48})$/.test(manualToken)
   ) {
     throw new Error('Invalid manual connection response')
   }

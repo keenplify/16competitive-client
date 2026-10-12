@@ -103,6 +103,7 @@ import {
   saveLightweightHud
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
+import { removeStaleMatchStartupBridge } from './game/match-startup-bridge'
 import {
   cancelNextClientInstaller,
   detectNextClientFolder,
@@ -552,6 +553,9 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.electron')
   try {
     const executable = await getSavedCs16Executable()
+    if (executable && (await removeStaleMatchStartupBridge(join(dirname(executable), 'cstrike')))) {
+      console.info('[GameLaunch] removed stale temporary startup bridge')
+    }
     if (executable && (await removeStaleMatchUserConfigHandoff(dirname(executable)))) {
       console.info('[GameLaunch] removed stale match handoff from userconfig at startup')
     }

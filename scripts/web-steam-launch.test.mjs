@@ -8,8 +8,8 @@ import ts from 'typescript'
 const connection = {
   host: '192.0.2.1',
   port: 27016,
-  password: 'a'.repeat(32),
-  manualToken: `m_${'b'.repeat(48)}`
+  password: 'a'.repeat(22),
+  manualToken: `m_${'b'.repeat(22)}`
 }
 const matchId = '426aaf31-e665-4cee-8bd5-56475ea5db38'
 

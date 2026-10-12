@@ -45,8 +45,38 @@ the logs never include the usable token or server password.
 The NextClient fallback depends on the installed client executing `userconfig.cfg`
 during startup. Standard GoldSrc needs its startup scripts to process command-line
 commands; an installation reporting `couldn't exec valve.rc` may skip that handoff.
-Do not silently seed or replace game startup files. Diagnose with
-`exec 16competitive_match.cfg` in the console during an active match.
+For standalone classic clients only, the launcher creates a temporary `valve.rc`
+containing only `stuffcmds` when neither `cstrike` nor `valve` has a startup script
+or a PAK archive that could supply one. It publishes the bridge atomically
+without replacing a file. Cleanup removes only its exact marked contents;
+player replacements are preserved, and a launcher restart removes a crash-left
+bridge. Steam, NextClient, existing startup scripts and packed content are left
+alone. No player profile is read or executed by the bridge.
+
+Verified on Windows with the OlagueR standalone installation: an echo-only cfg
+did not execute with `+exec` while `valve.rc` was absent, but the same command-line
+probe executed automatically with the temporary bridge. This is startup-handoff
+verification. A subsequent public-server probe used the same startup bridge,
+managed userinfo cleanup, two credential applications and 20 wait frames, with
+compact dummy credentials. TURAN (`95.173.173.66:27015`) accepted the connection
+without userinfo overflow and the user confirmed it connected. This proves the
+affected client's public-server path, not competitive roster authorization or
+password validation by a password-protected server.
+
+Regression tests preserve WarzOnE wrapper flags and existing startup files,
+Steam's Windows/Linux `-applaunch 10` handoff, and NextClient's native handoff
+without `+exec` or a startup bridge. The pinned NextClient host v0.1.57 accepts
+server passwords of 1–128 safe characters; launcher roster tokens retain its
+32–64-character contract. Live Steam/NextClient matches were not retested here.
+
+Manual join tokens are now `m_` plus 22 base64url characters, and new server
+passwords are 22 characters. Each contains 128 random bits. The client and server
+continue accepting older 48-hex manual tokens during deployment. Launcher roster
+tokens and RCON credentials retain their existing format. Manual tokens remain
+match-scoped allowlist credentials, not single-use credentials. The copied manual
+command still applies the token to `_16c` before setting the password.
+Update client/web response validation before deploying compact credential
+generation; previously released clients only accept the old manual token format.
 Before release, verify one native Linux Steam launch and one
 Windows Steam launch: the game console should show
 `[1.6 Competitive] Match config loaded`, followed by a successful rostered

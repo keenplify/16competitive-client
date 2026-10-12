@@ -53,6 +53,7 @@ import {
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import helperRelease from '../../../helper-release.json'
 import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
+import { prepareMatchStartupBridge } from './match-startup-bridge'
 import {
   matchConfigLaunchArgs,
   matchJoinCleanupConfig,
@@ -994,6 +995,16 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   await writeFile(pingConfigPath, pingConfigContents, { encoding: 'utf8', mode: 0o600 })
   {
+    const startupBridge = await prepareMatchStartupBridge(launchGameDirectory, {
+      distribution: launchTarget.distribution,
+      nextClient
+    })
+    if (startupBridge.installed) {
+      console.info('[GameLaunch] temporary missing-startup bridge prepared', {
+        matchId: input.matchId,
+        launchGameDirectory
+      })
+    }
     try {
       const handoff = await prepareMatchUserConfigHandoff(
         launchGameDirectory,
@@ -1002,7 +1013,12 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       const session = {
         diagnostics: handoff.diagnostics,
         async restore(): Promise<Awaited<ReturnType<typeof handoff.restore>>> {
-          const outcome = await handoff.restore()
+          let outcome: Awaited<ReturnType<typeof handoff.restore>>
+          try {
+            outcome = await handoff.restore()
+          } finally {
+            await startupBridge.restore()
+          }
           // Preserve unexpected player edits, including replacement with a symlink.
           const current = await lstat(pingConfigPath).catch(() => null)
           if (
@@ -1027,6 +1043,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         ...session.diagnostics
       })
     } catch (error) {
+      await startupBridge.restore()
       console.error('[GameLaunch] could not prepare userconfig match handoff', {
         matchId: input.matchId,
         error
