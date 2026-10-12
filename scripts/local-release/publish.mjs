@@ -64,6 +64,8 @@ export async function publishLocalHelper(repo, tag, artifacts, root, publicKeyPe
   await mkdir(signed)
   for (const name of Object.keys(source.files))
     await copyFile(join(artifacts, name), join(signed, name))
+  await copyFile(join(artifacts, 'local-build.json'), join(signed, 'local-build.json'))
+  await verifyArtifactManifest(signed, 'helper', tag.slice(1), taggedCommit)
   run(process.execPath, [join(root, 'scripts/sign-release.mjs'), signed], {
     env: { ...process.env, RELEASE_TAG: tag, HELPER_SIGNING_PRIVATE_KEY: credentials.privateKeyPem }
   })
