@@ -154,6 +154,18 @@ export async function buildLocalRelease(kind, root, version, commit) {
     run('scp', [...scpArgs, envPath, `build@127.0.0.1:${guest}/`])
   }
   if (kind === 'helper') {
+    await container('helper-x64', source, 'cmake', [
+      '-S',
+      'nextclient/tests',
+      '-B',
+      'target/match-handoff-tests'
+    ])
+    await container('helper-x64', source, 'cmake', ['--build', 'target/match-handoff-tests'])
+    await container('helper-x64', source, 'ctest', [
+      '--test-dir',
+      'target/match-handoff-tests',
+      '--output-on-failure'
+    ])
     await container('helper-x64', source, 'cargo', ['test', '--locked'])
     await container('helper-x64', source, 'cargo', [
       'test',

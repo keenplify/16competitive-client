@@ -19,6 +19,11 @@ if (Test-Path $dist) { Remove-Item -LiteralPath $dist -Recurse -Force }
 New-Item -ItemType Directory $dist | Out-Null
 function CheckExit { if ($LASTEXITCODE -ne 0) { throw 'Local Windows build command failed' } }
 if ($Kind -eq 'helper') {
+    $cmake = Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+    $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'
+    & $cmake -S nextclient/tests -B target/match-handoff-tests; CheckExit
+    & $cmake --build target/match-handoff-tests --config Release; CheckExit
+    & $ctest --test-dir target/match-handoff-tests -C Release --output-on-failure; CheckExit
     cargo test --locked; CheckExit
     cargo test --locked -p papamo-cosmetic-module; CheckExit
     cargo build --locked --release --features cosmetic-probe --target x86_64-pc-windows-msvc; CheckExit

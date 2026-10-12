@@ -90,3 +90,5 @@ docker build -t 16c-release-helper-x64 -f scripts/local-release/Dockerfile.helpe
 docker build -t 16c-release-helper-arm64 -f scripts/local-release/Dockerfile.helper-arm64 scripts/local-release
 docker build -t 16c-release-desktop -f scripts/local-release/Dockerfile.desktop scripts/local-release
 ```
+
+Helper commits marked `[local-release]` skip duplicate hosted push verification; the local command runs the Rust and C++ handoff tests itself. Ordinary commits and pull requests retain their hosted verification.
