@@ -29,7 +29,9 @@ if ($Kind -eq 'helper') {
     cargo build --locked --release --features cosmetic-probe --target x86_64-pc-windows-msvc; CheckExit
     cargo build --locked --release -p papamo-cosmetic-module --target i686-pc-windows-msvc; CheckExit
     $env:VCPKG_DEFAULT_BINARY_CACHE = 'C:\16c-build\vcpkg-cache'
+    $env:VCPKG_DOWNLOADS = 'C:\16c-build\vcpkg-downloads'
     New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+    New-Item -ItemType Directory -Force $env:VCPKG_DOWNLOADS | Out-Null
     & .\scripts\build-nextclient-client-mini.ps1 -OutputDirectory $dist
     Copy-Item target\x86_64-pc-windows-msvc\release\game-inspector.exe (Join-Path $dist 'game-inspector-win-x64.exe')
     Copy-Item target\i686-pc-windows-msvc\release\papamo_cosmetic_module.dll (Join-Path $dist 'papamo-cosmetic-module-win-x86.dll')
