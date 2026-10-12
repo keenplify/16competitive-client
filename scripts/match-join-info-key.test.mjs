@@ -82,6 +82,8 @@ test('legacy connection budget fits after removing unused Half-Life model/color 
     ['bottomcolor', '6'],
     ['_16c', 'm_'.padEnd(50, 'a')]
   ])
+  // JavaScript test helpers cannot use TypeScript return annotations.
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const bytes = () => [...info].reduce((size, [k, v]) => size + k.length + v.length + 2, 0)
   info.delete('_16c')
   info.set(key, 'a'.repeat(32))

@@ -1,3 +1,4 @@
+import { newsAnnouncementTranslations } from './news-announcement-translations'
 import { matchAssetTranslations } from './match-asset-translations'
 import { lightweightHudTranslations } from './lightweight-hud-translations'
 import { playerPingTranslations } from './player-ping-translations'
@@ -30,6 +31,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 const english = {
   ...steamTranslations.en,
   ...scoreboardBotTranslations.en,
+  ...newsAnnouncementTranslations.en,
   ...readyCheckTranslations.en,
   ...matchAssetTranslations.en,
   ...friendlyFireTranslations.en,
@@ -177,6 +179,7 @@ export type TranslationParams = Record<string, string | number>
 const russian: Record<TranslationKey, string> = {
   ...steamTranslations.ru,
   ...scoreboardBotTranslations.ru,
+  ...newsAnnouncementTranslations.ru,
   ...readyCheckTranslations.ru,
   ...matchAssetTranslations.ru,
   ...friendlyFireTranslations.ru,
@@ -324,6 +327,7 @@ const russian: Record<TranslationKey, string> = {
 const taglish: Record<TranslationKey, string> = {
   ...steamTranslations.tl,
   ...scoreboardBotTranslations.tl,
+  ...newsAnnouncementTranslations.tl,
   ...readyCheckTranslations.tl,
   ...matchAssetTranslations.tl,
   ...friendlyFireTranslations.tl,
@@ -471,6 +475,7 @@ const taglish: Record<TranslationKey, string> = {
 const thai: Record<TranslationKey, string> = {
   ...steamTranslations.th,
   ...scoreboardBotTranslations.th,
+  ...newsAnnouncementTranslations.th,
   ...readyCheckTranslations.th,
   ...matchAssetTranslations.th,
   ...friendlyFireTranslations.th,
@@ -616,6 +621,7 @@ const thai: Record<TranslationKey, string> = {
 const indonesian: Record<TranslationKey, string> = {
   ...steamTranslations.id,
   ...scoreboardBotTranslations.id,
+  ...newsAnnouncementTranslations.id,
   ...readyCheckTranslations.id,
   ...matchAssetTranslations.id,
   ...friendlyFireTranslations.id,
@@ -766,6 +772,7 @@ const indonesian: Record<TranslationKey, string> = {
 const portuguese: Record<TranslationKey, string> = {
   ...steamTranslations.pt,
   ...scoreboardBotTranslations.pt,
+  ...newsAnnouncementTranslations.pt,
   ...readyCheckTranslations.pt,
   ...matchAssetTranslations.pt,
   ...friendlyFireTranslations.pt,
@@ -917,6 +924,7 @@ const portuguese: Record<TranslationKey, string> = {
 const japanese: Record<TranslationKey, string> = {
   ...steamTranslations.ja,
   ...scoreboardBotTranslations.ja,
+  ...newsAnnouncementTranslations.ja,
   ...readyCheckTranslations.ja,
   ...matchAssetTranslations.ja,
   ...friendlyFireTranslations.ja,
@@ -1065,6 +1073,7 @@ const japanese: Record<TranslationKey, string> = {
 const hindi: Record<TranslationKey, string> = {
   ...steamTranslations.hi,
   ...scoreboardBotTranslations.hi,
+  ...newsAnnouncementTranslations.hi,
   ...readyCheckTranslations.hi,
   ...matchAssetTranslations.hi,
   ...friendlyFireTranslations.hi,

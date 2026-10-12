@@ -1,5 +1,6 @@
 import { MatchAssetPreparation } from './features/matchmaking/MatchAssetPreparation'
 import { AuthPage } from './features/auth/AuthPage'
+import { NewsAnnouncement } from './features/news/NewsAnnouncement'
 import { IcafeBranchPanel } from './features/auth/IcafeBranchPanel'
 import { AntiCheatMatchCancellationNotice } from './features/anticheat/AntiCheatMatchCancellationNotice'
 import { DeviceBanGate } from './features/anticheat/DeviceBanGate'
@@ -42,6 +43,7 @@ function App(): React.JSX.Element {
           className="launcher-toast-container"
         />
         <AuthPage />
+        <NewsAnnouncement />
         <IcafeBranchPanel />
       </>
     </DeviceBanGate>
