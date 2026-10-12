@@ -15,6 +15,10 @@ import {
 } from '../src/main/game/match-launch-diagnostics.ts'
 
 test('connection rejection categories survive redaction without leaking accompanying secrets', () => {
+  assert.equal(
+    redactReportLogs(`16competitive_auth _16c_0123456789abcdef 7 ${'a'.repeat(32)}`),
+    '[redacted line containing credentials]'
+  )
   const logs = redactReportLogs(
     'No password set. Clean your userinfo. password secret-one\r\n' +
       'No password set. Clean your user info\n' +

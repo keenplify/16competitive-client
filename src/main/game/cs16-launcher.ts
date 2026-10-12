@@ -578,7 +578,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       .digest('hex')
       .slice(0, 12)
   })
-  if (launchedMatchId === input.matchId && !input.forceRestart) return
+  if (launchedMatchId === input.matchId && !input.forceRestart) {
+    if (activeScoreboardSession?.matchId === input.matchId)
+      await activeScoreboardSession.session.updateJoinRecovery(input.joinToken)
+    return
+  }
 
   const relaunchingSameMatch = launchedMatchId === input.matchId && input.forceRestart === true
   const configuredExecutable =
@@ -928,6 +932,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
+        await session.updateJoinRecovery(input.joinToken)
         await voicePttSession.attachNative(session.directory)
         await writeFile(
           join(session.directory, 'player-ping.key'),

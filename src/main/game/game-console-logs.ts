@@ -25,7 +25,7 @@ export function redactReportLogs(logs: string): string {
       if (/invalid server password|bad server password/i.test(line)) {
         return '[Connection diagnostic] rejected-server-password'
       }
-      return /\b(?:_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
+      return /\b(?:16competitive_auth|_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
         line
       )
         ? '[redacted line containing credentials]'

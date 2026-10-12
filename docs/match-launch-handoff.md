@@ -93,3 +93,13 @@ Windows Steam launch: the game console should show
 `[1.6 Competitive] Match config loaded`, followed by a successful rostered
 connection. Also verify the marked line is removed after exit and that reconnect
 starts a new game after the previous GoldSrc process exits.
+
+## Backup roster authentication
+
+Primary startup/profile and NextClient handoffs remain unchanged. The launcher atomically supplies only the backend-issued current match key/token in `join-recovery.state`; authenticated WebSocket status recovery refreshes it without relaunching an active game. Account bearers stay in Electron main.
+
+AMXX requests `16CAuth` recovery only after two seconds of unresolved roster assignment. The loaded module requires a fresh, matching session ticket/lease and the actual assigned IPv4 endpoint. Its worker reads credentials; HUD callbacks send at most eight `16competitive_auth <key> <userid> <token>` attempts, spaced 500 ms apart and bounded to eight seconds from the request. There are no connect/disconnect commands or userinfo writes.
+
+AMXX accepts only its current roster token, current connection userid and match key within the existing ten-second join grace, rejects a roster slot already occupied by another connection, and acknowledges assignment. Assigned primary connections cannot be reassigned through recovery. Accepted backup identity is retained server-side for this connection and checked against the current roster, then cleared on disconnect. Old/manual tokens cannot authenticate through this command. Session cleanup removes the handoff. Game log export filters this command as credential-bearing.
+
+The compiled Linux x86, Windows x86 proxy and NextClient module paths use the existing public engine message/command API. Live repack/assigned-match recovery still needs an in-game verification; builds and unit tests do not establish that result.

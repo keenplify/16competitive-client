@@ -35,6 +35,7 @@ import { reportDiagnosticIssue } from '../diagnostic-logs'
 import { KillCardTracker, type KillCardView } from './kill-card-tracker'
 import { KillCardPrediction, parseLocalDeathNotices } from './kill-card-prediction'
 import { writeLiveSessionFile } from './live-session-file'
+import { matchJoinInfoKey } from './match-join-info-key'
 import { decodeScoreboardDelta } from './scoreboard-transport'
 import { mergeNativeScores, readNativeScores } from './native-scoreboard'
 import { SessionLease } from './session-lease'
@@ -95,6 +96,25 @@ type Snapshot = {
 } | null
 
 export class ScoreboardOverlaySession {
+  private joinRecoveryTask: Promise<void> | null = null
+  /** Backend-issued match credential only; the account bearer stays in main. */
+  async updateJoinRecovery(joinToken: string): Promise<void> {
+    if (this.stopped) return
+    if (!/^[A-Za-z0-9_-]{32,64}$/.test(joinToken)) throw new Error('Invalid match join token')
+    const task = writeLiveSessionFile(
+      join(this.directory, 'join-recovery.state'),
+      `${matchJoinInfoKey(this.matchId)}\n${joinToken}\n`
+    )
+    this.joinRecoveryTask = task
+    try {
+      await task
+    } catch {
+      // This optional backup must never prevent the primary game connection.
+      console.warn('[GameLaunch] could not update native backup authentication handoff')
+    } finally {
+      if (this.joinRecoveryTask === task) this.joinRecoveryTask = null
+    }
+  }
   readonly directory: string
   readonly modulePath: string
   readonly steamWrapperPath: string
@@ -389,6 +409,7 @@ export class ScoreboardOverlaySession {
           'overlay.png',
           'round-accolade.state',
           'round-accolade.support',
+          'join-recovery.state',
           'game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv'
         ].map((name) => rm(join(directory, name), { force: true }))
       )
@@ -989,6 +1010,7 @@ export class ScoreboardOverlaySession {
         this.cardFrameTask,
         this.cardStateTask,
         this.eventReadTask,
+        this.joinRecoveryTask,
         watchdogTask
       ])
       if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
