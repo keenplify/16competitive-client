@@ -46,6 +46,8 @@ const powershell = (code) =>
     'powershell.exe',
     '-NoProfile',
     '-NonInteractive',
+    '-ExecutionPolicy',
+    'Bypass',
     '-EncodedCommand',
     Buffer.from("$ProgressPreference='SilentlyContinue';" + code, 'utf16le').toString('base64')
   ])

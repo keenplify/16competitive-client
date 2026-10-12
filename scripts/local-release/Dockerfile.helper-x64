@@ -1,5 +1,4 @@
 FROM rust:1.93.0-bookworm
-RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends cmake gcc-multilib libc6-dev-i386 libgl1:i386 && rm -rf /var/lib/apt/lists/*
+RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends cmake gcc-multilib libc6-dev-i386 libgl1:amd64 libgl1:i386 && rm -rf /var/lib/apt/lists/*
 RUN rustup target add i686-unknown-linux-gnu
-ENV LIBRARY_PATH=/usr/lib/i386-linux-gnu
 WORKDIR /source
