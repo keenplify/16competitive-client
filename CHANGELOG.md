@@ -2308,3 +2308,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Joining
 
 - Fixed match identity after reloading the classic client profile.
+
+## v2026.1012.4 — 2026-10-12
+
+### Release quality
+
+- Improved release build verification and signing reliability.
+- Improved Windows and Linux release build consistency.
+
+### Match launch
+
+- Improved handoff reliability when launching matches.
+- Added current match credentials for native authentication checks.
