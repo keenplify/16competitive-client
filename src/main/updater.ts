@@ -10,6 +10,15 @@ let updaterInitialized = false
 let lastSuccessfulUpdateCheck = 0
 let updateCheckInFlight: Promise<void> | null = null
 let postGameCheckPending = false
+const statusListeners = new Set<(status: AppUpdateStatus) => void>()
+
+/** Main-process presentation observes the same state as the renderer fallback. */
+export function onAppUpdateStatus(listener: (status: AppUpdateStatus) => void): () => void {
+  statusListeners.add(listener)
+  return () => {
+    statusListeners.delete(listener)
+  }
+}
 
 const INSTALL_QUIT_TIMEOUT_MS = 2_000
 const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 7_500
@@ -18,6 +27,7 @@ const UPDATE_CHECK_GRACE_MS = 24 * 60 * 60_000
 
 function setStatus(nextStatus: AppUpdateStatus): void {
   status = nextStatus
+  for (const listener of statusListeners) listener(status)
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send(UPDATE_CHANNELS.status, status)
   }

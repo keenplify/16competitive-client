@@ -141,7 +141,6 @@ import {
   unlockSkin
 } from './skins'
 import {
-  checkForAppUpdates,
   checkForPostGameUpdateAtLobby,
   ensureLatestClientForMatchmaking,
   getAppUpdateStatus,
@@ -178,6 +177,7 @@ import {
   reportDiagnosticIssue
 } from './diagnostic-logs'
 import { showAntiCheatStartupSplash } from './anticheat/startup-splash'
+import { AntiCheatUpdateBanner } from './anticheat/update-banner'
 import { OPERATION_CHANNELS } from '../shared/operations'
 import { getActiveOperation, getMyOperation, markOperationViewed } from './operations'
 import { discordPresence } from './discord-presence'
@@ -189,6 +189,7 @@ import { HelperVerificationRetry } from './anticheat/helper-verification-retry'
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
 let mainWindow
+let updateBanner: AntiCheatUpdateBanner | null = null
 let focusWindowWhenReady = false
 let skinAssetSyncProgress: SkinAssetSyncProgress = {
   status: 'idle',
@@ -460,7 +461,8 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.setBounds(displayBounds)
-    mainWindow.show()
+    if (!updateBanner?.isPresenting()) mainWindow.show()
+    else updateBanner.launcherReady()
     mainWindow.setFullScreen(true)
     if (focusWindowWhenReady) {
       focusWindowWhenReady = false
@@ -992,10 +994,14 @@ app.whenReady().then(async () => {
   ipcMain.handle(REDEEM_CODE_CHANNELS.redeem, (_, code: unknown) => redeemCode(code))
 
   const startupSplash = await startupSplashPromise
+  updateBanner = new AntiCheatUpdateBanner(startupSplash, () => mainWindow)
+  await Promise.all([
+    updateBanner.checkBeforeStartup(),
+    new Promise<void>((resolve) => setTimeout(resolve, 3_000))
+  ])
   createWindow()
   void processPendingDemo()
-  if (startupSplash && !startupSplash.isDestroyed()) startupSplash.destroy()
-  checkForAppUpdates()
+  updateBanner.finishStartup()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
