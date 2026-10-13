@@ -2361,3 +2361,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Release Quality
 
 - Improved release packaging reliability.
+
+## v2026.1013.5 — 2026-10-13
+
+### Papamo Guard
+
+- Launcher updates are now shown in the Papamo Guard banner.
+
+### Crosshair Settings
+
+- Added support for CS2 crosshair settings format.
+- Added a new crosshair settings preview.
