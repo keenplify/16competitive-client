@@ -182,6 +182,7 @@ import { discordPresence } from './discord-presence'
 import { DISCORD_CLIENT_ID, REQUIRES_SIGNED_HELPER } from './config'
 import { assertHelperForBackend } from './anticheat/helper-process'
 import { HelperApprovalConnectionError } from './anticheat/helper-integrity'
+import { HelperVerificationRetry } from './anticheat/helper-verification-retry'
 
 const COUNTER_STRIKE_STEAM_STORE_URL = 'https://store.steampowered.com/app/10/CounterStrike/'
 
@@ -514,12 +515,28 @@ app.whenReady().then(async () => {
   if (REQUIRES_SIGNED_HELPER) {
     let checkingHelper = false
     let shuttingDown = false
+    const helperRetry = new HelperVerificationRetry()
+    let nextHelperCheckAt = Date.now() + 60_000
     const helperGuard = setInterval(() => {
-      if (checkingHelper || shuttingDown) return
+      if (checkingHelper || shuttingDown || Date.now() < nextHelperCheckAt) return
       checkingHelper = true
       void assertHelperForBackend()
+        .then(() => {
+          helperRetry.verified()
+          nextHelperCheckAt = Date.now() + 60_000
+        })
         .catch(async (error: unknown) => {
           if (shuttingDown) return
+          // The launcher has already verified this helper. Recheck local bytes
+          // on every retry, but do not exit for a brief approval-service outage.
+          if (
+            error instanceof HelperApprovalConnectionError &&
+            helperRetry.retryConnectionFailure()
+          ) {
+            nextHelperCheckAt = Date.now() + 2_000
+            console.warn('[AntiCheat] helper approval unavailable; retrying within bounded grace')
+            return
+          }
           shuttingDown = true
           await recordAntiCheatFailure('periodic-verification', { error })
           console.error('[AntiCheat] periodic helper verification failed', error)
@@ -536,7 +553,7 @@ app.whenReady().then(async () => {
         .finally(() => {
           checkingHelper = false
         })
-    }, 60_000)
+    }, 1_000)
     helperGuard.unref()
     app.once('before-quit', () => {
       shuttingDown = true

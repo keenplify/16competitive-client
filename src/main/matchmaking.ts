@@ -1,3 +1,4 @@
+import { noteHelperServerUpdate } from './anticheat/helper-verification-retry'
 import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
 import { readyCheckRemainingMs } from '../shared/matchmaking-ready-time'
 import { serverClockNow, syncServerClock } from '../shared/server-clock'
@@ -1096,6 +1097,8 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'server_restarting') {
+        if (!socketAuthenticated) return
+        noteHelperServerUpdate()
         this.desiredMode = null
         this.desiredMapIds = []
         this.recoveryStatusPending = false
@@ -1119,7 +1122,8 @@ class MatchmakingConnection {
       if (
         parsed.type === 'match_ready_check' &&
         (readyCheckRemainingMs(parsed.deadline, parsed.serverNow, serverClockNow()) ?? 0) <= 0
-      ) return
+      )
+        return
       if (
         parsed.type === 'match_found' &&
         this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)

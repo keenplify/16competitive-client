@@ -1,3 +1,4 @@
+import { helperApprovalRetryDeadline } from './helper-verification-retry'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
 import { getSessionToken } from '../auth'
 import { API_BASE_URL, LOCAL_DEVELOPMENT, REQUIRES_SIGNED_HELPER } from '../config'
@@ -212,7 +213,9 @@ export class AntiCheatSession {
       }
       if (this.approvalRetryUntil && Date.now() >= this.approvalRetryUntil) {
         this.report('session-verification', {
-          error: new Error('Helper approval service remained unavailable for 60 seconds')
+          error: new Error(
+            'Helper approval service remained unavailable beyond the retry grace period'
+          )
         })
         this.failClosed()
         return
@@ -237,7 +240,7 @@ export class AntiCheatSession {
               // short API restart. Every retry still verifies local bytes and
               // signatures; rejection/tampering never receives this grace.
               if (error instanceof HelperApprovalConnectionError) {
-                this.approvalRetryUntil ||= Date.now() + 60_000
+                this.approvalRetryUntil ||= helperApprovalRetryDeadline()
                 this.nextIntegrityAttempt = Date.now() + 2_000
                 return
               }

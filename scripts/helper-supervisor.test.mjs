@@ -13,6 +13,13 @@ const source = ts.transpileModule(
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 }
   }
 ).outputText
+const retrySource = ts.transpileModule(
+  await readFile(
+    new URL('../src/main/anticheat/helper-verification-retry.ts', import.meta.url),
+    'utf8'
+  ),
+  { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
+).outputText
 const settle = () => new Promise((resolve) => setImmediate(resolve))
 
 async function harness({ signed = false } = {}) {
@@ -111,8 +118,14 @@ async function harness({ signed = false } = {}) {
       }
     }
   }
+  const retryModule = new vm.SourceTextModule(retrySource, { context })
+  await retryModule.link(() => {
+    throw new Error('Unexpected retry-policy dependency')
+  })
+  await retryModule.evaluate()
   const module = new vm.SourceTextModule(source, { context })
   await module.link(async (name) => {
+    if (name === './helper-verification-retry') return retryModule
     const exports = dependencies[name]
     if (!exports) throw new Error(`Unexpected dependency ${name}`)
     return new vm.SyntheticModule(
@@ -125,6 +138,7 @@ async function harness({ signed = false } = {}) {
   })
   await module.evaluate()
   return {
+    noteServerUpdate: () => retryModule.namespace.noteHelperServerUpdate(),
     children,
     reports,
     logs,
@@ -345,4 +359,23 @@ test('explicit rejection or changed bytes cannot use the temporary outage grace'
     assert.equal(failures, 1)
     session.stop('done')
   }
+})
+
+test('planned server restart keeps a verified session alive beyond one minute but never beyond two', async () => {
+  const h = await harness({ signed: true })
+  let failures = 0
+  const session = await h.start({ ...options, onIntegrityFailure: () => failures++ })
+  h.noteServerUpdate()
+  h.setVerificationFailure('offline')
+  h.tick(60_001, true)
+  await settle()
+  h.tick(60_000, true)
+  await settle()
+  assert.equal(failures, 0)
+  h.noteServerUpdate()
+  h.tick(60_000, true)
+  await settle()
+  assert.equal(failures, 1)
+  assert.equal(h.children.length, 1)
+  session.stop('done')
 })
