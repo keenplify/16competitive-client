@@ -2326,3 +2326,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No changes were provided.
+
+## v2026.1013.1 — 2026-10-13
+
+### Partner Experience
+
+- Added partner-branded lobby backgrounds and theme settings.
+- Added partner link support.
+
+### Updates
+
+- The launcher now retries helper approval during planned server updates without exiting.
