@@ -2343,3 +2343,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Other
 
 - No player-facing changes.
+
+## v2026.1013.3 — 2026-10-13
+
+### Partner branding
+
+- See partner branding on the login screen before signing in.
+- Partner logos and themed backgrounds are displayed throughout the lobby.
+- Partner attribution is preserved during sign-in.
+
+### Language
+
+- The client detects your preferred language automatically.
