@@ -2349,7 +2349,7 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner branding
 
 - See partner branding on the login screen before signing in.
-- Partner logos and themed backgrounds are displayed throughout the lobby.
+- Partner logos and backgrounds appear on the login and registration screens; the background also applies in the lobby.
 - Partner attribution is preserved during sign-in.
 
 ### Language
