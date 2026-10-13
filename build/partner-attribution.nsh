@@ -1,3 +1,5 @@
+; The uninstaller build never calls customInstall. Do not emit unused installer functions.
+!ifndef BUILD_UNINSTALLER
 !include "StrFunc.nsh"
 ${StrStr}
 
@@ -12,3 +14,4 @@ ${StrStr}
   FileClose $R3
   partner_attribution_done:
 !macroend
+!endif
