@@ -506,9 +506,11 @@ export function PlayPage({
               </label>
               <HelpTooltip
                 text={t(
-                  selectedMode === '3v3' || selectedMode === 'legacy_3v3'
-                    ? 'matchmaking.preferHumans3v3Tooltip'
-                    : 'matchmaking.preferHumansTooltip'
+                  selectedMode === '5v5'
+                    ? 'matchmaking.preferHumans5v5Tooltip'
+                    : selectedMode === '3v3' || selectedMode === 'legacy_3v3'
+                      ? 'matchmaking.preferHumans3v3Tooltip'
+                      : 'matchmaking.preferHumansTooltip'
                 )}
                 placement="bottom"
               />
