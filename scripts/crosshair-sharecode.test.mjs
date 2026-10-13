@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { encodeCrosshair } from 'csgo-sharecode'
 import {
+  DEFAULT_CROSSHAIR,
   getCs2Crosshair,
   importCrosshairShareCode,
   parseCrosshairProfile,
@@ -137,4 +138,11 @@ test('preserves existing JSON profiles and converts them on request', () => {
   const upgraded = upgradeCrosshairToCs2(old)
   assert.equal(getCs2Crosshair(upgraded).length, 16)
   assert.equal(getCs2Crosshair(upgraded).screenHeight, 768)
+})
+
+test('new profiles use CS2 controls and native format by default', () => {
+  const cs2 = getCs2Crosshair(DEFAULT_CROSSHAIR)
+  assert.equal(cs2?.format, 'cs2-v1')
+  assert.equal(cs2?.style, 4)
+  assert.ok(serializeCrosshairConfig(DEFAULT_CROSSHAIR).startsWith('cs2 '))
 })

@@ -19,18 +19,6 @@ export interface CrosshairProfile {
   shareCode?: string
 }
 
-export const DEFAULT_CROSSHAIR: CrosshairProfile = {
-  version: 1,
-  color: '#50FF62',
-  size: 8,
-  gap: 4,
-  thickness: 2,
-  outline: 1,
-  opacity: 100,
-  dot: false,
-  dynamic: false
-}
-
 const bounded = (value: number, minimum: number, maximum: number): number =>
   Math.max(minimum, Math.min(maximum, Math.round(value)))
 
@@ -124,6 +112,8 @@ function fromCs2(value: CrosshairV1): CrosshairProfile {
     shareCode: encodeCrosshair(value)
   }
 }
+
+export const DEFAULT_CROSSHAIR: CrosshairProfile = fromCs2(CURRENT_CS2_DEFAULT)
 
 export function importCrosshairShareCode(input: string): CrosshairProfile {
   const code = input.trim()

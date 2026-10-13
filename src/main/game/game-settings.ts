@@ -11,6 +11,7 @@ import type { GameSettings, SetupMode } from '../../shared/game-settings'
 import {
   DEFAULT_CROSSHAIR,
   parseCrosshairProfile,
+  upgradeCrosshairToCs2,
   type CrosshairProfile
 } from '../../shared/crosshair'
 import { normalizeVoicePttKey } from './voice-ptt'
@@ -198,7 +199,8 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
     const settings = parsed as Partial<StoredGameSettings>
     let crosshair: CrosshairProfile | undefined
     try {
-      if (settings.crosshair !== undefined) crosshair = parseCrosshairProfile(settings.crosshair)
+      if (settings.crosshair !== undefined)
+        crosshair = upgradeCrosshairToCs2(parseCrosshairProfile(settings.crosshair))
     } catch {
       // Ignore a damaged local cosmetic profile.
     }
@@ -510,7 +512,7 @@ export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettin
 }
 
 export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSettings> => {
-  const crosshair = parseCrosshairProfile(untrustedProfile)
+  const crosshair = upgradeCrosshairToCs2(parseCrosshairProfile(untrustedProfile))
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   const keys = await resolveVoicePttKeys(storedSettings)
