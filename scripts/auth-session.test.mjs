@@ -14,6 +14,7 @@ const source = ts.transpileModule(
 async function harness(email, socialResult) {
   const writes = []
   const requests = []
+  const partnerLinks = []
   const player = {
     id: 'test-player',
     username: 'steam_player',
@@ -61,6 +62,11 @@ async function harness(email, socialResult) {
     }
   })
   const dependencies = {
+    './partner-attribution': {
+      linkDownloadPartner: async (token) => {
+        partnerLinks.push(token)
+      }
+    },
     '../shared/auth': { validateSteamAuthorizationUrl: (url) => url },
     './config': { API_BASE_URL: 'https://backend.example.test' },
     '../shared/server-clock': { serverClockNow: () => Date.now(), syncServerClock: () => {} },
@@ -95,7 +101,7 @@ async function harness(email, socialResult) {
     )
   })
   await module.evaluate()
-  return { api: module.namespace, writes, requests }
+  return { api: module.namespace, writes, requests, partnerLinks }
 }
 
 test('desktop social sign-in declares its return target, including first-signup completion', async () => {
@@ -126,7 +132,7 @@ test('desktop account linking also declares its return target', async () => {
 
 for (const email of [null, 'player@example.test']) {
   test(`accepts and securely persists a session with email ${email}`, async () => {
-    const { api, writes } = await harness(email)
+    const { api, writes, partnerLinks } = await harness(email)
     const session = await api.authenticate('login', {
       username: 'player',
       password: 'test-password'
@@ -137,24 +143,27 @@ for (const email of [null, 'player@example.test']) {
     assert.equal(writes.length, 1)
     assert.equal(writes[0][1].toString(), 'encrypted:test-only-token')
     assert.equal(writes[0][2].mode, 0o600)
+    assert.deepEqual(partnerLinks, ['test-only-token'])
   })
   test(`restores an encrypted session with email ${email}`, async () => {
-    const { api } = await harness(email)
+    const { api, partnerLinks } = await harness(email)
     const session = await api.restoreSession()
     assert.equal(session.player.email, email)
     assert.equal(session.player.username, 'steam_player')
     assert.equal('token' in session, false)
+    assert.deepEqual(partnerLinks, ['test-only-token'])
   })
 }
 
 for (const email of [undefined, 123, {}, false]) {
   test(`rejects malformed email metadata: ${JSON.stringify(email)}`, async () => {
-    const { api, writes } = await harness(email)
+    const { api, writes, partnerLinks } = await harness(email)
     await assert.rejects(
       api.authenticate('login', { username: 'player', password: 'test-password' }),
       /invalid response/
     )
     assert.equal(writes.length, 0)
     assert.equal(await api.restoreSession(), null)
+    assert.deepEqual(partnerLinks, [])
   })
 }
