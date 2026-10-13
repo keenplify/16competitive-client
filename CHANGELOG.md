@@ -2372,3 +2372,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added support for CS2 crosshair settings format.
 - Added a new crosshair settings preview.
+
+## v2026.1013.6 — 2026-10-13
+
+### Matchmaking
+
+- Added tooltips to explain 5v5 matchmaking preferences.
+- Improved the Play page’s matchmaking preference behavior.
