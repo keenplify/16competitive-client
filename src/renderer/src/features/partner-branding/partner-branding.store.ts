@@ -15,7 +15,7 @@ interface PartnerBrandingState {
   accountId: string | null
   branding: PartnerBranding | null
   enabled: boolean
-  refresh: (accountId: string) => Promise<void>
+  refresh: (accountId: string | null) => Promise<void>
   clear: () => void
   setEnabled: (enabled: boolean) => void
 }

@@ -1,3 +1,4 @@
+import { getBrowserPartnerId } from './partner-attribution'
 import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
@@ -497,7 +498,13 @@ const api: Window['api'] = {
   auth: browserAuthApi,
   partnerBranding: {
     async get() {
-      const response: unknown = await authenticatedGet('/partners/branding/me')
+      const token = getWebSessionToken()
+      const partnerId = token ? null : getBrowserPartnerId()
+      if (!token && !partnerId) return { branding: null }
+      const response: unknown = token
+        ? await authenticatedGet('/partners/branding/me')
+        : await requestJson(`/partners/branding/public/${partnerId}`)
+      if (getWebSessionToken() !== token) throw new Error('Session changed.')
       return parsePartnerBranding(response, currentApiOrigin())
     }
   },

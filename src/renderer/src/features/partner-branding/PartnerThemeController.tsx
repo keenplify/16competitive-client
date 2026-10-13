@@ -10,17 +10,12 @@ export function PartnerThemeController(): JSX.Element | null {
   const branding = usePartnerBrandingStore((state) => state.branding)
   const enabled = usePartnerBrandingStore((state) => state.enabled)
   const refresh = usePartnerBrandingStore((state) => state.refresh)
-  const clear = usePartnerBrandingStore((state) => state.clear)
 
   useEffect(() => {
-    if (!accountId) {
-      clear()
-      return
-    }
     void refresh(accountId)
     const timer = window.setInterval(() => void refresh(accountId), refreshIntervalMs)
     return () => window.clearInterval(timer)
-  }, [accountId, clear, refresh])
+  }, [accountId, refresh])
 
   useEffect(() => {
     const root = document.documentElement

@@ -2,7 +2,8 @@ import { useEffect, useRef, type FormEvent, type JSX } from 'react'
 import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
-import { Logo } from '../../components/ui/Logo'
+import { PartnerLogo } from '../partner-branding/PartnerLogo'
+import { PartnerLobbyBackground } from '../partner-branding/PartnerLobbyBackground'
 import { TextField } from '../../components/ui/TextField'
 import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
@@ -221,7 +222,7 @@ export function AuthPage(): JSX.Element {
         >
           <TextField
             id="social-email"
-            label="Email"
+            label={t('auth.email')}
             type="email"
             value={email}
             maxLength={254}
@@ -288,12 +289,13 @@ export function AuthPage(): JSX.Element {
   }
 
   return (
-    <main className="relative isolate grid min-h-screen grid-cols-3 overflow-hidden bg-slate-950 text-white">
+    <main className="relative isolate grid min-h-screen grid-cols-1 overflow-hidden bg-slate-950 text-white md:grid-cols-3">
       <img
         className="absolute inset-0 -z-20 h-full w-full object-cover"
         src={operationBackground}
         alt=""
       />
+      <PartnerLobbyBackground className="absolute -z-20" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-950/35" />
       {!webRuntime && (
         <div className="fixed left-6 top-6 z-20 w-80 max-w-[calc(100vw-3rem)]" aria-live="polite">
@@ -308,7 +310,7 @@ export function AuthPage(): JSX.Element {
         </div>
       )}
       <div className="flex flex-col justify-center items-center inset-0">
-        <Logo className="z-10 size-10 md:top-12 md:left-[calc(27.5vw-16rem)] md:size-128" />
+        <PartnerLogo className="z-10 my-6 size-32 max-w-full md:my-0 md:size-128" />
 
         <div className="relative mt-8 hidden flex-col items-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
           <p className="text-sm font-bold text-white">
@@ -318,14 +320,12 @@ export function AuthPage(): JSX.Element {
         </div>
       </div>
 
-      <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 col-span-2">
+      <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 pt-24 sm:pt-24 pb-16 md:col-span-2">
         <div className="w-full max-w-sm">
           {!isLogin && (
             <div className="mb-8">
-              <h2 className="text-3xl font-semibold tracking-tight">Create an account</h2>
-              <p className="mt-2 text-sm text-neutral-500">
-                Choose how you want to create your account.
-              </p>
+              <h2 className="text-3xl font-semibold tracking-tight">{t('auth.createAccount')}</h2>
+              <p className="mt-2 text-sm text-neutral-500">{t('auth.registerDescription')}</p>
             </div>
           )}
 
@@ -336,7 +336,7 @@ export function AuthPage(): JSX.Element {
               disabled={isSubmitting}
               onClick={() => setMode('login')}
             >
-              Login
+              {t('auth.login')}
             </Button>
             <Button
               variant="ghost"
@@ -344,7 +344,7 @@ export function AuthPage(): JSX.Element {
               disabled={isSubmitting}
               onClick={() => setMode('register')}
             >
-              Register
+              {t('auth.register')}
             </Button>
           </div>
 
@@ -412,7 +412,7 @@ export function AuthPage(): JSX.Element {
           <form className="grid gap-5" onSubmit={handleSubmit}>
             <TextField
               id="username"
-              label="Username"
+              label={t('auth.username')}
               value={username}
               minLength={3}
               maxLength={32}
@@ -427,7 +427,7 @@ export function AuthPage(): JSX.Element {
             {(!isLogin || socialPollToken) && (
               <TextField
                 id="email"
-                label="Email"
+                label={t('auth.email')}
                 type="email"
                 value={email}
                 maxLength={254}
@@ -446,14 +446,14 @@ export function AuthPage(): JSX.Element {
             {!socialPollToken && (
               <TextField
                 id="password"
-                label="Password"
+                label={t('auth.password')}
                 type="password"
                 value={password}
                 minLength={8}
                 maxLength={128}
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                 disabled={isSubmitting}
-                placeholder="At least 8 characters"
+                placeholder={t('auth.passwordPlaceholder')}
                 className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
                 onChange={(event) => setPassword(event.target.value)}
               />
@@ -466,13 +466,13 @@ export function AuthPage(): JSX.Element {
             >
               {isSubmitting && !socialProvider
                 ? isLogin && !socialPollToken
-                  ? 'Signing in…'
+                  ? t('auth.signingIn')
                   : `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
                 : socialPollToken
                   ? `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
                   : isLogin
-                    ? 'Sign in'
-                    : 'Create account'}
+                    ? t('auth.signIn')
+                    : t('auth.createAccountButton')}
             </Button>
           </form>
 

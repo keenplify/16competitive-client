@@ -6,6 +6,7 @@ const origin = 'https://api.example.test'
 const partnerId = '12345678-1234-1234-1234-123456789abc'
 const branding = {
   partnerId,
+  logoUrl: null,
   primaryColor: '#123456',
   secondaryColor: '#abcdef',
   tertiaryColor: '#AA55CC',
@@ -41,5 +42,25 @@ test('rejects external, insecure, and unexpected media URLs', () => {
     assert.throws(() =>
       parsePartnerBranding({ branding: { ...branding, backgroundUrl: url } }, origin)
     )
+  }
+})
+
+test('validates partner logos and supports older branding responses', () => {
+  const logoUrl = `${origin}/partners/branding/${partnerId}/logo?v=hash`
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, logoUrl } }, origin).branding.logoUrl,
+    logoUrl
+  )
+  const legacy = { ...branding }
+  delete legacy.logoUrl
+  assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.logoUrl, null)
+  for (const bad of [
+    42,
+    `https://elsewhere.test/logo.png`,
+    `${origin}/partners/branding/${partnerId}/asset?v=hash`,
+    `${logoUrl}&next=evil`,
+    `http://api.example.test/partners/branding/${partnerId}/logo?v=hash`
+  ]) {
+    assert.throws(() => parsePartnerBranding({ branding: { ...branding, logoUrl: bad } }, origin))
   }
 })

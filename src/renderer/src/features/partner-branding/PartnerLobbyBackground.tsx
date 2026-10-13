@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { usePartnerBrandingStore } from './partner-branding.store'
+import { twMerge } from 'tailwind-merge'
 
-export function PartnerLobbyBackground(): JSX.Element | null {
+export function PartnerLobbyBackground({ className }: { className?: string }): JSX.Element | null {
   const branding = usePartnerBrandingStore((state) => (state.enabled ? state.branding : null))
   const [reduceMotion, setReduceMotion] = useState(
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -34,7 +35,10 @@ export function PartnerLobbyBackground(): JSX.Element | null {
       <video
         ref={videoRef}
         key={branding.backgroundUrl}
-        className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+        className={twMerge(
+          'pointer-events-none fixed inset-0 h-full w-full object-cover',
+          className
+        )}
         src={branding.backgroundUrl}
         autoPlay
         muted
@@ -51,7 +55,7 @@ export function PartnerLobbyBackground(): JSX.Element | null {
   return (
     <img
       key={branding.backgroundUrl}
-      className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+      className={twMerge('pointer-events-none fixed inset-0 h-full w-full object-cover', className)}
       src={branding.backgroundUrl}
       alt=""
       decoding="async"

@@ -7,6 +7,7 @@ export interface PartnerBranding {
   tertiaryColor: string
   backgroundUrl: string | null
   backgroundKind: 'image' | 'video' | null
+  logoUrl: string | null
 }
 
 export interface PartnerBrandingResponse {
@@ -54,10 +55,16 @@ export const parsePartnerBranding = (
   ) {
     throw new Error('Invalid partner background.')
   }
-  if (typeof backgroundUrl === 'string') {
+  const logoUrl = value.logoUrl ?? null
+  if (logoUrl !== null && typeof logoUrl !== 'string') throw new Error('Invalid partner logo.')
+  for (const [mediaUrl, endpoint] of [
+    [backgroundUrl, 'asset'],
+    [logoUrl, 'logo']
+  ] as const) {
+    if (typeof mediaUrl !== 'string') continue
     let url: URL
     try {
-      url = new URL(backgroundUrl)
+      url = new URL(mediaUrl)
     } catch {
       throw new Error('Invalid partner background URL.')
     }
@@ -67,7 +74,7 @@ export const parsePartnerBranding = (
     if (
       url.origin !== api.origin ||
       (url.protocol !== 'https:' && !localDevelopment) ||
-      url.pathname !== `/partners/branding/${value.partnerId}/asset` ||
+      url.pathname !== `/partners/branding/${value.partnerId}/${endpoint}` ||
       url.username ||
       url.password ||
       url.hash ||
@@ -84,7 +91,8 @@ export const parsePartnerBranding = (
       secondaryColor: value.secondaryColor,
       tertiaryColor: value.tertiaryColor,
       backgroundUrl: backgroundUrl as string | null,
-      backgroundKind: backgroundKind as 'image' | 'video' | null
+      backgroundKind: backgroundKind as 'image' | 'video' | null,
+      logoUrl: logoUrl as string | null
     }
   }
 }

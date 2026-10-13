@@ -11,6 +11,7 @@ import { steamTranslations } from './steam-translations'
 import { scoreboardBotTranslations } from './scoreboard-bot-translations'
 import { useCallback } from 'react'
 import { create } from 'zustand'
+import { detectLanguage } from '../../../../shared/language-detection'
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -117,6 +118,7 @@ const english = {
   'auth.or': 'or',
   'auth.username': 'Username',
   'auth.loginPlaceholder': 'Email / Username',
+  'auth.partnerLogo': 'Partner community logo',
   'auth.usernameHint': '3–32 characters: letters, numbers, and underscores',
   'auth.email': 'Email',
   'auth.password': 'Password',
@@ -266,6 +268,7 @@ const russian: Record<TranslationKey, string> = {
   'auth.or': 'или',
   'auth.username': 'Имя игрока',
   'auth.loginPlaceholder': 'Эл. почта / Имя пользователя',
+  'auth.partnerLogo': 'Логотип партнёрского сообщества',
   'auth.usernameHint': '3–32 символа: буквы, цифры и подчеркивания',
   'auth.email': 'Email',
   'auth.password': 'Пароль',
@@ -413,6 +416,7 @@ const taglish: Record<TranslationKey, string> = {
   'auth.or': 'or',
   'auth.username': 'Username',
   'auth.loginPlaceholder': 'Email / Username',
+  'auth.partnerLogo': 'Logo ng partner community',
   'auth.usernameHint': '3–32 characters: letters, numbers, at underscores',
   'auth.email': 'Email',
   'auth.password': 'Password',
@@ -560,6 +564,7 @@ const thai: Record<TranslationKey, string> = {
   'auth.or': 'หรือ',
   'auth.username': 'ชื่อผู้ใช้',
   'auth.loginPlaceholder': 'อีเมล / ชื่อผู้ใช้',
+  'auth.partnerLogo': 'โลโก้ชุมชนพาร์ทเนอร์',
   'auth.usernameHint': '3–32 ตัวอักษร: ตัวอักษร ตัวเลข และขีดล่าง',
   'auth.email': 'อีเมล',
   'auth.password': 'รหัสผ่าน',
@@ -708,6 +713,7 @@ const indonesian: Record<TranslationKey, string> = {
   'auth.or': 'atau',
   'auth.username': 'Nama pengguna',
   'auth.loginPlaceholder': 'Email / Nama pengguna',
+  'auth.partnerLogo': 'Logo komunitas partner',
   'auth.usernameHint': '3–32 karakter: huruf, angka, dan garis bawah',
   'auth.email': 'Email',
   'auth.password': 'Kata sandi',
@@ -859,6 +865,7 @@ const portuguese: Record<TranslationKey, string> = {
   'auth.or': 'ou',
   'auth.username': 'Nome de usuário',
   'auth.loginPlaceholder': 'E-mail / Nome de usuário',
+  'auth.partnerLogo': 'Logo da comunidade parceira',
   'auth.usernameHint': '3–32 caracteres: letras, números e sublinhados',
   'auth.email': 'E-mail',
   'auth.password': 'Senha',
@@ -1011,6 +1018,7 @@ const japanese: Record<TranslationKey, string> = {
   'auth.or': 'または',
   'auth.username': 'ユーザー名',
   'auth.loginPlaceholder': 'メール / ユーザー名',
+  'auth.partnerLogo': 'パートナーコミュニティのロゴ',
   'auth.usernameHint': '3～32文字：英字、数字、アンダースコア',
   'auth.email': 'メールアドレス',
   'auth.password': 'パスワード',
@@ -1159,6 +1167,7 @@ const hindi: Record<TranslationKey, string> = {
   'auth.or': 'या',
   'auth.username': 'उपयोगकर्ता नाम',
   'auth.loginPlaceholder': 'ईमेल / उपयोगकर्ता नाम',
+  'auth.partnerLogo': 'पार्टनर समुदाय का लोगो',
   'auth.usernameHint': '3–32 अक्षर: अंग्रेज़ी अक्षर, अंक और अंडरस्कोर',
   'auth.email': 'ईमेल',
   'auth.password': 'पासवर्ड',
@@ -1240,10 +1249,19 @@ export const isLegacyRuntimeLanguage = (value: SupportedLanguageCode): value is 
 const readStoredLanguage = (): SupportedLanguageCode => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
-    return isLanguageCode(stored) ? stored : 'en'
+    if (isLanguageCode(stored)) return stored
   } catch {
-    return 'en'
+    // Auto-detection still works when preference storage is disabled.
   }
+  return detectLanguage(
+    typeof navigator === 'undefined'
+      ? []
+      : navigator.languages?.length
+        ? navigator.languages
+        : [navigator.language],
+    SUPPORTED_LANGUAGES.map((language) => language.code),
+    'en'
+  )
 }
 
 const applyDocumentLanguage = (language: SupportedLanguageCode): void => {

@@ -93,6 +93,11 @@ const verifyBranchConfig = async (config: BranchConfig): Promise<IcafeBranchInfo
 }
 
 /** Only validated, non-secret branch metadata crosses into the renderer. */
+export const getVerifiedBranchPartnerId = async (): Promise<string | null> => {
+  const config = await readBranchConfig()
+  return config && (await verifyBranchConfig(config)) ? config.partnerPlayerId : null
+}
+
 export const getIcafeBranchInfo = async (): Promise<IcafeBranchStatus> => {
   const config = await readBranchConfig()
   return {
