@@ -2337,3 +2337,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - The launcher now retries helper approval during planned server updates without exiting.
+
+## v2026.1013.2 — 2026-10-13
+
+### Other
+
+- No player-facing changes.
