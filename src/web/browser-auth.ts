@@ -1,3 +1,4 @@
+import { linkBrowserPartner } from './partner-attribution'
 import { validateSteamAuthorizationUrl } from '../shared/auth'
 import type {
   AuthApi,
@@ -211,6 +212,7 @@ const reportBrowserClientTelemetry = async (): Promise<void> => {
 
 const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
   setWebSessionToken(body.token)
+  await linkBrowserPartner()
   const status = await usernameStatus()
   const session = { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
   writeCachedSession(session)
@@ -438,6 +440,7 @@ export const browserAuthApi: AuthApi = {
 
   async restore() {
     await webHandoffReady
+    if (getWebSessionToken()) await linkBrowserPartner()
     const token = getWebSessionToken()
     if (!token) {
       clearCachedSession()

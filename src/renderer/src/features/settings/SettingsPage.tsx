@@ -34,6 +34,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
+import { PartnerThemeSetting } from '../partner-branding/PartnerThemeSetting'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
@@ -499,6 +500,7 @@ export function SettingsPage(): JSX.Element {
               </div>
 
               <LanguageSettings />
+              <PartnerThemeSetting />
               <ChatTranslationSettings />
 
               {webRuntime ? (

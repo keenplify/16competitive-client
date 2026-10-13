@@ -1,3 +1,4 @@
+import { linkDownloadPartner } from './partner-attribution'
 import { validateSteamAuthorizationUrl } from '../shared/auth'
 import type {
   AuthCredentials,
@@ -282,6 +283,7 @@ const acceptAuthResponse = async (body: BackendAuthResponse): Promise<AuthSessio
   sessionToken = body.token
   sessionUsername = body.player.username
   await persistToken(sessionToken)
+  await linkDownloadPartner(sessionToken)
   const usernameStatus = await fetchUsernameStatus(sessionToken)
 
   return {
@@ -838,6 +840,7 @@ export const restoreSession = async (): Promise<AuthSession | null> => {
   const authBody = { ...(body as Omit<BackendAuthResponse, 'token'>), token }
   sessionToken = token
   sessionUsername = authBody.player.username
+  await linkDownloadPartner(token)
   const usernameStatus = await fetchUsernameStatus(token).catch(() => null)
   if (!usernameStatus) return null
   return {

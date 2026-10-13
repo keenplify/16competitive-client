@@ -14,6 +14,7 @@ import { UpdateBanner } from './features/updates/UpdateBanner'
 import { SkinAssetSyncIndicator } from './features/skins/SkinAssetSyncIndicator'
 import { SkinGiftOverlay } from './features/skins/SkinGiftOverlay'
 import { VoiceChatDock } from './features/voice/VoiceChatDock'
+import { PartnerThemeController } from './features/partner-branding/PartnerThemeController'
 import { Slide, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './assets/toast.css'
@@ -23,6 +24,7 @@ function App(): React.JSX.Element {
     <DeviceBanGate>
       <>
         <I18nRuntime />
+        <PartnerThemeController />
         <ChatTranslationInitializer />
         <AudioController />
         <UpdateBanner />

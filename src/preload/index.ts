@@ -1,3 +1,4 @@
+import { PARTNER_BRANDING_CHANNEL, type PartnerBrandingApi } from '../shared/partner-branding'
 import { ADMIN_DEMO_CHANNELS, type AdminDemosApi } from '../shared/admin-demos'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AuthApi } from '../shared/auth'
@@ -40,6 +41,8 @@ import { OPERATION_CHANNELS } from '../shared/operations'
 import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import type { CustomGamesApi } from '../shared/custom-games'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
+
+const partnerBranding: PartnerBrandingApi = { get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL) }
 
 const auth: AuthApi = {
   getIcafeBranchInfo: () => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchInfo),
@@ -313,6 +316,7 @@ const adminDemos: AdminDemosApi = {
 const api = {
   adminDemos,
   auth,
+  partnerBranding,
   antiCheat,
   dailyQuests,
   customGames,

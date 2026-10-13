@@ -41,6 +41,7 @@ import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
+import { PartnerLobbyBackground } from '../partner-branding/PartnerLobbyBackground'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   demos: 'Admin demos',
@@ -410,6 +411,7 @@ export function LobbyPage(): JSX.Element {
       className="relative min-h-screen bg-neutral-950 bg-cover bg-center bg-fixed text-white"
       style={{ backgroundImage: `url(${dustBackground})` }}
     >
+      {page === 'lobby' && <PartnerLobbyBackground />}
       <LobbyScene player={player} party={party} />
       {page === 'lobby' &&
         !completedMatch &&

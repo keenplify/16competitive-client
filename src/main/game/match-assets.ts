@@ -4,9 +4,8 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { getSessionToken } from '../auth'
 import { getSavedCs16Executable } from './game-settings'
 import { ensureLauncherContentDirectory } from './game-directory'
+import { versionedGameAssetHash } from '../../shared/game-asset-path'
 
-const ASSET_PATH =
-  /^(?:models|sound|sprites)\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(view|player|world|v|p|w|action|explosion)\.(mdl|wav|spr)$/
 const MAP_BSP_PATH = /^maps\/[a-z0-9_]{1,64}\.bsp$/
 const SHA256 = /^[a-f0-9]{64}$/
 const MAX_ASSET_SIZE = 20 * 1024 * 1024
@@ -112,7 +111,7 @@ const getGameDirectory = async (): Promise<string> => {
 }
 
 const destinationFor = (assetRoot: string, assetPath: string): string => {
-  if (!ASSET_PATH.test(assetPath) && !MAP_BSP_PATH.test(assetPath))
+  if (!versionedGameAssetHash(assetPath) && !MAP_BSP_PATH.test(assetPath))
     throw new Error(`Match manifest contains an unsafe asset path: ${assetPath}`)
   const destination = resolve(assetRoot, assetPath)
   if (relative(assetRoot, destination).startsWith('..')) {
@@ -135,7 +134,7 @@ const expectedHashFor = (asset: MatchAsset): string => {
     if (!asset.sha256) throw new Error(`Match map is missing a SHA-256 hash: ${asset.path}`)
     return asset.sha256
   }
-  const pathHash = ASSET_PATH.exec(asset.path)?.[1]
+  const pathHash = versionedGameAssetHash(asset.path)
   if (!pathHash) throw new Error(`Match manifest contains an unsafe asset path: ${asset.path}`)
   if (asset.sha256 && !asset.sha256.startsWith(pathHash)) {
     throw new Error(`Match manifest hash does not match its asset path: ${asset.path}`)
@@ -215,7 +214,8 @@ const fetchAssetBytes = async (
           `Match asset server returned an invalid content type for ${asset.path}.`
         )
       }
-      const contentLength = Number(response.headers.get('content-length'))
+      const lengthHeader = response.headers.get('content-length')
+      const contentLength = lengthHeader === null ? NaN : Number(lengthHeader)
       if (
         Number.isFinite(contentLength) &&
         (contentLength < 16 || contentLength > maxAssetSize(asset.path))
@@ -331,7 +331,7 @@ const isCatalogAsset = (value: unknown): value is CatalogAsset => {
   ) {
     return false
   }
-  const pathHash = ASSET_PATH.exec(asset.path)?.[1]
+  const pathHash = versionedGameAssetHash(asset.path)
   return !pathHash || asset.sha256.startsWith(pathHash)
 }
 

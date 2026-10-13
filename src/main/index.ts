@@ -1,3 +1,5 @@
+import { getPartnerBranding } from './partner-branding'
+import { PARTNER_BRANDING_CHANNEL } from '../shared/partner-branding'
 import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
 import { parseDemoLink } from '../shared/demo-link'
 import { isAuthReturnLink } from '../shared/auth-link'
@@ -799,6 +801,7 @@ app.whenReady().then(async () => {
     (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
       submitMatchSurvey(matchId, funRating, fairnessRating)
   )
+  ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))

@@ -19,6 +19,65 @@
   --text-4xl: 2.375rem;
 }
 
+:root[data-partner-theme='enabled'] {
+  --color-sky-50: color-mix(in srgb, var(--partner-primary) 5%, white);
+  --color-sky-100: color-mix(in srgb, var(--partner-primary) 12%, white);
+  --color-sky-200: color-mix(in srgb, var(--partner-primary) 22%, white);
+  --color-sky-300: color-mix(in srgb, var(--partner-primary) 35%, white);
+  --color-sky-400: color-mix(in srgb, var(--partner-primary) 45%, white);
+  --color-sky-500: var(--partner-action);
+  --color-sky-600: color-mix(in srgb, var(--partner-action) 80%, black);
+  --color-sky-700: color-mix(in srgb, var(--partner-primary) 54%, black);
+  --color-sky-800: color-mix(in srgb, var(--partner-primary) 38%, black);
+  --color-sky-900: color-mix(in srgb, var(--partner-primary) 26%, black);
+  --color-sky-950: color-mix(in srgb, var(--partner-primary) 17%, black);
+  --color-violet-200: color-mix(in srgb, var(--partner-secondary) 22%, white);
+  --color-violet-300: color-mix(in srgb, var(--partner-secondary) 35%, white);
+  --color-violet-400: color-mix(in srgb, var(--partner-secondary) 45%, white);
+  --color-violet-500: var(--partner-secondary-action);
+  --color-violet-600: var(--partner-secondary-action);
+  --color-violet-700: color-mix(in srgb, var(--partner-secondary) 54%, black);
+  --color-cyan-200: color-mix(in srgb, var(--partner-tertiary) 22%, white);
+  --color-cyan-300: color-mix(in srgb, var(--partner-tertiary) 35%, white);
+  --color-cyan-400: color-mix(in srgb, var(--partner-tertiary) 45%, white);
+  --color-cyan-500: color-mix(in srgb, var(--partner-tertiary) 65%, black);
+  accent-color: var(--partner-action);
+  scrollbar-color: var(--partner-action) rgb(8 10 14);
+}
+
+:root[data-partner-theme='enabled'] ::selection {
+  background: var(--partner-action);
+  color: white;
+}
+
+:root[data-partner-theme='enabled'] body {
+  scrollbar-color: var(--partner-action) rgb(8 10 14);
+}
+
+:root[data-partner-theme='enabled'] .nav-active-bg {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--partner-primary) 30%, transparent),
+    transparent
+  );
+}
+
+:root[data-partner-theme='enabled'] .play-find-match-cta,
+:root[data-partner-theme='enabled'] .play-find-match-cta:hover:not(:disabled) {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--partner-action) 75%, black),
+    var(--partner-action)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 45%),
+    0 4px 18px color-mix(in srgb, var(--partner-action) 30%, transparent);
+}
+
+:root[data-partner-theme='enabled'] .play-find-match-cta::before {
+  display: none;
+}
+
 @layer base {
   * {
     box-sizing: border-box;

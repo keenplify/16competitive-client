@@ -28,6 +28,7 @@ import type {
 import type { RedeemCodeResponse } from '../shared/redeem-codes'
 import type { CustomGameChatMessage, CustomGameRoom, CustomGamesApi } from '../shared/custom-games'
 import { isCustomGameChatMessage } from '../shared/custom-games'
+import { parsePartnerBranding } from '../shared/partner-branding'
 import type {
   LobbyLoadout,
   OwnedSkin,
@@ -42,7 +43,12 @@ import type {
 import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
 import { browserAuthApi } from './browser-auth'
 import { browserMatchmakingApi, browserPartyRealtime, navigateToNode } from './browser-matchmaking'
-import { getWebSessionToken, requestArrayBuffer, requestJson } from './browser-session'
+import {
+  currentApiOrigin,
+  getWebSessionToken,
+  requestArrayBuffer,
+  requestJson
+} from './browser-session'
 
 const runtimeWindow = window as Window & { __SIXTEEN_COMPETITIVE_WEB__?: boolean }
 runtimeWindow.__SIXTEEN_COMPETITIVE_WEB__ = true
@@ -489,6 +495,12 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 
 const api: Window['api'] = {
   auth: browserAuthApi,
+  partnerBranding: {
+    async get() {
+      const response: unknown = await authenticatedGet('/partners/branding/me')
+      return parsePartnerBranding(response, currentApiOrigin())
+    }
+  },
   customGames,
 
   antiCheat: {
