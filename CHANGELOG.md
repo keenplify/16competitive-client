@@ -2355,3 +2355,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Language
 
 - The client detects your preferred language automatically.
+
+## v2026.1013.4 — 2026-10-13
+
+### Release Quality
+
+- Improved release packaging reliability.
