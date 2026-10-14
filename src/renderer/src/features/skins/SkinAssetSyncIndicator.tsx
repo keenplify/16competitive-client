@@ -17,8 +17,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)
-  const matchId = useMatchmakingStore((state) =>
-    state.match?.matchId ?? state.connectionDetails?.matchId ?? state.completedMatch?.matchId
+  const matchId = useMatchmakingStore(
+    (state) =>
+      state.match?.matchId ?? state.connectionDetails?.matchId ?? state.completedMatch?.matchId
   )
   const [progress, setProgress] = useState<SkinAssetSyncProgress | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
@@ -38,7 +39,10 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         applyProgress(event)
       }
     })
-    void window.api.gameSettings.getAssetSyncStatus().then(applyProgress).catch(() => undefined)
+    void window.api.gameSettings
+      .getAssetSyncStatus()
+      .then(applyProgress)
+      .catch(() => undefined)
     return () => {
       active = false
       unsubscribeSettings()
@@ -114,7 +118,11 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     setReporting(true)
     setReportStatus('')
     try {
-      await window.api.diagnosticLogs.report(description.trim(), getRendererDiagnosticLogs(), matchId ?? undefined)
+      await window.api.diagnosticLogs.report(
+        description.trim(),
+        getRendererDiagnosticLogs(),
+        matchId ?? undefined
+      )
       setReportStatus('Issue reported. Thank you!')
       setDescription('')
       window.setTimeout(() => {

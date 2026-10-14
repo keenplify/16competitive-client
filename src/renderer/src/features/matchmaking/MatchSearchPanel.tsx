@@ -78,7 +78,10 @@ export function MatchSearchPanel({
       ? 'Cancelling search'
       : 'Searching for a match'
   const queueDuration = queueStartedAt ? formatQueueDuration(elapsedSeconds) : '--:--'
-  const canPlayWithBots = queueStatus === 'queued' && elapsedSeconds >= 300 && !botFillOptIn &&
+  const canPlayWithBots =
+    queueStatus === 'queued' &&
+    elapsedSeconds >= 300 &&
+    !botFillOptIn &&
     (!party || party.leaderId === playerId)
 
   if (variant === 'compact') {
@@ -104,7 +107,8 @@ export function MatchSearchPanel({
             <p className="mt-0.5 text-[10px] leading-tight font-medium text-neutral-200">
               {statusTitle}
             </p>
-            <p className="mt-0.5 whitespace-nowrap text-[9px] text-emerald-200/80"
+            <p
+              className="mt-0.5 whitespace-nowrap text-[9px] text-emerald-200/80"
               title="Players currently online across the platform"
             >
               Online players: {onlinePlayers ?? '—'}
@@ -177,7 +181,10 @@ export function MatchSearchPanel({
         <p className="mt-1 text-[11px] text-neutral-300">Online players: {onlinePlayers ?? '—'}</p>
         <div className="mt-3 flex h-8 gap-2">
           {canPlayWithBots && (
-            <Button className="h-8 min-w-0 flex-1 px-2 text-[10px]" onClick={() => void playWithBots()}>
+            <Button
+              className="h-8 min-w-0 flex-1 px-2 text-[10px]"
+              onClick={() => void playWithBots()}
+            >
               Play with Bots
             </Button>
           )}

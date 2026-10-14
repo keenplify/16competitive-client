@@ -78,7 +78,10 @@ const readOfflineMarker = (playerId: string): string | null => {
   }
 }
 
-const writeOfflineMarker = (playerId: string, at = new Date(serverClockNow()).toISOString()): void => {
+const writeOfflineMarker = (
+  playerId: string,
+  at = new Date(serverClockNow()).toISOString()
+): void => {
   try {
     window.localStorage.setItem(offlineMarkerKey(playerId), at)
   } catch {

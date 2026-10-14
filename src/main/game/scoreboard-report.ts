@@ -36,7 +36,12 @@ export function createScoreboardReporter(
     ].join('\n')
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await report(description, [JSON.stringify({ scoreboardIncident: incident })], key, incident.matchId)
+        await report(
+          description,
+          [JSON.stringify({ scoreboardIncident: incident })],
+          key,
+          incident.matchId
+        )
         console.info('[Scoreboard] automatic issue report submitted', { key })
         return
       } catch (error) {

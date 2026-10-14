@@ -112,7 +112,9 @@ const isPlayerProfile = (value: unknown): value is PlayerProfile => {
     typeof player.username === 'string' &&
     typeof player.mmr === 'number' &&
     (player.level === undefined ||
-      (Number.isInteger(player.level) && Number(player.level) >= 1 && Number(player.level) <= 40)) &&
+      (Number.isInteger(player.level) &&
+        Number(player.level) >= 1 &&
+        Number(player.level) <= 40)) &&
     (player.levelTitle === undefined ||
       (typeof player.levelTitle === 'string' && player.levelTitle.length <= 80)) &&
     (player.flagCountryCode === null ||
@@ -247,7 +249,6 @@ export const getPlayerProfile = async (playerId: unknown): Promise<PlayerProfile
   return (body as { player: PlayerProfile }).player
 }
 
-
 export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurveyStatus> => {
   if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
     throw new Error('Invalid match ID')
@@ -276,7 +277,8 @@ export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurveyStatu
           : 'Could not load map feedback'
     )
   }
-  const envelope = typeof body === 'object' && body !== null ? body as Record<string, unknown> : null
+  const envelope =
+    typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null
   const survey = envelope?.survey
   if (typeof envelope?.eligible !== 'boolean' || (survey !== null && !isMatchSurvey(survey))) {
     throw new Error('The matchmaking server returned invalid map feedback')
@@ -349,7 +351,6 @@ export const submitMatchSurvey = async (
   }
   return { survey, pointsAwarded }
 }
-
 
 export const getPendingMatchSurvey = async (): Promise<PendingMatchSurvey | null> => {
   const token = getSessionToken()

@@ -305,7 +305,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'match_ready_check':
         set((state) => {
-          const remainingMs = readyCheckRemainingMs(event.deadline, event.serverNow, serverClockNow())
+          const remainingMs = readyCheckRemainingMs(
+            event.deadline,
+            event.serverNow,
+            serverClockNow()
+          )
           if (
             terminalMatchIds.has(event.matchId) ||
             state.match?.matchId !== event.matchId ||

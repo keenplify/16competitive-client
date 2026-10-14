@@ -5,10 +5,7 @@ import type { MatchmakingMode } from '../../../../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
-import {
-  deferMatchSurveyForSession,
-  isMatchSurveyDeferredForSession
-} from './match-survey-session'
+import { deferMatchSurveyForSession, isMatchSurveyDeferredForSession } from './match-survey-session'
 
 const surveyFaces = [Frown, Annoyed, Meh, Smile, Laugh] as const
 
@@ -30,8 +27,8 @@ export function MatchSurveyPrompt({
   const refreshSession = useAuthStore((state) => state.refreshSession)
   const [funRating, setFunRating] = useState<number | null>(null)
   const [fairnessRating, setFairnessRating] = useState<number | null>(null)
-  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(
-    () => (isMatchSurveyDeferredForSession() ? 'submitted' : 'loading')
+  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(() =>
+    isMatchSurveyDeferredForSession() ? 'submitted' : 'loading'
   )
 
   useEffect(() => {

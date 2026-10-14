@@ -11,10 +11,12 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 
-async function harness(email, socialResult) {
+async function harness(email, socialResult, { settingsFailure = false } = {}) {
   const writes = []
   const requests = []
   const partnerLinks = []
+  const settingsReads = []
+  const warnings = []
   const player = {
     id: 'test-player',
     username: 'steam_player',
@@ -29,6 +31,7 @@ async function harness(email, socialResult) {
     URL,
     Date,
     AbortSignal,
+    console: { warn: (...args) => warnings.push(args) },
     setTimeout: (callback) => {
       callback()
     },
@@ -62,6 +65,16 @@ async function harness(email, socialResult) {
     }
   })
   const dependencies = {
+    './game/game-settings': {
+      getGameSettings: async () => {
+        settingsReads.push({
+          playerId: module.namespace.getSessionPlayerId(),
+          token: module.namespace.getSessionToken()
+        })
+        if (settingsFailure) throw new Error('Preferences unavailable')
+        return {}
+      }
+    },
     './partner-attribution': {
       linkDownloadPartner: async (token) => {
         partnerLinks.push(token)
@@ -88,8 +101,7 @@ async function harness(email, socialResult) {
     },
     'node:path': { join }
   }
-  const module = new vm.SourceTextModule(source, { context })
-  await module.link(async (name) => {
+  const dependency = (name) => {
     const exports = dependencies[name]
     if (!exports) throw new Error('Unexpected dependency ' + name)
     return new vm.SyntheticModule(
@@ -99,9 +111,21 @@ async function harness(email, socialResult) {
       },
       { context }
     )
+  }
+  const module = new vm.SourceTextModule(source, {
+    context,
+    importModuleDynamically: async (name) => {
+      const imported = dependency(name)
+      await imported.link(() => {
+        throw new Error('Unexpected nested dependency')
+      })
+      await imported.evaluate()
+      return imported
+    }
   })
+  await module.link(dependency)
   await module.evaluate()
-  return { api: module.namespace, writes, requests, partnerLinks }
+  return { api: module.namespace, writes, requests, partnerLinks, settingsReads, warnings }
 }
 
 test('desktop social sign-in declares its return target, including first-signup completion', async () => {
@@ -132,7 +156,7 @@ test('desktop account linking also declares its return target', async () => {
 
 for (const email of [null, 'player@example.test']) {
   test(`accepts and securely persists a session with email ${email}`, async () => {
-    const { api, writes, partnerLinks } = await harness(email)
+    const { api, writes, partnerLinks, settingsReads } = await harness(email)
     const session = await api.authenticate('login', {
       username: 'player',
       password: 'test-password'
@@ -144,20 +168,38 @@ for (const email of [null, 'player@example.test']) {
     assert.equal(writes[0][1].toString(), 'encrypted:test-only-token')
     assert.equal(writes[0][2].mode, 0o600)
     assert.deepEqual(partnerLinks, ['test-only-token'])
+    assert.deepEqual(settingsReads, [{ playerId: 'test-player', token: 'test-only-token' }])
   })
   test(`restores an encrypted session with email ${email}`, async () => {
-    const { api, partnerLinks } = await harness(email)
+    const { api, partnerLinks, settingsReads } = await harness(email)
     const session = await api.restoreSession()
     assert.equal(session.player.email, email)
     assert.equal(session.player.username, 'steam_player')
     assert.equal('token' in session, false)
     assert.deepEqual(partnerLinks, ['test-only-token'])
+    assert.deepEqual(settingsReads, [{ playerId: 'test-player', token: 'test-only-token' }])
   })
 }
 
+test('unavailable account preferences do not block sign-in or encrypted session restore', async () => {
+  for (const restore of [false, true]) {
+    const { api, writes, warnings, partnerLinks, settingsReads } = await harness(null, undefined, {
+      settingsFailure: true
+    })
+    const session = restore
+      ? await api.restoreSession()
+      : await api.authenticate('login', { username: 'player', password: 'test-password' })
+    assert.equal(session.player.id, 'test-player')
+    assert.equal(writes.length, restore ? 0 : 1)
+    assert.equal(warnings.length, 1)
+    assert.deepEqual(partnerLinks, ['test-only-token'])
+    assert.deepEqual(settingsReads, [{ playerId: 'test-player', token: 'test-only-token' }])
+  }
+})
+
 for (const email of [undefined, 123, {}, false]) {
   test(`rejects malformed email metadata: ${JSON.stringify(email)}`, async () => {
-    const { api, writes, partnerLinks } = await harness(email)
+    const { api, writes, partnerLinks, settingsReads } = await harness(email)
     await assert.rejects(
       api.authenticate('login', { username: 'player', password: 'test-password' }),
       /invalid response/
@@ -165,5 +207,6 @@ for (const email of [undefined, 123, {}, false]) {
     assert.equal(writes.length, 0)
     assert.equal(await api.restoreSession(), null)
     assert.deepEqual(partnerLinks, [])
+    assert.deepEqual(settingsReads, [])
   })
 }

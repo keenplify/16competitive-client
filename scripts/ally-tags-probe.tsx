@@ -2,7 +2,15 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
-type AllyTag = { id: number; x: number; y: number; money: number; weapon: number; scale: number; name: string }
+type AllyTag = {
+  id: number
+  x: number
+  y: number
+  money: number
+  weapon: number
+  scale: number
+  name: string
+}
 
 declare global {
   interface Window {
@@ -90,11 +98,15 @@ function AllyTags(): React.JSX.Element {
       {tags.map((tag) => {
         const weapon = weaponAssets[tag.weapon]
         return (
-          <div className="ally-tag" key={tag.id} style={{
-            left: tag.x,
-            top: tag.y,
-            transform: `translate(-50%, -100%) scale(${tag.scale / 100})`
-          }}>
+          <div
+            className="ally-tag"
+            key={tag.id}
+            style={{
+              left: tag.x,
+              top: tag.y,
+              transform: `translate(-50%, -100%) scale(${tag.scale / 100})`
+            }}
+          >
             <span className="ally-arrow">▼</span>
             <div className="ally-loadout">
               {weapon && <img src={weapon.src} alt={weapon.name} />}

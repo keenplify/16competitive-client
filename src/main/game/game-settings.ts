@@ -218,8 +218,10 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
         : {}),
       playerPingKey: resolvedPlayerPingKey(settings.playerPingKey),
       ...(crosshair ? { crosshair } : {}),
-      ...(typeof settings.crosshairAccountId === 'string' ? {crosshairAccountId:settings.crosshairAccountId} : {}),
-      ...(settings.crosshairSyncPending === true ? {crosshairSyncPending:true} : {}),
+      ...(typeof settings.crosshairAccountId === 'string'
+        ? { crosshairAccountId: settings.crosshairAccountId }
+        : {}),
+      ...(settings.crosshairSyncPending === true ? { crosshairSyncPending: true } : {}),
       ...(typeof settings.nextClientIntegrationEnabled === 'boolean'
         ? { nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled }
         : {}),
@@ -357,8 +359,10 @@ const persistResolvedSettings = async (
     voicePttKey: teamVoicePttKey,
     partyVoicePttKey,
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
-    ...(storedSettings.crosshairAccountId ? {crosshairAccountId:storedSettings.crosshairAccountId} : {}),
-    ...(storedSettings.crosshairSyncPending === true ? {crosshairSyncPending:true} : {}),
+    ...(storedSettings.crosshairAccountId
+      ? { crosshairAccountId: storedSettings.crosshairAccountId }
+      : {}),
+    ...(storedSettings.crosshairSyncPending === true ? { crosshairSyncPending: true } : {}),
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
@@ -540,9 +544,12 @@ export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSett
     crosshair,
     storedSettings
   )
-  if (accountId && await uploadCrosshair(crosshair)) {
+  if (accountId && (await uploadCrosshair(crosshair))) {
     const current = await readStoredSettings()
-    if (current.crosshairAccountId === accountId && JSON.stringify(current.crosshair) === JSON.stringify(crosshair)) {
+    if (
+      current.crosshairAccountId === accountId &&
+      JSON.stringify(current.crosshair) === JSON.stringify(crosshair)
+    ) {
       current.crosshairSyncPending = false
       await writeStoredSettings(current)
     }

@@ -162,9 +162,7 @@ export function LeaderboardPage(): JSX.Element {
         <div>
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
           <h1 className="mt-2 text-3xl font-semibold">
-            {visibleTab === 'featured' && featured?.ladder
-              ? featured.ladder.title
-              : 'Leaderboard'}
+            {visibleTab === 'featured' && featured?.ladder ? featured.ladder.title : 'Leaderboard'}
           </h1>
           <p className="mt-2 text-sm text-neutral-200">
             {visibleTab === 'featured' && featured?.ladder

@@ -42,7 +42,9 @@ import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import type { CustomGamesApi } from '../shared/custom-games'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 
-const partnerBranding: PartnerBrandingApi = { get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL) }
+const partnerBranding: PartnerBrandingApi = {
+  get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL)
+}
 
 const auth: AuthApi = {
   getIcafeBranchInfo: () => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchInfo),

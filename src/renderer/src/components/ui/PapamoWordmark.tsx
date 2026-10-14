@@ -13,9 +13,7 @@ export function PapamoWordmark({ className }: { className?: string }): JSX.Eleme
     >
       <span>PAPA</span>
       <span className="text-orange-500">MO</span>
-      <span className="ml-2 text-[20px] font-black tracking-[-0.04em] text-white">
-        GAMES
-      </span>
+      <span className="ml-2 text-[20px] font-black tracking-[-0.04em] text-white">GAMES</span>
     </div>
   )
 }

@@ -216,30 +216,102 @@ export function serializeCrosshairConfig(profile: CrosshairProfile): string {
 }
 
 export function parseNativeCrosshairConfig(source: unknown): CrosshairProfile {
-  if (typeof source !== 'string' || source.length > 192) throw new Error('Invalid crosshair profile')
+  if (typeof source !== 'string' || source.length > 192)
+    throw new Error('Invalid crosshair profile')
   const fields = source.trim().split(/\s+/)
   const cs2 = fields[0] === 'cs2'
   if (cs2) fields.shift()
   const values = fields.map(Number)
-  if (fields.some(field => !/^-?\d{1,5}$/.test(field))) throw new Error('Invalid crosshair profile')
-  if (!cs2) {
-    const ranges = [[0,255],[0,255],[0,255],[1,24],[0,24],[1,8],[0,4],[10,100],[0,1],[0,1]]
-    if (values.length !== 10 || values.some((value,index) => value < ranges[index][0] || value > ranges[index][1]))
-      throw new Error('Invalid crosshair profile')
-    return parseCrosshairProfile({ version: 1, color: hexColor(values[0], values[1], values[2]),
-      size: values[3], gap: values[4], thickness: values[5], outline: values[6], opacity: values[7],
-      dot: values[8] === 1, dynamic: values[9] === 1 })
-  }
-  const ranges = [[0,255],[0,255],[0,255],[0,255],[0,255],[0,255],[0,255],[0,255],[0,9],[0,255],[-128,127],[0,255],[0,2],[0,1],[0,1],[0,1],[0,65535],[0,255],[0,127],[0,100],[30,100],[0,100],[10,200],[0,1]]
-  if (values.length !== 24 || values.some((value,index) => value < ranges[index][0] || value > ranges[index][1]))
+  if (fields.some((field) => !/^-?\d{1,5}$/.test(field)))
     throw new Error('Invalid crosshair profile')
-  return fromCs2({ format: 'cs2-v1', red: values[0], green: values[1], blue: values[2], alpha: values[3],
-    outlineRed: values[4], outlineGreen: values[5], outlineBlue: values[6], outlineAlpha: values[7],
-    style: values[8], length: values[9], gap: values[10], thickness: values[11], outlineMode: values[12],
-    centerDotEnabled: values[13] === 1, tStyleEnabled: values[14] === 1, followRecoil: values[15] === 1,
-    screenHeight: values[16], dynamicSpreadLimit: values[17], splitDistance: values[18],
-    innerSplitAlpha: values[19]/100, outerSplitAlpha: values[20]/100, splitSizeRatio: values[21]/100,
-    scopeDotScale: values[22]/100, scopeDotUseCrosshairColor: values[23] === 1 })
+  if (!cs2) {
+    const ranges = [
+      [0, 255],
+      [0, 255],
+      [0, 255],
+      [1, 24],
+      [0, 24],
+      [1, 8],
+      [0, 4],
+      [10, 100],
+      [0, 1],
+      [0, 1]
+    ]
+    if (
+      values.length !== 10 ||
+      values.some((value, index) => value < ranges[index][0] || value > ranges[index][1])
+    )
+      throw new Error('Invalid crosshair profile')
+    return parseCrosshairProfile({
+      version: 1,
+      color: hexColor(values[0], values[1], values[2]),
+      size: values[3],
+      gap: values[4],
+      thickness: values[5],
+      outline: values[6],
+      opacity: values[7],
+      dot: values[8] === 1,
+      dynamic: values[9] === 1
+    })
+  }
+  const ranges = [
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 255],
+    [0, 9],
+    [0, 255],
+    [-128, 127],
+    [0, 255],
+    [0, 2],
+    [0, 1],
+    [0, 1],
+    [0, 1],
+    [0, 65535],
+    [0, 255],
+    [0, 127],
+    [0, 100],
+    [30, 100],
+    [0, 100],
+    [10, 200],
+    [0, 1]
+  ]
+  if (
+    values.length !== 24 ||
+    values.some((value, index) => value < ranges[index][0] || value > ranges[index][1])
+  )
+    throw new Error('Invalid crosshair profile')
+  return fromCs2({
+    format: 'cs2-v1',
+    red: values[0],
+    green: values[1],
+    blue: values[2],
+    alpha: values[3],
+    outlineRed: values[4],
+    outlineGreen: values[5],
+    outlineBlue: values[6],
+    outlineAlpha: values[7],
+    style: values[8],
+    length: values[9],
+    gap: values[10],
+    thickness: values[11],
+    outlineMode: values[12],
+    centerDotEnabled: values[13] === 1,
+    tStyleEnabled: values[14] === 1,
+    followRecoil: values[15] === 1,
+    screenHeight: values[16],
+    dynamicSpreadLimit: values[17],
+    splitDistance: values[18],
+    innerSplitAlpha: values[19] / 100,
+    outerSplitAlpha: values[20] / 100,
+    splitSizeRatio: values[21] / 100,
+    scopeDotScale: values[22] / 100,
+    scopeDotUseCrosshairColor: values[23] === 1
+  })
 }
 
 export function parseCrosshairProfile(input: unknown): CrosshairProfile {

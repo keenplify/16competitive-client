@@ -16,10 +16,25 @@ const example = 'CSDcomrJBKpqwRGP3676xoNKTGhHdCOaZ6xY5v5wUQHzyD'
 
 test('database native profiles round-trip every CS2 setting', () => {
   const original = importCrosshairShareCode(example)
-  assert.equal(serializeCrosshairConfig(parseNativeCrosshairConfig(serializeCrosshairConfig(original))), serializeCrosshairConfig(original))
-  const changed = updateCs2Crosshair(original, {gap:-3,screenHeight:1440,centerDotEnabled:true})
-  assert.equal(serializeCrosshairConfig(parseNativeCrosshairConfig(serializeCrosshairConfig(changed))), serializeCrosshairConfig(changed))
-  for (const bad of ['999 255 0 5 2 1 1 100 0 0', '0 255 0 5 2 1 1 100 7 0', '0 255 0 5 2 1 1 100 0 0;quit', 'cs2 1 2 3'])
+  assert.equal(
+    serializeCrosshairConfig(parseNativeCrosshairConfig(serializeCrosshairConfig(original))),
+    serializeCrosshairConfig(original)
+  )
+  const changed = updateCs2Crosshair(original, {
+    gap: -3,
+    screenHeight: 1440,
+    centerDotEnabled: true
+  })
+  assert.equal(
+    serializeCrosshairConfig(parseNativeCrosshairConfig(serializeCrosshairConfig(changed))),
+    serializeCrosshairConfig(changed)
+  )
+  for (const bad of [
+    '999 255 0 5 2 1 1 100 0 0',
+    '0 255 0 5 2 1 1 100 7 0',
+    '0 255 0 5 2 1 1 100 0 0;quit',
+    'cs2 1 2 3'
+  ])
     assert.throws(() => parseNativeCrosshairConfig(bad))
 })
 

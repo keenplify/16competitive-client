@@ -5,7 +5,12 @@ type Cancellation = {
 }
 
 export function createAutomaticMatchReporter(
-  report: (description: string, logs: string[], deduplicationKey: string, matchId?: string) => Promise<unknown>,
+  report: (
+    description: string,
+    logs: string[],
+    deduplicationKey: string,
+    matchId?: string
+  ) => Promise<unknown>,
   wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 ): (event: Cancellation) => Promise<void> {
   const submitted = new Set<string>()
