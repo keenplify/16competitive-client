@@ -2422,3 +2422,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Partner backgrounds now appear throughout the signed-in launcher, with a separate login background.
 - News and Settings can show your partner's custom social links.
+
+## v2026.1014.4 — 2026-10-14
+
+### Community Membership
+
+- Added account-scoped community membership.
+- Added support for transferring community membership.
+
+### Partner Communities
+
+- Clarified partner community attribution and release notes.
