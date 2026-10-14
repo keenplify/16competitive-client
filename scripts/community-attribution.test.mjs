@@ -8,7 +8,8 @@ import { isPartnerId, partnerIdFromDownloadName } from '../src/shared/partner-at
 const a = '12345678-1234-4123-8123-123456789abc',
   b = '22345678-1234-4123-8123-123456789abc',
   player = '32345678-1234-4123-8123-123456789abc'
-/** @returns {string} */
+// JavaScript fixture helpers return dynamically evaluated module values.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const compile = (source) =>
   ts.transpileModule(source, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext }
@@ -19,7 +20,7 @@ const desktopSource = compile(
 const browserSource = compile(
   await readFile(new URL('../src/web/partner-attribution.ts', import.meta.url), 'utf8')
 )
-/** @returns {Promise<object>} */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 async function moduleFor(source, context, dependencies) {
   const mod = new vm.SourceTextModule(source, { context })
   await mod.link(async (name) => {
