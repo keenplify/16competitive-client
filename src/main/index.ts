@@ -1,3 +1,9 @@
+import { COMMUNITY_MEMBERSHIP_CHANNELS } from '../shared/community-membership'
+import {
+  pendingCommunityTransfer,
+  decideCommunityTransfer,
+  linkCommunityServer
+} from './community-membership'
 import { listPartnerServers, connectPartnerServer } from './partner-servers'
 import { communityChatHistory, sendCommunityChat, communityMembers } from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
@@ -805,6 +811,13 @@ app.whenReady().then(async () => {
     MATCH_HISTORY_CHANNELS.submitSurvey,
     (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
       submitMatchSurvey(matchId, funRating, fairnessRating)
+  )
+  ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.pending, () => pendingCommunityTransfer())
+  ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.decide, (_, id: unknown, accept: unknown) =>
+    decideCommunityTransfer(id, accept)
+  )
+  ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.link, (_, code: unknown) =>
+    linkCommunityServer(code)
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
   ipcMain.handle(PARTNER_SERVER_CHANNELS.list, () => listPartnerServers())

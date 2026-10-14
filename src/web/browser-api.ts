@@ -1,3 +1,10 @@
+import {
+  parseCommunityTransfer,
+  parseCommunityDecision,
+  parseServerLink,
+  validateCommunityDecision,
+  validateServerLinkCode
+} from '../shared/community-membership'
 import { parsePartnerServerStatuses } from '../shared/partner-community'
 import {
   parseCommunityHistory,
@@ -502,6 +509,21 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 
 const api: Window['api'] = {
   auth: browserAuthApi,
+  communityMembership: {
+    async pending() {
+      return parseCommunityTransfer(await authenticatedGet('/partners/community/transfer'))
+    },
+    async decide(id, accept) {
+      validateCommunityDecision(id, accept)
+      return parseCommunityDecision(
+        await jsonPost('/partners/community/transfer', { requestId: id, accept })
+      )
+    },
+    async linkServer(code) {
+      validateServerLinkCode(code)
+      return parseServerLink(await jsonPost('/partners/plugin/link', { code }))
+    }
+  },
   communityChat: {
     members: async (page) =>
       parseCommunityMembers(await authenticatedGet(`/partners/community/members?page=${page}`)),

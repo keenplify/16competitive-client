@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { SetupMode } from '../../../../shared/game-settings'
 
-type OnboardingStep = 'installation' | 'preferences' | 'referral' | 'review'
+type OnboardingStep = 'installation' | 'preferences' | 'community' | 'referral' | 'review'
 
 interface OnboardingState {
   step: OnboardingStep

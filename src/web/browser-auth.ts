@@ -212,7 +212,7 @@ const reportBrowserClientTelemetry = async (): Promise<void> => {
 
 const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
   setWebSessionToken(body.token)
-  await linkBrowserPartner()
+  await linkBrowserPartner(body.player.id)
   const status = await usernameStatus()
   const session = { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
   writeCachedSession(session)
@@ -440,7 +440,6 @@ export const browserAuthApi: AuthApi = {
 
   async restore() {
     await webHandoffReady
-    if (getWebSessionToken()) await linkBrowserPartner()
     const token = getWebSessionToken()
     if (!token) {
       clearCachedSession()
@@ -456,6 +455,7 @@ export const browserAuthApi: AuthApi = {
         clearOnUnauthorized: false
       })
 
+      await linkBrowserPartner(body.player.id)
       let status: UsernameStatus | null = null
       try {
         status = await usernameStatus()

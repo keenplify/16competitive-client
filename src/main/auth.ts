@@ -291,7 +291,7 @@ const acceptAuthResponse = async (body: BackendAuthResponse): Promise<AuthSessio
   })
   if (sessionToken !== body.token) throw new Error('Session changed.')
   await persistToken(sessionToken)
-  await linkDownloadPartner(sessionToken)
+  await linkDownloadPartner(sessionToken, body.player.id)
   const usernameStatus = await fetchUsernameStatus(sessionToken)
 
   return {
@@ -853,7 +853,7 @@ export const restoreSession = async (): Promise<AuthSession | null> => {
     console.warn('[Crosshair] account preferences could not be restored during session restore')
   })
   if (sessionToken !== token) return null
-  await linkDownloadPartner(token)
+  await linkDownloadPartner(token, authBody.player.id)
   const usernameStatus = await fetchUsernameStatus(token).catch(() => null)
   if (!usernameStatus) return null
   return {

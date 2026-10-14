@@ -58,6 +58,11 @@ async function probe(server: PartnerServer): Promise<PartnerServerStatus> {
 }
 let cache: { token: string | null; at: number; rows: PartnerServerStatus[] } | null = null
 let pending: Promise<PartnerServerStatus[]> | null = null
+let cacheGeneration = 0
+export function invalidatePartnerServerCache(): void {
+  cacheGeneration++
+  cache = null
+}
 export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
   const token = getSessionToken()
   if (!token) return []
@@ -67,6 +72,7 @@ export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
     if (getSessionToken() !== token) throw new Error('SESSION_CHANGED')
     if (cache?.token === token) return cache.rows
   }
+  const generation = cacheGeneration
   pending = (async () => {
     const { branding } = await getPartnerBranding()
     const servers = branding?.servers ?? [],
@@ -76,7 +82,7 @@ export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
       rows.push(...(await Promise.all(servers.slice(i, i + 4).map(probe))))
     if (getSessionToken() !== token) throw new Error('SESSION_CHANGED')
     const sorted = sortPartnerServers(rows)
-    cache = { token, at: Date.now(), rows: sorted }
+    if (generation === cacheGeneration) cache = { token, at: Date.now(), rows: sorted }
     return sorted
   })()
   try {

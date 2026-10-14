@@ -35,25 +35,29 @@ export const getBrowserPartnerId = (): string | null => {
     return null
   }
 }
-export const linkBrowserPartner = async (): Promise<void> => {
+export const linkBrowserPartner = async (playerId?: string): Promise<void> => {
   try {
     capturePartnerReferral()
-    const raw: unknown = JSON.parse(localStorage.getItem(key) ?? 'null')
-    if (!raw || typeof raw !== 'object') return
-    const record = raw as { partnerId?: unknown; capturedAt?: unknown }
-    if (
-      !isPartnerId(record.partnerId) ||
-      typeof record.capturedAt !== 'number' ||
-      Date.now() - record.capturedAt > lifetime
-    ) {
-      localStorage.removeItem(key)
-      return
+    const partnerId = getBrowserPartnerId()
+    if (!partnerId) return
+    const consideredKey = isPartnerId(playerId)
+      ? `16competitive.web.partner-considered.${playerId}`
+      : null
+    try {
+      if (consideredKey && localStorage.getItem(consideredKey) === partnerId) return
+    } catch {
+      /* Use backend decisions when storage is unavailable. */
     }
     await requestJson('/partners/referral', {
       authenticated: true,
-      init: { method: 'POST', body: JSON.stringify({ partnerId: record.partnerId }) }
+      init: { method: 'POST', body: JSON.stringify({ partnerId }) }
     })
-    localStorage.removeItem(key)
+    try {
+      if (consideredKey) localStorage.setItem(consideredKey, partnerId)
+      localStorage.removeItem(key)
+    } catch {
+      /* The direct URL works without storage. */
+    }
   } catch (error) {
     console.warn(
       '[Partner] browser referral remains pending',

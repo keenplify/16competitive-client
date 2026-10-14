@@ -1,3 +1,6 @@
+import { CommunityTransferPrompt } from '../partner-branding/CommunityTransferPrompt'
+import { useCommunityMembershipStore } from '../partner-branding/community-membership.store'
+import { useTranslation } from '../i18n/i18n'
 import {
   CheckCircle2,
   Download,
@@ -26,6 +29,11 @@ const clientLabel = {
 } as const
 
 export function OnboardingPage(): JSX.Element {
+  const { t } = useTranslation()
+  const transfer = useCommunityMembershipStore((state) => state.pending)
+  const transferAccount = useCommunityMembershipStore((state) => state.accountId)
+  const transferLoading = useCommunityMembershipStore((state) => state.loading)
+  const transferBusy = useCommunityMembershipStore((state) => state.deciding)
   const step = useOnboardingStore((state) => state.step)
   const mode = useOnboardingStore((state) => state.mode)
   const setStep = useOnboardingStore((state) => state.setStep)
@@ -93,6 +101,7 @@ export function OnboardingPage(): JSX.Element {
     installation: 'Set up Counter-Strike',
     preferences: 'Make it yours',
     referral: 'Have a referral code?',
+    community: t('community.title'),
     review: 'Ready to play'
   }
   const descriptions = {
@@ -101,6 +110,7 @@ export function OnboardingPage(): JSX.Element {
       'Choose how much of the 1.6 Competitive experience to enable. You can change features later in Settings.',
     referral:
       'If a friend invited you, enter their code once. You both receive rewards. You can also skip this step.',
+    community: t('community.transferDescription'),
     review: 'Review your choices, then enter the launcher.'
   }
 
@@ -121,12 +131,40 @@ export function OnboardingPage(): JSX.Element {
     }
   }
 
-  const stepNumber =
-    step === 'installation' ? 1 : step === 'preferences' ? 2 : step === 'referral' ? 3 : 4
+  const hasTransfer = !!transfer && transferAccount === playerId
+  const steps = [
+    'installation',
+    'preferences',
+    ...(hasTransfer || step === 'community' ? ['community' as const] : []),
+    'referral',
+    'review'
+  ] as const
+  const stepNumber = steps.indexOf(step) + 1
+  const afterPreferences = hasTransfer ? 'community' : referralAlreadyUsed ? 'review' : 'referral'
+  useEffect(() => {
+    if (step === 'review' && hasTransfer) setStep('community')
+    if (
+      step === 'community' &&
+      !hasTransfer &&
+      transferAccount === playerId &&
+      !transferLoading &&
+      !transferBusy
+    )
+      setStep(referralAlreadyUsed ? 'review' : 'referral')
+  }, [
+    hasTransfer,
+    setStep,
+    step,
+    transferAccount,
+    playerId,
+    transferLoading,
+    transferBusy,
+    referralAlreadyUsed
+  ])
 
   return (
     <SetupCard
-      eyebrow={`Client setup · ${stepNumber} of 4`}
+      eyebrow={`Client setup · ${stepNumber} of ${steps.length}`}
       title={completionPhase === 'success' ? "You're all set" : titles[step]}
       description={
         completionPhase === 'success'
@@ -141,8 +179,11 @@ export function OnboardingPage(): JSX.Element {
         </p>
       }
     >
-      <div className="mb-7 flex gap-2" aria-label={`Setup progress: step ${stepNumber} of 4`}>
-        {(['installation', 'preferences', 'referral', 'review'] as const).map((item, index) => (
+      <div
+        className="mb-7 flex gap-2"
+        aria-label={`Setup progress: step ${stepNumber} of ${steps.length}`}
+      >
+        {steps.map((item, index) => (
           <span
             key={item}
             className={`setup-progress h-1 flex-1 ${index < stepNumber ? 'setup-progress-active bg-sky-400' : 'bg-white/10'}`}
@@ -331,6 +372,11 @@ export function OnboardingPage(): JSX.Element {
               </div>
             )}
 
+            {step === 'community' && (
+              <CommunityTransferPrompt
+                onAnswered={() => setStep(referralAlreadyUsed ? 'review' : 'referral')}
+              />
+            )}
             {step === 'referral' && (
               <div className="space-y-5">
                 <div className="flex items-start gap-3 border border-sky-400/20 bg-sky-400/5 p-4">
@@ -424,16 +470,22 @@ export function OnboardingPage(): JSX.Element {
               <Button
                 variant="ghost"
                 className="w-28 border border-white/10"
-                disabled={busy || referralBusy}
+                disabled={busy || referralBusy || transferBusy}
                 onClick={() =>
                   setStep(
                     step === 'review'
                       ? referralAlreadyUsed
-                        ? 'preferences'
+                        ? hasTransfer
+                          ? 'community'
+                          : 'preferences'
                         : 'referral'
                       : step === 'referral'
-                        ? 'preferences'
-                        : 'installation'
+                        ? hasTransfer
+                          ? 'community'
+                          : 'preferences'
+                        : step === 'community'
+                          ? 'preferences'
+                          : 'installation'
                   )
                 }
               >
@@ -453,8 +505,8 @@ export function OnboardingPage(): JSX.Element {
             ) : step === 'preferences' ? (
               <Button
                 className="flex-1 gap-2 bg-sky-400 hover:bg-sky-300"
-                disabled={busy || referralChecking}
-                onClick={() => setStep(referralAlreadyUsed ? 'review' : 'referral')}
+                disabled={busy || referralChecking || transferLoading}
+                onClick={() => setStep(afterPreferences)}
               >
                 {referralChecking ? (
                   <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -463,10 +515,10 @@ export function OnboardingPage(): JSX.Element {
                 )}
                 Continue
               </Button>
-            ) : step === 'referral' ? (
+            ) : step === 'community' ? null : step === 'referral' ? (
               <Button
                 className="flex-1 gap-2 bg-sky-400 hover:bg-sky-300"
-                disabled={busy || referralBusy}
+                disabled={busy || referralBusy || transferBusy}
                 onClick={() =>
                   referralInput.trim() && !referralClaimed
                     ? void applyReferral()
@@ -483,7 +535,7 @@ export function OnboardingPage(): JSX.Element {
             ) : (
               <Button
                 className="flex-1 gap-2 bg-sky-400 hover:bg-sky-300"
-                disabled={busy || !savedPath}
+                disabled={busy || !savedPath || transferLoading || hasTransfer}
                 onClick={() => void finish()}
               >
                 {busy ? (
@@ -509,7 +561,7 @@ export function OnboardingPage(): JSX.Element {
             <Button
               variant="ghost"
               className="mt-3 w-full text-neutral-400"
-              disabled={busy || referralBusy}
+              disabled={busy || referralBusy || transferBusy}
               onClick={() => setStep('review')}
             >
               Skip for now

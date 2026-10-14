@@ -1,3 +1,4 @@
+import { CommunityMembershipController } from './features/partner-branding/CommunityMembershipController'
 import { MatchAssetPreparation } from './features/matchmaking/MatchAssetPreparation'
 import { AuthPage } from './features/auth/AuthPage'
 import { IcafeBranchPanel } from './features/auth/IcafeBranchPanel'
@@ -24,6 +25,7 @@ function App(): React.JSX.Element {
       <>
         <I18nRuntime />
         <PartnerThemeController />
+        <CommunityMembershipController />
         <ChatTranslationInitializer />
         <AudioController />
         <UpdateBanner />

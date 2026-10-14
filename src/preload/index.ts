@@ -1,4 +1,8 @@
 import {
+  COMMUNITY_MEMBERSHIP_CHANNELS,
+  type CommunityMembershipApi
+} from '../shared/community-membership'
+import {
   PARTNER_SERVER_CHANNELS,
   COMMUNITY_CHAT_CHANNELS,
   type PartnerServersApi,
@@ -48,6 +52,11 @@ import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import type { CustomGamesApi } from '../shared/custom-games'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 
+const communityMembership: CommunityMembershipApi = {
+  pending: () => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.pending),
+  decide: (id, accept) => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.decide, id, accept),
+  linkServer: (code) => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.link, code)
+}
 const partnerBranding: PartnerBrandingApi = {
   get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL)
 }
@@ -336,6 +345,7 @@ const api = {
   adminDemos,
   auth,
   partnerBranding,
+  communityMembership,
   antiCheat,
   dailyQuests,
   customGames,

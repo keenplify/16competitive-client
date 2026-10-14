@@ -1,3 +1,4 @@
+import { CommunitySettings } from '../partner-branding/CommunitySettings'
 import { LightweightHudSetting } from './LightweightHudSetting'
 import { PlayerPingSetting } from './PlayerPingSetting'
 import {
@@ -502,6 +503,7 @@ export function SettingsPage(): JSX.Element {
 
               <LanguageSettings />
               <PartnerThemeSetting />
+              <CommunitySettings />
               <ChatTranslationSettings />
 
               {webRuntime ? (

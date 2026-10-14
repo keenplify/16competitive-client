@@ -1,3 +1,4 @@
+import { CommunityTransferDialog } from '../partner-branding/CommunityTransferPrompt'
 import { useEffect, useRef, type FormEvent, type JSX } from 'react'
 import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
@@ -184,7 +185,14 @@ export function AuthPage(): JSX.Element {
     // owns the animated Three.js party scene and several chat/social surfaces;
     // keeping them mounted competes with the game for GPU and memory.
     const gameStarted = queueStatus === 'server_ready' && !gameExited && !requiresGameSetup
-    return gameStarted ? <MatchLauncherPage /> : <LobbyPage />
+    return gameStarted ? (
+      <MatchLauncherPage />
+    ) : (
+      <>
+        <LobbyPage />
+        <CommunityTransferDialog />
+      </>
+    )
   }
 
   if (status === 'restoring') {
