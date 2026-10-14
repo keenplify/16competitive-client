@@ -2403,3 +2403,24 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Player-facing changes
 
 - No change details were provided.
+
+## v2026.1014.3 — 2026-10-14
+
+### Partner Communities
+
+- Discover and join partner communities.
+- View community members and chat with other players.
+
+### Server Browser
+
+- Browse available partner servers.
+- Launch partner servers directly from the client.
+
+### Partner Experience
+
+- Enjoy community-specific branding and themes.
+- Access partner vouchers and related offers.
+
+### Matchmaking
+
+- Improved custom-game and lobby experience.
