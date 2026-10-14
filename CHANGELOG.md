@@ -2397,3 +2397,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Refined reward messages when redeeming codes.
 - Improved skin asset sync status readability.
 - Standardized translations for clearer, more consistent text.
+
+## v2026.1014.2 — 2026-10-14
+
+### Player-facing changes
+
+- No change details were provided.
