@@ -25,6 +25,7 @@ import type { AuthPlayer } from '../../../../shared/auth'
 import type { PendingMatchSurvey } from '../../../../shared/match-history'
 import type { Party, PartyMember } from '../../../../shared/party'
 import { MatchReadyOverlay } from './MatchReadyOverlay'
+import { NewsAnnouncement } from '../news/NewsAnnouncement'
 import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useCustomGamesStore } from './custom-games.store'
@@ -436,9 +437,6 @@ export function LobbyPage(): JSX.Element {
         missionSnapshot={questSnapshot}
         missionLoading={questStatus === 'loading'}
         missionError={questError}
-        className={`fixed top-0 left-0 z-30 ${
-          matchNeedsAttention ? 'bg-neutral-950/95 brightness-50' : ''
-        }`}
       />
       <IdleActionHint targetId={idleHintTarget} />
       <PartyInvitationModal />
@@ -465,6 +463,10 @@ export function LobbyPage(): JSX.Element {
         </div>
       )}
       {matchNeedsAttention && <MatchReadyOverlay />}
+      {!requiresGameSetup &&
+        !completedMatch &&
+        queueStatus === 'idle' &&
+        (page === 'lobby' || page === 'play') && <NewsAnnouncement />}
     </main>
   )
 }

@@ -88,6 +88,7 @@ interface ActiveSocialAuthorization {
 
 let sessionToken: string | null = null
 let sessionUsername: string | null = null
+let sessionPlayerId: string | null = null
 let activeSocialAuthorization: ActiveSocialAuthorization | null = null
 const tokenPath = () => join(app.getPath('userData'), 'session-token.bin')
 const persistToken = async (token: string) => {
@@ -98,9 +99,11 @@ const persistToken = async (token: string) => {
 
 export const getSessionToken = (): string | null => sessionToken
 export const getSessionUsername = (): string | null => sessionUsername
+export const getSessionPlayerId = (): string | null => sessionPlayerId
 export const clearSessionToken = (): void => {
   sessionToken = null
   sessionUsername = null
+  sessionPlayerId = null
   void unlink(tokenPath()).catch(() => undefined)
 }
 
@@ -282,6 +285,11 @@ const fetchUsernameStatus = async (token: string): Promise<UsernameStatus> => {
 const acceptAuthResponse = async (body: BackendAuthResponse): Promise<AuthSession> => {
   sessionToken = body.token
   sessionUsername = body.player.username
+  sessionPlayerId = body.player.id
+  await (await import('./game/game-settings')).getGameSettings().catch(() => {
+    console.warn('[Crosshair] account preferences could not be restored during sign-in')
+  })
+  if (sessionToken !== body.token) throw new Error('Session changed.')
   await persistToken(sessionToken)
   await linkDownloadPartner(sessionToken)
   const usernameStatus = await fetchUsernameStatus(sessionToken)
@@ -840,6 +848,11 @@ export const restoreSession = async (): Promise<AuthSession | null> => {
   const authBody = { ...(body as Omit<BackendAuthResponse, 'token'>), token }
   sessionToken = token
   sessionUsername = authBody.player.username
+  sessionPlayerId = authBody.player.id
+  await (await import('./game/game-settings')).getGameSettings().catch(() => {
+    console.warn('[Crosshair] account preferences could not be restored during session restore')
+  })
+  if (sessionToken !== token) return null
   await linkDownloadPartner(token)
   const usernameStatus = await fetchUsernameStatus(token).catch(() => null)
   if (!usernameStatus) return null

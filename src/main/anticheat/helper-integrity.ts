@@ -4,6 +4,7 @@ import releaseConfig from '../../../helper-release.json'
 import { verifyHelperBinary, verifyHelperRelease } from './helper-release-verifier'
 
 import { resolveServiceApiUrl } from '../matchmaking-regions'
+import { LOCAL_DEVELOPMENT } from '../config'
 
 const approvals = new Map<string, number>()
 export const APPROVAL_TIMEOUT_MS = 10_000
@@ -33,7 +34,11 @@ export async function verifyPackagedHelper(binary: string, apiUrl?: string): Pro
   )
     throw new Error('Helper release does not match this launcher')
   verifyHelperBinary(await readFile(binary), manifest)
-  const origin = new URL(apiUrl ?? (await resolveServiceApiUrl()))
+  // Development matchmaking uses loopback HTTP. Native artifacts still need
+  // signed approval from the pinned HTTPS registry, including in the VM.
+  const origin = new URL(
+    apiUrl ?? (LOCAL_DEVELOPMENT ? releaseConfig.registryUrl : await resolveServiceApiUrl())
+  )
   if (origin.protocol !== 'https:' || origin.username || origin.password)
     throw new Error('Invalid helper registry')
   const key = `${origin.origin}/${manifest.version}/${manifest.platform}/${manifest.arch}`

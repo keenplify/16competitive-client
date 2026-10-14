@@ -1253,6 +1253,19 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       ? ++linuxMonitorGeneration
       : linuxMonitorGeneration
 
+  // Steam's forwarding process can remain alive for the entire Steam session.
+  // Discover the game immediately instead of waiting for that process to exit.
+  if (process.platform === 'linux' && launchTarget.usesLauncherHandoff) {
+    void monitorLinuxCounterStrikeHandoff(
+      input.matchId,
+      cwd,
+      linuxHandoffMonitorGeneration,
+      matchConfigGeneration,
+      antiCheatSession,
+      input.onExit
+    )
+  }
+
   if (!launchTarget.usesLauncherHandoff && spawnedProcess.pid) {
     antiCheatSession.attachProcess(spawnedProcess.pid)
   } else if (process.platform === 'win32' && launchTarget.usesLauncherHandoff) {
@@ -1286,16 +1299,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
         })
       }
       if (gameProcess === spawnedProcess) gameProcess = null
-      if (process.platform === 'linux') {
-        void monitorLinuxCounterStrikeHandoff(
-          input.matchId,
-          cwd,
-          linuxHandoffMonitorGeneration,
-          matchConfigGeneration,
-          antiCheatSession,
-          input.onExit
-        )
-      }
       return
     }
     console.info('[GameLaunch] process exited', {

@@ -20,6 +20,8 @@ import {
   WINDOWS_STANDALONE_EXECUTABLE_NAMES
 } from './windows-cosmetic-compatibility'
 import { classifyCs16Distribution } from './cs16-installation'
+import { restoreCrosshair, uploadCrosshair } from './crosshair-sync'
+import { getSessionPlayerId } from '../auth'
 
 interface StoredGameSettings {
   cs16ExecutablePath?: string
@@ -27,6 +29,8 @@ interface StoredGameSettings {
   voicePttKey?: string
   partyVoicePttKey?: string
   crosshair?: CrosshairProfile
+  crosshairAccountId?: string
+  crosshairSyncPending?: boolean
   nextClientIntegrationEnabled?: boolean
   fastSwitchEnabled?: boolean
   fastSwitchManaged?: boolean
@@ -214,6 +218,8 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
         : {}),
       playerPingKey: resolvedPlayerPingKey(settings.playerPingKey),
       ...(crosshair ? { crosshair } : {}),
+      ...(typeof settings.crosshairAccountId === 'string' ? {crosshairAccountId:settings.crosshairAccountId} : {}),
+      ...(settings.crosshairSyncPending === true ? {crosshairSyncPending:true} : {}),
       ...(typeof settings.nextClientIntegrationEnabled === 'boolean'
         ? { nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled }
         : {}),
@@ -351,6 +357,8 @@ const persistResolvedSettings = async (
     voicePttKey: teamVoicePttKey,
     partyVoicePttKey,
     crosshair: crosshair ?? DEFAULT_CROSSHAIR,
+    ...(storedSettings.crosshairAccountId ? {crosshairAccountId:storedSettings.crosshairAccountId} : {}),
+    ...(storedSettings.crosshairSyncPending === true ? {crosshairSyncPending:true} : {}),
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
@@ -373,8 +381,12 @@ const resolveVoicePttKeys = async (
   return { team, party: resolvePartyVoicePttKey(storedSettings, team) }
 }
 
-export const getGameSettings = async (): Promise<GameSettings> => {
+export const getGameSettings = async (forceCrosshairSync = false): Promise<GameSettings> => {
+  const accountAtStart = getSessionPlayerId()
   const storedSettings = await readStoredSettings()
+  const restored = await restoreCrosshair(storedSettings, forceCrosshairSync)
+  if (getSessionPlayerId() !== accountAtStart) return getGameSettings(forceCrosshairSync)
+  Object.assign(storedSettings, restored)
   let cs16ExecutablePath = await validateStoredPath(storedSettings)
   // An existing configured player should not be sent through first-run setup.
   if (storedSettings.setupCompleted === undefined) {
@@ -514,6 +526,11 @@ export const saveVoicePttKey = async (untrustedKey: unknown): Promise<GameSettin
 export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSettings> => {
   const crosshair = upgradeCrosshairToCs2(parseCrosshairProfile(untrustedProfile))
   const storedSettings = await readStoredSettings()
+  const accountId = getSessionPlayerId()
+  if (accountId) {
+    storedSettings.crosshairAccountId = accountId
+    storedSettings.crosshairSyncPending = true
+  }
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
   const keys = await resolveVoicePttKeys(storedSettings)
   await persistResolvedSettings(
@@ -523,6 +540,13 @@ export const saveCrosshair = async (untrustedProfile: unknown): Promise<GameSett
     crosshair,
     storedSettings
   )
+  if (accountId && await uploadCrosshair(crosshair)) {
+    const current = await readStoredSettings()
+    if (current.crosshairAccountId === accountId && JSON.stringify(current.crosshair) === JSON.stringify(crosshair)) {
+      current.crosshairSyncPending = false
+      await writeStoredSettings(current)
+    }
+  }
   return await buildSettings(cs16ExecutablePath, keys.team, keys.party, crosshair, storedSettings)
 }
 

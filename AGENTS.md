@@ -783,6 +783,15 @@ Reconnect Available
 
 Avoid UI that makes the player wonder whether the launcher is frozen.
 
+### Square corners
+
+The user prefers square corners throughout this app. Use `border-radius: 0`
+or `rounded-none` for cards, panels, dialogs, toasts, buttons, inputs, and their
+interactive states. Do not add rounded corners or pill-shaped controls during
+UI polish unless the user explicitly requests them. Keep naturally circular
+elements, such as avatars or status dots, when their shape serves a clear purpose.
+This project preference takes precedence over generic design-skill radius guidance.
+
 ### Internationalization
 
 Always internationalize user-facing text when adding or changing UI. Include labels,
@@ -827,7 +836,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>
 export function Button({ className, ...props }: ButtonProps) {
   return (
     <button
-      className={twMerge('inline-flex items-center justify-center rounded-md px-4 py-2', className)}
+      className={twMerge('inline-flex items-center justify-center rounded-none px-4 py-2', className)}
       {...props}
     />
   )

@@ -25,6 +25,7 @@
     "start": "electron-vite dev",
     "prestart": "npm run build:scoreboard",
     "dev": "electron-vite dev",
+    "dev:vm": "node scripts/dev-vm.mjs",
     "marketing:lobby": "electron-vite dev --mode marketing",
     "overlay:probe": "node scripts/start-cosmetic-overlay-probe.cjs",
     "ally-tags:probe": "node scripts/start-cosmetic-overlay-probe.cjs ally-tags",

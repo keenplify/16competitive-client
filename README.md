@@ -109,6 +109,11 @@ running, modifying, or reusing the source requires separate written permission.
 See [AGENTS.md](AGENTS.md) for architecture and security rules, and [docs](docs)
 for integration details relevant to authorized maintainers.
 
+Authorized maintainers on the configured Fedora build host can use
+`npm run dev:vm` to open the existing Windows VM and run the current source there.
+See [Windows VM development](docs/dev-vm.md) for sign-in, local backend forwarding,
+source sync, and graphics requirements.
+
 ## Feedback
 
 Bug reports and player feedback are welcome through

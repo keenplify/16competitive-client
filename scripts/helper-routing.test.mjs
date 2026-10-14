@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
 
-async function harness() {
+async function harness(localDevelopment = false) {
   const calls = []
   let response = 'approved'
   const manifest = { version: '0.1.42', platform: 'linux', arch: 'x64' }
@@ -40,13 +40,18 @@ async function harness() {
     'node:fs/promises': { readFile: async () => JSON.stringify(manifest) },
     'node:path': { dirname: () => '/helper', join: (...parts) => parts.join('/') },
     '../../../helper-release.json': {
-      default: { version: manifest.version, publicKeyPem: 'fixture' }
+      default: {
+        version: manifest.version,
+        publicKeyPem: 'fixture',
+        registryUrl: 'https://signed.example'
+      }
     },
     './helper-release-verifier': {
       verifyHelperRelease: (envelope) => envelope,
       verifyHelperBinary: () => {}
     },
-    '../matchmaking-regions': { resolveServiceApiUrl: async () => 'https://preferred.example' }
+    '../matchmaking-regions': { resolveServiceApiUrl: async () => 'https://preferred.example' },
+    '../config': { LOCAL_DEVELOPMENT: localDevelopment }
   }
   const module = new vm.SourceTextModule(source, { context })
   await module.link((name) => {
@@ -69,6 +74,18 @@ async function harness() {
     }
   }
 }
+
+test('local development keeps native approval on the pinned HTTPS registry', async () => {
+  const h = await harness(true)
+  await h.verify('/helper/binary')
+  assert.equal(h.calls[0].url, 'https://signed.example/helper-releases/0.1.42/linux/x64')
+  await assert.rejects(
+    h.verify('/helper/binary', 'http://127.0.0.1:3000'),
+    /Invalid helper registry/
+  )
+  h.setResponse('mismatch')
+  await assert.rejects(h.verify('/helper/binary', 'https://other.example'), /differs/)
+})
 
 test('approval uses preferred region before login and scopes its cache to match origin', async () => {
   const h = await harness()

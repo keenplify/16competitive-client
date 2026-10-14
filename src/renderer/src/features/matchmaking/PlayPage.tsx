@@ -480,17 +480,17 @@ export function PlayPage({
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
-        <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
-          <div className="w-full sm:w-80">
+        <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
+          <div className="w-full min-w-0 sm:w-auto">
             <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
               {playView === 'matchmaking' ? 'Find a match' : 'Browse custom games'}
             </h1>
           </div>
-          <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:w-auto">
+          <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:ml-auto sm:w-auto">
             <div
               className={twMerge(
                 'flex items-center gap-1 pb-3 text-xs text-neutral-300',
-                playView === 'custom' && 'invisible pointer-events-none'
+                playView === 'custom' && 'hidden'
               )}
             >
               <label className="flex cursor-pointer items-center gap-2">
@@ -518,7 +518,7 @@ export function PlayPage({
             <label
               className={twMerge(
                 'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
-                playView === 'custom' && 'invisible pointer-events-none'
+                playView === 'custom' && 'hidden'
               )}
               aria-hidden={playView === 'custom'}
             >
@@ -532,7 +532,7 @@ export function PlayPage({
               />
               Expand search after 90 seconds
             </label>
-            <div className="w-72">
+            <div className="w-72 max-w-full shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
                 <label className="font-semibold tracking-wide uppercase" htmlFor="play-region">
                   {playView === 'custom' ? 'Server' : 'Preferred region'}

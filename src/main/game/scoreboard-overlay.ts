@@ -421,7 +421,7 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'round-accolade.support'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
-      const gameSettings = await getGameSettings()
+      const gameSettings = await getGameSettings(true)
       await writeCrosshairConfig(directory, gameSettings.crosshair)
       // Steam starts app 10 from its own process, so the environment on
       // `steam -applaunch` is lost. A Steam Launch Options wrapper runs inside
