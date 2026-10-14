@@ -2379,3 +2379,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added tooltips to explain 5v5 matchmaking preferences.
 - Improved the Play page’s matchmaking preference behavior.
+
+## v2026.1014.1 — 2026-10-14
+
+### Crosshair
+
+- Added crosshair synchronization with improved configuration handling and error messages.
+
+### Matchmaking
+
+- Improved matchmaking panel layout and readability.
+- Refined matchmaking status handling and survey prompts.
+
+### Interface
+
+- Improved leaderboard title display.
+- Refined reward messages when redeeming codes.
+- Improved skin asset sync status readability.
+- Standardized translations for clearer, more consistent text.
