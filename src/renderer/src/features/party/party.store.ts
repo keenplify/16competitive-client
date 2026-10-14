@@ -1,3 +1,4 @@
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { create } from 'zustand'
 import type {
   Party,
@@ -10,10 +11,10 @@ import { useAuthStore } from '../auth/auth.store'
 import { playChatMessageSound } from '../chat/chat-message-sound'
 import { useLobbyLoadoutStore } from './lobby-loadout.store'
 import { buildMarketingLobby, MARKETING_LOBBY_ENABLED } from './marketing-lobby'
-import { communityLinks } from '../community/links'
+import { communityLinks, resolveCommunityLinks } from '../community/links'
 
 type PartyRequestStatus = 'idle' | 'loading' | 'inviting' | 'responding' | 'leaving'
-export type ChatTab = 'party' | 'room' | 'language' | 'global'
+export type ChatTab = 'party' | 'room' | 'language' | 'global' | 'community'
 
 export interface CommunityChatAnnouncement {
   id: string
@@ -630,6 +631,9 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   maybeShowCommunityAnnouncement: () => {
     const playerId = useAuthStore.getState().session?.player.id
+    const socialLinks = resolveCommunityLinks(usePartnerBrandingStore.getState().branding).filter(
+      (link) => link.label !== 'Ko-fi'
+    )
     if (!playerId || socialLinks.length === 0) return
     const now = Date.now()
     const previous = readCommunityAnnouncementState(playerId)

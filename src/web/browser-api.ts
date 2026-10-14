@@ -1,3 +1,9 @@
+import { parsePartnerServerStatuses } from '../shared/partner-community'
+import {
+  parseCommunityHistory,
+  parseCommunityMessage,
+  parseCommunityMembers
+} from '../shared/partner-community'
 import { getBrowserPartnerId } from './partner-attribution'
 import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
@@ -496,6 +502,26 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 
 const api: Window['api'] = {
   auth: browserAuthApi,
+  communityChat: {
+    members: async (page) =>
+      parseCommunityMembers(await authenticatedGet(`/partners/community/members?page=${page}`)),
+    history: async () => parseCommunityHistory(await authenticatedGet('/partners/community/chat')),
+    send: async (communityId, message) =>
+      parseCommunityMessage(await jsonPost('/partners/community/chat', { communityId, message }))
+  },
+  partnerServers: {
+    async list() {
+      return parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
+    },
+    async connect(id) {
+      const servers = parsePartnerServerStatuses(
+        await authenticatedGet('/partners/community/servers')
+      )
+      const server = servers.find((row) => row.id === id && row.online)
+      if (!server) throw new Error('INVALID_SERVER')
+      window.location.href = `steam://connect/${server.host}:${server.port}`
+    }
+  },
   partnerBranding: {
     async get() {
       const token = getWebSessionToken()

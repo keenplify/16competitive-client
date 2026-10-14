@@ -10,7 +10,7 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { usePartyStore } from '../party/party.store'
 
 interface CustomGamesState {
-  playView: 'matchmaking' | 'custom'
+  playView: 'matchmaking' | 'custom' | 'partner'
   createModalOpen: boolean
   rooms: CustomGameRoom[]
   currentRoom: CustomGameRoom | null
@@ -28,7 +28,7 @@ interface CustomGamesState {
   sendChat: () => Promise<void>
   refresh: () => Promise<void>
   restoreRoom: (hostApiUrl: string) => Promise<void>
-  setPlayView: (view: 'matchmaking' | 'custom') => void
+  setPlayView: (view: 'matchmaking' | 'custom' | 'partner') => void
   openCreateModal: () => void
   closeCreateModal: () => void
   createRoom: (settings: CustomGameSettings) => Promise<boolean>

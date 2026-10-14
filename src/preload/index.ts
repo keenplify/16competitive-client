@@ -1,3 +1,9 @@
+import {
+  PARTNER_SERVER_CHANNELS,
+  COMMUNITY_CHAT_CHANNELS,
+  type PartnerServersApi,
+  type CommunityChatApi
+} from '../shared/partner-community'
 import { PARTNER_BRANDING_CHANNEL, type PartnerBrandingApi } from '../shared/partner-branding'
 import { ADMIN_DEMO_CHANNELS, type AdminDemosApi } from '../shared/admin-demos'
 import { contextBridge, ipcRenderer } from 'electron'
@@ -315,7 +321,18 @@ const adminDemos: AdminDemosApi = {
   list: (page) => ipcRenderer.invoke(ADMIN_DEMO_CHANNELS.list, page),
   watch: (id) => ipcRenderer.invoke(ADMIN_DEMO_CHANNELS.watch, id)
 }
+const partnerServers: PartnerServersApi = {
+  list: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.list),
+  connect: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.connect, id)
+}
+const communityChat: CommunityChatApi = {
+  members: (page) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.members, page),
+  history: () => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.history),
+  send: (id, message) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.send, id, message)
+}
 const api = {
+  partnerServers,
+  communityChat,
   adminDemos,
   auth,
   partnerBranding,

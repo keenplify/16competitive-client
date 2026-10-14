@@ -42,7 +42,7 @@ import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
-import { PartnerLobbyBackground } from '../partner-branding/PartnerLobbyBackground'
+import { PartnerBackground } from '../partner-branding/PartnerBackground'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   demos: 'Admin demos',
@@ -166,7 +166,7 @@ export function LobbyPage(): JSX.Element {
   const matchNeedsAttention = queueStatus === 'match_found' || queueStatus === 'ready_check'
   const showingPlaySelection =
     page === 'play' &&
-    playView === 'matchmaking' &&
+    playView !== 'custom' &&
     !completedMatch &&
     ['idle', 'joining', 'queued', 'leaving'].includes(queueStatus)
   const [installationReady, setInstallationReady] = useState<boolean | null>(null)
@@ -412,7 +412,7 @@ export function LobbyPage(): JSX.Element {
       className="relative min-h-screen bg-neutral-950 bg-cover bg-center bg-fixed text-white"
       style={{ backgroundImage: `url(${dustBackground})` }}
     >
-      {page === 'lobby' && <PartnerLobbyBackground />}
+      <PartnerBackground />
       <LobbyScene player={player} party={party} />
       {page === 'lobby' &&
         !completedMatch &&

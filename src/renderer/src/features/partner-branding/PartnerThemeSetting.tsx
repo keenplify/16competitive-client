@@ -6,41 +6,42 @@ const copy: Record<SupportedLanguageCode, { label: string; description: string }
   en: {
     label: 'Partner theme',
     description:
-      'Show your partner’s colors and lobby background. Turn off to use the standard launcher appearance.'
+      'Show your partner’s colors and background throughout the launcher. Turn off to use the standard launcher appearance.'
   },
   ru: {
     label: 'Тема партнёра',
     description:
-      'Показывать цвета партнёра и фон лобби. Выключите, чтобы вернуть обычный вид лаунчера.'
+      'Показывать цвета и фон партнёра во всём лаунчере. Выключите, чтобы вернуть обычный вид лаунчера.'
   },
   tl: {
     label: 'Tema ng partner',
     description:
-      'Ipakita ang mga kulay ng partner at background ng lobby. I-off para bumalik sa karaniwang hitsura ng launcher.'
+      'Ipakita ang mga kulay at background ng partner sa buong launcher. I-off para bumalik sa karaniwang hitsura ng launcher.'
   },
   th: {
     label: 'ธีมพาร์ทเนอร์',
-    description: 'แสดงสีของพาร์ทเนอร์และพื้นหลังล็อบบี้ ปิดเพื่อใช้รูปลักษณ์ปกติของตัวเปิดเกม'
+    description:
+      'แสดงสีและพื้นหลังของพาร์ทเนอร์ทั่วทั้งตัวเปิดเกม ปิดเพื่อใช้รูปลักษณ์ปกติของตัวเปิดเกม'
   },
   id: {
     label: 'Tema mitra',
     description:
-      'Tampilkan warna mitra dan latar lobi. Matikan untuk memakai tampilan peluncur standar.'
+      'Tampilkan warna dan latar mitra di seluruh peluncur. Matikan untuk memakai tampilan peluncur standar.'
   },
   hi: {
     label: 'पार्टनर थीम',
     description:
-      'पार्टनर के रंग और लॉबी की पृष्ठभूमि दिखाएँ। सामान्य लॉन्चर रूप के लिए इसे बंद करें।'
+      'पूरे लॉन्चर में पार्टनर के रंग और पृष्ठभूमि दिखाएँ। सामान्य लॉन्चर रूप के लिए इसे बंद करें।'
   },
   pt: {
     label: 'Tema do parceiro',
     description:
-      'Mostre as cores do parceiro e o fundo do lobby. Desative para usar a aparência padrão do launcher.'
+      'Mostre as cores e o fundo do parceiro em todo o launcher. Desative para usar a aparência padrão do launcher.'
   },
   ja: {
     label: 'パートナーテーマ',
     description:
-      'パートナーの色とロビー背景を表示します。標準のランチャー表示に戻すにはオフにしてください。'
+      'ランチャー全体にパートナーの色と背景を表示します。標準のランチャー表示に戻すにはオフにしてください。'
   }
 }
 

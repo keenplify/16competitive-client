@@ -1,3 +1,8 @@
+import {
+  parseCommunityBranding,
+  type PartnerServer,
+  type PartnerSocialLinks
+} from './partner-community'
 export const PARTNER_BRANDING_CHANNEL = 'partner-branding:get'
 
 export interface PartnerBranding {
@@ -7,7 +12,13 @@ export interface PartnerBranding {
   tertiaryColor: string
   backgroundUrl: string | null
   backgroundKind: 'image' | 'video' | null
+  loginBackgroundUrl: string | null
+  loginBackgroundKind: 'image' | 'video' | null
   logoUrl: string | null
+  communityName: string | null
+  customSocialLinksEnabled: boolean
+  socialLinks: PartnerSocialLinks
+  servers: PartnerServer[]
 }
 
 export interface PartnerBrandingResponse {
@@ -56,9 +67,20 @@ export const parsePartnerBranding = (
     throw new Error('Invalid partner background.')
   }
   const logoUrl = value.logoUrl ?? null
+  const loginBackgroundKind = value.loginBackgroundKind ?? null
+  const loginBackgroundUrl = value.loginBackgroundUrl ?? null
+  if (
+    (loginBackgroundKind !== null &&
+      loginBackgroundKind !== 'image' &&
+      loginBackgroundKind !== 'video') ||
+    (loginBackgroundUrl !== null && typeof loginBackgroundUrl !== 'string') ||
+    (loginBackgroundKind === null) !== (loginBackgroundUrl === null)
+  )
+    throw new Error('Invalid partner login background.')
   if (logoUrl !== null && typeof logoUrl !== 'string') throw new Error('Invalid partner logo.')
   for (const [mediaUrl, endpoint] of [
     [backgroundUrl, 'asset'],
+    [loginBackgroundUrl, 'login-asset'],
     [logoUrl, 'logo']
   ] as const) {
     if (typeof mediaUrl !== 'string') continue
@@ -86,12 +108,15 @@ export const parsePartnerBranding = (
   }
   return {
     branding: {
+      ...parseCommunityBranding(value),
       partnerId: value.partnerId,
       primaryColor: value.primaryColor,
       secondaryColor: value.secondaryColor,
       tertiaryColor: value.tertiaryColor,
       backgroundUrl: backgroundUrl as string | null,
       backgroundKind: backgroundKind as 'image' | 'video' | null,
+      loginBackgroundUrl: loginBackgroundUrl as string | null,
+      loginBackgroundKind: loginBackgroundKind as 'image' | 'video' | null,
       logoUrl: logoUrl as string | null
     }
   }

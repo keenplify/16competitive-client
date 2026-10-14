@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/renderer/src/features/auth/AuthPage.tsx"
+        ],
+        "createdAt": "2026-10-14T09:06:53.109Z",
+        "reason": "Agent review: the only findings are existing selected tabs with near-black text on bright sky blue, intentionally retaining readable contrast."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/renderer/src/features/party/PartyChat.tsx"
+        ],
+        "createdAt": "2026-10-14T09:50:01.062Z",
+        "reason": "Agent review: existing unread badges intentionally use near-black text on bright sky blue for strong contrast. Preserve all three badge states."
+      }
+    ]
+  }
+}

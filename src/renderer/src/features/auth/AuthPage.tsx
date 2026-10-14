@@ -3,7 +3,7 @@ import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { PartnerLogo } from '../partner-branding/PartnerLogo'
-import { PartnerLobbyBackground } from '../partner-branding/PartnerLobbyBackground'
+import { PartnerBackground } from '../partner-branding/PartnerBackground'
 import { TextField } from '../../components/ui/TextField'
 import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
@@ -295,7 +295,7 @@ export function AuthPage(): JSX.Element {
         src={operationBackground}
         alt=""
       />
-      <PartnerLobbyBackground className="absolute -z-20" />
+      <PartnerBackground surface="login" className="absolute -z-20" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-950/35" />
       {!webRuntime && (
         <div className="fixed left-6 top-6 z-20 w-80 max-w-[calc(100vw-3rem)]" aria-live="polite">

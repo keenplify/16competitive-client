@@ -1,3 +1,5 @@
+import { useCommunityChatStore } from '../partner-branding/community-chat.store'
+import { communityText } from '../partner-branding/community-copy'
 import { MessageSquare, UserPlus, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -9,12 +11,6 @@ import { SUPPORTED_LANGUAGES, translate, useLanguageStore } from '../i18n/i18n'
 import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { usePartyStore, type ChatTab } from './party.store'
-
-const baseTabs: Array<{ id: ChatTab; label: string }> = [
-  { id: 'party', label: 'Party' },
-  { id: 'language', label: 'Language Chat' },
-  { id: 'global', label: 'Global Chat' }
-]
 
 const formatChatTimestamp = (sentAt: string, language: string): string => {
   const timestamp = Date.parse(sentAt)
@@ -70,6 +66,17 @@ export function PartyChat(): JSX.Element {
   const sendGlobalChat = usePartyStore((state) => state.sendGlobalChat)
   const sendLanguageChat = usePartyStore((state) => state.sendLanguageChat)
   const language = useLanguageStore((state) => state.language)
+  const communityId = useCommunityChatStore((state) => state.communityId)
+  const communityName = useCommunityChatStore((state) => state.name)
+  const communityMessages = useCommunityChatStore((state) => state.messages)
+  const communityDraft = useCommunityChatStore((state) => state.draft)
+  const communitySending = useCommunityChatStore((state) => state.sending)
+  const communityError = useCommunityChatStore((state) => state.error)
+  const loadCommunity = useCommunityChatStore((state) => state.load)
+  const setCommunityDraft = useCommunityChatStore((state) => state.setDraft)
+  const sendCommunity = useCommunityChatStore((state) => state.send)
+  const communityLabel = communityName || communityText(language, 'community')
+
   const room = useCustomGamesStore((state) => state.currentRoom)
   const roomId = room?.id
   const roomHostApiUrl = room?.hostApiUrl
@@ -125,6 +132,26 @@ export function PartyChat(): JSX.Element {
   ].sort((left, right) => left.sentAt.localeCompare(right.sentAt))
 
   useEffect(() => {
+    if (!playerId) return
+    void loadCommunity()
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void loadCommunity()
+    }, 15000)
+    return () => window.clearInterval(timer)
+  }, [playerId, loadCommunity])
+  useEffect(() => {
+    if (!playerId || chatTab !== 'community' || !chatOpen) return
+    void loadCommunity()
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void loadCommunity()
+    }, 3000)
+    return () => window.clearInterval(timer)
+  }, [playerId, chatTab, chatOpen, loadCommunity])
+  useEffect(() => {
+    if ((!party && chatTab === 'party') || (!communityId && chatTab === 'community'))
+      setChatTab('language')
+  }, [party, communityId, chatTab, setChatTab])
+  useEffect(() => {
     startFriendChat()
     return stopFriendChat
   }, [startFriendChat, stopFriendChat])
@@ -139,11 +166,12 @@ export function PartyChat(): JSX.Element {
 
   useEffect(() => {
     const previousRoomId = previousRoomIdRef.current
-    if (!room && usePartyStore.getState().chatTab === 'room') setChatTab('party')
+    if (!room && usePartyStore.getState().chatTab === 'room')
+      setChatTab(party ? 'party' : 'language')
     if (room?.id === previousRoomId) return
     previousRoomIdRef.current = room?.id ?? null
     if (room) setChatTab('room')
-  }, [room, setChatTab])
+  }, [room, party, setChatTab])
 
   useEffect(() => {
     if (!roomId) return
@@ -225,7 +253,8 @@ export function PartyChat(): JSX.Element {
     roomEntries,
     globalEntries,
     communityAnnouncement,
-    languageEntries
+    languageEntries,
+    communityMessages
   ])
 
   useEffect(() => {
@@ -277,6 +306,7 @@ export function PartyChat(): JSX.Element {
     }
     if (chatTab === 'room') void sendRoomChat()
     else if (chatTab === 'party') void sendPartyChat()
+    else if (chatTab === 'community') void sendCommunity()
     else if (chatTab === 'language') void sendLanguageChat()
     else void sendGlobalChat()
   }
@@ -294,60 +324,84 @@ export function PartyChat(): JSX.Element {
     void requestFriend(id)
   }
 
-  const draft = activeFriendId
-    ? (friendConversation?.draft ?? '')
-    : chatTab === 'room'
-      ? roomDraft
-      : chatTab === 'party'
-        ? partyDraft
-        : chatTab === 'language'
-          ? languageDraft
-          : globalDraft
-  const sending = activeFriendId
-    ? Boolean(friendConversation?.sending)
-    : chatTab === 'room'
-      ? roomSending
-      : chatTab === 'party'
-        ? partySending
-        : chatTab === 'language'
-          ? languageSending
-          : globalSending
-  const error = activeFriendId
-    ? friendConversation?.error
-    : chatTab === 'room'
-      ? roomError === 'load'
-        ? translate(language, 'chat.roomLoadError')
-        : roomError === 'send'
-          ? translate(language, 'chat.roomSendError')
-          : null
-      : chatTab === 'party'
-        ? partyError
-        : chatTab === 'language'
-          ? languageError
-          : globalError
-  const canSend = activeFriendId
-    ? Boolean(friendConversation)
-    : chatTab === 'room'
-      ? Boolean(room)
-      : chatTab !== 'party' || Boolean(party)
-  const placeholder = activeFriendId
-    ? `Message ${friendConversation?.friend.username ?? 'friend'}`
-    : chatTab === 'room'
-      ? translate(language, 'chat.roomPlaceholder')
-      : chatTab === 'party'
-        ? 'Say to party'
-        : chatTab === 'language'
-          ? `Say to ${globalLanguageLabel} chat`
-          : 'Say to Global Chat'
-  const messageLabel = activeFriendId
-    ? `Private message to ${friendConversation?.friend.username ?? 'friend'}`
-    : chatTab === 'room'
-      ? translate(language, 'chat.roomMessageLabel')
-      : chatTab === 'party'
-        ? 'Party message'
-        : chatTab === 'language'
-          ? `${globalLanguageLabel} chat message`
-          : 'Global chat message'
+  const draft =
+    !activeFriendId && chatTab === 'community'
+      ? communityDraft
+      : activeFriendId
+        ? (friendConversation?.draft ?? '')
+        : chatTab === 'room'
+          ? roomDraft
+          : chatTab === 'party'
+            ? partyDraft
+            : chatTab === 'language'
+              ? languageDraft
+              : globalDraft
+  const sending =
+    !activeFriendId && chatTab === 'community'
+      ? communitySending
+      : activeFriendId
+        ? Boolean(friendConversation?.sending)
+        : chatTab === 'room'
+          ? roomSending
+          : chatTab === 'party'
+            ? partySending
+            : chatTab === 'language'
+              ? languageSending
+              : globalSending
+  const error =
+    !activeFriendId && chatTab === 'community'
+      ? communityError
+        ? communityText(language, communityError)
+        : null
+      : activeFriendId
+        ? friendConversation?.error
+        : chatTab === 'room'
+          ? roomError === 'load'
+            ? translate(language, 'chat.roomLoadError')
+            : roomError === 'send'
+              ? translate(language, 'chat.roomSendError')
+              : null
+          : chatTab === 'party'
+            ? partyError
+            : chatTab === 'language'
+              ? languageError
+              : globalError
+  const canSend =
+    !activeFriendId && chatTab === 'community'
+      ? Boolean(communityId)
+      : activeFriendId
+        ? Boolean(friendConversation)
+        : chatTab === 'room'
+          ? Boolean(room)
+          : chatTab !== 'party' || Boolean(party)
+  const placeholder =
+    !activeFriendId && chatTab === 'community'
+      ? communityText(language, 'chatPlaceholder', { community: communityLabel })
+      : activeFriendId
+        ? `Message ${friendConversation?.friend.username ?? 'friend'}`
+        : chatTab === 'room'
+          ? translate(language, 'chat.roomPlaceholder')
+          : chatTab === 'party'
+            ? communityText(language, 'chatPlaceholder', {
+                community: communityText(language, 'party')
+              })
+            : chatTab === 'language'
+              ? communityText(language, 'chatPlaceholder', { community: globalLanguageLabel })
+              : communityText(language, 'chatPlaceholder', {
+                  community: communityText(language, 'global')
+                })
+  const messageLabel =
+    !activeFriendId && chatTab === 'community'
+      ? communityText(language, 'chatLabel', { community: communityLabel })
+      : activeFriendId
+        ? `Private message to ${friendConversation?.friend.username ?? 'friend'}`
+        : chatTab === 'room'
+          ? translate(language, 'chat.roomMessageLabel')
+          : chatTab === 'party'
+            ? 'Party message'
+            : chatTab === 'language'
+              ? `${globalLanguageLabel} chat message`
+              : 'Global chat message'
 
   return (
     <>
@@ -398,33 +452,36 @@ export function PartyChat(): JSX.Element {
           <div className="shrink-0 border-b border-white/15 bg-black/50">
             <div className="flex min-w-0">
               <div
-                className="grid min-w-0 flex-1 grid-cols-3"
+                className="flex min-w-0 flex-1 overflow-x-auto"
                 role="tablist"
                 aria-label={
                   room ? translate(language, 'chat.roomTabsLabel') : 'Public and party chat'
                 }
               >
-                {(room
-                  ? [
-                      { id: 'room' as const, label: translate(language, 'chat.roomTab') },
-                      ...baseTabs.slice(1)
-                    ]
-                  : baseTabs
-                ).map((tab) => (
+                {[
+                  ...(room
+                    ? [{ id: 'room' as const, label: translate(language, 'chat.roomTab') }]
+                    : []),
+                  ...(party
+                    ? [{ id: 'party' as const, label: communityText(language, 'party') }]
+                    : []),
+                  { id: 'language' as const, label: globalLanguageLabel },
+                  { id: 'global' as const, label: communityText(language, 'global') },
+                  ...(communityId ? [{ id: 'community' as const, label: communityLabel }] : [])
+                ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     role="tab"
                     aria-selected={!activeFriendId && chatTab === tab.id}
+                    title={tab.label}
                     className={twMerge(
-                      'h-9 min-w-0 border-b-2 border-transparent px-2 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
+                      'h-9 min-w-16 flex-1 border-b-2 border-transparent px-2 text-xs font-semibold tracking-wide text-neutral-500 uppercase transition hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400',
                       !activeFriendId && chatTab === tab.id && 'border-sky-400 text-white'
                     )}
                     onClick={() => selectBaseTab(tab.id)}
                   >
-                    <span className="block truncate">
-                      {tab.id === 'language' ? `${globalLanguageLabel} Chat` : tab.label}
-                    </span>
+                    <span className="block truncate">{tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -496,7 +553,7 @@ export function PartyChat(): JSX.Element {
             role="log"
             aria-live="polite"
             aria-label={
-              activeFriendId
+              !activeFriendId && chatTab === 'community' ? communityText(language,'chatLabel',{community:communityLabel}) : activeFriendId
                 ? `Private messages with ${friendConversation?.friend.username ?? 'friend'}`
                 : chatTab === 'party'
                   ? 'Party messages'
@@ -603,6 +660,28 @@ export function PartyChat(): JSX.Element {
                   )
                 )}
               </>
+            ) : chatTab === 'community' ? (
+              <>
+                {communityMessages.length === 0 && (
+                  <p className="text-neutral-400">{communityText(language, 'chatEmpty')}</p>
+                )}
+                {communityMessages.map((entry) => (
+                  <p
+                    key={entry.id}
+                    className="break-words"
+                    title={formatChatTimestamp(entry.sentAt, language)}
+                  >
+                    <span
+                      className="text-sky-300"
+                      onContextMenu={(event) => showPlayerMenu(event, entry.sender)}
+                    >
+                      {entry.sender.username}
+                    </span>
+                    <span className="text-neutral-400">: </span>
+                    <span className="text-neutral-100">{entry.message}</span>
+                  </p>
+                ))}
+              </>
             ) : chatTab === 'language' ? (
               <>
                 {languageEntries.length === 0 && (
@@ -699,6 +778,8 @@ export function PartyChat(): JSX.Element {
                       setRoomDraft(event.target.value)
                     } else if (chatTab === 'party') {
                       setPartyDraft(event.target.value)
+                    } else if (chatTab === 'community') {
+                      setCommunityDraft(event.target.value)
                     } else if (chatTab === 'language') {
                       setLanguageDraft(event.target.value)
                     } else {
@@ -712,19 +793,15 @@ export function PartyChat(): JSX.Element {
                   type="submit"
                   disabled={!draft.trim() || sending}
                 >
-                  Send
+                  {communityText(language, 'send')}
                 </Button>
               </div>
-              {chatTab === 'room' && !activeFriendId ? (
-                <p
-                  className="h-4 truncate px-2 text-xs text-red-400"
-                  role={error ? 'alert' : undefined}
-                >
-                  {error}
-                </p>
-              ) : (
-                error && <p className="px-2 pt-1 text-xs text-red-400">{error}</p>
-              )}
+              <p
+                className="h-4 truncate px-2 text-xs text-red-400"
+                role={error ? 'alert' : undefined}
+              >
+                {error}
+              </p>
             </form>
           ) : (
             <div className="border-t border-white/15 bg-black/50 p-2">

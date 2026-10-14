@@ -1,3 +1,6 @@
+import { listPartnerServers, connectPartnerServer } from './partner-servers'
+import { communityChatHistory, sendCommunityChat, communityMembers } from './community-chat'
+import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
 import { PARTNER_BRANDING_CHANNEL } from '../shared/partner-branding'
 import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
@@ -804,6 +807,13 @@ app.whenReady().then(async () => {
       submitMatchSurvey(matchId, funRating, fairnessRating)
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.list, () => listPartnerServers())
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown) => connectPartnerServer(id))
+  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.history, () => communityChatHistory())
+  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown) => communityMembers(page))
+  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>
+    sendCommunityChat(id, message)
+  )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))

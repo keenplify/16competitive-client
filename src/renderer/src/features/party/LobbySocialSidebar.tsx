@@ -1,3 +1,4 @@
+import { CommunityMembersSection } from '../partner-branding/CommunityMembersSection'
 import {
   Check,
   Gamepad2,
@@ -612,6 +613,9 @@ export function LobbySocialSidebar({
                 </p>
               </div>
             )}
+          </div>
+          <div className="min-h-12 shrink-0">
+            <CommunityMembersSection />
           </div>
           <div id="friends-rail-voice-slot" className="shrink-0" />
         </div>

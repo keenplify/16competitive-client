@@ -112,6 +112,15 @@ let activeUserConfigHandoff: {
 } | null = null
 const suppressedNextClientMatches = new Set<string>()
 let matchConfigCleanup: Promise<void> = Promise.resolve()
+const pendingGameCloses = new Set<Promise<number>>()
+const trackGameClose = (operation: Promise<number>): Promise<number> => {
+  pendingGameCloses.add(operation)
+  void operation.then(
+    () => pendingGameCloses.delete(operation),
+    () => pendingGameCloses.delete(operation)
+  )
+  return operation
+}
 
 export const updateActiveCrosshair = async (profile: CrosshairProfile): Promise<void> => {
   await activeScoreboardSession?.session.updateCrosshair(profile)
@@ -154,9 +163,16 @@ const finishScoreboardSession = (matchId?: string): void => {
 /** A managed game already requires the launcher. Close it first so Windows
  * releases its DLLs, then await every restoration before Electron exits. */
 export const shutdownManagedGame = async (): Promise<void> => {
+  const matchId = launchedMatchId
   const executable = launchedExecutablePath
   const directory = launchedGameDirectory
   const child = gameProcess
+  // Release ownership before awaiting OS cleanup: late match events must not
+  // discover and close an ordinary replacement game using the same executable.
+  launchedMatchId = null
+  launchedExecutablePath = null
+  launchedGameDirectory = null
+  gameProcess = null
   steamExitWatchGeneration++
   linuxMonitorGeneration++
   gameProcessGeneration++
@@ -171,6 +187,7 @@ export const shutdownManagedGame = async (): Promise<void> => {
   })()
   const results = await Promise.allSettled([
     closing,
+    ...pendingGameCloses,
     ScoreboardOverlaySession.waitForCleanup(),
     finishVoicePttSession(),
     restoreMatchUserConfig(),
@@ -179,11 +196,29 @@ export const shutdownManagedGame = async (): Promise<void> => {
   clearMatchConfig()
   await matchConfigCleanup
   const failed = results.filter((result) => result.status === 'rejected')
-  if (failed.length)
+  if (failed.length) {
+    // Keep enough ownership metadata to retry cleanup; do not launch a replacement.
+    launchedMatchId = matchId
+    launchedExecutablePath = executable
+    launchedGameDirectory = directory
+    gameProcess = child
     throw new AggregateError(
       failed.map((result) => result.reason),
       'Managed game cleanup failed'
     )
+  }
+}
+
+/** Serialize ordinary community launches with managed launches and restoration. */
+export const launchOrdinaryCounterStrike = (launch: () => Promise<void>): Promise<void> => {
+  const operation = launchQueue
+    .catch(() => undefined)
+    .then(async () => {
+      await shutdownManagedGame()
+      await launch()
+    })
+  launchQueue = operation.catch(() => undefined)
+  return operation
 }
 
 const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): void => {
@@ -468,7 +503,9 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   launchedExecutablePath = null
 }
 
-const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<number> => {
+const closeLinuxCounterStrikeProcesses = (gameDirectory: string): Promise<number> =>
+  trackGameClose(performCloseLinuxCounterStrikeProcesses(gameDirectory))
+const performCloseLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<number> => {
   const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
   let terminated = 0
 
@@ -497,7 +534,11 @@ const closeLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<
   return terminated
 }
 
-const closeWindowsCounterStrikeProcesses = async (executablePath: string): Promise<number> => {
+const closeWindowsCounterStrikeProcesses = (executablePath: string): Promise<number> =>
+  trackGameClose(performCloseWindowsCounterStrikeProcesses(executablePath))
+const performCloseWindowsCounterStrikeProcesses = async (
+  executablePath: string
+): Promise<number> => {
   const script = [
     "$target = [Environment]::GetEnvironmentVariable('CS16_TARGET_EXE')",
     '$matches = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $target, [System.StringComparison]::OrdinalIgnoreCase) })',

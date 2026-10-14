@@ -1,3 +1,6 @@
+import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
+import { useCommunityText } from '../partner-branding/community-copy'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useEffect, useState, type CSSProperties, type JSX } from 'react'
 import { Check, CircleHelp, Copy, LogOut } from 'lucide-react'
 import { toast } from 'react-toastify'
@@ -109,6 +112,10 @@ export function PlayPage({
   friendsCollapsed?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
+  const communityText = useCommunityText()
+  const hasPartnerServers = usePartnerBrandingStore((state) =>
+    Boolean(state.branding?.servers.length)
+  )
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -145,6 +152,9 @@ export function PlayPage({
   const navigate = useNavigationStore((state) => state.navigate)
   const playView = useCustomGamesStore((state) => state.playView)
   const setPlayView = useCustomGamesStore((state) => state.setPlayView)
+  useEffect(() => {
+    if (playView === 'partner' && !hasPartnerServers) setPlayView('matchmaking')
+  }, [playView, hasPartnerServers, setPlayView])
   const currentCustomRoom = useCustomGamesStore((state) => state.currentRoom)
   const moveCustomRoom = useCustomGamesStore((state) => state.moveServer)
   const movingCustomRoom = useCustomGamesStore((state) => state.movingServer)
@@ -467,7 +477,7 @@ export function PlayPage({
     <main
       className={twMerge(
         'relative min-h-0 p-3 text-white sm:p-4',
-        playView === 'matchmaking'
+        playView !== 'custom'
           ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
           : 'min-h-[calc(100vh-5rem)]',
         playView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
@@ -476,17 +486,26 @@ export function PlayPage({
       <div
         className={twMerge(
           'mx-auto w-full max-w-7xl',
-          playView === 'matchmaking' && 'flex h-full min-h-0 flex-col',
+          playView !== 'custom' && 'flex h-full min-h-0 flex-col',
           playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
         <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
           <div className="w-full min-w-0 sm:w-auto">
             <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
-              {playView === 'matchmaking' ? 'Find a match' : 'Browse custom games'}
+              {playView === 'partner'
+                ? communityText('ourServers')
+                : playView === 'matchmaking'
+                  ? 'Find a match'
+                  : 'Browse custom games'}
             </h1>
           </div>
-          <div className="flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:ml-auto sm:w-auto">
+          <div
+            className={twMerge(
+              'flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:ml-auto sm:w-auto',
+              playView === 'partner' && 'hidden'
+            )}
+          >
             <div
               className={twMerge(
                 'flex items-center gap-1 pb-3 text-xs text-neutral-300',
@@ -586,16 +605,27 @@ export function PlayPage({
 
         <TabList
           className="mt-3 shrink-0"
-          ariaLabel="Play modes"
+          ariaLabel={communityText('playModes')}
           value={playView}
           items={[
             { value: 'matchmaking', label: 'Matchmaking' },
+            ...(hasPartnerServers
+              ? [
+                  {
+                    value: 'partner' as const,
+                    label: communityText('ourServers'),
+                    disabled: isSearching
+                  }
+                ]
+              : []),
             { value: 'custom', label: 'Custom game' }
           ]}
           onChange={setPlayView}
         />
 
-        {playView === 'matchmaking' ? (
+        {playView === 'partner' ? (
+          <PartnerServersPanel disabled={queueStatus !== 'idle'} />
+        ) : playView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
             <TabList
               className="shrink-0"

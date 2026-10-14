@@ -22,7 +22,7 @@ import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
-import { communityLinks, desktopAppUrl } from '../community/links'
+import { useCommunityLinks, desktopAppUrl } from '../community/links'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { ReferralSettings } from './ReferralSettings'
@@ -53,6 +53,7 @@ const readableError = (error: unknown): string =>
     : 'Something went wrong. Please try again.'
 
 export function SettingsPage(): JSX.Element {
+  const communityLinks = useCommunityLinks()
   const { language, t } = useTranslation()
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)

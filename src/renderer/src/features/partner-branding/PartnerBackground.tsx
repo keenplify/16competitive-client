@@ -2,8 +2,16 @@ import { useEffect, useRef, useState, type JSX } from 'react'
 import { usePartnerBrandingStore } from './partner-branding.store'
 import { twMerge } from 'tailwind-merge'
 
-export function PartnerLobbyBackground({ className }: { className?: string }): JSX.Element | null {
+export function PartnerBackground({
+  className,
+  surface = 'launcher'
+}: {
+  className?: string
+  surface?: 'launcher' | 'login'
+}): JSX.Element | null {
   const branding = usePartnerBrandingStore((state) => (state.enabled ? state.branding : null))
+  const url = surface === 'login' ? branding?.loginBackgroundUrl : branding?.backgroundUrl
+  const kind = surface === 'login' ? branding?.loginBackgroundKind : branding?.backgroundKind
   const [reduceMotion, setReduceMotion] = useState(
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
@@ -26,20 +34,20 @@ export function PartnerLobbyBackground({ className }: { className?: string }): J
     document.addEventListener('visibilitychange', update)
     update()
     return () => document.removeEventListener('visibilitychange', update)
-  }, [branding?.backgroundUrl, reduceMotion])
+  }, [url, reduceMotion])
 
-  if (!branding?.backgroundUrl) return null
-  if (branding.backgroundKind === 'video') {
+  if (!url) return null
+  if (kind === 'video') {
     if (reduceMotion) return null
     return (
       <video
         ref={videoRef}
-        key={branding.backgroundUrl}
+        key={url}
         className={twMerge(
           'pointer-events-none fixed inset-0 h-full w-full object-cover',
           className
         )}
-        src={branding.backgroundUrl}
+        src={url}
         autoPlay
         muted
         loop
@@ -54,9 +62,9 @@ export function PartnerLobbyBackground({ className }: { className?: string }): J
   }
   return (
     <img
-      key={branding.backgroundUrl}
+      key={url}
       className={twMerge('pointer-events-none fixed inset-0 h-full w-full object-cover', className)}
-      src={branding.backgroundUrl}
+      src={url}
       alt=""
       decoding="async"
       onError={(event) => {

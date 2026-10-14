@@ -1,0 +1,270 @@
+export const PARTNER_SERVER_CHANNELS = {
+  list: 'partner-servers:list',
+  connect: 'partner-servers:connect'
+} as const
+export const COMMUNITY_CHAT_CHANNELS = {
+  members: 'community-chat:members',
+  history: 'community-chat:history',
+  send: 'community-chat:send'
+} as const
+export const partnerSocialLabels = {
+  discord: 'Discord',
+  mastodon: 'Mastodon',
+  koFi: 'Ko-fi',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  website: 'Website'
+} as const
+export type PartnerSocialLinks = Partial<Record<keyof typeof partnerSocialLabels, string>>
+export interface PartnerServer {
+  id: string
+  name: string
+  host: string
+  port: number
+}
+export interface PartnerServerStatus extends PartnerServer {
+  pingSource?: 'client' | 'api'
+  online: boolean | null
+  pingMs: number | null
+  players: number | null
+  maxPlayers: number | null
+  map: string | null
+}
+export interface CommunityChatMessage {
+  id: string
+  sender: { id: string; username: string }
+  message: string
+  sentAt: string
+}
+export interface CommunityChatHistory {
+  communityId: string | null
+  name: string | null
+  messages: CommunityChatMessage[]
+}
+export interface PartnerServersApi {
+  list(): Promise<PartnerServerStatus[]>
+  connect(id: string): Promise<void>
+}
+export interface CommunityChatApi {
+  members(page: number): Promise<CommunityMembers>
+  history(): Promise<CommunityChatHistory>
+  send(communityId: string, message: string): Promise<CommunityChatMessage>
+}
+export interface CommunityMembers {
+  communityId: string | null
+  name: string | null
+  members: {
+    id: string
+    username: string
+    relationship: 'NONE' | 'OUTGOING' | 'INCOMING' | 'FRIEND'
+  }[]
+  total: number
+  hasMore: boolean
+}
+export function parseCommunityMembers(input: unknown): CommunityMembers {
+  if (!input || typeof input !== 'object') throw new Error('Invalid community members')
+  const v = input as Record<string, unknown>
+  parseCommunityHistory({ communityId: v.communityId, name: v.name, messages: [] })
+  if (
+    !Array.isArray(v.members) ||
+    v.members.length > 50 ||
+    typeof v.total !== 'number' ||
+    !Number.isInteger(v.total) ||
+    v.total < 0 ||
+    typeof v.hasMore !== 'boolean'
+  )
+    throw new Error('Invalid community members')
+  const members = v.members.map((row: unknown) => {
+    if (!row || typeof row !== 'object') throw new Error('Invalid community member')
+    const p = row as Record<string, unknown>
+    if (!uuid(p.id) || typeof p.username !== 'string' || p.username.length > 64)
+      throw new Error('Invalid community member')
+    if (!['NONE', 'OUTGOING', 'INCOMING', 'FRIEND'].includes(String(p.relationship)))
+      throw new Error('Invalid community relationship')
+    return {
+      id: p.id,
+      username: p.username,
+      relationship: p.relationship as 'NONE' | 'OUTGOING' | 'INCOMING' | 'FRIEND'
+    }
+  })
+  if (v.communityId === null && members.length) throw new Error('Invalid community members')
+  return {
+    communityId: v.communityId as string | null,
+    name: v.name as string | null,
+    members,
+    total: v.total,
+    hasMore: v.hasMore
+  }
+}
+export const validPartnerHost = (host: string): boolean =>
+  host.length <= 253 &&
+  (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)
+    ? host.split('.').every((part) => Number(part) <= 255)
+    : host.includes('.') &&
+      host.split('.').every((part) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(part)))
+export const isPublicIPv4 = (address: string): boolean => {
+  if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(address)) return false
+  const [a, b, c] = address.split('.').map(Number)
+  return (
+    address.split('.').every((part) => Number(part) <= 255) &&
+    a > 0 &&
+    a < 224 &&
+    ![10, 127].includes(a) &&
+    !(a === 169 && b === 254) &&
+    !(a === 172 && b >= 16 && b <= 31) &&
+    !(a === 192 && (b === 168 || b === 0 || b === 2)) &&
+    !(a === 100 && b >= 64 && b <= 127) &&
+    !(a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) &&
+    !(a === 203 && b === 0 && c === 113)
+  )
+}
+export function parseCommunityBranding(value: Record<string, unknown>) {
+  const communityName = value.communityName ?? null
+  if (
+    communityName !== null &&
+    (typeof communityName !== 'string' ||
+      !communityName.trim() ||
+      [...communityName].length > 32 ||
+      Array.from(communityName).some((char) => char.charCodeAt(0) < 32))
+  )
+    throw new Error('Invalid community name')
+  const enabled = value.customSocialLinksEnabled ?? false
+  if (typeof enabled !== 'boolean') throw new Error('Invalid social link preference')
+  const links = value.socialLinks ?? {}
+  if (!links || typeof links !== 'object' || Array.isArray(links))
+    throw new Error('Invalid social links')
+  const socialLinks: PartnerSocialLinks = {}
+  for (const [key, href] of Object.entries(links)) {
+    if (!Object.hasOwn(partnerSocialLabels, key) || typeof href !== 'string' || href.length > 2048)
+      throw new Error('Invalid social link')
+    const url = new URL(href)
+    if (url.protocol !== 'https:' || url.username || url.password)
+      throw new Error('Invalid social link')
+    socialLinks[key as keyof PartnerSocialLinks] = url.href
+  }
+  const rows = value.servers ?? []
+  if (!Array.isArray(rows) || rows.length > 16) throw new Error('Invalid partner servers')
+  const ids = new Set<string>(),
+    endpoints = new Set<string>()
+  const servers = rows.map((row: unknown): PartnerServer => {
+    if (!row || typeof row !== 'object') throw new Error('Invalid partner server')
+    const s = row as Record<string, unknown>
+    if (
+      typeof s.id !== 'string' ||
+      !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(s.id) ||
+      ids.has(s.id) ||
+      typeof s.name !== 'string' ||
+      !s.name.trim() ||
+      s.name.length > 64 ||
+      Array.from(s.name).some((char) => char.charCodeAt(0) < 32) ||
+      typeof s.host !== 'string' ||
+      !validPartnerHost(s.host) ||
+      typeof s.port !== 'number' ||
+      !Number.isInteger(s.port) ||
+      s.port < 1 ||
+      s.port > 65535
+    )
+      throw new Error('Invalid partner server')
+    const endpoint = `${s.host.toLowerCase()}:${s.port}`
+    if (endpoints.has(endpoint)) throw new Error('Duplicate partner server')
+    ids.add(s.id)
+    endpoints.add(endpoint)
+    return { id: s.id, name: s.name, host: s.host, port: s.port }
+  })
+  return {
+    communityName: communityName as string | null,
+    customSocialLinksEnabled: enabled,
+    socialLinks,
+    servers
+  }
+}
+export const serverIsFull = (s: PartnerServerStatus): boolean =>
+  s.players !== null && s.maxPlayers !== null && s.maxPlayers > 0 && s.players >= s.maxPlayers
+export function parsePartnerServerStatuses(input: unknown): PartnerServerStatus[] {
+  if (!input || typeof input !== 'object') throw new Error('Invalid server status')
+  const rows = (input as { servers?: unknown }).servers
+  const descriptors = parseCommunityBranding({ servers: rows }).servers
+  if (!Array.isArray(rows)) throw new Error('Invalid server status')
+  return descriptors.map((server, index) => {
+    const row = rows[index] as Record<string, unknown>
+    for (const key of ['players', 'maxPlayers', 'pingMs']) {
+      const value = row[key]
+      if (
+        value !== null &&
+        (typeof value !== 'number' ||
+          !Number.isInteger(value) ||
+          value < 0 ||
+          value > (key === 'pingMs' ? 60000 : 64))
+      )
+        throw new Error('Invalid server status')
+    }
+    if (
+      typeof row.online !== 'boolean' ||
+      row.pingSource !== 'api' ||
+      (row.map !== null && (typeof row.map !== 'string' || !/^[a-z0-9_-]{1,64}$/i.test(row.map)))
+    )
+      throw new Error('Invalid server status')
+    return {
+      ...server,
+      online: row.online,
+      pingSource: 'api',
+      map: row.map as string | null,
+      pingMs: row.pingMs as number | null,
+      players: row.players as number | null,
+      maxPlayers: row.maxPlayers as number | null
+    }
+  })
+}
+export const sortPartnerServers = (servers: PartnerServerStatus[]): PartnerServerStatus[] =>
+  [...servers].sort(
+    (a, b) =>
+      Number(serverIsFull(a)) - Number(serverIsFull(b)) ||
+      Number(a.online === false) - Number(b.online === false) ||
+      (a.pingMs ?? Infinity) - (b.pingMs ?? Infinity) ||
+      (b.players ?? -1) - (a.players ?? -1) ||
+      a.name.localeCompare(b.name) ||
+      a.id.localeCompare(b.id)
+  )
+const uuid = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)
+export function parseCommunityMessage(input: unknown): CommunityChatMessage {
+  if (!input || typeof input !== 'object') throw new Error('Invalid community message')
+  const v = input as Record<string, unknown>,
+    sender = v.sender as Record<string, unknown> | undefined
+  if (
+    !uuid(v.id) ||
+    !sender ||
+    !uuid(sender.id) ||
+    typeof sender.username !== 'string' ||
+    sender.username.length > 64 ||
+    typeof v.message !== 'string' ||
+    [...v.message].length > 300 ||
+    typeof v.sentAt !== 'string' ||
+    !Number.isFinite(Date.parse(v.sentAt))
+  )
+    throw new Error('Invalid community message')
+  return {
+    id: v.id,
+    sender: { id: sender.id, username: sender.username },
+    message: v.message,
+    sentAt: v.sentAt
+  }
+}
+export function parseCommunityHistory(input: unknown): CommunityChatHistory {
+  if (!input || typeof input !== 'object') throw new Error('Invalid community history')
+  const v = input as Record<string, unknown>
+  if (
+    (v.communityId !== null && !uuid(v.communityId)) ||
+    (v.name !== null && (typeof v.name !== 'string' || [...v.name].length > 32)) ||
+    !Array.isArray(v.messages) ||
+    v.messages.length > 100
+  )
+    throw new Error('Invalid community history')
+  if (v.communityId === null && v.messages.length) throw new Error('Invalid community history')
+  return {
+    communityId: v.communityId as string | null,
+    name: v.name as string | null,
+    messages: v.messages.map(parseCommunityMessage)
+  }
+}

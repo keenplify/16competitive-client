@@ -5,6 +5,7 @@ import { SettingsPage } from '../settings/SettingsPage'
 import { usePartyStore } from '../party/party.store'
 import { useCustomGamesStore } from './custom-games.store'
 import { PlayPage } from './PlayPage'
+import { PartnerBackground } from '../partner-branding/PartnerBackground'
 
 /** Keep match controls available without mounting the lobby's 3D scene during play. */
 export function MatchLauncherPage(): JSX.Element {
@@ -24,6 +25,7 @@ export function MatchLauncherPage(): JSX.Element {
 
   return (
     <main className="relative min-h-screen bg-neutral-950 text-white">
+      <PartnerBackground />
       <LobbyNavigation
         activePage={activePage}
         onNavigate={(nextPage) => {

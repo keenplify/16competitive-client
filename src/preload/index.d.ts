@@ -1,3 +1,4 @@
+import type { PartnerServersApi, CommunityChatApi } from '../shared/partner-community'
 import type { PartnerBrandingApi } from '../shared/partner-branding'
 import type { AdminDemosApi } from '../shared/admin-demos'
 import type { AuthApi } from '../shared/auth'
@@ -23,6 +24,8 @@ declare global {
   interface Window {
     api: {
       adminDemos?: AdminDemosApi
+      partnerServers: PartnerServersApi
+      communityChat: CommunityChatApi
       partnerBranding: PartnerBrandingApi
       auth: AuthApi
       antiCheat: AntiCheatApi

@@ -3,7 +3,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
 import { actionColor } from './palette'
 
-const refreshIntervalMs = 5 * 60_000
+const refreshIntervalMs = 30_000
 
 export function PartnerThemeController(): JSX.Element | null {
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
