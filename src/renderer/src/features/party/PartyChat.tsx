@@ -553,15 +553,17 @@ export function PartyChat(): JSX.Element {
             role="log"
             aria-live="polite"
             aria-label={
-              !activeFriendId && chatTab === 'community' ? communityText(language,'chatLabel',{community:communityLabel}) : activeFriendId
-                ? `Private messages with ${friendConversation?.friend.username ?? 'friend'}`
-                : chatTab === 'party'
-                  ? 'Party messages'
-                  : chatTab === 'room'
-                    ? translate(language, 'chat.roomMessagesLabel')
-                    : chatTab === 'language'
-                      ? `${globalLanguageLabel} chat messages`
-                      : 'Global chat messages'
+              !activeFriendId && chatTab === 'community'
+                ? communityText(language, 'chatLabel', { community: communityLabel })
+                : activeFriendId
+                  ? `Private messages with ${friendConversation?.friend.username ?? 'friend'}`
+                  : chatTab === 'party'
+                    ? 'Party messages'
+                    : chatTab === 'room'
+                      ? translate(language, 'chat.roomMessagesLabel')
+                      : chatTab === 'language'
+                        ? `${globalLanguageLabel} chat messages`
+                        : 'Global chat messages'
             }
           >
             {activeFriendId ? (

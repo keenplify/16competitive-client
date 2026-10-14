@@ -1,11 +1,23 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
-const compile = source => ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText
-const dependency = 'data:text/javascript;base64,' + Buffer.from(compile(await readFile(new URL('../src/shared/partner-community.ts',import.meta.url),'utf8'))).toString('base64')
-const source = compile(await readFile(new URL('../src/shared/partner-branding.ts',import.meta.url),'utf8')).replace("'./partner-community'",JSON.stringify(dependency))
-const { parsePartnerBranding } = await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))
+const compile = (source) =>
+  ts.transpileModule(source, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 }
+  }).outputText
+const dependency =
+  'data:text/javascript;base64,' +
+  Buffer.from(
+    compile(await readFile(new URL('../src/shared/partner-community.ts', import.meta.url), 'utf8'))
+  ).toString('base64')
+const source = compile(
+  await readFile(new URL('../src/shared/partner-branding.ts', import.meta.url), 'utf8')
+).replace("'./partner-community'", JSON.stringify(dependency))
+const { parsePartnerBranding } = await import(
+  'data:text/javascript;base64,' + Buffer.from(source).toString('base64')
+)
 
 const origin = 'https://api.example.test'
 const partnerId = '12345678-1234-1234-1234-123456789abc'
@@ -80,10 +92,18 @@ test('login backgrounds have an independent kind and approved endpoint', () => {
   const loginBackgroundUrl = `${origin}/partners/branding/${partnerId}/login-asset?v=hash`
   const separate = { ...branding, loginBackgroundUrl, loginBackgroundKind: 'image' }
   assert.deepEqual(parsePartnerBranding({ branding: separate }, origin), { branding: separate })
-  for (const bad of [branding.backgroundUrl, 'https://evil.example/login.png', `${loginBackgroundUrl}&next=bad`]) {
-    assert.throws(() => parsePartnerBranding({ branding: { ...separate, loginBackgroundUrl: bad } }, origin))
+  for (const bad of [
+    branding.backgroundUrl,
+    'https://evil.example/login.png',
+    `${loginBackgroundUrl}&next=bad`
+  ]) {
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...separate, loginBackgroundUrl: bad } }, origin)
+    )
   }
-  assert.throws(() => parsePartnerBranding({ branding: { ...separate, loginBackgroundKind: null } }, origin))
+  assert.throws(() =>
+    parsePartnerBranding({ branding: { ...separate, loginBackgroundKind: null } }, origin)
+  )
   const legacy = { ...branding }
   delete legacy.loginBackgroundUrl
   delete legacy.loginBackgroundKind
