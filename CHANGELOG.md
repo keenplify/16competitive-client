@@ -2408,19 +2408,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ### Partner Communities
 
-- Discover and join partner communities.
-- View community members and chat with other players.
+- Chat with your community in a persistent channel named by your partner.
+- View registered community members in the Friends panel, collapsed by default.
+- Party chat appears only while you are in a party.
 
 ### Server Browser
 
-- Browse available partner servers.
-- Launch partner servers directly from the client.
+- Select a named partner server in Play and connect to it.
+- See current maps, player counts and average ping, with full servers listed last.
+- Web Play shows backend ping measurements and connects through Steam.
 
 ### Partner Experience
 
-- Enjoy community-specific branding and themes.
-- Access partner vouchers and related offers.
-
-### Matchmaking
-
-- Improved custom-game and lobby experience.
+- Partner backgrounds now appear throughout the signed-in launcher, with a separate login background.
+- News and Settings can show your partner's custom social links.
