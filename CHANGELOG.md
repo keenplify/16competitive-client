@@ -2433,3 +2433,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner Communities
 
 - Clarified partner community attribution and release notes.
+
+## v2026.1015.1 — 2026-10-15
+
+### Legacy 1.3
+
+- Added support for Counter-Strike 1.3 matches.
+- Added Legacy 1.3 setup and launch guidance.
+- Added Legacy 1.3 settings and onboarding support.
+
+### Custom Matches
+
+- Added expanded custom-room settings.
+- Added support for additional matchmaking maps.
+
+### Windows
+
+- Added Windows OpenGL enhancements.
+- Improved Windows cosmetic compatibility and recovery.
