@@ -28,6 +28,10 @@ if ($Kind -eq 'helper') {
     cargo test --locked -p papamo-cosmetic-module; CheckExit
     cargo build --locked --release --features cosmetic-probe --target x86_64-pc-windows-msvc; CheckExit
     cargo build --locked --release -p papamo-cosmetic-module --target i686-pc-windows-msvc; CheckExit
+    # Optional owner-provided game fixture: exact hashes are checked by the test.
+    if (Test-Path 'C:\16c-build\won-validation\hw.dll') {
+        & .\scripts\test-won-recovery.ps1 -Helper target\x86_64-pc-windows-msvc\release\game-inspector.exe -Module target\i686-pc-windows-msvc\release\papamo_cosmetic_module.dll -GameRoot 'C:\16c-build\won-validation'
+    }
     $env:VCPKG_DEFAULT_BINARY_CACHE = 'C:\16c-build\vcpkg-cache'
     $env:VCPKG_DOWNLOADS = 'C:\16c-build\vcpkg-downloads'
     New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
