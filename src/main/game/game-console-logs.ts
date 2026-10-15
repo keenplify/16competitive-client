@@ -4,10 +4,15 @@ import { join } from 'node:path'
 
 const MAX_CONSOLE_BYTES = 64 * 1024
 let lastGameDirectory: string | null = null
+let lastModDirectory = 'cstrike'
 
 // Keep the last launch location after exit so late/manual reports include it.
-export function setGameConsoleDirectory(directory: string): void {
+export function setGameConsoleDirectory(
+  directory: string,
+  mod: 'cstrike' | 'cstrk13' = 'cstrike'
+): void {
   lastGameDirectory = directory
+  lastModDirectory = mod
 }
 
 export function redactReportLogs(logs: string): string {
@@ -25,7 +30,7 @@ export function redactReportLogs(logs: string): string {
       if (/invalid server password|bad server password/i.test(line)) {
         return '[Connection diagnostic] rejected-server-password'
       }
-      return /\b(?:16competitive_auth|_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
+      return /\b(?:16competitive_auth|16c13_auth|_16c(?:_[0-9a-f]{16})?|password|rcon_password|sv_password|joinToken|join_token|authorization|access_token|refresh_token)\b/i.test(
         line
       )
         ? '[redacted line containing credentials]'
@@ -81,7 +86,7 @@ export async function collectGameConsoleLogs(fallbackDirectory?: string): Promis
   const directory = lastGameDirectory ?? fallbackDirectory
   if (!directory) return '[qconsole.log] No game installation available.'
   const sections: string[] = []
-  for (const relative of ['qconsole.log', join('cstrike', 'qconsole.log')]) {
+  for (const relative of ['qconsole.log', join(lastModDirectory, 'qconsole.log')]) {
     const section = await readReportFile(
       directory,
       relative,

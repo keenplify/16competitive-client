@@ -41,6 +41,30 @@ Browser mode exposes no local 1.3 setup or launch controls.
 
 ## Adapter boundaries
 
+### Match directory compatibility (2026-10-16)
+
+The protocol-45 server advertises `cstrk13`. The inspected WON engine changes
+game directory during signon when that differs from the launch directory; its
+stock routine at VA `0x01d125c0` compares the names and reloads the game on a
+mismatch. A `cstrike`-only installation consequently falls back to Half-Life
+resources and downloads missing stock assets, while a loaded cosmetic module
+may be unloaded during the transition.
+
+Match launches now prepare `cstrk13` from the selected local 1.3 installation
+before installing enhancements or spawning the game. Only missing stock client,
+version metadata and allowlisted resource files are copied locally; existing
+files are preserved. Redirected destination directories and conflicting version
+metadata are rejected. Copies are bounded and published as complete files.
+Configuration files and helper/session files are excluded. The shared cosmetic
+model store is linked through the existing verified storage routine. Menu
+launches keep the user's selected mod. Launch/exit logs include the actual mod,
+enhancement state and process exit code; reports read that mod's console and
+redact the legacy authentication command.
+
+Fixture tests cover stock-file preparation, preservation, repeat launches,
+conflicting versions and symlinks. Actual native Windows signon with this fix
+still requires a gameplay retry.
+
 - Accept the installation root or its `cstrike` / `cstrk13` subfolder. For a root
   containing `cstrk13`, select that community-layout directory explicitly.
 - Require one `version "1.3"` entry in the selected mod's `liblist.gam`, a direct

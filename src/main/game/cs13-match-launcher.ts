@@ -20,6 +20,9 @@ import { getGameSettings, getSavedVoicePttKey } from './game-settings'
 import { prepareVoicePtt, type VoicePttSession, type VoiceTalkChannel } from './voice-ptt'
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import { registerManagedAdapterShutdown } from './managed-session-registry'
+import { prepareCs13MatchInstallation } from './cs13-match-installation'
+import { setGameConsoleDirectory } from './game-console-logs'
+import { ensureSharedModelDirectory } from './shared-model-directory'
 
 let running: {
   matchId: string
@@ -93,8 +96,18 @@ export async function launchCs13Match(
             ? 'legacy.error.invalidInstallation'
             : 'legacy.error.installationRequired'
       )
-    const installation = profile.value.installation
+    let installation = profile.value.installation
     await cleanup
+    await WindowsCosmeticInstallation.restorePreviousInstall(
+      installation.folderPath,
+      installation.modDirectory,
+      installation.runtime
+    )
+    installation = await prepareCs13MatchInstallation(installation, process.platform)
+    await ensureSharedModelDirectory(
+      installation.gameDirectory,
+      join(app.getPath('userData'), 'game-assets', 'models', '16competitive')
+    )
     await WindowsCosmeticInstallation.restorePreviousInstall(
       installation.folderPath,
       installation.modDirectory,
@@ -192,19 +205,30 @@ export async function launchCs13Match(
         await ScoreboardOverlaySession.waitForCleanup()
         return
       }
-      const child = spawn(plan.executable, [...plan.args, '-console', ...connectionArgs], {
-        cwd: plan.cwd,
-        shell: false,
-        detached: true,
-        stdio: 'ignore',
-        env: Object.fromEntries(
-          Object.entries(process.env).filter(
-            ([key]) =>
-              key !== 'LD_PRELOAD' &&
-              !/^(?:PAPAMO_|SIXTEEN|CS16|COMPETITIVE|STEAM_APP|SteamApp|SteamGame)/.test(key)
-          )
-        )
+      setGameConsoleDirectory(installation.folderPath, installation.modDirectory)
+      console.info('[CS13] Launching match', {
+        matchId: connection.matchId,
+        modDirectory: installation.modDirectory,
+        runtime: installation.runtime,
+        enhancements: overlay !== null
       })
+      const child = spawn(
+        plan.executable,
+        [...plan.args, '-console', '-condebug', ...connectionArgs],
+        {
+          cwd: plan.cwd,
+          shell: false,
+          detached: true,
+          stdio: 'ignore',
+          env: Object.fromEntries(
+            Object.entries(process.env).filter(
+              ([key]) =>
+                key !== 'LD_PRELOAD' &&
+                !/^(?:PAPAMO_|SIXTEEN|CS16|COMPETITIVE|STEAM_APP|SteamApp|SteamGame)/.test(key)
+            )
+          )
+        }
+      )
       await new Promise<void>((resolve, reject) => {
         child.once('spawn', resolve)
         child.once('error', reject)
@@ -219,6 +243,7 @@ export async function launchCs13Match(
         cleanupAuth: removeAuthFile
       }
       child.once('exit', (code, signal) => {
+        console.info('[CS13] Game process exited', { matchId: connection.matchId, code, signal })
         if (running?.process !== child) return
         const active = running
         running = null

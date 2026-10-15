@@ -45,6 +45,9 @@ const { cs13Adapter, hasCs13VersionMetadata, cs13ConnectionArgs } = await loadMo
   'src/main/game/adapters/cs13.ts'
 )
 const { LegacyGameService } = await loadModule('src/main/game/legacy-game-service.ts')
+const { prepareCs13MatchInstallation } = await loadModule(
+  'src/main/game/cs13-match-installation.ts'
+)
 const { parseMatchmakingMapCatalog } = await loadModule('src/shared/matchmaking-map-catalog.ts')
 const { CUSTOM_GAME_MODES, isCustomGameMode } = await loadModule('src/shared/custom-games.ts')
 
@@ -107,6 +110,49 @@ test('version evidence excludes 1.6, missing, commented and conflicting versions
   ])
     assert.equal(hasCs13VersionMetadata(source), false)
 })
+
+test('prepares the server mod directory from local stock files without overwriting existing assets', () =>
+  fixture(async ({ folder }) => {
+    await mkdir(join(folder, 'cstrike', 'models'))
+    await writeFile(join(folder, 'cstrike', 'models', 'v_ak47.mdl'), 'local stock model')
+    await writeFile(join(folder, 'cstrike', 'userconfig.cfg'), 'user-owned')
+    await mkdir(join(folder, 'cstrk13', 'models'), { recursive: true })
+    await writeFile(join(folder, 'cstrk13', 'models', 'existing.mdl'), 'preserved')
+    const selected = await cs13Adapter.validateInstallation(join(folder, 'cstrike'), 'win32')
+    const ready = await prepareCs13MatchInstallation(selected, 'win32')
+    assert.equal(ready.modDirectory, 'cstrk13')
+    assert.equal(
+      await readFile(join(ready.gameDirectory, 'models', 'v_ak47.mdl'), 'utf8'),
+      'local stock model'
+    )
+    assert.equal(
+      await readFile(join(ready.gameDirectory, 'models', 'existing.mdl'), 'utf8'),
+      'preserved'
+    )
+    await assert.rejects(stat(join(ready.gameDirectory, 'userconfig.cfg')), { code: 'ENOENT' })
+    await writeFile(join(ready.gameDirectory, 'models', 'v_ak47.mdl'), 'player change')
+    await prepareCs13MatchInstallation(selected, 'win32')
+    assert.equal(
+      await readFile(join(ready.gameDirectory, 'models', 'v_ak47.mdl'), 'utf8'),
+      'player change'
+    )
+    assert.equal(
+      await readFile(join(selected.gameDirectory, 'models', 'v_ak47.mdl'), 'utf8'),
+      'local stock model'
+    )
+  }))
+
+test('refuses a conflicting version or redirected server mod directory', () =>
+  fixture(async ({ root, folder }) => {
+    const selected = await cs13Adapter.validateInstallation(folder, 'win32')
+    const target = join(folder, 'cstrk13')
+    await mkdir(target)
+    await writeFile(join(target, 'liblist.gam'), 'version "1.6"\n')
+    await assert.rejects(prepareCs13MatchInstallation(selected, 'win32'))
+    await rm(target, { recursive: true })
+    await symlink(root, target, 'dir')
+    await assert.rejects(prepareCs13MatchInstallation(selected, 'win32'))
+  }))
 
 for (const platform of ['win32', 'linux']) {
   test(

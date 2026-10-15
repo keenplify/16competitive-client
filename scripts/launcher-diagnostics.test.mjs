@@ -16,6 +16,10 @@ import {
 
 test('connection rejection categories survive redaction without leaking accompanying secrets', () => {
   assert.equal(
+    redactReportLogs(`cmd 16c13_auth ${'b'.repeat(32)}`),
+    '[redacted line containing credentials]'
+  )
+  assert.equal(
     redactReportLogs(`16competitive_auth _16c_0123456789abcdef 7 ${'a'.repeat(32)}`),
     '[redacted line containing credentials]'
   )
@@ -34,6 +38,26 @@ test('connection rejection categories survive redaction without leaking accompan
   assert.match(logs, /Info string length exceeded/)
   assert.match(logs, /Join stage: identity-final/)
   assert.equal(redactReportLogs(logs), logs)
+})
+
+test('Legacy reports read the launched mod instead of old 1.6 console output', async () => {
+  const directory = await mkdtemp(join(tmpdir(), '16c-legacy-report-'))
+  try {
+    await mkdir(join(directory, 'cstrk13'))
+    await mkdir(join(directory, 'cstrike'))
+    await writeFile(
+      join(directory, 'cstrk13', 'qconsole.log'),
+      'Legacy signon\ncmd 16c13_auth private\n'
+    )
+    await writeFile(join(directory, 'cstrike', 'qconsole.log'), 'unrelated old game\n')
+    setGameConsoleDirectory(directory, 'cstrk13')
+    const logs = await collectGameConsoleLogs()
+    assert.match(logs, /Legacy signon/)
+    assert.ok(!logs.includes('private'))
+    assert.ok(!logs.includes('unrelated old game'))
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })
 
 test('MIME registration preserves unrelated defaults and replaces only demo handlers', () => {
