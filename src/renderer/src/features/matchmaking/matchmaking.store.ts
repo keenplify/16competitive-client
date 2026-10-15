@@ -533,6 +533,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             : {}),
           error:
             event.message === 'legacy.error.installationRequired' ||
+            event.message === 'legacy.error.invalidInstallation' ||
+            event.message === 'legacy.error.settingsFailed' ||
             event.message === 'legacy.error.busy' ||
             event.message === 'legacy.error.launchFailed'
               ? translate(useLanguageStore.getState().language, event.message)

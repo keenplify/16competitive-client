@@ -1,3 +1,4 @@
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { friendlyFireMessage } from './friendly-fire-message'
 import { create } from 'zustand'
 import type {
@@ -49,7 +50,11 @@ interface CustomGamesState {
 }
 
 const message = (error: unknown): string =>
-  error instanceof Error ? friendlyFireMessage(error.message) : 'Custom game request failed'
+  error instanceof Error
+    ? error.message.includes('legacy.error.installationRequired')
+      ? translate(useLanguageStore.getState().language, 'legacy.error.installationRequired')
+      : friendlyFireMessage(error.message)
+    : 'Custom game request failed'
 
 const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMessage[]) =>
   [...new Map([...existing, ...incoming].map((entry) => [entry.id, entry])).values()]

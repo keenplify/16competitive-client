@@ -36,7 +36,11 @@ export async function prepareSkinStorage(game: 'cs16' | 'cs13' = 'cs16'): Promis
   if (!contentRoot)
     throw new Error(
       game === 'cs13'
-        ? 'legacy.error.installationRequired'
+        ? !profile.ok
+          ? 'legacy.error.settingsFailed'
+          : profile.value.folderPath
+            ? 'legacy.error.invalidInstallation'
+            : 'legacy.error.installationRequired'
         : 'Choose your Counter-Strike folder in Settings before joining a match.'
     )
   // Catalog sync and match preparation may overlap; migrations must serialize.

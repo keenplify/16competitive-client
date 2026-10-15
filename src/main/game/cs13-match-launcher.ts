@@ -86,7 +86,13 @@ export async function launchCs13Match(
       launch: async () => {}
     }).get()
     if (!profile.ok || !profile.value.installation)
-      throw new Error('legacy.error.installationRequired')
+      throw new Error(
+        !profile.ok
+          ? 'legacy.error.settingsFailed'
+          : profile.value.folderPath
+            ? 'legacy.error.invalidInstallation'
+            : 'legacy.error.installationRequired'
+      )
     const installation = profile.value.installation
     await cleanup
     await WindowsCosmeticInstallation.restorePreviousInstall(
@@ -234,7 +240,12 @@ export async function launchCs13Match(
   }).catch((error: unknown) => {
     if (
       error instanceof Error &&
-      ['legacy.error.installationRequired', 'legacy.error.busy'].includes(error.message)
+      [
+        'legacy.error.installationRequired',
+        'legacy.error.invalidInstallation',
+        'legacy.error.settingsFailed',
+        'legacy.error.busy'
+      ].includes(error.message)
     )
       throw error
     console.error('[CS13] Match launch failed', {

@@ -48,10 +48,14 @@ async function harness(overrides = {}) {
     },
     ...overrides
   }
-  const context = vm.createContext({ console, window: { api: { customGames: api } } })
+  const context = vm.createContext({ console, Error, window: { api: { customGames: api } } })
   const module = new vm.SourceTextModule(source, { context })
   const mocks = {
     zustand: { create },
+    '../i18n/i18n': {
+      translate: (_language, key) => 'translated:' + key,
+      useLanguageStore: { getState: () => ({ language: 'en' }) }
+    },
     './friendly-fire-message': { friendlyFireMessage: (value) => value },
     './matchmaking.store': {
       useMatchmakingStore: { getState: () => ({ selectedNodeId: 'local', match: null }) }
@@ -155,4 +159,16 @@ test('friendly fire off is persisted before ready check', async () => {
   assert.equal(h.state().currentRoom.friendlyFire, false)
   await h.state().startRoom()
   assert.equal(h.state().currentRoom.friendlyFire, false)
+})
+
+test('installation rejection is translated and does not enter the room', async () => {
+  const h = await harness({
+    join: async () => {
+      throw new Error('legacy.error.installationRequired')
+    }
+  })
+  h.store.setState({ currentRoom: null })
+  assert.equal(await h.state().joinRoom('legacy-room'), false)
+  assert.equal(h.state().currentRoom, null)
+  assert.equal(h.state().error, 'translated:legacy.error.installationRequired')
 })

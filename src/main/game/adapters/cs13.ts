@@ -54,6 +54,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
     if (platform !== 'win32' && platform !== 'linux')
       throw new LegacyInstallationError('unsupportedPlatform')
     if (typeof folder !== 'string' || folder.includes('\0') || !isAbsolute(folder)) return invalid()
+    let stage = 'folder'
     try {
       const selected = normalize(folder)
       const selectedName = basename(selected).toLowerCase()
@@ -67,6 +68,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
           ? 'cstrk13'
           : 'cstrike')
       const gameDirectory = join(root, modDirectory)
+      stage = 'liblist.gam'
       const metadata = await containedFile(root, join(gameDirectory, 'liblist.gam'))
       const file = await open(metadata, 'r')
       let source: string
@@ -79,13 +81,16 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
       } finally {
         await file.close()
       }
+      stage = 'version metadata (expected 1.3)'
       if (!hasCs13VersionMetadata(source)) return invalid()
       const nativeLinux =
         platform === 'linux' && (await stat(join(root, 'hl_linux')).catch(() => null))?.isFile()
       const runtime = platform === 'linux' && !nativeLinux ? 'wine' : 'native'
       const name = nativeLinux ? 'hl_linux' : 'hl.exe'
+      stage = name
       const executablePath = await containedFile(root, join(root, name))
       if (nativeLinux && ((await stat(executablePath)).mode & 0o111) === 0) return invalid()
+      stage = nativeLinux ? 'cl_dlls/client.so' : 'cl_dlls/client.dll'
       await containedFile(
         root,
         join(gameDirectory, 'cl_dlls', nativeLinux ? 'client.so' : 'client.dll')
@@ -100,6 +105,13 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
         runtime
       }
     } catch (error) {
+      console.warn('[LegacyGame] Installation validation failed', {
+        stage,
+        code:
+          error instanceof LegacyInstallationError
+            ? error.code
+            : ((error as NodeJS.ErrnoException).code ?? 'unknown')
+      })
       if (error instanceof LegacyInstallationError) throw error
       return invalid()
     }

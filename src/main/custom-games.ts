@@ -1,3 +1,6 @@
+import { app } from 'electron'
+import { join } from 'node:path'
+import { LegacyGameService } from './game/legacy-game-service'
 import { getSessionToken } from './auth'
 import { getMatchmakingNodes, resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 import type {
@@ -157,10 +160,26 @@ const requestAtApiUrl = async (
 ): Promise<unknown> => {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before managing a custom game')
+  // Machine-local readiness only; never send installation paths to the backend.
+  const needsInstallation =
+    path === '/custom-games/mine' ||
+    (init.method === 'POST' &&
+      (path === '/custom-games' || path.endsWith('/join') || path.endsWith('/start'))) ||
+    (init.method === 'PATCH' && /^\/custom-games\/[^/]+$/.test(path))
+  const profile = needsInstallation
+    ? await new LegacyGameService({
+        settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+        platform: process.platform,
+        chooseFolder: async () => null,
+        isBusy: () => false,
+        launch: async () => {}
+      }).get()
+    : null
   const response = await fetch(`${apiUrl}${path}`, {
     ...init,
     headers: {
       authorization: `Bearer ${token}`,
+      'x-cs13-installed': profile?.ok && profile.value.installation ? 'true' : 'false',
       ...(init.body ? { 'content-type': 'application/json' } : {})
     },
     signal: AbortSignal.timeout(10_000)
