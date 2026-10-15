@@ -2451,3 +2451,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added Windows OpenGL enhancements.
 - Improved Windows cosmetic compatibility and recovery.
+
+## v2026.1015.2 — 2026-10-15
+
+### Custom Rooms
+
+- Check legacy game installation readiness before joining a custom room.
+- Prevent custom-room admission when the required legacy installation is not ready.
