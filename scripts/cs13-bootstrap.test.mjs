@@ -125,7 +125,7 @@ for (const platform of ['win32', 'linux']) {
         assert.equal(plan.executable, join(folder, platform === 'win32' ? 'hl.exe' : 'hl_linux'))
         assert.equal(plan.cwd, folder)
         assert.deepEqual(Array.from(plan.args), [
-          ...(platform === 'win32' ? ['-gl'] : []),
+          ...(platform === 'win32' ? ['-gl', '-nosierra'] : []),
           '-game',
           'cstrike'
         ])
@@ -173,7 +173,13 @@ test('Linux can select a Windows 1.3 installation for an explicit Wine launch', 
     assert.equal(installation.runtime, 'wine')
     const plan = cs13Adapter.buildMenuLaunchPlan(installation)
     assert.equal(plan.executable, 'wine')
-    assert.deepEqual(Array.from(plan.args), [join(folder, 'hl.exe'), '-gl', '-game', 'cstrike'])
+    assert.deepEqual(Array.from(plan.args), [
+      join(folder, 'hl.exe'),
+      '-gl',
+      '-nosierra',
+      '-game',
+      'cstrike'
+    ])
   }))
 
 test('Wine scales the fixed-size WON menu through a private Gamescope desktop', () =>
@@ -200,6 +206,7 @@ test('Wine scales the fixed-size WON menu through a private Gamescope desktop', 
       '/desktop=16competitive-cs13,640x480',
       join(folder, 'hl.exe'),
       '-gl',
+      '-nosierra',
       '-full',
       '-w',
       '1280',
@@ -217,6 +224,7 @@ test('Wine scales the fixed-size WON menu through a private Gamescope desktop', 
     const native = await cs13Adapter.validateInstallation(folder, 'win32')
     assert.deepEqual(Array.from(cs13Adapter.buildMenuLaunchPlan(native, { wineDisplay }).args), [
       '-gl',
+      '-nosierra',
       '-game',
       'cstrike'
     ])
@@ -230,6 +238,7 @@ test('supports the separate cstrk13 WON community mod directory', () =>
     assert.equal(installation.modDirectory, 'cstrk13')
     assert.deepEqual(Array.from(cs13Adapter.buildMenuLaunchPlan(installation).args), [
       '-gl',
+      '-nosierra',
       '-game',
       'cstrk13'
     ])
@@ -363,7 +372,7 @@ test('persists the chosen mod when both 1.3 directories exist', () =>
     const restarted = new LegacyGameService(deps)
     assert.equal((await restarted.get()).value.installation.modDirectory, 'cstrike')
     assert.equal((await restarted.launch()).ok, true)
-    assert.deepEqual(Array.from(launches[0].args), ['-gl', '-game', 'cstrike'])
+    assert.deepEqual(Array.from(launches[0].args), ['-gl', '-nosierra', '-game', 'cstrike'])
   }))
 
 test('1.3 uses safe startup password and a private post-connect authentication file', async () => {

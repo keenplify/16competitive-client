@@ -146,6 +146,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
           '/desktop=16competitive-cs13,640x480',
           installation.executablePath,
           '-gl',
+          '-nosierra',
           '-full',
           '-w',
           '1280',
@@ -163,7 +164,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
       executable: installation.runtime === 'wine' ? 'wine' : installation.executablePath,
       args: [
         ...(installation.runtime === 'wine' ? [installation.executablePath] : []),
-        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? ['-gl'] : []),
+        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? ['-gl', '-nosierra'] : []),
         '-game',
         installation.modDirectory
       ],
