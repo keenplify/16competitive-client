@@ -2464,3 +2464,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Counter-Strike 1.3
 
 - Skipped the startup intro on Windows and Wine.
+
+## v2026.1015.4 — 2026-10-15
+
+### Legacy 1.3
+
+- Matching WON mod assets are now prepared before signing into Legacy 1.3 matches.
