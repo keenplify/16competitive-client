@@ -22,8 +22,15 @@ import {
 import { classifyCs16Distribution } from './cs16-installation'
 import { restoreCrosshair, uploadCrosshair } from './crosshair-sync'
 import { getSessionPlayerId } from '../auth'
+import { currentGameDisplayResolution } from './game-display'
+import {
+  defaultGameDisplayPreferences,
+  parseGameDisplayPreferences,
+  type GameDisplayPreferences
+} from '../../shared/game-display'
 
 interface StoredGameSettings {
+  display?: GameDisplayPreferences
   cs16ExecutablePath?: string
   playerPingKey?: PlayerPingKey
   voicePttKey?: string
@@ -201,6 +208,12 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
     const parsed = JSON.parse(await readFile(configPath(), 'utf8')) as unknown
     if (typeof parsed !== 'object' || parsed === null) return {}
     const settings = parsed as Partial<StoredGameSettings>
+    let display: GameDisplayPreferences | undefined
+    try {
+      if (settings.display !== undefined) display = parseGameDisplayPreferences(settings.display)
+    } catch {
+      /* Ignore a damaged local display preference. */
+    }
     let crosshair: CrosshairProfile | undefined
     try {
       if (settings.crosshair !== undefined)
@@ -209,6 +222,7 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       // Ignore a damaged local cosmetic profile.
     }
     return {
+      ...(display ? { display } : {}),
       ...(typeof settings.cs16ExecutablePath === 'string'
         ? { cs16ExecutablePath: settings.cs16ExecutablePath }
         : {}),
@@ -314,6 +328,8 @@ const buildSettings = async (
   crosshair: CrosshairProfile,
   storedSettings: StoredGameSettings
 ): Promise<GameSettings> => ({
+  display: storedSettings.display ?? defaultGameDisplayPreferences(currentGameDisplayResolution()),
+  currentDisplayResolution: currentGameDisplayResolution(),
   cs16ExecutablePath,
   cs16FolderPath: cs16ExecutablePath ? dirname(cs16ExecutablePath) : null,
   configFilePath: configPath(),
@@ -354,6 +370,8 @@ const persistResolvedSettings = async (
   storedSettings: StoredGameSettings
 ): Promise<void> => {
   await writeStoredSettings({
+    display:
+      storedSettings.display ?? defaultGameDisplayPreferences(currentGameDisplayResolution()),
     ...(cs16ExecutablePath ? { cs16ExecutablePath } : {}),
     playerPingKey: resolvedPlayerPingKey(storedSettings.playerPingKey),
     voicePttKey: teamVoicePttKey,
@@ -627,6 +645,13 @@ export const saveFastSwitch = async (untrustedEnabled: unknown): Promise<GameSet
     updated.crosshair ?? DEFAULT_CROSSHAIR,
     updated
   )
+}
+
+export const saveGameDisplay = async (value: unknown): Promise<GameSettings> => {
+  const display = parseGameDisplayPreferences(value)
+  const storedSettings = await readStoredSettings()
+  await writeStoredSettings({ ...storedSettings, display })
+  return getGameSettings()
 }
 
 export const saveLightweightHud = async (untrustedEnabled: unknown): Promise<GameSettings> => {

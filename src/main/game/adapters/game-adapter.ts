@@ -1,4 +1,5 @@
 import type { GameId } from '../../../shared/legacy-game'
+import type { GameResolution } from '../../../shared/game-display'
 
 export interface GameInstallation {
   game: GameId
@@ -14,6 +15,7 @@ export interface GameLaunchPlan {
 }
 
 export interface GameMenuLaunchOptions {
+  resolution?: GameResolution
   wineDisplay?: {
     gamescopeExecutable: string
     width: number

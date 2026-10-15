@@ -8,6 +8,8 @@ import { matchmakingConnection } from '../matchmaking'
 import { cs13Adapter, LegacyInstallationError } from './adapters/cs13'
 import { launchOrdinaryCounterStrike } from './cs16-launcher'
 import { LegacyGameService } from './legacy-game-service'
+import { getGameSettings } from './game-settings'
+import { resolveGameResolution } from '../../shared/game-display'
 
 export function registerLegacyGameIpc(): void {
   const service = new LegacyGameService({
@@ -40,12 +42,12 @@ export function registerLegacyGameIpc(): void {
                 .catch(() => null)
             : null
         const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
-        const fresh = cs13Adapter.buildMenuLaunchPlan(
-          installation,
-          gamescopeExecutable
-            ? { wineDisplay: { gamescopeExecutable, ...display.size } }
-            : undefined
-        )
+        const fresh = cs13Adapter.buildMenuLaunchPlan(installation, {
+          resolution: await getGameSettings().then((settings) =>
+            resolveGameResolution(settings.display, settings.currentDisplayResolution, 'cs13')
+          ),
+          ...(gamescopeExecutable ? { wineDisplay: { gamescopeExecutable, ...display.size } } : {})
+        })
         if (matchmakingConnection.isBusyForDemo()) throw new LegacyInstallationError('busy')
         const child = spawn(fresh.executable, fresh.args, {
           cwd: fresh.cwd,

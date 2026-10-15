@@ -23,6 +23,8 @@ import { registerManagedAdapterShutdown } from './managed-session-registry'
 import { prepareCs13MatchInstallation } from './cs13-match-installation'
 import { setGameConsoleDirectory } from './game-console-logs'
 import { ensureSharedModelDirectory } from './shared-model-directory'
+import { resolveGameResolution } from '../../shared/game-display'
+import { prepareCs13Controls } from './cs13-controls'
 
 let running: {
   matchId: string
@@ -120,17 +122,40 @@ export async function launchCs13Match(
         .then(() => true)
         .catch(() => false))
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
-    const plan = cs13Adapter.buildMenuLaunchPlan(
-      installation,
-      gamescope
+    const settings = await getGameSettings(true)
+    const plan = cs13Adapter.buildMenuLaunchPlan(installation, {
+      resolution: resolveGameResolution(
+        settings.display,
+        settings.currentDisplayResolution,
+        'cs13'
+      ),
+      ...(gamescope
         ? { wineDisplay: { gamescopeExecutable: '/usr/bin/gamescope', ...display.size } }
-        : undefined
-    )
+        : {})
+    })
     if (!isCurrent()) return
     const { address } = await lookup(connection.host, { family: 4 })
     const connectionArgs = cs13ConnectionArgs({ ...connection, host: address })
     if (!isCurrent()) return
-    const removeAuthFile = await createCs13AuthFile(installation.gameDirectory, connection)
+    const controls = await prepareCs13Controls(installation.gameDirectory)
+    let removeSessionAuth: () => Promise<void>
+    try {
+      removeSessionAuth = await createCs13AuthFile(
+        installation.gameDirectory,
+        connection,
+        controls.applyName
+      )
+    } catch (error) {
+      await controls.cleanup()
+      throw error
+    }
+    const removeAuthFile = async (): Promise<void> => {
+      try {
+        await controls.cleanup()
+      } finally {
+        await removeSessionAuth()
+      }
+    }
     if (!isCurrent()) {
       await removeAuthFile()
       return
@@ -138,13 +163,12 @@ export async function launchCs13Match(
     let overlay: ScoreboardOverlaySession | null = null
     let voice: VoicePttSession | null = null
     try {
-      const settings = await getGameSettings(true)
       if (
         CUSTOM_HUD_ENABLED &&
         settings.nextClientIntegrationEnabled &&
         (process.platform === 'win32' || installation.runtime === 'wine')
       ) {
-        const auth = cs13AuthContents(connection)
+        const auth = cs13AuthContents(connection, controls.applyName)
         try {
           overlay = await ScoreboardOverlaySession.start(
             connection.matchId,
@@ -214,7 +238,7 @@ export async function launchCs13Match(
       })
       const child = spawn(
         plan.executable,
-        [...plan.args, '-console', '-condebug', ...connectionArgs],
+        [...plan.args, '-console', '-condebug', '+exec', controls.probeName, ...connectionArgs],
         {
           cwd: plan.cwd,
           shell: false,
@@ -242,6 +266,7 @@ export async function launchCs13Match(
         voice,
         cleanupAuth: removeAuthFile
       }
+      controls.start()
       child.once('exit', (code, signal) => {
         console.info('[CS13] Game process exited', { matchId: connection.matchId, code, signal })
         if (running?.process !== child) return
@@ -249,7 +274,11 @@ export async function launchCs13Match(
         running = null
         active.voice?.stop()
         active.overlay?.stop()
-        void removeAuthFile().catch((error: unknown) =>
+        cleanup = (async () => {
+          await removeAuthFile()
+          await ScoreboardOverlaySession.waitForCleanup()
+        })()
+        void cleanup.catch((error: unknown) =>
           console.error('[CS13] Session cleanup failed', error)
         )
         onExit(code, signal)

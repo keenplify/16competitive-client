@@ -1,3 +1,4 @@
+import { gameDisplayTranslations } from './game-display-translations'
 import { roomSettingsTranslations } from './room-settings-translations'
 import { legacyGameTranslations } from './legacy-game-translations'
 import { communityMembershipTranslations } from './community-membership-translations'
@@ -45,6 +46,7 @@ const english = {
   ...anticheatNoticeTranslations.en,
   ...preferHumansTranslations.en,
   ...lightweightHudTranslations.en,
+  ...gameDisplayTranslations.en,
   ...fastSwitchTranslations.en,
   ...playerPingTranslations.en,
   'auth.signedInAs': 'Signed in as {{account}}',
@@ -200,6 +202,7 @@ const russian: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.ru,
   ...preferHumansTranslations.ru,
   ...lightweightHudTranslations.ru,
+  ...gameDisplayTranslations.ru,
   ...fastSwitchTranslations.ru,
   ...playerPingTranslations.ru,
   'auth.signedInAs': 'Выполнен вход: {{account}}',
@@ -355,6 +358,7 @@ const taglish: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.tl,
   ...preferHumansTranslations.tl,
   ...lightweightHudTranslations.tl,
+  ...gameDisplayTranslations.tl,
   ...fastSwitchTranslations.tl,
   ...playerPingTranslations.tl,
   'auth.signedInAs': 'Naka-sign in bilang {{account}}',
@@ -511,6 +515,7 @@ const thai: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.th,
   ...preferHumansTranslations.th,
   ...lightweightHudTranslations.th,
+  ...gameDisplayTranslations.th,
   ...fastSwitchTranslations.th,
   ...playerPingTranslations.th,
   'auth.signedInAs': 'เข้าสู่ระบบเป็น {{account}}',
@@ -663,6 +668,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.id,
   ...preferHumansTranslations.id,
   ...lightweightHudTranslations.id,
+  ...gameDisplayTranslations.id,
   ...fastSwitchTranslations.id,
   ...playerPingTranslations.id,
   'auth.signedInAs': 'Masuk sebagai {{account}}',
@@ -822,6 +828,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.pt,
   ...preferHumansTranslations.pt,
   ...lightweightHudTranslations.pt,
+  ...gameDisplayTranslations.pt,
   ...fastSwitchTranslations.pt,
   ...playerPingTranslations.pt,
   'auth.signedInAs': 'Conectado como {{account}}',
@@ -982,6 +989,7 @@ const japanese: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.ja,
   ...preferHumansTranslations.ja,
   ...lightweightHudTranslations.ja,
+  ...gameDisplayTranslations.ja,
   ...fastSwitchTranslations.ja,
   ...playerPingTranslations.ja,
   'auth.signedInAs': '{{account}}としてログイン中',
@@ -1139,6 +1147,7 @@ const hindi: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.hi,
   ...preferHumansTranslations.hi,
   ...lightweightHudTranslations.hi,
+  ...gameDisplayTranslations.hi,
   ...fastSwitchTranslations.hi,
   ...playerPingTranslations.hi,
   'auth.signedInAs': '{{account}} के रूप में साइन इन किया गया',

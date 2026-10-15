@@ -219,6 +219,7 @@ const friends: FriendsApi = {
 }
 
 const gameSettings: GameSettingsApi = {
+  setDisplay: (preferences) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setDisplay, preferences),
   get: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.get),
   chooseFolder: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.chooseFolder),
   installNextClient: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.installNextClient),

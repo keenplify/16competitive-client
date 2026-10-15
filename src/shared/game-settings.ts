@@ -1,5 +1,6 @@
 import type { PlayerPingKey } from './player-ping'
 import type { CrosshairProfile } from './crosshair'
+import type { GameDisplayPreferences, GameResolution } from './game-display'
 
 export const GAME_SETTINGS_CHANNELS = {
   get: 'game-settings:get',
@@ -16,6 +17,7 @@ export const GAME_SETTINGS_CHANNELS = {
   setPlayerPingKey: 'game-settings:set-player-ping-key',
   setKillCards: 'game-settings:set-kill-cards',
   setLightweightHud: 'game-settings:set-lightweight-hud',
+  setDisplay: 'game-settings:set-display',
   completeSetup: 'game-settings:complete-setup',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
   syncAssets: 'game-settings:sync-assets',
@@ -26,6 +28,8 @@ export type SetupMode = 'recommended' | 'custom'
 export type ClientType = 'steam' | 'nextclient' | 'standalone'
 
 export interface GameSettings {
+  display: GameDisplayPreferences
+  currentDisplayResolution: GameResolution
   cs16ExecutablePath: string | null
   cs16FolderPath: string | null
   configFilePath: string
@@ -62,6 +66,7 @@ export interface SkinAssetSyncProgress {
 }
 
 export interface GameSettingsApi {
+  setDisplay(preferences: GameDisplayPreferences): Promise<GameSettings>
   get(): Promise<GameSettings>
   chooseFolder(): Promise<string | null>
   installNextClient(): Promise<void>

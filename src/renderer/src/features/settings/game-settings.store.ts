@@ -1,5 +1,6 @@
 import { DEFAULT_PLAYER_PING_KEY, type PlayerPingKey } from '../../../../shared/player-ping'
 import { create } from 'zustand'
+import type { GameDisplayPreferences, GameResolution } from '../../../../shared/game-display'
 import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
 import type {
   ClientType,
@@ -21,6 +22,10 @@ type NextClientInstallStatus =
 let nextClientDetectionRun = 0
 
 interface GameSettingsState {
+  display: GameDisplayPreferences
+  currentDisplayResolution: GameResolution
+  displayStatus: 'idle' | 'saving' | 'error'
+  setDisplay: (preferences: GameDisplayPreferences) => Promise<void>
   folderPath: string
   savedPath: string | null
   configFilePath: string | null
@@ -70,6 +75,23 @@ const message = (error: unknown): string =>
     : 'Request failed.'
 
 export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
+  display: { resolution: 'current', widescreen: true },
+  currentDisplayResolution: { width: 1920, height: 1080 },
+  displayStatus: 'idle',
+  setDisplay: async (preferences) => {
+    if (get().displayStatus === 'saving') return
+    set({ displayStatus: 'saving' })
+    try {
+      const settings = await window.api.gameSettings.setDisplay(preferences)
+      set({
+        display: settings.display,
+        currentDisplayResolution: settings.currentDisplayResolution,
+        displayStatus: 'idle'
+      })
+    } catch {
+      set({ displayStatus: 'error' })
+    }
+  },
   folderPath: '',
   savedPath: null,
   configFilePath: null,
@@ -168,6 +190,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     try {
       const settings = await window.api.gameSettings.get()
       set({
+        display: settings.display,
+        currentDisplayResolution: settings.currentDisplayResolution,
         folderPath: settings.cs16FolderPath ?? '',
         savedPath: settings.cs16FolderPath,
         configFilePath: settings.configFilePath,

@@ -2,6 +2,7 @@ import { open, realpath, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, relative } from 'node:path'
 import type { LegacyGameError, LegacyInstallation } from '../../../shared/legacy-game'
 import type { GameAdapter, GameLaunchPlan } from './game-adapter'
+import { gameResolutionArgs } from '../../../shared/game-display'
 
 export class LegacyInstallationError extends Error {
   constructor(public readonly code: LegacyGameError) {
@@ -117,6 +118,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
     }
   },
   buildMenuLaunchPlan(installation, options): GameLaunchPlan {
+    const resolution = options?.resolution ?? { width: 1280, height: 960 }
     const display = installation.runtime === 'wine' ? options?.wineDisplay : undefined
     if (display) {
       if (
@@ -126,15 +128,15 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
         )
       )
         throw new Error('Invalid Wine display options')
-      // WON's menu always draws at 640x480. Scaling the enclosing desktop alone
-      // leaves that menu in a corner; Gamescope scales the actual Wine desktop.
+      // Keep Wine's desktop and Gamescope's input dimensions aligned with the
+      // selected game mode. The older menu itself still draws at 640x480.
       return {
         executable: display.gamescopeExecutable,
         args: [
           '-w',
-          '1280',
+          String(resolution.width),
           '-h',
-          '960',
+          String(resolution.height),
           '-W',
           String(display.width),
           '-H',
@@ -143,15 +145,16 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
           '--',
           'wine',
           'explorer',
-          '/desktop=16competitive-cs13,640x480',
+          options?.resolution
+            ? `/desktop=16competitive-cs13,${resolution.width}x${resolution.height}`
+            : '/desktop=16competitive-cs13,640x480',
           installation.executablePath,
           '-gl',
           '-nosierra',
           '-full',
-          '-w',
-          '1280',
-          '-h',
-          '960',
+          ...(options?.resolution
+            ? gameResolutionArgs(resolution, 'cs13')
+            : ['-w', '1280', '-h', '960']),
           '-game',
           installation.modDirectory
         ],
@@ -165,6 +168,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
       args: [
         ...(installation.runtime === 'wine' ? [installation.executablePath] : []),
         ...(installation.executablePath.toLowerCase().endsWith('.exe') ? ['-gl', '-nosierra'] : []),
+        ...(options?.resolution ? gameResolutionArgs(options.resolution, 'cs13') : []),
         '-game',
         installation.modDirectory
       ],

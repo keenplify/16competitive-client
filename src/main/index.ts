@@ -111,7 +111,8 @@ import {
   saveFastSwitch,
   savePlayerPingKey,
   saveKillCards,
-  saveLightweightHud
+  saveLightweightHud,
+  saveGameDisplay
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
 import { registerLegacyGameIpc } from './game/legacy-game-ipc'
@@ -943,6 +944,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setDisplay, (_, preferences: unknown) =>
+    saveGameDisplay(preferences)
+  )
   registerLegacyGameIpc()
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.installNextClient, (event) =>

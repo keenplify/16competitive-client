@@ -95,6 +95,8 @@ const getPttKeys = (): [string, string] => {
 const browserSettings = (): GameSettings => {
   const [team, party] = getPttKeys()
   return {
+    display: { resolution: 'current', widescreen: true },
+    currentDisplayResolution: { width: 1920, height: 1080 },
     cs16ExecutablePath: 'steam://run/10',
     cs16FolderPath: null,
     configFilePath: 'Browser / Steam',
@@ -590,6 +592,9 @@ const api: Window['api'] = {
   },
 
   gameSettings: {
+    async setDisplay() {
+      throw new Error('Game display preferences require the desktop launcher.')
+    },
     async get() {
       return browserSettings()
     },

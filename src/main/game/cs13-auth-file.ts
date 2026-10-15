@@ -5,7 +5,12 @@ import { join } from 'node:path'
 import { cs13ConnectionArgs } from './adapters/cs13'
 
 type Connection = Parameters<typeof cs13ConnectionArgs>[0]
-export function cs13AuthContents(connection: Connection): { name: string; contents: string } {
+export function cs13AuthContents(
+  connection: Connection,
+  controlsFile?: string
+): { name: string; contents: string } {
+  if (controlsFile && !/^16c13_bindings_[a-f0-9]{16}\.cfg$/.test(controlsFile))
+    throw new Error('Invalid launcher controls file')
   cs13ConnectionArgs(connection)
   const wireToken = createHash('sha256')
     .update(`cs13:${connection.joinToken}`)
@@ -17,16 +22,19 @@ export function cs13AuthContents(connection: Connection): { name: string; conten
     .slice(0, 16)
   return {
     name: `16c13_${fileId}.cfg`,
-    contents: `// 1.3 Competitive session authentication\ncmd 16c13_auth ${wireToken}\n`
+    contents:
+      `// 1.3 Competitive session authentication\ncmd 16c13_auth ${wireToken}\n` +
+      (controlsFile ? 'wait\n'.repeat(30) + `exec ${controlsFile}\n` : '')
   }
 }
 
 /** The server requests this exact session file after saved userinfo has loaded. */
 export async function createCs13AuthFile(
   gameDirectory: string,
-  connection: Connection
+  connection: Connection,
+  controlsFile?: string
 ): Promise<() => Promise<void>> {
-  const { name, contents } = cs13AuthContents(connection)
+  const { name, contents } = cs13AuthContents(connection, controlsFile)
   const path = join(gameDirectory, name)
   let created = false
   const readFlags = constants.O_RDONLY | (process.platform === 'win32' ? 0 : constants.O_NOFOLLOW)

@@ -306,6 +306,33 @@ Room transfers and running-server recovery manifests preserve explicit false.
 Public matchmaking retains its mode defaults. Configuration generation is covered
 for both adapters; no live player damage test was performed for this change.
 
+### Shared display preferences and missing controls (2026-10-16)
+
+Settings → Game display stores one launcher-owned resolution preference and a
+widescreen checkbox for both games. Automatic uses physical pixels on the display
+containing the launcher, including DPI scaling. Dimensions are resolved again at
+launch. Legacy 1.3 selects a supported 4:3 mode, capped at 1280×960, and Settings
+shows that effective resolution. The shared widescreen preference remains usable
+for 1.6.
+
+The inspected stock WON executable (SHA-256
+`525c1a32a520bbde8857e8dc3ed1e5bbc8b2ef5620bc6cdbcdbc72c34542bace`)
+has a fixed windowed mode table and a fullscreen height limit. Real isolated Wine
+tests rendered 800×600 and 1280×960 correctly; a 1280×720 request rendered 1280×960,
+and 1920×1080 fell back to 400×300. Its substring argument parser can confuse an
+earlier `-windowed` with `-w`, so dimension arguments must precede that switch.
+No widescreen claim is made for this exact pre-Steam build.
+
+Managed 1.3 matches query a fixed list of classic keys through the running
+engine's `bind` command. Only keys explicitly reported unbound receive defaults;
+existing player commands are preserved. Per-launch random markers reject old
+console output, and bounded log polling writes a launcher-owned application file
+before the engine executes it. Both temporary files are removed on session exit
+and launcher shutdown. The launcher never accesses the player's config file.
+An isolated real 1.3/Wine test restored Buy and Jump while preserving W bound to
+`+back`. The Windows release pipeline also runs the parsing, cleanup, resolution,
+and adapter tests; this does not replace native Windows gameplay verification.
+
 ### Windows release checks (2026-10-15)
 
 Windows and Wine executable launches explicitly select OpenGL (`-gl`), because

@@ -276,6 +276,32 @@ test('Wine scales the fixed-size WON menu through a private Gamescope desktop', 
     ])
   }))
 
+test('explicit display dimensions reach Windows and Wine without conflicting desktop sizes', () =>
+  fixture(async ({ folder }) => {
+    const resolution = { width: 1024, height: 768 }
+    const native = await cs13Adapter.validateInstallation(folder, 'win32')
+    const nativeArgs = cs13Adapter.buildMenuLaunchPlan(native, { resolution }).args
+    assert.deepEqual(Array.from(nativeArgs), [
+      '-gl',
+      '-nosierra',
+      '-width',
+      '1024',
+      '-height',
+      '768',
+      '-game',
+      'cstrike'
+    ])
+    await rm(join(folder, 'hl_linux'))
+    const installation = await cs13Adapter.validateInstallation(folder, 'linux')
+    const plan = cs13Adapter.buildMenuLaunchPlan(installation, {
+      resolution,
+      wineDisplay: { gamescopeExecutable: '/usr/bin/gamescope', width: 1920, height: 1080 }
+    })
+    assert.ok(plan.args.includes('/desktop=16competitive-cs13,1024x768'))
+    assert.deepEqual(Array.from(plan.args).slice(0, 4), ['-w', '1024', '-h', '768'])
+    assert.ok(plan.args.includes('-width'))
+  }))
+
 test('supports the separate cstrk13 WON community mod directory', () =>
   fixture(async ({ folder }) => {
     const { rename } = await import('node:fs/promises')

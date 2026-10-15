@@ -16,6 +16,7 @@ import {
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { isIP } from 'node:net'
 import { serverClockNow } from '../../shared/server-clock'
+import { gameResolutionArgs, resolveGameResolution } from '../../shared/game-display'
 import {
   disableNextClientIntegrationAfterCrash,
   getGameSettings,
@@ -1155,6 +1156,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // Restore the standard GoldSrc startup exec so the password, identity
   // reassertion and 20 wait frames run even without a userconfig startup hook.
   const directMatchArgs = [
+    ...gameResolutionArgs(
+      resolveGameResolution(gameSettings.display, gameSettings.currentDisplayResolution),
+      'cs16'
+    ),
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
