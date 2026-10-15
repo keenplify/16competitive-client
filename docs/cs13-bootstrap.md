@@ -306,6 +306,26 @@ Room transfers and running-server recovery manifests preserve explicit false.
 Public matchmaking retains its mode defaults. Configuration generation is covered
 for both adapters; no live player damage test was performed for this change.
 
+### Steam 1.6 regression after shared WON support (2026-10-16)
+
+A Windows report from client 2026.1015.5 showed the launcher accepting Steam's
+`b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2`
+client while helper 0.1.67's new family gate rejected it at Initialize. This left
+the game playable but disabled all cosmetic HUD callbacks. The shared module
+now recognizes this modern client alongside the earlier Steam and WaRzOnE
+clients. The launcher uses the same narrow hash set, followed by the structural
+ABI check, rather than accepting a version label that the module will reject.
+NextClient detection still selects the separate client_mini integration first.
+WON client/engine matching, signed-bundle verification, ownership and endpoint
+gates remain required.
+
+The owner's mounted Steam and WaRzOnE DLLs passed exact family/ABI checks, and
+the NextClient installation passed its dedicated host/executable detection.
+Unit tests cover all three modern hashes and reject unknown/mislabeled clients.
+The matching Steam Wine smoke stopped at Steam authentication before gameplay;
+these checks do not establish live rendering correctness on all three Windows
+installations.
+
 ### Shared display preferences and missing controls (2026-10-16)
 
 Settings → Game display stores one launcher-owned resolution preference and a

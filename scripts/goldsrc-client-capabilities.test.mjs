@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   GOLDSRC_COSMETIC_CAPABILITIES,
+  CS16_COSMETIC_CLIENT_SHA256,
   classifyGoldSrcClient,
   WON13_CLIENT_SHA256,
   WON13_ENGINE_SHA256,
@@ -21,7 +22,17 @@ test('WON support requires the exact inspected client and engine pair', () => {
   assert.equal(classifyGoldSrcClient('1.3', 'unknown', WON13_ENGINE_SHA256), null)
   assert.equal(classifyGoldSrcClient('1.3', WON13_CLIENT_SHA256, 'unknown'), null)
   assert.equal(classifyGoldSrcClient('1.5', WON13_CLIENT_SHA256, WON13_ENGINE_SHA256), null)
-  assert.equal(classifyGoldSrcClient('1.6', 'modern', 'modern'), 'cs16')
+  assert.equal(classifyGoldSrcClient('1.6', 'modern', 'modern'), null)
+})
+
+test('launcher and shared DLL admit the same modern clients, including current Steam', () => {
+  for (const hash of CS16_COSMETIC_CLIENT_SHA256) {
+    assert.equal(classifyGoldSrcClient('1.6', hash, 'modern'), 'cs16')
+    assert.equal(classifyGoldSrcClient('', hash, 'modern'), 'cs16')
+    assert.equal(classifyGoldSrcClient('1.3', hash, WON13_ENGINE_SHA256), null)
+  }
+  assert.equal(CS16_COSMETIC_CLIENT_SHA256.length, 3)
+  assert.equal(classifyGoldSrcClient('1.6', WON13_CLIENT_SHA256, WON13_ENGINE_SHA256), null)
 })
 
 test('Wine recovery paths round trip spaces without shell syntax or other drives', () => {
