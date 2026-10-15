@@ -2458,3 +2458,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Check legacy game installation readiness before joining a custom room.
 - Prevent custom-room admission when the required legacy installation is not ready.
+
+## v2026.1015.3 — 2026-10-15
+
+### Counter-Strike 1.3
+
+- Skipped the startup intro on Windows and Wine.
