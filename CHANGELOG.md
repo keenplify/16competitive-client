@@ -2489,3 +2489,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Restored Counter-Strike 1.6 cosmetic compatibility without requiring a fixed file hash.
 - Aligned Windows cosmetic client compatibility checks with the shared rules.
+
+## v2026.1015.7 — 2026-10-15
+
+### Changes
+
+- No player-facing changes were provided.
