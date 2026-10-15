@@ -1,7 +1,7 @@
+import { parseMatchmakingMapCatalog } from '../shared/matchmaking-map-catalog'
 import type {
   MatchmakingApi,
   MatchmakingEvent,
-  MatchmakingMap,
   MatchmakingNode,
   MatchmakingPreferences,
   MatchmakingServerMessage
@@ -412,10 +412,10 @@ export const browserMatchmakingApi: MatchmakingApi = {
   },
 
   async getMaps() {
-    const body = await requestJson<{ maps: MatchmakingMap[] }>('/matchmaking/maps', {
+    const body = await requestJson<unknown>('/matchmaking/maps', {
       authenticated: true
     })
-    return body.maps
+    return parseMatchmakingMapCatalog(body)
   },
 
   async respondReady(matchId, accepted) {

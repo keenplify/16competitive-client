@@ -11,6 +11,7 @@ import type { ModelApi } from '../shared/models'
 import type { PartyApi } from '../shared/party'
 import type { FriendsApi } from '../shared/friends'
 import type { GameSettingsApi } from '../shared/game-settings'
+import type { LegacyGameApi } from '../shared/legacy-game'
 import type { MatchHistoryApi } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
 import type { UpdaterApi } from '../shared/updater'
@@ -35,6 +36,7 @@ declare global {
       customGames: CustomGamesApi
       friends: FriendsApi
       gameSettings: GameSettingsApi
+      legacyGame: LegacyGameApi
       leaderboard: LeaderboardApi
       matchmaking: MatchmakingApi
       matchHistory: MatchHistoryApi

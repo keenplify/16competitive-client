@@ -1,43 +1,12 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
-import { isMatchmakingMode, type MatchmakingMap } from '../shared/matchmaking'
-import { isServerCustomGameMode } from '../shared/custom-games'
+import type { MatchmakingMapCatalog } from '../shared/matchmaking'
+import { parseMatchmakingMapCatalog } from '../shared/matchmaking-map-catalog'
 
-const MAP_ID_PATTERN = /^[a-z0-9_]{1,64}$/
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
-const isPreviewUrl = (value: unknown): value is string | null => {
-  if (value === null) return true
-  if (typeof value !== 'string') return false
-  try {
-    const url = new URL(value)
-    return url.protocol === 'https:' || url.protocol === 'http:'
-  } catch {
-    return false
-  }
-}
-
-const isMap = (value: unknown): value is MatchmakingMap =>
-  isObject(value) &&
-  typeof value.id === 'string' &&
-  MAP_ID_PATTERN.test(value.id) &&
-  typeof value.displayName === 'string' &&
-  value.displayName.length > 0 &&
-  value.displayName.length <= 80 &&
-  typeof value.game === 'string' &&
-  value.game.length > 0 &&
-  value.game.length <= 32 &&
-  isPreviewUrl(value.previewUrl) &&
-  Array.isArray(value.supportedModes) &&
-  value.supportedModes.every(isMatchmakingMode) &&
-  Array.isArray(value.webModes) &&
-  value.webModes.every(isMatchmakingMode) &&
-  value.webModes.every((mode) => (value.supportedModes as unknown[]).includes(mode)) &&
-  Array.isArray(value.customModes) &&
-  value.customModes.every(isServerCustomGameMode)
-
-export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
+export const getMatchmakingMaps = async (): Promise<MatchmakingMapCatalog> => {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before loading matchmaking maps')
 
@@ -63,8 +32,5 @@ export const getMatchmakingMaps = async (): Promise<MatchmakingMap[]> => {
     const message = isObject(body) && typeof body.message === 'string' ? body.message : null
     throw new Error(message ?? `Could not load matchmaking maps (${response.status})`)
   }
-  if (!isObject(body) || !Array.isArray(body.maps) || !body.maps.every(isMap)) {
-    throw new Error('The matchmaking server returned invalid maps')
-  }
-  return body.maps
+  return parseMatchmakingMapCatalog(body)
 }

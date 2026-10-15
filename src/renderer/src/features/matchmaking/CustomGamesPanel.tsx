@@ -1,18 +1,26 @@
 import { useEffect, useState, type JSX, type MouseEvent } from 'react'
-import { Bot, LoaderCircle, LockKeyhole, Plus, RefreshCw, UserPlus, UserX } from 'lucide-react'
+import {
+  Bot,
+  LoaderCircle,
+  LockKeyhole,
+  Plus,
+  RefreshCw,
+  Settings,
+  UserPlus,
+  UserX
+} from 'lucide-react'
 import { toast } from 'react-toastify'
 import {
-  CUSTOM_GAME_MODES,
   CUSTOM_GAME_MODE_LABELS,
   type CustomGameMember,
-  type CustomGameMode,
-  type CustomGameRoom,
-  type CustomGameSettingsUpdate
+  type CustomGameRoom
 } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
+import { RoomSettingsModal } from './RoomSettingsModal'
+import { useTranslation } from '../i18n/i18n'
 import { CreateCustomGameModal } from './CreateCustomGameModal'
 import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
@@ -26,9 +34,6 @@ interface CustomGamesPanelProps {
   selectedNodeId: string | null
   disabled?: boolean
 }
-
-const fieldClass =
-  'h-10 border border-white/15 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-sky-400'
 
 const regionLabel = (region: string): string => {
   if (region === 'sea') return 'SEA'
@@ -51,99 +56,6 @@ const serverTextClass = (latencyMs: number | null, available: boolean): string =
   return 'text-red-400'
 }
 
-function RoomSettingsForm({
-  room,
-  maps,
-  onSave
-}: {
-  room: CustomGameRoom
-  maps: MatchmakingMap[]
-  onSave: (settings: CustomGameSettingsUpdate) => Promise<void>
-}): JSX.Element {
-  const [mode, setMode] = useState<CustomGameMode>(room.mode)
-  const [mapId, setMapId] = useState(room.mapId)
-  const availableModes = CUSTOM_GAME_MODES.filter(
-    (candidate) =>
-      candidate === room.mode || maps.some(({ customModes }) => customModes.includes(candidate))
-  )
-  const selectedMode = availableModes.includes(mode) ? mode : room.mode
-  const availableMaps = maps.filter(
-    (map) =>
-      map.customModes.includes(selectedMode) ||
-      (selectedMode === room.mode && map.id === room.mapId)
-  )
-  const selectedMapId = availableMaps.some((map) => map.id === mapId)
-    ? mapId
-    : (availableMaps[0]?.id ?? '')
-
-  return (
-    <form
-      className="mt-4 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-[1.2fr_.7fr_.9fr_1.2fr_auto] md:items-end"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (!selectedMapId) return
-        const form = new FormData(event.currentTarget)
-        const nextPassword = String(form.get('password') ?? '')
-        void onSave({
-          name: String(form.get('name') ?? ''),
-          mode: selectedMode,
-          mapId: selectedMapId,
-          ...(nextPassword ? { password: nextPassword } : {})
-        })
-      }}
-    >
-      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-        Room title
-        <input className={fieldClass} name="name" defaultValue={room.name} maxLength={48} />
-      </label>
-      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-        Mode
-        <select
-          className={fieldClass}
-          name="mode"
-          value={selectedMode}
-          onChange={(event) => setMode(event.target.value as CustomGameMode)}
-        >
-          {availableModes.map((availableMode) => (
-            <option key={availableMode} value={availableMode}>
-              {CUSTOM_GAME_MODE_LABELS[availableMode]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-        Map
-        <select
-          className={fieldClass}
-          name="mapId"
-          value={selectedMapId}
-          disabled={availableMaps.length === 0}
-          onChange={(event) => setMapId(event.target.value)}
-        >
-          {availableMaps.map((map) => (
-            <option key={map.id} value={map.id}>
-              {map.displayName}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1 text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-        Password
-        <input
-          className={fieldClass}
-          name="password"
-          maxLength={64}
-          type="password"
-          placeholder={room.hasPassword ? 'Replace password' : 'Optional password'}
-        />
-      </label>
-      <Button variant="secondary" type="submit" disabled={!selectedMapId}>
-        Save
-      </Button>
-    </form>
-  )
-}
-
 export function CustomGamesPanel({
   currentPlayerId,
   maps,
@@ -157,7 +69,10 @@ export function CustomGamesPanel({
   const refresh = useCustomGamesStore((state) => state.refresh)
   const createModalOpen = useCustomGamesStore((state) => state.createModalOpen)
   const openCreateModal = useCustomGamesStore((state) => state.openCreateModal)
-  const updateRoom = useCustomGamesStore((state) => state.updateRoom)
+  const { t } = useTranslation()
+  const settingsModalOpen = useCustomGamesStore((state) => state.settingsModalOpen)
+  const openRoomSettings = useCustomGamesStore((state) => state.openRoomSettings)
+  const savingSettings = useCustomGamesStore((state) => state.savingSettings)
   const joinRoom = useCustomGamesStore((state) => state.joinRoom)
   const leaveRoom = useCustomGamesStore((state) => state.leaveRoom)
   const startRoom = useCustomGamesStore((state) => state.startRoom)
@@ -320,9 +235,25 @@ export function CustomGamesPanel({
             </div>
             <div className="flex gap-2">
               {owner && room.state === 'WAITING' && (
-                <Button disabled={disabled} onClick={() => void startRoom()}>
-                  Start ready check
-                </Button>
+                <>
+                  <Button
+                    variant="secondary"
+                    className="w-11 shrink-0 px-0"
+                    aria-label={t('customRoom.settings')}
+                    title={t('customRoom.settings')}
+                    aria-haspopup="dialog"
+                    disabled={disabled || savingSettings}
+                    onClick={openRoomSettings}
+                  >
+                    <Settings className="size-4" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    disabled={disabled || savingSettings || settingsModalOpen}
+                    onClick={() => void startRoom()}
+                  >
+                    {t('customRoom.start')}
+                  </Button>
+                </>
               )}
               <Button
                 variant="secondary"
@@ -333,15 +264,6 @@ export function CustomGamesPanel({
               </Button>
             </div>
           </div>
-
-          {editable && (
-            <RoomSettingsForm
-              key={`${room.id}:${room.name}:${room.mode}:${room.mapId}:${room.hasPassword}`}
-              room={room}
-              maps={maps}
-              onSave={updateRoom}
-            />
-          )}
 
           {room.state === 'READY_CHECK' && (
             <p className="mt-4 border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">
@@ -762,6 +684,9 @@ export function CustomGamesPanel({
         </div>
       )}
 
+      {editable && settingsModalOpen && room && (
+        <RoomSettingsModal key={room.id} room={room} maps={maps} disabled={disabled} />
+      )}
       {createModalOpen && (
         <CreateCustomGameModal maps={maps} selectedNodeId={selectedNodeId} disabled={disabled} />
       )}

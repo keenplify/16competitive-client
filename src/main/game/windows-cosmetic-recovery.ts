@@ -7,10 +7,18 @@ const missingOnly = (error: unknown): null => {
   if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
   throw error
 }
-type Journal = { originalSha256: string; moduleSha256: string; ownsBackup: boolean }
+type Journal = {
+  originalSha256: string
+  moduleSha256: string
+  ownsBackup: boolean
+  wonLoader?: boolean
+}
 
-export async function recoverWindowsCosmeticInstallation(gameRoot: string): Promise<void> {
-  const clientPath = join(gameRoot, 'cstrike', 'cl_dlls', 'client.dll')
+export async function recoverWindowsCosmeticInstallation(
+  gameRoot: string,
+  gameDirectory: 'cstrike' | 'cstrk13' = 'cstrike'
+): Promise<void> {
+  const clientPath = join(gameRoot, gameDirectory, 'cl_dlls', 'client.dll')
   const originalPath = join(gameRoot, 'client_original.dll')
   const journalPath = join(gameRoot, '16competitive', 'cosmetic-install.json')
   const sessionDirectory = join(gameRoot, '16competitive', 'live-session')
@@ -18,6 +26,8 @@ export async function recoverWindowsCosmeticInstallation(gameRoot: string): Prom
   if (!journalBytes) return
   if (journalBytes.length > 256) throw new Error('Invalid cosmetic installation journal')
   const journal = JSON.parse(journalBytes.toString('utf8')) as Partial<Journal>
+  if (journal.wonLoader !== undefined)
+    throw new Error('WON engine restoration requires the verified recovery helper')
   if (
     !journal ||
     !journal.originalSha256 ||

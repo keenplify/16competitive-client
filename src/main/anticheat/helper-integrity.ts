@@ -22,15 +22,20 @@ export class HelperApprovalConnectionError extends Error {
 }
 
 /** Local integrity check only: neither the helper nor this launcher is remote attestation. */
-export async function verifyPackagedHelper(binary: string, apiUrl?: string): Promise<void> {
+export async function verifyPackagedHelper(
+  binary: string,
+  apiUrl?: string,
+  wine = false
+): Promise<void> {
+  if (wine && process.platform !== 'linux') throw new Error('Wine helper requires Linux')
   const envelope: unknown = JSON.parse(
     await readFile(join(dirname(binary), 'manifest.json'), 'utf8')
   )
   const manifest = verifyHelperRelease(envelope, releaseConfig.publicKeyPem)
   if (
     manifest.version !== releaseConfig.version ||
-    manifest.platform !== (process.platform === 'win32' ? 'win' : process.platform) ||
-    manifest.arch !== process.arch
+    manifest.platform !== (wine || process.platform === 'win32' ? 'win' : process.platform) ||
+    manifest.arch !== (wine ? 'x64' : process.arch)
   )
     throw new Error('Helper release does not match this launcher')
   verifyHelperBinary(await readFile(binary), manifest)

@@ -21,6 +21,7 @@ export const SERVER_CUSTOM_GAME_MODES = [
   'unrated',
   'legacy',
   'legacy_3v3',
+  'cs13_3v3',
   'ffa',
   'fight_yard'
 ] as const
@@ -29,13 +30,21 @@ export type ServerCustomGameMode = (typeof SERVER_CUSTOM_GAME_MODES)[number]
 export const isServerCustomGameMode = (value: unknown): value is ServerCustomGameMode =>
   SERVER_CUSTOM_GAME_MODES.some((mode) => mode === value)
 
-export const CUSTOM_GAME_MODES = ['unrated', 'legacy', 'legacy_3v3', 'ffa', 'fight_yard'] as const
+export const CUSTOM_GAME_MODES = [
+  'unrated',
+  'legacy',
+  'legacy_3v3',
+  'cs13_3v3',
+  'ffa',
+  'fight_yard'
+] as const
 export type CustomGameMode = (typeof CUSTOM_GAME_MODES)[number]
 
 export const CUSTOM_GAME_MODE_LABELS: Record<CustomGameMode, string> = {
   unrated: 'Unranked',
   legacy: 'Legacy',
   legacy_3v3: 'Legacy 3v3',
+  cs13_3v3: 'Legacy 1.3',
   ffa: 'FFA',
   fight_yard: 'Fight Yard'
 }
@@ -58,6 +67,8 @@ export interface CustomGameRoom {
   name: string
   mode: CustomGameMode
   mapId: string
+  startingMoney?: number
+  friendlyFire?: boolean
   state: CustomGameState
   maxPlayers: 18
   teamOneCapacity: number
@@ -102,6 +113,8 @@ export const isCustomGameChatMessage = (value: unknown): value is CustomGameChat
 }
 
 export interface CustomGameSettings {
+  startingMoney?: number
+  friendlyFire?: boolean
   name: string
   mode: CustomGameMode
   mapId: string

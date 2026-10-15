@@ -33,6 +33,7 @@ import type {
   SkinAssetSyncProgress
 } from '../shared/game-settings'
 import { GAME_SETTINGS_CHANNELS } from '../shared/game-settings'
+import { LEGACY_GAME_CHANNELS, type LegacyGameApi } from '../shared/legacy-game'
 import type { MatchHistoryApi } from '../shared/match-history'
 import { MATCH_HISTORY_CHANNELS } from '../shared/match-history'
 import type { SkinsApi } from '../shared/skins'
@@ -339,7 +340,15 @@ const communityChat: CommunityChatApi = {
   history: () => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.history),
   send: (id, message) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.send, id, message)
 }
+const legacyGame: LegacyGameApi = {
+  get: () => ipcRenderer.invoke(LEGACY_GAME_CHANNELS.get),
+  choose: () => ipcRenderer.invoke(LEGACY_GAME_CHANNELS.choose),
+  launch: () => ipcRenderer.invoke(LEGACY_GAME_CHANNELS.launch),
+  openDownload: () => ipcRenderer.invoke(LEGACY_GAME_CHANNELS.openDownload)
+}
+
 const api = {
+  legacyGame,
   partnerServers,
   communityChat,
   adminDemos,

@@ -39,12 +39,22 @@ const connectionLabels = {
   ready: 'Connected'
 } as const
 
-const queueModes = ['5v5', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'fight_yard', '3v3'] as const
+const queueModes = [
+  '5v5',
+  'unrated',
+  'legacy',
+  'legacy_3v3',
+  'cs13_3v3',
+  'ffa',
+  'fight_yard',
+  '3v3'
+] as const
 const modeHelpKeys = {
   '5v5': 'matchmaking.modeHelp5v5',
   unrated: 'matchmaking.modeHelpUnrated',
   legacy: 'matchmaking.modeHelpLegacy',
   legacy_3v3: 'matchmaking.modeHelpLegacy3v3',
+  cs13_3v3: 'legacy.modeHelp',
   ffa: 'matchmaking.modeHelpFfa',
   fight_yard: 'matchmaking.modeHelpFightYard',
   '3v3': 'matchmaking.modeHelp3v3'
@@ -281,7 +291,7 @@ export function PlayPage({
             partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
           )
         )
-      : queueModes
+      : queueModes.filter((mode) => mode !== 'cs13_3v3')
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
@@ -641,7 +651,9 @@ export function PlayPage({
                   !maps.some((map) => map.supportedModes.includes(mode)),
                 title:
                   mapsStatus === 'ready' && !maps.some((map) => map.supportedModes.includes(mode))
-                    ? 'No maps are available for this mode'
+                    ? mode === 'cs13_3v3'
+                      ? t('legacy.queueUnavailable')
+                      : 'No maps are available for this mode'
                     : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
                       ? 'This mode is unavailable for Web Play or mixed parties'
                       : mode === '5v5'

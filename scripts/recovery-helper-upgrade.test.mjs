@@ -79,6 +79,32 @@ test('failed verification preserves the old recovery evidence', async () => {
   })
 })
 
+test('Wine upgrades hash the local binary and preserve legacy recovery metadata', async () => {
+  await fixture(async ({ helper, path, descriptor }) => {
+    descriptor.gameDirectory = 'cstrk13'
+    descriptor.authFile = { name: '16c13_0123456789abcdef.cfg', sha256: hash('auth') }
+    const contents = JSON.stringify(descriptor)
+    await writeFile(path, contents)
+    const serialized = `Z:${helper.replaceAll('/', '\\')}`
+    const updated = await upgradeRecoveryHelper(
+      path,
+      contents,
+      descriptor,
+      helper,
+      async (binary) => {
+        assert.equal(binary, helper)
+      },
+      serialized
+    )
+    assert.equal(updated.helperPath, serialized)
+    assert.equal(updated.helperSha256, hash('current signed release'))
+    assert.equal(updated.sessionId, descriptor.sessionId)
+    assert.equal(updated.gameDirectory, 'cstrk13')
+    assert.deepEqual(updated.authFile, descriptor.authFile)
+    assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), updated)
+  })
+})
+
 test('an older recovery request cannot replace a newer session descriptor', async () => {
   await fixture(async ({ helper, path, descriptor, contents }) => {
     const newer = JSON.stringify({ ...descriptor, sessionId: 'another-session' })

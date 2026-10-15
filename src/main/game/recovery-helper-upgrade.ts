@@ -5,6 +5,8 @@ export interface RecoveryDescriptor {
   helperPath: string
   helperSha256: string
   sessionId: string
+  gameDirectory?: 'cstrike' | 'cstrk13'
+  authFile?: { name: string; sha256: string }
 }
 
 /** Adopt only the current launcher's verified helper, never a path from the journal.
@@ -15,16 +17,17 @@ export async function upgradeRecoveryHelper(
   previousContents: string,
   descriptor: RecoveryDescriptor,
   currentHelperPath: string,
-  verify: (path: string) => Promise<void>
+  verify: (path: string) => Promise<void>,
+  serializedHelperPath = currentHelperPath
 ): Promise<RecoveryDescriptor> {
   await verify(currentHelperPath)
   const helperSha256 = createHash('sha256')
     .update(await readFile(currentHelperPath))
     .digest('hex')
-  if (descriptor.helperPath === currentHelperPath && descriptor.helperSha256 === helperSha256)
+  if (descriptor.helperPath === serializedHelperPath && descriptor.helperSha256 === helperSha256)
     return descriptor
 
-  const updated = { ...descriptor, helperPath: currentHelperPath, helperSha256 }
+  const updated = { ...descriptor, helperPath: serializedHelperPath, helperSha256 }
   const temporary = `${path}.${randomUUID()}.tmp`
   try {
     await writeFile(temporary, JSON.stringify(updated), { flag: 'wx', mode: 0o600 })

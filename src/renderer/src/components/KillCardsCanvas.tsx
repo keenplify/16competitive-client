@@ -10,6 +10,7 @@ interface KillCardsCanvasProps {
   side: 'CT' | 'T' | 'F'
   kinds?: ('skull' | 'grenade')[]
   lightweight?: boolean
+  gameVersion?: '1.3' | '1.6'
   className?: string
 }
 
@@ -184,6 +185,7 @@ function drawMedallion(
   ctx: CanvasRenderingContext2D,
   flash: number,
   colors: CardColors,
+  gameVersion: '1.3' | '1.6',
   opacity = 1
 ): void {
   ctx.strokeStyle = colors.border
@@ -213,7 +215,7 @@ function drawMedallion(
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.font = 'bold 17px Rajdhani, sans-serif'
-  ctx.fillText('1.6', 120, 52)
+  ctx.fillText(gameVersion, 120, 52)
   ctx.fillStyle = colors.stripe
   ctx.fillRect(110, 64, 20, 2)
 }
@@ -285,6 +287,7 @@ export function KillCardsCanvas({
   side,
   kinds = [],
   lightweight = false,
+  gameVersion = '1.6',
   className
 }: KillCardsCanvasProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -382,6 +385,7 @@ export function KillCardsCanvas({
         ctx,
         glowing ? 1 - glowProgress : 0,
         colors,
+        gameVersion,
         removing && target === 0 ? 1 - exitProgress : 1
       )
       ctx.restore()
@@ -401,7 +405,7 @@ export function KillCardsCanvas({
       for (const icon of Object.values(icons)) icon.onload = null
       if (animation.current !== null) cancelAnimationFrame(animation.current)
     }
-  }, [count, mode, aceAt, side, kinds, lightweight])
+  }, [count, mode, aceAt, side, kinds, lightweight, gameVersion])
 
   return (
     <canvas

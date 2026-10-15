@@ -75,6 +75,7 @@ export function PartyChat(): JSX.Element {
   const loadCommunity = useCommunityChatStore((state) => state.load)
   const setCommunityDraft = useCommunityChatStore((state) => state.setDraft)
   const sendCommunity = useCommunityChatStore((state) => state.send)
+  const hasCommunity = Boolean(communityId && communityName?.trim())
   const communityLabel = communityName || communityText(language, 'community')
 
   const room = useCustomGamesStore((state) => state.currentRoom)
@@ -148,9 +149,9 @@ export function PartyChat(): JSX.Element {
     return () => window.clearInterval(timer)
   }, [playerId, chatTab, chatOpen, loadCommunity])
   useEffect(() => {
-    if ((!party && chatTab === 'party') || (!communityId && chatTab === 'community'))
+    if ((!party && chatTab === 'party') || (!hasCommunity && chatTab === 'community'))
       setChatTab('language')
-  }, [party, communityId, chatTab, setChatTab])
+  }, [party, hasCommunity, chatTab, setChatTab])
   useEffect(() => {
     startFriendChat()
     return stopFriendChat
@@ -467,7 +468,7 @@ export function PartyChat(): JSX.Element {
                     : []),
                   { id: 'language' as const, label: globalLanguageLabel },
                   { id: 'global' as const, label: communityText(language, 'global') },
-                  ...(communityId ? [{ id: 'community' as const, label: communityLabel }] : [])
+                  ...(hasCommunity ? [{ id: 'community' as const, label: communityLabel }] : [])
                 ].map((tab) => (
                   <button
                     key={tab.id}

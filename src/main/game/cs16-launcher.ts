@@ -34,6 +34,7 @@ import {
   startManagedSkinAudioConnectionGuard
 } from './skin-audio-override'
 import { ScoreboardOverlaySession } from './scoreboard-overlay'
+import { shutdownManagedAdapters } from './managed-session-registry'
 import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import { lookup } from 'node:dns/promises'
 import { fastSwitchCommands, fastSwitchPreference } from './fast-switch'
@@ -163,6 +164,7 @@ const finishScoreboardSession = (matchId?: string): void => {
 /** A managed game already requires the launcher. Close it first so Windows
  * releases its DLLs, then await every restoration before Electron exits. */
 export const shutdownManagedGame = async (): Promise<void> => {
+  await shutdownManagedAdapters()
   const matchId = launchedMatchId
   const executable = launchedExecutablePath
   const directory = launchedGameDirectory
@@ -503,7 +505,7 @@ export const closeCounterStrikeForMatch = (matchId: string): void => {
   launchedExecutablePath = null
 }
 
-const closeLinuxCounterStrikeProcesses = (gameDirectory: string): Promise<number> =>
+export const closeLinuxCounterStrikeProcesses = (gameDirectory: string): Promise<number> =>
   trackGameClose(performCloseLinuxCounterStrikeProcesses(gameDirectory))
 const performCloseLinuxCounterStrikeProcesses = async (gameDirectory: string): Promise<number> => {
   const processIds = await getLinuxCounterStrikeProcessIds(gameDirectory)
@@ -534,7 +536,7 @@ const performCloseLinuxCounterStrikeProcesses = async (gameDirectory: string): P
   return terminated
 }
 
-const closeWindowsCounterStrikeProcesses = (executablePath: string): Promise<number> =>
+export const closeWindowsCounterStrikeProcesses = (executablePath: string): Promise<number> =>
   trackGameClose(performCloseWindowsCounterStrikeProcesses(executablePath))
 const performCloseWindowsCounterStrikeProcesses = async (
   executablePath: string
@@ -658,6 +660,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (!(await stat(cwd)).isDirectory()) {
     throw new Error('The configured Counter-Strike game directory was not found.')
   }
+  await shutdownManagedAdapters()
   // Every distribution runs the stock `cstrike` game directory, so this is both
   // the game directory the engine launches on and the directory launcher-managed
   // content goes into.

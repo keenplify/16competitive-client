@@ -3,15 +3,7 @@ import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { scoreboardLatency } from './scoreboard-latency'
 import { KillCardsCanvas } from '../src/renderer/src/components/KillCardsCanvas'
-import {
-  AlarmClockMinus,
-  Bomb,
-  CircleHelp,
-  Scissors,
-  Skull,
-  Trophy,
-  UsersRound
-} from 'lucide-react'
+import { AlarmClockMinus, CircleHelp, Scissors, Skull, Trophy, UsersRound } from 'lucide-react'
 import {
   scoreboardRounds,
   lossBonusSegments,
@@ -19,6 +11,10 @@ import {
   scoreByHalf,
   targetRoundMarkers
 } from './scoreboard-rounds'
+
+function C4Icon({ className, label }: { className: string; label: string }) {
+  return <span className={`c4-icon ${className}`} role="img" aria-label={label} />
+}
 
 type Player = {
   id: number
@@ -231,7 +227,7 @@ function RoundTrack({
                   ) : roundEvent === 'D' ? (
                     <Scissors className="round-event-icon" aria-label="Bomb defused" />
                   ) : roundEvent === 'B' ? (
-                    <Bomb className="round-event-icon" aria-label="Bomb exploded" />
+                    <C4Icon className="round-event-icon" label="Bomb exploded" />
                   ) : roundEvent === 'C' ? (
                     <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
                   ) : roundEvent === 'H' ? (
@@ -277,7 +273,7 @@ function PlayerRow({
       <span className="player-name" title={player.name}>
         {player.name}
         {canSeeBomb && player.hasBomb && (
-          <Bomb className="bomb-carrier-icon" aria-label="Bomb carrier" />
+          <C4Icon className="bomb-carrier-icon" label="Bomb carrier" />
         )}
         {!player.alive && <small>DEAD</small>}
       </span>
@@ -457,6 +453,9 @@ function KillCardsOnly() {
   )
   return (
     <KillCardsCanvas
+      gameVersion={
+        new URLSearchParams(window.location.search).get('gameVersion') === '1.3' ? '1.3' : '1.6'
+      }
       lightweight={lightweight}
       count={count}
       mode={mode}

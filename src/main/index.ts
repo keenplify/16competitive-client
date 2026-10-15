@@ -114,6 +114,7 @@ import {
   saveLightweightHud
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
+import { registerLegacyGameIpc } from './game/legacy-game-ipc'
 import { removeStaleMatchStartupBridge } from './game/match-startup-bridge'
 import {
   cancelNextClientInstaller,
@@ -942,6 +943,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
+  registerLegacyGameIpc()
   ipcMain.handle(GAME_SETTINGS_CHANNELS.chooseFolder, () => chooseCs16Folder())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.installNextClient, (event) =>
     launchNextClientInstaller((progress: NextClientInstallProgress) => {

@@ -100,7 +100,10 @@ export const WINDOWS_CLIENT_EXPORTS = [
 ] as const
 
 /** Structural compatibility only; this is never an anti-cheat verdict. */
-export function supportsWindowsCosmeticClient(bytes: Uint8Array): boolean {
+export function supportsWindowsCosmeticClient(
+  bytes: Uint8Array,
+  family: 'cs16' | 'won13' = 'cs16'
+): boolean {
   const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const fits = (offset: number, size: number): boolean =>
     Number.isSafeInteger(offset) && offset >= 0 && size >= 0 && offset + size <= data.length
@@ -138,13 +141,47 @@ export function supportsWindowsCosmeticClient(bytes: Uint8Array): boolean {
   const names = resolve(data.readUInt32LE(directory + 32), nameCount * 4)
   const ordinals = resolve(data.readUInt32LE(directory + 36), nameCount * 2)
   if (functions === null || names === null || ordinals === null) return false
+  const required: readonly string[] =
+    family === 'won13'
+      ? [
+          'Initialize',
+          'HUD_Init',
+          'HUD_Redraw',
+          'HUD_Frame',
+          'HUD_Shutdown',
+          'HUD_GetStudioModelInterface',
+          'HUD_Key_Event',
+          'HUD_PostRunCmd',
+          'HUD_ProcessPlayerState',
+          'HUD_AddEntity',
+          'V_CalcRefdef'
+        ]
+      : WINDOWS_CLIENT_EXPORTS
+  // WON exports data in the zero-filled tail of .data as well as functions.
+  // It has no file offset, but is valid readable memory in the loaded PE image.
+  const isVirtualData = (rva: number): boolean => {
+    if (family !== 'won13' || rva >= data.readUInt32LE(optional + 56)) return false
+    for (let i = 0; i < sectionCount; i++) {
+      const section = sections + i * 40
+      const delta = rva - data.readUInt32LE(section + 12)
+      const flags = data.readUInt32LE(section + 36)
+      if (
+        delta >= data.readUInt32LE(section + 16) &&
+        delta < data.readUInt32LE(section + 8) &&
+        (flags & 0x40000000) !== 0 &&
+        (flags & 0x20000000) === 0
+      )
+        return true
+    }
+    return false
+  }
   const found = new Set<string>()
   for (let i = 0; i < nameCount; i++) {
     const nameRva = data.readUInt32LE(names + i * 4)
     const ordinal = data.readUInt16LE(ordinals + i * 2)
     if (ordinal >= functionCount) return false
     const functionRva = data.readUInt32LE(functions + ordinal * 4)
-    if (!functionRva || resolve(functionRva, 1) === null) return false
+    if (!functionRva) return false
     // Do not wrap another forwarding proxy as the original client.
     if (functionRva >= exportsRva && functionRva < exportsRva + exportsSize) return false
     let name = ''
@@ -161,9 +198,14 @@ export function supportsWindowsCosmeticClient(bytes: Uint8Array): boolean {
       name += String.fromCharCode(char)
     }
     if (!terminated) return false
+    if (
+      resolve(functionRva, 1) === null &&
+      (required.includes(name) || !isVirtualData(functionRva))
+    )
+      return false
     found.add(name)
   }
-  return WINDOWS_CLIENT_EXPORTS.every((name) => found.has(name))
+  return required.every((name) => found.has(name))
 }
 
 const optionalFile = async (path: string): Promise<boolean> => {

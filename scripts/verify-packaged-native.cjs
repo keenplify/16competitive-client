@@ -6,7 +6,13 @@ module.exports = async function verifyPackagedNative(context) {
   const platform = context.electronPlatformName
   const nativeDirectory = join(context.appOutDir, 'resources', 'native')
   const required = [platform === 'win32' ? 'game-inspector.exe' : 'game-inspector', 'manifest.json']
-  if (platform === 'linux') required.push('papamo-cosmetic-module-linux-x86.so')
+  if (platform === 'linux')
+    required.push(
+      'papamo-cosmetic-module-linux-x86.so',
+      'wine/game-inspector.exe',
+      'wine/manifest.json',
+      'wine/papamo-cosmetic-module-win-x86.dll'
+    )
   if (platform === 'win32')
     required.push('papamo-cosmetic-module-win-x86.dll', 'papamo-nextclient-client-mini-win-x86.dll')
 

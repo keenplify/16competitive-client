@@ -1,3 +1,4 @@
+import type { ServerCustomGameMode } from '../../../../shared/custom-games'
 import { friendlyFireMessage } from './friendly-fire-message'
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 import {
@@ -14,6 +15,7 @@ import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time
 import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
 import { readMatchmakingPreferences, saveMatchmakingPreferences } from './matchmaking-preferences'
@@ -70,6 +72,7 @@ interface MatchmakingState {
   connectionStatus: ConnectionStatus
   queueStatus: QueueStatus
   selectedMode: MatchmakingMode
+  customModes: ServerCustomGameMode[]
   maps: MatchmakingMap[]
   mapsStatus: 'idle' | 'loading' | 'ready' | 'error'
   selectedMapIds: string[]
@@ -528,7 +531,14 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           state.connectionDetails
             ? { gameExited: true }
             : {}),
-          error: event.message
+          error:
+            event.message === 'legacy.error.installationRequired' ||
+            event.message === 'legacy.error.busy' ||
+            event.message === 'legacy.error.launchFailed'
+              ? translate(useLanguageStore.getState().language, event.message)
+              : event.code === 'CS13_SERVER_NOT_READY'
+                ? translate(useLanguageStore.getState().language, 'legacy.queueUnavailable')
+                : event.message
         }))
         break
       case 'pong':
@@ -544,6 +554,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     connectionStatus: 'disconnected',
     queueStatus: 'idle',
     selectedMode: isWebRuntime() ? 'unrated' : '5v5',
+    customModes: [],
     maps: [],
     mapsStatus: 'idle',
     selectedMapIds: [],
@@ -623,7 +634,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         error: null
       })
       try {
-        const maps = await window.api.matchmaking.getMaps()
+        const { maps, customModes } = await window.api.matchmaking.getMaps()
         const availableModesFor = (map: MatchmakingMap): MatchmakingMode[] =>
           isWebRuntime() ? map.webModes : map.supportedModes
         const selectedMode =
@@ -644,6 +655,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         }
         set({
           maps,
+          customModes,
           mapsStatus: 'ready',
           selectedMode,
           selectedMapIds: selectedMapIds
@@ -652,7 +664,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
       } catch (error) {
         const message = readableError(error)
-        set({ mapsStatus: 'error', maps: [], selectedMapIds: [], error: message })
+        set({ mapsStatus: 'error', maps: [], customModes: [], selectedMapIds: [], error: message })
         if (message.includes('MATCHMAKING_MAPS_UNAUTHORIZED')) {
           void useAuthStore.getState().logout()
         }
@@ -928,6 +940,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         matchReadyAt: null,
         queueStatus: 'idle',
         selectedMode: isWebRuntime() ? 'unrated' : '5v5',
+        customModes: [],
         maps: [],
         mapsStatus: 'idle',
         selectedMapIds: [],

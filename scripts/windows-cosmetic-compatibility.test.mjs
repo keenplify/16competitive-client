@@ -78,6 +78,27 @@ test('rejects missing required callbacks, x64, and forwarded proxies', () => {
   assert.equal(supportsWindowsCosmeticClient(proxy), false)
 })
 
+test('WON accepts zero-filled data exports but requires file-backed HUD callbacks', () => {
+  const names = [...WINDOWS_CLIENT_EXPORTS, 'legacy_zero_data']
+  const bytes = clientFixture(names)
+  const section = 0x98 + 224
+  bytes.writeUInt32LE(0x8000, 0x98 + 56) // SizeOfImage
+  bytes.writeUInt32LE(2, 0x86)
+  const dataSection = section + 40
+  bytes.writeUInt32LE(0x1000, dataSection + 8)
+  bytes.writeUInt32LE(0x6000, dataSection + 12)
+  bytes.writeUInt32LE(0xc0000040, dataSection + 36) // readable data, not code
+  bytes.writeUInt32LE(0x6100, 0x300 + (names.length - 1) * 4)
+  assert.equal(supportsWindowsCosmeticClient(bytes, 'won13'), true)
+  assert.equal(supportsWindowsCosmeticClient(bytes, 'cs16'), false)
+  const outsideImage = Buffer.from(bytes)
+  outsideImage.writeUInt32LE(0x9000, 0x300 + (names.length - 1) * 4)
+  assert.equal(supportsWindowsCosmeticClient(outsideImage, 'won13'), false)
+  const missingCallback = Buffer.from(bytes)
+  missingCallback.writeUInt32LE(0x6100, 0x300 + names.indexOf('HUD_Redraw') * 4)
+  assert.equal(supportsWindowsCosmeticClient(missingCallback, 'won13'), false)
+})
+
 test('rejects truncated headers and out-of-bounds export tables without throwing', () => {
   const valid = clientFixture()
   for (const length of [0, 2, 63, 128, 255, 1024])

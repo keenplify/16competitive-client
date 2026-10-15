@@ -9,6 +9,8 @@ import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useCustomGamesStore } from './custom-games.store'
+import { useMatchmakingStore } from './matchmaking.store'
+import { useTranslation } from '../i18n/i18n'
 
 interface CreateCustomGameModalProps {
   maps: MatchmakingMap[]
@@ -24,6 +26,8 @@ export function CreateCustomGameModal({
   selectedNodeId,
   disabled = false
 }: CreateCustomGameModalProps): JSX.Element {
+  const { t } = useTranslation()
+  const enabledModes = useMatchmakingStore((state) => state.customModes)
   const close = useCustomGamesStore((state) => state.closeCreateModal)
   const createRoom = useCustomGamesStore((state) => state.createRoom)
   const error = useCustomGamesStore((state) => state.error)
@@ -34,9 +38,7 @@ export function CreateCustomGameModal({
   const [submitting, setSubmitting] = useState(false)
   const dialogRef = useRef<HTMLElement>(null)
 
-  const availableModes = CUSTOM_GAME_MODES.filter((candidate) =>
-    maps.some(({ customModes }) => customModes.includes(candidate))
-  )
+  const availableModes = CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate))
   const selectedMode = availableModes.includes(mode) ? mode : (availableModes[0] ?? 'unrated')
   const supportedMaps = maps.filter(({ customModes }) => customModes.includes(selectedMode))
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)
@@ -150,6 +152,9 @@ export function CreateCustomGameModal({
                   disabled={supportedMaps.length === 0}
                   onChange={(event) => setMapId(event.target.value)}
                 >
+                  {supportedMaps.length === 0 && (
+                    <option value="">{t('legacy.customNoMaps')}</option>
+                  )}
                   {supportedMaps.map((map) => (
                     <option key={map.id} value={map.id}>
                       {map.displayName}
@@ -177,13 +182,19 @@ export function CreateCustomGameModal({
                 Automatic selects the lowest-ping available server for your room.
               </p>
             )}
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            <p className="h-10 overflow-y-auto text-sm text-red-400" aria-live="polite">
+              {error}
+            </p>
 
             <footer className="mt-2 flex justify-end gap-3 border-t border-white/10 pt-5">
               <Button variant="ghost" type="button" disabled={submitting} onClick={close}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={disabled || submitting || !selectedMapId}>
+              <Button
+                className="w-36"
+                type="submit"
+                disabled={disabled || submitting || !selectedMapId}
+              >
                 {submitting ? 'Creating…' : 'Create room'}
               </Button>
             </footer>

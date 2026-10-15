@@ -574,6 +574,21 @@ const api: Window['api'] = {
 
   friends,
 
+  legacyGame: {
+    async openDownload() {
+      return { ok: false, error: 'unsupportedPlatform' }
+    },
+    async get() {
+      return { ok: false, error: 'unsupportedPlatform' }
+    },
+    async choose() {
+      return { ok: false, error: 'unsupportedPlatform' }
+    },
+    async launch() {
+      return { ok: false, error: 'unsupportedPlatform' }
+    }
+  },
+
   gameSettings: {
     async get() {
       return browserSettings()

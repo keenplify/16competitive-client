@@ -33,6 +33,11 @@ async function main() {
   }
   fs.copyFileSync(path.join(__dirname, 'scoreboard-preload.cjs'), path.join(output, 'preload.cjs'))
   const weaponIcons = path.join(output, 'weapon-icons')
+  fs.mkdirSync(path.join(output, 'hud-icons'), { recursive: true })
+  fs.copyFileSync(
+    path.join(root, 'resources', 'hud-icons', 'c4-white.png'),
+    path.join(output, 'hud-icons', 'c4-white.png')
+  )
   fs.mkdirSync(weaponIcons, { recursive: true })
   const weaponIconSource = path.join(root, 'resources', 'weapon-category-icons', 'gamebanana')
   for (const file of fs.readdirSync(weaponIconSource)) {

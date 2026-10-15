@@ -11,6 +11,10 @@ import { usePartyStore } from '../party/party.store'
 
 interface CustomGamesState {
   playView: 'matchmaking' | 'custom' | 'partner'
+  settingsModalOpen: boolean
+  savingSettings: boolean
+  openRoomSettings: () => void
+  closeRoomSettings: () => void
   createModalOpen: boolean
   rooms: CustomGameRoom[]
   currentRoom: CustomGameRoom | null
@@ -32,7 +36,7 @@ interface CustomGamesState {
   openCreateModal: () => void
   closeCreateModal: () => void
   createRoom: (settings: CustomGameSettings) => Promise<boolean>
-  updateRoom: (settings: CustomGameSettingsUpdate) => Promise<void>
+  updateRoom: (settings: CustomGameSettingsUpdate) => Promise<boolean>
   joinRoom: (roomId: string, password?: string, hostApiUrl?: string) => Promise<boolean>
   leaveRoom: () => Promise<void>
   startRoom: () => Promise<void>
@@ -54,6 +58,14 @@ const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMe
 
 export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   playView: 'matchmaking',
+  settingsModalOpen: false,
+  savingSettings: false,
+  openRoomSettings: () => {
+    if (get().currentRoom?.state === 'WAITING') set({ settingsModalOpen: true, error: null })
+  },
+  closeRoomSettings: () => {
+    if (!get().savingSettings) set({ settingsModalOpen: false, error: null })
+  },
   createModalOpen: false,
   rooms: [],
   currentRoom: null,
@@ -145,9 +157,11 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       set({
         rooms,
         currentRoom:
-          get().addingBot || get().currentRoom !== previousRoom ? get().currentRoom : currentRoom,
+          get().addingBot || get().savingSettings || get().currentRoom !== previousRoom
+            ? get().currentRoom
+            : currentRoom,
         status: 'ready',
-        error: null
+        error: get().settingsModalOpen ? get().error : null
       })
     } catch (error) {
       set({ status: 'error', error: message(error) })
@@ -168,13 +182,23 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   updateRoom: async (settings) => {
     const room = get().currentRoom
-    if (!room) return
-    set({ error: null })
+    if (!room || room.state !== 'WAITING' || get().savingSettings) return false
+    set({ error: null, savingSettings: true })
     try {
-      set({ currentRoom: await window.api.customGames.update(room.id, settings, room.hostApiUrl) })
-      await get().refresh()
+      const currentRoom = await window.api.customGames.update(room.id, settings, room.hostApiUrl)
+      if (get().currentRoom?.id !== room.id || get().currentRoom?.hostApiUrl !== room.hostApiUrl)
+        return false
+      set((state) => ({
+        currentRoom,
+        rooms: state.rooms.map((candidate) => (candidate.id === room.id ? currentRoom : candidate)),
+        settingsModalOpen: false
+      }))
+      return true
     } catch (error) {
-      set({ error: message(error) })
+      if (get().currentRoom?.id === room.id) set({ error: message(error) })
+      return false
+    } finally {
+      set({ savingSettings: false })
     }
   },
   joinRoom: async (roomId, password, hostApiUrl) => {
@@ -196,7 +220,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     try {
       await window.api.customGames.leave(room.id, room.hostApiUrl)
       if (room.matchId) useMatchmakingStore.getState().exitCustomMatch(room.matchId)
-      set({ currentRoom: null })
+      set({ currentRoom: null, settingsModalOpen: false })
       await get().refresh()
     } catch (error) {
       set({ error: message(error) })
@@ -204,7 +228,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   startRoom: async () => {
     const room = get().currentRoom
-    if (!room) return
+    if (!room || get().savingSettings || get().settingsModalOpen) return
     set({ error: null })
     try {
       set({ currentRoom: await window.api.customGames.start(room.id, room.hostApiUrl) })
@@ -302,6 +326,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     set({
       rooms: [],
       currentRoom: null,
+      settingsModalOpen: false,
+      savingSettings: false,
       status: 'idle',
       error: null,
       addingBot: false,

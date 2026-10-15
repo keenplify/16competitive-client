@@ -1,3 +1,4 @@
+import { launchCs13Match, shutdownCs13Game } from './game/cs13-match-launcher'
 import { noteHelperServerUpdate } from './anticheat/helper-verification-retry'
 import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
 import { readyCheckRemainingMs } from '../shared/matchmaking-ready-time'
@@ -517,6 +518,14 @@ class MatchmakingConnection {
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pongTimer: ReturnType<typeof setTimeout> | null = null
   private desiredMode: MatchmakingMode | null = null
+  private readonly cs13Matches = new Set<string>()
+  private closeGameForMatch(matchId: string): void {
+    if (this.cs13Matches.has(matchId))
+      void shutdownCs13Game(matchId).catch((error) =>
+        console.error('[CS13] Match cleanup failed', error)
+      )
+    else closeCounterStrikeForMatch(matchId)
+  }
   private desiredMapIds: string[] = []
   private desiredPreferHumans = false
   private desiredAllowRegionExpansion = true
@@ -771,6 +780,26 @@ class MatchmakingConnection {
   async reconnectGame(): Promise<void> {
     if (!this.lastConnection) throw new Error('No previous match connection is available')
     const connection = this.lastConnection
+    if (this.cs13Matches.has(connection.matchId)) {
+      await this.prepareMatchAssets(connection.matchId)
+      await launchCs13Match(
+        connection,
+        (code, signal) => this.handleGameProcessExit(connection.matchId, code, signal),
+        () =>
+          !this.cancelledMatchIds.has(connection.matchId) &&
+          !this.finishedMatchIds.has(connection.matchId),
+        this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
+        (active, channel) => this.notifyLocalVoicePtt(connection.matchId, active, channel),
+        true
+      )
+      if (
+        this.cancelledMatchIds.has(connection.matchId) ||
+        this.finishedMatchIds.has(connection.matchId)
+      )
+        return
+      this.yieldLauncherToGame()
+      return
+    }
     if (isCounterStrikeActiveForMatch(connection.matchId)) {
       console.info('[GameLaunch] ignored reconnect while Counter-Strike is already active', {
         matchId: connection.matchId
@@ -882,11 +911,16 @@ class MatchmakingConnection {
   private prepareMatchAssets(matchId: string): Promise<void> {
     const hostApiUrl = this.hostApiUrl ?? this.activeApiUrl
     if (!hostApiUrl) throw new Error('The match asset server is unavailable.')
-    return startMatchAssetPreload(matchId, hostApiUrl, (progress) => {
-      if (!this.fastDlMatchIds.has(matchId)) {
-        this.notify({ type: 'match_assets_progress', matchId, ...progress })
-      }
-    })
+    return startMatchAssetPreload(
+      matchId,
+      hostApiUrl,
+      (progress) => {
+        if (!this.fastDlMatchIds.has(matchId)) {
+          this.notify({ type: 'match_assets_progress', matchId, ...progress })
+        }
+      },
+      this.cs13Matches.has(matchId) ? 'cs13' : 'cs16'
+    )
   }
 
   private async waitForMatchAssetsOrFastDl(
@@ -1116,6 +1150,14 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'match_found' || parsed.type === 'match_roster') {
+        if (parsed.mode === 'cs13_3v3') {
+          this.cs13Matches.add(parsed.matchId)
+          // Keep this defensive history bounded across long-running launcher sessions.
+          if (this.cs13Matches.size > 128) {
+            const oldest = this.cs13Matches.values().next().value
+            if (oldest) this.cs13Matches.delete(oldest)
+          }
+        }
         // The backend decides whether Ranked currently permits manual Web Play connections.
         this.manualConnectionMatchId = parsed.matchId
       }
@@ -1237,10 +1279,18 @@ class MatchmakingConnection {
           this.authenticated = false
           this.openSocket(false, parsed.hostApiUrl, true)
         }
-        void startMatchAssetPreload(parsed.matchId, parsed.hostApiUrl, (progress) =>
-          this.fastDlMatchIds.has(parsed.matchId)
-            ? undefined
-            : this.notify({ type: 'match_assets_progress', matchId: parsed.matchId, ...progress })
+        void startMatchAssetPreload(
+          parsed.matchId,
+          parsed.hostApiUrl,
+          (progress) =>
+            this.fastDlMatchIds.has(parsed.matchId)
+              ? undefined
+              : this.notify({
+                  type: 'match_assets_progress',
+                  matchId: parsed.matchId,
+                  ...progress
+                }),
+          parsed.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
         ).catch((error: unknown) =>
           this.cancelledMatchIds.has(parsed.matchId) ||
           this.fastDlMatchIds.has(parsed.matchId) ||
@@ -1256,6 +1306,40 @@ class MatchmakingConnection {
               })
         )
       } else if (parsed.type === 'match_connect') {
+        if (this.cs13Matches.has(parsed.matchId)) {
+          this.recoveryStatusPending = false
+          this.lastConnection = parsed
+          void this.prepareMatchAssets(parsed.matchId)
+            .then(() =>
+              launchCs13Match(
+                parsed,
+                (code, signal) => this.handleGameProcessExit(parsed.matchId, code, signal),
+                () =>
+                  !this.cancelledMatchIds.has(parsed.matchId) &&
+                  !this.finishedMatchIds.has(parsed.matchId),
+                this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
+                (active, channel) => this.notifyLocalVoicePtt(parsed.matchId, active, channel)
+              )
+            )
+            .then(() => {
+              if (
+                this.cancelledMatchIds.has(parsed.matchId) ||
+                this.finishedMatchIds.has(parsed.matchId)
+              )
+                return
+              this.yieldLauncherToGame()
+              discordPresence.setInGame(true)
+            })
+            .catch((error: unknown) =>
+              this.notify({
+                type: 'error',
+                code: 'MATCH_PREPARATION_FAILED',
+                message: error instanceof Error ? error.message : 'CS13_LAUNCH_FAILED'
+              })
+            )
+          this.notify(parsed)
+          return
+        }
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
@@ -1314,14 +1398,14 @@ class MatchmakingConnection {
             if (existingTimer) clearTimeout(existingTimer)
             const timer = setTimeout(() => {
               this.matchEndTimers.delete(parsed.matchId)
-              closeCounterStrikeForMatch(parsed.matchId)
+              this.closeGameForMatch(parsed.matchId)
               this.focusLauncher()
             }, ANTI_CHEAT_NOTICE_GRACE_MS)
             this.matchEndTimers.set(parsed.matchId, timer)
             this.focusLauncher()
           }
         } else {
-          closeCounterStrikeForMatch(parsed.matchId)
+          this.closeGameForMatch(parsed.matchId)
           this.focusLauncher()
         }
       } else if (parsed.type === 'match_finished' && !this.matchEndTimers.has(parsed.matchId)) {
@@ -1335,7 +1419,7 @@ class MatchmakingConnection {
         this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
         const timer = setTimeout(() => {
           this.matchEndTimers.delete(parsed.matchId)
-          closeCounterStrikeForMatch(parsed.matchId)
+          this.closeGameForMatch(parsed.matchId)
           this.focusLauncher()
         }, MATCH_RESULT_GRACE_PERIOD_MS)
         this.matchEndTimers.set(parsed.matchId, timer)

@@ -1,9 +1,12 @@
 import { create } from 'zustand'
 import type { SetupMode } from '../../../../shared/game-settings'
 
-type OnboardingStep = 'installation' | 'preferences' | 'community' | 'referral' | 'review'
+type OnboardingStep =
+  'installation' | 'legacy' | 'preferences' | 'community' | 'referral' | 'review'
 
 interface OnboardingState {
+  wantsCs13: boolean | null
+  setWantsCs13: (value: boolean) => void
   step: OnboardingStep
   mode: SetupMode
   completionPhase: 'idle' | 'finishing' | 'success' | 'done'
@@ -16,6 +19,8 @@ interface OnboardingState {
 }
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
+  wantsCs13: null,
+  setWantsCs13: (value) => set({ wantsCs13: value }),
   step: 'installation',
   mode: 'recommended',
   completionPhase: 'idle',
@@ -28,5 +33,6 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.setTimeout(() => set({ completionPhase: 'done' }), reduceMotion ? 150 : 950)
   },
-  reset: () => set({ step: 'installation', mode: 'recommended', completionPhase: 'idle' })
+  reset: () =>
+    set({ wantsCs13: null, step: 'installation', mode: 'recommended', completionPhase: 'idle' })
 }))

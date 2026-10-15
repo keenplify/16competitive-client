@@ -31,6 +31,7 @@ export const MATCHMAKING_MODES = [
   'unrated',
   'legacy',
   'legacy_3v3',
+  'cs13_3v3',
   'casual',
   'ffa',
   'fight_yard'
@@ -46,6 +47,7 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   unrated: 'Unrated',
   legacy: 'Legacy',
   legacy_3v3: 'Legacy 3v3',
+  cs13_3v3: 'Legacy 1.3',
   casual: 'Casual',
   ffa: 'FFA',
   fight_yard: 'Fight Yard'
@@ -128,6 +130,11 @@ export interface MatchmakingMap {
   previewUrl: string | null
   supportedModes: MatchmakingMode[]
   webModes: MatchmakingMode[]
+  customModes: ServerCustomGameMode[]
+}
+
+export interface MatchmakingMapCatalog {
+  maps: MatchmakingMap[]
   customModes: ServerCustomGameMode[]
 }
 
@@ -416,7 +423,7 @@ export interface MatchmakingApi {
   playWithBots(): Promise<void>
   leaveQueue(): Promise<void>
   getQueueStatus(): Promise<void>
-  getMaps(): Promise<MatchmakingMap[]>
+  getMaps(): Promise<MatchmakingMapCatalog>
   respondReady(matchId: string, accepted: boolean): Promise<void>
   reconnectGame(): Promise<void>
   copyConnection(matchId: string): Promise<void>

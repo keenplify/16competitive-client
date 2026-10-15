@@ -1,10 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { dirname } from 'node:path'
 import { getSessionToken } from '../auth'
-import { getSavedCs16Executable } from './game-settings'
-import { ensureLauncherContentDirectory } from './game-directory'
-import { versionedGameAssetHash } from '../../shared/game-asset-path'
+import { prepareSkinStorage } from './shared-skin-storage'
+import { isBundledPingAssetPath, versionedGameAssetHash } from '../../shared/game-asset-path'
 
 const MAP_BSP_PATH = /^maps\/[a-z0-9_]{1,64}\.bsp$/
 const SHA256 = /^[a-f0-9]{64}$/
@@ -96,40 +95,29 @@ const isMatchAssetsResponse = (value: unknown): value is MatchAssetsResponse => 
   return Array.isArray(assets) && assets.every(isMatchAsset)
 }
 
-const getGameDirectory = async (): Promise<string> => {
-  const executable = (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
-  if (!executable || !isAbsolute(executable)) {
-    throw new Error('Choose your Counter-Strike folder in Settings before joining a match.')
-  }
-  const gameDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
-    ? resolve(process.env.CS16_CLIENT_GAME_DIRECTORY)
-    : dirname(resolve(executable))
-  if (!(await stat(gameDirectory).catch(() => null))?.isDirectory()) {
-    throw new Error('The configured Counter-Strike game directory was not found.')
-  }
-  return gameDirectory
-}
+type AssetStorage = Awaited<ReturnType<typeof prepareSkinStorage>>
 
-const destinationFor = (assetRoot: string, assetPath: string): string => {
-  if (!versionedGameAssetHash(assetPath) && !MAP_BSP_PATH.test(assetPath))
+const destinationFor = async (storage: AssetStorage, assetPath: string): Promise<string> => {
+  if (
+    !versionedGameAssetHash(assetPath) &&
+    !MAP_BSP_PATH.test(assetPath) &&
+    !isBundledPingAssetPath(assetPath)
+  )
     throw new Error(`Match manifest contains an unsafe asset path: ${assetPath}`)
-  const destination = resolve(assetRoot, assetPath)
-  if (relative(assetRoot, destination).startsWith('..')) {
-    throw new Error(`Match manifest asset escapes the game directory: ${assetPath}`)
-  }
-  return destination
+  return storage.destination(assetPath)
 }
 
-const catalogDestinationFor = (assetRoot: string, assetPath: string): string => {
+const catalogDestinationFor = async (storage: AssetStorage, assetPath: string): Promise<string> => {
   if (!CATALOG_ASSET_PATH.test(assetPath) || assetPath.includes('..'))
     throw new Error(`Skin catalog contains an unsafe asset path: ${assetPath}`)
-  const destination = resolve(assetRoot, assetPath)
-  if (relative(assetRoot, destination).startsWith('..'))
-    throw new Error(`Skin catalog asset escapes the game directory: ${assetPath}`)
-  return destination
+  return storage.destination(assetPath)
 }
 
 const expectedHashFor = (asset: MatchAsset): string => {
+  if (isBundledPingAssetPath(asset.path)) {
+    if (!asset.sha256) throw new NonRetryableAssetError('Match asset manifest is invalid.')
+    return asset.sha256
+  }
   if (MAP_BSP_PATH.test(asset.path)) {
     if (!asset.sha256) throw new Error(`Match map is missing a SHA-256 hash: ${asset.path}`)
     return asset.sha256
@@ -279,10 +267,10 @@ const downloadAsset = async (
   matchId: string,
   asset: MatchAsset,
   token: string,
-  assetRoot: string,
+  storage: AssetStorage,
   signal: AbortSignal
 ): Promise<void> => {
-  const destination = destinationFor(assetRoot, asset.path)
+  const destination = await destinationFor(storage, asset.path)
   const expectedHash = expectedHashFor(asset)
   if (await hasExpectedHash(destination, expectedHash, asset.path)) {
     console.info('[MatchAssets] using cached asset', { matchId, path: asset.path })
@@ -366,10 +354,10 @@ const syncSkinAssets = async (
     throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
   }
   const catalog = assets as CatalogAsset[]
-  const assetRoot = await ensureLauncherContentDirectory(await getGameDirectory())
+  const storage = await prepareSkinStorage()
   console.info('[MatchAssets] catalog loaded', {
     entries: catalog.length,
-    assetRoot
+    assetRoot: storage.contentRoot
   })
   let completedFiles = 0
   console.info('[MatchAssets] catalog progress', {
@@ -380,7 +368,7 @@ const syncSkinAssets = async (
   await runWithConcurrency(
     catalog.map((asset) => async () => {
       console.info('[MatchAssets] catalog asset started', { path: asset.path })
-      const destination = catalogDestinationFor(assetRoot, asset.path)
+      const destination = await catalogDestinationFor(storage, asset.path)
       if (!(await hasExpectedHash(destination, asset.sha256, asset.path))) {
         const fileUrl = new URL('/skins/assets/file', base)
         fileUrl.searchParams.set('path', asset.path)
@@ -544,7 +532,8 @@ const preload = async (
   matchId: string,
   hostApiUrl: string,
   onProgress: ((progress: MatchAssetPreloadProgress) => void) | undefined,
-  signal: AbortSignal
+  signal: AbortSignal,
+  game: 'cs16' | 'cs13'
 ): Promise<void> => {
   if (!/^[a-z0-9-]{36}$/i.test(matchId)) throw new Error('Invalid match ID for asset download.')
   const token = getSessionToken()
@@ -553,15 +542,15 @@ const preload = async (
   if (!['https:', 'http:'].includes(apiUrl.protocol) || apiUrl.username || apiUrl.password) {
     throw new Error('Match asset server URL is invalid.')
   }
-  const assetRoot = await ensureLauncherContentDirectory(await getGameDirectory())
+  const storage = await prepareSkinStorage(game)
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
-  console.info('[MatchAssets] match preload started', { matchId, assetRoot })
+  console.info('[MatchAssets] match preload started', { matchId, assetRoot: storage.contentRoot })
   onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })
   const payload = await loadManifest(manifestUrl, token, signal)
 
   const uniqueAssets = new Map<string, MatchAsset>()
   for (const asset of payload.assets) {
-    destinationFor(assetRoot, asset.path)
+    await destinationFor(storage, asset.path)
     expectedHashFor(asset)
     if (uniqueAssets.has(asset.path))
       throw new Error(`Match manifest has a duplicate asset: ${asset.path}`)
@@ -573,7 +562,7 @@ const preload = async (
   // GoldSrc only requests missing resources. Remove any invalid launcher-managed
   // copy before allowing an in-game download fallback.
   for (const asset of uniqueAssets.values()) {
-    const destination = destinationFor(assetRoot, asset.path)
+    const destination = await destinationFor(storage, asset.path)
     if (
       (await stat(destination).catch(() => null)) &&
       !(await hasExpectedHash(destination, expectedHashFor(asset), asset.path))
@@ -597,7 +586,7 @@ const preload = async (
   onProgress?.({ status: 'downloading', completedFiles, totalFiles })
   await runWithConcurrency(
     [...uniqueAssets.values()].map((asset) => async () => {
-      await downloadAsset(apiUrl, matchId, asset, token, assetRoot, signal)
+      await downloadAsset(apiUrl, matchId, asset, token, storage, signal)
       completedFiles += 1
       console.info('[MatchAssets] match asset progress', {
         matchId,
@@ -615,14 +604,15 @@ const preload = async (
 export const startMatchAssetPreload = (
   matchId: string,
   hostApiUrl: string,
-  onProgress?: (progress: MatchAssetPreloadProgress) => void
+  onProgress?: (progress: MatchAssetPreloadProgress) => void,
+  game: 'cs16' | 'cs13' = 'cs16'
 ): Promise<void> => {
   const current = preloads.get(matchId)
   if (current) return current
   fastDlEligibleMatches.delete(matchId)
   mapPreloadMatches.delete(matchId)
   const controller = new AbortController()
-  const task = preload(matchId, hostApiUrl, onProgress, controller.signal)
+  const task = preload(matchId, hostApiUrl, onProgress, controller.signal, game)
   preloads.set(matchId, task)
   preloadControllers.set(matchId, controller)
   void task.then(

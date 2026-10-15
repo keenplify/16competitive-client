@@ -5,22 +5,38 @@ import { isAbsolute, join } from 'node:path'
 import { app } from 'electron'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
 import { upgradeRecoveryHelper, type RecoveryDescriptor } from './recovery-helper-upgrade'
+import {
+  toWinePath,
+  fromWinePath,
+  type CosmeticRuntime,
+  type GoldSrcModDirectory
+} from './goldsrc-client-capabilities'
 
 const descriptorPath = (root: string): string => join(root, '16competitive', 'recovery.json')
 
 async function runRecovery(
   root: string,
   descriptor: RecoveryDescriptor,
-  mode: 'guard' | 'restore'
+  mode: 'guard' | 'restore' | 'prepare-won',
+  runtime: CosmeticRuntime = 'native'
 ): Promise<void> {
-  await verifyPackagedHelper(descriptor.helperPath)
-  const helper = await readFile(descriptor.helperPath)
+  const wine = runtime === 'wine'
+  const helperPath = wine ? fromWinePath(descriptor.helperPath) : descriptor.helperPath
+  await verifyPackagedHelper(helperPath, undefined, wine)
+  const helper = await readFile(helperPath)
   if (createHash('sha256').update(helper).digest('hex') !== descriptor.helperSha256)
     throw new Error('Cosmetic recovery helper changed')
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
-      descriptor.helperPath,
-      ['--cosmetic-recovery', root, descriptor.sessionId, String(process.pid), mode],
+      wine ? 'wine' : helperPath,
+      [
+        ...(wine ? [helperPath] : []),
+        '--cosmetic-recovery',
+        wine ? toWinePath(root) : root,
+        descriptor.sessionId,
+        wine && mode === 'guard' ? '0' : String(process.pid),
+        wine && mode === 'guard' ? 'guard-lease' : mode
+      ],
       {
         detached: mode === 'guard',
         windowsHide: true,
@@ -35,7 +51,7 @@ async function runRecovery(
         child.kill()
         reject(new Error('Cosmetic recovery helper timed out'))
       },
-      mode === 'guard' ? 10_000 : 55_000
+      mode === 'guard' ? (wine ? 45_000 : 10_000) : 55_000
     )
     child.once('error', (error) => {
       clearTimeout(timer)
@@ -58,7 +74,7 @@ async function runRecovery(
     child.once('exit', (code) => {
       clearTimeout(timer)
       if (ready) return
-      if (mode === 'restore' && code === 0) resolve()
+      if (mode !== 'guard' && code === 0) resolve()
       else reject(new Error('Cosmetic recovery helper could not complete restoration'))
     })
   })
@@ -67,27 +83,44 @@ async function runRecovery(
 /** Arm crash recovery before changing a DLL. Older helper bundles fail closed. */
 export async function armWindowsIntegrationRecovery(
   root: string,
-  helperPath: string
-): Promise<void> {
+  helperPath: string,
+  runtime: CosmeticRuntime = 'native',
+  gameDirectory: GoldSrcModDirectory = 'cstrike',
+  authFile?: RecoveryDescriptor['authFile']
+): Promise<RecoveryDescriptor> {
   const descriptor: RecoveryDescriptor = {
-    helperPath,
+    helperPath: runtime === 'wine' ? toWinePath(helperPath) : helperPath,
     helperSha256: createHash('sha256')
       .update(await readFile(helperPath))
       .digest('hex'),
-    sessionId: randomUUID()
+    sessionId: randomUUID(),
+    ...(gameDirectory !== 'cstrike' ? { gameDirectory } : {}),
+    ...(authFile ? { authFile } : {})
   }
   await writeFile(descriptorPath(root), JSON.stringify(descriptor), { flag: 'wx', mode: 0o600 })
   try {
-    await runRecovery(root, descriptor, 'guard')
+    await runRecovery(root, descriptor, 'guard', runtime)
   } catch (error) {
     await rm(descriptorPath(root), { force: true })
     throw error
   }
+  return descriptor
+}
+
+export async function prepareWonIntegration(
+  root: string,
+  descriptor: RecoveryDescriptor,
+  runtime: CosmeticRuntime
+): Promise<void> {
+  await runRecovery(root, descriptor, 'prepare-won', runtime)
 }
 
 /** Both the native restart worker and Electron serialize through the helper's
  * Windows mutex. Keep legacy journals on their existing recovery path. */
-export async function restoreWindowsIntegration(root: string): Promise<boolean> {
+export async function restoreWindowsIntegration(
+  root: string,
+  runtime: CosmeticRuntime = 'native'
+): Promise<boolean> {
   const path = descriptorPath(root)
   const entry = await lstat(path).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return null
@@ -102,23 +135,43 @@ export async function restoreWindowsIntegration(root: string): Promise<boolean> 
   const descriptor = value as Partial<RecoveryDescriptor>
   if (
     typeof descriptor.helperPath !== 'string' ||
-    !isAbsolute(descriptor.helperPath) ||
+    !(runtime === 'wine'
+      ? /^Z:\\/i.test(descriptor.helperPath)
+      : isAbsolute(descriptor.helperPath)) ||
     typeof descriptor.helperSha256 !== 'string' ||
     !/^[a-f0-9]{64}$/.test(descriptor.helperSha256) ||
     typeof descriptor.sessionId !== 'string' ||
-    !/^[a-f0-9-]{36}$/.test(descriptor.sessionId)
+    !/^[a-f0-9-]{36}$/.test(descriptor.sessionId) ||
+    (descriptor.gameDirectory !== undefined &&
+      !['cstrike', 'cstrk13'].includes(descriptor.gameDirectory)) ||
+    (descriptor.authFile !== undefined &&
+      (!/^16c13_[a-f0-9]{16}\.cfg$/.test(descriptor.authFile.name) ||
+        !/^[a-f0-9]{64}$/.test(descriptor.authFile.sha256)))
   )
     throw new Error('Invalid cosmetic recovery descriptor')
-  const currentHelperPath = app.isPackaged
-    ? join(process.resourcesPath, 'native', 'game-inspector.exe')
-    : join(app.getAppPath(), 'resources', 'native', 'win-x64', 'game-inspector.exe')
+  const currentHelperPath =
+    runtime === 'wine'
+      ? app.isPackaged
+        ? join(process.resourcesPath, 'native', 'wine', 'game-inspector.exe')
+        : join(
+            app.getAppPath(),
+            'resources',
+            'native',
+            `linux-${process.arch}`,
+            'wine',
+            'game-inspector.exe'
+          )
+      : app.isPackaged
+        ? join(process.resourcesPath, 'native', 'game-inspector.exe')
+        : join(app.getAppPath(), 'resources', 'native', 'win-x64', 'game-inspector.exe')
   const currentDescriptor = await upgradeRecoveryHelper(
     path,
     contents,
     descriptor as RecoveryDescriptor,
     currentHelperPath,
-    verifyPackagedHelper
+    (path) => verifyPackagedHelper(path, undefined, runtime === 'wine'),
+    runtime === 'wine' ? toWinePath(currentHelperPath) : currentHelperPath
   )
-  await runRecovery(root, currentDescriptor, 'restore')
+  await runRecovery(root, currentDescriptor, 'restore', runtime)
   return true
 }

@@ -65,3 +65,16 @@ test('leaves an unowned backup in place', async (t) => {
   await recoverWindowsCosmeticInstallation(root)
   assert.equal(await readFile(join(root, 'client_original.dll'), 'utf8'), 'unowned')
 })
+
+test('legacy fallback preserves WON loader journals for verified helper recovery', async (t) => {
+  const root = await fixture(t, 'original')
+  const path = join(root, '16competitive/cosmetic-install.json')
+  const journal = JSON.parse(await readFile(path, 'utf8'))
+  journal.wonLoader = true
+  const bytes = JSON.stringify(journal)
+  await writeFile(path, bytes)
+  await assert.rejects(recoverWindowsCosmeticInstallation(root), /verified recovery helper/)
+  assert.equal(await readFile(path, 'utf8'), bytes)
+  assert.equal(await readFile(join(root, 'client_original.dll'), 'utf8'), 'original')
+  assert.equal(await readFile(join(root, 'cstrike/cl_dlls/client.dll'), 'utf8'), 'original')
+})

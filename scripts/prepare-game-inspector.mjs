@@ -47,7 +47,7 @@ try {
 }
 console.log(`Checking signed helper v${config.version} from ${repo}...`)
 
-async function prepare(platform, arch, checkOnly) {
+async function prepare(platform, arch, checkOnly, destinationOverride) {
   if (!['win-x64', 'linux-x64', 'linux-arm64'].includes(`${platform}-${arch}`))
     throw new Error(`No approved helper target for ${platform}-${arch}`)
   const asset = `game-inspector-${platform}-${arch}${platform === 'win' ? '.exe' : ''}`
@@ -123,7 +123,8 @@ async function prepare(platform, arch, checkOnly) {
     if (approved.manifest !== envelope.manifest || approved.signature !== envelope.signature)
       throw new Error('Backend approval differs from the downloaded signed release')
     if (!checkOnly) {
-      const destination = join(root, 'resources', 'native', `${platform}-${arch}`)
+      const destination =
+        destinationOverride ?? join(root, 'resources', 'native', `${platform}-${arch}`)
       await mkdir(destination, { recursive: true })
       const binary = join(destination, platform === 'win' ? 'game-inspector.exe' : 'game-inspector')
       await copyFile(join(temporary, asset), binary)
@@ -148,9 +149,14 @@ if (process.argv[2] === '--check-all') {
   ])
     await prepare(platform, arch, true)
 } else {
-  await prepare(
-    process.argv[2] || (process.platform === 'win32' ? 'win' : process.platform),
-    process.argv[3] || process.arch,
-    false
-  )
+  const platform = process.argv[2] || (process.platform === 'win32' ? 'win' : process.platform)
+  const arch = process.argv[3] || process.arch
+  await prepare(platform, arch, false)
+  if (platform === 'linux')
+    await prepare(
+      'win',
+      'x64',
+      false,
+      join(root, 'resources', 'native', `${platform}-${arch}`, 'wine')
+    )
 }

@@ -1,0 +1,161 @@
+import { open, realpath, stat } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, normalize, relative } from 'node:path'
+import type { LegacyGameError, LegacyInstallation } from '../../../shared/legacy-game'
+import type { GameAdapter, GameLaunchPlan } from './game-adapter'
+
+export class LegacyInstallationError extends Error {
+  constructor(public readonly code: LegacyGameError) {
+    super(code)
+  }
+}
+
+const invalid = (): never => {
+  throw new LegacyInstallationError('invalidInstallation')
+}
+
+export const cs13ConnectionArgs = (input: {
+  host: string
+  port: number
+  password: string
+  joinToken: string
+}): string[] => {
+  if (
+    !/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}$/.test(input.host) ||
+    !Number.isInteger(input.port) ||
+    input.port < 1 ||
+    input.port > 65535 ||
+    !/^[a-f0-9]{24}$/.test(input.password) ||
+    !/^[a-zA-Z0-9_-]{32}$/.test(input.joinToken)
+  )
+    throw new Error('Invalid 1.3 connection')
+  return ['+password', input.password, '+connect', `${input.host}:${input.port}`]
+}
+
+const containedFile = async (root: string, path: string): Promise<string> => {
+  const resolved = await realpath(path)
+  const child = relative(root, resolved)
+  if (isAbsolute(child) || child === '..' || child.startsWith('../') || child.startsWith('..\\'))
+    return invalid()
+  if (!(await stat(resolved)).isFile()) return invalid()
+  return resolved
+}
+
+/** liblist.gam is the only metadata read; never inspect player configuration. */
+export const hasCs13VersionMetadata = (source: string): boolean => {
+  const versions = [
+    ...source.replace(/\/\/[^\r\n]*/g, '').matchAll(/^\s*version\s+"([^"]+)"\s*$/gim)
+  ]
+  return versions.length === 1 && versions[0][1] === '1.3'
+}
+
+export const cs13Adapter: GameAdapter<LegacyInstallation> = {
+  id: 'cs13',
+  async validateInstallation(folder, platform) {
+    if (platform !== 'win32' && platform !== 'linux')
+      throw new LegacyInstallationError('unsupportedPlatform')
+    if (typeof folder !== 'string' || folder.includes('\0') || !isAbsolute(folder)) return invalid()
+    try {
+      const selected = normalize(folder)
+      const selectedName = basename(selected).toLowerCase()
+      const selectedMod =
+        selectedName === 'cstrike' || selectedName === 'cstrk13' ? selectedName : null
+      const root = await realpath(selectedMod ? dirname(selected) : selected)
+      if (!(await stat(root)).isDirectory()) return invalid()
+      const modDirectory =
+        selectedMod ??
+        ((await stat(join(root, 'cstrk13', 'liblist.gam')).catch(() => null))?.isFile()
+          ? 'cstrk13'
+          : 'cstrike')
+      const gameDirectory = join(root, modDirectory)
+      const metadata = await containedFile(root, join(gameDirectory, 'liblist.gam'))
+      const file = await open(metadata, 'r')
+      let source: string
+      try {
+        if ((await file.stat()).size > 16_384) return invalid()
+        const bytes = Buffer.alloc(16_385)
+        const { bytesRead } = await file.read(bytes, 0, bytes.length, 0)
+        if (bytesRead > 16_384) return invalid()
+        source = bytes.subarray(0, bytesRead).toString('utf8')
+      } finally {
+        await file.close()
+      }
+      if (!hasCs13VersionMetadata(source)) return invalid()
+      const nativeLinux =
+        platform === 'linux' && (await stat(join(root, 'hl_linux')).catch(() => null))?.isFile()
+      const runtime = platform === 'linux' && !nativeLinux ? 'wine' : 'native'
+      const name = nativeLinux ? 'hl_linux' : 'hl.exe'
+      const executablePath = await containedFile(root, join(root, name))
+      if (nativeLinux && ((await stat(executablePath)).mode & 0o111) === 0) return invalid()
+      await containedFile(
+        root,
+        join(gameDirectory, 'cl_dlls', nativeLinux ? 'client.so' : 'client.dll')
+      )
+      return {
+        game: 'cs13',
+        folderPath: root,
+        executablePath,
+        gameDirectory,
+        modDirectory,
+        versionEvidence: 'liblist.gam',
+        runtime
+      }
+    } catch (error) {
+      if (error instanceof LegacyInstallationError) throw error
+      return invalid()
+    }
+  },
+  buildMenuLaunchPlan(installation, options): GameLaunchPlan {
+    const display = installation.runtime === 'wine' ? options?.wineDisplay : undefined
+    if (display) {
+      if (
+        !isAbsolute(display.gamescopeExecutable) ||
+        ![display.width, display.height].every(
+          (value) => Number.isInteger(value) && value >= 320 && value <= 16384
+        )
+      )
+        throw new Error('Invalid Wine display options')
+      // WON's menu always draws at 640x480. Scaling the enclosing desktop alone
+      // leaves that menu in a corner; Gamescope scales the actual Wine desktop.
+      return {
+        executable: display.gamescopeExecutable,
+        args: [
+          '-w',
+          '1280',
+          '-h',
+          '960',
+          '-W',
+          String(display.width),
+          '-H',
+          String(display.height),
+          '-f',
+          '--',
+          'wine',
+          'explorer',
+          '/desktop=16competitive-cs13,640x480',
+          installation.executablePath,
+          '-gl',
+          '-full',
+          '-w',
+          '1280',
+          '-h',
+          '960',
+          '-game',
+          installation.modDirectory
+        ],
+        cwd: installation.folderPath
+      }
+    }
+    // Direct, minimal GoldSrc mod launch. No Steam app 10, 1.6 flags,
+    // credentials, configs, assets or native enhancements are inherited.
+    return {
+      executable: installation.runtime === 'wine' ? 'wine' : installation.executablePath,
+      args: [
+        ...(installation.runtime === 'wine' ? [installation.executablePath] : []),
+        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? ['-gl'] : []),
+        '-game',
+        installation.modDirectory
+      ],
+      cwd: installation.folderPath
+    }
+  }
+}

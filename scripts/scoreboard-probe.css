@@ -275,6 +275,12 @@ html.kill-cards-preview-page #root {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.c4-icon {
+  display: inline-block;
+  background-color: currentColor;
+  mask: url('hud-icons/c4-white.png') center / contain no-repeat;
+}
+
 .bomb-carrier-icon {
   display: inline-block;
   width: 14px;

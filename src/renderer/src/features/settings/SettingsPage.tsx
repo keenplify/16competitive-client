@@ -1,5 +1,6 @@
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
 import { LightweightHudSetting } from './LightweightHudSetting'
+import { LegacyGameSettings } from './LegacyGameSettings'
 import { PlayerPingSetting } from './PlayerPingSetting'
 import {
   BookOpen,
@@ -505,6 +506,7 @@ export function SettingsPage(): JSX.Element {
               <PartnerThemeSetting />
               <CommunitySettings />
               <ChatTranslationSettings />
+              {!webRuntime && <LegacyGameSettings />}
 
               {webRuntime ? (
                 <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">

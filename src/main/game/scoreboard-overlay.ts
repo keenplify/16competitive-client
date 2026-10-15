@@ -39,6 +39,7 @@ import { matchJoinInfoKey } from './match-join-info-key'
 import { decodeScoreboardDelta } from './scoreboard-transport'
 import { mergeNativeScores, readNativeScores } from './native-scoreboard'
 import { SessionLease } from './session-lease'
+import type { CosmeticRuntime, GoldSrcModDirectory } from './goldsrc-client-capabilities'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -311,9 +312,16 @@ export class ScoreboardOverlaySession {
     gameRoot?: string,
     allowNextClientIntegration = true,
     serverEndpoint?: string,
-    onStandaloneRestart?: () => Promise<void>
+    onStandaloneRestart?: () => Promise<void>,
+    compatibility?: {
+      gameDirectory: GoldSrcModDirectory
+      runtime: CosmeticRuntime
+      authFile?: { name: string; sha256: string }
+    }
   ): Promise<ScoreboardOverlaySession | null> {
     await cleanupQueue.wait()
+    const wine = compatibility?.runtime === 'wine'
+    const windowsProxy = process.platform === 'win32' || wine
     if (!serverEndpoint || !/^\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(serverEndpoint))
       throw new Error('Native HUD requires the assigned IPv4 server endpoint')
     // The module follows GoldSrc's x86 architecture, not the launcher's host
@@ -330,7 +338,7 @@ export class ScoreboardOverlaySession {
       })
       return null
     }
-    if (process.platform === 'win32' && !gameRoot) {
+    if (windowsProxy && !gameRoot) {
       console.warn('[Scoreboard] custom HUD unavailable', {
         matchId,
         reason: 'Windows game root was not provided'
@@ -352,8 +360,23 @@ export class ScoreboardOverlaySession {
     const native = app.isPackaged
       ? join(process.resourcesPath, 'native')
       : join(app.getAppPath(), `resources/native/linux-${process.arch}`)
-    const modulePath = join(native, 'papamo-cosmetic-module-linux-x86.so')
-    if (process.platform === 'linux' && !(await stat(modulePath).catch(() => null))?.isFile()) {
+    const modulePath = wine
+      ? app.isPackaged
+        ? join(process.resourcesPath, 'native', 'wine', 'papamo-cosmetic-module-win-x86.dll')
+        : join(
+            app.getAppPath(),
+            'resources',
+            'native',
+            `linux-${process.arch}`,
+            'wine',
+            'papamo-cosmetic-module-win-x86.dll'
+          )
+      : join(native, 'papamo-cosmetic-module-linux-x86.so')
+    if (
+      process.platform === 'linux' &&
+      !wine &&
+      !(await stat(modulePath).catch(() => null))?.isFile()
+    ) {
       console.warn('[Scoreboard] custom HUD unavailable', {
         matchId,
         reason: 'packaged Linux cosmetic module is missing',
@@ -364,16 +387,21 @@ export class ScoreboardOverlaySession {
     const assets = app.isPackaged
       ? join(process.resourcesPath, 'scoreboard')
       : join(app.getAppPath(), 'resources/scoreboard')
-    const nextClient = process.platform === 'win32' && (await isNextClientInstallation(gameRoot!))
-    const windowsInstallation =
-      process.platform === 'win32'
-        ? nextClient
-          ? allowNextClientIntegration
-            ? await WindowsNextClientInstallation.install(gameRoot!)
-            : null
-          : await WindowsCosmeticInstallation.install(gameRoot!)
-        : null
-    if (process.platform === 'win32' && !windowsInstallation) {
+    const nextClient =
+      !compatibility && process.platform === 'win32' && (await isNextClientInstallation(gameRoot!))
+    const windowsInstallation = windowsProxy
+      ? nextClient
+        ? allowNextClientIntegration
+          ? await WindowsNextClientInstallation.install(gameRoot!)
+          : null
+        : await WindowsCosmeticInstallation.install(
+            gameRoot!,
+            compatibility?.gameDirectory,
+            compatibility?.runtime,
+            compatibility?.authFile
+          )
+      : null
+    if (windowsProxy && !windowsInstallation) {
       console.warn('[Scoreboard] custom HUD unavailable', {
         matchId,
         reason:
@@ -553,7 +581,12 @@ export class ScoreboardOverlaySession {
           })
       })
       await window.loadFile(join(assets, 'index.html'))
-      await cardsWindow.loadFile(join(assets, 'index.html'), { query: { overlay: 'kill-cards' } })
+      await cardsWindow.loadFile(join(assets, 'index.html'), {
+        query: {
+          overlay: 'kill-cards',
+          gameVersion: compatibility?.gameDirectory === 'cstrk13' ? '1.3' : '1.6'
+        }
+      })
       cardsWindow.webContents.stopPainting()
       const handleStandaloneRestart = createStandaloneRestartHandoff(async () => {
         await lstat(join(directory, 'restart.requested')).then(async () => {

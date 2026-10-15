@@ -33,6 +33,11 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
   typeof value.mapId === 'string' &&
   MAP_PATTERN.test(value.mapId) &&
   ['WAITING', 'READY_CHECK', 'LIVE', 'FINISHED'].includes(String(value.state)) &&
+  (value.startingMoney === undefined ||
+    (Number.isInteger(value.startingMoney) &&
+      Number(value.startingMoney) >= 800 &&
+      Number(value.startingMoney) <= 16000)) &&
+  (value.friendlyFire === undefined || typeof value.friendlyFire === 'boolean') &&
   value.maxPlayers === 18 &&
   Number.isInteger(value.teamOneCapacity) &&
   Number(value.teamOneCapacity) >= 1 &&
@@ -69,12 +74,34 @@ const validateSettings = (value: unknown): CustomGameSettings => {
   if (!isCustomGameMode(mode)) throw new Error('Invalid custom game mode')
   if (typeof mapId !== 'string' || !MAP_PATTERN.test(mapId)) throw new Error('Invalid map')
   const password = validatePassword(value.password) as string | undefined
-  return { name, mode, mapId, ...(password === undefined ? {} : { password }) }
+  const friendlyFire = value.friendlyFire
+  if (friendlyFire !== undefined && typeof friendlyFire !== 'boolean')
+    throw new Error('Invalid friendly fire setting')
+  const startingMoney = value.startingMoney
+  if (
+    startingMoney !== undefined &&
+    (!Number.isInteger(startingMoney) ||
+      Number(startingMoney) < 800 ||
+      Number(startingMoney) > 16000)
+  )
+    throw new Error('Invalid starting money')
+  return {
+    ...(friendlyFire === undefined ? {} : { friendlyFire }),
+    name,
+    mode,
+    mapId,
+    ...(password === undefined ? {} : { password }),
+    ...(startingMoney === undefined ? {} : { startingMoney: Number(startingMoney) })
+  }
 }
 
 const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
   if (!isObject(value)) throw new Error('Invalid custom game settings')
   const update: CustomGameSettingsUpdate = {}
+  if (value.friendlyFire !== undefined) {
+    if (typeof value.friendlyFire !== 'boolean') throw new Error('Invalid friendly fire setting')
+    update.friendlyFire = value.friendlyFire
+  }
   if (value.name !== undefined) {
     if (typeof value.name !== 'string') throw new Error('Invalid room name')
     const name = value.name.trim()
@@ -89,6 +116,15 @@ const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
     if (typeof value.mapId !== 'string' || !MAP_PATTERN.test(value.mapId))
       throw new Error('Invalid map')
     update.mapId = value.mapId
+  }
+  if (value.startingMoney !== undefined) {
+    if (
+      !Number.isInteger(value.startingMoney) ||
+      Number(value.startingMoney) < 800 ||
+      Number(value.startingMoney) > 16000
+    )
+      throw new Error('Invalid starting money')
+    update.startingMoney = Number(value.startingMoney)
   }
   const password = validatePassword(value.password, true)
   if (password !== undefined) update.password = password

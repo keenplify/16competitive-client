@@ -1,3 +1,5 @@
+import { LegacyGameSettings } from './LegacyGameSettings'
+import { useLegacyGameStore } from './legacy-game.store'
 import { CommunityTransferPrompt } from '../partner-branding/CommunityTransferPrompt'
 import { useCommunityMembershipStore } from '../partner-branding/community-membership.store'
 import { useTranslation } from '../i18n/i18n'
@@ -34,6 +36,10 @@ export function OnboardingPage(): JSX.Element {
   const transferAccount = useCommunityMembershipStore((state) => state.accountId)
   const transferLoading = useCommunityMembershipStore((state) => state.loading)
   const transferBusy = useCommunityMembershipStore((state) => state.deciding)
+  const wantsCs13 = useOnboardingStore((state) => state.wantsCs13)
+  const setWantsCs13 = useOnboardingStore((state) => state.setWantsCs13)
+  const legacyProfile = useLegacyGameStore((state) => state.profile)
+  const legacyStatus = useLegacyGameStore((state) => state.status)
   const step = useOnboardingStore((state) => state.step)
   const mode = useOnboardingStore((state) => state.mode)
   const setStep = useOnboardingStore((state) => state.setStep)
@@ -99,6 +105,7 @@ export function OnboardingPage(): JSX.Element {
 
   const titles = {
     installation: 'Set up Counter-Strike',
+    legacy: t('legacy.onboardingTitle'),
     preferences: 'Make it yours',
     referral: 'Have a referral code?',
     community: t('community.title'),
@@ -106,6 +113,7 @@ export function OnboardingPage(): JSX.Element {
   }
   const descriptions = {
     installation: 'Choose the Counter-Strike 1.6 installation this launcher will use for matches.',
+    legacy: t('legacy.onboardingDescription'),
     preferences:
       'Choose how much of the 1.6 Competitive experience to enable. You can change features later in Settings.',
     referral:
@@ -134,6 +142,7 @@ export function OnboardingPage(): JSX.Element {
   const hasTransfer = !!transfer && transferAccount === playerId
   const steps = [
     'installation',
+    'legacy',
     'preferences',
     ...(hasTransfer || step === 'community' ? ['community' as const] : []),
     'referral',
@@ -352,6 +361,27 @@ export function OnboardingPage(): JSX.Element {
               </div>
             )}
 
+            {step === 'legacy' && (
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <ChoiceCard
+                    title={t('legacy.yes')}
+                    description={t('legacy.yesHelp')}
+                    icon={<Gamepad2 className="size-5" aria-hidden="true" />}
+                    selected={wantsCs13 === true}
+                    onClick={() => setWantsCs13(true)}
+                  />
+                  <ChoiceCard
+                    title={t('legacy.no')}
+                    description={t('legacy.noHelp')}
+                    icon={<Settings2 className="size-5" aria-hidden="true" />}
+                    selected={wantsCs13 === false}
+                    onClick={() => setWantsCs13(false)}
+                  />
+                </div>
+                {wantsCs13 && <LegacyGameSettings embedded showLaunch={false} />}
+              </div>
+            )}
             {step === 'preferences' && (
               <div className="space-y-3">
                 <ChoiceCard
@@ -485,7 +515,9 @@ export function OnboardingPage(): JSX.Element {
                           : 'preferences'
                         : step === 'community'
                           ? 'preferences'
-                          : 'installation'
+                          : step === 'preferences'
+                            ? 'legacy'
+                            : 'installation'
                   )
                 }
               >
@@ -498,9 +530,21 @@ export function OnboardingPage(): JSX.Element {
                 disabled={
                   !savedPath || busy || nextClientBusy || nextClientInstallStatus === 'waiting'
                 }
-                onClick={() => setStep('preferences')}
+                onClick={() => setStep('legacy')}
               >
                 Continue
+              </Button>
+            ) : step === 'legacy' ? (
+              <Button
+                className="flex-1 bg-sky-400 hover:bg-sky-300"
+                disabled={
+                  busy ||
+                  wantsCs13 === null ||
+                  (wantsCs13 && (!legacyProfile.installation || legacyStatus !== 'idle'))
+                }
+                onClick={() => setStep('preferences')}
+              >
+                {t('legacy.continue')}
               </Button>
             ) : step === 'preferences' ? (
               <Button
@@ -547,6 +591,19 @@ export function OnboardingPage(): JSX.Element {
               </Button>
             )}
           </div>
+          {step === 'legacy' && (
+            <Button
+              variant="ghost"
+              className="mt-3 w-full"
+              disabled={legacyStatus === 'choosing' || legacyStatus === 'launching'}
+              onClick={() => {
+                setWantsCs13(false)
+                setStep('preferences')
+              }}
+            >
+              {t('legacy.skip')}
+            </Button>
+          )}
           {step === 'installation' && !savedPath && (
             <Button
               variant="ghost"

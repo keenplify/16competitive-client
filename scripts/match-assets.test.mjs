@@ -7,7 +7,11 @@ import * as crypto from 'node:crypto'
 import { tmpdir } from 'node:os'
 import vm from 'node:vm'
 import ts from 'typescript'
-import { versionedGameAssetHash } from '../src/shared/game-asset-path.ts'
+import {
+  isBundledPingAssetPath,
+  BUNDLED_PING_ASSET_PATHS,
+  versionedGameAssetHash
+} from '../src/shared/game-asset-path.ts'
 
 const source = ts.transpileModule(
   await fs.readFile(new URL('../src/main/game/match-assets.ts', import.meta.url), 'utf8'),
@@ -51,9 +55,13 @@ async function harness(assets, bytes) {
     'node:fs/promises': fs,
     'node:path': path,
     '../auth': { getSessionToken: () => 'fixture-token' },
-    './game-settings': { getSavedCs16Executable: async () => path.join(directory, 'hl.exe') },
-    './game-directory': { ensureLauncherContentDirectory: async () => root },
-    '../../shared/game-asset-path': { versionedGameAssetHash }
+    './shared-skin-storage': {
+      prepareSkinStorage: async () => ({
+        contentRoot: root,
+        destination: async (asset) => path.join(root, asset)
+      })
+    },
+    '../../shared/game-asset-path': { isBundledPingAssetPath, versionedGameAssetHash }
   }
   const module = new vm.SourceTextModule(source, { context })
   await module.link(async (name) => {
@@ -137,6 +145,53 @@ test('match preparation installs default and custom smoke sprites, verifies hash
     assert.deepEqual(await fs.readFile(path.join(h.root, assets[0].path)), sprite)
   } finally {
     await h.cleanup()
+  }
+})
+
+test('all bundled ping resources are verified and cached before legacy match readiness', async () => {
+  for (const key of BUNDLED_PING_ASSET_PATHS) {
+    const bytes = Buffer.alloc(64)
+    bytes.write(key.endsWith('.mdl') ? 'IDST' : 'RIFF')
+    if (key.endsWith('.wav')) bytes.write('WAVE', 8)
+    const hash = crypto.createHash('sha256').update(bytes).digest('hex')
+    const h = await harness([{ path: key, sha256: hash }], bytes)
+    try {
+      const run = () =>
+        h.api.startMatchAssetPreload(
+          matchId,
+          'https://backend.example.test',
+          (value) => h.progress.push(value),
+          'cs13'
+        )
+      await run()
+      assert.deepEqual(await fs.readFile(path.join(h.root, key)), bytes)
+      assert.equal(h.progress.at(-1).status, 'ready')
+      assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 1)
+      h.api.clearMatchAssetPreload(matchId)
+      await run()
+      assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 1)
+    } finally {
+      await h.cleanup()
+    }
+  }
+})
+
+test('fixed ping paths require full hashes and reject unknown or traversing paths before download', async () => {
+  for (const asset of [
+    { path: BUNDLED_PING_ASSET_PATHS[0] },
+    { path: 'models/16competitive/ping/v2/unknown.mdl', sha256 },
+    { path: 'models/16competitive/ping/v2/../ef_gundrop.mdl', sha256 }
+  ]) {
+    const h = await harness([asset], sprite)
+    try {
+      await assert.rejects(
+        h.api.startMatchAssetPreload(matchId, 'https://backend.example.test'),
+        /manifest is invalid|unsafe asset path/
+      )
+      assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 0)
+    } finally {
+      await h.cleanup()
+    }
   }
 })
 
