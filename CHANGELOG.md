@@ -2482,3 +2482,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added shared display settings for supported games.
 - Added localized display-setting labels and options.
+
+## v2026.1015.6 — 2026-10-15
+
+### Cosmetic Compatibility
+
+- Restored Counter-Strike 1.6 cosmetic compatibility without requiring a fixed file hash.
+- Aligned Windows cosmetic client compatibility checks with the shared rules.
