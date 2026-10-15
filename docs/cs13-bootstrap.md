@@ -312,19 +312,18 @@ A Windows report from client 2026.1015.5 showed the launcher accepting Steam's
 `b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2`
 client while helper 0.1.67's new family gate rejected it at Initialize. This left
 the game playable but disabled all cosmetic HUD callbacks. The shared module
-now recognizes this modern client alongside the earlier Steam and WaRzOnE
-clients. The launcher uses the same narrow hash set, followed by the structural
-ABI check, rather than accepting a version label that the module will reject.
-NextClient detection still selects the separate client_mini integration first.
-WON client/engine matching, signed-bundle verification, ownership and endpoint
-gates remain required.
+now uses modern `F`/SDK-interface negotiation without a 1.6 hash allowlist, and the
+launcher restores its existing structural ABI validation. Exact client/engine
+hash matching applies only to Legacy 1.3. NextClient detection still selects the
+separate client_mini integration first. Signed-bundle verification, recovery
+integrity, ownership and endpoint gates remain required for every integration.
 
-The owner's mounted Steam and WaRzOnE DLLs passed exact family/ABI checks, and
-the NextClient installation passed its dedicated host/executable detection.
-Unit tests cover all three modern hashes and reject unknown/mislabeled clients.
-The matching Steam Wine smoke stopped at Steam authentication before gameplay;
-these checks do not establish live rendering correctness on all three Windows
-installations.
+The owner's mounted Steam and WaRzOnE DLLs passed structural ABI checks, and the
+NextClient installation passed its dedicated host/executable detection. Tests
+cover unlisted modern clients as well as known Steam and WaRzOnE clients; unknown
+legacy pairs remain disabled. The matching Steam Wine smoke stopped at Steam
+authentication before gameplay, so these checks do not establish full gameplay
+rendering on all three Windows installations.
 
 ### Shared display preferences and missing controls (2026-10-16)
 

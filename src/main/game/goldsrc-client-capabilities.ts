@@ -17,11 +17,6 @@ export const WON13_ENGINE_SHA256 =
   '525c1a32a520bbde8857e8dc3ed1e5bbc8b2ef5620bc6cdbcdbc72c34542bace'
 export const WON13_OPENGL_SHA256 =
   'c047cd0f87f379fe3d24d7f2e07241eb11d590211157be5a527bc9d9f295e922'
-export const CS16_COSMETIC_CLIENT_SHA256 = [
-  'ef7a0f40989cb79ba95d40f528534da36866892ee871147ca82e133b7a5edc3d',
-  '733d4b48a64991d2cd2a60c20d99f72b6533cc401c47f97cc0e6073bd482b6dc',
-  'b434b1c09b10b011be6c42e4154955da0c3ca46e95746988ebea1aa316a2a9f2'
-] as const
 
 export function classifyGoldSrcClient(
   version: string,
@@ -30,10 +25,9 @@ export function classifyGoldSrcClient(
 ): GoldSrcClientFamily | null {
   if (version === '1.3')
     return clientHash === WON13_CLIENT_SHA256 && engineHash === WON13_ENGINE_SHA256 ? 'won13' : null
-  return (version === '1.6' || version === '') &&
-    CS16_COSMETIC_CLIENT_SHA256.some((hash) => hash === clientHash)
-    ? 'cs16'
-    : null
+  if (clientHash === WON13_CLIENT_SHA256 || engineHash === WON13_ENGINE_SHA256) return null
+  // The caller separately checks the modern PE/SDK export contract.
+  return version === '1.6' || version === '' ? 'cs16' : null
 }
 
 export async function detectGoldSrcCosmeticFamily(
@@ -54,12 +48,15 @@ export async function detectGoldSrcCosmeticFamily(
   ).toString('utf8')
   const versions = [...metadata.matchAll(/^\s*version\s+"([^"\r\n]+)"\s*$/gm)]
   if (versions.length > 1 || (versions.length === 0 && metadata.trim())) return null
+  const version = versions[0]?.[1] ?? ''
+  if (version === '1.6' || version === '') return 'cs16'
+  if (version !== '1.3') return null
   const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
   const [client, engine] = await Promise.all([
     bounded(join(root, game, 'cl_dlls/client.dll'), 128 * 1024 * 1024),
     bounded(join(root, 'hl.exe'), 64 * 1024 * 1024)
   ])
-  const family = classifyGoldSrcClient(versions[0]?.[1] ?? '', hash(client), hash(engine))
+  const family = classifyGoldSrcClient(version, hash(client), hash(engine))
   if (
     family === 'won13' &&
     hash(await bounded(join(root, 'hw.dll'), 64 * 1024 * 1024)) !== WON13_OPENGL_SHA256
