@@ -121,8 +121,8 @@ export function SkinsPage(): JSX.Element {
     'server_ready'
   ].includes(queueStatus)
 
-  const refresh = (): void => {
-    setStatus('loading')
+  const refresh = (showLoading = true): void => {
+    if (showLoading) setStatus('loading')
     setError(null)
     const getLobbyLoadout = window.api.skins.getLobbyLoadout
     void Promise.all([
@@ -149,15 +149,18 @@ export function SkinsPage(): JSX.Element {
       },
       (reason: unknown) => {
         setError(errorText(reason))
-        setStatus('error')
+        if (showLoading) setStatus('error')
       }
     )
   }
 
   useEffect(() => {
-    void Promise.resolve().then(refresh)
+    void Promise.resolve().then(() => refresh())
+    const onFocus = (): void => refresh(false)
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [playerId])
 
   const equippedByWeapon = useMemo(
     () =>
@@ -349,13 +352,20 @@ export function SkinsPage(): JSX.Element {
 
   if (status === 'error')
     return (
-      <Button className="mt-6" variant="ghost" onClick={refresh}>
+      <Button className="mt-6" variant="ghost" onClick={() => refresh()}>
         Retry inventory
       </Button>
     )
   return (
     <section className="mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
-      {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
+      {error && (
+        <p
+          role="alert"
+          className="fixed right-4 bottom-4 left-4 z-50 border border-rose-400/30 bg-neutral-950 px-4 py-3 text-sm text-rose-200 shadow-lg"
+        >
+          {error}
+        </p>
+      )}
       <section className="min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
@@ -397,7 +407,7 @@ export function SkinsPage(): JSX.Element {
                     'px-4 py-2 text-xs font-bold tracking-wide',
                     team === id
                       ? id === 'ct'
-                        ? 'bg-sky-400 text-slate-950'
+                        ? 'bg-sky-400 text-sky-950'
                         : 'bg-amber-300 text-amber-950'
                       : 'text-neutral-400 hover:text-white'
                   )}
@@ -554,16 +564,21 @@ function InventoryCard({
       <p className="text-[10px] font-bold tracking-[0.16em] text-sky-400 uppercase">
         {owned.skin.weaponKey}
       </p>
+      {(owned.reviewOnly || owned.skin.status === 'DRAFT') && (
+        <p className="text-xs text-amber-200">Custom games only</p>
+      )}
       <h3 className="mt-1 text-sm font-semibold">{owned.skin.name}</h3>
       <div className="mt-auto flex justify-end gap-2 border-t border-white/10 pt-3">
-        <Button
-          className="h-8 px-3 text-xs"
-          variant="ghost"
-          disabled={changing || selling}
-          onClick={onSell}
-        >
-          {selling ? 'Loading…' : 'Sell'}
-        </Button>
+        {!owned.reviewOnly && owned.skin.status !== 'DRAFT' && (
+          <Button
+            className="h-8 px-3 text-xs"
+            variant="ghost"
+            disabled={changing || selling}
+            onClick={onSell}
+          >
+            {selling ? 'Loading…' : 'Sell'}
+          </Button>
+        )}
         <Button
           className="h-8 min-w-28 px-3 text-xs"
           variant={equipped ? 'ghost' : 'primary'}
@@ -625,10 +640,10 @@ function LoadoutWeaponCard({
           equipped={equipped}
         />
       </button>
-      {canChangeLobbyWeapon && (
+      {canChangeLobbyWeapon && !equipped?.reviewOnly && equipped?.skin.status !== 'DRAFT' && (
         <button
           type="button"
-          className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-full border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-none border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-sky-950 disabled:cursor-not-allowed disabled:opacity-50"
           title={lobbyButtonLabel}
           aria-label={lobbyButtonLabel}
           disabled={loadoutLocked || lobbyWeaponId !== null || lobbySelected}

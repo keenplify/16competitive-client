@@ -94,6 +94,7 @@ const isOwnedSkin = (value: unknown): value is OwnedSkin => {
     typeof (owned.skin as Record<string, unknown>).id === 'string' &&
     typeof owned.acquiredAt === 'string' &&
     typeof owned.acquiredForPoints === 'number' &&
+    (owned.reviewOnly === undefined || typeof owned.reviewOnly === 'boolean') &&
     (typeof owned.equippedAt === 'string' || owned.equippedAt === null) &&
     typeof owned.lobbySelected === 'boolean'
   )

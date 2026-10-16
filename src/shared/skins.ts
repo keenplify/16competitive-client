@@ -44,6 +44,7 @@ export interface Skin {
 
 export interface OwnedSkin {
   skin: Skin
+  reviewOnly?: boolean
   acquiredAt: string
   acquiredForPoints: number
   equippedAt: string | null

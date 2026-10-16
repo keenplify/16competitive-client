@@ -402,6 +402,9 @@ const ru: Record<string, string> = {
   'Machine gun': 'Пулемет',
   Knife: 'Нож',
   'Retry catalog': 'Повторить загрузку каталога',
+  'Custom games only': 'Только пользовательские игры',
+  'Only admins or the draft creator can test this skin':
+    'Тестировать этот скин могут только администраторы или автор черновика',
   'Custom weapon skin.': 'Пользовательский скин оружия.',
   Owned: 'В наличии',
   'Manage loadout': 'Настроить снаряжение',
@@ -881,6 +884,9 @@ const tl: Record<string, string> = {
   'Machine gun': 'Machine gun',
   Knife: 'Knife',
   'Retry catalog': 'Retry catalog',
+  'Custom games only': 'Para lang sa custom games',
+  'Only admins or the draft creator can test this skin':
+    'Mga admin o gumawa ng draft lang ang puwedeng mag-test ng skin na ito',
   'Custom weapon skin.': 'Custom weapon skin.',
   Owned: 'Owned',
   'Manage loadout': 'Manage loadout',
