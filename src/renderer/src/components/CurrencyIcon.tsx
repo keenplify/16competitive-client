@@ -1,7 +1,7 @@
 import { twMerge } from 'tailwind-merge'
-import type { JSX } from 'react'
-import pointsCoin from '../assets/points-coin.png'
-import papaCashCoin from '../assets/papa-cash-coin.png'
+import type { JSX, ReactNode } from 'react'
+import pointsCoin from '../assets/currency-points.svg'
+import papaCashCoin from '../assets/currency-pcash.svg'
 
 export type CurrencyKind = 'POINTS' | 'P_CASH'
 
@@ -17,6 +17,39 @@ const currencyPresentation = {
     icon: papaCashCoin
   }
 } as const
+
+export function CurrencyBalance({
+  currency,
+  amount,
+  action,
+  className
+}: {
+  currency: CurrencyKind
+  amount: number
+  action?: ReactNode
+  className?: string
+}): JSX.Element {
+  return (
+    <div
+      className={twMerge(
+        'inline-flex h-10 shrink-0 items-center gap-1.5 border px-2.5',
+        currency === 'POINTS'
+          ? 'border-sky-300/20 bg-sky-300/10'
+          : 'border-amber-300/20 bg-amber-300/10',
+        action && 'pr-1',
+        className
+      )}
+    >
+      <CurrencyAmount
+        currency={currency}
+        amount={amount}
+        className="text-base font-semibold text-white"
+        iconClassName="size-5"
+      />
+      {action}
+    </div>
+  )
+}
 
 export function CurrencyIcon({
   currency,

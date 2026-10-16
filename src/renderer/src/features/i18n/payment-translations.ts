@@ -1,5 +1,7 @@
 export const paymentTranslations = {
   en: {
+    'payments.topUp': 'Top up',
+    'payments.close': 'Close top-up',
     'payments.title': 'Top up P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -26,6 +28,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — check payment if you already paid'
   },
   ru: {
+    'payments.topUp': 'Пополнить',
+    'payments.close': 'Закрыть пополнение',
     'payments.title': 'Пополнить P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -52,6 +56,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Отменён — проверьте платёж, если уже оплатили'
   },
   tl: {
+    'payments.topUp': 'Mag-top up',
+    'payments.close': 'Isara ang top-up',
     'payments.title': 'Mag-top up ng P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -79,6 +85,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — tingnan ang bayad kung nakapagbayad na'
   },
   th: {
+    'payments.topUp': 'เติมเงิน',
+    'payments.close': 'ปิดหน้าต่างเติมเงิน',
     'payments.title': 'เติม P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -105,6 +113,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'ยกเลิกแล้ว — ตรวจสอบการชำระเงินหากชำระแล้ว'
   },
   id: {
+    'payments.topUp': 'Isi ulang',
+    'payments.close': 'Tutup isi ulang',
     'payments.title': 'Isi ulang P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -131,6 +141,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Dibatalkan — periksa pembayaran jika sudah membayar'
   },
   hi: {
+    'payments.topUp': 'टॉप अप',
+    'payments.close': 'टॉप अप बंद करें',
     'payments.title': 'P-Cash टॉप अप करें',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -157,6 +169,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'रद्द — भुगतान कर चुके हैं तो जाँचें'
   },
   pt: {
+    'payments.topUp': 'Recarregar',
+    'payments.close': 'Fechar recarga',
     'payments.title': 'Recarregar P-Cash',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':
@@ -183,6 +197,8 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelado — verifique se já pagou'
   },
   ja: {
+    'payments.topUp': 'チャージ',
+    'payments.close': 'チャージを閉じる',
     'payments.title': 'P-Cashをチャージ',
     'payments.rate': '100 P-Cash = 1 USDT',
     'payments.help':

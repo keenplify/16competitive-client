@@ -2,7 +2,7 @@ import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingCart, Ticket, X } from
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
-import { CurrencyAmount } from '../../components/CurrencyIcon'
+import { CurrencyAmount, CurrencyBalance } from '../../components/CurrencyIcon'
 import { PurchaseConfirmModal } from './PurchaseConfirmModal'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
@@ -26,7 +26,7 @@ import {
   type SkinRarity
 } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
-import { PCashTopUpButton, PCashTopUpPanel } from './PCashTopUp'
+import { PCashTopUpButton, PCashTopUpModal } from './PCashTopUp'
 import { usePaymentsStore } from './payments.store'
 
 type SkinTypeFilter = 'all' | SkinRarity
@@ -279,31 +279,20 @@ export function ShopPage(): JSX.Element {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <PCashTopUpButton />
             <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
             </Button>
-            <div className=" border border-sky-300/20 bg-sky-300/10 px-4 py-3">
-              <CurrencyAmount
-                currency="POINTS"
-                amount={points}
-                className="text-xl font-bold text-white"
-                iconClassName="size-8"
-              />
-            </div>
-            <div className=" border border-amber-300/20 bg-amber-300/10 px-4 py-3">
-              <CurrencyAmount
-                currency="P_CASH"
-                amount={pCash}
-                className="text-xl font-bold text-white"
-                iconClassName="size-8"
-              />
-            </div>
+            <CurrencyBalance currency="POINTS" amount={points} />
+            <CurrencyBalance
+              currency="P_CASH"
+              amount={pCash}
+              action={<PCashTopUpButton className="size-8" />}
+            />
           </div>
         </header>
 
-        <PCashTopUpPanel />
+        <PCashTopUpModal />
 
         {error && (
           <p className="mt-5  border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">

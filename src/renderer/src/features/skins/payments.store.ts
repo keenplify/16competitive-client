@@ -11,6 +11,7 @@ interface PaymentsState {
   error: boolean
   initialize: (ownerId: string | null) => void
   toggle: () => void
+  close: () => void
   setAmount: (amount: string) => void
   load: (orderId?: string) => Promise<void>
   create: () => Promise<void>
@@ -28,6 +29,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
     set({ ownerId, open: false, snapshot: null, busy: false, error: false, amount: '10' })
   },
   toggle: () => set((state) => ({ open: !state.open })),
+  close: () => set({ open: false }),
   setAmount: (amount) => set({ amount }),
   async load(orderId) {
     const ownerId = get().ownerId
