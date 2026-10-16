@@ -1,5 +1,13 @@
 export const paymentTranslations = {
   en: {
+    'payments.history': 'Top-up history',
+    'payments.closeHistory': 'Close top-up history',
+    'payments.closeDetails': 'Close payment details',
+    'payments.pCashPresets': 'Choose an amount (P-Cash)',
+    'payments.pCashAmount': 'Custom amount (P-Cash)',
+    'payments.pCashLimits': 'Multiples of 100, from 100 to 1,000,000 P-Cash. 100 P-Cash = $1.00.',
+    'payments.custom': 'Custom amount',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'Payment method',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'Choose an amount (USD)',
@@ -56,6 +64,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — check payment if you already paid'
   },
   ru: {
+    'payments.history': 'История пополнений',
+    'payments.closeHistory': 'Закрыть историю пополнений',
+    'payments.closeDetails': 'Закрыть детали платежа',
+    'payments.pCashPresets': 'Выберите сумму (P-Cash)',
+    'payments.pCashAmount': 'Другая сумма (P-Cash)',
+    'payments.pCashLimits': 'Кратно 100, от 100 до 1 000 000 P-Cash. 100 P-Cash = 1 USD.',
+    'payments.custom': 'Другая сумма',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'Способ оплаты',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'Выберите сумму (USD)',
@@ -112,6 +128,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Отменён — проверьте платёж, если уже оплатили'
   },
   tl: {
+    'payments.history': 'Kasaysayan ng top-up',
+    'payments.closeHistory': 'Isara ang kasaysayan ng top-up',
+    'payments.closeDetails': 'Isara ang detalye ng bayad',
+    'payments.pCashPresets': 'Pumili ng halaga (P-Cash)',
+    'payments.pCashAmount': 'Ibang halaga (P-Cash)',
+    'payments.pCashLimits': 'Tig-100, mula 100 hanggang 1,000,000 P-Cash. 100 P-Cash = $1.00.',
+    'payments.custom': 'Ibang halaga',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'Paraan ng pagbabayad',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'Pumili ng halaga (USD)',
@@ -169,6 +193,15 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — tingnan ang bayad kung nakapagbayad na'
   },
   th: {
+    'payments.history': 'ประวัติการเติมเงิน',
+    'payments.closeHistory': 'ปิดประวัติการเติมเงิน',
+    'payments.closeDetails': 'ปิดรายละเอียดการชำระเงิน',
+    'payments.pCashPresets': 'เลือกจำนวน (P-Cash)',
+    'payments.pCashAmount': 'จำนวนอื่น (P-Cash)',
+    'payments.pCashLimits':
+      'เพิ่มครั้งละ 100 ตั้งแต่ 100 ถึง 1,000,000 P-Cash โดย 100 P-Cash = 1 USD',
+    'payments.custom': 'จำนวนอื่น',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'วิธีชำระเงิน',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'เลือกจำนวนเงิน (USD)',
@@ -224,6 +257,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'ยกเลิกแล้ว — ตรวจสอบการชำระเงินหากชำระแล้ว'
   },
   id: {
+    'payments.history': 'Riwayat isi saldo',
+    'payments.closeHistory': 'Tutup riwayat isi saldo',
+    'payments.closeDetails': 'Tutup detail pembayaran',
+    'payments.pCashPresets': 'Pilih jumlah (P-Cash)',
+    'payments.pCashAmount': 'Jumlah lain (P-Cash)',
+    'payments.pCashLimits': 'Kelipatan 100, dari 100 hingga 1.000.000 P-Cash. 100 P-Cash = 1 USD.',
+    'payments.custom': 'Jumlah lain',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'Metode pembayaran',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'Pilih jumlah (USD)',
@@ -280,6 +321,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Dibatalkan — periksa pembayaran jika sudah membayar'
   },
   hi: {
+    'payments.history': 'टॉप-अप इतिहास',
+    'payments.closeHistory': 'टॉप-अप इतिहास बंद करें',
+    'payments.closeDetails': 'भुगतान विवरण बंद करें',
+    'payments.pCashPresets': 'राशि चुनें (P-Cash)',
+    'payments.pCashAmount': 'अन्य राशि (P-Cash)',
+    'payments.pCashLimits': '100 के गुणज, 100 से 10,00,000 P-Cash तक। 100 P-Cash = 1 USD।',
+    'payments.custom': 'अन्य राशि',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'भुगतान का तरीका',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'राशि चुनें (USD)',
@@ -336,6 +385,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'रद्द — भुगतान कर चुके हैं तो जाँचें'
   },
   pt: {
+    'payments.history': 'Histórico de recargas',
+    'payments.closeHistory': 'Fechar histórico de recargas',
+    'payments.closeDetails': 'Fechar detalhes do pagamento',
+    'payments.pCashPresets': 'Escolha o valor (P-Cash)',
+    'payments.pCashAmount': 'Outro valor (P-Cash)',
+    'payments.pCashLimits': 'Múltiplos de 100, de 100 a 1.000.000 P-Cash. 100 P-Cash = 1 USD.',
+    'payments.custom': 'Outro valor',
+    'payments.option': '{{amount}} P-Cash, {{price}}',
     'payments.method': 'Método de pagamento',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': 'Escolha o valor (USD)',
@@ -392,6 +449,14 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelado — verifique se já pagou'
   },
   ja: {
+    'payments.history': 'チャージ履歴',
+    'payments.closeHistory': 'チャージ履歴を閉じる',
+    'payments.closeDetails': '支払い詳細を閉じる',
+    'payments.pCashPresets': '数量を選択 (P-Cash)',
+    'payments.pCashAmount': 'その他の数量 (P-Cash)',
+    'payments.pCashLimits': '100単位で100〜1,000,000 P-Cash。100 P-Cash = 1 USD。',
+    'payments.custom': 'その他の数量',
+    'payments.option': '{{amount}} P-Cash、{{price}}',
     'payments.method': '支払い方法',
     'payments.usdRate': '100 P-Cash = 1 USD',
     'payments.usdPresets': '金額を選択 (USD)',

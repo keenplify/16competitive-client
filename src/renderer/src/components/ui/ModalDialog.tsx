@@ -11,6 +11,29 @@ interface ModalDialogProps {
   children: ReactNode
 }
 
+// Nested native dialogs share one body lock, including when all close on logout.
+let bodyLockCount = 0
+let savedBodyStyle: { overflow: string; paddingRight: string } | null = null
+const lockBody = (): (() => void) => {
+  if (bodyLockCount++ === 0) {
+    savedBodyStyle = {
+      overflow: document.body.style.overflow,
+      paddingRight: document.body.style.paddingRight
+    }
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+    const padding = Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0
+    document.body.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${padding + scrollbarWidth}px`
+  }
+  return () => {
+    if (--bodyLockCount === 0 && savedBodyStyle) {
+      document.body.style.overflow = savedBodyStyle.overflow
+      document.body.style.paddingRight = savedBodyStyle.paddingRight
+      savedBodyStyle = null
+    }
+  }
+}
+
 /** Native modal focus containment, Escape handling, and focus return on close. */
 export function ModalDialog({
   open,
@@ -26,17 +49,11 @@ export function ModalDialog({
     if (!open || !dialog) return
     const returnFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
-    const previousPadding = document.body.style.paddingRight
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    const padding = Number.parseFloat(getComputedStyle(document.body).paddingRight) || 0
-    document.body.style.overflow = 'hidden'
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${padding + scrollbarWidth}px`
+    const unlockBody = lockBody()
     dialog.showModal()
     return () => {
       dialog.close()
-      document.body.style.overflow = previousOverflow
-      document.body.style.paddingRight = previousPadding
+      unlockBody()
       if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true })
     }
   }, [open])

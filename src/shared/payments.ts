@@ -1,5 +1,17 @@
 export const PCASH_PER_USDT = 100
 
+/** Whole-dollar purchases, entered in P-Cash in the renderer. */
+export const usdFromPCash = (value: string): number | null => {
+  if (!/^\d+$/.test(value)) return null
+  const amount = Number(value)
+  return Number.isSafeInteger(amount) &&
+    amount >= 100 &&
+    amount <= 1_000_000 &&
+    amount % PCASH_PER_USDT === 0
+    ? amount / PCASH_PER_USDT
+    : null
+}
+
 export type PaymentStatus = 'CREATING' | 'PENDING' | 'CREDITED' | 'FAILED' | 'EXPIRED' | 'CANCELLED'
 
 export interface PaymentOrder {

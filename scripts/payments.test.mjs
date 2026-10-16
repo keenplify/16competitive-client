@@ -105,3 +105,17 @@ test('manual transfers validate persistent QR images, exact quotes and server-co
   ])
     assert.throws(() => validateTransferDetails(sender, reference))
 })
+
+test('P-Cash entry preserves 100 P-Cash per whole dollar and rejects fractional-dollar quantities', async () => {
+  const { usdFromPCash } = await import('../src/shared/payments.ts')
+  for (const [amount, usd] of [
+    ['100', 1],
+    ['500', 5],
+    ['1000', 10],
+    ['50000', 500],
+    ['1000000', 10000]
+  ])
+    assert.equal(usdFromPCash(amount), usd)
+  for (const amount of ['', '0', '5', '99', '105', '125', '100.5', '1e3', '-100', '1000001'])
+    assert.equal(usdFromPCash(amount), null)
+})

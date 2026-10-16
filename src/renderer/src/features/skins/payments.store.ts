@@ -1,9 +1,16 @@
 import { create } from 'zustand'
-import type { PaymentSnapshot } from '../../../../shared/payments'
+import { usdFromPCash, type PaymentSnapshot } from '../../../../shared/payments'
 import { useAuthStore } from '../auth/auth.store'
 
 interface PaymentsState {
+  customOpen: boolean
+  choosePreset: (amount: string) => void
+  showCustom: () => void
+  historyOpen: boolean
+  showHistory: () => void
+  hideHistory: () => void
   methodId: string
+  closeDetails: () => void
   activeManualId: string | null
   senderName: string
   reference: string
@@ -26,7 +33,14 @@ interface PaymentsState {
 }
 
 export const usePaymentsStore = create<PaymentsState>((set, get) => ({
+  customOpen: false,
+  choosePreset: (amount) => set({ amount, customOpen: false }),
+  showCustom: () => set({ customOpen: true }),
+  historyOpen: false,
+  showHistory: () => set({ historyOpen: true }),
+  hideHistory: () => set({ historyOpen: false }),
   methodId: 'paymento',
+  closeDetails: () => set({ activeManualId: null }),
   activeManualId: null,
   senderName: '',
   reference: '',
@@ -36,7 +50,6 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
     const order = get().snapshot?.manual?.orders.find((o) => o.id === id)
     if (order)
       set({
-        methodId: order.methodId,
         activeManualId: id,
         senderName: order.senderName ?? '',
         reference: order.reference ?? '',
@@ -46,24 +59,21 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   setTransferDetails: (field, value) => set({ [field]: value }),
   async manualAction(action) {
     const { ownerId, methodId, amount, activeManualId, senderName, reference, busy } = get()
-    if (!ownerId || busy) return
+    const usd = usdFromPCash(amount)
+    if (!ownerId || busy || (action === 'create' && usd === null)) return
     set({ busy: true, error: false })
     const current = () =>
       get().ownerId === ownerId && useAuthStore.getState().session?.player.id === ownerId
     try {
       const order =
         action === 'create'
-          ? await window.api.skins.createManualPayment(
-              crypto.randomUUID(),
-              methodId,
-              Number(amount)
-            )
+          ? await window.api.skins.createManualPayment(crypto.randomUUID(), methodId, usd!)
           : action === 'submit'
             ? await window.api.skins.submitManualPayment(activeManualId!, senderName, reference)
             : await window.api.skins.cancelManualPayment(activeManualId!)
       if (current())
         set((state) => ({
-          activeManualId: order.id,
+          activeManualId: action === 'create' ? order.id : state.activeManualId,
           snapshot: state.snapshot
             ? {
                 ...state.snapshot,
@@ -95,13 +105,15 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   },
   ownerId: null,
   open: false,
-  amount: '10',
+  amount: '1000',
   snapshot: null,
   busy: false,
   error: false,
   initialize(ownerId) {
     if (get().ownerId === ownerId) return
     set({
+      customOpen: false,
+      historyOpen: false,
       methodId: 'paymento',
       activeManualId: null,
       senderName: '',
@@ -111,11 +123,11 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       snapshot: null,
       busy: false,
       error: false,
-      amount: '10'
+      amount: '1000'
     })
   },
-  toggle: () => set((state) => ({ open: !state.open })),
-  close: () => set({ open: false }),
+  toggle: () => set((state) => ({ open: !state.open, historyOpen: false, activeManualId: null })),
+  close: () => set({ open: false, historyOpen: false, activeManualId: null }),
   setAmount: (amount) => set({ amount }),
   async load(orderId) {
     const ownerId = get().ownerId
@@ -136,14 +148,14 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   },
   async create() {
     const { ownerId, amount, busy } = get()
-    if (!ownerId || busy || !/^\d+$/.test(amount) || Number(amount) < 1 || Number(amount) > 10_000)
-      return
+    const usd = usdFromPCash(amount)
+    if (!ownerId || busy || usd === null) return
     set({ busy: true, error: false })
     const current = () =>
       get().ownerId === ownerId && useAuthStore.getState().session?.player.id === ownerId
     try {
       // The persisted order appears in history even if the client loses this response.
-      await window.api.skins.createPayment(crypto.randomUUID(), Number(amount))
+      await window.api.skins.createPayment(crypto.randomUUID(), usd)
       const snapshot = await window.api.skins.payments()
       if (current()) set({ snapshot })
     } catch {
