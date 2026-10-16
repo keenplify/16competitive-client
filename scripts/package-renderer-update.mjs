@@ -35,7 +35,9 @@ export async function packageRendererUpdate(appOutDir, arch, electronVersion, ou
     for (const [name, entry] of files) {
       const bytes = entry.unpacked
         ? await readFile(join(`${asar}.unpacked`, name))
-        : extractFile(asar, name)
+        : // asar's filesystem traversal splits on the host path separator.
+          // Keep manifest names portable, but use native paths for its API.
+          extractFile(asar, join(...name.split('/')))
       if (name.startsWith('out/renderer/')) {
         if (entry.unpacked) throw new Error('Renderer updates require fully packed renderer assets')
         const target = join(temporary, name.slice('out/renderer/'.length))

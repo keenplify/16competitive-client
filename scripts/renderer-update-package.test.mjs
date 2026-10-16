@@ -50,11 +50,13 @@ test('renderer packaging excludes executable code; main/preload/native/dependenc
     const ui = await build()
     assert.equal(ui.compatibility, initial.compatibility)
     assert.notEqual(ui.sha256, initial.sha256)
-    assert.deepEqual(asar.listPackage(join(output, ui.file)).sort(), [
-      '/assets',
-      '/assets/app.js',
-      '/index.html'
-    ])
+    assert.deepEqual(
+      asar
+        .listPackage(join(output, ui.file))
+        .map((name) => name.replaceAll('\\', '/'))
+        .sort(),
+      ['/assets', '/assets/app.js', '/index.html']
+    )
     for (const name of [
       'out/main/index.js',
       'out/preload/index.js',
