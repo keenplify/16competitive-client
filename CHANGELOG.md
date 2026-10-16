@@ -2553,3 +2553,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Simplified currency controls.
 - Added clearer icons for P-Cash and points.
+
+## v2026.1016.8 — 2026-10-16
+
+### Payments
+
+- Added Paymento checkout for PCash top-ups.
+- Added manual transfer payments with a persistent QR code.
+- Added localized payment instructions and status messages.
