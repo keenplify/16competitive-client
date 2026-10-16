@@ -2513,3 +2513,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Improved reliability of client updates on Windows.
+
+## v2026.1016.3 — 2026-10-16
+
+### Updates
+
+- Renderer updates now clear stale cached files after a full installer upgrade.
+- The launcher is less likely to load outdated interface content after updating.
