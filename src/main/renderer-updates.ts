@@ -75,10 +75,27 @@ export function selectRendererEntry(installedEntry: string): string {
   if (!supportsRendererUpdates()) return installedEntry
   let state = recoverRendererState(readState())
   try {
+    // A full installer supersedes cached renderers and may change the runtime.
+    // Discard those records before considering a new compatible payload.
+    let baseline = app.getVersion()
+    if (state.active) {
+      try {
+        const active = verified(state.active)
+        if (newerVersion(active.version, baseline)) baseline = active.version
+        else {
+          delete state.active
+          delete state.previous
+        }
+      } catch {
+        delete state.active
+        delete state.previous
+      }
+    }
+    if (state.failedVersion && !newerVersion(state.failedVersion, app.getVersion()))
+      delete state.failedVersion
     if (state.pending) {
       const m = verified(state.pending)
-      const current = state.active ? verified(state.active).version : app.getVersion()
-      if (newerVersion(m.version, current) && m.version !== state.failedVersion) {
+      if (newerVersion(m.version, baseline) && m.version !== state.failedVersion) {
         state = {
           active: state.pending,
           previous: state.active,
@@ -202,7 +219,16 @@ export async function stageRendererUpdate(
       throw new Error('Renderer update failed verification.')
     await handle.sync()
     await handle.close()
-    if (!existsSync(archive(m))) await rename(temporary, archive(m))
+    let reusable = false
+    try {
+      if (lstatSync(archive(m)).isFile()) {
+        verifyRendererBytes(await readFile(archive(m)), m)
+        reusable = true
+      }
+    } catch {
+      /* Replace corrupt cached data with the verified download. */
+    }
+    if (!reusable) await rename(temporary, archive(m))
     verifyRendererBytes(await readFile(archive(m)), m)
     writeState({ ...readState(), pending: envelope })
     progress(100)

@@ -67,12 +67,20 @@ const source = ts.transpileModule(
   await fsp.readFile(new URL('../src/main/renderer-updates.ts', import.meta.url), 'utf8'),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
-async function harness(root, { signed = envelope(), payload = bytes } = {}) {
+async function harness(
+  root,
+  {
+    signed = envelope(),
+    payload = bytes,
+    installedVersion = '2026.1016.1',
+    runtimeCompatibility = compatibility
+  } = {}
+) {
   const resources = path.join(root, 'resources')
   await fsp.mkdir(resources, { recursive: true })
   await fsp.writeFile(
     path.join(resources, 'renderer-runtime.json'),
-    JSON.stringify({ compatibility })
+    JSON.stringify({ compatibility: runtimeCompatibility })
   )
   const context = vm.createContext({
     console,
@@ -82,7 +90,9 @@ async function harness(root, { signed = envelope(), payload = bytes } = {}) {
     fetch: async (url) => (url.endsWith('.json') ? Response.json(signed) : new Response(payload))
   })
   const dependencies = {
-    electron: { app: { isPackaged: true, getPath: () => root, getVersion: () => '2026.1016.1' } },
+    electron: {
+      app: { isPackaged: true, getPath: () => root, getVersion: () => installedVersion }
+    },
     'node:crypto': crypto,
     'node:fs': fs,
     'node:fs/promises': fsp,
@@ -173,6 +183,61 @@ test('recovery instructions and actions exist in every supported language', () =
   for (const copy of Object.values(updateRecoveryTranslations)) {
     assert.deepEqual(Object.keys(copy).sort(), keys)
     for (const text of Object.values(copy)) assert.ok(text.trim())
+  }
+})
+
+test('a newer native installation retires stale renderer state and accepts subsequent compatible updates', async () => {
+  const root = await fsp.mkdtemp(path.join(tmpdir(), '16c-renderer-native-upgrade-'))
+  try {
+    const old = await harness(root)
+    await old.stageRendererUpdate('2026.1016.2', () => {})
+    old.selectRendererEntry('/installed/index.html')
+    old.confirmRendererStartup()
+    const options = {
+      installedVersion: '2026.1016.3',
+      runtimeCompatibility: 'b'.repeat(64),
+      signed: envelope({
+        version: '2026.1016.4',
+        file: '16competitive-client-2026.1016.4-renderer-win-x64.asar',
+        compatibility: 'b'.repeat(64)
+      })
+    }
+    const upgraded = await harness(root, options)
+    assert.equal(upgraded.selectRendererEntry('/installed/index.html'), '/installed/index.html')
+    assert.equal(await upgraded.stageRendererUpdate('2026.1016.4', () => {}), true)
+    const restarted = await harness(root, options)
+    assert.match(restarted.selectRendererEntry('/installed/index.html'), /\.asar[/\\]index.html$/)
+    assert.equal(restarted.effectiveClientVersion(), '2026.1016.4')
+  } finally {
+    await fsp.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('a full installer supersedes an older pending renderer without a restart loop', async () => {
+  const root = await fsp.mkdtemp(path.join(tmpdir(), '16c-renderer-superseded-'))
+  try {
+    const old = await harness(root)
+    await old.stageRendererUpdate('2026.1016.2', () => {})
+    const upgraded = await harness(root, { installedVersion: '2026.1016.3' })
+    assert.equal(upgraded.selectRendererEntry('/installed/index.html'), '/installed/index.html')
+    assert.equal(upgraded.rollbackRendererStartup(), false)
+  } finally {
+    await fsp.rm(root, { recursive: true, force: true })
+  }
+})
+
+test('retry repairs a corrupted archive with newly verified bytes', async () => {
+  const root = await fsp.mkdtemp(path.join(tmpdir(), '16c-renderer-repair-'))
+  try {
+    const h = await harness(root)
+    await h.stageRendererUpdate('2026.1016.2', () => {})
+    const directory = path.join(root, 'renderer-updates')
+    const name = (await fsp.readdir(directory)).find((name) => name.endsWith('.asar'))
+    await fsp.writeFile(path.join(directory, name), 'corrupted')
+    assert.equal(await h.stageRendererUpdate('2026.1016.2', () => {}), true)
+    assert.deepEqual(await fsp.readFile(path.join(directory, name)), bytes)
+  } finally {
+    await fsp.rm(root, { recursive: true, force: true })
   }
 })
 
