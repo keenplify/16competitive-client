@@ -2495,3 +2495,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes were provided.
+
+## v2026.1016.1 — 2026-10-16
+
+### Updates
+
+- Added verified renderer updates for safer, more reliable app updates.
+- Improved update status messaging and progress feedback.
+
+### Recovery
+
+- Added actionable guidance when an update needs recovery.
+- Improved handling of interrupted or incomplete updates.
