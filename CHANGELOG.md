@@ -2520,3 +2520,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Renderer updates now clear stale cached files after a full installer upgrade.
 - The launcher is less likely to load outdated interface content after updating.
+
+## v2026.1016.4 — 2026-10-16
+
+### Inventory
+
+- Added access to draft reviews from the inventory.
