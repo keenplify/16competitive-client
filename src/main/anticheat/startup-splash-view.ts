@@ -1,4 +1,5 @@
 import { guardUpdateTranslations, type GuardLanguage } from '../../shared/guard-update-translations'
+import { updateRecoveryTranslations } from '../../shared/update-recovery-translations'
 
 /** Shared by the Electron splash and its static visual preview. Assets are embedded locally. */
 export function papamoGuardSplashHtml(
@@ -25,18 +26,19 @@ export function papamoGuardSplashHtml(
   .game { position: absolute; inset: 22px 14px auto; text-align: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,.24); }
   .game-name { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -.8px; white-space: nowrap; }
   .game-version { margin: 8px 0 0; color: #f1efe7; font-size: 10px; font-weight: 700; letter-spacing: 4px; }
-  .brand { position: absolute; left: 24px; right: 24px; bottom: 134px; display: flex; align-items: center; justify-content: center; gap: 11px; }
+  .brand { position: absolute; left: 24px; right: 24px; bottom: 176px; display: flex; align-items: center; justify-content: center; gap: 11px; }
   .emblem { width: 76px; height: 76px; object-fit: contain; flex-shrink: 0; }
   .brand-name { margin: 0; display: grid; grid-template-columns: auto auto; font-size: 32px; font-weight: 950; line-height: .8; letter-spacing: -.11em; transform: skew(-5deg); }
   .mo { color: #ff5a23; }
   .guard { grid-column: 1 / 3; margin-top: 12px; font-family: inherit; font-size: 20px; font-weight: 900; letter-spacing: .22em; transform: skew(5deg); }
-  .status { position: absolute; left: 24px; right: 24px; bottom: 18px; height: 106px; }
+  .status { position: absolute; left: 24px; right: 24px; bottom: 18px; height: 148px; }
   .status-copy { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; height: 48px; gap: 10px; font-size: 13px; line-height: 16px; color: #f1efe7; }
   .status-label { color: #c6c1b7; font-size: 11px; flex-shrink: 0; text-transform: uppercase; }
   .track { height: 2px; overflow: hidden; background: #3a3428; }
   .progress { height: 100%; width: 38%; background: #ff5a23; animation: sweep 1.7s ease-in-out infinite; }
   .progress.determinate { animation: none; transform: none; }
-  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .actions a:last-child { grid-column: 1 / -1; }
   .actions[hidden] { display: none; }
   .actions a { display: flex; flex: 1; align-items: center; justify-content: center; min-height: 28px; padding: 4px; color: #f1efe7; background: #30271f; font-size: 13px; text-align: center; text-decoration: none; }
   .actions a:first-child { background: #ff5a23; color: #080a09; font-weight: 700; }
@@ -64,6 +66,7 @@ export function papamoGuardSplashHtml(
     <nav id="status-actions" class="actions" hidden>
       <a href="papamo-guard://retry">${copy.retry}</a>
       <a href="papamo-guard://exit">${copy.exit}</a>
+      <a href="papamo-guard://help">${updateRecoveryTranslations[language].help}</a>
     </nav>
   </div>
 </main>

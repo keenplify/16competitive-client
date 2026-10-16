@@ -53,6 +53,6 @@ if ($Kind -eq 'helper') {
     node --experimental-strip-types --experimental-vm-modules --test scripts/cs13-bootstrap.test.mjs scripts/cs13-controls.test.mjs scripts/game-display.test.mjs scripts/custom-room-settings.test.mjs scripts/goldsrc-client-capabilities.test.mjs scripts/shared-model-directory.test.mjs scripts/windows-cosmetic-compatibility.test.mjs scripts/windows-cosmetic-recovery.test.mjs; CheckExit
     npm.cmd run build:win; CheckExit
     node --experimental-strip-types scripts/check-release-backend.mjs; CheckExit
-    Get-ChildItem dist -File | Where-Object { $_.Name -match '\.(exe|blockmap)$|^latest.*\.yml$' } | Copy-Item -Destination $dist
+    Get-ChildItem dist -File | Where-Object { $_.Name -match '\.(exe|blockmap|asar)$|^latest.*\.yml$|^renderer-update-.*\.unsigned\.json$' } | Copy-Item -Destination $dist
 }
 Write-Output "Local Windows $Kind build completed for $Commit"

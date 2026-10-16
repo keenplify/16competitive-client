@@ -15,7 +15,7 @@ const SPLASH_HEIGHT = 480
 const SPLASH_MARGIN = 24
 
 export async function showAntiCheatStartupSplash(
-  onAction?: (action: 'retry' | 'exit') => void,
+  onAction?: (action: 'retry' | 'exit' | 'help') => void,
   language: GuardLanguage = detectLanguage(
     app.getPreferredSystemLanguages(),
     Object.keys(guardUpdateTranslations) as GuardLanguage[],
@@ -70,6 +70,7 @@ export async function showAntiCheatStartupSplash(
     event.preventDefault()
     if (url === 'papamo-guard://retry') onAction?.('retry')
     if (url === 'papamo-guard://exit') onAction?.('exit')
+    if (url === 'papamo-guard://help') onAction?.('help')
   })
   splash.setIgnoreMouseEvents(true)
   // Embedded artwork exceeds Chromium's URL limit. Load a local document instead.

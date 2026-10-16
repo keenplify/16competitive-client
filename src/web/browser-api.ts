@@ -834,6 +834,19 @@ const api: Window['api'] = {
     async restartAndInstall() {
       window.location.reload()
     },
+    async retry() {
+      window.location.reload()
+    },
+    async openDownload() {
+      window.open(
+        'https://github.com/keenplify/16competitive-client/releases/latest',
+        '_blank',
+        'noopener,noreferrer'
+      )
+    },
+    async rendererReady() {
+      return
+    },
     onStatus() {
       return () => undefined
     }

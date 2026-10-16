@@ -152,12 +152,19 @@ import {
   unlockSkin
 } from './skins'
 import {
+  checkForAppUpdates,
   checkForPostGameUpdateAtLobby,
   ensureLatestClientForMatchmaking,
   getAppUpdateStatus,
   restartAndInstallUpdate
 } from './updater'
 import { UPDATE_CHANNELS } from '../shared/updater'
+import {
+  confirmRendererStartup,
+  effectiveClientVersion,
+  rollbackRendererStartup,
+  selectRendererEntry
+} from './renderer-updates'
 import { getFeaturedRankedLadder, getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import { NEWS_CHANNELS } from '../shared/news'
@@ -444,6 +451,8 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
+let selectedRendererEntry: string | undefined
+
 function createWindow(): void {
   const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
 
@@ -493,7 +502,23 @@ function createWindow(): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    const entry = selectedRendererEntry ?? join(__dirname, '../renderer/index.html')
+    const startupTimer = setTimeout(() => {
+      if (rollbackRendererStartup()) {
+        app.relaunch()
+        app.quit()
+      }
+    }, 45_000)
+    mainWindow.once('closed', () => clearTimeout(startupTimer))
+    mainWindow.webContents.on('did-fail-load', (_event, _code, _description, _url, isMainFrame) => {
+      if (!isMainFrame) return
+      clearTimeout(startupTimer)
+      if (rollbackRendererStartup()) {
+        app.relaunch()
+        app.quit()
+      }
+    })
+    mainWindow.loadFile(entry)
   }
 }
 
@@ -527,6 +552,7 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
+  selectedRendererEntry = selectRendererEntry(join(__dirname, '../renderer/index.html'))
   if (REQUIRES_SIGNED_HELPER) {
     let checkingHelper = false
     let shuttingDown = false
@@ -1001,8 +1027,19 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle(UPDATE_CHANNELS.getStatus, () => getAppUpdateStatus())
   ipcMain.handle(UPDATE_CHANNELS.checkAfterGameAtLobby, () => checkForPostGameUpdateAtLobby())
-  ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => app.getVersion())
+  ipcMain.handle(UPDATE_CHANNELS.getCurrentVersion, () => effectiveClientVersion())
   ipcMain.handle(UPDATE_CHANNELS.restartAndInstall, () => restartAndInstallUpdate())
+  ipcMain.handle(UPDATE_CHANNELS.retry, () => checkForAppUpdates())
+  ipcMain.handle(UPDATE_CHANNELS.openDownload, () =>
+    shell.openExternal('https://github.com/keenplify/16competitive-client/releases/latest')
+  )
+  ipcMain.handle(UPDATE_CHANNELS.rendererReady, (event) => {
+    if (
+      event.sender === mainWindow?.webContents &&
+      event.senderFrame === mainWindow.webContents.mainFrame
+    )
+      confirmRendererStartup()
+  })
   ipcMain.handle(LEADERBOARD_CHANNELS.getTopMmr, (_, continentOf: unknown) => {
     if (
       continentOf !== undefined &&

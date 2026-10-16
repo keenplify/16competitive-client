@@ -1,9 +1,10 @@
-import { app, type BrowserWindow } from 'electron'
+import { app, dialog, shell, type BrowserWindow } from 'electron'
 import type { AppUpdateStatus } from '../../shared/updater'
 import { detectLanguage } from '../../shared/language-detection'
 import { guardUpdateTranslations, type GuardLanguage } from '../../shared/guard-update-translations'
 import { checkForAppUpdates, getAppUpdateStatus, onAppUpdateStatus } from '../updater'
 import { showAntiCheatStartupSplash } from './startup-splash'
+import { updateRecoveryTranslations } from '../../shared/update-recovery-translations'
 
 /** Owns update presentation, including startup before the launcher is visible. */
 export class AntiCheatUpdateBanner {
@@ -31,6 +32,7 @@ export class AntiCheatUpdateBanner {
       event.preventDefault()
       if (url === 'papamo-guard://retry') this.action('retry')
       if (url === 'papamo-guard://exit') this.action('exit')
+      if (url === 'papamo-guard://help') this.action('help')
     })
     const unsubscribe = onAppUpdateStatus((status) => {
       this.latest = status
@@ -105,10 +107,34 @@ export class AntiCheatUpdateBanner {
     this.close()
   }
 
-  private action(action: 'retry' | 'exit'): void {
+  private action(action: 'retry' | 'exit' | 'help'): void {
     if (this.latest.state !== 'error' || !this.latest.requiredVersion) return
     if (action === 'exit') app.quit()
-    else checkForAppUpdates()
+    else if (action === 'retry') checkForAppUpdates()
+    else {
+      const copy = guardUpdateTranslations[this.language]
+      const recovery = updateRecoveryTranslations[this.language]
+      void dialog
+        .showMessageBox({
+          type: 'warning',
+          title: recovery.title,
+          message: this.latest.failure === 'install' ? recovery.installFailed : copy.failed,
+          detail: recovery.details,
+          buttons: [copy.retry, recovery.download, copy.exit],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true
+        })
+        .then(async ({ response }) => {
+          if (response === 0) checkForAppUpdates()
+          if (response === 1)
+            await shell.openExternal(
+              'https://github.com/keenplify/16competitive-client/releases/latest'
+            )
+          if (response === 2) app.quit()
+        })
+        .catch((error: unknown) => console.warn('[Updater] Recovery dialog failed', error))
+    }
   }
 
   private close(): void {
@@ -178,13 +204,16 @@ export class AntiCheatUpdateBanner {
       }
     }
     const copy = guardUpdateTranslations[this.language]
+    const recovery = updateRecoveryTranslations[this.language]
     const message =
       current.state === 'checking'
         ? copy.checking
         : current.state === 'downloaded'
           ? copy.restarting
           : current.state === 'error'
-            ? copy.failed
+            ? current.failure === 'install'
+              ? recovery.installFailed
+              : copy.failed
             : copy.downloading
     const percent =
       current.state === 'downloading'
@@ -203,6 +232,7 @@ export class AntiCheatUpdateBanner {
       document.getElementById('status-actions').hidden = ${!failed};
       document.querySelector('a[href="papamo-guard://retry"]').textContent = ${JSON.stringify(copy.retry)};
       document.querySelector('a[href="papamo-guard://exit"]').textContent = ${JSON.stringify(copy.exit)};
+      document.querySelector('a[href="papamo-guard://help"]').textContent = ${JSON.stringify(recovery.help)};
     })()`)
     splash.setIgnoreMouseEvents(!failed)
     splash.setFocusable(failed)

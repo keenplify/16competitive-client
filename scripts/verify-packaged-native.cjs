@@ -49,4 +49,13 @@ module.exports = async function verifyPackagedNative(context) {
       }
     }
   }
+  if (platform === 'win32') {
+    const { packageRendererUpdate } = await import('./package-renderer-update.mjs')
+    await packageRendererUpdate(
+      context.appOutDir,
+      ['ia32', 'x64', 'armv7l', 'arm64'][context.arch],
+      require('electron/package.json').version,
+      context.outDir
+    )
+  }
 }

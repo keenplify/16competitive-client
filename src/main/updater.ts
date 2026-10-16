@@ -1,6 +1,13 @@
 import { app, BrowserWindow } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { type AppUpdateStatus, UPDATE_CHANNELS } from '../shared/updater'
+import {
+  effectiveClientVersion,
+  stageRendererUpdate,
+  supportsRendererUpdates
+} from './renderer-updates'
+import { newerVersion } from '../shared/renderer-update'
+import { recordInstallerAttempt, unfinishedInstallerVersion } from './update-recovery'
 
 let status: AppUpdateStatus = { state: 'idle' }
 let installStarted = false
@@ -10,6 +17,8 @@ let updaterInitialized = false
 let lastSuccessfulUpdateCheck = 0
 let updateCheckInFlight: Promise<void> | null = null
 let postGameCheckPending = false
+let rendererUpdateStaged = false
+let showRecoveryOnce = false
 const statusListeners = new Set<(status: AppUpdateStatus) => void>()
 
 /** Main-process presentation observes the same state as the renderer fallback. */
@@ -20,7 +29,7 @@ export function onAppUpdateStatus(listener: (status: AppUpdateStatus) => void): 
   }
 }
 
-const INSTALL_QUIT_TIMEOUT_MS = 2_000
+const INSTALL_QUIT_TIMEOUT_MS = 30_000
 const MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS = 7_500
 const UPDATE_CHECK_FRESH_MS = 5 * 60_000
 const UPDATE_CHECK_GRACE_MS = 24 * 60 * 60_000
@@ -76,6 +85,17 @@ function markUpdateFailure(message: string): void {
 function initializeUpdater(): void {
   if (updaterInitialized || !supportsSelfUpdate()) return
   updaterInitialized = true
+  const unfinished = unfinishedInstallerVersion()
+  if (unfinished) {
+    requiredUpdateVersion = unfinished
+    showRecoveryOnce = true
+    setStatus({
+      state: 'error',
+      failure: 'install',
+      requiredVersion: unfinished,
+      message: 'The previous update did not finish installing.'
+    })
+  }
 
   app.once('will-quit', () => {
     if (forcedExitTimer) clearTimeout(forcedExitTimer)
@@ -85,10 +105,16 @@ function initializeUpdater(): void {
   // electron-updater handles AppImage downloads and replaces the executable
   // after the current process exits. Do not use Gear Lever, which cannot copy
   // over an AppImage while it is running (Text file busy).
-  autoUpdater.autoDownload = true
+  autoUpdater.autoDownload = !supportsRendererUpdates()
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.on('checking-for-update', () => setStatus({ state: 'checking' }))
   autoUpdater.on('update-available', (info) => {
+    if (supportsRendererUpdates() && !newerVersion(info.version, effectiveClientVersion())) {
+      requiredUpdateVersion = null
+      lastSuccessfulUpdateCheck = Date.now()
+      setStatus({ state: 'idle' })
+      return
+    }
     lastSuccessfulUpdateCheck = 0
     requiredUpdateVersion = info.version
     setStatus({ state: 'available', version: info.version })
@@ -130,7 +156,21 @@ async function runUpdateCheck(): Promise<void> {
 
   const check = autoUpdater
     .checkForUpdates()
-    .then(() => {
+    .then(async (result) => {
+      if (
+        supportsRendererUpdates() &&
+        requiredUpdateVersion &&
+        result?.updateInfo.version === requiredUpdateVersion
+      ) {
+        const version = requiredUpdateVersion
+        rendererUpdateStaged = await stageRendererUpdate(version, (percent) =>
+          setStatus({ state: 'downloading', version, percent })
+        )
+        if (rendererUpdateStaged) {
+          setStatus({ state: 'downloaded', version })
+          forceRestartAndInstall()
+        } else await autoUpdater.downloadUpdate()
+      }
       // electron-updater normally emits update-not-available first, but keep
       // the state deterministic if a provider resolves without an event.
       if (status.state === 'checking') setStatus({ state: 'idle' })
@@ -141,7 +181,7 @@ async function runUpdateCheck(): Promise<void> {
           'Automatic update check failed:',
           error instanceof Error ? error.message : String(error)
         )
-        setStatus({ state: 'error', message: 'Could not check for launcher updates.' })
+        markUpdateFailure('Could not download or check for launcher updates.')
       }
       throw error
     })
@@ -162,23 +202,45 @@ export function restartAndInstallUpdate(): void {
   if (installStarted) return
 
   installStarted = true
-  // The updater waits for this process to exit. If a window or third-party
-  // listener prevents the graceful quit, do not leave the launcher stuck.
-  forcedExitTimer = setTimeout(() => app.exit(0), INSTALL_QUIT_TIMEOUT_MS)
+  if (rendererUpdateStaged) {
+    // Relaunch the existing executable. Its normal before-quit handler awaits
+    // managed game recovery; never force-exit in the middle of DLL cleanup.
+    app.relaunch()
+    app.quit()
+    return
+  }
+  // Never interrupt managed DLL recovery with a forced exit. Surface a stalled
+  // shutdown while leaving recovery journals available for the next start.
+  forcedExitTimer = setTimeout(
+    () => markUpdateFailure('The launcher could not close to finish the update.'),
+    INSTALL_QUIT_TIMEOUT_MS
+  )
 
-  autoUpdater.quitAndInstall()
+  try {
+    recordInstallerAttempt(status.version)
+    autoUpdater.quitAndInstall()
+  } catch (error) {
+    console.warn('[Updater] Could not start installer:', error)
+    markUpdateFailure('Could not start the launcher update installer.')
+  }
 }
 
 function forceRestartAndInstall(): void {
   // Give the renderer a moment to display the blocking restart state before
   // handing control to the platform updater.
-  setTimeout(restartAndInstallUpdate, 500)
+  setTimeout(() => {
+    if (status.state === 'downloaded') restartAndInstallUpdate()
+  }, 500)
 }
 
 /** Checks public GitHub Releases in packaged, self-updatable installations. */
 export function checkForAppUpdates(): void {
   if (!supportsSelfUpdate()) return
   initializeUpdater()
+  if (showRecoveryOnce) {
+    showRecoveryOnce = false
+    return
+  }
   void runUpdateCheck().catch(() => undefined)
 }
 

@@ -22,7 +22,9 @@ export function expectedAssets(kind, version) {
     `16competitive-client-${version}-arm64.AppImage`,
     'latest.yml',
     'latest-linux.yml',
-    'latest-linux-arm64.yml'
+    'latest-linux-arm64.yml',
+    `16competitive-client-${version}-renderer-win-x64.asar`,
+    'renderer-update-win-x64.unsigned.json'
   ]
 }
 export async function createArtifactManifest(

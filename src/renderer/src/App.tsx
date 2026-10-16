@@ -18,8 +18,14 @@ import { PartnerThemeController } from './features/partner-branding/PartnerTheme
 import { Slide, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './assets/toast.css'
+import { useEffect } from 'react'
 
 function App(): React.JSX.Element {
+  useEffect(() => {
+    void window.api.updater
+      .rendererReady()
+      .catch((error: unknown) => console.warn('[Updater] Startup confirmation failed', error))
+  }, [])
   return (
     <DeviceBanGate>
       <>

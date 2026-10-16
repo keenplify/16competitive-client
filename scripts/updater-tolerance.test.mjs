@@ -13,12 +13,23 @@ const source = ts.transpileModule(
   }
 ).outputText
 
-async function harness() {
+async function harness({
+  rendererUpdates = false,
+  compatible = true,
+  recoveryVersion = null
+} = {}) {
   let clock = 1_000_000
   let checks = 0
   const actions = []
   const timers = new Set()
   const updater = new EventEmitter()
+  const installs = []
+  updater.downloadUpdate = async () => {
+    installs.push('installer-download')
+  }
+  updater.quitAndInstall = () => {
+    installs.push('installer-start')
+  }
   updater.checkForUpdates = async () => {
     checks++
     updater.emit('checking-for-update')
@@ -26,7 +37,7 @@ async function harness() {
     if (action === 'pending') return new Promise(() => {})
     if (action === 'available') {
       updater.emit('update-available', { version: '2026.1005.1' })
-      return
+      return { updateInfo: { version: '2026.1005.1' } }
     }
     if (action === 'fail') {
       const error = new Error('network unavailable')
@@ -61,12 +72,25 @@ async function harness() {
         isPackaged: true,
         once() {
           return undefined
-        }
+        },
+        relaunch: () => installs.push('relaunch'),
+        quit: () => installs.push('quit'),
+        exit: () => installs.push('forced-exit')
       },
       BrowserWindow: { getAllWindows: () => [] }
     },
     'electron-updater': { autoUpdater: updater },
-    '../shared/updater': { UPDATE_CHANNELS: { status: 'status' } }
+    '../shared/updater': { UPDATE_CHANNELS: { status: 'status' } },
+    './renderer-updates': {
+      effectiveClientVersion: () => '2026.1005.0',
+      supportsRendererUpdates: () => rendererUpdates,
+      stageRendererUpdate: async () => compatible
+    },
+    '../shared/renderer-update': { newerVersion: (a, b) => a > b },
+    './update-recovery': {
+      recordInstallerAttempt: (version) => installs.push(`record:${version}`),
+      unfinishedInstallerVersion: () => recoveryVersion
+    }
   }
   const module = new vm.SourceTextModule(source, { context })
   await module.link(async (name) => {
@@ -94,7 +118,12 @@ async function harness() {
     },
     timeout() {
       for (const callback of [...timers]) callback()
-    }
+    },
+    check: module.namespace.checkForAppUpdates,
+    status: module.namespace.getAppUpdateStatus,
+    install: module.namespace.restartAndInstallUpdate,
+    installs,
+    updater
   }
 }
 
@@ -105,6 +134,33 @@ test('post-game update checks wait until the lobby and run once', async () => {
   client.checkAtLobby()
   assert.equal(client.checks, 1)
   client.checkAtLobby()
+  assert.equal(client.checks, 1)
+})
+
+test('compatible renderer updates restart the existing executable without an installer or forced exit', async () => {
+  const client = await harness({ rendererUpdates: true })
+  client.actions.push('available')
+  await assert.rejects(client.ensure(), /required/)
+  assert.equal(client.updater.autoDownload, false)
+  assert.equal(client.status().state, 'downloaded')
+  client.install()
+  assert.deepEqual(client.installs, ['relaunch', 'quit'])
+})
+
+test('incompatible renderer updates use the full installer download', async () => {
+  const client = await harness({ rendererUpdates: true, compatible: false })
+  client.actions.push('available')
+  await assert.rejects(client.ensure(), /required/)
+  assert.deepEqual(client.installs, ['installer-download'])
+})
+
+test('an unfinished installer displays recovery before attempting the same update again', async () => {
+  const client = await harness({ recoveryVersion: '2026.1005.1' })
+  client.check()
+  assert.equal(client.checks, 0)
+  assert.equal(client.status().failure, 'install')
+  assert.equal(client.status().requiredVersion, '2026.1005.1')
+  client.check()
   assert.equal(client.checks, 1)
 })
 

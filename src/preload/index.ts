@@ -291,6 +291,9 @@ const updater: UpdaterApi = {
   getStatus: () => ipcRenderer.invoke(UPDATE_CHANNELS.getStatus),
   checkAfterGameAtLobby: () => ipcRenderer.invoke(UPDATE_CHANNELS.checkAfterGameAtLobby),
   restartAndInstall: () => ipcRenderer.invoke(UPDATE_CHANNELS.restartAndInstall),
+  retry: () => ipcRenderer.invoke(UPDATE_CHANNELS.retry),
+  openDownload: () => ipcRenderer.invoke(UPDATE_CHANNELS.openDownload),
+  rendererReady: () => ipcRenderer.invoke(UPDATE_CHANNELS.rendererReady),
   onStatus: (listener) => {
     const handler = (
       _event: Electron.IpcRendererEvent,

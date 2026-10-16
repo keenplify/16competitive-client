@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { IcafeBranchStatus } from '../../../../shared/auth'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 
 const emptyStatus: IcafeBranchStatus = { info: null, hasConfig: false, managedExternally: false }
 
@@ -48,10 +49,16 @@ export const useIcafeBranchStore = create<IcafeBranchState>((set, get) => ({
     set({ busy: true, error: null })
     try {
       const status = await window.api.auth.unlinkIcafeBranch()
+      usePartnerBrandingStore.getState().setEnabled(false)
       set({ status, error: null })
     } catch (error) {
-      const status = await window.api.auth.getIcafeBranchInfo().catch(() => emptyStatus)
-      set({ status, error: error instanceof Error ? error.message : 'ICAFE_UNLINK_UNAVAILABLE' })
+      const status = await window.api.auth.getIcafeBranchInfo().catch(() => null)
+      // Local unlink can succeed even when backend deactivation is unavailable.
+      if (status && !status.hasConfig) usePartnerBrandingStore.getState().setEnabled(false)
+      set({
+        status: status ?? emptyStatus,
+        error: error instanceof Error ? error.message : 'ICAFE_UNLINK_UNAVAILABLE'
+      })
     } finally {
       set({ busy: false })
     }

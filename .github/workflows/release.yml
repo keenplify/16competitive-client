@@ -64,6 +64,8 @@ jobs:
             dist/*.blockmap
             dist/*.AppImage
             dist/latest*.yml
+            dist/*-renderer-win-*.asar
+            dist/renderer-update-*.unsigned.json
           if-no-files-found: error
 
   publish:

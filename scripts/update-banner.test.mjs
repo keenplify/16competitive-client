@@ -80,9 +80,24 @@ async function harness({ initial = true, launcher = false } = {}) {
     exit: 'Exit'
   }
   const dependencies = {
-    electron: { app },
+    electron: {
+      app,
+      dialog: { showMessageBox: async () => ({ response: 0 }) },
+      shell: { openExternal: async () => {} }
+    },
     '../../shared/language-detection': { detectLanguage: () => 'en' },
     '../../shared/guard-update-translations': { guardUpdateTranslations: { en: copy } },
+    '../../shared/update-recovery-translations': {
+      updateRecoveryTranslations: {
+        en: {
+          title: 'Update',
+          help: 'Update help',
+          details: 'Recovery steps',
+          download: 'Downloads',
+          installFailed: 'Install failed'
+        }
+      }
+    },
     '../updater': {
       checkForAppUpdates: () => {
         checks++
