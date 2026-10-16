@@ -134,6 +134,7 @@ import {
 } from './game/cs16-launcher'
 import { disableSteamScoreboardWrapper } from './game/steam-scoreboard-options'
 import { SKIN_CHANNELS } from '../shared/skins'
+import { getPayments, createPayment, refreshPayment } from './skins'
 import {
   equipSkin,
   getLobbyLoadout,
@@ -856,6 +857,11 @@ app.whenReady().then(async () => {
     sendCommunityChat(id, message)
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
+  ipcMain.handle(SKIN_CHANNELS.payments, () => getPayments())
+  ipcMain.handle(SKIN_CHANNELS.createPayment, (_, requestId: unknown, amount: unknown) =>
+    createPayment(requestId, amount)
+  )
+  ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown) => refreshPayment(id))
   ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
   ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>

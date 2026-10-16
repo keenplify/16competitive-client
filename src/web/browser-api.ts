@@ -43,6 +43,12 @@ import type { RedeemCodeResponse } from '../shared/redeem-codes'
 import type { CustomGameChatMessage, CustomGameRoom, CustomGamesApi } from '../shared/custom-games'
 import { isCustomGameChatMessage } from '../shared/custom-games'
 import { parsePartnerBranding } from '../shared/partner-branding'
+import {
+  parsePaymentOrder,
+  parsePaymentSnapshot,
+  validatePaymentAmount,
+  validatePaymentId
+} from '../shared/payments'
 import type {
   LobbyLoadout,
   OwnedSkin,
@@ -402,6 +408,33 @@ const party = {
 }
 
 const skins = {
+  async payments() {
+    return parsePaymentSnapshot(await authenticatedGet('/payments/p-cash'))
+  },
+  async createPayment(requestId: string, amount: number) {
+    return parsePaymentOrder(
+      await requestJson('/payments/p-cash', {
+        authenticated: true,
+        timeoutMs: 25_000,
+        init: {
+          method: 'POST',
+          body: JSON.stringify({
+            requestId: validatePaymentId(requestId),
+            amount: validatePaymentAmount(amount)
+          })
+        }
+      })
+    )
+  },
+  async refreshPayment(id: string) {
+    return parsePaymentSnapshot(
+      await requestJson(`/payments/p-cash/${validatePaymentId(id)}/refresh`, {
+        authenticated: true,
+        timeoutMs: 25_000,
+        init: { method: 'POST' }
+      })
+    )
+  },
   async list(weaponKey?: string): Promise<Skin[]> {
     const data = await authenticatedGet<Skin[]>('/skins/store')
     return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data

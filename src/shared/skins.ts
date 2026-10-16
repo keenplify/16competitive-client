@@ -1,4 +1,9 @@
+import type { PaymentOrder, PaymentSnapshot } from './payments'
+
 export const SKIN_CHANNELS = {
+  payments: 'skins:payments',
+  createPayment: 'skins:create-payment',
+  refreshPayment: 'skins:refresh-payment',
   list: 'skins:list',
   mine: 'skins:mine',
   resaleQuote: 'skins:resale-quote',
@@ -117,6 +122,9 @@ export interface SkinGift {
 }
 
 export interface SkinsApi {
+  payments(): Promise<PaymentSnapshot>
+  createPayment(requestId: string, amount: number): Promise<PaymentOrder>
+  refreshPayment(id: string): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>
   mine(): Promise<OwnedSkin[]>
   resaleQuote(skinId: string): Promise<SkinResaleQuote>

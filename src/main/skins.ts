@@ -13,6 +13,12 @@ import type {
   UnlockResult
 } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
+import {
+  parsePaymentOrder,
+  parsePaymentSnapshot,
+  validatePaymentAmount,
+  validatePaymentId
+} from '../shared/payments'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
 const SKIN_API_URL_CACHE_MS = 5_000
@@ -106,7 +112,7 @@ const playerRequest = async (path: string, init: RequestInit = {}): Promise<unkn
   const response = await fetch(await skinApiUrl(path), {
     ...init,
     headers: { authorization: `Bearer ${token}`, ...init.headers },
-    signal: AbortSignal.timeout(10_000)
+    signal: init.signal ?? AbortSignal.timeout(10_000)
   }).catch(() => {
     throw makeError('Could not reach the shop server.')
   })
@@ -138,6 +144,29 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
   }
   return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
 }
+
+export const getPayments = async () => parsePaymentSnapshot(await playerRequest('/payments/p-cash'))
+
+export const createPayment = async (requestId: unknown, amount: unknown) => {
+  const data = await playerRequest('/payments/p-cash', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      requestId: validatePaymentId(requestId),
+      amount: validatePaymentAmount(amount)
+    }),
+    signal: AbortSignal.timeout(25_000)
+  })
+  return parsePaymentOrder(data)
+}
+
+export const refreshPayment = async (id: unknown) =>
+  parsePaymentSnapshot(
+    await playerRequest(`/payments/p-cash/${validatePaymentId(id)}/refresh`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(25_000)
+    })
+  )
 
 export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   const data = await playerRequest('/skins/mine')

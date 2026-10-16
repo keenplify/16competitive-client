@@ -20,6 +20,24 @@
         ],
         "createdAt": "2026-10-14T09:50:01.062Z",
         "reason": "Agent review: existing unread badges intentionally use near-black text on bright sky blue for strong contrast. Preserve all three badge states."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/renderer/src/features/skins/ShopPage.tsx"
+        ],
+        "createdAt": "2026-10-16T10:34:23.411Z",
+        "reason": "Agent review: existing selected filter uses neutral-950 on amber-300, an intentionally dark high-contrast foreground; unrelated to payment changes."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/renderer/src/features/skins/PCashTopUp.tsx"
+        ],
+        "createdAt": "2026-10-16T10:34:23.472Z",
+        "reason": "Agent review: selected amount uses neutral-950 on amber-300 to match the existing primary Button, intentionally near-black with high contrast."
       }
     ]
   }

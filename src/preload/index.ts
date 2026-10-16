@@ -267,6 +267,10 @@ const matchHistory: MatchHistoryApi = {
 }
 
 const skins: SkinsApi = {
+  payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
+  createPayment: (requestId, amount) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.createPayment, requestId, amount),
+  refreshPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.refreshPayment, id),
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
   mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
   resaleQuote: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.resaleQuote, skinId),

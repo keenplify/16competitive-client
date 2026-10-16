@@ -26,6 +26,8 @@ import {
   type SkinRarity
 } from './skin-rarity'
 import elitePistolsImage from '../../assets/elite-pistols.png'
+import { PCashTopUpButton, PCashTopUpPanel } from './PCashTopUp'
+import { usePaymentsStore } from './payments.store'
 
 type SkinTypeFilter = 'all' | SkinRarity
 
@@ -124,7 +126,8 @@ export function ShopPage(): JSX.Element {
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
-  const pCash = skins[0]?.viewerPCash ?? 0
+  const paymentBalance = usePaymentsStore((state) => state.snapshot?.pCash)
+  const pCash = paymentBalance ?? skins[0]?.viewerPCash ?? 0
 
   const load = useCallback((): void => {
     setStatus('loading')
@@ -211,6 +214,11 @@ export function ShopPage(): JSX.Element {
     void window.api.skins
       .unlock(skin.id, currency)
       .then((result) => {
+        if (typeof result.pCash === 'number') {
+          usePaymentsStore.setState((state) => ({
+            snapshot: state.snapshot ? { ...state.snapshot, pCash: result.pCash! } : null
+          }))
+        }
         if (result.currency === 'POINTS' && typeof result.points === 'number') {
           setPoints(result.points)
         }
@@ -256,6 +264,7 @@ export function ShopPage(): JSX.Element {
     ])
     setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
     setSkins(catalog)
+    void usePaymentsStore.getState().load()
   }, [])
 
   return (
@@ -270,6 +279,7 @@ export function ShopPage(): JSX.Element {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
+            <PCashTopUpButton />
             <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
@@ -292,6 +302,8 @@ export function ShopPage(): JSX.Element {
             </div>
           </div>
         </header>
+
+        <PCashTopUpPanel />
 
         {error && (
           <p className="mt-5  border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
