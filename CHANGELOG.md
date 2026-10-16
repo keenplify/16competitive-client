@@ -2542,3 +2542,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No commit messages or diff summary were provided.
+
+## v2026.1016.7 — 2026-10-16
+
+### Payments
+
+- Open P-Cash top-ups in a dedicated modal.
+
+### Currency
+
+- Simplified currency controls.
+- Added clearer icons for P-Cash and points.
