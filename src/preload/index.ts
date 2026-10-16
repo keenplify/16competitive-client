@@ -268,6 +268,11 @@ const matchHistory: MatchHistoryApi = {
 
 const skins: SkinsApi = {
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
+  createManualPayment: (requestId, methodId, amount) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.createManualPayment, requestId, methodId, amount),
+  submitManualPayment: (id, senderName, reference) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.submitManualPayment, id, senderName, reference),
+  cancelManualPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.cancelManualPayment, id),
   createPayment: (requestId, amount) =>
     ipcRenderer.invoke(SKIN_CHANNELS.createPayment, requestId, amount),
   refreshPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.refreshPayment, id),

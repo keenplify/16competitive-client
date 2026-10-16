@@ -45,6 +45,8 @@ import { isCustomGameChatMessage } from '../shared/custom-games'
 import { parsePartnerBranding } from '../shared/partner-branding'
 import {
   parsePaymentOrder,
+  parseManualOrder,
+  validateTransferDetails,
   parsePaymentSnapshot,
   validatePaymentAmount,
   validatePaymentId
@@ -411,20 +413,66 @@ const skins = {
   async payments() {
     return parsePaymentSnapshot(await authenticatedGet('/payments/p-cash'))
   },
-  async createPayment(requestId: string, amount: number) {
-    return parsePaymentOrder(
-      await requestJson('/payments/p-cash', {
+  async createManualPayment(requestId: string, methodId: string, amount: number) {
+    return parseManualOrder(
+      await requestJson('/payments/manual', {
         authenticated: true,
-        timeoutMs: 25_000,
         init: {
           method: 'POST',
           body: JSON.stringify({
             requestId: validatePaymentId(requestId),
+            methodId: validatePaymentId(methodId),
             amount: validatePaymentAmount(amount)
           })
         }
       })
     )
+  },
+  async submitManualPayment(id: string, senderName: string, reference: string) {
+    return parseManualOrder(
+      await requestJson(`/payments/manual/${validatePaymentId(id)}/submit`, {
+        authenticated: true,
+        init: {
+          method: 'POST',
+          body: JSON.stringify(validateTransferDetails(senderName, reference))
+        }
+      })
+    )
+  },
+  async cancelManualPayment(id: string) {
+    return parseManualOrder(
+      await requestJson(`/payments/manual/${validatePaymentId(id)}/cancel`, {
+        authenticated: true,
+        init: { method: 'POST' }
+      })
+    )
+  },
+  async createPayment(requestId: string, amount: number) {
+    // Reserve the tab during the user's click, before awaiting the API (popup blockers).
+    const checkout = window.open('about:blank', '_blank')
+    if (checkout) checkout.opener = null
+    try {
+      const order = parsePaymentOrder(
+        await requestJson('/payments/p-cash', {
+          authenticated: true,
+          timeoutMs: 25_000,
+          init: {
+            method: 'POST',
+            body: JSON.stringify({
+              requestId: validatePaymentId(requestId),
+              amount: validatePaymentAmount(amount)
+            })
+          }
+        })
+      )
+      if (order.checkoutUrl && checkout && !checkout.closed)
+        checkout.location.replace(order.checkoutUrl)
+      else checkout?.close()
+      return order
+    } catch (error) {
+      checkout?.close()
+      throw error
+    }
   },
   async refreshPayment(id: string) {
     return parsePaymentSnapshot(

@@ -134,7 +134,14 @@ import {
 } from './game/cs16-launcher'
 import { disableSteamScoreboardWrapper } from './game/steam-scoreboard-options'
 import { SKIN_CHANNELS } from '../shared/skins'
-import { getPayments, createPayment, refreshPayment } from './skins'
+import {
+  getPayments,
+  createPayment,
+  refreshPayment,
+  createManualPayment,
+  submitManualPayment,
+  cancelManualPayment
+} from './skins'
 import {
   equipSkin,
   getLobbyLoadout,
@@ -858,6 +865,17 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.payments, () => getPayments())
+  ipcMain.handle(
+    SKIN_CHANNELS.createManualPayment,
+    (_, requestId: unknown, methodId: unknown, amount: unknown) =>
+      createManualPayment(requestId, methodId, amount)
+  )
+  ipcMain.handle(
+    SKIN_CHANNELS.submitManualPayment,
+    (_, id: unknown, senderName: unknown, reference: unknown) =>
+      submitManualPayment(id, senderName, reference)
+  )
+  ipcMain.handle(SKIN_CHANNELS.cancelManualPayment, (_, id: unknown) => cancelManualPayment(id))
   ipcMain.handle(SKIN_CHANNELS.createPayment, (_, requestId: unknown, amount: unknown) =>
     createPayment(requestId, amount)
   )

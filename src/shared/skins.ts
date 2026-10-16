@@ -3,6 +3,9 @@ import type { PaymentOrder, PaymentSnapshot } from './payments'
 export const SKIN_CHANNELS = {
   payments: 'skins:payments',
   createPayment: 'skins:create-payment',
+  createManualPayment: 'skins:create-manual-payment',
+  submitManualPayment: 'skins:submit-manual-payment',
+  cancelManualPayment: 'skins:cancel-manual-payment',
   refreshPayment: 'skins:refresh-payment',
   list: 'skins:list',
   mine: 'skins:mine',
@@ -123,6 +126,17 @@ export interface SkinGift {
 
 export interface SkinsApi {
   payments(): Promise<PaymentSnapshot>
+  createManualPayment(
+    requestId: string,
+    methodId: string,
+    amount: number
+  ): Promise<import('./payments').ManualOrder>
+  submitManualPayment(
+    id: string,
+    senderName: string,
+    reference: string
+  ): Promise<import('./payments').ManualOrder>
+  cancelManualPayment(id: string): Promise<import('./payments').ManualOrder>
   createPayment(requestId: string, amount: number): Promise<PaymentOrder>
   refreshPayment(id: string): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>

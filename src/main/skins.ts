@@ -1,3 +1,4 @@
+import { shell } from 'electron'
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
@@ -15,6 +16,8 @@ import type {
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
 import {
   parsePaymentOrder,
+  parseManualOrder,
+  validateTransferDetails,
   parsePaymentSnapshot,
   validatePaymentAmount,
   validatePaymentId
@@ -157,7 +160,15 @@ export const createPayment = async (requestId: unknown, amount: unknown) => {
     }),
     signal: AbortSignal.timeout(25_000)
   })
-  return parsePaymentOrder(data)
+  const order = parsePaymentOrder(data)
+  if (order.checkoutUrl) {
+    try {
+      await shell.openExternal(order.checkoutUrl)
+    } catch {
+      /* History retains a validated checkout link. */
+    }
+  }
+  return order
 }
 
 export const refreshPayment = async (id: unknown) =>
@@ -471,3 +482,28 @@ export const claimSkinGift = async (
     pCoinsGranted?: number
   }
 }
+
+export const createManualPayment = async (requestId: unknown, methodId: unknown, amount: unknown) =>
+  parseManualOrder(
+    await playerRequest('/payments/manual', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        requestId: validatePaymentId(requestId),
+        methodId: validatePaymentId(methodId),
+        amount: validatePaymentAmount(amount)
+      })
+    })
+  )
+export const submitManualPayment = async (id: unknown, senderName: unknown, reference: unknown) =>
+  parseManualOrder(
+    await playerRequest(`/payments/manual/${validatePaymentId(id)}/submit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(validateTransferDetails(senderName, reference))
+    })
+  )
+export const cancelManualPayment = async (id: unknown) =>
+  parseManualOrder(
+    await playerRequest(`/payments/manual/${validatePaymentId(id)}/cancel`, { method: 'POST' })
+  )

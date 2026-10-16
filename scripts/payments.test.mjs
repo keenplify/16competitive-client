@@ -54,3 +54,54 @@ test('wallet and order snapshots reject malformed backend data', () => {
   for (const pCash of [-1, 1.5, '100', Infinity])
     assert.throws(() => parsePaymentSnapshot({ enabled: true, pCash, orders: [] }))
 })
+
+test('manual transfers validate persistent QR images, exact quotes and server-controlled credits', async () => {
+  const { parseManualOrder, parseManualSnapshot, validateTransferDetails } =
+    await import('../src/shared/payments.ts')
+  const method = {
+    name: 'GCash',
+    currency: 'PHP',
+    minorPerUsd: 5800,
+    accountName: 'Merchant',
+    accountNumber: '09123456789',
+    instructions: 'Scan QRPH',
+    qrImage: 'data:image/png;base64,aGVsbG8='
+  }
+  const manual = {
+    id: order.id,
+    methodId: order.id,
+    method,
+    amount: 5,
+    pCashAmount: 500,
+    transferMinor: 29000,
+    status: 'AWAITING_TRANSFER',
+    reference: null,
+    senderName: null,
+    reviewNote: null,
+    createdAt: order.createdAt
+  }
+  assert.equal(parseManualOrder(manual).transferMinor, 29000)
+  assert.equal(
+    parseManualSnapshot({ methods: [{ id: order.id, ...method }], orders: [manual] }).methods[0]
+      .qrImage,
+    method.qrImage
+  )
+  for (const patch of [
+    { pCashAmount: 501 },
+    { transferMinor: 1 },
+    { status: 'CREDITED' },
+    { method: { ...method, qrImage: 'data:image/svg+xml,<svg/>' } },
+    { method: { ...method, currency: 'XXX' } }
+  ])
+    assert.throws(() => parseManualOrder({ ...manual, ...patch }))
+  assert.deepEqual(validateTransferDetails(' Buyer ', ' REF123 '), {
+    senderName: 'Buyer',
+    reference: 'REF123'
+  })
+  for (const [sender, reference] of [
+    ['', 'REF123'],
+    ['Buyer', '1'],
+    ['Buyer', null]
+  ])
+    assert.throws(() => validateTransferDetails(sender, reference))
+})

@@ -8,6 +8,7 @@ import { useTranslation } from '../i18n/i18n'
 import { usePaymentsStore } from './payments.store'
 import { PCASH_PER_USDT } from '../../../../shared/payments'
 import { ModalDialog } from '../../components/ui/ModalDialog'
+import { ManualTransfer } from './ManualTopUp'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
 
 export function PCashTopUpButton({ className }: { className?: string }): JSX.Element {
@@ -67,6 +68,11 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
     }
   }, [open, ownerId, load])
   if (!open) return null
+  const { methodId, activeManualId, selectMethod, resumeManual, manualAction } =
+    usePaymentsStore.getState()
+  const activeManual = snapshot?.manual?.orders.find((order) => order.id === activeManualId)
+  const manualMethod = snapshot?.manual?.methods.find((method) => method.id === methodId)
+  const manual = methodId !== 'paymento'
   const validAmount = /^\d+$/.test(amount) && Number(amount) >= 1 && Number(amount) <= 10_000
   return (
     <ModalDialog
@@ -85,7 +91,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 {t('payments.title')}
               </h2>
               <p id="p-cash-top-up-rate" className="mt-1 text-sm text-amber-200">
-                {t('payments.rate')}
+                {t(manual ? 'payments.usdRate' : 'payments.rate')}
               </p>
             </div>
           </div>
@@ -100,87 +106,138 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
           </Button>
         </header>
         <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-2">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void create()
-            }}
-            className="min-w-0 space-y-4"
-          >
-            <fieldset disabled={busy}>
-              <legend className="mb-2 text-sm font-medium text-neutral-200">
-                {t('payments.presets')}
-              </legend>
-              <div className="grid grid-cols-4 gap-2">
-                {[5, 10, 50, 100, 200, 300, 400, 500].map((value) => (
-                  <Button
-                    key={value}
-                    variant="secondary"
-                    aria-pressed={Number(amount) === value}
-                    onClick={() => setAmount(String(value))}
-                    className={twMerge(
-                      'rounded-none px-2 tabular-nums',
-                      Number(amount) === value &&
-                        'border-amber-300 bg-amber-300 text-neutral-950 hover:bg-amber-200'
-                    )}
-                  >
-                    {value}
-                  </Button>
+          <div className="min-w-0 space-y-5">
+            <label className="grid gap-2 text-sm font-medium">
+              {t('payments.method')}
+              <select
+                className="h-11 w-full rounded-none border border-white/15 bg-neutral-950 px-3 text-white"
+                value={methodId}
+                disabled={busy}
+                onChange={(e) => selectMethod(e.target.value)}
+              >
+                <option value="paymento">Paymento · USDT</option>
+                {snapshot?.manual?.methods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name} · {method.currency}
+                  </option>
                 ))}
-              </div>
-            </fieldset>
-            <TextField
-              id="p-cash-amount"
-              label={t('payments.amount')}
-              type="number"
-              min={1}
-              max={10000}
-              step={1}
-              inputMode="numeric"
-              value={amount}
-              disabled={busy}
-              required
-              className="rounded-none text-base"
-              aria-describedby="p-cash-amount-help"
-              onChange={(event) => setAmount(event.target.value)}
-            />
-            <p id="p-cash-amount-help" className="text-xs text-neutral-400">
-              {t('payments.limits')}
-            </p>
-            <p className="min-h-6 text-sm font-semibold tabular-nums" aria-live="polite">
-              {validAmount
-                ? t('payments.quantity', {
-                    amount: (Number(amount) * PCASH_PER_USDT).toLocaleString(language),
-                    usdt: Number(amount).toLocaleString(language)
-                  })
-                : '—'}
-            </p>
-            <Button
-              type="submit"
-              className="w-full rounded-none"
-              disabled={busy || !validAmount || !snapshot?.enabled}
-            >
-              {busy ? (
-                <LoaderCircle
-                  className="mr-2 size-4 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
+                {manual && !manualMethod && activeManual && (
+                  <option value={methodId}>{activeManual.method.name}</option>
+                )}
+              </select>
+            </label>
+            {activeManual ? (
+              <>
+                <ManualTransfer order={activeManual} />
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  disabled={busy}
+                  onClick={() => selectMethod(methodId)}
+                >
+                  {t('payments.back')}
+                </Button>
+                <div className="h-24 overflow-y-auto text-sm text-rose-300" role="status">
+                  {error && t('payments.manualError')}
+                </div>
+              </>
+            ) : (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (manual) void manualAction('create')
+                  else void create()
+                }}
+                className="min-w-0 space-y-4"
+              >
+                <fieldset disabled={busy}>
+                  <legend className="mb-2 text-sm font-medium text-neutral-200">
+                    {t(manual ? 'payments.usdPresets' : 'payments.presets')}
+                  </legend>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 50, 100, 200, 300, 400, 500].map((value) => (
+                      <Button
+                        key={value}
+                        variant="secondary"
+                        aria-pressed={Number(amount) === value}
+                        onClick={() => setAmount(String(value))}
+                        className={twMerge(
+                          'rounded-none px-2 tabular-nums',
+                          Number(amount) === value &&
+                            'border-amber-300 bg-amber-300 text-neutral-950 hover:bg-amber-200'
+                        )}
+                      >
+                        {value}
+                      </Button>
+                    ))}
+                  </div>
+                </fieldset>
+                <TextField
+                  id="p-cash-amount"
+                  label={t(manual ? 'payments.usdAmount' : 'payments.amount')}
+                  type="number"
+                  min={1}
+                  max={10000}
+                  step={1}
+                  inputMode="numeric"
+                  value={amount}
+                  disabled={busy}
+                  required
+                  className="rounded-none text-base"
+                  aria-describedby="p-cash-amount-help"
+                  onChange={(event) => setAmount(event.target.value)}
                 />
-              ) : (
-                <Plus className="mr-2 size-4" aria-hidden="true" />
-              )}
-              {t('payments.create')}
-            </Button>
-            <p className="text-sm leading-5 text-neutral-400">{t('payments.help')}</p>
-            <div className="h-24 overflow-y-auto text-sm" role="status" aria-live="polite">
-              {error ? (
-                <p className="text-rose-300">{t('payments.error')}</p>
-              ) : snapshot && !snapshot.enabled ? (
-                <p className="text-neutral-300">{t('payments.unavailable')}</p>
-              ) : busy ? (
-                <p className="text-neutral-300">{t('payments.loading')}</p>
-              ) : null}
-            </div>
-          </form>
+                <p id="p-cash-amount-help" className="text-xs text-neutral-400">
+                  {t(manual ? 'payments.usdLimits' : 'payments.limits')}
+                </p>
+                <p className="min-h-6 text-sm font-semibold tabular-nums" aria-live="polite">
+                  {validAmount
+                    ? t(manual ? 'payments.usdQuantity' : 'payments.quantity', {
+                        amount: (Number(amount) * PCASH_PER_USDT).toLocaleString(language),
+                        usdt: Number(amount).toLocaleString(language)
+                      })
+                    : '—'}
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full rounded-none"
+                  disabled={busy || !validAmount || (manual ? !manualMethod : !snapshot?.enabled)}
+                >
+                  {busy ? (
+                    <LoaderCircle
+                      className="mr-2 size-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Plus className="mr-2 size-4" aria-hidden="true" />
+                  )}
+                  {t(manual ? 'payments.transfer' : 'payments.create')}
+                </Button>
+                <p className="text-sm leading-5 text-neutral-400">
+                  {t(manual ? 'payments.manualHelp' : 'payments.help')}
+                </p>
+                <p className="min-h-6 text-sm font-semibold">
+                  {manualMethod && validAmount
+                    ? new Intl.NumberFormat(language, {
+                        style: 'currency',
+                        currency: manualMethod.currency
+                      }).format((Number(amount) * manualMethod.minorPerUsd) / 100)
+                    : null}
+                </p>
+                <div className="h-24 overflow-y-auto text-sm" role="status" aria-live="polite">
+                  {error ? (
+                    <p className="text-rose-300">
+                      {t(manual ? 'payments.manualError' : 'payments.error')}
+                    </p>
+                  ) : snapshot && !snapshot.enabled && !manual ? (
+                    <p className="text-neutral-300">{t('payments.unavailable')}</p>
+                  ) : busy ? (
+                    <p className="text-neutral-300">{t('payments.loading')}</p>
+                  ) : null}
+                </div>
+              </form>
+            )}
+          </div>
           <div className="min-w-0 border-t border-white/10 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-6">
             <div className="flex min-h-11 items-center justify-between gap-3">
               <h3 className="font-semibold">{t('payments.recent')}</h3>
@@ -194,9 +251,28 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
               </Button>
             </div>
             <div className="mt-3 h-64 overflow-y-auto sm:h-80" aria-busy={busy}>
+              {snapshot?.manual?.orders.map((order) => (
+                <div key={order.id} className="border-b border-white/10 py-4 text-sm first:pt-0">
+                  <p className="font-semibold">
+                    {order.method.name} · {order.pCashAmount.toLocaleString(language)} P-Cash
+                  </p>
+                  <p className="mt-1 text-neutral-400">
+                    {new Date(order.createdAt).toLocaleString(language)}
+                  </p>
+                  <p className="mt-2">{t(`payments.manual.${order.status}`)}</p>
+                  <Button
+                    variant="secondary"
+                    className="mt-3 min-h-11"
+                    disabled={busy}
+                    onClick={() => resumeManual(order.id)}
+                  >
+                    {t('payments.details')}
+                  </Button>
+                </div>
+              ))}
               {!snapshot ? (
                 <p className="text-sm text-neutral-400">{t('payments.loading')}</p>
-              ) : !snapshot.orders.length ? (
+              ) : !snapshot.orders.length && !snapshot.manual?.orders.length ? (
                 <p className="text-sm text-neutral-400">{t('payments.empty')}</p>
               ) : (
                 <ul className="divide-y divide-white/10">
