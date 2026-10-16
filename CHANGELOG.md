@@ -2526,3 +2526,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Inventory
 
 - Added access to draft reviews from the inventory.
+
+## v2026.1016.5 — 2026-10-16
+
+### Store
+
+- Added Paymento P-Cash top-ups to the Store.
+
+### Payments
+
+- Added localized payment information and status messages.
