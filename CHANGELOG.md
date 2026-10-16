@@ -2507,3 +2507,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added actionable guidance when an update needs recovery.
 - Improved handling of interrupted or incomplete updates.
+
+## v2026.1016.2 — 2026-10-16
+
+### Windows
+
+- Improved reliability of client updates on Windows.
