@@ -52,7 +52,13 @@ function ActivityList({
     </section>
   )
 }
-export function ProfileActivity({ activity }: { activity?: ProfileActivitySnapshot }): JSX.Element {
+export function ProfileActivity({
+  activity,
+  compact = false
+}: {
+  activity?: ProfileActivitySnapshot
+  compact?: boolean
+}): JSX.Element {
   const { t, language } = useTranslation()
   if (!activity) return <p className="py-8 text-neutral-300">{t('profile.activityUnavailable')}</p>
   return (
@@ -75,7 +81,7 @@ export function ProfileActivity({ activity }: { activity?: ProfileActivitySnapsh
             total={activity.total}
             mode
           />
-          <ProfileMapChart entries={activity.maps} />
+          <ProfileMapChart entries={activity.maps} compact={compact} />
         </div>
       )}
     </section>

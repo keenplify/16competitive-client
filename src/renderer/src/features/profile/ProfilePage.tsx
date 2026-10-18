@@ -128,7 +128,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
             ) : visibleTab === 'matches' ? (
               <ProfileHistory profile={profile} />
             ) : (
-              <ProfileOverview profile={profile} />
+              <ProfileOverview profile={profile} compact={Boolean(playerId)} />
             )}
           </div>
         ) : visibleTab === 'skins' ? (

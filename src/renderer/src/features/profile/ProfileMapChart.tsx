@@ -25,9 +25,11 @@ Chart.register(
 
 export function ProfileMapChart({
   entries,
+  compact = false,
   className
 }: {
   entries: ProfileActivityEntry[]
+  compact?: boolean
   className?: string
 }): JSX.Element {
   const { t, language } = useTranslation()
@@ -160,7 +162,7 @@ export function ProfileMapChart({
       <figcaption id={titleId} className="mb-4 text-xl font-semibold">
         {t('profile.mostMaps')}
       </figcaption>
-      <div className="relative h-72 min-w-0 border-t border-white/15">
+      <div className={`relative ${compact ? 'h-72' : 'h-96'} min-w-0 border-t border-white/15`}>
         <canvas ref={canvas} role="img" aria-label={description}>
           {description}
         </canvas>

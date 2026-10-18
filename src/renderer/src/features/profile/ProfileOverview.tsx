@@ -6,9 +6,11 @@ import { useTranslation } from '../i18n/i18n'
 
 export function ProfileOverview({
   profile,
+  compact = false,
   className
 }: {
   profile: PlayerProfile
+  compact?: boolean
   className?: string
 }): JSX.Element {
   const { t, language } = useTranslation()
@@ -48,7 +50,7 @@ export function ProfileOverview({
           </div>
         ))}
       </dl>
-      <ProfileActivity activity={profile.activity} />
+      <ProfileActivity activity={profile.activity} compact={compact} />
     </div>
   )
 }
