@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
+import { readyResponseFromServer } from '../src/shared/matchmaking-ready-response.ts'
 
 async function harness({ party = null, fail = false, settings, savedMaps, web = false } = {}) {
   const requests = []
@@ -71,6 +72,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'cancelled' },
     '../../../../shared/matchmaking': { allowsManualMatchConnection: () => false },
     '../../../../shared/matchmaking-ready-time': { readyCheckRemainingMs: () => 0 },
+    '../../../../shared/matchmaking-ready-response': { readyResponseFromServer },
     '../../../../shared/server-clock': {
       serverClockNow: () => Date.now(),
       syncServerClock() {
