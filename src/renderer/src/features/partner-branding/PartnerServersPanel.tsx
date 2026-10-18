@@ -45,7 +45,9 @@ export function PartnerServersPanel({
   }, [load])
   const selected = rows.find((row) => row.id === selectedId)
   const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
-  const partyMemberCannotStart = Boolean(party && party.members.length > 1 && party.leaderId !== playerId)
+  const partyMemberCannotStart = Boolean(
+    party && party.members.length > 1 && party.leaderId !== playerId
+  )
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-20', className)}
@@ -81,9 +83,9 @@ export function PartnerServersPanel({
                   server.id === selectedId && 'border-sky-300 ring-2 ring-sky-300/40'
                 )}
               >
-                {serverPreview(server.map) && (
+                {(server.imageUrl || serverPreview(server.map)) && (
                   <img
-                    src={serverPreview(server.map)}
+                    src={server.imageUrl || serverPreview(server.map)}
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                   />
@@ -103,7 +105,9 @@ export function PartnerServersPanel({
                     <span>{t(`directory.category.${server.category ?? 'other'}`)}</span>
                   </div>
                   <p className="font-audiowide text-sm text-white break-words">{server.name}</p>
-                  <p className="mt-1 text-xs text-white/80">{server.gameVersion === 'cs13' ? 'Counter-Strike 1.3' : 'Counter-Strike 1.6'}</p>
+                  <p className="mt-1 text-xs text-white/80">
+                    {server.gameVersion === 'cs13' ? 'Counter-Strike 1.3' : 'Counter-Strike 1.6'}
+                  </p>
                   <p className="mt-2 min-h-5 text-xs text-white/80">
                     {server.online === false
                       ? text('offline')
@@ -137,9 +141,13 @@ export function PartnerServersPanel({
         <p className="text-sm text-neutral-200" role={error ? 'alert' : undefined}>
           {error
             ? text(error as 'loadError' | 'installation' | 'busy' | 'launchFailed')
-            : groupError ? text('partyLaunchFailed')
-              : partyMemberCannotStart ? text('partyLeaderOnly')
-                : cs13WebUnavailable ? text('cs13WebUnavailable') : (selected?.name ?? text('chooseServer'))}
+            : groupError
+              ? text('partyLaunchFailed')
+              : partyMemberCannotStart
+                ? text('partyLeaderOnly')
+                : cs13WebUnavailable
+                  ? text('cs13WebUnavailable')
+                  : (selected?.name ?? text('chooseServer'))}
         </p>
         <Button
           className="h-12 min-w-40 shrink-0 gap-2 uppercase"
@@ -159,7 +167,9 @@ export function PartnerServersPanel({
             else void connect()
           }}
         >
-          {connecting || groupBusy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+          {connecting || groupBusy ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : null}
           {text('play')}
         </Button>
       </div>

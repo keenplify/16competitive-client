@@ -9,7 +9,7 @@ import {
   type CommunityChatMessage
 } from '../shared/partner-community'
 export async function communityChatRequest<T>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PUT',
   body?: unknown,
   path = '/partners/community/chat'
 ): Promise<T> {

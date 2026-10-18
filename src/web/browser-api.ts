@@ -1,4 +1,15 @@
-import { communityDirectoryPath, parseCommunityDirectory, parseCommunityJoin, parseCommunityLeave, validateCommunityJoin } from '../shared/community-directory'
+import {
+  communityDirectoryPath,
+  parseCommunityDirectory,
+  parseCommunityJoin,
+  parseCommunityLeave,
+  parseCommunityOwnerSettings,
+  validateCommunityJoin,
+  validateCommunityUpdate,
+  communityUpdateBody,
+  validateServerImageUpload,
+  parseServerImageUpload
+} from '../shared/community-directory'
 import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { isPlayerProfile } from '../shared/player-profile-validation'
 import {
@@ -8,7 +19,11 @@ import {
   validateCommunityDecision,
   validateServerLinkCode
 } from '../shared/community-membership'
-import { parsePartnerLaunchGroup, parsePartnerPresence, parsePartnerServerStatuses } from '../shared/partner-community'
+import {
+  parsePartnerLaunchGroup,
+  parsePartnerPresence,
+  parsePartnerServerStatuses
+} from '../shared/partner-community'
 import {
   parseCommunityHistory,
   parseCommunityMessage,
@@ -598,12 +613,42 @@ const api: Window['api'] = {
   communityDirectory: {
     leave: async (expectedCommunityId) => {
       validateCommunityJoin(expectedCommunityId, null)
-      return parseCommunityLeave(await jsonPost("/partners/communities/leave", { expectedCommunityId }))
+      return parseCommunityLeave(
+        await jsonPost('/partners/communities/leave', { expectedCommunityId })
+      )
     },
-    list: async (query) => parseCommunityDirectory(await authenticatedGet(communityDirectoryPath(query))),
+    list: async (query) =>
+      parseCommunityDirectory(await authenticatedGet(communityDirectoryPath(query))),
+    update: async (input) => {
+      validateCommunityUpdate(input)
+      await requestJson('/partners/branding/settings', {
+        authenticated: true,
+        init: {
+          method: 'PUT',
+          body: JSON.stringify(communityUpdateBody(input))
+        }
+      })
+      return { saved: true }
+    },
+    ownerSettings: async () =>
+      parseCommunityOwnerSettings(await authenticatedGet('/partners/branding/settings')),
+    uploadServerImage: async (id, bytes) => {
+      validateServerImageUpload(id, bytes)
+      const body = new FormData()
+      body.set('file', new Blob([new Uint8Array(bytes)]), 'server-image')
+      return parseServerImageUpload(
+        await requestJson(`/partners/branding/servers/${id}/image`, {
+          authenticated: true,
+          init: { method: 'POST', body },
+          timeoutMs: 30_000
+        })
+      )
+    },
     join: async (id, expectedCommunityId) => {
       validateCommunityJoin(id, expectedCommunityId)
-      const result = parseCommunityJoin(await jsonPost(`/partners/communities/${id}/join`, { expectedCommunityId }))
+      const result = parseCommunityJoin(
+        await jsonPost(`/partners/communities/${id}/join`, { expectedCommunityId })
+      )
       if (result.communityId !== id) throw new Error('INVALID_COMMUNITY_JOIN')
       return result
     }
@@ -635,22 +680,27 @@ const api: Window['api'] = {
       return parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
     },
     async connect(id, groupId) {
-      const group = groupId ? parsePartnerLaunchGroup(
-        await authenticatedGet(`/partners/launch/${groupId}`)
-      ) : null
-      const servers = group ? [] : parsePartnerServerStatuses(
-        await authenticatedGet('/partners/community/servers')
-      )
-      const server = group?.server.id === id ? group.server : servers.find((row) => row.id === id && row.online)
+      const group = groupId
+        ? parsePartnerLaunchGroup(await authenticatedGet(`/partners/launch/${groupId}`))
+        : null
+      const servers = group
+        ? []
+        : parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
+      const server =
+        group?.server.id === id ? group.server : servers.find((row) => row.id === id && row.online)
       if (!server) throw new Error('INVALID_SERVER')
       if (server.gameVersion === 'cs13') throw new Error('CS13_WEB_UNAVAILABLE')
-      const ticket = parsePartnerLaunchTicket(await jsonPost(`/partners/servers/${id}/launch-ticket`, {}))
+      const ticket = parsePartnerLaunchTicket(
+        await jsonPost(`/partners/servers/${id}/launch-ticket`, {})
+      )
       const args = partnerLaunchArguments(server.host, server.port, ticket).join(' ')
       if (group) await jsonPost(`/partners/launch/${group.id}/launched`, {})
       window.location.href = `steam://run/10//${encodeURIComponent(args)}/`
     },
     async startGroup(serverId) {
-      return parsePartnerLaunchGroup(await jsonPost(`/partners/servers/${serverId}/party-launch`, {}))
+      return parsePartnerLaunchGroup(
+        await jsonPost(`/partners/servers/${serverId}/party-launch`, {})
+      )
     },
     async pendingGroup() {
       const response = await authenticatedGet('/partners/launch/pending')
@@ -660,7 +710,9 @@ const api: Window['api'] = {
       return parsePartnerLaunchGroup(await authenticatedGet(`/partners/launch/${groupId}`))
     },
     async respondGroup(groupId, accepted) {
-      return parsePartnerLaunchGroup(await jsonPost(`/partners/launch/${groupId}/response`, { accepted }))
+      return parsePartnerLaunchGroup(
+        await jsonPost(`/partners/launch/${groupId}/response`, { accepted })
+      )
     },
     async markLaunched(groupId) {
       await jsonPost(`/partners/launch/${groupId}/launched`, {})

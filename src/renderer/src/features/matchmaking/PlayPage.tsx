@@ -123,9 +123,7 @@ export function PlayPage({
 }): JSX.Element {
   const { t } = useTranslation()
   const communityText = useCommunityText()
-  const hasPartnerServers = usePartnerBrandingStore((state) =>
-    Boolean(state.branding?.servers.length)
-  )
+  const hasCommunity = usePartnerBrandingStore((state) => Boolean(state.branding))
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -161,10 +159,19 @@ export function PlayPage({
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const navigate = useNavigationStore((state) => state.navigate)
   const playView = useCustomGamesStore((state) => state.playView)
+  const playViewManuallySelected = useCustomGamesStore((state) => state.playViewManuallySelected)
   const setPlayView = useCustomGamesStore((state) => state.setPlayView)
+  const preferCommunityServers = useCustomGamesStore((state) => state.preferCommunityServers)
+  const clearUnavailableCommunityServers = useCustomGamesStore(
+    (state) => state.clearUnavailableCommunityServers
+  )
   useEffect(() => {
-    if (playView === 'partner' && !hasPartnerServers) setPlayView('matchmaking')
-  }, [playView, hasPartnerServers, setPlayView])
+    if (playView === 'partner' && !hasCommunity) clearUnavailableCommunityServers()
+  }, [playView, hasCommunity, clearUnavailableCommunityServers])
+  useEffect(() => {
+    if (hasCommunity && !playViewManuallySelected && queueStatus === 'idle')
+      preferCommunityServers()
+  }, [hasCommunity, playViewManuallySelected, queueStatus, preferCommunityServers])
   const currentCustomRoom = useCustomGamesStore((state) => state.currentRoom)
   const moveCustomRoom = useCustomGamesStore((state) => state.moveServer)
   const movingCustomRoom = useCustomGamesStore((state) => state.movingServer)
@@ -504,7 +511,7 @@ export function PlayPage({
           <div className="w-full min-w-0 sm:w-auto">
             <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
               {playView === 'partner'
-                ? communityText('ourServers')
+                ? communityText('servers')
                 : playView === 'matchmaking'
                   ? 'Find a match'
                   : 'Browse custom games'}
@@ -618,23 +625,27 @@ export function PlayPage({
           ariaLabel={communityText('playModes')}
           value={playView}
           items={[
-            { value: 'matchmaking', label: 'Matchmaking' },
-            ...(hasPartnerServers
+            ...(hasCommunity
               ? [
                   {
                     value: 'partner' as const,
-                    label: communityText('ourServers'),
+                    label: communityText('servers'),
                     disabled: isSearching
                   }
                 ]
               : []),
+            { value: 'matchmaking', label: 'Matchmaking' },
             { value: 'custom', label: 'Custom game' }
           ]}
           onChange={setPlayView}
         />
 
         {playView === 'partner' ? (
-          <PartnerServersPanel disabled={queueStatus !== 'idle' && !(queueStatus === 'queued' && selectedMode === '5v5')} />
+          <PartnerServersPanel
+            disabled={
+              queueStatus !== 'idle' && !(queueStatus === 'queued' && selectedMode === '5v5')
+            }
+          />
         ) : playView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
             <TabList

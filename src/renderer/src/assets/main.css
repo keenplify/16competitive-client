@@ -64,6 +64,8 @@
 
 :root[data-partner-theme='enabled'] .play-find-match-cta,
 :root[data-partner-theme='enabled'] .play-find-match-cta:hover:not(:disabled) {
+  color: #fff;
+  border-color: #fff;
   background-image: linear-gradient(
     90deg,
     color-mix(in srgb, var(--partner-action) 75%, black),
@@ -72,6 +74,15 @@
   box-shadow:
     inset 0 0 0 1px rgb(0 0 0 / 45%),
     0 4px 18px color-mix(in srgb, var(--partner-action) 30%, transparent);
+}
+
+:root[data-partner-theme='enabled'] .play-find-match-cta:disabled {
+  color: #fff;
+  border-color: #fff;
+}
+
+:root[data-partner-theme='enabled'] .play-find-match-cta:focus-visible {
+  outline-color: #fff;
 }
 
 :root[data-partner-theme='enabled'] .play-find-match-cta::before {
@@ -573,4 +584,7 @@
   [data-modal-dialog][open]::backdrop {
     animation-duration: 80ms;
   }
+}
+.community-readable-text {
+  text-shadow: 0 1px 4px rgb(0 0 0 / 95%), 0 0 12px rgb(0 0 0 / 85%);
 }

@@ -1,4 +1,5 @@
 import { CommunitiesPage } from '../communities/CommunitiesPage'
+import { useCommunitiesStore } from '../communities/communities.store'
 import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
 import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
 import {
@@ -211,7 +212,10 @@ export function LobbyPage(): JSX.Element {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
-    if (nextPage === 'communities') setFriendsRailMode('pinned')
+    if (nextPage === 'communities') {
+      setFriendsRailMode('pinned')
+      if (!useCommunitiesStore.getState().editing) useCommunitiesStore.getState().setView('home')
+    }
     if (nextPage === 'profile') setProfileTab('overview')
     setMissionsOpen(false)
     navigate(nextPage)
@@ -396,7 +400,7 @@ export function LobbyPage(): JSX.Element {
   ) : page === 'store' ? (
     <ShopPage />
   ) : page === 'communities' ? (
-    <CommunitiesPage />
+    <CommunitiesPage friendsCollapsed={friendsCollapsed} />
   ) : page === 'news' ? (
     <NewsPage />
   ) : page === 'leaderboard' ? (

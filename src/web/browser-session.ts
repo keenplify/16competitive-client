@@ -78,7 +78,11 @@ export const requestJson = async <T>(
     if (!sessionToken) throw new Error('Authentication required')
     headers.set('authorization', `Bearer ${sessionToken}`)
   }
-  if (options.init?.body && !headers.has('content-type')) {
+  if (
+    options.init?.body &&
+    !(options.init.body instanceof FormData) &&
+    !headers.has('content-type')
+  ) {
     headers.set('content-type', 'application/json')
   }
 

@@ -1,6 +1,6 @@
 import { useTranslation, type SupportedLanguageCode } from '../i18n/i18n'
 const keys = [
-  'ourServers',
+  'servers',
   'community',
   'party',
   'global',
@@ -44,7 +44,7 @@ const keys = [
 type Key = (typeof keys)[number]
 const rows: Record<SupportedLanguageCode, string[]> = {
   en: [
-    'Our Servers',
+    'Servers',
     'Community',
     'Party',
     'Global',
@@ -86,7 +86,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Could not start the party ready check. Try again.'
   ],
   ru: [
-    'Наши серверы',
+    'Серверы',
     'Сообщество',
     'Группа',
     'Общий',
@@ -128,7 +128,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Не удалось начать проверку готовности группы. Попробуйте снова.'
   ],
   tl: [
-    'Mga Server Namin',
+    'Mga Server',
     'Community',
     'Party',
     'Global',
@@ -170,7 +170,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Hindi masimulan ang ready check ng party. Subukan ulit.'
   ],
   th: [
-    'เซิร์ฟเวอร์ของเรา',
+    'เซิร์ฟเวอร์',
     'ชุมชน',
     'ปาร์ตี้',
     'ทั่วโลก',
@@ -212,7 +212,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'เริ่มการตรวจสอบความพร้อมของปาร์ตี้ไม่ได้ โปรดลองอีกครั้ง'
   ],
   id: [
-    'Server Kami',
+    'Server',
     'Komunitas',
     'Grup',
     'Global',
@@ -254,7 +254,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Gagal memulai pemeriksaan kesiapan party. Coba lagi.'
   ],
   hi: [
-    'हमारे सर्वर',
+    'सर्वर',
     'समुदाय',
     'पार्टी',
     'वैश्विक',
@@ -296,7 +296,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'पार्टी रेडी चेक शुरू नहीं हो सका। फिर कोशिश करें।'
   ],
   pt: [
-    'Nossos servidores',
+    'Servidores',
     'Comunidade',
     'Grupo',
     'Global',
@@ -338,7 +338,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Não foi possível iniciar a confirmação do grupo. Tente novamente.'
   ],
   ja: [
-    'コミュニティサーバー',
+    'サーバー',
     'コミュニティ',
     'パーティー',
     'グローバル',

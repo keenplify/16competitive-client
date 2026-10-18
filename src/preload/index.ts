@@ -1,4 +1,7 @@
-import { COMMUNITY_DIRECTORY_CHANNELS, type CommunityDirectoryApi } from '../shared/community-directory'
+import {
+  COMMUNITY_DIRECTORY_CHANNELS,
+  type CommunityDirectoryApi
+} from '../shared/community-directory'
 import {
   COMMUNITY_MEMBERSHIP_CHANNELS,
   type CommunityMembershipApi
@@ -57,7 +60,10 @@ import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 const communityDirectory: CommunityDirectoryApi = {
   leave: (expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.leave, expected),
   list: (query) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.list, query),
-  join: (id, expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.join, id, expected)
+  join: (id, expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.join, id, expected),
+  update: (input) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.update, input),
+  ownerSettings: () => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.ownerSettings),
+  uploadServerImage: (id, bytes) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, id, bytes)
 }
 const communityMembership: CommunityMembershipApi = {
   pending: () => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.pending),
@@ -358,7 +364,8 @@ const partnerServers: PartnerServersApi = {
   startGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.startGroup, id),
   pendingGroup: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.pendingGroup),
   getGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.getGroup, id),
-  respondGroup: (id, accepted) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.respondGroup, id, accepted),
+  respondGroup: (id, accepted) =>
+    ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.respondGroup, id, accepted),
   markLaunched: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.markLaunched, id),
   presence: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.presence)
 }

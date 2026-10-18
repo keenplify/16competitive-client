@@ -12,6 +12,7 @@ import { usePartyStore } from '../party/party.store'
 
 interface CustomGamesState {
   playView: 'matchmaking' | 'custom' | 'partner'
+  playViewManuallySelected: boolean
   settingsModalOpen: boolean
   savingSettings: boolean
   openRoomSettings: () => void
@@ -34,6 +35,8 @@ interface CustomGamesState {
   refresh: () => Promise<void>
   restoreRoom: (hostApiUrl: string) => Promise<void>
   setPlayView: (view: 'matchmaking' | 'custom' | 'partner') => void
+  preferCommunityServers: () => void
+  clearUnavailableCommunityServers: () => void
   openCreateModal: () => void
   closeCreateModal: () => void
   createRoom: (settings: CustomGameSettings) => Promise<boolean>
@@ -63,6 +66,7 @@ const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMe
 
 export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   playView: 'matchmaking',
+  playViewManuallySelected: false,
   settingsModalOpen: false,
   savingSettings: false,
   openRoomSettings: () => {
@@ -130,7 +134,19 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       if (get().currentRoom?.id === room.id) set({ chatSending: false })
     }
   },
-  setPlayView: (playView) => set({ playView }),
+  setPlayView: (playView) => set({ playView, playViewManuallySelected: true }),
+  preferCommunityServers: () =>
+    set((state) =>
+      state.playViewManuallySelected || state.playView !== 'matchmaking'
+        ? state
+        : { playView: 'partner' }
+    ),
+  clearUnavailableCommunityServers: () =>
+    set((state) =>
+      state.playView === 'partner'
+        ? { playView: 'matchmaking', playViewManuallySelected: false }
+        : state
+    ),
   openCreateModal: () => set({ createModalOpen: true, error: null }),
   closeCreateModal: () => set({ createModalOpen: false }),
   restoreRoom: async (hostApiUrl) => {
@@ -329,6 +345,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   reset: () =>
     set({
+      playView: 'matchmaking',
+      playViewManuallySelected: false,
       rooms: [],
       currentRoom: null,
       settingsModalOpen: false,

@@ -29,8 +29,19 @@ export interface PartnerServer {
   host: string
   port: number
   countryCode?: string | null
-  category?: 'pub' | 'zombie' | 'deathmatch' | 'gungame' | 'surf' | 'kz' | 'jailbreak' | 'awp' | 'aim' | 'other'
+  category?:
+    | 'pub'
+    | 'zombie'
+    | 'deathmatch'
+    | 'gungame'
+    | 'surf'
+    | 'kz'
+    | 'jailbreak'
+    | 'awp'
+    | 'aim'
+    | 'other'
   gameVersion?: 'cs16' | 'cs13'
+  imageUrl?: string | null
 }
 export interface PartnerServerStatus extends PartnerServer {
   pingSource?: 'client' | 'api'
@@ -71,14 +82,26 @@ export interface PartnerPresence {
 export function parsePartnerPresence(input: unknown): PartnerPresence {
   if (!input || typeof input !== 'object') throw new Error('Invalid partner presence')
   const value = input as Record<string, unknown>
-  if (typeof value.connectionId !== 'string' || !/^[0-9a-f-]{36}$/i.test(value.connectionId) ||
-    typeof value.team !== 'number' || !Number.isInteger(value.team) || value.team < 0 || value.team > 3 ||
+  if (
+    typeof value.connectionId !== 'string' ||
+    !/^[0-9a-f-]{36}$/i.test(value.connectionId) ||
+    typeof value.team !== 'number' ||
+    !Number.isInteger(value.team) ||
+    value.team < 0 ||
+    value.team > 3 ||
     !['off', 'ffa', 'team'].includes(String(value.voiceMode)) ||
-    typeof value.seenAt !== 'string' || !Number.isFinite(Date.parse(value.seenAt)))
+    typeof value.seenAt !== 'string' ||
+    !Number.isFinite(Date.parse(value.seenAt))
+  )
     throw new Error('Invalid partner presence')
   const server = parseCommunityBranding({ servers: [value.server] }).servers[0]
-  return { connectionId: value.connectionId, server, team: value.team,
-    voiceMode: value.voiceMode as PartnerPresence['voiceMode'], seenAt: value.seenAt }
+  return {
+    connectionId: value.connectionId,
+    server,
+    team: value.team,
+    voiceMode: value.voiceMode as PartnerPresence['voiceMode'],
+    seenAt: value.seenAt
+  }
 }
 export interface PartnerLaunchGroup {
   id: string
@@ -91,22 +114,39 @@ export interface PartnerLaunchGroup {
 export function parsePartnerLaunchGroup(input: unknown): PartnerLaunchGroup {
   if (!input || typeof input !== 'object') throw new Error('Invalid party launch')
   const value = input as Record<string, unknown>
-  const uuid = (id: unknown): id is string => typeof id === 'string' &&
-    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
-  if (!uuid(value.id) || !uuid(value.leaderId) ||
+  const uuid = (id: unknown): id is string =>
+    typeof id === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
+  if (
+    !uuid(value.id) ||
+    !uuid(value.leaderId) ||
     !['pending', 'ready', 'cancelled'].includes(String(value.status)) ||
-    typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt)) ||
-    !Array.isArray(value.members) || value.members.length < 2 || value.members.length > 5 ||
+    typeof value.expiresAt !== 'string' ||
+    !Number.isFinite(Date.parse(value.expiresAt)) ||
+    !Array.isArray(value.members) ||
+    value.members.length < 2 ||
+    value.members.length > 5 ||
     value.members.some((member: unknown) => {
       if (!member || typeof member !== 'object') return true
       const row = member as Record<string, unknown>
-      return !uuid(row.id) || typeof row.username !== 'string' || row.username.length > 64 ||
-        ![true, false, null].includes(row.accepted as boolean | null) || typeof row.launched !== 'boolean'
-    })) throw new Error('Invalid party launch')
+      return (
+        !uuid(row.id) ||
+        typeof row.username !== 'string' ||
+        row.username.length > 64 ||
+        ![true, false, null].includes(row.accepted as boolean | null) ||
+        typeof row.launched !== 'boolean'
+      )
+    })
+  )
+    throw new Error('Invalid party launch')
   const server = parseCommunityBranding({ servers: [value.server] }).servers[0]
-  return { id: value.id, server, leaderId: value.leaderId,
-    status: value.status as PartnerLaunchGroup['status'], expiresAt: value.expiresAt,
-    members: value.members as PartnerLaunchGroup['members'] }
+  return {
+    id: value.id,
+    server,
+    leaderId: value.leaderId,
+    status: value.status as PartnerLaunchGroup['status'],
+    expiresAt: value.expiresAt,
+    members: value.members as PartnerLaunchGroup['members']
+  }
 }
 export interface CommunityChatApi {
   members(page: number): Promise<CommunityMembers>
@@ -226,16 +266,45 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       !Number.isInteger(s.port) ||
       s.port < 1 ||
       s.port > 65535 ||
-      (s.countryCode != null && (typeof s.countryCode !== 'string' || !/^[A-Z]{2}$/.test(s.countryCode))) ||
-      (s.category !== undefined && !['pub', 'zombie', 'deathmatch', 'gungame', 'surf', 'kz', 'jailbreak', 'awp', 'aim', 'other'].includes(String(s.category))) ||
+      (s.countryCode != null &&
+        (typeof s.countryCode !== 'string' || !/^[A-Z]{2}$/.test(s.countryCode))) ||
+      (s.category !== undefined &&
+        ![
+          'pub',
+          'zombie',
+          'deathmatch',
+          'gungame',
+          'surf',
+          'kz',
+          'jailbreak',
+          'awp',
+          'aim',
+          'other'
+        ].includes(String(s.category))) ||
       (s.gameVersion !== undefined && s.gameVersion !== 'cs16' && s.gameVersion !== 'cs13')
     )
       throw new Error('Invalid partner server')
+    if (s.imageUrl !== undefined && s.imageUrl !== null) {
+      if (typeof s.imageUrl !== 'string' || s.imageUrl.length > 2048)
+        throw new Error('Invalid server image')
+      const image = new URL(s.imageUrl)
+      if (!['http:', 'https:'].includes(image.protocol) || image.username || image.password)
+        throw new Error('Invalid server image')
+    }
     const endpoint = `${s.host.toLowerCase()}:${s.port}`
     if (endpoints.has(endpoint)) throw new Error('Duplicate partner server')
     ids.add(s.id)
     endpoints.add(endpoint)
-    return { id: s.id, name: s.name, host: s.host, port: s.port, ...(s.category !== undefined ? { category: s.category as PartnerServer['category'] } : {}), ...(s.countryCode !== undefined ? { countryCode: s.countryCode as string | null } : {}), gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13' }
+    return {
+      id: s.id,
+      name: s.name,
+      host: s.host,
+      port: s.port,
+      ...(s.category !== undefined ? { category: s.category as PartnerServer['category'] } : {}),
+      ...(s.countryCode !== undefined ? { countryCode: s.countryCode as string | null } : {}),
+      gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13',
+      imageUrl: (s.imageUrl ?? null) as string | null
+    }
   })
   return {
     communityName: communityName as string | null,

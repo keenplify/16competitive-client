@@ -1,5 +1,12 @@
 import { COMMUNITY_DIRECTORY_CHANNELS } from '../shared/community-directory'
-import { listCommunities, joinCommunity, leaveCommunity } from './community-directory'
+import {
+  listCommunities,
+  joinCommunity,
+  leaveCommunity,
+  updateCommunity,
+  communityOwnerSettings
+  ,uploadCommunityServerImage
+} from './community-directory'
 import { release as osRelease } from 'node:os'
 import {
   isSupportedOperatingSystem,
@@ -12,8 +19,16 @@ import {
   decideCommunityTransfer,
   linkCommunityServer
 } from './community-membership'
-import { listPartnerServers, connectPartnerServer, startPartnerGroup, pendingPartnerGroup,
-  getPartnerGroup, respondPartnerGroup, markPartnerGroupLaunched, currentPartnerPresence } from './partner-servers'
+import {
+  listPartnerServers,
+  connectPartnerServer,
+  startPartnerGroup,
+  pendingPartnerGroup,
+  getPartnerGroup,
+  respondPartnerGroup,
+  markPartnerGroupLaunched,
+  currentPartnerPresence
+} from './partner-servers'
 import { communityChatHistory, sendCommunityChat, communityMembers } from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
@@ -923,9 +938,16 @@ app.whenReady().then(async () => {
     (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
       submitMatchSurvey(matchId, funRating, fairnessRating)
   )
-  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.leave, (_, expected: unknown) => leaveCommunity(expected))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.leave, (_, expected: unknown) =>
+    leaveCommunity(expected)
+  )
   ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.list, (_, query: unknown) => listCommunities(query))
-  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.join, (_, id: unknown, expected: unknown) => joinCommunity(id, expected))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.join, (_, id: unknown, expected: unknown) =>
+    joinCommunity(id, expected)
+  )
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.update, (_, input: unknown) => updateCommunity(input))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.ownerSettings, () => communityOwnerSettings())
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, (_, id: unknown, bytes: unknown) => uploadCommunityServerImage(id, bytes))
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.pending, () => pendingCommunityTransfer())
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.decide, (_, id: unknown, accept: unknown) =>
     decideCommunityTransfer(id, accept)
@@ -935,12 +957,18 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
   ipcMain.handle(PARTNER_SERVER_CHANNELS.list, () => listPartnerServers())
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown, groupId: unknown) => connectPartnerServer(id, groupId))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown, groupId: unknown) =>
+    connectPartnerServer(id, groupId)
+  )
   ipcMain.handle(PARTNER_SERVER_CHANNELS.startGroup, (_, id: unknown) => startPartnerGroup(id))
   ipcMain.handle(PARTNER_SERVER_CHANNELS.pendingGroup, () => pendingPartnerGroup())
   ipcMain.handle(PARTNER_SERVER_CHANNELS.getGroup, (_, id: unknown) => getPartnerGroup(id))
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.respondGroup, (_, id: unknown, accepted: unknown) => respondPartnerGroup(id, accepted))
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.markLaunched, (_, id: unknown) => markPartnerGroupLaunched(id))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.respondGroup, (_, id: unknown, accepted: unknown) =>
+    respondPartnerGroup(id, accepted)
+  )
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.markLaunched, (_, id: unknown) =>
+    markPartnerGroupLaunched(id)
+  )
   ipcMain.handle(PARTNER_SERVER_CHANNELS.presence, () => currentPartnerPresence())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.history, () => communityChatHistory())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown) => communityMembers(page))

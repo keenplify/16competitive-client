@@ -3,7 +3,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useCommunitiesStore } from '../communities/communities.store'
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useRef, useState, type JSX } from 'react'
-import { ChevronDown, ChevronRight, MoreVertical, UserPlus } from 'lucide-react'
+import { ChevronDown, ChevronRight, MoreVertical } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useFriendsStore } from '../friends/friends.store'
@@ -119,56 +119,35 @@ export function CommunityMembersSection({
                     ? text('noMembers')
                     : ''}
             </p>
-            {members.map((member) => {
-              const added =
-                  member.relationship === 'FRIEND' ||
-                  friends.some((friend) => friend.id === member.id),
-                requested = member.relationship === 'OUTGOING' || member.relationship === 'INCOMING'
-              return (
-                <div
-                  key={member.id}
-                  onContextMenu={(event) => {
-                    event.preventDefault()
-                    setMenu({ member, x: event.clientX, y: event.clientY })
-                  }}
-                  className="flex h-10 items-center gap-2 px-4 text-xs hover:bg-white/5"
+            {members.map((member) => (
+              <div
+                key={member.id}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  setMenu({ member, x: event.clientX, y: event.clientY })
+                }}
+                className="flex h-10 items-center gap-2 px-4 text-xs hover:bg-white/5"
+              >
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 truncate text-left text-neutral-200 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-300"
+                  onClick={() => useProfileStore.getState().open(member.id)}
                 >
-                  <button
-                    type="button"
-                    className="min-w-0 flex-1 truncate text-left text-neutral-200 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-300"
-                    onClick={() => useProfileStore.getState().open(member.id)}
-                  >
-                    {member.username}
-                  </button>
-                  <button
-                    type="button"
-                    className="grid size-8 place-items-center text-neutral-400 hover:text-white"
-                    aria-label={t('directory.memberActions', { player: member.username })}
-                    onClick={(event) => {
-                      const bounds = event.currentTarget.getBoundingClientRect()
-                      setMenu({ member, x: bounds.left, y: bounds.bottom })
-                    }}
-                  >
-                    <MoreVertical className="size-4" />
-                  </button>
-                  <Button
-                    variant="ghost"
-                    className="size-8 shrink-0 p-0"
-                    disabled={added || requested || actingPlayerId === member.id}
-                    aria-label={text(
-                      added ? 'alreadyFriend' : requested ? 'requested' : 'addFriend',
-                      { player: member.username }
-                    )}
-                    title={text(added ? 'alreadyFriend' : requested ? 'requested' : 'addFriend', {
-                      player: member.username
-                    })}
-                    onClick={() => void request(member.id).then(() => load())}
-                  >
-                    <UserPlus className="size-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              )
-            })}
+                  {member.username}
+                </button>
+                <button
+                  type="button"
+                  className="grid size-8 place-items-center text-neutral-400 hover:text-white"
+                  aria-label={t('directory.memberActions', { player: member.username })}
+                  onClick={(event) => {
+                    const bounds = event.currentTarget.getBoundingClientRect()
+                    setMenu({ member, x: bounds.left, y: bounds.bottom })
+                  }}
+                >
+                  <MoreVertical className="size-4" />
+                </button>
+              </div>
+            ))}
             {(hasMore || error) && (
               <Button
                 variant="ghost"
