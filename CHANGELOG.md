@@ -2630,3 +2630,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Profile
 
 - Restored the correct chart size on full profile pages.
+
+## v2026.1018.5 — 2026-10-18
+
+### Matchmaking
+
+- Play warmup games while waiting in the matchmaking queue.
+- Re-queue more easily after leaving or completing a match.
+
+### Profiles
+
+- View partner community profile statistics.
+
+### Improvements
+
+- Updated matchmaking, party, profile, and partner-community screens.
+- Improved match-ready, cancellation, and abandonment notices.
