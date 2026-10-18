@@ -1,9 +1,9 @@
+import { useProfileStore } from '../profile/profile.store'
 import { useEffect, useState, type JSX, type MouseEvent } from 'react'
 import { Flag, UserPlus, UserRound, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import type { PlayerReportReason, QueuedPlayer } from '../../../../shared/matchmaking'
-import type { PlayerProfile } from '../../../../shared/match-history'
 import { Button } from '../../components/ui/Button'
 import { ModalPortal } from '../../components/ui/ModalPortal'
 import { preferenceFor, useVoicePreferencesStore } from '../voice/voice-preferences.store'
@@ -36,9 +36,6 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
   const [contextMenu, setContextMenu] = useState<{ playerId: string; x: number; y: number } | null>(
     null
   )
-  const [profile, setProfile] = useState<PlayerProfile | null>(null)
-  const [profileError, setProfileError] = useState<string | null>(null)
-  const [profileLoading, setProfileLoading] = useState(false)
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
 
@@ -66,16 +63,7 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
 
   const openProfile = (playerId: string): void => {
     setContextMenu(null)
-    setProfile(null)
-    setProfileError(null)
-    setProfileLoading(true)
-    void window.api.matchHistory
-      .getPlayerProfile(playerId)
-      .then(setProfile)
-      .catch((cause: unknown) =>
-        setProfileError(cause instanceof Error ? cause.message : 'Could not load player profile.')
-      )
-      .finally(() => setProfileLoading(false))
+    useProfileStore.getState().open(playerId)
   }
 
   const addFriend = (playerId: string): void => {
@@ -227,55 +215,6 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
             </button>
           )}
         </div>
-      )}
-      {(profile || profileLoading || profileError) && (
-        <ModalPortal>
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4">
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-label="Player profile"
-              className="w-full max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <h2 className="text-xl font-semibold">{profile?.username ?? 'Player profile'}</h2>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setProfile(null)
-                    setProfileError(null)
-                    setProfileLoading(false)
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
-              {profileLoading && <p className="mt-5 text-sm text-neutral-400">Loading profile…</p>}
-              {profileError && (
-                <p role="alert" className="mt-5 text-sm text-red-300">
-                  {profileError}
-                </p>
-              )}
-              {profile && (
-                <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-                  {(
-                    [
-                      ['MMR', profile.mmr],
-                      ['Wins', profile.wins],
-                      ['Losses', profile.losses],
-                      ['K / A / D', `${profile.kills} / ${profile.assists} / ${profile.deaths}`]
-                    ] as const
-                  ).map(([label, value]) => (
-                    <div key={label}>
-                      <dt className="text-neutral-400">{label}</dt>
-                      <dd className="mt-1 font-semibold">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </section>
-          </div>
-        </ModalPortal>
       )}
       {target && (
         <ModalPortal>

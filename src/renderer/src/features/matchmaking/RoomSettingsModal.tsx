@@ -54,7 +54,7 @@ export function RoomSettingsModal({
   const [mode, setMode] = useState<CustomGameMode>(room.mode)
   const [mapId, setMapId] = useState(room.mapId)
   const [password, setPassword] = useState('')
-  const [friendlyFire, setFriendlyFire] = useState(room.friendlyFire ?? room.mode !== 'fight_yard')
+  const [friendlyFire, setFriendlyFire] = useState(room.friendlyFire ?? room.mode !== 'arena')
   const [customMoney, setCustomMoney] = useState((room.startingMoney ?? 800) !== 800)
   const [startingMoney, setStartingMoney] = useState(String(room.startingMoney ?? 800))
   const dialogRef = useRef<HTMLElement>(null)
@@ -63,7 +63,7 @@ export function RoomSettingsModal({
     (candidate) => candidate === room.mode || enabledModes.includes(candidate)
   )
   const selectedMode = modes.includes(mode) ? mode : room.mode
-  const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'fight_yard'
+  const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
   const moneyValid =
     !allowsMoney ||
     !customMoney ||

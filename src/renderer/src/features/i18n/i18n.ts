@@ -1,3 +1,4 @@
+import { profileTranslations } from './profile-translations'
 import { queueAgainTranslations } from './queue-again-translations'
 import { gameDisplayTranslations } from './game-display-translations'
 import { paymentTranslations } from './payment-translations'
@@ -53,6 +54,7 @@ const english = {
   ...fastSwitchTranslations.en,
   ...playerPingTranslations.en,
   ...paymentTranslations.en,
+  ...profileTranslations.en,
   'auth.signedInAs': 'Signed in as {{account}}',
   'chat.communityAnnouncement': 'Announcement',
   'chat.communityVisit': 'Visit us on {{platform}}',
@@ -182,7 +184,7 @@ const english = {
   'matchmaking.modeHelpLegacy': 'Unrated 5v5 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpLegacy3v3': 'Unrated 3v3 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
-  'matchmaking.modeHelpFightYard': 'Round-based Fight Yard. First team to win 9 rounds wins.',
+  'matchmaking.modeHelpArena': 'Arena on fy_ and aim_ maps. First team to win 9 rounds wins.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. First team to 13 rounds wins.',
   'matchmaking.preferHumansTooltip':
     'Prioritizes human players and delays automatic bot fill. Bots can still join if another player opts in or the mode allows them.',
@@ -211,6 +213,7 @@ const russian: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.ru,
   ...playerPingTranslations.ru,
   ...paymentTranslations.ru,
+  ...profileTranslations.ru,
   'auth.signedInAs': 'Выполнен вход: {{account}}',
   'chat.communityAnnouncement': 'Объявление',
   'chat.communityVisit': 'Посетите нас в {{platform}}',
@@ -342,8 +345,8 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy': 'Нерейтинговый 5 на 5 с движением CS 1.3. Победа за 9 раундов.',
   'matchmaking.modeHelpLegacy3v3': 'Нерейтинговый 3 на 3 с движением CS 1.3. Победа за 9 раундов.',
   'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
-  'matchmaking.modeHelpFightYard':
-    'Раундовый Fight Yard. Побеждает команда, первой выигравшая 9 раундов.',
+  'matchmaking.modeHelpArena':
+    'Арена на картах fy_ и aim_. Побеждает команда, первой выигравшая 9 раундов.',
   'matchmaking.modeHelp3v3': 'Нерейтинговый 3 на 3. Победа за 13 раундов.',
   'matchmaking.preferHumansTooltip':
     'Приоритет живым игрокам и более позднее автоматическое добавление ботов. Боты всё же возможны, если другой игрок согласится или режим их допускает.',
@@ -369,6 +372,7 @@ const taglish: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.tl,
   ...playerPingTranslations.tl,
   ...paymentTranslations.tl,
+  ...profileTranslations.tl,
   'auth.signedInAs': 'Naka-sign in bilang {{account}}',
   'chat.communityAnnouncement': 'Anunsyo',
   'chat.communityVisit': 'Bisitahin kami sa {{platform}}',
@@ -502,8 +506,8 @@ const taglish: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'Unrated 3v3 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
-  'matchmaking.modeHelpFightYard':
-    'Round-based Fight Yard. Unang team na manalo ng 9 rounds ang panalo.',
+  'matchmaking.modeHelpArena':
+    'Arena sa fy_ at aim_ maps. Unang team na manalo ng 9 rounds ang panalo.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. Unang team sa 13 rounds ang panalo.',
   'matchmaking.preferHumansTooltip':
     'Mas inuuna ang mga taong player at pinapahuli ang automatic bot fill. Posible pa rin ang bots kung may ibang player na mag-opt in o pinapayagan ng mode.',
@@ -529,6 +533,7 @@ const thai: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.th,
   ...playerPingTranslations.th,
   ...paymentTranslations.th,
+  ...profileTranslations.th,
   'auth.signedInAs': 'เข้าสู่ระบบเป็น {{account}}',
   'chat.communityAnnouncement': 'ประกาศ',
   'chat.communityVisit': 'เยี่ยมชมเราที่ {{platform}}',
@@ -658,7 +663,7 @@ const thai: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     '3v3 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
-  'matchmaking.modeHelpFightYard': 'Fight Yard แบบรอบ ทีมที่ชนะครบ 9 รอบก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpArena': 'Arena บนแผนที่ fy_ และ aim_ ทีมที่ชนะครบ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelp3v3': '3v3 ไม่จัดอันดับ ทีมที่ชนะ 13 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.preferHumansTooltip':
     'ให้ความสำคัญกับผู้เล่นจริงและชะลอการเติมบอทอัตโนมัติ บอทอาจเข้าร่วมได้หากผู้เล่นอื่นยินยอมหรือโหมดอนุญาต',
@@ -684,6 +689,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.id,
   ...playerPingTranslations.id,
   ...paymentTranslations.id,
+  ...profileTranslations.id,
   'auth.signedInAs': 'Masuk sebagai {{account}}',
   'chat.communityAnnouncement': 'Pengumuman',
   'chat.communityVisit': 'Kunjungi kami di {{platform}}',
@@ -819,8 +825,8 @@ const indonesian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     '3v3 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
   'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
-  'matchmaking.modeHelpFightYard':
-    'Fight Yard berbasis ronde. Tim pertama yang memenangkan 9 ronde menang.',
+  'matchmaking.modeHelpArena':
+    'Arena di peta fy_ dan aim_. Tim pertama yang memenangkan 9 ronde menang.',
   'matchmaking.modeHelp3v3':
     '3v3 tanpa peringkat. Tim pertama yang menang 13 ronde menjadi pemenang.',
   'matchmaking.preferHumansTooltip':
@@ -847,6 +853,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.pt,
   ...playerPingTranslations.pt,
   ...paymentTranslations.pt,
+  ...profileTranslations.pt,
   'auth.signedInAs': 'Conectado como {{account}}',
   'chat.communityAnnouncement': 'Aviso',
   'chat.communityVisit': 'Visite-nos no {{platform}}',
@@ -983,8 +990,8 @@ const portuguese: Record<TranslationKey, string> = {
     '3v3 sem ranking com movimentação de CS 1.3. Vence a primeira equipe a ganhar 9 rodadas.',
   'matchmaking.modeHelpFfa':
     'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
-  'matchmaking.modeHelpFightYard':
-    'Fight Yard por rodadas. Vence a primeira equipe a ganhar 9 rodadas.',
+  'matchmaking.modeHelpArena':
+    'Arena em mapas fy_ e aim_. Vence a primeira equipe a ganhar 9 rodadas.',
   'matchmaking.modeHelp3v3': '3v3 sem ranking. Vence a primeira equipe a ganhar 13 rodadas.',
   'matchmaking.preferHumansTooltip':
     'Prioriza jogadores humanos e atrasa o preenchimento automático com bots. Bots ainda podem entrar se outro jogador aceitar ou o modo permitir.',
@@ -1010,6 +1017,7 @@ const japanese: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.ja,
   ...playerPingTranslations.ja,
   ...paymentTranslations.ja,
+  ...profileTranslations.ja,
   'auth.signedInAs': '{{account}}としてログイン中',
   'chat.communityAnnouncement': 'お知らせ',
   'chat.communityVisit': '{{platform}}をご覧ください',
@@ -1144,7 +1152,8 @@ const japanese: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3の移動仕様を使う非ランク戦3v3。先に9ラウンドを取ったチームが勝利。',
   'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
-  'matchmaking.modeHelpFightYard': 'ラウンド制のFight Yard。先に9ラウンドを獲得したチームが勝利。',
+  'matchmaking.modeHelpArena':
+    'fy_ と aim_ マップのアリーナ。先に9ラウンドを獲得したチームが勝利。',
   'matchmaking.modeHelp3v3': '非ランク戦3v3。先に13ラウンドを取ったチームが勝利。',
   'matchmaking.preferHumansTooltip':
     '人間のプレイヤーを優先し、自動のボット補充を遅らせます。他のプレイヤーが同意するか、モードが許可する場合はボットが参加することもあります。',
@@ -1170,6 +1179,7 @@ const hindi: Record<TranslationKey, string> = {
   ...fastSwitchTranslations.hi,
   ...playerPingTranslations.hi,
   ...paymentTranslations.hi,
+  ...profileTranslations.hi,
   'auth.signedInAs': '{{account}} के रूप में साइन इन किया गया',
   'chat.communityAnnouncement': 'घोषणा',
   'chat.communityVisit': '{{platform}} पर हमें देखें',
@@ -1303,8 +1313,7 @@ const hindi: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 3v3। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
-  'matchmaking.modeHelpFightYard':
-    'राउंड आधारित Fight Yard। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
+  'matchmaking.modeHelpArena': 'fy_ और aim_ मैप पर एरीना। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelp3v3': 'बिना रैंक वाला 3v3। पहले 13 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.preferHumansTooltip':
     'मानव खिलाड़ियों को प्राथमिकता देता है और अपने आप बॉट जोड़ने में देरी करता है। कोई दूसरा खिलाड़ी सहमति दे या मोड अनुमति दे तो बॉट फिर भी आ सकते हैं।',

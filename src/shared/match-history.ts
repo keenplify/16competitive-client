@@ -80,7 +80,25 @@ export interface MatchSurveySubmission {
   pointsAwarded: number
 }
 
+export interface ProfileLoadoutSkin {
+  equipped?: boolean
+  id: string
+  name: string
+  weaponKey: string
+  gameVersion: string
+}
+
+export interface ProfileActivitySnapshot {
+  total: number
+  refreshedAt: string
+  maps: Array<{ id: string; matches: number; wins: number }>
+  modes: Array<{ id: string; matches: number; wins: number }>
+}
+
 export interface PlayerProfile {
+  activity?: ProfileActivitySnapshot
+  recentMatches?: MatchHistoryEntry[]
+  loadout?: ProfileLoadoutSkin[]
   level?: number
   levelTitle?: string
   id: string

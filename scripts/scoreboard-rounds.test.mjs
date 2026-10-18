@@ -66,7 +66,7 @@ test('half breakdown counts current teams rather than historical physical sides'
   ])
 })
 
-test('FY displays its deciding seventeenth round without overtime', () => {
+test('Arena displays its deciding seventeenth round without overtime', () => {
   const state = scoreboardRounds(17, 8, 9, 3, true)
   assert.equal(state.total, 17)
   assert.equal(state.current, 17)

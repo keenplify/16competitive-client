@@ -1,7 +1,7 @@
 export const queueAgainTranslations = {
   en: {
     'queueAgain.title': 'Queue again?',
-    'queueAgain.description': 'Find another FY match with your saved queue preferences.',
+    'queueAgain.description': 'Find another Arena match with your saved queue preferences.',
     'queueAgain.accept': 'Queue again',
     'queueAgain.decline': 'Not now',
     'queueAgain.pending': 'Joining matchmaking…',
@@ -13,7 +13,7 @@ export const queueAgainTranslations = {
   },
   ru: {
     'queueAgain.title': 'Сыграть ещё?',
-    'queueAgain.description': 'Найдите новый матч FY с сохранёнными настройками поиска.',
+    'queueAgain.description': 'Найдите новый матч Арены с сохранёнными настройками поиска.',
     'queueAgain.accept': 'Искать матч',
     'queueAgain.decline': 'Не сейчас',
     'queueAgain.pending': 'Подключение к поиску…',
@@ -26,7 +26,7 @@ export const queueAgainTranslations = {
   tl: {
     'queueAgain.title': 'Queue ulit?',
     'queueAgain.description':
-      'Maghanap ng bagong FY match gamit ang naka-save mong queue preferences.',
+      'Maghanap ng bagong Arena match gamit ang naka-save mong queue preferences.',
     'queueAgain.accept': 'Queue ulit',
     'queueAgain.decline': 'Huwag muna',
     'queueAgain.pending': 'Sumasali sa matchmaking…',
@@ -38,7 +38,7 @@ export const queueAgainTranslations = {
   },
   th: {
     'queueAgain.title': 'เข้าคิวอีกครั้งไหม?',
-    'queueAgain.description': 'ค้นหาแมตช์ FY ใหม่ด้วยการตั้งค่าคิวที่บันทึกไว้',
+    'queueAgain.description': 'ค้นหาแมตช์ Arena ใหม่ด้วยการตั้งค่าคิวที่บันทึกไว้',
     'queueAgain.accept': 'เข้าคิวอีกครั้ง',
     'queueAgain.decline': 'ไว้ก่อน',
     'queueAgain.pending': 'กำลังเข้าร่วมการจับคู่…',
@@ -50,7 +50,8 @@ export const queueAgainTranslations = {
   },
   id: {
     'queueAgain.title': 'Antre lagi?',
-    'queueAgain.description': 'Cari pertandingan FY baru dengan preferensi antrean yang tersimpan.',
+    'queueAgain.description':
+      'Cari pertandingan Arena baru dengan preferensi antrean yang tersimpan.',
     'queueAgain.accept': 'Antre lagi',
     'queueAgain.decline': 'Nanti saja',
     'queueAgain.pending': 'Bergabung ke pencarian…',
@@ -61,7 +62,7 @@ export const queueAgainTranslations = {
   },
   pt: {
     'queueAgain.title': 'Entrar na fila de novo?',
-    'queueAgain.description': 'Encontre outra partida FY com suas preferências de fila salvas.',
+    'queueAgain.description': 'Encontre outra partida Arena com suas preferências de fila salvas.',
     'queueAgain.accept': 'Entrar na fila',
     'queueAgain.decline': 'Agora não',
     'queueAgain.pending': 'Entrando na fila…',
@@ -73,7 +74,7 @@ export const queueAgainTranslations = {
   },
   ja: {
     'queueAgain.title': 'もう一度キューに参加しますか？',
-    'queueAgain.description': '保存済みの検索設定で、新しいFYマッチを探します。',
+    'queueAgain.description': '保存済みの検索設定で、新しいアリーナマッチを探します。',
     'queueAgain.accept': 'もう一度参加',
     'queueAgain.decline': '今はしない',
     'queueAgain.pending': 'マッチメイキングに参加中…',
@@ -85,7 +86,7 @@ export const queueAgainTranslations = {
   },
   hi: {
     'queueAgain.title': 'फिर से क्यू में जुड़ें?',
-    'queueAgain.description': 'सेव की गई क्यू प्राथमिकताओं के साथ नया FY मैच खोजें।',
+    'queueAgain.description': 'सेव की गई क्यू प्राथमिकताओं के साथ नया Arena मैच खोजें।',
     'queueAgain.accept': 'फिर से क्यू में जुड़ें',
     'queueAgain.decline': 'अभी नहीं',
     'queueAgain.pending': 'मैचमेकिंग में जुड़ रहे हैं…',

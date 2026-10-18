@@ -37,7 +37,10 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   choosePreset: (amount) => set({ amount, customOpen: false }),
   showCustom: () => set({ customOpen: true }),
   historyOpen: false,
-  showHistory: () => set({ historyOpen: true }),
+  showHistory: () => {
+    set({ historyOpen: true })
+    void get().load()
+  },
   hideHistory: () => set({ historyOpen: false }),
   methodId: 'paymento',
   closeDetails: () => set({ activeManualId: null }),

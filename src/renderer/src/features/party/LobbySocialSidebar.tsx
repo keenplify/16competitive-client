@@ -1,3 +1,5 @@
+import { useProfileStore } from '../profile/profile.store'
+import { useTranslation } from '../i18n/i18n'
 import { CommunityMembersSection } from '../partner-branding/CommunityMembersSection'
 import {
   Check,
@@ -6,6 +8,7 @@ import {
   MessageCircle,
   Pin,
   Search,
+  UserRound,
   UserMinus,
   UserPlus,
   Users,
@@ -321,6 +324,8 @@ export function LobbySocialSidebar({
   onPinToggle,
   hoverOpenDisabledUntil = 0
 }: LobbySocialSidebarProps): JSX.Element | null {
+  const { t } = useTranslation()
+  const profileMenuItem = useRef<HTMLButtonElement>(null)
   const hoverOpenTimer = useRef<number | null>(null)
   const searchTimer = useRef<number | null>(null)
   const [friendMenu, setFriendMenu] = useState<{
@@ -328,6 +333,9 @@ export function LobbySocialSidebar({
     x: number
     y: number
   } | null>(null)
+  useEffect(() => {
+    if (friendMenu) profileMenuItem.current?.focus()
+  }, [friendMenu])
   const [friendRequestsOpen, setFriendRequestsOpen] = useState(false)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const party = usePartyStore((state) => state.party)
@@ -624,11 +632,27 @@ export function LobbySocialSidebar({
         createPortal(
           <div
             className="fixed z-[110] min-w-40 overflow-hidden border border-white/15 bg-neutral-800 py-1 shadow-xl"
-            style={{ right: Math.max(8, window.innerWidth - friendMenu.x + 8), top: friendMenu.y }}
+            style={{
+              right: Math.max(8, window.innerWidth - friendMenu.x + 8),
+              top: Math.max(8, Math.min(friendMenu.y, window.innerHeight - 144))
+            }}
             role="menu"
             aria-label={`Friend options for ${friendMenu.friend.username}`}
             onClick={(event) => event.stopPropagation()}
           >
+            <button
+              ref={profileMenuItem}
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
+              role="menuitem"
+              onClick={() => {
+                const playerId = friendMenu.friend.id
+                setFriendMenu(null)
+                useProfileStore.getState().open(playerId)
+              }}
+            >
+              <UserRound className="size-4 text-sky-300" aria-hidden="true" /> {t('profile.view')}
+            </button>
             <button
               type="button"
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"

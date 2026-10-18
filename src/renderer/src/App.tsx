@@ -1,3 +1,5 @@
+import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
+import { ProfileOverlay } from './features/profile/ProfileOverlay'
 import { CommunityMembershipController } from './features/partner-branding/CommunityMembershipController'
 import { MatchAssetPreparation } from './features/matchmaking/MatchAssetPreparation'
 import { AuthPage } from './features/auth/AuthPage'
@@ -52,6 +54,8 @@ function App(): React.JSX.Element {
           className="launcher-toast-container"
         />
         <AuthPage />
+        <ProfileOverlay />
+        <MatchDetailsOverlay />
         <IcafeBranchPanel />
       </>
     </DeviceBanGate>

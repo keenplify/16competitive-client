@@ -22,6 +22,7 @@ export interface PaymentOrder {
   providerStatus: string | null
   createdAt: string
   checkoutUrl: string | null
+  checkoutExpiresAt?: string
 }
 
 export interface PaymentSnapshot {
@@ -94,6 +95,13 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
       throw new Error('INVALID_PAYMENT_RESPONSE')
     }
   }
+  if (
+    data.checkoutExpiresAt !== undefined &&
+    (typeof data.checkoutExpiresAt !== 'string' ||
+      !Number.isFinite(Date.parse(data.checkoutExpiresAt)))
+  ) {
+    throw new Error('INVALID_PAYMENT_RESPONSE')
+  }
   return {
     id,
     amount,
@@ -101,7 +109,15 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
     status: data.status as PaymentStatus,
     providerStatus: data.providerStatus as string | null,
     createdAt: data.createdAt,
-    checkoutUrl: data.checkoutUrl as string | null
+    checkoutUrl:
+      data.status === 'PENDING' &&
+      (data.checkoutExpiresAt === undefined ||
+        Date.parse(data.checkoutExpiresAt as string) > Date.now())
+        ? (data.checkoutUrl as string | null)
+        : null,
+    ...(data.checkoutExpiresAt === undefined
+      ? {}
+      : { checkoutExpiresAt: data.checkoutExpiresAt as string })
   }
 }
 

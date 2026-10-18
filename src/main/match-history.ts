@@ -1,3 +1,4 @@
+import { isPlayerProfile } from '../shared/player-profile-validation'
 import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import type {
@@ -101,30 +102,6 @@ const isPendingMatchSurvey = (value: unknown): value is PendingMatchSurvey => {
     typeof pending.mapDisplayName === 'string' &&
     typeof pending.mode === 'string' &&
     (pending.completedAt === null || typeof pending.completedAt === 'string')
-  )
-}
-
-const isPlayerProfile = (value: unknown): value is PlayerProfile => {
-  if (typeof value !== 'object' || value === null) return false
-  const player = value as Record<string, unknown>
-  return (
-    typeof player.id === 'string' &&
-    typeof player.username === 'string' &&
-    typeof player.mmr === 'number' &&
-    (player.level === undefined ||
-      (Number.isInteger(player.level) &&
-        Number(player.level) >= 1 &&
-        Number(player.level) <= 40)) &&
-    (player.levelTitle === undefined ||
-      (typeof player.levelTitle === 'string' && player.levelTitle.length <= 80)) &&
-    (player.flagCountryCode === null ||
-      (typeof player.flagCountryCode === 'string' && /^[A-Z]{2}$/.test(player.flagCountryCode))) &&
-    typeof player.wins === 'number' &&
-    typeof player.losses === 'number' &&
-    typeof player.kills === 'number' &&
-    typeof player.deaths === 'number' &&
-    typeof player.assists === 'number' &&
-    typeof player.createdAt === 'string'
   )
 }
 

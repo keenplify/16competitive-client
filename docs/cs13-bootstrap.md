@@ -245,7 +245,7 @@ position investigation. A bounded native physics probe did not reproduce the
 reported teleport, so that specific symptom still needs gameplay confirmation.
 
 Custom-room settings offer a starting-money checkbox: unchecked uses $800;
-checked accepts whole-dollar amounts from $800 to $16,000. FFA and Fight Yard
+checked accepts whole-dollar amounts from $800 to $16,000. FFA and Arena
 hide the control and reject overrides server-side. The confirmed room value is
 persisted through ready checks, transfers and server recovery, and both game
 adapters generate the corresponding `mp_startmoney`. Normal overtime rules still
@@ -301,7 +301,7 @@ available through the legacy adapter.
 Room owners can save a Friendly fire checkbox before the ready check. The server
 validates the boolean and writes `mp_friendlyfire 0` or `1` into the managed match
 configuration for both the 1.6 adapter and native Legacy 1.3 adapter. New rooms
-default to on, except Fight Yard (off); FFA has no teammate damage to toggle.
+default to on, except Arena (off); FFA has no teammate damage to toggle.
 Room transfers and running-server recovery manifests preserve explicit false.
 Public matchmaking retains its mode defaults. Configuration generation is covered
 for both adapters; no live player damage test was performed for this change.

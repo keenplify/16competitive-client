@@ -55,6 +55,25 @@ test('wallet and order snapshots reject malformed backend data', () => {
     assert.throws(() => parsePaymentSnapshot({ enabled: true, pCash, orders: [] }))
 })
 
+test('terminal payment states never expose an old checkout link', () => {
+  for (const status of ['CREATING', 'CREDITED', 'EXPIRED', 'CANCELLED', 'FAILED']) {
+    assert.equal(parsePaymentOrder({ ...order, status }).checkoutUrl, null)
+  }
+  assert.equal(parsePaymentOrder(order).checkoutUrl, order.checkoutUrl)
+})
+
+test('expired checkout tokens are hidden independently of payment settlement status', () => {
+  const expired = parsePaymentOrder({ ...order, checkoutExpiresAt: '2000-01-01T00:00:00Z' })
+  assert.equal(expired.checkoutUrl, null)
+  assert.equal(expired.status, 'PENDING')
+  assert.equal(
+    parsePaymentOrder({ ...order, checkoutExpiresAt: '2100-01-01T00:00:00Z' }).checkoutUrl,
+    order.checkoutUrl
+  )
+  for (const checkoutExpiresAt of [null, 123, 'not-a-date'])
+    assert.throws(() => parsePaymentOrder({ ...order, checkoutExpiresAt }))
+})
+
 test('manual transfers validate persistent QR images, exact quotes and server-controlled credits', async () => {
   const { parseManualOrder, parseManualSnapshot, validateTransferDetails } =
     await import('../src/shared/payments.ts')

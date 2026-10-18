@@ -209,7 +209,7 @@ export function LobbyPage(): JSX.Element {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
-    if (nextPage === 'profile') setProfileTab('skins')
+    if (nextPage === 'profile') setProfileTab('overview')
     setMissionsOpen(false)
     navigate(nextPage)
   }

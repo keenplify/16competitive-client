@@ -11,7 +11,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
   let emit
   const completed = {
     matchId: 'finished-fy',
-    mode: 'fight_yard',
+    mode: 'arena',
     mapId: 'fy_pool_day',
     teams: { teamA: [], teamB: [] },
     winner: 1,
@@ -81,7 +81,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     '../../web-runtime': { isWebRuntime: () => web },
     './matchmaking-preferences': {
       readMatchmakingPreferences: () => ({
-        mapIdsByMode: savedMaps ? { fight_yard: savedMaps } : {}
+        mapIdsByMode: savedMaps ? { arena: savedMaps } : {}
       }),
       saveMatchmakingPreferences() {
         return undefined
@@ -107,13 +107,13 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     connectionStatus: 'ready',
     queueStatus: 'idle',
     completedMatch: completed,
-    selectedMode: 'fight_yard',
+    selectedMode: 'arena',
     selectedMapIds: ['fy_pool_day'],
     mapsStatus: 'ready',
     maps: ['fy_pool_day', 'fy_iceworld'].map((id) => ({
       id,
-      supportedModes: ['fight_yard'],
-      webModes: ['fight_yard']
+      supportedModes: ['arena'],
+      webModes: ['arena']
     })),
     nodes: [{ id: 'node', region: 'asia', available: true, latencyMs: 40 }],
     selectedNodeId: 'node',
@@ -123,13 +123,13 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
   return { store, completed, requests, emit: (message) => emit(message) }
 }
 
-test('FY queue again uses the saved pool, region and human preference only after consent', async () => {
+test('Arena queue again uses the saved pool, region and human preference only after consent', async () => {
   const h = await harness({ savedMaps: ['fy_pool_day', 'fy_iceworld'] })
   h.emit({ type: 'match_finished', ...h.completed })
   assert.equal(h.requests.length, 0)
   assert.equal(await h.store.getState().queueAgain(), true)
   assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])), [
-    'fight_yard',
+    'arena',
     ['fy_pool_day', 'fy_iceworld'],
     false,
     'asia',
@@ -181,7 +181,7 @@ test('unavailable maps and missing installation keep results for review', async 
   }
 })
 
-test('FFA and disconnected clients do not requeue through the FY prompt', async () => {
+test('FFA and disconnected clients do not requeue through the Arena prompt', async () => {
   const h = await harness()
   h.store.setState({ completedMatch: { ...h.completed, mode: 'ffa' } })
   assert.equal(await h.store.getState().queueAgain(), false)
@@ -194,7 +194,7 @@ test('server-confirmed party queue clears stale match results for every member',
   const h = await harness()
   h.emit({
     type: 'queue_joined',
-    mode: 'fight_yard',
+    mode: 'arena',
     mapIds: ['fy_pool_day'],
     region: 'asia',
     allowRegionExpansion: false

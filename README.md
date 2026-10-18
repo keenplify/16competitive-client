@@ -21,7 +21,7 @@ Available modes, maps, rewards, and regional capacity are controlled by the
 platform and may change during the alpha.
 
 - **Matchmaking:** competitive 5v5, with additional modes such as Unrated, Legacy,
-  3v3, FFA, and Fight Yard when enabled. Follow queue status, accept ready checks,
+3v3, FFA, and Arena when enabled. Follow queue status, accept ready checks,
   and reconnect to active matches.
 - **Parties and friends:** invite teammates, chat, and queue together.
 - **Profiles and rankings:** view MMR, match history, results, and leaderboards.

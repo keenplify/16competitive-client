@@ -3,7 +3,7 @@ import { create } from 'zustand'
 export type LobbyPageId =
   'demos' | 'lobby' | 'play' | 'leaderboard' | 'store' | 'news' | 'settings' | 'profile'
 
-export type ProfileTabId = 'matches' | 'skins' | 'operation'
+export type ProfileTabId = 'overview' | 'matches' | 'skins' | 'operation'
 
 interface NavigationState {
   page: LobbyPageId
@@ -14,7 +14,7 @@ interface NavigationState {
 
 export const useNavigationStore = create<NavigationState>((set) => ({
   page: 'lobby',
-  profileTab: 'skins',
+  profileTab: 'overview',
   navigate: (page) => set({ page }),
   setProfileTab: (profileTab) => set({ profileTab })
 }))

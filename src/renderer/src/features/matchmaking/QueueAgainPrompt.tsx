@@ -21,7 +21,7 @@ export function QueueAgainPrompt({ className }: { className?: string }): JSX.Ele
   const customRoom = useCustomGamesStore((state) => state.currentRoom)
   const setPlayView = useCustomGamesStore((state) => state.setPlayView)
   const navigate = useNavigationStore((state) => state.navigate)
-  if (completed?.mode !== 'fight_yard' || customRoom?.matchId === completed.matchId) return null
+  if (completed?.mode !== 'arena' || customRoom?.matchId === completed.matchId) return null
   const isLeader = !party || party.leaderId === playerId
   const pending = status === 'joining'
   const message =

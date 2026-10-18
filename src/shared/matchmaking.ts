@@ -34,7 +34,7 @@ export const MATCHMAKING_MODES = [
   'cs13_3v3',
   'casual',
   'ffa',
-  'fight_yard'
+  'arena'
 ] as const
 export type MatchmakingMode = (typeof MATCHMAKING_MODES)[number]
 
@@ -50,7 +50,7 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   cs13_3v3: 'Legacy 1.3',
   casual: 'Casual',
   ffa: 'FFA',
-  fight_yard: 'Fight Yard'
+  arena: 'Arena'
 }
 
 export const getMatchmakingModeLabel = (mode: string): string =>
@@ -63,7 +63,7 @@ export const allowsManualMatchConnection = (mode: unknown): boolean =>
   mode === 'legacy_3v3' ||
   mode === 'casual' ||
   mode === 'ffa' ||
-  mode === 'fight_yard'
+  mode === 'arena'
 
 export interface ManualConnectionDetails {
   host: string

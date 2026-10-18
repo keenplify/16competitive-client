@@ -774,7 +774,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       const party = usePartyStore.getState().party
       if (
         !completed ||
-        completed.mode !== 'fight_yard' ||
+        completed.mode !== 'arena' ||
         !playerId ||
         state.queueAgainStatus === 'joining' ||
         state.queueStatus !== 'idle' ||

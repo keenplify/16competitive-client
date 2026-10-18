@@ -46,7 +46,7 @@ const queueModes = [
   'legacy_3v3',
   'cs13_3v3',
   'ffa',
-  'fight_yard',
+  'arena',
   '3v3'
 ] as const
 const modeHelpKeys = {
@@ -56,7 +56,7 @@ const modeHelpKeys = {
   legacy_3v3: 'matchmaking.modeHelpLegacy3v3',
   cs13_3v3: 'legacy.modeHelp',
   ffa: 'matchmaking.modeHelpFfa',
-  fight_yard: 'matchmaking.modeHelpFightYard',
+  arena: 'matchmaking.modeHelpArena',
   '3v3': 'matchmaking.modeHelp3v3'
 } satisfies Record<(typeof queueModes)[number], TranslationKey>
 
@@ -660,8 +660,8 @@ export function PlayPage({
                         ? 'Rated 5v5 with MMR progression'
                         : mode === 'ffa'
                           ? 'Drop-in deathmatch, first to 50 kills'
-                          : mode === 'fight_yard'
-                            ? 'Fight Yard match'
+                          : mode === 'arena'
+                            ? t('matchmaking.modeHelpArena')
                             : mode === '3v3'
                               ? 'Unrated 3v3 match'
                               : mode === 'legacy_3v3'

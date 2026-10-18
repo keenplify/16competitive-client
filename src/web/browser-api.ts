@@ -1,3 +1,4 @@
+import { isPlayerProfile } from '../shared/player-profile-validation'
 import {
   parseCommunityTransfer,
   parseCommunityDecision,
@@ -776,6 +777,7 @@ const api: Window['api'] = {
     },
     async getPlayerProfile(playerId: string): Promise<PlayerProfile> {
       const body = await authenticatedGet<{ player: PlayerProfile }>(`/profile/players/${playerId}`)
+      if (!isPlayerProfile(body.player)) throw new Error('Invalid player profile')
       return body.player
     },
     async getSurvey(matchId: string): Promise<MatchSurveyStatus> {

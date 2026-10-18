@@ -178,12 +178,14 @@ export function SkinsPage(): JSX.Element {
     (candidate) => candidate.id === playerId
   )?.lobbyPlayerModel
   const selectedLobbyPlayerModel = lobbyPlayerModel ?? partyLobbyPlayerModel
-  const filteredSkins = skins.filter(
-    (owned) =>
-      teamWeaponKeys.has(owned.skin.weaponKey) &&
-      (category === 'all' || weaponCategory(owned.skin.weaponKey) === category) &&
-      (!selectedWeapon || owned.skin.weaponKey === selectedWeapon)
-  )
+  const filteredSkins = skins
+    .filter(
+      (owned) =>
+        teamWeaponKeys.has(owned.skin.weaponKey) &&
+        (category === 'all' || weaponCategory(owned.skin.weaponKey) === category) &&
+        (!selectedWeapon || owned.skin.weaponKey === selectedWeapon)
+    )
+    .sort((a, b) => Number(!!b.equippedAt) - Number(!!a.equippedAt))
   const equippedForTeam = skins.filter(
     (owned) => owned.equippedAt && teamWeaponKeys.has(owned.skin.weaponKey)
   )
@@ -629,11 +631,16 @@ function LoadoutWeaponCard({
   return (
     <div
       className={twMerge(
-        'group relative flex h-28 w-full flex-col border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
+        'group relative grid w-full grid-rows-[5rem_2rem] gap-1 border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
         selected ? 'border-sky-300 bg-sky-400/15 ring-1 ring-sky-300/50' : 'border-white/10'
       )}
     >
-      <button type="button" className="min-h-0 flex-1" aria-pressed={selected} onClick={onSelect}>
+      <button
+        type="button"
+        className="h-20 min-w-0 overflow-hidden"
+        aria-pressed={selected}
+        onClick={onSelect}
+      >
         <LoadoutThumbnail
           key={equipped?.skin.id ?? weaponKey}
           weaponKey={weaponKey}
@@ -643,7 +650,7 @@ function LoadoutWeaponCard({
       {canChangeLobbyWeapon && !equipped?.reviewOnly && equipped?.skin.status !== 'DRAFT' && (
         <button
           type="button"
-          className="absolute right-2 bottom-8 flex size-6 items-center justify-center rounded-none border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-sky-950 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute top-14 right-2 flex size-6 items-center justify-center rounded-none border border-white/20 bg-neutral-950/90 text-sky-200 shadow transition hover:bg-sky-400 hover:text-sky-950 disabled:cursor-not-allowed disabled:opacity-50"
           title={lobbyButtonLabel}
           aria-label={lobbyButtonLabel}
           disabled={loadoutLocked || lobbyWeaponId !== null || lobbySelected}
@@ -654,8 +661,11 @@ function LoadoutWeaponCard({
           {lobbySelected ? <Check className="size-3.5" /> : <Users className="size-3.5" />}
         </button>
       )}
-      <span className="block w-full min-w-0 px-1 py-1.5">
-        <span className="block truncate text-center text-xs font-bold tracking-wide text-neutral-300">
+      <span className="flex min-w-0 items-center justify-center overflow-hidden px-1">
+        <span
+          className="block truncate text-center text-xs font-bold tracking-wide text-neutral-300"
+          title={equipped?.skin.name ?? displayWeapon(weaponKey)}
+        >
           {equipped?.skin.name ?? displayWeapon(weaponKey)}
         </span>
       </span>

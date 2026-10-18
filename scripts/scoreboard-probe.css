@@ -481,7 +481,7 @@ html.kill-cards-preview-page #root {
   border-left: 1px solid rgba(221, 211, 184, 0.55);
 }
 
-/* FY keeps the MR tables and track geometry; both sides share one marker baseline. */
+/* Arena keeps the MR tables and track geometry; both sides share one marker baseline. */
 .straight-score-line .round-tick.ct-win,
 .straight-score-line .round-tick.t-win {
   background: none;

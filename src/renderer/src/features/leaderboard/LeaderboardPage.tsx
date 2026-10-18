@@ -1,9 +1,8 @@
-import { ChevronLeft, Globe2, LoaderCircle, Map, Trophy, UserRound } from 'lucide-react'
+import { useProfileStore } from '../profile/profile.store'
+import { Globe2, Map, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useState, type JSX } from 'react'
-import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
 import { useLeaderboardStore } from './leaderboard.store'
-import type { PlayerProfile } from '../../../../shared/match-history'
 import type { FeaturedRankedLadder } from '../../../../shared/leaderboard'
 import { CountryFlag } from '../../components/CountryFlag'
 import { serverClockNow } from '../../../../shared/server-clock'
@@ -23,21 +22,9 @@ export function LeaderboardPage(): JSX.Element {
   const [featured, setFeatured] = useState<FeaturedRankedLadder | null>(null)
   const [featuredStatus, setFeaturedStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [now, setNow] = useState(serverClockNow)
-  const [profile, setProfile] = useState<PlayerProfile | null>(null)
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [profileError, setProfileError] = useState<string | null>(null)
 
   const openProfile = (playerId: string): void => {
-    setProfile(null)
-    setProfileError(null)
-    setProfileLoading(true)
-    void window.api.matchHistory
-      .getPlayerProfile(playerId)
-      .then((loaded) => setProfile(loaded))
-      .catch((error: unknown) =>
-        setProfileError(error instanceof Error ? error.message : 'Could not load player profile.')
-      )
-      .finally(() => setProfileLoading(false))
+    useProfileStore.getState().open(playerId)
   }
 
   useEffect(() => {
@@ -88,73 +75,6 @@ export function LeaderboardPage(): JSX.Element {
       ? [...leaderboard.entries.slice(0, 9), currentPlayer]
       : leaderboard.entries
     : []
-
-  if (profileLoading || profile || profileError) {
-    return (
-      <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
-        <div className="mx-auto max-w-3xl">
-          <Button
-            variant="ghost"
-            className="h-9 px-3 text-xs"
-            onClick={() => {
-              setProfile(null)
-              setProfileError(null)
-              setProfileLoading(false)
-            }}
-          >
-            <ChevronLeft className="mr-1 size-4" aria-hidden="true" /> Leaderboard
-          </Button>
-          {profileLoading && (
-            <div className="flex min-h-80 items-center justify-center" role="status">
-              <LoaderCircle className="size-7 animate-spin text-sky-300" aria-hidden="true" />
-            </div>
-          )}
-          {profileError && <p className="mt-8 text-sm text-rose-300">{profileError}</p>}
-          {profile && (
-            <section className="mt-6 overflow-hidden  border border-white/10 bg-neutral-900/90">
-              <header className="border-b border-white/10 px-6 py-7">
-                <div className="flex items-center gap-4">
-                  <div className="flex size-12 items-center justify-center rounded-full bg-sky-400/15 text-sky-300">
-                    <UserRound className="size-6" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
-                      Player profile
-                    </p>
-                    <div className="mt-1 flex items-center gap-3">
-                      <h1 className="text-3xl font-semibold">{profile.username}</h1>
-                      <CountryFlag
-                        code={profile.flagCountryCode}
-                        className="h-[1em] w-auto shrink-0"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </header>
-              <dl className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-4">
-                {[
-                  ['MMR', profile.mmr],
-                  ['Wins', profile.wins],
-                  ['Losses', profile.losses],
-                  ['K / A / D', `${profile.kills} / ${profile.assists} / ${profile.deaths}`]
-                ].map(([label, value]) => (
-                  <div key={label} className="p-5">
-                    <dt className="text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                      {label}
-                    </dt>
-                    <dd className="mt-2 text-lg font-semibold tabular-nums">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="px-6 py-4 text-xs text-neutral-500">
-                Playing since {new Date(profile.createdAt).toLocaleDateString()}
-              </p>
-            </section>
-          )}
-        </div>
-      </main>
-    )
-  }
 
   return (
     <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">

@@ -1,10 +1,10 @@
-import { ArrowRight, ChevronLeft, LoaderCircle, Trophy, UserPlus, UserRound } from 'lucide-react'
+import { useProfileStore } from '../profile/profile.store'
+import { ArrowRight, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { ProfileLevelProgress } from '../../components/ui/ProfileLevelProgress'
-import type { PlayerProfile } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
 import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
@@ -67,9 +67,6 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     x: number
     y: number
   } | null>(null)
-  const [profile, setProfile] = useState<PlayerProfile | null>(null)
-  const [profileStatus, setProfileStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [profileError, setProfileError] = useState<string | null>(null)
   const [resultsStep, setResultsStep] = useState<'missions' | 'summary'>(() =>
     rewards || questSnapshot || match.profileXp ? 'missions' : 'summary'
   )
@@ -136,25 +133,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
 
   const openPlayerProfile = (playerId: string): void => {
     setContextMenu(null)
-    setProfile(null)
-    setProfileStatus('loading')
-    setProfileError(null)
-    void window.api.matchHistory
-      .getPlayerProfile(playerId)
-      .then((loadedProfile) => {
-        setProfile(loadedProfile)
-        setProfileStatus('idle')
-      })
-      .catch((reason: unknown) => {
-        setProfileStatus('error')
-        setProfileError(reason instanceof Error ? reason.message : 'Could not load player profile.')
-      })
-  }
-
-  const closeProfile = (): void => {
-    setProfile(null)
-    setProfileStatus('idle')
-    setProfileError(null)
+    useProfileStore.getState().open(playerId)
   }
 
   const addFriend = (playerId: string): void => {
@@ -312,7 +291,13 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium text-white">{player.username}</span>
+                    <button
+                      type="button"
+                      className="truncate text-left font-medium text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                      onClick={() => openPlayerProfile(player.id)}
+                    >
+                      {player.username}
+                    </button>
                     {index === 0 && (
                       <Trophy className="size-3.5 shrink-0 text-amber-300" aria-label="Winner" />
                     )}
@@ -416,60 +401,6 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           )}
         </div>
       )}
-      {(profileStatus === 'loading' || profileStatus === 'error' || profile) && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-5"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Player profile"
-        >
-          <section className="w-full max-w-2xl overflow-hidden  border border-white/10 bg-neutral-900 text-left shadow-2xl">
-            <header className="flex items-start justify-between border-b border-white/10 px-6 py-5">
-              <div>
-                <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">
-                  Player profile
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold">
-                  {profile?.username ?? 'Loading player…'}
-                </h2>
-              </div>
-              <Button className="h-9 px-3 text-xs" variant="ghost" onClick={closeProfile}>
-                <ChevronLeft className="mr-1 size-4" aria-hidden="true" /> Match results
-              </Button>
-            </header>
-            {profileStatus === 'loading' && (
-              <div className="flex min-h-48 items-center justify-center" role="status">
-                <LoaderCircle className="size-7 animate-spin text-sky-300" aria-hidden="true" />
-              </div>
-            )}
-            {profileStatus === 'error' && (
-              <p className="p-6 text-sm text-rose-300">{profileError}</p>
-            )}
-            {profile && (
-              <>
-                <dl className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-4">
-                  {[
-                    ['MMR', profile.mmr],
-                    ['Wins', profile.wins],
-                    ['Losses', profile.losses],
-                    ['K / A / D', `${profile.kills} / ${profile.assists} / ${profile.deaths}`]
-                  ].map(([label, value]) => (
-                    <div key={label} className="p-5">
-                      <dt className="text-[10px] font-bold tracking-wide text-neutral-500 uppercase">
-                        {label}
-                      </dt>
-                      <dd className="mt-2 text-lg font-semibold tabular-nums">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="px-6 py-4 text-xs text-neutral-500">
-                  Playing since {new Date(profile.createdAt).toLocaleDateString()}
-                </p>
-              </>
-            )}
-          </section>
-        </div>
-      )}
     </section>
   )
 }
@@ -510,7 +441,13 @@ function Team({
               onContextMenu={(event) => onPlayerContextMenu(event, p.id)}
               title="Right-click to view profile"
             >
-              <p className="truncate text-lg font-bold text-white">{p.username}</p>
+              <button
+                type="button"
+                className="max-w-full truncate text-left text-lg font-bold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                onClick={() => useProfileStore.getState().open(p.id)}
+              >
+                {p.username}
+              </button>
               <p className="mt-5 text-xs text-neutral-400">K / A / D</p>
               <p className="text-xl font-bold text-neutral-200">
                 {playerStats
