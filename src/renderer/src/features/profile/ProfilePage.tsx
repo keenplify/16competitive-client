@@ -100,7 +100,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
           />
         }
         {visibleTab === 'overview' || !own || Boolean(playerId) ? (
-          <div className="min-h-[480px]">
+          <div>
             {entry?.status === 'error' ? (
               <div
                 className="flex min-h-[480px] flex-col items-center justify-center gap-4"

@@ -194,12 +194,14 @@ export function ShopPage(): JSX.Element {
 
   const filteredSkins = useMemo(
     () =>
-      skins.filter(
-        (skin) =>
-          (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
-          (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType)
-      ),
-    [selectedCategory, selectedSkinType, skins]
+      skins
+        .filter(
+          (skin) =>
+            (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
+            (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType)
+        )
+        .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id))),
+    [ownedSkins, selectedCategory, selectedSkinType, skins]
   )
 
   const clearFilters = (): void => {
@@ -404,7 +406,7 @@ export function ShopPage(): JSX.Element {
                   return (
                     <article
                       key={skin.id}
-                      className="flex min-h-72 flex-col  border border-white/10 bg-neutral-900/90 p-5"
+                      className={`flex min-h-72 flex-col border border-white/10 bg-neutral-900/90 p-5 ${owned ? 'opacity-75' : ''}`}
                     >
                       <SkinCardPreview
                         skin={skin}
