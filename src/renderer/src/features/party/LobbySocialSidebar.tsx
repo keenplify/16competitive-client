@@ -1,3 +1,4 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useProfileStore } from '../profile/profile.store'
 import { useTranslation } from '../i18n/i18n'
 import { CommunityMembersSection } from '../partner-branding/CommunityMembersSection'
@@ -38,6 +39,7 @@ import { TextField } from '../../components/ui/TextField'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
+import { QueueWarmupButton } from '../matchmaking/QueueWarmupPrompt'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { usePartyStore } from './party.store'
 
@@ -226,92 +228,76 @@ function FriendRequestsModal({
   onAccept: (requestId: string) => void
   onDiscard: (requestId: string) => void
 }): JSX.Element | null {
-  useEffect(() => {
-    if (!open) return
-    const closeOnEscape = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose, open])
-
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="friend-requests-title"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
+    <ModalDialog
+      open
+      onClose={onClose}
+      className="w-[calc(100%-2rem)] max-w-sm border border-white/15 bg-neutral-900 shadow-2xl"
+      labelledBy="friend-requests-title"
     >
-      <section className="w-full max-w-sm border border-white/15 bg-neutral-900 shadow-2xl">
-        <header className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-5 py-4">
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-              Friends
-            </p>
-            <h2 id="friend-requests-title" className="mt-1 text-lg font-semibold text-white">
-              Friend requests
-            </h2>
-          </div>
-          <button
-            type="button"
-            className="  p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
-            aria-label="Close friend requests"
-            onClick={onClose}
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
-        </header>
-        <div className="max-h-[60vh] overflow-y-auto p-3">
-          {requests.length === 0 ? (
-            <p className="px-2 py-6 text-center text-sm text-neutral-500">
-              No pending friend requests.
-            </p>
-          ) : (
-            <div className="grid gap-2">
-              {requests.map((request) => (
-                <article
-                  key={request.id}
-                  className="flex items-center gap-3 border border-white/10 bg-black/20 p-3"
-                >
-                  <PlayerAvatar username={request.player.username} className="size-9" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {request.player.username}
-                    </p>
-                    <p className="text-xs text-neutral-500">Wants to be friends</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="  p-2 text-emerald-300 hover:bg-emerald-400/15 focus-visible:outline-2 focus-visible:outline-emerald-300"
-                      aria-label={`Accept ${request.player.username}'s friend request`}
-                      disabled={actingRequestId === request.id}
-                      onClick={() => onAccept(request.id)}
-                    >
-                      <Check className="size-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="  p-2 text-neutral-500 hover:bg-red-400/10 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-red-300"
-                      aria-label={`Discard ${request.player.username}'s friend request`}
-                      disabled={actingRequestId === request.id}
-                      onClick={() => onDiscard(request.id)}
-                    >
-                      <X className="size-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+      <header className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-5 py-4">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">Friends</p>
+          <h2 id="friend-requests-title" className="mt-1 text-lg font-semibold text-white">
+            Friend requests
+          </h2>
         </div>
-      </section>
-    </div>
+        <button
+          type="button"
+          className="  p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+          aria-label="Close friend requests"
+          onClick={onClose}
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
+      </header>
+      <div className="max-h-[60vh] overflow-y-auto p-3">
+        {requests.length === 0 ? (
+          <p className="px-2 py-6 text-center text-sm text-neutral-500">
+            No pending friend requests.
+          </p>
+        ) : (
+          <div className="grid gap-2">
+            {requests.map((request) => (
+              <article
+                key={request.id}
+                className="flex items-center gap-3 border border-white/10 bg-black/20 p-3"
+              >
+                <PlayerAvatar username={request.player.username} className="size-9" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {request.player.username}
+                  </p>
+                  <p className="text-xs text-neutral-500">Wants to be friends</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="  p-2 text-emerald-300 hover:bg-emerald-400/15 focus-visible:outline-2 focus-visible:outline-emerald-300"
+                    aria-label={`Accept ${request.player.username}'s friend request`}
+                    disabled={actingRequestId === request.id}
+                    onClick={() => onAccept(request.id)}
+                  >
+                    <Check className="size-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="  p-2 text-neutral-500 hover:bg-red-400/10 hover:text-red-300 focus-visible:outline-2 focus-visible:outline-red-300"
+                    aria-label={`Discard ${request.player.username}'s friend request`}
+                    disabled={actingRequestId === request.id}
+                    onClick={() => onDiscard(request.id)}
+                  >
+                    <X className="size-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </ModalDialog>
   )
 }
 
@@ -412,19 +398,6 @@ export function LobbySocialSidebar({
     if (partyError) toast.error(partyError)
   }, [partyError])
 
-  useEffect(() => {
-    const closeMenu = (): void => setFriendMenu(null)
-    const closeOnEscape = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') setFriendMenu(null)
-    }
-    window.addEventListener('click', closeMenu)
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      window.removeEventListener('click', closeMenu)
-      window.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [])
-
   if (matchNeedsAttention) return null
 
   const expandCollapsedSidebar = (): void => {
@@ -470,9 +443,10 @@ export function LobbySocialSidebar({
   return (
     <>
       <div
-        className={`fixed top-4 right-14 z-20 w-64 max-w-[calc(100vw-4.5rem)] transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
+        className={`fixed top-4 right-14 z-20 max-h-[calc(100dvh-2rem)] w-64 max-w-[calc(100vw-4.5rem)] overflow-y-auto transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
       >
         <MatchSearchPanel variant="compact" className="" />
+        {collapsed && <QueueWarmupButton />}
       </div>
       <aside
         className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
@@ -503,7 +477,10 @@ export function LobbySocialSidebar({
           className={`flex h-full min-w-72 flex-1 flex-col transition-all duration-250 ease-out ${collapsed ? 'pointer-events-none translate-x-4 opacity-0' : 'translate-x-0 opacity-100 delay-75'}`}
           aria-hidden={collapsed}
         >
-          <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
+          <div className="max-h-[55dvh] shrink-0 overflow-y-auto">
+            <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
+            {!collapsed && <QueueWarmupButton />}
+          </div>
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-sky-300" aria-hidden="true" />

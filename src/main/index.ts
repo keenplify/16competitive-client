@@ -843,6 +843,10 @@ app.whenReady().then(async () => {
     }
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.playWithBots, () => matchmakingConnection.playWithBots())
+  ipcMain.handle(MATCHMAKING_CHANNELS.joinWarmup, (_event, mode: unknown, mapId: unknown) =>
+    matchmakingConnection.joinWarmup(mode, mapId)
+  )
+  ipcMain.handle(MATCHMAKING_CHANNELS.leaveWarmup, () => matchmakingConnection.leaveWarmup())
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())

@@ -97,6 +97,7 @@ export interface ProfileActivitySnapshot {
 
 export interface PlayerProfile {
   activity?: ProfileActivitySnapshot
+  partnerStats?: { sessions: number; kills: number; deaths: number; seconds: number }
   recentMatches?: MatchHistoryEntry[]
   loadout?: ProfileLoadoutSkin[]
   level?: number

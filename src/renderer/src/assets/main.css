@@ -540,3 +540,37 @@
     animation: none !important;
   }
 }
+
+/* One entrance for launcher dialogs; no movement for reduced-motion users. */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes modal-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+[data-modal-dialog][open] {
+  animation: modal-enter 160ms ease-out;
+}
+[data-modal-dialog][open]::backdrop {
+  animation: modal-backdrop-enter 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-modal-dialog][open] {
+    animation: modal-backdrop-enter 80ms linear;
+  }
+  [data-modal-dialog][open]::backdrop {
+    animation-duration: 80ms;
+  }
+}

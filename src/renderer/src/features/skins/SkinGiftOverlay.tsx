@@ -1,8 +1,8 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { LoaderCircle, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import type { SkinGift, SkinGiftChoice } from '../../../../shared/skins'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
@@ -186,7 +186,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const finished = stage === 'claimed'
 
   return (
-    <ModalPortal>
+    <>
       <style>{`
         /*
          * Tailwind v4 emits the translate-x/y utilities as the "translate"
@@ -249,11 +249,12 @@ export function SkinGiftOverlay(): JSX.Element | null {
           }
         }
       `}</style>
-      <div
+      <ModalDialog
+        open
+        onClose={() => {}}
         className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-black/90 p-5 backdrop-blur-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="skin-gift-title"
+        labelledBy="skin-gift-title"
+        fullScreen
       >
         <div
           className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
@@ -449,7 +450,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
             </div>
           </div>
         </section>
-      </div>
-    </ModalPortal>
+      </ModalDialog>
+    </>
   )
 }

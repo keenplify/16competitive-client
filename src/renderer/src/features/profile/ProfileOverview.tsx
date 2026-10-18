@@ -50,6 +50,26 @@ export function ProfileOverview({
           </div>
         ))}
       </dl>
+      {profile.partnerStats && profile.partnerStats.sessions > 0 && (
+        <section aria-label={t('profile.partnerStats')} className="border-b border-white/15 pb-5">
+          <h3 className="mb-3 text-base font-semibold">{t('profile.partnerStats')}</h3>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              [t('profile.partnerSessions'), profile.partnerStats.sessions.toLocaleString(language)],
+              [t('profile.kills'), profile.partnerStats.kills.toLocaleString(language)],
+              [t('profile.deaths'), profile.partnerStats.deaths.toLocaleString(language)],
+              [t('profile.kd'), profile.partnerStats.deaths > 0
+                ? (profile.partnerStats.kills / profile.partnerStats.deaths).toLocaleString(language, { maximumFractionDigits: 2 })
+                : '—']
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-sm text-neutral-300">{label}</dt>
+                <dd className="mt-1 text-xl font-semibold tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
       <ProfileActivity activity={profile.activity} compact={compact} />
     </div>
   )

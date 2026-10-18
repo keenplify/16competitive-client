@@ -1,3 +1,4 @@
+import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { isPlayerProfile } from '../shared/player-profile-validation'
 import {
   parseCommunityTransfer,
@@ -625,7 +626,10 @@ const api: Window['api'] = {
       )
       const server = servers.find((row) => row.id === id && row.online)
       if (!server) throw new Error('INVALID_SERVER')
-      window.location.href = `steam://connect/${server.host}:${server.port}`
+      if (server.gameVersion === 'cs13') throw new Error('CS13_WEB_UNAVAILABLE')
+      const ticket = parsePartnerLaunchTicket(await jsonPost(`/partners/servers/${id}/launch-ticket`, {}))
+      const args = partnerLaunchArguments(server.host, server.port, ticket).join(' ')
+      window.location.href = `steam://run/10//${encodeURIComponent(args)}/`
     }
   },
   partnerBranding: {

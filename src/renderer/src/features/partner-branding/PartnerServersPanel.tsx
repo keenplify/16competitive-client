@@ -1,4 +1,5 @@
 import { useEffect, type JSX } from 'react'
+import { isWebRuntime } from '../../web-runtime'
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { serverIsFull } from '../../../../shared/partner-community'
@@ -32,6 +33,7 @@ export function PartnerServersPanel({
     return () => window.clearInterval(timer)
   }, [load])
   const selected = rows.find((row) => row.id === selectedId)
+  const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-20', className)}
@@ -85,6 +87,7 @@ export function PartnerServersPanel({
                 )}
                 <div className="absolute inset-x-0 bottom-0 p-4 text-center">
                   <p className="font-audiowide text-sm text-white break-words">{server.name}</p>
+                  <p className="mt-1 text-xs text-white/80">{server.gameVersion === 'cs13' ? 'Counter-Strike 1.3' : 'Counter-Strike 1.6'}</p>
                   <p className="mt-2 min-h-5 text-xs text-white/80">
                     {server.online === false
                       ? text('offline')
@@ -118,7 +121,7 @@ export function PartnerServersPanel({
         <p className="text-sm text-neutral-200" role={error ? 'alert' : undefined}>
           {error
             ? text(error as 'loadError' | 'installation' | 'busy' | 'launchFailed')
-            : (selected?.name ?? text('chooseServer'))}
+            : cs13WebUnavailable ? text('cs13WebUnavailable') : (selected?.name ?? text('chooseServer'))}
         </p>
         <Button
           className="h-12 min-w-40 shrink-0 gap-2 uppercase"
@@ -126,6 +129,7 @@ export function PartnerServersPanel({
             disabled ||
             connecting ||
             !selected ||
+            cs13WebUnavailable ||
             selected.online === false ||
             serverIsFull(selected)
           }

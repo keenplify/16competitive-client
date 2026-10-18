@@ -12,6 +12,8 @@ export const MATCHMAKING_CHANNELS = {
   setAllowRegionExpansion: 'matchmaking:set-allow-region-expansion',
   joinQueue: 'matchmaking:join-queue',
   leaveQueue: 'matchmaking:leave-queue',
+  joinWarmup: 'matchmaking:join-warmup',
+  leaveWarmup: 'matchmaking:leave-warmup',
   playWithBots: 'matchmaking:play-with-bots',
   getQueueStatus: 'matchmaking:get-queue-status',
   getMaps: 'matchmaking:get-maps',
@@ -229,7 +231,7 @@ export interface GlobalChatMessageDeleted {
 
 export type MatchmakingSearchStage = 'LOCAL' | 'EXPANDED' | 'BOT_FILL'
 
-export type MatchmakingServerMessage =
+export type MatchmakingServerMessage = { whileQueued?: boolean } & (
   | { type: 'connected'; authenticated: false }
   | {
       type: 'server_restarting'
@@ -381,8 +383,9 @@ export type MatchmakingServerMessage =
   | { type: 'game_process_exited'; matchId: string; code: number | null; signal: string | null }
   | { type: 'error'; code: string; message: string }
   | { type: 'pong'; serverNow?: string }
+)
 
-export type MatchmakingEvent =
+export type MatchmakingEvent = { whileQueued?: boolean } & (
   | MatchmakingServerMessage
   | { type: 'clock_sync'; serverNow: string }
   | {
@@ -404,8 +407,11 @@ export type MatchmakingEvent =
       type: 'connection_state'
       state: 'connecting' | 'reconnecting' | 'disconnected' | 'handoff'
     }
+)
 
 export interface MatchmakingApi {
+  joinWarmup(mode: MatchmakingMode, mapId: string): Promise<void>
+  leaveWarmup(): Promise<void>
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>
   getOnlinePlayers(): Promise<number>
@@ -425,7 +431,7 @@ export interface MatchmakingApi {
   getQueueStatus(): Promise<void>
   getMaps(): Promise<MatchmakingMapCatalog>
   respondReady(matchId: string, accepted: boolean): Promise<void>
-  reconnectGame(): Promise<void>
+  reconnectGame(matchId?: string): Promise<void>
   copyConnection(matchId: string): Promise<void>
   reportPlayer(
     matchId: string,

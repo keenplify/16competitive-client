@@ -1,6 +1,11 @@
+import { API_BASE_URL } from './config'
+import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { lookup } from 'node:dns/promises'
 import { spawn } from 'node:child_process'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
+import { app } from 'electron'
+import { LegacyGameService } from './game/legacy-game-service'
+import { cs13Adapter } from './game/adapters/cs13'
 import { getPartnerBranding } from './partner-branding'
 import { getSessionToken } from './auth'
 import { getSavedCs16Executable } from './game/game-settings'
@@ -94,7 +99,7 @@ export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
 let connecting = false
 export async function connectPartnerServer(id: unknown): Promise<void> {
   if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error('INVALID_SERVER')
-  if (connecting || matchmakingConnection.isBusyForDemo()) throw new Error('MATCH_BUSY')
+  if (connecting || matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
   connecting = true
   try {
     const token = getSessionToken()
@@ -103,17 +108,46 @@ export async function connectPartnerServer(id: unknown): Promise<void> {
       server = branding?.servers.find((row) => row.id === id)
     if (!server) throw new Error('INVALID_SERVER')
     const address = await publicAddress(server.host)
+    if (server.gameVersion === 'cs13') {
+      const profile = await new LegacyGameService({
+        settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+        platform: process.platform,
+        chooseFolder: async () => null,
+        isBusy: () => matchmakingConnection.isBusyForPartnerServer(),
+        launch: async () => undefined
+      }).get()
+      if (!profile.ok || !profile.value.installation) throw new Error('INSTALLATION_REQUIRED')
+      const plan = cs13Adapter.buildMenuLaunchPlan(profile.value.installation)
+      await launchOrdinaryCounterStrike(async () => {
+        if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
+          throw new Error('MATCH_BUSY')
+        const child = spawn(plan.executable, [...plan.args, '+connect', `${address}:${server.port}`], {
+          cwd: plan.cwd, shell: false, detached: true, stdio: 'ignore'
+        })
+        await new Promise<void>((resolve, reject) => {
+          child.once('spawn', resolve)
+          child.once('error', () => reject(new Error('LAUNCH_FAILED')))
+        })
+        child.unref()
+      })
+      return
+    }
     const executable = await getSavedCs16Executable()
     if (!executable) throw new Error('INSTALLATION_REQUIRED')
     const target = await resolveCs16LaunchTarget(executable)
-    if (matchmakingConnection.isBusyForDemo()) throw new Error('MATCH_BUSY')
+    const ticketResponse = await fetch(new URL(`/partners/servers/${id}/launch-ticket`, API_BASE_URL), {
+      method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000)
+    })
+    if (!ticketResponse.ok) throw new Error('SERVER_LINK_UNAVAILABLE')
+    const ticket = parsePartnerLaunchTicket(await ticketResponse.json())
+    if (matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
     await launchOrdinaryCounterStrike(async () => {
-      if (getSessionToken() !== token || matchmakingConnection.isBusyForDemo())
+      if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
         throw new Error('MATCH_BUSY')
-      // Ordinary community session: no match ticket, module, anti-cheat or watchdog.
+      // Ordinary community session. The single-use link ticket grants only partner session identity.
       const child = spawn(
         target.executable,
-        [...target.argumentPrefix, '+connect', `${address}:${server.port}`],
+        [...target.argumentPrefix, ...partnerLaunchArguments(address, server.port, ticket)],
         {
           cwd:
             target.distribution === 'steam' && process.platform === 'win32'

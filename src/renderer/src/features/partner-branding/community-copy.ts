@@ -36,7 +36,8 @@ const keys = [
   'alreadyFriend',
   'requested',
   'website',
-  'pingApi'
+  'pingApi',
+  'cs13WebUnavailable'
 ] as const
 type Key = (typeof keys)[number]
 const rows: Record<SupportedLanguageCode, string[]> = {
@@ -77,7 +78,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} is your friend',
     'Friend request with {{player}} is pending',
     'Website',
-    'Ping measured from our API server.'
+    'Ping measured from our API server.',
+    'CS 1.3 servers require the desktop launcher.'
   ],
   ru: [
     'Наши серверы',
@@ -116,7 +118,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} — ваш друг',
     'Заявка с {{player}} ожидает ответа',
     'Сайт',
-    'Пинг измерен с нашего API-сервера.'
+    'Пинг измерен с нашего API-сервера.',
+    'Для серверов CS 1.3 требуется настольный лаунчер.'
   ],
   tl: [
     'Mga Server Namin',
@@ -155,7 +158,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Kaibigan mo si {{player}}',
     'Pending ang friend request kay {{player}}',
     'Website',
-    'Mula sa aming API server ang ping.'
+    'Mula sa aming API server ang ping.',
+    'Kailangan ang desktop launcher para sa mga CS 1.3 server.'
   ],
   th: [
     'เซิร์ฟเวอร์ของเรา',
@@ -194,7 +198,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} เป็นเพื่อนของคุณ',
     'คำขอเป็นเพื่อนกับ {{player}} กำลังรอ',
     'เว็บไซต์',
-    'ปิงวัดจากเซิร์ฟเวอร์ API ของเรา'
+    'ปิงวัดจากเซิร์ฟเวอร์ API ของเรา',
+    'เซิร์ฟเวอร์ CS 1.3 ต้องใช้ตัวเปิดเกมบนเดสก์ท็อป'
   ],
   id: [
     'Server Kami',
@@ -233,7 +238,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} adalah teman Anda',
     'Permintaan pertemanan dengan {{player}} tertunda',
     'Situs web',
-    'Ping diukur dari server API kami.'
+    'Ping diukur dari server API kami.',
+    'Server CS 1.3 memerlukan peluncur desktop.'
   ],
   hi: [
     'हमारे सर्वर',
@@ -272,7 +278,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} आपका मित्र है',
     '{{player}} के साथ मित्र अनुरोध लंबित है',
     'वेबसाइट',
-    'पिंग हमारे API सर्वर से मापा गया है।'
+    'पिंग हमारे API सर्वर से मापा गया है।',
+    'CS 1.3 सर्वर के लिए डेस्कटॉप लॉन्चर आवश्यक है।'
   ],
   pt: [
     'Nossos servidores',
@@ -311,7 +318,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} é seu amigo',
     'Solicitação de amizade com {{player}} pendente',
     'Site',
-    'Ping medido a partir do nosso servidor API.'
+    'Ping medido a partir do nosso servidor API.',
+    'Servidores CS 1.3 exigem o launcher de desktop.'
   ],
   ja: [
     'コミュニティサーバー',
@@ -350,7 +358,8 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}}はフレンドです',
     '{{player}}へのフレンド申請は保留中です',
     'ウェブサイト',
-    'Pingは当社のAPIサーバーから測定されます。'
+    'Pingは当社のAPIサーバーから測定されます。',
+    'CS 1.3サーバーにはデスクトップランチャーが必要です。'
   ]
 }
 export function communityText(

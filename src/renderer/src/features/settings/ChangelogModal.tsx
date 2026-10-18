@@ -1,8 +1,8 @@
-import { useEffect, useRef, type JSX } from 'react'
+import { ModalDialog } from '../../components/ui/ModalDialog'
+import { type JSX } from 'react'
 import ReactMarkdown from 'react-markdown'
 import changelog from '../../../../../CHANGELOG.md?raw'
 import { Button } from '../../components/ui/Button'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 
 const changelogSections = changelog.split(/(?=^## )/m)
 const changelogIntro = changelogSections.shift() ?? ''
@@ -13,27 +13,19 @@ interface ChangelogModalProps {
 }
 
 export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    dialog?.showModal()
-    return () => dialog?.close()
-  }, [])
-
   return (
-    <ModalPortal>
-      <dialog
-        ref={dialogRef}
+    <>
+      <ModalDialog
+        open
         onClose={onClose}
-        aria-labelledby="changelog-title"
         className="m-auto max-h-[85vh] w-[min(44rem,calc(100vw-2rem))] flex-col overflow-hidden  border border-white/15 bg-neutral-900 p-0 text-white shadow-2xl backdrop:bg-neutral-950/85 open:flex"
+        labelledBy="changelog-title"
       >
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
           <h2 id="changelog-title" className="text-xl font-semibold">
             Changelog
           </h2>
-          <Button variant="ghost" onClick={() => dialogRef.current?.close()}>
+          <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
         </div>
@@ -66,7 +58,7 @@ export function ChangelogModal({ onClose }: ChangelogModalProps): JSX.Element {
             {newestFirstChangelog}
           </ReactMarkdown>
         </div>
-      </dialog>
-    </ModalPortal>
+      </ModalDialog>
+    </>
   )
 }

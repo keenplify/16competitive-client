@@ -76,6 +76,13 @@ export const isPlayerProfile = (value: unknown): value is PlayerProfile => {
   const player = value as Record<string, unknown>
   return (
     (player.activity === undefined || isActivity(player.activity)) &&
+    (player.partnerStats === undefined || (
+      typeof player.partnerStats === 'object' && player.partnerStats !== null &&
+      ['sessions', 'kills', 'deaths', 'seconds'].every((key) => {
+        const number = (player.partnerStats as Record<string, unknown>)[key]
+        return Number.isSafeInteger(number) && Number(number) >= 0
+      })
+    )) &&
     (player.recentMatches === undefined ||
       (Array.isArray(player.recentMatches) &&
         player.recentMatches.length <= 10 &&

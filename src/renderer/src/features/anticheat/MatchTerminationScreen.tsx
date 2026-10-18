@@ -1,3 +1,4 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { ShieldAlert } from 'lucide-react'
 import { useEffect, useRef, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -24,22 +25,18 @@ export function MatchTerminationScreen({
   }, [])
 
   return (
-    <div
+    <ModalDialog
+      open
+      onClose={() => {}}
       className={twMerge(
         'fixed inset-0 z-[100001] flex items-center justify-center overflow-y-auto bg-neutral-950/95 px-6 py-12 text-center backdrop-blur-xl',
         className
       )}
       style={{ backgroundImage: 'radial-gradient(ellipse at 50% 45%, #7f1d1d26, transparent 65%)' }}
+      labelledBy="match-terminated-title"
+      describedBy="match-terminated-description"
       role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="match-terminated-title"
-      aria-describedby="match-terminated-description"
-      onKeyDown={(event) => {
-        if (event.key === 'Tab') {
-          event.preventDefault()
-          buttonRef.current?.querySelector('button')?.focus()
-        }
-      }}
+      fullScreen
     >
       <section className="w-full max-w-4xl">
         <ShieldAlert className="mx-auto mb-6 size-12 text-red-400" aria-hidden="true" />
@@ -71,6 +68,6 @@ export function MatchTerminationScreen({
           </Button>
         </div>
       </section>
-    </div>
+    </ModalDialog>
   )
 }

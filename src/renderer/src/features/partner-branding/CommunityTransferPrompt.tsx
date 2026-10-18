@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { LoaderCircle, Users } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { useNavigationStore } from '../navigation/navigation.store'
@@ -72,22 +71,16 @@ export function CommunityTransferDialog() {
   return <TransferModal key={pending.id} />
 }
 function TransferModal() {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const dialog = ref.current
-    dialog?.showModal()
-    return () => dialog?.close()
-  }, [])
   return (
-    <ModalPortal>
-      <dialog
-        ref={ref}
-        onCancel={(event) => event.preventDefault()}
-        aria-labelledby="community-transfer-title"
+    <>
+      <ModalDialog
+        open
+        onClose={() => {}}
         className="m-auto max-h-[90vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-none border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl backdrop:bg-neutral-950/85"
+        labelledBy="community-transfer-title"
       >
         <CommunityTransferPrompt />
-      </dialog>
-    </ModalPortal>
+      </ModalDialog>
+    </>
   )
 }

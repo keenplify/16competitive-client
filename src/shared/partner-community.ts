@@ -22,6 +22,7 @@ export interface PartnerServer {
   name: string
   host: string
   port: number
+  gameVersion?: 'cs16' | 'cs13'
 }
 export interface PartnerServerStatus extends PartnerServer {
   pingSource?: 'client' | 'api'
@@ -163,14 +164,15 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       typeof s.port !== 'number' ||
       !Number.isInteger(s.port) ||
       s.port < 1 ||
-      s.port > 65535
+      s.port > 65535 ||
+      (s.gameVersion !== undefined && s.gameVersion !== 'cs16' && s.gameVersion !== 'cs13')
     )
       throw new Error('Invalid partner server')
     const endpoint = `${s.host.toLowerCase()}:${s.port}`
     if (endpoints.has(endpoint)) throw new Error('Duplicate partner server')
     ids.add(s.id)
     endpoints.add(endpoint)
-    return { id: s.id, name: s.name, host: s.host, port: s.port }
+    return { id: s.id, name: s.name, host: s.host, port: s.port, gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13' }
   })
   return {
     communityName: communityName as string | null,

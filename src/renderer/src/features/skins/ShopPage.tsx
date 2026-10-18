@@ -1,10 +1,10 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingCart, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { CurrencyAmount, CurrencyBalance } from '../../components/CurrencyIcon'
 import { PurchaseConfirmModal } from './PurchaseConfirmModal'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useAuthStore } from '../auth/auth.store'
 import type { OwnedSkin, Skin, SkinCurrency } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
@@ -498,21 +498,21 @@ export function ShopPage(): JSX.Element {
         />
       )}
       {previewSkin && (
-        <ModalPortal>
+        <>
           <SkinPreview
             key={previewSkin.id}
             skin={previewSkin}
             onClose={() => setPreviewSkin(null)}
           />
-        </ModalPortal>
+        </>
       )}
       {showRedeemCode && (
-        <ModalPortal>
+        <>
           <RedeemCodeModal
             onClose={() => setShowRedeemCode(false)}
             onRedeemed={refreshOwnedSkins}
           />
-        </ModalPortal>
+        </>
       )}
     </main>
   )
@@ -577,96 +577,94 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
   }, [skin.id, skin.weaponKey])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${skin.name} preview`}
+    <ModalDialog
+      open
+      onClose={onClose}
+      className="w-[calc(100%-2rem)] max-w-3xl overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl"
+      label={`${skin.name} preview`}
     >
-      <section className="relative w-full max-w-3xl overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl">
-        <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <div>
-            <h2 className="mt-1 text-lg font-semibold text-white">{skin.name}</h2>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-400">
-              {sourceUrl && (
-                <a
-                  className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
-                  href={sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ExternalLink className="size-3" aria-hidden="true" />
-                  Source
-                </a>
-              )}
-              {creatorUrl ? (
-                <a
-                  className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
-                  href={creatorUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ExternalLink className="size-3" aria-hidden="true" />
-                  {skin.creatorName}
-                </a>
-              ) : (
-                <span>By {skin.creatorName}</span>
-              )}
-            </div>
+      <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div>
+          <h2 className="mt-1 text-lg font-semibold text-white">{skin.name}</h2>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-400">
+            {sourceUrl && (
+              <a
+                className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
+                href={sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink className="size-3" aria-hidden="true" />
+                Source
+              </a>
+            )}
+            {creatorUrl ? (
+              <a
+                className="inline-flex items-center gap-1 transition hover:text-sky-300 focus-visible:text-sky-300 focus-visible:outline-none"
+                href={creatorUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink className="size-3" aria-hidden="true" />
+                {skin.creatorName}
+              </a>
+            ) : (
+              <span>By {skin.creatorName}</span>
+            )}
           </div>
-          <Button
-            className="size-9 px-0"
-            variant="ghost"
-            aria-label="Close preview"
-            data-audio-sfx="backward"
-            onClick={onClose}
-          >
-            <X className="size-4" />
-          </Button>
-        </header>
-        <div className="relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
-          {skin.weaponKey === 'elite' ? (
-            <img
-              className="h-full w-full object-contain p-6"
-              src={elitePistolsImage}
-              alt={`${skin.name} Elite pistols`}
-              draggable={false}
-            />
-          ) : model ? (
-            <ModelViewer
-              modelBuffer={model}
-              modelKey={skin.id}
-              presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
-              camera={{
-                distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
-                target: getSkinCameraTarget(skin.weaponKey)
-              }}
-              animation="idle1"
-              maxFrameRate={30}
-              disableZoom
-              lockCameraDistance
-              orbitAngleLimit={0.7}
-              rotateSpeed={0.45}
-              className="absolute inset-0"
-            />
-          ) : null}
-          {skin.weaponKey !== 'elite' && !model && !error && (
-            <div className="flex h-full items-center justify-center" role="status">
-              <LoaderCircle className="size-7 animate-spin text-sky-300" />
-            </div>
-          )}
-          {skin.weaponKey !== 'elite' && error && (
-            <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
-              {error}
-            </div>
-          )}
-          {skin.weaponKey !== 'elite' && model && (
-            <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
-              Drag to rotate
-            </span>
-          )}
         </div>
-      </section>
-    </div>
+        <Button
+          className="size-9 px-0"
+          variant="ghost"
+          aria-label="Close preview"
+          data-audio-sfx="backward"
+          onClick={onClose}
+        >
+          <X className="size-4" />
+        </Button>
+      </header>
+      <div className="relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
+        {skin.weaponKey === 'elite' ? (
+          <img
+            className="h-full w-full object-contain p-6"
+            src={elitePistolsImage}
+            alt={`${skin.name} Elite pistols`}
+            draggable={false}
+          />
+        ) : model ? (
+          <ModelViewer
+            modelBuffer={model}
+            modelKey={skin.id}
+            presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
+            camera={{
+              distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
+              target: getSkinCameraTarget(skin.weaponKey)
+            }}
+            animation="idle1"
+            maxFrameRate={30}
+            disableZoom
+            lockCameraDistance
+            orbitAngleLimit={0.7}
+            rotateSpeed={0.45}
+            className="absolute inset-0"
+          />
+        ) : null}
+        {skin.weaponKey !== 'elite' && !model && !error && (
+          <div className="flex h-full items-center justify-center" role="status">
+            <LoaderCircle className="size-7 animate-spin text-sky-300" />
+          </div>
+        )}
+        {skin.weaponKey !== 'elite' && error && (
+          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
+            {error}
+          </div>
+        )}
+        {skin.weaponKey !== 'elite' && model && (
+          <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
+            Drag to rotate
+          </span>
+        )}
+      </div>
+    </ModalDialog>
   )
 }

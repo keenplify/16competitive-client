@@ -33,6 +33,7 @@ import { reportDiagnosticIssue } from './diagnostic-logs'
 import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
 import {
   closeCounterStrikeForMatch,
+  shutdownManagedGame,
   isCounterStrikeActiveForMatch,
   launchCounterStrikeForMatch
 } from './game/cs16-launcher'
@@ -278,6 +279,7 @@ const partyNotificationCodes = new Set([
 const isServerMessage = (value: unknown, endpoint: string): value is MatchmakingServerMessage => {
   if (typeof value !== 'object' || value === null || !('type' in value)) return false
   const message = value as Record<string, unknown>
+  if (message.whileQueued !== undefined && typeof message.whileQueued !== 'boolean') return false
 
   switch (message.type) {
     case 'connected':
@@ -507,6 +509,145 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
 class MatchmakingConnection {
   private readonly reportConnectionFailure = createAutomaticMatchReporter(reportDiagnosticIssue)
   private socket: WebSocket | null = null
+  private warmupSuppressed = false
+  private warmupSocket: WebSocket | null = null
+  private warmupMatchId: string | null = null
+  private warmupApiUrl: string | null = null
+  private warmupConnectingMatchId: string | null = null
+  private readonly warmupMatchIds = new Set<string>()
+  private warmupLaunch: Promise<void> = Promise.resolve()
+  private warmupCleanup: Promise<void> = Promise.resolve()
+
+  joinWarmup(mode: unknown, mapId: unknown): Promise<void> {
+    if (
+      !isMatchmakingMode(mode) ||
+      mode === '5v5' ||
+      typeof mapId !== 'string' ||
+      !/^[a-z0-9_]{1,64}$/.test(mapId)
+    )
+      throw new Error('Invalid warmup selection')
+    if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
+    return this.warmupCleanup.then(() => {
+      if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
+      this.warmupSuppressed = false
+      this.warmupSocket = this.socket
+      this.send({ type: 'join_warmup', mode, mapId })
+    })
+  }
+
+  leaveWarmup(): Promise<void> {
+    this.warmupSuppressed = true
+    const matchId = this.warmupMatchId
+    const socket = this.warmupSocket
+    this.warmupMatchId = null
+    this.warmupConnectingMatchId = null
+    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'leave_warmup' }))
+    if (!matchId) {
+      if (socket && socket !== this.socket) socket.close()
+      this.warmupSocket = null
+      return this.warmupCleanup
+    }
+    this.cancelledMatchIds.add(matchId)
+    clearMatchAssetPreload(matchId)
+    this.warmupCleanup = this.warmupCleanup.then(async () => {
+      await this.warmupLaunch
+      if (this.cs13Matches.has(matchId)) await shutdownCs13Game(matchId)
+      else if (isCounterStrikeActiveForMatch(matchId)) await shutdownManagedGame()
+      this.notify({
+        type: 'game_process_exited',
+        matchId,
+        code: null,
+        signal: null,
+        whileQueued: true
+      })
+      if (socket && socket !== this.socket) socket.close()
+      if (this.warmupSocket === socket) this.warmupSocket = null
+    })
+    return this.warmupCleanup
+  }
+
+  private handleWarmup(message: MatchmakingServerMessage, socket: WebSocket): void {
+    if (message.type === 'match_found' || message.type === 'match_roster') {
+      if (this.warmupSuppressed || (this.freshProcess && !this.desiredMode)) {
+        socket.send(JSON.stringify({ type: 'leave_warmup' }))
+        return
+      }
+      this.warmupMatchIds.add(message.matchId)
+      this.warmupMatchId = message.matchId
+      this.warmupSocket = socket
+      this.warmupApiUrl = message.hostApiUrl
+      if (message.mode === 'cs13_3v3') this.cs13Matches.add(message.matchId)
+      void startMatchAssetPreload(
+        message.matchId,
+        message.hostApiUrl,
+        (progress) =>
+          this.notify({
+            type: 'match_assets_progress',
+            matchId: message.matchId,
+            ...progress,
+            whileQueued: true
+          }),
+        message.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+      ).catch((error) => {
+        console.warn('[QueueWarmup] assets failed', error)
+        this.notify({
+          type: 'error',
+          code: 'WARMUP_FAILED',
+          message: 'Could not prepare warmup assets.',
+          whileQueued: true
+        })
+      })
+    } else if (message.type === 'match_connect') {
+      if (this.warmupMatchId !== message.matchId) return
+      if (this.warmupConnectingMatchId === message.matchId) {
+        this.notify({ ...message, whileQueued: true })
+        return
+      }
+      this.warmupConnectingMatchId = message.matchId
+      const apiUrl = this.warmupApiUrl ?? this.activeApiUrl ?? API_BASE_URL
+      this.warmupLaunch = this.warmupLaunch
+        .then(async () => {
+          await waitForMatchAssetPreload(message.matchId)
+          if (this.warmupMatchId !== message.matchId) return
+          if (this.cs13Matches.has(message.matchId)) {
+            await launchCs13Match(
+              message,
+              (code, signal) => this.handleGameProcessExit(message.matchId, code, signal),
+              () => this.warmupMatchId === message.matchId,
+              apiUrl,
+              (active, channel) => this.notifyLocalVoicePtt(message.matchId, active, channel)
+            )
+          } else {
+            await launchCounterStrikeForMatch({
+              ...message,
+              apiUrl,
+              onVoicePtt: (active, channel) =>
+                this.notifyLocalVoicePtt(message.matchId, active, channel),
+              onExit: ({ code, signal }) =>
+                this.handleGameProcessExit(message.matchId, code, signal)
+            })
+          }
+          if (this.warmupMatchId === message.matchId) this.yieldLauncherToGame()
+        })
+        .catch((error) => {
+          if (this.warmupConnectingMatchId === message.matchId) this.warmupConnectingMatchId = null
+          console.warn('[QueueWarmup] launch failed', error)
+          this.notify({
+            type: 'error',
+            code: 'WARMUP_FAILED',
+            message: 'Could not launch the warmup.',
+            whileQueued: true
+          })
+        })
+    } else if (message.type === 'match_cancelled' || message.type === 'match_finished') {
+      if (this.warmupMatchId === message.matchId)
+        void this.leaveWarmup().catch((error) =>
+          console.warn('[QueueWarmup] cleanup failed', error)
+        )
+    }
+    this.notify({ ...message, whileQueued: true })
+  }
+
   private socketOpening = false
   private renderer: WebContents | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -546,6 +687,12 @@ class MatchmakingConnection {
   private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
   private matchAttentionWindow: BrowserWindow | null = null
   private restoreMatchWindowTopmost = false
+
+  isBusyForPartnerServer(): boolean {
+    if (this.desiredMode === '5v5' && !this.warmupMatchId && !this.manualConnectionMatchId && !this.recoveryStatusPending)
+      return false
+    return this.isBusyForDemo()
+  }
 
   isBusyForDemo(): boolean {
     return Boolean(
@@ -615,6 +762,7 @@ class MatchmakingConnection {
   }
 
   disconnect(): void {
+    void this.leaveWarmup().catch((error) => console.warn('[QueueWarmup] cleanup failed', error))
     this.manuallyDisconnected = true
     this.authenticated = false
     this.authenticatedPlayer = null
@@ -636,6 +784,11 @@ class MatchmakingConnection {
   }
 
   shutdown(): void {
+    if (this.warmupSocket?.readyState === WebSocket.OPEN) {
+      this.warmupSocket.send(JSON.stringify({ type: 'leave_warmup' }))
+      if (this.warmupSocket !== this.socket) this.warmupSocket.close()
+    }
+    this.warmupSuppressed = true
     this.manuallyDisconnected = true
     this.authenticated = false
     this.authenticatedPlayer = null
@@ -968,6 +1121,14 @@ class MatchmakingConnection {
   }
 
   private handleGameProcessExit(matchId: string, code: number | null, signal: string | null): void {
+    if (this.warmupMatchIds.has(matchId)) {
+      this.notify({ type: 'game_process_exited', matchId, code, signal, whileQueued: true })
+      if (this.warmupMatchId === matchId)
+        void this.leaveWarmup().catch((error) =>
+          console.warn('[QueueWarmup] cleanup failed', error)
+        )
+      return
+    }
     markPostGameUpdateCheckPending()
     discordPresence.setInGame(false)
     this.focusLauncher()
@@ -1079,6 +1240,8 @@ class MatchmakingConnection {
     let socketAuthenticated = false
     const branchRefresh = setInterval(() => {
       if (socketAuthenticated && socket.readyState === WebSocket.OPEN) {
+        if (socket === this.warmupSocket && socket !== this.socket)
+          socket.send(JSON.stringify({ type: 'ping' }))
         void activateIcafeBranch(token)
       }
     }, 2 * 60_000)
@@ -1091,7 +1254,11 @@ class MatchmakingConnection {
     connectionTimeout.unref?.()
 
     socket.addEventListener('message', (event) => {
-      if ((!handoff && this.socket !== socket) || typeof event.data !== 'string') return
+      if (
+        (!handoff && this.socket !== socket && this.warmupSocket !== socket) ||
+        typeof event.data !== 'string'
+      )
+        return
       let parsed: unknown
       try {
         parsed = JSON.parse(event.data)
@@ -1101,6 +1268,20 @@ class MatchmakingConnection {
       }
       if (!isServerMessage(parsed, websocketUrl)) {
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
+        return
+      }
+      if (parsed.whileQueued || ('matchId' in parsed && this.warmupMatchIds.has(parsed.matchId))) {
+        if ('matchId' in parsed && this.cancelledMatchIds.has(parsed.matchId)) return
+        this.handleWarmup(parsed, socket)
+        return
+      }
+      if (this.socket !== socket && this.warmupSocket === socket && socketAuthenticated) {
+        if (parsed.type === 'party_presence_ping')
+          socket.send(JSON.stringify({ type: 'party_presence_pong', nonce: parsed.nonce }))
+        if (parsed.type === 'server_restarting')
+          void this.leaveWarmup().catch((error) =>
+            console.warn('[QueueWarmup] cleanup failed', error)
+          )
         return
       }
       if (parsed.type === 'error' && parsed.code === 'UNAUTHORIZED' && !socketAuthenticated) {
@@ -1188,7 +1369,7 @@ class MatchmakingConnection {
           this.authenticated = true
           this.recoveryStatusPending = true
           socket.send(JSON.stringify({ type: 'get_queue_status' }))
-          oldSocket?.close()
+          if (oldSocket !== this.warmupSocket) oldSocket?.close()
         } else {
           this.authenticated = true
           this.activeApiUrl = targetApiUrl ?? null
@@ -1239,6 +1420,9 @@ class MatchmakingConnection {
         this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
         this.desiredPreferredRegion = parsed.region
       } else if (parsed.type === 'queue_left') {
+        void this.leaveWarmup().catch((error) =>
+          console.warn('[QueueWarmup] cleanup failed', error)
+        )
         discordPresence.clearQueue()
         this.desiredMode = null
         this.desiredMapIds = []
@@ -1296,8 +1480,9 @@ class MatchmakingConnection {
           this.recoveryStatusPending = false
           this.lastConnection = parsed
           void this.prepareMatchAssets(parsed.matchId)
-            .then(() =>
-              launchCs13Match(
+            .then(async () => {
+              await this.leaveWarmup()
+              return launchCs13Match(
                 parsed,
                 (code, signal) => this.handleGameProcessExit(parsed.matchId, code, signal),
                 () =>
@@ -1306,7 +1491,7 @@ class MatchmakingConnection {
                 this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
                 (active, channel) => this.notifyLocalVoicePtt(parsed.matchId, active, channel)
               )
-            )
+            })
             .then(() => {
               if (
                 this.cancelledMatchIds.has(parsed.matchId) ||
@@ -1340,6 +1525,12 @@ class MatchmakingConnection {
             ) {
               return
             }
+            await this.leaveWarmup()
+            if (
+              this.cancelledMatchIds.has(parsed.matchId) ||
+              this.finishedMatchIds.has(parsed.matchId)
+            )
+              return
             await launchCounterStrikeForMatch({
               ...parsed,
               apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL,
@@ -1431,7 +1622,7 @@ class MatchmakingConnection {
     socket.addEventListener('close', () => {
       clearTimeout(connectionTimeout)
       clearInterval(branchRefresh)
-      if (handoff && this.socket !== socket) {
+      if (handoff && this.socket !== socket && !socketAuthenticated) {
         if (!this.manuallyDisconnected) {
           this.notify({
             type: 'error',
@@ -1546,6 +1737,8 @@ class MatchmakingConnection {
   }
 
   private notify(event: MatchmakingEvent): void {
+    if ('matchId' in event && this.warmupMatchIds.has(event.matchId))
+      event = { ...event, whileQueued: true }
     if (this.renderer && !this.renderer.isDestroyed()) {
       this.renderer.send(MATCHMAKING_CHANNELS.event, event)
     }

@@ -1,3 +1,4 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { ProfilePopupNavigation } from './ProfilePopupNavigation'
 import { useProfileModeLabel } from './useProfileModeLabel'
 import { useEffect, useRef, useState, type JSX } from 'react'
@@ -8,7 +9,6 @@ import { useAuthStore } from '../auth/auth.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { useTranslation } from '../i18n/i18n'
 import { Button } from '../../components/ui/Button'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 
 export function MatchDetailsOverlay(): JSX.Element | null {
   const { id, summary, status, close, open } = useMatchDetailsStore()
@@ -17,13 +17,10 @@ export function MatchDetailsOverlay(): JSX.Element | null {
   const busy = useFriendsStore((state) => state.actingPlayerId)
   const { t } = useTranslation()
   const modeLabel = useProfileModeLabel()
-  const dialog = useRef<HTMLDialogElement>(null)
   const menuButton = useRef<HTMLButtonElement>(null)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [notice, setNotice] = useState<'sent' | 'error' | null>(null)
-  useEffect(() => {
-    if (id) dialog.current?.showModal()
-  }, [id])
+
   useEffect(
     () =>
       useAuthStore.subscribe((state, previous) => {
@@ -41,24 +38,16 @@ export function MatchDetailsOverlay(): JSX.Element | null {
     close()
   }
   return (
-    <ModalPortal>
-      <dialog
-        ref={dialog}
-        aria-label={t('profile.matchDetails')}
-        onCancel={(event) => {
-          event.preventDefault()
-          if (menu) {
-            setMenu(null)
-          } else dismiss()
-        }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) {
-            dismiss()
-            return
-          }
-          setMenu(null)
+    <>
+      <ModalDialog
+        open
+        onClose={() => {
+          if (menu) setMenu(null)
+          else dismiss()
         }}
         className="fixed inset-0 m-auto max-h-[90vh] w-[min(1000px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 p-6 text-white backdrop:bg-black/80 sm:p-8"
+        label={t('profile.matchDetails')}
+        onClick={() => setMenu(null)}
       >
         <ProfilePopupNavigation
           className="mb-3"
@@ -196,7 +185,7 @@ export function MatchDetailsOverlay(): JSX.Element | null {
             )}
           </div>
         )}
-      </dialog>
-    </ModalPortal>
+      </ModalDialog>
+    </>
   )
 }

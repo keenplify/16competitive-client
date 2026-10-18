@@ -1,3 +1,4 @@
+import { QueueWarmupPrompt } from './features/matchmaking/QueueWarmupPrompt'
 import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
 import { ProfileOverlay } from './features/profile/ProfileOverlay'
 import { CommunityMembershipController } from './features/partner-branding/CommunityMembershipController'
@@ -54,6 +55,7 @@ function App(): React.JSX.Element {
           className="launcher-toast-container"
         />
         <AuthPage />
+        <QueueWarmupPrompt />
         <ProfileOverlay />
         <MatchDetailsOverlay />
         <IcafeBranchPanel />

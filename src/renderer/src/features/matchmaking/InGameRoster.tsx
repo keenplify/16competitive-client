@@ -1,3 +1,4 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useProfileStore } from '../profile/profile.store'
 import { useEffect, useState, type JSX, type MouseEvent } from 'react'
 import { Flag, UserPlus, UserRound, Volume2, VolumeX } from 'lucide-react'
@@ -5,7 +6,6 @@ import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import type { PlayerReportReason, QueuedPlayer } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 import { preferenceFor, useVoicePreferencesStore } from '../voice/voice-preferences.store'
 import { useFriendsStore } from '../friends/friends.store'
 
@@ -217,84 +217,78 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
         </div>
       )}
       {target && (
-        <ModalPortal>
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4"
-            role="presentation"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget && !submitting) setTarget(null)
+        <>
+          <ModalDialog
+            open
+            onClose={() => {
+              if (!submitting) setTarget(null)
             }}
+            className="w-[calc(100%-2rem)] max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
+            labelledBy="player-report-title"
           >
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="player-report-title"
-              className="w-full max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
+            <h2 id="player-report-title" className="text-xl font-semibold">
+              Report {target.username}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Choose a reason and describe what happened in this match.
+            </p>
+            <p className="mt-2 text-xs text-neutral-400">
+              You can also report a player in game by typing{' '}
+              <kbd className="font-mono text-sky-300">/report</kbd> in chat.
+            </p>
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void submit()
+              }}
             >
-              <h2 id="player-report-title" className="text-xl font-semibold">
-                Report {target.username}
-              </h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Choose a reason and describe what happened in this match.
-              </p>
-              <p className="mt-2 text-xs text-neutral-400">
-                You can also report a player in game by typing{' '}
-                <kbd className="font-mono text-sky-300">/report</kbd> in chat.
-              </p>
-              <form
-                className="mt-5 space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void submit()
-                }}
-              >
-                <label className="block text-sm">
-                  Reason
-                  <select
-                    className="mt-2 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value as PlayerReportReason)}
-                  >
-                    {reasons.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  Description
-                  <textarea
-                    className="mt-2 min-h-28 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
-                    value={description}
-                    minLength={3}
-                    maxLength={300}
-                    required
-                    onChange={(event) => setDescription(event.target.value)}
-                  />
-                </label>
-                {error && (
-                  <p role="alert" className="text-sm text-red-300">
-                    {error}
-                  </p>
-                )}
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={submitting}
-                    onClick={() => setTarget(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting || description.trim().length < 3}>
-                    {submitting ? 'Sending…' : 'Submit report'}
-                  </Button>
-                </div>
-              </form>
-            </section>
-          </div>
-        </ModalPortal>
+              <label className="block text-sm">
+                Reason
+                <select
+                  className="mt-2 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value as PlayerReportReason)}
+                >
+                  {reasons.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                Description
+                <textarea
+                  className="mt-2 min-h-28 w-full  border border-white/15 bg-neutral-800 px-3 py-2"
+                  value={description}
+                  minLength={3}
+                  maxLength={300}
+                  required
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </label>
+              {error && (
+                <p role="alert" className="text-sm text-red-300">
+                  {error}
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={submitting}
+                  onClick={() => setTarget(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting || description.trim().length < 3}>
+                  {submitting ? 'Sending…' : 'Submit report'}
+                </Button>
+              </div>
+            </form>
+          </ModalDialog>
+        </>
       )}
     </>
   )

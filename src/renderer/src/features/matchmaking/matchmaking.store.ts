@@ -1,3 +1,4 @@
+import { useQueueWarmupStore } from './queue-warmup.store'
 import type { ServerCustomGameMode } from '../../../../shared/custom-games'
 import { friendlyFireMessage } from './friendly-fire-message'
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
@@ -154,6 +155,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const terminalMatchIds = new Set<string>()
 
   const handleEvent = (event: MatchmakingEvent): void => {
+    useQueueWarmupStore.getState().handleEvent(event)
+    if (event.whileQueued) return
     switch (event.type) {
       case 'clock_sync':
         syncServerClock(event.serverNow)

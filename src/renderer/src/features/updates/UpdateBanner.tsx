@@ -1,3 +1,4 @@
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useEffect, useRef, type JSX } from 'react'
 import { AlertTriangle, Download, Power, RefreshCw } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
@@ -101,15 +102,16 @@ export function UpdateBanner(): JSX.Element | null {
   }
 
   return (
-    <aside
-      ref={dialogRef}
+    <ModalDialog
+      open
+      onClose={() => {}}
       tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-neutral-950/95 p-6 text-neutral-100 backdrop-blur-md"
-      aria-live="assertive"
-      aria-modal="true"
+      labelledBy="update-dialog-title"
+      describedBy="update-dialog-message"
       role="alertdialog"
-      aria-labelledby="update-dialog-title"
-      aria-describedby="update-dialog-message"
+      fullScreen
+      dialogRef={dialogRef}
     >
       <div className="flex w-full max-w-lg flex-col items-center gap-4 text-center">
         <div className="flex size-12 items-center justify-center bg-amber-300/10 text-amber-300">
@@ -147,6 +149,6 @@ export function UpdateBanner(): JSX.Element | null {
           </div>
         </div>
       </div>
-    </aside>
+    </ModalDialog>
   )
 }

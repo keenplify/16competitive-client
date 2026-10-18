@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState, type JSX } from 'react'
-import { ModalPortal } from '../../components/ui/ModalPortal'
+import { ModalDialog } from '../../components/ui/ModalDialog'
+import { useEffect, useState, type JSX } from 'react'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { useMatchmakingStore } from './matchmaking.store'
 import './match-ready.css'
 
 export function MatchReadyOverlay(): JSX.Element | null {
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const match = useMatchmakingStore((state) => state.match)
   const status = useMatchmakingStore((state) => state.queueStatus)
   const deadline = useMatchmakingStore((state) => state.readyDeadline)
@@ -17,28 +16,17 @@ export function MatchReadyOverlay(): JSX.Element | null {
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
-    const dialog = dialogRef.current
-    dialog?.showModal()
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const timer = window.setInterval(() => setNow(Date.now()), 250)
-    return () => {
-      window.clearInterval(timer)
-      document.body.style.overflow = previousOverflow
-      dialog?.close()
-    }
+    return () => window.clearInterval(timer)
   }, [])
-
   if (!match) return null
   return (
-    <ModalPortal>
-      <dialog
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="match-ready-title"
-        onCancel={(event) => event.preventDefault()}
+    <>
+      <ModalDialog
+        open
+        onClose={() => {}}
         className="match-ready-dialog m-auto max-h-[calc(100dvh-2rem)] w-[min(46rem,calc(100vw-2rem))] max-w-none overflow-y-auto border-0 bg-transparent p-1 outline-none"
+        labelledBy="match-ready-title"
       >
         <MatchFoundReadyCheck
           match={match}
@@ -53,7 +41,7 @@ export function MatchReadyOverlay(): JSX.Element | null {
           onAccept={() => void respond(true)}
           onDecline={() => void respond(false)}
         />
-      </dialog>
-    </ModalPortal>
+      </ModalDialog>
+    </>
   )
 }

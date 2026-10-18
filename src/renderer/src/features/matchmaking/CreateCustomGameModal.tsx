@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
+import { ModalDialog } from '../../components/ui/ModalDialog'
+import { useState, type FormEvent, type JSX } from 'react'
 import { X } from 'lucide-react'
 import {
   CUSTOM_GAME_MODES,
@@ -7,7 +8,6 @@ import {
 } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
-import { ModalPortal } from '../../components/ui/ModalPortal'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useTranslation } from '../i18n/i18n'
@@ -36,7 +36,6 @@ export function CreateCustomGameModal({
   const [mapId, setMapId] = useState('de_dust2')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const dialogRef = useRef<HTMLElement>(null)
 
   const availableModes = CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate))
   const selectedMode = availableModes.includes(mode) ? mode : (availableModes[0] ?? 'unrated')
@@ -44,22 +43,6 @@ export function CreateCustomGameModal({
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)
     ? mapId
     : (supportedMaps[0]?.id ?? '')
-
-  useEffect(() => {
-    const previousFocus =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || submitting) return
-      event.preventDefault()
-      close()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    dialogRef.current?.focus()
-    return () => {
-      window.removeEventListener('keydown', closeOnEscape)
-      previousFocus?.focus()
-    }
-  }, [close, submitting])
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
@@ -77,130 +60,121 @@ export function CreateCustomGameModal({
   }
 
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget && !submitting) close()
+    <>
+      <ModalDialog
+        open
+        onClose={() => {
+          if (!submitting) close()
         }}
+        className="w-[calc(100%-2rem)] max-w-xl border border-white/20 bg-[#09090b] shadow-2xl outline-none"
+        tabIndex={-1}
+        labelledBy="create-custom-game-title"
       >
-        <section
-          ref={dialogRef}
-          className="w-full max-w-xl border border-white/20 bg-[#09090b] shadow-2xl outline-none"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-custom-game-title"
-          tabIndex={-1}
-        >
-          <header className="flex items-start justify-between border-b border-white/15 px-6 py-5">
-            <div>
-              <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
-                Custom game
-              </p>
-              <h2 id="create-custom-game-title" className="mt-2 text-2xl font-semibold text-white">
-                Create room
-              </h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Configure the room before inviting players.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
-              aria-label="Close create room dialog"
-              disabled={submitting}
-              onClick={close}
-            >
-              <X className="size-5" aria-hidden="true" />
-            </button>
-          </header>
-
-          <form className="grid gap-4 p-6" onSubmit={submit}>
-            <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
-              Room title
-              <input
-                className={fieldClass}
-                value={name}
-                maxLength={48}
-                autoFocus
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
-                Mode
-                <select
-                  className={fieldClass}
-                  value={selectedMode}
-                  disabled={availableModes.length === 0}
-                  onChange={(event) => setMode(event.target.value as CustomGameMode)}
-                >
-                  {availableModes.map((availableMode) => (
-                    <option key={availableMode} value={availableMode}>
-                      {CUSTOM_GAME_MODE_LABELS[availableMode]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
-                Map
-                <select
-                  className={fieldClass}
-                  value={selectedMapId}
-                  disabled={supportedMaps.length === 0}
-                  onChange={(event) => setMapId(event.target.value)}
-                >
-                  {supportedMaps.length === 0 && (
-                    <option value="">{t('legacy.customNoMaps')}</option>
-                  )}
-                  {supportedMaps.map((map) => (
-                    <option key={map.id} value={map.id}>
-                      {map.displayName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
-              Password
-              <input
-                className={fieldClass}
-                value={password}
-                maxLength={64}
-                type="password"
-                autoComplete="new-password"
-                placeholder="Optional"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
-
-            {!selectedNodeId && (
-              <p className="text-sm text-neutral-400">
-                Automatic selects the lowest-ping available server for your room.
-              </p>
-            )}
-            <p className="h-10 overflow-y-auto text-sm text-red-400" aria-live="polite">
-              {error}
+        <header className="flex items-start justify-between border-b border-white/15 px-6 py-5">
+          <div>
+            <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">
+              Custom game
             </p>
+            <h2 id="create-custom-game-title" className="mt-2 text-2xl font-semibold text-white">
+              Create room
+            </h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Configure the room before inviting players.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400"
+            aria-label="Close create room dialog"
+            disabled={submitting}
+            onClick={close}
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </header>
 
-            <footer className="mt-2 flex justify-end gap-3 border-t border-white/10 pt-5">
-              <Button variant="ghost" type="button" disabled={submitting} onClick={close}>
-                Cancel
-              </Button>
-              <Button
-                className="w-36"
-                type="submit"
-                disabled={disabled || submitting || !selectedMapId}
+        <form className="grid gap-4 p-6" onSubmit={submit}>
+          <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
+            Room title
+            <input
+              className={fieldClass}
+              value={name}
+              maxLength={48}
+              autoFocus
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
+              Mode
+              <select
+                className={fieldClass}
+                value={selectedMode}
+                disabled={availableModes.length === 0}
+                onChange={(event) => setMode(event.target.value as CustomGameMode)}
               >
-                {submitting ? 'Creating…' : 'Create room'}
-              </Button>
-            </footer>
-          </form>
-        </section>
-      </div>
-    </ModalPortal>
+                {availableModes.map((availableMode) => (
+                  <option key={availableMode} value={availableMode}>
+                    {CUSTOM_GAME_MODE_LABELS[availableMode]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
+              Map
+              <select
+                className={fieldClass}
+                value={selectedMapId}
+                disabled={supportedMaps.length === 0}
+                onChange={(event) => setMapId(event.target.value)}
+              >
+                {supportedMaps.length === 0 && <option value="">{t('legacy.customNoMaps')}</option>}
+                {supportedMaps.map((map) => (
+                  <option key={map.id} value={map.id}>
+                    {map.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
+            Password
+            <input
+              className={fieldClass}
+              value={password}
+              maxLength={64}
+              type="password"
+              autoComplete="new-password"
+              placeholder="Optional"
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+
+          {!selectedNodeId && (
+            <p className="text-sm text-neutral-400">
+              Automatic selects the lowest-ping available server for your room.
+            </p>
+          )}
+          <p className="h-10 overflow-y-auto text-sm text-red-400" aria-live="polite">
+            {error}
+          </p>
+
+          <footer className="mt-2 flex justify-end gap-3 border-t border-white/10 pt-5">
+            <Button variant="ghost" type="button" disabled={submitting} onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              className="w-36"
+              type="submit"
+              disabled={disabled || submitting || !selectedMapId}
+            >
+              {submitting ? 'Creating…' : 'Create room'}
+            </Button>
+          </footer>
+        </form>
+      </ModalDialog>
+    </>
   )
 }

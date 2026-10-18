@@ -57,6 +57,15 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
   ).outputText
   const dependencies = {
+    './queue-warmup.store': {
+      useQueueWarmupStore: {
+        getState: () => ({
+          handleEvent() {
+            return undefined
+          }
+        })
+      }
+    },
     zustand: { create },
     './friendly-fire-message': { friendlyFireMessage: (text) => text },
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'cancelled' },
@@ -201,4 +210,41 @@ test('server-confirmed party queue clears stale match results for every member',
   })
   assert.equal(h.store.getState().completedMatch, null)
   assert.equal(h.store.getState().queueStatus, 'queued')
+})
+
+test('warmup lifecycle events leave ranked queue time, position and ready check unchanged', async () => {
+  const h = await harness()
+  h.store.setState({
+    queueStatus: 'queued',
+    selectedMode: '5v5',
+    queueStartedAt: 123456,
+    queuePosition: 4
+  })
+  for (const event of [
+    {
+      type: 'match_found',
+      matchId: 'warmup',
+      mode: 'arena',
+      mapId: 'fy_pool_day',
+      teams: { teamA: [], teamB: [] }
+    },
+    { type: 'match_connect', matchId: 'warmup', host: '127.0.0.1', port: 27015, password: 'test' },
+    { type: 'match_cancelled', matchId: 'warmup', reason: 'PLAYER_DECLINED' },
+    { type: 'game_process_exited', matchId: 'warmup', code: 0, signal: null },
+    { type: 'error', code: 'WARMUP_FAILED', message: 'failed' }
+  ])
+    h.emit({ ...event, whileQueued: true })
+  assert.equal(h.store.getState().queueStatus, 'queued')
+  assert.equal(h.store.getState().queueStartedAt, 123456)
+  assert.equal(h.store.getState().queuePosition, 4)
+  const ranked = {
+    matchId: 'ranked',
+    mode: '5v5',
+    mapId: 'de_dust2',
+    teams: { teamA: [], teamB: [] }
+  }
+  h.store.setState({ queueStatus: 'ready_check', match: ranked })
+  h.emit({ type: 'match_finished', matchId: 'warmup', whileQueued: true })
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  assert.equal(h.store.getState().match.matchId, 'ranked')
 })

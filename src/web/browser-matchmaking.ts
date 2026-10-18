@@ -26,6 +26,8 @@ let navigating = false
 let nodesCache: MatchmakingNode[] = []
 let nodesCacheUpdatedAt = 0
 let lastConnection: Extract<MatchmakingServerMessage, { type: 'match_connect' }> | null = null
+let warmupConnection: Extract<MatchmakingServerMessage, { type: 'match_connect' }> | null = null
+let warmupMatchId: string | null = null
 let readyNotificationKey: string | null = null
 let readyNotification: Notification | null = null
 let currentReadyCheck: Extract<MatchmakingServerMessage, { type: 'match_ready_check' }> | null =
@@ -143,13 +145,15 @@ const getManualConnection = async (matchId: string): Promise<unknown> =>
     timeoutMs: 15_000
   })
 
-const launchCounterStrike = async (): Promise<void> => {
-  if (!lastConnection) throw new Error('The match server is not ready yet.')
-  const matchId = lastConnection.matchId
-  if (manualConnectionMatchId !== matchId || !UUID_PATTERN.test(matchId))
+const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => {
+  const target = requestedMatchId && requestedMatchId === warmupMatchId ? warmupConnection : lastConnection
+  if (!target || (requestedMatchId && target.matchId !== requestedMatchId)) throw new Error('The match server is not ready yet.')
+  const matchId = target.matchId
+  if (!UUID_PATTERN.test(matchId) || (matchId !== manualConnectionMatchId && matchId !== warmupMatchId))
     throw new Error('This match is no longer available.')
   const connection = await getManualConnection(matchId)
-  if (manualConnectionMatchId !== matchId || lastConnection?.matchId !== matchId)
+  if ((target.whileQueued ? warmupConnection : lastConnection)?.matchId !== matchId ||
+      (target.whileQueued ? warmupMatchId : manualConnectionMatchId) !== matchId)
     throw new Error('This match is no longer available.')
   window.location.href = webSteamLaunchUrl(connection)
 }
@@ -196,6 +200,19 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     return
   }
 
+  if (message.whileQueued) {
+    if (message.type === 'match_found' || message.type === 'match_roster') {
+      if (warmupMatchId !== message.matchId) warmupConnection = null
+      warmupMatchId = message.matchId
+    } else if (message.type === 'match_connect' && warmupMatchId === message.matchId) warmupConnection = message
+    else if ((message.type === 'match_cancelled' || message.type === 'match_finished') && warmupMatchId === message.matchId) {
+      warmupConnection = null
+      warmupMatchId = null
+    }
+    emit(message)
+    return
+  }
+
   if (message.type === 'match_found' || message.type === 'match_roster') {
     // Queue access is enforced by the backend, including admin enabled Ranked Web Play.
     manualConnectionMatchId = message.matchId
@@ -211,6 +228,11 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
       await navigateToNode(message.hostApiUrl)
     }
     return
+  }
+
+  if ((message.type === 'match_cancelled' || message.type === 'match_finished') && manualConnectionMatchId === message.matchId) {
+    manualConnectionMatchId = null
+    lastConnection = null
   }
 
   if (message.type === 'match_connect') {
@@ -342,6 +364,16 @@ const preferences = (): MatchmakingPreferences => {
 }
 
 export const browserMatchmakingApi: MatchmakingApi = {
+  async joinWarmup(mode, mapId) {
+    await openSocket()
+    send({ type: 'join_warmup', mode, mapId })
+  },
+  async leaveWarmup() {
+    await openSocket()
+    send({ type: 'leave_warmup' })
+    warmupConnection = null
+    warmupMatchId = null
+  },
   connect: openSocket,
 
   getNodes,
@@ -423,13 +455,13 @@ export const browserMatchmakingApi: MatchmakingApi = {
     send({ type: 'match_ready_response', matchId, accepted })
   },
 
-  async reconnectGame() {
-    await launchCounterStrike()
+  async reconnectGame(matchId) {
+    await launchCounterStrike(matchId)
   },
 
   async copyConnection(matchId) {
-    if (manualConnectionMatchId !== matchId) throw new Error('This match is no longer available.')
-    if (!UUID_PATTERN.test(matchId) || lastConnection?.matchId !== matchId) {
+    const target = matchId === warmupMatchId ? warmupConnection : lastConnection
+    if (!UUID_PATTERN.test(matchId) || target?.matchId !== matchId) {
       throw new Error('This match is no longer available.')
     }
     const connection = await getManualConnection(matchId)
