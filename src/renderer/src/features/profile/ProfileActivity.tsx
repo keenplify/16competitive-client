@@ -62,8 +62,10 @@ export function ProfileActivity({
   const { t, language } = useTranslation()
   if (!activity) return <p className="py-8 text-neutral-300">{t('profile.activityUnavailable')}</p>
   return (
-    <section className="py-2">
-      <div className="mb-6 flex flex-wrap justify-between gap-2 text-sm text-neutral-300">
+    <section className={compact ? 'py-0' : 'py-2'}>
+      <div
+        className={`${compact ? 'mb-4' : 'mb-6'} flex flex-wrap justify-between gap-2 text-sm text-neutral-300`}
+      >
         <span>{t('profile.allMatches', { count: activity.total.toLocaleString(language) })}</span>
         <span>
           {t('profile.refreshed', {

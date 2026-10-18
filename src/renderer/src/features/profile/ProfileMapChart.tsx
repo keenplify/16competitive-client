@@ -159,7 +159,7 @@ export function ProfileMapChart({
         {t('profile.mostMaps')}
       </figcaption>
       <div
-        className={`relative ${compact ? 'h-[28rem]' : 'h-[32rem]'} min-w-0 border-t border-white/15`}
+        className={`relative ${compact ? 'h-[clamp(18rem,40vh,28rem)]' : 'h-[32rem]'} min-w-0 border-t border-white/15`}
       >
         <canvas ref={canvas} role="img" aria-label={description}>
           {description}

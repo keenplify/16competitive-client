@@ -20,7 +20,7 @@ export function ProfileOverview({
 }): JSX.Element {
   const { t, language } = useTranslation()
   return (
-    <div className={twMerge('flex flex-col gap-6 py-6', className)}>
+    <div className={twMerge('flex flex-col', compact ? 'gap-4 py-4' : 'gap-6 py-6', className)}>
       <header className="flex min-h-32 flex-wrap items-center justify-between gap-6 border-b border-white/15 pb-6">
         <div className="flex min-w-0 items-center gap-4">
           <div className="size-16 shrink-0">

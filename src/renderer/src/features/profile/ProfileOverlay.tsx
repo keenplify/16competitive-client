@@ -28,7 +28,7 @@ export function ProfileOverlay(): JSX.Element | null {
       <ModalDialog
         open
         onClose={close}
-        className="fixed inset-0 m-auto max-h-[90vh] w-[min(1100px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 p-0 text-white backdrop:bg-black/80"
+        className="fixed inset-0 m-auto max-h-[94vh] w-[min(1100px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 p-0 text-white backdrop:bg-black/80"
         label={t('profile.title')}
       >
         <ProfilePopupNavigation
