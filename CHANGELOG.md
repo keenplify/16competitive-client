@@ -2695,3 +2695,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Installation
 
 - Improved Windows version detection during installation.
+
+## v2026.1018.11 — 2026-10-18
+
+### Communities
+
+- Community images now respect the configured shape.
+- Community links now use their configured destinations.
+
+### Partner Branding
+
+- Community member displays now reflect the updated branding configuration.
