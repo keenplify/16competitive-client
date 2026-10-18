@@ -2652,3 +2652,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### CS 1.3
 
 - Partner-server launches are now linked to your player account.
+
+## v2026.1018.7 — 2026-10-18
+
+### Partner Sessions
+
+- Added partner session support for connecting to partner servers.
+- Added clearer partner community and launch guidance.
+
+### Voice Chat
+
+- Added a launcher voice chat dock.
+- Improved voice chat controls and status visibility.
