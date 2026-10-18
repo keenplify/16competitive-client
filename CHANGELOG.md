@@ -2730,3 +2730,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web Client
 
 - Updated web client distribution.
+
+## v2026.1018.14 — 2026-10-18
+
+### Matchmaking
+
+- Fixed the launcher’s ready state after accepting an in-game match.
