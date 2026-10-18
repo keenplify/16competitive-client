@@ -2573,3 +2573,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved stacked payment dialogs.
 - Added clearer payment text and translations.
+
+## v2026.1018.1 — 2026-10-18
+
+### Matchmaking
+
+- Improved recovery when matchmaking regions become unavailable.
+- Added a smoother option to queue again after a match.
+
+### Match Assets
+
+- Improved loading and syncing of match assets.
+- Added clearer asset synchronization status.
+
+### Match Results
+
+- Improved the match results flow and scoreboard round display.
+
+### Windows
+
+- Improved compatibility on Windows systems.
