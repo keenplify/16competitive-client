@@ -5,6 +5,7 @@ import { createSocket } from 'node:dgram'
 import {
   parseCommunityBranding,
   isPublicIPv4,
+  isLocalPartnerIPv4,
   sortPartnerServers,
   parseCommunityHistory,
   parseCommunityMembers,
@@ -68,6 +69,28 @@ test('queries answer an HLDS challenge and time out cleanly', async () => {
     silent.close()
   }
 })
+test('CS 1.3 uses the legacy details query and cstrk13 folder', async () => {
+  const socket = createSocket('udp4')
+  await new Promise((resolve) => socket.bind(0, '127.0.0.1', resolve))
+  const legacy = Buffer.concat([
+    Buffer.from([255, 255, 255, 255, 0x6d]),
+    strings(['127.0.0.1:27015', 'CS1.3 Test Server', 'de_dust2', 'cstrk13', 'Counter-Strike']),
+    Buffer.from([0, 12, 48])
+  ])
+  socket.on('message', (request, peer) => {
+    assert.equal(request.toString('latin1'), '\xff\xff\xff\xffdetails\0')
+    socket.send(legacy, peer.port, peer.address)
+  })
+  try {
+    assert.equal(parseServerInfo(legacy), null)
+    assert.deepEqual(parseServerInfo(legacy, 'cs13'), { map: 'de_dust2', players: 0, maxPlayers: 12 })
+    const result = await queryServerInfo('127.0.0.1', socket.address().port, 500, 'cs13')
+    assert.equal(result.map, 'de_dust2')
+    assert.equal(result.maxPlayers, 12)
+  } finally {
+    socket.close()
+  }
+})
 test('public address gate blocks local, reserved and multicast UDP targets', () => {
   for (const host of [
     '127.0.0.1',
@@ -85,6 +108,10 @@ test('public address gate blocks local, reserved and multicast UDP targets', () 
   ])
     assert.equal(isPublicIPv4(host), false, host)
   assert.equal(isPublicIPv4('8.8.8.8'), true)
+  for (const host of ['10.1.1.1', '172.16.1.1', '192.168.0.123'])
+    assert.equal(isLocalPartnerIPv4(host), true)
+  for (const host of ['127.0.0.1', '169.254.169.254', '100.64.0.1', '224.0.0.1'])
+    assert.equal(isLocalPartnerIPv4(host), false)
 })
 test('ping first, more players on ties, unknown before full, and stable input', () => {
   const row = (id, pingMs, players, maxPlayers, online = true) => ({

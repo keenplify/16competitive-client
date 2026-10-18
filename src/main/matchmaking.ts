@@ -1344,6 +1344,16 @@ class MatchmakingConnection {
       )
         return
       if (
+        (parsed.type === 'match_ready_check' || parsed.type === 'match_ready_updated') &&
+        this.authenticatedPlayer &&
+        parsed.acceptedPlayerIds.includes(this.authenticatedPlayer.id) &&
+        this.warmupMatchId
+      ) {
+        void this.leaveWarmup().catch((error) =>
+          console.warn('[QueueWarmup] could not close after ready acceptance', error)
+        )
+      }
+      if (
         parsed.type === 'match_found' &&
         this.seenMatchEvents.has(`${parsed.type}:${parsed.matchId}`)
       ) {

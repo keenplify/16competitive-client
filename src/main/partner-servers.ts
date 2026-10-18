@@ -1,6 +1,7 @@
 import { API_BASE_URL } from './config'
 import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 import { spawn } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
@@ -15,6 +16,7 @@ import { matchmakingConnection } from './matchmaking'
 import { queryServerInfo, type ServerInfo } from './game/partner-server-query'
 import {
   isPublicIPv4,
+  isLocalPartnerIPv4,
   parsePartnerLaunchGroup,
   parsePartnerPresence,
   sortPartnerServers,
@@ -23,7 +25,11 @@ import {
   type PartnerServer,
   type PartnerServerStatus
 } from '../shared/partner-community'
-async function publicAddress(host: string): Promise<string> {
+async function serverAddress(host: string): Promise<string> {
+  if (isIP(host) === 4) {
+    if (isPublicIPv4(host) || isLocalPartnerIPv4(host)) return host
+    throw new Error('SERVER_ADDRESS_REJECTED')
+  }
   let timeout: ReturnType<typeof setTimeout> | undefined
   const addresses = await Promise.race([
     lookup(host, { family: 4, all: true }),
@@ -45,10 +51,10 @@ async function probe(server: PartnerServer): Promise<PartnerServerStatus> {
     map: null
   }
   try {
-    const address = await publicAddress(server.host)
+    const address = await serverAddress(server.host)
     const samples: ServerInfo[] = []
     for (let i = 0; i < 3; i++) {
-      const info = await queryServerInfo(address, server.port)
+      const info = await queryServerInfo(address, server.port, 900, server.gameVersion === 'cs13' ? 'cs13' : 'cs16')
       if (info) samples.push(info)
       else if (!samples.length) break
     }
@@ -160,7 +166,7 @@ export async function connectPartnerServer(id: unknown, groupId?: unknown): Prom
     const { branding } = group ? { branding: null } : await getPartnerBranding(),
       server = group?.server ?? branding?.servers.find((row) => row.id === id)
     if (!server) throw new Error('INVALID_SERVER')
-    const address = await publicAddress(server.host)
+    const address = await serverAddress(server.host)
     if (server.gameVersion === 'cs13') {
       const profile = await new LegacyGameService({
         settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),

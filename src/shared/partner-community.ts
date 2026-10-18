@@ -51,6 +51,14 @@ export interface PartnerServerStatus extends PartnerServer {
   maxPlayers: number | null
   map: string | null
 }
+// Local desktop clients may reach partner servers over LAN or a private VPN.
+// Only literal RFC1918 addresses use this exception; DNS targets remain public-only.
+export const isLocalPartnerIPv4 = (address: string): boolean => {
+  const parts = address.split('.')
+  if (parts.length !== 4 || parts.some((part) => !/^\d{1,3}$/.test(part) || Number(part) > 255)) return false
+  const [first, second] = parts.map(Number)
+  return first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168)
+}
 export interface CommunityChatMessage {
   id: string
   sender: { id: string; username: string }
