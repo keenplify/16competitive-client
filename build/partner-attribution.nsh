@@ -4,7 +4,29 @@
 
 ; Reject unsupported Windows before installing files, even if Electron cannot start.
 !macro customInit
-  ${IfNot} ${AtLeastWin10}
+  ; WinVer can see a compatibility/manifest version instead of the installed OS.
+  ; Prefer the native NT version. Windows 10 and 11 both have major version 10.
+  ; Keep WinVer as a fallback if the native query cannot be completed.
+  StrCpy $3 0
+  ${If} ${AtLeastWin10}
+    StrCpy $3 1
+  ${EndIf}
+  System::Alloc 276 ; sizeof(RTL_OSVERSIONINFOW), including 128 WCHARs
+  Pop $0
+  ${If} $0 != 0
+    System::Call '*$0(i 276)'
+    StrCpy $1 -1
+    System::Call 'ntdll::RtlGetVersion(p r0) i .r1'
+    ${If} $1 == 0
+      System::Call '*$0(i, i .r2)'
+      StrCpy $3 0
+      ${If} $2 >= 10
+        StrCpy $3 1
+      ${EndIf}
+    ${EndIf}
+    System::Free $0
+  ${EndIf}
+  ${If} $3 == 0
     System::Call 'kernel32::GetUserDefaultUILanguage() i .r0'
     IntOp $0 $0 & 0x3ff
     StrCpy $1 "Windows 10 or later is required. Windows 7, Windows 8, and Windows 8.1 are not supported. Upgrade Windows to use 1.6 Competitive."
