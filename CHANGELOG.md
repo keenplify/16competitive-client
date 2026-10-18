@@ -2719,3 +2719,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Refined the Play interface and matchmaking status display.
 - Updated lobby navigation for a smoother experience.
+
+## v2026.1018.13 — 2026-10-18
+
+### Community Directory
+
+- Polished the community directory experience.
+- Improved community member sections and messaging.
+
+### Web Client
+
+- Updated web client distribution.
