@@ -3,7 +3,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useCommunitiesStore } from '../communities/communities.store'
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useRef, useState, type JSX } from 'react'
-import { ChevronDown, ChevronRight, MoreVertical } from 'lucide-react'
+import { ChevronDown, ChevronRight, MoreVertical, Users } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useFriendsStore } from '../friends/friends.store'
@@ -54,12 +54,19 @@ export function CommunityMembersSection({
     loading = useCommunityMembersStore((s) => s.loading),
     error = useCommunityMembersStore((s) => s.error),
     hasMore = useCommunityMembersStore((s) => s.hasMore),
+    page = useCommunityMembersStore((s) => s.page),
     toggle = useCommunityMembersStore((s) => s.toggle),
     load = useCommunityMembersStore((s) => s.load)
   const friends = useFriendsStore((s) => s.friends),
     actingPlayerId = useFriendsStore((s) => s.actingPlayerId),
     request = useFriendsStore((s) => s.request)
   const expanded = standalone || storedExpanded
+  const memberCount =
+    current?.id === communityId && current.memberCount !== null
+      ? current.memberCount
+      : page > 0
+        ? total + 1
+        : '—'
   const id = useId()
   useEffect(() => {
     if (useCommunityMembersStore.getState().communityId !== communityId)
@@ -100,9 +107,13 @@ export function CommunityMembersSection({
             <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
           )}
           <span className="min-w-0 truncate">{name || text('community')}</span>
-          <span className="ml-auto shrink-0 text-neutral-400">
-            {text('members')}
-            {total > 0 ? ` · ${total}` : ''}
+          <span
+            className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-neutral-400"
+            aria-label={t('directory.memberCount', { count: String(memberCount) })}
+            title={t('directory.memberCount', { count: String(memberCount) })}
+          >
+            <Users className="size-4" aria-hidden="true" />
+            <span aria-hidden="true">{memberCount}</span>
           </span>
         </button>
         {expanded && (

@@ -1,6 +1,6 @@
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { ModalDialog } from '../../components/ui/ModalDialog'
-import { useEffect, useId, useRef, type JSX } from 'react'
+import { useEffect, useRef, type JSX } from 'react'
 import { Globe2, LoaderCircle, Pencil, Search, Users } from 'lucide-react'
 import type { IconType } from 'react-icons'
 import { SiDiscord, SiFacebook, SiInstagram, SiKofi, SiMastodon, SiYoutube } from 'react-icons/si'
@@ -16,7 +16,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CommunityEditPage } from './CommunityEditPage'
 import { useCommunityMembersStore } from '../partner-branding/community-members.store'
-import { useCommunityLinks } from '../community/links'
+import { useConfiguredCommunityLinks } from '../community/links'
 
 const communitySocialIcons: Record<string, IconType> = {
   Discord: SiDiscord,
@@ -46,8 +46,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const state = useCommunitiesStore()
   const playerId = useAuthStore((store) => store.session?.player.id)
   const members = useCommunityMembersStore()
-  const communityLinks = useCommunityLinks()
-  const memberTooltipId = useId()
+  const communityLinks = useConfiguredCommunityLinks()
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
   const isOwner = Boolean(state.currentCommunity && state.currentCommunity.id === playerId)
   const discovering = state.view === 'discover' || !state.currentCommunity
@@ -55,8 +54,6 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
     members.communityId === state.currentCommunityId && !members.error && members.page > 0
       ? members.total + 1
       : null
-  const displayedMemberCount = state.currentCommunity?.memberCount ?? currentMemberCount ?? '—'
-  const memberCountLabel = t('directory.memberCount', { count: String(displayedMemberCount) })
   const { query, load } = state
   const { nextCursor, loading, loadingMore, error, loadMoreError, loadMore } = state
   useEffect(() => {
@@ -106,7 +103,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
               <img
                 src={state.currentCommunity.imageUrl}
                 alt=""
-                className="aspect-video w-64 max-w-full object-cover"
+                className="block h-auto max-h-64 w-full max-w-64 object-contain"
               />
             )}
             <div className="min-w-0 flex-1">
@@ -160,21 +157,6 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                   </a>
                 ))}
               </div>
-              <span
-                tabIndex={0}
-                aria-label={memberCountLabel}
-                className="group relative inline-flex h-9 items-center gap-1.5 px-2 text-sm text-neutral-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-              >
-                <Users className="size-4" aria-hidden="true" />
-                <span aria-hidden="true">{displayedMemberCount}</span>
-                <span
-                  id={memberTooltipId}
-                  role="tooltip"
-                  className="pointer-events-none absolute top-full right-0 z-10 mt-2 whitespace-nowrap border border-white/20 bg-neutral-950 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                >
-                  {memberCountLabel}
-                </span>
-              </span>
               <Button
                 variant="secondary"
                 className="text-rose-300"
@@ -432,17 +414,18 @@ function CommunityTile({
   const { t } = useTranslation()
   return (
     <article className="mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90">
-      <div className="relative grid aspect-square place-items-center bg-white/5">
-        <Users className="absolute size-12 text-white/15" aria-hidden="true" />
-        {community.imageUrl && (
-          <img
-            src={community.imageUrl}
-            alt=""
-            loading="lazy"
-            className="relative h-full w-full object-cover"
-          />
-        )}
-      </div>
+      {community.imageUrl ? (
+        <img
+          src={community.imageUrl}
+          alt=""
+          loading="lazy"
+          className="block h-auto max-h-80 w-full bg-white/5 object-contain"
+        />
+      ) : (
+        <div className="grid aspect-square place-items-center bg-white/5">
+          <Users className="size-12 text-white/15" aria-hidden="true" />
+        </div>
+      )}
       <div className="flex flex-col gap-3 p-5">
         <h2 className="text-lg font-semibold" title={community.name}>
           {current ? (

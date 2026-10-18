@@ -17,13 +17,27 @@ export const resolveCommunityLinks = (
   language: SupportedLanguageCode = 'en'
 ): { label: string; href: string }[] =>
   branding?.customSocialLinksEnabled
+    ? resolveConfiguredCommunityLinks(branding, language)
+    : [...communityLinks]
+
+export const resolveConfiguredCommunityLinks = (
+  branding: ReturnType<typeof usePartnerBrandingStore.getState>['branding'],
+  language: SupportedLanguageCode = 'en'
+): { label: string; href: string }[] =>
+  branding?.customSocialLinksEnabled
     ? Object.entries(partnerSocialLabels).flatMap(([key, label]) => {
         const href = branding.socialLinks[key as keyof typeof partnerSocialLabels]
         return href
           ? [{ label: key === 'website' ? communityText(language, 'website') : label, href }]
           : []
       })
-    : [...communityLinks]
+    : []
+
+export function useConfiguredCommunityLinks(): { label: string; href: string }[] {
+  const { language } = useTranslation()
+  const branding = usePartnerBrandingStore((state) => state.branding)
+  return resolveConfiguredCommunityLinks(branding, language)
+}
 export function useCommunityLinks(): { label: string; href: string }[] {
   const { language } = useTranslation()
   const branding = usePartnerBrandingStore((state) => state.branding)
