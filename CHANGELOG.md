@@ -2646,3 +2646,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Updated matchmaking, party, profile, and partner-community screens.
 - Improved match-ready, cancellation, and abandonment notices.
+
+## v2026.1018.6 — 2026-10-18
+
+### CS 1.3
+
+- Partner-server launches are now linked to your player account.
