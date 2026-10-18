@@ -18,6 +18,7 @@ import { SkinAssetSyncIndicator } from './features/skins/SkinAssetSyncIndicator'
 import { SkinGiftOverlay } from './features/skins/SkinGiftOverlay'
 import { VoiceChatDock } from './features/voice/VoiceChatDock'
 import { PartnerThemeController } from './features/partner-branding/PartnerThemeController'
+import { PartnerSessionController } from './features/partner-branding/PartnerSessionController'
 import { Slide, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './assets/toast.css'
@@ -35,6 +36,7 @@ function App(): React.JSX.Element {
         <I18nRuntime />
         <PartnerThemeController />
         <CommunityMembershipController />
+        <PartnerSessionController />
         <ChatTranslationInitializer />
         <AudioController />
         <UpdateBanner />

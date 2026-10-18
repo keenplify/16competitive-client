@@ -1,4 +1,4 @@
-import { Mic2, MicOff } from 'lucide-react'
+import { Mic2, MicOff, Settings2, UsersRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { createPortal } from 'react-dom'
 import type {
@@ -8,11 +8,16 @@ import type {
   VoiceSignalType
 } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
+import { useFriendsStore } from '../friends/friends.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { MARKETING_LOBBY_ENABLED } from '../party/marketing-lobby'
 import { usePartyStore } from '../party/party.store'
+import { useProfileStore } from '../profile/profile.store'
+import { usePartnerPresenceStore } from '../partner-branding/partner-presence.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
+import { useVoiceDockText } from './voice-dock-copy'
 
 interface PeerRuntime {
   peer: VoicePeer
@@ -122,7 +127,7 @@ const microphoneErrorMessage = (error: unknown): string => {
 
 const shouldTransmitToPeer = (
   context: VoiceContext | null,
-  peerId: string,
+  peer: VoicePeer,
   enabled: boolean,
   openMic: boolean,
   pttChannel: VoiceTalkChannel | null,
@@ -132,13 +137,14 @@ const shouldTransmitToPeer = (
   if (openMic) return true
   if (!pttChannel) return false
   if (context.kind === 'party') return pttChannel === 'party'
-  if (pttChannel === 'team') return true
-  return partyMemberIds.has(peerId)
+  if (pttChannel === 'team') return context.kind !== 'partner' || Boolean(peer.team)
+  return context.kind === 'partner' ? Boolean(peer.party) : partyMemberIds.has(peer.id)
 }
 
 export function VoiceChatDock(): JSX.Element | null {
   const currentPlayerId = useAuthStore((state) => state.session?.player.id ?? null)
   const party = usePartyStore((state) => state.party)
+  const partnerPresence = usePartnerPresenceStore((state) => state.presence)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const connectionDetails = useMatchmakingStore((state) => state.connectionDetails)
@@ -148,15 +154,29 @@ export function VoiceChatDock(): JSX.Element | null {
 
   const desiredContext = useMemo<VoiceContext | null>(() => {
     if (!currentPlayerId) return null
+    // Keep party chat on the community server through ranked ready-check and
+    // handoff. The game server confirms departure before match voice takes over.
+    if (partnerPresence)
+      return partnerPresence.voiceMode === 'off'
+        ? party
+          ? { kind: 'party', id: party.id }
+          : null
+        : { kind: 'partner', id: partnerPresence.server.id }
     if (queueStatus === 'server_ready' && connectionDetails) {
       return { kind: 'match', id: connectionDetails.matchId }
     }
     if (party) return { kind: 'party', id: party.id }
     return null
-  }, [connectionDetails, currentPlayerId, party, queueStatus])
+  }, [connectionDetails, currentPlayerId, partnerPresence, party, queueStatus])
 
   const [enabled, setEnabled] = useState(true)
-  const [expanded, setExpanded] = useState(MARKETING_LOBBY_ENABLED)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [peerMenu, setPeerMenu] = useState<{ peer: VoicePeer; x: number; y: number } | null>(null)
+  const voiceText = useVoiceDockText()
+  const friends = useFriendsStore((state) => state.friends)
+  const requestFriend = useFriendsStore((state) => state.request)
+  const friendRequestBusy = useFriendsStore((state) => state.actingPlayerId)
+  const [friendActionError, setFriendActionError] = useState(false)
   const [joinedContext, setJoinedContext] = useState<VoiceContext | null>(null)
   const [peers, setPeers] = useState<VoicePeer[]>([])
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
@@ -224,7 +244,7 @@ export function VoiceChatDock(): JSX.Element | null {
     for (const runtime of runtimesRef.current.values()) {
       runtime.senderTrack.enabled = shouldTransmitToPeer(
         context,
-        runtime.peer.id,
+        peersRef.current.find(({ id }) => id === runtime.peer.id) ?? runtime.peer,
         enabledRef.current,
         openMicRef.current,
         pttChannelRef.current,
@@ -261,8 +281,8 @@ export function VoiceChatDock(): JSX.Element | null {
 
   /* eslint-disable react-hooks/set-state-in-effect -- A disabled PTT mode must release an active talk channel. */
   useEffect(() => {
-    if (!enhancementsEnabled) setTalkChannel(null)
-  }, [enhancementsEnabled, setTalkChannel])
+    if (!enhancementsEnabled && desiredContext?.kind !== 'partner') setTalkChannel(null)
+  }, [desiredContext?.kind, enhancementsEnabled, setTalkChannel])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -384,12 +404,18 @@ export function VoiceChatDock(): JSX.Element | null {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (MARKETING_LOBBY_ENABLED || !enabled || !enhancementsEnabled || openMic || !activeContext)
+    if (
+      MARKETING_LOBBY_ENABLED ||
+      !enabled ||
+      (!enhancementsEnabled && activeContext?.kind !== 'partner') ||
+      openMic ||
+      !activeContext
+    )
       return
 
     const teamKey = normalizeGoldSrcKey(teamVoicePttKey)
     const partyKey = normalizeGoldSrcKey(partyVoicePttKey)
-    const canTeamTalk = activeContext.kind === 'match'
+    const canTeamTalk = activeContext.kind === 'match' || activeContext.kind === 'partner'
     const canPartyTalk = Boolean(party)
 
     const channelForKey = (key: string | null): VoiceTalkChannel | null => {
@@ -564,7 +590,7 @@ export function VoiceChatDock(): JSX.Element | null {
     const senderTrack = sourceTrack.clone()
     senderTrack.enabled = shouldTransmitToPeer(
       contextRef.current ?? desiredContextRef.current,
-      peer.id,
+      peer,
       enabledRef.current,
       openMicRef.current,
       pttChannelRef.current,
@@ -678,13 +704,25 @@ export function VoiceChatDock(): JSX.Element | null {
     const removeListener = window.api.matchmaking.onEvent((event: MatchmakingEvent) => {
       if (event.type === 'voice_session') {
         if (!enabled || !desiredContext || !sameContext(event.context, desiredContext)) return
-        closeAllPeers()
+        const refreshing = sameContext(contextRef.current, event.context)
+        if (refreshing) {
+          const nextIds = new Set(event.peers.map(({ id }) => id))
+          for (const id of runtimesRef.current.keys()) if (!nextIds.has(id)) closePeer(id)
+        } else closeAllPeers()
         iceConfigurationRef.current = {
           iceServers: event.iceServers,
           iceTransportPolicy: event.iceTransportPolicy
         }
         setJoinedContext(event.context)
         setPeers(event.peers)
+        peersRef.current = event.peers
+        updateOutgoingTracks()
+        if (refreshing) {
+          for (const peer of event.peers) {
+            if (!runtimesRef.current.has(peer.id))
+              void makeOffer(peer, false, true).catch(() => undefined)
+          }
+        }
         return
       }
       if (event.type === 'voice_peer_joined') {
@@ -808,6 +846,14 @@ export function VoiceChatDock(): JSX.Element | null {
   }, [connectionStatus, desiredContext, enabled, joinedContext, setTalkChannel])
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  useEffect(() => {
+    if (!enabled || desiredContext?.kind !== 'partner' || connectionStatus !== 'ready') return
+    const timer = window.setInterval(() => {
+      void window.api.matchmaking.voiceJoin(desiredContext).catch(() => undefined)
+    }, 12_000)
+    return () => window.clearInterval(timer)
+  }, [connectionStatus, desiredContext, enabled])
+
   useEffect(
     () => () => {
       for (const runtime of runtimesRef.current.values()) {
@@ -827,18 +873,22 @@ export function VoiceChatDock(): JSX.Element | null {
 
   if (!desiredContext && !joinedContext) return null
 
-  const matchVoiceLabel = match?.mode === 'ffa' ? 'All voice' : 'Team voice'
-  const contextLabel = activeContext?.kind === 'match' ? matchVoiceLabel : 'Party voice'
+  const contextLabel = voiceText(
+    activeContext?.kind === 'partner'
+      ? partnerPresence?.voiceMode === 'ffa'
+        ? 'serverVoice'
+        : 'teamVoice'
+      : 'partyVoice'
+  )
   const connectedPeers = voiceRoster.filter(
     ({ peer, simulated }) => simulated || peerStates[peer.id] === 'connected'
   ).length
+  const voiceConnected = enabled && Boolean(joinedContext || MARKETING_LOBBY_ENABLED)
   const configuredPttAvailable =
-    enhancementsEnabled &&
+    (enhancementsEnabled || activeContext?.kind === 'partner') &&
     Boolean(activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey)
-  const talkingLabel = pttChannel
-    ? `Talking to: ${pttChannel === 'team' ? (match?.mode === 'ffa' ? 'All' : 'Team') : 'Party'}`
-    : null
-  const testChannel: VoiceTalkChannel = activeContext?.kind === 'match' ? 'team' : 'party'
+  const talkingLabel = pttChannel ? voiceText('talking') : null
+  const testChannel: VoiceTalkChannel = activeContext?.kind === 'partner' ? 'team' : 'party'
 
   const disconnect = (): void => {
     setEnabled(false)
@@ -872,64 +922,110 @@ export function VoiceChatDock(): JSX.Element | null {
     railMode === 'expanded' ? document.getElementById('friends-rail-voice-slot') : null
 
   const controls = (
-    <section
-      className={
-        railSlot
-          ? 'w-full overflow-hidden border-t border-white/15 bg-neutral-950/95 text-white'
-          : 'fixed top-24 right-5 z-[70] w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden border border-white/15 bg-neutral-950/95 text-white shadow-2xl backdrop-blur'
-      }
-      aria-label={contextLabel}
-    >
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/5"
-        onClick={() => setExpanded((value) => !value)}
+    <>
+      <section
+        className={
+          railSlot
+            ? 'w-full border-t border-white/15 bg-neutral-950/95 text-white'
+            : 'fixed right-5 bottom-5 z-[70] w-[min(18rem,calc(100vw-2.5rem))] border border-white/15 bg-neutral-950/95 text-white shadow-2xl'
+        }
+        aria-label={contextLabel}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`grid size-7 shrink-0 place-items-center rounded-full ${
-              enabled
-                ? pttActive
-                  ? 'bg-sky-400/20 text-sky-300'
-                  : 'bg-white/5 text-neutral-300'
-                : 'bg-red-400/10 text-red-300'
-            }`}
-          >
-            {enabled ? (
-              <Mic2 className="size-3.5" aria-hidden="true" />
-            ) : (
-              <MicOff className="size-3.5" aria-hidden="true" />
-            )}
+        <div className="flex min-h-10 items-center justify-between gap-2 border-b border-white/10 px-3">
+          <p className="truncate text-[11px] font-bold tracking-[0.12em] text-neutral-200 uppercase">
+            {contextLabel}
+          </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] text-neutral-400" role="status">
+              <span
+                className={`size-1.5 rounded-full ${voiceConnected ? 'bg-emerald-400' : 'bg-neutral-500'}`}
+              />
+              {voiceText(voiceConnected ? 'connected' : 'disconnected')}
+            </span>
+            <button
+              type="button"
+              className="grid size-8 place-items-center text-neutral-300 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-300"
+              aria-label={voiceText('details')}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="flex min-h-15 items-center gap-3 border-b border-white/10 px-3">
+          <span className="grid size-9 shrink-0 place-items-center bg-sky-400/10 text-sky-300">
+            <UsersRound className="size-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{contextLabel}</p>
-            <p className="truncate text-xs text-neutral-400">
-              {enabled
-                ? `${connectedPeers}/${voiceRoster.length} connected${openMic ? ' · Open mic' : talkingLabel ? ` · ${talkingLabel}` : ''}`
-                : 'Disconnected'}
+            <p className="truncate text-xs font-semibold">{contextLabel}</p>
+            <p className="text-[11px] text-neutral-400">
+              {voiceText('members', { count: voiceConnected ? connectedPeers + 1 : 0 })}
             </p>
           </div>
         </div>
-        <span className="text-lg text-neutral-400">{expanded ? '−' : '+'}</span>
-      </button>
-
-      {expanded && (
-        <div className="max-h-[65vh] overflow-y-auto border-t border-white/10 p-4">
+        <div className="flex min-h-12 items-center justify-between gap-2 px-3">
+          <span className="flex min-w-0 items-center gap-2 text-xs text-neutral-200">
+            {enabled ? (
+              <Mic2 className="size-4 shrink-0 text-sky-300" aria-hidden="true" />
+            ) : (
+              <MicOff className="size-4 shrink-0 text-red-300" aria-hidden="true" />
+            )}
+            <span className="truncate">
+              {pttActive
+                ? voiceText('talking')
+                : micReady
+                  ? voiceText('micReady')
+                  : voiceText('micIdle')}
+            </span>
+          </span>
+          <button
+            type="button"
+            className={`min-h-8 shrink-0 border px-2 text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-sky-300 ${openMic ? 'border-sky-400/60 bg-sky-400/15 text-sky-100' : 'border-white/20 bg-white/5 text-neutral-200'}`}
+            aria-pressed={openMic}
+            disabled={!enabled}
+            onClick={toggleOpenMic}
+          >
+            {voiceText('openMic')}: {voiceText(openMic ? 'on' : 'off')}
+          </button>
+        </div>
+      </section>
+      <ModalDialog
+        open={settingsOpen}
+        onClose={() => {
+          setPeerMenu(null)
+          setSettingsOpen(false)
+        }}
+        labelledBy="party-voice-settings-title"
+        className="max-w-md overflow-visible p-5"
+        onClick={(event) => {
+          if (!(event.target as Element).closest('[data-voice-peer-menu]')) setPeerMenu(null)
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="party-voice-settings-title" className="text-lg font-semibold">
+              {contextLabel}
+            </h2>
+            <p className="text-xs text-neutral-400">
+              {voiceText('members', { count: voiceConnected ? connectedPeers + 1 : 0 })}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="border border-white/15 px-3 py-2 text-xs hover:bg-white/5"
+            onClick={() => {
+              setPeerMenu(null)
+              setSettingsOpen(false)
+            }}
+          >
+            {voiceText('closeDetails')}
+          </button>
+        </div>
+        <div className="mt-4 max-h-[min(65vh,36rem)] overflow-y-auto border-t border-white/10 pt-4">
           <div className="flex flex-wrap gap-2">
             {enabled ? (
               <>
-                <button
-                  type="button"
-                  className={` border px-3 py-2 text-xs font-semibold ${
-                    openMic
-                      ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
-                      : 'border-white/15 bg-white/5 text-neutral-200'
-                  }`}
-                  onClick={toggleOpenMic}
-                >
-                  Open mic {openMic ? 'on' : 'off'}
-                </button>
-                {!openMic && enhancementsEnabled && (
+                {!openMic && (enhancementsEnabled || activeContext?.kind === 'partner') && (
                   <button
                     type="button"
                     className={` border px-3 py-2 text-xs font-semibold ${
@@ -945,7 +1041,22 @@ export function VoiceChatDock(): JSX.Element | null {
                     onPointerCancel={() => setTalkChannel(null)}
                     onPointerLeave={() => setTalkChannel(null)}
                   >
-                    {configuredPttAvailable ? 'PTT test' : 'Hold to talk'}
+                    {voiceText(configuredPttAvailable ? 'pttTest' : 'holdToTalk')}
+                  </button>
+                )}
+                {!openMic && enabled && activeContext?.kind === 'partner' && party && (
+                  <button
+                    type="button"
+                    className="border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-neutral-200"
+                    onPointerDown={() => {
+                      setTalkChannel('party')
+                      void ensureMicrophone().catch(() => undefined)
+                    }}
+                    onPointerUp={() => setTalkChannel(null)}
+                    onPointerCancel={() => setTalkChannel(null)}
+                    onPointerLeave={() => setTalkChannel(null)}
+                  >
+                    {voiceText('holdPartyTalk')}
                   </button>
                 )}
                 <button
@@ -953,7 +1064,7 @@ export function VoiceChatDock(): JSX.Element | null {
                   className=" border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-200"
                   onClick={disconnect}
                 >
-                  Disconnect voice
+                  {voiceText('disconnectVoice')}
                 </button>
                 {micError && (
                   <button
@@ -961,7 +1072,7 @@ export function VoiceChatDock(): JSX.Element | null {
                     className="border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-200"
                     onClick={retryVoice}
                   >
-                    Retry voice
+                    {voiceText('retryVoice')}
                   </button>
                 )}
               </>
@@ -971,7 +1082,7 @@ export function VoiceChatDock(): JSX.Element | null {
                 className=" border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200"
                 onClick={reconnect}
               >
-                Reconnect voice
+                {voiceText('reconnectVoice')}
               </button>
             )}
           </div>
@@ -980,25 +1091,26 @@ export function VoiceChatDock(): JSX.Element | null {
             <p className="mt-3 text-xs font-semibold text-sky-300">{talkingLabel}</p>
           )}
 
-          {enabled && !openMic && !enhancementsEnabled && (
-            <p className="mt-3 text-xs text-neutral-400">
-              Use Open mic or bind the game voice commands shown in Settings.
-            </p>
+          {enabled && !openMic && !enhancementsEnabled && activeContext?.kind !== 'partner' && (
+            <p className="mt-3 text-xs text-neutral-400">{voiceText('bindHint')}</p>
           )}
 
-          {enabled && !openMic && enhancementsEnabled && activeContext?.kind === 'party' && (
-            <p className="mt-3 text-xs text-neutral-400">
-              Hold <span className="font-mono text-neutral-200">{partyVoicePttKey}</span> for Party
-              talk while the launcher is focused.
-            </p>
+          {enabled &&
+            !openMic &&
+            (enhancementsEnabled || activeContext?.kind === 'partner') &&
+            party && (
+              <p className="mt-3 text-xs text-neutral-400">
+                {voiceText('partyPttHint', { key: partyVoicePttKey })}
+              </p>
+            )}
+          {enabled && openMic && activeContext?.kind === 'partner' && (
+            <p className="mt-3 text-xs text-neutral-400">{voiceText('partnerOpenMicHint')}</p>
           )}
 
           {enabled && (
             <div className="mt-4 space-y-3">
               {voiceRoster.length === 0 && (
-                <p className="text-xs text-neutral-500">
-                  Waiting for another player in voice chat.
-                </p>
+                <p className="text-xs text-neutral-500">{voiceText('waitingForPeer')}</p>
               )}
               {voiceRoster.map(({ peer, simulated }) => {
                 const preference = preferenceFor(preferences, peer.id)
@@ -1007,8 +1119,41 @@ export function VoiceChatDock(): JSX.Element | null {
                   <div key={peer.id} className=" border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{peer.username}</p>
-                        <p className="text-[11px] text-neutral-500">{state}</p>
+                        <button
+                          type="button"
+                          className="max-w-full truncate text-left text-sm font-medium hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
+                          onClick={() => {
+                            setSettingsOpen(false)
+                            useProfileStore.getState().open(peer.id)
+                          }}
+                          onContextMenu={(event) => {
+                            event.preventDefault()
+                            setFriendActionError(false)
+                            const anchor = event.currentTarget.getBoundingClientRect()
+                            setPeerMenu({
+                              peer,
+                              x: Math.max(
+                                8,
+                                Math.min(event.clientX || anchor.left, window.innerWidth - 180)
+                              ),
+                              y: Math.max(
+                                8,
+                                Math.min(event.clientY || anchor.bottom, window.innerHeight - 100)
+                              )
+                            })
+                          }}
+                        >
+                          {peer.username}
+                        </button>
+                        <p className="text-[11px] text-neutral-400">
+                          {voiceText(
+                            state === 'connected'
+                              ? 'peerConnected'
+                              : state === 'failed' || state === 'closed' || state === 'disconnected'
+                                ? 'peerDisconnected'
+                                : 'peerConnecting'
+                          )}
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -1019,10 +1164,13 @@ export function VoiceChatDock(): JSX.Element | null {
                             .setPreference(peer.id, { ...preference, muted: !preference.muted })
                         }
                       >
-                        {preference.muted ? 'Unmute' : 'Mute'}
+                        {voiceText(preference.muted ? 'unmute' : 'mute')}
                       </button>
                     </div>
-                    <label className="mt-2 flex items-center gap-3 text-xs text-neutral-400">
+                    <label
+                      className="mt-2 flex items-center gap-3 text-xs text-neutral-400"
+                      aria-label={`${voiceText('volume')}: ${peer.username}`}
+                    >
                       <span className="w-10">{Math.round(preference.volume * 100)}%</span>
                       <input
                         className="min-w-0 flex-1 accent-sky-400"
@@ -1048,14 +1196,59 @@ export function VoiceChatDock(): JSX.Element | null {
           {!micReady && enabled && !micError && (
             <p className="mt-3 text-xs text-neutral-500">
               {enhancementsEnabled
-                ? 'Use Open mic or Hold to talk to allow microphone access in your browser.'
-                : 'Use Open mic to allow microphone access in your browser.'}
+                ? voiceText('micPermissionPttHint')
+                : voiceText('micPermissionHint')}
             </p>
           )}
           {micError && <p className="mt-3 text-xs text-red-300">{micError}</p>}
         </div>
-      )}
-    </section>
+        {friendActionError && (
+          <p className="mt-3 text-xs text-red-300" role="alert">
+            {voiceText('friendRequestFailed')}
+          </p>
+        )}
+        {peerMenu && (
+          <div
+            data-voice-peer-menu
+            role="menu"
+            aria-label={peerMenu.peer.username}
+            className="fixed z-50 min-w-40 border border-white/15 bg-neutral-800 p-1 text-sm shadow-2xl"
+            style={{ left: peerMenu.x, top: peerMenu.y }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full px-3 py-2 text-left hover:bg-white/10 focus-visible:bg-white/10"
+              onClick={() => {
+                const id = peerMenu.peer.id
+                setPeerMenu(null)
+                setSettingsOpen(false)
+                useProfileStore.getState().open(id)
+              }}
+            >
+              {voiceText('viewProfile')}
+            </button>
+            {!friends.some((friend) => friend.id === peerMenu.peer.id) && (
+              <button
+                type="button"
+                role="menuitem"
+                disabled={friendRequestBusy === peerMenu.peer.id}
+                className="block w-full px-3 py-2 text-left hover:bg-white/10 focus-visible:bg-white/10 disabled:opacity-50"
+                onClick={() => {
+                  const id = peerMenu.peer.id
+                  setPeerMenu(null)
+                  void requestFriend(id).then(() => {
+                    setFriendActionError(Boolean(useFriendsStore.getState().error))
+                  })
+                }}
+              >
+                {voiceText('addFriend')}
+              </button>
+            )}
+          </div>
+        )}
+      </ModalDialog>
+    </>
   )
 
   return railSlot ? createPortal(controls, railSlot) : controls

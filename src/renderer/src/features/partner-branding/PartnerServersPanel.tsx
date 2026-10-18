@@ -7,6 +7,9 @@ import { Button } from '../../components/ui/Button'
 import { localMapPreviews } from '../matchmaking/map-previews'
 import { useCommunityText } from './community-copy'
 import { usePartnerServersStore } from './partner-servers.store'
+import { usePartnerLaunchStore } from './partner-launch.store'
+import { usePartyStore } from '../party/party.store'
+import { useAuthStore } from '../auth/auth.store'
 const serverPreview = (map: string | null): string | undefined =>
   map && Object.hasOwn(localMapPreviews, map) ? localMapPreviews[map] : undefined
 export function PartnerServersPanel({
@@ -22,6 +25,11 @@ export function PartnerServersPanel({
     error = usePartnerServersStore((s) => s.error),
     selectedId = usePartnerServersStore((s) => s.selectedId),
     connecting = usePartnerServersStore((s) => s.connecting)
+  const party = usePartyStore((s) => s.party)
+  const playerId = useAuthStore((s) => s.session?.player.id)
+  const groupBusy = usePartnerLaunchStore((s) => s.busy !== 'idle')
+  const groupError = usePartnerLaunchStore((s) => s.error)
+  const startGroup = usePartnerLaunchStore((s) => s.start)
   const load = usePartnerServersStore((s) => s.load),
     select = usePartnerServersStore((s) => s.select),
     connect = usePartnerServersStore((s) => s.connect)
@@ -34,6 +42,7 @@ export function PartnerServersPanel({
   }, [load])
   const selected = rows.find((row) => row.id === selectedId)
   const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
+  const partyMemberCannotStart = Boolean(party && party.members.length > 1 && party.leaderId !== playerId)
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-20', className)}
@@ -121,21 +130,29 @@ export function PartnerServersPanel({
         <p className="text-sm text-neutral-200" role={error ? 'alert' : undefined}>
           {error
             ? text(error as 'loadError' | 'installation' | 'busy' | 'launchFailed')
-            : cs13WebUnavailable ? text('cs13WebUnavailable') : (selected?.name ?? text('chooseServer'))}
+            : groupError ? text('partyLaunchFailed')
+              : partyMemberCannotStart ? text('partyLeaderOnly')
+                : cs13WebUnavailable ? text('cs13WebUnavailable') : (selected?.name ?? text('chooseServer'))}
         </p>
         <Button
           className="h-12 min-w-40 shrink-0 gap-2 uppercase"
           disabled={
             disabled ||
             connecting ||
+            groupBusy ||
+            partyMemberCannotStart ||
             !selected ||
             cs13WebUnavailable ||
             selected.online === false ||
             serverIsFull(selected)
           }
-          onClick={() => void connect()}
+          onClick={() => {
+            if (!selected) return
+            if (party && party.members.length > 1) void startGroup(selected.id)
+            else void connect()
+          }}
         >
-          {connecting ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+          {connecting || groupBusy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
           {text('play')}
         </Button>
       </div>

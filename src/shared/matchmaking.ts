@@ -107,10 +107,12 @@ export interface QueuedPlayer {
 export interface VoicePeer {
   id: string
   username: string
+  team?: boolean
+  party?: boolean
 }
 
 export interface VoiceContext {
-  kind: 'party' | 'match'
+  kind: 'party' | 'match' | 'partner'
   id: string
 }
 

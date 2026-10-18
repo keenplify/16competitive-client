@@ -348,7 +348,13 @@ const adminDemos: AdminDemosApi = {
 }
 const partnerServers: PartnerServersApi = {
   list: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.list),
-  connect: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.connect, id)
+  connect: (id, groupId) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.connect, id, groupId),
+  startGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.startGroup, id),
+  pendingGroup: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.pendingGroup),
+  getGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.getGroup, id),
+  respondGroup: (id, accepted) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.respondGroup, id, accepted),
+  markLaunched: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.markLaunched, id),
+  presence: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.presence)
 }
 const communityChat: CommunityChatApi = {
   members: (page) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.members, page),

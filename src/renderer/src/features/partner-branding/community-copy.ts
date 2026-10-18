@@ -37,7 +37,9 @@ const keys = [
   'requested',
   'website',
   'pingApi',
-  'cs13WebUnavailable'
+  'cs13WebUnavailable',
+  'partyLeaderOnly',
+  'partyLaunchFailed'
 ] as const
 type Key = (typeof keys)[number]
 const rows: Record<SupportedLanguageCode, string[]> = {
@@ -79,7 +81,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Friend request with {{player}} is pending',
     'Website',
     'Ping measured from our API server.',
-    'CS 1.3 servers require the desktop launcher.'
+    'CS 1.3 servers require the desktop launcher.',
+    'Only the party leader can choose a partner server.',
+    'Could not start the party ready check. Try again.'
   ],
   ru: [
     'Наши серверы',
@@ -119,7 +123,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Заявка с {{player}} ожидает ответа',
     'Сайт',
     'Пинг измерен с нашего API-сервера.',
-    'Для серверов CS 1.3 требуется настольный лаунчер.'
+    'Для серверов CS 1.3 требуется настольный лаунчер.',
+    'Выбрать партнёрский сервер может только лидер группы.',
+    'Не удалось начать проверку готовности группы. Попробуйте снова.'
   ],
   tl: [
     'Mga Server Namin',
@@ -159,7 +165,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Pending ang friend request kay {{player}}',
     'Website',
     'Mula sa aming API server ang ping.',
-    'Kailangan ang desktop launcher para sa mga CS 1.3 server.'
+    'Kailangan ang desktop launcher para sa mga CS 1.3 server.',
+    'Party leader lang ang puwedeng pumili ng partner server.',
+    'Hindi masimulan ang ready check ng party. Subukan ulit.'
   ],
   th: [
     'เซิร์ฟเวอร์ของเรา',
@@ -199,7 +207,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'คำขอเป็นเพื่อนกับ {{player}} กำลังรอ',
     'เว็บไซต์',
     'ปิงวัดจากเซิร์ฟเวอร์ API ของเรา',
-    'เซิร์ฟเวอร์ CS 1.3 ต้องใช้ตัวเปิดเกมบนเดสก์ท็อป'
+    'เซิร์ฟเวอร์ CS 1.3 ต้องใช้ตัวเปิดเกมบนเดสก์ท็อป',
+    'เฉพาะหัวหน้าปาร์ตี้เท่านั้นที่เลือกเซิร์ฟเวอร์พาร์ทเนอร์ได้',
+    'เริ่มการตรวจสอบความพร้อมของปาร์ตี้ไม่ได้ โปรดลองอีกครั้ง'
   ],
   id: [
     'Server Kami',
@@ -239,7 +249,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Permintaan pertemanan dengan {{player}} tertunda',
     'Situs web',
     'Ping diukur dari server API kami.',
-    'Server CS 1.3 memerlukan peluncur desktop.'
+    'Server CS 1.3 memerlukan peluncur desktop.',
+    'Hanya pemimpin party yang dapat memilih server mitra.',
+    'Gagal memulai pemeriksaan kesiapan party. Coba lagi.'
   ],
   hi: [
     'हमारे सर्वर',
@@ -279,7 +291,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}} के साथ मित्र अनुरोध लंबित है',
     'वेबसाइट',
     'पिंग हमारे API सर्वर से मापा गया है।',
-    'CS 1.3 सर्वर के लिए डेस्कटॉप लॉन्चर आवश्यक है।'
+    'CS 1.3 सर्वर के लिए डेस्कटॉप लॉन्चर आवश्यक है।',
+    'केवल पार्टी लीडर पार्टनर सर्वर चुन सकता है।',
+    'पार्टी रेडी चेक शुरू नहीं हो सका। फिर कोशिश करें।'
   ],
   pt: [
     'Nossos servidores',
@@ -319,7 +333,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Solicitação de amizade com {{player}} pendente',
     'Site',
     'Ping medido a partir do nosso servidor API.',
-    'Servidores CS 1.3 exigem o launcher de desktop.'
+    'Servidores CS 1.3 exigem o launcher de desktop.',
+    'Só o líder do grupo pode escolher um servidor parceiro.',
+    'Não foi possível iniciar a confirmação do grupo. Tente novamente.'
   ],
   ja: [
     'コミュニティサーバー',
@@ -359,7 +375,9 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     '{{player}}へのフレンド申請は保留中です',
     'ウェブサイト',
     'Pingは当社のAPIサーバーから測定されます。',
-    'CS 1.3サーバーにはデスクトップランチャーが必要です。'
+    'CS 1.3サーバーにはデスクトップランチャーが必要です。',
+    'パートナーサーバーを選べるのはパーティーリーダーだけです。',
+    'パーティーの準備確認を開始できませんでした。もう一度お試しください。'
   ]
 }
 export function communityText(

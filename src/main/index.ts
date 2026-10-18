@@ -10,7 +10,8 @@ import {
   decideCommunityTransfer,
   linkCommunityServer
 } from './community-membership'
-import { listPartnerServers, connectPartnerServer } from './partner-servers'
+import { listPartnerServers, connectPartnerServer, startPartnerGroup, pendingPartnerGroup,
+  getPartnerGroup, respondPartnerGroup, markPartnerGroupLaunched, currentPartnerPresence } from './partner-servers'
 import { communityChatHistory, sendCommunityChat, communityMembers } from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
@@ -929,7 +930,13 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
   ipcMain.handle(PARTNER_SERVER_CHANNELS.list, () => listPartnerServers())
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown) => connectPartnerServer(id))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown, groupId: unknown) => connectPartnerServer(id, groupId))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.startGroup, (_, id: unknown) => startPartnerGroup(id))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.pendingGroup, () => pendingPartnerGroup())
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.getGroup, (_, id: unknown) => getPartnerGroup(id))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.respondGroup, (_, id: unknown, accepted: unknown) => respondPartnerGroup(id, accepted))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.markLaunched, (_, id: unknown) => markPartnerGroupLaunched(id))
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.presence, () => currentPartnerPresence())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.history, () => communityChatHistory())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown) => communityMembers(page))
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>

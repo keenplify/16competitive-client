@@ -7,7 +7,7 @@ import {
   validateCommunityDecision,
   validateServerLinkCode
 } from '../shared/community-membership'
-import { parsePartnerServerStatuses } from '../shared/partner-community'
+import { parsePartnerLaunchGroup, parsePartnerPresence, parsePartnerServerStatuses } from '../shared/partner-community'
 import {
   parseCommunityHistory,
   parseCommunityMessage,
@@ -620,16 +620,40 @@ const api: Window['api'] = {
     async list() {
       return parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
     },
-    async connect(id) {
-      const servers = parsePartnerServerStatuses(
+    async connect(id, groupId) {
+      const group = groupId ? parsePartnerLaunchGroup(
+        await authenticatedGet(`/partners/launch/${groupId}`)
+      ) : null
+      const servers = group ? [] : parsePartnerServerStatuses(
         await authenticatedGet('/partners/community/servers')
       )
-      const server = servers.find((row) => row.id === id && row.online)
+      const server = group?.server.id === id ? group.server : servers.find((row) => row.id === id && row.online)
       if (!server) throw new Error('INVALID_SERVER')
       if (server.gameVersion === 'cs13') throw new Error('CS13_WEB_UNAVAILABLE')
       const ticket = parsePartnerLaunchTicket(await jsonPost(`/partners/servers/${id}/launch-ticket`, {}))
       const args = partnerLaunchArguments(server.host, server.port, ticket).join(' ')
+      if (group) await jsonPost(`/partners/launch/${group.id}/launched`, {})
       window.location.href = `steam://run/10//${encodeURIComponent(args)}/`
+    },
+    async startGroup(serverId) {
+      return parsePartnerLaunchGroup(await jsonPost(`/partners/servers/${serverId}/party-launch`, {}))
+    },
+    async pendingGroup() {
+      const response = await authenticatedGet('/partners/launch/pending')
+      return response === null ? null : parsePartnerLaunchGroup(response)
+    },
+    async getGroup(groupId) {
+      return parsePartnerLaunchGroup(await authenticatedGet(`/partners/launch/${groupId}`))
+    },
+    async respondGroup(groupId, accepted) {
+      return parsePartnerLaunchGroup(await jsonPost(`/partners/launch/${groupId}/response`, { accepted }))
+    },
+    async markLaunched(groupId) {
+      await jsonPost(`/partners/launch/${groupId}/launched`, {})
+    },
+    async presence() {
+      const response = await authenticatedGet('/partners/play/presence')
+      return response === null ? null : parsePartnerPresence(response)
     }
   },
   partnerBranding: {

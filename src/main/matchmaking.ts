@@ -122,7 +122,7 @@ const isVoiceContext = (value: unknown): value is VoiceContext => {
   if (typeof value !== 'object' || value === null) return false
   const context = value as Record<string, unknown>
   return (
-    (context.kind === 'party' || context.kind === 'match') &&
+    (context.kind === 'party' || context.kind === 'match' || context.kind === 'partner') &&
     typeof context.id === 'string' &&
     context.id.length >= 1 &&
     context.id.length <= 80
@@ -132,7 +132,12 @@ const isVoiceContext = (value: unknown): value is VoiceContext => {
 const isVoicePeer = (value: unknown): boolean => {
   if (typeof value !== 'object' || value === null) return false
   const peer = value as Record<string, unknown>
-  return typeof peer.id === 'string' && typeof peer.username === 'string'
+  return (
+    typeof peer.id === 'string' &&
+    typeof peer.username === 'string' &&
+    (peer.team === undefined || typeof peer.team === 'boolean') &&
+    (peer.party === undefined || typeof peer.party === 'boolean')
+  )
 }
 
 const isVoiceIceServer = (value: unknown): value is VoiceIceServer => {
@@ -689,7 +694,12 @@ class MatchmakingConnection {
   private restoreMatchWindowTopmost = false
 
   isBusyForPartnerServer(): boolean {
-    if (this.desiredMode === '5v5' && !this.warmupMatchId && !this.manualConnectionMatchId && !this.recoveryStatusPending)
+    if (
+      this.desiredMode === '5v5' &&
+      !this.warmupMatchId &&
+      !this.manualConnectionMatchId &&
+      !this.recoveryStatusPending
+    )
       return false
     return this.isBusyForDemo()
   }

@@ -1,6 +1,12 @@
 export const PARTNER_SERVER_CHANNELS = {
   list: 'partner-servers:list',
-  connect: 'partner-servers:connect'
+  connect: 'partner-servers:connect',
+  startGroup: 'partner-servers:start-group',
+  pendingGroup: 'partner-servers:pending-group',
+  getGroup: 'partner-servers:get-group',
+  respondGroup: 'partner-servers:respond-group',
+  markLaunched: 'partner-servers:mark-launched',
+  presence: 'partner-servers:presence'
 } as const
 export const COMMUNITY_CHAT_CHANNELS = {
   members: 'community-chat:members',
@@ -45,7 +51,60 @@ export interface CommunityChatHistory {
 }
 export interface PartnerServersApi {
   list(): Promise<PartnerServerStatus[]>
-  connect(id: string): Promise<void>
+  connect(id: string, groupId?: string): Promise<void>
+  startGroup(serverId: string): Promise<PartnerLaunchGroup>
+  pendingGroup(): Promise<PartnerLaunchGroup | null>
+  getGroup(groupId: string): Promise<PartnerLaunchGroup>
+  respondGroup(groupId: string, accepted: boolean): Promise<PartnerLaunchGroup>
+  markLaunched(groupId: string): Promise<void>
+  presence(): Promise<PartnerPresence | null>
+}
+export interface PartnerPresence {
+  connectionId: string
+  server: PartnerServer
+  team: number
+  voiceMode: 'off' | 'ffa' | 'team'
+  seenAt: string
+}
+export function parsePartnerPresence(input: unknown): PartnerPresence {
+  if (!input || typeof input !== 'object') throw new Error('Invalid partner presence')
+  const value = input as Record<string, unknown>
+  if (typeof value.connectionId !== 'string' || !/^[0-9a-f-]{36}$/i.test(value.connectionId) ||
+    typeof value.team !== 'number' || !Number.isInteger(value.team) || value.team < 0 || value.team > 3 ||
+    !['off', 'ffa', 'team'].includes(String(value.voiceMode)) ||
+    typeof value.seenAt !== 'string' || !Number.isFinite(Date.parse(value.seenAt)))
+    throw new Error('Invalid partner presence')
+  const server = parseCommunityBranding({ servers: [value.server] }).servers[0]
+  return { connectionId: value.connectionId, server, team: value.team,
+    voiceMode: value.voiceMode as PartnerPresence['voiceMode'], seenAt: value.seenAt }
+}
+export interface PartnerLaunchGroup {
+  id: string
+  server: PartnerServer
+  leaderId: string
+  status: 'pending' | 'ready' | 'cancelled'
+  expiresAt: string
+  members: { id: string; username: string; accepted: boolean | null; launched: boolean }[]
+}
+export function parsePartnerLaunchGroup(input: unknown): PartnerLaunchGroup {
+  if (!input || typeof input !== 'object') throw new Error('Invalid party launch')
+  const value = input as Record<string, unknown>
+  const uuid = (id: unknown): id is string => typeof id === 'string' &&
+    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
+  if (!uuid(value.id) || !uuid(value.leaderId) ||
+    !['pending', 'ready', 'cancelled'].includes(String(value.status)) ||
+    typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt)) ||
+    !Array.isArray(value.members) || value.members.length < 2 || value.members.length > 5 ||
+    value.members.some((member: unknown) => {
+      if (!member || typeof member !== 'object') return true
+      const row = member as Record<string, unknown>
+      return !uuid(row.id) || typeof row.username !== 'string' || row.username.length > 64 ||
+        ![true, false, null].includes(row.accepted as boolean | null) || typeof row.launched !== 'boolean'
+    })) throw new Error('Invalid party launch')
+  const server = parseCommunityBranding({ servers: [value.server] }).servers[0]
+  return { id: value.id, server, leaderId: value.leaderId,
+    status: value.status as PartnerLaunchGroup['status'], expiresAt: value.expiresAt,
+    members: value.members as PartnerLaunchGroup['members'] }
 }
 export interface CommunityChatApi {
   members(page: number): Promise<CommunityMembers>
