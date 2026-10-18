@@ -3,13 +3,23 @@ import { useTranslation } from '../i18n/i18n'
 import { useCommunitiesStore } from '../communities/communities.store'
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useRef, useState, type JSX } from 'react'
-import { ChevronDown, ChevronRight, MoreVertical, Users } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock3,
+  MoreVertical,
+  UserRound,
+  UserRoundCheck,
+  UserRoundPlus,
+  Users
+} from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
 import { useCommunityMembersStore } from './community-members.store'
 import { useCommunityText } from './community-copy'
+import type { CommunityMembers } from '../../../../shared/partner-community'
 export function CommunityMembersSection({
   className,
   standalone = false
@@ -20,7 +30,7 @@ export function CommunityMembersSection({
   const { t } = useTranslation()
   const current = useCommunitiesStore((state) => state.currentCommunity)
   const [menu, setMenu] = useState<{
-    member: { id: string; username: string; relationship: string }
+    member: CommunityMembers['members'][number]
     x: number
     y: number
   } | null>(null)
@@ -67,6 +77,23 @@ export function CommunityMembersSection({
       : page > 0
         ? total + 1
         : '—'
+  const menuIsFriend = Boolean(
+    menu &&
+    (menu.member.relationship === 'FRIEND' ||
+      friends.some((friend) => friend.id === menu.member.id))
+  )
+  const friendAction = menuIsFriend
+    ? 'alreadyFriend'
+    : menu?.member.relationship === 'OUTGOING'
+      ? 'requested'
+      : menu?.member.relationship === 'INCOMING'
+        ? 'received'
+        : 'addFriend'
+  const FriendActionIcon = menuIsFriend
+    ? UserRoundCheck
+    : menu?.member.relationship === 'NONE'
+      ? UserRoundPlus
+      : Clock3
   const id = useId()
   useEffect(() => {
     if (useCommunityMembersStore.getState().communityId !== communityId)
@@ -178,7 +205,7 @@ export function CommunityMembersSection({
             ref={menuRef}
             role="menu"
             aria-label={t('directory.memberActions', { player: menu.member.username })}
-            className="fixed z-[110] min-w-44 border border-white/15 bg-neutral-900 p-1 text-white shadow-xl"
+            className="fixed z-[110] min-w-48 border border-white/15 bg-neutral-900 p-1 text-white shadow-xl"
             style={{
               left: Math.max(8, Math.min(menu.x, window.innerWidth - 200)),
               top: Math.max(8, Math.min(menu.y, window.innerHeight - 110))
@@ -187,21 +214,22 @@ export function CommunityMembersSection({
             <button
               role="menuitem"
               type="button"
-              className="block h-10 w-full px-3 text-left text-sm hover:bg-white/10 focus:bg-white/10"
+              className="flex h-10 w-full items-center gap-3 px-3 text-left text-sm hover:bg-white/10 focus:bg-white/10"
               onClick={() => {
                 useProfileStore.getState().open(menu.member.id)
                 setMenu(null)
               }}
             >
+              <UserRound className="size-4 shrink-0 text-sky-300" aria-hidden="true" />
               {t('profile.view')}
             </button>
             <button
               role="menuitem"
               type="button"
-              className="block h-10 w-full px-3 text-left text-sm hover:bg-white/10 focus:bg-white/10 disabled:text-neutral-500"
+              className="flex h-10 w-full items-center gap-3 px-3 text-left text-sm whitespace-nowrap hover:bg-white/10 focus:bg-white/10 disabled:text-neutral-400"
               disabled={
                 menu.member.relationship !== 'NONE' ||
-                friends.some((friend) => friend.id === menu.member.id) ||
+                menuIsFriend ||
                 actingPlayerId === menu.member.id
               }
               onClick={() => {
@@ -209,15 +237,8 @@ export function CommunityMembersSection({
                 setMenu(null)
               }}
             >
-              {text(
-                menu.member.relationship === 'FRIEND' ||
-                  friends.some((friend) => friend.id === menu.member.id)
-                  ? 'alreadyFriend'
-                  : menu.member.relationship === 'NONE'
-                    ? 'addFriend'
-                    : 'requested',
-                { player: menu.member.username }
-              )}
+              <FriendActionIcon className="size-4 shrink-0" aria-hidden="true" />
+              {text(friendAction)}
             </button>
           </div>,
           document.body

@@ -9,6 +9,7 @@ import {
   submitLocalRelease
 } from './local-release/build.mjs'
 import { publishLocalDesktop } from './local-release/publish.mjs'
+import { deployWebClient } from './release-web-client.mjs'
 
 const local = process.argv.includes('--local')
 
@@ -153,35 +154,7 @@ try {
     )
   }
 
-  const remoteCommand =
-    'cd /root/16competitive && bash src/scripts/prepare-deployment-checkout.sh && git pull --ff-only && DEPLOY_BUN_BIN=/root/.bun/bin/bun /root/.bun/bin/bun run web:build'
-  const failedHosts = []
-
-  const webHosts = process.env.RELEASE_WEB_HOSTS?.split(',').map((host) => host.trim()) ?? [
-    'sg',
-    'na',
-    'ws',
-    'sa'
-  ]
-  if (webHosts.some((host) => !['sg', 'na', 'ws', 'sa'].includes(host))) {
-    fail('RELEASE_WEB_HOSTS must contain only sg, na, ws, or sa.')
-  }
-
-  for (const host of webHosts) {
-    console.log(`Updating web client on ${host}...`)
-    try {
-      execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', host, remoteCommand], {
-        stdio: 'inherit'
-      })
-    } catch {
-      failedHosts.push(host)
-      console.error(`Web client update failed on ${host}.`)
-    }
-  }
-
-  if (failedHosts.length) {
-    fail(`${tag} was pushed, but web client updates failed on: ${failedHosts.join(', ')}.`)
-  }
+  deployWebClient(tag)
 } catch (error) {
   if (error instanceof Error) {
     console.error(error.message)

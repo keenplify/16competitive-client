@@ -98,7 +98,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           ) : (
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-left hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+              className="inline-flex items-center gap-1 text-left text-3xl font-semibold text-white [text-shadow:0_1px_4px_rgb(0_0_0_/_95%),0_0_12px_rgb(0_0_0_/_85%)] hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
               onClick={() => state.setView('discover')}
             >
               <ChevronLeft className="size-6" aria-hidden="true" />
@@ -245,6 +245,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 </option>
                 {COUNTRY_OPTIONS.map((country) => (
                   <option key={country.code} value={country.code}>
+                    {countryFlagEmoji(country.code)}{' '}
                     {new Intl.DisplayNames([language === 'tl' ? 'fil' : language], {
                       type: 'region'
                     }).of(country.code) ?? country.name}
@@ -435,12 +436,21 @@ function CommunityTile({
   return (
     <article className="mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90">
       {community.imageUrl ? (
-        <img
-          src={community.imageUrl}
-          alt=""
-          loading="lazy"
-          className="block h-auto max-h-80 w-full bg-white/5 object-contain"
-        />
+        <div className="relative overflow-hidden bg-white/5">
+          <img
+            src={community.imageUrl}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="absolute inset-0 size-full scale-110 object-cover opacity-65 blur-xl"
+          />
+          <img
+            src={community.imageUrl}
+            alt=""
+            loading="lazy"
+            className="relative block h-auto max-h-80 w-full object-contain"
+          />
+        </div>
       ) : (
         <div className="grid aspect-square place-items-center bg-white/5">
           <Users className="size-12 text-white/15" aria-hidden="true" />
