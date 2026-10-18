@@ -2736,3 +2736,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Fixed the launcher’s ready state after accepting an in-game match.
+
+## v2026.1018.15 — 2026-10-18
+
+### Partner Servers
+
+- Added support for local partner servers in the launcher.
+
+### Game Status
+
+- Added Counter-Strike 1.3 server status to the launcher.
