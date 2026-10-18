@@ -46,24 +46,20 @@ export function ProfileMapChart({
     if (!canvas.current) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const data = profileMapAxes(entries)
+    const axisCount = Math.max(3, data.length)
     const total = data.reduce((sum, entry) => sum + entry.matches, 0)
     const percent = new Intl.NumberFormat(language, { style: 'percent', maximumFractionDigits: 0 })
     const chart = new Chart(canvas.current, {
       type: 'radar',
       data: {
-        labels: Array.from({ length: 8 }, (_, axis) => {
+        labels: Array.from({ length: axisCount }, (_, axis) => {
           const entry = data[axis]
-          return entry
-            ? [
-                entry.others ? t('profile.others') : entry.id,
-                t('profile.matchCount', { count: entry.matches })
-              ]
-            : '—'
+          return entry ? (entry.others ? t('profile.others') : entry.id) : '—'
         }),
         datasets: [
           {
             label: t('profile.matches'),
-            data: Array.from({ length: 8 }, (_, axis) => data[axis]?.matches ?? 0),
+            data: Array.from({ length: axisCount }, (_, axis) => data[axis]?.matches ?? 0),
             borderColor: '#38bdf8',
             backgroundColor: 'rgba(56,189,248,0.18)',
             borderWidth: 2,
@@ -75,7 +71,7 @@ export function ProfileMapChart({
           },
           {
             label: t('profile.wins'),
-            data: Array.from({ length: 8 }, (_, axis) => data[axis]?.wins ?? 0),
+            data: Array.from({ length: axisCount }, (_, axis) => data[axis]?.wins ?? 0),
             borderColor: '#34d399',
             backgroundColor: 'rgba(52,211,153,0.14)',
             borderWidth: 2,
@@ -93,7 +89,7 @@ export function ProfileMapChart({
         maintainAspectRatio: false,
         animation: reducedMotion.matches ? false : { duration: 650, easing: 'easeOutQuart' },
         transitions: { active: { animation: { duration: reducedMotion.matches ? 0 : 150 } } },
-        layout: { padding: 12 },
+        layout: { padding: 0 },
         scales: {
           r: {
             beginAtZero: true,
@@ -104,7 +100,7 @@ export function ProfileMapChart({
             pointLabels: {
               color: '#e5e5e5',
               font: { family: 'Rajdhani, sans-serif', size: 13 },
-              padding: 12
+              padding: 4
             },
             ticks: { precision: 0, color: '#a3a3a3', backdropColor: '#0a0a0a', maxTicksLimit: 5 }
           }
@@ -115,7 +111,7 @@ export function ProfileMapChart({
             labels: {
               color: '#e5e5e5',
               usePointStyle: true,
-              padding: 20,
+              padding: 12,
               font: { family: 'Rajdhani, sans-serif', size: 14 }
             }
           },
@@ -162,7 +158,9 @@ export function ProfileMapChart({
       <figcaption id={titleId} className="mb-4 text-xl font-semibold">
         {t('profile.mostMaps')}
       </figcaption>
-      <div className={`relative ${compact ? 'h-72' : 'h-96'} min-w-0 border-t border-white/15`}>
+      <div
+        className={`relative ${compact ? 'h-[28rem]' : 'h-[32rem]'} min-w-0 border-t border-white/15`}
+      >
         <canvas ref={canvas} role="img" aria-label={description}>
           {description}
         </canvas>

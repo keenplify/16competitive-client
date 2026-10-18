@@ -6,11 +6,8 @@ import { useAuthStore } from '../auth/auth.store'
 import { useProfileStore } from './profile.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useTranslation } from '../i18n/i18n'
-import { CountryFlag } from '../../components/CountryFlag'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
-import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
-import { ProfileFlag } from './ProfileFlag'
 import { ProfileOverview } from './ProfileOverview'
 import { SkinsPage } from '../skins/SkinsPage'
 import { MatchHistoryPage } from './MatchHistoryPage'
@@ -24,7 +21,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
   const load = useProfileStore((state) => state.load)
   const tab = useNavigationStore((state) => state.profileTab)
   const setTab = useNavigationStore((state) => state.setProfileTab)
-  const { t, language } = useTranslation()
+  const { t } = useTranslation()
   const publicTab = useProfileStore((state) => state.tab)
   const setPublicTab = useProfileStore((state) => state.setTab)
   const visibleTab = playerId ? publicTab : tab
@@ -35,51 +32,6 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
   return (
     <div className="w-full p-6 text-left text-white sm:p-10">
       <div className="mx-auto w-full max-w-6xl">
-        <header className="flex min-h-32 flex-wrap items-center justify-between gap-6 border-b border-white/15 pb-6">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="size-16 shrink-0">
-              {profile?.level !== undefined && (
-                <ProfileRankInsignia
-                  level={profile.level}
-                  title={profile.levelTitle ?? ''}
-                  ariaLabel={t('profile.levelValue', { level: profile.level })}
-                  className="size-16"
-                />
-              )}
-            </div>
-            <div className="min-w-0">
-              <h1 className="break-words text-3xl font-semibold">
-                {profile?.username ?? t('profile.title')}
-              </h1>
-              <div className="mt-2 flex min-h-9 items-center gap-3 text-sm text-neutral-300">
-                {own ? (
-                  <ProfileFlag />
-                ) : (
-                  <CountryFlag code={profile?.flagCountryCode} className="h-4 w-6 object-cover" />
-                )}
-                {profile && (
-                  <span>
-                    {t('profile.since', {
-                      date: new Date(profile.createdAt).toLocaleDateString(language)
-                    })}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <dl className="flex min-w-56 gap-10 tabular-nums">
-            <div>
-              <dt className="text-sm text-neutral-300">{t('profile.level')}</dt>
-              <dd className="mt-1 text-3xl font-semibold">{profile?.level ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-neutral-300">MMR</dt>
-              <dd className="mt-1 text-3xl font-semibold text-sky-300">
-                {profile?.mmr.toLocaleString(language) ?? '—'}
-              </dd>
-            </div>
-          </dl>
-        </header>
         {
           <TabList
             className="mt-4"
@@ -128,7 +80,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
             ) : visibleTab === 'matches' ? (
               <ProfileHistory profile={profile} />
             ) : (
-              <ProfileOverview profile={profile} compact={Boolean(playerId)} />
+              <ProfileOverview profile={profile} own={own} compact={Boolean(playerId)} />
             )}
           </div>
         ) : visibleTab === 'skins' ? (
