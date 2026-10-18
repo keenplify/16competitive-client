@@ -2624,3 +2624,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Shop
 
 - Shop skins are now sorted by ownership.
+
+## v2026.1018.4 — 2026-10-18
+
+### Profile
+
+- Restored the correct chart size on full profile pages.
