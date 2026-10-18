@@ -44,6 +44,7 @@ type Snapshot = {
   overtimeHalfRounds?: number
   sidesSwapped?: boolean
   mode: 'ffa' | 'competitive'
+  straightScoreLine?: boolean
   showBotTags?: boolean
   players: Player[]
 } | null
@@ -134,7 +135,8 @@ function RoundTrack({
   tWins,
   roundEvents,
   overtimeHalfRounds = 3,
-  sidesSwapped
+  sidesSwapped,
+  straightScoreLine = false
 }: {
   round: number
   roundWinners: string | null
@@ -145,8 +147,15 @@ function RoundTrack({
   roundEvents: string | null
   overtimeHalfRounds?: number
   sidesSwapped?: boolean
+  straightScoreLine?: boolean
 }) {
-  const phase = scoreboardRounds(round, halfRounds, winTarget, overtimeHalfRounds)
+  const phase = scoreboardRounds(
+    round,
+    halfRounds,
+    winTarget,
+    overtimeHalfRounds,
+    straightScoreLine
+  )
   const current = phase.current
   const currentIndex = Math.max(phase.start, round - 1)
   const splits = scoreByHalf(
@@ -154,13 +163,16 @@ function RoundTrack({
     halfRounds,
     currentIndex,
     overtimeHalfRounds,
-    sidesSwapped
+    sidesSwapped,
+    straightScoreLine
   )
   const winningRound = roundWinners ? getWinningRound(roundWinners, ctWins, tWins, winTarget) : -1
   const targetMarkers = targetRoundMarkers(roundWinners?.length ?? 0, winTarget, ctWins, tWins)
   const visibleSplits = splits.filter(({ label }) => label !== 'OT' || phase.overtime)
   return (
-    <div className={`round-area ${phase.overtime ? 'overtime' : ''}`}>
+    <div
+      className={`round-area ${phase.overtime ? 'overtime' : ''} ${straightScoreLine ? 'straight-score-line' : ''}`}
+    >
       <div className="round-progress">
         <div className="half-scores" aria-label="Scores by half for current CT and T teams">
           {visibleSplits.map(({ label, ct, t }) => (
@@ -392,6 +404,7 @@ function Scoreboard() {
                       roundEvents={snapshot?.roundEvents ?? null}
                       overtimeHalfRounds={snapshot?.overtimeHalfRounds ?? 3}
                       sidesSwapped={snapshot?.sidesSwapped}
+                      straightScoreLine={snapshot?.straightScoreLine}
                     />
                   )}
                 </div>

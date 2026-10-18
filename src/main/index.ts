@@ -1,3 +1,9 @@
+import { release as osRelease } from 'node:os'
+import {
+  isSupportedOperatingSystem,
+  windowsCompatibilityMessages
+} from '../shared/windows-compatibility'
+import { detectLanguage } from '../shared/language-detection'
 import { COMMUNITY_MEMBERSHIP_CHANNELS } from '../shared/community-membership'
 import {
   pendingCommunityTransfer,
@@ -357,6 +363,34 @@ function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSy
 }
 
 async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): Promise<void> {
+  const startedAt = performance.now()
+  let stage = 'requested'
+  let lastProgressAt = startedAt
+  let warned = false
+  const markStage = (next: string): void => {
+    stage = next
+    lastProgressAt = performance.now()
+    warned = false
+    console.info('[ResourceLoading] stage', {
+      mode,
+      stage,
+      elapsedMs: Math.round(lastProgressAt - startedAt)
+    })
+  }
+  markStage('requested')
+  const stallTimer = setInterval(() => {
+    if (warned || performance.now() - lastProgressAt < 30_000) return
+    warned = true
+    console.warn('[ResourceLoading] no progress for 30 seconds', {
+      mode,
+      stage,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      status: skinAssetSyncProgress.status,
+      completedFiles: skinAssetSyncProgress.completedFiles,
+      totalFiles: skinAssetSyncProgress.totalFiles
+    })
+  }, 30_000)
+  stallTimer.unref()
   publishSkinAssetSyncProgress(sender, {
     status: 'syncing',
     completedFiles: 0,
@@ -365,16 +399,37 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
   })
 
   try {
-    if (mode === 'repair') await clearCachedSkinPreviews()
+    if (mode === 'repair') {
+      markStage('clearing-preview-cache')
+      await clearCachedSkinPreviews()
+    }
+    markStage('selecting-region')
     const apiUrl = await resolvePreferredMatchmakingApiUrl()
-    const onProgress = (progress: SkinAssetSyncProgress): void =>
+    console.info('[ResourceLoading] endpoint selected', { origin: new URL(apiUrl).origin })
+    markStage('syncing-assets')
+    const onProgress = (progress: SkinAssetSyncProgress): void => {
+      lastProgressAt = performance.now()
+      warned = false
+      stage = `assets-${progress.status}`
       publishSkinAssetSyncProgress(sender, progress)
+    }
     if (mode === 'repair') {
       await repairSkinAssets(apiUrl, onProgress)
     } else {
       await startSkinAssetSync(apiUrl, onProgress)
     }
+    console.info('[ResourceLoading] finished', {
+      mode,
+      status: skinAssetSyncProgress.status,
+      elapsedMs: Math.round(performance.now() - startedAt)
+    })
   } catch (error) {
+    console.warn('[ResourceLoading] failed', {
+      mode,
+      stage,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      error: error instanceof Error ? error.name : 'UnknownError'
+    })
     if (skinAssetSyncProgress.status !== 'error') {
       publishSkinAssetSyncProgress(sender, {
         status: 'error',
@@ -384,6 +439,8 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
       })
     }
     throw error
+  } finally {
+    clearInterval(stallTimer)
   }
 }
 
@@ -531,6 +588,17 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  if (!isSupportedOperatingSystem(process.platform, osRelease())) {
+    const language = detectLanguage(
+      app.getPreferredSystemLanguages(),
+      Object.keys(windowsCompatibilityMessages) as (keyof typeof windowsCompatibilityMessages)[],
+      'en'
+    )
+    dialog.showErrorBox('1.6 Competitive', windowsCompatibilityMessages[language])
+    app.quit()
+    return
+  }
+
   await disableSteamScoreboardWrapper().catch((error: unknown) => {
     console.error('[Scoreboard] could not disable an earlier Steam launch wrapper', error)
   })

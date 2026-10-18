@@ -30,12 +30,7 @@ import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
 import { reportDiagnosticIssue } from './diagnostic-logs'
-import {
-  getMatchmakingNodes,
-  getMatchmakingPreferences,
-  selectMatchmakingApiUrl,
-  toMatchmakingWsUrl
-} from './matchmaking-regions'
+import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
 import {
   closeCounterStrikeForMatch,
   isCounterStrikeActiveForMatch,
@@ -1062,20 +1057,11 @@ class MatchmakingConnection {
   private async createSocket(token: string, apiUrl?: string, handoff = false): Promise<void> {
     await activateIcafeBranch(token)
     let targetApiUrl = apiUrl ?? this.hostApiUrl
-    if (!targetApiUrl) {
-      try {
-        const [nodes, preferences] = await Promise.all([
-          getMatchmakingNodes(),
-          getMatchmakingPreferences()
-        ])
-        targetApiUrl = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
-      } catch {
-        // A bootstrap node may be the only node during development or an outage.
-      }
-    }
-    const websocketUrl = targetApiUrl ? toMatchmakingWsUrl(targetApiUrl) : MATCHMAKING_WS_URL
     let socket: WebSocket
+    let websocketUrl: string
     try {
+      targetApiUrl ??= await resolvePreferredMatchmakingApiUrl()
+      websocketUrl = toMatchmakingWsUrl(targetApiUrl)
       if (LOCAL_DEVELOPMENT && !isLoopbackBackend(websocketUrl))
         throw new Error('Local development cannot connect to a remote matchmaking node')
       socket = new WebSocket(websocketUrl)

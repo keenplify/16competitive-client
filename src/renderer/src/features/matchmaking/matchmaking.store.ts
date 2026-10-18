@@ -15,6 +15,7 @@ import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time
 import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
+import { usePartyStore } from '../party/party.store'
 import { translate, useLanguageStore } from '../i18n/i18n'
 import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
@@ -96,6 +97,7 @@ interface MatchmakingState {
   queueStartedAt: number | null
   match: FoundMatch | null
   completedMatch: CompletedMatch | null
+  queueAgainStatus: 'idle' | 'joining' | 'error'
   readyDeadline: string | null
   acceptedPlayerIds: string[]
   readyPlayersRequired: number
@@ -119,7 +121,8 @@ interface MatchmakingState {
   setAllowRegionExpansion: (value: boolean) => Promise<void>
   selectMode: (mode: MatchmakingMode) => void
   selectMap: (mapId: string) => void
-  joinQueue: () => Promise<void>
+  joinQueue: (options?: { keepCompletedMatch?: boolean }) => Promise<void>
+  queueAgain: () => Promise<boolean>
   leaveQueue: () => Promise<void>
   respondReady: (accepted: boolean) => Promise<void>
   reconnectGame: () => Promise<void>
@@ -185,6 +188,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? {}
             : {
                 queueStatus: 'queued',
+                completedMatch: null,
                 selectedMode: event.mode,
                 selectedMapIds: event.mapIds,
                 activeRegion: event.region,
@@ -205,6 +209,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? {}
             : {
                 queueStatus: 'queued',
+                completedMatch: null,
                 selectedMode: event.mode,
                 selectedMapIds: event.mapIds,
                 queuedPlayers: event.queuedPlayers,
@@ -404,6 +409,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           autoFillAt: null,
           searchStage: null,
           queueStartedAt: null,
+          queueAgainStatus: 'idle',
           completedMatch: {
             matchId: event.matchId,
             mode: event.mode,
@@ -578,6 +584,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     queueStartedAt: null,
     match: null,
     completedMatch: null,
+    queueAgainStatus: 'idle',
     readyDeadline: null,
     acceptedPlayerIds: [],
     readyPlayersRequired: 0,
@@ -760,7 +767,58 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       }
     },
 
-    joinQueue: async () => {
+    queueAgain: async () => {
+      const state = get()
+      const completed = state.completedMatch
+      const playerId = useAuthStore.getState().session?.player.id
+      const party = usePartyStore.getState().party
+      if (
+        !completed ||
+        completed.mode !== 'fight_yard' ||
+        !playerId ||
+        state.queueAgainStatus === 'joining' ||
+        state.queueStatus !== 'idle' ||
+        (party && party.leaderId !== playerId)
+      )
+        return false
+      if (state.connectionStatus !== 'ready' || state.mapsStatus !== 'ready') {
+        set({ queueAgainStatus: 'error' })
+        return false
+      }
+      const available = new Set(
+        state.maps
+          .filter(
+            (map) =>
+              map.supportedModes.includes(completed.mode) &&
+              (!isWebRuntime() || map.webModes.includes(completed.mode))
+          )
+          .map((map) => map.id)
+      )
+      const savedMaps = readMatchmakingPreferences(playerId).mapIdsByMode?.[completed.mode]
+      const previousMaps =
+        savedMaps ??
+        (state.selectedMode === completed.mode ? state.selectedMapIds : [completed.mapId])
+      const mapIds = previousMaps.filter((id) => available.has(id))
+      if (mapIds.length === 0) {
+        set({ queueAgainStatus: 'error' })
+        return false
+      }
+      set({
+        selectedMode: completed.mode,
+        selectedMapIds: mapIds,
+        queueAgainStatus: 'joining',
+        error: null
+      })
+      await get().joinQueue({ keepCompletedMatch: true })
+      const joined = get().queueStatus !== 'idle'
+      set({
+        queueAgainStatus: joined ? 'idle' : 'error',
+        ...(joined ? { completedMatch: null } : {})
+      })
+      return joined
+    },
+
+    joinQueue: async (options) => {
       const {
         connectionStatus,
         maps,
@@ -772,7 +830,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         preferHumans,
         selectedMode
       } = get()
-      if (connectionStatus !== 'ready') return
+      if (connectionStatus !== 'ready' || get().queueStatus !== 'idle') return
       // Ask while the Join Queue click still has browser user activation.
       if (isWebRuntime() && 'Notification' in window && Notification.permission === 'default') {
         void Notification.requestPermission().catch(() => undefined)
@@ -801,7 +859,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
       set({
         queueStatus: 'joining',
-        completedMatch: null,
+        completedMatch: options?.keepCompletedMatch ? get().completedMatch : null,
         queuedAt: null,
         onlinePlayers: null,
         autoFillAt: null,
@@ -931,7 +989,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       })
     },
 
-    dismissCompletedMatch: () => set({ completedMatch: null, error: null }),
+    dismissCompletedMatch: () =>
+      set({ completedMatch: null, queueAgainStatus: 'idle', error: null }),
 
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
 
@@ -962,6 +1021,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         queueStartedAt: null,
         match: null,
         completedMatch: null,
+        queueAgainStatus: 'idle',
         readyDeadline: null,
         acceptedPlayerIds: [],
         readyPlayersRequired: 0,

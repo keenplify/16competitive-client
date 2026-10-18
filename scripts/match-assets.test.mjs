@@ -18,7 +18,7 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 
-async function harness(assets, bytes) {
+async function harness(assets, bytes, failures = []) {
   const directory = await fs.mkdtemp(path.join(tmpdir(), '16c-smoke-loader-'))
   const root = path.join(directory, 'cstrike')
   await fs.mkdir(root)
@@ -44,6 +44,9 @@ async function harness(assets, bytes) {
       assert.equal(options.headers.authorization, 'Bearer fixture-token')
       const target = new URL(url)
       requests.push(target)
+      const failure = failures.shift()
+      if (failure === 'network') throw new TypeError('fetch failed')
+      if (typeof failure === 'number') return new Response('', { status: failure })
       if (target.pathname.endsWith('/manifest') || target.pathname.endsWith('/assets'))
         return Response.json({ assets })
       // Deliberately omit Content-Length, as valid streamed regional responses may do.
@@ -244,6 +247,40 @@ test('corrupt downloaded sprite bytes never reach the game directory or ready st
       h.progress.some((value) => value.status === 'ready'),
       false
     )
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('catalog retries transient connection and service errors then completes', async () => {
+  const h = await harness([], Buffer.alloc(0), ['network', 503])
+  try {
+    await h.api.startSkinAssetSync('https://regional.example', (value) => h.progress.push(value))
+    assert.equal(h.requests.length, 3)
+    assert.equal(h.progress.at(-1).status, 'ready')
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('catalog stops after three temporary failures', async () => {
+  const h = await harness([], Buffer.alloc(0), [503, 503, 503, 503])
+  try {
+    await assert.rejects(
+      h.api.startSkinAssetSync('https://regional.example', (value) => h.progress.push(value))
+    )
+    assert.equal(h.requests.length, 3)
+    assert.equal(h.progress.at(-1).status, 'error')
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('catalog does not retry authorization failures', async () => {
+  const h = await harness([], Buffer.alloc(0), [403])
+  try {
+    await assert.rejects(h.api.startSkinAssetSync('https://regional.example', () => {}))
+    assert.equal(h.requests.length, 1)
   } finally {
     await h.cleanup()
   }

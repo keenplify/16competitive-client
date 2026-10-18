@@ -65,3 +65,16 @@ test('half breakdown counts current teams rather than historical physical sides'
     { label: 'OT', ct: 2, t: 1 }
   ])
 })
+
+test('FY displays its deciding seventeenth round without overtime', () => {
+  const state = scoreboardRounds(17, 8, 9, 3, true)
+  assert.equal(state.total, 17)
+  assert.equal(state.current, 17)
+  assert.equal(state.overtime, false)
+  assert.equal(state.label, 'ROUND 17 / 17')
+  const splits = scoreByHalf('C'.repeat(8) + 'T'.repeat(9), 8, 16, 3, true, true)
+  assert.deepEqual(splits.slice(0, 2), [
+    { label: '1st', ct: 0, t: 8 },
+    { label: '2nd', ct: 0, t: 9 }
+  ])
+})

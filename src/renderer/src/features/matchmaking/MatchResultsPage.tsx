@@ -13,6 +13,7 @@ import { useFriendsStore } from '../friends/friends.store'
 import { OperationMatchProgress } from '../operations/OperationMatchProgress'
 import { usePartyStore } from '../party/party.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
+import { QueueAgainPrompt } from './QueueAgainPrompt'
 import { PlayWindowMatchResult } from './PlayWindowMatchResult'
 import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
@@ -373,6 +374,8 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           </>
         </div>
       )}
+
+      {resultsStep === 'summary' && <QueueAgainPrompt />}
 
       {resultsStep === 'summary' && (
         <MatchSurveyPrompt

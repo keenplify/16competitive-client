@@ -1,3 +1,4 @@
+import { queueAgainTranslations } from './queue-again-translations'
 import { gameDisplayTranslations } from './game-display-translations'
 import { paymentTranslations } from './payment-translations'
 import { roomSettingsTranslations } from './room-settings-translations'
@@ -36,6 +37,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
   ...roomSettingsTranslations.en,
+  ...queueAgainTranslations.en,
   ...legacyGameTranslations.en,
   ...steamTranslations.en,
   ...communityMembershipTranslations.en,
@@ -180,7 +182,7 @@ const english = {
   'matchmaking.modeHelpLegacy': 'Unrated 5v5 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpLegacy3v3': 'Unrated 3v3 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
-  'matchmaking.modeHelpFightYard': 'Team Fight Yard. First team to 90 kills wins.',
+  'matchmaking.modeHelpFightYard': 'Round-based Fight Yard. First team to win 9 rounds wins.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. First team to 13 rounds wins.',
   'matchmaking.preferHumansTooltip':
     'Prioritizes human players and delays automatic bot fill. Bots can still join if another player opts in or the mode allows them.',
@@ -193,6 +195,7 @@ export type TranslationParams = Record<string, string | number>
 
 const russian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ru,
+  ...queueAgainTranslations.ru,
   ...legacyGameTranslations.ru,
   ...steamTranslations.ru,
   ...communityMembershipTranslations.ru,
@@ -340,7 +343,7 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3': 'Нерейтинговый 3 на 3 с движением CS 1.3. Победа за 9 раундов.',
   'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
   'matchmaking.modeHelpFightYard':
-    'Командный Fight Yard. Побеждает первая команда с 90 убийствами.',
+    'Раундовый Fight Yard. Побеждает команда, первой выигравшая 9 раундов.',
   'matchmaking.modeHelp3v3': 'Нерейтинговый 3 на 3. Победа за 13 раундов.',
   'matchmaking.preferHumansTooltip':
     'Приоритет живым игрокам и более позднее автоматическое добавление ботов. Боты всё же возможны, если другой игрок согласится или режим их допускает.',
@@ -350,6 +353,7 @@ const russian: Record<TranslationKey, string> = {
 
 const taglish: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.tl,
+  ...queueAgainTranslations.tl,
   ...legacyGameTranslations.tl,
   ...steamTranslations.tl,
   ...communityMembershipTranslations.tl,
@@ -498,7 +502,8 @@ const taglish: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'Unrated 3v3 na may CS 1.3 movement. Unang team sa 9 rounds ang panalo.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
-  'matchmaking.modeHelpFightYard': 'Team Fight Yard. Unang team sa 90 kills ang panalo.',
+  'matchmaking.modeHelpFightYard':
+    'Round-based Fight Yard. Unang team na manalo ng 9 rounds ang panalo.',
   'matchmaking.modeHelp3v3': 'Unrated 3v3. Unang team sa 13 rounds ang panalo.',
   'matchmaking.preferHumansTooltip':
     'Mas inuuna ang mga taong player at pinapahuli ang automatic bot fill. Posible pa rin ang bots kung may ibang player na mag-opt in o pinapayagan ng mode.',
@@ -508,6 +513,7 @@ const taglish: Record<TranslationKey, string> = {
 
 const thai: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.th,
+  ...queueAgainTranslations.th,
   ...legacyGameTranslations.th,
   ...steamTranslations.th,
   ...communityMembershipTranslations.th,
@@ -652,7 +658,7 @@ const thai: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     '3v3 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
-  'matchmaking.modeHelpFightYard': 'Fight Yard แบบทีม ทีมที่ได้ 90 คิลก่อนเป็นผู้ชนะ',
+  'matchmaking.modeHelpFightYard': 'Fight Yard แบบรอบ ทีมที่ชนะครบ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelp3v3': '3v3 ไม่จัดอันดับ ทีมที่ชนะ 13 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.preferHumansTooltip':
     'ให้ความสำคัญกับผู้เล่นจริงและชะลอการเติมบอทอัตโนมัติ บอทอาจเข้าร่วมได้หากผู้เล่นอื่นยินยอมหรือโหมดอนุญาต',
@@ -662,6 +668,7 @@ const thai: Record<TranslationKey, string> = {
 
 const indonesian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.id,
+  ...queueAgainTranslations.id,
   ...legacyGameTranslations.id,
   ...steamTranslations.id,
   ...communityMembershipTranslations.id,
@@ -812,7 +819,8 @@ const indonesian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     '3v3 tanpa peringkat dengan gerakan CS 1.3. Tim pertama yang menang 9 ronde menjadi pemenang.',
   'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
-  'matchmaking.modeHelpFightYard': 'Fight Yard beregu. Tim pertama dengan 90 kill menang.',
+  'matchmaking.modeHelpFightYard':
+    'Fight Yard berbasis ronde. Tim pertama yang memenangkan 9 ronde menang.',
   'matchmaking.modeHelp3v3':
     '3v3 tanpa peringkat. Tim pertama yang menang 13 ronde menjadi pemenang.',
   'matchmaking.preferHumansTooltip':
@@ -823,6 +831,7 @@ const indonesian: Record<TranslationKey, string> = {
 
 const portuguese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.pt,
+  ...queueAgainTranslations.pt,
   ...legacyGameTranslations.pt,
   ...steamTranslations.pt,
   ...communityMembershipTranslations.pt,
@@ -975,7 +984,7 @@ const portuguese: Record<TranslationKey, string> = {
   'matchmaking.modeHelpFfa':
     'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
   'matchmaking.modeHelpFightYard':
-    'Fight Yard em equipes. Vence a primeira equipe a conseguir 90 abates.',
+    'Fight Yard por rodadas. Vence a primeira equipe a ganhar 9 rodadas.',
   'matchmaking.modeHelp3v3': '3v3 sem ranking. Vence a primeira equipe a ganhar 13 rodadas.',
   'matchmaking.preferHumansTooltip':
     'Prioriza jogadores humanos e atrasa o preenchimento automático com bots. Bots ainda podem entrar se outro jogador aceitar ou o modo permitir.',
@@ -985,6 +994,7 @@ const portuguese: Record<TranslationKey, string> = {
 
 const japanese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ja,
+  ...queueAgainTranslations.ja,
   ...legacyGameTranslations.ja,
   ...steamTranslations.ja,
   ...communityMembershipTranslations.ja,
@@ -1134,7 +1144,7 @@ const japanese: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3の移動仕様を使う非ランク戦3v3。先に9ラウンドを取ったチームが勝利。',
   'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
-  'matchmaking.modeHelpFightYard': 'チーム戦のFight Yard。先に90キルしたチームが勝利。',
+  'matchmaking.modeHelpFightYard': 'ラウンド制のFight Yard。先に9ラウンドを獲得したチームが勝利。',
   'matchmaking.modeHelp3v3': '非ランク戦3v3。先に13ラウンドを取ったチームが勝利。',
   'matchmaking.preferHumansTooltip':
     '人間のプレイヤーを優先し、自動のボット補充を遅らせます。他のプレイヤーが同意するか、モードが許可する場合はボットが参加することもあります。',
@@ -1144,6 +1154,7 @@ const japanese: Record<TranslationKey, string> = {
 
 const hindi: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.hi,
+  ...queueAgainTranslations.hi,
   ...legacyGameTranslations.hi,
   ...steamTranslations.hi,
   ...communityMembershipTranslations.hi,
@@ -1292,7 +1303,8 @@ const hindi: Record<TranslationKey, string> = {
   'matchmaking.modeHelpLegacy3v3':
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 3v3। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
-  'matchmaking.modeHelpFightYard': 'टीम Fight Yard। पहले 90 किल करने वाली टीम जीतेगी।',
+  'matchmaking.modeHelpFightYard':
+    'राउंड आधारित Fight Yard। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelp3v3': 'बिना रैंक वाला 3v3। पहले 13 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.preferHumansTooltip':
     'मानव खिलाड़ियों को प्राथमिकता देता है और अपने आप बॉट जोड़ने में देरी करता है। कोई दूसरा खिलाड़ी सहमति दे या मोड अनुमति दे तो बॉट फिर भी आ सकते हैं।',

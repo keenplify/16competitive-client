@@ -3,10 +3,11 @@ export function scoreboardRounds(
   round: number,
   halfRounds: number,
   winTarget: number,
-  overtimeHalf = 3
+  overtimeHalf = 3,
+  suddenDeath = false
 ) {
-  const regulationRounds = halfRounds * 2
-  const overtime = halfRounds > 0 && winTarget > halfRounds + 1
+  const regulationRounds = halfRounds * 2 + (suddenDeath ? 1 : 0)
+  const overtime = !suddenDeath && halfRounds > 0 && winTarget > halfRounds + 1
   const overtimeNumber = overtime
     ? Math.max(1, Math.floor((winTarget - halfRounds - 1) / overtimeHalf))
     : 0
@@ -81,12 +82,13 @@ export function scoreByHalf(
   half: number,
   currentIndex: number,
   overtimeHalf = 3,
-  sidesSwapped?: boolean
+  sidesSwapped?: boolean,
+  suddenDeath = false
 ) {
   return [
     { label: '1st', start: 0, end: half },
-    { label: '2nd', start: half, end: half * 2 },
-    { label: 'OT', start: half * 2, end: history.length }
+    { label: '2nd', start: half, end: half * 2 + (suddenDeath ? 1 : 0) },
+    { label: 'OT', start: half * 2 + (suddenDeath ? 1 : 0), end: history.length }
   ].map(({ label, start, end }) => {
     let ct = 0,
       t = 0

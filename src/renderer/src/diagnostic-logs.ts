@@ -24,5 +24,12 @@ export function installDiagnosticLogCapture(): void {
   }
 }
 
-export const getRendererDiagnosticLogs = (): string[] => [...entries]
+export const getRendererDiagnosticLogs = (): string[] => [
+  ...entries,
+  `[RendererContext] ${JSON.stringify({
+    // Keep query parameters and fragments out of reports: they can contain credentials.
+    screen: window.location.protocol === 'file:' ? 'desktop' : window.location.pathname,
+    visibility: document.visibilityState
+  })}`
+]
 import { serverClockNow } from '../../shared/server-clock'

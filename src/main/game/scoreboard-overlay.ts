@@ -82,6 +82,7 @@ type Snapshot = {
   round: number
   roundWinners: string | null
   mode: 'ffa' | 'competitive'
+  straightScoreLine?: boolean
   showBotTags?: boolean
   players: {
     id: number
@@ -890,6 +891,10 @@ export class ScoreboardOverlaySession {
       if (botTags !== null && botTags !== '0' && botTags !== '1')
         throw new Error('Invalid scoreboard bot-tag policy')
       snapshot.showBotTags = botTags === '1'
+      const roundLayout = response.headers.get('x-scoreboard-round-layout')
+      if (roundLayout !== null && roundLayout !== 'straight' && roundLayout !== 'standard')
+        throw new Error('Invalid scoreboard round layout')
+      snapshot.straightScoreLine = roundLayout === 'straight'
       const accoladeHeader = response.headers.get('x-round-accolade')
       // A missing header can be a transient server-file read during replacement.
       // The native HUD enforces its own six-second expiry on the last valid award.

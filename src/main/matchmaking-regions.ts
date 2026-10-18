@@ -140,7 +140,8 @@ const probeNodeLatency = async (node: MatchmakingNode): Promise<number | null> =
   }
   const startedAt = performance.now()
   try {
-    await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
+    const response = await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
+    if (!response.ok) return null
     return Math.max(0, Math.round(performance.now() - startedAt))
   } catch {
     return null
@@ -242,16 +243,16 @@ export const getMatchmakingNodes = async (measureLatency = true): Promise<Matchm
     return body.nodes
   }
   let discoveredNodes: MatchmakingNode[]
-  try {
-    discoveredNodes = await fetchNodes(API_BASE_URL, LOCAL_DEVELOPMENT ? 10_000 : 3_500)
-  } catch {
-    if (LOCAL_DEVELOPMENT) throw new Error('Could not reach the regional matchmaking service')
+  if (LOCAL_DEVELOPMENT) {
+    discoveredNodes = await fetchNodes(API_BASE_URL, 10_000)
+  } else {
     try {
+      // Discovery must not require a round trip to Singapore first.
       discoveredNodes = await Promise.any(
         FALLBACK_NODE_DISCOVERY_ORIGINS.map((origin) => fetchNodes(origin, 5_000))
       )
     } catch {
-      throw new Error('Could not reach the regional matchmaking service')
+      discoveredNodes = await fetchNodes(API_BASE_URL, 5_000)
     }
   }
   const nodes = LOCAL_DEVELOPMENT
@@ -259,13 +260,7 @@ export const getMatchmakingNodes = async (measureLatency = true): Promise<Matchm
     : discoveredNodes
   if (!measureLatency) return nodes
   const measuredNodes = await attachNodeLatencies(nodes)
-  const { selectedNodeId } = await getMatchmakingPreferences()
-  if (
-    selectedNodeId &&
-    !measuredNodes.some((node) => node.id === selectedNodeId && isUsablePreference(node))
-  ) {
-    await saveMatchmakingPreferences({ selectedNodeId: null })
-  }
+  // A transient probe failure must not erase the player's saved region.
   if (token) void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
 }
@@ -304,16 +299,85 @@ export const selectMatchmakingApiUrl = async (
   )
 }
 
-export const resolvePreferredMatchmakingApiUrl = async (): Promise<string> => {
+let lastWorkingServiceApi: string | null = null
+
+const checkServiceEndpoint = async (origin: string): Promise<boolean> => {
   try {
-    const [nodes, preferences] = await Promise.all([
-      getMatchmakingNodes(),
-      getMatchmakingPreferences()
-    ])
-    return (await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)) ?? API_BASE_URL
+    const response = await fetch(`${origin}/nodes`, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(5_000)
+    })
+    const body: unknown = await response.json()
+    return response.ok && isObject(body) && Array.isArray(body.nodes) && body.nodes.every(isNode)
   } catch {
+    return false
+  }
+}
+
+export const resolvePreferredMatchmakingApiUrl = async (): Promise<string> => {
+  let nodes: MatchmakingNode[] = []
+  const preferences = await getMatchmakingPreferences()
+  try {
+    nodes = await getMatchmakingNodes()
+    const selected = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
+    if (selected && (selected !== API_BASE_URL || LOCAL_DEVELOPMENT)) {
+      lastWorkingServiceApi = selected
+      console.info('[RegionRouting] selected', { origin: selected, reason: 'regional-selection' })
+      return selected
+    }
+    if (LOCAL_DEVELOPMENT) return API_BASE_URL
+    // SEA may be the correct nearest region. Keep a positive measurement unless
+    // a saved or previously working non-SEA region needs a recovery check.
+    const savedOrigin = nodes.find((node) => node.id === preferences.selectedNodeId)?.publicApiUrl
+    if (
+      selected &&
+      (savedOrigin === API_BASE_URL ||
+        nodes.some(
+          (node) => node.publicApiUrl !== API_BASE_URL && measuredLatency(node) !== null
+        )) &&
+      (!lastWorkingServiceApi || lastWorkingServiceApi === API_BASE_URL) &&
+      (!preferences.selectedNodeId || savedOrigin === API_BASE_URL)
+    ) {
+      lastWorkingServiceApi = selected
+      console.info('[RegionRouting] selected', { origin: selected, reason: 'nearest-measured' })
+      return selected
+    }
+  } catch {
+    if (LOCAL_DEVELOPMENT) return API_BASE_URL
+  }
+
+  const preferred = nodes.find((node) => node.id === preferences.selectedNodeId)?.publicApiUrl
+  const candidates = [
+    ...new Set(
+      [preferred, lastWorkingServiceApi, ...FALLBACK_NODE_DISCOVERY_ORIGINS].filter(
+        (origin): origin is string => Boolean(origin) && origin !== API_BASE_URL
+      )
+    )
+  ]
+  // Probe the actual HTTPS service twice; UDP loss alone is not an outage.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const healthy = await Promise.all(candidates.map(checkServiceEndpoint))
+    const recovered = candidates.find((_, index) => healthy[index])
+    if (recovered) {
+      lastWorkingServiceApi = recovered
+      console.info('[RegionRouting] selected', {
+        origin: recovered,
+        reason: 'regional-recovery',
+        attempt
+      })
+      return recovered
+    }
+  }
+  if (await checkServiceEndpoint(API_BASE_URL)) {
+    console.warn('[RegionRouting] selected', {
+      origin: API_BASE_URL,
+      reason: 'last-resort-all-regional-checks-failed',
+      attemptedOrigins: candidates
+    })
     return API_BASE_URL
   }
+  console.warn('[RegionRouting] no reachable service', { attemptedOrigins: candidates })
+  throw new Error('Could not reach the regional matchmaking service')
 }
 
 export const toMatchmakingWsUrl = (apiUrl: string): string => {
@@ -332,7 +396,10 @@ export const resolveServiceApiUrl = (): Promise<string> => {
   if (!preferredServiceApi || Date.now() >= preferredServiceApi.until) {
     preferredServiceApi = {
       until: Date.now() + 60_000,
-      pending: resolvePreferredMatchmakingApiUrl()
+      pending: resolvePreferredMatchmakingApiUrl().catch((error: unknown) => {
+        preferredServiceApi = null
+        throw error
+      })
     }
   }
   return preferredServiceApi.pending

@@ -11,7 +11,9 @@ async function loadRegionsModule({
   nodes = [],
   probeLatencyMs = 0,
   probeFails = false,
-  bootstrapFails = false
+  bootstrapFails = false,
+  serviceFails = [],
+  requests = []
 } = {}) {
   let saved = JSON.stringify({ selectedNodeId, allowRegionExpansion: true })
   const source = ts.transpileModule(
@@ -40,6 +42,7 @@ async function loadRegionsModule({
     './backend-policy': { isLoopbackBackend: () => false }
   }
   const context = vm.createContext({
+    console,
     URL,
     AbortSignal,
     Buffer,
@@ -50,6 +53,8 @@ async function loadRegionsModule({
       })()
     },
     fetch: async (url) => {
+      requests.push(url)
+      if (serviceFails.some((origin) => url.startsWith(origin))) throw new Error('Unavailable')
       if (url === 'https://bootstrap.example/nodes') {
         if (bootstrapFails) throw new Error('Primary node discovery unavailable')
         return { ok: true, json: async () => ({ nodes }) }
@@ -117,14 +122,14 @@ test('a saved server at 300 ms gives way to a lower latency server', async () =>
   assert.equal(result, 'https://better.example')
 })
 
-test('launch probes clear a saved server that is unreachable', async () => {
+test('launch probes preserve a saved server that is temporarily unreachable', async () => {
   const regions = await loadRegionsModule({
     selectedNodeId: 'saved',
     nodes: [node('saved', null)],
     probeFails: true
   })
   await regions.getMatchmakingNodes()
-  assert.equal(regions.saved().selectedNodeId, null)
+  assert.equal(regions.saved().selectedNodeId, 'saved')
 })
 
 test('node discovery falls back to a bundled regional HTTPS endpoint', async () => {
@@ -139,4 +144,32 @@ test('node discovery falls back to a bundled regional HTTPS endpoint', async () 
 test('public regional discovery works before sign-in', async () => {
   const h = await loadRegionsModule({ token: null })
   assert.deepEqual(Array.from(await h.getMatchmakingNodes()), [])
+})
+
+test('failed latency probes recover through regional HTTPS before SEA', async () => {
+  const requests = []
+  const regions = await loadRegionsModule({ probeFails: true, requests })
+  assert.equal(
+    await regions.resolvePreferredMatchmakingApiUrl(),
+    'https://euw.16competitive.papamo.dev'
+  )
+  assert.ok(!requests.includes('https://bootstrap.example/nodes'))
+})
+
+test('SEA fallback requires two failed rounds for every bundled region', async () => {
+  const requests = []
+  const origins = [
+    'https://euw.16competitive.papamo.dev',
+    'https://na.16competitive.papamo.dev',
+    'https://sa.16competitive.papamo.dev'
+  ]
+  const regions = await loadRegionsModule({ serviceFails: origins, requests })
+  assert.equal(await regions.resolvePreferredMatchmakingApiUrl(), 'https://bootstrap.example')
+  for (const origin of origins)
+    assert.equal(requests.filter((url) => url === origin + '/nodes').length, 3)
+})
+
+test('total outage fails instead of returning an unchecked SEA endpoint', async () => {
+  const regions = await loadRegionsModule({ serviceFails: ['https://'] })
+  await assert.rejects(regions.resolveServiceApiUrl(), /Could not reach/)
 })

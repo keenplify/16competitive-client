@@ -120,7 +120,16 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     try {
       await window.api.diagnosticLogs.report(
         description.trim(),
-        getRendererDiagnosticLogs(),
+        [
+          ...getRendererDiagnosticLogs(),
+          `[ResourceLoadingSnapshot] ${JSON.stringify({
+            page,
+            playView,
+            status: progress?.status ?? 'unavailable',
+            completedFiles: progress?.completedFiles ?? null,
+            totalFiles: progress?.totalFiles ?? null
+          })}`
+        ],
         matchId ?? undefined
       )
       setReportStatus('Issue reported. Thank you!')
@@ -183,7 +192,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
           </div>
         </div>
       )}
-      {progress && progress.status !== 'ready' && (
+      {progress && (progress.status === 'syncing' || progress.status === 'error') && (
         <aside
           className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
           role="status"

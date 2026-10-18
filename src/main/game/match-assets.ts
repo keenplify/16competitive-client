@@ -323,6 +323,46 @@ const isCatalogAsset = (value: unknown): value is CatalogAsset => {
   return !pathHash || asset.sha256.startsWith(pathHash)
 }
 
+// Retry only transport/service failures. Validation and filesystem work stay outside
+// this boundary so corrupt content and permission failures are reported immediately.
+const fetchCatalogResource = async (
+  url: URL,
+  token: string,
+  timeoutMs: number
+): Promise<{ response: Response; bytes: Buffer }> => {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(timeoutMs)
+      })
+      if (!response.ok) {
+        await response.body?.cancel()
+        if (![408, 429, 500, 502, 503, 504].includes(response.status)) {
+          throw new NonRetryableAssetError(`Asset service rejected request (${response.status}).`)
+        }
+        throw new Error(`Temporary asset service failure (${response.status}).`)
+      }
+      // Keep the timeout active until the entire response body arrives.
+      const bytes = Buffer.from(await response.arrayBuffer())
+      return { response, bytes }
+    } catch (error) {
+      if (error instanceof NonRetryableAssetError || attempt === 3) throw error
+      console.warn('[MatchAssets] catalog request retry', {
+        origin: url.origin,
+        endpoint: url.pathname,
+        attempt,
+        maxAttempts: 3,
+        delayMs: attempt * 1_000,
+        error: error instanceof Error ? error.name : 'TransportError'
+      })
+      await delay(attempt * 1_000)
+    }
+  }
+  throw new Error('Asset service retries exhausted.')
+}
+
 let skinSyncTask: Promise<void> | null = null
 
 const syncSkinAssets = async (
@@ -330,20 +370,23 @@ const syncSkinAssets = async (
   onProgress: (progress: SkinAssetSyncProgress) => void
 ): Promise<void> => {
   const token = getSessionToken()
-  if (!token) return
+  if (!token) {
+    console.info('[MatchAssets] catalog sync blocked: no authenticated session')
+    throw new NonRetryableAssetError('Sign in before downloading skin assets.')
+  }
   console.info('[MatchAssets] catalog sync started', { apiUrl })
   const base = new URL(apiUrl)
-  const response = await fetch(new URL('/skins/assets/manifest', base), {
-    headers: { authorization: `Bearer ${token}` },
-    redirect: 'error',
-    signal: AbortSignal.timeout(30_000)
-  })
+  const { response, bytes: manifestBytes } = await fetchCatalogResource(
+    new URL('/skins/assets/manifest', base),
+    token,
+    30_000
+  )
   console.info('[MatchAssets] catalog response received', {
     status: response.status,
     contentType: response.headers.get('content-type')
   })
   if (!response.ok) throw new Error(`Could not load skin asset catalog (${response.status}).`)
-  const payload: unknown = await response.json().catch(() => null)
+  const payload: unknown = JSON.parse(manifestBytes.toString('utf8'))
   const assets =
     typeof payload === 'object' &&
     payload !== null &&
@@ -372,11 +415,7 @@ const syncSkinAssets = async (
       if (!(await hasExpectedHash(destination, asset.sha256, asset.path))) {
         const fileUrl = new URL('/skins/assets/file', base)
         fileUrl.searchParams.set('path', asset.path)
-        const result = await fetch(fileUrl, {
-          headers: { authorization: `Bearer ${token}` },
-          redirect: 'error',
-          signal: AbortSignal.timeout(90_000)
-        })
+        const { response: result, bytes } = await fetchCatalogResource(fileUrl, token, 90_000)
         console.info('[MatchAssets] catalog asset response received', {
           path: asset.path,
           status: result.status,
@@ -387,7 +426,6 @@ const syncSkinAssets = async (
         if (!result.headers.get('content-type')?.startsWith('application/octet-stream')) {
           throw new Error(`Skin asset server returned an invalid content type: ${asset.path}`)
         }
-        const bytes = Buffer.from(await result.arrayBuffer())
         console.info('[MatchAssets] catalog asset body received', {
           path: asset.path,
           bytes: bytes.length
@@ -432,7 +470,10 @@ export const startSkinAssetSync = (
   apiUrl: string,
   onProgress: (progress: SkinAssetSyncProgress) => void
 ): Promise<void> => {
-  if (skinSyncTask) return skinSyncTask
+  if (skinSyncTask) {
+    console.info('[MatchAssets] catalog sync joined existing task')
+    return skinSyncTask
+  }
   skinSyncTask = syncSkinAssets(apiUrl, onProgress)
     .catch((error: unknown) => {
       console.error('[MatchAssets] catalog sync failed', {

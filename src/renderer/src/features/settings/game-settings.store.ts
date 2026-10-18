@@ -186,9 +186,16 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   load: async () => {
+    const startedAt = performance.now()
+    console.info('[GameSetup] settings load started')
     set({ status: 'loading', error: null })
     try {
       const settings = await window.api.gameSettings.get()
+      console.info('[GameSetup] settings loaded', {
+        installationSelected: Boolean(settings.cs16ExecutablePath),
+        setupCompleted: settings.setupCompleted,
+        elapsedMs: Math.round(performance.now() - startedAt)
+      })
       set({
         display: settings.display,
         currentDisplayResolution: settings.currentDisplayResolution,
@@ -213,6 +220,9 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         platform: settings.platform
       })
     } catch (error) {
+      console.warn('[GameSetup] settings load failed', {
+        elapsedMs: Math.round(performance.now() - startedAt)
+      })
       set({ status: 'idle', loaded: true, error: message(error) })
     }
   },
