@@ -2664,3 +2664,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a launcher voice chat dock.
 - Improved voice chat controls and status visibility.
+
+## v2026.1018.8 — 2026-10-18
+
+### Profile
+
+- Enlarged the profile map chart for easier viewing.
+- Focused player identity details within the profile overview.
