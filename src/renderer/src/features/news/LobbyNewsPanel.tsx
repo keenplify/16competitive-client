@@ -1,3 +1,5 @@
+import { useTranslation } from '../i18n/i18n'
+import { Button } from '../../components/ui/Button'
 import { useEffect, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { readableNewsContent } from './news.api'
@@ -20,6 +22,7 @@ const safeImageUrl = (value: string | null): string | null => {
 }
 
 export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element {
+  const { t } = useTranslation()
   const posts = useNewsStore((state) => state.previewPosts)
   const status = useNewsStore((state) => state.previewStatus)
   const loadPreview = useNewsStore((state) => state.loadPreview)
@@ -145,6 +148,9 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
             </a>
           )
         })}
+        <Button variant="secondary" className="w-full" onClick={() => navigate('news')}>
+          {t('directory.showMoreNews')}
+        </Button>
       </div>
     </aside>
   )

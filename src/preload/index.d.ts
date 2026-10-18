@@ -1,3 +1,4 @@
+import type { CommunityDirectoryApi } from '../shared/community-directory'
 import type { CommunityMembershipApi } from '../shared/community-membership'
 import type { PartnerServersApi, CommunityChatApi } from '../shared/partner-community'
 import type { PartnerBrandingApi } from '../shared/partner-branding'
@@ -29,6 +30,7 @@ declare global {
       partnerServers: PartnerServersApi
       communityChat: CommunityChatApi
       partnerBranding: PartnerBrandingApi
+      communityDirectory: CommunityDirectoryApi
       communityMembership: CommunityMembershipApi
       auth: AuthApi
       antiCheat: AntiCheatApi

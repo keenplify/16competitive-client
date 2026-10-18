@@ -44,6 +44,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { usePartyStore } from './party.store'
 
 interface LobbySocialSidebarProps {
+  communityOnly?: boolean
   playerId: string
   collapsed: boolean
   pinned: boolean
@@ -302,6 +303,7 @@ function FriendRequestsModal({
 }
 
 export function LobbySocialSidebar({
+  communityOnly = false,
   collapsed,
   pinned,
   onHoverOpen,
@@ -450,7 +452,7 @@ export function LobbySocialSidebar({
       </div>
       <aside
         className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
-        aria-label={collapsed ? 'Expand Friends panel' : 'Friends panel'}
+        aria-label={communityOnly ? t('directory.members') : collapsed ? 'Expand Friends panel' : 'Friends panel'}
         role={collapsed ? 'button' : undefined}
         tabIndex={collapsed ? 0 : undefined}
         onClick={expandCollapsedSidebar}
@@ -481,6 +483,7 @@ export function LobbySocialSidebar({
             <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
             {!collapsed && <QueueWarmupButton />}
           </div>
+          {communityOnly ? <div className="flex min-h-0 flex-1 flex-col"><CommunityMembersSection standalone className="flex-1" /></div> : <>
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-sky-300" aria-hidden="true" />
@@ -602,6 +605,7 @@ export function LobbySocialSidebar({
           <div className="min-h-12 shrink-0">
             <CommunityMembersSection />
           </div>
+          </>}
           <div id="friends-rail-voice-slot" className="shrink-0" />
         </div>
       </aside>

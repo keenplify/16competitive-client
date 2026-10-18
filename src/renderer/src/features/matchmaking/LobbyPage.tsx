@@ -1,3 +1,4 @@
+import { CommunitiesPage } from '../communities/CommunitiesPage'
 import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
 import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
 import {
@@ -49,6 +50,7 @@ const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   leaderboard: 'Leaderboard',
   store: 'Store',
   news: 'News',
+  communities: 'Communities',
   settings: 'Settings',
   profile: 'Profile'
 }
@@ -209,6 +211,7 @@ export function LobbyPage(): JSX.Element {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
     if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
+    if (nextPage === 'communities') setFriendsRailMode('pinned')
     if (nextPage === 'profile') setProfileTab('overview')
     setMissionsOpen(false)
     navigate(nextPage)
@@ -392,6 +395,8 @@ export function LobbyPage(): JSX.Element {
     <ProfilePage />
   ) : page === 'store' ? (
     <ShopPage />
+  ) : page === 'communities' ? (
+    <CommunitiesPage />
   ) : page === 'news' ? (
     <NewsPage />
   ) : page === 'leaderboard' ? (
@@ -442,6 +447,7 @@ export function LobbyPage(): JSX.Element {
       <PartyInvitationModal />
       <PartyChat />
       <LobbySocialSidebar
+        communityOnly={page === 'communities'}
         playerId={player.id}
         collapsed={friendsCollapsed}
         pinned={friendsRailMode === 'pinned'}

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type LobbyPageId =
-  'demos' | 'lobby' | 'play' | 'leaderboard' | 'store' | 'news' | 'settings' | 'profile'
+  'demos' | 'lobby' | 'play' | 'leaderboard' | 'store' | 'communities' | 'news' | 'settings' | 'profile'
 
 export type ProfileTabId = 'overview' | 'matches' | 'skins' | 'operation'
 

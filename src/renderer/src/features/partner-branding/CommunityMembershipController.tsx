@@ -1,3 +1,4 @@
+import { useCommunitiesStore } from '../communities/communities.store'
 import { useEffect } from 'react'
 import { useAuthStore } from '../auth/auth.store'
 import { useCommunityMembershipStore } from './community-membership.store'
@@ -8,6 +9,7 @@ export function CommunityMembershipController(): null {
   const load = useCommunityMembershipStore((state) => state.load),
     clear = useCommunityMembershipStore((state) => state.clear)
   useEffect(() => {
+    useCommunitiesStore.getState().clear()
     if (!accountId) {
       clear()
       return

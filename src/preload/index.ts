@@ -1,3 +1,4 @@
+import { COMMUNITY_DIRECTORY_CHANNELS, type CommunityDirectoryApi } from '../shared/community-directory'
 import {
   COMMUNITY_MEMBERSHIP_CHANNELS,
   type CommunityMembershipApi
@@ -53,6 +54,11 @@ import { DIAGNOSTIC_LOG_CHANNELS } from '../shared/diagnostic-logs'
 import type { CustomGamesApi } from '../shared/custom-games'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 
+const communityDirectory: CommunityDirectoryApi = {
+  leave: (expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.leave, expected),
+  list: (query) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.list, query),
+  join: (id, expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.join, id, expected)
+}
 const communityMembership: CommunityMembershipApi = {
   pending: () => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.pending),
   decide: (id, accept) => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.decide, id, accept),
@@ -376,6 +382,7 @@ const api = {
   auth,
   partnerBranding,
   communityMembership,
+  communityDirectory,
   antiCheat,
   dailyQuests,
   customGames,

@@ -1,3 +1,5 @@
+import { CountryFlag } from '../../components/CountryFlag'
+import { useTranslation } from '../i18n/i18n'
 import { useEffect, type JSX } from 'react'
 import { isWebRuntime } from '../../web-runtime'
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react'
@@ -19,6 +21,7 @@ export function PartnerServersPanel({
   disabled?: boolean
   className?: string
 }): JSX.Element {
+  const { t } = useTranslation()
   const text = useCommunityText(),
     rows = usePartnerServersStore((s) => s.rows),
     status = usePartnerServersStore((s) => s.status),
@@ -95,6 +98,10 @@ export function PartnerServersPanel({
                   <Check className="absolute top-3 left-3 size-5 text-sky-300" aria-hidden="true" />
                 )}
                 <div className="absolute inset-x-0 bottom-0 p-4 text-center">
+                  <div className="mb-2 flex min-h-4 items-center justify-center gap-2 text-xs text-sky-200">
+                    <CountryFlag code={server.countryCode} className="h-4 w-6 object-cover" />
+                    <span>{t(`directory.category.${server.category ?? 'other'}`)}</span>
+                  </div>
                   <p className="font-audiowide text-sm text-white break-words">{server.name}</p>
                   <p className="mt-1 text-xs text-white/80">{server.gameVersion === 'cs13' ? 'Counter-Strike 1.3' : 'Counter-Strike 1.6'}</p>
                   <p className="mt-2 min-h-5 text-xs text-white/80">

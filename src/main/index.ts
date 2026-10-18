@@ -1,3 +1,5 @@
+import { COMMUNITY_DIRECTORY_CHANNELS } from '../shared/community-directory'
+import { listCommunities, joinCommunity, leaveCommunity } from './community-directory'
 import { release as osRelease } from 'node:os'
 import {
   isSupportedOperatingSystem,
@@ -921,6 +923,9 @@ app.whenReady().then(async () => {
     (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
       submitMatchSurvey(matchId, funRating, fairnessRating)
   )
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.leave, (_, expected: unknown) => leaveCommunity(expected))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.list, (_, query: unknown) => listCommunities(query))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.join, (_, id: unknown, expected: unknown) => joinCommunity(id, expected))
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.pending, () => pendingCommunityTransfer())
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.decide, (_, id: unknown, accept: unknown) =>
     decideCommunityTransfer(id, accept)

@@ -3,7 +3,7 @@ import type { JSX } from 'react'
 import {
   ClipboardList,
   House,
-  Newspaper,
+  Users,
   Play,
   Settings,
   ShoppingBag,
@@ -25,7 +25,7 @@ const pages = [
   { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: Trophy },
   { id: 'play', labelKey: 'nav.play', icon: Play },
   { id: 'store', labelKey: 'nav.store', icon: ShoppingBag },
-  { id: 'news', labelKey: 'nav.news', icon: Newspaper }
+  { id: 'communities', labelKey: 'directory.title', icon: Users }
 ] as const satisfies ReadonlyArray<{
   id: Exclude<LobbyPageId, 'lobby' | 'settings'>
   labelKey: TranslationKey

@@ -1,3 +1,4 @@
+import { communityDirectoryPath, parseCommunityDirectory, parseCommunityJoin, parseCommunityLeave, validateCommunityJoin } from '../shared/community-directory'
 import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { isPlayerProfile } from '../shared/player-profile-validation'
 import {
@@ -594,6 +595,19 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 
 const api: Window['api'] = {
   auth: browserAuthApi,
+  communityDirectory: {
+    leave: async (expectedCommunityId) => {
+      validateCommunityJoin(expectedCommunityId, null)
+      return parseCommunityLeave(await jsonPost("/partners/communities/leave", { expectedCommunityId }))
+    },
+    list: async (query) => parseCommunityDirectory(await authenticatedGet(communityDirectoryPath(query))),
+    join: async (id, expectedCommunityId) => {
+      validateCommunityJoin(id, expectedCommunityId)
+      const result = parseCommunityJoin(await jsonPost(`/partners/communities/${id}/join`, { expectedCommunityId }))
+      if (result.communityId !== id) throw new Error('INVALID_COMMUNITY_JOIN')
+      return result
+    }
+  },
   communityMembership: {
     async pending() {
       return parseCommunityTransfer(await authenticatedGet('/partners/community/transfer'))

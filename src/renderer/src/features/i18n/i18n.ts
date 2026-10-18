@@ -1,3 +1,4 @@
+import { communityDirectoryTranslations } from './community-directory-translations'
 import { queueWarmupTranslations } from './queue-warmup-translations'
 import { profileTranslations } from './profile-translations'
 import { queueAgainTranslations } from './queue-again-translations'
@@ -44,6 +45,7 @@ const english = {
   ...legacyGameTranslations.en,
   ...steamTranslations.en,
   ...communityMembershipTranslations.en,
+  ...communityDirectoryTranslations.en,
   ...scoreboardBotTranslations.en,
   ...newsAnnouncementTranslations.en,
   ...readyCheckTranslations.en,
@@ -204,6 +206,7 @@ const russian: Record<TranslationKey, string> = {
   ...legacyGameTranslations.ru,
   ...steamTranslations.ru,
   ...communityMembershipTranslations.ru,
+  ...communityDirectoryTranslations.ru,
   ...scoreboardBotTranslations.ru,
   ...newsAnnouncementTranslations.ru,
   ...readyCheckTranslations.ru,
@@ -364,6 +367,7 @@ const taglish: Record<TranslationKey, string> = {
   ...legacyGameTranslations.tl,
   ...steamTranslations.tl,
   ...communityMembershipTranslations.tl,
+  ...communityDirectoryTranslations.tl,
   ...scoreboardBotTranslations.tl,
   ...newsAnnouncementTranslations.tl,
   ...readyCheckTranslations.tl,
@@ -526,6 +530,7 @@ const thai: Record<TranslationKey, string> = {
   ...legacyGameTranslations.th,
   ...steamTranslations.th,
   ...communityMembershipTranslations.th,
+  ...communityDirectoryTranslations.th,
   ...scoreboardBotTranslations.th,
   ...newsAnnouncementTranslations.th,
   ...readyCheckTranslations.th,
@@ -683,6 +688,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...legacyGameTranslations.id,
   ...steamTranslations.id,
   ...communityMembershipTranslations.id,
+  ...communityDirectoryTranslations.id,
   ...scoreboardBotTranslations.id,
   ...newsAnnouncementTranslations.id,
   ...readyCheckTranslations.id,
@@ -848,6 +854,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...legacyGameTranslations.pt,
   ...steamTranslations.pt,
   ...communityMembershipTranslations.pt,
+  ...communityDirectoryTranslations.pt,
   ...scoreboardBotTranslations.pt,
   ...newsAnnouncementTranslations.pt,
   ...readyCheckTranslations.pt,
@@ -1013,6 +1020,7 @@ const japanese: Record<TranslationKey, string> = {
   ...legacyGameTranslations.ja,
   ...steamTranslations.ja,
   ...communityMembershipTranslations.ja,
+  ...communityDirectoryTranslations.ja,
   ...scoreboardBotTranslations.ja,
   ...newsAnnouncementTranslations.ja,
   ...readyCheckTranslations.ja,
@@ -1176,6 +1184,7 @@ const hindi: Record<TranslationKey, string> = {
   ...legacyGameTranslations.hi,
   ...steamTranslations.hi,
   ...communityMembershipTranslations.hi,
+  ...communityDirectoryTranslations.hi,
   ...scoreboardBotTranslations.hi,
   ...newsAnnouncementTranslations.hi,
   ...readyCheckTranslations.hi,

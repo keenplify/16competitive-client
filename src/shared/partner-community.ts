@@ -28,6 +28,8 @@ export interface PartnerServer {
   name: string
   host: string
   port: number
+  countryCode?: string | null
+  category?: 'pub' | 'zombie' | 'deathmatch' | 'gungame' | 'surf' | 'kz' | 'jailbreak' | 'awp' | 'aim' | 'other'
   gameVersion?: 'cs16' | 'cs13'
 }
 export interface PartnerServerStatus extends PartnerServer {
@@ -224,6 +226,8 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       !Number.isInteger(s.port) ||
       s.port < 1 ||
       s.port > 65535 ||
+      (s.countryCode != null && (typeof s.countryCode !== 'string' || !/^[A-Z]{2}$/.test(s.countryCode))) ||
+      (s.category !== undefined && !['pub', 'zombie', 'deathmatch', 'gungame', 'surf', 'kz', 'jailbreak', 'awp', 'aim', 'other'].includes(String(s.category))) ||
       (s.gameVersion !== undefined && s.gameVersion !== 'cs16' && s.gameVersion !== 'cs13')
     )
       throw new Error('Invalid partner server')
@@ -231,7 +235,7 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
     if (endpoints.has(endpoint)) throw new Error('Duplicate partner server')
     ids.add(s.id)
     endpoints.add(endpoint)
-    return { id: s.id, name: s.name, host: s.host, port: s.port, gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13' }
+    return { id: s.id, name: s.name, host: s.host, port: s.port, ...(s.category !== undefined ? { category: s.category as PartnerServer['category'] } : {}), ...(s.countryCode !== undefined ? { countryCode: s.countryCode as string | null } : {}), gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13' }
   })
   return {
     communityName: communityName as string | null,
