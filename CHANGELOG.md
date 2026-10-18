@@ -2678,3 +2678,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Profile overview now fits within the popup height.
 - Improved profile activity and map chart layout.
+
+## v2026.1018.10 — 2026-10-18
+
+### Communities
+
+- Browse a localized Communities directory.
+- View joined community details and members.
+- Manage community information and partner server settings.
+
+### Play
+
+- Improved Play layout for easier navigation.
+- Map selection remains available when server modes are renamed.
+
+### Installation
+
+- Improved Windows version detection during installation.
