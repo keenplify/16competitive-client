@@ -2593,3 +2593,28 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Improved compatibility on Windows systems.
+
+## v2026.1018.2 — 2026-10-18
+
+### Profiles
+
+- Refreshed player profiles with activity, loadout, map performance, match history, and detailed match views.
+- Added clearer profile navigation and localized profile content.
+
+### Game Modes
+
+- Renamed the Arena mode across the launcher.
+
+### Matchmaking
+
+- Improved lobby, roster, room settings, and queue-again experiences.
+- Updated matchmaking and match result displays.
+
+### Leaderboards & History
+
+- Refined leaderboard presentation.
+- Improved match history access and details.
+
+### Localization
+
+- Expanded translations across profiles, matchmaking, room settings, and queue-again flows.
