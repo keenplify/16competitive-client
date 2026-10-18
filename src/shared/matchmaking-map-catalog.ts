@@ -16,7 +16,16 @@ const isPreviewUrl = (value: unknown): value is string | null => {
   }
 }
 
-const isMap = (value: unknown): value is MatchmakingMap =>
+type CatalogMap = Omit<MatchmakingMap, 'supportedModes' | 'webModes' | 'customModes'> & {
+  supportedModes: string[]
+  webModes: string[]
+  customModes: string[]
+}
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string')
+
+const isMap = (value: unknown): value is CatalogMap =>
   isObject(value) &&
   typeof value.id === 'string' &&
   MAP_ID_PATTERN.test(value.id) &&
@@ -27,13 +36,10 @@ const isMap = (value: unknown): value is MatchmakingMap =>
   value.game.length > 0 &&
   value.game.length <= 32 &&
   isPreviewUrl(value.previewUrl) &&
-  Array.isArray(value.supportedModes) &&
-  value.supportedModes.every(isMatchmakingMode) &&
-  Array.isArray(value.webModes) &&
-  value.webModes.every(isMatchmakingMode) &&
+  isStringArray(value.supportedModes) &&
+  isStringArray(value.webModes) &&
   value.webModes.every((mode) => (value.supportedModes as unknown[]).includes(mode)) &&
-  Array.isArray(value.customModes) &&
-  value.customModes.every(isServerCustomGameMode)
+  isStringArray(value.customModes)
 
 export function parseMatchmakingMapCatalog(body: unknown): MatchmakingMapCatalog {
   if (!isObject(body) || !Array.isArray(body.maps) || !body.maps.every(isMap)) {
@@ -44,8 +50,17 @@ export function parseMatchmakingMapCatalog(body: unknown): MatchmakingMapCatalog
     body.customModes === undefined
       ? [...new Set(body.maps.flatMap((map) => map.customModes))]
       : body.customModes
-  if (!Array.isArray(customModes) || !customModes.every(isServerCustomGameMode)) {
+  if (!isStringArray(customModes)) {
     throw new Error('The matchmaking server returned invalid custom modes')
   }
-  return { maps: body.maps, customModes: [...new Set(customModes)] }
+  // A rolling server upgrade can advertise modes this client does not support.
+  // Keep the known map pools usable without translating IDs into queue requests
+  // that an older server may reject (for example fight_yard versus arena).
+  const maps: MatchmakingMap[] = body.maps.map((map) => ({
+    ...map,
+    supportedModes: map.supportedModes.filter(isMatchmakingMode),
+    webModes: map.webModes.filter(isMatchmakingMode),
+    customModes: map.customModes.filter(isServerCustomGameMode)
+  }))
+  return { maps, customModes: [...new Set(customModes.filter(isServerCustomGameMode))] }
 }

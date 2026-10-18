@@ -76,10 +76,39 @@ test('custom-only 1.3 survives catalog validation even with no map pool', () => 
     Array.from(parseMatchmakingMapCatalog({ maps: [], customModes: [] }).customModes),
     []
   )
-  assert.throws(() => parseMatchmakingMapCatalog({ maps: [], customModes: ['unknown-mode'] }))
-  assert.throws(() =>
-    parseMatchmakingMapCatalog({ maps: [{ ...map, customModes: ['unknown-mode'] }] })
+  assert.deepEqual(
+    Array.from(parseMatchmakingMapCatalog({ maps: [], customModes: ['unknown-mode'] }).customModes),
+    []
   )
+  assert.throws(() =>
+    parseMatchmakingMapCatalog({ maps: [{ ...map, customModes: [null] }] })
+  )
+})
+
+test('mode renames and future modes cannot disable the entire map catalog', () => {
+  const map = {
+    id: 'de_dust2', displayName: 'Dust II', game: 'cs16', previewUrl: null,
+    supportedModes: ['5v5', 'unrated', 'arena', 'fight_yard', 'future_mode'],
+    webModes: ['unrated', 'arena', 'fight_yard', 'future_mode'],
+    customModes: ['unrated', 'arena', 'fight_yard', 'future_mode']
+  }
+  const input = { maps: [map], customModes: ['arena', 'fight_yard', 'future_mode', 'arena'] }
+  const catalog = parseMatchmakingMapCatalog(input)
+  assert.deepEqual(Array.from(catalog.maps[0].supportedModes), ['5v5', 'unrated', 'arena'])
+  assert.deepEqual(Array.from(catalog.maps[0].webModes), ['unrated', 'arena'])
+  assert.deepEqual(Array.from(catalog.maps[0].customModes), ['unrated', 'arena'])
+  assert.deepEqual(Array.from(catalog.customModes), ['arena'])
+  assert.ok(input.maps[0].supportedModes.includes('fight_yard'))
+  assert.deepEqual(
+    Array.from(parseMatchmakingMapCatalog({ maps: [map] }).customModes), ['unrated', 'arena']
+  )
+  for (const field of ['supportedModes', 'webModes', 'customModes']) {
+    assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, [field]: [null] }] }))
+  }
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [map], customModes: [42] }))
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, id: '../unsafe' }] }))
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, previewUrl: 'javascript:bad' }] }))
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, webModes: ['unadvertised'] }] }))
 })
 
 async function fixture(run) {
