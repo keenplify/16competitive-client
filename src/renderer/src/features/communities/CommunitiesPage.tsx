@@ -1,7 +1,7 @@
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useEffect, useRef, type JSX } from 'react'
-import { Globe2, LoaderCircle, Pencil, Search, Users } from 'lucide-react'
+import { ChevronLeft, Globe2, LoaderCircle, LogOut, Pencil, Search, Users } from 'lucide-react'
 import type { IconType } from 'react-icons'
 import { SiDiscord, SiFacebook, SiInstagram, SiKofi, SiMastodon, SiYoutube } from 'react-icons/si'
 import { Button } from '../../components/ui/Button'
@@ -39,6 +39,12 @@ function communityLinkIcon(label: string): JSX.Element {
 function previewDescription(description: string): string {
   const characters = Array.from(description.trim())
   return characters.length > 128 ? `${characters.slice(0, 128).join('').trimEnd()}...` : description
+}
+
+function countryFlagEmoji(code: string): string {
+  return code.replace(/[A-Z]/g, (letter) =>
+    String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65)
+  )
 }
 
 export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolean }): JSX.Element {
@@ -87,7 +93,18 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           </p>
         )}
         <h1 className={discovering ? 'mt-2 text-3xl font-semibold' : 'text-3xl font-semibold'}>
-          {t(discovering ? 'directory.discover' : 'directory.title')}
+          {discovering ? (
+            t('directory.discover')
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-left hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+              onClick={() => state.setView('discover')}
+            >
+              <ChevronLeft className="size-6" aria-hidden="true" />
+              {t('directory.title')}
+            </button>
+          )}
         </h1>
         {discovering && (
           <p className="mt-2 text-sm text-neutral-200">{t('directory.description')}</p>
@@ -100,20 +117,28 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
         >
           <div className="flex flex-wrap items-start gap-5">
             {state.currentCommunity.imageUrl && (
-              <img
-                src={state.currentCommunity.imageUrl}
-                alt=""
-                className="block h-auto max-h-64 w-full max-w-64 object-contain"
-              />
+              <div className="relative aspect-video w-64 max-w-full shrink-0 overflow-hidden bg-neutral-900">
+                <img
+                  src={state.currentCommunity.imageUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 size-full scale-110 object-cover opacity-65 blur-xl"
+                />
+                <img
+                  src={state.currentCommunity.imageUrl}
+                  alt=""
+                  className="relative size-full object-contain"
+                />
+              </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-xs uppercase tracking-widest text-sky-300">
-                {t('directory.yourCommunity')}
-              </p>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 id="your-community-title" className="text-2xl font-semibold">
                   {state.currentCommunity.name}
                 </h2>
+                {state.currentCommunity.countries.map((code) => (
+                  <CountryFlag key={code} code={code} className="h-4 w-6 shrink-0 object-cover" />
+                ))}
                 {isOwner && (
                   <Button
                     variant="ghost"
@@ -159,11 +184,12 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
               </div>
               <Button
                 variant="secondary"
-                className="text-rose-300"
+                className="gap-2 text-rose-300"
                 disabled={state.joining || state.loading}
                 onClick={() => state.requestLeave(true)}
               >
-                {t('directory.leave')}
+                <LogOut className="size-4" aria-hidden="true" />
+                {t('directory.leaveShort')}
               </Button>
             </div>
           </div>
@@ -186,11 +212,6 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
             className="pb-0"
           />
         </section>
-      )}
-      {!discovering && (
-        <Button variant="secondary" className="mt-6" onClick={() => state.setView('discover')}>
-          {t('directory.discover')}
-        </Button>
       )}
       {discovering && (
         <>
@@ -216,7 +237,12 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 disabled={state.joining}
                 onChange={(e) => state.updateQuery({ country: e.target.value })}
               >
-                <option value="">{t('directory.automatic')}</option>
+                <option value="">
+                  {t('directory.automatic')}
+                  {state.automaticCountryCode
+                    ? ` (${countryFlagEmoji(state.automaticCountryCode)})`
+                    : ''}
+                </option>
                 {COUNTRY_OPTIONS.map((country) => (
                   <option key={country.code} value={country.code}>
                     {new Intl.DisplayNames([language === 'tl' ? 'fil' : language], {
@@ -284,11 +310,9 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                         : community
                     }
                     current={community.id === state.currentCommunityId}
-                    owner={community.id === playerId}
                     disabled={state.loading || state.joining || state.error}
                     onSelect={() => state.select(community)}
                     onOpen={() => state.setView('home')}
-                    onEdit={() => state.startEdit(community)}
                   />
                 ))}
             {!state.loading && !state.error && state.communities.length === 0 && (
@@ -397,19 +421,15 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
 function CommunityTile({
   community,
   current,
-  owner,
   disabled,
   onSelect,
-  onOpen,
-  onEdit
+  onOpen
 }: {
   community: CommunityCard
   current: boolean
-  owner: boolean
   disabled: boolean
   onSelect: () => void
   onOpen: () => void
-  onEdit: () => void
 }): JSX.Element {
   const { t } = useTranslation()
   return (
@@ -427,22 +447,22 @@ function CommunityTile({
         </div>
       )}
       <div className="flex flex-col gap-3 p-5">
-        <h2 className="text-lg font-semibold" title={community.name}>
-          {current ? (
-            <button
-              type="button"
-              className="text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
-              onClick={onOpen}
-            >
-              {community.name}
-            </button>
-          ) : (
-            community.name
-          )}
-        </h2>
-        <div className="flex min-h-4 flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="min-w-0 text-lg font-semibold" title={community.name}>
+            {current ? (
+              <button
+                type="button"
+                className="text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
+                onClick={onOpen}
+              >
+                {community.name}
+              </button>
+            ) : (
+              community.name
+            )}
+          </h2>
           {community.countries.map((code) => (
-            <CountryFlag key={code} code={code} className="h-4 w-6 object-cover" />
+            <CountryFlag key={code} code={code} className="h-4 w-6 shrink-0 object-cover" />
           ))}
         </div>
         <p
@@ -472,14 +492,8 @@ function CommunityTile({
           {t('directory.memberCount', { count: String(community.memberCount ?? '—') })} ·{' '}
           {t('directory.serverCount', { count: String(community.serverCount) })}
         </p>
-        {owner && (
-          <Button className="mt-auto w-full gap-2" variant="secondary" onClick={onEdit}>
-            <Pencil className="size-4" aria-hidden="true" />
-            {t('directory.edit')}
-          </Button>
-        )}
         <Button
-          className={owner ? 'w-full' : 'mt-auto w-full'}
+          className="mt-auto w-full"
           variant={current ? 'secondary' : 'primary'}
           disabled={disabled}
           onClick={current ? onOpen : onSelect}

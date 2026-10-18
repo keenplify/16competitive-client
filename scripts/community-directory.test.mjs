@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   communityDirectoryPath,
+  communityUpdateBody,
   parseCommunityDirectory,
   parseCommunityJoin,
   parseCommunityLeave,
@@ -95,12 +96,14 @@ test('directory query bounds and join inputs reject forged IPC values', () => {
     [id, 'false']
   ])
     assert.throws(() => validateCommunityJoin(...args))
-  validateCommunityUpdate({ name: 'Demo', description: '', servers: [] })
+  validateCommunityUpdate({ name: 'Demo', communityCountryCode: 'PH', description: '', servers: [] })
+  assert.equal(communityUpdateBody({ name: 'Demo', communityCountryCode: 'PH', description: '', servers: [] }).communityCountryCode, 'PH')
+  assert.equal(parseCommunityOwnerSettings({ branding: { communityName: 'Demo', communityCountryCode: 'PH', description: '', servers: [] } }).communityCountryCode, 'PH')
   assert.deepEqual(
     parseCommunityOwnerSettings({
       branding: { communityName: 'Demo', description: '', servers: [] }
     }),
-    { name: 'Demo', description: '', servers: [] }
+    { name: 'Demo', communityCountryCode: null, description: '', servers: [] }
   )
   const server = {
     id,
@@ -118,15 +121,16 @@ test('directory query bounds and join inputs reject forged IPC values', () => {
     [{ ...server, imageUrl: null }]
   )
   assert.throws(() =>
-    validateCommunityUpdate({ name: 'Demo', description: '', servers: [server, server] })
+    validateCommunityUpdate({ name: 'Demo', communityCountryCode: null, description: '', servers: [server, server] })
   )
-  for (const patch of [{ name: '' }, { name: 'x'.repeat(33) }, { description: 'x'.repeat(1001) }])
+  for (const patch of [{ name: '' }, { name: 'x'.repeat(33) }, { description: 'x'.repeat(1001) }, { communityCountryCode: 'ZZZ' }])
     assert.throws(() =>
-      validateCommunityUpdate({ name: 'Demo', description: '', servers: [], ...patch })
+      validateCommunityUpdate({ name: 'Demo', communityCountryCode: null, description: '', servers: [], ...patch })
     )
   assert.throws(() =>
     validateCommunityUpdate({
       name: 'Demo',
+      communityCountryCode: null,
       description: '',
       servers: [{ id, name: 'Bad', host: 'localhost', port: 27015 }]
     })

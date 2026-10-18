@@ -43,11 +43,11 @@ export function PlayWindowStatus({
           timeZone: playWindow.timeZone
         })
       : ''
-  const tooltip = t('matchmaking.playWindowTooltip')
+  const tooltip = [schedule, t('matchmaking.playWindowTooltip')].filter(Boolean).join(' ')
 
   return (
     <div
-      className={twMerge('min-h-12 text-xs', !visible && 'invisible', className)}
+      className={twMerge('min-h-5 text-xs', !visible && 'invisible', className)}
       aria-hidden={!visible}
     >
       <div
@@ -63,9 +63,6 @@ export function PlayWindowStatus({
         <span>{status}</span>
         <HelpTooltip text={tooltip} />
       </div>
-      <p className="min-h-5 break-words text-emerald-300" title={schedule}>
-        {schedule}
-      </p>
     </div>
   )
 }

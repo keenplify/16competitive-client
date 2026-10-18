@@ -2,6 +2,7 @@ import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.st
 import type { JSX } from 'react'
 import {
   ClipboardList,
+  Film,
   House,
   Users,
   Play,
@@ -21,6 +22,7 @@ import { displayedPlayWindowNode } from '../../../features/matchmaking/play-wind
 import { PlayWindowStatus } from '../../../features/matchmaking/PlayWindowStatus'
 
 const pages = [
+  { id: 'demos', labelKey: 'nav.demos', icon: Film },
   { id: 'profile', labelKey: 'nav.inventory', icon: UserRound },
   { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: Trophy },
   { id: 'play', labelKey: 'nav.play', icon: Play },
@@ -112,7 +114,7 @@ export function LobbyNavigation({
           >
             <ClipboardList className="size-4 sm:size-[1.125rem]" aria-hidden="true" />
             {activeMissions > 0 && (
-              <span className="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-sky-400 px-0.5 text-[10px] font-bold leading-4 text-neutral-950">
+              <span className="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-sky-400 px-0.5 text-[10px] font-bold leading-4 text-black">
                 {activeMissions}
               </span>
             )}
@@ -140,18 +142,8 @@ export function LobbyNavigation({
       </div>
 
       <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">
-        {canReview && (
-          <button
-            type="button"
-            disabled={!canNavigate('demos')}
-            onClick={() => onNavigate('demos')}
-            className="px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
-            aria-current={activePage === 'demos' ? 'page' : undefined}
-          >
-            Demos
-          </button>
-        )}
         {pages.map(({ id, icon: Icon, labelKey }) => {
+          if (id === 'demos' && !canReview) return null
           const active = activePage === id
           const isPlay = id === 'play'
 

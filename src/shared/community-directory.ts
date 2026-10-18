@@ -57,12 +57,14 @@ export interface CommunityDirectoryApi {
 }
 export interface CommunityUpdate {
   name: string
+  communityCountryCode: string | null
   description: string
   servers: PartnerServer[]
 }
 export function communityUpdateBody(input: CommunityUpdate) {
   return {
     communityName: input.name.trim(),
+    communityCountryCode: input.communityCountryCode,
     description: input.description,
     servers: input.servers.map(({ id, name, host, port, category, countryCode, gameVersion }) => ({
       id,
@@ -167,6 +169,7 @@ export function parseCommunityOwnerSettings(input: unknown): CommunityUpdate {
     throw new Error('INVALID_COMMUNITY_SETTINGS')
   const output = {
     name: value.communityName,
+    communityCountryCode: value.communityCountryCode ?? null,
     description: value.description,
     servers: parseCommunityServers(value.servers)
   }
@@ -181,6 +184,7 @@ export function validateCommunityUpdate(input: unknown): asserts input is Commun
     !value.name.trim() ||
     [...value.name].length > 32 ||
     Array.from(value.name).some((char) => char.charCodeAt(0) < 32) ||
+    (value.communityCountryCode !== null && !country(value.communityCountryCode)) ||
     typeof value.description !== 'string' ||
     value.description.length > 1000 ||
     Array.from(value.description).some((char) => {

@@ -123,7 +123,9 @@ export function PlayPage({
 }): JSX.Element {
   const { t } = useTranslation()
   const communityText = useCommunityText()
-  const hasCommunity = usePartnerBrandingStore((state) => Boolean(state.branding))
+  const hasCommunityServers = usePartnerBrandingStore(
+    (state) => (state.branding?.servers.length ?? 0) > 0
+  )
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -166,12 +168,12 @@ export function PlayPage({
     (state) => state.clearUnavailableCommunityServers
   )
   useEffect(() => {
-    if (playView === 'partner' && !hasCommunity) clearUnavailableCommunityServers()
-  }, [playView, hasCommunity, clearUnavailableCommunityServers])
+    if (playView === 'partner' && !hasCommunityServers) clearUnavailableCommunityServers()
+  }, [playView, hasCommunityServers, clearUnavailableCommunityServers])
   useEffect(() => {
-    if (hasCommunity && !playViewManuallySelected && queueStatus === 'idle')
+    if (hasCommunityServers && !playViewManuallySelected && queueStatus === 'idle')
       preferCommunityServers()
-  }, [hasCommunity, playViewManuallySelected, queueStatus, preferCommunityServers])
+  }, [hasCommunityServers, playViewManuallySelected, queueStatus, preferCommunityServers])
   const currentCustomRoom = useCustomGamesStore((state) => state.currentRoom)
   const moveCustomRoom = useCustomGamesStore((state) => state.moveServer)
   const movingCustomRoom = useCustomGamesStore((state) => state.movingServer)
@@ -317,6 +319,7 @@ export function PlayPage({
       ? Math.max(1, Math.min(6, availableMaps.length))
       : Math.ceil(availableMaps.length / 2)
   const hasSelectedMaps = selectedMapIds.length > 0
+  const visiblePlayView = playView === 'partner' && !hasCommunityServers ? 'matchmaking' : playView
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
@@ -494,25 +497,25 @@ export function PlayPage({
     <main
       className={twMerge(
         'relative min-h-0 p-3 text-white sm:p-4',
-        playView !== 'custom'
+        visiblePlayView !== 'custom'
           ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
           : 'min-h-[calc(100vh-5rem)]',
-        playView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
+        visiblePlayView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
       <div
         className={twMerge(
           'mx-auto w-full max-w-7xl',
-          playView !== 'custom' && 'flex h-full min-h-0 flex-col',
-          playView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
+          visiblePlayView !== 'custom' && 'flex h-full min-h-0 flex-col',
+          visiblePlayView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
         <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
           <div className="w-full min-w-0 sm:w-auto">
             <h1 className="whitespace-nowrap text-2xl font-semibold text-white sm:text-3xl">
-              {playView === 'partner'
+              {visiblePlayView === 'partner'
                 ? communityText('servers')
-                : playView === 'matchmaking'
+                : visiblePlayView === 'matchmaking'
                   ? 'Find a match'
                   : 'Browse custom games'}
             </h1>
@@ -520,13 +523,13 @@ export function PlayPage({
           <div
             className={twMerge(
               'flex w-full flex-wrap items-end justify-end gap-x-5 gap-y-2 sm:ml-auto sm:w-auto',
-              playView === 'partner' && 'hidden'
+              visiblePlayView === 'partner' && 'hidden'
             )}
           >
             <div
               className={twMerge(
                 'flex items-center gap-1 pb-3 text-xs text-neutral-300',
-                playView === 'custom' && 'hidden'
+                visiblePlayView === 'custom' && 'hidden'
               )}
             >
               <label className="flex cursor-pointer items-center gap-2">
@@ -534,8 +537,8 @@ export function PlayPage({
                   type="checkbox"
                   className="size-4 accent-emerald-400"
                   checked={preferHumans}
-                  disabled={playView === 'custom' || isSearching}
-                  tabIndex={playView === 'custom' ? -1 : undefined}
+                  disabled={visiblePlayView === 'custom' || isSearching}
+                  tabIndex={visiblePlayView === 'custom' ? -1 : undefined}
                   onChange={(event) => setPreferHumans(event.target.checked)}
                 />
                 {t('matchmaking.preferHumans')}
@@ -554,16 +557,16 @@ export function PlayPage({
             <label
               className={twMerge(
                 'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
-                playView === 'custom' && 'hidden'
+                visiblePlayView === 'custom' && 'hidden'
               )}
-              aria-hidden={playView === 'custom'}
+              aria-hidden={visiblePlayView === 'custom'}
             >
               <input
                 type="checkbox"
                 className="size-4 accent-sky-400"
                 checked={allowRegionExpansion}
-                disabled={playView === 'custom' || isSearching}
-                tabIndex={playView === 'custom' ? -1 : undefined}
+                disabled={visiblePlayView === 'custom' || isSearching}
+                tabIndex={visiblePlayView === 'custom' ? -1 : undefined}
                 onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
               />
               Expand search after 90 seconds
@@ -571,7 +574,7 @@ export function PlayPage({
             <div className="w-72 max-w-full shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
                 <label className="font-semibold tracking-wide uppercase" htmlFor="play-region">
-                  {playView === 'custom' ? 'Server' : 'Preferred region'}
+                  {visiblePlayView === 'custom' ? 'Server' : 'Preferred region'}
                 </label>
                 <span className="flex items-center gap-2">
                   <span
@@ -587,17 +590,17 @@ export function PlayPage({
               <MatchmakingRegionSelect
                 id="play-region"
                 ariaLabel={
-                  playView === 'custom' ? 'Custom game server' : 'Preferred matchmaking region'
+                  visiblePlayView === 'custom' ? 'Custom game server' : 'Preferred matchmaking region'
                 }
                 nodes={nodes}
                 selectedNodeId={
-                  playView === 'custom'
+                  visiblePlayView === 'custom'
                     ? (currentCustomRoom?.hostNodeId ?? selectedNodeId)
                     : selectedNodeId
                 }
-                allowAutomatic={playView !== 'custom' || !currentCustomRoom}
+                allowAutomatic={visiblePlayView !== 'custom' || !currentCustomRoom}
                 disabled={
-                  playView === 'matchmaking'
+                  visiblePlayView === 'matchmaking'
                     ? isSearching
                     : movingCustomRoom ||
                       Boolean(
@@ -608,7 +611,7 @@ export function PlayPage({
                 }
                 showHint={false}
                 onChange={(nodeId) => {
-                  if (playView === 'custom' && currentCustomRoom) {
+                  if (visiblePlayView === 'custom' && currentCustomRoom) {
                     if (nodeId && nodeId !== currentCustomRoom.hostNodeId)
                       void moveCustomRoom(nodeId)
                   } else {
@@ -623,9 +626,9 @@ export function PlayPage({
         <TabList
           className="mt-3 shrink-0"
           ariaLabel={communityText('playModes')}
-          value={playView}
+          value={visiblePlayView}
           items={[
-            ...(hasCommunity
+            ...(hasCommunityServers
               ? [
                   {
                     value: 'partner' as const,
@@ -640,13 +643,13 @@ export function PlayPage({
           onChange={setPlayView}
         />
 
-        {playView === 'partner' ? (
+        {visiblePlayView === 'partner' ? (
           <PartnerServersPanel
             disabled={
               queueStatus !== 'idle' && !(queueStatus === 'queued' && selectedMode === '5v5')
             }
           />
-        ) : playView === 'matchmaking' ? (
+        ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
             <TabList
               className="shrink-0"

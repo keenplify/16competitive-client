@@ -1,8 +1,8 @@
 import type { JSX } from 'react'
-import { ArrowLeft, LoaderCircle } from 'lucide-react'
+import { LoaderCircle, Plus, Save } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
-import { COUNTRY_OPTIONS } from '../../components/CountryFlag'
+import { COUNTRY_OPTIONS, CountryFlag } from '../../components/CountryFlag'
 import { SERVER_CATEGORIES, type ServerCategory } from '../../../../shared/community-directory'
 import { useTranslation } from '../i18n/i18n'
 import { useCommunitiesStore } from './communities.store'
@@ -20,16 +20,7 @@ export function CommunityEditPage({
       data-i18n-skip
       className="mx-auto w-full max-w-6xl px-5 pt-5 pb-32 text-white sm:px-8 sm:pt-8"
     >
-      <Button
-        variant="ghost"
-        className="gap-2"
-        disabled={state.saving || Boolean(state.uploadingServerId)}
-        onClick={state.cancelEdit}
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {t('directory.cancel')}
-      </Button>
-      <h1 className="mt-5 text-3xl font-semibold">{t('directory.editTitle')}</h1>
+      <h1 className="text-3xl font-semibold">{t('directory.editTitle')}</h1>
       <form
         id="community-edit-form"
         className="mt-6 space-y-8"
@@ -50,6 +41,27 @@ export function CommunityEditPage({
               disabled={state.saving || state.editLoading}
               onChange={(event) => state.updateDraft({ name: event.target.value })}
             />
+            <label className="grid gap-2 text-sm font-medium text-neutral-200">
+              <span className="flex items-center gap-2">
+                {t('directory.communityCountry')}
+                <CountryFlag code={state.editDraft.communityCountryCode} className="h-4 w-6 object-cover" />
+              </span>
+              <select
+                className="h-11 border border-white/15 bg-neutral-950 px-3 text-sm text-white focus:border-amber-400"
+                value={state.editDraft.communityCountryCode ?? ''}
+                disabled={state.saving || state.editLoading}
+                onChange={(event) => state.updateDraft({ communityCountryCode: event.target.value || null })}
+              >
+                <option value="">{t('directory.noCountry')}</option>
+                {COUNTRY_OPTIONS.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {new Intl.DisplayNames([language === 'tl' ? 'fil' : language], {
+                      type: 'region'
+                    }).of(country.code) ?? country.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="grid gap-2 text-sm font-medium text-neutral-200">
               {t('directory.editDescription')}
               <textarea
@@ -82,6 +94,7 @@ export function CommunityEditPage({
               }
               onClick={state.addServer}
             >
+              <Plus className="mr-2 size-4" aria-hidden="true" />
               {t('directory.addServer')}
             </Button>
           </div>
@@ -281,23 +294,36 @@ export function CommunityEditPage({
         >
           {state.saveError ? t('directory.saveError') : ''}
         </div>
-        <Button
-          type="submit"
-          form="community-edit-form"
-          className="h-12 min-w-44 gap-2 whitespace-nowrap border border-amber-300 shadow-lg shadow-black/50"
-          disabled={
-            state.saving ||
-            Boolean(state.uploadingServerId) ||
-            state.editLoading ||
-            state.editLoadError ||
-            !state.editDraft.name.trim()
-          }
-        >
-          <span className="size-4">
-            {state.saving && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
-          </span>
-          {t('directory.saveChanges')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-12 min-w-28 border border-white/25 bg-neutral-800 px-4 text-white shadow-lg shadow-black/50 hover:bg-neutral-700 hover:text-white"
+            disabled={state.saving || Boolean(state.uploadingServerId)}
+            onClick={state.cancelEdit}
+          >
+            {t('directory.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="community-edit-form"
+            className="h-12 min-w-44 gap-2 whitespace-nowrap border border-amber-300 shadow-lg shadow-black/50"
+            disabled={
+              state.saving ||
+              Boolean(state.uploadingServerId) ||
+              state.editLoading ||
+              state.editLoadError ||
+              !state.editDraft.name.trim()
+            }
+          >
+            {state.saving ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="size-4" aria-hidden="true" />
+            )}
+            {t('directory.saveChanges')}
+          </Button>
+        </div>
       </div>
     </section>
   )

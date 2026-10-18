@@ -14,6 +14,7 @@ import { useCommunityMembersStore } from '../partner-branding/community-members.
 import { useCommunityMembershipStore } from '../partner-branding/community-membership.store'
 
 type State = CommunityDirectoryResult & {
+  automaticCountryCode: string | null
   view: 'home' | 'discover'
   setView: (view: 'home' | 'discover') => void
   editing: boolean
@@ -65,7 +66,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
   setView: (view) => set({ view, selected: null, joinError: false }),
   editing: false,
   editTarget: null,
-  editDraft: { name: '', description: '', servers: [] },
+  editDraft: { name: '', communityCountryCode: null, description: '', servers: [] },
   editLoading: false,
   editLoadError: false,
   savedServerIds: [],
@@ -79,7 +80,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({
       editing: true,
       editTarget: community,
-      editDraft: { name: community.name, description: community.description, servers: [] },
+      editDraft: { name: community.name, communityCountryCode: community.countries[0] ?? null, description: community.description, servers: [] },
       editLoading: true,
       editLoadError: false,
       savedServerIds: [],
@@ -191,6 +192,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
   communities: [],
   currentCommunityId: null,
   viewerCountryCode: null,
+  automaticCountryCode: null,
   nextCursor: null,
   loading: true,
   loadingMore: false,
@@ -222,7 +224,15 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     try {
       const result = await window.api.communityDirectory.list(get().query)
       if (serial === generation && useAuthStore.getState().session?.player.id === accountId)
-        set({ ...result, loading: false, loadingMore: false, loadMoreError: false })
+        set({
+          ...result,
+          automaticCountryCode: get().query.country
+            ? get().automaticCountryCode
+            : result.viewerCountryCode,
+          loading: false,
+          loadingMore: false,
+          loadMoreError: false
+        })
     } catch {
       if (serial === generation) set({ loading: false, error: true })
     }
@@ -318,7 +328,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       view: 'home',
       editing: false,
       editTarget: null,
-      editDraft: { name: '', description: '', servers: [] },
+      editDraft: { name: '', communityCountryCode: null, description: '', servers: [] },
       editLoading: false,
       editLoadError: false,
       savedServerIds: [],
@@ -331,6 +341,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       communities: [],
       currentCommunityId: null,
       viewerCountryCode: null,
+      automaticCountryCode: null,
       nextCursor: null,
       loading: true,
       loadingMore: false,
