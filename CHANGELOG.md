@@ -2618,3 +2618,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Localization
 
 - Expanded translations across profiles, matchmaking, room settings, and queue-again flows.
+
+## v2026.1018.3 — 2026-10-18
+
+### Shop
+
+- Shop skins are now sorted by ownership.
