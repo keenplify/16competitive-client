@@ -13,6 +13,7 @@ import {
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
 import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
+import { readyResponseFromServer } from '../../../../shared/matchmaking-ready-response'
 import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
@@ -334,7 +335,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             readyDeadline: new Date(Date.now() + remainingMs).toISOString(),
             acceptedPlayerIds: event.acceptedPlayerIds,
             readyPlayersRequired: event.playersRequired,
-            readyResponse: state.readyResponse === 'accepted' ? 'accepted' : 'pending',
+            readyResponse: readyResponseFromServer(
+              state.readyResponse,
+              event.acceptedPlayerIds,
+              useAuthStore.getState().session?.player.id
+            ),
             error: null
           }
         })
@@ -345,7 +350,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? {}
             : {
                 acceptedPlayerIds: event.acceptedPlayerIds,
-                readyPlayersRequired: event.playersRequired
+                readyPlayersRequired: event.playersRequired,
+                readyResponse: readyResponseFromServer(
+                  state.readyResponse,
+                  event.acceptedPlayerIds,
+                  useAuthStore.getState().session?.player.id
+                )
               }
         )
         break
