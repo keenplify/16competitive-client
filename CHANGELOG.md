@@ -2671,3 +2671,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Enlarged the profile map chart for easier viewing.
 - Focused player identity details within the profile overview.
+
+## v2026.1018.9 — 2026-10-18
+
+### Profile
+
+- Profile overview now fits within the popup height.
+- Improved profile activity and map chart layout.
