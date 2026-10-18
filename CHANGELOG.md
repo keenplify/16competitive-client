@@ -2706,3 +2706,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner Branding
 
 - Community member displays now reflect the updated branding configuration.
+
+## v2026.1018.12 — 2026-10-18
+
+### Community
+
+- Refined the community directory and community management experience.
+- Improved community editing flows.
+- Added community directory translations.
+
+### Play
+
+- Refined the Play interface and matchmaking status display.
+- Updated lobby navigation for a smoother experience.
