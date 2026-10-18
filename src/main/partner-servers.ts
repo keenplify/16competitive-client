@@ -97,6 +97,13 @@ export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
   }
 }
 let connecting = false
+async function requestPartnerLaunchTicket(id: string, token: string): Promise<string | null> {
+  const response = await fetch(new URL(`/partners/servers/${id}/launch-ticket`, API_BASE_URL), {
+    method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000)
+  })
+  if (!response.ok) throw new Error('SERVER_LINK_UNAVAILABLE')
+  return parsePartnerLaunchTicket(await response.json())
+}
 export async function connectPartnerServer(id: unknown): Promise<void> {
   if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error('INVALID_SERVER')
   if (connecting || matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
@@ -118,10 +125,11 @@ export async function connectPartnerServer(id: unknown): Promise<void> {
       }).get()
       if (!profile.ok || !profile.value.installation) throw new Error('INSTALLATION_REQUIRED')
       const plan = cs13Adapter.buildMenuLaunchPlan(profile.value.installation)
+      const ticket = await requestPartnerLaunchTicket(id, token)
       await launchOrdinaryCounterStrike(async () => {
         if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
           throw new Error('MATCH_BUSY')
-        const child = spawn(plan.executable, [...plan.args, '+connect', `${address}:${server.port}`], {
+        const child = spawn(plan.executable, [...plan.args, ...partnerLaunchArguments(address, server.port, ticket)], {
           cwd: plan.cwd, shell: false, detached: true, stdio: 'ignore'
         })
         await new Promise<void>((resolve, reject) => {
@@ -135,11 +143,7 @@ export async function connectPartnerServer(id: unknown): Promise<void> {
     const executable = await getSavedCs16Executable()
     if (!executable) throw new Error('INSTALLATION_REQUIRED')
     const target = await resolveCs16LaunchTarget(executable)
-    const ticketResponse = await fetch(new URL(`/partners/servers/${id}/launch-ticket`, API_BASE_URL), {
-      method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000)
-    })
-    if (!ticketResponse.ok) throw new Error('SERVER_LINK_UNAVAILABLE')
-    const ticket = parsePartnerLaunchTicket(await ticketResponse.json())
+    const ticket = await requestPartnerLaunchTicket(id, token)
     if (matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
     await launchOrdinaryCounterStrike(async () => {
       if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
