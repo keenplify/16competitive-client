@@ -239,6 +239,20 @@ Do not couple UI code directly to raw socket messages.
 
 Use a client/service layer.
 
+### Regional API routing
+
+Route player-facing REST requests and matchmaking WebSockets through the selected
+regional API when it is available. This includes the map catalog used by the
+map selection screen; choosing Warsaw must not send that request to the
+Singapore API merely because Singapore is the configured bootstrap origin.
+
+When there is no explicit usable selection, connect to the nearest available
+regional server based on measured latency. If the selected or nearest server
+is unavailable, probe the other regional servers and fall back to the nearest
+healthy one. Use Singapore only when it is itself the nearest available server
+or the remaining healthy fallback. Keep bootstrap discovery separate from the
+endpoint chosen for normal player requests.
+
 ---
 
 ## Matchmaking UX
