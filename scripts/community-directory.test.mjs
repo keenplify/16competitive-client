@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import ts from 'typescript'
+import { create } from 'zustand'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -96,9 +99,23 @@ test('directory query bounds and join inputs reject forged IPC values', () => {
     [id, 'false']
   ])
     assert.throws(() => validateCommunityJoin(...args))
-  validateCommunityUpdate({ name: 'Demo', communityCountryCode: 'PH', description: '', servers: [] })
-  assert.equal(communityUpdateBody({ name: 'Demo', communityCountryCode: 'PH', description: '', servers: [] }).communityCountryCode, 'PH')
-  assert.equal(parseCommunityOwnerSettings({ branding: { communityName: 'Demo', communityCountryCode: 'PH', description: '', servers: [] } }).communityCountryCode, 'PH')
+  validateCommunityUpdate({
+    name: 'Demo',
+    communityCountryCode: 'PH',
+    description: '',
+    servers: []
+  })
+  assert.equal(
+    communityUpdateBody({ name: 'Demo', communityCountryCode: 'PH', description: '', servers: [] })
+      .communityCountryCode,
+    'PH'
+  )
+  assert.equal(
+    parseCommunityOwnerSettings({
+      branding: { communityName: 'Demo', communityCountryCode: 'PH', description: '', servers: [] }
+    }).communityCountryCode,
+    'PH'
+  )
   assert.deepEqual(
     parseCommunityOwnerSettings({
       branding: { communityName: 'Demo', description: '', servers: [] }
@@ -121,11 +138,27 @@ test('directory query bounds and join inputs reject forged IPC values', () => {
     [{ ...server, imageUrl: null }]
   )
   assert.throws(() =>
-    validateCommunityUpdate({ name: 'Demo', communityCountryCode: null, description: '', servers: [server, server] })
+    validateCommunityUpdate({
+      name: 'Demo',
+      communityCountryCode: null,
+      description: '',
+      servers: [server, server]
+    })
   )
-  for (const patch of [{ name: '' }, { name: 'x'.repeat(33) }, { description: 'x'.repeat(1001) }, { communityCountryCode: 'ZZZ' }])
+  for (const patch of [
+    { name: '' },
+    { name: 'x'.repeat(33) },
+    { description: 'x'.repeat(1001) },
+    { communityCountryCode: 'ZZZ' }
+  ])
     assert.throws(() =>
-      validateCommunityUpdate({ name: 'Demo', communityCountryCode: null, description: '', servers: [], ...patch })
+      validateCommunityUpdate({
+        name: 'Demo',
+        communityCountryCode: null,
+        description: '',
+        servers: [],
+        ...patch
+      })
     )
   assert.throws(() =>
     validateCommunityUpdate({
@@ -142,10 +175,15 @@ test('server image uploads accept bounded bytes and safe response URLs', () => {
     ['bad', new Uint8Array(12)],
     [id, new Uint8Array(11)],
     [id, new Uint8Array(5 * 1024 * 1024 + 1)]
-  ]) assert.throws(() => validateServerImageUpload(serverId, bytes))
+  ])
+    assert.throws(() => validateServerImageUpload(serverId, bytes))
   const imageUrl = `https://example.test/partners/branding/${id}/servers/${id}/image?v=123`
   assert.deepEqual(parseServerImageUpload({ imageUrl }), { imageUrl })
-  for (const url of ['javascript:alert(1)', 'https://user:pass@example.test/image', '/relative/image'])
+  for (const url of [
+    'javascript:alert(1)',
+    'https://user:pass@example.test/image',
+    '/relative/image'
+  ])
     assert.throws(() => parseServerImageUpload({ imageUrl: url }))
   assert.throws(() => parseServerImageUpload({ imageUrl: null }))
 })
@@ -159,4 +197,68 @@ test('all supported languages translate directory, categories and news entry poi
     assert.ok(copy['directory.memberCount'].includes('{{count}}'), lang)
     for (const value of Object.values(copy)) assert.ok(value.trim(), lang)
   }
+})
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function rendererStore(path, dependencies) {
+  const source = readFileSync(new URL(path, import.meta.url), 'utf8')
+  const compiled = ts.transpile(source, {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2022
+  })
+  const exports = {}
+  new Function('require', 'exports', 'window', compiled)(
+    (name) => (name === 'zustand' ? { create } : (dependencies[name] ?? {})),
+    exports,
+    dependencies.window
+  )
+  return exports
+}
+
+test('opening another community preserves membership and does not join', () => {
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {}
+  )
+  const other = { ...card, id: '22345678-1234-4123-8123-123456789abc' }
+  store.setState({ currentCommunity: card, currentCommunityId: id, loading: false })
+  store.getState().setView('discover')
+  store.getState().openCommunity(other)
+  assert.equal(store.getState().viewedCommunity.id, other.id)
+  assert.equal(store.getState().currentCommunityId, id)
+  assert.equal(store.getState().selected, null)
+  store.getState().setView('discover')
+  assert.equal(store.getState().viewedCommunity, null)
+  store.getState().clear()
+  assert.equal(store.getState().currentCommunityId, null)
+})
+
+test('visitor server lists and launch targets stay isolated from membership servers', async () => {
+  const calls = []
+  const { createPartnerServersStore } = rendererStore(
+    '../src/renderer/src/features/partner-branding/partner-servers.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: { getState: () => ({ session: { player: { id } } }) } },
+      '../../../../shared/partner-community': { sortPartnerServers: (rows) => rows },
+      window: {
+        api: {
+          partnerServers: {
+            list: async (communityId) => [{ id: communityId ?? 'own-server' }],
+            connect: async (...args) => {
+              calls.push(args)
+            }
+          }
+        }
+      }
+    }
+  )
+  const own = createPartnerServersStore()
+  const visitor = createPartnerServersStore(id)
+  await Promise.all([own.getState().load(), visitor.getState().load()])
+  assert.equal(own.getState().rows[0].id, 'own-server')
+  assert.equal(visitor.getState().rows[0].id, id)
+  visitor.getState().select(id)
+  await visitor.getState().connect()
+  assert.deepEqual(calls, [[id, undefined, id]])
+  assert.equal(own.getState().selectedId, null)
 })

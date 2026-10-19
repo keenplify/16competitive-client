@@ -1,6 +1,6 @@
 import { CountryFlag } from '../../components/CountryFlag'
 import { useTranslation } from '../i18n/i18n'
-import { useEffect, type JSX } from 'react'
+import { useEffect, useMemo, type JSX } from 'react'
 import { isWebRuntime } from '../../web-runtime'
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
@@ -8,34 +8,40 @@ import { serverIsFull } from '../../../../shared/partner-community'
 import { Button } from '../../components/ui/Button'
 import { localMapPreviews } from '../matchmaking/map-previews'
 import { useCommunityText } from './community-copy'
-import { usePartnerServersStore } from './partner-servers.store'
+import { createPartnerServersStore, usePartnerServersStore } from './partner-servers.store'
 import { usePartnerLaunchStore } from './partner-launch.store'
 import { usePartyStore } from '../party/party.store'
 import { useAuthStore } from '../auth/auth.store'
 const serverPreview = (map: string | null): string | undefined =>
   map && Object.hasOwn(localMapPreviews, map) ? localMapPreviews[map] : undefined
 export function PartnerServersPanel({
+  communityId,
   disabled = false,
   className
 }: {
+  communityId?: string
   disabled?: boolean
   className?: string
 }): JSX.Element {
+  const useServers = useMemo(
+    () => (communityId ? createPartnerServersStore(communityId) : usePartnerServersStore),
+    [communityId]
+  )
   const { t } = useTranslation()
   const text = useCommunityText(),
-    rows = usePartnerServersStore((s) => s.rows),
-    status = usePartnerServersStore((s) => s.status),
-    error = usePartnerServersStore((s) => s.error),
-    selectedId = usePartnerServersStore((s) => s.selectedId),
-    connecting = usePartnerServersStore((s) => s.connecting)
+    rows = useServers((s) => s.rows),
+    status = useServers((s) => s.status),
+    error = useServers((s) => s.error),
+    selectedId = useServers((s) => s.selectedId),
+    connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
   const playerId = useAuthStore((s) => s.session?.player.id)
   const groupBusy = usePartnerLaunchStore((s) => s.busy !== 'idle')
   const groupError = usePartnerLaunchStore((s) => s.error)
   const startGroup = usePartnerLaunchStore((s) => s.start)
-  const load = usePartnerServersStore((s) => s.load),
-    select = usePartnerServersStore((s) => s.select),
-    connect = usePartnerServersStore((s) => s.connect)
+  const load = useServers((s) => s.load),
+    select = useServers((s) => s.select),
+    connect = useServers((s) => s.connect)
   useEffect(() => {
     void load()
     const timer = window.setInterval(() => {
@@ -46,7 +52,7 @@ export function PartnerServersPanel({
   const selected = rows.find((row) => row.id === selectedId)
   const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
   const partyMemberCannotStart = Boolean(
-    party && party.members.length > 1 && party.leaderId !== playerId
+    !communityId && party && party.members.length > 1 && party.leaderId !== playerId
   )
   return (
     <section
@@ -163,7 +169,7 @@ export function PartnerServersPanel({
           }
           onClick={() => {
             if (!selected) return
-            if (party && party.members.length > 1) void startGroup(selected.id)
+            if (!communityId && party && party.members.length > 1) void startGroup(selected.id)
             else void connect()
           }}
         >

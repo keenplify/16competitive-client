@@ -1,5 +1,5 @@
 import { CommunityTransferDialog } from '../partner-branding/CommunityTransferPrompt'
-import { useEffect, useRef, type FormEvent, type JSX } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
@@ -10,6 +10,7 @@ import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { PapamoWordmark } from '../../components/ui/PapamoWordmark'
 import { useAuthStore } from './auth.store'
+import { PasswordResetPanel } from './PasswordResetPanel'
 import { useIcafeBranchStore } from './icafe-branch.store'
 import { useTranslation } from '../i18n/i18n'
 import { UsernameSetupPage } from './UsernameSetupPage'
@@ -68,6 +69,7 @@ export function AuthPage(): JSX.Element {
   const restoreStarted = useRef(false)
   const gameSettingsLoadStarted = useRef(false)
   const isLogin = mode === 'login'
+  const [resetOpen, setResetOpen] = useState(false)
   const isSubmitting = status === 'submitting'
   const webRuntime = isWebRuntime()
   const showOnboarding =
@@ -330,6 +332,7 @@ export function AuthPage(): JSX.Element {
 
       <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 pt-24 sm:pt-24 pb-16 md:col-span-2">
         <div className="w-full max-w-sm">
+          {resetOpen ? <PasswordResetPanel initialIdentifier={username} onBack={() => setResetOpen(false)} /> : <>
           {!isLogin && (
             <div className="mb-8">
               <h2 className="text-3xl font-semibold tracking-tight">{t('auth.createAccount')}</h2>
@@ -484,6 +487,11 @@ export function AuthPage(): JSX.Element {
             </Button>
           </form>
 
+          {isLogin && !socialPollToken && <Button variant="ghost" className="mt-3 w-full text-sky-200"
+            disabled={isSubmitting} onClick={() => setResetOpen(true)}>
+            {t('auth.reset.open')}
+          </Button>}
+
           <Button
             className="mt-3 w-full"
             variant="ghost"
@@ -525,6 +533,7 @@ export function AuthPage(): JSX.Element {
               Terms &amp; Conditions
             </a>
           </p>
+          </>}
         </div>
       </section>
 

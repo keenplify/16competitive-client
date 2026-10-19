@@ -1,3 +1,4 @@
+import { validateCommunityJoin } from '../shared/community-directory'
 import { API_BASE_URL } from './config'
 import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
 import { lookup } from 'node:dns/promises'
@@ -54,7 +55,12 @@ async function probe(server: PartnerServer): Promise<PartnerServerStatus> {
     const address = await serverAddress(server.host)
     const samples: ServerInfo[] = []
     for (let i = 0; i < 3; i++) {
-      const info = await queryServerInfo(address, server.port, 900, server.gameVersion === 'cs13' ? 'cs13' : 'cs16')
+      const info = await queryServerInfo(
+        address,
+        server.port,
+        900,
+        server.gameVersion === 'cs13' ? 'cs13' : 'cs16'
+      )
       if (info) samples.push(info)
       else if (!samples.length) break
     }
@@ -78,7 +84,19 @@ export function invalidatePartnerServerCache(): void {
   cacheGeneration++
   cache = null
 }
-export async function listPartnerServers(): Promise<PartnerServerStatus[]> {
+export async function listPartnerServers(communityId?: string): Promise<PartnerServerStatus[]> {
+  if (communityId !== undefined) {
+    validateCommunityJoin(communityId, null)
+    const token = getSessionToken()
+    if (!token) return []
+    const { branding } = await getPartnerBranding(communityId)
+    const servers = branding?.servers ?? []
+    const rows: PartnerServerStatus[] = []
+    for (let i = 0; i < servers.length; i += 4)
+      rows.push(...(await Promise.all(servers.slice(i, i + 4).map(probe))))
+    if (getSessionToken() !== token) throw new Error('SESSION_CHANGED')
+    return sortPartnerServers(rows)
+  }
   const token = getSessionToken()
   if (!token) return []
   if (cache?.token === token && Date.now() - cache.at < 15000) return cache.rows
@@ -112,7 +130,10 @@ async function groupRequest(path: string, body?: Record<string, unknown>): Promi
   if (!token) throw new Error('SESSION_CHANGED')
   const response = await fetch(new URL(path, API_BASE_URL), {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(body === undefined ? {} : { 'content-type': 'application/json' })
+    },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     signal: AbortSignal.timeout(10_000)
   })
@@ -121,8 +142,11 @@ async function groupRequest(path: string, body?: Record<string, unknown>): Promi
   return response.json()
 }
 export async function startPartnerGroup(serverId: unknown): Promise<PartnerLaunchGroup> {
-  if (typeof serverId !== 'string' || !/^[0-9a-f-]{36}$/i.test(serverId)) throw new Error('INVALID_SERVER')
-  return parsePartnerLaunchGroup(await groupRequest(`/partners/servers/${serverId}/party-launch`, {}))
+  if (typeof serverId !== 'string' || !/^[0-9a-f-]{36}$/i.test(serverId))
+    throw new Error('INVALID_SERVER')
+  return parsePartnerLaunchGroup(
+    await groupRequest(`/partners/servers/${serverId}/party-launch`, {})
+  )
 }
 export async function pendingPartnerGroup(): Promise<PartnerLaunchGroup | null> {
   const response = await groupRequest('/partners/launch/pending')
@@ -133,37 +157,59 @@ export async function currentPartnerPresence(): Promise<PartnerPresence | null> 
   return response === null ? null : parsePartnerPresence(response)
 }
 export async function getPartnerGroup(groupId: unknown): Promise<PartnerLaunchGroup> {
-  if (typeof groupId !== 'string' || !/^[0-9a-f-]{36}$/i.test(groupId)) throw new Error('INVALID_GROUP')
+  if (typeof groupId !== 'string' || !/^[0-9a-f-]{36}$/i.test(groupId))
+    throw new Error('INVALID_GROUP')
   return parsePartnerLaunchGroup(await groupRequest(`/partners/launch/${groupId}`))
 }
-export async function respondPartnerGroup(groupId: unknown, accepted: unknown): Promise<PartnerLaunchGroup> {
-  if (typeof groupId !== 'string' || !/^[0-9a-f-]{36}$/i.test(groupId) || typeof accepted !== 'boolean')
+export async function respondPartnerGroup(
+  groupId: unknown,
+  accepted: unknown
+): Promise<PartnerLaunchGroup> {
+  if (
+    typeof groupId !== 'string' ||
+    !/^[0-9a-f-]{36}$/i.test(groupId) ||
+    typeof accepted !== 'boolean'
+  )
     throw new Error('INVALID_GROUP')
-  return parsePartnerLaunchGroup(await groupRequest(`/partners/launch/${groupId}/response`, { accepted }))
+  return parsePartnerLaunchGroup(
+    await groupRequest(`/partners/launch/${groupId}/response`, { accepted })
+  )
 }
 export async function markPartnerGroupLaunched(groupId: unknown): Promise<void> {
-  if (typeof groupId !== 'string' || !/^[0-9a-f-]{36}$/i.test(groupId)) throw new Error('INVALID_GROUP')
+  if (typeof groupId !== 'string' || !/^[0-9a-f-]{36}$/i.test(groupId))
+    throw new Error('INVALID_GROUP')
   await groupRequest(`/partners/launch/${groupId}/launched`, {})
 }
 async function requestPartnerLaunchTicket(id: string, token: string): Promise<string | null> {
   const response = await fetch(new URL(`/partners/servers/${id}/launch-ticket`, API_BASE_URL), {
-    method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000)
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000)
   })
   if (!response.ok) throw new Error('SERVER_LINK_UNAVAILABLE')
   return parsePartnerLaunchTicket(await response.json())
 }
-export async function connectPartnerServer(id: unknown, groupId?: unknown): Promise<void> {
+export async function connectPartnerServer(
+  id: unknown,
+  groupId?: unknown,
+  communityId?: string
+): Promise<void> {
   if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error('INVALID_SERVER')
+  if (communityId !== undefined) validateCommunityJoin(communityId, null)
   if (connecting || matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
   connecting = true
   try {
     const token = getSessionToken()
     if (!token) throw new Error('SESSION_CHANGED')
     const group = groupId === undefined ? null : await getPartnerGroup(groupId)
-    if (group && (group.status !== 'ready' || group.server.id !== id ||
-      !group.members.some(member => member.id === getSessionPlayerId() && member.accepted)))
+    if (
+      group &&
+      (group.status !== 'ready' ||
+        group.server.id !== id ||
+        !group.members.some((member) => member.id === getSessionPlayerId() && member.accepted))
+    )
       throw new Error('GROUP_NOT_READY')
-    const { branding } = group ? { branding: null } : await getPartnerBranding(),
+    const { branding } = group ? { branding: null } : await getPartnerBranding(communityId),
       server = group?.server ?? branding?.servers.find((row) => row.id === id)
     if (!server) throw new Error('INVALID_SERVER')
     const address = await serverAddress(server.host)
@@ -181,9 +227,16 @@ export async function connectPartnerServer(id: unknown, groupId?: unknown): Prom
       await launchOrdinaryCounterStrike(async () => {
         if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
           throw new Error('MATCH_BUSY')
-        const child = spawn(plan.executable, [...plan.args, ...partnerLaunchArguments(address, server.port, ticket)], {
-          cwd: plan.cwd, shell: false, detached: true, stdio: 'ignore'
-        })
+        const child = spawn(
+          plan.executable,
+          [...plan.args, ...partnerLaunchArguments(address, server.port, ticket)],
+          {
+            cwd: plan.cwd,
+            shell: false,
+            detached: true,
+            stdio: 'ignore'
+          }
+        )
         await new Promise<void>((resolve, reject) => {
           child.once('spawn', resolve)
           child.once('error', () => reject(new Error('LAUNCH_FAILED')))

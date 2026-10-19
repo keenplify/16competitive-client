@@ -1,6 +1,8 @@
 export const AUTH_CHANNELS = {
   login: 'auth:login',
   register: 'auth:register',
+  passwordResetRequest: 'auth:password-reset-request',
+  passwordResetComplete: 'auth:password-reset-complete',
   social: 'auth:social',
   socialReopen: 'auth:social-reopen',
   socialComplete: 'auth:social-complete',
@@ -132,6 +134,12 @@ export interface AuthApi {
   unlinkIcafeBranch(): Promise<IcafeBranchStatus>
   login(credentials: AuthCredentials): Promise<AuthSession>
   register(credentials: RegistrationCredentials): Promise<AuthSession>
+  requestPasswordReset(identifier: string): Promise<{ accepted: true }>
+  completePasswordReset(
+    identifier: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ reset: true }>
   social(provider: SocialAuthProvider): Promise<SocialAuthResult>
   reopenSocial(provider: SocialAuthProvider): Promise<void>
   completeSocial(

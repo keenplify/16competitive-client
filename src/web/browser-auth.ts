@@ -345,6 +345,16 @@ export const browserAuthApi: AuthApi = {
     })
     return acceptAuth(body)
   },
+  requestPasswordReset(identifier) {
+    return requestJson<{ accepted: true }>('/auth/password-reset/request', {
+      init: { method: 'POST', body: JSON.stringify({ identifier }) }
+    })
+  },
+  completePasswordReset(identifier, code, newPassword) {
+    return requestJson<{ reset: true }>('/auth/password-reset/complete', {
+      init: { method: 'POST', body: JSON.stringify({ identifier, code, newPassword }) }
+    })
+  },
 
   async social(provider) {
     return beginSocial(provider, false) as Promise<SocialAuthResult>

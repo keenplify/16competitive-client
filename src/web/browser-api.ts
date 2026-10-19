@@ -676,18 +676,34 @@ const api: Window['api'] = {
       parseCommunityMessage(await jsonPost('/partners/community/chat', { communityId, message }))
   },
   partnerServers: {
-    async list() {
+    async list(communityId) {
+      if (communityId !== undefined) {
+        validateCommunityJoin(communityId, null)
+        const { branding } = parsePartnerBranding(
+          await authenticatedGet(`/partners/branding/public/${communityId}`),
+          currentApiOrigin()
+        )
+        if (branding && branding.partnerId !== communityId) throw new Error('INVALID_COMMUNITY')
+        return (branding?.servers ?? []).map((server) => ({
+          ...server,
+          online: null,
+          pingMs: null,
+          players: null,
+          maxPlayers: null,
+          map: null
+        }))
+      }
       return parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
     },
-    async connect(id, groupId) {
+    async connect(id, groupId, communityId) {
       const group = groupId
         ? parsePartnerLaunchGroup(await authenticatedGet(`/partners/launch/${groupId}`))
         : null
-      const servers = group
-        ? []
-        : parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
+      const servers = group ? [] : await this.list(communityId)
       const server =
-        group?.server.id === id ? group.server : servers.find((row) => row.id === id && row.online)
+        group?.server.id === id
+          ? group.server
+          : servers.find((row) => row.id === id && row.online !== false)
       if (!server) throw new Error('INVALID_SERVER')
       if (server.gameVersion === 'cs13') throw new Error('CS13_WEB_UNAVAILABLE')
       const ticket = parsePartnerLaunchTicket(

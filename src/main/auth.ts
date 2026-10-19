@@ -385,6 +385,56 @@ export const authenticate = async (
   return acceptAuthResponse(body)
 }
 
+const resetRequest = async (path: string, body: Record<string, string>) => {
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/password-reset/${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000)
+  })
+  const payload: unknown = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(getErrorMessage(payload, response.status))
+  return payload
+}
+export const requestPasswordReset = async (identifier: unknown): Promise<{ accepted: true }> => {
+  if (typeof identifier !== 'string' || !identifier.trim() || identifier.length > 254)
+    throw new Error('Enter a username or email address')
+  const payload = await resetRequest('request', { identifier: identifier.trim() })
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    !('accepted' in payload) ||
+    payload.accepted !== true
+  )
+    throw new Error('Invalid password reset response')
+  return { accepted: true }
+}
+export const completePasswordReset = async (
+  identifier: unknown,
+  code: unknown,
+  newPassword: unknown
+): Promise<{ reset: true }> => {
+  if (
+    typeof identifier !== 'string' ||
+    !identifier.trim() ||
+    identifier.length > 254 ||
+    typeof code !== 'string' ||
+    !/^\d{6}$/.test(code) ||
+    typeof newPassword !== 'string' ||
+    newPassword.length < 8 ||
+    newPassword.length > 128
+  )
+    throw new Error('Invalid password reset request')
+  const payload = await resetRequest('complete', {
+    identifier: identifier.trim(),
+    code,
+    newPassword
+  })
+  if (!payload || typeof payload !== 'object' || !('reset' in payload) || payload.reset !== true)
+    throw new Error('Invalid password reset response')
+  return { reset: true }
+}
+
 export const authenticateWithSocial = async (
   untrustedProvider: unknown
 ): Promise<SocialAuthResult> => {

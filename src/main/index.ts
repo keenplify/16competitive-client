@@ -4,8 +4,8 @@ import {
   joinCommunity,
   leaveCommunity,
   updateCommunity,
-  communityOwnerSettings
-  ,uploadCommunityServerImage
+  communityOwnerSettings,
+  uploadCommunityServerImage
 } from './community-directory'
 import { release as osRelease } from 'node:os'
 import {
@@ -48,6 +48,8 @@ import icon from '../../resources/icon.png?asset'
 import {
   authenticate,
   authenticateWithSocial,
+  requestPasswordReset,
+  completePasswordReset,
   completeSocialWithEmail,
   completeSocialWithPassword,
   changePassword,
@@ -772,6 +774,14 @@ app.whenReady().then(async () => {
   ipcMain.handle(AUTH_CHANNELS.register, (_, credentials: unknown) =>
     withClientTelemetry(authenticate('register', credentials))
   )
+  ipcMain.handle(AUTH_CHANNELS.passwordResetRequest, (_, identifier: unknown) =>
+    requestPasswordReset(identifier)
+  )
+  ipcMain.handle(
+    AUTH_CHANNELS.passwordResetComplete,
+    (_, identifier: unknown, code: unknown, newPassword: unknown) =>
+      completePasswordReset(identifier, code, newPassword)
+  )
   ipcMain.handle(AUTH_CHANNELS.social, (_, provider: unknown) =>
     withClientTelemetry(withAuthFocus(authenticateWithSocial(provider)))
   )
@@ -947,7 +957,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.update, (_, input: unknown) => updateCommunity(input))
   ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.ownerSettings, () => communityOwnerSettings())
-  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, (_, id: unknown, bytes: unknown) => uploadCommunityServerImage(id, bytes))
+  ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, (_, id: unknown, bytes: unknown) =>
+    uploadCommunityServerImage(id, bytes)
+  )
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.pending, () => pendingCommunityTransfer())
   ipcMain.handle(COMMUNITY_MEMBERSHIP_CHANNELS.decide, (_, id: unknown, accept: unknown) =>
     decideCommunityTransfer(id, accept)
@@ -956,9 +968,13 @@ app.whenReady().then(async () => {
     linkCommunityServer(code)
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.list, () => listPartnerServers())
-  ipcMain.handle(PARTNER_SERVER_CHANNELS.connect, (_, id: unknown, groupId: unknown) =>
-    connectPartnerServer(id, groupId)
+  ipcMain.handle(PARTNER_SERVER_CHANNELS.list, (_, communityId?: string) =>
+    listPartnerServers(communityId)
+  )
+  ipcMain.handle(
+    PARTNER_SERVER_CHANNELS.connect,
+    (_, id: unknown, groupId: unknown, communityId?: string) =>
+      connectPartnerServer(id, groupId, communityId)
   )
   ipcMain.handle(PARTNER_SERVER_CHANNELS.startGroup, (_, id: unknown) => startPartnerGroup(id))
   ipcMain.handle(PARTNER_SERVER_CHANNELS.pendingGroup, () => pendingPartnerGroup())

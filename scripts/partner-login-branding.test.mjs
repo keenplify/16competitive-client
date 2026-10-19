@@ -4,6 +4,7 @@ import test from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { validateCommunityJoin } from '../src/shared/community-directory.ts'
 const source = ts.transpileModule(
   await readFile(new URL('../src/main/partner-branding.ts', import.meta.url), 'utf8'),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
@@ -22,6 +23,7 @@ async function harness({ token = null, branch = null, download = null, onFetch }
     }
   })
   const deps = {
+    '../shared/community-directory': { validateCommunityJoin },
     './auth': { getSessionToken: () => state.token },
     './config': { API_BASE_URL: 'https://api.example.test' },
     './icafe-branch': {
@@ -80,4 +82,15 @@ test('authenticated branding uses backend affiliation and rejects a changed sess
     }
   })
   await assert.rejects(changed.api.getPartnerBranding(), /Session changed/)
+})
+
+test('authenticated visitors fetch the requested public community without changing affiliation', async () => {
+  const id = '12345678-1234-4123-8123-123456789abc'
+  const h = await harness({ token: 'session' })
+  await h.api.getPartnerBranding(id)
+  assert.equal(h.requests[0].path, `/partners/branding/public/${id}`)
+  await h.api.getPartnerBranding()
+  assert.equal(h.requests[1].path, '/partners/branding/me')
+  await assert.rejects(h.api.getPartnerBranding('../invalid'), /INVALID_COMMUNITY_JOIN/)
+  assert.equal(h.requests.length, 2)
 })

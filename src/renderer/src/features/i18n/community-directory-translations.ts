@@ -1,5 +1,6 @@
 export const communityDirectoryTranslations = {
   en: {
+    'directory.view': 'View community',
     'directory.title': 'Communities',
     'directory.description': 'Find partner communities and join the one you want to play with.',
     'directory.search': 'Search communities',
@@ -74,6 +75,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit community servers'
   },
   ru: {
+    'directory.view': 'Посмотреть сообщество',
     'directory.title': 'Сообщества',
     'directory.description': 'Находите партнёрские сообщества и присоединяйтесь к ним.',
     'directory.search': 'Поиск сообществ',
@@ -134,7 +136,8 @@ export const communityDirectoryTranslations = {
     'directory.uploadImage': 'Загрузить изображение',
     'directory.imageLimit': 'PNG, JPEG, WebP или GIF · до 5 МиБ',
     'directory.saveServerFirst': 'Сохраните сервер перед загрузкой изображения.',
-    'directory.imageError': 'Не удалось загрузить изображение. Выберите допустимый файл и повторите попытку.',
+    'directory.imageError':
+      'Не удалось загрузить изображение. Выберите допустимый файл и повторите попытку.',
     'directory.serverHost': 'Адрес сервера',
     'directory.serverPort': 'Порт',
     'directory.serverCategory': 'Категория',
@@ -149,6 +152,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Изменить серверы сообщества'
   },
   tl: {
+    'directory.view': 'Tingnan ang komunidad',
     'directory.title': 'Mga Komunidad',
     'directory.description': 'Maghanap ng partner community na gusto mong salihan at kalaro.',
     'directory.search': 'Hanapin ang community',
@@ -208,7 +212,8 @@ export const communityDirectoryTranslations = {
     'directory.uploadImage': 'Mag-upload ng larawan',
     'directory.imageLimit': 'PNG, JPEG, WebP o GIF · hanggang 5 MiB',
     'directory.saveServerFirst': 'I-save muna ang server bago mag-upload ng larawan.',
-    'directory.imageError': 'Hindi ma-upload ang larawan. Pumili ng wastong larawan at subukan ulit.',
+    'directory.imageError':
+      'Hindi ma-upload ang larawan. Pumili ng wastong larawan at subukan ulit.',
     'directory.serverHost': 'Host ng server',
     'directory.serverPort': 'Port',
     'directory.serverCategory': 'Kategorya',
@@ -223,6 +228,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'I-edit ang mga server ng community'
   },
   th: {
+    'directory.view': 'ดูชุมชน',
     'directory.title': 'ชุมชน',
     'directory.description': 'ค้นหาชุมชนพันธมิตรและเข้าร่วมชุมชนที่คุณอยากเล่นด้วย',
     'directory.search': 'ค้นหาชุมชน',
@@ -296,6 +302,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'แก้ไขเซิร์ฟเวอร์ชุมชน'
   },
   id: {
+    'directory.view': 'Lihat komunitas',
     'directory.title': 'Komunitas',
     'directory.description': 'Temukan komunitas mitra dan bergabung untuk bermain bersama.',
     'directory.search': 'Cari komunitas',
@@ -370,6 +377,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit server komunitas'
   },
   hi: {
+    'directory.view': 'समुदाय देखें',
     'directory.title': 'समुदाय',
     'directory.description': 'पार्टनर समुदाय खोजें और साथ खेलने के लिए जुड़ें।',
     'directory.search': 'समुदाय खोजें',
@@ -443,6 +451,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'समुदाय के सर्वर संपादित करें'
   },
   pt: {
+    'directory.view': 'Ver comunidade',
     'directory.title': 'Comunidades',
     'directory.description': 'Encontre comunidades parceiras e entre para jogar junto.',
     'directory.search': 'Buscar comunidades',
@@ -504,7 +513,8 @@ export const communityDirectoryTranslations = {
     'directory.uploadImage': 'Enviar imagem',
     'directory.imageLimit': 'PNG, JPEG, WebP ou GIF · até 5 MiB',
     'directory.saveServerFirst': 'Salve este servidor antes de enviar uma imagem.',
-    'directory.imageError': 'Não foi possível enviar a imagem. Escolha uma imagem válida e tente novamente.',
+    'directory.imageError':
+      'Não foi possível enviar a imagem. Escolha uma imagem válida e tente novamente.',
     'directory.serverHost': 'Host do servidor',
     'directory.serverPort': 'Porta',
     'directory.serverCategory': 'Categoria',
@@ -519,6 +529,7 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Editar servidores da comunidade'
   },
   ja: {
+    'directory.view': 'コミュニティを見る',
     'directory.title': 'コミュニティ',
     'directory.description':
       '提携コミュニティを探して、一緒に遊びたいコミュニティに参加しましょう。',
@@ -579,7 +590,8 @@ export const communityDirectoryTranslations = {
     'directory.uploadImage': '画像をアップロード',
     'directory.imageLimit': 'PNG、JPEG、WebP、GIF · 5 MiBまで',
     'directory.saveServerFirst': '画像をアップロードする前にサーバーを保存してください。',
-    'directory.imageError': '画像をアップロードできませんでした。有効な画像を選んで再試行してください。',
+    'directory.imageError':
+      '画像をアップロードできませんでした。有効な画像を選んで再試行してください。',
     'directory.serverHost': 'サーバーホスト',
     'directory.serverPort': 'ポート',
     'directory.serverCategory': 'カテゴリー',

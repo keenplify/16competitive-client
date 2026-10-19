@@ -54,8 +54,10 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const members = useCommunityMembersStore()
   const communityLinks = useConfiguredCommunityLinks()
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
-  const isOwner = Boolean(state.currentCommunity && state.currentCommunity.id === playerId)
-  const discovering = state.view === 'discover' || !state.currentCommunity
+  const community = state.viewedCommunity ?? state.currentCommunity
+  const isMember = community?.id === state.currentCommunityId
+  const isOwner = Boolean(community && community.id === playerId)
+  const discovering = state.view === 'discover' || !community
   const currentMemberCount =
     members.communityId === state.currentCommunityId && !members.error && members.page > 0
       ? members.total + 1
@@ -110,22 +112,22 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           <p className="mt-2 text-sm text-neutral-200">{t('directory.description')}</p>
         )}
       </header>
-      {!discovering && state.currentCommunity && (
+      {!discovering && community && (
         <section
           className="mt-6 border border-sky-300/20 bg-neutral-950/75 p-5"
           aria-labelledby="your-community-title"
         >
           <div className="flex flex-wrap items-start gap-5">
-            {state.currentCommunity.imageUrl && (
+            {community.imageUrl && (
               <div className="relative aspect-video w-64 max-w-full shrink-0 overflow-hidden bg-neutral-900">
                 <img
-                  src={state.currentCommunity.imageUrl}
+                  src={community.imageUrl}
                   alt=""
                   aria-hidden="true"
                   className="absolute inset-0 size-full scale-110 object-cover opacity-65 blur-xl"
                 />
                 <img
-                  src={state.currentCommunity.imageUrl}
+                  src={community.imageUrl}
                   alt=""
                   className="relative size-full object-contain"
                 />
@@ -134,9 +136,9 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 id="your-community-title" className="text-2xl font-semibold">
-                  {state.currentCommunity.name}
+                  {community.name}
                 </h2>
-                {state.currentCommunity.countries.map((code) => (
+                {community.countries.map((code) => (
                   <CountryFlag key={code} code={code} className="h-4 w-6 shrink-0 object-cover" />
                 ))}
                 {isOwner && (
@@ -144,7 +146,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                     variant="ghost"
                     className="size-8 p-0"
                     aria-label={t('directory.editName')}
-                    onClick={() => void state.startEdit(state.currentCommunity!)}
+                    onClick={() => void state.startEdit(community)}
                   >
                     <Pencil className="size-4" aria-hidden="true" />
                   </Button>
@@ -152,14 +154,14 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
               </div>
               <div className="mt-3 flex items-start gap-2">
                 <p className="whitespace-pre-wrap break-words text-sm text-neutral-300">
-                  {state.currentCommunity.description || t('directory.noDescription')}
+                  {community.description || t('directory.noDescription')}
                 </p>
                 {isOwner && (
                   <Button
                     variant="ghost"
                     className="size-8 shrink-0 p-0"
                     aria-label={t('directory.editDescriptionAction')}
-                    onClick={() => void state.startEdit(state.currentCommunity!)}
+                    onClick={() => void state.startEdit(community)}
                   >
                     <Pencil className="size-4" aria-hidden="true" />
                   </Button>
@@ -168,7 +170,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex flex-wrap items-center gap-1">
-                {communityLinks.map(({ label, href }) => (
+                {(isMember ? communityLinks : []).map(({ label, href }) => (
                   <a
                     key={label}
                     href={href}
@@ -182,15 +184,24 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                   </a>
                 ))}
               </div>
-              <Button
-                variant="secondary"
-                className="gap-2 text-rose-300"
-                disabled={state.joining || state.loading}
-                onClick={() => state.requestLeave(true)}
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                {t('directory.leaveShort')}
-              </Button>
+              {isMember ? (
+                <Button
+                  variant="secondary"
+                  className="gap-2 text-rose-300"
+                  disabled={state.joining || state.loading}
+                  onClick={() => state.requestLeave(true)}
+                >
+                  <LogOut className="size-4" aria-hidden="true" />
+                  {t('directory.leaveShort')}
+                </Button>
+              ) : (
+                <Button
+                  disabled={state.joining || state.loading}
+                  onClick={() => state.select(community)}
+                >
+                  {t('directory.join')}
+                </Button>
+              )}
             </div>
           </div>
           <div className="mt-6 flex items-center gap-2">
@@ -200,14 +211,15 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 variant="ghost"
                 className="size-8 p-0"
                 aria-label={t('directory.editServers')}
-                onClick={() => void state.startEdit(state.currentCommunity!)}
+                onClick={() => void state.startEdit(community)}
               >
                 <Pencil className="size-4" aria-hidden="true" />
               </Button>
             )}
           </div>
           <PartnerServersPanel
-            key={state.currentCommunity.id}
+            key={community.id}
+            communityId={isMember ? undefined : community.id}
             disabled={state.joining}
             className="pb-0"
           />
@@ -312,8 +324,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                     }
                     current={community.id === state.currentCommunityId}
                     disabled={state.loading || state.joining || state.error}
-                    onSelect={() => state.select(community)}
-                    onOpen={() => state.setView('home')}
+                    onOpen={() => state.openCommunity(community)}
                   />
                 ))}
             {!state.loading && !state.error && state.communities.length === 0 && (
@@ -423,13 +434,11 @@ function CommunityTile({
   community,
   current,
   disabled,
-  onSelect,
   onOpen
 }: {
   community: CommunityCard
   current: boolean
   disabled: boolean
-  onSelect: () => void
   onOpen: () => void
 }): JSX.Element {
   const { t } = useTranslation()
@@ -459,17 +468,13 @@ function CommunityTile({
       <div className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="min-w-0 text-lg font-semibold" title={community.name}>
-            {current ? (
-              <button
-                type="button"
-                className="text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
-                onClick={onOpen}
-              >
-                {community.name}
-              </button>
-            ) : (
-              community.name
-            )}
+            <button
+              type="button"
+              className="text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
+              onClick={onOpen}
+            >
+              {community.name}
+            </button>
           </h2>
           {community.countries.map((code) => (
             <CountryFlag key={code} code={code} className="h-4 w-6 shrink-0 object-cover" />
@@ -483,32 +488,38 @@ function CommunityTile({
             ? previewDescription(community.description)
             : t('directory.noDescription')}
         </p>
-        <div className="flex min-h-8 flex-wrap gap-1.5">
-          {community.categories.map((category: ServerCategory) => (
-            <span
-              key={category}
-              className="rounded-full border border-white/25 bg-sky-300/10 px-3 py-1 text-xs text-sky-200"
-            >
-              {t(`directory.category.${category}`)}
-            </span>
-          ))}
-          {community.categories.length === 0 && (
-            <span className="rounded-full border border-white/15 px-3 py-1 text-xs text-neutral-400">
-              {t('directory.noCategory')}
-            </span>
-          )}
+        <div className="flex min-h-8 items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+            {community.categories.map((category: ServerCategory) => (
+              <span
+                key={category}
+                className="rounded-full border border-white/25 bg-sky-300/10 px-3 py-1 text-xs text-sky-200"
+              >
+                {t(`directory.category.${category}`)}
+              </span>
+            ))}
+            {community.categories.length === 0 && (
+              <span className="rounded-full border border-white/15 px-3 py-1 text-xs text-neutral-400">
+                {t('directory.noCategory')}
+              </span>
+            )}
+          </div>
+          <p
+            className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-xs text-neutral-400"
+            aria-label={t('directory.memberCount', { count: String(community.memberCount ?? '—') })}
+            title={t('directory.memberCount', { count: String(community.memberCount ?? '—') })}
+          >
+            <Users className="size-4" aria-hidden="true" />
+            <span aria-hidden="true">{community.memberCount ?? '—'}</span>
+          </p>
         </div>
-        <p className="text-xs text-neutral-400">
-          {t('directory.memberCount', { count: String(community.memberCount ?? '—') })} ·{' '}
-          {t('directory.serverCount', { count: String(community.serverCount) })}
-        </p>
         <Button
           className="mt-auto w-full"
           variant={current ? 'secondary' : 'primary'}
           disabled={disabled}
-          onClick={current ? onOpen : onSelect}
+          onClick={onOpen}
         >
-          {t(current ? 'directory.joined' : 'directory.join')}
+          {t('directory.view')}
         </Button>
       </div>
     </article>

@@ -15,6 +15,8 @@ import { useCommunityMembershipStore } from '../partner-branding/community-membe
 
 type State = CommunityDirectoryResult & {
   automaticCountryCode: string | null
+  viewedCommunity: CommunityCard | null
+  openCommunity: (community: CommunityCard) => void
   view: 'home' | 'discover'
   setView: (view: 'home' | 'discover') => void
   editing: boolean
@@ -62,8 +64,16 @@ const initialQuery: CommunityDirectoryQuery = {
 let generation = 0
 export const useCommunitiesStore = create<State>((set, get) => ({
   query: initialQuery,
+  viewedCommunity: null,
   view: 'home',
-  setView: (view) => set({ view, selected: null, joinError: false }),
+  openCommunity: (community) =>
+    set({
+      viewedCommunity: community.id === get().currentCommunityId ? null : community,
+      view: 'home',
+      selected: null,
+      joinError: false
+    }),
+  setView: (view) => set({ view, viewedCommunity: null, selected: null, joinError: false }),
   editing: false,
   editTarget: null,
   editDraft: { name: '', communityCountryCode: null, description: '', servers: [] },
@@ -80,7 +90,12 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({
       editing: true,
       editTarget: community,
-      editDraft: { name: community.name, communityCountryCode: community.countries[0] ?? null, description: community.description, servers: [] },
+      editDraft: {
+        name: community.name,
+        communityCountryCode: community.countries[0] ?? null,
+        description: community.description,
+        servers: []
+      },
       editLoading: true,
       editLoadError: false,
       savedServerIds: [],
@@ -308,6 +323,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       set({
         currentCommunityId: selected.id,
         currentCommunity: selected,
+        viewedCommunity: null,
         view: 'home',
         selected: null,
         joining: false
@@ -325,6 +341,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     generation++
     set({
       query: initialQuery,
+      viewedCommunity: null,
       view: 'home',
       editing: false,
       editTarget: null,

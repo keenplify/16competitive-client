@@ -1,3 +1,4 @@
+import { passwordResetTranslations } from './password-reset-translations'
 import { communityDirectoryTranslations } from './community-directory-translations'
 import { queueWarmupTranslations } from './queue-warmup-translations'
 import { profileTranslations } from './profile-translations'
@@ -59,6 +60,7 @@ const english = {
   ...playerPingTranslations.en,
   ...paymentTranslations.en,
   ...profileTranslations.en,
+  ...passwordResetTranslations.en,
   'auth.signedInAs': 'Signed in as {{account}}',
   'chat.communityAnnouncement': 'Announcement',
   'chat.communityVisit': 'Visit us on {{platform}}',
@@ -221,6 +223,7 @@ const russian: Record<TranslationKey, string> = {
   ...playerPingTranslations.ru,
   ...paymentTranslations.ru,
   ...profileTranslations.ru,
+  ...passwordResetTranslations.ru,
   'auth.signedInAs': 'Выполнен вход: {{account}}',
   'chat.communityAnnouncement': 'Объявление',
   'chat.communityVisit': 'Посетите нас в {{platform}}',
@@ -383,6 +386,7 @@ const taglish: Record<TranslationKey, string> = {
   ...playerPingTranslations.tl,
   ...paymentTranslations.tl,
   ...profileTranslations.tl,
+  ...passwordResetTranslations.tl,
   'auth.signedInAs': 'Naka-sign in bilang {{account}}',
   'chat.communityAnnouncement': 'Anunsyo',
   'chat.communityVisit': 'Bisitahin kami sa {{platform}}',
@@ -547,6 +551,7 @@ const thai: Record<TranslationKey, string> = {
   ...playerPingTranslations.th,
   ...paymentTranslations.th,
   ...profileTranslations.th,
+  ...passwordResetTranslations.th,
   'auth.signedInAs': 'เข้าสู่ระบบเป็น {{account}}',
   'chat.communityAnnouncement': 'ประกาศ',
   'chat.communityVisit': 'เยี่ยมชมเราที่ {{platform}}',
@@ -706,6 +711,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...playerPingTranslations.id,
   ...paymentTranslations.id,
   ...profileTranslations.id,
+  ...passwordResetTranslations.id,
   'auth.signedInAs': 'Masuk sebagai {{account}}',
   'chat.communityAnnouncement': 'Pengumuman',
   'chat.communityVisit': 'Kunjungi kami di {{platform}}',
@@ -873,6 +879,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...playerPingTranslations.pt,
   ...paymentTranslations.pt,
   ...profileTranslations.pt,
+  ...passwordResetTranslations.pt,
   'auth.signedInAs': 'Conectado como {{account}}',
   'chat.communityAnnouncement': 'Aviso',
   'chat.communityVisit': 'Visite-nos no {{platform}}',
@@ -1040,6 +1047,7 @@ const japanese: Record<TranslationKey, string> = {
   ...playerPingTranslations.ja,
   ...paymentTranslations.ja,
   ...profileTranslations.ja,
+  ...passwordResetTranslations.ja,
   'auth.signedInAs': '{{account}}としてログイン中',
   'chat.communityAnnouncement': 'お知らせ',
   'chat.communityVisit': '{{platform}}をご覧ください',
@@ -1205,6 +1213,7 @@ const hindi: Record<TranslationKey, string> = {
   ...playerPingTranslations.hi,
   ...paymentTranslations.hi,
   ...profileTranslations.hi,
+  ...passwordResetTranslations.hi,
   'auth.signedInAs': '{{account}} के रूप में साइन इन किया गया',
   'chat.communityAnnouncement': 'घोषणा',
   'chat.communityVisit': '{{platform}} पर हमें देखें',

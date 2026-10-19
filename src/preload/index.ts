@@ -63,7 +63,8 @@ const communityDirectory: CommunityDirectoryApi = {
   join: (id, expected) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.join, id, expected),
   update: (input) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.update, input),
   ownerSettings: () => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.ownerSettings),
-  uploadServerImage: (id, bytes) => ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, id, bytes)
+  uploadServerImage: (id, bytes) =>
+    ipcRenderer.invoke(COMMUNITY_DIRECTORY_CHANNELS.uploadServerImage, id, bytes)
 }
 const communityMembership: CommunityMembershipApi = {
   pending: () => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.pending),
@@ -80,6 +81,10 @@ const auth: AuthApi = {
   unlinkIcafeBranch: () => ipcRenderer.invoke(AUTH_CHANNELS.icafeBranchUnlink),
   login: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.login, credentials),
   register: (credentials) => ipcRenderer.invoke(AUTH_CHANNELS.register, credentials),
+  requestPasswordReset: (identifier) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.passwordResetRequest, identifier),
+  completePasswordReset: (identifier, code, newPassword) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.passwordResetComplete, identifier, code, newPassword),
   social: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.social, provider),
   reopenSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialReopen, provider),
   completeSocial: (provider, pollToken, email) =>
@@ -359,8 +364,9 @@ const adminDemos: AdminDemosApi = {
   watch: (id) => ipcRenderer.invoke(ADMIN_DEMO_CHANNELS.watch, id)
 }
 const partnerServers: PartnerServersApi = {
-  list: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.list),
-  connect: (id, groupId) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.connect, id, groupId),
+  list: (communityId) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.list, communityId),
+  connect: (id, groupId, communityId) =>
+    ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.connect, id, groupId, communityId),
   startGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.startGroup, id),
   pendingGroup: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.pendingGroup),
   getGroup: (id) => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.getGroup, id),
