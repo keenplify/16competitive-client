@@ -1,5 +1,13 @@
 export const profileTranslations = {
   en: {
+    'profile.communityLevels': 'Community leveling history',
+    'profile.communityLevelsNote': 'Imported from partner leveling systems. These levels are separate from 1.6 Competitive progression.',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'Rank',
+    'profile.communityPrestige': 'Prestige',
+    'profile.communityPlaytime': 'Playtime',
+    'profile.communityMinutes': '{{count}} min',
+    'profile.communityImported': 'Imported {{date}}',
     'profile.mode': 'Mode',
     'profile.matchDetails': 'Match details',
     'profile.matchError': 'Could not load this match. Please try again.',
@@ -69,6 +77,14 @@ export const profileTranslations = {
     'profile.flag': 'Representing flag'
   },
   ru: {
+    'profile.communityLevels': 'История уровней сообщества',
+    'profile.communityLevelsNote': 'Импортировано из систем уровней сообществ. Не влияет на прогресс 1.6 Competitive.',
+    'profile.communityXp': 'Опыт',
+    'profile.communityRank': 'Ранг',
+    'profile.communityPrestige': 'Престиж',
+    'profile.communityPlaytime': 'Время игры',
+    'profile.communityMinutes': '{{count}} мин',
+    'profile.communityImported': 'Импортировано {{date}}',
     'profile.mode': 'Режим',
     'profile.matchDetails': 'Подробности матча',
     'profile.matchError': 'Не удалось загрузить матч. Попробуйте ещё раз.',
@@ -138,6 +154,14 @@ export const profileTranslations = {
     'profile.flag': 'Флаг страны'
   },
   tl: {
+    'profile.communityLevels': 'Community leveling history',
+    'profile.communityLevelsNote': 'Galing sa leveling system ng partner. Hiwalay ito sa level mo sa 1.6 Competitive.',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'Rank',
+    'profile.communityPrestige': 'Prestige',
+    'profile.communityPlaytime': 'Oras sa laro',
+    'profile.communityMinutes': '{{count}} min',
+    'profile.communityImported': 'Na-import {{date}}',
     'profile.mode': 'Mode',
     'profile.matchDetails': 'Detalye ng match',
     'profile.matchError': 'Hindi ma-load ang match. Subukan ulit.',
@@ -207,6 +231,14 @@ export const profileTranslations = {
     'profile.flag': 'Kinakatawang flag'
   },
   th: {
+    'profile.communityLevels': 'ประวัติเลเวลชุมชน',
+    'profile.communityLevelsNote': 'นำเข้าจากระบบเลเวลชุมชน แยกจากความคืบหน้าใน 1.6 Competitive',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'ยศ',
+    'profile.communityPrestige': 'Prestige',
+    'profile.communityPlaytime': 'เวลาเล่น',
+    'profile.communityMinutes': '{{count}} นาที',
+    'profile.communityImported': 'นำเข้า {{date}}',
     'profile.mode': 'โหมด',
     'profile.matchDetails': 'รายละเอียดแมตช์',
     'profile.matchError': 'โหลดแมตช์ไม่สำเร็จ โปรดลองอีกครั้ง',
@@ -276,6 +308,14 @@ export const profileTranslations = {
     'profile.flag': 'ธงที่ใช้แทนตัว'
   },
   id: {
+    'profile.communityLevels': 'Riwayat level komunitas',
+    'profile.communityLevelsNote': 'Diimpor dari sistem level komunitas. Tidak memengaruhi progres 1.6 Competitive.',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'Peringkat',
+    'profile.communityPrestige': 'Prestise',
+    'profile.communityPlaytime': 'Waktu bermain',
+    'profile.communityMinutes': '{{count}} menit',
+    'profile.communityImported': 'Diimpor {{date}}',
     'profile.mode': 'Mode',
     'profile.matchDetails': 'Detail pertandingan',
     'profile.matchError': 'Pertandingan tidak dapat dimuat. Coba lagi.',
@@ -345,6 +385,14 @@ export const profileTranslations = {
     'profile.flag': 'Bendera perwakilan'
   },
   hi: {
+    'profile.communityLevels': 'कम्युनिटी लेवल का इतिहास',
+    'profile.communityLevelsNote': 'पार्टनर लेवलिंग सिस्टम से आयातित। यह 1.6 Competitive प्रगति से अलग है।',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'रैंक',
+    'profile.communityPrestige': 'प्रेस्टीज',
+    'profile.communityPlaytime': 'खेलने का समय',
+    'profile.communityMinutes': '{{count}} मिनट',
+    'profile.communityImported': 'आयात: {{date}}',
     'profile.mode': 'मोड',
     'profile.matchDetails': 'मैच का विवरण',
     'profile.matchError': 'मैच लोड नहीं हो सका। फिर कोशिश करें।',
@@ -414,6 +462,14 @@ export const profileTranslations = {
     'profile.flag': 'प्रतिनिधि झंडा'
   },
   pt: {
+    'profile.communityLevels': 'Histórico de níveis da comunidade',
+    'profile.communityLevelsNote': 'Importado do sistema de níveis do parceiro. Não altera a progressão do 1.6 Competitive.',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'Rank',
+    'profile.communityPrestige': 'Prestígio',
+    'profile.communityPlaytime': 'Tempo de jogo',
+    'profile.communityMinutes': '{{count}} min',
+    'profile.communityImported': 'Importado em {{date}}',
     'profile.mode': 'Modo',
     'profile.matchDetails': 'Detalhes da partida',
     'profile.matchError': 'Não foi possível carregar a partida. Tente novamente.',
@@ -483,6 +539,14 @@ export const profileTranslations = {
     'profile.flag': 'Bandeira representada'
   },
   ja: {
+    'profile.communityLevels': 'コミュニティのレベル履歴',
+    'profile.communityLevelsNote': 'パートナーのレベルシステムからインポートされた記録です。1.6 Competitive の進行度には影響しません。',
+    'profile.communityXp': 'XP',
+    'profile.communityRank': 'ランク',
+    'profile.communityPrestige': 'プレステージ',
+    'profile.communityPlaytime': 'プレイ時間',
+    'profile.communityMinutes': '{{count}} 分',
+    'profile.communityImported': 'インポート日 {{date}}',
     'profile.mode': 'モード',
     'profile.matchDetails': '試合の詳細',
     'profile.matchError': '試合を読み込めませんでした。再試行してください。',
