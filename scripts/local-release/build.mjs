@@ -157,6 +157,12 @@ export async function buildLocalRelease(kind, root, version, commit) {
   powershell(`New-Item -ItemType Directory -Force '${guest}' | Out-Null`)
   run('scp', [
     ...scpArgs,
+    join(clientRoot, 'scripts/local-release/windows-prune.ps1'),
+    `build@127.0.0.1:${guest}/`
+  ])
+  powershell(`& '${guest}/windows-prune.ps1' -CurrentJob '${kind}-${commit}'; if (!$?) { exit 1 }`)
+  run('scp', [
+    ...scpArgs,
     archive,
     join(clientRoot, 'scripts/local-release/windows-build.ps1'),
     `build@127.0.0.1:${guest}/`
