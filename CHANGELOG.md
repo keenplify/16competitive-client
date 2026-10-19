@@ -2806,3 +2806,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Improved Windows compatibility.
+
+## v2026.1019.6 — 2026-10-19
+
+### Queue
+
+- Added an offline queue prompt with an option to receive updates through Discord.
+
+### Notifications
+
+- Added Discord notification settings.
+- Added support for managing Discord notification preferences.
