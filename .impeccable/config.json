@@ -38,6 +38,15 @@
         ],
         "createdAt": "2026-10-16T10:34:23.472Z",
         "reason": "Agent review: selected amount uses neutral-950 on amber-300 to match the existing primary Button, intentionally near-black with high contrast."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/renderer/src/components/ui/Button.tsx"
+        ],
+        "createdAt": "2026-10-19T20:44:14.202Z",
+        "reason": "Unchanged primary button intentionally uses near-black text on amber for contrast. Tertiary variant added here uses cyan text on a cyan tint."
       }
     ]
   }

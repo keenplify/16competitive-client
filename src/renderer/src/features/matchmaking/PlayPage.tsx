@@ -1,14 +1,16 @@
+import { MatchmakingMapCard } from './MatchmakingMapCard'
+import { QueueWarmupPanel } from './QueueWarmupPanel'
+import { useQueueWarmupStore } from './queue-warmup.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { useCommunityText } from '../partner-branding/community-copy'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useEffect, useState, type CSSProperties, type JSX } from 'react'
-import { Check, CircleHelp, Copy, LoaderCircle, LogOut } from 'lucide-react'
+import { CircleHelp, Copy, LoaderCircle, LogOut } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import {
   allowsManualMatchConnection,
-  getMatchmakingModeLabel,
-  type MatchmakingMap
+  getMatchmakingModeLabel
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
@@ -61,62 +63,6 @@ const modeHelpKeys = {
   arena: 'matchmaking.modeHelpArena',
   '3v3': 'matchmaking.modeHelp3v3'
 } satisfies Record<(typeof queueModes)[number], TranslationKey>
-
-interface MapCardProps {
-  map: MatchmakingMap
-  selected: boolean
-  disabled: boolean
-  onSelect: () => void
-}
-
-function MapCard({ map, selected, disabled, onSelect }: MapCardProps): JSX.Element {
-  return (
-    <button
-      type="button"
-      className={twMerge(
-        'group relative h-full min-h-0 overflow-hidden border border-white/20 bg-neutral-900 text-left shadow-[0_12px_30px_rgba(0,0,0,0.35)] transition duration-200 hover:border-sky-300 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-60',
-        selected && 'border-sky-300 ring-2 ring-sky-300/40'
-      )}
-      disabled={disabled}
-      aria-pressed={selected}
-      aria-label={`${map.displayName}, ${selected ? 'selected' : 'not selected'}`}
-      onClick={onSelect}
-    >
-      <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.24),transparent_38%),linear-gradient(135deg,#172033,#0a0a0a)]">
-        {map.previewUrl || localMapPreviews[map.id] ? (
-          <img
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            src={map.previewUrl ?? localMapPreviews[map.id]}
-            alt=""
-            onError={(event) => {
-              const localPreview = localMapPreviews[map.id]
-              event.currentTarget.onerror = null
-              if (localPreview && event.currentTarget.src !== localPreview) {
-                event.currentTarget.src = localPreview
-              } else {
-                event.currentTarget.hidden = true
-              }
-            }}
-          />
-        ) : (
-          <span className="font-audiowide text-4xl text-white/25 uppercase">
-            {map.displayName.slice(0, 2)}
-          </span>
-        )}
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-black/20" />
-      <div className="absolute top-2 right-2 flex size-6 items-center justify-center border border-white/70 bg-black/60 text-white">
-        {selected && <Check className="size-4" strokeWidth={3} aria-hidden="true" />}
-      </div>
-      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 text-center drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
-        <p className="font-audiowide text-sm leading-tight text-white uppercase sm:text-base">
-          {map.displayName}
-        </p>
-        <p className="mt-1 font-mono text-[10px] text-white/75">{map.id}</p>
-      </div>
-    </button>
-  )
-}
 
 export function PlayPage({
   friendsCollapsed = false
@@ -190,6 +136,11 @@ export function PlayPage({
   const partyRequiresWeb =
     webRuntime || Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
+  const warmupBrowsing = useQueueWarmupStore((state) => state.browsing)
+  const openWarmup = useQueueWarmupStore((state) => state.open)
+  const closeWarmup = useQueueWarmupStore((state) => state.dismiss)
+  const warmupEligible = queueStatus === 'queued' && selectedMode === '5v5'
+  const showWarmup = warmupEligible && warmupBrowsing
 
   useEffect(() => {
     if (mapsStatus !== 'ready' || queueStatus !== 'idle') return
@@ -505,14 +456,18 @@ export function PlayPage({
         visiblePlayView !== 'custom'
           ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
           : 'min-h-[calc(100vh-5rem)]',
-        visiblePlayView === 'custom' && !currentCustomRoom && 'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
+        visiblePlayView === 'custom' &&
+          !currentCustomRoom &&
+          'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
       <div
         className={twMerge(
           'mx-auto w-full max-w-7xl',
           visiblePlayView !== 'custom' && 'flex h-full min-h-0 flex-col',
-          visiblePlayView === 'custom' && !currentCustomRoom && 'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
+          visiblePlayView === 'custom' &&
+            !currentCustomRoom &&
+            'lg:flex lg:h-full lg:min-h-0 lg:flex-col'
         )}
       >
         <header className="flex min-h-20 shrink-0 flex-wrap items-center justify-between gap-2 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] sm:flex-nowrap">
@@ -595,7 +550,9 @@ export function PlayPage({
               <MatchmakingRegionSelect
                 id="play-region"
                 ariaLabel={
-                  visiblePlayView === 'custom' ? 'Custom game server' : 'Preferred matchmaking region'
+                  visiblePlayView === 'custom'
+                    ? 'Custom game server'
+                    : 'Preferred matchmaking region'
                 }
                 nodes={nodes}
                 selectedNodeId={
@@ -659,165 +616,185 @@ export function PlayPage({
             <TabList
               className="shrink-0"
               ariaLabel="Matchmaking mode"
-              value={selectedMode}
-              items={visibleQueueModes.map((mode) => ({
-                value: mode,
-                label: getMatchmakingModeLabel(mode),
-                helpText: t(modeHelpKeys[mode]),
-                disabled:
-                  isSearching ||
-                  !isLeader ||
-                  !maps.some((map) => map.supportedModes.includes(mode)),
-                title:
-                  mapsStatus === 'ready' && !maps.some((map) => map.supportedModes.includes(mode))
-                    ? mode === 'cs13_3v3'
-                      ? t('legacy.queueUnavailable')
-                      : 'No maps are available for this mode'
-                    : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
-                      ? 'This mode is unavailable for Web Play or mixed parties'
-                      : mode === '5v5'
-                        ? 'Rated 5v5 with MMR progression'
-                        : mode === 'ffa'
-                          ? 'Drop-in deathmatch, first to 50 kills'
-                          : mode === 'arena'
-                            ? t('matchmaking.modeHelpArena')
-                            : mode === '3v3'
-                              ? 'Unrated 3v3 match'
-                              : mode === 'legacy_3v3'
-                                ? t('matchmaking.modeHelpLegacy3v3')
-                                : mode === 'legacy'
-                                  ? 'Unrated 5v5 with CS 1.3 movement'
-                                  : 'Unrated 5v5 without MMR changes'
-              }))}
+              value={showWarmup ? 'noncompetitive' : selectedMode}
+              items={[
+                ...visibleQueueModes
+                  .filter((mode) => !warmupEligible || mode === '5v5')
+                  .map((mode) => ({
+                    value: mode,
+                    label: getMatchmakingModeLabel(mode),
+                    helpText: t(modeHelpKeys[mode]),
+                    disabled:
+                      (isSearching && mode !== selectedMode) ||
+                      (!isSearching && !isLeader) ||
+                      !maps.some((map) => map.supportedModes.includes(mode)),
+                    title:
+                      mapsStatus === 'ready' &&
+                      !maps.some((map) => map.supportedModes.includes(mode))
+                        ? mode === 'cs13_3v3'
+                          ? t('legacy.queueUnavailable')
+                          : 'No maps are available for this mode'
+                        : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
+                          ? 'This mode is unavailable for Web Play or mixed parties'
+                          : mode === '5v5'
+                            ? 'Rated 5v5 with MMR progression'
+                            : mode === 'ffa'
+                              ? 'Drop-in deathmatch, first to 50 kills'
+                              : mode === 'arena'
+                                ? t('matchmaking.modeHelpArena')
+                                : mode === '3v3'
+                                  ? 'Unrated 3v3 match'
+                                  : mode === 'legacy_3v3'
+                                    ? t('matchmaking.modeHelpLegacy3v3')
+                                    : mode === 'legacy'
+                                      ? 'Unrated 5v5 with CS 1.3 movement'
+                                      : 'Unrated 5v5 without MMR changes'
+                  })),
+                ...(warmupEligible
+                  ? [{ value: 'noncompetitive' as const, label: t('warmup.tab') }]
+                  : [])
+              ]}
               onChange={(mode) => {
-                selectMode(mode)
+                if (mode === 'noncompetitive') openWarmup()
+                else {
+                  closeWarmup()
+                  if (!isSearching) selectMode(mode)
+                }
               }}
             />
 
-            <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
-              <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
-                <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-                  Map pool
-                </p>
-                <p className="text-xs text-neutral-200">
-                  {desktopOnlyMode
-                    ? 'Desktop only'
-                    : `${selectedMapIds.length} / ${availableMaps.length} selected`}
-                </p>
-              </div>
-              {mapsStatus === 'ready' && desktopOnlyMode ? (
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
-                  <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
-                    Desktop client required
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    {getMatchmakingModeLabel(selectedMode)}
-                  </h2>
-                  <p className="mt-2 max-w-lg text-sm text-neutral-300">
-                    1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in
-                    your party must use the desktop client before the leader can queue.
-                  </p>
-                  <a
-                    href={desktopAppUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                  >
-                    Get the desktop client
-                  </a>
-                </div>
-              ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
-                <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
-                  <div
-                    className="play-map-grid grid h-full min-h-0 gap-2"
-                    style={
-                      {
-                        '--play-map-columns-small': smallMapColumns,
-                        '--play-map-columns-wide': wideMapColumns,
-                        '--play-map-min-width-small': `${smallMapColumns * 136}px`,
-                        '--play-map-min-width-wide': `${wideMapColumns * 150}px`
-                      } as CSSProperties
-                    }
-                  >
-                    {availableMaps.map((map) => (
-                      <MapCard
-                        key={map.id}
-                        map={map}
-                        selected={selectedMapIds.includes(map.id)}
-                        disabled={isSearching || !isLeader}
-                        onSelect={() => selectMap(map.id)}
-                      />
-                    ))}
+            {showWarmup ? (
+              <QueueWarmupPanel />
+            ) : (
+              <>
+                <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
+                  <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
+                    <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                      Map pool
+                    </p>
+                    <p className="text-xs text-neutral-200">
+                      {desktopOnlyMode
+                        ? 'Desktop only'
+                        : `${selectedMapIds.length} / ${availableMaps.length} selected`}
+                    </p>
                   </div>
-                </div>
-              ) : (
-                <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
-                  {mapsStatus === 'loading'
-                    ? 'Loading maps…'
-                    : mapsStatus === 'error'
-                      ? 'Maps could not be loaded.'
-                      : partyRequiresWeb && !modeAllowsWeb
-                        ? 'This mode is unavailable for Web Play or mixed parties.'
-                        : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
-                </div>
-              )}
-            </section>
+                  {mapsStatus === 'ready' && desktopOnlyMode ? (
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
+                      <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
+                        Desktop client required
+                      </p>
+                      <h2 className="mt-2 text-xl font-semibold text-white">
+                        {getMatchmakingModeLabel(selectedMode)}
+                      </h2>
+                      <p className="mt-2 max-w-lg text-sm text-neutral-300">
+                        1.6 Competitive by Papamo reserves this mode for desktop players. Everyone
+                        in your party must use the desktop client before the leader can queue.
+                      </p>
+                      <a
+                        href={desktopAppUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      >
+                        Get the desktop client
+                      </a>
+                    </div>
+                  ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
+                    <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
+                      <div
+                        className="play-map-grid grid h-full min-h-0 gap-2"
+                        style={
+                          {
+                            '--play-map-columns-small': smallMapColumns,
+                            '--play-map-columns-wide': wideMapColumns,
+                            '--play-map-min-width-small': `${smallMapColumns * 136}px`,
+                            '--play-map-min-width-wide': `${wideMapColumns * 150}px`
+                          } as CSSProperties
+                        }
+                      >
+                        {availableMaps.map((map) => (
+                          <MatchmakingMapCard
+                            key={map.id}
+                            map={map}
+                            selected={selectedMapIds.includes(map.id)}
+                            disabled={isSearching || !isLeader}
+                            onSelect={() => selectMap(map.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
+                      {mapsStatus === 'loading'
+                        ? 'Loading maps…'
+                        : mapsStatus === 'error'
+                          ? 'Maps could not be loaded.'
+                          : partyRequiresWeb && !modeAllowsWeb
+                            ? 'This mode is unavailable for Web Play or mixed parties.'
+                            : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
+                    </div>
+                  )}
+                </section>
 
-            <PlayWindowStatus
-              playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
-              visible
-              className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
-            />
+                <PlayWindowStatus
+                  playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
+                  visible
+                  className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
+                />
 
-            <div
-              className={twMerge(
-                'fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
-                friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
-              )}
-            >
-              <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
-                <span>
-                  {isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}
-                </span>
-                <span aria-hidden="true">•</span>
-                <span aria-live="polite">
-                  {onlinePlayers === null
-                    ? 'Players active: —'
-                    : `${onlinePlayers} ${onlinePlayers === 1 ? 'player' : 'players'} active`}
-                </span>
-              </div>
-              <Button
-                className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
-                data-audio-sfx="findMatch"
-                data-idle-hint-target="find-match"
-                disabled={
-                  !isLeader ||
-                  isSearching ||
-                  queueStatus === 'joining' ||
-                  checkingDiscord ||
-                  (partyRequiresWeb && !modeAllowsWeb)
-                }
-                aria-busy={checkingDiscord}
-                aria-label={checkingDiscord ? t('queue.discord.checking') : undefined}
-                onClick={handleFindMatch}
-              >
-                {checkingDiscord && (
-                  <LoaderCircle
-                    className="absolute left-2 size-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="relative z-10">
-                  {isSearching
-                    ? 'Searching…'
-                    : queueStatus === 'joining'
-                      ? 'Joining…'
-                      : isLeader
-                        ? 'Find match'
-                        : 'Waiting for leader'}
-                </span>
-              </Button>
-            </div>
+                <div
+                  className={twMerge(
+                    'fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
+                    friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
+                  )}
+                >
+                  <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
+                    <span>
+                      {isLeader
+                        ? `${selectedMapIds.length} maps selected`
+                        : 'Waiting for party leader'}
+                    </span>
+                    <span aria-hidden="true">•</span>
+                    <span aria-live="polite">
+                      {onlinePlayers === null
+                        ? 'Players active: —'
+                        : `${onlinePlayers} ${onlinePlayers === 1 ? 'player' : 'players'} active`}
+                    </span>
+                  </div>
+                  <Button
+                    className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
+                    data-audio-sfx="findMatch"
+                    data-idle-hint-target="find-match"
+                    disabled={
+                      !isLeader ||
+                      isSearching ||
+                      queueStatus === 'joining' ||
+                      checkingDiscord ||
+                      (partyRequiresWeb && !modeAllowsWeb)
+                    }
+                    aria-busy={checkingDiscord}
+                    aria-label={checkingDiscord ? t('queue.discord.checking') : undefined}
+                    onClick={handleFindMatch}
+                  >
+                    {checkingDiscord && (
+                      <LoaderCircle
+                        className="absolute left-2 size-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="relative z-10">
+                      {isSearching
+                        ? 'Searching…'
+                        : queueStatus === 'joining'
+                          ? 'Joining…'
+                          : isLeader
+                            ? 'Find match'
+                            : 'Waiting for leader'}
+                    </span>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">

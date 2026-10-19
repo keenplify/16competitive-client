@@ -1,3 +1,4 @@
+import { QueueWarmupButton } from './QueueWarmupPanel'
 import { LoaderCircle, Search, X } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -129,6 +130,7 @@ export function MatchSearchPanel({
             <X className="size-3.5" aria-hidden="true" />
           </button>
         </div>
+        <QueueWarmupButton className="mx-2.5 mb-2.5 w-[calc(100%-1.25rem)]" />
         {canPlayWithBots && (
           <div className="relative border-t border-white/10 px-2.5 pb-2.5 pt-2">
             <Button className="h-7 w-full text-[10px]" onClick={() => void playWithBots()}>
@@ -179,6 +181,7 @@ export function MatchSearchPanel({
         </div>
         <p className="mt-2 text-[11px] text-emerald-200/80">{searchScope}</p>
         <p className="mt-1 text-[11px] text-neutral-300">Online players: {onlinePlayers ?? '—'}</p>
+        <QueueWarmupButton className="mt-3" />
         <div className="mt-3 flex h-8 gap-2">
           {canPlayWithBots && (
             <Button

@@ -1,5 +1,10 @@
 export const queueWarmupTranslations = {
   en: {
+    'warmup.tab': 'Non-competitive',
+    'warmup.join': 'Find a game',
+    'warmup.noMaps': 'No non-competitive maps are currently available.',
+    'warmup.mapSelected': 'selected',
+    'warmup.mapNotSelected': 'not selected',
     'warmup.connect': 'Connect to warmup',
     'warmup.title': 'Play while waiting?',
     'warmup.description':
@@ -15,6 +20,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'warmup.tab': 'Без рейтинга',
+    'warmup.join': 'Найти игру',
+    'warmup.noMaps': 'Карты для игр без рейтинга сейчас недоступны.',
+    'warmup.mapSelected': 'выбрана',
+    'warmup.mapNotSelected': 'не выбрана',
     'warmup.connect': 'Подключиться к разминке',
     'warmup.title': 'Сыграть во время поиска?',
     'warmup.description':
@@ -30,6 +40,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'warmup.tab': 'Hindi kompetitibo',
+    'warmup.join': 'Humanap ng laro',
+    'warmup.noMaps': 'Walang available na mapa para sa non-competitive ngayon.',
+    'warmup.mapSelected': 'napili',
+    'warmup.mapNotSelected': 'hindi napili',
     'warmup.connect': 'Kumonekta sa warmup',
     'warmup.title': 'Maglaro habang naghihintay?',
     'warmup.description':
@@ -45,6 +60,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'warmup.tab': 'ไม่จัดอันดับ',
+    'warmup.join': 'ค้นหาเกม',
+    'warmup.noMaps': 'ไม่มีแผนที่แบบไม่จัดอันดับในขณะนี้',
+    'warmup.mapSelected': 'เลือกแล้ว',
+    'warmup.mapNotSelected': 'ยังไม่ได้เลือก',
     'warmup.connect': 'เชื่อมต่อวอร์มอัพ',
     'warmup.title': 'เล่นระหว่างรอไหม?',
     'warmup.description': 'การค้นหาแมตช์จัดอันดับ 5v5 จะดำเนินต่อ เราจะพาคุณกลับเมื่อแมตช์พร้อม',
@@ -59,6 +79,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'warmup.tab': 'Nonkompetitif',
+    'warmup.join': 'Cari permainan',
+    'warmup.noMaps': 'Peta nonkompetitif saat ini tidak tersedia.',
+    'warmup.mapSelected': 'dipilih',
+    'warmup.mapNotSelected': 'tidak dipilih',
     'warmup.connect': 'Hubungkan ke pemanasan',
     'warmup.title': 'Main sambil menunggu?',
     'warmup.description':
@@ -74,6 +99,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'warmup.tab': 'Não competitivo',
+    'warmup.join': 'Encontrar jogo',
+    'warmup.noMaps': 'Não há mapas não competitivos disponíveis no momento.',
+    'warmup.mapSelected': 'selecionado',
+    'warmup.mapNotSelected': 'não selecionado',
     'warmup.connect': 'Conectar ao aquecimento',
     'warmup.title': 'Jogar enquanto espera?',
     'warmup.description':
@@ -89,6 +119,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'warmup.tab': 'カジュアル',
+    'warmup.join': 'ゲームを探す',
+    'warmup.noMaps': '現在カジュアル用のマップは利用できません。',
+    'warmup.mapSelected': '選択済み',
+    'warmup.mapNotSelected': '未選択',
     'warmup.connect': 'ウォームアップに接続',
     'warmup.title': '待ち時間にプレイしますか？',
     'warmup.description': 'ランク5v5の検索は続行されます。試合の準備ができたらお知らせします。',
@@ -103,6 +138,11 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'warmup.tab': 'गैर-प्रतिस्पर्धी',
+    'warmup.join': 'गेम खोजें',
+    'warmup.noMaps': 'अभी गैर-प्रतिस्पर्धी मैप उपलब्ध नहीं हैं।',
+    'warmup.mapSelected': 'चयनित',
+    'warmup.mapNotSelected': 'चयनित नहीं',
     'warmup.connect': 'वार्मअप से जुड़ें',
     'warmup.title': 'इंतज़ार करते हुए खेलें?',
     'warmup.description': 'रैंक्ड 5v5 की खोज जारी रहेगी। मैच तैयार होने पर हम आपको वापस बुलाएँगे।',

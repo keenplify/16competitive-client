@@ -39,7 +39,6 @@ import { TextField } from '../../components/ui/TextField'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
-import { QueueWarmupButton } from '../matchmaking/QueueWarmupPrompt'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { usePartyStore } from './party.store'
 
@@ -448,7 +447,6 @@ export function LobbySocialSidebar({
         className={`fixed top-4 right-14 z-20 max-h-[calc(100dvh-2rem)] w-64 max-w-[calc(100vw-4.5rem)] overflow-y-auto transition-all duration-300 ease-out ${collapsed && isSearching ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'}`}
       >
         <MatchSearchPanel variant="compact" className="" />
-        {collapsed && <QueueWarmupButton />}
       </div>
       <aside
         className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
@@ -481,7 +479,6 @@ export function LobbySocialSidebar({
         >
           <div className="max-h-[55dvh] shrink-0 overflow-y-auto">
             <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
-            {!collapsed && <QueueWarmupButton />}
           </div>
           {communityOnly ? <div className="flex min-h-0 flex-1 flex-col"><CommunityMembersSection standalone className="flex-1" /></div> : <>
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">

@@ -173,7 +173,7 @@ test('rejects ranked modes and invalid map IDs at IPC boundary', async () => {
 
 async function warmupStoreHarness() {
   const { create } = await import('zustand')
-  let now = 1_000_000
+  const calls = []
   const exports = {}
   const source = ts.transpileModule(
     await readFile(
@@ -189,38 +189,38 @@ async function warmupStoreHarness() {
       assert.equal(name, 'zustand')
       return { create }
     },
-    Date: { now: () => now },
-    window: { api: { matchmaking: { leaveWarmup: async () => {} } } }
+    window: {
+      api: {
+        matchmaking: {
+          leaveWarmup: async () => {},
+          joinWarmup: async (mode, mapId) => calls.push(['join', mode, mapId]),
+          reconnectGame: async (matchId) => calls.push(['launch', matchId])
+        }
+      }
+    }
   })
   return {
     store: exports.useQueueWarmupStore,
-    advance: (ms) => {
-      now += ms
-    }
+    calls
   }
 }
 
-test('warmup dismissal schedules five minutes and each dismissal starts a fresh reminder', async () => {
-  const { store, advance } = await warmupStoreHarness()
-  store.getState().dismiss()
-  assert.equal(store.getState().remindAt, 1_300_000)
-  assert.equal(store.getState().dismissed, true)
-  advance(300_000)
+test('non-competitive browsing opens only on player action and queue replay preserves the tab', async () => {
+  const { store } = await warmupStoreHarness()
+  store.getState().handleEvent({ type: 'queue_joined', mode: '5v5' })
+  assert.equal(store.getState().browsing, false)
   store.getState().open()
-  assert.equal(store.getState().dismissed, false)
+  assert.equal(store.getState().browsing, true)
+  store.getState().handleEvent({ type: 'queue_joined', mode: '5v5' })
+  assert.equal(store.getState().browsing, true)
   store.getState().dismiss()
-  assert.equal(store.getState().remindAt, 1_600_000)
-  advance(300_000)
-  store.getState().deferReminder()
-  assert.equal(store.getState().remindAt, 1_900_000)
-  assert.equal(store.getState().dismissed, true)
+  assert.equal(store.getState().browsing, false)
 })
 
-test('warmup connection closes the prompt, queue replay keeps it closed, and exit resets reminder', async () => {
-  const { store, advance } = await warmupStoreHarness()
+test('warmup connection stays in the tab and a competitive match ends browsing', async () => {
+  const { store } = await warmupStoreHarness()
   const emit = (event) => store.getState().handleEvent(event)
-  emit({ type: 'queue_joined', mode: '5v5' })
-  assert.equal(store.getState().dismissed, false)
+  store.getState().open()
   emit({
     type: 'match_found',
     whileQueued: true,
@@ -229,12 +229,27 @@ test('warmup connection closes the prompt, queue replay keeps it closed, and exi
     mapId: 'fy_snow'
   })
   emit({ type: 'match_connect', whileQueued: true, matchId: 'warmup' })
-  assert.equal(store.getState().dismissed, true)
-  emit({ type: 'queue_joined', mode: '5v5' })
-  assert.equal(store.getState().dismissed, true)
-  advance(20_000)
+  assert.equal(store.getState().status, 'playing')
+  assert.equal(store.getState().browsing, true)
   emit({ type: 'game_process_exited', whileQueued: true, matchId: 'warmup' })
   assert.equal(store.getState().matchId, null)
-  assert.equal(store.getState().remindAt, 1_320_000)
-  assert.equal(store.getState().dismissed, true)
+  assert.equal(store.getState().status, 'idle')
+  assert.equal(store.getState().browsing, true)
+  emit({ type: 'match_found', matchId: 'competitive', mode: '5v5' })
+  assert.equal(store.getState().browsing, false)
+})
+
+test('tab starts only a non-competitive session and blocks duplicate joins', async () => {
+  const { store, calls } = await warmupStoreHarness()
+  store.getState().select('5v5', 'de_dust2')
+  await store.getState().join()
+  assert.equal(calls.length, 0)
+  store.getState().select('arena', '')
+  await store.getState().join()
+  assert.equal(calls.length, 0)
+  store.getState().select('arena', 'fy_snow')
+  await store.getState().join()
+  await store.getState().join()
+  assert.deepEqual(calls, [['join', 'arena', 'fy_snow']])
+  assert.equal(store.getState().status, 'starting')
 })

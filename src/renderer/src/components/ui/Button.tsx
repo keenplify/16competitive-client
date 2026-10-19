@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost'
 }
 
 const variants = {
@@ -12,6 +12,8 @@ const variants = {
   // buying a skin with earned Points instead of premium Papa Cash.
   secondary:
     'border border-white/15 bg-white/10 text-white hover:bg-white/15 focus-visible:outline-neutral-300 disabled:bg-white/5 disabled:text-neutral-500',
+  tertiary:
+    'border border-cyan-300/40 bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25 focus-visible:outline-cyan-300 disabled:opacity-40',
   ghost:
     'bg-transparent text-neutral-400 hover:bg-white/5 hover:text-white focus-visible:outline-neutral-400'
 } as const
