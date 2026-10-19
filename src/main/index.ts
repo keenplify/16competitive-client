@@ -9,6 +9,7 @@ import {
 } from './community-directory'
 import { release as osRelease } from 'node:os'
 import {
+  formatWindowsCompatibilityError,
   isSupportedOperatingSystem,
   windowsCompatibilityMessages
 } from '../shared/windows-compatibility'
@@ -90,7 +91,11 @@ import { MATCHMAKING_CHANNELS } from '../shared/matchmaking'
 import { WINDOW_CHANNELS } from '../shared/window'
 import { MODEL_CHANNELS } from '../shared/models'
 import { readCounterStrikeModel } from './models'
-import { readModelThumbnail, writeModelThumbnail } from './model-thumbnail-cache'
+import {
+  clearCachedModelThumbnails,
+  readModelThumbnail,
+  writeModelThumbnail
+} from './model-thumbnail-cache'
 import { getMatchmakingMaps } from './matchmaking-maps'
 import {
   getMatchHistory,
@@ -421,7 +426,7 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
   try {
     if (mode === 'repair') {
       markStage('clearing-preview-cache')
-      await clearCachedSkinPreviews()
+      await Promise.all([clearCachedSkinPreviews(), clearCachedModelThumbnails()])
     }
     markStage('selecting-region')
     const apiUrl = await resolvePreferredMatchmakingApiUrl()
@@ -608,13 +613,17 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  if (!isSupportedOperatingSystem(process.platform, osRelease())) {
+  const detectedOsRelease = osRelease()
+  if (!isSupportedOperatingSystem(process.platform, detectedOsRelease)) {
     const language = detectLanguage(
       app.getPreferredSystemLanguages(),
       Object.keys(windowsCompatibilityMessages) as (keyof typeof windowsCompatibilityMessages)[],
       'en'
     )
-    dialog.showErrorBox('1.6 Competitive', windowsCompatibilityMessages[language])
+    dialog.showErrorBox(
+      '1.6 Competitive',
+      formatWindowsCompatibilityError(language, detectedOsRelease, app.getVersion())
+    )
     app.quit()
     return
   }

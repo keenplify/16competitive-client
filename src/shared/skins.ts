@@ -59,6 +59,10 @@ export interface OwnedSkin {
   lobbySelected: boolean
 }
 
+/** The backend preview endpoint serves the immutable player model path. */
+export const skinPreviewRevision = (skin: Pick<Skin, 'playerModelPath'>): string =>
+  skin.playerModelPath ?? 'unavailable'
+
 export interface SkinResaleQuote {
   skinId: string
   currency: SkinCurrency

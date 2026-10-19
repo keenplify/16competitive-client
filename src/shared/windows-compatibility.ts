@@ -15,3 +15,24 @@ export const windowsCompatibilityMessages = {
   ja: 'Windows 10 以降が必要です。Windows 7、Windows 8、Windows 8.1 はサポートされていません。1.6 Competitive を使用するには Windows をアップグレードしてください。',
   hi: 'Windows 10 या उसके बाद का संस्करण आवश्यक है। Windows 7, Windows 8 और Windows 8.1 समर्थित नहीं हैं। 1.6 Competitive का उपयोग करने के लिए Windows अपग्रेड करें।'
 } as const
+
+const windowsCompatibilityDiagnosticLabels = {
+  en: ['Detected OS version', 'Launcher version'],
+  ru: ['Определённая версия ОС', 'Версия лаунчера'],
+  tl: ['Natukoy na bersyon ng OS', 'Bersyon ng launcher'],
+  th: ['เวอร์ชันระบบปฏิบัติการที่ตรวจพบ', 'เวอร์ชันตัวเปิดเกม'],
+  id: ['Versi OS yang terdeteksi', 'Versi peluncur'],
+  pt: ['Versão do sistema operacional detectada', 'Versão do launcher'],
+  ja: ['検出されたOSバージョン', 'ランチャーのバージョン'],
+  hi: ['पहचाना गया OS संस्करण', 'लॉन्चर संस्करण']
+} as const satisfies Record<keyof typeof windowsCompatibilityMessages, readonly [string, string]>
+
+export const formatWindowsCompatibilityError = (
+  language: keyof typeof windowsCompatibilityMessages,
+  release: string,
+  launcherVersion: string
+): string => {
+  const [osLabel, launcherLabel] = windowsCompatibilityDiagnosticLabels[language]
+  // Quote the exact detected value so empty or unexpected results remain visible.
+  return `${windowsCompatibilityMessages[language]}\n\n${osLabel}: ${JSON.stringify(release)}\n${launcherLabel}: ${launcherVersion}`
+}

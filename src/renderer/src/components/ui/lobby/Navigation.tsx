@@ -20,6 +20,7 @@ import type { DailyQuestSnapshot } from '../../../../../shared/daily-quests'
 import { useMatchmakingStore } from '../../../features/matchmaking/matchmaking.store'
 import { displayedPlayWindowNode } from '../../../features/matchmaking/play-window-node'
 import { PlayWindowStatus } from '../../../features/matchmaking/PlayWindowStatus'
+import { useHeaderScrolled } from './useHeaderScrolled'
 
 const pages = [
   { id: 'demos', labelKey: 'nav.demos', icon: Film },
@@ -59,6 +60,7 @@ export function LobbyNavigation({
   missionError
 }: LobbyNavigationProps): JSX.Element {
   const { t } = useTranslation()
+  const scrolled = useHeaderScrolled(activePage)
   const canReview = useAdminDemosStore((state) => state.allowed)
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
@@ -73,11 +75,22 @@ export function LobbyNavigation({
     <nav
       data-i18n-skip
       className={twMerge(
-        'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-16 items-center px-3 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-28 before:bg-gradient-to-b before:from-neutral-950/25 before:to-transparent sm:h-20 sm:px-5',
+        'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-16 items-center px-3 sm:h-20 sm:px-5',
         className
       )}
       aria-label={t('nav.lobbyNavigation')}
     >
+      <span
+        aria-hidden="true"
+        className={twMerge(
+          'pointer-events-none absolute inset-0 transition-opacity duration-150 motion-reduce:transition-none',
+          scrolled ? 'opacity-100' : 'opacity-0'
+        )}
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, var(--partner-primary, var(--color-sky-950)) 0%, transparent 100%)'
+        }}
+      />
       <div className="pointer-events-auto relative z-10 flex items-center gap-1.5 p-1.5">
         <IconButton
           label={t('nav.home')}

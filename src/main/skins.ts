@@ -14,6 +14,7 @@ import type {
   UnlockResult
 } from '../shared/skins'
 import { readCachedSkinPreview, writeCachedSkinPreview } from './skin-preview-cache'
+import { skinPreviewRevision } from '../shared/skins'
 import {
   parsePaymentOrder,
   parseManualOrder,
@@ -35,6 +36,7 @@ type ApiError = Error & { code?: string }
 
 let cachedSkinApiUrl: { url: string; expiresAt: number } | null = null
 let pendingSkinApiUrl: Promise<string> | null = null
+const previewRevisions = new Map<string, string>()
 
 const makeError = (message: string, code?: string): ApiError =>
   Object.assign(new Error(message), { code })
@@ -145,6 +147,7 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
   if (!Array.isArray(data) || !data.every(isSkin)) {
     throw new Error('Could not load skins currently on sale.')
   }
+  for (const skin of data) previewRevisions.set(skin.id, skinPreviewRevision(skin))
   return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
 }
 
@@ -183,6 +186,7 @@ export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   const data = await playerRequest('/skins/mine')
   if (!Array.isArray(data) || !data.every(isOwnedSkin))
     throw new Error('The server returned an invalid inventory.')
+  for (const { skin } of data) previewRevisions.set(skin.id, skinPreviewRevision(skin))
   return data
 }
 
@@ -332,8 +336,9 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
   const validatedSkinId = validateSkinId(skinId)
+  const revision = previewRevisions.get(validatedSkinId)
   if (PREVIEW_MODEL_CACHE_ENABLED) {
-    const cached = await readCachedSkinPreview(validatedSkinId)
+    const cached = await readCachedSkinPreview(validatedSkinId, revision)
     if (cached) return cached
   }
 
@@ -366,7 +371,7 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
     throw makeError('The preview model is an unsupported size.')
   }
   if (PREVIEW_MODEL_CACHE_ENABLED) {
-    await writeCachedSkinPreview(validatedSkinId, model).catch((error: unknown) => {
+    await writeCachedSkinPreview(validatedSkinId, model, revision).catch((error: unknown) => {
       console.warn('Could not cache skin preview model', { skinId: validatedSkinId, error })
     })
   }

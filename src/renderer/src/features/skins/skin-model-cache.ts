@@ -1,6 +1,4 @@
 const MAX_MODEL_CACHE_BYTES = 64 * 1024 * 1024
-// Temporarily disabled while preview rendering is being tuned. Re-enable once
-// model orientation and loading behavior are confirmed.
 const PREVIEW_MODEL_CACHE_ENABLED = true
 
 const modelBuffers = new Map<string, ArrayBuffer>()
@@ -15,14 +13,14 @@ export const clearCachedSkinModels = (): void => {
   cachedBytes = 0
 }
 
-const cacheModel = (skinId: string, buffer: ArrayBuffer): void => {
+const cacheModel = (key: string, buffer: ArrayBuffer): void => {
   if (buffer.byteLength > MAX_MODEL_CACHE_BYTES) return
 
-  const previous = modelBuffers.get(skinId)
+  const previous = modelBuffers.get(key)
   if (previous) cachedBytes -= previous.byteLength
 
-  modelBuffers.delete(skinId)
-  modelBuffers.set(skinId, buffer)
+  modelBuffers.delete(key)
+  modelBuffers.set(key, buffer)
   cachedBytes += buffer.byteLength
 
   while (cachedBytes > MAX_MODEL_CACHE_BYTES && modelBuffers.size > 1) {
@@ -33,32 +31,33 @@ const cacheModel = (skinId: string, buffer: ArrayBuffer): void => {
   }
 }
 
-export const getCachedSkinModel = (skinId: string): Promise<ArrayBuffer> => {
+export const getCachedSkinModel = (skinId: string, revision = ''): Promise<ArrayBuffer> => {
   if (!PREVIEW_MODEL_CACHE_ENABLED) return window.api.skins.previewModel(skinId)
 
-  const cached = modelBuffers.get(skinId)
+  const key = JSON.stringify([skinId, revision])
+  const cached = modelBuffers.get(key)
   if (cached) {
     // Refresh insertion order so the bounded cache evicts the least recently
     // used model first.
-    modelBuffers.delete(skinId)
-    modelBuffers.set(skinId, cached)
+    modelBuffers.delete(key)
+    modelBuffers.set(key, cached)
     return Promise.resolve(cached)
   }
 
-  const pending = pendingModels.get(skinId)
+  const pending = pendingModels.get(key)
   if (pending) return pending
 
   const requestGeneration = cacheGeneration
   const request = window.api.skins
     .previewModel(skinId)
     .then((buffer) => {
-      if (requestGeneration === cacheGeneration) cacheModel(skinId, buffer)
+      if (requestGeneration === cacheGeneration) cacheModel(key, buffer)
       return buffer
     })
     .finally(() => {
-      if (pendingModels.get(skinId) === request) pendingModels.delete(skinId)
+      if (pendingModels.get(key) === request) pendingModels.delete(key)
     })
 
-  pendingModels.set(skinId, request)
+  pendingModels.set(key, request)
   return request
 }

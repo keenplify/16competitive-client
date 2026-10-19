@@ -103,7 +103,10 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
   const members = party?.members ?? [soloLobbyMember(player)]
 
   return (
-    <div className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20">
+    <div
+      data-page-scroll="lobby"
+      className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20"
+    >
       <div className="relative flex min-h-0 flex-1">
         <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
         <LobbyModelErrorBoundary>

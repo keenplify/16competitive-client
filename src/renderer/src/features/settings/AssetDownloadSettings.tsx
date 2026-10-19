@@ -69,6 +69,7 @@ export function AssetDownloadSettings(): JSX.Element {
     try {
       if (mode === 'repair') clearCachedSkinModels()
       await window.api.gameSettings.syncAssets(mode)
+      if (mode === 'repair') clearCachedSkinModels()
     } catch (error) {
       setProgress((current) =>
         current.status === 'error'

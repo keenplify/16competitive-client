@@ -58,7 +58,13 @@ interface SkinModelThumbnailProps {
   className?: string
 }
 
-export function SkinModelThumbnail({
+export function SkinModelThumbnail(props: SkinModelThumbnailProps): JSX.Element {
+  return (
+    <SkinModelThumbnailContent key={`${props.cacheKey}:${props.sourceRevision ?? ''}`} {...props} />
+  )
+}
+
+function SkinModelThumbnailContent({
   cacheKey,
   weaponKey,
   skinId,
@@ -74,7 +80,7 @@ export function SkinModelThumbnail({
   const releaseRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(true)
   const presentationRevision = getSkinPresentationRevision(weaponKey)
-  const presentationCacheKey = `${cacheKey}:${presentationRevision}`
+  const presentationCacheKey = `${cacheKey}:${sourceRevision ?? ''}:${presentationRevision}`
   const bundledPreview = bundledWeaponPreview(weaponKey, modelPath)
   const isStockModel = !skinId && /^(?:models\/)?p_[a-z0-9_]+\.mdl$/i.test(modelPath ?? '')
 
@@ -116,7 +122,7 @@ export function SkinModelThumbnail({
         releaseRef.current = release
         if (skinId) {
           try {
-            const buffer = await getCachedSkinModel(skinId)
+            const buffer = await getCachedSkinModel(skinId, String(sourceRevision ?? ''))
             if (!active) return
             setModelBuffer(buffer)
           } catch {
@@ -136,7 +142,16 @@ export function SkinModelThumbnail({
       mountedRef.current = false
       releaseRenderer()
     }
-  }, [bundledPreview, fail, isStockModel, presentationCacheKey, releaseRenderer, skinId, weaponKey])
+  }, [
+    bundledPreview,
+    fail,
+    isStockModel,
+    presentationCacheKey,
+    releaseRenderer,
+    skinId,
+    sourceRevision,
+    weaponKey
+  ])
 
   const capture = useCallback(
     (canvas: HTMLCanvasElement): void => {

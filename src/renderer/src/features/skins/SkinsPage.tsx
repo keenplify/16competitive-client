@@ -11,6 +11,7 @@ import { toast } from 'react-toastify'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
+import { skinPreviewRevision } from '../../../../shared/skins'
 import { SellConfirmModal } from './SellConfirmModal'
 import {
   GRENADE_WEAPON_KEYS,
@@ -681,8 +682,8 @@ function LoadoutThumbnail({
 }): JSX.Element {
   const skinId = equipped?.skin.id
   const installationPath = useGameSettingsStore((state) => state.savedPath)
-  const cacheKey = skinId
-    ? `skin-loadout:v3:${skinId}`
+  const cacheKey = equipped
+    ? `skin-loadout:v3:${skinId}:${skinPreviewRevision(equipped.skin)}`
     : `default-loadout:v3:${installationPath ?? 'auto'}:${weaponKey}`
 
   return (
@@ -692,7 +693,9 @@ function LoadoutThumbnail({
         cacheKey={cacheKey}
         skinId={skinId}
         modelPath={skinId ? undefined : defaultPlayerModelPath(weaponKey)}
-        sourceRevision={installationPath ?? 'unloaded'}
+        sourceRevision={
+          equipped ? skinPreviewRevision(equipped.skin) : (installationPath ?? 'unloaded')
+        }
         modelKey={skinId ? `loadout-${skinId}` : undefined}
         weaponKey={weaponKey}
         fallback={

@@ -10,6 +10,7 @@ const MODEL_MAGIC = 'IDST'
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 
 interface CacheMetadata {
+  revision?: string
   cachedAt: number
   size: number
   sha256: string
@@ -64,11 +65,18 @@ export const clearCachedSkinPreviews = async (): Promise<void> => {
   await rm(cacheDirectory(), { recursive: true, force: true })
 }
 
-export const readCachedSkinPreview = async (skinId: string): Promise<ArrayBuffer | null> => {
+export const readCachedSkinPreview = async (
+  skinId: string,
+  revision?: string
+): Promise<ArrayBuffer | null> => {
   const paths = cachePaths(skinId)
   try {
     const metadata = await readMetadata(paths.metadata)
-    if (!metadata || Date.now() - metadata.cachedAt > CACHE_MAX_AGE_MS) {
+    if (
+      !metadata ||
+      metadata.revision !== revision ||
+      Date.now() - metadata.cachedAt > CACHE_MAX_AGE_MS
+    ) {
       await removeEntry(skinId)
       return null
     }
@@ -117,7 +125,8 @@ const pruneCache = async (): Promise<void> => {
 
 export const writeCachedSkinPreview = async (
   skinId: string,
-  modelBuffer: ArrayBuffer
+  modelBuffer: ArrayBuffer,
+  revision?: string
 ): Promise<void> => {
   const bytes = Buffer.from(modelBuffer)
   if (!isModel(bytes)) throw new Error('Refusing to cache an invalid skin preview model.')
@@ -128,6 +137,7 @@ export const writeCachedSkinPreview = async (
   const temporaryModel = `${paths.model}.${suffix}.partial`
   const temporaryMetadata = `${paths.metadata}.${suffix}.partial`
   const metadata: CacheMetadata = {
+    revision,
     cachedAt: Date.now(),
     size: bytes.byteLength,
     sha256: sha256(bytes)

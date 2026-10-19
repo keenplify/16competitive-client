@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const MAX_ENTRY_BYTES = 2 * 1024 * 1024
@@ -16,6 +16,11 @@ const validateKey = (value: unknown): string => {
 }
 
 const directory = (): string => join(app.getPath('userData'), 'cache', 'model-thumbnails')
+
+export const clearCachedModelThumbnails = async (): Promise<void> => {
+  await rm(directory(), { recursive: true, force: true })
+}
+
 const filePath = (key: string): string =>
   join(directory(), `${createHash('sha256').update(key).digest('hex')}.png`)
 const isPng = (bytes: Uint8Array): boolean =>

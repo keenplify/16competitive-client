@@ -11,6 +11,7 @@ import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { RedeemCodeModal } from '../redeem-codes/RedeemCodeModal'
 import { getCachedSkinModel } from './skin-model-cache'
+import { skinPreviewRevision } from '../../../../shared/skins'
 import {
   getSkinCameraDistanceMultiplier,
   getSkinCameraTarget,
@@ -535,8 +536,10 @@ export function SkinCardPreview({
       onClick={onOpen}
     >
       <SkinModelThumbnail
+        key={`${skin.id}:${skinPreviewRevision(skin)}`}
         cacheKey={`skin-card:v3:${skin.id}`}
         skinId={skin.id}
+        sourceRevision={skinPreviewRevision(skin)}
         modelKey={skin.id}
         weaponKey={skin.weaponKey}
         fallback={<span className="text-xs text-neutral-500">Preview unavailable</span>}
@@ -555,6 +558,16 @@ export function SkinCardPreview({
 }
 
 export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
+  return (
+    <SkinPreviewContent
+      key={`${skin.id}:${skinPreviewRevision(skin)}`}
+      skin={skin}
+      onClose={onClose}
+    />
+  )
+}
+
+function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
   const [model, setModel] = useState<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
   const sourceUrl = safeExternalUrl(skin.sourceUrl)
@@ -563,7 +576,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
   useEffect(() => {
     if (skin.weaponKey === 'elite') return
     let active = true
-    void getCachedSkinModel(skin.id).then(
+    void getCachedSkinModel(skin.id, skinPreviewRevision(skin)).then(
       (bytes) => {
         if (active) setModel(bytes)
       },
@@ -574,7 +587,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
     return () => {
       active = false
     }
-  }, [skin.id, skin.weaponKey])
+  }, [skin.id, skin.weaponKey, skin.playerModelPath])
 
   return (
     <ModalDialog
@@ -635,6 +648,7 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
           <ModelViewer
             modelBuffer={model}
             modelKey={skin.id}
+            sourceRevision={skinPreviewRevision(skin)}
             presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
             camera={{
               distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),

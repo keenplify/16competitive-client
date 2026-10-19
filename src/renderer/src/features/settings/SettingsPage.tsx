@@ -396,6 +396,7 @@ export function SettingsPage(): JSX.Element {
       ref={scrollRef}
       onScroll={updateActiveSection}
       className="h-[calc(100vh-5rem)] overflow-y-auto scroll-smooth text-white"
+      data-page-scroll="settings"
     >
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
         <div className="mb-8">
