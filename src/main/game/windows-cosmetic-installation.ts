@@ -125,6 +125,16 @@ export class WindowsCosmeticInstallation {
       return null
     }
 
+    if (
+      supportsWindowsCosmeticClient(original, 'goldclient') &&
+      !module.includes(Buffer.from('papamo_goldclient_v1\0'))
+    ) {
+      console.info(
+        '[Scoreboard] Signed cosmetic bundle predates GoldClient compatibility; using stock HUD'
+      )
+      return null
+    }
+
     for (const path of [
       gameRoot,
       join(gameRoot, gameDirectory),

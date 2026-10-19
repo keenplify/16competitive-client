@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
 export const WINDOWS_STANDALONE_EXECUTABLE_NAMES = [
@@ -99,10 +99,37 @@ export const WINDOWS_CLIENT_EXPORTS = [
   'weapon_xm1014'
 ] as const
 
+// GoldClient 2.5.7 retains the SDK callbacks but removes four unused C++
+// entity exports and adds eleven engine extension callbacks. Require the full
+// alternative surface, not an exception for arbitrary missing exports.
+export const GOLDCLIENT_EXTENSION_EXPORTS = [
+  'HUD_GetFOV',
+  'HUD_GetWeapon',
+  'HUD_GetWeaponAnim',
+  'HUD_NotifyChatInputPosition',
+  'HUD_PlaySound',
+  'HUD_PlaybackEvent',
+  'HUD_SendWeaponAnim',
+  'HUD_SetMaxSpeed',
+  'HUD_WeaponsPostThink',
+  'IN_ExtraMouseUpdate',
+  'QueryInterface'
+] as const
+const GOLDCLIENT_OMITTED_EXPORTS: readonly string[] = [
+  '?CorpseFallThink@CBaseMonster@@QAEXXZ',
+  '?DefaultTouch@CBasePlayerAmmo@@QAEXPAVCBaseEntity@@@Z',
+  '?Materialize@CBasePlayerAmmo@@QAEXXZ',
+  '?PlayerDeathThink@CBasePlayer@@QAEXXZ'
+]
+export const GOLDCLIENT_EXPORTS = [
+  ...WINDOWS_CLIENT_EXPORTS.filter((name) => !GOLDCLIENT_OMITTED_EXPORTS.includes(name)),
+  ...GOLDCLIENT_EXTENSION_EXPORTS
+]
+
 /** Structural compatibility only; this is never an anti-cheat verdict. */
 export function supportsWindowsCosmeticClient(
   bytes: Uint8Array,
-  family: 'cs16' | 'won13' = 'cs16'
+  family: 'cs16' | 'won13' | 'goldclient' = 'cs16'
 ): boolean {
   const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const fits = (offset: number, size: number): boolean =>
@@ -156,7 +183,9 @@ export function supportsWindowsCosmeticClient(
           'HUD_AddEntity',
           'V_CalcRefdef'
         ]
-      : WINDOWS_CLIENT_EXPORTS
+      : family === 'goldclient'
+        ? GOLDCLIENT_EXPORTS
+        : WINDOWS_CLIENT_EXPORTS
   // WON exports data in the zero-filled tail of .data as well as functions.
   // It has no file offset, but is valid readable memory in the loaded PE image.
   const isVirtualData = (rva: number): boolean => {
@@ -205,7 +234,10 @@ export function supportsWindowsCosmeticClient(
       return false
     found.add(name)
   }
-  return required.every((name) => found.has(name))
+  return (
+    required.every((name) => found.has(name)) ||
+    (family === 'cs16' && GOLDCLIENT_EXPORTS.every((name) => found.has(name)))
+  )
 }
 
 const optionalFile = async (path: string): Promise<boolean> => {
@@ -235,3 +267,20 @@ export const isNextClientInstallation = async (gameRoot: string): Promise<boolea
 export const isNextClientExecutable = async (executable: string): Promise<boolean> =>
   basename(executable).toLowerCase() === 'cstrike.exe' &&
   (await isNextClientInstallation(dirname(executable)))
+
+/** Identify before installing the proxy; the updater otherwise restores client.dll. */
+export async function isGoldClientInstallation(gameRoot: string): Promise<boolean> {
+  const client = join(gameRoot, 'cstrike', 'cl_dlls', 'client.dll')
+  try {
+    const info = await stat(client)
+    if (!info.isFile() || info.size > 128 * 1024 * 1024) return false
+    return supportsWindowsCosmeticClient(await readFile(client), 'goldclient')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false
+    throw error
+  }
+}
+
+export function goldClientManagedLaunchArgs(goldClient: boolean): string[] {
+  return goldClient ? ['-noupdate'] : []
+}

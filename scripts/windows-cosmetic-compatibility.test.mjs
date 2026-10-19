@@ -5,9 +5,13 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import {
   isNextClientExecutable,
+  isGoldClientInstallation,
+  goldClientManagedLaunchArgs,
   isNextClientInstallation,
   supportsWindowsCosmeticClient,
   WINDOWS_CLIENT_EXPORTS,
+  GOLDCLIENT_EXPORTS,
+  GOLDCLIENT_EXTENSION_EXPORTS,
   WINDOWS_STANDALONE_EXECUTABLE_NAMES
 } from '../src/main/game/windows-cosmetic-compatibility.ts'
 
@@ -123,6 +127,45 @@ test('detects NextClient only when both native hook modules are present', async 
     await writeFile(join(root, 'cstrike.exe'), '')
     assert.equal(await isNextClientExecutable(join(root, 'cstrike.exe')), true)
     assert.equal(await isNextClientExecutable(join(root, 'hl.exe')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('GoldClient requires its complete extended SDK surface', () => {
+  const gold = clientFixture(GOLDCLIENT_EXPORTS)
+  assert.equal(supportsWindowsCosmeticClient(gold), true)
+  assert.equal(supportsWindowsCosmeticClient(gold, 'goldclient'), true)
+  assert.equal(supportsWindowsCosmeticClient(clientFixture(), 'goldclient'), false)
+  for (const name of [...GOLDCLIENT_EXTENSION_EXPORTS, 'F', 'HUD_Redraw', 'Initialize']) {
+    assert.equal(
+      supportsWindowsCosmeticClient(
+        clientFixture(GOLDCLIENT_EXPORTS.filter((entry) => entry !== name))
+      ),
+      false,
+      name
+    )
+  }
+  assert.equal(
+    supportsWindowsCosmeticClient(
+      clientFixture(WINDOWS_CLIENT_EXPORTS.filter((name) => !name.startsWith('?CorpseFallThink')))
+    ),
+    false
+  )
+})
+
+test('only recognized GoldClient managed launches disable its DLL updater', async () => {
+  const root = await mkdtemp(join(tmpdir(), '16c-goldclient-'))
+  try {
+    assert.equal(await isGoldClientInstallation(root), false)
+    await mkdir(join(root, 'cstrike', 'cl_dlls'), { recursive: true })
+    const client = join(root, 'cstrike', 'cl_dlls', 'client.dll')
+    await writeFile(client, clientFixture())
+    assert.equal(await isGoldClientInstallation(root), false)
+    await writeFile(client, clientFixture(GOLDCLIENT_EXPORTS))
+    assert.equal(await isGoldClientInstallation(root), true)
+    assert.deepEqual(goldClientManagedLaunchArgs(true), ['-noupdate'])
+    assert.deepEqual(goldClientManagedLaunchArgs(false), [])
   } finally {
     await rm(root, { recursive: true, force: true })
   }

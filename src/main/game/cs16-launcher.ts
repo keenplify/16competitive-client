@@ -40,7 +40,11 @@ import { WindowsCosmeticInstallation } from './windows-cosmetic-installation'
 import { lookup } from 'node:dns/promises'
 import { fastSwitchCommands, fastSwitchPreference } from './fast-switch'
 import { WindowsNextClientInstallation } from './windows-nextclient-installation'
-import { isNextClientInstallation } from './windows-cosmetic-compatibility'
+import {
+  isNextClientInstallation,
+  isGoldClientInstallation,
+  goldClientManagedLaunchArgs
+} from './windows-cosmetic-compatibility'
 import type { CrosshairProfile } from '../../shared/crosshair'
 import {
   disableSteamScoreboardWrapper,
@@ -774,6 +778,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       matchId: input.matchId
     })
   }
+  const goldClient =
+    process.platform === 'win32' && !nextClient && (await isGoldClientInstallation(cwd))
   if (process.platform === 'linux') await disableSteamScoreboardWrapper()
 
   await disableConflictingGtProtector(cwd, {
@@ -1161,6 +1167,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       'cs16'
     ),
     ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
+    ...goldClientManagedLaunchArgs(goldClient),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
     ...matchJoinLaunchArgs(input.matchId, input.joinToken, connectionHandoff),
