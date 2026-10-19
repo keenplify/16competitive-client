@@ -2827,3 +2827,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Discord setup now opens directly to the relevant settings controls.
+
+## v2026.1019.8 — 2026-10-19
+
+### Matchmaking
+
+- Requeued matches are now restored after restarting the launcher.
+- Your matchmaking queue is preserved when the launcher restarts.
