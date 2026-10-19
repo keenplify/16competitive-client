@@ -19,9 +19,11 @@ const uuid = (value: unknown): value is string =>
 export function validateCommunityDecision(id: unknown, accept: unknown): asserts id is string {
   if (!uuid(id) || typeof accept !== 'boolean') throw new Error('INVALID_COMMUNITY_DECISION')
 }
+export function isServerLinkCode(code: unknown): code is string {
+  return typeof code === 'string' && /^(?:[2-9A-HJ-NP-Z]{6}|[A-F0-9]{12})$/i.test(code)
+}
 export function validateServerLinkCode(code: unknown): asserts code is string {
-  if (typeof code !== 'string' || !/^[a-fA-F0-9]{12}$/.test(code))
-    throw new Error('INVALID_SERVER_LINK_CODE')
+  if (!isServerLinkCode(code)) throw new Error('INVALID_SERVER_LINK_CODE')
 }
 export function parseCommunityTransfer(input: unknown): CommunityTransferRequest | null {
   if (!input || typeof input !== 'object' || !('request' in input))

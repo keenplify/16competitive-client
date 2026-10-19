@@ -1,5 +1,8 @@
 import { create } from 'zustand'
-import type { CommunityTransferRequest } from '../../../../shared/community-membership'
+import {
+  isServerLinkCode,
+  type CommunityTransferRequest
+} from '../../../../shared/community-membership'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
 import { usePartnerServersStore } from './partner-servers.store'
@@ -91,7 +94,7 @@ export const useCommunityMembershipStore = create<State>((set, get) => ({
   setLinkCode: (code) =>
     set({
       linkCode: code
-        .replace(/[^a-fA-F0-9]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
         .slice(0, 12)
         .toUpperCase(),
       linkResult: 'idle'
@@ -99,7 +102,7 @@ export const useCommunityMembershipStore = create<State>((set, get) => ({
   linkServer: async () => {
     const { linkCode, linking } = get(),
       accountId = useAuthStore.getState().session?.player.id
-    if (!accountId || linking || !/^[A-F0-9]{12}$/.test(linkCode)) return
+    if (!accountId || linking || !isServerLinkCode(linkCode)) return
     set({ accountId, linking: true, linkResult: 'idle' })
     try {
       await window.api.communityMembership.linkServer(linkCode)

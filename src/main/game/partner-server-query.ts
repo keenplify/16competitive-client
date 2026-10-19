@@ -10,7 +10,10 @@ export interface ServerInfo {
   maxPlayers: number
   pingMs: number
 }
-export function parseServerInfo(packet: Buffer, gameVersion: 'cs16' | 'cs13' = 'cs16'): Omit<ServerInfo, 'pingMs'> | null {
+export function parseServerInfo(
+  packet: Buffer,
+  gameVersion: 'cs16' | 'cs13' = 'cs16'
+): Omit<ServerInfo, 'pingMs'> | null {
   if (packet.length < 6 || packet.length > 4096 || packet.readInt32LE(0) !== -1) return null
   let cursor = 5
   const string = (): string => {
@@ -32,7 +35,10 @@ export function parseServerInfo(packet: Buffer, gameVersion: 'cs16' | 'cs13' = '
     const map = string(),
       folder = string()
     string() // game description
-    if (folder.toLowerCase() !== (gameVersion === 'cs13' ? 'cstrk13' : 'cstrike') || !/^[a-z0-9_-]{1,64}$/i.test(map)) return null
+    // Stock CS 1.3 uses cstrike; isolated legacy runtimes may use cstrk13.
+    const allowedFolders = gameVersion === 'cs13' ? ['cstrike', 'cstrk13'] : ['cstrike']
+    if (!allowedFolders.includes(folder.toLowerCase()) || !/^[a-z0-9_-]{1,64}$/i.test(map))
+      return null
     if (packet[4] === 0x49) cursor += 2 // app ID
     if (cursor + 2 > packet.length) return null
     const players = packet[cursor],

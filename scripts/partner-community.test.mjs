@@ -83,13 +83,38 @@ test('CS 1.3 uses the legacy details query and cstrk13 folder', async () => {
   })
   try {
     assert.equal(parseServerInfo(legacy), null)
-    assert.deepEqual(parseServerInfo(legacy, 'cs13'), { map: 'de_dust2', players: 0, maxPlayers: 12 })
+    assert.deepEqual(parseServerInfo(legacy, 'cs13'), {
+      map: 'de_dust2',
+      players: 0,
+      maxPlayers: 12
+    })
     const result = await queryServerInfo('127.0.0.1', socket.address().port, 500, 'cs13')
     assert.equal(result.map, 'de_dust2')
     assert.equal(result.maxPlayers, 12)
   } finally {
     socket.close()
   }
+})
+test('CS 1.3 accepts the stock cstrike folder without accepting unrelated games', () => {
+  const reply = (folder) =>
+    Buffer.concat([
+      Buffer.from([255, 255, 255, 255, 0x6d]),
+      strings(['192.168.0.123:27015', 'CS1.3 Test Server', 'de_dust2', folder, 'Counter-Strike']),
+      Buffer.from([1, 8, 45])
+    ])
+  assert.deepEqual(parseServerInfo(reply('cstrike'), 'cs13'), {
+    map: 'de_dust2',
+    players: 1,
+    maxPlayers: 8
+  })
+  assert.deepEqual(parseServerInfo(reply('CSTRIKE'), 'cs13'), {
+    map: 'de_dust2',
+    players: 1,
+    maxPlayers: 8
+  })
+  for (const folder of ['valve', 'dod', '../cstrike', ''])
+    assert.equal(parseServerInfo(reply(folder), 'cs13'), null)
+  assert.equal(parseServerInfo(reply('cstrk13'), 'cs16'), null)
 })
 test('public address gate blocks local, reserved and multicast UDP targets', () => {
   for (const host of [

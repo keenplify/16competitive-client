@@ -6,6 +6,7 @@ import { TextField } from '../../components/ui/TextField'
 import { useCommunityMembershipStore } from './community-membership.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
 import { useAuthStore } from '../auth/auth.store'
+import { isServerLinkCode } from '../../../../shared/community-membership'
 export function CommunitySettings({ className }: { className?: string }) {
   const { t } = useTranslation()
   const branding = usePartnerBrandingStore((state) => state.branding),
@@ -37,14 +38,14 @@ export function CommunitySettings({ className }: { className?: string }) {
           onChange={(event) => state.setLinkCode(event.target.value)}
           maxLength={12}
           autoComplete="off"
-          placeholder="A1B2C3D4E5F6"
+          placeholder="A2B3C4"
           disabled={state.linking}
           className="min-w-48 flex-1"
         />
         <Button
           type="submit"
           variant="secondary"
-          disabled={state.linking || state.linkCode.length !== 12}
+          disabled={state.linking || !isServerLinkCode(state.linkCode)}
           className="h-11 w-40 gap-2"
         >
           {state.linking ? (

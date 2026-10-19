@@ -27,9 +27,20 @@ test('community transfer contracts reject forged names, identities and ambiguous
   assert.throws(() => validateCommunityDecision(id, 'yes'))
   assert.throws(() => validateCommunityDecision('../bad', true))
 })
-test('server linking accepts bounded hex codes and requires a scoped backend acknowledgement', () => {
+test('server linking accepts six-character codes and legacy hex codes with a scoped acknowledgement', () => {
+  for (const code of ['A2B3C4', 'xy234z', 'Z9H7JP'])
+    assert.doesNotThrow(() => validateServerLinkCode(code))
   assert.doesNotThrow(() => validateServerLinkCode('a1b2c3d4e5f6'))
-  for (const code of ['', 'A'.repeat(13), 'ZZZZZZZZZZZZ', '../secret', null])
+  for (const code of [
+    '',
+    'A'.repeat(13),
+    'ZZZZZZZZZZZZ',
+    'AAAAA',
+    'AAAAAAA',
+    'O0I1AA',
+    '../secret',
+    null
+  ])
     assert.throws(() => validateServerLinkCode(code))
   assert.deepEqual(parseServerLink({ linked: true, serverId: id }), { linked: true, serverId: id })
   assert.throws(() => parseServerLink({ linked: true, serverId: '../bad' }))
