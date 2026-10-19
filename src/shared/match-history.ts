@@ -95,9 +95,25 @@ export interface ProfileActivitySnapshot {
   modes: Array<{ id: string; matches: number; wins: number }>
 }
 
+
+export interface PartnerLevelProfile {
+  partnerId: string
+  communityName: string | null
+  sourceName: string
+  level: number
+  xp: number
+  rank: string
+  prestige: number
+  playtimeMinutes: number
+  kills: number
+  deaths: number
+  importedAt: string
+}
+
 export interface PlayerProfile {
   activity?: ProfileActivitySnapshot
   partnerStats?: { sessions: number; kills: number; deaths: number; seconds: number }
+  partnerLevels?: PartnerLevelProfile[]
   recentMatches?: MatchHistoryEntry[]
   loadout?: ProfileLoadoutSkin[]
   level?: number
