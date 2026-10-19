@@ -2817,3 +2817,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added Discord notification settings.
 - Added support for managing Discord notification preferences.
+
+## v2026.1019.7 — 2026-10-19
+
+### Play
+
+- Play while waiting is now available in a separate non-competitive Play tab.
+
+### Settings
+
+- Discord setup now opens directly to the relevant settings controls.
