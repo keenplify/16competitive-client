@@ -39,6 +39,7 @@ import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
 import { PartnerThemeSetting } from '../partner-branding/PartnerThemeSetting'
 import { DiscordNotificationSettings } from './DiscordNotificationSettings'
+import { useNavigationStore } from '../navigation/navigation.store'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
@@ -56,6 +57,14 @@ const readableError = (error: unknown): string =>
     ? error.message.replace(/^Error:\s*/, '')
     : 'Something went wrong. Please try again.'
 
+const revealDiscordControl = (target: HTMLElement | null): void => {
+  if (!target) return
+  target.scrollIntoView({ behavior: 'instant', block: 'start' })
+  const control = target.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled)')
+  const focusTarget = control ?? target
+  focusTarget.focus({ preventScroll: true })
+}
+
 export function SettingsPage(): JSX.Element {
   const communityLinks = useCommunityLinks()
   const { language, t } = useTranslation()
@@ -65,6 +74,10 @@ export function SettingsPage(): JSX.Element {
   const audioRef = useRef<HTMLElement>(null)
   const assetsRef = useRef<HTMLElement>(null)
   const credentialsRef = useRef<HTMLElement>(null)
+  const discordAccountRef = useRef<HTMLDivElement>(null)
+  const discordNotificationsRef = useRef<HTMLDivElement>(null)
+  const settingsTarget = useNavigationStore((state) => state.settingsTarget)
+  const clearSettingsTarget = useNavigationStore((state) => state.clearSettingsTarget)
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const [changelogOpen, setChangelogOpen] = useState(false)
 
@@ -127,6 +140,16 @@ export function SettingsPage(): JSX.Element {
   const [connectingProvider, setConnectingProvider] = useState<SocialAuthProvider | null>(null)
   const [socialError, setSocialError] = useState<string | null>(null)
   const [socialNotice, setSocialNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (settingsTarget !== 'discord' || socialLoading) return
+    revealDiscordControl(
+      socialConnections?.discord.connected
+        ? discordNotificationsRef.current
+        : discordAccountRef.current
+    )
+    clearSettingsTarget()
+  }, [settingsTarget, socialLoading, socialConnections, clearSettingsTarget])
 
   useEffect(() => {
     void load()
@@ -294,6 +317,9 @@ export function SettingsPage(): JSX.Element {
     try {
       const connections = await window.api.auth.connectSocial(provider)
       setSocialConnections(connections)
+      if (provider === 'discord' && connections.discord.connected) {
+        window.requestAnimationFrame(() => revealDiscordControl(discordNotificationsRef.current))
+      }
       setSocialNotice(
         provider === 'steam'
           ? t('auth.steam.connected')
@@ -342,7 +368,11 @@ export function SettingsPage(): JSX.Element {
     const connecting = connectingProvider === provider
 
     return (
-      <div className="flex flex-col gap-4 border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        ref={provider === 'discord' ? discordAccountRef : undefined}
+        tabIndex={provider === 'discord' ? -1 : undefined}
+        className="scroll-mt-6 flex flex-col gap-4 border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div className="flex min-w-0 items-center gap-3">
           <SocialProviderIcon provider={provider} className="size-9" />
           <div className="min-w-0">
@@ -928,7 +958,16 @@ export function SettingsPage(): JSX.Element {
                 </div>
               </div>
 
-              <DiscordNotificationSettings connected={socialConnections?.discord.connected === true} />
+              <div
+                ref={discordNotificationsRef}
+                tabIndex={-1}
+                className="scroll-mt-6"
+                aria-label={t('settings.discord.title')}
+              >
+                <DiscordNotificationSettings
+                  connected={socialConnections?.discord.connected === true}
+                />
+              </div>
 
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <div className="flex items-start gap-3">

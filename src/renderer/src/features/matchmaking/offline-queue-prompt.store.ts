@@ -54,7 +54,7 @@ export const useOfflineQueuePromptStore = create<OfflineQueuePromptState>((set, 
   },
   openSettings: () => {
     set({ open: false, promptPlayerId: null })
-    useNavigationStore.getState().navigate('settings')
+    useNavigationStore.getState().openDiscordSettings()
   },
   close: () => set({ open: false, promptPlayerId: null })
 }))
