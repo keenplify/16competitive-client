@@ -71,6 +71,21 @@ const isActivity = (value: unknown): boolean => {
   })
 }
 
+
+const isPartnerLevel = (value: unknown): boolean => {
+  if (typeof value !== 'object' || value === null) return false
+  const level = value as Record<string, unknown>
+  return (
+    typeof level.partnerId === 'string' && level.partnerId.length <= 36 &&
+    (level.communityName === null || (typeof level.communityName === 'string' && level.communityName.length <= 64)) &&
+    typeof level.sourceName === 'string' && level.sourceName.length <= 64 &&
+    typeof level.rank === 'string' && level.rank.length <= 64 &&
+    ['level', 'xp', 'prestige', 'playtimeMinutes', 'kills', 'deaths'].every(key =>
+      Number.isSafeInteger(level[key]) && Number(level[key]) >= 0) &&
+    typeof level.importedAt === 'string' && Number.isFinite(Date.parse(level.importedAt))
+  )
+}
+
 export const isPlayerProfile = (value: unknown): value is PlayerProfile => {
   if (typeof value !== 'object' || value === null) return false
   const player = value as Record<string, unknown>
@@ -82,6 +97,10 @@ export const isPlayerProfile = (value: unknown): value is PlayerProfile => {
         const number = (player.partnerStats as Record<string, unknown>)[key]
         return Number.isSafeInteger(number) && Number(number) >= 0
       })
+    )) &&
+    (player.partnerLevels === undefined || (
+      Array.isArray(player.partnerLevels) && player.partnerLevels.length <= 20 &&
+      player.partnerLevels.every(isPartnerLevel)
     )) &&
     (player.recentMatches === undefined ||
       (Array.isArray(player.recentMatches) &&
