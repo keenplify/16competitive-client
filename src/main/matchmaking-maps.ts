@@ -1,5 +1,6 @@
 import { clearSessionToken, getSessionToken } from './auth'
-import { API_BASE_URL } from './config'
+import { matchmakingConnection } from './matchmaking'
+import { resolveServiceApiUrl } from './matchmaking-regions'
 import type { MatchmakingMapCatalog } from '../shared/matchmaking'
 import { parseMatchmakingMapCatalog } from '../shared/matchmaking-map-catalog'
 
@@ -12,7 +13,8 @@ export const getMatchmakingMaps = async (): Promise<MatchmakingMapCatalog> => {
 
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/matchmaking/maps`, {
+    const apiUrl = matchmakingConnection.getActiveApiUrl() ?? (await resolveServiceApiUrl())
+    response = await fetch(`${apiUrl}/matchmaking/maps`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(10_000)
     })
