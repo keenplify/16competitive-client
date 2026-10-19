@@ -125,6 +125,47 @@ export function ProfileOverview({
           </dl>
         </section>
       )}
+
+      {!!profile.partnerLevels?.length && (
+        <section aria-label={t('profile.communityLevels')} className="border-b border-white/15 pb-5">
+          <h3 className="mb-2 text-base font-semibold">{t('profile.communityLevels')}</h3>
+          <p className="mb-4 text-sm text-neutral-400">{t('profile.communityLevelsNote')}</p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {profile.partnerLevels.map(entry => (
+              <article key={entry.partnerId + '/' + entry.sourceName}
+                className="border border-white/15 bg-white/[0.025] p-4">
+                <div className="mb-4">
+                  <p className="text-sm text-neutral-300">{entry.communityName || entry.sourceName}</p>
+                  <h4 className="text-lg font-semibold">{entry.sourceName}</h4>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
+                  {[
+                    [t('profile.level'), entry.level.toLocaleString(language)],
+                    [t('profile.communityXp'), entry.xp.toLocaleString(language)],
+                    [t('profile.communityRank'), entry.rank || '—'],
+                    [t('profile.communityPrestige'), entry.prestige.toLocaleString(language)],
+                    [t('profile.kills'), entry.kills.toLocaleString(language)],
+                    [t('profile.deaths'), entry.deaths.toLocaleString(language)],
+                    [t('profile.communityPlaytime'), t('profile.communityMinutes', {
+                      count: entry.playtimeMinutes.toLocaleString(language)
+                    })]
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <dt className="text-xs text-neutral-400">{label}</dt>
+                      <dd className="mt-1 text-base font-semibold tabular-nums">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-4 text-xs text-neutral-400">
+                  {t('profile.communityImported', {
+                    date: new Date(entry.importedAt).toLocaleDateString(language)
+                  })}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       <ProfileActivity activity={profile.activity} compact={compact} />
     </div>
   )
