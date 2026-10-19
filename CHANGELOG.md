@@ -2779,3 +2779,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - View imported partner leveling history.
 - Added localized profile and leveling-history text.
+
+## v2026.1019.4 — 2026-10-19
+
+### Partner Communities
+
+- Partner links now support shorter invite codes.
+
+### Server Support
+
+- Added support for querying stock Counter-Strike 1.3 servers.
