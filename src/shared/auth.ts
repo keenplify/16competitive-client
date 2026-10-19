@@ -8,6 +8,9 @@ export const AUTH_CHANNELS = {
   socialComplete: 'auth:social-complete',
   socialPasswordComplete: 'auth:social-password-complete',
   socialConnections: 'auth:social-connections',
+  discordNotificationsGet: 'auth:discord-notifications-get',
+  discordNotificationsSet: 'auth:discord-notifications-set',
+  discordNotificationsTest: 'auth:discord-notifications-test',
   socialConnect: 'auth:social-connect',
   usernameCheck: 'auth:username-check',
   usernameChange: 'auth:username-change',
@@ -128,6 +131,12 @@ export interface SocialConnections {
   steam: SocialConnectionState
 }
 
+export interface DiscordNotificationStatus {
+  linked: boolean
+  enabled: boolean
+  available: boolean
+}
+
 export interface AuthApi {
   getIcafeBranchInfo(): Promise<IcafeBranchStatus>
   linkIcafeBranch(code: string): Promise<IcafeBranchStatus>
@@ -149,6 +158,9 @@ export interface AuthApi {
   ): Promise<SocialAuthResult>
   completeSocialPassword(pollToken: string, password: string): Promise<AuthSession>
   getSocialConnections(): Promise<SocialConnections>
+  getDiscordNotifications(): Promise<DiscordNotificationStatus>
+  setDiscordNotifications(enabled: boolean): Promise<DiscordNotificationStatus>
+  testDiscordNotifications(): Promise<{ sent: true }>
   connectSocial(provider: SocialAuthProvider): Promise<SocialConnections>
   checkUsername(username: string): Promise<UsernameAvailability>
   changeUsername(username: string): Promise<UsernameChangeResult>

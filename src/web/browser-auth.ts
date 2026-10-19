@@ -394,6 +394,24 @@ export const browserAuthApi: AuthApi = {
     return requestJson<SocialConnections>('/auth/social/connections', { authenticated: true })
   },
 
+  async getDiscordNotifications() {
+    return requestJson('/auth/discord/notifications', { authenticated: true })
+  },
+
+  async setDiscordNotifications(enabled) {
+    return requestJson('/auth/discord/notifications', {
+      authenticated: true,
+      init: { method: 'PUT', body: JSON.stringify({ enabled }) }
+    })
+  },
+
+  async testDiscordNotifications() {
+    return requestJson('/auth/discord/notifications/test', {
+      authenticated: true,
+      init: { method: 'POST' }
+    })
+  },
+
   async connectSocial(provider) {
     return beginSocial(provider, true) as Promise<SocialConnections>
   },

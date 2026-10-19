@@ -2,7 +2,7 @@ import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { useCommunityText } from '../partner-branding/community-copy'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useEffect, useState, type CSSProperties, type JSX } from 'react'
-import { Check, CircleHelp, Copy, LogOut } from 'lucide-react'
+import { Check, CircleHelp, Copy, LoaderCircle, LogOut } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -21,6 +21,8 @@ import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useMatchmakingStore } from './matchmaking.store'
+import { OfflineQueuePrompt } from './OfflineQueuePrompt'
+import { useOfflineQueuePromptStore } from './offline-queue-prompt.store'
 import { TeamRoster } from './TeamRoster'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
@@ -153,6 +155,8 @@ export function PlayPage({
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
+  const requestOfflineQueue = useOfflineQueuePromptStore((state) => state.requestQueue)
+  const checkingDiscord = useOfflineQueuePromptStore((state) => state.checking)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
   const copyConnection = useMatchmakingStore((state) => state.copyConnection)
   const copyConnectionStatus = useMatchmakingStore((state) => state.copyConnectionStatus)
@@ -284,7 +288,8 @@ export function PlayPage({
       )
       return
     }
-    void joinQueue()
+    if (selectedMode === '5v5' && player) void requestOfflineQueue(player.id)
+    else void joinQueue()
   }
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
@@ -789,10 +794,19 @@ export function PlayPage({
                   !isLeader ||
                   isSearching ||
                   queueStatus === 'joining' ||
+                  checkingDiscord ||
                   (partyRequiresWeb && !modeAllowsWeb)
                 }
+                aria-busy={checkingDiscord}
+                aria-label={checkingDiscord ? t('queue.discord.checking') : undefined}
                 onClick={handleFindMatch}
               >
+                {checkingDiscord && (
+                  <LoaderCircle
+                    className="absolute left-2 size-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                )}
                 <span className="relative z-10">
                   {isSearching
                     ? 'Searching…'
@@ -817,6 +831,7 @@ export function PlayPage({
           </div>
         )}
       </div>
+      <OfflineQueuePrompt playerId={player.id} />
     </main>
   )
 }

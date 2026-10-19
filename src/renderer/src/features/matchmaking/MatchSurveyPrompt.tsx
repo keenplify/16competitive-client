@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import type { MatchmakingMode } from '../../../../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { PromptCard } from '../../components/ui/PromptCard'
 import { useAuthStore } from '../auth/auth.store'
 import { deferMatchSurveyForSession, isMatchSurveyDeferredForSession } from './match-survey-session'
 
@@ -90,10 +91,7 @@ export function MatchSurveyPrompt({
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2">
-      <section
-        className="match-survey-enter pointer-events-auto border border-sky-300/35 border-l-[3px] border-l-sky-400 bg-neutral-950 px-5 py-4 text-left shadow-[0_12px_28px_rgba(0,0,0,0.7)]"
-        aria-label="Map feedback"
-      >
+      <PromptCard className="match-survey-enter pointer-events-auto" aria-label="Map feedback">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-4">
@@ -141,7 +139,7 @@ export function MatchSurveyPrompt({
             </Button>
           </div>
         </div>
-      </section>
+      </PromptCard>
     </div>
   )
 }

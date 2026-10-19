@@ -63,6 +63,9 @@ import {
   connectSocial,
   getSessionToken,
   getSocialConnections,
+  getDiscordNotifications,
+  setDiscordNotifications,
+  testDiscordNotifications,
   getReferralStatus,
   claimReferralCode,
   reopenSocialAuthorization,
@@ -377,8 +380,8 @@ function focusMainWindow(): void {
   window.focus()
 }
 
-function disconnectMatchmakingIntentionally(): void {
-  matchmakingConnection.shutdown()
+function disconnectMatchmakingIntentionally(leaveQueue = false): void {
+  matchmakingConnection.shutdown(leaveQueue)
   discordPresence.reset()
 }
 
@@ -806,6 +809,9 @@ app.whenReady().then(async () => {
     withClientTelemetry(completeSocialWithPassword(pollToken, password))
   )
   ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
+  ipcMain.handle(AUTH_CHANNELS.discordNotificationsGet, () => getDiscordNotifications())
+  ipcMain.handle(AUTH_CHANNELS.discordNotificationsSet, (_, enabled: unknown) => setDiscordNotifications(enabled))
+  ipcMain.handle(AUTH_CHANNELS.discordNotificationsTest, () => testDiscordNotifications())
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) =>
     withAuthFocus(connectSocial(provider))
   )
@@ -825,7 +831,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(AUTH_CHANNELS.restore, () => withClientTelemetry(restoreSession()))
   ipcMain.handle(AUTH_CHANNELS.logout, () => {
-    disconnectMatchmakingIntentionally()
+    disconnectMatchmakingIntentionally(true)
     clearSessionToken()
   })
   ipcMain.handle(DAILY_QUEST_CHANNELS.get, () => getDailyQuests())

@@ -38,6 +38,7 @@ import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
 import { PartnerThemeSetting } from '../partner-branding/PartnerThemeSetting'
+import { DiscordNotificationSettings } from './DiscordNotificationSettings'
 
 const usernamePattern = /^[A-Za-z0-9_]{3,32}$/
 type SettingsSection = 'general' | 'crosshair' | 'audio' | 'assets' | 'credentials'
@@ -926,6 +927,8 @@ export function SettingsPage(): JSX.Element {
                   {socialNotice && <p className="text-emerald-300">{socialNotice}</p>}
                 </div>
               </div>
+
+              <DiscordNotificationSettings connected={socialConnections?.discord.connected === true} />
 
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <div className="flex items-start gap-3">

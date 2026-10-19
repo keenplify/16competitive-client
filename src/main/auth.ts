@@ -12,6 +12,7 @@ import type {
   SocialAuthProvider,
   SocialAuthResult,
   SocialConnections,
+  DiscordNotificationStatus,
   ReferralStatus,
   UsernameAvailability,
   UsernameChangeResult
@@ -603,6 +604,58 @@ export const getSocialConnections = async (): Promise<SocialConnections> => {
     throw new Error('The server returned invalid social connection status')
   }
   return body
+}
+
+const discordNotificationRequest = async (
+  path: string,
+  method: 'GET' | 'PUT' | 'POST',
+  enabled?: boolean
+): Promise<unknown> => {
+  if (!sessionToken) throw new Error('Authentication required')
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/discord/notifications${path}`, {
+    method,
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      ...(enabled === undefined ? {} : { 'content-type': 'application/json' })
+    },
+    ...(enabled === undefined ? {} : { body: JSON.stringify({ enabled }) }),
+    signal: AbortSignal.timeout(25_000)
+  }).catch(() => null)
+  if (!response) throw new Error('DISCORD_NETWORK_ERROR')
+  const body: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const code = typeof body === 'object' && body !== null && 'error' in body
+      ? (body as { error: unknown }).error
+      : null
+    throw new Error(typeof code === 'string' ? code : 'DISCORD_REQUEST_FAILED')
+  }
+  return body
+}
+
+const isDiscordNotificationStatus = (value: unknown): value is DiscordNotificationStatus =>
+  typeof value === 'object' && value !== null &&
+  typeof (value as DiscordNotificationStatus).linked === 'boolean' &&
+  typeof (value as DiscordNotificationStatus).enabled === 'boolean' &&
+  typeof (value as DiscordNotificationStatus).available === 'boolean'
+
+export const getDiscordNotifications = async (): Promise<DiscordNotificationStatus> => {
+  const body = await discordNotificationRequest('', 'GET')
+  if (!isDiscordNotificationStatus(body)) throw new Error('DISCORD_INVALID_RESPONSE')
+  return body
+}
+
+export const setDiscordNotifications = async (enabled: unknown): Promise<DiscordNotificationStatus> => {
+  if (typeof enabled !== 'boolean') throw new Error('DISCORD_INVALID_PREFERENCE')
+  const body = await discordNotificationRequest('', 'PUT', enabled)
+  if (!isDiscordNotificationStatus(body)) throw new Error('DISCORD_INVALID_RESPONSE')
+  return body
+}
+
+export const testDiscordNotifications = async (): Promise<{ sent: true }> => {
+  const body = await discordNotificationRequest('/test', 'POST')
+  if (typeof body !== 'object' || body === null || (body as { sent?: unknown }).sent !== true)
+    throw new Error('DISCORD_INVALID_RESPONSE')
+  return { sent: true }
 }
 
 export const getReferralStatus = async (): Promise<ReferralStatus> => {

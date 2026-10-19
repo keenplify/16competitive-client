@@ -92,6 +92,9 @@ const auth: AuthApi = {
   completeSocialPassword: (pollToken, password) =>
     ipcRenderer.invoke(AUTH_CHANNELS.socialPasswordComplete, pollToken, password),
   getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
+  getDiscordNotifications: () => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsGet),
+  setDiscordNotifications: (enabled) => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsSet, enabled),
+  testDiscordNotifications: () => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsTest),
   connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
   changeUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameChange, username),

@@ -793,7 +793,7 @@ class MatchmakingConnection {
     this.renderer = null
   }
 
-  shutdown(): void {
+  shutdown(leaveQueue = false): void {
     if (this.warmupSocket?.readyState === WebSocket.OPEN) {
       this.warmupSocket.send(JSON.stringify({ type: 'leave_warmup' }))
       if (this.warmupSocket !== this.socket) this.warmupSocket.close()
@@ -814,11 +814,11 @@ class MatchmakingConnection {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.stopPing()
-    if (this.socket?.readyState === WebSocket.OPEN) {
+    if (leaveQueue && this.socket?.readyState === WebSocket.OPEN) {
       try {
         this.socket.send(JSON.stringify({ type: 'leave_queue' }))
-      } catch {
-        // The process is already shutting down; the disconnect fallback applies.
+      } catch (error) {
+        console.warn('[Matchmaking] could not leave queue during logout', error)
       }
     }
     this.socket?.close()
