@@ -2789,3 +2789,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Server Support
 
 - Added support for querying stock Counter-Strike 1.3 servers.
+
+## v2026.1019.5 — 2026-10-19
+
+### UI
+
+- Updated lobby navigation and header behavior.
+- Refreshed matchmaking, settings, skins, and shop screens.
+- Improved skin model thumbnail presentation.
+
+### Skins
+
+- Improved skin preview and model thumbnail caching.
+- Updated skin asset handling.
+
+### Compatibility
+
+- Improved Windows compatibility.
