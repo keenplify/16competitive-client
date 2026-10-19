@@ -2762,3 +2762,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Improved reliability of local Windows releases by removing stale build sources.
+
+## v2026.1019.3 — 2026-10-19
+
+### Communities
+
+- Browse community servers and communities from the client.
+- View clearer community information and localized directory text.
+
+### Account
+
+- Reset your password from the client.
+- Improved partner login and branding support.
+
+### Profile
+
+- View imported partner leveling history.
+- Added localized profile and leveling-history text.
