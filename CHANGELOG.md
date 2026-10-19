@@ -2746,3 +2746,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Status
 
 - Added Counter-Strike 1.3 server status to the launcher.
+
+## v2026.1019.1 — 2026-10-19
+
+### Changes
+
+- No player-facing changes were provided.
