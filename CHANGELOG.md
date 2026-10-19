@@ -2834,3 +2834,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Requeued matches are now restored after restarting the launcher.
 - Your matchmaking queue is preserved when the launcher restarts.
+
+## v2026.1019.9 — 2026-10-19
+
+### Matchmaking
+
+- Map selection now uses the correct regional connection instead of incorrectly routing requests to Singapore.
