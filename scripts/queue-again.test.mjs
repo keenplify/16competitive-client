@@ -214,6 +214,79 @@ test('server-confirmed party queue clears stale match results for every member',
   assert.equal(h.store.getState().queueStatus, 'queued')
 })
 
+test('decline requeue restores original wait and clears the ready check without client-side join', async () => {
+  for (const replayFirst of [false, true]) {
+    const h = await harness()
+    const oldMatch = {
+      matchId: 'declined',
+      mode: '5v5',
+      mapId: 'de_dust2',
+      teams: { teamA: [], teamB: [] }
+    }
+    h.store.setState({
+      queueStatus: 'ready_check',
+      match: oldMatch,
+      readyResponse: 'accepted',
+      readyDeadline: '2026-10-20T00:15:00Z'
+    })
+    const cancelled = {
+      type: 'match_cancelled',
+      matchId: oldMatch.matchId,
+      reason: 'PLAYER_DECLINED',
+      message: 'A player declined.'
+    }
+    const joined = {
+      type: 'queue_joined',
+      requeuedFromMatchId: oldMatch.matchId,
+      mode: '5v5',
+      mapIds: ['de_dust2', 'de_inferno'],
+      region: 'sg',
+      allowRegionExpansion: true,
+      preferHumans: true,
+      queuedAt: '2026-10-20T00:00:00Z'
+    }
+    if (!replayFirst) h.emit(cancelled)
+    h.emit(joined)
+    h.emit(cancelled)
+    h.emit(joined)
+    assert.equal(h.store.getState().queueStatus, 'queued')
+    assert.equal(h.store.getState().queueStartedAt, Date.parse(joined.queuedAt))
+    assert.equal(h.store.getState().match, null)
+    assert.equal(h.store.getState().readyDeadline, null)
+    assert.equal(h.store.getState().readyResponse, 'pending')
+    assert.equal(h.store.getState().preferHumans, true)
+    assert.equal(h.store.getState().error, null)
+    assert.equal(h.requests.length, 0)
+  }
+})
+
+test('late cancellation and requeue events cannot replace a newer ready check', async () => {
+  const h = await harness()
+  const match = {
+    matchId: 'new-match',
+    mode: '5v5',
+    mapId: 'de_dust2',
+    teams: { teamA: [], teamB: [] }
+  }
+  h.store.setState({ queueStatus: 'ready_check', match })
+  h.emit({
+    type: 'queue_joined',
+    requeuedFromMatchId: 'old-match',
+    mode: '5v5',
+    mapIds: ['de_inferno'],
+    region: 'sg',
+    allowRegionExpansion: false
+  })
+  h.emit({
+    type: 'match_cancelled',
+    matchId: 'old-match',
+    reason: 'PLAYER_DECLINED',
+    message: 'Old cancellation'
+  })
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  assert.equal(h.store.getState().match, match)
+})
+
 test('warmup lifecycle events leave ranked queue time, position and ready check unchanged', async () => {
   const h = await harness()
   h.store.setState({

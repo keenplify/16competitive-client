@@ -260,6 +260,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
     }
   | {
       type: 'queue_joined'
+      requeuedFromMatchId?: string
       mode: MatchmakingMode
       mapIds: string[]
       region: string

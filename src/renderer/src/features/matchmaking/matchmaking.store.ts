@@ -187,8 +187,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         break
       case 'queue_joined':
+        if (event.requeuedFromMatchId) terminalMatchIds.add(event.requeuedFromMatchId)
         set((state) =>
-          isMatchLifecycleStatus(state.queueStatus)
+          (isMatchLifecycleStatus(state.queueStatus) && !event.requeuedFromMatchId) ||
+          (event.requeuedFromMatchId &&
+            state.match &&
+            state.match.matchId !== event.requeuedFromMatchId)
             ? {}
             : {
                 queueStatus: 'queued',
@@ -203,6 +207,24 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 autoFillAt: event.autoFillAt ?? state.autoFillAt,
                 searchStage: event.searchStage ?? state.searchStage,
                 queueStartedAt: event.queuedAt ? timestampMs(event.queuedAt) : state.queueStartedAt,
+                ...(event.requeuedFromMatchId
+                  ? {
+                      match: null,
+                      readyDeadline: null,
+                      acceptedPlayerIds: [],
+                      readyPlayersRequired: 0,
+                      readyResponse: 'pending' as const,
+                      countdown: null,
+                      assetPreparation: {
+                        status: 'idle' as const,
+                        completedFiles: 0,
+                        totalFiles: 0
+                      },
+                      connectionDetails: null,
+                      matchReadyAt: null,
+                      gameExited: false
+                    }
+                  : {}),
                 error: null
               }
         )
@@ -445,9 +467,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
       case 'match_cancelled':
+        if (terminalMatchIds.has(event.matchId)) break
         terminalMatchIds.add(event.matchId)
         set((state) =>
-          state.match && state.match.matchId !== event.matchId
+          (state.match && state.match.matchId !== event.matchId) ||
+          (!state.match && ['queued', 'joining', 'leaving'].includes(state.queueStatus))
             ? {}
             : {
                 antiCheatTermination:

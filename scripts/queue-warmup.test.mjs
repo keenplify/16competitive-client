@@ -9,6 +9,26 @@ async function harness() {
   const calls = [],
     events = [],
     sent = []
+  const sockets = []
+  class TestSocket {
+    static OPEN = 1
+    static CLOSED = 3
+    readyState = 1
+    listeners = new Map()
+    constructor() {
+      sockets.push(this)
+    }
+    addEventListener(type, listener) {
+      this.listeners.set(type, listener)
+    }
+    send(body) {
+      sent.push(JSON.parse(body))
+    }
+    close() {
+      this.readyState = 3
+      this.listeners.get('close')?.()
+    }
+  }
   let activeMatch = null
   let finishAssets
   const assets = new Promise((resolve) => {
@@ -26,7 +46,7 @@ async function harness() {
     clearTimeout,
     setInterval,
     clearInterval,
-    WebSocket: { OPEN: 1 }
+    WebSocket: TestSocket
   })
   const source = ts.transpileModule(
     await readFile(new URL('../src/main/matchmaking.ts', import.meta.url), 'utf8'),
@@ -55,6 +75,9 @@ async function harness() {
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
     MATCHMAKING_CHANNELS: { event: 'event' },
     API_BASE_URL: 'https://fallback.invalid',
+    LOCAL_DEVELOPMENT: false,
+    activateIcafeBranch: async () => {},
+    toMatchmakingWsUrl: (url) => url.replace('https:', 'wss:') + '/matchmaking',
     createAutomaticMatchReporter: () => async () => {},
     startMatchAssetPreload: async () => {},
     waitForMatchAssetPreload: () => assets,
@@ -72,7 +95,7 @@ async function harness() {
       if (activeMatch === id) activeMatch = null
     },
     BrowserWindow: { fromWebContents: () => null },
-    discordPresence: { setInGame: () => {} }
+    discordPresence: { setInGame: () => {}, setQueue: () => {} }
   }
   const module = new vm.SourceTextModule(source, { context })
   await module.link(
@@ -101,7 +124,7 @@ async function harness() {
     activeApiUrl: 'https://eu.invalid',
     renderer: { isDestroyed: () => false, send: (_channel, event) => events.push(event) }
   })
-  return { connection, socket, calls, events, sent, finishAssets }
+  return { connection, socket, sockets, calls, events, sent, finishAssets }
 }
 const found = {
   type: 'match_found',
@@ -120,6 +143,37 @@ const connect = {
   joinToken: 'test',
   whileQueued: true
 }
+
+test('reopening the launcher restores a server queue without sending leave_queue', async () => {
+  const h = await harness()
+  h.connection.freshProcess = true
+  try {
+    await h.connection.createSocket('test-token', 'https://eu.invalid')
+    const status = {
+      type: 'queue_status',
+      mode: '5v5',
+      mapIds: ['de_dust2'],
+      region: 'eu',
+      allowRegionExpansion: true,
+      queuedPlayers: 2,
+      playersRequired: 10,
+      position: 1,
+      preferHumans: true,
+      queuedAt: '2026-10-20T00:00:00Z'
+    }
+    h.sockets[0].listeners.get('message')({ data: JSON.stringify(status) })
+    assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
+    assert.ok(
+      h.events.some((event) => event.type === 'queue_status' && event.queuedAt === status.queuedAt)
+    )
+    assert.equal(h.connection.desiredMode, '5v5')
+    assert.equal(h.connection.desiredPreferHumans, true)
+    assert.equal(h.connection.desiredPreferredRegion, 'eu')
+    assert.equal(h.connection.freshProcess, false)
+  } finally {
+    h.connection.shutdown()
+  }
+})
 
 test('warmup uses its original region, preserves ranked search, and awaits cleanup on handoff', async () => {
   const h = await harness()

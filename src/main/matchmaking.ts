@@ -329,6 +329,10 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       )
     case 'queue_joined':
       return (
+        (message.requeuedFromMatchId === undefined ||
+          (typeof message.requeuedFromMatchId === 'string' &&
+            message.requeuedFromMatchId.length > 0 &&
+            message.requeuedFromMatchId.length <= 128)) &&
         isMatchmakingMode(message.mode) &&
         isMapIds(message.mapIds) &&
         typeof message.region === 'string' &&
@@ -1422,15 +1426,17 @@ class MatchmakingConnection {
       } else if (parsed.type === 'queue_status' || parsed.type === 'match_ready_check') {
         this.recoveryStatusPending = false
         if (parsed.type === 'queue_status') {
+          this.freshProcess = false
           discordPresence.setQueue(parsed.mode, parsed.mapIds)
+          this.desiredMode = parsed.mode
+          this.desiredMapIds = [...parsed.mapIds]
+          this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
+          this.desiredPreferredRegion = parsed.region
+          this.desiredPreferHumans = parsed.preferHumans ?? false
         }
         if (parsed.type === 'match_ready_check') {
           this.freshProcess = false
           this.focusLauncher(true)
-        }
-        if (parsed.type === 'queue_status' && this.freshProcess) {
-          this.freshProcess = false
-          socket.send(JSON.stringify({ type: 'leave_queue' }))
         }
       } else if (parsed.type === 'queue_joined') {
         this.freshProcess = false
