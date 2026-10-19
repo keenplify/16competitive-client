@@ -2752,3 +2752,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes were provided.
+
+## v2026.1019.2 — 2026-10-19
+
+### GoldClient
+
+- Added support for managed GoldClient launches with compatible signed helper bundles.
+
+### Windows
+
+- Improved reliability of local Windows releases by removing stale build sources.
