@@ -429,7 +429,7 @@ export function SettingsPage(): JSX.Element {
       className="h-[calc(100vh-5rem)] overflow-y-auto scroll-smooth text-white"
       data-page-scroll="settings"
     >
-      <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
+      <div className="settings-content mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
         <div className="mb-8">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
           <h1 className="mt-2 text-3xl font-semibold">
@@ -442,8 +442,8 @@ export function SettingsPage(): JSX.Element {
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
-          <aside className="sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <div className="settings-layout grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
+          <aside className="settings-navigation sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
               {sectionButton('crosshair', 'In-game appearance')}

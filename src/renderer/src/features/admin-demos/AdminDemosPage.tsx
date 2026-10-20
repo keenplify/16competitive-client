@@ -3,7 +3,7 @@ import { useAdminDemosStore } from './admin-demos.store'
 export function AdminDemosPage(): React.JSX.Element {
   const state = useAdminDemosStore()
   return (
-    <section className="mx-auto max-w-5xl space-y-4 p-6 text-white">
+    <section className="admin-demos-page mx-auto max-w-5xl space-y-4 p-6 text-white">
       <h1 className="text-2xl font-bold">Admin demos</h1>
       <p className="text-sm text-white/60">
         Watch retained anti-cheat recordings in Counter-Strike. Close CS before starting playback.

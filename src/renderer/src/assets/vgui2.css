@@ -593,6 +593,27 @@
   min-height: 0;
 }
 
+:root[data-launcher-theme='vgui2'] .settings-content,
+:root[data-launcher-theme='vgui2'] .admin-demos-page {
+  max-width: none;
+  padding: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .settings-content > div:first-child {
+  margin-bottom: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .settings-layout {
+  gap: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .settings-navigation {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* The news cards float independently; the rail is only a layout container. */
 :root[data-launcher-theme='vgui2'] .lobby-news-rail {
   background: transparent;
