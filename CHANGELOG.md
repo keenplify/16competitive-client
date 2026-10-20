@@ -2840,3 +2840,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Map selection now uses the correct regional connection instead of incorrectly routing requests to Singapore.
+
+## v2026.1020.1 — 2026-10-20
+
+### Map Selection
+
+- Updated the map picker in matchmaking preferences.
+- Improved map selection state and presentation.
+
+### Matchmaking
+
+- Added translations for queue and warmup map-selection UI.
