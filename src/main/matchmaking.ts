@@ -1292,10 +1292,7 @@ class MatchmakingConnection {
       if (this.socket !== socket && this.warmupSocket === socket && socketAuthenticated) {
         if (parsed.type === 'party_presence_ping')
           socket.send(JSON.stringify({ type: 'party_presence_pong', nonce: parsed.nonce }))
-        if (parsed.type === 'server_restarting')
-          void this.leaveWarmup().catch((error) =>
-            console.warn('[QueueWarmup] cleanup failed', error)
-          )
+        if (parsed.type === 'server_restarting') noteHelperServerUpdate()
         return
       }
       if (parsed.type === 'error' && parsed.code === 'UNAUTHORIZED' && !socketAuthenticated) {
@@ -1314,8 +1311,6 @@ class MatchmakingConnection {
       if (parsed.type === 'server_restarting') {
         if (!socketAuthenticated) return
         noteHelperServerUpdate()
-        this.desiredMode = null
-        this.desiredMapIds = []
         this.recoveryStatusPending = false
         this.restartReconnectAtMs = Date.now() + parsed.retryAfterMs
         this.notify(parsed)

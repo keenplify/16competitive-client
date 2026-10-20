@@ -80,6 +80,7 @@ async function harness() {
     toMatchmakingWsUrl: (url) => url.replace('https:', 'wss:') + '/matchmaking',
     createAutomaticMatchReporter: () => async () => {},
     startMatchAssetPreload: async () => {},
+    startSkinAssetSync: async () => {},
     waitForMatchAssetPreload: () => assets,
     launchCounterStrikeForMatch: async (input) => {
       activeMatch = input.matchId
@@ -95,7 +96,12 @@ async function harness() {
       if (activeMatch === id) activeMatch = null
     },
     BrowserWindow: { fromWebContents: () => null },
-    discordPresence: { setInGame: () => {}, setQueue: () => {} }
+    discordPresence: {
+      setInGame: () => {},
+      setQueue: () => {},
+      setAuthenticated: () => {},
+      setParty: () => {}
+    }
   }
   const module = new vm.SourceTextModule(source, { context })
   await module.link(
@@ -118,6 +124,7 @@ async function harness() {
   Object.assign(connection, {
     socket,
     authenticated: true,
+    refreshDiscordPartyPresence: () => {},
     desiredMode: '5v5',
     desiredMapIds: ['de_dust2'],
     freshProcess: false,
@@ -307,3 +314,32 @@ test('tab starts only a non-competitive session and blocks duplicate joins', asy
   assert.deepEqual(calls, [['join', 'arena', 'fy_snow']])
   assert.equal(store.getState().status, 'starting')
 })
+
+for (const secondary of [false, true]) {
+  test(`API restart preserves warmup and search on ${secondary ? 'secondary' : 'primary'} socket`, async () => {
+    const h = await harness()
+    await h.connection.createSocket('test-token', 'https://eu.invalid')
+    const socket = h.sockets[0]
+    const emit = (value) => socket.listeners.get('message')({ data: JSON.stringify(value) })
+    try {
+      emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+      h.connection.handleWarmup(found, socket)
+      h.connection.warmupConnectingMatchId = 'warmup'
+      if (secondary) h.connection.socket = h.socket
+      const before = h.sent.length
+      emit({ type: 'server_restarting', message: 'Update', restartInMs: 1000, retryAfterMs: 5000 })
+      assert.equal(h.connection.warmupMatchId, 'warmup')
+      assert.equal(h.connection.desiredMode, '5v5')
+      assert.deepEqual(h.connection.desiredMapIds, ['de_dust2'])
+      assert.ok(
+        !h.sent
+          .slice(before)
+          .some((message) => ['leave_warmup', 'leave_queue'].includes(message.type))
+      )
+      assert.ok(!h.calls.some((call) => ['shutdown', 'close'].includes(call[0])))
+    } finally {
+      h.connection.shutdown()
+      socket.close()
+    }
+  })
+}

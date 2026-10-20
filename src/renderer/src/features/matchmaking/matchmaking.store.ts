@@ -201,11 +201,6 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         break
       case 'server_restarting':
         set({
-          queueStatus: 'idle',
-          queuedAt: null,
-          autoFillAt: null,
-          searchStage: null,
-          queueStartedAt: null,
           serverRestarting: { message: event.message, retryAfterMs: event.retryAfterMs },
           error: null
         })
