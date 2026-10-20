@@ -387,7 +387,7 @@
 }
 
 /* GoldSrc desktop: the backdrop stays visible around independent windows. */
-.vgui-window-host {
+:root[data-launcher-theme='vgui2'] .vgui-window-host {
   position: fixed;
   inset: 4.5rem 1rem 1rem;
   z-index: 25;
@@ -396,7 +396,7 @@
   pointer-events: none;
 }
 
-.vgui-window {
+:root[data-launcher-theme='vgui2'] .vgui-window {
   display: flex;
   flex-direction: column;
   max-height: 100%;
@@ -411,7 +411,7 @@
   pointer-events: auto;
 }
 
-.vgui-window-titlebar {
+:root[data-launcher-theme='vgui2'] .vgui-window-titlebar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -448,7 +448,7 @@
   flex-shrink: 0;
 }
 
-.vgui-window-content {
+:root[data-launcher-theme='vgui2'] .vgui-window-content {
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -530,15 +530,15 @@
   backdrop-filter: none;
 }
 
-.vgui-page-window-host {
+:root[data-launcher-theme='vgui2'] .vgui-page-window-host {
   inset: 6rem 2rem 2rem;
 }
 
 @media (min-width: 768px) {
-  .vgui-page-window-host.vgui-with-friends {
+  :root[data-launcher-theme='vgui2'] .vgui-page-window-host.vgui-with-friends {
     right: 19rem;
   }
-  .vgui-page-window-host.vgui-friends-collapsed {
+  :root[data-launcher-theme='vgui2'] .vgui-page-window-host.vgui-friends-collapsed {
     right: 4rem;
   }
 }
@@ -560,7 +560,7 @@
   :root[data-launcher-theme='vgui2'] .auth-branding {
     display: none;
   }
-  .vgui-page-window-host {
+  :root[data-launcher-theme='vgui2'] .vgui-page-window-host {
     inset: 5rem 0.75rem 0.75rem;
   }
 }
@@ -569,7 +569,7 @@
   background: rgb(0 0 0 / 25%);
 }
 
-.vgui-modal-titlebar {
+:root[data-launcher-theme='vgui2'] .vgui-modal-titlebar {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -603,7 +603,7 @@
 
 /* Page windows have a definite viewport: flex-based map and server grids need
  * this height to avoid collapsing into zero-height rows. */
-.vgui-page-window-host > .vgui-window {
+:root[data-launcher-theme='vgui2'] .vgui-page-window-host > .vgui-window {
   height: 100%;
 }
 
@@ -803,14 +803,14 @@
   box-shadow: none;
 }
 
-.vgui-window-body {
+:root[data-launcher-theme='vgui2'] .vgui-window-body {
   display: flex;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.vgui-window-body > .vgui-window-content {
+:root[data-launcher-theme='vgui2'] .vgui-window-body > .vgui-window-content {
   min-width: 0;
 }
 
@@ -822,7 +822,7 @@
   width: 0;
 }
 
-.vgui-scrollbar {
+:root[data-launcher-theme='vgui2'] .vgui-scrollbar {
   display: flex;
   flex-direction: column;
   flex: 0 0 16px;
@@ -839,7 +839,7 @@
   border: 0;
 }
 
-.vgui-scrollbar-track {
+:root[data-launcher-theme='vgui2'] .vgui-scrollbar-track {
   position: relative;
   flex: 1;
   min-height: 0;
@@ -847,7 +847,7 @@
   box-shadow: var(--vgui-sunken);
 }
 
-.vgui-scrollbar-thumb {
+:root[data-launcher-theme='vgui2'] .vgui-scrollbar-thumb {
   position: absolute;
   width: 100%;
   background: var(--vgui-face);
@@ -855,7 +855,7 @@
   touch-action: none;
 }
 
-.vgui-scrollbar-thumb:hover {
+:root[data-launcher-theme='vgui2'] .vgui-scrollbar-thumb:hover {
   background: #68765b;
 }
 
@@ -936,7 +936,7 @@
   padding-right: 30px;
 }
 
-.vgui-window-handle > span {
+:root[data-launcher-theme='vgui2'] .vgui-window-handle > span {
   text-transform: capitalize;
 }
 

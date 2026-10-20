@@ -14,6 +14,42 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 const key = '16competitive.launcher-theme'
+
+test('every VGUI stylesheet selector is gated by the explicit VGUI2 theme', async () => {
+  const css = (
+    await readFile(new URL('../src/renderer/src/assets/vgui2.css', import.meta.url), 'utf8')
+  ).replace(/\/\*[\s\S]*?\*\//g, '')
+  let count = 0
+  for (const [, header] of css.matchAll(/([^{}]+)\{/g)) {
+    const rule = header.trim()
+    if (rule.startsWith('@media')) continue
+    // Commas inside :where(), :is(), or attribute values do not start a
+    // new selector. Check each actual branch independently.
+    let depth = 0
+    let quote = ''
+    let start = 0
+    const selectors = []
+    for (let i = 0; i < rule.length; i++) {
+      const char = rule[i]
+      if (quote) {
+        if (char === quote && rule[i - 1] !== '\\') quote = ''
+      } else if (char === '"' || char === "'") quote = char
+      else if (char === '(' || char === '[') depth++
+      else if (char === ')' || char === ']') depth--
+      else if (char === ',' && depth === 0) {
+        selectors.push(rule.slice(start, i).trim())
+        start = i + 1
+      }
+    }
+    selectors.push(rule.slice(start).trim())
+    for (const selector of selectors) {
+      assert.match(selector, /^:root(?::root)?\[data-launcher-theme=['"]vgui2['"]\]/)
+      count++
+    }
+  }
+  assert.ok(count > 100, 'The full theme stylesheet must be checked')
+})
+
 async function harness(storage = new Map(), blocked = false) {
   const root = { dataset: {} }
   const context = vm.createContext({

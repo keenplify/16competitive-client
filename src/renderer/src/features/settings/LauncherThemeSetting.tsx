@@ -35,42 +35,44 @@ export function LauncherThemeSetting({
   )
 
   return (
-    <fieldset className={twMerge('min-w-0', className)}>
-      <legend className={onboarding ? 'sr-only' : 'text-lg font-semibold text-white'}>
-        {t('theme.title')}
-      </legend>
-      {!onboarding && <p className="mt-1 text-sm text-neutral-400">{t('theme.description')}</p>}
-      <div className={twMerge('grid gap-3', !onboarding && 'mt-4')}>
-        {branding && (
+    <section className={twMerge('min-w-0', className)}>
+      <fieldset className="min-w-0 w-full">
+        <legend className={onboarding ? 'sr-only' : 'text-lg font-semibold text-white'}>
+          {t('theme.title')}
+        </legend>
+        {!onboarding && <p className="mt-1 text-sm text-neutral-400">{t('theme.description')}</p>}
+        <div className={twMerge('grid gap-3', !onboarding && 'mt-4')}>
+          {branding && (
+            <ChoiceCard
+              title={t('theme.community')}
+              description={t('theme.communityDescription', {
+                community: branding.communityName ?? t('theme.community')
+              })}
+              icon={<Users className="size-5" aria-hidden="true" />}
+              selected={communitySelected}
+              onClick={() => {
+                setEnabled(true)
+                setTheme('community')
+              }}
+            />
+          )}
           <ChoiceCard
-            title={t('theme.community')}
-            description={t('theme.communityDescription', {
-              community: branding.communityName ?? t('theme.community')
-            })}
-            icon={<Users className="size-5" aria-hidden="true" />}
-            selected={communitySelected}
-            onClick={() => {
-              setEnabled(true)
-              setTheme('community')
-            }}
+            title={t('theme.latest')}
+            description={t('theme.latestDescription')}
+            icon={<Monitor className="size-5" aria-hidden="true" />}
+            selected={!communitySelected && theme !== 'vgui2'}
+            onClick={() => setTheme('latest')}
           />
-        )}
-        <ChoiceCard
-          title={t('theme.latest')}
-          description={t('theme.latestDescription')}
-          icon={<Monitor className="size-5" aria-hidden="true" />}
-          selected={!communitySelected && theme !== 'vgui2'}
-          onClick={() => setTheme('latest')}
-        />
-        <ChoiceCard
-          title="VGUI2"
-          description={t('theme.vguiDescription')}
-          icon={<PanelsTopLeft className="size-5" aria-hidden="true" />}
-          selected={theme === 'vgui2'}
-          onClick={() => setTheme('vgui2')}
-        />
-      </div>
-      <p className="mt-3 text-xs text-neutral-400">{t('theme.help')}</p>
-    </fieldset>
+          <ChoiceCard
+            title="VGUI2"
+            description={t('theme.vguiDescription')}
+            icon={<PanelsTopLeft className="size-5" aria-hidden="true" />}
+            selected={theme === 'vgui2'}
+            onClick={() => setTheme('vgui2')}
+          />
+        </div>
+        <p className="mt-3 text-xs text-neutral-400">{t('theme.help')}</p>
+      </fieldset>
+    </section>
   )
 }
