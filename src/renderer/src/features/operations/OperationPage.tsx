@@ -107,7 +107,7 @@ function TierCard({
       >
         <button
           type="button"
-          className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-300"
+          className="operation-tier-focus absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-300"
           aria-label={`Focus ${rewardName(tier)}`}
           aria-pressed={focused}
           onClick={() => onFocus(tier)}

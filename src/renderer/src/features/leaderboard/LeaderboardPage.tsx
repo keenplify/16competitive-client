@@ -77,7 +77,7 @@ export function LeaderboardPage(): JSX.Element {
     : []
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
+    <main className="leaderboard-page min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
       <header className="mx-auto flex max-w-3xl items-end justify-between gap-4 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <div>
           <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Rankings</p>
@@ -172,7 +172,7 @@ export function LeaderboardPage(): JSX.Element {
               Join our Discord
             </a>
           </div>
-          <div className="grid grid-cols-[3.5rem_1fr_auto_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          <div className="leaderboard-grid leaderboard-grid-featured grid grid-cols-[3.5rem_1fr_auto_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             <span>Rank</span>
             <span>Player</span>
             <span>Games</span>
@@ -186,9 +186,9 @@ export function LeaderboardPage(): JSX.Element {
             featured.entries.map((entry) => (
               <div
                 key={entry.playerId}
-                className="grid grid-cols-[3.5rem_1fr_auto_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
+                className="leaderboard-grid leaderboard-grid-featured leaderboard-row grid grid-cols-[3.5rem_1fr_auto_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
               >
-                <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
+                <span className="leaderboard-rank flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
                   {entry.rank <= 3 ? (
                     <Trophy className="size-4" aria-label={`Rank ${entry.rank}`} />
                   ) : (
@@ -197,11 +197,13 @@ export function LeaderboardPage(): JSX.Element {
                 </span>
                 <button
                   type="button"
-                  className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
+                  className="leaderboard-player-link flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
                   onClick={() => openProfile(entry.playerId)}
                   title={`View ${entry.username}'s profile`}
                 >
-                  <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                  <span className="leaderboard-player-flag contents">
+                    <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                  </span>
                   <span className="truncate">{entry.username}</span>
                 </button>
                 <span className="font-mono text-sm text-neutral-300">{entry.gamesPlayed}</span>
@@ -228,7 +230,7 @@ export function LeaderboardPage(): JSX.Element {
       )}
       {activeTab !== 'featured' && status === 'ready' && leaderboard && (
         <section className="mx-auto mt-8 max-w-3xl overflow-hidden border border-white/10 bg-neutral-900/90">
-          <div className="grid grid-cols-[3.5rem_1fr_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          <div className="leaderboard-grid grid grid-cols-[3.5rem_1fr_auto] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             <span>Rank</span>
             <span>Player</span>
             <span>MMR</span>
@@ -241,9 +243,9 @@ export function LeaderboardPage(): JSX.Element {
             displayedEntries.map((entry) => (
               <div
                 key={entry.playerId}
-                className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
+                className="leaderboard-grid leaderboard-row grid grid-cols-[3.5rem_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-4 last:border-b-0"
               >
-                <span className="flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
+                <span className="leaderboard-rank flex size-8 items-center justify-center rounded-full bg-white/5 text-sm font-bold text-amber-300">
                   {entry.rank <= 3 ? (
                     <Trophy className="size-4" aria-label={`Rank ${entry.rank}`} />
                   ) : (
@@ -252,11 +254,13 @@ export function LeaderboardPage(): JSX.Element {
                 </span>
                 <button
                   type="button"
-                  className="flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
+                  className="leaderboard-player-link flex min-w-0 items-center gap-2 text-left font-medium hover:text-sky-300 focus-visible:outline-none focus-visible:text-sky-300"
                   onClick={() => openProfile(entry.playerId)}
                   title={`View ${entry.username}'s profile`}
                 >
-                  <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                  <span className="leaderboard-player-flag contents">
+                    <CountryFlag code={entry.flagCountryCode} className="h-[1em] w-auto shrink-0" />
+                  </span>
                   <span className="truncate">
                     {entry.username}
                     {currentPlayer?.playerId === entry.playerId && (

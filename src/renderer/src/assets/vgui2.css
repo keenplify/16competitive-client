@@ -1011,6 +1011,65 @@
   background: var(--vgui-inset);
 }
 
+:root[data-launcher-theme='vgui2'] .leaderboard-page {
+  padding: 16px;
+}
+
+:root[data-launcher-theme='vgui2']
+  .leaderboard-page
+  > :where(header, section, p, [role='tablist']) {
+  max-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-grid {
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  column-gap: 12px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-grid-featured {
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto auto;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-rank {
+  background: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-player-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  height: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-player-flag > img {
+  max-width: 100%;
+}
+
+:root[data-launcher-theme='vgui2'] .leaderboard-player-link,
+:root[data-launcher-theme='vgui2'] .leaderboard-player-link:is(:hover, :active) {
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* This is a transparent hit target above the reward artwork, not a panel. */
+:root[data-launcher-theme='vgui2'] .operation-tier-focus,
+:root[data-launcher-theme='vgui2']
+  .operation-tier-focus:is(:hover, :active, [aria-pressed='true']) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 :root[data-launcher-theme='vgui2'] .lobby-chat-panel > div:first-child {
   background: var(--vgui-face);
   border: 0;
