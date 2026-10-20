@@ -2851,3 +2851,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Added translations for queue and warmup map-selection UI.
+
+## v2026.1020.2 — 2026-10-20
+
+### Map Selection
+
+- Regular maps now use the full available height alongside review maps.
