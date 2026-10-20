@@ -2905,3 +2905,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skins
 
 - Improved skin asset synchronization status indicators.
+
+## v2026.1020.8 — 2026-10-20
+
+### Appearance
+
+- Improved the layout of the Appearance heading.
+- Isolated VGUI2 styles for more consistent visual behavior.
