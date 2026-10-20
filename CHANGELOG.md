@@ -2857,3 +2857,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Map Selection
 
 - Regular maps now use the full available height alongside review maps.
+
+## v2026.1020.3 — 2026-10-20
+
+### Map Review
+
+- Four review maps are now arranged in a two-by-two grid for easier browsing.
