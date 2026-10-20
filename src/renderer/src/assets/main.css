@@ -485,7 +485,7 @@
 }
 
 .play-map-layout-with-review {
-  grid-template-columns: minmax(0, 1fr) minmax(132px, 20%);
+  grid-template-columns: minmax(0, 1fr) minmax(132px, 16%);
 }
 
 .play-map-layout-review-only {

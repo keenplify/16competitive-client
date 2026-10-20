@@ -271,7 +271,7 @@ export function PlayPage({
   )
   const regularMaps = availableMaps.filter((map) => !map.feedbackEnabled)
   const reviewMaps = availableMaps.filter((map) => map.feedbackEnabled)
-  const regularColumnLimit = reviewMaps.length > 0 ? 3 : 4
+  const regularColumnLimit = 4
   const regularColumns = Math.max(
     1,
     Math.min(

@@ -88,12 +88,22 @@ test('custom-only 1.3 survives catalog validation even with no map pool', () => 
 test('mode renames and future modes cannot disable the entire map catalog', () => {
   const map = {
     id: 'de_dust2', displayName: 'Dust II', game: 'cs16', previewUrl: null,
+    feedbackEnabled: true,
     supportedModes: ['5v5', 'unrated', 'arena', 'fight_yard', 'future_mode'],
     webModes: ['unrated', 'arena', 'fight_yard', 'future_mode'],
     customModes: ['unrated', 'arena', 'fight_yard', 'future_mode']
   }
   const input = { maps: [map], customModes: ['arena', 'fight_yard', 'future_mode', 'arena'] }
   const catalog = parseMatchmakingMapCatalog(input)
+  assert.equal(catalog.maps[0].feedbackEnabled, true)
+  assert.equal(
+    parseMatchmakingMapCatalog({ maps: [{ ...map, feedbackEnabled: undefined }] }).maps[0]
+      .feedbackEnabled,
+    false
+  )
+  assert.throws(() =>
+    parseMatchmakingMapCatalog({ maps: [{ ...map, feedbackEnabled: 'true' }] })
+  )
   assert.deepEqual(Array.from(catalog.maps[0].supportedModes), ['5v5', 'unrated', 'arena'])
   assert.deepEqual(Array.from(catalog.maps[0].webModes), ['unrated', 'arena'])
   assert.deepEqual(Array.from(catalog.maps[0].customModes), ['unrated', 'arena'])
