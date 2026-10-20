@@ -1,5 +1,7 @@
 export const queueWarmupTranslations = {
   en: {
+    'matchmaking.regularMaps': 'Regular maps',
+    'matchmaking.reviewMaps': 'For review',
     'warmup.tab': 'Non-competitive',
     'warmup.join': 'Find a game',
     'warmup.noMaps': 'No non-competitive maps are currently available.',
@@ -20,6 +22,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'matchmaking.regularMaps': 'Обычные карты',
+    'matchmaking.reviewMaps': 'На оценку',
     'warmup.tab': 'Без рейтинга',
     'warmup.join': 'Найти игру',
     'warmup.noMaps': 'Карты для игр без рейтинга сейчас недоступны.',
@@ -40,6 +44,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'matchmaking.regularMaps': 'Regular maps',
+    'matchmaking.reviewMaps': 'Para sa review',
     'warmup.tab': 'Hindi kompetitibo',
     'warmup.join': 'Humanap ng laro',
     'warmup.noMaps': 'Walang available na mapa para sa non-competitive ngayon.',
@@ -60,6 +66,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'matchmaking.regularMaps': 'แผนที่ทั่วไป',
+    'matchmaking.reviewMaps': 'สำหรับรีวิว',
     'warmup.tab': 'ไม่จัดอันดับ',
     'warmup.join': 'ค้นหาเกม',
     'warmup.noMaps': 'ไม่มีแผนที่แบบไม่จัดอันดับในขณะนี้',
@@ -79,6 +87,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'matchmaking.regularMaps': 'Peta reguler',
+    'matchmaking.reviewMaps': 'Untuk ulasan',
     'warmup.tab': 'Nonkompetitif',
     'warmup.join': 'Cari permainan',
     'warmup.noMaps': 'Peta nonkompetitif saat ini tidak tersedia.',
@@ -99,6 +109,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'matchmaking.regularMaps': 'Mapas regulares',
+    'matchmaking.reviewMaps': 'Para avaliação',
     'warmup.tab': 'Não competitivo',
     'warmup.join': 'Encontrar jogo',
     'warmup.noMaps': 'Não há mapas não competitivos disponíveis no momento.',
@@ -119,6 +131,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'matchmaking.regularMaps': '通常のマップ',
+    'matchmaking.reviewMaps': 'レビュー対象',
     'warmup.tab': 'カジュアル',
     'warmup.join': 'ゲームを探す',
     'warmup.noMaps': '現在カジュアル用のマップは利用できません。',
@@ -138,6 +152,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'matchmaking.regularMaps': 'नियमित मैप',
+    'matchmaking.reviewMaps': 'समीक्षा के लिए',
     'warmup.tab': 'गैर-प्रतिस्पर्धी',
     'warmup.join': 'गेम खोजें',
     'warmup.noMaps': 'अभी गैर-प्रतिस्पर्धी मैप उपलब्ध नहीं हैं।',

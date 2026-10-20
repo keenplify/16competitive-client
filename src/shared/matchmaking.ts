@@ -132,6 +132,7 @@ export interface MatchmakingMap {
   displayName: string
   game: string
   previewUrl: string | null
+  feedbackEnabled: boolean
   supportedModes: MatchmakingMode[]
   webModes: MatchmakingMode[]
   customModes: ServerCustomGameMode[]

@@ -269,11 +269,18 @@ export function PlayPage({
       map.supportedModes.includes(selectedMode) &&
       (!partyRequiresWeb || map.webModes.includes(selectedMode))
   )
-  const smallMapColumns = Math.max(1, Math.ceil(availableMaps.length / 2))
-  const wideMapColumns =
-    availableMaps.length <= 12
-      ? Math.max(1, Math.min(6, availableMaps.length))
-      : Math.ceil(availableMaps.length / 2)
+  const regularMaps = availableMaps.filter((map) => !map.feedbackEnabled)
+  const reviewMaps = availableMaps.filter((map) => map.feedbackEnabled)
+  const regularColumnLimit = reviewMaps.length > 0 ? 3 : 4
+  const regularColumns = Math.max(
+    1,
+    Math.min(
+      regularColumnLimit,
+      regularMaps.length <= regularColumnLimit
+        ? regularMaps.length
+        : Math.ceil(regularMaps.length / 2)
+    )
+  )
   const hasSelectedMaps = selectedMapIds.length > 0
   const visiblePlayView = playView === 'partner' && !hasCommunityServers ? 'matchmaking' : playView
   const matchMapPreview = match
@@ -702,25 +709,64 @@ export function PlayPage({
                   ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
                     <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
                       <div
-                        className="play-map-grid grid h-full min-h-0 gap-2"
+                        className={twMerge(
+                          'play-map-layout grid h-full min-h-0 gap-3',
+                          reviewMaps.length > 0 &&
+                            regularMaps.length > 0 &&
+                            'play-map-layout-with-review',
+                          reviewMaps.length > 0 &&
+                            regularMaps.length === 0 &&
+                            'play-map-layout-review-only'
+                        )}
                         style={
                           {
-                            '--play-map-columns-small': smallMapColumns,
-                            '--play-map-columns-wide': wideMapColumns,
-                            '--play-map-min-width-small': `${smallMapColumns * 136}px`,
-                            '--play-map-min-width-wide': `${wideMapColumns * 150}px`
+                            '--play-map-regular-columns': regularColumns,
+                            '--play-map-min-width': `${regularMaps.length > 0 ? regularColumns * 150 + (reviewMaps.length > 0 ? 132 : 0) : 160}px`
                           } as CSSProperties
                         }
                       >
-                        {availableMaps.map((map) => (
-                          <MatchmakingMapCard
-                            key={map.id}
-                            map={map}
-                            selected={selectedMapIds.includes(map.id)}
-                            disabled={isSearching || !isLeader}
-                            onSelect={() => selectMap(map.id)}
-                          />
-                        ))}
+                        {regularMaps.length > 0 && (
+                          <div className="flex min-h-0 min-w-0 flex-col gap-2">
+                            <h2 className="shrink-0 text-[10px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
+                              {t('matchmaking.regularMaps')}
+                            </h2>
+                            <div className="play-map-group-grid grid min-h-0 flex-1 gap-2">
+                              {regularMaps.map((map) => (
+                                <MatchmakingMapCard
+                                  key={map.id}
+                                  map={map}
+                                  selected={selectedMapIds.includes(map.id)}
+                                  disabled={isSearching || !isLeader}
+                                  onSelect={() => selectMap(map.id)}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {reviewMaps.length > 0 && (
+                          <div className="play-review-group flex min-h-0 min-w-0 flex-col gap-2">
+                            <h2 className="shrink-0 text-[10px] font-semibold tracking-[0.16em] text-amber-300 uppercase">
+                              {t('matchmaking.reviewMaps')}
+                            </h2>
+                            <div
+                              className="grid min-h-0 flex-1 gap-2"
+                              style={{
+                                gridTemplateRows: `repeat(${reviewMaps.length}, minmax(0, 1fr))`
+                              }}
+                            >
+                              {reviewMaps.map((map) => (
+                                <MatchmakingMapCard
+                                  key={map.id}
+                                  map={map}
+                                  selected={selectedMapIds.includes(map.id)}
+                                  disabled={isSearching || !isLeader}
+                                  onSelect={() => selectMap(map.id)}
+                                  className="play-review-map-card"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (

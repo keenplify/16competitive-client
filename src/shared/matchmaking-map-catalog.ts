@@ -36,6 +36,7 @@ const isMap = (value: unknown): value is CatalogMap =>
   value.game.length > 0 &&
   value.game.length <= 32 &&
   isPreviewUrl(value.previewUrl) &&
+  (value.feedbackEnabled === undefined || typeof value.feedbackEnabled === 'boolean') &&
   isStringArray(value.supportedModes) &&
   isStringArray(value.webModes) &&
   value.webModes.every((mode) => (value.supportedModes as unknown[]).includes(mode)) &&
@@ -58,6 +59,7 @@ export function parseMatchmakingMapCatalog(body: unknown): MatchmakingMapCatalog
   // that an older server may reject (for example fight_yard versus arena).
   const maps: MatchmakingMap[] = body.maps.map((map) => ({
     ...map,
+    feedbackEnabled: map.feedbackEnabled ?? false,
     supportedModes: map.supportedModes.filter(isMatchmakingMode),
     webModes: map.webModes.filter(isMatchmakingMode),
     customModes: map.customModes.filter(isServerCustomGameMode)

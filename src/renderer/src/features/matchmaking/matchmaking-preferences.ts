@@ -3,6 +3,8 @@ import { isMatchmakingMode, type MatchmakingMode } from '../../../../shared/matc
 interface MatchmakingPreferences {
   lastMode?: MatchmakingMode
   mapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
+  // Remember offered review maps so a manual deselection survives catalog refreshes.
+  seenReviewMapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
 }
 
 const storageKey = (playerId: string): string => `matchmaking-preferences:v1:${playerId}`
@@ -13,17 +15,20 @@ export function readMatchmakingPreferences(playerId: string | undefined): Matchm
     const value: unknown = JSON.parse(window.localStorage.getItem(storageKey(playerId)) ?? '{}')
     if (!value || typeof value !== 'object') return {}
     const saved = value as Record<string, unknown>
-    const mapIdsByMode: MatchmakingPreferences['mapIdsByMode'] = {}
-    if (saved.mapIdsByMode && typeof saved.mapIdsByMode === 'object') {
-      for (const [mode, mapIds] of Object.entries(saved.mapIdsByMode)) {
+    const readMapIds = (value: unknown): Partial<Record<MatchmakingMode, string[]>> => {
+      const result: Partial<Record<MatchmakingMode, string[]>> = {}
+      if (!value || typeof value !== 'object') return result
+      for (const [mode, mapIds] of Object.entries(value)) {
         if (isMatchmakingMode(mode) && Array.isArray(mapIds)) {
-          mapIdsByMode[mode] = mapIds.filter((id): id is string => typeof id === 'string')
+          result[mode] = mapIds.filter((id): id is string => typeof id === 'string')
         }
       }
+      return result
     }
     return {
       lastMode: isMatchmakingMode(saved.lastMode) ? saved.lastMode : undefined,
-      mapIdsByMode
+      mapIdsByMode: readMapIds(saved.mapIdsByMode),
+      seenReviewMapIdsByMode: readMapIds(saved.seenReviewMapIdsByMode)
     }
   } catch {
     return {}
@@ -32,16 +37,24 @@ export function readMatchmakingPreferences(playerId: string | undefined): Matchm
 
 export function saveMatchmakingPreferences(
   playerId: string | undefined,
-  changes: { lastMode?: MatchmakingMode; mode?: MatchmakingMode; mapIds?: string[] }
+  changes: {
+    lastMode?: MatchmakingMode
+    mode?: MatchmakingMode
+    mapIds?: string[]
+    seenReviewMapIds?: string[]
+  }
 ): void {
   if (!playerId) return
   try {
     const saved = readMatchmakingPreferences(playerId)
     const next: MatchmakingPreferences = {
       lastMode: changes.lastMode ?? saved.lastMode,
-      mapIdsByMode: { ...saved.mapIdsByMode }
+      mapIdsByMode: { ...saved.mapIdsByMode },
+      seenReviewMapIdsByMode: { ...saved.seenReviewMapIdsByMode }
     }
     if (changes.mode && changes.mapIds) next.mapIdsByMode![changes.mode] = changes.mapIds
+    if (changes.mode && changes.seenReviewMapIds)
+      next.seenReviewMapIdsByMode![changes.mode] = changes.seenReviewMapIds
     window.localStorage.setItem(storageKey(playerId), JSON.stringify(next))
   } catch {
     // Matchmaking remains usable when storage is unavailable.
