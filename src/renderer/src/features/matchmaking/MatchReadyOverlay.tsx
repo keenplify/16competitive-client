@@ -24,6 +24,7 @@ export function MatchReadyOverlay(): JSX.Element | null {
     <>
       <ModalDialog
         open
+        vguiTitlebar={false}
         onClose={() => {}}
         className="match-ready-dialog m-auto max-h-[calc(100dvh-2rem)] w-[min(46rem,calc(100vw-2rem))] max-w-none overflow-y-auto border-0 bg-transparent p-1 outline-none"
         labelledBy="match-ready-title"

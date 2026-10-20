@@ -1,3 +1,5 @@
+import { LauncherWindow } from '../../components/ui/LauncherWindow'
+import { useTranslation } from '../i18n/i18n'
 import { CommunitiesPage } from '../communities/CommunitiesPage'
 import { useCommunitiesStore } from '../communities/communities.store'
 import { AdminDemosPage } from '../admin-demos/AdminDemosPage'
@@ -32,6 +34,7 @@ import { PlayPage } from './PlayPage'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useCustomGamesStore } from './custom-games.store'
 import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
+import { pageIcons } from '../navigation/page-icons'
 import { SettingsPage } from '../settings/SettingsPage'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
@@ -139,6 +142,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
 })
 
 export function LobbyPage(): JSX.Element {
+  const { t } = useTranslation()
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
   const startParty = usePartyStore((state) => state.start)
@@ -466,13 +470,47 @@ export function LobbyPage(): JSX.Element {
       />
       {content && (
         <div
-          className={`relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
+          className={`vgui-page-host relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
             // The friends rail renders nothing while a match needs attention, so
             // its reserved width must be released for the whole match lifecycle.
             matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'
           }`}
         >
-          {content}
+          <LauncherWindow
+            icon={pageIcons[requiresGameSetup ? 'settings' : page]}
+            title={t(
+              page === 'communities'
+                ? 'directory.title'
+                : page === 'profile'
+                  ? 'nav.inventory'
+                  : page === 'demos'
+                    ? 'nav.demos'
+                    : page === 'leaderboard'
+                      ? 'nav.leaderboard'
+                      : page === 'store'
+                        ? 'nav.store'
+                        : page === 'news'
+                          ? 'nav.news'
+                          : page === 'settings' || requiresGameSetup
+                            ? 'nav.settings'
+                            : page === 'play'
+                              ? 'nav.play'
+                              : 'nav.home'
+            )}
+            className="max-w-[1440px]"
+            hostClassName={
+              matchNavigationLocked
+                ? 'vgui-page-window-host'
+                : friendsCollapsed
+                  ? 'vgui-page-window-host vgui-friends-collapsed'
+                  : 'vgui-page-window-host vgui-with-friends'
+            }
+            onClose={
+              matchNavigationLocked || requiresGameSetup ? undefined : () => handleNavigate('lobby')
+            }
+          >
+            {content}
+          </LauncherWindow>
         </div>
       )}
       {matchNeedsAttention && <MatchReadyOverlay />}

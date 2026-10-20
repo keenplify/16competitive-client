@@ -10,6 +10,7 @@ import { useFriendsStore } from '../friends/friends.store'
 import { SUPPORTED_LANGUAGES, translate, useLanguageStore } from '../i18n/i18n'
 import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 import { useNavigationStore } from '../navigation/navigation.store'
+import { useWindowFocusStore } from '../navigation/window-focus.store'
 import { usePartyStore, type ChatTab } from './party.store'
 
 const formatChatTimestamp = (sentAt: string, language: string): string => {
@@ -35,6 +36,8 @@ interface MinimizedChatPing {
 }
 
 export function PartyChat(): JSX.Element {
+  const activeSurface = useWindowFocusStore((state) => state.activeSurface)
+  const activate = useWindowFocusStore((state) => state.activate)
   const playerId = useAuthStore((state) => state.session?.player.id)
   const party = usePartyStore((state) => state.party)
   const partyEntries = usePartyStore((state) => state.chatEntries)
@@ -283,11 +286,13 @@ export function PartyChat(): JSX.Element {
   }
 
   const openChat = (): void => {
+    activate('chat')
     setMinimizedPing(null)
     setChatOpen(true)
   }
 
   const openMinimizedPing = (): void => {
+    activate('chat')
     const ping = minimizedPing
     setChatOpen(true)
     if (!ping) return
@@ -409,7 +414,7 @@ export function PartyChat(): JSX.Element {
       {!chatOpen && minimizedPing && (
         <button
           type="button"
-          className="fixed bottom-16 left-4 z-[6] w-[min(20rem,calc(100%-2rem))] border border-sky-400/40 bg-black/90 p-3 text-left text-white shadow-2xl backdrop-blur-md transition hover:border-sky-300/70 hover:bg-neutral-950"
+          className="lobby-chat-launcher fixed bottom-16 left-4 z-[6] w-[min(20rem,calc(100%-2rem))] border border-sky-400/40 bg-black/90 p-3 text-left text-white shadow-2xl backdrop-blur-md transition hover:border-sky-300/70 hover:bg-neutral-950"
           onClick={openMinimizedPing}
           aria-label={`Open ${minimizedPing.title}`}
         >
@@ -433,7 +438,7 @@ export function PartyChat(): JSX.Element {
       {!chatOpen && (
         <button
           type="button"
-          className="fixed bottom-4 left-4 z-[5] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
+          className="lobby-chat-launcher fixed bottom-4 left-4 z-[5] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
           onClick={openChat}
           aria-label="Open chat"
         >
@@ -449,7 +454,12 @@ export function PartyChat(): JSX.Element {
         </button>
       )}
       {chatOpen && (
-        <aside className="fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden  border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm">
+        <aside
+          className="lobby-chat-panel fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden  border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm"
+          data-active={activeSurface === 'chat'}
+          onPointerDownCapture={() => activate('chat')}
+          onFocusCapture={() => activate('chat')}
+        >
           <div className="shrink-0 border-b border-white/15 bg-black/50">
             <div className="flex min-w-0">
               <div

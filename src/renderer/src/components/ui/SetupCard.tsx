@@ -1,3 +1,4 @@
+import { LauncherWindow } from './LauncherWindow'
 import type { JSX, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
@@ -31,7 +32,7 @@ export function SetupCard({
       {!isWebRuntime() && (
         <Button
           variant="ghost"
-          className="fixed top-4 right-4 z-10 size-11 border border-white/15 bg-slate-950/80 p-0 text-neutral-300 hover:bg-white/10 sm:top-6 sm:right-6"
+          className="setup-desktop-exit fixed top-4 right-4 z-10 size-11 border border-white/15 bg-slate-950/80 p-0 text-neutral-300 hover:bg-white/10 sm:top-6 sm:right-6"
           aria-label="Exit to desktop"
           title="Exit to desktop"
           onClick={() => void window.api.window.exit()}
@@ -39,21 +40,27 @@ export function SetupCard({
           <X className="size-5" aria-hidden="true" />
         </Button>
       )}
-      <section
-        className={twMerge(
-          'setup-card-enter w-full max-w-lg border border-sky-300/15 bg-slate-950/90 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-10',
-          className
-        )}
+      <LauncherWindow
+        title={title}
+        className={className}
+        onClose={isWebRuntime() ? undefined : () => void window.api.window.exit()}
       >
-        <Logo className="mb-7 size-14" />
-        <div key={contentKey} className={contentKey ? 'setup-step-enter' : undefined}>
-          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">{eyebrow}</p>
-          <h1 className="mt-2 min-h-10 text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-3 min-h-12 text-sm leading-6 text-neutral-400">{description}</p>
-        </div>
-        <div className="mt-7">{children}</div>
-        {footer && <div className="mt-6 border-t border-white/10 pt-5">{footer}</div>}
-      </section>
+        <section
+          className={twMerge(
+            'setup-card-enter w-full max-w-lg border border-sky-300/15 bg-slate-950/90 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-10',
+            className
+          )}
+        >
+          <Logo className="mb-7 size-14" />
+          <div key={contentKey} className={contentKey ? 'setup-step-enter' : undefined}>
+            <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">{eyebrow}</p>
+            <h1 className="mt-2 min-h-10 text-3xl font-semibold tracking-tight">{title}</h1>
+            <p className="mt-3 min-h-12 text-sm leading-6 text-neutral-400">{description}</p>
+          </div>
+          <div className="mt-7">{children}</div>
+          {footer && <div className="mt-6 border-t border-white/10 pt-5">{footer}</div>}
+        </section>
+      </LauncherWindow>
     </main>
   )
 }

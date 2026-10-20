@@ -33,8 +33,8 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
     <div
       className={
         playerId
-          ? 'w-full px-6 pb-4 pt-0 text-left text-white sm:px-10'
-          : 'w-full p-6 text-left text-white sm:p-10'
+          ? 'profile-page w-full px-6 pb-4 pt-0 text-left text-white sm:px-10'
+          : 'profile-page w-full p-6 text-left text-white sm:p-10'
       }
     >
       <div className="mx-auto w-full max-w-6xl">

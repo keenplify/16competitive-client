@@ -18,7 +18,7 @@ import {
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
-import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
+import { CustomGamePlayerRank } from './CustomGamePlayerRank'
 import { RoomSettingsModal } from './RoomSettingsModal'
 import { useTranslation } from '../i18n/i18n'
 import { CreateCustomGameModal } from './CreateCustomGameModal'
@@ -292,8 +292,8 @@ export function CustomGamesPanel({
                     >
                       {member ? (
                         <span className="flex min-w-0 items-center gap-2 text-white">
-                          <PlayerAvatar
-                            username={member.username}
+                          <CustomGamePlayerRank
+                            playerId={member.id}
                             isBot={member.isBot}
                             className="size-7"
                           />
@@ -393,8 +393,8 @@ export function CustomGamesPanel({
                         >
                           {member ? (
                             <span className="flex min-w-0 items-center gap-2 text-white">
-                              <PlayerAvatar
-                                username={member.username}
+                              <CustomGamePlayerRank
+                                playerId={member.id}
                                 isBot={member.isBot}
                                 className="size-7"
                               />
@@ -489,8 +489,8 @@ export function CustomGamesPanel({
                   >
                     {member ? (
                       <span className="flex min-w-0 items-center gap-2 text-white">
-                        <PlayerAvatar
-                          username={member.username}
+                        <CustomGamePlayerRank
+                          playerId={member.id}
                           isBot={member.isBot}
                           className="size-7"
                         />

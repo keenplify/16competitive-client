@@ -60,7 +60,12 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
       : 100
 
   return (
-    <aside className={twMerge('hidden w-64 shrink-0 overflow-y-auto p-4 md:block', className)}>
+    <aside
+      className={twMerge(
+        'lobby-news-rail hidden w-64 shrink-0 overflow-y-auto p-4 md:block',
+        className
+      )}
+    >
       <div className="space-y-2">
         {operation && (
           <button

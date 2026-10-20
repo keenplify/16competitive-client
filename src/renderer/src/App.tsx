@@ -1,3 +1,4 @@
+import './features/settings/launcher-theme.store'
 import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
 import { ProfileOverlay } from './features/profile/ProfileOverlay'
 import { CommunityMembershipController } from './features/partner-branding/CommunityMembershipController'

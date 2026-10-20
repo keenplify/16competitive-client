@@ -1,3 +1,5 @@
+import { useLauncherThemeStore } from './launcher-theme.store'
+import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { LegacyGameSettings } from './LegacyGameSettings'
 import { useLegacyGameStore } from './legacy-game.store'
 import { CommunityTransferPrompt } from '../partner-branding/CommunityTransferPrompt'
@@ -106,6 +108,7 @@ export function OnboardingPage(): JSX.Element {
   const titles = {
     installation: 'Set up Counter-Strike',
     legacy: t('legacy.onboardingTitle'),
+    appearance: t('theme.title'),
     preferences: 'Make it yours',
     referral: 'Have a referral code?',
     community: t('community.title'),
@@ -114,6 +117,7 @@ export function OnboardingPage(): JSX.Element {
   const descriptions = {
     installation: 'Choose the Counter-Strike 1.6 installation this launcher will use for matches.',
     legacy: t('legacy.onboardingDescription'),
+    appearance: t('theme.description'),
     preferences:
       'Choose how much of the 1.6 Competitive experience to enable. You can change features later in Settings.',
     referral:
@@ -143,6 +147,7 @@ export function OnboardingPage(): JSX.Element {
   const steps = [
     'installation',
     'legacy',
+    'appearance',
     'preferences',
     ...(hasTransfer || step === 'community' ? ['community' as const] : []),
     'referral',
@@ -382,6 +387,7 @@ export function OnboardingPage(): JSX.Element {
                 {wantsCs13 && <LegacyGameSettings embedded showLaunch={false} />}
               </div>
             )}
+            {step === 'appearance' && <LauncherThemeSetting onboarding />}
             {step === 'preferences' && (
               <div className="space-y-3">
                 <ChoiceCard
@@ -516,8 +522,10 @@ export function OnboardingPage(): JSX.Element {
                         : step === 'community'
                           ? 'preferences'
                           : step === 'preferences'
-                            ? 'legacy'
-                            : 'installation'
+                            ? 'appearance'
+                            : step === 'appearance'
+                              ? 'legacy'
+                              : 'installation'
                   )
                 }
               >
@@ -542,7 +550,18 @@ export function OnboardingPage(): JSX.Element {
                   wantsCs13 === null ||
                   (wantsCs13 && (!legacyProfile.installation || legacyStatus !== 'idle'))
                 }
-                onClick={() => setStep('preferences')}
+                onClick={() => setStep('appearance')}
+              >
+                {t('legacy.continue')}
+              </Button>
+            ) : step === 'appearance' ? (
+              <Button
+                className="flex-1 bg-sky-400 hover:bg-sky-300"
+                onClick={() => {
+                  const appearance = useLauncherThemeStore.getState()
+                  appearance.setTheme(appearance.theme)
+                  setStep('preferences')
+                }}
               >
                 {t('legacy.continue')}
               </Button>
@@ -598,7 +617,7 @@ export function OnboardingPage(): JSX.Element {
               disabled={legacyStatus === 'choosing' || legacyStatus === 'launching'}
               onClick={() => {
                 setWantsCs13(false)
-                setStep('preferences')
+                setStep('appearance')
               }}
             >
               {t('legacy.skip')}

@@ -47,6 +47,14 @@ export function MatchDetailsOverlay(): JSX.Element | null {
         }}
         className="fixed inset-0 m-auto max-h-[90vh] w-[min(1000px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 p-6 text-white backdrop:bg-black/80 sm:p-8"
         label={t('profile.matchDetails')}
+        vguiNavigation={{
+          backLabel: t('profile.back'),
+          onBack: dismiss,
+          onClose: () => {
+            useProfileStore.getState().dismiss()
+            dismiss()
+          }
+        }}
         onClick={() => setMenu(null)}
       >
         <ProfilePopupNavigation

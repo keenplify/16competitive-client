@@ -52,6 +52,7 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
   return (
     <ModalDialog
       open
+      vguiTitlebar={false}
       onClose={() => {
         if (!isSubmitting) onClose()
       }}

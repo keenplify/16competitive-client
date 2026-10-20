@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { SetupMode } from '../../../../shared/game-settings'
 
 type OnboardingStep =
-  'installation' | 'legacy' | 'preferences' | 'community' | 'referral' | 'review'
+  'installation' | 'legacy' | 'appearance' | 'preferences' | 'community' | 'referral' | 'review'
 
 interface OnboardingState {
   wantsCs13: boolean | null

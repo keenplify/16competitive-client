@@ -1,3 +1,4 @@
+import { useLauncherThemeStore } from '../settings/launcher-theme.store'
 import { useProfileModeLabel } from './useProfileModeLabel'
 import { ProfileMapChart } from './ProfileMapChart'
 import type { JSX } from 'react'
@@ -60,9 +61,10 @@ export function ProfileActivity({
   compact?: boolean
 }): JSX.Element {
   const { t, language } = useTranslation()
+  const theme = useLauncherThemeStore((state) => state.theme)
   if (!activity) return <p className="py-8 text-neutral-300">{t('profile.activityUnavailable')}</p>
   return (
-    <section className={compact ? 'py-0' : 'py-2'}>
+    <section className={twMerge('profile-activity', compact ? 'py-0' : 'py-2')}>
       <div
         className={`${compact ? 'mb-4' : 'mb-6'} flex flex-wrap justify-between gap-2 text-sm text-neutral-300`}
       >
@@ -83,7 +85,15 @@ export function ProfileActivity({
             total={activity.total}
             mode
           />
-          <ProfileMapChart entries={activity.maps} compact={compact} />
+          {theme === 'vgui2' ? (
+            <ActivityList
+              title={t('profile.mostMaps')}
+              entries={activity.maps}
+              total={activity.total}
+            />
+          ) : (
+            <ProfileMapChart entries={activity.maps} compact={compact} />
+          )}
         </div>
       )}
     </section>

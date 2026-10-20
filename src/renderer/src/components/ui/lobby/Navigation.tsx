@@ -1,20 +1,11 @@
 import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.store'
 import type { JSX } from 'react'
-import {
-  ClipboardList,
-  Film,
-  House,
-  Users,
-  Play,
-  Settings,
-  ShoppingBag,
-  Trophy,
-  UserRound
-} from 'lucide-react'
+import { ClipboardList, House, Play, Settings } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import type { TranslationKey } from '../../../features/i18n/i18n'
 import { useTranslation } from '../../../features/i18n/i18n'
 import type { LobbyPageId } from '../../../features/navigation/navigation.store'
+import { pageIcons } from '../../../features/navigation/page-icons'
 import { DailyQuestsPanel } from '../../../features/daily-quests/DailyQuestsPanel'
 import type { DailyQuestSnapshot } from '../../../../../shared/daily-quests'
 import { useMatchmakingStore } from '../../../features/matchmaking/matchmaking.store'
@@ -23,12 +14,12 @@ import { PlayWindowStatus } from '../../../features/matchmaking/PlayWindowStatus
 import { useHeaderScrolled } from './useHeaderScrolled'
 
 const pages = [
-  { id: 'demos', labelKey: 'nav.demos', icon: Film },
-  { id: 'profile', labelKey: 'nav.inventory', icon: UserRound },
-  { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: Trophy },
-  { id: 'play', labelKey: 'nav.play', icon: Play },
-  { id: 'store', labelKey: 'nav.store', icon: ShoppingBag },
-  { id: 'communities', labelKey: 'directory.title', icon: Users }
+  { id: 'demos', labelKey: 'nav.demos', icon: pageIcons.demos },
+  { id: 'profile', labelKey: 'nav.inventory', icon: pageIcons.profile },
+  { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: pageIcons.leaderboard },
+  { id: 'play', labelKey: 'nav.play', icon: pageIcons.play },
+  { id: 'store', labelKey: 'nav.store', icon: pageIcons.store },
+  { id: 'communities', labelKey: 'directory.title', icon: pageIcons.communities }
 ] as const satisfies ReadonlyArray<{
   id: Exclude<LobbyPageId, 'lobby' | 'settings'>
   labelKey: TranslationKey
@@ -84,7 +75,8 @@ export function LobbyNavigation({
         aria-hidden="true"
         className={twMerge(
           'pointer-events-none absolute inset-0 transition-opacity duration-150 motion-reduce:transition-none',
-          scrolled ? 'opacity-100' : 'opacity-0'
+          scrolled ? 'opacity-100' : 'opacity-0',
+          'lobby-header-scroll-shade'
         )}
         style={{
           backgroundImage:

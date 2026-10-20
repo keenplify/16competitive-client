@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './vgui2.css';
 @source '../';
 @import '@fontsource/audiowide';
 @import '@fontsource/rajdhani/400.css';

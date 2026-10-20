@@ -1,3 +1,4 @@
+import { useLauncherThemeStore } from '../settings/launcher-theme.store'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { usePartnerBrandingStore } from './partner-branding.store'
 import { twMerge } from 'tailwind-merge'
@@ -9,6 +10,9 @@ export function PartnerBackground({
   className?: string
   surface?: 'launcher' | 'login'
 }): JSX.Element | null {
+  const theme = useLauncherThemeStore((state) => state.theme)
+  const hasPreference = useLauncherThemeStore((state) => state.hasPreference)
+  const communityTheme = !hasPreference || theme === 'community'
   const branding = usePartnerBrandingStore((state) => (state.enabled ? state.branding : null))
   const url = surface === 'login' ? branding?.loginBackgroundUrl : branding?.backgroundUrl
   const kind = surface === 'login' ? branding?.loginBackgroundKind : branding?.backgroundKind
@@ -36,7 +40,7 @@ export function PartnerBackground({
     return () => document.removeEventListener('visibilitychange', update)
   }, [url, reduceMotion])
 
-  if (!url) return null
+  if (!url || !communityTheme) return null
   if (kind === 'video') {
     if (reduceMotion) return null
     return (

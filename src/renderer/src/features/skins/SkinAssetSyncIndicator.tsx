@@ -1,5 +1,7 @@
 import { Clipboard, Download, LoaderCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { useLauncherThemeStore } from '../settings/launcher-theme.store'
 import type { SkinAssetSyncProgress } from '../../../../shared/game-settings'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
@@ -14,6 +16,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
+  const theme = useLauncherThemeStore((state) => state.theme)
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)
@@ -145,9 +148,21 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     }
   }
 
+  const renderPanels = (children: ReactNode): ReactNode =>
+    theme === 'vgui2'
+      ? createPortal(
+          <div
+            className={`fixed ${reportPositionForPlay} z-40 mb-24 flex flex-col items-end gap-2 text-xs`}
+          >
+            {children}
+          </div>,
+          document.body
+        )
+      : children
+
   return (
     <div
-      className={`fixed ${reportPositionForPlay} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
+      className={`launcher-desktop-notices fixed ${reportPositionForPlay} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
     >
       <p className=" border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
         Alpha Release Testing <b>Expect Bugs</b>
@@ -160,55 +175,59 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         <Clipboard className="size-4" aria-hidden="true" />
         Report an Issue
       </button>
-      {reportOpen && (
-        <div className="w-80  border border-cyan-300/30 bg-slate-950/95 p-3 text-left text-cyan-100 shadow-xl backdrop-blur">
-          <p className="mb-2 font-medium">What went wrong?</p>
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            maxLength={10_000}
-            rows={4}
-            className="w-full resize-y   border border-slate-700 bg-slate-900 p-2 text-xs text-white outline-none focus:border-cyan-300"
-            placeholder="Tell us what happened and what you expected."
-          />
-          {reportStatus && <p className="mt-2 text-amber-200">{reportStatus}</p>}
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setReportOpen(false)}
-              disabled={reporting}
-              className="  px-2 py-1 text-slate-300 hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void reportIssue()}
-              disabled={reporting}
-              className="  bg-cyan-700 px-2 py-1 text-white hover:bg-cyan-600"
-            >
-              {reporting ? 'Reporting…' : 'Submit report'}
-            </button>
-          </div>
-        </div>
-      )}
-      {progress && (progress.status === 'syncing' || progress.status === 'error') && (
-        <aside
-          className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
-          role="status"
-          aria-live="polite"
-        >
-          {failed ? (
-            <Download className="size-4" aria-hidden="true" />
-          ) : (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+      {renderPanels(
+        <>
+          {reportOpen && (
+            <div className="w-80  border border-cyan-300/30 bg-slate-950/95 p-3 text-left text-cyan-100 shadow-xl backdrop-blur">
+              <p className="mb-2 font-medium">What went wrong?</p>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                maxLength={10_000}
+                rows={4}
+                className="w-full resize-y   border border-slate-700 bg-slate-900 p-2 text-xs text-white outline-none focus:border-cyan-300"
+                placeholder="Tell us what happened and what you expected."
+              />
+              {reportStatus && <p className="mt-2 text-amber-200">{reportStatus}</p>}
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(false)}
+                  disabled={reporting}
+                  className="  px-2 py-1 text-slate-300 hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void reportIssue()}
+                  disabled={reporting}
+                  className="  bg-cyan-700 px-2 py-1 text-white hover:bg-cyan-600"
+                >
+                  {reporting ? 'Reporting…' : 'Submit report'}
+                </button>
+              </div>
+            </div>
           )}
-          <span>
-            {failed
-              ? (progress.message ?? 'Could not download skin assets.')
-              : `Downloading assets — ${percentage}%`}
-          </span>
-        </aside>
+          {progress && (progress.status === 'syncing' || progress.status === 'error') && (
+            <aside
+              className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
+              role="status"
+              aria-live="polite"
+            >
+              {failed ? (
+                <Download className="size-4" aria-hidden="true" />
+              ) : (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              )}
+              <span>
+                {failed
+                  ? (progress.message ?? 'Could not download skin assets.')
+                  : `Downloading assets — ${percentage}%`}
+              </span>
+            </aside>
+          )}
+        </>
       )}
     </div>
   )

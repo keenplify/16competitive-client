@@ -271,7 +271,7 @@ export function ShopPage(): JSX.Element {
   }, [])
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] w-full p-4 text-white sm:p-6 xl:p-8">
+    <main className="shop-page min-h-[calc(100vh-5rem)] w-full p-4 text-white sm:p-6 xl:p-8">
       <div className="w-full">
         <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
@@ -531,7 +531,7 @@ export function SkinCardPreview({
   return (
     <button
       type="button"
-      className="group relative mb-4 h-40 w-full overflow-hidden  border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.28),_transparent_68%)] text-left transition hover:border-sky-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+      className="weapon-preview-well group relative mb-4 h-40 w-full overflow-hidden  border border-white/10 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.28),_transparent_68%)] text-left transition hover:border-sky-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
       aria-label={`Open ${skin.name} 3D preview`}
       onClick={onOpen}
     >
@@ -593,6 +593,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
     <ModalDialog
       open
       onClose={onClose}
+      vguiTitlebar={false}
       className="w-[calc(100%-2rem)] max-w-3xl overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl"
       label={`${skin.name} preview`}
     >
@@ -636,7 +637,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
           <X className="size-4" />
         </Button>
       </header>
-      <div className="relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
+      <div className="skin-preview-stage relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
         {skin.weaponKey === 'elite' ? (
           <img
             className="h-full w-full object-contain p-6"

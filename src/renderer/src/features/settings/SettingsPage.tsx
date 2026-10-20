@@ -1,3 +1,4 @@
+import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
 import { LightweightHudSetting } from './LightweightHudSetting'
 import { LegacyGameSettings } from './LegacyGameSettings'
@@ -37,7 +38,6 @@ import { useTranslation } from '../i18n/i18n'
 import { useGameSettingsStore } from './game-settings.store'
 import { VoicePttKeySetting } from '../voice/VoicePttKeySetting'
 import { isWebRuntime } from '../../web-runtime'
-import { PartnerThemeSetting } from '../partner-branding/PartnerThemeSetting'
 import { DiscordNotificationSettings } from './DiscordNotificationSettings'
 import { useNavigationStore } from '../navigation/navigation.store'
 
@@ -536,7 +536,7 @@ export function SettingsPage(): JSX.Element {
               </div>
 
               <LanguageSettings />
-              <PartnerThemeSetting />
+              <LauncherThemeSetting className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7" />
               <CommunitySettings />
               <ChatTranslationSettings />
               {!webRuntime && <LegacyGameSettings />}

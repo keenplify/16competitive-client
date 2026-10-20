@@ -1,0 +1,1143 @@
+/* Optional GoldSrc VGUI2 skin. Layout, imagery and semantic status colors stay intact.
+ * Double :root keeps this palette ahead of community accent overrides without
+ * changing or deleting the separately saved community-theme preference. */
+:root:root[data-launcher-theme='vgui2'] {
+  --font-sans: Tahoma, Verdana, Arial, sans-serif;
+  --font-audiowide: Tahoma, Verdana, Arial, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.25rem;
+  --text-3xl: 1.5rem;
+  --text-4xl: 1.75rem;
+  --color-white: #e4e7dc;
+  --color-black: #22291e;
+  --vgui-face: #4c5844;
+  --vgui-inset: #343e2d;
+  --vgui-light: #8c9980;
+  --vgui-dark: #252e20;
+  --vgui-text: #e4e7dc;
+  --vgui-accent: #e4d37b;
+  --vgui-raised: inset 1px 1px var(--vgui-light), inset -1px -1px var(--vgui-dark);
+  --vgui-sunken: inset 1px 1px var(--vgui-dark), inset -1px -1px var(--vgui-light);
+  --color-neutral-50: #f1f2e9;
+  --color-neutral-100: #e4e7dc;
+  --color-neutral-200: #d9dece;
+  --color-neutral-300: #d0d6c3;
+  --color-neutral-400: #c5cdb7;
+  --color-neutral-500: #b9c3a8;
+  --color-neutral-600: #8c9980;
+  --color-neutral-700: #68765b;
+  --color-neutral-800: #505e46;
+  --color-neutral-900: #424e38;
+  --color-neutral-950: #343e2d;
+  --color-slate-50: #f1f2e9;
+  --color-slate-100: #e4e7dc;
+  --color-slate-200: #d9dece;
+  --color-slate-300: #d0d6c3;
+  --color-slate-400: #c5cdb7;
+  --color-slate-500: #b9c3a8;
+  --color-slate-600: #8c9980;
+  --color-slate-700: #68765b;
+  --color-slate-800: #505e46;
+  --color-slate-900: #424e38;
+  --color-slate-950: #343e2d;
+  --color-gray-50: #f1f2e9;
+  --color-gray-100: #e4e7dc;
+  --color-gray-200: #d9dece;
+  --color-gray-300: #d0d6c3;
+  --color-gray-400: #c5cdb7;
+  --color-gray-500: #b9c3a8;
+  --color-gray-600: #8c9980;
+  --color-gray-700: #68765b;
+  --color-gray-800: #505e46;
+  --color-gray-900: #424e38;
+  --color-gray-950: #343e2d;
+  --color-zinc-50: #f1f2e9;
+  --color-zinc-100: #e4e7dc;
+  --color-zinc-200: #d9dece;
+  --color-zinc-300: #d0d6c3;
+  --color-zinc-400: #c5cdb7;
+  --color-zinc-500: #b9c3a8;
+  --color-zinc-600: #8c9980;
+  --color-zinc-700: #68765b;
+  --color-zinc-800: #505e46;
+  --color-zinc-900: #424e38;
+  --color-zinc-950: #343e2d;
+  --color-stone-50: #f1f2e9;
+  --color-stone-100: #e4e7dc;
+  --color-stone-200: #d9dece;
+  --color-stone-300: #d0d6c3;
+  --color-stone-400: #c5cdb7;
+  --color-stone-500: #b9c3a8;
+  --color-stone-600: #8c9980;
+  --color-stone-700: #68765b;
+  --color-stone-800: #505e46;
+  --color-stone-900: #424e38;
+  --color-stone-950: #343e2d;
+  --color-sky-50: #fff9d9;
+  --color-sky-100: #f9efbe;
+  --color-sky-200: #f0e4a1;
+  --color-sky-300: #e9da8b;
+  --color-sky-400: #e4d37b;
+  --color-sky-500: #b9a653;
+  --color-sky-600: #93833e;
+  --color-sky-700: #786b35;
+  --color-sky-800: #5f5630;
+  --color-sky-900: #49432a;
+  --color-sky-950: #302e20;
+  --color-blue-50: #fff9d9;
+  --color-blue-100: #f9efbe;
+  --color-blue-200: #f0e4a1;
+  --color-blue-300: #e9da8b;
+  --color-blue-400: #e4d37b;
+  --color-blue-500: #b9a653;
+  --color-blue-600: #93833e;
+  --color-blue-700: #786b35;
+  --color-blue-800: #5f5630;
+  --color-blue-900: #49432a;
+  --color-blue-950: #302e20;
+  --color-cyan-50: #fff9d9;
+  --color-cyan-100: #f9efbe;
+  --color-cyan-200: #f0e4a1;
+  --color-cyan-300: #e9da8b;
+  --color-cyan-400: #e4d37b;
+  --color-cyan-500: #b9a653;
+  --color-cyan-600: #93833e;
+  --color-cyan-700: #786b35;
+  --color-cyan-800: #5f5630;
+  --color-cyan-900: #49432a;
+  --color-cyan-950: #302e20;
+  --color-violet-50: #fff9d9;
+  --color-violet-100: #f9efbe;
+  --color-violet-200: #f0e4a1;
+  --color-violet-300: #e9da8b;
+  --color-violet-400: #e4d37b;
+  --color-violet-500: #b9a653;
+  --color-violet-600: #93833e;
+  --color-violet-700: #786b35;
+  --color-violet-800: #5f5630;
+  --color-violet-900: #49432a;
+  --color-violet-950: #302e20;
+  --color-indigo-50: #fff9d9;
+  --color-indigo-100: #f9efbe;
+  --color-indigo-200: #f0e4a1;
+  --color-indigo-300: #e9da8b;
+  --color-indigo-400: #e4d37b;
+  --color-indigo-500: #b9a653;
+  --color-indigo-600: #93833e;
+  --color-indigo-700: #786b35;
+  --color-indigo-800: #5f5630;
+  --color-indigo-900: #49432a;
+  --color-indigo-950: #302e20;
+  color-scheme: dark;
+  accent-color: var(--vgui-accent);
+  caret-color: var(--vgui-accent);
+  scrollbar-color: auto;
+}
+
+:root[data-launcher-theme='vgui2'] body {
+  background-color: var(--vgui-inset);
+  color: var(--vgui-text);
+  scrollbar-color: auto;
+}
+
+/* Theme-wide override, including inline styles and portalled UI. */
+:root[data-launcher-theme='vgui2'],
+:root[data-launcher-theme='vgui2'] *,
+:root[data-launcher-theme='vgui2'] ::before,
+:root[data-launcher-theme='vgui2'] ::after,
+:root[data-launcher-theme='vgui2'] ::placeholder,
+:root[data-launcher-theme='vgui2'] ::marker {
+  font-family: var(--font-sans) !important;
+  text-shadow: none !important;
+}
+
+/* Filter shadows on text containers also shadow every glyph they contain. */
+:root[data-launcher-theme='vgui2'] [class*='drop-shadow'] {
+  filter: none !important;
+}
+
+:root[data-launcher-theme='vgui2'] ::selection {
+  color: #22291e;
+  background: var(--vgui-accent);
+}
+
+/* Preserve every control's box metrics when toggling the skin. Bevels are inset
+ * shadows; no new borders, padding or translations change the page geometry. */
+:root[data-launcher-theme='vgui2'] :where(button, [role='tab'], [role='button']) {
+  background-color: var(--vgui-face);
+  color: var(--vgui-text);
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: var(--vgui-raised);
+  text-shadow: none;
+  filter: none;
+}
+
+:root[data-launcher-theme='vgui2']
+  :where(button, [role='tab'], [role='button']):hover:not(:disabled) {
+  background-color: #59664f;
+  color: #fff9d9;
+  transform: none;
+}
+
+:root[data-launcher-theme='vgui2']
+  :where(button, [role='tab'], [role='button']):is(
+    :active,
+    [aria-pressed='true'],
+    [aria-selected='true'],
+    [aria-current='page']
+  ) {
+  background-color: var(--vgui-inset);
+  color: var(--vgui-accent);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] :where(button, [role='tab'], [role='button']):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:root[data-launcher-theme='vgui2']
+  :where(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea
+  ) {
+  background-color: var(--vgui-inset);
+  color: var(--vgui-text);
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] :where(input, textarea)::placeholder {
+  color: #b9c3a8;
+  opacity: 1;
+}
+
+/* Classic VGUI sliders: recessed rail, tick marks and a raised rectangular
+ * grip. Keep the native range input for pointer and keyboard interaction. */
+:root[data-launcher-theme='vgui2'] input[type='range'] {
+  appearance: none;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--vgui-light) 0 1px,
+    transparent 1px 10%
+  );
+  background-position: center bottom;
+  background-size: calc(100% - 10px) 4px;
+  background-repeat: no-repeat;
+  box-shadow: none;
+  cursor: ew-resize;
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 0;
+  border-radius: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 20px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']::-moz-range-progress {
+  background: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 20px;
+  border: 0;
+  border-radius: 0;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] input[type='range']:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+:root[data-launcher-theme='vgui2']
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--vgui-accent);
+  outline-offset: 2px;
+}
+
+/* Existing panels retain their sizes and content, with the original VGUI bevel. */
+:root[data-launcher-theme='vgui2']
+  :where(
+    dialog,
+    [data-modal-dialog],
+    .setup-card-enter,
+    [class~='border'][class*='bg-neutral-'],
+    [class~='border'][class*='bg-slate-']
+  ):not(:where(button, input, select, textarea, [role='button'], [role='tab'])) {
+  border-color: #87947a;
+  background-color: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+  backdrop-filter: none;
+}
+
+/* A few incumbent surfaces use literal dark colors instead of palette tokens. */
+:root[data-launcher-theme='vgui2']
+  :where([class*='bg-[#080'], [class*='bg-[#090'], [class*='bg-[#15191d]']) {
+  background-color: var(--vgui-inset);
+}
+
+:root[data-launcher-theme='vgui2'] .nav-active-bg {
+  background: none;
+}
+
+:root[data-launcher-theme='vgui2'] :where(.setup-ambient, .match-ambient-glow) {
+  opacity: 0;
+  animation: none;
+}
+
+:root[data-launcher-theme='vgui2'] .play-find-match-cta,
+:root[data-launcher-theme='vgui2'] .play-find-match-cta:hover:not(:disabled) {
+  background-image: none;
+  background-color: var(--vgui-face);
+  color: var(--vgui-accent);
+  border-color: transparent;
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] .play-find-match-cta:active:not(:disabled) {
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] :where(.play-find-match-cta, nav button)::before,
+:root[data-launcher-theme='vgui2'] nav button::after {
+  display: none;
+}
+
+/* Chromium ignores custom scrollbar parts when standard scrollbar-color or
+ * scrollbar-width is non-auto. Reset both so Electron uses the VGUI chrome. */
+:root[data-launcher-theme='vgui2'] * {
+  scrollbar-color: auto;
+  scrollbar-width: auto;
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-track,
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-corner {
+  background: var(--vgui-inset);
+  border: 0;
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-thumb {
+  min-height: 24px;
+  min-width: 24px;
+  background: var(--vgui-face);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-thumb:hover {
+  background: #68765b;
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-thumb:active {
+  background: #59664f;
+}
+
+:root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-button {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .Toastify__toast {
+  background: var(--vgui-face);
+  color: var(--vgui-text);
+  border-radius: 0;
+  box-shadow: var(--vgui-raised);
+}
+
+/* GoldSrc desktop: the backdrop stays visible around independent windows. */
+.vgui-window-host {
+  position: fixed;
+  inset: 4.5rem 1rem 1rem;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.vgui-window {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid var(--vgui-light);
+  background: var(--vgui-face);
+  box-shadow:
+    var(--vgui-raised),
+    0 8px 24px rgb(0 0 0 / 40%);
+  pointer-events: auto;
+}
+
+.vgui-window-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 2px 4px;
+  color: var(--vgui-text);
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-handle,
+:root[data-launcher-theme='vgui2'] .vgui-window-handle:hover:not(:disabled) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--vgui-text);
+  font: 400 13px var(--font-sans);
+  text-align: left;
+  touch-action: none;
+  cursor: move;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-close {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.vgui-window-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-layout {
+  display: block;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-branding {
+  position: fixed;
+  inset: auto auto 4.5rem 3rem;
+  width: min(18vw, 220px);
+}
+
+:root[data-launcher-theme='vgui2'] .auth-branding > img {
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-branding > div {
+  margin-top: 16px;
+  padding: 10px;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel {
+  display: block;
+  padding: 16px 20px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel > div {
+  max-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel button {
+  height: 30px;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel input {
+  height: 32px;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel form {
+  gap: 12px;
+}
+
+:root[data-launcher-theme='vgui2'] .auth-panel :where(.mb-6, .mb-8) {
+  margin-bottom: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .setup-desktop-exit {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window .setup-card-enter {
+  max-width: none;
+  padding: 20px;
+  border: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+:root[data-launcher-theme='vgui2'] .setup-progress-active {
+  box-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-page-host {
+  /* Lift the entire stacking context above the friends rail (z-20). */
+  z-index: 26;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.vgui-page-window-host {
+  inset: 6rem 2rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .vgui-page-window-host.vgui-with-friends {
+    right: 19rem;
+  }
+  .vgui-page-window-host.vgui-friends-collapsed {
+    right: 4rem;
+  }
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-page-window-host .vgui-window-content > main {
+  min-height: 0;
+  background: var(--vgui-face);
+}
+
+:root[data-launcher-theme='vgui2'] :where([class*='text-white/']) {
+  color: #c5cdb7;
+}
+
+:root[data-launcher-theme='vgui2'] :where([class*='text-red-']) {
+  color: #ffc7bb;
+}
+
+@media (max-width: 767px) {
+  :root[data-launcher-theme='vgui2'] .auth-branding {
+    display: none;
+  }
+  .vgui-page-window-host {
+    inset: 5rem 0.75rem 0.75rem;
+  }
+}
+
+:root[data-launcher-theme='vgui2'] [data-modal-dialog]::backdrop {
+  background: rgb(0 0 0 / 25%);
+}
+
+.vgui-modal-titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 6px;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+
+/* Settings owns scrolling so its section navigation and sticky sidebar share
+ * one viewport. The surrounding floating frame must not scroll as well. */
+:root[data-launcher-theme='vgui2'] .vgui-window:has([data-page-scroll='settings']) {
+  height: 100%;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-content:has(> [data-page-scroll='settings']) {
+  overflow: hidden;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-content > [data-page-scroll='settings'] {
+  height: 100%;
+  min-height: 0;
+}
+
+/* The news cards float independently; the rail is only a layout container. */
+:root[data-launcher-theme='vgui2'] .lobby-news-rail {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* Page windows have a definite viewport: flex-based map and server grids need
+ * this height to avoid collapsing into zero-height rows. */
+.vgui-page-window-host > .vgui-window {
+  height: 100%;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-content header {
+  filter: none;
+  text-shadow: none;
+}
+
+/* Compact native-style page composition, rather than nested window chrome. */
+:root[data-launcher-theme='vgui2']
+  :where(.profile-page, .news-page, .shop-page, .communities-page) {
+  max-width: none;
+  padding: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-page > div {
+  max-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-page [role='tablist'] {
+  margin-top: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-overview {
+  gap: 16px;
+  padding: 12px 0;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-overview > header {
+  min-height: 0;
+  gap: 16px;
+  padding: 16px;
+  border: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .profile-overview > dl {
+  gap: 1px;
+  padding: 0;
+  border: 1px solid var(--vgui-dark);
+  background: var(--vgui-dark);
+}
+
+:root[data-launcher-theme='vgui2'] .profile-overview > dl > div {
+  padding: 12px;
+  background: var(--vgui-face);
+}
+
+:root[data-launcher-theme='vgui2'] .profile-activity > div:first-child {
+  margin-bottom: 12px;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-activity > div:last-child {
+  gap: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-activity section {
+  padding: 12px;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .profile-activity :where(ol, li) {
+  border-color: #68765b;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-activity li {
+  padding: 12px 0;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-page {
+  min-height: 0;
+  margin-top: 12px;
+  background: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-equipped {
+  min-height: 0;
+  padding: 12px;
+  border: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-equipped > header {
+  padding-bottom: 10px;
+  border: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-equipped > header > div:first-child > p:first-child {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-equipped > header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-groups {
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-group {
+  height: auto;
+  background: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-group > h3 {
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  color: var(--vgui-text);
+  background: var(--vgui-face);
+  letter-spacing: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-weapon-card {
+  gap: 2px;
+  padding: 4px;
+  grid-template-rows: 64px 24px;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-weapon-card > button:first-child,
+:root[data-launcher-theme='vgui2'] .loadout-weapon-card .weapon-preview-well {
+  height: 64px;
+}
+
+:root[data-launcher-theme='vgui2'] .loadout-weapon-card > button:nth-child(2) {
+  top: 42px;
+}
+
+:root[data-launcher-theme='vgui2'] .weapon-preview-well,
+:root[data-launcher-theme='vgui2'] .weapon-preview-well:hover:not(:disabled) {
+  background: #252d21;
+  border-color: transparent;
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] :where(.news-page, .shop-page) > header,
+:root[data-launcher-theme='vgui2'] .shop-page > div > header {
+  max-width: none;
+  padding: 0 0 12px;
+  background: transparent;
+  box-shadow: none;
+  border-color: #68765b;
+}
+
+:root[data-launcher-theme='vgui2'] .news-page > header > p:first-child,
+:root[data-launcher-theme='vgui2'] .shop-page > div > header > div:first-child > p:first-child {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] :where(.news-page, .shop-page) h1 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+:root[data-launcher-theme='vgui2'] .news-page > nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  max-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .news-page > nav > div {
+  margin-top: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .news-page > div:last-child {
+  max-width: none;
+  margin-top: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .communities-page {
+  text-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] .communities-page > section {
+  margin-top: 12px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] .communities-page > header button {
+  padding: 2px 0;
+  font-size: 18px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.vgui-window-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vgui-window-body > .vgui-window-content {
+  min-width: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-scroll-target {
+  scrollbar-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-scroll-target::-webkit-scrollbar:vertical {
+  width: 0;
+}
+
+.vgui-scrollbar {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 16px;
+  width: 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-scrollbar > button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+}
+
+.vgui-scrollbar-track {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+.vgui-scrollbar-thumb {
+  position: absolute;
+  width: 100%;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+  touch-action: none;
+}
+
+.vgui-scrollbar-thumb:hover {
+  background: #68765b;
+}
+
+:root[data-launcher-theme='vgui2'] .play-page {
+  padding: 12px;
+}
+
+:root[data-launcher-theme='vgui2'] .play-page > div {
+  max-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .play-page header {
+  min-height: 64px;
+}
+
+:root[data-launcher-theme='vgui2'] .play-queue-actions {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  align-self: stretch;
+  padding-top: 8px;
+}
+
+/* Property-sheet tabs: one shared baseline and a raised active tab which
+ * merges into the page, rather than a row of independent push buttons. */
+:root[data-launcher-theme='vgui2'] [role='tablist'] {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  min-height: 31px;
+  padding: 3px 0 0;
+  border: 0;
+  border-bottom: 1px solid var(--vgui-light);
+  background: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] [role='tablist'] > [role='presentation'] {
+  display: flex;
+  align-items: flex-end;
+  height: 27px;
+}
+
+:root[data-launcher-theme='vgui2'] [role='tablist'] [role='tab'] {
+  position: relative;
+  min-width: 0;
+  height: 27px;
+  margin: 0 0 -1px;
+  padding: 3px 12px;
+  border: 1px solid var(--vgui-light);
+  border-right-color: var(--vgui-dark);
+  border-bottom-color: var(--vgui-light);
+  background: #414d39;
+  box-shadow: none;
+  color: var(--vgui-text);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-launcher-theme='vgui2'] [role='tablist'] [role='tab']:hover:not(:disabled) {
+  background: var(--vgui-face);
+}
+
+:root[data-launcher-theme='vgui2'] [role='tablist'] [role='tab'][aria-selected='true'] {
+  z-index: 1;
+  height: 30px;
+  margin-top: -3px;
+  border-bottom-color: var(--vgui-face);
+  background: var(--vgui-face);
+  box-shadow: inset 1px 1px rgb(228 231 220 / 12%);
+  color: var(--vgui-accent);
+}
+
+:root[data-launcher-theme='vgui2'] .launcher-tabs [role='tab'][data-has-help] {
+  padding-right: 30px;
+}
+
+.vgui-window-handle > span {
+  text-transform: capitalize;
+}
+
+:root[data-launcher-theme='vgui2'] .launcher-tabs {
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] .launcher-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tab strips scroll horizontally when needed without creating a second,
+ * vertical scrollbar beside the selected tab. */
+:root[data-launcher-theme='vgui2'] [role='tablist'] {
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+:root[data-launcher-theme='vgui2'] [role='tablist']::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .lobby-chat-panel {
+  z-index: 25;
+  background: var(--vgui-face);
+  border-color: var(--vgui-light);
+  box-shadow: var(--vgui-raised);
+  backdrop-filter: none;
+}
+
+:root[data-launcher-theme='vgui2'] .lobby-chat-launcher {
+  z-index: 25;
+}
+
+:root[data-launcher-theme='vgui2'] .lobby-chat-panel[data-active='true'] {
+  z-index: 27;
+}
+
+/* Reports and download status use a separate portal above desktop windows. */
+:root[data-launcher-theme='vgui2'] .launcher-desktop-notices {
+  z-index: 24;
+}
+
+:root[data-launcher-theme='vgui2'] .community-title-link,
+:root[data-launcher-theme='vgui2'] .community-title-link:is(:hover, :active) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] .lobby-header-scroll-shade {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .community-members-list > button,
+:root[data-launcher-theme='vgui2'] .community-members-list > button:is(:hover, :active),
+:root[data-launcher-theme='vgui2'] .community-member-name,
+:root[data-launcher-theme='vgui2'] .community-member-name:is(:hover, :active),
+:root[data-launcher-theme='vgui2'] .community-member-actions,
+:root[data-launcher-theme='vgui2'] .community-member-actions:is(:hover, :active) {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+:root[data-launcher-theme='vgui2'] .community-member-name {
+  align-self: stretch;
+}
+
+:root[data-launcher-theme='vgui2'] .community-member-actions:hover {
+  background: var(--vgui-inset);
+}
+
+:root[data-launcher-theme='vgui2'] .lobby-chat-panel > div:first-child {
+  background: var(--vgui-face);
+  border: 0;
+}
+
+/* Help remains a separate focusable control, centered inside its tab. The
+ * selected tab is taller and sits above the strip, so help shares that height
+ * and paints above the tab rather than disappearing beneath it. */
+:root[data-launcher-theme='vgui2'] .launcher-tab-help {
+  top: auto;
+  bottom: -1px;
+  right: 7px;
+  z-index: 2;
+  display: flex;
+  height: 27px;
+  align-items: center;
+}
+
+:root[data-launcher-theme='vgui2'] [data-selected] > .launcher-tab-help {
+  height: 30px;
+  color: var(--vgui-accent);
+}
+
+:root[data-launcher-theme='vgui2'] .launcher-tab-help > button {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+}
+
+:root[data-launcher-theme='vgui2'] .skin-preview-stage {
+  background: #1b2218;
+  box-shadow: var(--vgui-sunken);
+}
+
+/* Ready checks use one VGUI window, with status expressed by rank tiles and
+ * check marks rather than a second glowing frame inside the dialog. */
+:root[data-launcher-theme='vgui2'] .match-ready-dialog {
+  width: min(40rem, calc(100vw - 2rem));
+  padding: 4px;
+  border: 1px solid var(--vgui-light);
+  background: var(--vgui-face);
+  box-shadow:
+    var(--vgui-raised),
+    0 8px 24px rgb(0 0 0 / 40%);
+  outline: none;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+  backdrop-filter: none;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-window-title {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 4px 6px;
+  color: var(--vgui-text);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-card {
+  padding: 16px;
+  border: 0;
+  background: var(--vgui-face);
+  box-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-card h1 {
+  border: 0;
+  padding: 0;
+  color: var(--vgui-text);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+:root[data-launcher-theme='vgui2'] :where(.match-ready-map, .match-ready-count) {
+  color: var(--vgui-text);
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-player {
+  border: 1px solid var(--vgui-dark);
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-player[data-ready='true'] {
+  border-color: var(--vgui-accent);
+  box-shadow: var(--vgui-raised);
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-status-check {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  background: var(--vgui-inset);
+  color: var(--vgui-accent);
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-timer > p:first-child {
+  color: var(--vgui-accent);
+  font-size: 24px;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-timer > p:last-child {
+  color: #c5cdb7;
+  letter-spacing: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-actions > button:first-child {
+  color: var(--vgui-accent);
+}
+
+:root[data-launcher-theme='vgui2'] .match-ready-note {
+  margin-top: 0;
+  padding: 12px;
+  border: 0;
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+  color: #c5cdb7;
+}

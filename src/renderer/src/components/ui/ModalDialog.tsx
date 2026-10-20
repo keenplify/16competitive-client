@@ -8,6 +8,9 @@ import {
 } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { ModalPortal } from './ModalPortal'
+import { ChevronLeft, X } from 'lucide-react'
+import { useLauncherThemeStore } from '../../features/settings/launcher-theme.store'
+import { useTranslation } from '../../features/i18n/i18n'
 
 interface ModalDialogProps {
   open: boolean
@@ -16,6 +19,9 @@ interface ModalDialogProps {
   label?: string
   role?: 'dialog' | 'alertdialog'
   fullScreen?: boolean
+  /** Disable injected VGUI chrome when the content supplies its own header. */
+  vguiTitlebar?: boolean
+  vguiNavigation?: { backLabel: string; onBack: () => void; onClose: () => void }
   dialogRef?: RefObject<HTMLElement | null>
   tabIndex?: number
   style?: React.CSSProperties
@@ -56,6 +62,8 @@ export function ModalDialog({
   label,
   role = 'dialog',
   fullScreen = false,
+  vguiTitlebar = true,
+  vguiNavigation,
   dialogRef,
   tabIndex = -1,
   style,
@@ -64,6 +72,8 @@ export function ModalDialog({
   className,
   children
 }: ModalDialogProps): JSX.Element | null {
+  const theme = useLauncherThemeStore((state) => state.theme)
+  const { t } = useTranslation()
   const ref = useRef<HTMLDialogElement>(null)
   const backdropPressed = useRef(false)
   useEffect(() => {
@@ -150,6 +160,30 @@ export function ModalDialog({
           backdropPressed.current = false
         }}
       >
+        {theme === 'vgui2' && vguiTitlebar && (
+          <div className="vgui-window-titlebar vgui-modal-titlebar">
+            {vguiNavigation && (
+              <button
+                type="button"
+                className="vgui-window-close"
+                aria-label={vguiNavigation.backLabel}
+                title={vguiNavigation.backLabel}
+                onClick={vguiNavigation.onBack}
+              >
+                <ChevronLeft className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
+            <span className="min-w-0 flex-1 truncate text-xs">{label ?? '1.6 Competitive'}</span>
+            <button
+              type="button"
+              className="vgui-window-close"
+              aria-label={t('icafe.close')}
+              onClick={vguiNavigation?.onClose ?? onClose}
+            >
+              <X className="size-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         {children}
       </dialog>
     </ModalPortal>

@@ -1,5 +1,5 @@
 import { useTranslation } from '../i18n/i18n'
-import { Info } from 'lucide-react'
+import { Check, Info } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -34,11 +34,12 @@ function ReadyPlayer({ player, ready }: { player: QueuedPlayer; ready: boolean }
   return (
     <div
       className={twMerge(
-        'group relative flex size-10 shrink-0 min-[400px]:size-12 items-center justify-center border-2 transition-[background-color,border-color,box-shadow,color] duration-300 motion-reduce:transition-none sm:size-14',
+        'match-ready-player group relative flex size-10 shrink-0 min-[400px]:size-12 items-center justify-center border-2 transition-[background-color,border-color,box-shadow,color] duration-300 motion-reduce:transition-none sm:size-14',
         ready
           ? 'border-emerald-300 bg-emerald-400/25 text-white shadow-[0_0_0_3px_rgba(34,197,94,0.18),0_0_18px_rgba(34,197,94,0.65)]'
           : 'border-white/10 bg-black/45 text-white/20'
       )}
+      data-ready={ready}
       role="listitem"
       aria-label={t('match.ready.playerStatus', {
         player: player.username,
@@ -63,6 +64,11 @@ function ReadyPlayer({ player, ready }: { player: QueuedPlayer; ready: boolean }
           aria-label={t('match.ready.rankUnavailable')}
         >
           ?
+        </span>
+      )}
+      {ready && (
+        <span className="match-ready-status-check hidden" aria-hidden="true">
+          <Check className="size-3" />
         </span>
       )}
       <span className="sr-only">{player.username}</span>
@@ -90,9 +96,10 @@ export function MatchFoundReadyCheck({
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
 
   return (
-    <div className="w-full min-w-0 text-white">
+    <div className="match-ready-check w-full min-w-0 text-white">
+      <div className="match-ready-window-title hidden">{t('match.ready.windowTitle')}</div>
       <div className="my-auto w-full max-w-[46rem] min-w-0">
-        <section className="relative border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-4 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-6">
+        <section className="match-ready-card relative border-4 border-emerald-400 bg-[linear-gradient(110deg,rgba(3,51,25,0.92),rgba(3,28,20,0.88))] p-4 shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_16px_45px_rgba(0,0,0,0.6),inset_0_0_45px_rgba(0,0,0,0.45)] sm:p-6">
           <header className="text-center">
             <h1
               id="match-ready-title"
@@ -100,7 +107,7 @@ export function MatchFoundReadyCheck({
             >
               YOUR MATCH IS READY!
             </h1>
-            <p className="mt-3 text-sm font-medium text-emerald-200/85">
+            <p className="match-ready-map mt-3 text-sm font-medium text-emerald-200/85">
               {getMatchmakingModeLabel(match.mode)} · {mapDisplayName}
             </p>
           </header>
@@ -136,13 +143,13 @@ export function MatchFoundReadyCheck({
             ))}
           </div>
 
-          <p className="mt-4 text-center text-sm font-medium text-emerald-200">
+          <p className="match-ready-count mt-4 text-center text-sm font-medium text-emerald-200">
             {preparing
               ? 'Preparing ready check'
               : `${acceptedPlayerIds.length} / ${playersRequired} Players Ready`}
           </p>
 
-          <div className="mt-4 text-center">
+          <div className="match-ready-timer mt-4 text-center">
             <p className="font-mono text-3xl font-bold tabular-nums text-emerald-200">
               {preparing ? '—' : secondsRemaining}
             </p>
@@ -151,7 +158,7 @@ export function MatchFoundReadyCheck({
             </p>
           </div>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <div className="match-ready-actions mt-5 flex flex-wrap justify-center gap-3">
             <Button
               className="min-w-40 rounded-none bg-emerald-400 text-base font-extrabold text-emerald-950 shadow-[0_4px_0_rgb(5,100,55)] hover:bg-emerald-300 disabled:bg-emerald-400/50"
               disabled={preparing || readyResponse !== 'pending'}
@@ -174,7 +181,7 @@ export function MatchFoundReadyCheck({
           </div>
         </section>
 
-        <aside className="mt-3 flex gap-4 bg-black/85 px-5 py-3 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
+        <aside className="match-ready-note mt-3 flex gap-4 bg-black/85 px-5 py-3 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
           <Info className="mt-0.5 size-5 shrink-0 text-white" aria-hidden="true" />
           <p>
             By accepting, you commit to this match. Leaving after acceptance may result in a

@@ -20,7 +20,13 @@ export function ProfileOverview({
 }): JSX.Element {
   const { t, language } = useTranslation()
   return (
-    <div className={twMerge('flex flex-col', compact ? 'gap-4 py-4' : 'gap-6 py-6', className)}>
+    <div
+      className={twMerge(
+        'profile-overview flex flex-col',
+        compact ? 'gap-4 py-4' : 'gap-6 py-6',
+        className
+      )}
+    >
       <header className="flex min-h-32 flex-wrap items-center justify-between gap-6 border-b border-white/15 pb-6">
         <div className="flex min-w-0 items-center gap-4">
           <div className="size-16 shrink-0">
@@ -127,15 +133,22 @@ export function ProfileOverview({
       )}
 
       {!!profile.partnerLevels?.length && (
-        <section aria-label={t('profile.communityLevels')} className="border-b border-white/15 pb-5">
+        <section
+          aria-label={t('profile.communityLevels')}
+          className="border-b border-white/15 pb-5"
+        >
           <h3 className="mb-2 text-base font-semibold">{t('profile.communityLevels')}</h3>
           <p className="mb-4 text-sm text-neutral-400">{t('profile.communityLevelsNote')}</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {profile.partnerLevels.map(entry => (
-              <article key={entry.partnerId + '/' + entry.sourceName}
-                className="border border-white/15 bg-white/[0.025] p-4">
+            {profile.partnerLevels.map((entry) => (
+              <article
+                key={entry.partnerId + '/' + entry.sourceName}
+                className="border border-white/15 bg-white/[0.025] p-4"
+              >
                 <div className="mb-4">
-                  <p className="text-sm text-neutral-300">{entry.communityName || entry.sourceName}</p>
+                  <p className="text-sm text-neutral-300">
+                    {entry.communityName || entry.sourceName}
+                  </p>
                   <h4 className="text-lg font-semibold">{entry.sourceName}</h4>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
@@ -146,9 +159,12 @@ export function ProfileOverview({
                     [t('profile.communityPrestige'), entry.prestige.toLocaleString(language)],
                     [t('profile.kills'), entry.kills.toLocaleString(language)],
                     [t('profile.deaths'), entry.deaths.toLocaleString(language)],
-                    [t('profile.communityPlaytime'), t('profile.communityMinutes', {
-                      count: entry.playtimeMinutes.toLocaleString(language)
-                    })]
+                    [
+                      t('profile.communityPlaytime'),
+                      t('profile.communityMinutes', {
+                        count: entry.playtimeMinutes.toLocaleString(language)
+                      })
+                    ]
                   ].map(([label, value]) => (
                     <div key={label}>
                       <dt className="text-xs text-neutral-400">{label}</dt>

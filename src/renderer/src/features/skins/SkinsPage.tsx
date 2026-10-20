@@ -359,7 +359,7 @@ export function SkinsPage(): JSX.Element {
       </Button>
     )
   return (
-    <section className="mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
+    <section className="loadout-page mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
       {error && (
         <p
           role="alert"
@@ -368,7 +368,7 @@ export function SkinsPage(): JSX.Element {
           {error}
         </p>
       )}
-      <section className="min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
+      <section className="loadout-equipped min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
             <p className="text-xs font-bold tracking-[0.18em] text-sky-300 uppercase">
@@ -441,9 +441,9 @@ export function SkinsPage(): JSX.Element {
           })}
         </div>
         <div className="mt-4 overflow-x-auto pb-2">
-          <div className="grid min-w-[82rem] grid-cols-8 gap-2.5">
+          <div className="loadout-groups grid min-w-[82rem] grid-cols-8 gap-2.5">
             {loadoutGroupOrder.map((group) => (
-              <section key={group} className="flex h-full flex-col">
+              <section key={group} className="loadout-group flex h-full flex-col">
                 <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
                   {loadoutGroupLabels[group]}
                 </h3>
@@ -452,7 +452,7 @@ export function SkinsPage(): JSX.Element {
                 </div>
               </section>
             ))}
-            <section className="flex h-full flex-col">
+            <section className="loadout-group flex h-full flex-col">
               <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
                 {weaponCategoryLabel('grenades')}
               </h3>
@@ -460,7 +460,7 @@ export function SkinsPage(): JSX.Element {
                 {GRENADE_WEAPON_KEYS.map((weaponKey) => renderLoadoutCard(weaponKey))}
               </div>
             </section>
-            <section className="flex h-full flex-col">
+            <section className="loadout-group flex h-full flex-col">
               <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
                 {weaponCategoryLabel('knives')}
               </h3>
@@ -631,7 +631,7 @@ function LoadoutWeaponCard({
   return (
     <div
       className={twMerge(
-        'group relative grid w-full grid-rows-[5rem_2rem] gap-1 border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
+        'loadout-weapon-card group relative grid w-full grid-rows-[5rem_2rem] gap-1 border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
         selected ? 'border-sky-300 bg-sky-400/15 ring-1 ring-sky-300/50' : 'border-white/10'
       )}
     >
@@ -687,7 +687,7 @@ function LoadoutThumbnail({
     : `default-loadout:v3:${installationPath ?? 'auto'}:${weaponKey}`
 
   return (
-    <span className="relative flex h-20 w-full shrink-0 items-center justify-center overflow-hidden bg-slate-950/75">
+    <span className="weapon-preview-well relative flex h-20 w-full shrink-0 items-center justify-center overflow-hidden bg-slate-950/75">
       <SkinModelThumbnail
         key={cacheKey}
         cacheKey={cacheKey}

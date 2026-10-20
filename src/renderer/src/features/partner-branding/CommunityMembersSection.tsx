@@ -117,6 +117,7 @@ export function CommunityMembersSection({
     <>
       <section
         className={twMerge(
+          'community-members-list',
           standalone ? 'flex h-full min-h-0 flex-col pt-2' : 'border-t border-white/10 pt-2',
           className
         )}
@@ -168,14 +169,14 @@ export function CommunityMembersSection({
               >
                 <button
                   type="button"
-                  className="min-w-0 flex-1 truncate text-left text-neutral-200 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-300"
+                  className="community-member-name min-w-0 flex-1 truncate text-left text-neutral-200 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-300"
                   onClick={() => useProfileStore.getState().open(member.id)}
                 >
                   {member.username}
                 </button>
                 <button
                   type="button"
-                  className="grid size-8 place-items-center text-neutral-400 hover:text-white"
+                  className="community-member-actions grid size-8 place-items-center text-neutral-400 hover:text-white"
                   aria-label={t('directory.memberActions', { player: member.username })}
                   onClick={(event) => {
                     const bounds = event.currentTarget.getBoundingClientRect()

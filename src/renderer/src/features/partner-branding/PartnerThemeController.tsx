@@ -1,3 +1,4 @@
+import { useLauncherThemeStore } from '../settings/launcher-theme.store'
 import { useEffect, type JSX } from 'react'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
@@ -6,6 +7,9 @@ import { actionColor } from './palette'
 const refreshIntervalMs = 30_000
 
 export function PartnerThemeController(): JSX.Element | null {
+  const theme = useLauncherThemeStore((state) => state.theme)
+  const hasPreference = useLauncherThemeStore((state) => state.hasPreference)
+  const communityTheme = !hasPreference || theme === 'community'
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
   const branding = usePartnerBrandingStore((state) => state.branding)
   const enabled = usePartnerBrandingStore((state) => state.enabled)
@@ -19,7 +23,7 @@ export function PartnerThemeController(): JSX.Element | null {
 
   useEffect(() => {
     const root = document.documentElement
-    if (!enabled || !branding) {
+    if (!enabled || !branding || !communityTheme) {
       root.removeAttribute('data-partner-theme')
       root.style.removeProperty('--partner-primary')
       root.style.removeProperty('--partner-secondary')
@@ -42,7 +46,7 @@ export function PartnerThemeController(): JSX.Element | null {
       root.style.removeProperty('--partner-action')
       root.style.removeProperty('--partner-secondary-action')
     }
-  }, [branding, enabled])
+  }, [branding, enabled, communityTheme])
 
   return null
 }

@@ -28,17 +28,26 @@ export function TabList<T extends string>({
 }: TabListProps<T>): JSX.Element {
   return (
     <div
-      className={twMerge('flex gap-1 overflow-x-auto border-b border-white/15 pb-1', className)}
+      className={twMerge(
+        'launcher-tabs flex gap-1 overflow-x-auto border-b border-white/15 pb-1',
+        className
+      )}
       role="tablist"
       aria-label={ariaLabel}
     >
       {items.map((item) => {
         const selected = value === item.value
         return (
-          <div key={item.value} role="presentation" className="relative shrink-0">
+          <div
+            key={item.value}
+            role="presentation"
+            data-selected={selected ? '' : undefined}
+            className="relative shrink-0"
+          >
             <button
               type="button"
               role="tab"
+              data-has-help={item.helpText ? '' : undefined}
               aria-selected={selected}
               disabled={item.disabled}
               title={item.title}
@@ -56,7 +65,7 @@ export function TabList<T extends string>({
             {item.helpText && (
               <HelpTooltip
                 text={item.helpText}
-                className="absolute top-2 right-1.5 text-neutral-300"
+                className="launcher-tab-help absolute top-2 right-1.5 text-neutral-300"
               />
             )}
           </div>

@@ -1,3 +1,4 @@
+import { LauncherWindow } from '../../components/ui/LauncherWindow'
 import { CommunityTransferDialog } from '../partner-branding/CommunityTransferPrompt'
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import { LoaderCircle, Volume2, VolumeX } from 'lucide-react'
@@ -299,7 +300,7 @@ export function AuthPage(): JSX.Element {
   }
 
   return (
-    <main className="relative isolate grid min-h-screen grid-cols-1 overflow-hidden bg-slate-950 text-white md:grid-cols-3">
+    <main className="auth-layout relative isolate grid min-h-screen grid-cols-1 overflow-hidden bg-slate-950 text-white md:grid-cols-3">
       <img
         className="absolute inset-0 -z-20 h-full w-full object-cover"
         src={operationBackground}
@@ -319,7 +320,7 @@ export function AuthPage(): JSX.Element {
           )}
         </div>
       )}
-      <div className="flex flex-col justify-center items-center inset-0">
+      <div className="auth-branding flex flex-col justify-center items-center inset-0">
         <PartnerLogo className="z-10 my-6 size-32 max-w-full md:my-0 md:size-128" />
 
         <div className="relative mt-8 hidden flex-col items-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
@@ -330,76 +331,94 @@ export function AuthPage(): JSX.Element {
         </div>
       </div>
 
-      <section className="flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 pt-24 sm:pt-24 pb-16 md:col-span-2">
-        <div className="w-full max-w-sm">
-          {resetOpen ? <PasswordResetPanel initialIdentifier={username} onBack={() => setResetOpen(false)} /> : <>
-          {!isLogin && (
-            <div className="mb-8">
-              <h2 className="text-3xl font-semibold tracking-tight">{t('auth.createAccount')}</h2>
-              <p className="mt-2 text-sm text-neutral-500">{t('auth.registerDescription')}</p>
-            </div>
-          )}
+      <LauncherWindow
+        title={resetOpen ? t('auth.reset.open') : isLogin ? t('auth.login') : t('auth.register')}
+        className="vgui-auth-window max-w-[420px]"
+        onClose={() => void window.api.window.exit()}
+      >
+        <section className="auth-panel flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 pt-24 sm:pt-24 pb-16 md:col-span-2">
+          <div className="w-full max-w-sm">
+            {resetOpen ? (
+              <PasswordResetPanel initialIdentifier={username} onBack={() => setResetOpen(false)} />
+            ) : (
+              <>
+                {!isLogin && (
+                  <div className="mb-8">
+                    <h2 className="text-3xl font-semibold tracking-tight">
+                      {t('auth.createAccount')}
+                    </h2>
+                    <p className="mt-2 text-sm text-neutral-500">{t('auth.registerDescription')}</p>
+                  </div>
+                )}
 
-          <div className="mb-6 grid grid-cols-2 bg-slate-900 p-1">
-            <Button
-              variant="ghost"
-              className={isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
-              disabled={isSubmitting}
-              onClick={() => setMode('login')}
-            >
-              {t('auth.login')}
-            </Button>
-            <Button
-              variant="ghost"
-              className={!isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
-              disabled={isSubmitting}
-              onClick={() => setMode('register')}
-            >
-              {t('auth.register')}
-            </Button>
-          </div>
+                <div
+                  className="mb-6 grid grid-cols-2 bg-slate-900 p-1"
+                  role="tablist"
+                  aria-label={`${t('auth.login')} / ${t('auth.register')}`}
+                >
+                  <Button
+                    variant="ghost"
+                    className={isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
+                    role="tab"
+                    aria-selected={isLogin}
+                    disabled={isSubmitting}
+                    onClick={() => setMode('login')}
+                  >
+                    {t('auth.login')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className={!isLogin ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : undefined}
+                    role="tab"
+                    aria-selected={!isLogin}
+                    disabled={isSubmitting}
+                    onClick={() => setMode('register')}
+                  >
+                    {t('auth.register')}
+                  </Button>
+                </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="ghost"
-              className="col-span-2 gap-2 border border-sky-400/30 bg-slate-900 text-white hover:bg-slate-800"
-              disabled={isSubmitting && socialProvider !== 'steam'}
-              onClick={() => void loginWithSocial('steam')}
-            >
-              {socialProvider === 'steam' ? (
-                <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
-              ) : (
-                <SocialProviderIcon provider="steam" />
-              )}
-              {t('auth.steam.signIn')}
-            </Button>
-            <Button
-              variant="ghost"
-              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
-              disabled={isSubmitting && socialProvider !== 'google'}
-              onClick={() => void loginWithSocial('google')}
-            >
-              {socialProvider === 'google' ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <SocialProviderIcon provider="google" />
-              )}
-              Google
-            </Button>
-            <Button
-              variant="ghost"
-              className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
-              disabled={isSubmitting && socialProvider !== 'discord'}
-              onClick={() => void loginWithSocial('discord')}
-            >
-              {socialProvider === 'discord' ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <SocialProviderIcon provider="discord" />
-              )}
-              Discord
-            </Button>
-            {/* <Button
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="ghost"
+                    className="col-span-2 gap-2 border border-sky-400/30 bg-slate-900 text-white hover:bg-slate-800"
+                    disabled={isSubmitting && socialProvider !== 'steam'}
+                    onClick={() => void loginWithSocial('steam')}
+                  >
+                    {socialProvider === 'steam' ? (
+                      <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <SocialProviderIcon provider="steam" />
+                    )}
+                    {t('auth.steam.signIn')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
+                    disabled={isSubmitting && socialProvider !== 'google'}
+                    onClick={() => void loginWithSocial('google')}
+                  >
+                    {socialProvider === 'google' ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <SocialProviderIcon provider="google" />
+                    )}
+                    Google
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800"
+                    disabled={isSubmitting && socialProvider !== 'discord'}
+                    onClick={() => void loginWithSocial('discord')}
+                  >
+                    {socialProvider === 'discord' ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <SocialProviderIcon provider="discord" />
+                    )}
+                    Discord
+                  </Button>
+                  {/* <Button
               variant="ghost"
               className="gap-2 border border-neutral-800 bg-neutral-900/70 text-neutral-200 hover:bg-neutral-800 grow"
               disabled={isSubmitting}
@@ -412,130 +431,138 @@ export function AuthPage(): JSX.Element {
               )}
               Facebook
             </Button> */}
-          </div>
+                </div>
 
-          <div className="my-5 flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-neutral-800" />
-            <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
-            <span className="h-px flex-1 bg-neutral-800" />
-          </div>
+                <div className="my-5 flex items-center gap-3" aria-hidden="true">
+                  <span className="h-px flex-1 bg-neutral-800" />
+                  <span className="text-xs uppercase tracking-wider text-neutral-600">or</span>
+                  <span className="h-px flex-1 bg-neutral-800" />
+                </div>
 
-          <form className="grid gap-5" onSubmit={handleSubmit}>
-            <TextField
-              id="username"
-              label={t('auth.username')}
-              value={username}
-              minLength={3}
-              maxLength={32}
-              pattern="[A-Za-z0-9_]+"
-              autoComplete="username"
-              autoFocus
-              disabled={isSubmitting}
-              placeholder={isLogin ? t('auth.loginPlaceholder') : 'player_name'}
-              className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
-              onChange={(event) => setUsername(event.target.value)}
-            />
-            {(!isLogin || socialPollToken) && (
-              <TextField
-                id="email"
-                label={t('auth.email')}
-                type="email"
-                value={email}
-                maxLength={254}
-                autoComplete="email"
-                disabled={isSubmitting}
-                placeholder="player@example.com"
-                hint={
-                  socialPollToken
-                    ? `${socialProvider ? socialProviderLabel(socialProvider) : 'The provider'} did not provide an email address. Add one to continue.`
-                    : undefined
-                }
-                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
-                onChange={(event) => setEmail(event.target.value)}
-              />
+                <form className="grid gap-5" onSubmit={handleSubmit}>
+                  <TextField
+                    id="username"
+                    label={t('auth.username')}
+                    value={username}
+                    minLength={3}
+                    maxLength={32}
+                    pattern="[A-Za-z0-9_]+"
+                    autoComplete="username"
+                    autoFocus
+                    disabled={isSubmitting}
+                    placeholder={isLogin ? t('auth.loginPlaceholder') : 'player_name'}
+                    className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
+                    onChange={(event) => setUsername(event.target.value)}
+                  />
+                  {(!isLogin || socialPollToken) && (
+                    <TextField
+                      id="email"
+                      label={t('auth.email')}
+                      type="email"
+                      value={email}
+                      maxLength={254}
+                      autoComplete="email"
+                      disabled={isSubmitting}
+                      placeholder="player@example.com"
+                      hint={
+                        socialPollToken
+                          ? `${socialProvider ? socialProviderLabel(socialProvider) : 'The provider'} did not provide an email address. Add one to continue.`
+                          : undefined
+                      }
+                      className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
+                      onChange={(event) => setEmail(event.target.value)}
+                    />
+                  )}
+                  {!socialPollToken && (
+                    <TextField
+                      id="password"
+                      label={t('auth.password')}
+                      type="password"
+                      value={password}
+                      minLength={8}
+                      maxLength={128}
+                      autoComplete={isLogin ? 'current-password' : 'new-password'}
+                      disabled={isSubmitting}
+                      placeholder={t('auth.passwordPlaceholder')}
+                      className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  )}
+
+                  <Button
+                    className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
+                    type="submit"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting && !socialProvider
+                      ? isLogin && !socialPollToken
+                        ? t('auth.signingIn')
+                        : `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
+                      : socialPollToken
+                        ? `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
+                        : isLogin
+                          ? t('auth.signIn')
+                          : t('auth.createAccountButton')}
+                  </Button>
+                </form>
+
+                {isLogin && !socialPollToken && (
+                  <Button
+                    variant="ghost"
+                    className="mt-3 w-full text-sky-200"
+                    disabled={isSubmitting}
+                    onClick={() => setResetOpen(true)}
+                  >
+                    {t('auth.reset.open')}
+                  </Button>
+                )}
+
+                <Button
+                  className="mt-3 w-full"
+                  variant="ghost"
+                  disabled={isSubmitting}
+                  onClick={() => void window.api.window.exit()}
+                >
+                  Exit to desktop
+                </Button>
+
+                {webRuntime && (
+                  <a
+                    href="https://papamo.dev/16competitive"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide text-sky-300 transition hover:text-sky-200 hover:underline"
+                  >
+                    Get the desktop app <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+
+                <p className="mt-5 text-center text-xs text-neutral-500">
+                  <a
+                    href="https://papamo.dev/privacy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-neutral-300 hover:underline"
+                  >
+                    Privacy Policy
+                  </a>
+                  <span className="mx-2" aria-hidden="true">
+                    ·
+                  </span>
+                  <a
+                    href="https://papamo.dev/terms"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-neutral-300 hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </a>
+                </p>
+              </>
             )}
-            {!socialPollToken && (
-              <TextField
-                id="password"
-                label={t('auth.password')}
-                type="password"
-                value={password}
-                minLength={8}
-                maxLength={128}
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-                disabled={isSubmitting}
-                placeholder={t('auth.passwordPlaceholder')}
-                className="placeholder:text-neutral-300 focus:border-sky-400/70 focus:ring-sky-400/10"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            )}
-
-            <Button
-              className="w-full bg-sky-400 hover:bg-sky-300 focus-visible:outline-sky-300 disabled:bg-sky-400/50"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting && !socialProvider
-                ? isLogin && !socialPollToken
-                  ? t('auth.signingIn')
-                  : `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
-                : socialPollToken
-                  ? `Continue with ${socialProvider ? socialProviderLabel(socialProvider) : 'social login'}`
-                  : isLogin
-                    ? t('auth.signIn')
-                    : t('auth.createAccountButton')}
-            </Button>
-          </form>
-
-          {isLogin && !socialPollToken && <Button variant="ghost" className="mt-3 w-full text-sky-200"
-            disabled={isSubmitting} onClick={() => setResetOpen(true)}>
-            {t('auth.reset.open')}
-          </Button>}
-
-          <Button
-            className="mt-3 w-full"
-            variant="ghost"
-            disabled={isSubmitting}
-            onClick={() => void window.api.window.exit()}
-          >
-            Exit to desktop
-          </Button>
-
-          {webRuntime && (
-            <a
-              href="https://papamo.dev/16competitive"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide text-sky-300 transition hover:text-sky-200 hover:underline"
-            >
-              Get the desktop app <span aria-hidden="true">↗</span>
-            </a>
-          )}
-
-          <p className="mt-5 text-center text-xs text-neutral-500">
-            <a
-              href="https://papamo.dev/privacy"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-neutral-300 hover:underline"
-            >
-              Privacy Policy
-            </a>
-            <span className="mx-2" aria-hidden="true">
-              ·
-            </span>
-            <a
-              href="https://papamo.dev/terms"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-neutral-300 hover:underline"
-            >
-              Terms &amp; Conditions
-            </a>
-          </p>
-          </>}
-        </div>
-      </section>
+          </div>
+        </section>
+      </LauncherWindow>
 
       <button
         type="button"

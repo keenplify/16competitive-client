@@ -460,7 +460,7 @@ export function PlayPage({
   return (
     <main
       className={twMerge(
-        'relative min-h-0 p-3 text-white sm:p-4',
+        'play-page relative min-h-0 p-3 text-white sm:p-4',
         visiblePlayView !== 'custom'
           ? 'flex h-full flex-col overflow-hidden pb-20 sm:pb-20'
           : 'min-h-[calc(100vh-5rem)]',
@@ -795,7 +795,7 @@ export function PlayPage({
 
                 <div
                   className={twMerge(
-                    'fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
+                    'play-queue-actions fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
                     friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
                   )}
                 >

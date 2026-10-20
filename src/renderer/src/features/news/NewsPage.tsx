@@ -19,7 +19,7 @@ export function NewsPage(): JSX.Element {
   }, [loadAll])
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
+    <main className="news-page min-h-[calc(100vh-4rem)] w-full p-5 text-white sm:min-h-[calc(100vh-5rem)] sm:p-10">
       <header className="mx-auto max-w-6xl border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
         <p className="text-xs font-bold tracking-[.2em] text-sky-400 uppercase">Community</p>
         <h1 className="mt-2 text-3xl font-semibold">News</h1>

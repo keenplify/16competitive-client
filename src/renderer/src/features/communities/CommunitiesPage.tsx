@@ -86,7 +86,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   return (
     <section
       data-i18n-skip
-      className="community-readable-text mx-auto w-full max-w-6xl p-5 pb-16 text-white sm:p-8"
+      className="communities-page community-readable-text mx-auto w-full max-w-6xl p-5 pb-16 text-white sm:p-8"
     >
       <header className={discovering ? 'border-b border-white/15 pb-6' : ''}>
         {discovering && (
@@ -470,7 +470,7 @@ function CommunityTile({
           <h2 className="min-w-0 text-lg font-semibold" title={community.name}>
             <button
               type="button"
-              className="text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
+              className="community-title-link text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
               onClick={onOpen}
             >
               {community.name}

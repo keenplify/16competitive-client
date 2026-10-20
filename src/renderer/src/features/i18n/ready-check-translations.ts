@@ -1,5 +1,6 @@
 export const readyCheckTranslations = {
   en: {
+    'match.ready.windowTitle': 'Match found',
     'match.ready.rank': 'Level {{level}}, {{title}}',
     'match.ready.accepted': 'Ready',
     'match.ready.pending': 'Pending',
@@ -12,6 +13,7 @@ export const readyCheckTranslations = {
       'Could not send your response. Check your connection and try again before the timer expires.'
   },
   ru: {
+    'match.ready.windowTitle': 'Матч найден',
     'match.ready.rank': 'Уровень {{level}}, {{title}}',
     'match.ready.accepted': 'Готов',
     'match.ready.pending': 'Ожидание',
@@ -24,6 +26,7 @@ export const readyCheckTranslations = {
       'Не удалось отправить ответ. Проверьте подключение и повторите попытку до окончания таймера.'
   },
   tl: {
+    'match.ready.windowTitle': 'May nahanap na match',
     'match.ready.rank': 'Level {{level}}, {{title}}',
     'match.ready.accepted': 'Ready',
     'match.ready.pending': 'Naghihintay',
@@ -36,6 +39,7 @@ export const readyCheckTranslations = {
       'Hindi naipadala ang sagot mo. Tingnan ang koneksyon at subukan ulit bago matapos ang oras.'
   },
   th: {
+    'match.ready.windowTitle': 'พบแมตช์แล้ว',
     'match.ready.rank': 'ระดับ {{level}}, {{title}}',
     'match.ready.accepted': 'พร้อม',
     'match.ready.pending': 'รออยู่',
@@ -47,6 +51,7 @@ export const readyCheckTranslations = {
     'match.ready.responseError': 'ส่งคำตอบไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งก่อนหมดเวลา'
   },
   id: {
+    'match.ready.windowTitle': 'Pertandingan ditemukan',
     'match.ready.rank': 'Level {{level}}, {{title}}',
     'match.ready.accepted': 'Siap',
     'match.ready.pending': 'Menunggu',
@@ -59,6 +64,7 @@ export const readyCheckTranslations = {
       'Respons Anda tidak terkirim. Periksa koneksi dan coba lagi sebelum waktu habis.'
   },
   hi: {
+    'match.ready.windowTitle': 'मैच मिल गया',
     'match.ready.rank': 'स्तर {{level}}, {{title}}',
     'match.ready.accepted': 'तैयार',
     'match.ready.pending': 'प्रतीक्षा में',
@@ -71,6 +77,7 @@ export const readyCheckTranslations = {
       'आपका जवाब नहीं भेजा जा सका। कनेक्शन जाँचें और समय खत्म होने से पहले फिर कोशिश करें।'
   },
   pt: {
+    'match.ready.windowTitle': 'Partida encontrada',
     'match.ready.rank': 'Nível {{level}}, {{title}}',
     'match.ready.accepted': 'Pronto',
     'match.ready.pending': 'Aguardando',
@@ -83,6 +90,7 @@ export const readyCheckTranslations = {
       'Não foi possível enviar sua resposta. Verifique sua conexão e tente novamente antes que o tempo acabe.'
   },
   ja: {
+    'match.ready.windowTitle': 'マッチが見つかりました',
     'match.ready.rank': 'レベル{{level}}、{{title}}',
     'match.ready.accepted': '準備完了',
     'match.ready.pending': '待機中',

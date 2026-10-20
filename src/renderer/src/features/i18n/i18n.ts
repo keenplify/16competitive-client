@@ -1,3 +1,4 @@
+import { launcherThemeTranslations } from './launcher-theme-translations'
 import { passwordResetTranslations } from './password-reset-translations'
 import { communityDirectoryTranslations } from './community-directory-translations'
 import { queueWarmupTranslations } from './queue-warmup-translations'
@@ -43,6 +44,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 const english = {
   ...roomSettingsTranslations.en,
   ...queueAgainTranslations.en,
+  ...launcherThemeTranslations.en,
   ...queueWarmupTranslations.en,
   ...legacyGameTranslations.en,
   ...steamTranslations.en,
@@ -207,6 +209,7 @@ export type TranslationParams = Record<string, string | number>
 const russian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ru,
   ...queueAgainTranslations.ru,
+  ...launcherThemeTranslations.ru,
   ...queueWarmupTranslations.ru,
   ...legacyGameTranslations.ru,
   ...steamTranslations.ru,
@@ -371,6 +374,7 @@ const russian: Record<TranslationKey, string> = {
 const taglish: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.tl,
   ...queueAgainTranslations.tl,
+  ...launcherThemeTranslations.tl,
   ...queueWarmupTranslations.tl,
   ...legacyGameTranslations.tl,
   ...steamTranslations.tl,
@@ -537,6 +541,7 @@ const taglish: Record<TranslationKey, string> = {
 const thai: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.th,
   ...queueAgainTranslations.th,
+  ...launcherThemeTranslations.th,
   ...queueWarmupTranslations.th,
   ...legacyGameTranslations.th,
   ...steamTranslations.th,
@@ -698,6 +703,7 @@ const thai: Record<TranslationKey, string> = {
 const indonesian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.id,
   ...queueAgainTranslations.id,
+  ...launcherThemeTranslations.id,
   ...queueWarmupTranslations.id,
   ...legacyGameTranslations.id,
   ...steamTranslations.id,
@@ -867,6 +873,7 @@ const indonesian: Record<TranslationKey, string> = {
 const portuguese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.pt,
   ...queueAgainTranslations.pt,
+  ...launcherThemeTranslations.pt,
   ...queueWarmupTranslations.pt,
   ...legacyGameTranslations.pt,
   ...steamTranslations.pt,
@@ -1036,6 +1043,7 @@ const portuguese: Record<TranslationKey, string> = {
 const japanese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ja,
   ...queueAgainTranslations.ja,
+  ...launcherThemeTranslations.ja,
   ...queueWarmupTranslations.ja,
   ...legacyGameTranslations.ja,
   ...steamTranslations.ja,
@@ -1203,6 +1211,7 @@ const japanese: Record<TranslationKey, string> = {
 const hindi: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.hi,
   ...queueAgainTranslations.hi,
+  ...launcherThemeTranslations.hi,
   ...queueWarmupTranslations.hi,
   ...legacyGameTranslations.hi,
   ...steamTranslations.hi,
