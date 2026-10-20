@@ -3,8 +3,10 @@ import { test } from 'node:test'
 import {
   formatWindowsCompatibilityError,
   isSupportedOperatingSystem,
+  isSupportedWindowsInstallation,
   windowsCompatibilityMessages
 } from '../src/shared/windows-compatibility.ts'
+import { parseInstalledWindowsMajorVersion } from '../src/main/windows-version.ts'
 
 test('rejects Windows XP through 8.1 and unrecognized versions', () => {
   for (const version of [
@@ -55,4 +57,31 @@ test('provides all supported translations', () => {
     'th',
     'tl'
   ])
+})
+
+test('reads the installed Windows major version from registry output', () => {
+  assert.equal(
+    parseInstalledWindowsMajorVersion(
+      'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\r\n' +
+        '    CurrentMajorVersionNumber    REG_DWORD    0xa\r\n'
+    ),
+    10
+  )
+  assert.equal(parseInstalledWindowsMajorVersion('CurrentMajorVersionNumber REG_DWORD 0x6'), 6)
+  assert.equal(parseInstalledWindowsMajorVersion('CurrentMajorVersionNumber REG_SZ 10'), null)
+  assert.equal(
+    parseInstalledWindowsMajorVersion('CurrentMajorVersionNumber REG_DWORD invalid'),
+    null
+  )
+})
+
+test('accepts a Windows 11 installation despite a compatibility-mode process version', () => {
+  assert.equal(isSupportedWindowsInstallation('win32', '6.2.9200', 10), true)
+  assert.equal(isSupportedWindowsInstallation('win32', '6.2.9200', 6), false)
+  assert.equal(isSupportedWindowsInstallation('win32', '6.2.9200', null), false)
+})
+
+test('accepts supported releases and Linux without an installed version', () => {
+  assert.equal(isSupportedWindowsInstallation('win32', '10.0.26300', null), true)
+  assert.equal(isSupportedWindowsInstallation('linux', '6.2.9200', null), true)
 })

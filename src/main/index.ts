@@ -8,9 +8,11 @@ import {
   uploadCommunityServerImage
 } from './community-directory'
 import { release as osRelease } from 'node:os'
+import { readInstalledWindowsMajorVersion } from './windows-version'
 import {
   formatWindowsCompatibilityError,
   isSupportedOperatingSystem,
+  isSupportedWindowsInstallation,
   windowsCompatibilityMessages
 } from '../shared/windows-compatibility'
 import { detectLanguage } from '../shared/language-detection'
@@ -617,7 +619,13 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   const detectedOsRelease = osRelease()
-  if (!isSupportedOperatingSystem(process.platform, detectedOsRelease)) {
+  const reportedOsSupported = isSupportedOperatingSystem(process.platform, detectedOsRelease)
+  // Compatibility settings can make Node report 6.2 on Windows 10/11.
+  const installedWindowsMajor =
+    process.platform === 'win32' && !reportedOsSupported
+      ? await readInstalledWindowsMajorVersion()
+      : null
+  if (!isSupportedWindowsInstallation(process.platform, detectedOsRelease, installedWindowsMajor)) {
     const language = detectLanguage(
       app.getPreferredSystemLanguages(),
       Object.keys(windowsCompatibilityMessages) as (keyof typeof windowsCompatibilityMessages)[],
@@ -629,6 +637,12 @@ app.whenReady().then(async () => {
     )
     app.quit()
     return
+  }
+  if (!reportedOsSupported) {
+    console.warn('[Startup] Windows process version differs from the installed OS version', {
+      reportedRelease: detectedOsRelease,
+      installedMajor: installedWindowsMajor
+    })
   }
 
   await disableSteamScoreboardWrapper().catch((error: unknown) => {

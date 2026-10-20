@@ -5,6 +5,14 @@ export const isSupportedOperatingSystem = (platform: string, release: string): b
   return Number.isInteger(major) && major >= 10
 }
 
+export const isSupportedWindowsInstallation = (
+  platform: string,
+  reportedRelease: string,
+  installedMajor: number | null
+): boolean =>
+  isSupportedOperatingSystem(platform, reportedRelease) ||
+  (platform === 'win32' && installedMajor !== null && installedMajor >= 10)
+
 export const windowsCompatibilityMessages = {
   en: 'Windows 10 or later is required. Windows 7, Windows 8, and Windows 8.1 are not supported. Upgrade Windows to use 1.6 Competitive.',
   ru: 'Требуется Windows 10 или новее. Windows 7, Windows 8 и Windows 8.1 не поддерживаются. Обновите Windows для использования 1.6 Competitive.',
