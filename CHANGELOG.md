@@ -2869,3 +2869,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Scoreboard
 
 - VIP status is now shown in the scoreboard and teammate feed.
+
+## v2026.1020.5 — 2026-10-20
+
+### Matchmaking
+
+- Preserve active game and queue state across backend updates.
+- Keep queue warmup state intact during backend restarts.
