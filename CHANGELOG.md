@@ -2912,3 +2912,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved the layout of the Appearance heading.
 - Isolated VGUI2 styles for more consistent visual behavior.
+
+## v2026.1020.9 — 2026-10-20
+
+### Leaderboard
+
+- Improved spacing in the VGUI2 leaderboard for clearer readability.
+
+### Operations
+
+- Improved visibility of operation rewards.
