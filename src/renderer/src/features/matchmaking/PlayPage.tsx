@@ -271,6 +271,7 @@ export function PlayPage({
   )
   const regularMaps = availableMaps.filter((map) => !map.feedbackEnabled)
   const reviewMaps = availableMaps.filter((map) => map.feedbackEnabled)
+  const reviewColumns = reviewMaps.length >= 4 ? 2 : 1
   const regularColumnLimit = 4
   const regularColumns = Math.max(
     1,
@@ -721,7 +722,10 @@ export function PlayPage({
                         style={
                           {
                             '--play-map-regular-columns': regularColumns,
-                            '--play-map-min-width': `${regularMaps.length > 0 ? regularColumns * 150 + (reviewMaps.length > 0 ? 132 : 0) : 160}px`
+                            '--play-map-review-min-width': `${reviewColumns * 132}px`,
+                            '--play-map-review-width': `${reviewColumns * 16}%`,
+                            '--play-map-review-only-width': `${reviewColumns * 220}px`,
+                            '--play-map-min-width': `${regularMaps.length > 0 ? regularColumns * 150 + (reviewMaps.length > 0 ? reviewColumns * 132 : 0) : reviewColumns * 160}px`
                           } as CSSProperties
                         }
                       >
@@ -751,7 +755,8 @@ export function PlayPage({
                             <div
                               className="grid min-h-0 flex-1 gap-2"
                               style={{
-                                gridTemplateRows: `repeat(${reviewMaps.length}, minmax(0, 1fr))`
+                                gridTemplateColumns: `repeat(${reviewColumns}, minmax(0, 1fr))`,
+                                gridTemplateRows: `repeat(${Math.ceil(reviewMaps.length / reviewColumns)}, minmax(0, 1fr))`
                               }}
                             >
                               {reviewMaps.map((map) => (

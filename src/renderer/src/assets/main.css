@@ -485,11 +485,11 @@
 }
 
 .play-map-layout-with-review {
-  grid-template-columns: minmax(0, 1fr) minmax(132px, 16%);
+  grid-template-columns: minmax(0, 1fr) minmax(var(--play-map-review-min-width), var(--play-map-review-width));
 }
 
 .play-map-layout-review-only {
-  width: min(100%, 220px);
+  width: min(100%, var(--play-map-review-only-width));
 }
 
 .play-map-group-grid {
