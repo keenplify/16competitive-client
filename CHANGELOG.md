@@ -2876,3 +2876,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Preserve active game and queue state across backend updates.
 - Keep queue warmup state intact during backend restarts.
+
+## v2026.1020.6 — 2026-10-20
+
+### Windows compatibility
+
+- Fixed Windows 10 and 11 detection when compatibility settings report an older Windows version.
+- Unsupported older Windows versions continue to receive clear compatibility guidance.
