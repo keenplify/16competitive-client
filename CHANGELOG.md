@@ -2863,3 +2863,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Map Review
 
 - Four review maps are now arranged in a two-by-two grid for easier browsing.
+
+## v2026.1020.4 — 2026-10-20
+
+### Scoreboard
+
+- VIP status is now shown in the scoreboard and teammate feed.
