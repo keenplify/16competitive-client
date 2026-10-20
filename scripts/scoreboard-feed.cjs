@@ -8,19 +8,20 @@ const MAX_AGE_MS = 3000
 function parseSnapshot(text) {
   const lines = text.split('\n')
   const header = lines.shift()?.replace(/\r$/, '')
-  if (!/^#16c-scoreboard-v(?:[2-9]|1[0-5])\t/.test(header ?? '') || lines.length > 34) return null
+  if (!/^#16c-scoreboard-v(?:[2-9]|1[0-6])\t/.test(header ?? '') || lines.length > 34) return null
+  const withVip = header.startsWith('#16c-scoreboard-v16\t')
   const withAlive = !header.startsWith('#16c-scoreboard-v2\t')
-  const withBot = /^#16c-scoreboard-v(?:[4-9]|1[0-5])\t/.test(header)
-  const withMoney = /^#16c-scoreboard-v(?:[7-9]|1[0-5])\t/.test(header)
-  const withWeapon = /^#16c-scoreboard-v(?:[89]|1[0-5])\t/.test(header)
-  const withUtilities = header.startsWith('#16c-scoreboard-v15\t')
+  const withBot = /^#16c-scoreboard-v(?:[4-9]|1[0-6])\t/.test(header)
+  const withMoney = /^#16c-scoreboard-v(?:[7-9]|1[0-6])\t/.test(header)
+  const withWeapon = /^#16c-scoreboard-v(?:[89]|1[0-6])\t/.test(header)
+  const withUtilities = withVip || header.startsWith('#16c-scoreboard-v15\t')
   const withBomb = withUtilities || header.startsWith('#16c-scoreboard-v14\t')
-  const withBuyZone = /^#16c-scoreboard-v1[2345]\t/.test(header)
+  const withBuyZone = /^#16c-scoreboard-v1[23456]\t/.test(header)
   const withOvertime = withBuyZone || header.startsWith('#16c-scoreboard-v11\t')
   const withHealth = withOvertime || header.startsWith('#16c-scoreboard-v10\t')
   const withRoundEvents =
-    header.startsWith('#16c-scoreboard-v9\t') || /^#16c-scoreboard-v1[345]\t/.test(header)
-  const withFormat = /^#16c-scoreboard-v(?:[6-9]|1[0-5])\t/.test(header)
+    header.startsWith('#16c-scoreboard-v9\t') || /^#16c-scoreboard-v1[3456]\t/.test(header)
+  const withFormat = /^#16c-scoreboard-v(?:[6-9]|1[0-6])\t/.test(header)
   const withRoundWinners = withFormat || header.startsWith('#16c-scoreboard-v5\t')
   const headerFields = header.slice(header.indexOf('\t') + 1).split('\t')
   if (
@@ -93,7 +94,7 @@ function parseSnapshot(text) {
         tWins < 0 ||
         tWins > 99)) ||
     (withRoundEvents &&
-      (!/^[DBCKHU]{0,99}$/.test(eventHistory) ||
+      (!/^[DBCKHUV]{0,99}$/.test(eventHistory) ||
         eventHistory.length > round ||
         !Number.isInteger(ctLossBonus) ||
         ctLossBonus < 0 ||
@@ -126,23 +127,25 @@ function parseSnapshot(text) {
     const parts = line.replace(/\r$/, '').split('\t')
     if (
       parts.length !==
-      (withUtilities
-        ? 15
-        : withBomb
-          ? 14
-          : withBuyZone
-            ? 13
-            : withHealth
-              ? 12
-              : withWeapon
-                ? 11
-                : withMoney
-                  ? 10
-                  : withBot
-                    ? 9
-                    : withAlive
-                      ? 8
-                      : 7)
+      (withVip
+        ? 16
+        : withUtilities
+          ? 15
+          : withBomb
+            ? 14
+            : withBuyZone
+              ? 13
+              : withHealth
+                ? 12
+                : withWeapon
+                  ? 11
+                  : withMoney
+                    ? 10
+                    : withBot
+                      ? 9
+                      : withAlive
+                        ? 8
+                        : 7)
     )
       return null
     const [id, team, kills, assists, deaths, ping, alive, bot] = parts
@@ -154,25 +157,28 @@ function parseSnapshot(text) {
     const inBuyZone = withBuyZone ? parts[11] : null
     const hasBomb = withBomb ? parts[12] : null
     const utilities = withUtilities ? Number(parts[13]) : null
+    const vip = withVip ? parts[14] : null
     const name =
       parts[
-        withUtilities
-          ? 14
-          : withBomb
-            ? 13
-            : withBuyZone
-              ? 12
-              : withHealth
-                ? 11
-                : withWeapon
-                  ? 10
-                  : withMoney
-                    ? 9
-                    : withBot
-                      ? 8
-                      : withAlive
-                        ? 7
-                        : 6
+        withVip
+          ? 15
+          : withUtilities
+            ? 14
+            : withBomb
+              ? 13
+              : withBuyZone
+                ? 12
+                : withHealth
+                  ? 11
+                  : withWeapon
+                    ? 10
+                    : withMoney
+                      ? 9
+                      : withBot
+                        ? 8
+                        : withAlive
+                          ? 7
+                          : 6
       ]
     if (
       !Number.isInteger(id) ||
@@ -209,6 +215,8 @@ function parseSnapshot(text) {
           utilities > 29 ||
           ((utilities >> 1) & 3) > 2 ||
           (alive !== 1 && utilities !== 0))) ||
+      (withVip && vip !== '0' && vip !== '1') ||
+      (vip === '1' && (team !== 2 || modeText === '1')) ||
       (hasBomb === '1' && (team !== 1 || alive !== 1)) ||
       !name ||
       name.length > 32 ||
@@ -234,11 +242,13 @@ function parseSnapshot(text) {
       ...(withHealth ? { health } : {}),
       ...(withBuyZone ? { inBuyZone: inBuyZone === '1' } : {}),
       ...(withBomb ? { hasBomb: hasBomb === '1' } : {}),
-      ...(withUtilities ? { utilities } : {})
+      ...(withUtilities ? { utilities } : {}),
+      ...(withVip ? { vip: vip === '1' } : {})
     })
   }
   players.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths || a.id - b.id)
   if (players.filter((player) => player.hasBomb).length > 1) return null
+  if (players.filter((player) => player.vip).length > 1) return null
   return {
     map,
     round,

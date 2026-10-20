@@ -3,6 +3,20 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { parseSnapshot } = require('./scoreboard-feed.cjs')
 
+test('v16 reads the current VIP and VIP escape round without exposing equipment', () => {
+  const header =
+    '#16c-scoreboard-v16\tas_oldlabratory_csneo\t2\t0\tC\t12\t13\t1\t0\t1\t1400\t1400\t3\t0\tV\t1\n'
+  const row = '1\t2\t7\t0\t3\t24\t1\t0\t-1\t0\t0\t0\t0\t0\t1\tAlpha\n'
+  const snapshot = parseSnapshot(header + row)
+  assert.equal(snapshot?.players[0].vip, true)
+  assert.equal(snapshot?.roundEvents, 'V')
+  assert.equal(parseSnapshot(header + row.replace('\t1\tAlpha', '\t2\tAlpha')), null)
+  assert.equal(
+    parseSnapshot(header + row.replace('\t1\tAlpha', '\t0\tAlpha'))?.players[0].vip,
+    false
+  )
+})
+
 test('v14 identifies only a living terrorist C4 carrier', () => {
   const header = '#16c-scoreboard-v14\tde_dust2\t1\t0\t\t12\t13\t0\t0\t1\t1400\t1400\t3\t0\t\t1\n'
   const row = '1\t1\t0\t0\t0\t24\t1\t0\t800\t16\t100\t1\t1\tAlpha\n'

@@ -3,7 +3,15 @@ import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { scoreboardLatency } from './scoreboard-latency'
 import { KillCardsCanvas } from '../src/renderer/src/components/KillCardsCanvas'
-import { AlarmClockMinus, CircleHelp, Scissors, Skull, Trophy, UsersRound } from 'lucide-react'
+import {
+  AlarmClockMinus,
+  CircleHelp,
+  DoorOpen,
+  Scissors,
+  Skull,
+  Trophy,
+  UsersRound
+} from 'lucide-react'
 import {
   scoreboardRounds,
   lossBonusSegments,
@@ -29,6 +37,7 @@ type Player = {
   money: number | null
   primaryWeapon: number | null
   hasBomb?: boolean
+  vip?: boolean
 }
 type Snapshot = {
   map: string
@@ -244,6 +253,8 @@ function RoundTrack({
                     <AlarmClockMinus className="round-event-icon" aria-label="Time expired" />
                   ) : roundEvent === 'H' ? (
                     <UsersRound className="round-event-icon" aria-label="Hostages rescued" />
+                  ) : roundEvent === 'V' ? (
+                    <DoorOpen className="round-event-icon" aria-label="VIP" />
                   ) : roundEvent === 'U' ? (
                     <CircleHelp className="round-event-icon" aria-label="Other win condition" />
                   ) : roundEvent === 'K' || roundWinner ? (
@@ -284,6 +295,7 @@ function PlayerRow({
       <span className="rank">{String(rank).padStart(2, '0')}</span>
       <span className="player-name" title={player.name}>
         {player.name}
+        {player.vip && <strong className="vip-marker">VIP</strong>}
         {canSeeBomb && player.hasBomb && (
           <C4Icon className="bomb-carrier-icon" label="Bomb carrier" />
         )}

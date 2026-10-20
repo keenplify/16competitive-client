@@ -836,6 +836,7 @@ export class ScoreboardOverlaySession {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-Scoreboard-Utilities': 'v1',
+            'X-Scoreboard-Vip': 'v1',
             ...(nativeMode ? { 'X-Scoreboard-Mode': 'native-v1' } : {}),
             ...(this.transportRevision ? { 'X-Scoreboard-Base': this.transportRevision } : {})
           },

@@ -290,6 +290,14 @@ html.kill-cards-preview-page #root {
   vertical-align: -2px;
   filter: drop-shadow(0 0 3px rgba(231, 185, 110, 0.65));
 }
+.vip-marker {
+  margin-left: 7px;
+  color: #f4bd55;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px #201405;
+}
 .primary-weapon {
   display: flex;
   align-items: center;
