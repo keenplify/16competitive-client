@@ -2883,3 +2883,25 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed Windows 10 and 11 detection when compatibility settings report an older Windows version.
 - Unsupported older Windows versions continue to receive clear compatibility guidance.
+
+## v2026.1020.7 — 2026-10-20
+
+### Launcher
+
+- Added a new VGUI2-inspired launcher theme.
+- Added launcher theme selection in Settings.
+- Improved navigation, tabs, dialogs, scrollbars, and window layouts.
+
+### Matchmaking
+
+- Added player rank display for custom games.
+- Refined lobby navigation and match-ready screens.
+
+### Account & Setup
+
+- Updated authentication and onboarding screens.
+- Improved profile navigation and activity views.
+
+### Skins
+
+- Improved skin asset synchronization status indicators.
