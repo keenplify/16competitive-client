@@ -633,7 +633,10 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   })
   if (launchedMatchId === input.matchId && !input.forceRestart) {
     if (activeScoreboardSession?.matchId === input.matchId)
-      await activeScoreboardSession.session.updateJoinRecovery(input.joinToken)
+      await activeScoreboardSession.session.updateJoinRecovery(
+        input.joinToken,
+        input.identityMatchId ?? input.matchId
+      )
     return
   }
 
@@ -988,7 +991,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
-        await session.updateJoinRecovery(input.joinToken)
+        await session.updateJoinRecovery(input.joinToken, input.identityMatchId ?? input.matchId)
         await voicePttSession.attachNative(session.directory)
         await writeFile(
           join(session.directory, 'player-ping.key'),

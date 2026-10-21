@@ -102,12 +102,12 @@ type Snapshot = {
 export class ScoreboardOverlaySession {
   private joinRecoveryTask: Promise<void> | null = null
   /** Backend-issued match credential only; the account bearer stays in main. */
-  async updateJoinRecovery(joinToken: string): Promise<void> {
+  async updateJoinRecovery(joinToken: string, identityMatchId = this.matchId): Promise<void> {
     if (this.stopped) return
     if (!/^[A-Za-z0-9_-]{32,64}$/.test(joinToken)) throw new Error('Invalid match join token')
     const task = writeLiveSessionFile(
       join(this.directory, 'join-recovery.state'),
-      `${matchJoinInfoKey(this.matchId)}\n${joinToken}\n`
+      `${matchJoinInfoKey(identityMatchId)}\n${joinToken}\n`
     )
     this.joinRecoveryTask = task
     try {

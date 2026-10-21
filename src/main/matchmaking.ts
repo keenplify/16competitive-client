@@ -670,6 +670,7 @@ class MatchmakingConnection {
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private pongTimer: ReturnType<typeof setTimeout> | null = null
   private desiredMode: MatchmakingMode | null = null
+  private readonly ffaMatchIds = new Set<string>()
   private readonly cs13Matches = new Set<string>()
   private closeGameForMatch(matchId: string): void {
     if (this.cs13Matches.has(matchId))
@@ -930,13 +931,26 @@ class MatchmakingConnection {
       await this.leaveWarmup()
       return
     }
-    if (this.desiredMode !== 'ffa' || this.lastConnection?.matchId !== matchId)
+    if (!this.ffaMatchIds.has(matchId) || this.lastConnection?.matchId !== matchId)
       throw new Error('No active FFA session to leave')
     this.send({ type: 'leave_ffa', matchId })
     this.leftFfaMatchIds.add(matchId)
-    this.desiredMode = null
-    this.desiredMapIds = []
+    this.cancelledMatchIds.add(matchId)
+    this.lastConnection = null
+    this.manualConnectionMatchId = null
+    clearMatchAssetPreload(matchId)
+    if (this.desiredMode === 'ffa') {
+      this.desiredMode = null
+      this.desiredMapIds = []
+    }
     this.closeGameForMatch(matchId)
+    discordPresence.finishMatch()
+    this.notify({
+      type: 'match_cancelled',
+      matchId,
+      reason: 'PLAYER_DECLINED',
+      message: 'Left FFA.'
+    })
   }
 
   getQueueStatus(): void {
@@ -1391,6 +1405,11 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'match_found' || parsed.type === 'match_roster') {
+        if (parsed.mode === 'ffa') {
+          this.ffaMatchIds.add(parsed.matchId)
+          if (this.ffaMatchIds.size > 128)
+            this.ffaMatchIds.delete(this.ffaMatchIds.values().next().value!)
+        }
         if (parsed.mode === 'cs13_3v3') {
           this.cs13Matches.add(parsed.matchId)
           // Keep this defensive history bounded across long-running launcher sessions.

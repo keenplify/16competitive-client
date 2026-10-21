@@ -97,6 +97,7 @@ async function harness() {
     },
     BrowserWindow: { fromWebContents: () => null },
     discordPresence: {
+      finishMatch: () => {},
       setInGame: () => {},
       setQueue: () => {},
       setAuthenticated: () => {},
@@ -142,7 +143,8 @@ test('FFA leave validates the session and cannot leave ranked matchmaking', asyn
     h.connection.desiredMode = '5v5'
     h.connection.lastConnection = { matchId }
     await assert.rejects(() => h.connection.leaveFfa(matchId), /No active FFA/)
-    h.connection.desiredMode = 'ffa'
+    h.connection.ffaMatchIds.add(matchId)
+    h.connection.desiredMode = null // match_found clears queue intent before play
     await assert.rejects(
       () => h.connection.leaveFfa('6c563edf-6908-48d8-bffc-b12001ef99b6'),
       /No active FFA/
@@ -151,6 +153,9 @@ test('FFA leave validates the session and cannot leave ranked matchmaking', asyn
     assert.ok(h.sent.some((message) => message.type === 'leave_ffa' && message.matchId === matchId))
     assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
     assert.equal(h.connection.desiredMode, null)
+    assert.ok(
+      h.events.some((event) => event.type === 'match_cancelled' && event.matchId === matchId)
+    )
     h.connection.cancelledMatchIds.add(matchId)
     h.connection.seenMatchEvents.add(`match_found:${matchId}`)
     h.connection.joinQueue('ffa', ['de_dust2'], false, 'eu', ['eu'])
