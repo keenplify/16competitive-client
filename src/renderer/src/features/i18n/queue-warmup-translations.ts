@@ -1,5 +1,9 @@
 export const queueWarmupTranslations = {
   en: {
+    'ffa.empty': 'No players connected.',
+    'ffa.players': 'Players',
+    'ffa.leave': 'Leave match',
+    'ffa.leaveError': 'Could not leave FFA. Reconnect and try again.',
     'play.competitive': 'Competitive',
     'play.customGame': 'Custom game',
     'play.mapPool': 'Map pool',
@@ -9,7 +13,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'Waiting for leader',
     'matchmaking.regularMaps': 'Regular maps',
     'matchmaking.reviewMaps': 'For review',
-    'warmup.tab': 'Non-competitive',
+    'warmup.tab': 'FFA',
     'warmup.join': 'Find a game',
     'warmup.noMaps': 'No non-competitive maps are currently available.',
     'warmup.mapSelected': 'selected',
@@ -29,6 +33,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'ffa.empty': 'Нет подключённых игроков.',
+    'ffa.players': 'Игроки',
+    'ffa.leave': 'Покинуть матч',
+    'ffa.leaveError': 'Не удалось выйти из FFA. Переподключитесь и попробуйте снова.',
     'play.competitive': 'Соревновательный',
     'play.customGame': 'Своя игра',
     'play.mapPool': 'Набор карт',
@@ -38,7 +46,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'Ждём лидера',
     'matchmaking.regularMaps': 'Обычные карты',
     'matchmaking.reviewMaps': 'На оценку',
-    'warmup.tab': 'Без рейтинга',
+    'warmup.tab': 'FFA',
     'warmup.join': 'Найти игру',
     'warmup.noMaps': 'Карты для игр без рейтинга сейчас недоступны.',
     'warmup.mapSelected': 'выбрана',
@@ -58,6 +66,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'ffa.empty': 'Walang nakakonektang manlalaro.',
+    'ffa.players': 'Mga manlalaro',
+    'ffa.leave': 'Umalis sa match',
+    'ffa.leaveError': 'Hindi makaalis sa FFA. Kumonekta ulit at subukang muli.',
     'play.competitive': 'Kompetitibo',
     'play.customGame': 'Custom game',
     'play.mapPool': 'Mga mapa',
@@ -67,7 +79,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'Hinihintay ang leader',
     'matchmaking.regularMaps': 'Regular maps',
     'matchmaking.reviewMaps': 'Para sa review',
-    'warmup.tab': 'Hindi kompetitibo',
+    'warmup.tab': 'FFA',
     'warmup.join': 'Humanap ng laro',
     'warmup.noMaps': 'Walang available na mapa para sa non-competitive ngayon.',
     'warmup.mapSelected': 'napili',
@@ -87,6 +99,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'ffa.empty': 'ยังไม่มีผู้เล่นเชื่อมต่อ',
+    'ffa.players': 'ผู้เล่น',
+    'ffa.leave': 'ออกจากแมตช์',
+    'ffa.leaveError': 'ออกจาก FFA ไม่สำเร็จ เชื่อมต่อใหม่แล้วลองอีกครั้ง',
     'play.competitive': 'แข่งขัน',
     'play.customGame': 'เกมกำหนดเอง',
     'play.mapPool': 'ชุดแผนที่',
@@ -96,7 +112,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'กำลังรอหัวหน้าทีม',
     'matchmaking.regularMaps': 'แผนที่ทั่วไป',
     'matchmaking.reviewMaps': 'สำหรับรีวิว',
-    'warmup.tab': 'ไม่จัดอันดับ',
+    'warmup.tab': 'FFA',
     'warmup.join': 'ค้นหาเกม',
     'warmup.noMaps': 'ไม่มีแผนที่แบบไม่จัดอันดับในขณะนี้',
     'warmup.mapSelected': 'เลือกแล้ว',
@@ -115,6 +131,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'ffa.empty': 'Belum ada pemain yang terhubung.',
+    'ffa.players': 'Pemain',
+    'ffa.leave': 'Keluar pertandingan',
+    'ffa.leaveError': 'Tidak dapat keluar dari FFA. Hubungkan kembali dan coba lagi.',
     'play.competitive': 'Kompetitif',
     'play.customGame': 'Permainan kustom',
     'play.mapPool': 'Kumpulan peta',
@@ -124,7 +144,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'Menunggu pemimpin',
     'matchmaking.regularMaps': 'Peta reguler',
     'matchmaking.reviewMaps': 'Untuk ulasan',
-    'warmup.tab': 'Nonkompetitif',
+    'warmup.tab': 'FFA',
     'warmup.join': 'Cari permainan',
     'warmup.noMaps': 'Peta nonkompetitif saat ini tidak tersedia.',
     'warmup.mapSelected': 'dipilih',
@@ -144,6 +164,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'ffa.empty': 'Nenhum jogador conectado.',
+    'ffa.players': 'Jogadores',
+    'ffa.leave': 'Sair da partida',
+    'ffa.leaveError': 'Não foi possível sair do FFA. Reconecte e tente novamente.',
     'play.competitive': 'Competitivo',
     'play.customGame': 'Jogo personalizado',
     'play.mapPool': 'Conjunto de mapas',
@@ -153,7 +177,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'Aguardando líder',
     'matchmaking.regularMaps': 'Mapas regulares',
     'matchmaking.reviewMaps': 'Para avaliação',
-    'warmup.tab': 'Não competitivo',
+    'warmup.tab': 'FFA',
     'warmup.join': 'Encontrar jogo',
     'warmup.noMaps': 'Não há mapas não competitivos disponíveis no momento.',
     'warmup.mapSelected': 'selecionado',
@@ -173,6 +197,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'ffa.empty': '接続中のプレイヤーはいません。',
+    'ffa.players': 'プレイヤー',
+    'ffa.leave': 'マッチを退出',
+    'ffa.leaveError': 'FFAから退出できませんでした。再接続して再試行してください。',
     'play.competitive': '対戦',
     'play.customGame': 'カスタムゲーム',
     'play.mapPool': 'マッププール',
@@ -182,7 +210,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'リーダーを待っています',
     'matchmaking.regularMaps': '通常のマップ',
     'matchmaking.reviewMaps': 'レビュー対象',
-    'warmup.tab': 'カジュアル',
+    'warmup.tab': 'FFA',
     'warmup.join': 'ゲームを探す',
     'warmup.noMaps': '現在カジュアル用のマップは利用できません。',
     'warmup.mapSelected': '選択済み',
@@ -201,6 +229,10 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'ffa.empty': 'कोई खिलाड़ी कनेक्ट नहीं है।',
+    'ffa.players': 'खिलाड़ी',
+    'ffa.leave': 'मैच छोड़ें',
+    'ffa.leaveError': 'FFA छोड़ नहीं सके। फिर से कनेक्ट करके दोबारा कोशिश करें।',
     'play.competitive': 'प्रतिस्पर्धी',
     'play.customGame': 'कस्टम गेम',
     'play.mapPool': 'मैप समूह',
@@ -210,7 +242,7 @@ export const queueWarmupTranslations = {
     'play.waitingForLeader': 'लीडर का इंतज़ार',
     'matchmaking.regularMaps': 'नियमित मैप',
     'matchmaking.reviewMaps': 'समीक्षा के लिए',
-    'warmup.tab': 'गैर-प्रतिस्पर्धी',
+    'warmup.tab': 'FFA',
     'warmup.join': 'गेम खोजें',
     'warmup.noMaps': 'अभी गैर-प्रतिस्पर्धी मैप उपलब्ध नहीं हैं।',
     'warmup.mapSelected': 'चयनित',

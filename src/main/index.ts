@@ -925,6 +925,9 @@ app.whenReady().then(async () => {
     matchmakingConnection.joinWarmup(mode, mapIds)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveWarmup, () => matchmakingConnection.leaveWarmup())
+  ipcMain.handle(MATCHMAKING_CHANNELS.leaveFfa, (_event, matchId: unknown) =>
+    matchmakingConnection.leaveFfa(matchId)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.leaveQueue, () => matchmakingConnection.leaveQueue())
   ipcMain.handle(MATCHMAKING_CHANNELS.getQueueStatus, () => matchmakingConnection.getQueueStatus())
   ipcMain.handle(MATCHMAKING_CHANNELS.getMaps, () => getMatchmakingMaps())

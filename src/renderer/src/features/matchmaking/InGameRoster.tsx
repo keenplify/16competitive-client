@@ -8,6 +8,7 @@ import type { PlayerReportReason, QueuedPlayer } from '../../../../shared/matchm
 import { Button } from '../../components/ui/Button'
 import { preferenceFor, useVoicePreferencesStore } from '../voice/voice-preferences.store'
 import { useFriendsStore } from '../friends/friends.store'
+import { useTranslation } from '../i18n/i18n'
 
 const reasons: { value: PlayerReportReason; label: string }[] = [
   { value: 'CHEATING', label: 'Cheating' },
@@ -22,9 +23,17 @@ interface Props {
   teams: { teamA: QueuedPlayer[]; teamB: QueuedPlayer[] }
   currentPlayerId: string
   className?: string
+  freeForAll?: boolean
 }
 
-export function InGameRoster({ matchId, teams, currentPlayerId, className }: Props): JSX.Element {
+export function InGameRoster({
+  matchId,
+  teams,
+  currentPlayerId,
+  className,
+  freeForAll = false
+}: Props): JSX.Element {
+  const { t } = useTranslation()
   const preferences = useVoicePreferencesStore((state) => state.preferences)
   const setPreference = useVoicePreferencesStore((state) => state.setPreference)
   const [target, setTarget] = useState<QueuedPlayer | null>(null)
@@ -94,18 +103,28 @@ export function InGameRoster({ matchId, teams, currentPlayerId, className }: Pro
 
   return (
     <>
-      <div className={twMerge('grid gap-4 md:grid-cols-2', className)}>
+      <div className={twMerge('grid gap-4', !freeForAll && 'md:grid-cols-2', className)}>
         {(
-          [
-            ['Team A', teams.teamA],
-            ['Team B', teams.teamB]
-          ] as const
+          (freeForAll
+            ? [[t('ffa.players'), [...teams.teamA, ...teams.teamB]]]
+            : [
+                ['Team A', teams.teamA],
+                ['Team B', teams.teamB]
+              ]) as [string, QueuedPlayer[]][]
         ).map(([name, players]) => (
           <section key={name} className=" border border-white/10 bg-neutral-900/90 p-5">
             <h2 className="mb-4 text-xs font-bold tracking-[0.18em] text-neutral-400 uppercase">
               {name}
             </h2>
-            <ul className="space-y-2">
+            <ul
+              className={twMerge(
+                'space-y-2',
+                freeForAll && 'h-80 max-h-[40vh] overflow-y-auto pr-1'
+              )}
+            >
+              {freeForAll && players.length === 0 && (
+                <li className="p-3 text-sm text-neutral-400">{t('ffa.empty')}</li>
+              )}
               {players.map((player) => {
                 const own = player.id === currentPlayerId
                 const preference = preferenceFor(preferences, player.id)

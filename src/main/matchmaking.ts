@@ -697,6 +697,7 @@ class MatchmakingConnection {
   private authenticatedPlayer: QueuedPlayer | null = null
   private recoveryStatusPending = false
   private lastConnection: MatchConnection | null = null
+  private readonly leftFfaMatchIds = new Set<string>()
   private manualConnectionMatchId: string | null = null
   private matchEndTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
@@ -885,6 +886,13 @@ class MatchmakingConnection {
       throw new Error('Invalid regional search preference')
     if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
     if (!isEligibleRegions(eligibleRegions)) throw new Error('Invalid eligible matchmaking regions')
+    if (mode === 'ffa') {
+      for (const matchId of this.leftFfaMatchIds) {
+        this.cancelledMatchIds.delete(matchId)
+        this.seenMatchEvents.delete(`match_found:${matchId}`)
+      }
+      this.leftFfaMatchIds.clear()
+    }
     this.desiredMode = mode
     this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
@@ -910,6 +918,25 @@ class MatchmakingConnection {
     this.desiredPreferredRegion = null
     this.desiredEligibleRegions = []
     this.send({ type: 'leave_queue' })
+  }
+
+  async leaveFfa(matchId: unknown): Promise<void> {
+    if (typeof matchId !== 'string' || !uuidPattern.test(matchId))
+      throw new Error('Invalid FFA session')
+    if (this.warmupMatchId === matchId) {
+      const socket = this.warmupSocket
+      if (socket?.readyState !== WebSocket.OPEN) throw new Error('Reconnect before leaving FFA')
+      socket.send(JSON.stringify({ type: 'leave_ffa', matchId }))
+      await this.leaveWarmup()
+      return
+    }
+    if (this.desiredMode !== 'ffa' || this.lastConnection?.matchId !== matchId)
+      throw new Error('No active FFA session to leave')
+    this.send({ type: 'leave_ffa', matchId })
+    this.leftFfaMatchIds.add(matchId)
+    this.desiredMode = null
+    this.desiredMapIds = []
+    this.closeGameForMatch(matchId)
   }
 
   getQueueStatus(): void {

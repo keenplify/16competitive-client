@@ -16,6 +16,7 @@ export const MATCHMAKING_CHANNELS = {
   leaveQueue: 'matchmaking:leave-queue',
   joinWarmup: 'matchmaking:join-warmup',
   leaveWarmup: 'matchmaking:leave-warmup',
+  leaveFfa: 'matchmaking:leave-ffa',
   playWithBots: 'matchmaking:play-with-bots',
   getQueueStatus: 'matchmaking:get-queue-status',
   getMaps: 'matchmaking:get-maps',
@@ -418,6 +419,7 @@ export type MatchmakingEvent = { whileQueued?: boolean } & (
 export interface MatchmakingApi {
   joinWarmup(mode: MatchmakingMode, mapIds: string | string[]): Promise<void>
   leaveWarmup(): Promise<void>
+  leaveFfa(matchId: string): Promise<void>
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>
   getOnlinePlayers(): Promise<number>

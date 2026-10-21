@@ -33,6 +33,9 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
       api: {
         gameSettings: { get: settings ?? (async () => ({ cs16ExecutablePath: '/games/hl' })) },
         matchmaking: {
+          async leaveFfa(matchId) {
+            requests.push(['leave_ffa', matchId])
+          },
           onEvent(listener) {
             emit = listener
             return () => {}
@@ -134,6 +137,51 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
   })
   return { store, completed, requests, emit: (message) => emit(message) }
 }
+
+test('FFA can leave after game exit, updates its roster, and rejoin the same public round', async () => {
+  const h = await harness()
+  const found = {
+    type: 'match_found',
+    matchId: 'public-round',
+    mode: 'ffa',
+    mapId: 'de_dust2',
+    region: 'sea',
+    hostApiUrl: 'https://sea.invalid',
+    teams: { teamA: [{ id: 'self', username: 'Player' }], teamB: [] }
+  }
+  h.emit(found)
+  h.emit({
+    ...found,
+    teams: { teamA: [{ id: 'bot', username: 'Bot' }], teamB: [] },
+    type: 'match_roster'
+  })
+  assert.equal(h.store.getState().match.teams.teamA[0].id, 'bot')
+  h.emit({
+    type: 'match_connect',
+    matchId: found.matchId,
+    host: '192.0.2.1',
+    port: 27020,
+    password: ''
+  })
+  h.emit({ type: 'game_process_exited', matchId: found.matchId, code: 0, signal: null })
+  await h.store.getState().leaveFfa()
+  assert.equal(h.requests[0][0], 'leave_ffa')
+  h.emit({
+    type: 'match_cancelled',
+    matchId: found.matchId,
+    reason: 'PLAYER_DECLINED',
+    message: 'Left FFA.'
+  })
+  assert.equal(h.store.getState().match, null)
+  assert.equal(h.store.getState().queueStatus, 'idle')
+  assert.equal(h.store.getState().error, null)
+  h.store.setState({ queueStatus: 'joining' })
+  h.emit(found)
+  assert.equal(h.store.getState().match.matchId, found.matchId)
+  h.store.setState({ match: { ...found, mode: '5v5' } })
+  await h.store.getState().leaveFfa()
+  assert.equal(h.requests.length, 1)
+})
 
 test('Arena queue again uses the saved pool and region only after consent', async () => {
   const h = await harness({ savedMaps: ['fy_pool_day', 'fy_iceworld'] })

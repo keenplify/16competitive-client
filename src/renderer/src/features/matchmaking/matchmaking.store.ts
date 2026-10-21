@@ -151,6 +151,8 @@ interface MatchmakingState {
   joinQueue: (options?: { keepCompletedMatch?: boolean }) => Promise<void>
   queueAgain: () => Promise<boolean>
   leaveQueue: () => Promise<void>
+  leaveFfa: () => Promise<void>
+  leavingFfa: boolean
   respondReady: (accepted: boolean) => Promise<void>
   reconnectGame: () => Promise<void>
   copyConnection: () => Promise<void>
@@ -319,6 +321,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         break
       case 'match_found':
+        if (event.mode === 'ffa' && get().queueStatus === 'joining')
+          terminalMatchIds.delete(event.matchId)
         if (terminalMatchIds.has(event.matchId)) break
         set({
           queueStatus: 'match_found',
@@ -536,7 +540,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 connectionDetails: null,
                 matchReadyAt: null,
                 gameExited: false,
-                error: event.message
+                error:
+                  state.match?.mode === 'ffa' && event.reason === 'PLAYER_DECLINED'
+                    ? null
+                    : event.message
               }
         )
         break
@@ -1035,6 +1042,20 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         gameExited: false,
         error: null
       })
+    },
+
+    leavingFfa: false,
+    leaveFfa: async () => {
+      const match = get().match
+      if (!match || match.mode !== 'ffa' || get().leavingFfa) return
+      set({ leavingFfa: true, error: null })
+      try {
+        await window.api.matchmaking.leaveFfa(match.matchId)
+      } catch {
+        set({ error: translate(useLanguageStore.getState().language, 'ffa.leaveError') })
+      } finally {
+        set({ leavingFfa: false })
+      }
     },
 
     dismissCompletedMatch: () =>

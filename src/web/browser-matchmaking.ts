@@ -394,6 +394,11 @@ export const browserMatchmakingApi: MatchmakingApi = {
     warmupConnection = null
     warmupMatchId = null
   },
+  async leaveFfa(matchId) {
+    if (!/^[a-f0-9-]{36}$/i.test(matchId)) throw new Error('Invalid FFA session')
+    await openSocket()
+    send({ type: 'leave_ffa', matchId })
+  },
   connect: openSocket,
 
   getNodes,

@@ -91,6 +91,8 @@ export function PlayPage({
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
+  const leaveFfa = useMatchmakingStore((state) => state.leaveFfa)
+  const leavingFfa = useMatchmakingStore((state) => state.leavingFfa)
   const requestOfflineQueue = useOfflineQueuePromptStore((state) => state.requestQueue)
   const checkingDiscord = useOfflineQueuePromptStore((state) => state.checking)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
@@ -343,6 +345,7 @@ export function PlayPage({
               matchId={match.matchId}
               teams={match.teams}
               currentPlayerId={player.id}
+              freeForAll={match.mode === 'ffa'}
             />
           ) : match ? (
             <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -365,6 +368,21 @@ export function PlayPage({
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3">
+              {match?.mode === 'ffa' && (
+                <Button
+                  className="w-full gap-2"
+                  variant="secondary"
+                  disabled={leavingFfa}
+                  onClick={() => void leaveFfa()}
+                >
+                  {leavingFfa ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <LogOut className="size-4" aria-hidden="true" />
+                  )}
+                  {t('ffa.leave')}
+                </Button>
+              )}
               <Button
                 className="w-full "
                 disabled={
@@ -596,7 +614,7 @@ export function PlayPage({
               if (!isSearching) {
                 if (view === 'competitive') selectMode('5v5')
                 else if (selectedMode === '5v5' && noncompetitiveModes[0])
-                  selectMode(noncompetitiveModes[0])
+                  selectMode(noncompetitiveModes.includes('ffa') ? 'ffa' : noncompetitiveModes[0])
               }
             }
           }}
