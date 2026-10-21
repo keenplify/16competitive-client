@@ -2922,3 +2922,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Operations
 
 - Improved visibility of operation rewards.
+
+## v2026.1021.1 — 2026-10-21
+
+### Custom Games
+
+- Added profile statistics for custom game modes.
+- Refined custom game creation and room settings dialogs.
+- Improved custom game translations and validation.
+
+### Interface
+
+- Reduced outer spacing in VGUI2 Settings and Demos screens.
+- Improved modal headers and notification presentation.
