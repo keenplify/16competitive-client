@@ -128,13 +128,12 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     })),
     nodes: [{ id: 'node', region: 'asia', available: true, latencyMs: 40 }],
     selectedNodeId: 'node',
-    allowRegionExpansion: false,
-    preferHumans: true
+    allowRegionExpansion: false
   })
   return { store, completed, requests, emit: (message) => emit(message) }
 }
 
-test('Arena queue again uses the saved pool, region and human preference only after consent', async () => {
+test('Arena queue again uses the saved pool and region only after consent', async () => {
   const h = await harness({ savedMaps: ['fy_pool_day', 'fy_iceworld'] })
   h.emit({ type: 'match_finished', ...h.completed })
   assert.equal(h.requests.length, 0)
@@ -144,8 +143,7 @@ test('Arena queue again uses the saved pool, region and human preference only af
     ['fy_pool_day', 'fy_iceworld'],
     false,
     'asia',
-    ['asia'],
-    true
+    ['asia']
   ])
   assert.equal(h.store.getState().completedMatch, null)
 })
@@ -242,7 +240,7 @@ test('decline requeue restores original wait and clears the ready check without 
       mapIds: ['de_dust2', 'de_inferno'],
       region: 'sg',
       allowRegionExpansion: true,
-      preferHumans: true,
+      botFillOptIn: true,
       queuedAt: '2026-10-20T00:00:00Z'
     }
     if (!replayFirst) h.emit(cancelled)
@@ -254,7 +252,7 @@ test('decline requeue restores original wait and clears the ready check without 
     assert.equal(h.store.getState().match, null)
     assert.equal(h.store.getState().readyDeadline, null)
     assert.equal(h.store.getState().readyResponse, 'pending')
-    assert.equal(h.store.getState().preferHumans, true)
+    assert.equal(h.store.getState().botFillOptIn, true)
     assert.equal(h.store.getState().error, null)
     assert.equal(h.requests.length, 0)
   }
