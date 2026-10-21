@@ -479,25 +479,30 @@ export function LobbyPage(): JSX.Element {
         >
           <LauncherWindow
             icon={pageIcons[requiresGameSetup ? 'settings' : page]}
-            title={t(
-              page === 'communities'
-                ? 'directory.title'
-                : page === 'profile'
-                  ? 'nav.inventory'
-                  : page === 'demos'
-                    ? 'nav.demos'
-                    : page === 'leaderboard'
-                      ? 'nav.leaderboard'
-                      : page === 'store'
-                        ? 'nav.store'
-                        : page === 'news'
-                          ? 'nav.news'
-                          : page === 'settings' || requiresGameSetup
-                            ? 'nav.settings'
-                            : page === 'play'
-                              ? 'nav.play'
-                              : 'nav.home'
-            )}
+            fitContent={Boolean(completedMatch && !requiresGameSetup)}
+            title={
+              completedMatch && !requiresGameSetup
+                ? t('theme.matchResults')
+                : t(
+                    page === 'communities'
+                      ? 'directory.title'
+                      : page === 'profile'
+                        ? 'nav.inventory'
+                        : page === 'demos'
+                          ? 'nav.demos'
+                          : page === 'leaderboard'
+                            ? 'nav.leaderboard'
+                            : page === 'store'
+                              ? 'nav.store'
+                              : page === 'news'
+                                ? 'nav.news'
+                                : page === 'settings' || requiresGameSetup
+                                  ? 'nav.settings'
+                                  : page === 'play'
+                                    ? 'nav.play'
+                                    : 'nav.home'
+                  )
+            }
             className="max-w-[1440px]"
             hostClassName={
               matchNavigationLocked

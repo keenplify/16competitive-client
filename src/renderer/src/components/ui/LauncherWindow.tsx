@@ -1,5 +1,5 @@
 import { VguiScrollbar } from './VguiScrollbar'
-import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { Monitor, X, type LucideIcon } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { useLauncherThemeStore } from '../../features/settings/launcher-theme.store'
@@ -13,6 +13,7 @@ interface LauncherWindowProps {
   onClose?: () => void
   className?: string
   hostClassName?: string
+  fitContent?: boolean
 }
 
 /** Optional, nonmodal VGUI desktop window; modern layouts render unchanged. */
@@ -22,15 +23,42 @@ export function LauncherWindow({
   children,
   onClose,
   className,
-  hostClassName
+  hostClassName,
+  fitContent = false
 }: LauncherWindowProps): JSX.Element {
   const theme = useLauncherThemeStore((state) => state.theme)
   const activate = useWindowFocusStore((state) => state.activate)
   const { t } = useTranslation()
   const frame = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const fitRef = useRef<HTMLDivElement>(null)
+  const [fit, setFit] = useState({ scale: 1, width: 0 })
   const drag = useRef<{ x: number; y: number } | null>(null)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+
+  useLayoutEffect(() => {
+    if (theme !== 'vgui2' || !fitContent) return
+    const windowFrame = frame.current
+    const content = contentRef.current
+    const inner = fitRef.current
+    const host = windowFrame?.parentElement
+    if (!windowFrame || !content || !inner || !host) return
+    const measure = (): void => {
+      const titlebar = windowFrame.querySelector<HTMLElement>('.vgui-window-titlebar')
+      const availableHeight = Math.max(1, host.clientHeight - (titlebar?.offsetHeight ?? 0) - 10)
+      const width = content.clientWidth
+      const scale = Math.min(1, availableHeight / Math.max(1, inner.offsetHeight))
+      setFit((previous) =>
+        previous.scale === scale && previous.width === width ? previous : { scale, width }
+      )
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(host)
+    observer.observe(content)
+    observer.observe(inner)
+    measure()
+    return () => observer.disconnect()
+  }, [fitContent, theme])
 
   useEffect(() => {
     if (theme === 'vgui2') activate('page')
@@ -118,10 +146,23 @@ export function LauncherWindow({
           )}
         </div>
         <div className="vgui-window-body">
-          <div ref={contentRef} className="vgui-window-content">
-            {children}
+          <div
+            ref={contentRef}
+            className={twMerge('vgui-window-content', fitContent && 'vgui-window-fit')}
+          >
+            {fitContent ? (
+              <div
+                ref={fitRef}
+                className="shrink-0"
+                style={{ zoom: fit.scale, width: fit.width || '100%' }}
+              >
+                {children}
+              </div>
+            ) : (
+              children
+            )}
           </div>
-          <VguiScrollbar contentRef={contentRef} />
+          {!fitContent && <VguiScrollbar contentRef={contentRef} />}
         </div>
       </div>
     </div>

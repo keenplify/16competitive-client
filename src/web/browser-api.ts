@@ -884,11 +884,13 @@ const api: Window['api'] = {
     async submitSurvey(
       matchId: string,
       funRating: number,
-      fairnessRating: number
+      fairnessRating: number,
+      comment?: string
     ): Promise<MatchSurveySubmission> {
       return jsonPost<MatchSurveySubmission>(`/profile/matches/${matchId}/survey`, {
         funRating,
-        fairnessRating
+        fairnessRating,
+        comment: comment?.trim()
       })
     }
   },

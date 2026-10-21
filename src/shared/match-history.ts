@@ -56,6 +56,7 @@ export interface MatchSummary {
 }
 
 export interface MatchSurvey {
+  comment?: string | null
   funRating: number
   fairnessRating: number
   createdAt: string
@@ -149,6 +150,7 @@ export interface MatchHistoryApi {
   submitSurvey(
     matchId: string,
     funRating: number,
-    fairnessRating: number
+    fairnessRating: number,
+    comment?: string
   ): Promise<MatchSurveySubmission>
 }

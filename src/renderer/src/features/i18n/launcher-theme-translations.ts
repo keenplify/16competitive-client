@@ -1,5 +1,6 @@
 export const launcherThemeTranslations = {
   en: {
+    'theme.matchResults': 'Match results',
     'theme.scrollUp': 'Scroll up',
     'theme.scrollDown': 'Scroll down',
     'theme.scroll': 'Window scroll position',
@@ -17,6 +18,7 @@ export const launcherThemeTranslations = {
     'theme.help': 'Applies immediately and saves on this device. Change it anytime in Settings.'
   },
   ru: {
+    'theme.matchResults': 'Результаты матча',
     'theme.scrollUp': 'Прокрутить вверх',
     'theme.scrollDown': 'Прокрутить вниз',
     'theme.scroll': 'Положение прокрутки окна',
@@ -35,6 +37,7 @@ export const launcherThemeTranslations = {
     'theme.help': 'Применяется сразу и сохраняется на этом устройстве. Можно изменить в настройках.'
   },
   tl: {
+    'theme.matchResults': 'Mga resulta ng match',
     'theme.scrollUp': 'I-scroll pataas',
     'theme.scrollDown': 'I-scroll pababa',
     'theme.scroll': 'Scroll position ng window',
@@ -53,6 +56,7 @@ export const launcherThemeTranslations = {
     'theme.help': 'Agad na ginagamit at naka-save sa device na ito. Puwedeng palitan sa Settings.'
   },
   th: {
+    'theme.matchResults': 'ผลการแข่งขัน',
     'theme.scrollUp': 'เลื่อนขึ้น',
     'theme.scrollDown': 'เลื่อนลง',
     'theme.scroll': 'ตำแหน่งการเลื่อนหน้าต่าง',
@@ -70,6 +74,7 @@ export const launcherThemeTranslations = {
     'theme.help': 'มีผลทันทีและบันทึกในอุปกรณ์นี้ เปลี่ยนได้ทุกเมื่อในการตั้งค่า'
   },
   id: {
+    'theme.matchResults': 'Hasil pertandingan',
     'theme.scrollUp': 'Gulir ke atas',
     'theme.scrollDown': 'Gulir ke bawah',
     'theme.scroll': 'Posisi gulir jendela',
@@ -89,6 +94,7 @@ export const launcherThemeTranslations = {
       'Langsung diterapkan dan disimpan di perangkat ini. Ubah kapan saja di Pengaturan.'
   },
   hi: {
+    'theme.matchResults': 'मैच के नतीजे',
     'theme.scrollUp': 'ऊपर स्क्रॉल करें',
     'theme.scrollDown': 'नीचे स्क्रॉल करें',
     'theme.scroll': 'विंडो की स्क्रॉल स्थिति',
@@ -107,6 +113,7 @@ export const launcherThemeTranslations = {
     'theme.help': 'तुरंत लागू होता है और इस डिवाइस पर सेव रहता है। सेटिंग में कभी भी बदलें।'
   },
   pt: {
+    'theme.matchResults': 'Resultados da partida',
     'theme.scrollUp': 'Rolar para cima',
     'theme.scrollDown': 'Rolar para baixo',
     'theme.scroll': 'Posição de rolagem da janela',
@@ -125,6 +132,7 @@ export const launcherThemeTranslations = {
       'Aplicado na hora e salvo neste dispositivo. Altere quando quiser nas Configurações.'
   },
   ja: {
+    'theme.matchResults': '試合結果',
     'theme.scrollUp': '上にスクロール',
     'theme.scrollDown': '下にスクロール',
     'theme.scroll': 'ウィンドウのスクロール位置',

@@ -4,6 +4,8 @@ import { toast } from 'react-toastify'
 import type { MatchmakingMode } from '../../../../shared/matchmaking'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { TextAreaField } from '../../components/ui/TextAreaField'
+import { useTranslation } from '../i18n/i18n'
 import { PromptCard } from '../../components/ui/PromptCard'
 import { useAuthStore } from '../auth/auth.store'
 import { deferMatchSurveyForSession, isMatchSurveyDeferredForSession } from './match-survey-session'
@@ -25,9 +27,11 @@ export function MatchSurveyPrompt({
   onAnswered,
   onDeferred
 }: MatchSurveyPromptProps): JSX.Element | null {
+  const { t } = useTranslation()
   const refreshSession = useAuthStore((state) => state.refreshSession)
   const [funRating, setFunRating] = useState<number | null>(null)
   const [fairnessRating, setFairnessRating] = useState<number | null>(null)
+  const [comment, setComment] = useState('')
   const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(() =>
     isMatchSurveyDeferredForSession() ? 'submitted' : 'loading'
   )
@@ -69,7 +73,7 @@ export function MatchSurveyPrompt({
     if (funRating === null || fairnessRating === null || status === 'submitting') return
     setStatus('submitting')
     void window.api.matchHistory
-      .submitSurvey(matchId, funRating, fairnessRating)
+      .submitSurvey(matchId, funRating, fairnessRating, comment)
       .then((result) => {
         setStatus('submitted')
         void refreshSession()
@@ -117,6 +121,18 @@ export function MatchSurveyPrompt({
                 value={fairnessRating}
                 labels={['Very unfair', 'Unfair', 'Neutral', 'Fair', 'Very fair']}
                 onChange={setFairnessRating}
+              />
+            </div>
+            <div className="mt-4">
+              <TextAreaField
+                label={t('mapFeedback.commentLabel')}
+                placeholder={t('mapFeedback.commentPlaceholder')}
+                hint={t('mapFeedback.commentLimit')}
+                rows={3}
+                maxLength={2000}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                disabled={status === 'submitting'}
               />
             </div>
           </div>

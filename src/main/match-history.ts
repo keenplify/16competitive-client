@@ -88,6 +88,9 @@ const isMatchSurvey = (value: unknown): value is MatchSurvey => {
     Number.isInteger(survey.fairnessRating) &&
     survey.fairnessRating >= 1 &&
     survey.fairnessRating <= 5 &&
+    (survey.comment === undefined ||
+      survey.comment === null ||
+      (typeof survey.comment === 'string' && survey.comment.length <= 2000)) &&
     typeof survey.createdAt === 'string' &&
     typeof survey.updatedAt === 'string'
   )
@@ -266,7 +269,8 @@ export const getMatchSurvey = async (matchId: unknown): Promise<MatchSurveyStatu
 export const submitMatchSurvey = async (
   matchId: unknown,
   funRating: unknown,
-  fairnessRating: unknown
+  fairnessRating: unknown,
+  comment?: unknown
 ): Promise<MatchSurveySubmission> => {
   if (typeof matchId !== 'string' || !/^[0-9a-f-]{36}$/i.test(matchId)) {
     throw new Error('Invalid match ID')
@@ -283,6 +287,9 @@ export const submitMatchSurvey = async (
   ) {
     throw new Error('Choose both feedback ratings.')
   }
+  if (comment !== undefined && (typeof comment !== 'string' || comment.length > 2000)) {
+    throw new Error('Map feedback must be 2,000 characters or fewer.')
+  }
   const token = getSessionToken()
   if (!token) throw new Error('Sign in before rating a map')
   const response = await fetch(`${API_BASE_URL}/profile/matches/${matchId}/survey`, {
@@ -291,7 +298,7 @@ export const submitMatchSurvey = async (
       authorization: `Bearer ${token}`,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({ funRating, fairnessRating }),
+    body: JSON.stringify({ funRating, fairnessRating, comment: comment?.trim() }),
     signal: AbortSignal.timeout(10_000)
   }).catch(() => {
     throw new Error('Could not reach the matchmaking server')

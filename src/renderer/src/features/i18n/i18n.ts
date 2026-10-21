@@ -1,3 +1,4 @@
+import { mapFeedbackTranslations } from './map-feedback-translations'
 import { matchNotificationTranslations } from './match-notification-translations'
 import { customGameTranslations } from './custom-game-translations'
 import { launcherThemeTranslations } from './launcher-theme-translations'
@@ -47,6 +48,7 @@ const english = {
   ...roomSettingsTranslations.en,
   ...queueAgainTranslations.en,
   ...launcherThemeTranslations.en,
+  ...mapFeedbackTranslations.en,
   ...queueWarmupTranslations.en,
   ...legacyGameTranslations.en,
   ...steamTranslations.en,
@@ -214,6 +216,7 @@ const russian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ru,
   ...queueAgainTranslations.ru,
   ...launcherThemeTranslations.ru,
+  ...mapFeedbackTranslations.ru,
   ...queueWarmupTranslations.ru,
   ...legacyGameTranslations.ru,
   ...steamTranslations.ru,
@@ -381,6 +384,7 @@ const taglish: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.tl,
   ...queueAgainTranslations.tl,
   ...launcherThemeTranslations.tl,
+  ...mapFeedbackTranslations.tl,
   ...queueWarmupTranslations.tl,
   ...legacyGameTranslations.tl,
   ...steamTranslations.tl,
@@ -550,6 +554,7 @@ const thai: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.th,
   ...queueAgainTranslations.th,
   ...launcherThemeTranslations.th,
+  ...mapFeedbackTranslations.th,
   ...queueWarmupTranslations.th,
   ...legacyGameTranslations.th,
   ...steamTranslations.th,
@@ -714,6 +719,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.id,
   ...queueAgainTranslations.id,
   ...launcherThemeTranslations.id,
+  ...mapFeedbackTranslations.id,
   ...queueWarmupTranslations.id,
   ...legacyGameTranslations.id,
   ...steamTranslations.id,
@@ -886,6 +892,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.pt,
   ...queueAgainTranslations.pt,
   ...launcherThemeTranslations.pt,
+  ...mapFeedbackTranslations.pt,
   ...queueWarmupTranslations.pt,
   ...legacyGameTranslations.pt,
   ...steamTranslations.pt,
@@ -1058,6 +1065,7 @@ const japanese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ja,
   ...queueAgainTranslations.ja,
   ...launcherThemeTranslations.ja,
+  ...mapFeedbackTranslations.ja,
   ...queueWarmupTranslations.ja,
   ...legacyGameTranslations.ja,
   ...steamTranslations.ja,
@@ -1228,6 +1236,7 @@ const hindi: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.hi,
   ...queueAgainTranslations.hi,
   ...launcherThemeTranslations.hi,
+  ...mapFeedbackTranslations.hi,
   ...queueWarmupTranslations.hi,
   ...legacyGameTranslations.hi,
   ...steamTranslations.hi,

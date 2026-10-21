@@ -1,6 +1,7 @@
 import { useProfileStore } from '../profile/profile.store'
 import { ArrowRight, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -146,7 +147,10 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
   }
 
   return (
-    <section className="relative min-h-[calc(100vh-5rem)] bg-transparent px-5 py-10 text-center text-white">
+    <section
+      data-match-results={resultsStep}
+      className="relative min-h-[calc(100vh-5rem)] bg-transparent px-5 py-10 text-center text-white"
+    >
       <div
         className={`pointer-events-none fixed inset-0 z-0 ${resultsBackgroundClass}`}
         aria-hidden="true"
@@ -158,7 +162,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       <PlayWindowMatchResult rewards={rewards} className="absolute top-4 right-5 z-20" />
 
       {resultsStep === 'missions' && (
-        <div className="relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center py-8">
+        <div className="match-rewards-stage relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center py-8">
           <div className="w-full max-w-3xl text-left">
             <div className="mb-7 flex items-end justify-between gap-6 px-1">
               <div>
@@ -370,37 +374,39 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         />
       )}
 
-      {contextMenu && (
-        <div
-          className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          role="menu"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
-            role="menuitem"
-            onClick={() => openPlayerProfile(contextMenu.playerId)}
+      {contextMenu &&
+        createPortal(
+          <div
+            className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            role="menu"
+            onClick={(event) => event.stopPropagation()}
           >
-            <UserRound className="size-4 text-sky-300" aria-hidden="true" /> View profile
-          </button>
-          {contextMenu.playerId !== currentPlayerId && (
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-white/35"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
               role="menuitem"
-              disabled={friends.some((friend) => friend.id === contextMenu.playerId)}
-              onClick={() => addFriend(contextMenu.playerId)}
+              onClick={() => openPlayerProfile(contextMenu.playerId)}
             >
-              <UserPlus className="size-4 text-emerald-300" aria-hidden="true" />
-              {friends.some((friend) => friend.id === contextMenu.playerId)
-                ? 'Already friends'
-                : 'Add friend'}
+              <UserRound className="size-4 text-sky-300" aria-hidden="true" /> View profile
             </button>
-          )}
-        </div>
-      )}
+            {contextMenu.playerId !== currentPlayerId && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-white/35"
+                role="menuitem"
+                disabled={friends.some((friend) => friend.id === contextMenu.playerId)}
+                onClick={() => addFriend(contextMenu.playerId)}
+              >
+                <UserPlus className="size-4 text-emerald-300" aria-hidden="true" />
+                {friends.some((friend) => friend.id === contextMenu.playerId)
+                  ? 'Already friends'
+                  : 'Add friend'}
+              </button>
+            )}
+          </div>,
+          document.body
+        )}
     </section>
   )
 }

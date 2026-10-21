@@ -723,6 +723,40 @@
   min-height: 176px;
 }
 
+/* Results fit the available desktop, with no scrolling or backdrop over chrome. */
+:root[data-launcher-theme='vgui2'] .vgui-page-window-host > .vgui-window:has([data-match-results]) {
+  max-width: 960px;
+  height: auto;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-body > .vgui-window-fit {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: clip;
+}
+
+:root[data-launcher-theme='vgui2'] [data-match-results] {
+  min-height: 0;
+  padding: 20px;
+  isolation: isolate;
+  background: var(--vgui-face);
+}
+
+:root[data-launcher-theme='vgui2'] [data-match-results] > .pointer-events-none[aria-hidden='true'] {
+  display: none;
+}
+
+:root[data-launcher-theme='vgui2'] .match-rewards-stage {
+  min-height: 0;
+  padding: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .match-rewards-stage > div > section {
+  padding: 16px;
+  box-shadow: var(--vgui-sunken);
+}
+
 :root[data-launcher-theme='vgui2'] .vgui-window-content header {
   filter: none;
   text-shadow: none;

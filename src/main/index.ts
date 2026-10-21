@@ -995,8 +995,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getPendingSurvey, () => getPendingMatchSurvey())
   ipcMain.handle(
     MATCH_HISTORY_CHANNELS.submitSurvey,
-    (_, matchId: unknown, funRating: unknown, fairnessRating: unknown) =>
-      submitMatchSurvey(matchId, funRating, fairnessRating)
+    (_, matchId: unknown, funRating: unknown, fairnessRating: unknown, comment: unknown) =>
+      submitMatchSurvey(matchId, funRating, fairnessRating, comment)
   )
   ipcMain.handle(COMMUNITY_DIRECTORY_CHANNELS.leave, (_, expected: unknown) =>
     leaveCommunity(expected)

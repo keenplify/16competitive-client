@@ -285,8 +285,14 @@ const matchHistory: MatchHistoryApi = {
     ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getPlayerProfile, playerId),
   getSurvey: (matchId) => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getSurvey, matchId),
   getPendingSurvey: () => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getPendingSurvey),
-  submitSurvey: (matchId, funRating, fairnessRating) =>
-    ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.submitSurvey, matchId, funRating, fairnessRating)
+  submitSurvey: (matchId, funRating, fairnessRating, comment) =>
+    ipcRenderer.invoke(
+      MATCH_HISTORY_CHANNELS.submitSurvey,
+      matchId,
+      funRating,
+      fairnessRating,
+      comment
+    )
 }
 
 const skins: SkinsApi = {
