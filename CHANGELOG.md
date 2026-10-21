@@ -2985,3 +2985,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved queue warmup status and controls.
 - Added a post-match results flow.
+
+## v2026.1021.6 — 2026-10-21
+
+### Free-for-All
+
+- See the players currently in your FFA session.
+- Leave an active FFA session when needed.
+
+### Match Results
+
+- View match results correctly in VGUI2.
+
+### Map Feedback
+
+- Submit written feedback about the map after a match.
