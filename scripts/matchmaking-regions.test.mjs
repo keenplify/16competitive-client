@@ -1,3 +1,4 @@
+import { parseMatchmakingActivity } from '../src/shared/matchmaking-activity.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -37,6 +38,7 @@ async function loadRegionsModule({
       }
     },
     'node:path': { dirname: () => '/tmp', join: () => '/tmp/matchmaking-preferences.json' },
+    '../shared/matchmaking-activity': { parseMatchmakingActivity },
     './auth': { getSessionToken: () => token },
     './config': { API_BASE_URL: 'https://bootstrap.example', LOCAL_DEVELOPMENT: false },
     './backend-policy': { isLoopbackBackend: () => false }
@@ -59,6 +61,11 @@ async function loadRegionsModule({
         if (bootstrapFails) throw new Error('Primary node discovery unavailable')
         return { ok: true, json: async () => ({ nodes }) }
       }
+      if (url.endsWith('/stats/matchmaking-activity'))
+        return {
+          ok: true,
+          json: async () => ({ region: 'euw', inGamePlayers: 3, queuedPlayers: 2 })
+        }
       if (url.endsWith('/nodes')) return { ok: true, json: async () => ({ nodes }) }
       if (probeFails) throw new Error('Node unreachable')
       return { ok: true }
@@ -172,4 +179,18 @@ test('SEA fallback requires two failed rounds for every bundled region', async (
 test('total outage fails instead of returning an unchecked SEA endpoint', async () => {
   const regions = await loadRegionsModule({ serviceFails: ['https://'] })
   await assert.rejects(regions.resolveServiceApiUrl(), /Could not reach/)
+})
+
+test('activity counts use the selected regional service instead of bootstrap', async () => {
+  const requests = []
+  const regions = await loadRegionsModule({
+    selectedNodeId: 'warsaw',
+    nodes: [node('warsaw', 42)],
+    requests
+  })
+  const activity = await regions.getMatchmakingActivity()
+  assert.equal(activity.inGamePlayers, 3)
+  assert.equal(activity.queuedPlayers, 2)
+  assert.ok(requests.includes('https://warsaw.example/stats/matchmaking-activity'))
+  assert.ok(!requests.includes('https://bootstrap.example/stats/matchmaking-activity'))
 })

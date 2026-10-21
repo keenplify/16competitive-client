@@ -1,3 +1,4 @@
+import { matchNotificationTranslations } from './match-notification-translations'
 import { customGameTranslations } from './custom-game-translations'
 import { launcherThemeTranslations } from './launcher-theme-translations'
 import { passwordResetTranslations } from './password-reset-translations'
@@ -63,6 +64,7 @@ const english = {
   ...gameDisplayTranslations.en,
   ...fastSwitchTranslations.en,
   ...discordNotificationTranslations.en,
+  ...matchNotificationTranslations.en,
   ...playerPingTranslations.en,
   ...paymentTranslations.en,
   ...profileTranslations.en,
@@ -229,6 +231,7 @@ const russian: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.ru,
   ...fastSwitchTranslations.ru,
   ...discordNotificationTranslations.ru,
+  ...matchNotificationTranslations.ru,
   ...playerPingTranslations.ru,
   ...paymentTranslations.ru,
   ...profileTranslations.ru,
@@ -395,6 +398,7 @@ const taglish: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.tl,
   ...fastSwitchTranslations.tl,
   ...discordNotificationTranslations.tl,
+  ...matchNotificationTranslations.tl,
   ...playerPingTranslations.tl,
   ...paymentTranslations.tl,
   ...profileTranslations.tl,
@@ -563,6 +567,7 @@ const thai: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.th,
   ...fastSwitchTranslations.th,
   ...discordNotificationTranslations.th,
+  ...matchNotificationTranslations.th,
   ...playerPingTranslations.th,
   ...paymentTranslations.th,
   ...profileTranslations.th,
@@ -726,6 +731,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.id,
   ...fastSwitchTranslations.id,
   ...discordNotificationTranslations.id,
+  ...matchNotificationTranslations.id,
   ...playerPingTranslations.id,
   ...paymentTranslations.id,
   ...profileTranslations.id,
@@ -897,6 +903,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.pt,
   ...fastSwitchTranslations.pt,
   ...discordNotificationTranslations.pt,
+  ...matchNotificationTranslations.pt,
   ...playerPingTranslations.pt,
   ...paymentTranslations.pt,
   ...profileTranslations.pt,
@@ -1068,6 +1075,7 @@ const japanese: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.ja,
   ...fastSwitchTranslations.ja,
   ...discordNotificationTranslations.ja,
+  ...matchNotificationTranslations.ja,
   ...playerPingTranslations.ja,
   ...paymentTranslations.ja,
   ...profileTranslations.ja,
@@ -1237,6 +1245,7 @@ const hindi: Record<TranslationKey, string> = {
   ...gameDisplayTranslations.hi,
   ...fastSwitchTranslations.hi,
   ...discordNotificationTranslations.hi,
+  ...matchNotificationTranslations.hi,
   ...playerPingTranslations.hi,
   ...paymentTranslations.hi,
   ...profileTranslations.hi,

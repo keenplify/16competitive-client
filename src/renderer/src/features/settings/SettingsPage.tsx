@@ -1,3 +1,4 @@
+import { MatchNotificationSettings } from './MatchNotificationSettings'
 import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
 import { LightweightHudSetting } from './LightweightHudSetting'
@@ -964,6 +965,7 @@ export function SettingsPage(): JSX.Element {
                 className="scroll-mt-6"
                 aria-label={t('settings.discord.title')}
               >
+                <MatchNotificationSettings />
                 <DiscordNotificationSettings
                   connected={socialConnections?.discord.connected === true}
                 />

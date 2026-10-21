@@ -1,3 +1,5 @@
+import { matchNotificationCopy } from '../shared/match-notification-copy'
+import { parseMatchmakingActivity } from '../shared/matchmaking-activity'
 import { parseMatchmakingMapCatalog } from '../shared/matchmaking-map-catalog'
 import type {
   MatchmakingApi,
@@ -51,12 +53,13 @@ const alertReadyCheck = (
   if (readyNotificationKey === key && (!document.hidden || readyNotification)) return
   readyNotification?.close()
   readyNotificationKey = key
-  document.title = 'Match ready — 1.6 Competitive'
+  const copy = matchNotificationCopy(currentLanguage())
+  document.title = `${copy.title} — 1.6 Competitive`
   if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted')
     return
   try {
-    readyNotification = new Notification('Your match is ready!', {
-      body: 'Return to 1.6 Competitive and accept before the timer ends.',
+    readyNotification = new Notification(copy.title, {
+      body: copy.body,
       tag: `match-ready-${message.matchId}`,
       requireInteraction: true
     })
@@ -81,7 +84,9 @@ const websocketUrl = (baseUrl = window.location.origin): string => {
 }
 
 const currentLanguage = (): string => {
-  const language = navigator.language.toLowerCase().split('-')[0]
+  const language = (localStorage.getItem('16competitive.language') ?? navigator.language)
+    .toLowerCase()
+    .split('-')[0]
   return /^[a-z]{2,3}$/.test(language) ? language : 'en'
 }
 
@@ -146,14 +151,21 @@ const getManualConnection = async (matchId: string): Promise<unknown> =>
   })
 
 const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => {
-  const target = requestedMatchId && requestedMatchId === warmupMatchId ? warmupConnection : lastConnection
-  if (!target || (requestedMatchId && target.matchId !== requestedMatchId)) throw new Error('The match server is not ready yet.')
+  const target =
+    requestedMatchId && requestedMatchId === warmupMatchId ? warmupConnection : lastConnection
+  if (!target || (requestedMatchId && target.matchId !== requestedMatchId))
+    throw new Error('The match server is not ready yet.')
   const matchId = target.matchId
-  if (!UUID_PATTERN.test(matchId) || (matchId !== manualConnectionMatchId && matchId !== warmupMatchId))
+  if (
+    !UUID_PATTERN.test(matchId) ||
+    (matchId !== manualConnectionMatchId && matchId !== warmupMatchId)
+  )
     throw new Error('This match is no longer available.')
   const connection = await getManualConnection(matchId)
-  if ((target.whileQueued ? warmupConnection : lastConnection)?.matchId !== matchId ||
-      (target.whileQueued ? warmupMatchId : manualConnectionMatchId) !== matchId)
+  if (
+    (target.whileQueued ? warmupConnection : lastConnection)?.matchId !== matchId ||
+    (target.whileQueued ? warmupMatchId : manualConnectionMatchId) !== matchId
+  )
     throw new Error('This match is no longer available.')
   window.location.href = webSteamLaunchUrl(connection)
 }
@@ -204,8 +216,12 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     if (message.type === 'match_found' || message.type === 'match_roster') {
       if (warmupMatchId !== message.matchId) warmupConnection = null
       warmupMatchId = message.matchId
-    } else if (message.type === 'match_connect' && warmupMatchId === message.matchId) warmupConnection = message
-    else if ((message.type === 'match_cancelled' || message.type === 'match_finished') && warmupMatchId === message.matchId) {
+    } else if (message.type === 'match_connect' && warmupMatchId === message.matchId)
+      warmupConnection = message
+    else if (
+      (message.type === 'match_cancelled' || message.type === 'match_finished') &&
+      warmupMatchId === message.matchId
+    ) {
       warmupConnection = null
       warmupMatchId = null
     }
@@ -230,7 +246,10 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     return
   }
 
-  if ((message.type === 'match_cancelled' || message.type === 'match_finished') && manualConnectionMatchId === message.matchId) {
+  if (
+    (message.type === 'match_cancelled' || message.type === 'match_finished') &&
+    manualConnectionMatchId === message.matchId
+  ) {
     manualConnectionMatchId = null
     lastConnection = null
   }
@@ -378,6 +397,10 @@ export const browserMatchmakingApi: MatchmakingApi = {
 
   getNodes,
 
+  async getActivity() {
+    return parseMatchmakingActivity(await requestJson<unknown>('/stats/matchmaking-activity'))
+  },
+
   async getOnlinePlayers() {
     const body = await requestJson<{ onlinePlayers: number }>('/online-players')
     if (!Number.isInteger(body.onlinePlayers) || body.onlinePlayers < 0) {
@@ -408,21 +431,13 @@ export const browserMatchmakingApi: MatchmakingApi = {
     return preferences()
   },
 
-  async joinQueue(
-    mode,
-    mapIds,
-    allowRegionExpansion,
-    preferredRegion,
-    eligibleRegions,
-    preferHumans
-  ) {
+  async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) {
     await openSocket()
     send({
       type: 'join_queue',
       mode,
       mapIds,
       allowRegionExpansion,
-      preferHumans: preferHumans ?? false,
       ...(preferredRegion ? { preferredRegion } : {}),
       ...(eligibleRegions?.length ? { eligibleRegions } : {})
     })

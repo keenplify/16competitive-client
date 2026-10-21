@@ -9,7 +9,6 @@ export function OfflineQueuePrompt({ playerId }: { playerId: string }): JSX.Elem
   const { t } = useTranslation()
   const open = useOfflineQueuePromptStore((state) => state.open)
   const promptPlayerId = useOfflineQueuePromptStore((state) => state.promptPlayerId)
-  const serviceUnavailable = useOfflineQueuePromptStore((state) => state.serviceUnavailable)
   const close = useOfflineQueuePromptStore((state) => state.close)
   const continueQueue = useOfflineQueuePromptStore((state) => state.continueQueue)
   const openSettings = useOfflineQueuePromptStore((state) => state.openSettings)
@@ -26,20 +25,16 @@ export function OfflineQueuePrompt({ playerId }: { playerId: string }): JSX.Elem
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-              {t('queue.discord.eyebrow')}
+              {t('notify.title')}
             </p>
             <h2 id="offline-queue-prompt-title" className="mt-1 text-lg font-semibold text-white">
-              {t(serviceUnavailable ? 'settings.discord.unavailable' : 'queue.discord.title')}
+              {t('notify.title')}
             </h2>
             <p
               id="offline-queue-prompt-description"
               className="mt-3 text-sm leading-6 text-neutral-300"
             >
-              {t(
-                serviceUnavailable
-                  ? 'queue.discord.unavailableDescription'
-                  : 'queue.discord.description'
-              )}
+              {t('notify.webDescription')}
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:w-44">
@@ -50,11 +45,11 @@ export function OfflineQueuePrompt({ playerId }: { playerId: string }): JSX.Elem
             >
               {t('queue.discord.continue')}
             </Button>
-            {!serviceUnavailable && (
+            {
               <Button className="w-full" onClick={openSettings}>
-                {t('queue.discord.setup')}
+                {t('notify.settings')}
               </Button>
-            )}
+            }
           </div>
         </div>
       </PromptCard>

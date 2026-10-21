@@ -174,7 +174,7 @@ test('reopening the launcher restores a server queue without sending leave_queue
       h.events.some((event) => event.type === 'queue_status' && event.queuedAt === status.queuedAt)
     )
     assert.equal(h.connection.desiredMode, '5v5')
-    assert.equal(h.connection.desiredPreferHumans, true)
+    assert.equal(h.connection.isQueued(), true)
     assert.equal(h.connection.desiredPreferredRegion, 'eu')
     assert.equal(h.connection.freshProcess, false)
   } finally {

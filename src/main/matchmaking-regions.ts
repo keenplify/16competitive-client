@@ -1,3 +1,4 @@
+import { parseMatchmakingActivity, type MatchmakingActivity } from '../shared/matchmaking-activity'
 import { app } from 'electron'
 import { randomBytes } from 'node:crypto'
 import { createSocket } from 'node:dgram'
@@ -202,6 +203,16 @@ export const saveMatchmakingPreferences = async (
   await rename(temporary, destination)
   preferredServiceApi = null
   return preferences
+}
+
+export const getMatchmakingActivity = async (): Promise<MatchmakingActivity> => {
+  const origin = await resolveServiceApiUrl()
+  const response = await fetch(`${origin}/stats/matchmaking-activity`, {
+    signal: AbortSignal.timeout(10_000),
+    cache: 'no-store'
+  })
+  if (!response.ok) throw new Error('Could not load matchmaking activity')
+  return parseMatchmakingActivity(await response.json())
 }
 
 export const getOnlinePlayers = async (): Promise<number> => {

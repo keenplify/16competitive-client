@@ -1,3 +1,5 @@
+import { QueueTrayController } from './queue-tray'
+import { getMatchmakingActivity } from './matchmaking-regions'
 import { COMMUNITY_DIRECTORY_CHANNELS } from '../shared/community-directory'
 import {
   listCommunities,
@@ -546,6 +548,18 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
+const queueTray = new QueueTrayController({
+  icon,
+  getQueuedMode: () => matchmakingConnection.getQueuedMode(),
+  show: focusMainWindow,
+  quit: () => {
+    quitRequested = true
+    app.quit()
+  },
+  locale: () => app.getLocale()
+})
+let quitRequested = false
+
 let selectedRendererEntry: string | undefined
 
 function createWindow(): void {
@@ -583,6 +597,10 @@ function createWindow(): void {
       focusWindowWhenReady = false
       focusMainWindow()
     }
+  })
+
+  mainWindow.on('close', (event) => {
+    if (!quitRequested && queueTray.hideWhileQueued(mainWindow)) event.preventDefault()
   })
 
   mainWindow.on('closed', () => {
@@ -824,7 +842,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(AUTH_CHANNELS.socialConnections, () => getSocialConnections())
   ipcMain.handle(AUTH_CHANNELS.discordNotificationsGet, () => getDiscordNotifications())
-  ipcMain.handle(AUTH_CHANNELS.discordNotificationsSet, (_, enabled: unknown) => setDiscordNotifications(enabled))
+  ipcMain.handle(AUTH_CHANNELS.discordNotificationsSet, (_, enabled: unknown) =>
+    setDiscordNotifications(enabled)
+  )
   ipcMain.handle(AUTH_CHANNELS.discordNotificationsTest, () => testDiscordNotifications())
   ipcMain.handle(AUTH_CHANNELS.socialConnect, (_, provider: unknown) =>
     withAuthFocus(connectSocial(provider))
@@ -853,6 +873,7 @@ app.whenReady().then(async () => {
     matchmakingConnection.connect(event.sender)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
+  ipcMain.handle(MATCHMAKING_CHANNELS.getActivity, () => getMatchmakingActivity())
   ipcMain.handle(MATCHMAKING_CHANNELS.getOnlinePlayers, () => getOnlinePlayers())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
   ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, async (_, nodeId: unknown) => {
@@ -885,8 +906,7 @@ app.whenReady().then(async () => {
       mapIds: unknown,
       allowRegionExpansion: unknown,
       preferredRegion: unknown,
-      eligibleRegions: unknown,
-      preferHumans: unknown
+      eligibleRegions: unknown
     ) => {
       await ensureLatestClientForMatchmaking()
       return matchmakingConnection.joinQueue(
@@ -894,8 +914,7 @@ app.whenReady().then(async () => {
         mapIds,
         allowRegionExpansion,
         preferredRegion,
-        eligibleRegions,
-        preferHumans
+        eligibleRegions
       )
     }
   )
@@ -1149,7 +1168,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(WINDOW_CHANNELS.openCounterStrikeSteamStore, () =>
     shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)
   )
-  ipcMain.handle(WINDOW_CHANNELS.exit, () => app.quit())
+  ipcMain.handle(WINDOW_CHANNELS.exit, () => mainWindow?.close())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setDisplay, (_, preferences: unknown) =>
     saveGameDisplay(preferences)
@@ -1263,6 +1282,8 @@ app.on('window-all-closed', () => {
 
 let cleaningOverlayBeforeQuit = false
 app.on('before-quit', (event) => {
+  quitRequested = true
+  queueTray.destroy()
   disconnectMatchmakingIntentionally()
   discordPresence.stop()
   if (cleaningOverlayBeforeQuit) return

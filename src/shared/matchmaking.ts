@@ -1,3 +1,4 @@
+import type { MatchmakingActivity } from './matchmaking-activity'
 import type { ServerCustomGameMode } from './custom-games'
 import type { MatchRewardSummary } from './daily-quests'
 import type { FriendChatMessage } from './friends'
@@ -7,6 +8,7 @@ export const MATCHMAKING_CHANNELS = {
   connect: 'matchmaking:connect',
   getNodes: 'matchmaking:get-nodes',
   getOnlinePlayers: 'matchmaking:get-online-players',
+  getActivity: 'matchmaking:get-activity',
   selectNode: 'matchmaking:select-node',
   getPreferences: 'matchmaking:get-preferences',
   setAllowRegionExpansion: 'matchmaking:set-allow-region-expansion',
@@ -270,7 +272,6 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       autoFillAt?: string
       botFillOptInAvailableAt?: string
       botFillOptIn?: boolean
-      preferHumans?: boolean
       searchStage?: MatchmakingSearchStage
     }
   | {
@@ -287,7 +288,6 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       autoFillAt?: string
       botFillOptInAvailableAt?: string
       botFillOptIn?: boolean
-      preferHumans?: boolean
       searchStage?: MatchmakingSearchStage
     }
   | { type: 'queue_left'; mode: MatchmakingMode; mapIds: string[] }
@@ -419,6 +419,7 @@ export interface MatchmakingApi {
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>
   getOnlinePlayers(): Promise<number>
+  getActivity(): Promise<MatchmakingActivity>
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>
@@ -427,8 +428,7 @@ export interface MatchmakingApi {
     mapIds: string[],
     allowRegionExpansion: boolean,
     preferredRegion?: string | null,
-    eligibleRegions?: string[],
-    preferHumans?: boolean
+    eligibleRegions?: string[]
   ): Promise<void>
   playWithBots(): Promise<void>
   leaveQueue(): Promise<void>

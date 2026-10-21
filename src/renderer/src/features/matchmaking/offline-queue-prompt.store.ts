@@ -1,3 +1,4 @@
+import { isWebRuntime } from '../../web-runtime'
 import { create } from 'zustand'
 import { useAuthStore } from '../auth/auth.store'
 import { useNavigationStore } from '../navigation/navigation.store'
@@ -37,7 +38,21 @@ export const useOfflineQueuePromptStore = create<OfflineQueuePromptState>((set, 
       joinQueue(playerId)
       return
     }
+    if (!isWebRuntime()) {
+      joinQueue(playerId)
+      return
+    }
     set({ checking: true, open: false, promptPlayerId: null, serviceUnavailable: false })
+    const push = await (
+      await import('../../../../web/browser-push')
+    )
+      .getBrowserPushStatus()
+      .catch(() => null)
+    if (push?.enabled) {
+      set({ checking: false })
+      joinQueue(playerId)
+      return
+    }
     const status = await window.api.auth.getDiscordNotifications().catch(() => null)
     set({ checking: false })
     if (!canJoin(playerId)) return

@@ -31,3 +31,51 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match('/pwa/')))
   )
 })
+
+// Push delivery is independent of any open page and carries no login token.
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    (async () => {
+      let data
+      try {
+        data = event.data?.json()
+      } catch {
+        return
+      }
+      if (
+        !data ||
+        typeof data.title !== 'string' ||
+        typeof data.body !== 'string' ||
+        typeof data.matchId !== 'string' ||
+        !/^[a-f0-9-]{36}$/i.test(data.matchId) ||
+        typeof data.deadline !== 'string' ||
+        !Number.isFinite(Date.parse(data.deadline)) ||
+        Date.parse(data.deadline) <= Date.now()
+      )
+        return
+      await self.registration.showNotification(data.title.slice(0, 128), {
+        body: data.body.slice(0, 512),
+        tag: `match-ready-${data.matchId}`,
+        requireInteraction: true,
+        data: { deadline: data.deadline },
+        icon: '/pwa/web-app-manifest-192x192.png'
+      })
+    })()
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    (async () => {
+      const pages = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const page = pages.find(
+        (client) =>
+          new URL(client.url).origin === self.location.origin &&
+          new URL(client.url).pathname.startsWith('/pwa/')
+      )
+      if (page) return page.focus()
+      return self.clients.openWindow('/pwa/')
+    })()
+  )
+})

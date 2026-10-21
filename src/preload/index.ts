@@ -93,7 +93,8 @@ const auth: AuthApi = {
     ipcRenderer.invoke(AUTH_CHANNELS.socialPasswordComplete, pollToken, password),
   getSocialConnections: () => ipcRenderer.invoke(AUTH_CHANNELS.socialConnections),
   getDiscordNotifications: () => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsGet),
-  setDiscordNotifications: (enabled) => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsSet, enabled),
+  setDiscordNotifications: (enabled) =>
+    ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsSet, enabled),
   testDiscordNotifications: () => ipcRenderer.invoke(AUTH_CHANNELS.discordNotificationsTest),
   connectSocial: (provider) => ipcRenderer.invoke(AUTH_CHANNELS.socialConnect, provider),
   checkUsername: (username) => ipcRenderer.invoke(AUTH_CHANNELS.usernameCheck, username),
@@ -122,20 +123,20 @@ const matchmaking: MatchmakingApi = {
   leaveWarmup: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveWarmup),
   connect: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.connect),
   getNodes: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getNodes),
+  getActivity: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getActivity),
   getOnlinePlayers: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getOnlinePlayers),
   selectNode: (nodeId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.selectNode, nodeId),
   getPreferences: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getPreferences),
   setAllowRegionExpansion: (value) =>
     ipcRenderer.invoke(MATCHMAKING_CHANNELS.setAllowRegionExpansion, value),
-  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions, preferHumans) =>
+  joinQueue: (mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) =>
     ipcRenderer.invoke(
       MATCHMAKING_CHANNELS.joinQueue,
       mode,
       mapIds,
       allowRegionExpansion,
       preferredRegion,
-      eligibleRegions,
-      preferHumans
+      eligibleRegions
     ),
   playWithBots: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.playWithBots),
   leaveQueue: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveQueue),

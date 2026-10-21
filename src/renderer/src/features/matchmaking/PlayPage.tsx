@@ -1,3 +1,4 @@
+import { PlayerActivity } from './PlayerActivity'
 import { MatchmakingMapCard } from './MatchmakingMapCard'
 import { QueueWarmupPanel } from './QueueWarmupPanel'
 import { useQueueWarmupStore } from './queue-warmup.store'
@@ -14,7 +15,6 @@ import {
 } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
-import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { NotificationContent } from '../../components/ui/NotificationContent'
 import { useTranslation, type TranslationKey } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
@@ -84,11 +84,8 @@ export function PlayPage({
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const nodes = useMatchmakingStore((state) => state.nodes)
-  const onlinePlayers = useMatchmakingStore((state) => state.onlinePlayers)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
-  const preferHumans = useMatchmakingStore((state) => state.preferHumans)
-  const setPreferHumans = useMatchmakingStore((state) => state.setPreferHumans)
   const match = useMatchmakingStore((state) => state.match)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
   const countdown = useMatchmakingStore((state) => state.countdown)
@@ -500,34 +497,6 @@ export function PlayPage({
               visiblePlayView === 'partner' && 'hidden'
             )}
           >
-            <div
-              className={twMerge(
-                'flex items-center gap-1 pb-3 text-xs text-neutral-300',
-                visiblePlayView === 'custom' && 'hidden'
-              )}
-            >
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-emerald-400"
-                  checked={preferHumans}
-                  disabled={visiblePlayView === 'custom' || isSearching}
-                  tabIndex={visiblePlayView === 'custom' ? -1 : undefined}
-                  onChange={(event) => setPreferHumans(event.target.checked)}
-                />
-                {t('matchmaking.preferHumans')}
-              </label>
-              <HelpTooltip
-                text={t(
-                  selectedMode === '5v5'
-                    ? 'matchmaking.preferHumans5v5Tooltip'
-                    : selectedMode === '3v3' || selectedMode === 'legacy_3v3'
-                      ? 'matchmaking.preferHumans3v3Tooltip'
-                      : 'matchmaking.preferHumansTooltip'
-                )}
-                placement="bottom"
-              />
-            </div>
             <label
               className={twMerge(
                 'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
@@ -812,11 +781,7 @@ export function PlayPage({
                         : 'Waiting for party leader'}
                     </span>
                     <span aria-hidden="true">•</span>
-                    <span aria-live="polite">
-                      {onlinePlayers === null
-                        ? 'Players active: —'
-                        : `${onlinePlayers} ${onlinePlayers === 1 ? 'player' : 'players'} active`}
-                    </span>
+                    <PlayerActivity />
                   </div>
                   <Button
                     className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"

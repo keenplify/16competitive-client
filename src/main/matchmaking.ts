@@ -1,3 +1,5 @@
+import { matchNotificationCopy } from '../shared/match-notification-copy'
+import { Notification } from 'electron'
 import { launchCs13Match, shutdownCs13Game } from './game/cs13-match-launcher'
 import { noteHelperServerUpdate } from './anticheat/helper-verification-retry'
 import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
@@ -672,7 +674,6 @@ class MatchmakingConnection {
     else closeCounterStrikeForMatch(matchId)
   }
   private desiredMapIds: string[] = []
-  private desiredPreferHumans = false
   private desiredAllowRegionExpansion = true
   private desiredPreferredRegion: string | null = null
   private desiredEligibleRegions: string[] = []
@@ -696,6 +697,38 @@ class MatchmakingConnection {
   private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
   private matchAttentionWindow: BrowserWindow | null = null
   private restoreMatchWindowTopmost = false
+
+  getQueuedMode(): MatchmakingMode | null {
+    return this.desiredMode
+  }
+
+  isQueued(): boolean {
+    return this.desiredMode !== null
+  }
+
+  private readyAlertKey: string | null = null
+  private readyNotice: Notification | null = null
+  private showReadyNotification(matchId: string, deadline: string): void {
+    const key = `${matchId}:${deadline}`
+    if (this.readyAlertKey === key || Date.parse(deadline) <= serverClockNow()) return
+    this.readyAlertKey = key
+    if (!Notification.isSupported()) return
+    try {
+      const copy = matchNotificationCopy(this.globalChatLanguage)
+      const notice = new Notification({ title: copy.title, body: copy.body, timeoutType: 'never' })
+      this.readyNotice?.close()
+      this.readyNotice = notice
+      notice.on('click', () => this.focusLauncher(true))
+      notice.show()
+      const timer = setTimeout(
+        () => notice.close(),
+        Math.min(900_000, Math.max(0, Date.parse(deadline) - serverClockNow()))
+      )
+      timer.unref()
+    } catch (error) {
+      console.warn('[Matchmaking] native match notification failed', error)
+    }
+  }
 
   isBusyForPartnerServer(): boolean {
     if (
@@ -777,6 +810,8 @@ class MatchmakingConnection {
 
   disconnect(): void {
     void this.leaveWarmup().catch((error) => console.warn('[QueueWarmup] cleanup failed', error))
+    this.readyNotice?.close()
+    this.readyNotice = null
     this.manuallyDisconnected = true
     this.authenticated = false
     this.authenticatedPlayer = null
@@ -803,6 +838,8 @@ class MatchmakingConnection {
       if (this.warmupSocket !== this.socket) this.warmupSocket.close()
     }
     this.warmupSuppressed = true
+    this.readyNotice?.close()
+    this.readyNotice = null
     this.manuallyDisconnected = true
     this.authenticated = false
     this.authenticatedPlayer = null
@@ -835,8 +872,7 @@ class MatchmakingConnection {
     mapIds: unknown,
     allowRegionExpansion: unknown,
     preferredRegion: unknown,
-    eligibleRegions: unknown,
-    preferHumans: unknown
+    eligibleRegions: unknown
   ): void {
     if (!isMatchmakingMode(mode)) throw new Error('Unsupported matchmaking mode')
     if (!isMapIds(mapIds)) throw new Error('Select at least one valid matchmaking map')
@@ -844,19 +880,16 @@ class MatchmakingConnection {
       throw new Error('Invalid regional search preference')
     if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
     if (!isEligibleRegions(eligibleRegions)) throw new Error('Invalid eligible matchmaking regions')
-    if (typeof preferHumans !== 'boolean') throw new Error('Invalid human preference')
     this.desiredMode = mode
     this.desiredMapIds = [...mapIds]
     this.desiredAllowRegionExpansion = allowRegionExpansion
     this.desiredPreferredRegion = preferredRegion ?? null
     this.desiredEligibleRegions = [...eligibleRegions]
-    this.desiredPreferHumans = preferHumans
     this.send({
       type: 'join_queue',
       mode,
       mapIds,
       allowRegionExpansion,
-      preferHumans,
       eligibleRegions,
       ...(preferredRegion ? { preferredRegion } : {})
     })
@@ -1358,6 +1391,18 @@ class MatchmakingConnection {
       ) {
         return
       }
+      if (
+        parsed.type === 'match_cancelled' ||
+        parsed.type === 'match_finished' ||
+        parsed.type === 'match_countdown' ||
+        parsed.type === 'queue_left' ||
+        ((parsed.type === 'match_ready_check' || parsed.type === 'match_ready_updated') &&
+          this.authenticatedPlayer &&
+          parsed.acceptedPlayerIds.includes(this.authenticatedPlayer.id))
+      ) {
+        this.readyNotice?.close()
+        this.readyNotice = null
+      }
       if (parsed.type === 'connected') {
         socket.send(
           JSON.stringify({
@@ -1402,7 +1447,6 @@ class MatchmakingConnection {
                 mode: this.desiredMode,
                 mapIds: this.desiredMapIds,
                 allowRegionExpansion: this.desiredAllowRegionExpansion,
-                preferHumans: this.desiredPreferHumans,
                 eligibleRegions: this.desiredEligibleRegions,
                 ...(this.desiredPreferredRegion
                   ? { preferredRegion: this.desiredPreferredRegion }
@@ -1427,9 +1471,13 @@ class MatchmakingConnection {
           this.desiredMapIds = [...parsed.mapIds]
           this.desiredAllowRegionExpansion = parsed.allowRegionExpansion
           this.desiredPreferredRegion = parsed.region
-          this.desiredPreferHumans = parsed.preferHumans ?? false
         }
         if (parsed.type === 'match_ready_check') {
+          if (
+            !this.authenticatedPlayer ||
+            !parsed.acceptedPlayerIds.includes(this.authenticatedPlayer.id)
+          )
+            this.showReadyNotification(parsed.matchId, parsed.deadline)
           this.freshProcess = false
           this.focusLauncher(true)
         }
