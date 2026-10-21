@@ -2935,3 +2935,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Reduced outer spacing in VGUI2 Settings and Demos screens.
 - Improved modal headers and notification presentation.
+
+## v2026.1021.2 — 2026-10-21
+
+### Partner server overlays
+
+- Partner plugins can show private, display-only HTML panels using the new AMXX include.
+- HTML layouts follow the actual game viewport and render at native resolution for clear text.
+- Verified pages are cached before joining, and stale or expired overlays disappear automatically.
+- Partner installation packages include the UI include, example plugin, HTML page, and usage guide.
+
+### Development probes
+
+- Probe controls use dedicated settings files, preserve existing bindings, and never access `config.cfg`.

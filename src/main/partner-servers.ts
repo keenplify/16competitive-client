@@ -13,6 +13,7 @@ import { getSessionPlayerId, getSessionToken } from './auth'
 import { getSavedCs16Executable } from './game/game-settings'
 import { resolveCs16LaunchTarget } from './game/cs16-installation'
 import { launchOrdinaryCounterStrike } from './game/cs16-launcher'
+import { launchPartnerHtmlGame } from './game/partner-html-launch'
 import { matchmakingConnection } from './matchmaking'
 import { queryServerInfo, type ServerInfo } from './game/partner-server-query'
 import {
@@ -180,14 +181,27 @@ export async function markPartnerGroupLaunched(groupId: unknown): Promise<void> 
     throw new Error('INVALID_GROUP')
   await groupRequest(`/partners/launch/${groupId}/launched`, {})
 }
-async function requestPartnerLaunchTicket(id: string, token: string): Promise<string | null> {
+async function requestPartnerLaunchTicket(
+  id: string,
+  token: string
+): Promise<{ ticket: string | null; connectionId: string | null }> {
   const response = await fetch(new URL(`/partners/servers/${id}/launch-ticket`, API_BASE_URL), {
     method: 'POST',
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000)
   })
   if (!response.ok) throw new Error('SERVER_LINK_UNAVAILABLE')
-  return parsePartnerLaunchTicket(await response.json())
+  const body: unknown = await response.json()
+  const ticket = parsePartnerLaunchTicket(body)
+  const connectionId =
+    body &&
+    typeof body === 'object' &&
+    'connectionId' in body &&
+    typeof body.connectionId === 'string' &&
+    /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(body.connectionId)
+      ? body.connectionId
+      : null
+  return { ticket, connectionId }
 }
 export async function connectPartnerServer(
   id: unknown,
@@ -223,7 +237,7 @@ export async function connectPartnerServer(
       }).get()
       if (!profile.ok || !profile.value.installation) throw new Error('INSTALLATION_REQUIRED')
       const plan = cs13Adapter.buildMenuLaunchPlan(profile.value.installation)
-      const ticket = await requestPartnerLaunchTicket(id, token)
+      const { ticket } = await requestPartnerLaunchTicket(id, token)
       await launchOrdinaryCounterStrike(async () => {
         if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
           throw new Error('MATCH_BUSY')
@@ -249,12 +263,24 @@ export async function connectPartnerServer(
     const executable = await getSavedCs16Executable()
     if (!executable) throw new Error('INSTALLATION_REQUIRED')
     const target = await resolveCs16LaunchTarget(executable)
-    const ticket = await requestPartnerLaunchTicket(id, token)
+    const { ticket, connectionId } = await requestPartnerLaunchTicket(id, token)
     if (matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
     await launchOrdinaryCounterStrike(async () => {
       if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
         throw new Error('MATCH_BUSY')
       // Ordinary community session. The single-use link ticket grants only partner session identity.
+      if (
+        await launchPartnerHtmlGame(
+          id,
+          address,
+          server.port,
+          ticket,
+          connectionId,
+          target,
+          () => getSessionToken() === token && !matchmakingConnection.isBusyForPartnerServer()
+        )
+      )
+        return
       const child = spawn(
         target.executable,
         [...target.argumentPrefix, ...partnerLaunchArguments(address, server.port, ticket)],

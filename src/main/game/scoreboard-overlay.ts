@@ -40,6 +40,8 @@ import { decodeScoreboardDelta } from './scoreboard-transport'
 import { mergeNativeScores, readNativeScores } from './native-scoreboard'
 import { SessionLease } from './session-lease'
 import type { CosmeticRuntime, GoldSrcModDirectory } from './goldsrc-client-capabilities'
+import { createPartnerUiWindow, PartnerHtmlRenderer } from './partner-html-renderer'
+import type { PartnerUiPage } from '../../shared/partner-ui'
 
 const MAX_FEED_BYTES = 8192
 const MAX_FRAME_BYTES = 512 * 1024
@@ -139,6 +141,7 @@ export class ScoreboardOverlaySession {
   private eventOffset = 0
   private readonly window: BrowserWindow
   private readonly cardsWindow: BrowserWindow
+  private partnerRenderer: PartnerHtmlRenderer | null = null
   private readonly readSnapshot: (directory: string) => Snapshot
   private timer: NodeJS.Timeout | null = null
   private presentationTimer: NodeJS.Timeout | null = null
@@ -318,7 +321,8 @@ export class ScoreboardOverlaySession {
       gameDirectory: GoldSrcModDirectory
       runtime: CosmeticRuntime
       authFile?: { name: string; sha256: string }
-    }
+    },
+    partnerUi?: { serverId: string; connectionId: string; pages: PartnerUiPage[] }
   ): Promise<ScoreboardOverlaySession | null> {
     await cleanupQueue.wait()
     const wine = compatibility?.runtime === 'wine'
@@ -471,36 +475,40 @@ export class ScoreboardOverlaySession {
         readSnapshot: (directory: string) => Snapshot
         parseSnapshot: (feed: string) => Snapshot
       }
-      window = new BrowserWindow({
-        width: FRAME_WIDTH,
-        height: FRAME_HEIGHT,
-        frame: false,
-        transparent: true,
-        show: false,
-        webPreferences: {
-          offscreen: true,
-          preload: join(assets, 'preload.cjs'),
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-          backgroundThrottling: false
-        }
-      })
-      cardsWindow = new BrowserWindow({
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-        frame: false,
-        transparent: true,
-        show: false,
-        webPreferences: {
-          offscreen: true,
-          preload: join(assets, 'preload.cjs'),
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-          backgroundThrottling: false
-        }
-      })
+      window = partnerUi
+        ? createPartnerUiWindow()
+        : new BrowserWindow({
+            width: FRAME_WIDTH,
+            height: FRAME_HEIGHT,
+            frame: false,
+            transparent: true,
+            show: false,
+            webPreferences: {
+              offscreen: true,
+              preload: join(assets, 'preload.cjs'),
+              contextIsolation: true,
+              nodeIntegration: false,
+              sandbox: true,
+              backgroundThrottling: false
+            }
+          })
+      cardsWindow = partnerUi
+        ? window
+        : new BrowserWindow({
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
+            frame: false,
+            transparent: true,
+            show: false,
+            webPreferences: {
+              offscreen: true,
+              preload: join(assets, 'preload.cjs'),
+              contextIsolation: true,
+              nodeIntegration: false,
+              sandbox: true,
+              backgroundThrottling: false
+            }
+          })
       const createdSession = new ScoreboardOverlaySession(
         matchId,
         backend,
@@ -519,76 +527,78 @@ export class ScoreboardOverlaySession {
         join(directory, 'hud-lightweight.enabled'),
         gameSettings.lightweightHud ? '1\n' : '0\n'
       )
-      cardsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-      cardsWindow.webContents.on('will-navigate', (event) => event.preventDefault())
-      cardsWindow.webContents.setFrameRate(gameSettings.lightweightHud ? 4 : 30)
-      cardsWindow.webContents.on('paint', (_event, _dirty, image) => {
-        if (
-          createdSession.stopped ||
-          createdSession.cardFrameWriting ||
-          !createdSession.killCardsEnabled ||
-          !createdSession.feedAvailable
-        )
-          return
-        if (
-          createdSession.lastKillCardState === null ||
-          /^. 0 /.test(createdSession.lastKillCardState)
-        )
-          return
-        const png = encodeHudFrame(image, CARD_WIDTH, CARD_HEIGHT, 128 * 1024)
-        if (!png) return
-        createdSession.lastCardPng = png
-        const destination = join(directory, 'kill-cards.png')
-        createdSession.cardFrameWriting = true
-        createdSession.cardFrameTask = writeLiveSessionFile(destination, png)
-          .then(() => {
-            createdSession.lastCardFrameAt = Date.now()
-          })
-          .catch((error: unknown) =>
-            console.warn('[Scoreboard] kill card frame write failed', error)
+      if (!partnerUi) {
+        cardsWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+        cardsWindow.webContents.on('will-navigate', (event) => event.preventDefault())
+        cardsWindow.webContents.setFrameRate(gameSettings.lightweightHud ? 4 : 30)
+        cardsWindow.webContents.on('paint', (_event, _dirty, image) => {
+          if (
+            createdSession.stopped ||
+            createdSession.cardFrameWriting ||
+            !createdSession.killCardsEnabled ||
+            !createdSession.feedAvailable
           )
-          .finally(() => {
-            createdSession.cardFrameWriting = false
-          })
-      })
-      window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-      window.webContents.on('will-navigate', (event) => event.preventDefault())
-      window.webContents.setFrameRate(4)
-      window.webContents.on('did-finish-load', () => {
-        createdSession.lastPresentation = ''
-      })
-      window.webContents.on('render-process-gone', (_event, details) => {
-        if (createdSession.stopped) return
-        createdSession.rendererCrashed = true
-        createdSession.rendererExitReason = details.reason
-        console.warn('[Scoreboard] renderer exited', { matchId, reason: details.reason })
-      })
-      window.webContents.on('paint', (_event, _dirty, image) => {
-        if (createdSession.stopped || createdSession.frameWriting || !createdSession.boardVisible)
-          return
-        const png = encodeHudFrame(image, FRAME_WIDTH, FRAME_HEIGHT, MAX_FRAME_BYTES)
-        if (!png) return
-        const presentation = createdSession.lastPresentation
-        const destination = join(directory, 'overlay.png')
-        createdSession.frameWriting = true
-        createdSession.frameTask = writeLiveSessionFile(destination, png)
-          .then(() => {
-            if (presentation === createdSession.lastPresentation)
-              createdSession.frameRequestedAt = null
-          })
-          .catch((error: unknown) => console.warn('[Scoreboard] frame write failed', error))
-          .finally(() => {
-            createdSession.frameWriting = false
-          })
-      })
-      await window.loadFile(join(assets, 'index.html'))
-      await cardsWindow.loadFile(join(assets, 'index.html'), {
-        query: {
-          overlay: 'kill-cards',
-          gameVersion: compatibility?.gameDirectory === 'cstrk13' ? '1.3' : '1.6'
-        }
-      })
-      cardsWindow.webContents.stopPainting()
+            return
+          if (
+            createdSession.lastKillCardState === null ||
+            /^. 0 /.test(createdSession.lastKillCardState)
+          )
+            return
+          const png = encodeHudFrame(image, CARD_WIDTH, CARD_HEIGHT, 128 * 1024)
+          if (!png) return
+          createdSession.lastCardPng = png
+          const destination = join(directory, 'kill-cards.png')
+          createdSession.cardFrameWriting = true
+          createdSession.cardFrameTask = writeLiveSessionFile(destination, png)
+            .then(() => {
+              createdSession.lastCardFrameAt = Date.now()
+            })
+            .catch((error: unknown) =>
+              console.warn('[Scoreboard] kill card frame write failed', error)
+            )
+            .finally(() => {
+              createdSession.cardFrameWriting = false
+            })
+        })
+        window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+        window.webContents.on('will-navigate', (event) => event.preventDefault())
+        window.webContents.setFrameRate(4)
+        window.webContents.on('did-finish-load', () => {
+          createdSession.lastPresentation = ''
+        })
+        window.webContents.on('render-process-gone', (_event, details) => {
+          if (createdSession.stopped) return
+          createdSession.rendererCrashed = true
+          createdSession.rendererExitReason = details.reason
+          console.warn('[Scoreboard] renderer exited', { matchId, reason: details.reason })
+        })
+        window.webContents.on('paint', (_event, _dirty, image) => {
+          if (createdSession.stopped || createdSession.frameWriting || !createdSession.boardVisible)
+            return
+          const png = encodeHudFrame(image, FRAME_WIDTH, FRAME_HEIGHT, MAX_FRAME_BYTES)
+          if (!png) return
+          const presentation = createdSession.lastPresentation
+          const destination = join(directory, 'overlay.png')
+          createdSession.frameWriting = true
+          createdSession.frameTask = writeLiveSessionFile(destination, png)
+            .then(() => {
+              if (presentation === createdSession.lastPresentation)
+                createdSession.frameRequestedAt = null
+            })
+            .catch((error: unknown) => console.warn('[Scoreboard] frame write failed', error))
+            .finally(() => {
+              createdSession.frameWriting = false
+            })
+        })
+        await window.loadFile(join(assets, 'index.html'))
+        await cardsWindow.loadFile(join(assets, 'index.html'), {
+          query: {
+            overlay: 'kill-cards',
+            gameVersion: compatibility?.gameDirectory === 'cstrk13' ? '1.3' : '1.6'
+          }
+        })
+        cardsWindow.webContents.stopPainting()
+      }
       const handleStandaloneRestart = createStandaloneRestartHandoff(async () => {
         await lstat(join(directory, 'restart.requested')).then(async () => {
           if (createdSession.stopped) return
@@ -635,13 +645,28 @@ export class ScoreboardOverlaySession {
         }
       })
       createdSession.eventWatcher = eventWatcher
-      beginGamePerformance(
-        directory,
-        matchId,
-        getSessionUsername() ?? '',
-        gameSettings.lightweightHud
-      )
+      if (!partnerUi) {
+        beginGamePerformance(
+          directory,
+          matchId,
+          getSessionUsername() ?? '',
+          gameSettings.lightweightHud
+        )
+      }
       await createdSession.lease.start()
+      if (partnerUi) {
+        await writeLiveSessionFile(join(directory, 'overlay.mode'), 'partner-ui\n')
+        createdSession.partnerRenderer = new PartnerHtmlRenderer(
+          window,
+          directory,
+          backend,
+          partnerUi.serverId,
+          partnerUi.connectionId,
+          partnerUi.pages
+        )
+        createdSession.partnerRenderer.start()
+        return createdSession
+      }
       createdSession.eventWatcher.on('error', (error) => {
         console.warn('[Scoreboard] local death notice watcher failed', error)
         createdSession.eventWatcher?.close()
@@ -1033,12 +1058,13 @@ export class ScoreboardOverlaySession {
     this.eventWatcher?.close()
     this.eventWatcher = null
     const watchdogTask = this.watchdog?.stop()
+    const partnerTask = this.partnerRenderer?.stop()
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     if (this.presentationTimer) clearInterval(this.presentationTimer)
     this.presentationTimer = null
-    if (!this.window.isDestroyed()) this.window.close()
-    if (!this.cardsWindow.isDestroyed()) this.cardsWindow.close()
+    if (!this.window.isDestroyed()) this.window.destroy()
+    if (!this.cardsWindow.isDestroyed()) this.cardsWindow.destroy()
     const finalPerformance = captureGamePerformance(this.directory, true)
     cleanupQueue.enqueue(async () => {
       await Promise.allSettled([
@@ -1050,7 +1076,8 @@ export class ScoreboardOverlaySession {
         this.cardStateTask,
         this.eventReadTask,
         this.joinRecoveryTask,
-        watchdogTask
+        watchdogTask,
+        partnerTask
       ])
       if (this.windowsInstallation) await this.windowsInstallation.queueRestore()
       else await rm(this.directory, { recursive: true, force: true })

@@ -345,7 +345,7 @@ const listProcessIds = async (): Promise<number[]> => {
     .filter((pid) => pid !== process.pid)
 }
 
-const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<number[]> => {
+export const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<number[]> => {
   const processIds = await listProcessIds()
   const matches = await Promise.all(
     processIds.map(async (pid) => {
@@ -365,7 +365,7 @@ const getLinuxCounterStrikeProcessIds = async (gameDirectory: string): Promise<n
   return matches.filter((pid): pid is number => pid !== null)
 }
 
-const isSteamRunning = async (): Promise<boolean> => {
+export const isSteamRunning = async (): Promise<boolean> => {
   if (process.platform === 'linux') {
     const processIds = await listProcessIds()
     const matches = await Promise.all(
