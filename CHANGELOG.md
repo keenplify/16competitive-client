@@ -2960,3 +2960,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Match notifications can persist when you leave the app.
 - Added settings to manage match notifications.
+
+## v2026.1021.4 — 2026-10-21
+
+### Matchmaking
+
+- Queue across nearby regions for faster matchmaking.
+- View matching activity by region while queued.
+- Region selection now reflects nearby matchmaking availability.
+
+### Notifications
+
+- Matchmaking notifications are now translated across supported languages.
