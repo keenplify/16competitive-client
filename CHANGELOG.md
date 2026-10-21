@@ -3000,3 +3000,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Map Feedback
 
 - Submit written feedback about the map after a match.
+
+## v2026.1021.7 — 2026-10-21
+
+### Matchmaking
+
+- Fixed leaving an active FFA match.
+- Improved native join recovery by using the correct server identity.
