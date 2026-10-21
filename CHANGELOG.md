@@ -2972,3 +2972,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Notifications
 
 - Matchmaking notifications are now translated across supported languages.
+
+## v2026.1021.5 — 2026-10-21
+
+### Matchmaking
+
+- Public FFA matchmaking is now available from the launcher.
+- Choose from the available FFA map pool before joining a match.
+- Match windows are more compact and focused.
+
+### Queue & Results
+
+- Improved queue warmup status and controls.
+- Added a post-match results flow.
