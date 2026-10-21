@@ -873,7 +873,9 @@ app.whenReady().then(async () => {
     matchmakingConnection.connect(event.sender)
   )
   ipcMain.handle(MATCHMAKING_CHANNELS.getNodes, () => getMatchmakingNodes())
-  ipcMain.handle(MATCHMAKING_CHANNELS.getActivity, () => getMatchmakingActivity())
+  ipcMain.handle(MATCHMAKING_CHANNELS.getActivity, (_event, regions) =>
+    getMatchmakingActivity(regions)
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.getOnlinePlayers, () => getOnlinePlayers())
   ipcMain.handle(MATCHMAKING_CHANNELS.getPreferences, () => getMatchmakingPreferences())
   ipcMain.handle(MATCHMAKING_CHANNELS.selectNode, async (_, nodeId: unknown) => {

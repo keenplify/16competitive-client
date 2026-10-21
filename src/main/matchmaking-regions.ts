@@ -205,12 +205,22 @@ export const saveMatchmakingPreferences = async (
   return preferences
 }
 
-export const getMatchmakingActivity = async (): Promise<MatchmakingActivity> => {
-  const origin = await resolveServiceApiUrl()
-  const response = await fetch(`${origin}/stats/matchmaking-activity`, {
-    signal: AbortSignal.timeout(10_000),
-    cache: 'no-store'
-  })
+export const getMatchmakingActivity = async (regions?: string[]): Promise<MatchmakingActivity> => {
+  if (
+    regions !== undefined &&
+    (!Array.isArray(regions) ||
+      regions.length > 16 ||
+      regions.some((region) => typeof region !== 'string' || !/^[a-z0-9-]{1,32}$/.test(region)))
+  )
+    throw new Error('Invalid activity regions')
+  const origin = await resolvePreferredMatchmakingApiUrl()
+  const response = await fetch(
+    `${origin}/stats/matchmaking-activity${regions?.length ? `?regions=${encodeURIComponent([...new Set(regions)].join(','))}` : ''}`,
+    {
+      signal: AbortSignal.timeout(10_000),
+      cache: 'no-store'
+    }
+  )
   if (!response.ok) throw new Error('Could not load matchmaking activity')
   return parseMatchmakingActivity(await response.json())
 }
@@ -235,7 +245,10 @@ export const getOnlinePlayers = async (): Promise<number> => {
   return body.onlinePlayers
 }
 
+let measuredNodeCache: { until: number; nodes: MatchmakingNode[] } | null = null
 export const getMatchmakingNodes = async (measureLatency = true): Promise<MatchmakingNode[]> => {
+  if (measureLatency && measuredNodeCache?.nodes.length && Date.now() < measuredNodeCache.until)
+    return measuredNodeCache.nodes
   const token = getSessionToken()
   const fetchNodes = async (origin: string, timeoutMs: number): Promise<MatchmakingNode[]> => {
     const response = await fetch(`${origin}/nodes`, {
@@ -271,6 +284,7 @@ export const getMatchmakingNodes = async (measureLatency = true): Promise<Matchm
     : discoveredNodes
   if (!measureLatency) return nodes
   const measuredNodes = await attachNodeLatencies(nodes)
+  measuredNodeCache = { until: Date.now() + 15_000, nodes: measuredNodes }
   // A transient probe failure must not erase the player's saved region.
   if (token) void reportNodeLatencies(measuredNodes, token)
   return measuredNodes
@@ -331,28 +345,12 @@ export const resolvePreferredMatchmakingApiUrl = async (): Promise<string> => {
   try {
     nodes = await getMatchmakingNodes()
     const selected = await selectMatchmakingApiUrl(nodes, preferences.selectedNodeId)
-    if (selected && (selected !== API_BASE_URL || LOCAL_DEVELOPMENT)) {
+    if (selected) {
       lastWorkingServiceApi = selected
       console.info('[RegionRouting] selected', { origin: selected, reason: 'regional-selection' })
       return selected
     }
     if (LOCAL_DEVELOPMENT) return API_BASE_URL
-    // SEA may be the correct nearest region. Keep a positive measurement unless
-    // a saved or previously working non-SEA region needs a recovery check.
-    const savedOrigin = nodes.find((node) => node.id === preferences.selectedNodeId)?.publicApiUrl
-    if (
-      selected &&
-      (savedOrigin === API_BASE_URL ||
-        nodes.some(
-          (node) => node.publicApiUrl !== API_BASE_URL && measuredLatency(node) !== null
-        )) &&
-      (!lastWorkingServiceApi || lastWorkingServiceApi === API_BASE_URL) &&
-      (!preferences.selectedNodeId || savedOrigin === API_BASE_URL)
-    ) {
-      lastWorkingServiceApi = selected
-      console.info('[RegionRouting] selected', { origin: selected, reason: 'nearest-measured' })
-      return selected
-    }
   } catch {
     if (LOCAL_DEVELOPMENT) return API_BASE_URL
   }

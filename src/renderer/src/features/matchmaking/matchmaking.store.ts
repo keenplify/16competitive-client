@@ -1,3 +1,4 @@
+import { matchmakingRegionSelection } from '../../../../shared/matchmaking-region-selection'
 import type { MatchmakingActivity } from '../../../../shared/matchmaking-activity'
 import { useQueueWarmupStore } from './queue-warmup.store'
 import type { ServerCustomGameMode } from '../../../../shared/custom-games'
@@ -176,6 +177,19 @@ const timestampMs = (value: string): number | null => {
 const isMatchLifecycleStatus = (status: QueueStatus): boolean =>
   ['match_found', 'ready_check', 'countdown', 'starting_server', 'server_ready'].includes(status)
 
+async function loadActivity(
+  state: Pick<MatchmakingState, 'nodes' | 'selectedNodeId' | 'allowRegionExpansion'>
+): Promise<MatchmakingActivity | null> {
+  const { eligibleRegions } = matchmakingRegionSelection(
+    state.nodes,
+    state.selectedNodeId,
+    state.allowRegionExpansion
+  )
+  if (!eligibleRegions.length || typeof window.api.matchmaking.getActivity !== 'function')
+    return null
+  return window.api.matchmaking.getActivity(eligibleRegions)
+}
+
 export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const terminalMatchIds = new Set<string>()
 
@@ -250,7 +264,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'queue_status':
         void (
           typeof window.api.matchmaking.getActivity === 'function'
-            ? window.api.matchmaking.getActivity()
+            ? loadActivity(get())
             : Promise.resolve(null)
         )
           .then((activity) => {
@@ -756,7 +770,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         const activity =
           typeof window.api.matchmaking.getActivity === 'function'
-            ? await window.api.matchmaking.getActivity().catch(() => null)
+            ? await loadActivity(get()).catch(() => null)
             : null
         if (get().selectedNodeId === preferences.selectedNodeId) set({ activity })
       } catch (error) {
@@ -770,7 +784,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({ selectedNodeId: preferences.selectedNodeId, activity: null })
         const activity =
           typeof window.api.matchmaking.getActivity === 'function'
-            ? await window.api.matchmaking.getActivity().catch(() => null)
+            ? await loadActivity(get()).catch(() => null)
             : null
         if (get().selectedNodeId === preferences.selectedNodeId) set({ activity })
       } catch (error) {
@@ -782,7 +796,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       try {
         const preferences =
           await window.api.matchmaking.setAllowRegionExpansion(allowRegionExpansion)
-        set({ allowRegionExpansion: preferences.allowRegionExpansion })
+        set({ allowRegionExpansion: preferences.allowRegionExpansion, activity: null })
+        set({ activity: await loadActivity(get()).catch(() => null) })
       } catch (error) {
         set({ error: readableError(error) })
       }
@@ -929,44 +944,17 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         error: null
       })
       try {
-        const selectedNode = nodes.find(
-          (node) =>
-            node.id === selectedNodeId &&
-            node.available &&
-            typeof node.latencyMs === 'number' &&
-            Number.isFinite(node.latencyMs) &&
-            Math.round(node.latencyMs) < 300
+        const { preferredNode, eligibleRegions } = matchmakingRegionSelection(
+          nodes,
+          selectedNodeId,
+          allowRegionExpansion
         )
-        const preferredNode =
-          selectedNode ??
-          [...nodes]
-            .filter(
-              (node) =>
-                node.available &&
-                typeof node.latencyMs === 'number' &&
-                Number.isFinite(node.latencyMs)
-            )
-            .sort((left, right) => (left.latencyMs ?? Infinity) - (right.latencyMs ?? Infinity))[0]
-        const eligibleRegions = [
-          ...new Set(
-            nodes
-              .filter(
-                (node) =>
-                  node.available &&
-                  typeof node.latencyMs === 'number' &&
-                  Number.isFinite(node.latencyMs) &&
-                  Math.round(node.latencyMs) < 300
-              )
-              .map((node) => node.region)
-          )
-        ]
-        if (preferredNode && !eligibleRegions.includes(preferredNode.region)) {
-          eligibleRegions.push(preferredNode.region)
-        }
+        if (!preferredNode)
+          throw new Error(translate(useLanguageStore.getState().language, 'activity.noNearby'))
         await window.api.matchmaking.joinQueue(
           selectedMode,
           selectedMapIds,
-          allowRegionExpansion,
+          !selectedNodeId || allowRegionExpansion,
           preferredNode?.region ?? null,
           eligibleRegions
         )

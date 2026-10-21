@@ -1,5 +1,10 @@
 export const matchNotificationTranslations = {
   en: {
+    'activity.nearbyHint': 'Searches {{region}} below 300 ms.',
+    'activity.nearbyCounts': 'In game: {{inGame}} · Queued nearby: {{queued}}',
+    'activity.searchNearby': 'Search nearby regions (<300 ms)',
+    'activity.noNearby':
+      'No available region has a ping below 300 ms. Refresh regions and try again.',
     'activity.botUnavailable': 'Join a queue before choosing Play with Bots.',
     'activity.counts': 'In game: {{inGame}} · Queued in {{region}}: {{queued}}',
     'activity.playBots': 'Play with Bots',
@@ -24,6 +29,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   ru: {
+    'activity.nearbyHint': 'Поиск в {{region}} с пингом ниже 300 мс.',
+    'activity.nearbyCounts': 'В игре: {{inGame}} · В очереди рядом: {{queued}}',
+    'activity.searchNearby': 'Искать в ближайших регионах (<300 мс)',
+    'activity.noNearby':
+      'Нет доступных регионов с пингом ниже 300 мс. Обновите регионы и повторите попытку.',
     'activity.botUnavailable': 'Встаньте в очередь, прежде чем выбирать игру с ботами.',
     'activity.counts': 'В игре: {{inGame}} · В очереди {{region}}: {{queued}}',
     'activity.playBots': 'Играть с ботами',
@@ -48,6 +58,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Настройки уведомлений'
   },
   tl: {
+    'activity.nearbyHint': 'Naghahanap sa {{region}} na mas mababa sa 300 ms.',
+    'activity.nearbyCounts': 'Naglalaro: {{inGame}} · Nakapila sa malapit: {{queued}}',
+    'activity.searchNearby': 'Maghanap sa malalapit na rehiyon (<300 ms)',
+    'activity.noNearby':
+      'Walang available na rehiyon na mas mababa sa 300 ms ang ping. I-refresh ang mga rehiyon at subukan muli.',
     'activity.botUnavailable': 'Pumila muna bago piliin ang Play with Bots.',
     'activity.counts': 'Naglalaro: {{inGame}} · Nakapila sa {{region}}: {{queued}}',
     'activity.playBots': 'Maglaro kasama ang Bots',
@@ -73,6 +88,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   th: {
+    'activity.nearbyHint': 'ค้นหาใน {{region}} ที่ปิงต่ำกว่า 300 ms',
+    'activity.nearbyCounts': 'ในเกม: {{inGame}} · คิวใกล้เคียง: {{queued}}',
+    'activity.searchNearby': 'ค้นหาในภูมิภาคใกล้เคียง (<300 ms)',
+    'activity.noNearby':
+      'ไม่มีภูมิภาคที่พร้อมใช้งานและมีปิงต่ำกว่า 300 ms รีเฟรชภูมิภาคแล้วลองอีกครั้ง',
     'activity.botUnavailable': 'เข้าคิวก่อนเลือกเล่นกับบอต',
     'activity.counts': 'ในเกม: {{inGame}} · เข้าคิวใน {{region}}: {{queued}}',
     'activity.playBots': 'เล่นกับบอต',
@@ -95,6 +115,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'ตั้งค่าการแจ้งเตือน'
   },
   id: {
+    'activity.nearbyHint': 'Mencari di {{region}} dengan ping di bawah 300 ms.',
+    'activity.nearbyCounts': 'Dalam game: {{inGame}} · Antrean terdekat: {{queued}}',
+    'activity.searchNearby': 'Cari region terdekat (<300 ms)',
+    'activity.noNearby':
+      'Tidak ada region tersedia dengan ping di bawah 300 ms. Segarkan region dan coba lagi.',
     'activity.botUnavailable': 'Masuk antrean sebelum memilih Main dengan Bot.',
     'activity.counts': 'Dalam game: {{inGame}} · Antrean {{region}}: {{queued}}',
     'activity.playBots': 'Main dengan Bot',
@@ -117,6 +142,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Pengaturan notifikasi'
   },
   hi: {
+    'activity.nearbyHint': '300 ms से कम पिंग वाले {{region}} में खोजता है।',
+    'activity.nearbyCounts': 'गेम में: {{inGame}} · आस-पास कतार में: {{queued}}',
+    'activity.searchNearby': 'आस-पास के क्षेत्रों में खोजें (<300 ms)',
+    'activity.noNearby':
+      '300 ms से कम पिंग वाला कोई क्षेत्र उपलब्ध नहीं है। क्षेत्र रीफ़्रेश करके फिर कोशिश करें।',
     'activity.botUnavailable': 'बॉट्स के साथ खेलने का विकल्प चुनने से पहले कतार में शामिल हों।',
     'activity.counts': 'गेम में: {{inGame}} · {{region}} में कतार: {{queued}}',
     'activity.playBots': 'बॉट्स के साथ खेलें',
@@ -141,6 +171,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'सूचना सेटिंग्स'
   },
   pt: {
+    'activity.nearbyHint': 'Busca em {{region}} com ping abaixo de 300 ms.',
+    'activity.nearbyCounts': 'Em jogo: {{inGame}} · Na fila por perto: {{queued}}',
+    'activity.searchNearby': 'Buscar regiões próximas (<300 ms)',
+    'activity.noNearby':
+      'Nenhuma região disponível tem ping abaixo de 300 ms. Atualize as regiões e tente novamente.',
     'activity.botUnavailable': 'Entre na fila antes de escolher Jogar com bots.',
     'activity.counts': 'Em jogo: {{inGame}} · Na fila em {{region}}: {{queued}}',
     'activity.playBots': 'Jogar com bots',
@@ -167,6 +202,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Configurações de notificações'
   },
   ja: {
+    'activity.nearbyHint': 'ping が300 ms未満の {{region}} で検索します。',
+    'activity.nearbyCounts': 'プレイ中: {{inGame}} · 近隣で検索中: {{queued}}',
+    'activity.searchNearby': '近隣の地域で検索（300 ms未満）',
+    'activity.noNearby':
+      'ping が300 ms未満の利用可能な地域がありません。地域を更新して再試行してください。',
     'activity.botUnavailable': 'ボットとプレイする前にマッチ検索を開始してください。',
     'activity.counts': 'プレイ中: {{inGame}} · {{region}}で検索中: {{queued}}',
     'activity.playBots': 'ボットとプレイ',

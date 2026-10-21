@@ -1,3 +1,4 @@
+import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -58,6 +59,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
   ).outputText
   const dependencies = {
+    '../../../../shared/matchmaking-region-selection': { matchmakingRegionSelection },
     './queue-warmup.store': {
       useQueueWarmupStore: {
         getState: () => ({
@@ -320,4 +322,23 @@ test('warmup lifecycle events leave ranked queue time, position and ready check 
   h.emit({ type: 'match_finished', matchId: 'warmup', whileQueued: true })
   assert.equal(h.store.getState().queueStatus, 'ready_check')
   assert.equal(h.store.getState().match.matchId, 'ranked')
+})
+
+test('automatic queue starts across SG and EUW even with an old expansion opt-out', async () => {
+  const h = await harness()
+  h.store.setState({
+    selectedNodeId: null,
+    allowRegionExpansion: false,
+    nodes: [
+      { id: 'sg', region: 'sea', available: true, latencyMs: 55 },
+      { id: 'euw', region: 'europe-east', available: true, latencyMs: 240 },
+      { id: 'na', region: 'north-america', available: true, latencyMs: 300 }
+    ]
+  })
+  assert.equal(await h.store.getState().queueAgain(), true)
+  assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])).slice(2), [
+    true,
+    'sea',
+    ['sea', 'europe-east']
+  ])
 })

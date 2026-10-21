@@ -397,8 +397,13 @@ export const browserMatchmakingApi: MatchmakingApi = {
 
   getNodes,
 
-  async getActivity() {
-    return parseMatchmakingActivity(await requestJson<unknown>('/stats/matchmaking-activity'))
+  async getActivity(regions) {
+    const query = regions?.length
+      ? `?regions=${encodeURIComponent([...new Set(regions)].join(','))}`
+      : ''
+    return parseMatchmakingActivity(
+      await requestJson<unknown>(`/stats/matchmaking-activity${query}`)
+    )
   },
 
   async getOnlinePlayers() {

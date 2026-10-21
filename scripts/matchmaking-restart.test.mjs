@@ -1,3 +1,4 @@
+import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -43,6 +44,7 @@ async function harness() {
     }
   ).outputText
   const dependencies = {
+    '../../../../shared/matchmaking-region-selection': { matchmakingRegionSelection },
     './queue-warmup.store': {
       useQueueWarmupStore: {
         getState: () => ({

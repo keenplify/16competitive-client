@@ -419,7 +419,7 @@ export interface MatchmakingApi {
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>
   getOnlinePlayers(): Promise<number>
-  getActivity(): Promise<MatchmakingActivity>
+  getActivity(regions?: string[]): Promise<MatchmakingActivity>
   selectNode(nodeId: string | null): Promise<MatchmakingPreferences>
   getPreferences(): Promise<MatchmakingPreferences>
   setAllowRegionExpansion(value: boolean): Promise<MatchmakingPreferences>

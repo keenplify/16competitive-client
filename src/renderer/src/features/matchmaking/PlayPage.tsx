@@ -507,12 +507,12 @@ export function PlayPage({
               <input
                 type="checkbox"
                 className="size-4 accent-sky-400"
-                checked={allowRegionExpansion}
-                disabled={visiblePlayView === 'custom' || isSearching}
+                checked={!selectedNodeId || allowRegionExpansion}
+                disabled={visiblePlayView === 'custom' || isSearching || !selectedNodeId}
                 tabIndex={visiblePlayView === 'custom' ? -1 : undefined}
                 onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
               />
-              Expand search after 90 seconds
+              {t('activity.searchNearby')}
             </label>
             <div className="w-72 max-w-full shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">

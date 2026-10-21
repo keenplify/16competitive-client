@@ -1,3 +1,5 @@
+import { useTranslation } from '../i18n/i18n'
+import { nearbyMatchmakingNodes } from '../../../../shared/matchmaking-region-selection'
 import Select from 'react-select'
 import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
@@ -58,6 +60,11 @@ export function MatchmakingRegionSelect({
   disabled,
   onChange
 }: MatchmakingRegionSelectProps): JSX.Element {
+  const { t } = useTranslation()
+  const nearbyRegions =
+    [...new Set(nearbyMatchmakingNodes(nodes).map((node) => regionLabel(node.region)))].join(
+      ', '
+    ) || '—'
   const measuredNodes = nodes as MatchmakingNodeWithLatency[]
   const bestNode = displayedPlayWindowNode(nodes, null) as MatchmakingNodeWithLatency | null
 
@@ -171,9 +178,7 @@ export function MatchmakingRegionSelect({
                 </span>
                 <span className="block truncate text-[11px] text-neutral-500">
                   {option.automatic
-                    ? node
-                      ? `Currently ${regionLabel(node.region)} · ${node.id}`
-                      : 'Chooses the lowest-latency healthy region'
+                    ? t('activity.nearbyHint', { region: nearbyRegions })
                     : node?.id}
                 </span>
               </span>
@@ -192,9 +197,7 @@ export function MatchmakingRegionSelect({
       {showHint && (
         <p className="mt-2 text-xs text-neutral-500">
           {selectedNodeId === null
-            ? bestNode
-              ? `Automatic currently prefers ${regionLabel(bestNode.region)} at ${nodeLatency(bestNode)} ms.`
-              : 'Automatic chooses the lowest-latency healthy region when one is reachable.'
+            ? t('activity.nearbyHint', { region: nearbyRegions })
             : 'Manual region selection overrides automatic latency routing.'}
         </p>
       )}

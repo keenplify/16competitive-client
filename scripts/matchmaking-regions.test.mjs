@@ -1,3 +1,4 @@
+import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 import { parseMatchmakingActivity } from '../src/shared/matchmaking-activity.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
@@ -61,7 +62,7 @@ async function loadRegionsModule({
         if (bootstrapFails) throw new Error('Primary node discovery unavailable')
         return { ok: true, json: async () => ({ nodes }) }
       }
-      if (url.endsWith('/stats/matchmaking-activity'))
+      if (url.includes('/stats/matchmaking-activity'))
         return {
           ok: true,
           json: async () => ({ region: 'euw', inGamePlayers: 3, queuedPlayers: 2 })
@@ -193,4 +194,44 @@ test('activity counts use the selected regional service instead of bootstrap', a
   assert.equal(activity.queuedPlayers, 2)
   assert.ok(requests.includes('https://warsaw.example/stats/matchmaking-activity'))
   assert.ok(!requests.includes('https://bootstrap.example/stats/matchmaking-activity'))
+})
+
+test('automatic searches every healthy region below 300 ms, nearest first', () => {
+  const nodes = [
+    node('euw', 240),
+    node('sea', 55),
+    node('na', 300),
+    node('sa', 299.9),
+    node('offline', 40, false),
+    node('unknown', null),
+    node('invalid', -1)
+  ]
+  const result = matchmakingRegionSelection(nodes, null, false)
+  assert.equal(result.preferredNode.id, 'sea')
+  assert.deepEqual(result.eligibleRegions, ['sea', 'euw', 'sa'])
+  assert.equal(result.nearby, true)
+  assert.deepEqual(matchmakingRegionSelection(nodes, 'euw', false).eligibleRegions, ['euw'])
+  assert.equal(matchmakingRegionSelection([node('na', 300)], null, true).preferredNode, undefined)
+})
+
+test('nearest SEA replaces an earlier European recovery endpoint', async () => {
+  const nodes = []
+  const regions = await loadRegionsModule({ nodes, probeLatencyMs: 55 })
+  assert.equal(
+    await regions.resolvePreferredMatchmakingApiUrl(),
+    'https://euw.16competitive.papamo.dev'
+  )
+  nodes.push({ ...node('sea', 55), publicApiUrl: 'https://bootstrap.example' }, node('euw', 240))
+  assert.equal(await regions.resolvePreferredMatchmakingApiUrl(), 'https://bootstrap.example')
+})
+
+test('nearby activity requests all selected regions in one query and validates IPC arguments', async () => {
+  const requests = []
+  const regions = await loadRegionsModule({ nodes: [node('sea', 55)], requests })
+  await regions.getMatchmakingActivity(['sea', 'euw', 'sea'])
+  assert.ok(requests.includes('https://sea.example/stats/matchmaking-activity?regions=sea%2Ceuw'))
+  await assert.rejects(
+    regions.getMatchmakingActivity(['sea&other=bad']),
+    /Invalid activity regions/
+  )
 })
