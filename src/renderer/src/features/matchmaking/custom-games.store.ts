@@ -166,26 +166,42 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     }
   },
   refresh: async () => {
+    if (get().status === 'loading') return
     const previousRoom = get().currentRoom
     set({ status: 'loading' })
     try {
-      const [rooms, currentRoom] = await Promise.all([
+      const [rooms, currentRoom] = await Promise.allSettled([
         window.api.customGames.list(useMatchmakingStore.getState().selectedNodeId),
         window.api.customGames.mine(
           get().currentRoom?.hostApiUrl ?? useMatchmakingStore.getState().match?.hostApiUrl
         )
       ])
+      const failed = rooms.status === 'rejected' || currentRoom.status === 'rejected'
+      if (rooms.status === 'rejected') console.warn('[CustomGames] room list failed', rooms.reason)
+      if (currentRoom.status === 'rejected')
+        console.warn('[CustomGames] room restore failed', currentRoom.reason)
       set({
-        rooms,
+        ...(rooms.status === 'fulfilled' ? { rooms: rooms.value } : {}),
         currentRoom:
-          get().addingBot || get().savingSettings || get().currentRoom !== previousRoom
+          currentRoom.status === 'rejected' ||
+          get().addingBot ||
+          get().savingSettings ||
+          get().currentRoom !== previousRoom
             ? get().currentRoom
-            : currentRoom,
-        status: 'ready',
-        error: get().settingsModalOpen ? get().error : null
+            : currentRoom.value,
+        status: failed ? 'error' : 'ready',
+        error: get().settingsModalOpen
+          ? get().error
+          : failed
+            ? translate(useLanguageStore.getState().language, 'customGames.refreshUnavailable')
+            : null
       })
     } catch (error) {
-      set({ status: 'error', error: message(error) })
+      console.warn('[CustomGames] refresh failed', error)
+      set({
+        status: 'error',
+        error: translate(useLanguageStore.getState().language, 'customGames.refreshUnavailable')
+      })
     }
   },
   createRoom: async (settings) => {

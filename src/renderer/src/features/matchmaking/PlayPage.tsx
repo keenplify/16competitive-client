@@ -15,6 +15,7 @@ import {
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
+import { NotificationContent } from '../../components/ui/NotificationContent'
 import { useTranslation, type TranslationKey } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CustomGamesPanel } from './CustomGamesPanel'
@@ -184,8 +185,11 @@ export function PlayPage({
   }, [error])
 
   useEffect(() => {
-    if (customRoomError) toast.error(customRoomError)
-  }, [customRoomError])
+    if (customRoomError)
+      toast.error(
+        <NotificationContent title={t('customGames.errorTitle')} message={customRoomError} />
+      )
+  }, [customRoomError, t])
 
   useEffect(() => {
     if (queueStatus !== 'server_ready' || !matchReadyAt) return
@@ -459,6 +463,8 @@ export function PlayPage({
 
   return (
     <main
+      data-custom-game-room={visiblePlayView === 'custom' && currentCustomRoom ? '' : undefined}
+      data-custom-game-browser={visiblePlayView === 'custom' && !currentCustomRoom ? '' : undefined}
       className={twMerge(
         'play-page relative min-h-0 p-3 text-white sm:p-4',
         visiblePlayView !== 'custom'

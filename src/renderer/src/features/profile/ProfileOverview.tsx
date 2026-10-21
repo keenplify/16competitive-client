@@ -6,6 +6,7 @@ import { useTranslation } from '../i18n/i18n'
 import { CountryFlag } from '../../components/CountryFlag'
 import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { ProfileFlag } from './ProfileFlag'
+import { ProfileCustomStats } from './ProfileCustomStats'
 
 export function ProfileOverview({
   profile,
@@ -19,6 +20,14 @@ export function ProfileOverview({
   className?: string
 }): JSX.Element {
   const { t, language } = useTranslation()
+  const merged = profile.customStats?.merged
+  const totals = {
+    wins: Math.min(Number.MAX_SAFE_INTEGER, profile.wins + (merged?.wins ?? 0)),
+    losses: Math.min(Number.MAX_SAFE_INTEGER, profile.losses + (merged?.losses ?? 0)),
+    kills: Math.min(Number.MAX_SAFE_INTEGER, profile.kills + (merged?.kills ?? 0)),
+    deaths: Math.min(Number.MAX_SAFE_INTEGER, profile.deaths + (merged?.deaths ?? 0)),
+    assists: Math.min(Number.MAX_SAFE_INTEGER, profile.assists + (merged?.assists ?? 0))
+  }
   return (
     <div
       className={twMerge(
@@ -73,24 +82,24 @@ export function ProfileOverview({
         className="grid grid-cols-2 gap-y-4 border-b border-white/15 pb-5 sm:grid-cols-4 lg:grid-cols-7"
       >
         {[
-          [t('profile.wins'), profile.wins.toLocaleString(language)],
-          [t('profile.losses'), profile.losses.toLocaleString(language)],
+          [t('profile.wins'), totals.wins.toLocaleString(language)],
+          [t('profile.losses'), totals.losses.toLocaleString(language)],
           [
             t('profile.winRate'),
-            profile.wins + profile.losses > 0
+            totals.wins + totals.losses > 0
               ? new Intl.NumberFormat(language, {
                   style: 'percent',
                   maximumFractionDigits: 1
-                }).format(profile.wins / (profile.wins + profile.losses))
+                }).format(totals.wins / (totals.wins + totals.losses))
               : '—'
           ],
-          [t('profile.kills'), profile.kills.toLocaleString(language)],
-          [t('profile.assists'), profile.assists.toLocaleString(language)],
-          [t('profile.deaths'), profile.deaths.toLocaleString(language)],
+          [t('profile.kills'), totals.kills.toLocaleString(language)],
+          [t('profile.assists'), totals.assists.toLocaleString(language)],
+          [t('profile.deaths'), totals.deaths.toLocaleString(language)],
           [
             t('profile.kd'),
-            profile.deaths > 0
-              ? (profile.kills / profile.deaths).toLocaleString(language, {
+            totals.deaths > 0
+              ? (totals.kills / totals.deaths).toLocaleString(language, {
                   maximumFractionDigits: 2
                 })
               : '—'
@@ -102,6 +111,9 @@ export function ProfileOverview({
           </div>
         ))}
       </dl>
+      {profile.customStats?.categories.some((category) => category.mix) && (
+        <p className="text-sm text-neutral-400">{t('profile.customStatsTotalsNote')}</p>
+      )}
       {profile.partnerStats && profile.partnerStats.sessions > 0 && (
         <section aria-label={t('profile.partnerStats')} className="border-b border-white/15 pb-5">
           <h3 className="mb-3 text-base font-semibold">{t('profile.partnerStats')}</h3>
@@ -132,6 +144,7 @@ export function ProfileOverview({
         </section>
       )}
 
+      <ProfileCustomStats categories={profile.customStats?.categories ?? []} />
       {!!profile.partnerLevels?.length && (
         <section
           aria-label={t('profile.communityLevels')}

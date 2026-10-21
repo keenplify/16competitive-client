@@ -95,7 +95,6 @@ export interface ProfileActivitySnapshot {
   modes: Array<{ id: string; matches: number; wins: number }>
 }
 
-
 export interface PartnerLevelProfile {
   partnerId: string
   communityName: string | null
@@ -111,6 +110,17 @@ export interface PartnerLevelProfile {
 }
 
 export interface PlayerProfile {
+  customStats?: {
+    categories: Array<{
+      serverId: string
+      communityName: string | null
+      key: string
+      name: string
+      mix: boolean
+      stats: Array<{ key: string; label: string; value: number }>
+    }>
+    merged: { kills: number; deaths: number; assists: number; wins: number; losses: number }
+  }
   activity?: ProfileActivitySnapshot
   partnerStats?: { sessions: number; kills: number; deaths: number; seconds: number }
   partnerLevels?: PartnerLevelProfile[]

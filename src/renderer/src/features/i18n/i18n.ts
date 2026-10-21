@@ -1,3 +1,4 @@
+import { customGameTranslations } from './custom-game-translations'
 import { launcherThemeTranslations } from './launcher-theme-translations'
 import { passwordResetTranslations } from './password-reset-translations'
 import { communityDirectoryTranslations } from './community-directory-translations'
@@ -51,6 +52,7 @@ const english = {
   ...communityMembershipTranslations.en,
   ...communityDirectoryTranslations.en,
   ...scoreboardBotTranslations.en,
+  ...customGameTranslations.en,
   ...newsAnnouncementTranslations.en,
   ...readyCheckTranslations.en,
   ...matchAssetTranslations.en,
@@ -216,6 +218,7 @@ const russian: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.ru,
   ...communityDirectoryTranslations.ru,
   ...scoreboardBotTranslations.ru,
+  ...customGameTranslations.ru,
   ...newsAnnouncementTranslations.ru,
   ...readyCheckTranslations.ru,
   ...matchAssetTranslations.ru,
@@ -381,6 +384,7 @@ const taglish: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.tl,
   ...communityDirectoryTranslations.tl,
   ...scoreboardBotTranslations.tl,
+  ...customGameTranslations.tl,
   ...newsAnnouncementTranslations.tl,
   ...readyCheckTranslations.tl,
   ...matchAssetTranslations.tl,
@@ -548,6 +552,7 @@ const thai: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.th,
   ...communityDirectoryTranslations.th,
   ...scoreboardBotTranslations.th,
+  ...customGameTranslations.th,
   ...newsAnnouncementTranslations.th,
   ...readyCheckTranslations.th,
   ...matchAssetTranslations.th,
@@ -710,6 +715,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.id,
   ...communityDirectoryTranslations.id,
   ...scoreboardBotTranslations.id,
+  ...customGameTranslations.id,
   ...newsAnnouncementTranslations.id,
   ...readyCheckTranslations.id,
   ...matchAssetTranslations.id,
@@ -880,6 +886,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.pt,
   ...communityDirectoryTranslations.pt,
   ...scoreboardBotTranslations.pt,
+  ...customGameTranslations.pt,
   ...newsAnnouncementTranslations.pt,
   ...readyCheckTranslations.pt,
   ...matchAssetTranslations.pt,
@@ -1050,6 +1057,7 @@ const japanese: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.ja,
   ...communityDirectoryTranslations.ja,
   ...scoreboardBotTranslations.ja,
+  ...customGameTranslations.ja,
   ...newsAnnouncementTranslations.ja,
   ...readyCheckTranslations.ja,
   ...matchAssetTranslations.ja,
@@ -1218,6 +1226,7 @@ const hindi: Record<TranslationKey, string> = {
   ...communityMembershipTranslations.hi,
   ...communityDirectoryTranslations.hi,
   ...scoreboardBotTranslations.hi,
+  ...customGameTranslations.hi,
   ...newsAnnouncementTranslations.hi,
   ...readyCheckTranslations.hi,
   ...matchAssetTranslations.hi,

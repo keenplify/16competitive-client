@@ -1,7 +1,14 @@
 export const profileTranslations = {
   en: {
+    'profile.customStats': 'Custom mode statistics',
+    'profile.customStatsNote': 'Reported by partner servers for their custom game modes.',
+    'profile.customStatsMixed': 'Standard counters included in profile totals',
+    'profile.customStatsSeparate': 'Separate from profile totals',
+    'profile.customStatsTotalsNote':
+      'Totals include opted-in partner counters. MMR and ranked match records are unchanged.',
     'profile.communityLevels': 'Community leveling history',
-    'profile.communityLevelsNote': 'Imported from partner leveling systems. These levels are separate from 1.6 Competitive progression.',
+    'profile.communityLevelsNote':
+      'Imported from partner leveling systems. These levels are separate from 1.6 Competitive progression.',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'Rank',
     'profile.communityPrestige': 'Prestige',
@@ -77,8 +84,15 @@ export const profileTranslations = {
     'profile.flag': 'Representing flag'
   },
   ru: {
+    'profile.customStats': 'Статистика пользовательских режимов',
+    'profile.customStatsNote': 'Данные партнёрских серверов об их игровых режимах.',
+    'profile.customStatsMixed': 'Стандартные показатели включены в итоги профиля',
+    'profile.customStatsSeparate': 'Отдельно от итогов профиля',
+    'profile.customStatsTotalsNote':
+      'Итоги включают разрешённые партнёрские показатели. MMR и результаты рейтинговых матчей не изменены.',
     'profile.communityLevels': 'История уровней сообщества',
-    'profile.communityLevelsNote': 'Импортировано из систем уровней сообществ. Не влияет на прогресс 1.6 Competitive.',
+    'profile.communityLevelsNote':
+      'Импортировано из систем уровней сообществ. Не влияет на прогресс 1.6 Competitive.',
     'profile.communityXp': 'Опыт',
     'profile.communityRank': 'Ранг',
     'profile.communityPrestige': 'Престиж',
@@ -154,8 +168,15 @@ export const profileTranslations = {
     'profile.flag': 'Флаг страны'
   },
   tl: {
+    'profile.customStats': 'Estadistika ng custom mode',
+    'profile.customStatsNote': 'Iniulat ng mga partner server para sa kanilang custom game mode.',
+    'profile.customStatsMixed': 'Kasama ang karaniwang bilang sa kabuuan ng profile',
+    'profile.customStatsSeparate': 'Hiwalay sa kabuuan ng profile',
+    'profile.customStatsTotalsNote':
+      'Kasama sa kabuuan ang mga piniling bilang mula sa partner. Hindi nagbabago ang MMR at rekord ng ranked match.',
     'profile.communityLevels': 'Community leveling history',
-    'profile.communityLevelsNote': 'Galing sa leveling system ng partner. Hiwalay ito sa level mo sa 1.6 Competitive.',
+    'profile.communityLevelsNote':
+      'Galing sa leveling system ng partner. Hiwalay ito sa level mo sa 1.6 Competitive.',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'Rank',
     'profile.communityPrestige': 'Prestige',
@@ -231,6 +252,12 @@ export const profileTranslations = {
     'profile.flag': 'Kinakatawang flag'
   },
   th: {
+    'profile.customStats': 'สถิติโหมดกำหนดเอง',
+    'profile.customStatsNote': 'รายงานโดยเซิร์ฟเวอร์พาร์ทเนอร์สำหรับโหมดเกมของตน',
+    'profile.customStatsMixed': 'รวมค่าสถิติมาตรฐานในยอดรวมโปรไฟล์',
+    'profile.customStatsSeparate': 'แยกจากยอดรวมโปรไฟล์',
+    'profile.customStatsTotalsNote':
+      'ยอดรวมมีค่าสถิติพาร์ทเนอร์ที่เลือกให้รวมไว้ โดยไม่เปลี่ยน MMR และผลการแข่งขันจัดอันดับ',
     'profile.communityLevels': 'ประวัติเลเวลชุมชน',
     'profile.communityLevelsNote': 'นำเข้าจากระบบเลเวลชุมชน แยกจากความคืบหน้าใน 1.6 Competitive',
     'profile.communityXp': 'XP',
@@ -308,8 +335,15 @@ export const profileTranslations = {
     'profile.flag': 'ธงที่ใช้แทนตัว'
   },
   id: {
+    'profile.customStats': 'Statistik mode khusus',
+    'profile.customStatsNote': 'Dilaporkan oleh server mitra untuk mode permainan mereka.',
+    'profile.customStatsMixed': 'Penghitung standar termasuk dalam total profil',
+    'profile.customStatsSeparate': 'Terpisah dari total profil',
+    'profile.customStatsTotalsNote':
+      'Total mencakup penghitung mitra yang diikutsertakan. MMR dan catatan pertandingan peringkat tidak berubah.',
     'profile.communityLevels': 'Riwayat level komunitas',
-    'profile.communityLevelsNote': 'Diimpor dari sistem level komunitas. Tidak memengaruhi progres 1.6 Competitive.',
+    'profile.communityLevelsNote':
+      'Diimpor dari sistem level komunitas. Tidak memengaruhi progres 1.6 Competitive.',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'Peringkat',
     'profile.communityPrestige': 'Prestise',
@@ -385,8 +419,16 @@ export const profileTranslations = {
     'profile.flag': 'Bendera perwakilan'
   },
   hi: {
+    'profile.customStats': 'कस्टम मोड के आँकड़े',
+    'profile.customStatsNote':
+      'पार्टनर सर्वर द्वारा उनके कस्टम गेम मोड के लिए रिपोर्ट किए गए आँकड़े।',
+    'profile.customStatsMixed': 'मानक आँकड़े प्रोफ़ाइल के कुल में शामिल हैं',
+    'profile.customStatsSeparate': 'प्रोफ़ाइल के कुल से अलग',
+    'profile.customStatsTotalsNote':
+      'कुल में चुने गए पार्टनर आँकड़े शामिल हैं। MMR और रैंक वाले मैचों के रिकॉर्ड अपरिवर्तित हैं।',
     'profile.communityLevels': 'कम्युनिटी लेवल का इतिहास',
-    'profile.communityLevelsNote': 'पार्टनर लेवलिंग सिस्टम से आयातित। यह 1.6 Competitive प्रगति से अलग है।',
+    'profile.communityLevelsNote':
+      'पार्टनर लेवलिंग सिस्टम से आयातित। यह 1.6 Competitive प्रगति से अलग है।',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'रैंक',
     'profile.communityPrestige': 'प्रेस्टीज',
@@ -462,8 +504,15 @@ export const profileTranslations = {
     'profile.flag': 'प्रतिनिधि झंडा'
   },
   pt: {
+    'profile.customStats': 'Estatísticas de modos personalizados',
+    'profile.customStatsNote': 'Informadas pelos servidores parceiros para seus modos de jogo.',
+    'profile.customStatsMixed': 'Contadores padrão incluídos nos totais do perfil',
+    'profile.customStatsSeparate': 'Separadas dos totais do perfil',
+    'profile.customStatsTotalsNote':
+      'Os totais incluem contadores de parceiros que optaram pela inclusão. O MMR e os registros de partidas ranqueadas não mudam.',
     'profile.communityLevels': 'Histórico de níveis da comunidade',
-    'profile.communityLevelsNote': 'Importado do sistema de níveis do parceiro. Não altera a progressão do 1.6 Competitive.',
+    'profile.communityLevelsNote':
+      'Importado do sistema de níveis do parceiro. Não altera a progressão do 1.6 Competitive.',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'Rank',
     'profile.communityPrestige': 'Prestígio',
@@ -539,8 +588,15 @@ export const profileTranslations = {
     'profile.flag': 'Bandeira representada'
   },
   ja: {
+    'profile.customStats': 'カスタムモードの統計',
+    'profile.customStatsNote': 'パートナーサーバーが独自のゲームモードについて報告した統計です。',
+    'profile.customStatsMixed': '標準カウンターをプロフィールの合計に含む',
+    'profile.customStatsSeparate': 'プロフィールの合計とは別集計',
+    'profile.customStatsTotalsNote':
+      '合計には統合が選択されたパートナーのカウンターを含みます。MMRとランク戦の記録は変わりません。',
     'profile.communityLevels': 'コミュニティのレベル履歴',
-    'profile.communityLevelsNote': 'パートナーのレベルシステムからインポートされた記録です。1.6 Competitive の進行度には影響しません。',
+    'profile.communityLevelsNote':
+      'パートナーのレベルシステムからインポートされた記録です。1.6 Competitive の進行度には影響しません。',
     'profile.communityXp': 'XP',
     'profile.communityRank': 'ランク',
     'profile.communityPrestige': 'プレステージ',

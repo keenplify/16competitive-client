@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadCustomGameList } from '../shared/custom-game-list'
 import { join } from 'node:path'
 import { LegacyGameService } from './game/legacy-game-service'
 import { getSessionToken } from './auth'
@@ -219,33 +220,14 @@ export const listCustomGames = async (selectedNodeId?: unknown): Promise<CustomG
   }
 
   const nodes = await getMatchmakingNodes()
-  const targetNodes =
-    typeof selectedNodeId === 'string' ? nodes.filter((node) => node.id === selectedNodeId) : nodes
-
-  if (targetNodes.length === 0) {
-    throw new Error(
-      typeof selectedNodeId === 'string'
-        ? 'The selected custom game server is unavailable'
-        : 'No custom game servers are available'
-    )
-  }
-
-  const results = await Promise.allSettled(
-    targetNodes.map(async (node) => {
+  return loadCustomGameList(
+    nodes,
+    typeof selectedNodeId === 'string' ? selectedNodeId : null,
+    async (node) => {
       const apiUrl = new URL(node.publicApiUrl).origin
       return roomsFrom(await requestAtApiUrl(apiUrl, '/custom-games'))
-    })
+    }
   )
-  const successful = results.filter(
-    (result): result is PromiseFulfilledResult<CustomGameRoom[]> => result.status === 'fulfilled'
-  )
-  if (successful.length === 0) {
-    throw new Error('Could not load rooms from the selected custom game servers')
-  }
-
-  return [
-    ...new Map(successful.flatMap(({ value }) => value).map((room) => [room.id, room])).values()
-  ]
 }
 
 export const getMyCustomGame = async (hostApiUrl?: unknown): Promise<CustomGameRoom | null> =>

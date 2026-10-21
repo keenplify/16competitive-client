@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import '../src/renderer/src/assets/main.css'
 import { ProfilePage } from '../src/renderer/src/features/profile/ProfilePage'
 import { ProfileOverlay } from '../src/renderer/src/features/profile/ProfileOverlay'
+import { ProfileOverview } from '../src/renderer/src/features/profile/ProfileOverview'
 import { useProfileStore } from '../src/renderer/src/features/profile/profile.store'
 import { useAuthStore } from '../src/renderer/src/features/auth/auth.store'
 import { useNavigationStore } from '../src/renderer/src/features/navigation/navigation.store'
@@ -84,6 +85,41 @@ const profile = (id: string) => ({
   deaths: 2400,
   assists: 820,
   createdAt: '2026-02-12T00:00:00Z',
+  customStats: {
+    merged: { kills: 48, deaths: 12, assists: 7, wins: 3, losses: 1 },
+    categories:
+      scenario === 'empty'
+        ? []
+        : [
+            {
+              serverId: '33333333-3333-4333-8333-333333333333',
+              communityName: 'Community mode server',
+              key: 'zombie',
+              name: 'Zombie survival',
+              mix: false,
+              stats: [
+                { key: 'infections', label: 'Infections', value: 127 },
+                { key: 'zombie_kills', label: 'Zombie kills', value: 308 },
+                { key: 'survivals', label: 'Rounds survived', value: 24 },
+                { key: 'boss_damage', label: 'Boss damage', value: 145600 }
+              ]
+            },
+            {
+              serverId: '33333333-3333-4333-8333-333333333333',
+              communityName: 'Community mode server',
+              key: 'arena',
+              name: 'Community arena',
+              mix: true,
+              stats: [
+                { key: 'kills', label: 'Kills', value: 48 },
+                { key: 'deaths', label: 'Deaths', value: 12 },
+                { key: 'assists', label: 'Assists', value: 7 },
+                { key: 'wins', label: 'Wins', value: 3 },
+                { key: 'losses', label: 'Losses', value: 1 }
+              ]
+            }
+          ]
+  },
   activity: scenario === 'empty' ? { total: 0, refreshedAt, maps: [], modes: [] } : activity,
   recentMatches: scenario === 'empty' ? [] : matches,
   loadout:
@@ -188,6 +224,14 @@ useAuthStore.setState({ session: { player: profile(me) } as never, status: 'auth
 useLanguageStore.getState().setLanguage('en')
 useFriendsStore.setState({ friends: [{ ...profile(other), profileXp: 24000, presence: 'ONLINE' }] })
 export function Preview(): JSX.Element {
+  if (new URLSearchParams(window.location.search).has('custom-stats')) {
+    return (
+      <main className="min-h-screen bg-neutral-950 px-6 text-white">
+        <p className="pt-4 text-sm text-neutral-400">Preview · Fake player data</p>
+        <ProfileOverview profile={profile(other)} own={false} className="mx-auto max-w-5xl" />
+      </main>
+    )
+  }
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       <div className="flex flex-wrap items-center gap-3 border-b border-white/15 bg-neutral-900 px-6 py-3 text-sm">

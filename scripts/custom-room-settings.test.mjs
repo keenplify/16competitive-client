@@ -172,3 +172,50 @@ test('installation rejection is translated and does not enter the room', async (
   assert.equal(h.state().currentRoom, null)
   assert.equal(h.state().error, 'translated:legacy.error.installationRequired')
 })
+
+test('list failure preserves a successful room restore and shows translated feedback', async () => {
+  const restored = { ...room, id: 'restored-room' }
+  const h = await harness({
+    list: async () => {
+      throw new Error("Error invoking remote method 'custom-games:list': offline")
+    },
+    mine: async () => restored
+  })
+  await h.state().refresh()
+  assert.equal(h.state().currentRoom.id, 'restored-room')
+  assert.equal(h.state().rooms[0].id, room.id)
+  assert.equal(h.state().status, 'error')
+  assert.equal(h.state().error, 'translated:customGames.refreshUnavailable')
+})
+
+test('room restore failure retains membership while updating the browser list', async () => {
+  const h = await harness({
+    list: async () => [{ ...room, name: 'Updated room' }],
+    mine: async () => {
+      throw new Error('offline')
+    }
+  })
+  await h.state().refresh()
+  assert.equal(h.state().currentRoom.name, room.name)
+  assert.equal(h.state().rooms[0].name, 'Updated room')
+  assert.equal(h.state().error, 'translated:customGames.refreshUnavailable')
+})
+
+test('polling does not overlap and successful recovery clears the refresh error', async () => {
+  const pending = deferred()
+  let requests = 0
+  const h = await harness({
+    list: () => {
+      requests++
+      return pending.promise
+    }
+  })
+  h.store.setState({ error: 'previous refresh failure' })
+  const refresh = h.state().refresh()
+  await h.state().refresh()
+  assert.equal(requests, 1)
+  pending.resolve([])
+  await refresh
+  assert.equal(h.state().status, 'ready')
+  assert.equal(h.state().error, null)
+})

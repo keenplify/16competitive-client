@@ -1,6 +1,7 @@
+import { ModalHeader } from '../../components/ui/ModalHeader'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useRef, useState, type JSX, type ReactNode } from 'react'
-import { LoaderCircle, X } from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
   CUSTOM_GAME_MODES,
@@ -82,31 +83,23 @@ export function RoomSettingsModal({
     <>
       <ModalDialog
         open
+        vguiTitlebar={false}
         onClose={close}
         tabIndex={-1}
-        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-none border border-white/20 bg-neutral-950 outline-none"
+        className="custom-room-dialog max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-none border border-white/20 bg-neutral-950 outline-none"
         labelledBy="room-settings-title"
         describedBy="room-settings-description"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-white/15 px-6 py-5">
-          <div>
-            <h2 id="room-settings-title" className="text-xl font-semibold text-white">
-              {t('customRoom.settings')}
-            </h2>
-            <p id="room-settings-description" className="mt-2 text-sm text-neutral-400">
-              {t('customRoom.description')}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            className="size-10 shrink-0 p-0"
-            aria-label={t('customRoom.close')}
-            disabled={saving}
-            onClick={close}
-          >
-            <X className="size-5" aria-hidden="true" />
-          </Button>
-        </header>
+        <ModalHeader
+          title={t('customRoom.settings')}
+          titleId="room-settings-title"
+          description={t('customRoom.description')}
+          descriptionId="room-settings-description"
+          closeLabel={t('customRoom.close')}
+          busy={saving}
+          onClose={close}
+        />
+
         <form
           className="grid gap-5 p-6"
           onSubmit={(event) => {

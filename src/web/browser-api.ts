@@ -1,3 +1,4 @@
+import { loadCustomGameList } from '../shared/custom-game-list'
 import {
   communityDirectoryPath,
   parseCommunityDirectory,
@@ -159,33 +160,14 @@ const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
 const customGames: CustomGamesApi = {
   async list(selectedNodeId) {
     const nodes = await browserMatchmakingApi.getNodes()
-    const targets = selectedNodeId ? nodes.filter((node) => node.id === selectedNodeId) : nodes
-    if (targets.length === 0) {
-      throw new Error(
-        selectedNodeId
-          ? 'The selected custom game server is unavailable.'
-          : 'No custom game servers are available.'
-      )
-    }
-    const results = await Promise.allSettled(
-      targets.map(async (node) => {
-        const result = await requestJson<{ rooms: CustomGameRoom[] }>('/custom-games', {
-          authenticated: true,
-          baseUrl: node.publicApiUrl,
-          clearOnUnauthorized: false
-        })
-        return result.rooms
+    return loadCustomGameList(nodes, selectedNodeId, async (node) => {
+      const result = await requestJson<{ rooms: CustomGameRoom[] }>('/custom-games', {
+        authenticated: true,
+        baseUrl: node.publicApiUrl,
+        clearOnUnauthorized: false
       })
-    )
-    const successful = results.filter(
-      (result): result is PromiseFulfilledResult<CustomGameRoom[]> => result.status === 'fulfilled'
-    )
-    if (successful.length === 0) {
-      throw new Error('Could not load rooms from the selected custom game servers.')
-    }
-    return [
-      ...new Map(successful.flatMap(({ value }) => value).map((room) => [room.id, room])).values()
-    ]
+      return result.rooms
+    })
   },
   async mine(host) {
     return (
