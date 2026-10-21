@@ -5,9 +5,9 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { captureCrosshairConfig } from '../src/main/game/crosshair-config.ts'
 
-test('restores the stock crosshair after a match', async () => {
+test('restores a launcher-owned crosshair override after a match', async () => {
   const directory = await mkdtemp(join(tmpdir(), '16c-crosshair-'))
-  const path = join(directory, 'config.cfg')
+  const path = join(directory, '16competitive_crosshair.cfg')
   try {
     await writeFile(path, 'name "Player"\ncrosshair "1"\n')
     const restore = await captureCrosshairConfig(path)
@@ -21,7 +21,7 @@ test('restores the stock crosshair after a match', async () => {
 
 test('removes the temporary override when no stock setting existed', async () => {
   const directory = await mkdtemp(join(tmpdir(), '16c-crosshair-'))
-  const path = join(directory, 'config.cfg')
+  const path = join(directory, '16competitive_crosshair.cfg')
   try {
     const restore = await captureCrosshairConfig(path)
     await writeFile(path, 'crosshair "0"\n')

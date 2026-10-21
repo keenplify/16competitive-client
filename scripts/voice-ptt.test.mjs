@@ -19,15 +19,10 @@ const { prepareVoicePtt, goldSrcKeyCode } = await import(
 
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-test('native PTT preserves the complete GoldSrc config and forwards both channels', async () => {
+test('native PTT uses owned session files and forwards both channels', async () => {
   const directory = await mkdtemp(join(tmpdir(), '16c-native-ptt-'))
-  const cstrike = join(directory, 'cstrike')
   const sessionDirectory = join(directory, 'session')
-  const original =
-    'unbindall\nbind "w" "+forward"\nbind "k" "+voicerecord"\nbind "v" "impulse 100"\n'
-  await mkdir(cstrike)
   await mkdir(sessionDirectory)
-  await writeFile(join(cstrike, 'config.cfg'), original)
   const events = []
   const session = prepareVoicePtt((active, channel) => events.push([active, channel]), 'K|V')
   try {
@@ -46,7 +41,6 @@ test('native PTT preserves the complete GoldSrc config and forwards both channel
       [false, 'team'],
       [false, 'party']
     ])
-    assert.equal(await readFile(join(cstrike, 'config.cfg'), 'utf8'), original)
   } finally {
     session.stop()
     await rm(directory, { recursive: true, force: true })

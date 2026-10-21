@@ -281,6 +281,7 @@ export function PlayPage({
   ) {
     return (
       <main
+        data-match-session=""
         className={twMerge(
           'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10 bg-transparent'
         )}

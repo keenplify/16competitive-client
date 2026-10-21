@@ -701,6 +701,28 @@
   height: 100%;
 }
 
+/* Match status and rosters need a compact window, not the selection grid's
+ * full-height viewport. Keep the countdown/startup header stable as it changes. */
+:root[data-launcher-theme='vgui2'] .vgui-page-window-host > .vgui-window:has([data-match-session]) {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-content > [data-match-session] {
+  isolation: isolate;
+  overflow: hidden;
+  padding: 24px;
+}
+
+:root[data-launcher-theme='vgui2'] [data-match-session] > .pointer-events-none {
+  position: absolute;
+}
+
+:root[data-launcher-theme='vgui2'] [data-match-session] > .relative > .text-center {
+  min-height: 176px;
+}
+
 :root[data-launcher-theme='vgui2'] .vgui-window-content header {
   filter: none;
   text-shadow: none;
