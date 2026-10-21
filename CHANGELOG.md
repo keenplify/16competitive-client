@@ -2948,3 +2948,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Development probes
 
 - Probe controls use dedicated settings files, preserve existing bindings, and never access `config.cfg`.
+
+## v2026.1021.3 — 2026-10-21
+
+### Matchmaking
+
+- Queue replays now require explicit consent before including bots.
+- Queue activity now reflects real players.
+
+### Notifications
+
+- Match notifications can persist when you leave the app.
+- Added settings to manage match notifications.
