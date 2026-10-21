@@ -254,7 +254,7 @@ async function warmupStoreHarness() {
       api: {
         matchmaking: {
           leaveWarmup: async () => {},
-          joinWarmup: async (mode, mapId) => calls.push(['join', mode, mapId]),
+          joinWarmup: async (mode, mapId) => calls.push(['join', mode, structuredClone(mapId)]),
           reconnectGame: async (matchId) => calls.push(['launch', matchId])
         }
       }
@@ -311,8 +311,62 @@ test('tab starts only a non-competitive session and blocks duplicate joins', asy
   store.getState().select('arena', 'fy_snow')
   await store.getState().join()
   await store.getState().join()
-  assert.deepEqual(calls, [['join', 'arena', 'fy_snow']])
+  assert.deepEqual(calls, [['join', 'arena', ['fy_snow']]])
   assert.equal(store.getState().status, 'starting')
+})
+
+test('public FFA post-match remains visible after game exit and clears for a ranked ready check', async () => {
+  const { store } = await warmupStoreHarness()
+  const emit = (event) => store.getState().handleEvent(event)
+  emit({ ...found, mode: 'ffa' })
+  emit(connect)
+  const result = {
+    type: 'match_finished',
+    publicFfa: true,
+    whileQueued: true,
+    matchId: 'warmup',
+    mode: 'ffa',
+    mapId: 'de_dust2',
+    players: []
+  }
+  emit(result)
+  emit({ type: 'game_process_exited', whileQueued: true, matchId: 'warmup' })
+  assert.equal(store.getState().status, 'idle')
+  assert.equal(store.getState().completedMatch, result)
+  emit({ type: 'match_ready_check', matchId: 'ranked' })
+  assert.equal(store.getState().completedMatch, null)
+})
+
+test('public FFA completion closes the warmup game while retaining the ranked queue', async () => {
+  const h = await harness()
+  try {
+    await h.connection.joinWarmup('ffa', 'de_dust2')
+    h.connection.handleWarmup({ ...found, mode: 'ffa' }, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    h.connection.handleWarmup(
+      {
+        type: 'match_finished',
+        publicFfa: true,
+        whileQueued: true,
+        matchId: 'warmup',
+        mode: 'ffa'
+      },
+      h.socket
+    )
+    await h.connection.warmupCleanup
+    assert.ok(h.calls.some(([action]) => action === 'shutdown'))
+    assert.equal(h.connection.isQueued(), true)
+    assert.ok(!h.sent.some((event) => event.type === 'leave_queue'))
+    assert.ok(
+      h.events.some(
+        (event) => event.type === 'match_finished' && event.publicFfa && event.whileQueued
+      )
+    )
+  } finally {
+    h.connection.shutdown()
+  }
 })
 
 for (const secondary of [false, true]) {
@@ -343,3 +397,50 @@ for (const secondary of [false, true]) {
     }
   })
 }
+
+test('warmup defaults to all maps and preserves multiple choices across catalog refreshes', async () => {
+  const { store, calls } = await warmupStoreHarness()
+  store.getState().syncMaps('ffa', ['de_dust', 'de_dust2', 'de_inferno'])
+  assert.deepEqual(store.getState().selectedMapIds, ['de_dust', 'de_dust2', 'de_inferno'])
+  store.getState().toggleMap('de_dust2')
+  store.getState().syncMaps('ffa', ['de_dust', 'de_dust2', 'de_inferno'])
+  assert.deepEqual(store.getState().selectedMapIds, ['de_dust', 'de_inferno'])
+  await store.getState().join()
+  assert.deepEqual(calls, [['join', 'ffa', ['de_dust', 'de_inferno']]])
+  store.getState().toggleMap('de_dust')
+  assert.deepEqual(store.getState().selectedMapIds, ['de_dust', 'de_inferno'])
+})
+
+test('catalog changes keep deselections and select newly available maps by default', async () => {
+  const { store } = await warmupStoreHarness()
+  store.getState().syncMaps('ffa', ['de_dust', 'de_dust2'])
+  store.getState().toggleMap('de_dust2')
+  store.getState().syncMaps('ffa', ['de_dust2', 'de_inferno'])
+  assert.deepEqual(store.getState().selectedMapIds, ['de_inferno'])
+  store.getState().syncMaps('arena', ['fy_snow', 'fy_pool_day'])
+  assert.deepEqual(store.getState().selectedMapIds, ['fy_snow', 'fy_pool_day'])
+  store.getState().toggleMap('fy_snow')
+  store.getState().toggleMap('fy_pool_day')
+  await store.getState().join()
+  assert.equal(store.getState().status, 'idle')
+})
+
+test('IPC validates the complete pool and sends every selected warmup map', async () => {
+  const h = await harness()
+  await h.connection.joinWarmup('ffa', ['de_dust2', 'de_inferno'])
+  assert.ok(
+    h.sent.some(
+      (message) =>
+        message.type === 'join_warmup' &&
+        JSON.stringify(message.mapIds) === JSON.stringify(['de_dust2', 'de_inferno'])
+    )
+  )
+  for (const selection of [
+    [],
+    ['de_dust2', '../map'],
+    ['de_dust2', 'de_dust2'],
+    Array(33).fill('de_dust2')
+  ]) {
+    assert.throws(() => h.connection.joinWarmup('ffa', selection), /Invalid warmup selection/)
+  }
+})

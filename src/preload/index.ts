@@ -119,7 +119,7 @@ const dailyQuests: DailyQuestsApi = {
 }
 
 const matchmaking: MatchmakingApi = {
-  joinWarmup: (mode, mapId) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinWarmup, mode, mapId),
+  joinWarmup: (mode, mapIds) => ipcRenderer.invoke(MATCHMAKING_CHANNELS.joinWarmup, mode, mapIds),
   leaveWarmup: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.leaveWarmup),
   connect: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.connect),
   getNodes: () => ipcRenderer.invoke(MATCHMAKING_CHANNELS.getNodes),

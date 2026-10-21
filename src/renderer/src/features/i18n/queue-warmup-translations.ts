@@ -1,5 +1,12 @@
 export const queueWarmupTranslations = {
   en: {
+    'play.competitive': 'Competitive',
+    'play.customGame': 'Custom game',
+    'play.mapPool': 'Map pool',
+    'play.mapsSelected': '{{selected}} / {{total}} selected',
+    'play.searching': 'Searching…',
+    'play.joining': 'Joining…',
+    'play.waitingForLeader': 'Waiting for leader',
     'matchmaking.regularMaps': 'Regular maps',
     'matchmaking.reviewMaps': 'For review',
     'warmup.tab': 'Non-competitive',
@@ -22,6 +29,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'play.competitive': 'Соревновательный',
+    'play.customGame': 'Своя игра',
+    'play.mapPool': 'Набор карт',
+    'play.mapsSelected': 'Выбрано {{selected}} / {{total}}',
+    'play.searching': 'Поиск…',
+    'play.joining': 'Входим…',
+    'play.waitingForLeader': 'Ждём лидера',
     'matchmaking.regularMaps': 'Обычные карты',
     'matchmaking.reviewMaps': 'На оценку',
     'warmup.tab': 'Без рейтинга',
@@ -44,6 +58,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'play.competitive': 'Kompetitibo',
+    'play.customGame': 'Custom game',
+    'play.mapPool': 'Mga mapa',
+    'play.mapsSelected': '{{selected}} / {{total}} napili',
+    'play.searching': 'Naghahanap…',
+    'play.joining': 'Sumasali…',
+    'play.waitingForLeader': 'Hinihintay ang leader',
     'matchmaking.regularMaps': 'Regular maps',
     'matchmaking.reviewMaps': 'Para sa review',
     'warmup.tab': 'Hindi kompetitibo',
@@ -66,6 +87,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'play.competitive': 'แข่งขัน',
+    'play.customGame': 'เกมกำหนดเอง',
+    'play.mapPool': 'ชุดแผนที่',
+    'play.mapsSelected': 'เลือก {{selected}} / {{total}}',
+    'play.searching': 'กำลังค้นหา…',
+    'play.joining': 'กำลังเข้าร่วม…',
+    'play.waitingForLeader': 'กำลังรอหัวหน้าทีม',
     'matchmaking.regularMaps': 'แผนที่ทั่วไป',
     'matchmaking.reviewMaps': 'สำหรับรีวิว',
     'warmup.tab': 'ไม่จัดอันดับ',
@@ -87,6 +115,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'play.competitive': 'Kompetitif',
+    'play.customGame': 'Permainan kustom',
+    'play.mapPool': 'Kumpulan peta',
+    'play.mapsSelected': '{{selected}} / {{total}} dipilih',
+    'play.searching': 'Mencari…',
+    'play.joining': 'Bergabung…',
+    'play.waitingForLeader': 'Menunggu pemimpin',
     'matchmaking.regularMaps': 'Peta reguler',
     'matchmaking.reviewMaps': 'Untuk ulasan',
     'warmup.tab': 'Nonkompetitif',
@@ -109,6 +144,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'play.competitive': 'Competitivo',
+    'play.customGame': 'Jogo personalizado',
+    'play.mapPool': 'Conjunto de mapas',
+    'play.mapsSelected': '{{selected}} / {{total}} selecionados',
+    'play.searching': 'Buscando…',
+    'play.joining': 'Entrando…',
+    'play.waitingForLeader': 'Aguardando líder',
     'matchmaking.regularMaps': 'Mapas regulares',
     'matchmaking.reviewMaps': 'Para avaliação',
     'warmup.tab': 'Não competitivo',
@@ -131,6 +173,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'play.competitive': '対戦',
+    'play.customGame': 'カスタムゲーム',
+    'play.mapPool': 'マッププール',
+    'play.mapsSelected': '{{selected}} / {{total}} 選択済み',
+    'play.searching': '検索中…',
+    'play.joining': '参加中…',
+    'play.waitingForLeader': 'リーダーを待っています',
     'matchmaking.regularMaps': '通常のマップ',
     'matchmaking.reviewMaps': 'レビュー対象',
     'warmup.tab': 'カジュアル',
@@ -152,6 +201,13 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'play.competitive': 'प्रतिस्पर्धी',
+    'play.customGame': 'कस्टम गेम',
+    'play.mapPool': 'मैप समूह',
+    'play.mapsSelected': '{{selected}} / {{total}} चयनित',
+    'play.searching': 'खोज रहे हैं…',
+    'play.joining': 'शामिल हो रहे हैं…',
+    'play.waitingForLeader': 'लीडर का इंतज़ार',
     'matchmaking.regularMaps': 'नियमित मैप',
     'matchmaking.reviewMaps': 'समीक्षा के लिए',
     'warmup.tab': 'गैर-प्रतिस्पर्धी',

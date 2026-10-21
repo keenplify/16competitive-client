@@ -1,11 +1,13 @@
 import { PlayerActivity } from './PlayerActivity'
-import { MatchmakingMapCard } from './MatchmakingMapCard'
+import { MatchmakingMapPool } from './MatchmakingMapPool'
 import { QueueWarmupPanel } from './QueueWarmupPanel'
+import { FindMatchButton, PlayQueueActions } from './FindMatchButton'
+import { SelectField } from '../../components/ui/SelectField'
 import { useQueueWarmupStore } from './queue-warmup.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { useCommunityText } from '../partner-branding/community-copy'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
-import { useEffect, useState, type CSSProperties, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { CircleHelp, Copy, LoaderCircle, LogOut } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
@@ -16,7 +18,7 @@ import {
 import { Button } from '../../components/ui/Button'
 import { TabList } from '../../components/ui/TabList'
 import { NotificationContent } from '../../components/ui/NotificationContent'
-import { useTranslation, type TranslationKey } from '../i18n/i18n'
+import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CustomGamesPanel } from './CustomGamesPanel'
 import { useCustomGamesStore } from './custom-games.store'
@@ -54,16 +56,6 @@ const queueModes = [
   'arena',
   '3v3'
 ] as const
-const modeHelpKeys = {
-  '5v5': 'matchmaking.modeHelp5v5',
-  unrated: 'matchmaking.modeHelpUnrated',
-  legacy: 'matchmaking.modeHelpLegacy',
-  legacy_3v3: 'matchmaking.modeHelpLegacy3v3',
-  cs13_3v3: 'legacy.modeHelp',
-  ffa: 'matchmaking.modeHelpFfa',
-  arena: 'matchmaking.modeHelpArena',
-  '3v3': 'matchmaking.modeHelp3v3'
-} satisfies Record<(typeof queueModes)[number], TranslationKey>
 
 export function PlayPage({
   friendsCollapsed = false
@@ -270,21 +262,15 @@ export function PlayPage({
       map.supportedModes.includes(selectedMode) &&
       (!partyRequiresWeb || map.webModes.includes(selectedMode))
   )
-  const regularMaps = availableMaps.filter((map) => !map.feedbackEnabled)
-  const reviewMaps = availableMaps.filter((map) => map.feedbackEnabled)
-  const reviewColumns = reviewMaps.length >= 4 ? 2 : 1
-  const regularColumnLimit = 4
-  const regularColumns = Math.max(
-    1,
-    Math.min(
-      regularColumnLimit,
-      regularMaps.length <= regularColumnLimit
-        ? regularMaps.length
-        : Math.ceil(regularMaps.length / 2)
-    )
-  )
   const hasSelectedMaps = selectedMapIds.length > 0
   const visiblePlayView = playView === 'partner' && !hasCommunityServers ? 'matchmaking' : playView
+  const noncompetitiveModes = visibleQueueModes.filter((mode) => mode !== '5v5')
+  const activePlayTab =
+    visiblePlayView !== 'matchmaking'
+      ? visiblePlayView
+      : showWarmup || selectedMode !== '5v5'
+        ? 'noncompetitive'
+        : 'competitive'
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
@@ -571,7 +557,7 @@ export function PlayPage({
         <TabList
           className="mt-3 shrink-0"
           ariaLabel={communityText('playModes')}
-          value={visiblePlayView}
+          value={activePlayTab}
           items={[
             ...(hasCommunityServers
               ? [
@@ -582,10 +568,37 @@ export function PlayPage({
                   }
                 ]
               : []),
-            { value: 'matchmaking', label: 'Matchmaking' },
-            { value: 'custom', label: 'Custom game' }
+            {
+              value: 'competitive',
+              label: t('play.competitive'),
+              helpText: t('matchmaking.modeHelp5v5'),
+              disabled: (isSearching && selectedMode !== '5v5') || (!isSearching && !isLeader)
+            },
+            {
+              value: 'noncompetitive',
+              label: t('warmup.tab'),
+              disabled:
+                (isSearching && !warmupEligible && selectedMode === '5v5') ||
+                (!isSearching && (!isLeader || noncompetitiveModes.length === 0))
+            },
+            { value: 'custom', label: t('play.customGame') }
           ]}
-          onChange={setPlayView}
+          onChange={(view) => {
+            if (view === 'custom' || view === 'partner') {
+              setPlayView(view)
+              return
+            }
+            setPlayView('matchmaking')
+            if (view === 'noncompetitive' && warmupEligible) openWarmup()
+            else {
+              closeWarmup()
+              if (!isSearching) {
+                if (view === 'competitive') selectMode('5v5')
+                else if (selectedMode === '5v5' && noncompetitiveModes[0])
+                  selectMode(noncompetitiveModes[0])
+              }
+            }
+          }}
         />
 
         {visiblePlayView === 'partner' ? (
@@ -596,62 +609,39 @@ export function PlayPage({
           />
         ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
-            <TabList
-              className="shrink-0"
-              ariaLabel="Matchmaking mode"
-              value={showWarmup ? 'noncompetitive' : selectedMode}
-              items={[
-                ...visibleQueueModes
-                  .filter((mode) => !warmupEligible || mode === '5v5')
-                  .map((mode) => ({
-                    value: mode,
-                    label: getMatchmakingModeLabel(mode),
-                    helpText: t(modeHelpKeys[mode]),
-                    disabled:
-                      (isSearching && mode !== selectedMode) ||
-                      (!isSearching && !isLeader) ||
-                      !maps.some((map) => map.supportedModes.includes(mode)),
-                    title:
-                      mapsStatus === 'ready' &&
-                      !maps.some((map) => map.supportedModes.includes(mode))
-                        ? mode === 'cs13_3v3'
-                          ? t('legacy.queueUnavailable')
-                          : 'No maps are available for this mode'
-                        : partyRequiresWeb && !maps.some((map) => map.webModes.includes(mode))
-                          ? 'This mode is unavailable for Web Play or mixed parties'
-                          : mode === '5v5'
-                            ? 'Rated 5v5 with MMR progression'
-                            : mode === 'ffa'
-                              ? 'Drop-in deathmatch, first to 50 kills'
-                              : mode === 'arena'
-                                ? t('matchmaking.modeHelpArena')
-                                : mode === '3v3'
-                                  ? 'Unrated 3v3 match'
-                                  : mode === 'legacy_3v3'
-                                    ? t('matchmaking.modeHelpLegacy3v3')
-                                    : mode === 'legacy'
-                                      ? 'Unrated 5v5 with CS 1.3 movement'
-                                      : 'Unrated 5v5 without MMR changes'
-                  })),
-                ...(warmupEligible
-                  ? [{ value: 'noncompetitive' as const, label: t('warmup.tab') }]
-                  : [])
-              ]}
-              onChange={(mode) => {
-                if (mode === 'noncompetitive') openWarmup()
-                else {
-                  closeWarmup()
-                  if (!isSearching) selectMode(mode)
-                }
-              }}
-            />
-
             {showWarmup ? (
-              <QueueWarmupPanel />
+              <QueueWarmupPanel friendsCollapsed={friendsCollapsed} />
             ) : (
               <>
+                {selectedMode !== '5v5' && noncompetitiveModes.length > 1 && (
+                  <div className="w-64 max-w-full shrink-0">
+                    <SelectField
+                      label={t('warmup.mode')}
+                      value={selectedMode}
+                      disabled={isSearching || !isLeader}
+                      onChange={(event) => {
+                        const mode = noncompetitiveModes.find((mode) => mode === event.target.value)
+                        if (mode) selectMode(mode)
+                      }}
+                    >
+                      {noncompetitiveModes.map((mode) => (
+                        <option key={mode} value={mode}>
+                          {getMatchmakingModeLabel(mode)}
+                        </option>
+                      ))}
+                    </SelectField>
+                  </div>
+                )}
                 <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
-                  <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
+                  <div
+                    className={twMerge(
+                      'mb-2 flex shrink-0 items-center justify-between gap-3',
+                      mapsStatus === 'ready' &&
+                        !desktopOnlyMode &&
+                        availableMaps.length > 0 &&
+                        'hidden'
+                    )}
+                  >
                     <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
                       Map pool
                     </p>
@@ -683,72 +673,12 @@ export function PlayPage({
                       </a>
                     </div>
                   ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
-                    <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden pb-1">
-                      <div
-                        className={twMerge(
-                          'play-map-layout grid h-full min-h-0 gap-3',
-                          reviewMaps.length > 0 &&
-                            regularMaps.length > 0 &&
-                            'play-map-layout-with-review',
-                          reviewMaps.length > 0 &&
-                            regularMaps.length === 0 &&
-                            'play-map-layout-review-only'
-                        )}
-                        style={
-                          {
-                            '--play-map-regular-columns': regularColumns,
-                            '--play-map-review-min-width': `${reviewColumns * 132}px`,
-                            '--play-map-review-width': `${reviewColumns * 16}%`,
-                            '--play-map-review-only-width': `${reviewColumns * 220}px`,
-                            '--play-map-min-width': `${regularMaps.length > 0 ? regularColumns * 150 + (reviewMaps.length > 0 ? reviewColumns * 132 : 0) : reviewColumns * 160}px`
-                          } as CSSProperties
-                        }
-                      >
-                        {regularMaps.length > 0 && (
-                          <div className="flex min-h-0 min-w-0 flex-col gap-2">
-                            <h2 className="shrink-0 text-[10px] font-semibold tracking-[0.16em] text-neutral-400 uppercase">
-                              {t('matchmaking.regularMaps')}
-                            </h2>
-                            <div className="play-map-group-grid grid min-h-0 flex-1 gap-2">
-                              {regularMaps.map((map) => (
-                                <MatchmakingMapCard
-                                  key={map.id}
-                                  map={map}
-                                  selected={selectedMapIds.includes(map.id)}
-                                  disabled={isSearching || !isLeader}
-                                  onSelect={() => selectMap(map.id)}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {reviewMaps.length > 0 && (
-                          <div className="play-review-group flex min-h-0 min-w-0 flex-col gap-2">
-                            <h2 className="shrink-0 text-[10px] font-semibold tracking-[0.16em] text-amber-300 uppercase">
-                              {t('matchmaking.reviewMaps')}
-                            </h2>
-                            <div
-                              className="grid min-h-0 flex-1 gap-2"
-                              style={{
-                                gridTemplateColumns: `repeat(${reviewColumns}, minmax(0, 1fr))`,
-                                gridTemplateRows: `repeat(${Math.ceil(reviewMaps.length / reviewColumns)}, minmax(0, 1fr))`
-                              }}
-                            >
-                              {reviewMaps.map((map) => (
-                                <MatchmakingMapCard
-                                  key={map.id}
-                                  map={map}
-                                  selected={selectedMapIds.includes(map.id)}
-                                  disabled={isSearching || !isLeader}
-                                  onSelect={() => selectMap(map.id)}
-                                  className="play-review-map-card"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <MatchmakingMapPool
+                      maps={availableMaps}
+                      selectedMapIds={selectedMapIds}
+                      disabled={isSearching || !isLeader}
+                      onSelect={selectMap}
+                    />
                   ) : (
                     <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
                       {mapsStatus === 'loading'
@@ -768,12 +698,7 @@ export function PlayPage({
                   className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
                 />
 
-                <div
-                  className={twMerge(
-                    'play-queue-actions fixed right-4 bottom-4 z-40 flex items-center gap-3 sm:bottom-6',
-                    friendsCollapsed ? 'md:right-[3.75rem]' : 'md:right-[19rem]'
-                  )}
-                >
+                <PlayQueueActions friendsCollapsed={friendsCollapsed}>
                   <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
                     <span>
                       {isLeader
@@ -783,8 +708,7 @@ export function PlayPage({
                     <span aria-hidden="true">•</span>
                     <PlayerActivity />
                   </div>
-                  <Button
-                    className="play-find-match-cta relative h-12 min-w-40 overflow-hidden border border-green-600 bg-[#064b0b] px-6 font-sans text-[17px] font-extrabold tracking-[0.18em] text-lime-400 uppercase hover:bg-[#075a0d] focus-visible:outline-lime-400 disabled:bg-[#064b0b] disabled:text-lime-600"
+                  <FindMatchButton
                     data-audio-sfx="findMatch"
                     data-idle-hint-target="find-match"
                     disabled={
@@ -806,15 +730,15 @@ export function PlayPage({
                     )}
                     <span className="relative z-10">
                       {isSearching
-                        ? 'Searching…'
+                        ? t('play.searching')
                         : queueStatus === 'joining'
-                          ? 'Joining…'
+                          ? t('play.joining')
                           : isLeader
-                            ? 'Find match'
-                            : 'Waiting for leader'}
+                            ? t('warmup.join')
+                            : t('play.waitingForLeader')}
                     </span>
-                  </Button>
-                </div>
+                  </FindMatchButton>
+                </PlayQueueActions>
               </>
             )}
           </div>

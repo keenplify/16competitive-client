@@ -383,9 +383,10 @@ const preferences = (): MatchmakingPreferences => {
 }
 
 export const browserMatchmakingApi: MatchmakingApi = {
-  async joinWarmup(mode, mapId) {
+  async joinWarmup(mode, selection) {
+    const mapIds = typeof selection === 'string' ? [selection] : selection
     await openSocket()
-    send({ type: 'join_warmup', mode, mapId })
+    send({ type: 'join_warmup', mode, mapIds })
   },
   async leaveWarmup() {
     await openSocket()

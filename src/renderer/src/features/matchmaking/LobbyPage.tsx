@@ -40,6 +40,7 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
+import { QueueWarmupResults } from './QueueWarmupResults'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
 import { isMatchSurveyDeferredForSession } from './match-survey-session'
 import { NewsPage } from '../news/NewsPage'
@@ -514,6 +515,7 @@ export function LobbyPage(): JSX.Element {
         </div>
       )}
       {matchNeedsAttention && <MatchReadyOverlay />}
+      <QueueWarmupResults />
       {!requiresGameSetup &&
         !completedMatch &&
         queueStatus === 'idle' &&

@@ -529,12 +529,15 @@ class MatchmakingConnection {
   private warmupLaunch: Promise<void> = Promise.resolve()
   private warmupCleanup: Promise<void> = Promise.resolve()
 
-  joinWarmup(mode: unknown, mapId: unknown): Promise<void> {
+  joinWarmup(mode: unknown, selection: unknown): Promise<void> {
+    const mapIds: unknown[] = Array.isArray(selection) ? selection : [selection]
     if (
       !isMatchmakingMode(mode) ||
       mode === '5v5' ||
-      typeof mapId !== 'string' ||
-      !/^[a-z0-9_]{1,64}$/.test(mapId)
+      mapIds.length < 1 ||
+      mapIds.length > 32 ||
+      new Set(mapIds).size !== mapIds.length ||
+      !mapIds.every((id) => typeof id === 'string' && /^[a-z0-9_]{1,64}$/.test(id))
     )
       throw new Error('Invalid warmup selection')
     if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
@@ -542,7 +545,7 @@ class MatchmakingConnection {
       if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
       this.warmupSuppressed = false
       this.warmupSocket = this.socket
-      this.send({ type: 'join_warmup', mode, mapId })
+      this.send({ type: 'join_warmup', mode, mapIds })
     })
   }
 
@@ -655,6 +658,8 @@ class MatchmakingConnection {
         void this.leaveWarmup().catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
+      if (message.type === 'match_finished' && message.publicFfa)
+        this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
     }
     this.notify({ ...message, whileQueued: true })
   }
@@ -1663,11 +1668,14 @@ class MatchmakingConnection {
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
         this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
-        const timer = setTimeout(() => {
-          this.matchEndTimers.delete(parsed.matchId)
-          this.closeGameForMatch(parsed.matchId)
-          this.focusLauncher()
-        }, MATCH_RESULT_GRACE_PERIOD_MS)
+        const timer = setTimeout(
+          () => {
+            this.matchEndTimers.delete(parsed.matchId)
+            this.closeGameForMatch(parsed.matchId)
+            this.focusLauncher()
+          },
+          parsed.publicFfa ? 0 : MATCH_RESULT_GRACE_PERIOD_MS
+        )
         this.matchEndTimers.set(parsed.matchId, timer)
         setTimeout(() => this.reconnectAfterMatch(), 0)
       } else if (parsed.type === 'error' && this.recoveryStatusPending) {

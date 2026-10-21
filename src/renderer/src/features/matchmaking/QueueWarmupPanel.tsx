@@ -2,17 +2,24 @@ import { useEffect, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
-import { TabList } from '../../components/ui/TabList'
+import { SelectField } from '../../components/ui/SelectField'
+import { FindMatchButton, PlayQueueActions } from './FindMatchButton'
 import { isWebRuntime } from '../../web-runtime'
 import { MATCHMAKING_MODES, getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useTranslation } from '../i18n/i18n'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useCustomGamesStore } from './custom-games.store'
-import { MatchmakingMapCard } from './MatchmakingMapCard'
+import { MatchmakingMapPool } from './MatchmakingMapPool'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useQueueWarmupStore } from './queue-warmup.store'
 
-export function QueueWarmupPanel({ className }: { className?: string }): JSX.Element {
+export function QueueWarmupPanel({
+  className,
+  friendsCollapsed = false
+}: {
+  className?: string
+  friendsCollapsed?: boolean
+}): JSX.Element {
   const { t } = useTranslation()
   const maps = useMatchmakingStore((state) => state.maps)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -27,15 +34,19 @@ export function QueueWarmupPanel({ className }: { className?: string }): JSX.Ele
   const availableMaps = maps.filter(
     (map) => mode && map.supportedModes.includes(mode) && (!web || map.webModes.includes(mode))
   )
-  const mapId = availableMaps.some((map) => map.id === warmup.mapId)
-    ? warmup.mapId
-    : (availableMaps[0]?.id ?? '')
   const busy = warmup.status === 'starting' || warmup.status === 'leaving'
   const active = warmup.matchId !== null
-  const select = warmup.select
+  const syncMaps = warmup.syncMaps
   useEffect(() => {
-    if (!active && mode && (mode !== warmup.mode || mapId !== warmup.mapId)) select(mode, mapId)
-  }, [active, mode, mapId, warmup.mode, warmup.mapId, select])
+    if (!active && mode)
+      syncMaps(
+        mode,
+        availableMaps.map((map) => map.id)
+      )
+  }, [active, mode, availableMaps, syncMaps])
+  const selectedMapIds = warmup.selectedMapIds.filter((id) =>
+    availableMaps.some((map) => map.id === id)
+  )
 
   return (
     <section
@@ -43,35 +54,37 @@ export function QueueWarmupPanel({ className }: { className?: string }): JSX.Ele
       aria-label={t('warmup.tab')}
     >
       <p className="text-sm text-neutral-200">{t('warmup.description')}</p>
-      <TabList
-        ariaLabel={t('warmup.mode')}
-        value={mode ?? warmup.mode}
-        items={modes.map((value) => ({
-          value,
-          label: getMatchmakingModeLabel(value),
-          disabled: busy || active
-        }))}
-        onChange={(value) => warmup.select(value, '')}
-      />
-      <div
-        className="grid min-h-48 flex-1 auto-rows-[minmax(12rem,1fr)] grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-2 overflow-y-auto"
-        aria-label={t('warmup.map')}
-      >
-        {availableMaps.map((map) => (
-          <MatchmakingMapCard
-            key={map.id}
-            map={map}
-            selected={map.id === mapId}
+      {modes.length > 1 && (
+        <div className="w-64 max-w-full shrink-0">
+          <SelectField
+            label={t('warmup.mode')}
+            value={mode ?? warmup.mode}
             disabled={busy || active}
-            onSelect={() => mode && warmup.select(mode, map.id)}
-          />
-        ))}
-        {availableMaps.length === 0 && (
-          <p className="col-span-full text-sm text-neutral-300">{t('warmup.noMaps')}</p>
-        )}
-      </div>
+            onChange={(event) => {
+              const next = modes.find((value) => value === event.target.value)
+              if (next) warmup.select(next, [])
+            }}
+          >
+            {modes.map((value) => (
+              <option key={value} value={value}>
+                {getMatchmakingModeLabel(value)}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      )}
+      {availableMaps.length > 0 ? (
+        <MatchmakingMapPool
+          maps={availableMaps}
+          selectedMapIds={selectedMapIds}
+          disabled={busy || active}
+          onSelect={warmup.toggleMap}
+        />
+      ) : (
+        <p className="min-h-0 flex-1 text-sm text-neutral-300">{t('warmup.noMaps')}</p>
+      )}
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <p role="status" className="min-h-12 text-sm text-neutral-300">
+        <p role="status" className="h-7 text-sm text-neutral-300">
           {warmup.status === 'error'
             ? t('warmup.error')
             : busy
@@ -80,19 +93,17 @@ export function QueueWarmupPanel({ className }: { className?: string }): JSX.Ele
                 ? `${t('warmup.active')} · ${getMatchmakingModeLabel(warmup.mode)}`
                 : ''}
         </p>
-        <div className="flex shrink-0 gap-2">
+        <PlayQueueActions friendsCollapsed={friendsCollapsed}>
           {active && (
             <Button variant="ghost" disabled={busy} onClick={() => void warmup.leave()}>
               {t('warmup.leave')}
             </Button>
           )}
           {(!active || web) && (
-            <Button
-              variant="tertiary"
-              className="relative min-w-52"
+            <FindMatchButton
               disabled={
                 busy ||
-                !mapId ||
+                selectedMapIds.length === 0 ||
                 queueStatus !== 'queued' ||
                 (web &&
                   active &&
@@ -109,10 +120,10 @@ export function QueueWarmupPanel({ className }: { className?: string }): JSX.Ele
               {busy && (
                 <LoaderCircle className="absolute left-3 size-4 animate-spin" aria-hidden="true" />
               )}
-              {t(active ? 'warmup.connect' : 'warmup.join')}
-            </Button>
+              <span className="relative z-10">{t(active ? 'warmup.connect' : 'warmup.join')}</span>
+            </FindMatchButton>
           )}
-        </div>
+        </PlayQueueActions>
       </div>
     </section>
   )

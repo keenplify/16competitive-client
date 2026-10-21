@@ -339,6 +339,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
   | { type: 'match_server_starting'; matchId: string }
   | {
       type: 'match_connect'
+      identityMatchId?: string
       matchId: string
       host: string
       port: number
@@ -359,6 +360,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
     }
   | {
       type: 'match_finished'
+      publicFfa?: boolean
       matchId: string
       mode: MatchmakingMode
       mapId: string
@@ -414,7 +416,7 @@ export type MatchmakingEvent = { whileQueued?: boolean } & (
 )
 
 export interface MatchmakingApi {
-  joinWarmup(mode: MatchmakingMode, mapId: string): Promise<void>
+  joinWarmup(mode: MatchmakingMode, mapIds: string | string[]): Promise<void>
   leaveWarmup(): Promise<void>
   connect(): Promise<void>
   getNodes(): Promise<MatchmakingNode[]>

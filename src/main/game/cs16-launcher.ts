@@ -71,7 +71,9 @@ import {
 } from './match-join-info-key'
 
 const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/
-const SAFE_PASSWORD = /^[A-Za-z0-9_-]{1,128}$/
+// Public FFA servers deliberately have no server password. Account admission
+// is verified by their worker; ranked servers still supply their own password.
+const SAFE_PASSWORD = /^[A-Za-z0-9_-]{0,128}$/
 const MATCH_IDENTITY_WAIT_FRAMES = 20
 const MAX_MATCH_CONFIG_BYTES = 64 * 1024
 const MAX_TRACKED_JOIN_KEYS = 16
@@ -85,6 +87,7 @@ const STEAM_COUNTER_STRIKE_APP_ID = '10'
 
 interface MatchLaunchInput {
   matchId: string
+  identityMatchId?: string
   host: string
   port: number
   password: string
@@ -611,6 +614,8 @@ const performCloseWindowsCounterStrikeProcesses = async (
 
 const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Promise<void> => {
   if (!/^[A-Za-z0-9_-]{1,80}$/.test(input.matchId)) throw new Error('Invalid match ID')
+  const identityMatchId = input.identityMatchId ?? input.matchId
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(identityMatchId)) throw new Error('Invalid match identity')
   if (!SAFE_HOST.test(input.host)) throw new Error('Invalid game server host')
   if (!Number.isInteger(input.port) || input.port < 1 || input.port > 65535) {
     throw new Error('Invalid game server port')
@@ -813,7 +818,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   }
   const previousMatchConfig = previousMatchConfigStat ? await readFile(matchConfigPath, 'utf8') : ''
   const previousJoinKeys = matchJoinKeysInConfig(previousMatchConfig).slice(-MAX_TRACKED_JOIN_KEYS)
-  const joinInfoKey = matchJoinInfoKey(input.matchId)
+  const joinInfoKey = matchJoinInfoKey(identityMatchId)
   const matchConfigGeneration = ++nextMatchConfigGeneration
   const temporaryMatchConfigPath = `${matchConfigPath}.${input.matchId}.${matchConfigGeneration}.tmp`
   await unlink(join(launchGameDirectory, '16competitive-match.cfg')).catch(() => undefined)
@@ -1034,7 +1039,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     '// 16competitive launcher-owned player ping binding',
     ...matchProfileIdentityCommands(
       {
-        matchId: input.matchId,
+        matchId: identityMatchId,
         playerName,
         joinToken: input.joinToken,
         password: input.password,
@@ -1170,7 +1175,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     ...goldClientManagedLaunchArgs(goldClient),
     ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
     '-condebug',
-    ...matchJoinLaunchArgs(input.matchId, input.joinToken, connectionHandoff),
+    ...matchJoinLaunchArgs(identityMatchId, input.joinToken, connectionHandoff),
     ...matchConfigLaunchArgs(matchConfigName, nextClient)
   ]
   console.info('[GameLaunch] connection config execution selected', {
