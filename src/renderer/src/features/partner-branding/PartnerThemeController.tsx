@@ -2,7 +2,7 @@ import { useLauncherThemeStore } from '../settings/launcher-theme.store'
 import { useEffect, type JSX } from 'react'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
-import { actionColor } from './palette'
+import { actionColor, vguiPalette } from './palette'
 
 const refreshIntervalMs = 30_000
 
@@ -23,6 +23,7 @@ export function PartnerThemeController(): JSX.Element | null {
 
   useEffect(() => {
     const root = document.documentElement
+    root.dataset.launcherTheme = theme
     if (!enabled || !branding || !communityTheme) {
       root.removeAttribute('data-partner-theme')
       root.style.removeProperty('--partner-primary')
@@ -32,6 +33,10 @@ export function PartnerThemeController(): JSX.Element | null {
       root.style.removeProperty('--partner-secondary-action')
       return
     }
+    const vgui = branding.launcherTheme === 'vgui2'
+    root.dataset.launcherTheme = vgui ? 'vgui2' : 'community'
+    const palette = vgui ? vguiPalette(branding) : {}
+    for (const [property, value] of Object.entries(palette)) root.style.setProperty(property, value)
     root.dataset.partnerTheme = 'enabled'
     root.style.setProperty('--partner-primary', branding.primaryColor)
     root.style.setProperty('--partner-secondary', branding.secondaryColor)
@@ -39,6 +44,8 @@ export function PartnerThemeController(): JSX.Element | null {
     root.style.setProperty('--partner-action', actionColor(branding.primaryColor))
     root.style.setProperty('--partner-secondary-action', actionColor(branding.secondaryColor))
     return () => {
+      root.dataset.launcherTheme = useLauncherThemeStore.getState().theme
+      for (const property of Object.keys(palette)) root.style.removeProperty(property)
       root.removeAttribute('data-partner-theme')
       root.style.removeProperty('--partner-primary')
       root.style.removeProperty('--partner-secondary')
@@ -46,7 +53,7 @@ export function PartnerThemeController(): JSX.Element | null {
       root.style.removeProperty('--partner-action')
       root.style.removeProperty('--partner-secondary-action')
     }
-  }, [branding, enabled, communityTheme])
+  }, [branding, enabled, communityTheme, theme])
 
   return null
 }

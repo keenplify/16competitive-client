@@ -129,3 +129,17 @@ test('validates community discovery preference and defaults older responses to e
     )
   }
 })
+
+test('accepts community launcher styles, rejects invalid styles and supports older responses', () => {
+  for (const launcherTheme of ['latest', 'vgui2']) {
+    assert.equal(
+      parsePartnerBranding({ branding: { ...branding, launcherTheme } }, origin).branding
+        .launcherTheme,
+      launcherTheme
+    )
+  }
+  assert.equal(parsePartnerBranding({ branding }, origin).branding.launcherTheme, undefined)
+  for (const launcherTheme of [null, 'community', 'unknown', 0, {}]) {
+    assert.throws(() => parsePartnerBranding({ branding: { ...branding, launcherTheme } }, origin))
+  }
+})

@@ -47,7 +47,9 @@ export const useLauncherThemeStore = create<LauncherThemeState>((set, get) => ({
 }))
 
 // Apply before the first React paint, including after a launcher restart.
-useLauncherThemeStore.subscribe(({ theme }) => {
-  document.documentElement.dataset.launcherTheme = theme
+useLauncherThemeStore.subscribe(({ theme }, previous) => {
+  // Community mode may resolve to VGUI2. Re-selecting it must not overwrite
+  // the resolved appearance while the controller's dependencies are unchanged.
+  if (theme !== previous.theme) document.documentElement.dataset.launcherTheme = theme
 })
 document.documentElement.dataset.launcherTheme = useLauncherThemeStore.getState().theme

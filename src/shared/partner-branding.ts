@@ -7,6 +7,7 @@ export const PARTNER_BRANDING_CHANNEL = 'partner-branding:get'
 
 export interface PartnerBranding {
   partnerId: string
+  launcherTheme?: 'latest' | 'vgui2'
   primaryColor: string
   secondaryColor: string
   tertiaryColor: string
@@ -57,6 +58,13 @@ export const parsePartnerBranding = (
     !colorPattern.test(value.tertiaryColor)
   ) {
     throw new Error('Invalid partner branding palette.')
+  }
+  if (
+    value.launcherTheme !== undefined &&
+    value.launcherTheme !== 'latest' &&
+    value.launcherTheme !== 'vgui2'
+  ) {
+    throw new Error('Invalid community launcher theme.')
   }
   const backgroundKind = value.backgroundKind
   const backgroundUrl = value.backgroundUrl
@@ -110,6 +118,9 @@ export const parsePartnerBranding = (
   return {
     branding: {
       ...parseCommunityBranding(value),
+      ...(value.launcherTheme !== undefined
+        ? { launcherTheme: value.launcherTheme as 'latest' | 'vgui2' }
+        : {}),
       partnerId: value.partnerId,
       primaryColor: value.primaryColor,
       secondaryColor: value.secondaryColor,
