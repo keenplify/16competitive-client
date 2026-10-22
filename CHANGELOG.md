@@ -3007,3 +3007,24 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed leaving an active FFA match.
 - Improved native join recovery by using the correct server identity.
+
+## v2026.1022.1 — 2026-10-22
+
+### Community Servers
+
+- Added community server cards with cached map artwork.
+- Double-click a server card to play.
+
+### Appearance
+
+- Added customizable accessible colors for community VGUI2 styles.
+
+### Chat Translation
+
+- Chat translation is now opt-in from Settings.
+- Improved styling for the translation picker.
+
+### Partner Communities
+
+- Added partner token sign-in support in the PWA.
+- Partner communities can now be activated based on discovery preferences.
