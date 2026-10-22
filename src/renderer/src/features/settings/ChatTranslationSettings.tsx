@@ -64,6 +64,7 @@ export function ChatTranslationSettings(): JSX.Element {
             </label>
             <CreatableSelect<LanguageOption, false>
               inputId="chat-translation-language"
+              classNamePrefix="chat-translation-select"
               unstyled
               isSearchable
               isClearable={false}
