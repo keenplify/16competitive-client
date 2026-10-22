@@ -4,11 +4,11 @@ Add a PLAY action to your existing application so a signed-in player can open th
 
 Use your existing programming language, authentication system, and data store. This contract does not require PHP, SQL, a particular framework, or an existing CSRF setup. Implement the behavior below using your application's normal conventions.
 
-The partner ID is `PARTNER_ID`. The token login callback and partner validation settings still need implementation on the 1.6 Competitive side before this flow can sign players in. The existing partner PWA link currently supplies community context and referral handling.
+The partner ID is `PARTNER_ID`. Partner sign-in requires the matching 1.6 Competitive API and PWA deployment plus backend secret-encryption configuration. The admin interface can be deployed independently; it shows settings as unavailable until that API is ready. A partner link without a token continues to supply community context and referral handling.
 
 ## Configuration
 
-Your partner admin will configure the validation endpoint in the 1.6 Competitive admin portal. An example endpoint is `https://www.olaguergeyming.com/gamehub/validate`; choose a path that fits your application.
+Your partner admin can configure the validation endpoint in the 1.6 Competitive admin portal. An example endpoint is `https://www.olaguergeyming.com/gamehub/validate`; choose a path that fits your application.
 
 Configure these values on your server:
 
@@ -17,7 +17,7 @@ Configure these values on your server:
 - Token lifetime: 60 seconds.
 - PWA destination: `https://16competitive.papamo.dev/pwa/`.
 
-Keep the validation secret in protected server configuration or a secret manager. Never place it in frontend JavaScript, links, logs, source control, or token records. The admin portal will treat it as write-only. Exchange the secret through a secure configuration channel, not an AI conversation.
+Keep the validation secret in protected server configuration or a secret manager. Never place it in frontend JavaScript, links, logs, source control, or token records. The admin portal treats it as write-only. Exchange the secret through a secure configuration channel, not an AI conversation.
 
 The validation URL is saved in admin. Do not include a `validate-url` parameter in player links. Our backend chooses the endpoint from the saved partner configuration.
 
@@ -139,3 +139,13 @@ Identify the existing authentication mechanism, account store, stable user ID, u
 Test successful creation and redemption; rejection of unsigned players; inability to mint for another user; 60-second expiration; replay rejection; exactly one success for concurrent redemption; incorrect-secret rejection without consuming a token; disabled-user rejection; accurate missing/unverified email handling; safe storage failures; and logs without tokens or secrets.
 
 Return the final deployed validation URL and integration instructions. Configure the shared secret through a secure channel. Never paste production secrets into an AI conversation or commit them to source control.
+
+## Completion on 1.6 Competitive
+
+The PWA removes the incoming token from the URL before application startup and sends `{partnerId, token}` to `POST /auth/partner-login/begin`. Our backend redeems it with your configured endpoint and returns a short-lived confirmation proof. No player session is issued at this stage.
+
+The player confirms the displayed identity, then the PWA sends `{proof, action}` to `POST /auth/partner-login/complete`, where `action` is `sign_in` or `link`. Linking requires the player's existing 1.6 Competitive session and an explicit choice. Both the incoming token and confirmation proof are one-time values. Confirmations expire after two minutes. Disabling sign-in or changing its settings invalidates outstanding confirmations.
+
+If a verified partner email already belongs to an existing 1.6 Competitive account, the player must sign in normally and explicitly link it. Unverified partner emails are not imported into the local account or used for password recovery. A new local account can be created without a password or email and completes the existing username-setup flow.
+
+Deployment operators must set `PARTNER_LOGIN_ENCRYPTION_KEY` to the same stable 64-character hexadecimal key on every API region, then run migration `0125_partner_login` through the normal deployment process. Keep the key in protected backend configuration and preserve it across updates; changing it requires partners to save new validation secrets. The key is not a partner integration secret and must never be entered in admin or shared with partners.

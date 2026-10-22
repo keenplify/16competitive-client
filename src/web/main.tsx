@@ -1,3 +1,5 @@
+import './partner-login-capture'
+import { PartnerLoginController } from './PartnerLoginController'
 import './browser-api'
 import '../renderer/src/features/i18n/detect-initial-language'
 import '../renderer/src/assets/main.css'
@@ -22,6 +24,7 @@ if (mobileOrTablet) {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />
+      <PartnerLoginController />
     </StrictMode>
   )
 }

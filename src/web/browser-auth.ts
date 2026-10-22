@@ -210,11 +210,24 @@ const reportBrowserClientTelemetry = async (): Promise<void> => {
   }
 }
 
-const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
+export const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
   setWebSessionToken(body.token)
   await linkBrowserPartner(body.player.id)
-  const status = await usernameStatus()
-  const session = { expiresAt: body.expiresAt, player: { ...body.player, ...status } }
+  let status: UsernameStatus | null = null
+  try {
+    status = await usernameStatus()
+  } catch {
+    /* Optional metadata can be refreshed later. */
+  }
+  const session = {
+    expiresAt: body.expiresAt,
+    player: {
+      ...body.player,
+      requiresUsernameSetup: status?.requiresUsernameSetup ?? false,
+      usernameChangeAvailableAt: status?.usernameChangeAvailableAt ?? null
+    }
+  }
+  if (getWebSessionToken() !== body.token) throw new Error('Session changed.')
   writeCachedSession(session)
   void reportBrowserClientTelemetry()
   return session

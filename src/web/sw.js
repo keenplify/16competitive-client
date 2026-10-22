@@ -1,4 +1,4 @@
-const CACHE = '16competitive-web-v1'
+const CACHE = '16competitive-web-v2'
 const APP_SHELL = ['/pwa/', '/pwa/site.webmanifest']
 
 self.addEventListener('install', (event) => {
@@ -21,6 +21,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   const url = new URL(event.request.url)
   if (url.origin !== self.location.origin || !url.pathname.startsWith('/pwa/')) return
+  if (['token', 'handoff', 'validate-url'].some((key) => url.searchParams.has(key))) return
   event.respondWith(
     fetch(event.request)
       .then((response) => {
