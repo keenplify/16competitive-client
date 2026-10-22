@@ -5,7 +5,7 @@ interface ChatTranslationState {
   language: ChatTranslationLanguage
   status: 'idle' | 'loading' | 'saving'
   error: boolean
-  load: (defaultLanguage: string) => Promise<void>
+  load: () => Promise<void>
   setLanguage: (language: ChatTranslationLanguage) => Promise<void>
   reset: () => void
 }
@@ -13,20 +13,16 @@ interface ChatTranslationState {
 let requestGeneration = 0
 
 export const useChatTranslationStore = create<ChatTranslationState>((set) => ({
-  language: null,
+  language: 'off',
   status: 'idle',
   error: false,
-  load: async (defaultLanguage) => {
+  load: async () => {
     const generation = ++requestGeneration
-    set({ language: null, status: 'loading', error: false })
+    set({ language: 'off', status: 'loading', error: false })
     try {
       const preference = await window.api.auth.getChatTranslation()
       if (generation !== requestGeneration) return
-      const language =
-        preference.language === null
-          ? (await window.api.auth.setChatTranslation(defaultLanguage)).language
-          : preference.language
-      if (generation !== requestGeneration) return
+      const language = preference.language ?? 'off'
       set({ language, status: 'idle' })
     } catch {
       if (generation !== requestGeneration) return
@@ -47,6 +43,6 @@ export const useChatTranslationStore = create<ChatTranslationState>((set) => ({
   },
   reset: () => {
     requestGeneration++
-    set({ language: null, status: 'idle', error: false })
+    set({ language: 'off', status: 'idle', error: false })
   }
 }))

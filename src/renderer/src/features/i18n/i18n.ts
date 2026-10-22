@@ -109,7 +109,7 @@ const english = {
     'Show labeled translations of other players’ text chat in your chosen language. Original messages stay visible.',
   'settings.chatTranslation.off': 'Off',
   'settings.chatTranslation.help':
-    'Your choice is saved to your account. Translation may arrive after the original message.',
+    'Off by default. Choose a language to enable translation. Your choice is saved to your account. Translation may arrive after the original message.',
   'settings.chatTranslation.error': 'Could not save chat translation. Try again.',
   'settings.chatTranslation.languageLabel': 'Translation language',
   'settings.chatTranslation.searchPlaceholder': 'Search languages or enter a code',
@@ -279,7 +279,7 @@ const russian: Record<TranslationKey, string> = {
     'Показывать помеченный перевод сообщений других игроков на выбранном языке. Оригинал остаётся видимым.',
   'settings.chatTranslation.off': 'Выкл.',
   'settings.chatTranslation.help':
-    'Выбор сохраняется в аккаунте. Перевод может появиться позже оригинала.',
+    'По умолчанию выключено. Выберите язык, чтобы включить перевод. Выбор сохраняется в аккаунте. Перевод может появиться позже оригинала.',
   'settings.chatTranslation.error': 'Не удалось сохранить настройку перевода. Попробуйте ещё раз.',
   'settings.chatTranslation.languageLabel': 'Язык перевода',
   'settings.chatTranslation.searchPlaceholder': 'Найти язык или ввести код',
@@ -447,7 +447,7 @@ const taglish: Record<TranslationKey, string> = {
     'Ipakita ang may label na salin ng text chat ng ibang manlalaro sa napili mong wika. Makikita pa rin ang orihinal.',
   'settings.chatTranslation.off': 'Naka-off',
   'settings.chatTranslation.help':
-    'Naka-save sa account mo ang pinili mo. Maaaring mauna ang orihinal bago ang salin.',
+    'Naka-off bilang default. Pumili ng wika para paganahin ang pagsasalin. Naka-save sa account mo ang pinili mo. Maaaring mauna ang orihinal bago ang salin.',
   'settings.chatTranslation.error': 'Hindi ma-save ang setting ng pagsasalin. Subukan ulit.',
   'settings.chatTranslation.languageLabel': 'Wika ng pagsasalin',
   'settings.chatTranslation.searchPlaceholder': 'Maghanap ng wika o maglagay ng code',
@@ -617,7 +617,8 @@ const thai: Record<TranslationKey, string> = {
   'settings.chatTranslation.description':
     'แสดงคำแปลแชตของผู้เล่นคนอื่นพร้อมป้ายกำกับในภาษาที่เลือก โดยยังเห็นข้อความต้นฉบับ',
   'settings.chatTranslation.off': 'ปิด',
-  'settings.chatTranslation.help': 'บันทึกตัวเลือกไว้ในบัญชีของคุณ คำแปลอาจมาหลังข้อความต้นฉบับ',
+  'settings.chatTranslation.help':
+    'ปิดไว้ตามค่าเริ่มต้น เลือกภาษาเพื่อเปิดการแปล บันทึกตัวเลือกไว้ในบัญชีของคุณ คำแปลอาจมาหลังข้อความต้นฉบับ',
   'settings.chatTranslation.error': 'บันทึกการตั้งค่าการแปลไม่ได้ โปรดลองอีกครั้ง',
   'settings.chatTranslation.languageLabel': 'ภาษาแปล',
   'settings.chatTranslation.searchPlaceholder': 'ค้นหาภาษาหรือป้อนรหัส',
@@ -785,7 +786,7 @@ const indonesian: Record<TranslationKey, string> = {
     'Tampilkan terjemahan chat pemain lain dengan label dalam bahasa pilihan Anda. Pesan asli tetap terlihat.',
   'settings.chatTranslation.off': 'Mati',
   'settings.chatTranslation.help':
-    'Pilihan disimpan di akun Anda. Terjemahan mungkin muncul setelah pesan asli.',
+    'Nonaktif secara default. Pilih bahasa untuk mengaktifkan terjemahan. Pilihan disimpan di akun Anda. Terjemahan mungkin muncul setelah pesan asli.',
   'settings.chatTranslation.error': 'Pengaturan terjemahan tidak dapat disimpan. Coba lagi.',
   'settings.chatTranslation.languageLabel': 'Bahasa terjemahan',
   'settings.chatTranslation.searchPlaceholder': 'Cari bahasa atau masukkan kode',
@@ -959,7 +960,7 @@ const portuguese: Record<TranslationKey, string> = {
     'Mostre traduções identificadas das mensagens de outros jogadores no idioma escolhido. O original continua visível.',
   'settings.chatTranslation.off': 'Desativado',
   'settings.chatTranslation.help':
-    'Sua escolha é salva na conta. A tradução pode chegar depois da mensagem original.',
+    'Desativado por padrão. Escolha um idioma para ativar a tradução. Sua escolha é salva na conta. A tradução pode chegar depois da mensagem original.',
   'settings.chatTranslation.error': 'Não foi possível salvar a tradução do chat. Tente novamente.',
   'settings.chatTranslation.languageLabel': 'Idioma da tradução',
   'settings.chatTranslation.searchPlaceholder': 'Busque um idioma ou digite um código',
@@ -1133,7 +1134,7 @@ const japanese: Record<TranslationKey, string> = {
     '他のプレイヤーのテキストチャットを選択した言語に翻訳して表示します。元のメッセージも表示されます。',
   'settings.chatTranslation.off': 'オフ',
   'settings.chatTranslation.help':
-    '設定はアカウントに保存されます。翻訳は元のメッセージより後に届く場合があります。',
+    '初期設定ではオフです。言語を選択すると翻訳が有効になります。設定はアカウントに保存されます。翻訳は元のメッセージより後に届く場合があります。',
   'settings.chatTranslation.error': '翻訳設定を保存できませんでした。もう一度お試しください。',
   'settings.chatTranslation.languageLabel': '翻訳先の言語',
   'settings.chatTranslation.searchPlaceholder': '言語を検索するかコードを入力',
@@ -1304,7 +1305,7 @@ const hindi: Record<TranslationKey, string> = {
     'दूसरे खिलाड़ियों के टेक्स्ट चैट का चिह्नित अनुवाद चुनी हुई भाषा में दिखाएँ। मूल संदेश भी दिखेगा।',
   'settings.chatTranslation.off': 'बंद',
   'settings.chatTranslation.help':
-    'यह चुनाव आपके खाते में सहेजा जाता है। अनुवाद मूल संदेश के बाद आ सकता है।',
+    'डिफ़ॉल्ट रूप से बंद है। अनुवाद चालू करने के लिए भाषा चुनें। यह चुनाव आपके खाते में सहेजा जाता है। अनुवाद मूल संदेश के बाद आ सकता है।',
   'settings.chatTranslation.error': 'अनुवाद सेटिंग सहेजी नहीं जा सकी। फिर कोशिश करें।',
   'settings.chatTranslation.languageLabel': 'अनुवाद की भाषा',
   'settings.chatTranslation.searchPlaceholder': 'भाषा खोजें या कोड दर्ज करें',
