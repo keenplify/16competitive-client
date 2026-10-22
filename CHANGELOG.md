@@ -3028,3 +3028,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added partner token sign-in support in the PWA.
 - Partner communities can now be activated based on discovery preferences.
+
+## v2026.1022.2 — 2026-10-22
+
+### Matchmaking
+
+- Restored stacked review maps in the matchmaking map pool.
+- Improved map pool presentation.
+
+### Communities
+
+- Simplified community navigation and page headers.
+- Added community descriptions.
