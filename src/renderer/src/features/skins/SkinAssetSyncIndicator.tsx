@@ -1,7 +1,7 @@
 import { Clipboard, Download, LoaderCircle } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useLauncherThemeStore } from '../settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import type { SkinAssetSyncProgress } from '../../../../shared/game-settings'
 import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
@@ -16,7 +16,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
-  const theme = useLauncherThemeStore((state) => state.theme)
+  const theme = useEffectiveLauncherTheme()
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)

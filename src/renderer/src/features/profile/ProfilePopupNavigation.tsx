@@ -3,7 +3,7 @@ import { twMerge } from 'tailwind-merge'
 import type { JSX } from 'react'
 import { Button } from '../../components/ui/Button'
 import { useTranslation } from '../i18n/i18n'
-import { useLauncherThemeStore } from '../settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 
 export function ProfilePopupNavigation({
   onBack,
@@ -15,7 +15,7 @@ export function ProfilePopupNavigation({
   className?: string
 }): JSX.Element | null {
   const { t } = useTranslation()
-  const theme = useLauncherThemeStore((state) => state.theme)
+  const theme = useEffectiveLauncherTheme()
   if (theme === 'vgui2') return null
   return (
     <div className={twMerge('flex items-center justify-between', className)}>

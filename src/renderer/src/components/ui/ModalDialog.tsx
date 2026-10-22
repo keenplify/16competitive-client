@@ -9,7 +9,7 @@ import {
 import { twMerge } from 'tailwind-merge'
 import { ModalPortal } from './ModalPortal'
 import { ChevronLeft, X } from 'lucide-react'
-import { useLauncherThemeStore } from '../../features/settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../../features/settings/use-effective-launcher-theme'
 import { useTranslation } from '../../features/i18n/i18n'
 
 interface ModalDialogProps {
@@ -72,7 +72,7 @@ export function ModalDialog({
   className,
   children
 }: ModalDialogProps): JSX.Element | null {
-  const theme = useLauncherThemeStore((state) => state.theme)
+  const theme = useEffectiveLauncherTheme()
   const { t } = useTranslation()
   const ref = useRef<HTMLDialogElement>(null)
   const backdropPressed = useRef(false)

@@ -1,4 +1,5 @@
 import { useLauncherThemeStore } from '../settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import { useEffect, type JSX } from 'react'
 import { useAuthStore } from '../auth/auth.store'
 import { usePartnerBrandingStore } from './partner-branding.store'
@@ -8,6 +9,7 @@ const refreshIntervalMs = 30_000
 
 export function PartnerThemeController(): JSX.Element | null {
   const theme = useLauncherThemeStore((state) => state.theme)
+  const effectiveTheme = useEffectiveLauncherTheme()
   const hasPreference = useLauncherThemeStore((state) => state.hasPreference)
   const communityTheme = !hasPreference || theme === 'community'
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
@@ -33,8 +35,8 @@ export function PartnerThemeController(): JSX.Element | null {
       root.style.removeProperty('--partner-secondary-action')
       return
     }
-    const vgui = branding.launcherTheme === 'vgui2'
-    root.dataset.launcherTheme = vgui ? 'vgui2' : 'community'
+    const vgui = effectiveTheme === 'vgui2'
+    root.dataset.launcherTheme = effectiveTheme
     const palette = vgui ? vguiPalette(branding) : {}
     for (const [property, value] of Object.entries(palette)) root.style.setProperty(property, value)
     root.dataset.partnerTheme = 'enabled'
@@ -53,7 +55,7 @@ export function PartnerThemeController(): JSX.Element | null {
       root.style.removeProperty('--partner-action')
       root.style.removeProperty('--partner-secondary-action')
     }
-  }, [branding, enabled, communityTheme, theme])
+  }, [branding, enabled, communityTheme, theme, effectiveTheme])
 
   return null
 }

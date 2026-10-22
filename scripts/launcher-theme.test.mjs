@@ -214,7 +214,22 @@ test('community VGUI colors apply only to community mode and are removed on over
     await compileFile('../src/renderer/src/features/partner-branding/PartnerThemeController.tsx'),
     { context }
   )
-  await controller.link((name) => (name === './palette' ? palette : mocks[name]))
+  const effectiveTheme = new vm.SourceTextModule(
+    await compileFile('../src/renderer/src/features/settings/use-effective-launcher-theme.ts'),
+    { context }
+  )
+  await effectiveTheme.link((name) => {
+    if (name === './launcher-theme.store') return mocks['../settings/launcher-theme.store']
+    if (name === '../partner-branding/partner-branding.store')
+      return mocks['./partner-branding.store']
+    throw new Error(`Unexpected effective theme import: ${name}`)
+  })
+  await effectiveTheme.evaluate()
+  await controller.link((name) => {
+    if (name === './palette') return palette
+    if (name === '../settings/use-effective-launcher-theme') return effectiveTheme
+    return mocks[name]
+  })
   await controller.evaluate()
   const render = () => {
     effects.length = 0
@@ -223,6 +238,7 @@ test('community VGUI colors apply only to community mode and are removed on over
   }
   let cleanup = render()
   assert.equal(root.dataset.launcherTheme, 'vgui2')
+  assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), 'vgui2')
   assert.equal(root.dataset.partnerTheme, 'enabled')
   assert.ok(properties.has('--vgui-face'))
   assert.ok(properties.has('--color-neutral-950'))
@@ -231,6 +247,7 @@ test('community VGUI colors apply only to community mode and are removed on over
     cleanup()
     render()
     assert.equal(root.dataset.launcherTheme, explicit)
+    assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), explicit)
     assert.equal(properties.size, 0)
   }
   appearance.theme = 'community'
@@ -239,7 +256,24 @@ test('community VGUI colors apply only to community mode and are removed on over
   cleanup()
   render()
   assert.equal(root.dataset.launcherTheme, 'community')
+  assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), 'community')
   assert.equal(properties.size, 0)
+
+  partner.enabled = true
+  partner.branding.launcherTheme = 'latest'
+  render()
+  assert.equal(root.dataset.launcherTheme, 'community')
+  assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), 'community')
+  appearance.hasPreference = false
+  appearance.theme = 'latest'
+  partner.branding.launcherTheme = 'vgui2'
+  render()
+  assert.equal(root.dataset.launcherTheme, 'vgui2')
+  assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), 'vgui2')
+  partner.branding = null
+  render()
+  assert.equal(root.dataset.launcherTheme, 'latest')
+  assert.equal(effectiveTheme.namespace.useEffectiveLauncherTheme(), 'latest')
 
   const luminance = (hex) =>
     [1, 3, 5]

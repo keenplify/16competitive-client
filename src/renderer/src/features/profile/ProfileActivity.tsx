@@ -1,4 +1,4 @@
-import { useLauncherThemeStore } from '../settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import { useProfileModeLabel } from './useProfileModeLabel'
 import { ProfileMapChart } from './ProfileMapChart'
 import type { JSX } from 'react'
@@ -61,7 +61,7 @@ export function ProfileActivity({
   compact?: boolean
 }): JSX.Element {
   const { t, language } = useTranslation()
-  const theme = useLauncherThemeStore((state) => state.theme)
+  const theme = useEffectiveLauncherTheme()
   if (!activity) return <p className="py-8 text-neutral-300">{t('profile.activityUnavailable')}</p>
   return (
     <section className={twMerge('profile-activity', compact ? 'py-0' : 'py-2')}>

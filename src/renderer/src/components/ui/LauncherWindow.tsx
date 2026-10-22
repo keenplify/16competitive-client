@@ -2,7 +2,7 @@ import { VguiScrollbar } from './VguiScrollbar'
 import { useEffect, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { Monitor, X, type LucideIcon } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
-import { useLauncherThemeStore } from '../../features/settings/launcher-theme.store'
+import { useEffectiveLauncherTheme } from '../../features/settings/use-effective-launcher-theme'
 import { useTranslation } from '../../features/i18n/i18n'
 import { useWindowFocusStore } from '../../features/navigation/window-focus.store'
 
@@ -26,7 +26,7 @@ export function LauncherWindow({
   hostClassName,
   fitContent = false
 }: LauncherWindowProps): JSX.Element {
-  const theme = useLauncherThemeStore((state) => state.theme)
+  const theme = useEffectiveLauncherTheme()
   const activate = useWindowFocusStore((state) => state.activate)
   const { t } = useTranslation()
   const frame = useRef<HTMLDivElement>(null)
