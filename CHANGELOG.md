@@ -3063,3 +3063,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved the community VGUI2 appearance across launcher windows and dialogs.
 - Updated theme consistency across profiles, settings, partner branding, and skin syncing.
+
+## v2026.1022.5 — 2026-10-22
+
+### Communities
+
+- Fixed the community tile overlay so artwork remains visible when hovered, pressed, or selected.
