@@ -42,8 +42,10 @@ export interface PartnerServer {
     | 'other'
   gameVersion?: 'cs16' | 'cs13'
   imageUrl?: string | null
+  imageUploaded?: boolean
 }
 export interface PartnerServerStatus extends PartnerServer {
+  mapImageUrl?: string | null
   pingSource?: 'client' | 'api'
   online: boolean | null
   pingMs: number | null
@@ -308,6 +310,8 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       if (!['http:', 'https:'].includes(image.protocol) || image.username || image.password)
         throw new Error('Invalid server image')
     }
+    if (s.imageUploaded !== undefined && typeof s.imageUploaded !== 'boolean')
+      throw new Error('Invalid server image source')
     const endpoint = `${s.host.toLowerCase()}:${s.port}`
     if (endpoints.has(endpoint)) throw new Error('Duplicate partner server')
     ids.add(s.id)
@@ -320,7 +324,8 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       ...(s.category !== undefined ? { category: s.category as PartnerServer['category'] } : {}),
       ...(s.countryCode !== undefined ? { countryCode: s.countryCode as string | null } : {}),
       gameVersion: (s.gameVersion ?? 'cs16') as 'cs16' | 'cs13',
-      imageUrl: (s.imageUrl ?? null) as string | null
+      imageUrl: (s.imageUrl ?? null) as string | null,
+      ...(s.imageUploaded !== undefined ? { imageUploaded: s.imageUploaded as boolean } : {})
     }
   })
   return {
@@ -357,8 +362,16 @@ export function parsePartnerServerStatuses(input: unknown): PartnerServerStatus[
       (row.map !== null && (typeof row.map !== 'string' || !/^[a-z0-9_-]{1,64}$/i.test(row.map)))
     )
       throw new Error('Invalid server status')
+    if (row.mapImageUrl != null) {
+      if (typeof row.mapImageUrl !== 'string' || row.mapImageUrl.length > 2048)
+        throw new Error('Invalid map image')
+      const image = new URL(row.mapImageUrl)
+      if (!['http:', 'https:'].includes(image.protocol) || image.username || image.password)
+        throw new Error('Invalid map image')
+    }
     return {
       ...server,
+      ...(row.mapImageUrl !== undefined ? { mapImageUrl: row.mapImageUrl as string | null } : {}),
       online: row.online,
       pingSource: 'api',
       map: row.map as string | null,
@@ -419,4 +432,24 @@ export function parseCommunityHistory(input: unknown): CommunityChatHistory {
     name: v.name as string | null,
     messages: v.messages.map(parseCommunityMessage)
   }
+}
+
+export function partnerMapImageUrl(map: string | null, apiOrigin: string): string | null {
+  return map && /^[a-z0-9_-]{1,64}$/i.test(map)
+    ? new URL(`/partners/map-preview/${map.toLowerCase()}`, apiOrigin).toString()
+    : null
+}
+
+export function serverArtworkSources(server: PartnerServerStatus, bundled?: string): string[] {
+  // Missing metadata from older backends retains the existing image priority.
+  return [
+    ...new Set(
+      [
+        server.imageUploaded !== false ? server.imageUrl : null,
+        server.mapImageUrl,
+        server.imageUrl,
+        bundled
+      ].filter((source): source is string => Boolean(source))
+    )
+  ]
 }

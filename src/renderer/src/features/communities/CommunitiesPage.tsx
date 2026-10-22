@@ -137,12 +137,12 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
       )}
       {!discovering && community && (
         <section
-          className="mt-6 border border-sky-300/20 bg-neutral-950/75 p-5"
+          className="community-detail-panel mt-6 border border-sky-300/20 bg-neutral-950/75 p-5"
           aria-labelledby="your-community-title"
         >
-          <div className="flex flex-wrap items-start gap-5">
+          <div className="community-profile flex flex-wrap items-start gap-5">
             {community.imageUrl && (
-              <div className="relative aspect-video w-64 max-w-full shrink-0 overflow-hidden bg-neutral-900">
+              <div className="relative aspect-video w-48 max-w-full shrink-0 overflow-hidden bg-neutral-900">
                 <img
                   src={community.imageUrl}
                   alt=""
@@ -176,7 +176,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 )}
               </div>
               <div className="mt-3 flex items-start gap-2">
-                <p className="whitespace-pre-wrap break-words text-sm text-neutral-300">
+                <p className="max-h-64 max-w-prose overflow-y-auto whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-300">
                   {community.description || t('directory.noDescription')}
                 </p>
                 {isOwner && (
@@ -227,7 +227,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
               )}
             </div>
           </div>
-          <div className="mt-6 flex items-center gap-2">
+          <div className="community-servers-heading mt-6 flex items-center gap-2">
             <h3 className="text-lg font-semibold">{t('directory.servers')}</h3>
             {isOwner && (
               <Button

@@ -957,10 +957,32 @@
 
 :root[data-launcher-theme='vgui2'] .communities-page > section {
   margin-top: 12px;
-  padding: 12px 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  padding: 16px;
+  border: 1px solid var(--vgui-dark);
+  background: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .community-profile {
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+:root[data-launcher-theme='vgui2'] .community-servers-heading {
+  border-color: var(--vgui-light);
+}
+:root[data-launcher-theme='vgui2'] .community-server-toolbar {
+  padding: 8px 12px;
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+:root[data-launcher-theme='vgui2'] .community-server-card {
+  background-color: var(--vgui-dark);
+  box-shadow: var(--vgui-sunken);
+}
+:root[data-launcher-theme='vgui2'] .community-server-actions {
+  padding: 12px;
+  border-color: var(--vgui-light);
+  background: var(--vgui-face);
 }
 
 :root[data-launcher-theme='vgui2'] .communities-page > header button {

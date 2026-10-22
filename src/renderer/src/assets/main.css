@@ -486,7 +486,10 @@
 }
 
 .play-map-layout-with-review {
-  grid-template-columns: minmax(0, 1fr) minmax(var(--play-map-review-min-width), var(--play-map-review-width));
+  grid-template-columns: minmax(0, 1fr) minmax(
+      var(--play-map-review-min-width),
+      var(--play-map-review-width)
+    );
 }
 
 .play-map-layout-review-only {
@@ -596,5 +599,38 @@
   }
 }
 .community-readable-text {
-  text-shadow: 0 1px 4px rgb(0 0 0 / 95%), 0 0 12px rgb(0 0 0 / 85%);
+  text-shadow:
+    0 1px 4px rgb(0 0 0 / 95%),
+    0 0 12px rgb(0 0 0 / 85%);
+}
+
+/* Image contrast is intentionally independent of theme palette remapping. */
+.community-profile {
+  padding: 1.25rem;
+  background: rgb(255 255 255 / 4%);
+}
+.community-servers-heading {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+}
+.community-server-shade {
+  background: linear-gradient(
+    to top,
+    rgb(5 9 13 / 98%) 0%,
+    rgb(5 9 13 / 92%) 34%,
+    rgb(5 9 13 / 62%) 62%,
+    rgb(5 9 13 / 10%) 100%
+  );
+}
+.community-server-ping {
+  background: rgb(5 9 13 / 80%);
+  color: #fff;
+}
+.community-server-caption {
+  color: #fff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 85%);
+}
+.community-server-actions {
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  padding-top: 0.75rem;
 }

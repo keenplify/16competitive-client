@@ -1,3 +1,4 @@
+import { resolveServiceApiUrl } from './matchmaking-regions'
 import { validateCommunityJoin } from '../shared/community-directory'
 import { API_BASE_URL } from './config'
 import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/partner-launch'
@@ -17,6 +18,7 @@ import { launchPartnerHtmlGame } from './game/partner-html-launch'
 import { matchmakingConnection } from './matchmaking'
 import { queryServerInfo, type ServerInfo } from './game/partner-server-query'
 import {
+  partnerMapImageUrl,
   isPublicIPv4,
   isLocalPartnerIPv4,
   parsePartnerLaunchGroup,
@@ -43,7 +45,7 @@ async function serverAddress(host: string): Promise<string> {
     throw new Error('SERVER_ADDRESS_REJECTED')
   return addresses[0].address
 }
-async function probe(server: PartnerServer): Promise<PartnerServerStatus> {
+async function probe(server: PartnerServer, apiOrigin: string): Promise<PartnerServerStatus> {
   const fallback = {
     ...server,
     online: false,
@@ -72,6 +74,7 @@ async function probe(server: PartnerServer): Promise<PartnerServerStatus> {
       online: true,
       pingSource: 'client',
       ...latest,
+      mapImageUrl: partnerMapImageUrl(latest.map, apiOrigin),
       pingMs: Math.round(samples.reduce((sum, sample) => sum + sample.pingMs, 0) / samples.length)
     }
   } catch {
@@ -90,16 +93,20 @@ export async function listPartnerServers(communityId?: string): Promise<PartnerS
     validateCommunityJoin(communityId, null)
     const token = getSessionToken()
     if (!token) return []
+    const apiOrigin = await resolveServiceApiUrl()
     const { branding } = await getPartnerBranding(communityId)
     const servers = branding?.servers ?? []
     const rows: PartnerServerStatus[] = []
     for (let i = 0; i < servers.length; i += 4)
-      rows.push(...(await Promise.all(servers.slice(i, i + 4).map(probe))))
+      rows.push(
+        ...(await Promise.all(servers.slice(i, i + 4).map((server) => probe(server, apiOrigin))))
+      )
     if (getSessionToken() !== token) throw new Error('SESSION_CHANGED')
     return sortPartnerServers(rows)
   }
   const token = getSessionToken()
   if (!token) return []
+  const apiOrigin = await resolveServiceApiUrl()
   if (cache?.token === token && Date.now() - cache.at < 15000) return cache.rows
   if (pending) {
     await pending
@@ -113,7 +120,9 @@ export async function listPartnerServers(communityId?: string): Promise<PartnerS
       rows: PartnerServerStatus[] = []
     // Bound parallel UDP traffic; each reachable server contributes three samples.
     for (let i = 0; i < servers.length; i += 4)
-      rows.push(...(await Promise.all(servers.slice(i, i + 4).map(probe))))
+      rows.push(
+        ...(await Promise.all(servers.slice(i, i + 4).map((server) => probe(server, apiOrigin))))
+      )
     if (getSessionToken() !== token) throw new Error('SESSION_CHANGED')
     const sorted = sortPartnerServers(rows)
     if (generation === cacheGeneration) cache = { token, at: Date.now(), rows: sorted }

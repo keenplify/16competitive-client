@@ -657,23 +657,12 @@ const api: Window['api'] = {
   },
   partnerServers: {
     async list(communityId) {
-      if (communityId !== undefined) {
-        validateCommunityJoin(communityId, null)
-        const { branding } = parsePartnerBranding(
-          await authenticatedGet(`/partners/branding/public/${communityId}`),
-          currentApiOrigin()
+      if (communityId !== undefined) validateCommunityJoin(communityId, null)
+      return parsePartnerServerStatuses(
+        await authenticatedGet(
+          `/partners/community/servers${communityId ? `?communityId=${communityId}` : ''}`
         )
-        if (branding && branding.partnerId !== communityId) throw new Error('INVALID_COMMUNITY')
-        return (branding?.servers ?? []).map((server) => ({
-          ...server,
-          online: null,
-          pingMs: null,
-          players: null,
-          maxPlayers: null,
-          map: null
-        }))
-      }
-      return parsePartnerServerStatuses(await authenticatedGet('/partners/community/servers'))
+      )
     },
     async connect(id, groupId, communityId) {
       const group = groupId

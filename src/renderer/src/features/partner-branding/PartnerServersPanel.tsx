@@ -4,16 +4,14 @@ import { useEffect, useMemo, type JSX } from 'react'
 import { isWebRuntime } from '../../web-runtime'
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
-import { serverIsFull } from '../../../../shared/partner-community'
+import { serverIsFull, type PartnerServerStatus } from '../../../../shared/partner-community'
 import { Button } from '../../components/ui/Button'
-import { localMapPreviews } from '../matchmaking/map-previews'
+import { ServerArtwork } from './ServerArtwork'
 import { useCommunityText } from './community-copy'
 import { createPartnerServersStore, usePartnerServersStore } from './partner-servers.store'
 import { usePartnerLaunchStore } from './partner-launch.store'
 import { usePartyStore } from '../party/party.store'
 import { useAuthStore } from '../auth/auth.store'
-const serverPreview = (map: string | null): string | undefined =>
-  map && Object.hasOwn(localMapPreviews, map) ? localMapPreviews[map] : undefined
 export function PartnerServersPanel({
   communityId,
   disabled = false,
@@ -54,12 +52,30 @@ export function PartnerServersPanel({
   const partyMemberCannotStart = Boolean(
     !communityId && party && party.members.length > 1 && party.leaderId !== playerId
   )
+  const launchServer = (server: PartnerServerStatus): void => {
+    if (
+      disabled ||
+      connecting ||
+      groupBusy ||
+      partyMemberCannotStart ||
+      (isWebRuntime() && server.gameVersion === 'cs13') ||
+      server.online === false ||
+      serverIsFull(server)
+    )
+      return
+    select(server.id)
+    if (!communityId && party && party.members.length > 1) void startGroup(server.id)
+    else void connect()
+  }
   return (
     <section
-      className={twMerge('flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-20', className)}
+      className={twMerge(
+        'community-server-panel flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-20',
+        className
+      )}
       aria-label={text('serverSelection')}
     >
-      <div className="flex min-h-10 items-center justify-between gap-4">
+      <div className="community-server-toolbar flex min-h-10 items-center justify-between gap-4">
         <p className="text-xs text-neutral-200">
           {text('pingHint')}{' '}
           {rows.some((server) => server.pingSource === 'api') ? text('pingApi') : ''}
@@ -84,20 +100,15 @@ export function PartnerServersPanel({
                 aria-pressed={server.id === selectedId}
                 disabled={disabled || connecting || server.online === false || serverIsFull(server)}
                 onClick={() => select(server.id)}
+                onDoubleClick={() => launchServer(server)}
                 className={twMerge(
-                  'group relative min-h-64 overflow-hidden border border-white/20 bg-neutral-900 text-left transition hover:border-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-60',
+                  'community-server-card group relative min-h-64 overflow-hidden border border-white/20 bg-neutral-900 text-left transition hover:border-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-60',
                   server.id === selectedId && 'border-sky-300 ring-2 ring-sky-300/40'
                 )}
               >
-                {(server.imageUrl || serverPreview(server.map)) && (
-                  <img
-                    src={server.imageUrl || serverPreview(server.map)}
-                    alt=""
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                )}
-                <div className="absolute inset-0 bg-linear-to-t from-black via-black/25 to-black/35" />
-                <span className="absolute top-3 right-3 text-sm font-semibold tabular-nums text-white">
+                <ServerArtwork server={server} />
+                <div className="community-server-shade pointer-events-none absolute inset-0" />
+                <span className="community-server-ping absolute top-3 right-3 px-2 py-1 text-xs font-semibold tabular-nums text-white">
                   {server.pingMs === null
                     ? '—'
                     : `${server.pingMs} ms${server.pingSource === 'api' ? ' · API' : ''}`}
@@ -105,8 +116,8 @@ export function PartnerServersPanel({
                 {server.id === selectedId && (
                   <Check className="absolute top-3 left-3 size-5 text-sky-300" aria-hidden="true" />
                 )}
-                <div className="absolute inset-x-0 bottom-0 p-4 text-center">
-                  <div className="mb-2 flex min-h-4 items-center justify-center gap-2 text-xs text-sky-200">
+                <div className="community-server-caption absolute inset-x-0 bottom-0 p-4 text-left">
+                  <div className="mb-2 flex min-h-4 items-center gap-2 text-xs text-sky-200">
                     <CountryFlag code={server.countryCode} className="h-4 w-6 object-cover" />
                     <span>{t(`directory.category.${server.category ?? 'other'}`)}</span>
                   </div>
@@ -143,7 +154,7 @@ export function PartnerServersPanel({
           </div>
         )}
       </div>
-      <div className="flex min-h-16 items-center justify-between gap-4">
+      <div className="community-server-actions flex min-h-16 items-center justify-between gap-4">
         <p className="text-sm text-neutral-200" role={error ? 'alert' : undefined}>
           {error
             ? text(error as 'loadError' | 'installation' | 'busy' | 'launchFailed')
@@ -168,9 +179,7 @@ export function PartnerServersPanel({
             serverIsFull(selected)
           }
           onClick={() => {
-            if (!selected) return
-            if (!communityId && party && party.members.length > 1) void startGroup(selected.id)
-            else void connect()
+            if (selected) launchServer(selected)
           }}
         >
           {connecting || groupBusy ? (
