@@ -472,7 +472,7 @@ function CommunityTile({
     <article className="relative mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90 transition hover:border-sky-300 focus-within:border-sky-300">
       <button
         type="button"
-        className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-300 disabled:cursor-not-allowed"
+        className="community-tile-trigger absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-300 disabled:cursor-not-allowed"
         aria-label={`${t('directory.view')}: ${community.name}`}
         aria-current={current ? 'true' : undefined}
         disabled={disabled}

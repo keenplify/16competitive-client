@@ -1258,7 +1258,10 @@
   box-shadow: none;
 }
 
-/* This is a transparent hit target above the reward artwork, not a panel. */
+/* Hit targets above artwork must stay transparent, including on hover/press. */
+:root[data-launcher-theme='vgui2'] .community-tile-trigger,
+:root[data-launcher-theme='vgui2']
+  .community-tile-trigger:is(:hover, :active, [aria-current='true']),
 :root[data-launcher-theme='vgui2'] .operation-tier-focus,
 :root[data-launcher-theme='vgui2']
   .operation-tier-focus:is(:hover, :active, [aria-pressed='true']) {
