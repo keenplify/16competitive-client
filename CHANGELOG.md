@@ -3056,3 +3056,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Results
 
 - Improved FFA match results display.
+
+## v2026.1022.4 — 2026-10-22
+
+### Visual Improvements
+
+- Improved the community VGUI2 appearance across launcher windows and dialogs.
+- Updated theme consistency across profiles, settings, partner branding, and skin syncing.
