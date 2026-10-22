@@ -1,3 +1,4 @@
+import { CommunityDescription } from './CommunityDescription'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -140,9 +141,9 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           className="community-detail-panel mt-6 border border-sky-300/20 bg-neutral-950/75 p-5"
           aria-labelledby="your-community-title"
         >
-          <div className="community-profile flex flex-wrap items-start gap-5">
+          <div className="community-profile grid grid-cols-[minmax(0,1fr)] items-start gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
             {community.imageUrl && (
-              <div className="relative aspect-video w-48 max-w-full shrink-0 overflow-hidden bg-neutral-900">
+              <div className="community-profile-image relative aspect-video w-28 max-w-full overflow-hidden bg-neutral-900">
                 <img
                   src={community.imageUrl}
                   alt=""
@@ -156,9 +157,9 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 />
               </div>
             )}
-            <div className="min-w-0 flex-1">
+            <div className="community-profile-title min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 id="your-community-title" className="text-2xl font-semibold">
+                <h2 id="your-community-title" className="text-xl font-semibold break-words">
                   {community.name}
                 </h2>
                 {community.countries.map((code) => (
@@ -175,23 +176,8 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                   </Button>
                 )}
               </div>
-              <div className="mt-3 flex items-start gap-2">
-                <p className="max-h-64 max-w-prose overflow-y-auto whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-300">
-                  {community.description || t('directory.noDescription')}
-                </p>
-                {isOwner && (
-                  <Button
-                    variant="ghost"
-                    className="size-8 shrink-0 p-0"
-                    aria-label={t('directory.editDescriptionAction')}
-                    onClick={() => void state.startEdit(community)}
-                  >
-                    <Pencil className="size-4" aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="community-profile-actions flex flex-wrap items-center gap-2">
               <div className="flex flex-wrap items-center gap-1">
                 {(isMember ? communityLinks : []).map(({ label, href }) => (
                   <a
@@ -223,6 +209,23 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                   onClick={() => state.select(community)}
                 >
                   {t('directory.join')}
+                </Button>
+              )}
+            </div>
+            <div className="community-profile-description flex min-w-0 items-start gap-2 sm:col-span-full">
+              <CommunityDescription
+                key={community.id}
+                description={community.description}
+                className="min-w-0 flex-1"
+              />
+              {isOwner && (
+                <Button
+                  variant="ghost"
+                  className="size-8 shrink-0 p-0"
+                  aria-label={t('directory.editDescriptionAction')}
+                  onClick={() => void state.startEdit(community)}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
                 </Button>
               )}
             </div>
@@ -466,7 +469,15 @@ function CommunityTile({
 }): JSX.Element {
   const { t } = useTranslation()
   return (
-    <article className="mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90">
+    <article className="relative mb-4 break-inside-avoid overflow-hidden border border-white/10 bg-neutral-900/90 transition hover:border-sky-300 focus-within:border-sky-300">
+      <button
+        type="button"
+        className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-300 disabled:cursor-not-allowed"
+        aria-label={`${t('directory.view')}: ${community.name}`}
+        aria-current={current ? 'true' : undefined}
+        disabled={disabled}
+        onClick={onOpen}
+      />
       {community.imageUrl ? (
         <div className="relative overflow-hidden bg-white/5">
           <img
@@ -491,13 +502,7 @@ function CommunityTile({
       <div className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="min-w-0 text-lg font-semibold" title={community.name}>
-            <button
-              type="button"
-              className="community-title-link text-left hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-sky-300"
-              onClick={onOpen}
-            >
-              {community.name}
-            </button>
+            {community.name}
           </h2>
           {community.countries.map((code) => (
             <CountryFlag key={code} code={code} className="h-4 w-6 shrink-0 object-cover" />
@@ -516,13 +521,13 @@ function CommunityTile({
             {community.categories.map((category: ServerCategory) => (
               <span
                 key={category}
-                className="rounded-full border border-white/25 bg-sky-300/10 px-3 py-1 text-xs text-sky-200"
+                className="rounded-none border border-white/25 bg-sky-300/10 px-3 py-1 text-xs text-sky-200"
               >
                 {t(`directory.category.${category}`)}
               </span>
             ))}
             {community.categories.length === 0 && (
-              <span className="rounded-full border border-white/15 px-3 py-1 text-xs text-neutral-400">
+              <span className="rounded-none border border-white/15 px-3 py-1 text-xs text-neutral-400">
                 {t('directory.noCategory')}
               </span>
             )}
@@ -536,14 +541,6 @@ function CommunityTile({
             <span aria-hidden="true">{community.memberCount ?? '—'}</span>
           </p>
         </div>
-        <Button
-          className="mt-auto w-full"
-          variant={current ? 'secondary' : 'primary'}
-          disabled={disabled}
-          onClick={onOpen}
-        >
-          {t('directory.view')}
-        </Button>
       </div>
     </article>
   )

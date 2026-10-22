@@ -1,5 +1,7 @@
 export const communityDirectoryTranslations = {
   en: {
+    'directory.showDescription': 'Show full description',
+    'directory.hideDescription': 'Show less',
     'directory.view': 'View community',
     'directory.title': 'Communities',
     'directory.description': 'Find partner communities and join the one you want to play with.',
@@ -75,6 +77,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit community servers'
   },
   ru: {
+    'directory.showDescription': 'Показать полное описание',
+    'directory.hideDescription': 'Свернуть',
     'directory.view': 'Посмотреть сообщество',
     'directory.title': 'Сообщества',
     'directory.description': 'Находите партнёрские сообщества и присоединяйтесь к ним.',
@@ -152,6 +156,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Изменить серверы сообщества'
   },
   tl: {
+    'directory.showDescription': 'Ipakita ang buong paglalarawan',
+    'directory.hideDescription': 'Ipakita nang mas kaunti',
     'directory.view': 'Tingnan ang komunidad',
     'directory.title': 'Mga Komunidad',
     'directory.description': 'Maghanap ng partner community na gusto mong salihan at kalaro.',
@@ -228,6 +234,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'I-edit ang mga server ng community'
   },
   th: {
+    'directory.showDescription': 'แสดงคำอธิบายทั้งหมด',
+    'directory.hideDescription': 'แสดงน้อยลง',
     'directory.view': 'ดูชุมชน',
     'directory.title': 'ชุมชน',
     'directory.description': 'ค้นหาชุมชนพันธมิตรและเข้าร่วมชุมชนที่คุณอยากเล่นด้วย',
@@ -302,6 +310,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'แก้ไขเซิร์ฟเวอร์ชุมชน'
   },
   id: {
+    'directory.showDescription': 'Tampilkan deskripsi lengkap',
+    'directory.hideDescription': 'Tampilkan lebih sedikit',
     'directory.view': 'Lihat komunitas',
     'directory.title': 'Komunitas',
     'directory.description': 'Temukan komunitas mitra dan bergabung untuk bermain bersama.',
@@ -377,6 +387,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit server komunitas'
   },
   hi: {
+    'directory.showDescription': 'पूरा विवरण दिखाएँ',
+    'directory.hideDescription': 'कम दिखाएँ',
     'directory.view': 'समुदाय देखें',
     'directory.title': 'समुदाय',
     'directory.description': 'पार्टनर समुदाय खोजें और साथ खेलने के लिए जुड़ें।',
@@ -451,6 +463,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'समुदाय के सर्वर संपादित करें'
   },
   pt: {
+    'directory.showDescription': 'Mostrar descrição completa',
+    'directory.hideDescription': 'Mostrar menos',
     'directory.view': 'Ver comunidade',
     'directory.title': 'Comunidades',
     'directory.description': 'Encontre comunidades parceiras e entre para jogar junto.',
@@ -529,6 +543,8 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Editar servidores da comunidade'
   },
   ja: {
+    'directory.showDescription': '説明をすべて表示',
+    'directory.hideDescription': '折りたたむ',
     'directory.view': 'コミュニティを見る',
     'directory.title': 'コミュニティ',
     'directory.description':

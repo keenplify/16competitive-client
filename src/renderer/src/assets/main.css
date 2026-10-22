@@ -606,7 +606,7 @@
 
 /* Image contrast is intentionally independent of theme palette remapping. */
 .community-profile {
-  padding: 1.25rem;
+  padding: 1rem;
   background: rgb(255 255 255 / 4%);
 }
 .community-servers-heading {
@@ -633,4 +633,10 @@
 .community-server-actions {
   border-top: 1px solid rgb(255 255 255 / 12%);
   padding-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .community-profile:not(:has(.community-profile-image)) .community-profile-title {
+    grid-column: 1 / 3;
+  }
 }
