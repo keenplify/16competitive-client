@@ -1,3 +1,4 @@
+import { communityDirectoryCache, communityServerCache } from './community-cache'
 import { create } from 'zustand'
 import type {
   CommunityCard,
@@ -203,6 +204,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({ saving: true, saveError: false })
     try {
       await window.api.communityDirectory.update(editDraft)
+      communityDirectoryCache.invalidate(accountId)
       if (useAuthStore.getState().session?.player.id !== accountId) return
       await get().load()
       if (get().error) throw new Error('COMMUNITY_REFRESH_FAILED')
@@ -247,15 +249,28 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     const accountId = useAuthStore.getState().session?.player.id
     if (!accountId) return
     const serial = ++generation
-    set({ loading: true, loadingMore: false, loadMoreError: false, error: false })
+    const query = { ...get().query }
+    const cacheKey = JSON.stringify(query)
+    const cached = communityDirectoryCache.read(accountId, cacheKey)
+    set({
+      ...(cached ?? {}),
+      loading: !cached && get().communities.length === 0,
+      loadingMore: false,
+      loadMoreError: false,
+      error: false
+    })
     try {
-      const result = await window.api.communityDirectory.list(get().query)
+      const result = await window.api.communityDirectory.list(query)
       if (serial === generation && useAuthStore.getState().session?.player.id === accountId) {
+        communityDirectoryCache.write(accountId, cacheKey, result)
+        const viewed = get().viewedCommunity
+        const refreshedViewed = viewed && result.communities.find((row) => row.id === viewed.id)
         const preferred = result.preferredCommunity ?? null
         const activate = preferred && get().preferredCommunity?.id !== preferred.id
         set({
           ...result,
           preferredCommunity: preferred,
+          ...(refreshedViewed ? { viewedCommunity: refreshedViewed } : {}),
           ...(activate
             ? {
                 viewedCommunity: preferred.id === result.currentCommunityId ? null : preferred,
@@ -316,6 +331,8 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({ joining: true, joinError: false })
     try {
       await window.api.communityDirectory.leave(currentCommunityId)
+      communityDirectoryCache.invalidate(accountId)
+      communityServerCache.invalidate(accountId)
       if (serial !== generation || useAuthStore.getState().session?.player.id !== accountId) return
       set({
         currentCommunityId: null,
@@ -347,6 +364,8 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({ joining: true, joinError: false })
     try {
       await window.api.communityDirectory.join(selected.id, currentCommunityId)
+      communityDirectoryCache.invalidate(accountId)
+      communityServerCache.invalidate(accountId)
       if (serial !== generation || useAuthStore.getState().session?.player.id !== accountId) return
       set({
         currentCommunityId: selected.id,

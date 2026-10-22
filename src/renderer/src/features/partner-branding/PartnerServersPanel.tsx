@@ -1,3 +1,4 @@
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { CountryFlag } from '../../components/CountryFlag'
 import { useTranslation } from '../i18n/i18n'
 import { useEffect, useMemo, type JSX } from 'react'
@@ -41,6 +42,8 @@ export function PartnerServersPanel({
     select = useServers((s) => s.select),
     connect = useServers((s) => s.connect)
   useEffect(() => {
+    const matchmaking = useMatchmakingStore.getState()
+    if (matchmaking.mapsStatus === 'idle') void matchmaking.loadMaps()
     void load()
     const timer = window.setInterval(() => {
       if (!document.hidden) void load()

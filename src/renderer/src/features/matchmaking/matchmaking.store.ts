@@ -84,6 +84,7 @@ export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'
   players: {
     id: string
     username: string
+    isBot?: boolean
     kills: number
     deaths: number
     assists: number
@@ -182,11 +183,7 @@ const isMatchLifecycleStatus = (status: QueueStatus): boolean =>
 async function loadActivity(
   state: Pick<MatchmakingState, 'nodes' | 'selectedNodeId' | 'allowRegionExpansion'>
 ): Promise<MatchmakingActivity | null> {
-  const { eligibleRegions } = matchmakingRegionSelection(
-    state.nodes,
-    state.selectedNodeId,
-    state.allowRegionExpansion
-  )
+  const { eligibleRegions } = matchmakingRegionSelection(state.nodes, state.selectedNodeId, true)
   if (!eligibleRegions.length || typeof window.api.matchmaking.getActivity !== 'function')
     return null
   return window.api.matchmaking.getActivity(eligibleRegions)
@@ -770,11 +767,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           window.api.matchmaking.getNodes(),
           window.api.matchmaking.getPreferences()
         ])
-        set({
-          nodes,
-          selectedNodeId: preferences.selectedNodeId,
-          allowRegionExpansion: preferences.allowRegionExpansion
-        })
+        if (!preferences.allowRegionExpansion)
+          await window.api.matchmaking.setAllowRegionExpansion(true)
+        set({ nodes, selectedNodeId: preferences.selectedNodeId, allowRegionExpansion: true })
         const activity =
           typeof window.api.matchmaking.getActivity === 'function'
             ? await loadActivity(get()).catch(() => null)
@@ -910,7 +905,6 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         selectedMapIds,
         selectedNodeId,
         nodes,
-        allowRegionExpansion,
         selectedMode
       } = get()
       if (connectionStatus !== 'ready' || get().queueStatus !== 'idle') return
@@ -954,14 +948,14 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         const { preferredNode, eligibleRegions } = matchmakingRegionSelection(
           nodes,
           selectedNodeId,
-          allowRegionExpansion
+          true
         )
         if (!preferredNode)
           throw new Error(translate(useLanguageStore.getState().language, 'activity.noNearby'))
         await window.api.matchmaking.joinQueue(
           selectedMode,
           selectedMapIds,
-          !selectedNodeId || allowRegionExpansion,
+          true,
           preferredNode?.region ?? null,
           eligibleRegions
         )

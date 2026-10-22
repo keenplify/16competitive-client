@@ -77,7 +77,6 @@ export function PlayPage({
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
-  const allowRegionExpansion = useMatchmakingStore((state) => state.allowRegionExpansion)
   const match = useMatchmakingStore((state) => state.match)
   const acceptedPlayerIds = useMatchmakingStore((state) => state.acceptedPlayerIds)
   const countdown = useMatchmakingStore((state) => state.countdown)
@@ -87,7 +86,6 @@ export function PlayPage({
   const loadMaps = useMatchmakingStore((state) => state.loadMaps)
   const loadRegions = useMatchmakingStore((state) => state.loadRegions)
   const selectNode = useMatchmakingStore((state) => state.selectNode)
-  const setAllowRegionExpansion = useMatchmakingStore((state) => state.setAllowRegionExpansion)
   const selectMode = useMatchmakingStore((state) => state.selectMode)
   const selectMap = useMatchmakingStore((state) => state.selectMap)
   const joinQueue = useMatchmakingStore((state) => state.joinQueue)
@@ -502,23 +500,6 @@ export function PlayPage({
               visiblePlayView === 'partner' && 'hidden'
             )}
           >
-            <label
-              className={twMerge(
-                'flex cursor-pointer items-center gap-2 pb-3 text-xs text-neutral-300',
-                visiblePlayView === 'custom' && 'hidden'
-              )}
-              aria-hidden={visiblePlayView === 'custom'}
-            >
-              <input
-                type="checkbox"
-                className="size-4 accent-sky-400"
-                checked={!selectedNodeId || allowRegionExpansion}
-                disabled={visiblePlayView === 'custom' || isSearching || !selectedNodeId}
-                tabIndex={visiblePlayView === 'custom' ? -1 : undefined}
-                onChange={(event) => void setAllowRegionExpansion(event.target.checked)}
-              />
-              {t('activity.searchNearby')}
-            </label>
             <div className="w-72 max-w-full shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs text-neutral-200">
                 <label className="font-semibold tracking-wide uppercase" htmlFor="play-region">

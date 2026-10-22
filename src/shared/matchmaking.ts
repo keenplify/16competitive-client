@@ -373,6 +373,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       players: {
         id: string
         username: string
+        isBot?: boolean
         kills: number
         deaths: number
         assists: number

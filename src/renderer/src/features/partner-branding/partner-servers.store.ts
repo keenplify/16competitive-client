@@ -1,3 +1,4 @@
+import { communityServerCache } from '../communities/community-cache'
 import { create } from 'zustand'
 import { sortPartnerServers, type PartnerServerStatus } from '../../../../shared/partner-community'
 import { useAuthStore } from '../auth/auth.store'
@@ -15,6 +16,7 @@ type State = {
 }
 export function createPartnerServersStore(communityId?: string) {
   let serial = 0
+  let refreshing = false
   return create<State>((set, get) => ({
     accountId: null,
     rows: [],
@@ -28,24 +30,36 @@ export function createPartnerServersStore(communityId?: string) {
         get().clear()
         return
       }
-      if (get().status === 'loading' && get().accountId === accountId) return
+      if (refreshing && get().accountId === accountId) return
+      const cacheKey = communityId ?? 'membership'
+      const cached = communityServerCache.read(accountId, cacheKey)
+      refreshing = true
       const request = ++serial
       set((state) => ({
-        status: 'loading',
+        status:
+          cached || (state.accountId === accountId && state.rows.length) ? 'ready' : 'loading',
         error: null,
         accountId,
-        ...(state.accountId !== accountId ? { rows: [], selectedId: null } : {})
+        ...(state.accountId !== accountId
+          ? { rows: cached ?? [], selectedId: null }
+          : state.rows.length === 0 && cached
+            ? { rows: cached }
+            : {})
       }))
       try {
         const rows = sortPartnerServers(await window.api.partnerServers.list(communityId))
         if (serial !== request || useAuthStore.getState().session?.player.id !== accountId) return
+        communityServerCache.write(accountId, cacheKey, rows)
         set((state) => ({
-          rows,
+          rows: JSON.stringify(state.rows) === JSON.stringify(rows) ? state.rows : rows,
           status: 'ready',
           selectedId: rows.some((row) => row.id === state.selectedId) ? state.selectedId : null
         }))
       } catch {
-        if (serial === request) set({ status: 'error', error: 'loadError' })
+        if (serial === request)
+          set({ status: get().rows.length ? 'ready' : 'error', error: 'loadError' })
+      } finally {
+        if (serial === request) refreshing = false
       }
     },
     select: (selectedId) => set({ selectedId, error: null }),
@@ -70,6 +84,7 @@ export function createPartnerServersStore(communityId?: string) {
     },
     clear: () => {
       serial++
+      refreshing = false
       set({
         accountId: null,
         rows: [],

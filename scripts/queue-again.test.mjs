@@ -191,7 +191,7 @@ test('Arena queue again uses the saved pool and region only after consent', asyn
   assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])), [
     'arena',
     ['fy_pool_day', 'fy_iceworld'],
-    false,
+    true,
     'asia',
     ['asia']
   ])

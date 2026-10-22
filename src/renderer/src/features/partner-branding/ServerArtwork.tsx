@@ -1,3 +1,4 @@
+import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -32,10 +33,13 @@ export function ServerArtwork({
   server: PartnerServerStatus
   className?: string
 }): JSX.Element {
+  const registered = useMatchmakingStore(
+    (s) => s.maps.find((map) => map.id === server.map)?.previewUrl
+  )
   const bundled =
     server.map && Object.hasOwn(localMapPreviews, server.map)
       ? localMapPreviews[server.map]
       : undefined
-  const sources = serverArtworkSources(server, bundled || undefined)
+  const sources = serverArtworkSources(server, bundled || undefined, registered || undefined)
   return <Artwork key={sources.join('\n')} sources={sources} className={className} />
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n/i18n'
 import { useProfileStore } from '../profile/profile.store'
 import { ArrowRight, Trophy, UserPlus, UserRound } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
@@ -19,6 +20,7 @@ import { PlayWindowMatchResult } from './PlayWindowMatchResult'
 import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
+  const { t } = useTranslation()
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
   const party = usePartyStore((state) => state.party)
   const visibleMmrPlayerIds = new Set([
@@ -279,15 +281,17 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               {ffaPlayers.map((player, index) => (
                 <li
                   key={player.id}
-                  className={`grid cursor-context-menu grid-cols-[3rem_minmax(0,1fr)_3.5rem_3.5rem] items-center gap-3 border-b border-white/5 px-5 py-3 text-sm last:border-0 sm:grid-cols-[3rem_minmax(0,1fr)_5rem_5rem_5rem] ${
+                  className={`grid ${player.isBot ? '' : 'cursor-context-menu'} grid-cols-[3rem_minmax(0,1fr)_3.5rem_3.5rem] items-center gap-3 border-b border-white/5 px-5 py-3 text-sm last:border-0 sm:grid-cols-[3rem_minmax(0,1fr)_5rem_5rem_5rem] ${
                     player.id === currentPlayerId
                       ? 'bg-sky-400/10'
                       : index === 0
                         ? 'bg-amber-400/5'
                         : 'hover:bg-white/5'
                   }`}
-                  onContextMenu={(event) => showPlayerMenu(event, player.id)}
-                  title="Right-click to view profile"
+                  onContextMenu={
+                    player.isBot ? undefined : (event) => showPlayerMenu(event, player.id)
+                  }
+                  title={player.isBot ? undefined : 'Right-click to view profile'}
                 >
                   <span
                     className={`font-semibold tabular-nums ${index === 0 ? 'text-amber-300' : 'text-neutral-400'}`}
@@ -295,13 +299,22 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="flex min-w-0 items-center gap-2">
-                    <button
-                      type="button"
-                      className="truncate text-left font-medium text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
-                      onClick={() => openPlayerProfile(player.id)}
-                    >
-                      {player.username}
-                    </button>
+                    {player.isBot ? (
+                      <span className="truncate font-medium text-white">{player.username}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="truncate text-left font-medium text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                        onClick={() => openPlayerProfile(player.id)}
+                      >
+                        {player.username}
+                      </button>
+                    )}
+                    {player.isBot && (
+                      <span className="shrink-0 text-[10px] font-semibold text-neutral-300">
+                        {t('scoreboard.botTag')}
+                      </span>
+                    )}
                     {index === 0 && (
                       <Trophy className="size-3.5 shrink-0 text-amber-300" aria-label="Winner" />
                     )}

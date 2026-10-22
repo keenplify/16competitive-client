@@ -185,6 +185,7 @@ const isMatchPlayerStats = (value: unknown): boolean => {
   return (
     typeof player.id === 'string' &&
     typeof player.username === 'string' &&
+    (player.isBot === undefined || typeof player.isBot === 'boolean') &&
     typeof player.kills === 'number' &&
     typeof player.deaths === 'number' &&
     typeof player.assists === 'number' &&

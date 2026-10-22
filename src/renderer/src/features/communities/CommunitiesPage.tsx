@@ -349,7 +349,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                         : community
                     }
                     current={community.id === state.currentCommunityId}
-                    disabled={state.loading || state.joining || state.error}
+                    disabled={state.loading || state.joining}
                     onOpen={() => state.openCommunity(community)}
                   />
                 ))}

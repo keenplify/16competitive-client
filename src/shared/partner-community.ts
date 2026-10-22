@@ -440,15 +440,20 @@ export function partnerMapImageUrl(map: string | null, apiOrigin: string): strin
     : null
 }
 
-export function serverArtworkSources(server: PartnerServerStatus, bundled?: string): string[] {
+export function serverArtworkSources(
+  server: PartnerServerStatus,
+  bundled?: string,
+  registered?: string
+): string[] {
   // Missing metadata from older backends retains the existing image priority.
   return [
     ...new Set(
       [
         server.imageUploaded !== false ? server.imageUrl : null,
+        registered,
+        bundled,
         server.mapImageUrl,
-        server.imageUrl,
-        bundled
+        server.imageUrl
       ].filter((source): source is string => Boolean(source))
     )
   ]

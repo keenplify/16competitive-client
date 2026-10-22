@@ -19,8 +19,8 @@ export function CommunityDescription({
       <p
         id={id}
         className={twMerge(
-          'break-words text-sm leading-relaxed text-neutral-300',
-          expanded ? 'whitespace-pre-wrap' : 'line-clamp-3 whitespace-normal'
+          'whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-300',
+          !expanded && 'line-clamp-5 max-h-[8.125em] overflow-hidden'
         )}
       >
         {description || t('directory.noDescription')}

@@ -1,3 +1,4 @@
+import { createLocalSnapshotCache } from '../src/shared/local-snapshot-cache.ts'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { create } from 'zustand'
@@ -207,11 +208,23 @@ function rendererStore(path, dependencies) {
     target: ts.ScriptTarget.ES2022
   })
   const exports = {}
+  const memory = new Map()
+  const cache = createLocalSnapshotCache(
+    'test',
+    (value) => value,
+    () => ({
+      getItem: (key) => memory.get(key) ?? null,
+      setItem: (key, value) => memory.set(key, value)
+    })
+  )
   new Function('require', 'exports', 'window', compiled)(
     (name) =>
       name === 'zustand'
         ? { create }
         : (dependencies[name] ??
+          (name.endsWith('/community-cache')
+            ? { communityDirectoryCache: cache, communityServerCache: cache }
+            : null) ??
           (name === '../partner-branding/partner-branding.store'
             ? { usePartnerBrandingStore: { getState: () => ({ branding: null }) } }
             : {})),
@@ -324,4 +337,58 @@ test('disabled community discovery blocks navigation and selection, independentl
   store.getState().setView('discover')
   store.getState().openCommunity(other)
   assert.equal(store.getState().viewedCommunity.id, other.id)
+})
+
+test('server snapshots show immediately while refreshing, update afterward, survive failed refreshes', async () => {
+  let response = Promise.resolve([{ id: 'server', pingMs: 30, players: 2, map: 'de_dust2' }])
+  const { createPartnerServersStore } = rendererStore(
+    '../src/renderer/src/features/partner-branding/partner-servers.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: { getState: () => ({ session: { player: { id } } }) } },
+      '../../../../shared/partner-community': { sortPartnerServers: (rows) => rows },
+      window: { api: { partnerServers: { list: () => response } } }
+    }
+  )
+  await createPartnerServersStore(id).getState().load()
+  let finish
+  response = new Promise((resolve) => {
+    finish = resolve
+  })
+  const next = createPartnerServersStore(id)
+  const pending = next.getState().load()
+  assert.equal(next.getState().rows[0].pingMs, 30)
+  assert.equal(next.getState().status, 'ready')
+  next.getState().select('server')
+  finish([{ id: 'server', pingMs: 55, players: 7, map: 'de_nuke' }])
+  await pending
+  assert.equal(next.getState().rows[0].players, 7)
+  assert.equal(next.getState().rows[0].map, 'de_nuke')
+  assert.equal(next.getState().selectedId, 'server')
+  response = Promise.reject(Error('offline'))
+  await next.getState().load()
+  assert.equal(next.getState().rows[0].pingMs, 55)
+  assert.equal(next.getState().status, 'ready')
+})
+
+test('community cache displays before its network refresh finishes', async () => {
+  let response = Promise.resolve(directory)
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: { getState: () => ({ session: { player: { id } } }) } },
+      window: { api: { communityDirectory: { list: () => response } } }
+    }
+  )
+  await store.getState().load()
+  store.getState().clear()
+  let finish
+  response = new Promise((resolve) => {
+    finish = resolve
+  })
+  const pending = store.getState().load()
+  assert.equal(store.getState().communities[0].name, card.name)
+  assert.equal(store.getState().loading, false)
+  finish({ ...directory, communities: [{ ...card, name: 'Updated name' }] })
+  await pending
+  assert.equal(store.getState().communities[0].name, 'Updated name')
 })

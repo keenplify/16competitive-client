@@ -9,13 +9,13 @@ test('uploaded server images lead, cached map images replace community fallbacks
   }
   assert.deepEqual(serverArtworkSources({ ...server, imageUploaded: true }, '/bundled.jpg'), [
     server.imageUrl,
-    server.mapImageUrl,
-    '/bundled.jpg'
+    '/bundled.jpg',
+    server.mapImageUrl
   ])
   assert.deepEqual(serverArtworkSources({ ...server, imageUploaded: false }, '/bundled.jpg'), [
+    '/bundled.jpg',
     server.mapImageUrl,
-    server.imageUrl,
-    '/bundled.jpg'
+    server.imageUrl
   ])
   assert.deepEqual(serverArtworkSources({ imageUrl: server.imageUrl }), [server.imageUrl])
   assert.deepEqual(serverArtworkSources({ imageUploaded: false }), [])
@@ -28,4 +28,14 @@ test('map preview URLs retain the selected API origin and reject traversal', () 
   )
   for (const name of [null, '../secret', 'https://other.test', 'a?b', 'a'.repeat(65)])
     assert.equal(partnerMapImageUrl(name, 'https://eu.example.test'), null)
+})
+
+test('registered HD maps precede bundled and GameTracker previews, after a server upload', () => {
+  const server = { imageUploaded: true, imageUrl: '/upload.jpg', mapImageUrl: '/gametracker.jpg' }
+  assert.deepEqual(serverArtworkSources(server, '/bundled.jpg', '/registered.jpg'), [
+    '/upload.jpg',
+    '/registered.jpg',
+    '/bundled.jpg',
+    '/gametracker.jpg'
+  ])
 })
