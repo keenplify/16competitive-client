@@ -3040,3 +3040,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Simplified community navigation and page headers.
 - Added community descriptions.
+
+## v2026.1022.3 — 2026-10-22
+
+### Community Servers
+
+- Community server status is now cached for faster access.
+- Improved community server descriptions and artwork.
+
+### Matchmaking
+
+- Improved automatic region search.
+- Added a smoother queue-again experience.
+
+### Match Results
+
+- Improved FFA match results display.
