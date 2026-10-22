@@ -38,6 +38,7 @@ export interface CommunityDirectoryQuery {
   country: string
 }
 export interface CommunityDirectoryResult {
+  preferredCommunity?: CommunityCard | null
   currentCommunity: CommunityCard | null
   communities: CommunityCard[]
   currentCommunityId: string | null

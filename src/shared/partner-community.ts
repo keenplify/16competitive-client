@@ -244,6 +244,10 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
       Array.from(communityName).some((char) => char.charCodeAt(0) < 32))
   )
     throw new Error('Invalid community name')
+  const allowOtherCommunities =
+    value.allowOtherCommunities === undefined ? true : value.allowOtherCommunities
+  if (typeof allowOtherCommunities !== 'boolean')
+    throw new Error('Invalid community discovery preference')
   const enabled = value.customSocialLinksEnabled ?? false
   if (typeof enabled !== 'boolean') throw new Error('Invalid social link preference')
   const links = value.socialLinks ?? {}
@@ -321,6 +325,7 @@ export function parseCommunityBranding(value: Record<string, unknown>) {
   })
   return {
     communityName: communityName as string | null,
+    allowOtherCommunities,
     customSocialLinksEnabled: enabled,
     socialLinks,
     servers

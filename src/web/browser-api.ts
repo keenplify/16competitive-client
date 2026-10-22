@@ -1,7 +1,6 @@
+import { loadBrowserCommunityDirectory } from './partner-community-context'
 import { loadCustomGameList } from '../shared/custom-game-list'
 import {
-  communityDirectoryPath,
-  parseCommunityDirectory,
   parseCommunityJoin,
   parseCommunityLeave,
   parseCommunityOwnerSettings,
@@ -599,8 +598,7 @@ const api: Window['api'] = {
         await jsonPost('/partners/communities/leave', { expectedCommunityId })
       )
     },
-    list: async (query) =>
-      parseCommunityDirectory(await authenticatedGet(communityDirectoryPath(query))),
+    list: loadBrowserCommunityDirectory,
     update: async (input) => {
       validateCommunityUpdate(input)
       await requestJson('/partners/branding/settings', {
@@ -723,11 +721,13 @@ const api: Window['api'] = {
   partnerBranding: {
     async get() {
       const token = getWebSessionToken()
-      const partnerId = token ? null : getBrowserPartnerId()
+      const partnerId = getBrowserPartnerId()
       if (!token && !partnerId) return { branding: null }
-      const response: unknown = token
-        ? await authenticatedGet('/partners/branding/me')
-        : await requestJson(`/partners/branding/public/${partnerId}`)
+      // A partner PWA link chooses the presentation context, independently of
+      // account affiliation. Only the backend can approve membership changes.
+      const response: unknown = partnerId
+        ? await requestJson(`/partners/branding/public/${partnerId}`)
+        : await authenticatedGet('/partners/branding/me')
       if (getWebSessionToken() !== token) throw new Error('Session changed.')
       return parsePartnerBranding(response, currentApiOrigin())
     }

@@ -14,6 +14,7 @@ import { useCommunityMembersStore } from '../partner-branding/community-members.
 import { useCommunityMembershipStore } from '../partner-branding/community-membership.store'
 
 type State = CommunityDirectoryResult & {
+  preferredCommunity: CommunityCard | null
   automaticCountryCode: string | null
   viewedCommunity: CommunityCard | null
   openCommunity: (community: CommunityCard) => void
@@ -61,19 +62,30 @@ const initialQuery: CommunityDirectoryQuery = {
   category: '',
   country: ''
 }
+const restrictedCommunityId = (): string | null => {
+  const branding = usePartnerBrandingStore.getState().branding
+  return branding?.allowOtherCommunities === false ? branding.partnerId : null
+}
 let generation = 0
 export const useCommunitiesStore = create<State>((set, get) => ({
   query: initialQuery,
+  preferredCommunity: null,
   viewedCommunity: null,
   view: 'home',
-  openCommunity: (community) =>
+  openCommunity: (community) => {
+    const restricted = restrictedCommunityId()
+    if (restricted && restricted !== community.id) return
     set({
       viewedCommunity: community.id === get().currentCommunityId ? null : community,
       view: 'home',
       selected: null,
       joinError: false
-    }),
-  setView: (view) => set({ view, viewedCommunity: null, selected: null, joinError: false }),
+    })
+  },
+  setView: (view) => {
+    if (view === 'discover' && restrictedCommunityId()) return
+    set({ view, viewedCommunity: null, selected: null, joinError: false })
+  },
   editing: false,
   editTarget: null,
   editDraft: { name: '', communityCountryCode: null, description: '', servers: [] },
@@ -217,7 +229,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
   joinError: false,
   selected: null,
   updateQuery: (patch) => {
-    if (get().joining) return
+    if (get().joining || restrictedCommunityId()) return
     generation++
     set({
       query: { ...get().query, cursor: null, ...patch },
@@ -238,9 +250,19 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     set({ loading: true, loadingMore: false, loadMoreError: false, error: false })
     try {
       const result = await window.api.communityDirectory.list(get().query)
-      if (serial === generation && useAuthStore.getState().session?.player.id === accountId)
+      if (serial === generation && useAuthStore.getState().session?.player.id === accountId) {
+        const preferred = result.preferredCommunity ?? null
+        const activate = preferred && get().preferredCommunity?.id !== preferred.id
         set({
           ...result,
+          preferredCommunity: preferred,
+          ...(activate
+            ? {
+                viewedCommunity: preferred.id === result.currentCommunityId ? null : preferred,
+                view: 'home' as const,
+                selected: null
+              }
+            : {}),
           automaticCountryCode: get().query.country
             ? get().automaticCountryCode
             : result.viewerCountryCode,
@@ -248,6 +270,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
           loadingMore: false,
           loadMoreError: false
         })
+      }
     } catch {
       if (serial === generation) set({ loading: false, error: true })
     }
@@ -255,7 +278,8 @@ export const useCommunitiesStore = create<State>((set, get) => ({
   loadMore: async () => {
     const accountId = useAuthStore.getState().session?.player.id
     const { nextCursor, loading, loadingMore, joining } = get()
-    if (!accountId || !nextCursor || loading || loadingMore || joining) return
+    if (!accountId || !nextCursor || loading || loadingMore || joining || restrictedCommunityId())
+      return
     const serial = generation
     set({ loadingMore: true, loadMoreError: false })
     try {
@@ -309,12 +333,16 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     }
   },
   select: (selected) => {
+    const restricted = restrictedCommunityId()
+    if (selected && restricted && selected.id !== restricted) return
     if (!get().joining && !get().loading) set({ selected, joinError: false })
   },
   join: async () => {
     const { selected, currentCommunityId, joining } = get()
     const accountId = useAuthStore.getState().session?.player.id
     if (!selected || !accountId || joining) return
+    const restricted = restrictedCommunityId()
+    if (restricted && selected.id !== restricted) return
     const serial = ++generation
     set({ joining: true, joinError: false })
     try {
@@ -341,6 +369,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     generation++
     set({
       query: initialQuery,
+      preferredCommunity: null,
       viewedCommunity: null,
       view: 'home',
       editing: false,

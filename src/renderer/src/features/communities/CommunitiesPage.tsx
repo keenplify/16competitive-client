@@ -1,3 +1,4 @@
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useEffect, useRef, type JSX } from 'react'
@@ -54,10 +55,16 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const members = useCommunityMembersStore()
   const communityLinks = useConfiguredCommunityLinks()
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
-  const community = state.viewedCommunity ?? state.currentCommunity
+  const branding = usePartnerBrandingStore((store) => store.branding)
+  const restricted = branding?.allowOtherCommunities === false
+  const community = restricted
+    ? ([state.preferredCommunity, state.currentCommunity, state.viewedCommunity].find(
+        (item) => item?.id === branding.partnerId
+      ) ?? null)
+    : (state.viewedCommunity ?? state.currentCommunity)
   const isMember = community?.id === state.currentCommunityId
   const isOwner = Boolean(community && community.id === playerId)
-  const discovering = state.view === 'discover' || !community
+  const discovering = !restricted && (state.view === 'discover' || !community)
   const currentMemberCount =
     members.communityId === state.currentCommunityId && !members.error && members.page > 0
       ? members.total + 1
@@ -97,6 +104,8 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
         <h1 className={discovering ? 'mt-2 text-3xl font-semibold' : 'text-3xl font-semibold'}>
           {discovering ? (
             t('directory.discover')
+          ) : restricted ? (
+            t('directory.title')
           ) : (
             <button
               type="button"
@@ -112,6 +121,20 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           <p className="mt-2 text-sm text-neutral-200">{t('directory.description')}</p>
         )}
       </header>
+      {restricted && !community && (
+        <div className="mt-6 min-h-80 text-sm text-neutral-200" role="status">
+          {state.error ? (
+            <>
+              {t('directory.error')}
+              <Button variant="ghost" onClick={() => void load()}>
+                {t('community.retry')}
+              </Button>
+            </>
+          ) : (
+            t('directory.loading')
+          )}
+        </div>
+      )}
       {!discovering && community && (
         <section
           className="mt-6 border border-sky-300/20 bg-neutral-950/75 p-5"
@@ -388,7 +411,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           </div>
         </ModalDialog>
       )}
-      {state.selected && (
+      {state.selected && (!restricted || state.selected.id === branding.partnerId) && (
         <ModalDialog
           open
           onClose={() => state.select(null)}

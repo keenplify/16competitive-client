@@ -25,6 +25,7 @@ const branding = {
   partnerId,
   logoUrl: null,
   communityName: null,
+  allowOtherCommunities: true,
   customSocialLinksEnabled: false,
   socialLinks: {},
   servers: [],
@@ -108,4 +109,23 @@ test('login backgrounds have an independent kind and approved endpoint', () => {
   delete legacy.loginBackgroundUrl
   delete legacy.loginBackgroundKind
   assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.loginBackgroundUrl, null)
+})
+
+test('validates community discovery preference and defaults older responses to enabled', () => {
+  const legacy = { ...branding }
+  delete legacy.allowOtherCommunities
+  assert.equal(
+    parsePartnerBranding({ branding: legacy }, origin).branding.allowOtherCommunities,
+    true
+  )
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, allowOtherCommunities: false } }, origin)
+      .branding.allowOtherCommunities,
+    false
+  )
+  for (const bad of ['false', 0, null, {}]) {
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, allowOtherCommunities: bad } }, origin)
+    )
+  }
 })

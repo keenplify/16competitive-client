@@ -208,7 +208,13 @@ function rendererStore(path, dependencies) {
   })
   const exports = {}
   new Function('require', 'exports', 'window', compiled)(
-    (name) => (name === 'zustand' ? { create } : (dependencies[name] ?? {})),
+    (name) =>
+      name === 'zustand'
+        ? { create }
+        : (dependencies[name] ??
+          (name === '../partner-branding/partner-branding.store'
+            ? { usePartnerBrandingStore: { getState: () => ({ branding: null }) } }
+            : {})),
     exports,
     dependencies.window
   )
@@ -261,4 +267,61 @@ test('visitor server lists and launch targets stay isolated from membership serv
   await visitor.getState().connect()
   assert.deepEqual(calls, [[id, undefined, id]])
   assert.equal(own.getState().selectedId, null)
+})
+
+test('partner PWA activates its preferred community without silently changing membership', async () => {
+  const other = { ...card, id: '22345678-1234-4123-8123-123456789abc' }
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: { getState: () => ({ session: { player: { id } } }) } },
+      window: {
+        api: {
+          communityDirectory: {
+            list: async () => ({
+              ...directory,
+              preferredCommunity: other,
+              currentCommunity: card,
+              currentCommunityId: id
+            })
+          }
+        }
+      }
+    }
+  )
+  await store.getState().load()
+  assert.equal(store.getState().viewedCommunity.id, other.id)
+  assert.equal(store.getState().currentCommunityId, id)
+  assert.equal(store.getState().view, 'home')
+  store.getState().setView('discover')
+  await store.getState().load()
+  assert.equal(store.getState().view, 'discover')
+  store.getState().clear()
+  assert.equal(store.getState().preferredCommunity, null)
+})
+
+test('disabled community discovery blocks navigation and selection, independently of theme preference', () => {
+  const other = { ...card, id: '22345678-1234-4123-8123-123456789abc' }
+  const branding = { partnerId: id, allowOtherCommunities: false }
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {
+      '../partner-branding/partner-branding.store': {
+        usePartnerBrandingStore: { getState: () => ({ branding, enabled: false }) }
+      }
+    }
+  )
+  store.setState({ currentCommunity: card, currentCommunityId: id, loading: false })
+  store.getState().setView('discover')
+  store.getState().openCommunity(other)
+  store.getState().select(other)
+  store.getState().updateQuery({ search: 'other' })
+  assert.equal(store.getState().view, 'home')
+  assert.equal(store.getState().viewedCommunity, null)
+  assert.equal(store.getState().selected, null)
+  assert.equal(store.getState().query.search, '')
+  branding.allowOtherCommunities = true
+  store.getState().setView('discover')
+  store.getState().openCommunity(other)
+  assert.equal(store.getState().viewedCommunity.id, other.id)
 })

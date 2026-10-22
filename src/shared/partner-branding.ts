@@ -16,6 +16,7 @@ export interface PartnerBranding {
   loginBackgroundKind: 'image' | 'video' | null
   logoUrl: string | null
   communityName: string | null
+  allowOtherCommunities: boolean
   customSocialLinksEnabled: boolean
   socialLinks: PartnerSocialLinks
   servers: PartnerServer[]
