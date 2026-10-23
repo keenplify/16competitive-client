@@ -1,3 +1,4 @@
+import { WebNextClientDownload } from './WebNextClientDownload'
 import { MatchNotificationSettings } from './MatchNotificationSettings'
 import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
@@ -544,21 +545,24 @@ export function SettingsPage(): JSX.Element {
               {!webRuntime && <GameDisplaySettings />}
 
               {webRuntime ? (
-                <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                  <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
-                    Browser matches launch the Steam copy of Counter-Strike directly. You do not
-                    need to choose a local game folder or install launcher-managed files.
-                  </p>
-                  <Button
-                    variant="ghost"
-                    className="mt-5 border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
-                    onClick={() => void window.api.window.openCounterStrikeSteamStore()}
-                  >
-                    <Download className="mr-2 size-4" aria-hidden="true" />
-                    Open Counter-Strike on Steam
-                  </Button>
-                </div>
+                <>
+                  <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
+                      Browser matches launch the Steam copy of Counter-Strike directly. You do not
+                      need to choose a local game folder or install launcher-managed files.
+                    </p>
+                    <Button
+                      variant="ghost"
+                      className="mt-5 border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
+                      onClick={() => void window.api.window.openCounterStrikeSteamStore()}
+                    >
+                      <Download className="mr-2 size-4" aria-hidden="true" />
+                      Open Counter-Strike on Steam
+                    </Button>
+                  </div>
+                  <WebNextClientDownload />
+                </>
               ) : (
                 <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                   <h3 className="text-lg font-semibold">Counter-Strike 1.6</h3>

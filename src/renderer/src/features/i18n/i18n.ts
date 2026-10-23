@@ -1,3 +1,4 @@
+import { webGameDownloadTranslations } from './web-game-download-translations'
 import { partnerLoginTranslations } from './partner-login-translations'
 import { mapFeedbackTranslations } from './map-feedback-translations'
 import { matchNotificationTranslations } from './match-notification-translations'
@@ -51,6 +52,7 @@ const english = {
   ...launcherThemeTranslations.en,
   ...mapFeedbackTranslations.en,
   ...queueWarmupTranslations.en,
+  ...webGameDownloadTranslations.en,
   ...legacyGameTranslations.en,
   ...steamTranslations.en,
   ...communityMembershipTranslations.en,
@@ -220,6 +222,7 @@ const russian: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.ru,
   ...mapFeedbackTranslations.ru,
   ...queueWarmupTranslations.ru,
+  ...webGameDownloadTranslations.ru,
   ...legacyGameTranslations.ru,
   ...steamTranslations.ru,
   ...communityMembershipTranslations.ru,
@@ -389,6 +392,7 @@ const taglish: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.tl,
   ...mapFeedbackTranslations.tl,
   ...queueWarmupTranslations.tl,
+  ...webGameDownloadTranslations.tl,
   ...legacyGameTranslations.tl,
   ...steamTranslations.tl,
   ...communityMembershipTranslations.tl,
@@ -560,6 +564,7 @@ const thai: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.th,
   ...mapFeedbackTranslations.th,
   ...queueWarmupTranslations.th,
+  ...webGameDownloadTranslations.th,
   ...legacyGameTranslations.th,
   ...steamTranslations.th,
   ...communityMembershipTranslations.th,
@@ -727,6 +732,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.id,
   ...mapFeedbackTranslations.id,
   ...queueWarmupTranslations.id,
+  ...webGameDownloadTranslations.id,
   ...legacyGameTranslations.id,
   ...steamTranslations.id,
   ...communityMembershipTranslations.id,
@@ -901,6 +907,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.pt,
   ...mapFeedbackTranslations.pt,
   ...queueWarmupTranslations.pt,
+  ...webGameDownloadTranslations.pt,
   ...legacyGameTranslations.pt,
   ...steamTranslations.pt,
   ...communityMembershipTranslations.pt,
@@ -1075,6 +1082,7 @@ const japanese: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.ja,
   ...mapFeedbackTranslations.ja,
   ...queueWarmupTranslations.ja,
+  ...webGameDownloadTranslations.ja,
   ...legacyGameTranslations.ja,
   ...steamTranslations.ja,
   ...communityMembershipTranslations.ja,
@@ -1247,6 +1255,7 @@ const hindi: Record<TranslationKey, string> = {
   ...launcherThemeTranslations.hi,
   ...mapFeedbackTranslations.hi,
   ...queueWarmupTranslations.hi,
+  ...webGameDownloadTranslations.hi,
   ...legacyGameTranslations.hi,
   ...steamTranslations.hi,
   ...communityMembershipTranslations.hi,
