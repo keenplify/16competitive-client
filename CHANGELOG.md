@@ -3110,9 +3110,3 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### HUD
 
 - Ninja Defuse accolades now appear in the native HUD.
-
-## v2026.1023.7 — 2026-10-23
-
-### Changes
-
-- No changes were provided.
