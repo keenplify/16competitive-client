@@ -256,7 +256,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           <div className="mt-6 flex flex-wrap items-end gap-3">
             <label className="min-w-56 flex-1 text-xs text-neutral-300">
               {t('directory.search')}
-              <span className="mt-2 flex h-11 items-center gap-2 border border-white/15 bg-neutral-950/80 px-3">
+              <span className="community-directory-search mt-2 flex h-11 items-center gap-2 border border-white/15 bg-neutral-950/80 px-3">
                 <Search className="size-4 shrink-0" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none"

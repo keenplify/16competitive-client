@@ -219,6 +219,24 @@
   opacity: 1;
 }
 
+/* The search icon and text input share one recessed field. */
+:root[data-launcher-theme='vgui2'] .community-directory-search {
+  background: var(--vgui-inset);
+  border-color: transparent;
+  box-shadow: var(--vgui-sunken);
+}
+
+:root[data-launcher-theme='vgui2'] .community-directory-search:focus-within {
+  outline: 1px solid var(--vgui-accent);
+  outline-offset: 1px;
+}
+
+:root[data-launcher-theme='vgui2'] .community-directory-search input {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
 /* The searchable picker is one field. Keep the bevel on its outer control,
  * not on react-select's auto-sized text input (including its empty caret). */
 :root[data-launcher-theme='vgui2'] .chat-translation-select__control {
