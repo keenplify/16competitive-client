@@ -3104,3 +3104,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Fixed the native tray menu on GNOME and KDE desktops.
+
+## v2026.1023.6 — 2026-10-23
+
+### HUD
+
+- Ninja Defuse accolades now appear in the native HUD.
