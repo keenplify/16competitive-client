@@ -79,7 +79,6 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
       get().matchId ||
       get().status === 'starting' ||
       get().status === 'leaving' ||
-      get().mode === '5v5' ||
       get().selectedMapIds.length === 0
     )
       return
@@ -111,6 +110,9 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
   },
   handleEvent: (event) => {
     if (event.whileQueued) {
+      if (event.type === 'match_finished' && event.mode === '5v5') {
+        set({ completedMatch: event })
+      }
       if (event.type === 'match_found' || event.type === 'match_roster')
         set({
           matchId: event.matchId,
@@ -140,7 +142,9 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
         set({
           status: 'idle',
           matchId: null,
-          ...(event.type === 'match_finished' && event.publicFfa ? { completedMatch: event } : {})
+          ...(event.type === 'match_finished' && (event.publicFfa || event.mode === '5v5')
+            ? { completedMatch: event }
+            : {})
         })
       return
     }

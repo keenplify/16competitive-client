@@ -53,7 +53,7 @@ export function TabList<T extends string>({
               title={item.title}
               className={twMerge(
                 'flex h-9 min-w-24 shrink-0 items-center justify-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-xs font-bold tracking-wide text-neutral-300 uppercase transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5',
-                item.helpText && 'min-w-32 pr-9',
+                item.helpText && 'min-w-32 pr-9 sm:pr-9',
                 selected &&
                   'border-sky-300 bg-sky-300/10 text-sky-200 hover:bg-sky-300/10 hover:text-sky-200'
               )}
@@ -65,7 +65,7 @@ export function TabList<T extends string>({
             {item.helpText && (
               <HelpTooltip
                 text={item.helpText}
-                className="launcher-tab-help absolute top-2 right-1.5 text-neutral-300"
+                className="launcher-tab-help absolute inset-y-0 right-1.5 items-center text-neutral-300"
               />
             )}
           </div>

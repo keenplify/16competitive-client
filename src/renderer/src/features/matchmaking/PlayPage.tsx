@@ -127,10 +127,16 @@ export function PlayPage({
     webRuntime || Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const warmupBrowsing = useQueueWarmupStore((state) => state.browsing)
+  const warmupMode = useQueueWarmupStore((state) => state.mode)
+  const warmupActive = useQueueWarmupStore((state) => state.matchId !== null)
+  const warmupBusy = useQueueWarmupStore(
+    (state) => state.status === 'starting' || state.status === 'leaving'
+  )
+  const selectWarmup = useQueueWarmupStore((state) => state.select)
   const openWarmup = useQueueWarmupStore((state) => state.open)
   const closeWarmup = useQueueWarmupStore((state) => state.dismiss)
   const warmupEligible = queueStatus === 'queued' && selectedMode === '5v5'
-  const showWarmup = warmupEligible && warmupBrowsing
+  const showWarmup = warmupEligible
 
   useEffect(() => {
     if (mapsStatus !== 'ready' || queueStatus !== 'idle') return
@@ -264,13 +270,24 @@ export function PlayPage({
   )
   const hasSelectedMaps = selectedMapIds.length > 0
   const visiblePlayView = playView === 'partner' && !hasCommunityServers ? 'matchmaking' : playView
-  const noncompetitiveModes = visibleQueueModes.filter((mode) => mode !== '5v5')
+  const noncompetitiveModes = visibleQueueModes.filter(
+    (mode) =>
+      mode !== '5v5' &&
+      maps.some(
+        (map) =>
+          map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
+      )
+  )
   const activePlayTab =
     visiblePlayView !== 'matchmaking'
       ? visiblePlayView
-      : showWarmup || selectedMode !== '5v5'
-        ? 'noncompetitive'
-        : 'competitive'
+      : showWarmup
+        ? (warmupBrowsing || warmupActive) && warmupMode !== '5v5'
+          ? 'noncompetitive'
+          : 'competitive'
+        : selectedMode !== '5v5'
+          ? 'noncompetitive'
+          : 'competitive'
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
@@ -570,14 +587,22 @@ export function PlayPage({
               : []),
             {
               value: 'competitive',
-              label: t('play.competitive'),
-              helpText: t('matchmaking.modeHelp5v5'),
-              disabled: (isSearching && selectedMode !== '5v5') || (!isSearching && !isLeader)
+              label: t(warmupEligible ? 'warmup.rankedMode' : 'play.competitive'),
+              helpText: t(warmupEligible ? 'warmup.rankedBotsHelp' : 'matchmaking.modeHelp5v5'),
+              disabled:
+                (warmupEligible &&
+                  (warmupActive || warmupBusy) &&
+                  activePlayTab !== 'competitive') ||
+                (isSearching && selectedMode !== '5v5') ||
+                (!isSearching && !isLeader)
             },
             {
               value: 'noncompetitive',
               label: t('warmup.tab'),
               disabled:
+                (warmupEligible &&
+                  (((warmupActive || warmupBusy) && activePlayTab !== 'noncompetitive') ||
+                    noncompetitiveModes.length === 0)) ||
                 (isSearching && !warmupEligible && selectedMode === '5v5') ||
                 (!isSearching && (!isLeader || noncompetitiveModes.length === 0))
             },
@@ -589,8 +614,18 @@ export function PlayPage({
               return
             }
             setPlayView('matchmaking')
-            if (view === 'noncompetitive' && warmupEligible) openWarmup()
-            else {
+            if (warmupEligible) {
+              if (!warmupActive && !warmupBusy) {
+                const next =
+                  view === 'competitive'
+                    ? '5v5'
+                    : noncompetitiveModes.includes('ffa')
+                      ? 'ffa'
+                      : noncompetitiveModes[0]
+                if (next && next !== warmupMode) selectWarmup(next, [])
+              }
+              openWarmup()
+            } else {
               closeWarmup()
               if (!isSearching) {
                 if (view === 'competitive') selectMode('5v5')
@@ -610,7 +645,10 @@ export function PlayPage({
         ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
             {showWarmup ? (
-              <QueueWarmupPanel friendsCollapsed={friendsCollapsed} />
+              <QueueWarmupPanel
+                friendsCollapsed={friendsCollapsed}
+                competitive={activePlayTab === 'competitive'}
+              />
             ) : (
               <>
                 {selectedMode !== '5v5' && noncompetitiveModes.length > 1 && (

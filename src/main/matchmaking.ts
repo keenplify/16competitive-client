@@ -534,7 +534,6 @@ class MatchmakingConnection {
     const mapIds: unknown[] = Array.isArray(selection) ? selection : [selection]
     if (
       !isMatchmakingMode(mode) ||
-      mode === '5v5' ||
       mapIds.length < 1 ||
       mapIds.length > 32 ||
       new Set(mapIds).size !== mapIds.length ||
@@ -910,7 +909,13 @@ class MatchmakingConnection {
     })
   }
 
-  playWithBots(): void {
+  async playWithBots(): Promise<void> {
+    if (this.desiredMode === '5v5') {
+      await this.warmupCleanup
+      if (this.warmupMatchId) throw new Error('Warmup is unavailable')
+      this.warmupSuppressed = false
+      this.warmupSocket = this.socket
+    }
     this.send({ type: 'play_with_bots' })
   }
 
@@ -1365,7 +1370,12 @@ class MatchmakingConnection {
         return
       }
       if (parsed.whileQueued || ('matchId' in parsed && this.warmupMatchIds.has(parsed.matchId))) {
-        if ('matchId' in parsed && this.cancelledMatchIds.has(parsed.matchId)) return
+        if (
+          'matchId' in parsed &&
+          this.cancelledMatchIds.has(parsed.matchId) &&
+          parsed.type !== 'match_finished'
+        )
+          return
         this.handleWarmup(parsed, socket)
         return
       }

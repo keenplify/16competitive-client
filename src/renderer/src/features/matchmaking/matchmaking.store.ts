@@ -838,10 +838,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     playWithBots: async () => {
+      const ranked = get().selectedMode === '5v5'
+      const warmup = useQueueWarmupStore.getState()
+      if (ranked && (warmup.matchId || warmup.status === 'starting')) return
+      if (ranked) useQueueWarmupStore.setState({ status: 'starting' })
       try {
         await window.api.matchmaking.playWithBots()
         set({ error: null })
       } catch (error) {
+        if (ranked) useQueueWarmupStore.setState({ status: 'error' })
         set({ error: readableError(error) })
       }
     },

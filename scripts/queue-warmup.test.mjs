@@ -255,9 +255,9 @@ test('leaving during asset preparation suppresses a delayed warmup launch and st
   assert.equal(h.connection.warmupMatchId, null)
 })
 
-test('rejects ranked modes and invalid map IDs at IPC boundary', async () => {
+test('rejects invalid map IDs and warmups outside ranked queue at IPC boundary', async () => {
   const h = await harness()
-  assert.throws(() => h.connection.joinWarmup('5v5', 'de_dust2'))
+  assert.throws(() => h.connection.joinWarmup('5v5', '../map'))
   assert.throws(() => h.connection.joinWarmup('arena', '../map'))
   h.connection.desiredMode = '3v3'
   assert.throws(() => h.connection.joinWarmup('arena', 'fy_pool_day'))
@@ -332,20 +332,23 @@ test('warmup connection stays in the tab and a competitive match ends browsing',
   assert.equal(store.getState().browsing, false)
 })
 
-test('tab starts only a non-competitive session and blocks duplicate joins', async () => {
-  const { store, calls } = await warmupStoreHarness()
-  store.getState().select('5v5', 'de_dust2')
-  await store.getState().join()
-  assert.equal(calls.length, 0)
-  store.getState().select('arena', '')
-  await store.getState().join()
-  assert.equal(calls.length, 0)
-  store.getState().select('arena', 'fy_snow')
-  await store.getState().join()
-  await store.getState().join()
-  assert.deepEqual(calls, [['join', 'arena', ['fy_snow']]])
-  assert.equal(store.getState().status, 'starting')
-})
+for (const [mode, mapId] of [
+  ['5v5', 'de_dust2'],
+  ['ffa', 'de_dust2'],
+  ['arena', 'fy_snow']
+]) {
+  test(`play-while-waiting starts ${mode} independently and blocks duplicate joins`, async () => {
+    const { store, calls } = await warmupStoreHarness()
+    store.getState().select(mode, '')
+    await store.getState().join()
+    assert.equal(calls.length, 0)
+    store.getState().select(mode, mapId)
+    await store.getState().join()
+    await store.getState().join()
+    assert.deepEqual(calls, [['join', mode, [mapId]]])
+    assert.equal(store.getState().status, 'starting')
+  })
+}
 
 test('public FFA post-match remains visible after game exit and clears for a ranked ready check', async () => {
   const { store } = await warmupStoreHarness()
@@ -474,5 +477,61 @@ test('IPC validates the complete pool and sends every selected warmup map', asyn
     Array(33).fill('de_dust2')
   ]) {
     assert.throws(() => h.connection.joinWarmup('ffa', selection), /Invalid warmup selection/)
+  }
+})
+
+test('Play with Bots launches a ranked MR8 session without consuming the ranked queue', async () => {
+  const h = await harness()
+  try {
+    h.connection.warmupSuppressed = true
+    await h.connection.playWithBots()
+    assert.equal(h.connection.warmupSuppressed, false)
+    assert.ok(h.sent.some((event) => event.type === 'play_with_bots'))
+    h.connection.handleWarmup({ ...found, mode: '5v5' }, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    assert.equal(h.connection.isQueued(), true)
+    assert.equal(h.connection.desiredMode, '5v5')
+    assert.ok(h.calls.some(([action, id]) => action === 'launch' && id === 'warmup'))
+    assert.ok(!h.sent.some((event) => event.type === 'leave_queue'))
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+test('a departed ranked bot session can still display its settled MMR without clearing search', async () => {
+  const { store } = await warmupStoreHarness()
+  store.getState().handleEvent({ ...found, mode: '5v5' })
+  store
+    .getState()
+    .handleEvent({ type: 'game_process_exited', whileQueued: true, matchId: 'warmup' })
+  const result = {
+    type: 'match_finished',
+    whileQueued: true,
+    matchId: 'warmup',
+    mode: '5v5',
+    players: []
+  }
+  store.getState().handleEvent(result)
+  assert.equal(store.getState().completedMatch, result)
+  assert.equal(store.getState().matchId, null)
+})
+
+test('MR8 map selection uses the warmup API and preserves the original ranked map pool', async () => {
+  const h = await harness()
+  try {
+    await h.connection.joinWarmup('5v5', ['de_inferno'])
+    assert.ok(
+      h.sent.some(
+        (event) =>
+          event.type === 'join_warmup' && event.mode === '5v5' && event.mapIds[0] === 'de_inferno'
+      )
+    )
+    assert.deepEqual(h.connection.desiredMapIds, ['de_dust2'])
+    assert.equal(h.connection.isQueued(), true)
+    assert.ok(!h.sent.some((event) => event.type === 'leave_queue'))
+  } finally {
+    h.connection.shutdown()
   }
 })

@@ -1,3 +1,4 @@
+import { useQueueWarmupStore } from './queue-warmup.store'
 import { PlayerActivity } from './PlayerActivity'
 import { useTranslation } from '../i18n/i18n'
 import { QueueWarmupButton } from './QueueWarmupPanel'
@@ -29,6 +30,9 @@ export function MatchSearchPanel({
   const { t } = useTranslation()
   const party = usePartyStore((state) => state.party)
   const playerId = useAuthStore((state) => state.session?.player.id)
+  const warmupBusy = useQueueWarmupStore(
+    (state) => state.matchId !== null || state.status === 'starting' || state.status === 'leaving'
+  )
   const botFillOptIn = useMatchmakingStore((state) => state.botFillOptIn)
   const playWithBots = useMatchmakingStore((state) => state.playWithBots)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -79,7 +83,10 @@ export function MatchSearchPanel({
       : 'Searching for a match'
   const queueDuration = queueStartedAt ? formatQueueDuration(elapsedSeconds) : '--:--'
   const canPlayWithBots =
-    queueStatus === 'queued' && !botFillOptIn && (!party || party.leaderId === playerId)
+    queueStatus === 'queued' &&
+    !botFillOptIn &&
+    !warmupBusy &&
+    (!party || party.leaderId === playerId)
 
   if (variant === 'compact') {
     return (
@@ -124,17 +131,19 @@ export function MatchSearchPanel({
           </button>
         </div>
         <QueueWarmupButton className="mx-2.5 mb-2.5 w-[calc(100%-1.25rem)]" />
-        {
+        {selectedMode !== '5v5' && (
           <div className="relative border-t border-white/10 px-2.5 pb-2.5 pt-2">
-            <Button
-              className="h-7 w-full text-[10px]"
-              disabled={!canPlayWithBots}
-              onClick={() => void playWithBots()}
-            >
-              {t('activity.playBots')}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                className="h-7 min-w-0 flex-1 text-[10px]"
+                disabled={!canPlayWithBots}
+                onClick={() => void playWithBots()}
+              >
+                {t('activity.playBots')}
+              </Button>
+            </div>
           </div>
-        }
+        )}
       </aside>
     )
   }
@@ -182,7 +191,7 @@ export function MatchSearchPanel({
         </p>
         <QueueWarmupButton className="mt-3" />
         <div className="mt-3 flex h-8 gap-2">
-          {
+          {selectedMode !== '5v5' && (
             <Button
               className="h-8 min-w-0 flex-1 px-2 text-[10px]"
               disabled={!canPlayWithBots}
@@ -190,7 +199,7 @@ export function MatchSearchPanel({
             >
               {t('activity.playBots')}
             </Button>
-          }
+          )}
           <Button
             className={twMerge(
               'h-8 rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white',

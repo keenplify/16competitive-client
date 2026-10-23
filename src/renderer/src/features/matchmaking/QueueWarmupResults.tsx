@@ -15,7 +15,7 @@ export function QueueWarmupResults(): JSX.Element | null {
       open
       onClose={dismiss}
       fullScreen
-      label={t('warmup.tab')}
+      label={t(match.mode === '5v5' ? 'play.competitive' : 'warmup.tab')}
       className="overflow-y-auto"
     >
       <MatchResultsPage key={match.matchId} match={match} />

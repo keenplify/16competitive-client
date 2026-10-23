@@ -15,10 +15,12 @@ import { useQueueWarmupStore } from './queue-warmup.store'
 
 export function QueueWarmupPanel({
   className,
-  friendsCollapsed = false
+  friendsCollapsed = false,
+  competitive = false
 }: {
   className?: string
   friendsCollapsed?: boolean
+  competitive?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
   const maps = useMatchmakingStore((state) => state.maps)
@@ -30,7 +32,7 @@ export function QueueWarmupPanel({
       mode !== '5v5' &&
       maps.some((map) => map.supportedModes.includes(mode) && (!web || map.webModes.includes(mode)))
   )
-  const mode = modes.includes(warmup.mode) ? warmup.mode : modes[0]
+  const mode = competitive ? '5v5' : modes.includes(warmup.mode) ? warmup.mode : modes[0]
   const availableMaps = maps.filter(
     (map) => mode && map.supportedModes.includes(mode) && (!web || map.webModes.includes(mode))
   )
@@ -51,10 +53,10 @@ export function QueueWarmupPanel({
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col gap-4', className)}
-      aria-label={t('warmup.tab')}
+      aria-label={t(competitive ? 'warmup.rankedMode' : 'warmup.tab')}
     >
       <p className="text-sm text-neutral-200">{t('warmup.description')}</p>
-      {modes.length > 1 && (
+      {!competitive && modes.length > 1 && (
         <div className="w-64 max-w-full shrink-0">
           <SelectField
             label={t('warmup.mode')}
@@ -135,12 +137,16 @@ export function QueueWarmupButton({ className }: { className?: string }): JSX.El
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const open = useQueueWarmupStore((state) => state.open)
   const active = useQueueWarmupStore((state) => state.matchId !== null)
+  const busy = useQueueWarmupStore(
+    (state) => state.status === 'starting' || state.status === 'leaving'
+  )
   if (queueStatus !== 'queued' || selectedMode !== '5v5') return null
   return (
     <Button
       variant="tertiary"
       className={twMerge('h-8 w-full text-xs', className)}
       onClick={() => {
+        if (!active && !busy) useQueueWarmupStore.getState().select('5v5', [])
         open()
         useCustomGamesStore.getState().setPlayView('matchmaking')
         useNavigationStore.getState().navigate('play')
