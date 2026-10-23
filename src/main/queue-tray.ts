@@ -23,26 +23,40 @@ export class QueueTrayController {
         this.tray.setToolTip('1.6 Competitive')
         this.tray.on('click', this.options.show)
         this.tray.on('double-click', this.options.show)
-        this.tray.on('right-click', () => {
-          const language = this.options.locale()
-          const copy = matchNotificationCopy(language)
-          const mode = this.options.getQueuedMode()
-          this.tray?.popUpContextMenu(
+        if (process.platform === 'linux') {
+          // GNOME AppIndicator and KDE StatusNotifier hosts consume a registered
+          // D-Bus menu; Electron's right-click event is not supported on Linux. Keep this
+          // menu action-only so it cannot show stale queue state while hidden.
+          const copy = matchNotificationCopy(this.options.locale())
+          this.tray.setContextMenu(
             Menu.buildFromTemplate([
               { label: copy.open, click: this.options.show },
-              ...(mode
-                ? [
-                    {
-                      label: `${copy.queueing} · ${queuedModeLabel(language, mode)}`,
-                      enabled: false
-                    }
-                  ]
-                : []),
               { type: 'separator' },
               { label: copy.quit, click: this.options.quit }
             ])
           )
-        })
+        } else {
+          this.tray.on('right-click', () => {
+            const language = this.options.locale()
+            const copy = matchNotificationCopy(language)
+            const mode = this.options.getQueuedMode()
+            this.tray?.popUpContextMenu(
+              Menu.buildFromTemplate([
+                { label: copy.open, click: this.options.show },
+                ...(mode
+                  ? [
+                      {
+                        label: `${copy.queueing} · ${queuedModeLabel(language, mode)}`,
+                        enabled: false
+                      }
+                    ]
+                  : []),
+                { type: 'separator' },
+                { label: copy.quit, click: this.options.quit }
+              ])
+            )
+          })
+        }
       } catch (error) {
         this.tray?.destroy()
         this.tray = null
