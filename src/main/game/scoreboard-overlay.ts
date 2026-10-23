@@ -928,7 +928,7 @@ export class ScoreboardOverlaySession {
         const accolade = Buffer.from(accoladeHeader, 'base64').toString('utf8')
         const fields = accolade.trimEnd().split('\t')
         if (
-          /^\d{1,2}\t[12]\t[1-8]\t\d{1,2}\t\d{1,5}\t[^\t\r\n]{1,31}\n$/.test(accolade) &&
+          /^\d{1,2}\t[12]\t[1-9]\t\d{1,2}\t\d{1,5}\t[^\t\r\n]{1,31}\n$/.test(accolade) &&
           Number(fields[0]) <= snapshot.round &&
           accolade !== this.lastRoundAccolade
         ) {
