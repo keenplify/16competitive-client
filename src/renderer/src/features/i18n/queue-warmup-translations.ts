@@ -1,5 +1,6 @@
 export const queueWarmupTranslations = {
   en: {
+    'warmup.startMatch': 'Start match',
     'warmup.rankedMode': 'Competitive · MR8',
     'warmup.rankedBotsHelp':
       'Play MR8 with bots for 50% MMR while staying queued. When there are sufficient players, accept the MR12 match in-game to switch without an MR8 penalty.',
@@ -36,6 +37,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'warmup.startMatch': 'Начать матч',
     'warmup.rankedMode': 'Соревновательный · MR8',
     'warmup.rankedBotsHelp':
       'Играйте MR8 с ботами за 50% MMR, оставаясь в очереди. Когда наберётся достаточно игроков, примите MR12 в игре, чтобы перейти без штрафа за MR8.',
@@ -72,6 +74,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'warmup.startMatch': 'Simulan ang match',
     'warmup.rankedMode': 'Kompetitibo · MR8',
     'warmup.rankedBotsHelp':
       'Maglaro ng MR8 kasama ang bots para sa 50% MMR habang naka-queue. Kapag sapat na ang players, tanggapin ang MR12 sa game para lumipat nang walang MR8 penalty.',
@@ -108,6 +111,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'warmup.startMatch': 'เริ่มแมตช์',
     'warmup.rankedMode': 'แข่งขัน · MR8',
     'warmup.rankedBotsHelp':
       'เล่น MR8 กับบอตเพื่อรับ MMR 50% ระหว่างรอคิว เมื่อมีผู้เล่นเพียงพอ ให้ยอมรับ MR12 ในเกมเพื่อย้ายไปเล่นโดยไม่ถูกลงโทษจาก MR8',
@@ -143,6 +147,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'warmup.startMatch': 'Mulai pertandingan',
     'warmup.rankedMode': 'Kompetitif · MR8',
     'warmup.rankedBotsHelp':
       'Main MR8 dengan bot untuk 50% MMR sambil tetap mengantre. Saat pemain cukup, terima MR12 dalam game untuk pindah tanpa penalti MR8.',
@@ -179,6 +184,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'warmup.startMatch': 'Iniciar partida',
     'warmup.rankedMode': 'Competitivo · MR8',
     'warmup.rankedBotsHelp':
       'Jogue MR8 com bots por 50% do MMR sem sair da fila. Quando houver jogadores suficientes, aceite o MR12 no jogo para mudar sem penalidade pelo MR8.',
@@ -215,6 +221,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'warmup.startMatch': 'マッチを開始',
     'warmup.rankedMode': '対戦 · MR8',
     'warmup.rankedBotsHelp':
       '検索を続けながら、ボットとのMR8で通常の50%のMMRを獲得できます。十分な人数が集まったら、ゲーム内でMR12を承諾するとMR8のペナルティなしで移動できます。',
@@ -250,6 +257,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'warmup.startMatch': 'मैच शुरू करें',
     'warmup.rankedMode': 'प्रतिस्पर्धी · MR8',
     'warmup.rankedBotsHelp':
       'कतार में रहते हुए बॉट के साथ MR8 खेलें और 50% MMR पाएँ। पर्याप्त खिलाड़ी होने पर गेम में MR12 स्वीकार करें और बिना MR8 पेनल्टी के जुड़ें।',

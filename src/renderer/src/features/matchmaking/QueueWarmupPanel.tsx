@@ -122,7 +122,9 @@ export function QueueWarmupPanel({
               {busy && (
                 <LoaderCircle className="absolute left-3 size-4 animate-spin" aria-hidden="true" />
               )}
-              <span className="relative z-10">{t(active ? 'warmup.connect' : 'warmup.join')}</span>
+              <span className="relative z-10">
+                {t(active ? 'warmup.connect' : competitive ? 'warmup.startMatch' : 'warmup.join')}
+              </span>
             </FindMatchButton>
           )}
         </PlayQueueActions>
