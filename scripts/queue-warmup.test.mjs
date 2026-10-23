@@ -104,7 +104,7 @@ async function harness() {
       setParty: () => {}
     }
   }
-  const module = new vm.SourceTextModule(source, { context })
+  const module = new vm.SourceTextModule(source + '\nexport { isServerMessage };', { context })
   await module.link(
     (name) =>
       new vm.SyntheticModule(
@@ -132,7 +132,16 @@ async function harness() {
     activeApiUrl: 'https://eu.invalid',
     renderer: { isDestroyed: () => false, send: (_channel, event) => events.push(event) }
   })
-  return { connection, socket, sockets, calls, events, sent, finishAssets }
+  return {
+    connection,
+    socket,
+    sockets,
+    calls,
+    events,
+    sent,
+    finishAssets,
+    validate: module.namespace.isServerMessage
+  }
 }
 
 test('FFA leave validates the session and cannot leave ranked matchmaking', async () => {
@@ -529,6 +538,71 @@ test('MR8 map selection uses the warmup API and preserves the original ranked ma
       )
     )
     assert.deepEqual(h.connection.desiredMapIds, ['de_dust2'])
+    assert.equal(h.connection.isQueued(), true)
+    assert.ok(!h.sent.some((event) => event.type === 'leave_queue'))
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+test('MR8 results survive cleanup, authentication replay and queue updates until dismissed', async () => {
+  const { store } = await warmupStoreHarness()
+  const emit = (event) => store.getState().handleEvent(event)
+  emit({ ...found, mode: '5v5' })
+  const result = {
+    type: 'match_finished',
+    whileQueued: true,
+    matchId: 'warmup',
+    mode: '5v5',
+    teamAScore: 4,
+    teamBScore: 9,
+    winner: 2,
+    players: []
+  }
+  emit(result)
+  emit({ type: 'game_process_exited', whileQueued: true, matchId: 'warmup' })
+  emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 813 } })
+  emit({ type: 'queue_joined', mode: '5v5' })
+  assert.equal(store.getState().completedMatch, result)
+  emit({ type: 'match_ready_check', matchId: 'ranked' })
+  assert.equal(store.getState().completedMatch, null)
+  emit(result)
+  store.getState().reset()
+  assert.equal(store.getState().completedMatch, null)
+})
+
+test('MR8 completion validates and focuses the launcher without leaving the queue', async () => {
+  const h = await harness()
+  const focused = []
+  h.connection.focusLauncher = (...args) => focused.push(args)
+  const result = {
+    type: 'match_finished',
+    whileQueued: true,
+    matchId: 'mr8',
+    mode: '5v5',
+    mapId: 'de_downtown_csneo',
+    teams: { teamA: [], teamB: [] },
+    winner: 2,
+    teamAScore: 4,
+    teamBScore: 9,
+    players: [
+      {
+        id: 'me',
+        username: 'Me',
+        kills: 1,
+        deaths: 7,
+        assists: 0,
+        mmrBefore: 823,
+        mmrAfter: 813,
+        mmrChange: -10
+      }
+    ]
+  }
+  try {
+    assert.equal(h.validate(result), true)
+    h.connection.handleWarmup(result, h.socket)
+    assert.equal(h.events.at(-1).matchId, result.matchId)
+    assert.equal(focused.length, 1)
     assert.equal(h.connection.isQueued(), true)
     assert.ok(!h.sent.some((event) => event.type === 'leave_queue'))
   } finally {

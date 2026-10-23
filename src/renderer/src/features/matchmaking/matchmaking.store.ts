@@ -194,7 +194,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
   const handleEvent = (event: MatchmakingEvent): void => {
     useQueueWarmupStore.getState().handleEvent(event)
-    if (event.whileQueued) return
+    if (event.whileQueued) {
+      if (event.type === 'match_finished' && !terminalMatchIds.has(event.matchId)) {
+        terminalMatchIds.add(event.matchId)
+        const currentPlayerId = useAuthStore.getState().session?.player.id
+        const currentPlayer = event.players.find((player) => player.id === currentPlayerId)
+        if (currentPlayer) useAuthStore.getState().setMmr(currentPlayer.mmrAfter)
+        window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
+      }
+      return
+    }
     switch (event.type) {
       case 'clock_sync':
         syncServerClock(event.serverNow)
@@ -1062,7 +1071,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
 
-    reset: () =>
+    reset: () => {
+      useQueueWarmupStore.getState().reset()
       set({
         connectionStatus: 'disconnected',
         copyConnectionStatus: 'idle',
@@ -1104,5 +1114,6 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         matchAbandonNotice: null,
         error: null
       })
+    }
   }
 })

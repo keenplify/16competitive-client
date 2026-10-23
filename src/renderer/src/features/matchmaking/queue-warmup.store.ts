@@ -8,6 +8,7 @@ type WarmupState = {
   status: 'idle' | 'starting' | 'ready' | 'playing' | 'leaving' | 'error'
   matchId: string | null
   completedMatch: CompletedMatch | null
+  reset: () => void
   dismissCompletedMatch: () => void
   mode: MatchmakingMode
   mapId: string
@@ -29,6 +30,7 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
   status: 'idle',
   matchId: null,
   completedMatch: null,
+  reset: () => set({ status: 'idle', matchId: null, browsing: false, completedMatch: null }),
   dismissCompletedMatch: () => set({ completedMatch: null }),
   mode: 'ffa',
   mapId: '',
@@ -148,8 +150,6 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
         })
       return
     }
-    if (event.type === 'authenticated')
-      set({ status: 'idle', matchId: null, browsing: false, completedMatch: null })
     if (event.type === 'match_found' || event.type === 'match_ready_check')
       set({ completedMatch: null })
     if (event.type === 'queue_left' || event.type === 'match_found') set({ browsing: false })

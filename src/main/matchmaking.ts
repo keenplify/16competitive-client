@@ -658,7 +658,7 @@ class MatchmakingConnection {
         void this.leaveWarmup().catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
-      if (message.type === 'match_finished' && message.publicFfa)
+      if (message.type === 'match_finished' && (message.publicFfa || message.mode === '5v5'))
         this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
     }
     this.notify({ ...message, whileQueued: true })

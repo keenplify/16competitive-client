@@ -10,6 +10,7 @@ import { readyResponseFromServer } from '../src/shared/matchmaking-ready-respons
 
 async function harness({ party = null, fail = false, settings, savedMaps, web = false } = {}) {
   const requests = []
+  const mmrUpdates = []
   let emit
   const completed = {
     matchId: 'finished-fy',
@@ -66,6 +67,9 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     './queue-warmup.store': {
       useQueueWarmupStore: {
         getState: () => ({
+          reset() {
+            return undefined
+          },
           handleEvent() {
             return undefined
           }
@@ -86,7 +90,11 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     },
     '../auth/auth.store': {
       useAuthStore: {
-        getState: () => ({ session: { player: { id: 'me' } }, refreshSession: async () => {} })
+        getState: () => ({
+          session: { player: { id: 'me' } },
+          setMmr: (mmr) => mmrUpdates.push(mmr),
+          refreshSession: async () => {}
+        })
       }
     },
     '../party/party.store': { usePartyStore: { getState: () => ({ party }) } },
@@ -135,7 +143,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     selectedNodeId: 'node',
     allowRegionExpansion: false
   })
-  return { store, completed, requests, emit: (message) => emit(message) }
+  return { store, completed, requests, mmrUpdates, emit: (message) => emit(message) }
 }
 
 test('FFA can leave after game exit, updates its roster, and rejoin the same public round', async () => {
@@ -367,7 +375,7 @@ test('warmup lifecycle events leave ranked queue time, position and ready check 
     teams: { teamA: [], teamB: [] }
   }
   h.store.setState({ queueStatus: 'ready_check', match: ranked })
-  h.emit({ type: 'match_finished', matchId: 'warmup', whileQueued: true })
+  h.emit({ type: 'match_finished', matchId: 'warmup', whileQueued: true, players: [] })
   assert.equal(h.store.getState().queueStatus, 'ready_check')
   assert.equal(h.store.getState().match.matchId, 'ranked')
 })
@@ -389,4 +397,22 @@ test('automatic queue starts across SG and EUW even with an old expansion opt-ou
     'sea',
     ['sea', 'europe-east']
   ])
+})
+
+test('MR8 settlement updates authoritative MMR once without resetting ranked search', async () => {
+  const { store, emit, mmrUpdates } = await harness()
+  store.setState({ queueStatus: 'queued', queuedAt: '2026-10-23T10:00:00Z', completedMatch: null })
+  const result = {
+    type: 'match_finished',
+    whileQueued: true,
+    mode: '5v5',
+    matchId: 'mr8',
+    players: [{ id: 'me', mmrAfter: 813 }]
+  }
+  emit(result)
+  emit(result)
+  assert.deepEqual(mmrUpdates, [813])
+  assert.equal(store.getState().queueStatus, 'queued')
+  assert.equal(store.getState().queuedAt, '2026-10-23T10:00:00Z')
+  assert.equal(store.getState().completedMatch, null)
 })
