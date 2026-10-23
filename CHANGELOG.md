@@ -3092,3 +3092,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Added an official NextClient download link to web settings.
+
+## v2026.1023.4 — 2026-10-23
+
+### Matchmaking
+
+- MR8 match results now remain visible while ranked matchmaking continues.
