@@ -3069,3 +3069,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Communities
 
 - Fixed the community tile overlay so artwork remains visible when hovered, pressed, or selected.
+
+## v2026.1023.1 — 2026-10-23
+
+### Matchmaking
+
+- Play MR8 while waiting in the ranked queue.
+- Improved queue search and warmup flow.
+
+### Communities
+
+- Unified the background styling of community search fields.
