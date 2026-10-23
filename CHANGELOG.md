@@ -3098,3 +3098,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - MR8 match results now remain visible while ranked matchmaking continues.
+
+## v2026.1023.5 — 2026-10-23
+
+### Linux
+
+- Fixed the native tray menu on GNOME and KDE desktops.
