@@ -3080,3 +3080,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Communities
 
 - Unified the background styling of community search fields.
+
+## v2026.1023.2 — 2026-10-23
+
+### Matchmaking
+
+- Renamed the ranked bot warmup action to “Start match” for clarity.
