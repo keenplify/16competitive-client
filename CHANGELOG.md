@@ -3086,3 +3086,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Renamed the ranked bot warmup action to “Start match” for clarity.
+
+## v2026.1023.3 — 2026-10-23
+
+### Settings
+
+- Added an official NextClient download link to web settings.
