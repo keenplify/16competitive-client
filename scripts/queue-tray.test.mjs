@@ -16,6 +16,9 @@ async function harness(platform = 'win32', locale = 'en') {
     constructor() {
       trays.push(this)
     }
+    setImage(value) {
+      this.icon = value
+    }
     setToolTip(value) {
       this.tooltip = value
     }
@@ -183,4 +186,17 @@ test('tray reads the current mode each time its menu opens', async () => {
     assert.equal(h.trays[0].menu[1].label, `Queueing · ${label}`)
     assert.equal(h.trays[0].menu[1].enabled, false)
   }
+})
+
+test('partner identity updates an existing tray and survives tray recreation', async () => {
+  const h = await harness()
+  h.controller.setIdentity('Partner App', 'partner.png')
+  h.controller.hideWhileQueued(h.window)
+  assert.equal(h.trays[0].tooltip, 'Partner App')
+  h.controller.setIdentity('Renamed Partner', 'next.png')
+  assert.equal(h.trays[0].tooltip, 'Renamed Partner')
+  assert.equal(h.trays[0].icon, 'next.png')
+  h.controller.destroy()
+  h.controller.hideWhileQueued(h.window)
+  assert.equal(h.trays[1].tooltip, 'Renamed Partner')
 })

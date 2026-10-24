@@ -13,11 +13,29 @@ const connection = {
 }
 const matchId = '426aaf31-e665-4cee-8bd5-56475ea5db38'
 
-async function harness(requestJson = async () => connection) {
-  const location = { origin: 'https://example.test', href: '' }
+async function harness(requestJson = async () => connection, hosted = false) {
+  const stored = new Map()
+  let reloads = 0
+  const location = {
+    origin: 'https://example.test',
+    href: '',
+    reload: () => {
+      reloads++
+    }
+  }
   const context = vm.createContext({
     window: { location },
-    document: { title: 'Web Play', addEventListener: () => undefined },
+    document: {
+      querySelector: (selector) =>
+        hosted && selector.includes('16c-api-origin')
+          ? { content: 'https://api.example.com' }
+          : null,
+      title: 'Web Play',
+      addEventListener: () => undefined
+    },
+    URL,
+    sessionStorage: { setItem: (k, v) => stored.set(k, v), getItem: (k) => stored.get(k) ?? null },
+    localStorage: { setItem: (k, v) => stored.set(k, v), removeItem: (k) => stored.delete(k) },
     console,
     encodeURIComponent
   })
@@ -36,9 +54,10 @@ async function harness(requestJson = async () => connection) {
     await module.link(async (name) => {
       if (name === './browser-session') {
         return new vm.SyntheticModule(
-          ['requestJson', 'getWebSessionToken'],
+          ['requestJson', 'getWebSessionToken', 'currentApiOrigin'],
           function () {
             this.setExport('requestJson', requestJson)
+            this.setExport('currentApiOrigin', () => location.origin)
             this.setExport('getWebSessionToken', () => 'test-session')
           },
           { context }
@@ -53,7 +72,7 @@ async function harness(requestJson = async () => connection) {
   await module.evaluate()
   await module.namespace.handleMessage({ type: 'match_found', matchId })
   await module.namespace.handleMessage({ type: 'match_connect', matchId, ...connection })
-  return { api: module.namespace, location }
+  return { api: module.namespace, location, stored, reloads: () => reloads }
 }
 
 function commands(uri) {
@@ -144,4 +163,13 @@ test('a late manual connection response cannot launch a different match', async 
   respond(connection)
   await assert.rejects(launch, /This match is no longer available/)
   assert.equal(location.href, '')
+})
+
+test('partner region selection preserves its custom page and reloads with the chosen API', async () => {
+  const h = await harness(async () => connection, true)
+  await h.api.navigateToNode('https://warsaw.example.com', 'warsaw')
+  assert.equal(h.location.href, '')
+  assert.equal(h.reloads(), 1)
+  assert.equal(h.stored.get('16competitive.web.partner-api-origin'), 'https://warsaw.example.com')
+  assert.equal(h.stored.get('16competitive.web.selected-node'), 'warsaw')
 })

@@ -4,25 +4,35 @@ import { test } from 'node:test'
 import vm from 'node:vm'
 import { readFile } from 'node:fs/promises'
 
-async function worker() {
+async function worker(base = '/pwa/', cacheKeys = []) {
   const listeners = new Map(),
     notices = [],
-    opened = []
+    opened = [],
+    deleted = []
   let pages = []
   const self = {
     location: { origin: 'https://region.example' },
     addEventListener: (event, callback) => listeners.set(event, callback),
-    registration: { showNotification: async (title, options) => notices.push({ title, options }) },
-    clients: { matchAll: async () => pages, openWindow: async (url) => opened.push(url) }
+    registration: {
+      scope: `https://region.example${base}`,
+      showNotification: async (title, options) => notices.push({ title, options })
+    },
+    clients: {
+      claim: () => undefined,
+      matchAll: async () => pages,
+      openWindow: async (url) => opened.push(url)
+    }
   }
   vm.runInNewContext(await readFile(new URL('../src/web/sw.js', import.meta.url), 'utf8'), {
     self,
+    caches: { keys: async () => cacheKeys, delete: async (key) => deleted.push(key) },
     URL,
     Date
   })
   return {
     notices,
     opened,
+    deleted,
     setPages: (value) => {
       pages = value
     },
@@ -116,4 +126,30 @@ test('notification click focuses an existing same-origin app tab', async () => {
   })
   assert.equal(focused, 1)
   assert.equal(h.opened.length, 0)
+})
+
+test('partner notification navigation and icons respect an arbitrary nested mount', async () => {
+  const h = await worker('/community/arena/')
+  await h.dispatch('push', { data: { json: payload } })
+  assert.equal(h.notices[0].options.icon, '/community/arena/web-app-manifest-192x192.png')
+  await h.dispatch('notificationclick', {
+    notification: {
+      close() {
+        return undefined
+      }
+    }
+  })
+  assert.deepEqual(h.opened, ['/community/arena/'])
+})
+
+test('activating a partner worker preserves website and other mount caches', async () => {
+  const h = await worker('/community/', [
+    'partner-website-cache',
+    '16competitive-web:/other/:v2',
+    '16competitive-web:/community/arena/:v2',
+    '16competitive-web:/community/:v2',
+    '16competitive-web:/community/:v3'
+  ])
+  await h.dispatch('activate', {})
+  assert.deepEqual(h.deleted, ['16competitive-web:/community/:v2'])
 })

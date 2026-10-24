@@ -1,3 +1,4 @@
+import { hostedPartnerId } from './partner-runtime'
 import { isPartnerId } from '../shared/partner-attribution'
 import { requestJson } from './browser-session'
 const key = '16competitive.web.partner-referral'
@@ -5,7 +6,7 @@ const brandingKey = '16competitive.web.partner-branding'
 const lifetime = 30 * 24 * 60 * 60 * 1000
 export const capturePartnerReferral = (): void => {
   const params = new URL(location.href).searchParams
-  const partnerId = params.get('partnerId') ?? params.get('parnerId')
+  const partnerId = hostedPartnerId() ?? params.get('partnerId') ?? params.get('parnerId')
   if (isPartnerId(partnerId)) {
     try {
       localStorage.setItem(key, JSON.stringify({ partnerId, capturedAt: Date.now() }))
@@ -17,7 +18,7 @@ export const capturePartnerReferral = (): void => {
 }
 export const getBrowserPartnerId = (): string | null => {
   const params = new URL(location.href).searchParams
-  const direct = params.get('partnerId') ?? params.get('parnerId')
+  const direct = hostedPartnerId() ?? params.get('partnerId') ?? params.get('parnerId')
   if (isPartnerId(direct)) return direct
   try {
     const raw: unknown = JSON.parse(

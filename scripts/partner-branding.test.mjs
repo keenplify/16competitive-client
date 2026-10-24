@@ -143,3 +143,35 @@ test('accepts community launcher styles, rejects invalid styles and supports old
     assert.throws(() => parsePartnerBranding({ branding: { ...branding, launcherTheme } }, origin))
   }
 })
+
+test('installed branding validates download policy, shortcut names and hash-bound icon endpoints', () => {
+  const hash = 'a'.repeat(64)
+  const appIcon = {
+    pngUrl: `${origin}/partners/branding/${partnerId}/app-icon?v=${hash}`,
+    icoUrl: `${origin}/partners/branding/${partnerId}/app-icon.ico?v=${hash}`,
+    smallUrl: `${origin}/partners/branding/${partnerId}/app-icon-192?v=${hash}`,
+    pngSha256: hash,
+    icoSha256: hash,
+    smallSha256: hash
+  }
+  const value = { ...branding, appName: 'Partner App', desktopAppEnabled: false, appIcon }
+  assert.equal(parsePartnerBranding({ branding: value }, origin).branding.appName, 'Partner App')
+  assert.equal(parsePartnerBranding({ branding: value }, origin).branding.desktopAppEnabled, false)
+  for (const appName of ['../Other', 'bad\nExec=evil', 'CON', 'name.'])
+    assert.throws(() => parsePartnerBranding({ branding: { ...value, appName } }, origin))
+  assert.throws(() =>
+    parsePartnerBranding({ branding: { ...value, desktopAppEnabled: 'false' } }, origin)
+  )
+  assert.throws(() =>
+    parsePartnerBranding(
+      { branding: { ...value, appIcon: { ...appIcon, pngSha256: 'b'.repeat(64) } } },
+      origin
+    )
+  )
+  assert.throws(() =>
+    parsePartnerBranding(
+      { branding: { ...value, appIcon: { ...appIcon, icoUrl: 'https://evil.example/icon.ico' } } },
+      origin
+    )
+  )
+})

@@ -1,3 +1,5 @@
+import { initializePartnerAppIdentity, type InstalledAppIdentity } from './partner-app-identity'
+import { DEFAULT_APP_NAME, INSTALLED_APP_ID } from '../shared/partner-app-shortcuts'
 import { QueueTrayController } from './queue-tray'
 import { getMatchmakingActivity } from './matchmaking-regions'
 import { COMMUNITY_DIRECTORY_CHANNELS } from '../shared/community-directory'
@@ -548,6 +550,8 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
+let installedAppIdentity: InstalledAppIdentity = { name: DEFAULT_APP_NAME, icon }
+if (process.platform === 'linux') app.commandLine.appendSwitch('class', INSTALLED_APP_ID)
 const queueTray = new QueueTrayController({
   icon,
   getQueuedMode: () => matchmakingConnection.getQueuedMode(),
@@ -577,14 +581,18 @@ function createWindow(): void {
     maximizable: false,
     show: false,
     autoHideMenuBar: true,
-    title: '1.6 Competitive',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    title: installedAppIdentity.name,
+    icon: installedAppIdentity.icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
     }
+  })
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault()
+    mainWindow?.setTitle(installedAppIdentity.name)
   })
   installWindowDiagnostics(mainWindow)
 
@@ -748,7 +756,7 @@ app.whenReady().then(async () => {
   reportRetry.unref()
   app.once('before-quit', () => clearInterval(reportRetry))
 
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId(INSTALLED_APP_ID)
   try {
     const executable = await getSavedCs16Executable()
     if (executable && (await removeStaleMatchStartupBridge(join(dirname(executable), 'cstrike')))) {
@@ -1270,6 +1278,19 @@ app.whenReady().then(async () => {
     updateBanner.checkBeforeStartup(),
     new Promise<void>((resolve) => setTimeout(resolve, 3_000))
   ])
+  await initializePartnerAppIdentity(icon, (identity) => {
+    installedAppIdentity = identity
+    const userData = app.getPath('userData')
+    app.setName(identity.name)
+    app.setPath('userData', userData)
+    queueTray.setIdentity(identity.name, identity.icon)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitle(identity.name)
+      mainWindow.setIcon(identity.icon)
+    }
+  }).catch((error: unknown) =>
+    console.warn('[PartnerIdentity] could not load installed branding', error)
+  )
   createWindow()
   void processPendingDemo()
   updateBanner.finishStartup()

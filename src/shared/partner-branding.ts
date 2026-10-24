@@ -5,8 +5,19 @@ import {
 } from './partner-community'
 export const PARTNER_BRANDING_CHANNEL = 'partner-branding:get'
 
+export interface PartnerAppIcon {
+  pngUrl: string
+  icoUrl: string
+  smallUrl: string
+  pngSha256: string
+  icoSha256: string
+  smallSha256: string
+}
 export interface PartnerBranding {
   partnerId: string
+  desktopAppEnabled?: boolean
+  appName?: string | null
+  appIcon?: PartnerAppIcon | null
   launcherTheme?: 'latest' | 'vgui2'
   primaryColor: string
   secondaryColor: string
@@ -115,6 +126,50 @@ export const parsePartnerBranding = (
       throw new Error('Unapproved partner background URL.')
     }
   }
+  if (value.desktopAppEnabled !== undefined && typeof value.desktopAppEnabled !== 'boolean')
+    throw new Error('Invalid desktop download setting.')
+  const appName = value.appName
+  if (
+    appName != null &&
+    (typeof appName !== 'string' ||
+      !appName.length ||
+      appName.length > 64 ||
+      appName !== appName.trim() ||
+      /[\p{Cc}\p{Cf}<>:"/\\|?*]/u.test(appName) ||
+      /[. ]$/.test(appName) ||
+      /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(appName))
+  )
+    throw new Error('Invalid installed app name.')
+  let appIcon: PartnerAppIcon | null = null
+  if (value.appIcon != null) {
+    if (typeof value.appIcon !== 'object') throw new Error('Invalid installed app icon.')
+    const candidate = value.appIcon as Record<string, unknown>
+    for (const [urlKey, hashKey, endpoint] of [
+      ['pngUrl', 'pngSha256', 'app-icon'],
+      ['icoUrl', 'icoSha256', 'app-icon.ico'],
+      ['smallUrl', 'smallSha256', 'app-icon-192']
+    ] as const) {
+      const hash = candidate[hashKey],
+        rawUrl = candidate[urlKey]
+      if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash) || typeof rawUrl !== 'string')
+        throw new Error('Invalid installed app icon.')
+      const url = new URL(rawUrl),
+        api = new URL(apiOrigin)
+      if (
+        url.origin !== api.origin ||
+        (url.protocol !== 'https:' &&
+          !(api.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(api.hostname))) ||
+        url.pathname !== `/partners/branding/${value.partnerId}/${endpoint}` ||
+        url.username ||
+        url.password ||
+        url.hash ||
+        url.searchParams.get('v') !== hash ||
+        [...url.searchParams.keys()].some((key) => key !== 'v')
+      )
+        throw new Error('Unapproved installed app icon URL.')
+    }
+    appIcon = candidate as unknown as PartnerAppIcon
+  }
   return {
     branding: {
       ...parseCommunityBranding(value),
@@ -122,6 +177,11 @@ export const parsePartnerBranding = (
         ? { launcherTheme: value.launcherTheme as 'latest' | 'vgui2' }
         : {}),
       partnerId: value.partnerId,
+      ...(value.desktopAppEnabled !== undefined
+        ? { desktopAppEnabled: value.desktopAppEnabled as boolean }
+        : {}),
+      ...(value.appName !== undefined ? { appName: appName as string | null } : {}),
+      ...(value.appIcon !== undefined ? { appIcon } : {}),
       primaryColor: value.primaryColor,
       secondaryColor: value.secondaryColor,
       tertiaryColor: value.tertiaryColor,

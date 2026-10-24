@@ -1,5 +1,7 @@
-const CACHE = '16competitive-web-v2'
-const APP_SHELL = ['/pwa/', '/pwa/site.webmanifest']
+const BASE = new URL(self.registration.scope).pathname
+const CACHE_PREFIX = `16competitive-web:${BASE}:`
+const CACHE = `${CACHE_PREFIX}v3`
+const APP_SHELL = [BASE, `${BASE}site.webmanifest`]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)))
@@ -11,7 +13,16 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+        Promise.all(
+          keys
+            .filter(
+              (key) =>
+                key !== CACHE &&
+                (key.startsWith(CACHE_PREFIX) ||
+                  (BASE === '/pwa/' && /^16competitive-web-v[12]$/.test(key)))
+            )
+            .map((key) => caches.delete(key))
+        )
       )
   )
   self.clients.claim()
@@ -20,7 +31,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   const url = new URL(event.request.url)
-  if (url.origin !== self.location.origin || !url.pathname.startsWith('/pwa/')) return
+  if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return
   if (['token', 'handoff', 'validate-url'].some((key) => url.searchParams.has(key))) return
   event.respondWith(
     fetch(event.request)
@@ -29,7 +40,7 @@ self.addEventListener('fetch', (event) => {
         void caches.open(CACHE).then((cache) => cache.put(event.request, copy))
         return response
       })
-      .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match('/pwa/')))
+      .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match(BASE)))
   )
 })
 
@@ -59,7 +70,7 @@ self.addEventListener('push', (event) => {
         tag: `match-ready-${data.matchId}`,
         requireInteraction: true,
         data: { deadline: data.deadline },
-        icon: '/pwa/web-app-manifest-192x192.png'
+        icon: `${BASE}web-app-manifest-192x192.png`
       })
     })()
   )
@@ -73,10 +84,10 @@ self.addEventListener('notificationclick', (event) => {
       const page = pages.find(
         (client) =>
           new URL(client.url).origin === self.location.origin &&
-          new URL(client.url).pathname.startsWith('/pwa/')
+          new URL(client.url).pathname.startsWith(BASE)
       )
       if (page) return page.focus()
-      return self.clients.openWindow('/pwa/')
+      return self.clients.openWindow(BASE)
     })()
   )
 })

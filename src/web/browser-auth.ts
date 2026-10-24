@@ -9,6 +9,7 @@ import type {
   ChatTranslationPreference
 } from '../shared/auth'
 import {
+  currentApiOrigin,
   clearWebSessionToken,
   getWebSessionToken,
   requestJson,
@@ -257,7 +258,7 @@ const pollSocial = async (
     if (authenticated && getWebSessionToken()) {
       headers.set('authorization', `Bearer ${getWebSessionToken()}`)
     }
-    const response = await fetch(endpoint, {
+    const response = await fetch(new URL(endpoint, currentApiOrigin()), {
       method: 'POST',
       headers,
       body: JSON.stringify({ pollToken }),

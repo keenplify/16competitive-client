@@ -1,3 +1,4 @@
+import { partnerAssetPath } from './partner-runtime'
 import './partner-login-capture'
 import { PartnerLoginController } from './PartnerLoginController'
 import './browser-api'
@@ -10,7 +11,7 @@ import App from '../renderer/src/App'
 import { installDiagnosticLogCapture } from '../renderer/src/diagnostic-logs'
 
 if ('serviceWorker' in navigator) {
-  void navigator.serviceWorker.register('/pwa/sw.js').catch(() => undefined)
+  void navigator.serviceWorker.register(partnerAssetPath('sw.js')).catch(() => undefined)
 }
 
 const mobileOrTablet =

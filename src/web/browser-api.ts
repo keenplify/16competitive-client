@@ -1,3 +1,4 @@
+import { partnerAssetPath } from './partner-runtime'
 import { loadBrowserCommunityDirectory } from './partner-community-context'
 import { loadCustomGameList } from '../shared/custom-game-list'
 import {
@@ -952,7 +953,9 @@ const api: Window['api'] = {
       if (normalized.startsWith('lobby/')) {
         const file = normalized.slice('lobby/'.length)
         if (!/^[a-z0-9_]+\.mdl$/i.test(file)) throw new Error('Invalid lobby model.')
-        return requestArrayBuffer(`/pwa/lobby-models/${encodeURIComponent(file)}`)
+        return requestArrayBuffer(partnerAssetPath(`lobby-models/${encodeURIComponent(file)}`), {
+          baseUrl: window.location.origin
+        })
       }
 
       const stockPlayer = normalized.match(
@@ -960,7 +963,10 @@ const api: Window['api'] = {
       )
       if (stockPlayer) {
         return requestArrayBuffer(
-          `/pwa/lobby-models/${encodeURIComponent(stockPlayer[1].toLowerCase() + '_lobby.mdl')}`
+          partnerAssetPath(
+            `lobby-models/${encodeURIComponent(stockPlayer[1].toLowerCase() + '_lobby.mdl')}`
+          ),
+          { baseUrl: window.location.origin }
         )
       }
 
@@ -1004,6 +1010,23 @@ const api: Window['api'] = {
       window.location.reload()
     },
     async openDownload() {
+      const partnerId = getBrowserPartnerId()
+      if (partnerId) {
+        const response = await requestJson<{ branding: { desktopAppEnabled?: boolean } | null }>(
+          `/partners/branding/public/${partnerId}`
+        )
+        if (response.branding?.desktopAppEnabled === false) return
+        const platform = /Linux/i.test(navigator.userAgent) ? 'linux' : 'windows'
+        window.open(
+          new URL(
+            `/partners/download/${platform}?partnerId=${partnerId}`,
+            currentApiOrigin()
+          ).toString(),
+          '_blank',
+          'noopener,noreferrer'
+        )
+        return
+      }
       window.open(
         'https://github.com/keenplify/16competitive-client/releases/latest',
         '_blank',

@@ -112,6 +112,7 @@ test('Web Play uses the new community URL without requiring local storage', asyn
   })
   const api = await moduleFor(browserSource, context, {
     '../shared/partner-attribution': { isPartnerId },
+    './partner-runtime': { hostedPartnerId: () => null },
     './browser-session': {
       requestJson: async (path, options) =>
         requests.push({ path, body: JSON.parse(options.init.body) })
@@ -143,6 +144,7 @@ test('Web Play remembers considered attribution separately for each account', as
   })
   const api = await moduleFor(browserSource, context, {
     '../shared/partner-attribution': { isPartnerId },
+    './partner-runtime': { hostedPartnerId: () => null },
     './browser-session': {
       requestJson: async (path, options) =>
         requests.push({ path, body: JSON.parse(options.init.body) })

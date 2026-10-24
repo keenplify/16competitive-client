@@ -28,7 +28,7 @@ import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
 import { useAudioSettingsStore } from '../audio/audio.store'
 import { VolumeControl } from '../audio/VolumeControl'
 import { useAuthStore } from '../auth/auth.store'
-import { useCommunityLinks, desktopAppUrl } from '../community/links'
+import { useCommunityLinks, useDesktopAppUrl } from '../community/links'
 import { useUpdaterStore } from '../updates/updater.store'
 import { AssetDownloadSettings } from './AssetDownloadSettings'
 import { ReferralSettings } from './ReferralSettings'
@@ -69,6 +69,7 @@ const revealDiscordControl = (target: HTMLElement | null): void => {
 
 export function SettingsPage(): JSX.Element {
   const communityLinks = useCommunityLinks()
+  const desktopAppUrl = useDesktopAppUrl()
   const { language, t } = useTranslation()
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
@@ -485,7 +486,7 @@ export function SettingsPage(): JSX.Element {
                 <Power className="mr-2 size-4" aria-hidden="true" />
                 {webRuntime ? 'Back to website' : 'Exit to desktop'}
               </Button>
-              {webRuntime && (
+              {webRuntime && desktopAppUrl && (
                 <a
                   href={desktopAppUrl}
                   target="_blank"
@@ -758,15 +759,17 @@ export function SettingsPage(): JSX.Element {
                     Custom crosshairs are available in the desktop launcher. Download it to edit
                     your crosshair and use it in Counter-Strike.
                   </p>
-                  <a
-                    href={desktopAppUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
-                  >
-                    <Download className="mr-2 size-4" aria-hidden="true" />
-                    Download desktop launcher
-                  </a>
+                  {desktopAppUrl && (
+                    <a
+                      href={desktopAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                    >
+                      <Download className="mr-2 size-4" aria-hidden="true" />
+                      Download desktop launcher
+                    </a>
+                  )}
                 </div>
               ) : (
                 <CrosshairSettings />

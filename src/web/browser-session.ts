@@ -1,9 +1,10 @@
+import { partnerApiOrigin } from './partner-runtime'
 const TOKEN_KEY = '16competitive.web.session'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
 
 let sessionToken = localStorage.getItem(TOKEN_KEY)
 
-export const currentApiOrigin = (): string => window.location.origin
+export const currentApiOrigin = (): string => partnerApiOrigin()
 export const getWebSessionToken = (): string | null => sessionToken
 
 export const setWebSessionToken = (token: string): void => {
@@ -31,7 +32,7 @@ const consumeHandoff = async (): Promise<void> => {
   }
 
   try {
-    const response = await fetch('/auth/web-handoff/consume', {
+    const response = await fetch(new URL('/auth/web-handoff/consume', currentApiOrigin()), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ token }),

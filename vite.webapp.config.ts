@@ -27,7 +27,7 @@ export default defineConfig({
     __SIXTEEN_COMPETITIVE_VERSION__: JSON.stringify(packageVersion)
   },
   root: resolve('src/web'),
-  base: '/pwa/',
+  base: './',
   publicDir: resolve('src/renderer/public'),
   resolve: {
     extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'],

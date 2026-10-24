@@ -1,3 +1,4 @@
+import { isPartnerHost, setPartnerApiOrigin } from './partner-runtime'
 import { matchNotificationCopy } from '../shared/match-notification-copy'
 import { parseMatchmakingActivity } from '../shared/matchmaking-activity'
 import { parseMatchmakingMapCatalog } from '../shared/matchmaking-map-catalog'
@@ -9,7 +10,7 @@ import type {
   MatchmakingServerMessage
 } from '../shared/matchmaking'
 import { manualConnectionCommand } from '../shared/matchmaking'
-import { getWebSessionToken, requestJson } from './browser-session'
+import { currentApiOrigin, getWebSessionToken, requestJson } from './browser-session'
 import { webSteamLaunchUrl } from './steam-launch'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
@@ -77,7 +78,7 @@ const emit = (event: MatchmakingEvent): void => {
   for (const listener of listeners) listener(event)
 }
 
-const websocketUrl = (baseUrl = window.location.origin): string => {
+const websocketUrl = (baseUrl = currentApiOrigin()): string => {
   const url = new URL('/matchmaking/ws', baseUrl)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
   return url.toString()
@@ -106,7 +107,7 @@ const clearTimers = (): void => {
 
 const sameOrigin = (url: string): boolean => {
   try {
-    return new URL(url).origin === window.location.origin
+    return new URL(url).origin === currentApiOrigin()
   } catch {
     return false
   }
@@ -134,6 +135,17 @@ export const navigateToNode = async (
   selectedNodeId?: string | null
 ): Promise<void> => {
   if (sameOrigin(publicApiUrl)) return
+  if (isPartnerHost()) {
+    // Sessions are already shared by regional APIs. Preserve the partner URL.
+    setPartnerApiOrigin(publicApiUrl)
+    if (selectedNodeId) localStorage.setItem(SELECTED_NODE_KEY, selectedNodeId)
+    else if (selectedNodeId === null) localStorage.removeItem(SELECTED_NODE_KEY)
+    navigating = true
+    clearTimers()
+    socket?.close()
+    window.location.reload()
+    return
+  }
   const targetUrl = await createHandoffUrl(publicApiUrl, selectedNodeId)
   navigating = true
   clearTimers()
@@ -197,7 +209,7 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     emit(message)
     emit({
       type: 'connection_endpoint',
-      apiUrl: window.location.origin,
+      apiUrl: currentApiOrigin(),
       websocketUrl: websocketUrl()
     })
     resolveConnect?.()

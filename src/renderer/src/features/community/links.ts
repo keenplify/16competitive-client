@@ -43,3 +43,25 @@ export function useCommunityLinks(): { label: string; href: string }[] {
   const branding = usePartnerBrandingStore((state) => state.branding)
   return resolveCommunityLinks(branding, language)
 }
+
+export function useDesktopAppUrl(): string | null {
+  const branding = usePartnerBrandingStore((state) => state.branding)
+  if (window.__SIXTEEN_COMPETITIVE_WEB__ !== true) return desktopAppUrl
+  const disabled =
+    document.querySelector<HTMLMetaElement>('meta[name="16c-desktop-downloads"]')?.content ===
+    'disabled'
+  if (disabled || branding?.desktopAppEnabled === false) return null
+  const partnerId =
+    document.querySelector<HTMLMetaElement>('meta[name="16c-partner-id"]')?.content ??
+    branding?.partnerId
+  if (!partnerId || !/^[a-f0-9-]{36}$/i.test(partnerId)) return desktopAppUrl
+  const origin =
+    document.querySelector<HTMLMetaElement>('meta[name="16c-api-origin"]')?.content ??
+    window.location.origin
+  const platform = /Linux/i.test(navigator.userAgent) ? 'linux' : 'windows'
+  const url = new URL(`/partners/download/${platform}`, origin)
+  url.searchParams.set('partnerId', partnerId)
+  if (platform === 'linux')
+    url.searchParams.set('arch', /aarch64|arm64/i.test(navigator.userAgent) ? 'arm64' : 'x64')
+  return url.toString()
+}

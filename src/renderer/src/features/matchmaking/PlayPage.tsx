@@ -35,7 +35,7 @@ import { PlayWindowStatus } from './PlayWindowStatus'
 import { displayedPlayWindowNode } from './play-window-node'
 import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
-import { desktopAppUrl } from '../community/links'
+import { useDesktopAppUrl } from '../community/links'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -62,6 +62,7 @@ export function PlayPage({
 }: {
   friendsCollapsed?: boolean
 }): JSX.Element {
+  const desktopAppUrl = useDesktopAppUrl()
   const { t } = useTranslation()
   const communityText = useCommunityText()
   const hasCommunityServers = usePartnerBrandingStore(
@@ -701,14 +702,16 @@ export function PlayPage({
                         1.6 Competitive by Papamo reserves this mode for desktop players. Everyone
                         in your party must use the desktop client before the leader can queue.
                       </p>
-                      <a
-                        href={desktopAppUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                      >
-                        Get the desktop client
-                      </a>
+                      {desktopAppUrl && (
+                        <a
+                          href={desktopAppUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                        >
+                          Get the desktop client
+                        </a>
+                      )}
                     </div>
                   ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
                     <MatchmakingMapPool

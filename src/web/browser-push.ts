@@ -1,3 +1,4 @@
+import { partnerAssetPath, partnerBasePath } from './partner-runtime'
 import { requestJson } from './browser-session'
 
 export interface BrowserPushStatus {
@@ -13,7 +14,7 @@ const supported = (): boolean =>
   'Notification' in window
 
 async function registration(): Promise<ServiceWorkerRegistration> {
-  await navigator.serviceWorker.register('/pwa/sw.js')
+  await navigator.serviceWorker.register(partnerAssetPath('sw.js'))
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([
@@ -32,7 +33,7 @@ export async function getBrowserPushStatus(): Promise<BrowserPushStatus> {
   const config = await requestJson<{ available: boolean; publicKey: string | null }>(
     '/notifications/push/config'
   )
-  const worker = await navigator.serviceWorker.getRegistration('/pwa/')
+  const worker = await navigator.serviceWorker.getRegistration(partnerBasePath())
   const subscription = await worker?.pushManager.getSubscription()
   const enabled =
     subscription && Notification.permission === 'granted'
@@ -89,7 +90,7 @@ export async function enableBrowserPush(language: string): Promise<void> {
 }
 
 export async function disableBrowserPush(): Promise<void> {
-  const worker = await navigator.serviceWorker.getRegistration('/pwa/')
+  const worker = await navigator.serviceWorker.getRegistration(partnerBasePath())
   const subscription = await worker?.pushManager.getSubscription()
   if (!subscription) return
   await requestJson('/notifications/push/subscribe', {

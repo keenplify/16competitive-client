@@ -23,7 +23,9 @@ export const getLauncherMusicSet = (id: LauncherMusicSetId) =>
   MUSIC_SETS.find((set) => set.id === id) ?? MUSIC_SETS[0]
 
 const resolveAudioPath = (path: string): string =>
-  window.__SIXTEEN_COMPETITIVE_WEB__ === true ? `/pwa/${path}` : path
+  window.__SIXTEEN_COMPETITIVE_WEB__ === true
+    ? `${document.querySelector<HTMLMetaElement>('meta[name="16c-base-path"]')?.content ?? '/pwa/'}${path}`
+    : path
 
 export const getLauncherBgmTrack = (id: LauncherBgmId) => {
   const track = getLauncherMusicSet(id).backgroundMusic

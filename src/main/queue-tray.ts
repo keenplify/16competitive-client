@@ -4,6 +4,7 @@ import { matchNotificationCopy, queuedModeLabel } from '../shared/match-notifica
 
 interface QueueTrayOptions {
   icon: string
+  name?: string
   getQueuedMode: () => MatchmakingMode | null
   show: () => void
   quit: () => void
@@ -20,7 +21,7 @@ export class QueueTrayController {
       // Create the tray before hiding: a desktop without a tray must retain its window.
       try {
         this.tray = new Tray(this.options.icon)
-        this.tray.setToolTip('1.6 Competitive')
+        this.tray.setToolTip(this.options.name ?? '1.6 Competitive')
         this.tray.on('click', this.options.show)
         this.tray.on('double-click', this.options.show)
         if (process.platform === 'linux') {
@@ -68,6 +69,13 @@ export class QueueTrayController {
     }
     window.hide()
     return true
+  }
+
+  setIdentity(name: string, icon: string): void {
+    this.options.name = name
+    this.options.icon = icon
+    this.tray?.setToolTip(name)
+    this.tray?.setImage(icon)
   }
 
   destroy(): void {
