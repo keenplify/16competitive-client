@@ -3137,3 +3137,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Unsupported PWA features are now hidden when desktop downloads are unavailable.
 - Partner connections and media are available across all production regions.
+
+## v2026.1024.3 — 2026-10-24
+
+### Communities
+
+- Fixed community roster browsing.
+- Improved community member list display.
+
+### Warmup Matches
+
+- Fixed warmup match results.
