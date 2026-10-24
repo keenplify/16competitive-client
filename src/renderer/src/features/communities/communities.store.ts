@@ -321,12 +321,13 @@ export const useCommunitiesStore = create<State>((set, get) => ({
     }
   },
   requestLeave: (leaveRequested) => {
+    if (leaveRequested && restrictedCommunityId()) return
     if (!get().joining) set({ leaveRequested, joinError: false })
   },
   leave: async () => {
     const { currentCommunityId, joining } = get()
     const accountId = useAuthStore.getState().session?.player.id
-    if (!currentCommunityId || !accountId || joining) return
+    if (!currentCommunityId || !accountId || joining || restrictedCommunityId()) return
     const serial = ++generation
     set({ joining: true, joinError: false })
     try {

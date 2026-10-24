@@ -430,6 +430,47 @@ test('disabled community discovery blocks navigation and selection, independentl
   assert.equal(store.getState().viewedCommunity.id, other.id)
 })
 
+test('disabled discovery blocks leave requests and stale confirmations without calling IPC', async () => {
+  const branding = { partnerId: id, allowOtherCommunities: true }
+  let calls = 0
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {
+      '../partner-branding/partner-branding.store': {
+        usePartnerBrandingStore: { getState: () => ({ branding, enabled: false }) }
+      },
+      '../auth/auth.store': { useAuthStore: { getState: () => ({ session: { player: { id } } }) } },
+      window: {
+        api: {
+          communityDirectory: {
+            leave: async () => {
+              calls++
+              throw Error('offline')
+            },
+            list: async () => directory
+          }
+        }
+      }
+    }
+  )
+  store.setState({ currentCommunity: card, currentCommunityId: id, loading: false })
+  store.getState().requestLeave(true)
+  assert.equal(store.getState().leaveRequested, true)
+  branding.allowOtherCommunities = false
+  await store.getState().leave()
+  assert.equal(calls, 0)
+  assert.equal(store.getState().currentCommunityId, id)
+  assert.equal(store.getState().joining, false)
+  store.getState().requestLeave(false)
+  store.getState().requestLeave(true)
+  assert.equal(store.getState().leaveRequested, false)
+  branding.allowOtherCommunities = true
+  store.getState().requestLeave(true)
+  assert.equal(store.getState().leaveRequested, true)
+  await store.getState().leave()
+  assert.equal(calls, 1)
+})
+
 test('server snapshots show immediately while refreshing, update afterward, survive failed refreshes', async () => {
   let response = Promise.resolve([{ id: 'server', pingMs: 30, players: 2, map: 'de_dust2' }])
   const { createPartnerServersStore } = rendererStore(
