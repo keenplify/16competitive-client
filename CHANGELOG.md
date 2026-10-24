@@ -3125,3 +3125,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Community
 
 - Updated community links and attribution.
+
+## v2026.1024.2 — 2026-10-24
+
+### Matchmaking
+
+- MR8 is now preserved during ready checks.
+- Ranked handoff information is clearer during match preparation.
+
+### Web App
+
+- Unsupported PWA features are now hidden when desktop downloads are unavailable.
+- Partner connections and media are available across all production regions.
