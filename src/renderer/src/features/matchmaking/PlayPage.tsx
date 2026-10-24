@@ -63,10 +63,15 @@ export function PlayPage({
   friendsCollapsed?: boolean
 }): JSX.Element {
   const desktopAppUrl = useDesktopAppUrl()
+  const webRuntime = isWebRuntime()
+  const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t } = useTranslation()
   const communityText = useCommunityText()
   const hasCommunityServers = usePartnerBrandingStore(
-    (state) => (state.branding?.servers.length ?? 0) > 0
+    (state) =>
+      state.branding?.servers.some(
+        (server) => !hideDesktopOnlyFeatures || server.gameVersion !== 'cs13'
+      ) ?? false
   )
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
@@ -123,7 +128,6 @@ export function PlayPage({
   const customRoomError = useCustomGamesStore((state) => state.error)
   const [clockNow, setClockNow] = useState(Date.now)
   const [leavingCustomMatch, setLeavingCustomMatch] = useState(false)
-  const webRuntime = isWebRuntime()
   const partyRequiresWeb =
     webRuntime || Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
@@ -256,7 +260,10 @@ export function PlayPage({
             partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
           )
         )
-      : queueModes.filter((mode) => mode !== 'cs13_3v3')
+      : hideDesktopOnlyFeatures
+        ? []
+        : queueModes.filter((mode) => mode !== 'cs13_3v3')
+  const showCompetitive = !hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5')
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
@@ -399,26 +406,28 @@ export function PlayPage({
                   {t('ffa.leave')}
                 </Button>
               )}
-              <Button
-                className="w-full "
-                disabled={
-                  webRuntime
-                    ? !manualConnectionAllowed || !retryWindowOpen
-                    : !gameExited || !retryWindowOpen
-                }
-                variant="primary"
-                onClick={() => void handleReconnect()}
-              >
-                {webRuntime
-                  ? manualConnectionAllowed
-                    ? 'Launch Counter-Strike'
-                    : 'Use desktop launcher for ranked'
-                  : gameExited
-                    ? retryWindowOpen
-                      ? 'Reconnect to match'
-                      : `Reconnect in ${copyWaitSeconds}s`
-                    : 'Counter-Strike is launching…'}
-              </Button>
+              {(!hideDesktopOnlyFeatures || manualConnectionAllowed) && (
+                <Button
+                  className="w-full "
+                  disabled={
+                    webRuntime
+                      ? !manualConnectionAllowed || !retryWindowOpen
+                      : !gameExited || !retryWindowOpen
+                  }
+                  variant="primary"
+                  onClick={() => void handleReconnect()}
+                >
+                  {webRuntime
+                    ? manualConnectionAllowed
+                      ? 'Launch Counter-Strike'
+                      : 'Use desktop launcher for ranked'
+                    : gameExited
+                      ? retryWindowOpen
+                        ? 'Reconnect to match'
+                        : `Reconnect in ${copyWaitSeconds}s`
+                      : 'Counter-Strike is launching…'}
+                </Button>
+              )}
               {manualConnectionAllowed && (
                 <div className="flex items-center gap-2">
                   <Button
@@ -586,27 +595,37 @@ export function PlayPage({
                   }
                 ]
               : []),
-            {
-              value: 'competitive',
-              label: t(warmupEligible ? 'warmup.rankedMode' : 'play.competitive'),
-              helpText: t(warmupEligible ? 'warmup.rankedBotsHelp' : 'matchmaking.modeHelp5v5'),
-              disabled:
-                (warmupEligible &&
-                  (warmupActive || warmupBusy) &&
-                  activePlayTab !== 'competitive') ||
-                (isSearching && selectedMode !== '5v5') ||
-                (!isSearching && !isLeader)
-            },
-            {
-              value: 'noncompetitive',
-              label: t('warmup.tab'),
-              disabled:
-                (warmupEligible &&
-                  (((warmupActive || warmupBusy) && activePlayTab !== 'noncompetitive') ||
-                    noncompetitiveModes.length === 0)) ||
-                (isSearching && !warmupEligible && selectedMode === '5v5') ||
-                (!isSearching && (!isLeader || noncompetitiveModes.length === 0))
-            },
+            ...(showCompetitive
+              ? [
+                  {
+                    value: 'competitive',
+                    label: t(warmupEligible ? 'warmup.rankedMode' : 'play.competitive'),
+                    helpText: t(
+                      warmupEligible ? 'warmup.rankedBotsHelp' : 'matchmaking.modeHelp5v5'
+                    ),
+                    disabled:
+                      (warmupEligible &&
+                        (warmupActive || warmupBusy) &&
+                        activePlayTab !== 'competitive') ||
+                      (isSearching && selectedMode !== '5v5') ||
+                      (!isSearching && !isLeader)
+                  }
+                ]
+              : []),
+            ...(!hideDesktopOnlyFeatures || noncompetitiveModes.length > 0
+              ? [
+                  {
+                    value: 'noncompetitive',
+                    label: t('warmup.tab'),
+                    disabled:
+                      (warmupEligible &&
+                        (((warmupActive || warmupBusy) && activePlayTab !== 'noncompetitive') ||
+                          noncompetitiveModes.length === 0)) ||
+                      (isSearching && !warmupEligible && selectedMode === '5v5') ||
+                      (!isSearching && (!isLeader || noncompetitiveModes.length === 0))
+                  }
+                ]
+              : []),
             { value: 'custom', label: t('play.customGame') }
           ]}
           onChange={(view) => {
@@ -685,12 +704,12 @@ export function PlayPage({
                       Map pool
                     </p>
                     <p className="text-xs text-neutral-200">
-                      {desktopOnlyMode
+                      {desktopOnlyMode && !hideDesktopOnlyFeatures
                         ? 'Desktop only'
                         : `${selectedMapIds.length} / ${availableMaps.length} selected`}
                     </p>
                   </div>
-                  {mapsStatus === 'ready' && desktopOnlyMode ? (
+                  {mapsStatus === 'ready' && desktopOnlyMode && !hideDesktopOnlyFeatures ? (
                     <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
                       <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
                         Desktop client required

@@ -4,10 +4,10 @@ import test from 'node:test'
 import vm from 'node:vm'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
-async function hook(metadata = {}, branding = null) {
+async function hook(metadata = {}, branding = null, web = true, exportName = 'useDesktopAppUrl') {
   const context = vm.createContext({
     URL,
-    window: { __SIXTEEN_COMPETITIVE_WEB__: true, location: { origin: 'https://partner.example' } },
+    window: { __SIXTEEN_COMPETITIVE_WEB__: web, location: { origin: 'https://partner.example' } },
     navigator: { userAgent: 'Linux x86_64' },
     document: {
       querySelector: (selector) => {
@@ -43,7 +43,7 @@ async function hook(metadata = {}, branding = null) {
       )
   )
   await mod.evaluate()
-  return mod.namespace.useDesktopAppUrl()
+  return mod.namespace[exportName]()
 }
 test('disabled partner downloads remove the link even if another account community allows them', async () => {
   assert.equal(
@@ -51,6 +51,20 @@ test('disabled partner downloads remove the link even if another account communi
     null
   )
   assert.equal(await hook({}, { desktopAppEnabled: false }), null)
+})
+test('unsupported desktop features hide only in web/PWA when downloads are disabled', async () => {
+  const visibility = (...args) => hook(...args, 'useHideDesktopOnlyFeatures')
+  assert.equal(await visibility({}, null, true), false)
+  assert.equal(await visibility({ '16c-desktop-downloads': 'disabled' }, null, true), true)
+  assert.equal(await visibility({}, { desktopAppEnabled: false }, true), true)
+  assert.equal(
+    await visibility({ '16c-desktop-downloads': 'disabled' }, { desktopAppEnabled: true }, true),
+    true
+  )
+  assert.equal(
+    await visibility({ '16c-desktop-downloads': 'disabled' }, { desktopAppEnabled: false }, false),
+    false
+  )
 })
 test('downloads default to enabled and do not depend on the visual theme preference', async () => {
   assert.equal(await hook(), 'https://papamo.dev/16competitive')

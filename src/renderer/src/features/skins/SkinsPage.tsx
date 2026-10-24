@@ -23,6 +23,7 @@ import {
 } from './weapon-categories'
 import { LOBBY_PLAYER_MODELS } from '../party/party-models'
 import { isWebRuntime } from '../../web-runtime'
+import { useHideDesktopOnlyFeatures } from '../community/links'
 
 type Team = 'ct' | 't'
 type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'grenades' | 'knives'>
@@ -91,6 +92,7 @@ const errorText = (reason: unknown): string =>
 
 export function SkinsPage(): JSX.Element {
   const webMode = isWebRuntime()
+  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -377,7 +379,7 @@ export function SkinsPage(): JSX.Element {
             <h2 className="mt-1 text-xl font-semibold">
               {team === 'ct' ? 'Counter-Terrorists' : 'Terrorists'}
             </h2>
-            {webMode && (
+            {webMode && !hideDesktopOnlyFeatures && (
               <p className="mt-1 text-xs text-neutral-400">
                 Lobby weapon selection is only available in the desktop app.
               </p>

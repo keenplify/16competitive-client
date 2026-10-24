@@ -26,6 +26,7 @@ import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useFriendsStore } from '../friends/friends.store'
+import { useHideDesktopOnlyFeatures } from '../community/links'
 
 interface CustomGamesPanelProps {
   currentPlayerId: string
@@ -64,6 +65,10 @@ export function CustomGamesPanel({
   disabled = false
 }: CustomGamesPanelProps): JSX.Element {
   const rooms = useCustomGamesStore((state) => state.rooms)
+  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
+  const visibleRooms = hideDesktopOnlyFeatures
+    ? rooms.filter((candidate) => candidate.mode !== 'cs13_3v3')
+    : rooms
   const room = useCustomGamesStore((state) => state.currentRoom)
   const status = useCustomGamesStore((state) => state.status)
   const refresh = useCustomGamesStore((state) => state.refresh)
@@ -550,7 +555,7 @@ export function CustomGamesPanel({
               <span />
             </div>
             <div className="min-h-0 flex-1 divide-y divide-white/10 overflow-y-auto">
-              {rooms.length === 0 && (
+              {visibleRooms.length === 0 && (
                 <div className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center">
                   <p className="text-sm font-semibold text-neutral-300">No rooms found</p>
                   <p className="mt-1 text-xs text-neutral-500">
@@ -560,7 +565,7 @@ export function CustomGamesPanel({
                   </p>
                 </div>
               )}
-              {rooms.map((candidate, index) => {
+              {visibleRooms.map((candidate, index) => {
                 const full =
                   candidate.members.length >=
                   candidate.teamOneCapacity + candidate.teamTwoCapacity + 2

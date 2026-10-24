@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useTranslation } from '../i18n/i18n'
+import { useHideDesktopOnlyFeatures } from '../community/links'
 
 interface CreateCustomGameModalProps {
   maps: MatchmakingMap[]
@@ -24,6 +25,7 @@ export function CreateCustomGameModal({
   disabled = false
 }: CreateCustomGameModalProps): JSX.Element {
   const { t } = useTranslation()
+  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const enabledModes = useMatchmakingStore((state) => state.customModes)
   const close = useCustomGamesStore((state) => state.closeCreateModal)
   const createRoom = useCustomGamesStore((state) => state.createRoom)
@@ -34,7 +36,10 @@ export function CreateCustomGameModal({
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const availableModes = CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate))
+  const availableModes = CUSTOM_GAME_MODES.filter(
+    (candidate) =>
+      enabledModes.includes(candidate) && (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3')
+  )
   const selectedMode = availableModes.includes(mode) ? mode : (availableModes[0] ?? 'unrated')
   const supportedMaps = maps.filter(({ customModes }) => customModes.includes(selectedMode))
   const selectedMapId = supportedMaps.some((map) => map.id === mapId)

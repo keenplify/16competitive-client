@@ -65,3 +65,9 @@ export function useDesktopAppUrl(): string | null {
     url.searchParams.set('arch', /aarch64|arm64/i.test(navigator.userAgent) ? 'arm64' : 'x64')
   return url.toString()
 }
+
+/** PWA installation does not grant desktop capabilities. */
+export function useHideDesktopOnlyFeatures(): boolean {
+  const appUrl = useDesktopAppUrl()
+  return window.__SIXTEEN_COMPETITIVE_WEB__ === true && appUrl === null
+}

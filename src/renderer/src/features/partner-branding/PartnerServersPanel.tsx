@@ -13,6 +13,7 @@ import { createPartnerServersStore, usePartnerServersStore } from './partner-ser
 import { usePartnerLaunchStore } from './partner-launch.store'
 import { usePartyStore } from '../party/party.store'
 import { useAuthStore } from '../auth/auth.store'
+import { useHideDesktopOnlyFeatures } from '../community/links'
 export function PartnerServersPanel({
   communityId,
   disabled = false,
@@ -34,6 +35,10 @@ export function PartnerServersPanel({
     selectedId = useServers((s) => s.selectedId),
     connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
+  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
+  const visibleRows = hideDesktopOnlyFeatures
+    ? rows.filter((server) => server.gameVersion !== 'cs13')
+    : rows
   const playerId = useAuthStore((s) => s.session?.player.id)
   const groupBusy = usePartnerLaunchStore((s) => s.busy !== 'idle')
   const groupError = usePartnerLaunchStore((s) => s.error)
@@ -50,7 +55,11 @@ export function PartnerServersPanel({
     }, 20000)
     return () => window.clearInterval(timer)
   }, [load])
-  const selected = rows.find((row) => row.id === selectedId)
+  const selected = visibleRows.find((row) => row.id === selectedId)
+  const firstVisibleId = visibleRows[0]?.id
+  useEffect(() => {
+    if (hideDesktopOnlyFeatures && !selected && firstVisibleId) select(firstVisibleId)
+  }, [hideDesktopOnlyFeatures, selected, firstVisibleId, select])
   const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
   const partyMemberCannotStart = Boolean(
     !communityId && party && party.members.length > 1 && party.leaderId !== playerId
@@ -81,7 +90,7 @@ export function PartnerServersPanel({
       <div className="community-server-toolbar flex min-h-10 items-center justify-between gap-4">
         <p className="text-xs text-neutral-200">
           {text('pingHint')}{' '}
-          {rows.some((server) => server.pingSource === 'api') ? text('pingApi') : ''}
+          {visibleRows.some((server) => server.pingSource === 'api') ? text('pingApi') : ''}
         </p>
         <Button
           variant="ghost"
@@ -94,9 +103,9 @@ export function PartnerServersPanel({
         </Button>
       </div>
       <div className="min-h-64 flex-1 overflow-x-auto">
-        {rows.length ? (
+        {visibleRows.length ? (
           <div className="grid h-full min-h-64 auto-cols-[minmax(160px,1fr)] grid-flow-col gap-3">
-            {rows.map((server) => (
+            {visibleRows.map((server) => (
               <button
                 key={server.id}
                 type="button"

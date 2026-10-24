@@ -123,6 +123,7 @@ export function SettingsPage(): JSX.Element {
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
   const webRuntime = isWebRuntime()
+  const showInGameAppearance = !webRuntime || desktopAppUrl !== null
 
   const [newUsername, setNewUsername] = useState('')
   const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
@@ -169,10 +170,12 @@ export function SettingsPage(): JSX.Element {
     const audio = audioRef.current
     const assets = assetsRef.current
     const credentials = credentialsRef.current
-    if (!container || !crosshair || !audio || !assets || !credentials) return
+    if (!container || !audio || !assets || !credentials) return
 
     const containerTop = container.getBoundingClientRect().top
-    const crosshairTop = crosshair.getBoundingClientRect().top - containerTop
+    const crosshairTop = crosshair
+      ? crosshair.getBoundingClientRect().top - containerTop
+      : Number.POSITIVE_INFINITY
     const audioTop = audio.getBoundingClientRect().top - containerTop
     const assetsTop = assets.getBoundingClientRect().top - containerTop
     const credentialsTop = credentials.getBoundingClientRect().top - containerTop
@@ -449,7 +452,7 @@ export function SettingsPage(): JSX.Element {
           <aside className="settings-navigation sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
               {sectionButton('general', 'General')}
-              {sectionButton('crosshair', 'In-game appearance')}
+              {showInGameAppearance && sectionButton('crosshair', 'In-game appearance')}
               {sectionButton('audio', 'Voice & Audio')}
               {sectionButton('assets', 'Assets')}
               {sectionButton('credentials', 'Credentials')}
@@ -706,75 +709,77 @@ export function SettingsPage(): JSX.Element {
               )}
             </section>
 
-            <section
-              ref={crosshairRef}
-              className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
-            >
-              <div className="mb-5">
-                <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
-                  In-game appearance
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold">HUD and crosshair</h2>
-              </div>
-              {!webRuntime && (
-                <div className="mb-5 flex items-start justify-between gap-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                  <div>
-                    <h3 className="text-lg font-semibold">Animated kill cards</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-neutral-400">
-                      Show an animated card for each kill above the round timer. The last card is
-                      ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.
-                    </p>
-                    {!inGameEnhancementsEnabled && (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        Enable In-game enhancements in General to use kill cards.
+            {showInGameAppearance && (
+              <section
+                ref={crosshairRef}
+                className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"
+              >
+                <div className="mb-5">
+                  <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+                    In-game appearance
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold">HUD and crosshair</h2>
+                </div>
+                {!webRuntime && (
+                  <div className="mb-5 flex items-start justify-between gap-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <div>
+                      <h3 className="text-lg font-semibold">Animated kill cards</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-neutral-400">
+                        Show an animated card for each kill above the round timer. The last card is
+                        ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.
                       </p>
+                      {!inGameEnhancementsEnabled && (
+                        <p className="mt-2 text-xs text-neutral-500">
+                          Enable In-game enhancements in General to use kill cards.
+                        </p>
+                      )}
+                    </div>
+                    <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={killCardsEnabled}
+                        disabled={!inGameEnhancementsEnabled}
+                        onChange={(event) => void setKillCards(event.currentTarget.checked)}
+                      />
+                      <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-amber-400 peer-checked:bg-amber-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 peer-disabled:opacity-40 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                      <span className="sr-only">Enable animated kill cards</span>
+                    </label>
+                  </div>
+                )}
+                {nextClientDetected ? (
+                  <CrosshairSettings />
+                ) : !CUSTOM_HUD_ENABLED ? (
+                  <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <p className="text-sm leading-relaxed text-neutral-300">
+                      Custom in-game crosshairs are temporarily disabled while we revise
+                      compatibility with different Counter-Strike clients. Your game&apos;s normal
+                      crosshair remains active.
+                    </p>
+                  </div>
+                ) : webRuntime ? (
+                  <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <p className="text-sm leading-relaxed text-neutral-300">
+                      Custom crosshairs are available in the desktop launcher. Download it to edit
+                      your crosshair and use it in Counter-Strike.
+                    </p>
+                    {desktopAppUrl && (
+                      <a
+                        href={desktopAppUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                      >
+                        <Download className="mr-2 size-4" aria-hidden="true" />
+                        Download desktop launcher
+                      </a>
                     )}
                   </div>
-                  <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      checked={killCardsEnabled}
-                      disabled={!inGameEnhancementsEnabled}
-                      onChange={(event) => void setKillCards(event.currentTarget.checked)}
-                    />
-                    <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-amber-400 peer-checked:bg-amber-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 peer-disabled:opacity-40 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                    <span className="sr-only">Enable animated kill cards</span>
-                  </label>
-                </div>
-              )}
-              {nextClientDetected ? (
-                <CrosshairSettings />
-              ) : !CUSTOM_HUD_ENABLED ? (
-                <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                  <p className="text-sm leading-relaxed text-neutral-300">
-                    Custom in-game crosshairs are temporarily disabled while we revise compatibility
-                    with different Counter-Strike clients. Your game&apos;s normal crosshair remains
-                    active.
-                  </p>
-                </div>
-              ) : webRuntime ? (
-                <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                  <p className="text-sm leading-relaxed text-neutral-300">
-                    Custom crosshairs are available in the desktop launcher. Download it to edit
-                    your crosshair and use it in Counter-Strike.
-                  </p>
-                  {desktopAppUrl && (
-                    <a
-                      href={desktopAppUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-5 inline-flex h-11 items-center border border-sky-400/35 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
-                    >
-                      <Download className="mr-2 size-4" aria-hidden="true" />
-                      Download desktop launcher
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <CrosshairSettings />
-              )}
-            </section>
+                ) : (
+                  <CrosshairSettings />
+                )}
+              </section>
+            )}
 
             <section
               ref={audioRef}
@@ -836,7 +841,7 @@ export function SettingsPage(): JSX.Element {
               </section>
 
               {!isWebRuntime() && <PlayerPingSetting />}
-              <VoicePttKeySetting />
+              {showInGameAppearance && <VoicePttKeySetting />}
             </section>
 
             <section

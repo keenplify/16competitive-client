@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/Button'
 import { useTranslation } from '../i18n/i18n'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
+import { useHideDesktopOnlyFeatures } from '../community/links'
 
 const fieldClass =
   'h-11 w-full min-w-0 rounded-none border border-white/20 bg-black/45 px-3 text-sm text-white outline-none transition focus:border-sky-400 disabled:opacity-50'
@@ -46,6 +47,7 @@ export function RoomSettingsModal({
   disabled?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
+  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const close = useCustomGamesStore((state) => state.closeRoomSettings)
   const save = useCustomGamesStore((state) => state.updateRoom)
   const saving = useCustomGamesStore((state) => state.savingSettings)
@@ -60,9 +62,11 @@ export function RoomSettingsModal({
   const [startingMoney, setStartingMoney] = useState(String(room.startingMoney ?? 800))
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = CUSTOM_GAME_MODES.filter(
-    (candidate) => candidate === room.mode || enabledModes.includes(candidate)
+    (candidate) =>
+      (candidate === room.mode || enabledModes.includes(candidate)) &&
+      (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3')
   )
-  const selectedMode = modes.includes(mode) ? mode : room.mode
+  const selectedMode = modes.includes(mode) ? mode : (modes[0] ?? 'unrated')
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
   const moneyValid =
     !allowsMoney ||
