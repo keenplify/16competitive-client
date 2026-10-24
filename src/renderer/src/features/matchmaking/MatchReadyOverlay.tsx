@@ -2,6 +2,7 @@ import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useEffect, useState, type JSX } from 'react'
 import { MatchFoundReadyCheck } from './MatchFoundReadyCheck'
 import { useMatchmakingStore } from './matchmaking.store'
+import { useQueueWarmupStore } from './queue-warmup.store'
 import './match-ready.css'
 
 export function MatchReadyOverlay(): JSX.Element | null {
@@ -13,6 +14,9 @@ export function MatchReadyOverlay(): JSX.Element | null {
   const response = useMatchmakingStore((state) => state.readyResponse)
   const error = useMatchmakingStore((state) => state.error)
   const respond = useMatchmakingStore((state) => state.respondReady)
+  const playingMr8 = useQueueWarmupStore(
+    (state) => state.matchId !== null && state.mode === '5v5' && state.status === 'playing'
+  )
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export function MatchReadyOverlay(): JSX.Element | null {
       >
         <MatchFoundReadyCheck
           match={match}
+          playingMr8={playingMr8}
           acceptedPlayerIds={accepted}
           playersRequired={required}
           readyResponse={response}

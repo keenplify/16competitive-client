@@ -24,6 +24,7 @@ interface MatchFoundReadyCheckProps {
   secondsRemaining: number
   responseError?: boolean
   preparing?: boolean
+  playingMr8?: boolean
   onAccept: () => void
   onDecline: () => void
 }
@@ -84,6 +85,7 @@ export function MatchFoundReadyCheck({
   secondsRemaining,
   responseError = false,
   preparing = false,
+  playingMr8 = false,
   onAccept,
   onDecline
 }: MatchFoundReadyCheckProps): JSX.Element {
@@ -159,7 +161,7 @@ export function MatchFoundReadyCheck({
             </p>
           </div>
 
-          {match.mode === '5v5' && (
+          {match.mode === '5v5' && playingMr8 && (
             <aside className="match-ready-handoff mt-5 border border-amber-300/40 bg-amber-950/50 p-4 text-sm leading-relaxed text-amber-100">
               <h2 className="font-semibold">{t('match.ready.handoffTitle')}</h2>
               <p className="mt-1">{t('match.ready.handoffDetails')}</p>
