@@ -3148,3 +3148,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Warmup Matches
 
 - Fixed warmup match results.
+
+## v2026.1024.4 — 2026-10-24
+
+### Matchmaking
+
+- MR8 ready-check notices now appear only during an active MR8 game.
