@@ -387,7 +387,8 @@ const partnerServers: PartnerServersApi = {
   presence: () => ipcRenderer.invoke(PARTNER_SERVER_CHANNELS.presence)
 }
 const communityChat: CommunityChatApi = {
-  members: (page) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.members, page),
+  members: (page, communityId) =>
+    ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.members, page, communityId),
   history: () => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.history),
   send: (id, message) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.send, id, message)
 }

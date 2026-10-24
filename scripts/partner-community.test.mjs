@@ -9,6 +9,7 @@ import {
   sortPartnerServers,
   parseCommunityHistory,
   parseCommunityMembers,
+  communityMembersPath,
   parsePartnerServerStatuses
 } from '../src/shared/partner-community.ts'
 import { parseServerInfo, queryServerInfo } from '../src/main/game/partner-server-query.ts'
@@ -231,4 +232,12 @@ test('member payloads preserve relationship states and reject unscoped rosters',
   ]) {
     assert.throws(() => parseCommunityMembers({ ...payload, ...patch }))
   }
+})
+test('member requests validate pagination and scope the selected community for desktop and web', () => {
+  assert.equal(communityMembersPath(1), '/partners/community/members?page=1')
+  const url = new URL(communityMembersPath(2, id), 'https://example.test')
+  assert.equal(url.searchParams.get('communityId'), id)
+  assert.equal(url.searchParams.get('page'), '2')
+  for (const args of [[0], [1.5], [10001], ['1'], [1, null], [1, '../other'], [1, id + '&page=99']])
+    assert.throws(() => communityMembersPath(...args))
 })

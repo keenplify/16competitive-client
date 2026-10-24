@@ -28,7 +28,8 @@ import {
 import {
   parseCommunityHistory,
   parseCommunityMessage,
-  parseCommunityMembers
+  parseCommunityMembers,
+  communityMembersPath
 } from '../shared/partner-community'
 import { getBrowserPartnerId } from './partner-attribution'
 import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
@@ -650,8 +651,8 @@ const api: Window['api'] = {
     }
   },
   communityChat: {
-    members: async (page) =>
-      parseCommunityMembers(await authenticatedGet(`/partners/community/members?page=${page}`)),
+    members: async (page, communityId) =>
+      parseCommunityMembers(await authenticatedGet(communityMembersPath(page, communityId))),
     history: async () => parseCommunityHistory(await authenticatedGet('/partners/community/chat')),
     send: async (communityId, message) =>
       parseCommunityMessage(await jsonPost('/partners/community/chat', { communityId, message }))

@@ -7,6 +7,7 @@ import { useAdminDemosStore } from '../admin-demos/admin-demos.store'
 import {
   Component,
   memo,
+  useCallback,
   useEffect,
   useState,
   type ErrorInfo,
@@ -40,7 +41,7 @@ import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
-import { QueueWarmupResults } from './QueueWarmupResults'
+import { useQueueWarmupStore } from './queue-warmup.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
 import { isMatchSurveyDeferredForSession } from './match-survey-session'
 import { NewsPage } from '../news/NewsPage'
@@ -164,8 +165,13 @@ export function LobbyPage(): JSX.Element {
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const gameExitCount = useMatchmakingStore((state) => state.gameExitCount)
   const serverRestarting = useMatchmakingStore((state) => state.serverRestarting)
-  const completedMatch = useMatchmakingStore((state) => state.completedMatch)
-  const dismissCompletedMatch = useMatchmakingStore((state) => state.dismissCompletedMatch)
+  const completedPrimaryMatch = useMatchmakingStore((state) => state.completedMatch)
+  const completedWarmupMatch = useQueueWarmupStore((state) => state.completedMatch)
+  const completedMatch = completedPrimaryMatch ?? completedWarmupMatch
+  const dismissCompletedMatch = useCallback(() => {
+    useMatchmakingStore.getState().dismissCompletedMatch()
+    useQueueWarmupStore.getState().dismissCompletedMatch()
+  }, [])
   const refreshLobbyLoadout = useLobbyLoadoutStore((state) => state.refresh)
   const matchNavigationLocked = [
     'match_found',
@@ -312,8 +318,12 @@ export function LobbyPage(): JSX.Element {
       }
       if (matchNavigationLocked) return
       event.preventDefault()
-      if (useMatchmakingStore.getState().completedMatch) dismissCompletedMatch()
-      const nextPage = page === 'lobby' ? 'settings' : 'lobby'
+      const showingResults = Boolean(
+        useMatchmakingStore.getState().completedMatch ||
+        useQueueWarmupStore.getState().completedMatch
+      )
+      if (showingResults) dismissCompletedMatch()
+      const nextPage = page === 'lobby' && !showingResults ? 'settings' : 'lobby'
       launcherAudio.playSfx(nextPage === 'settings' ? 'forward' : 'backward')
       navigate(nextPage)
     }
@@ -396,7 +406,7 @@ export function LobbyPage(): JSX.Element {
   const content = requiresGameSetup ? (
     <SettingsPage />
   ) : completedMatch ? (
-    <MatchResultsPage match={completedMatch} />
+    <MatchResultsPage key={completedMatch.matchId} match={completedMatch} />
   ) : page === 'play' ? (
     <PlayPage friendsCollapsed={friendsCollapsed} />
   ) : page === 'demos' ? (
@@ -520,7 +530,6 @@ export function LobbyPage(): JSX.Element {
         </div>
       )}
       {matchNeedsAttention && <MatchReadyOverlay />}
-      <QueueWarmupResults />
       {!requiresGameSetup &&
         !completedMatch &&
         queueStatus === 'idle' &&

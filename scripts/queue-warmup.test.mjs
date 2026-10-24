@@ -4,6 +4,9 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
+import * as React from 'react'
+import * as jsx from 'react/jsx-runtime'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 async function harness() {
   const calls = [],
@@ -610,6 +613,125 @@ test('MR8 completion validates and focuses the launcher without leaving the queu
   }
 })
 
+/* eslint-disable react/prop-types -- Props in these fixtures come from the typed lobby. */
+test('MR8 results share the lobby with friends and dismiss without changing the MR12 queue', async () => {
+  const { create } = await import('zustand')
+  const { store: warmup } = await warmupStoreHarness()
+  const result = { matchId: 'mr8-result', mode: '5v5' }
+  warmup.setState({ completedMatch: result })
+  const warmupHook = (select) => select(warmup.getState())
+  warmupHook.getState = warmup.getState
+  const queue = create((set) => ({
+    queueStatus: 'queued',
+    queuedAt: '2026-10-24T06:00:00Z',
+    selectedMode: '5v5',
+    selectedMapIds: ['de_inferno'],
+    completedMatch: null,
+    dismissCompletedMatch: () => set({ completedMatch: null })
+  }))
+  const before = queue.getState()
+  const navigation = [],
+    windows = []
+  let onNavigate
+  const dummyStore = (select) => select({})
+  dummyStore.getState = () => ({})
+  const auth = (select) =>
+    select({ session: { player: { id: 'me', username: 'Player', mmr: 813 } } })
+  const dependencies = {
+    react: React,
+    'react/jsx-runtime': jsx,
+    './matchmaking.store': { useMatchmakingStore: queue },
+    './queue-warmup.store': { useQueueWarmupStore: warmupHook },
+    '../auth/auth.store': { useAuthStore: auth },
+    '../navigation/navigation.store': {
+      useNavigationStore: (select) =>
+        select({ page: 'lobby', navigate: (page) => navigation.push(page) })
+    },
+    '../i18n/i18n': { useTranslation: () => ({ t: (key) => key }) },
+    '../../components/ui/LauncherWindow': {
+      LauncherWindow: (props) => {
+        windows.push(props)
+        return React.createElement('section', { 'data-launcher-window': true }, props.children)
+      }
+    },
+    '../../components/ui/lobby/Navigation': {
+      LobbyNavigation: ({ onNavigate: handler }) => {
+        onNavigate = handler
+        return React.createElement('nav', null, 'Lobby navigation')
+      }
+    },
+    '../party/LobbySocialSidebar': {
+      LobbySocialSidebar: ({ collapsed }) =>
+        React.createElement('aside', { 'data-collapsed': collapsed }, 'Friends and MR12 queue')
+    },
+    './MatchResultsPage': {
+      MatchResultsPage: ({ match }) =>
+        React.createElement('article', { 'data-results': match.matchId }, 'MR8 result')
+    },
+    './match-survey-session': { isMatchSurveyDeferredForSession: () => false },
+    '../navigation/page-icons': { pageIcons: {} }
+  }
+  const source = await readFile(
+    new URL('../src/renderer/src/features/matchmaking/LobbyPage.tsx', import.meta.url),
+    'utf8'
+  )
+  // Stub unrelated children while rendering the real lobby composition and handlers.
+  const syntax = ts.createSourceFile(
+    'LobbyPage.tsx',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  )
+  for (const statement of syntax.statements) {
+    if (!ts.isImportDeclaration(statement)) continue
+    const name = statement.moduleSpecifier.text
+    if (dependencies[name]) continue
+    const values = {}
+    if (statement.importClause?.name) values.default = ''
+    for (const specifier of statement.importClause?.namedBindings?.elements ?? []) {
+      const exported = specifier.propertyName?.text ?? specifier.name.text
+      values[exported] = exported.startsWith('use') ? dummyStore : () => null
+    }
+    dependencies[name] = values
+  }
+  const context = vm.createContext({})
+  const module = new vm.SourceTextModule(
+    ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.ES2022,
+        jsx: ts.JsxEmit.ReactJSX,
+        target: ts.ScriptTarget.ES2022
+      }
+    }).outputText,
+    { context }
+  )
+  await module.link((name) => {
+    const values = dependencies[name]
+    assert.ok(values, `Unexpected import: ${name}`)
+    return new vm.SyntheticModule(
+      Object.keys(values),
+      function () {
+        for (const [key, value] of Object.entries(values)) this.setExport(key, value)
+      },
+      { context }
+    )
+  })
+  await module.evaluate()
+  const html = renderToStaticMarkup(React.createElement(module.namespace.LobbyPage))
+  assert.match(html, /data-results="mr8-result"/)
+  assert.match(html, /data-collapsed="false"/)
+  assert.match(html, /Friends and MR12 queue/)
+  assert.doesNotMatch(html, /<dialog|aria-modal="true"/)
+  assert.equal(windows.at(-1).fitContent, true)
+  onNavigate('lobby')
+  assert.equal(warmup.getState().completedMatch, null)
+  assert.deepEqual(navigation, ['lobby'])
+  assert.equal(queue.getState().queueStatus, before.queueStatus)
+  assert.equal(queue.getState().queuedAt, before.queuedAt)
+  assert.equal(queue.getState().selectedMode, before.selectedMode)
+  assert.equal(queue.getState().selectedMapIds, before.selectedMapIds)
+})
 
 for (const outcome of ['timeout', 'decline', 'all-ready']) {
   test(`MR8 game survives individual acceptance and ${outcome === 'all-ready' ? 'closes only when everyone is ready' : outcome}`, async () => {

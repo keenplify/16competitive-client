@@ -1,8 +1,10 @@
 import { useProfileStore } from '../profile/profile.store'
 import { useTranslation } from '../i18n/i18n'
 import { useCommunitiesStore } from '../communities/communities.store'
+import { useDisplayedCommunity } from '../communities/use-displayed-community'
+import { useAuthStore } from '../auth/auth.store'
 import { createPortal } from 'react-dom'
-import { useEffect, useId, useRef, useState, type JSX } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type JSX } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -17,7 +19,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
-import { useCommunityMembersStore } from './community-members.store'
+import { createCommunityMembersStore, useCommunityMembersStore } from './community-members.store'
 import { useCommunityText } from './community-copy'
 import type { CommunityMembers } from '../../../../shared/partner-community'
 export function CommunityMembersSection({
@@ -29,8 +31,11 @@ export function CommunityMembersSection({
 }): JSX.Element | null {
   const { t } = useTranslation()
   const current = useCommunitiesStore((state) => state.currentCommunity)
+  const displayed = useDisplayedCommunity()
+  const accountId = useAuthStore((state) => state.session?.player.id)
   const [menu, setMenu] = useState<{
     member: CommunityMembers['members'][number]
+    communityId: string | null
     x: number
     y: number
   } | null>(null)
@@ -56,27 +61,38 @@ export function CommunityMembersSection({
   const text = useCommunityText(),
     chatCommunityId = useCommunityChatStore((s) => s.communityId),
     chatName = useCommunityChatStore((s) => s.name)
-  const communityId = standalone ? (current?.id ?? null) : chatCommunityId
-  const name = standalone ? current?.name : chatName
-  const storedExpanded = useCommunityMembersStore((s) => s.expanded),
-    members = useCommunityMembersStore((s) => s.members),
-    total = useCommunityMembersStore((s) => s.total),
-    loading = useCommunityMembersStore((s) => s.loading),
-    error = useCommunityMembersStore((s) => s.error),
-    hasMore = useCommunityMembersStore((s) => s.hasMore),
-    page = useCommunityMembersStore((s) => s.page),
-    toggle = useCommunityMembersStore((s) => s.toggle),
-    load = useCommunityMembersStore((s) => s.load)
+  const communityId = standalone ? (displayed?.id ?? null) : chatCommunityId
+  const name = standalone ? displayed?.name : chatName
+  const useMembers = useMemo(
+    () =>
+      standalone
+        ? createCommunityMembersStore(communityId ?? undefined, accountId)
+        : useCommunityMembersStore,
+    [standalone, communityId, accountId]
+  )
+  const storedExpanded = useMembers((s) => s.expanded),
+    memberCommunityId = useMembers((s) => s.communityId),
+    storedMembers = useMembers((s) => s.members),
+    total = useMembers((s) => s.total),
+    loading = useMembers((s) => s.loading),
+    error = useMembers((s) => s.error),
+    hasMore = useMembers((s) => s.hasMore),
+    page = useMembers((s) => s.page),
+    toggle = useMembers((s) => s.toggle),
+    load = useMembers((s) => s.load)
+  const members = memberCommunityId === communityId ? storedMembers : []
   const friends = useFriendsStore((s) => s.friends),
     actingPlayerId = useFriendsStore((s) => s.actingPlayerId),
     request = useFriendsStore((s) => s.request)
   const expanded = standalone || storedExpanded
   const memberCount =
-    current?.id === communityId && current.memberCount !== null
-      ? current.memberCount
-      : page > 0
-        ? total + 1
-        : '—'
+    standalone && displayed?.memberCount != null
+      ? displayed.memberCount
+      : current?.id === communityId && current.memberCount !== null
+        ? current.memberCount
+        : page > 0 && memberCommunityId === communityId
+          ? total + (current?.id === communityId ? 1 : 0)
+          : '—'
   const menuIsFriend = Boolean(
     menu &&
     (menu.member.relationship === 'FRIEND' ||
@@ -96,8 +112,7 @@ export function CommunityMembersSection({
       : Clock3
   const id = useId()
   useEffect(() => {
-    if (useCommunityMembersStore.getState().communityId !== communityId)
-      useCommunityMembersStore.getState().clear()
+    if (useMembers.getState().communityId !== communityId) useMembers.getState().clear()
     if (standalone && communityId) void load()
     const timer =
       standalone && communityId
@@ -108,7 +123,7 @@ export function CommunityMembersSection({
     return () => {
       if (timer) window.clearInterval(timer)
     }
-  }, [communityId, standalone, load])
+  }, [communityId, standalone, load, useMembers])
   if (!communityId)
     return standalone ? (
       <p className="p-4 text-sm text-neutral-400">{t('community.noMembership')}</p>
@@ -163,7 +178,7 @@ export function CommunityMembersSection({
                 key={member.id}
                 onContextMenu={(event) => {
                   event.preventDefault()
-                  setMenu({ member, x: event.clientX, y: event.clientY })
+                  setMenu({ member, communityId, x: event.clientX, y: event.clientY })
                 }}
                 className="flex h-10 items-center gap-2 px-4 text-xs hover:bg-white/5"
               >
@@ -180,7 +195,7 @@ export function CommunityMembersSection({
                   aria-label={t('directory.memberActions', { player: member.username })}
                   onClick={(event) => {
                     const bounds = event.currentTarget.getBoundingClientRect()
-                    setMenu({ member, x: bounds.left, y: bounds.bottom })
+                    setMenu({ member, communityId, x: bounds.left, y: bounds.bottom })
                   }}
                 >
                   <MoreVertical className="size-4" />
@@ -201,6 +216,7 @@ export function CommunityMembersSection({
         )}
       </section>
       {menu &&
+        menu.communityId === communityId &&
         createPortal(
           <div
             ref={menuRef}

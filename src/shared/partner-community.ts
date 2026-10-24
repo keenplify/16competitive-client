@@ -164,9 +164,22 @@ export function parsePartnerLaunchGroup(input: unknown): PartnerLaunchGroup {
   }
 }
 export interface CommunityChatApi {
-  members(page: number): Promise<CommunityMembers>
+  members(page: number, communityId?: string): Promise<CommunityMembers>
   history(): Promise<CommunityChatHistory>
   send(communityId: string, message: string): Promise<CommunityChatMessage>
+}
+export function communityMembersPath(page: unknown, communityId?: unknown): string {
+  if (
+    typeof page !== 'number' ||
+    !Number.isInteger(page) ||
+    page < 1 ||
+    page > 10000 ||
+    (communityId !== undefined && !uuid(communityId))
+  )
+    throw new Error('INVALID_COMMUNITY_PAGE')
+  const query = new URLSearchParams({ page: String(page) })
+  if (typeof communityId === 'string') query.set('communityId', communityId)
+  return `/partners/community/members?${query}`
 }
 export interface CommunityMembers {
   communityId: string | null

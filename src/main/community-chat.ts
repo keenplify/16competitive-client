@@ -4,6 +4,7 @@ import {
   parseCommunityHistory,
   parseCommunityMessage,
   parseCommunityMembers,
+  communityMembersPath,
   type CommunityMembers,
   type CommunityChatHistory,
   type CommunityChatMessage
@@ -35,11 +36,12 @@ export async function communityChatRequest<T>(
     )
   return (await response.json()) as T
 }
-export async function communityMembers(page: unknown): Promise<CommunityMembers> {
-  if (typeof page !== 'number' || !Number.isInteger(page) || page < 1 || page > 10000)
-    throw new Error('INVALID_COMMUNITY_PAGE')
+export async function communityMembers(
+  page: unknown,
+  communityId?: unknown
+): Promise<CommunityMembers> {
   return parseCommunityMembers(
-    await communityChatRequest('GET', undefined, `/partners/community/members?page=${page}`)
+    await communityChatRequest('GET', undefined, communityMembersPath(page, communityId))
   )
 }
 export const communityChatHistory = async (): Promise<CommunityChatHistory> =>

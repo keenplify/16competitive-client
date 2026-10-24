@@ -1048,7 +1048,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(PARTNER_SERVER_CHANNELS.presence, () => currentPartnerPresence())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.history, () => communityChatHistory())
-  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown) => communityMembers(page))
+  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown, communityId: unknown) =>
+    communityMembers(page, communityId)
+  )
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>
     sendCommunityChat(id, message)
   )

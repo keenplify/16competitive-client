@@ -14,6 +14,7 @@ import {
   type CommunityCard
 } from '../../../../shared/community-directory'
 import { useCommunitiesStore } from './communities.store'
+import { useDisplayedCommunity } from './use-displayed-community'
 import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CommunityEditPage } from './CommunityEditPage'
@@ -58,11 +59,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
   const branding = usePartnerBrandingStore((store) => store.branding)
   const restricted = branding?.allowOtherCommunities === false
-  const community = restricted
-    ? ([state.preferredCommunity, state.currentCommunity, state.viewedCommunity].find(
-        (item) => item?.id === branding.partnerId
-      ) ?? null)
-    : (state.viewedCommunity ?? state.currentCommunity)
+  const community = useDisplayedCommunity()
   const isMember = community?.id === state.currentCommunityId
   const isOwner = Boolean(community && community.id === playerId)
   const discovering = !restricted && (state.view === 'discover' || !community)

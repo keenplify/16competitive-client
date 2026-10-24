@@ -282,6 +282,97 @@ test('visitor server lists and launch targets stay isolated from membership serv
   assert.equal(own.getState().selectedId, null)
 })
 
+test('visitor member lists isolate own community data, pagination and late responses', async () => {
+  const otherId = '22345678-1234-4123-8123-123456789abc'
+  const requests = [],
+    pending = []
+  const auth = create(() => ({ session: { player: { id } } }))
+  const { createCommunityMembersStore, useCommunityMembersStore: own } = rendererStore(
+    '../src/renderer/src/features/partner-branding/community-members.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: auth },
+      window: {
+        api: {
+          communityChat: {
+            members: (page, communityId) => {
+              requests.push([page, communityId])
+              return new Promise((resolve) => pending.push(resolve))
+            }
+          }
+        }
+      }
+    }
+  )
+  const visitor = createCommunityMembersStore(otherId, id)
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  const roster = (communityId, username, hasMore = false) => ({
+    communityId,
+    name: communityId,
+    members: [{ id: username, username, relationship: 'NONE' }],
+    total: 2,
+    hasMore
+  })
+  const ownLoad = own.getState().load(),
+    visitorLoad = visitor.getState().load()
+  pending[1](roster(otherId, 'Visitor member', true))
+  await visitorLoad
+  pending[0](roster(id, 'Own member'))
+  await ownLoad
+  assert.equal(visitor.getState().members[0].username, 'Visitor member')
+  assert.equal(own.getState().members[0].username, 'Own member')
+  const more = visitor.getState().load(true)
+  pending[2](roster(otherId, 'Another visitor member'))
+  await more
+  assert.deepEqual(requests, [
+    [1, undefined],
+    [1, otherId],
+    [2, otherId]
+  ])
+  assert.deepEqual(
+    visitor.getState().members.map((member) => member.username),
+    ['Visitor member', 'Another visitor member']
+  )
+  const stale = visitor.getState().load()
+  visitor.getState().clear()
+  pending[3](roster(otherId, 'Stale member'))
+  await stale
+  assert.equal(visitor.getState().members.length, 0)
+  const wrongScope = visitor.getState().load()
+  pending[4](roster(id, 'Wrong community'))
+  await wrongScope
+  assert.equal(visitor.getState().error, true)
+  assert.equal(visitor.getState().members.length, 0)
+  assert.equal(own.getState().members[0].username, 'Own member')
+  const previousAccount = visitor.getState().load()
+  auth.setState({ session: { player: { id: otherId } } })
+  pending[5](roster(otherId, 'Old account response'))
+  await previousAccount
+  assert.equal(visitor.getState().members.length, 0)
+  await visitor.getState().load()
+  assert.equal(requests.length, 6)
+  assert.equal(visitor.getState().accountId, null)
+})
+
+test('community details and member sidebar resolve the viewed community, including restricted partner context', () => {
+  const other = { ...card, id: '22345678-1234-4123-8123-123456789abc', name: 'Viewed community' }
+  const state = { currentCommunity: card, viewedCommunity: other, preferredCommunity: other }
+  let branding = null
+  const { useDisplayedCommunity } = rendererStore(
+    '../src/renderer/src/features/communities/use-displayed-community.ts',
+    {
+      './communities.store': { useCommunitiesStore: (select) => select(state) },
+      '../partner-branding/partner-branding.store': {
+        usePartnerBrandingStore: (select) => select({ branding })
+      }
+    }
+  )
+  assert.equal(useDisplayedCommunity().id, other.id)
+  state.viewedCommunity = null
+  assert.equal(useDisplayedCommunity().id, id)
+  branding = { partnerId: other.id, allowOtherCommunities: false }
+  assert.equal(useDisplayedCommunity().id, other.id)
+})
+
 test('partner PWA activates its preferred community without silently changing membership', async () => {
   const other = { ...card, id: '22345678-1234-4123-8123-123456789abc' }
   const { useCommunitiesStore: store } = rendererStore(
