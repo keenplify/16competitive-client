@@ -94,6 +94,7 @@ export function MatchFoundReadyCheck({
   }, [loadRanks, match.matchId, match.teams])
   const mapName = match.mapId.replace(/^de_/, '').replace(/_/g, ' ')
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const timeLeft = `${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, '0')}`
 
   return (
     <div className="match-ready-check w-full min-w-0 text-white">
@@ -151,12 +152,20 @@ export function MatchFoundReadyCheck({
 
           <div className="match-ready-timer mt-4 text-center">
             <p className="font-mono text-3xl font-bold tabular-nums text-emerald-200">
-              {preparing ? '—' : secondsRemaining}
+              {preparing ? '—:—' : timeLeft}
             </p>
             <p className="mt-1 text-xs tracking-[0.14em] text-emerald-100/65 uppercase">
-              seconds to accept
+              {t('match.ready.timerLabel')}
             </p>
           </div>
+
+          {match.mode === '5v5' && (
+            <aside className="match-ready-handoff mt-5 border border-amber-300/40 bg-amber-950/50 p-4 text-sm leading-relaxed text-amber-100">
+              <h2 className="font-semibold">{t('match.ready.handoffTitle')}</h2>
+              <p className="mt-1">{t('match.ready.handoffDetails')}</p>
+              <p className="mt-2">{t('match.ready.handoffMmr')}</p>
+            </aside>
+          )}
 
           <div className="match-ready-actions mt-5 flex flex-wrap justify-center gap-3">
             <Button
@@ -178,6 +187,27 @@ export function MatchFoundReadyCheck({
             >
               DECLINE
             </Button>
+          </div>
+          <div
+            className="mt-4 grid text-center text-sm leading-relaxed text-emerald-100"
+            role="status"
+          >
+            {(['pending', 'accepted'] as const).map((state) => (
+              <p
+                key={state}
+                className={twMerge(
+                  'col-start-1 row-start-1',
+                  (readyResponse === 'accepted') !== (state === 'accepted') && 'invisible'
+                )}
+                aria-hidden={(readyResponse === 'accepted') !== (state === 'accepted')}
+              >
+                {t(
+                  state === 'accepted'
+                    ? 'match.ready.decisionAccepted'
+                    : 'match.ready.decisionPending'
+                )}
+              </p>
+            ))}
           </div>
         </section>
 

@@ -1438,13 +1438,13 @@ class MatchmakingConnection {
       )
         return
       if (
-        (parsed.type === 'match_ready_check' || parsed.type === 'match_ready_updated') &&
-        this.authenticatedPlayer &&
-        parsed.acceptedPlayerIds.includes(this.authenticatedPlayer.id) &&
+        // Readiness is server-authoritative. Keep the warmup game alive while
+        // anyone is pending; a decline/timeout must leave it playable.
+        (parsed.type === 'match_server_starting' || parsed.type === 'match_countdown') &&
         this.warmupMatchId
       ) {
         void this.leaveWarmup().catch((error) =>
-          console.warn('[QueueWarmup] could not close after ready acceptance', error)
+          console.warn('[QueueWarmup] could not close after all players accepted', error)
         )
       }
       if (

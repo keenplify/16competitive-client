@@ -1418,3 +1418,9 @@
   box-shadow: var(--vgui-sunken);
   color: #c5cdb7;
 }
+
+:root[data-launcher-theme='vgui2'] .match-ready-handoff {
+  border: 1px solid var(--vgui-light);
+  background: var(--vgui-inset);
+  color: var(--vgui-text);
+}

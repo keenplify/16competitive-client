@@ -609,3 +609,56 @@ test('MR8 completion validates and focuses the launcher without leaving the queu
     h.connection.shutdown()
   }
 })
+
+
+for (const outcome of ['timeout', 'decline', 'all-ready']) {
+  test(`MR8 game survives individual acceptance and ${outcome === 'all-ready' ? 'closes only when everyone is ready' : outcome}`, async () => {
+    const h = await harness()
+    await h.connection.createSocket('test-token', 'https://eu.invalid')
+    const socket = h.sockets[0]
+    const emit = (value) => socket.listeners.get('message')({ data: JSON.stringify(value) })
+    try {
+      emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+      h.connection.handleWarmup(found, socket)
+      h.connection.handleWarmup(connect, socket)
+      h.finishAssets()
+      await h.connection.warmupLaunch
+      emit({
+        type: 'match_ready_updated',
+        matchId: 'ranked',
+        acceptedPlayerIds: ['me'],
+        playersRequired: 2
+      })
+      await Promise.resolve()
+      assert.equal(h.connection.warmupMatchId, 'warmup')
+      assert.ok(
+        !h.calls.some(([type, id]) => type === 'shutdown' || (type === 'close' && id === 'warmup'))
+      )
+      assert.ok(!h.sent.some(({ type }) => type === 'leave_warmup'))
+      if (outcome === 'all-ready') {
+        emit({ type: 'match_server_starting', matchId: 'ranked' })
+        await h.connection.warmupCleanup
+        assert.equal(h.connection.warmupMatchId, null)
+        assert.ok(h.calls.some(([type]) => type === 'shutdown'))
+      } else {
+        emit({
+          type: 'match_cancelled',
+          matchId: 'ranked',
+          reason: outcome === 'timeout' ? 'READY_TIMEOUT' : 'PLAYER_DECLINED',
+          message: 'Ready check cancelled'
+        })
+        await Promise.resolve()
+        assert.equal(h.connection.warmupMatchId, 'warmup')
+        assert.ok(
+          !h.calls.some(
+            ([type, id]) => type === 'shutdown' || (type === 'close' && id === 'warmup')
+          )
+        )
+        assert.ok(!h.sent.some(({ type }) => type === 'leave_warmup'))
+      }
+    } finally {
+      h.connection.shutdown()
+      socket.close()
+    }
+  })
+}
