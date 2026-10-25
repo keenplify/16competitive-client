@@ -3178,3 +3178,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Refined lobby navigation and community UI.
 - Expanded localized matchmaking text.
+
+## v2026.1025.2 — 2026-10-25
+
+### Matchmaking Regions
+
+- Manual and nearby region selections are now validated more reliably.
+- Desktop matchmaking uses recent UDP ping results to choose regions.
