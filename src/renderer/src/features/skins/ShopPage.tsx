@@ -343,7 +343,7 @@ export function ShopPage(): JSX.Element {
 
             <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label="Filter skins by weapon">
               {WEAPON_CATEGORIES.filter(
-                (category) => category.id === 'all' || (weaponCounts.get(category.id) ?? 0) > 0
+                (category) => category.id === 'all' || category.id === 'grenades' || (weaponCounts.get(category.id) ?? 0) > 0
               ).map((category) => (
                 <StoreFilterButton
                   key={category.id}
