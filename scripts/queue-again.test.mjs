@@ -191,7 +191,7 @@ test('FFA can leave after game exit, updates its roster, and rejoin the same pub
   assert.equal(h.requests.length, 1)
 })
 
-test('Arena queue again uses the saved pool and region only after consent', async () => {
+test('Arena queue again keeps the saved pool and manual region after consent', async () => {
   const h = await harness({ savedMaps: ['fy_pool_day', 'fy_iceworld'] })
   h.emit({ type: 'match_finished', ...h.completed })
   assert.equal(h.requests.length, 0)
@@ -199,7 +199,7 @@ test('Arena queue again uses the saved pool and region only after consent', asyn
   assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])), [
     'arena',
     ['fy_pool_day', 'fy_iceworld'],
-    true,
+    false,
     'asia',
     ['asia']
   ])
@@ -380,7 +380,7 @@ test('warmup lifecycle events leave ranked queue time, position and ready check 
   assert.equal(h.store.getState().match.matchId, 'ranked')
 })
 
-test('automatic queue starts across SG and EUW even with an old expansion opt-out', async () => {
+test('automatic queue excludes distant regions even with an old expansion opt-out', async () => {
   const h = await harness()
   h.store.setState({
     selectedNodeId: null,
@@ -395,7 +395,7 @@ test('automatic queue starts across SG and EUW even with an old expansion opt-ou
   assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])).slice(2), [
     true,
     'sea',
-    ['sea', 'europe-east']
+    ['sea']
   ])
 })
 
