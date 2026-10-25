@@ -3185,3 +3185,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Manual and nearby region selections are now validated more reliably.
 - Desktop matchmaking uses recent UDP ping results to choose regions.
+
+## v2026.1025.3 — 2026-10-25
+
+### Store
+
+- Restored scrolling in the store panel.
+- Enlarged the store filters for easier use.
