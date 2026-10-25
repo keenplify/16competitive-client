@@ -1,8 +1,12 @@
 import type { MatchmakingNode } from './matchmaking'
 
 export const HIGH_PING_THRESHOLD_MS = 300
+export const AUTOMATIC_REGION_PING_THRESHOLD_MS = 150
 
-export function nearbyMatchmakingNodes(nodes: MatchmakingNode[]): MatchmakingNode[] {
+export function nearbyMatchmakingNodes(
+  nodes: MatchmakingNode[],
+  maxPingMs = AUTOMATIC_REGION_PING_THRESHOLD_MS
+): MatchmakingNode[] {
   return nodes
     .filter(
       (node) =>
@@ -10,7 +14,7 @@ export function nearbyMatchmakingNodes(nodes: MatchmakingNode[]): MatchmakingNod
         typeof node.latencyMs === 'number' &&
         Number.isFinite(node.latencyMs) &&
         node.latencyMs >= 0 &&
-        node.latencyMs < HIGH_PING_THRESHOLD_MS
+        node.latencyMs < maxPingMs
     )
     .sort((a, b) => a.latencyMs! - b.latencyMs!)
 }
@@ -21,15 +25,22 @@ export function matchmakingRegionSelection(
   allowRegionExpansion: boolean
 ): { preferredNode: MatchmakingNode | undefined; eligibleRegions: string[]; nearby: boolean } {
   const available = nearbyMatchmakingNodes(nodes)
-  const selected = available.find((node) => node.id === selectedNodeId)
-  const preferredNode = selected ?? available[0]
+  const selected = selectedNodeId
+    ? nearbyMatchmakingNodes(nodes, HIGH_PING_THRESHOLD_MS).find(
+        (node) => node.id === selectedNodeId
+      )
+    : undefined
+  // A manual region must never silently become a different continent during a restart.
+  const preferredNode = selectedNodeId ? selected : available[0]
   const nearby = !selectedNodeId || allowRegionExpansion
   return {
     preferredNode,
     nearby,
     eligibleRegions: [
       ...new Set(
-        (nearby ? available : preferredNode ? [preferredNode] : []).map((node) => node.region)
+        (preferredNode ? (nearby ? [preferredNode, ...available] : [preferredNode]) : []).map(
+          (node) => node.region
+        )
       )
     ]
   }

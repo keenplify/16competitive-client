@@ -13,6 +13,7 @@ type MeasuredMatchmakingNode = MatchmakingNode & { latencyMs: number | null }
 
 const LATENCY_PROBE_TIMEOUT_MS = 1_500
 const MAX_PREFERRED_LATENCY_MS = 300
+const RECENT_UDP_PING_MAX_AGE_MS = 15 * 60_000
 const FALLBACK_NODE_DISCOVERY_ORIGINS = [
   'https://euw.16competitive.papamo.dev',
   'https://na.16competitive.papamo.dev',
@@ -20,6 +21,48 @@ const FALLBACK_NODE_DISCOVERY_ORIGINS = [
 ] as const
 
 const preferencesPath = (): string => join(app.getPath('userData'), 'matchmaking-preferences.json')
+const recentUdpPingsPath = (): string => join(app.getPath('userData'), 'matchmaking-udp-pings.json')
+const recentUdpPings = new Map<string, { latencyMs: number; observedAt: number }>()
+let recentUdpPingsLoaded: Promise<void> | null = null
+
+const udpPingKey = (node: MatchmakingNode): string =>
+  `${node.id}|${node.latencyProbe?.host ?? ''}:${node.latencyProbe?.port ?? ''}`
+
+const loadRecentUdpPings = (): Promise<void> => {
+  recentUdpPingsLoaded ??= readFile(recentUdpPingsPath(), 'utf8')
+    .then((contents) => {
+      const parsed: unknown = JSON.parse(contents)
+      if (!isObject(parsed)) return
+      const now = Date.now()
+      for (const [key, value] of Object.entries(parsed)) {
+        if (
+          isObject(value) &&
+          typeof value.latencyMs === 'number' &&
+          Number.isFinite(value.latencyMs) &&
+          value.latencyMs >= 0 &&
+          typeof value.observedAt === 'number' &&
+          value.observedAt <= now &&
+          now - value.observedAt <= RECENT_UDP_PING_MAX_AGE_MS
+        ) {
+          recentUdpPings.set(key, { latencyMs: value.latencyMs, observedAt: value.observedAt })
+        }
+      }
+    })
+    .catch(() => undefined)
+  return recentUdpPingsLoaded
+}
+
+const saveRecentUdpPings = async (): Promise<void> => {
+  const destination = recentUdpPingsPath()
+  const temporary = `${destination}.${randomBytes(6).toString('hex')}.tmp`
+  await mkdir(dirname(destination), { recursive: true })
+  await writeFile(temporary, JSON.stringify(Object.fromEntries(recentUdpPings)), { mode: 0o600 })
+  await rename(temporary, destination)
+}
+let recentUdpPingWrite: Promise<void> = Promise.resolve()
+const scheduleRecentUdpPingSave = (): void => {
+  recentUdpPingWrite = recentUdpPingWrite.then(saveRecentUdpPings).catch(() => undefined)
+}
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -133,34 +176,45 @@ const probeUdpLatency = (
     })
   })
 
-const probeNodeLatency = async (node: MatchmakingNode): Promise<number | null> => {
-  if (!node.available) return null
-  if (node.latencyProbe) {
-    const latencyMs = await probeUdpLatency(node.latencyProbe)
-    if (latencyMs !== null) return latencyMs
+const probeNodeUdpLatency = async (
+  node: MatchmakingNode
+): Promise<{ latencyMs: number | null; fresh: boolean }> => {
+  const key = udpPingKey(node)
+  const fresh =
+    node.available && node.latencyProbe ? await probeUdpLatency(node.latencyProbe) : null
+  if (fresh !== null) {
+    recentUdpPings.set(key, { latencyMs: fresh, observedAt: Date.now() })
+    return { latencyMs: fresh, fresh: true }
   }
-  const startedAt = performance.now()
-  try {
-    const response = await fetch(node.publicApiUrl, { signal: AbortSignal.timeout(2_500) })
-    if (!response.ok) return null
-    return Math.max(0, Math.round(performance.now() - startedAt))
-  } catch {
-    return null
+  const previous = recentUdpPings.get(key)
+  return {
+    latencyMs:
+      previous && Date.now() - previous.observedAt <= RECENT_UDP_PING_MAX_AGE_MS
+        ? previous.latencyMs
+        : null,
+    fresh: false
   }
 }
 
-const attachNodeLatencies = async (nodes: MatchmakingNode[]): Promise<MatchmakingNode[]> =>
-  Promise.all(
-    nodes.map(async (node) => ({
-      ...node,
-      latencyMs: await probeNodeLatency(node)
-    }))
+const attachNodeLatencies = async (nodes: MatchmakingNode[]): Promise<MatchmakingNode[]> => {
+  await loadRecentUdpPings()
+  const measured = await Promise.all(
+    nodes.map(async (node) => {
+      const { latencyMs, fresh } = await probeNodeUdpLatency(node)
+      return { ...node, latencyMs, udpProbeFresh: fresh }
+    })
   )
+  if (measured.some((node) => node.udpProbeFresh)) scheduleRecentUdpPingSave()
+  return measured
+}
 
 const reportNodeLatencies = async (nodes: MatchmakingNode[], token: string): Promise<void> => {
   const measurements = nodes.flatMap((node) => {
     const latencyMs = measuredLatency(node)
-    return latencyMs === null ? [] : [{ region: node.region, latencyMs }]
+    return latencyMs === null ||
+      (node as MeasuredMatchmakingNode & { udpProbeFresh?: boolean }).udpProbeFresh !== true
+      ? []
+      : [{ region: node.region, latencyMs }]
   })
   if (measurements.length === 0) return
   try {
@@ -294,6 +348,7 @@ export const selectMatchmakingApiUrl = async (
   nodes: MatchmakingNode[],
   selectedNodeId: string | null
 ): Promise<string | null> => {
+  await loadRecentUdpPings()
   const selected = nodes.find((node) => node.id === selectedNodeId && isUsablePreference(node))
   if (selected) return selected.publicApiUrl
 
@@ -311,13 +366,17 @@ export const selectMatchmakingApiUrl = async (
   if (alreadyMeasured.length > 0) return alreadyMeasured[0].node.publicApiUrl
 
   const measurements = await Promise.all(
-    available.map(async (node) => ({ node, latency: await probeNodeLatency(node) }))
+    available.map(async (node) => {
+      const { latencyMs, fresh } = await probeNodeUdpLatency(node)
+      return { node, latency: latencyMs, fresh }
+    })
   )
+  if (measurements.some((measurement) => measurement.fresh)) scheduleRecentUdpPingSave()
 
   return (
     measurements
       .filter(
-        (measurement): measurement is { node: MatchmakingNode; latency: number } =>
+        (measurement): measurement is { node: MatchmakingNode; latency: number; fresh: boolean } =>
           measurement.latency !== null
       )
       .sort((left, right) => left.latency - right.latency)[0]?.node.publicApiUrl ?? null

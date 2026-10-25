@@ -12,12 +12,15 @@ async function loadRegionsModule({
   selectedNodeId = null,
   nodes = [],
   probeLatencyMs = 0,
+  udpProbeState = { fails: false },
+  storedUdpPings = '{}',
   probeFails = false,
   bootstrapFails = false,
   serviceFails = [],
   requests = []
 } = {}) {
   let saved = JSON.stringify({ selectedNodeId, allowRegionExpansion: true })
+  let udpPings = storedUdpPings
   const source = ts.transpileModule(
     await readFile(new URL('../src/main/matchmaking-regions.ts', import.meta.url), 'utf8'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
@@ -27,18 +30,33 @@ async function loadRegionsModule({
     'node:crypto': { randomBytes: () => Buffer.alloc(16) },
     'node:dgram': {
       createSocket: () => {
-        throw new Error('Unexpected probe')
+        let onMessage = () => {}
+        return {
+          once: () => {},
+          on: (event, callback) => {
+            if (event === 'message') onMessage = callback
+          },
+          send: (nonce, _port, _host, callback) => {
+            if (udpProbeState.fails) callback(new Error('UDP unavailable'))
+            else {
+              callback(null)
+              queueMicrotask(() => onMessage(nonce))
+            }
+          },
+          close: () => {}
+        }
       }
     },
     'node:fs/promises': {
       mkdir: async () => {},
-      readFile: async () => saved,
+      readFile: async (path) => (path.includes('udp-pings') ? udpPings : saved),
       rename: async () => {},
-      writeFile: async (_path, value) => {
-        saved = value
+      writeFile: async (path, value) => {
+        if (path.includes('udp-pings')) udpPings = value
+        else saved = value
       }
     },
-    'node:path': { dirname: () => '/tmp', join: () => '/tmp/matchmaking-preferences.json' },
+    'node:path': { dirname: () => '/tmp', join: (_dir, name) => `/tmp/${name}` },
     '../shared/matchmaking-activity': { parseMatchmakingActivity },
     './auth': { getSessionToken: () => token },
     './config': { API_BASE_URL: 'https://bootstrap.example', LOCAL_DEVELOPMENT: false },
@@ -48,6 +66,8 @@ async function loadRegionsModule({
     console,
     URL,
     AbortSignal,
+    setTimeout,
+    clearTimeout,
     Buffer,
     performance: {
       now: (() => {
@@ -85,7 +105,7 @@ async function loadRegionsModule({
     )
   })
   await module.evaluate()
-  return { ...module.namespace, saved: () => JSON.parse(saved) }
+  return { ...module.namespace, saved: () => JSON.parse(saved), udpPings: () => udpPings }
 }
 
 const node = (id, latencyMs, available = true) => ({
@@ -97,6 +117,10 @@ const node = (id, latencyMs, available = true) => ({
   activeMatches: 0,
   available,
   latencyMs
+})
+const udpNode = (id, latencyMs, available = true) => ({
+  ...node(id, latencyMs, available),
+  latencyProbe: { host: `${id}.example`, port: 27014 }
 })
 
 test('a saved server in the orange ping range remains preferred', async () => {
@@ -117,7 +141,7 @@ test('an unavailable saved server is never selected', async () => {
 test('launch probes keep a saved server in the orange ping range', async () => {
   const regions = await loadRegionsModule({
     selectedNodeId: 'saved',
-    nodes: [node('saved', null)],
+    nodes: [udpNode('saved', null)],
     probeLatencyMs: 240
   })
   await regions.getMatchmakingNodes()
@@ -138,6 +162,37 @@ test('launch probes preserve a saved server that is temporarily unreachable', as
   })
   await regions.getMatchmakingNodes()
   assert.equal(regions.saved().selectedNodeId, 'saved')
+})
+
+test('launcher pings use UDP and reuse the last successful UDP result', async () => {
+  const udpProbeState = { fails: false }
+  const regions = await loadRegionsModule({
+    nodes: [udpNode('sea', null)],
+    probeLatencyMs: 45,
+    udpProbeState
+  })
+  const first = await regions.getMatchmakingNodes()
+  assert.equal(first[0]?.latencyMs, 45)
+  udpProbeState.fails = true
+  assert.equal(
+    await regions.selectMatchmakingApiUrl([udpNode('sea', null)], null),
+    'https://sea.example'
+  )
+
+  const afterRestart = await loadRegionsModule({
+    nodes: [udpNode('sea', null)],
+    udpProbeState: { fails: true },
+    storedUdpPings: regions.udpPings()
+  })
+  assert.equal((await afterRestart.getMatchmakingNodes())[0]?.latencyMs, 45)
+
+  const withoutHistory = await loadRegionsModule({
+    nodes: [udpNode('sea', null)],
+    udpProbeState: { fails: true }
+  })
+  const unmeasured = await withoutHistory.getMatchmakingNodes()
+  assert.equal(unmeasured[0]?.latencyMs, null)
+  assert.equal(matchmakingRegionSelection(unmeasured, null, true).preferredNode, undefined)
 })
 
 test('node discovery falls back to a bundled regional HTTPS endpoint', async () => {
@@ -186,7 +241,8 @@ test('activity counts use the selected regional service instead of bootstrap', a
   const requests = []
   const regions = await loadRegionsModule({
     selectedNodeId: 'warsaw',
-    nodes: [node('warsaw', 42)],
+    nodes: [udpNode('warsaw', 42)],
+    probeLatencyMs: 42,
     requests
   })
   const activity = await regions.getMatchmakingActivity()
@@ -196,7 +252,7 @@ test('activity counts use the selected regional service instead of bootstrap', a
   assert.ok(!requests.includes('https://bootstrap.example/stats/matchmaking-activity'))
 })
 
-test('automatic searches every healthy region below 300 ms, nearest first', () => {
+test('automatic searches only nearby regions while manual selection stays fixed', () => {
   const nodes = [
     node('euw', 240),
     node('sea', 55),
@@ -208,9 +264,10 @@ test('automatic searches every healthy region below 300 ms, nearest first', () =
   ]
   const result = matchmakingRegionSelection(nodes, null, false)
   assert.equal(result.preferredNode.id, 'sea')
-  assert.deepEqual(result.eligibleRegions, ['sea', 'euw', 'sa'])
+  assert.deepEqual(result.eligibleRegions, ['sea'])
   assert.equal(result.nearby, true)
   assert.deepEqual(matchmakingRegionSelection(nodes, 'euw', false).eligibleRegions, ['euw'])
+  assert.equal(matchmakingRegionSelection(nodes, 'offline', true).preferredNode, undefined)
   assert.equal(matchmakingRegionSelection([node('na', 300)], null, true).preferredNode, undefined)
 })
 
@@ -221,13 +278,20 @@ test('nearest SEA replaces an earlier European recovery endpoint', async () => {
     await regions.resolvePreferredMatchmakingApiUrl(),
     'https://euw.16competitive.papamo.dev'
   )
-  nodes.push({ ...node('sea', 55), publicApiUrl: 'https://bootstrap.example' }, node('euw', 240))
+  nodes.push(
+    { ...udpNode('sea', 55), publicApiUrl: 'https://bootstrap.example' },
+    udpNode('euw', 240)
+  )
   assert.equal(await regions.resolvePreferredMatchmakingApiUrl(), 'https://bootstrap.example')
 })
 
 test('nearby activity requests all selected regions in one query and validates IPC arguments', async () => {
   const requests = []
-  const regions = await loadRegionsModule({ nodes: [node('sea', 55)], requests })
+  const regions = await loadRegionsModule({
+    nodes: [udpNode('sea', 55)],
+    probeLatencyMs: 55,
+    requests
+  })
   await regions.getMatchmakingActivity(['sea', 'euw', 'sea'])
   assert.ok(requests.includes('https://sea.example/stats/matchmaking-activity?regions=sea%2Ceuw'))
   await assert.rejects(
