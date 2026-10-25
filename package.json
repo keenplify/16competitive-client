@@ -27,6 +27,7 @@
     "dev": "electron-vite dev",
     "dev:vm": "node scripts/dev-vm.mjs",
     "marketing:lobby": "electron-vite dev --mode marketing",
+    "marketing:lobby-artwork": "vite --config scripts/lobby-artwork.vite.config.ts",
     "overlay:probe": "node scripts/start-cosmetic-overlay-probe.cjs",
     "ally-tags:probe": "node scripts/start-cosmetic-overlay-probe.cjs ally-tags",
     "scoreboard:probe": "node scripts/start-cosmetic-overlay-probe.cjs scoreboard",

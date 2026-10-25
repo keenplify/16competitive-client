@@ -14,6 +14,7 @@ const readPreference = (): boolean => {
 interface PartnerBrandingState {
   accountId: string | null
   branding: PartnerBranding | null
+  resolved: boolean
   enabled: boolean
   refresh: (accountId: string | null) => Promise<void>
   clear: () => void
@@ -25,21 +26,25 @@ let requestSerial = 0
 export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   accountId: null,
   branding: null,
+  resolved: false,
   enabled: readPreference(),
   refresh: async (accountId) => {
     const serial = ++requestSerial
-    set((state) => (state.accountId === accountId ? state : { accountId, branding: null }))
+    set((state) =>
+      state.accountId === accountId ? state : { accountId, branding: null, resolved: false }
+    )
     try {
       const result = await window.api.partnerBranding.get()
-      if (serial === requestSerial) set({ accountId, branding: result.branding })
+      if (serial === requestSerial) set({ accountId, branding: result.branding, resolved: true })
     } catch {
       // Keep the last verified palette during a transient connection failure.
       // A new account is always cleared before its own request starts.
+      if (serial === requestSerial) set({ resolved: true })
     }
   },
   clear: () => {
     requestSerial++
-    set({ accountId: null, branding: null })
+    set({ accountId: null, branding: null, resolved: false })
   },
   setEnabled: (enabled) => {
     try {

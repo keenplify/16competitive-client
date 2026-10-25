@@ -6,6 +6,7 @@ import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { PartnerLogo } from '../partner-branding/PartnerLogo'
 import { PartnerBackground } from '../partner-branding/PartnerBackground'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { TextField } from '../../components/ui/TextField'
 import { SetupCard } from '../../components/ui/SetupCard'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
@@ -37,6 +38,9 @@ const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord' | 'stea
 export function AuthPage(): JSX.Element {
   const { t } = useTranslation()
   const icafeBranch = useIcafeBranchStore((state) => state.status.info)
+  const showPapamoGamesLogo = usePartnerBrandingStore(
+    (state) => state.resolved && (state.branding?.showPapamoGamesLogo ?? true)
+  )
   const loadIcafeBranch = useIcafeBranchStore((state) => state.load)
   const mode = useAuthStore((state) => state.mode)
   const username = useAuthStore((state) => state.username)
@@ -323,11 +327,14 @@ export function AuthPage(): JSX.Element {
       <div className="auth-branding flex flex-col justify-center items-center inset-0">
         <PartnerLogo className="z-10 my-6 size-32 max-w-full md:my-0 md:size-128" />
 
-        <div className="relative mt-8 hidden flex-col items-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
+        <div className="relative mt-8 hidden min-h-[88px] flex-col items-center justify-center border border-white/10 bg-slate-950/80 px-5 py-4 text-center shadow-xl backdrop-blur-sm md:flex">
           <p className="text-sm font-bold text-white">
             {webRuntime ? 'COUNTER-STRIKE 1.6 WEB PLAY' : 'COUNTER-STRIKE 1.6 RANKED CLIENT'}
           </p>
-          <PapamoWordmark className="mt-3 text-xl" />
+          <PapamoWordmark
+            className={showPapamoGamesLogo ? 'mt-3 text-xl' : 'absolute mt-3 text-xl'}
+            hidden={!showPapamoGamesLogo}
+          />
         </div>
       </div>
 

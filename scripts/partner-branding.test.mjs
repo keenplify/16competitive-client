@@ -24,6 +24,7 @@ const partnerId = '12345678-1234-1234-1234-123456789abc'
 const branding = {
   partnerId,
   logoUrl: null,
+  showPapamoGamesLogo: true,
   communityName: null,
   allowOtherCommunities: true,
   customSocialLinksEnabled: false,
@@ -86,6 +87,22 @@ test('validates partner logos and supports older branding responses', () => {
     `http://api.example.test/partners/branding/${partnerId}/logo?v=hash`
   ]) {
     assert.throws(() => parsePartnerBranding({ branding: { ...branding, logoUrl: bad } }, origin))
+  }
+})
+
+test('validates Papamo Games logo visibility and defaults older responses to visible', () => {
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: false } }, origin)
+      .branding.showPapamoGamesLogo,
+    false
+  )
+  const legacy = { ...branding }
+  delete legacy.showPapamoGamesLogo
+  assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.showPapamoGamesLogo, true)
+  for (const bad of ['false', 0, null, {}]) {
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: bad } }, origin)
+    )
   }
 })
 

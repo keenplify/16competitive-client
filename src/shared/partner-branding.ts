@@ -27,6 +27,7 @@ export interface PartnerBranding {
   loginBackgroundUrl: string | null
   loginBackgroundKind: 'image' | 'video' | null
   logoUrl: string | null
+  showPapamoGamesLogo: boolean
   communityName: string | null
   allowOtherCommunities: boolean
   customSocialLinksEnabled: boolean
@@ -98,6 +99,8 @@ export const parsePartnerBranding = (
   )
     throw new Error('Invalid partner login background.')
   if (logoUrl !== null && typeof logoUrl !== 'string') throw new Error('Invalid partner logo.')
+  if (value.showPapamoGamesLogo !== undefined && typeof value.showPapamoGamesLogo !== 'boolean')
+    throw new Error('Invalid Papamo Games logo visibility.')
   for (const [mediaUrl, endpoint] of [
     [backgroundUrl, 'asset'],
     [loginBackgroundUrl, 'login-asset'],
@@ -189,7 +192,8 @@ export const parsePartnerBranding = (
       backgroundKind: backgroundKind as 'image' | 'video' | null,
       loginBackgroundUrl: loginBackgroundUrl as string | null,
       loginBackgroundKind: loginBackgroundKind as 'image' | 'video' | null,
-      logoUrl: logoUrl as string | null
+      logoUrl: logoUrl as string | null,
+      showPapamoGamesLogo: (value.showPapamoGamesLogo as boolean | undefined) ?? true
     }
   }
 }
