@@ -60,7 +60,7 @@ function StoreFilterButton({
       <button
         type="button"
         className={[
-          'flex h-7 w-full items-center justify-between gap-1 border px-2 text-left text-[11px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-300',
+          'flex h-[clamp(2rem,4.2dvh,2.5rem)] w-full items-center justify-between gap-2 border px-3 text-left text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-300',
           active
             ? 'border-amber-200/70 bg-amber-300 text-neutral-950 shadow-[0_0_20px_rgba(252,211,77,.12)]'
             : 'border-transparent bg-white/[0.035] text-neutral-300 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
@@ -71,7 +71,7 @@ function StoreFilterButton({
         <span className="truncate">{label}</span>
         <span
           className={[
-            'min-w-5 px-1 py-0.5 text-center text-[9px] tabular-nums',
+          'min-w-6 px-1 py-0.5 text-center text-[10px] tabular-nums',
             active ? 'bg-black/15 text-neutral-900' : 'bg-black/25 text-neutral-500',
             badgeClassName ?? ''
           ].join(' ')}
@@ -309,8 +309,8 @@ export function ShopPage(): JSX.Element {
           </p>
         )}
 
-        <div className="mt-5 grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] md:grid-rows-1 xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="border border-white/10 bg-neutral-950/75 p-3 shadow-xl">
+        <div className="mt-5 grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 md:grid-cols-[240px_minmax(0,1fr)] md:grid-rows-1 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="self-start border border-white/10 bg-neutral-950/75 p-3 shadow-xl">
             <div className="flex items-center justify-between gap-3 px-1 pb-2">
               <div>
                 <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
@@ -336,7 +336,7 @@ export function ShopPage(): JSX.Element {
               onChange={(event) => setSearchQuery(event.target.value)}
               maxLength={120}
               autoComplete="off"
-              className="h-9 pl-9"
+              className="h-10 pl-9"
             />
 
             <p className="px-1 pt-3 pb-1.5 text-xs font-semibold text-white">Weapons</p>
