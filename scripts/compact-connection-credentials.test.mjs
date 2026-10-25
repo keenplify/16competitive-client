@@ -30,6 +30,15 @@ test('rejects numeric short codes, malformed lengths and command injection', () 
   }
 })
 
+test('accepts public FFA manual credentials without a server password', () => {
+  const publicFfa = { ...connection, password: '' }
+  assert.deepEqual(parseManualConnectionDetails(publicFfa), publicFfa)
+  assert.equal(
+    manualConnectionCommand(publicFfa),
+    `setinfo "_16c" "${publicFfa.manualToken}"; password ""; connect 192.0.2.1:27016`
+  )
+})
+
 test('compact manual token and password fit the affected repack userinfo without dropping player fields', () => {
   const fields = [
     ['_cl_autowepswitch', '1'],

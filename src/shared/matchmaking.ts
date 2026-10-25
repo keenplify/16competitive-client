@@ -87,7 +87,7 @@ export function parseManualConnectionDetails(value: unknown): ManualConnectionDe
     (port as number) < 1 ||
     (port as number) > 65535 ||
     typeof password !== 'string' ||
-    !/^[A-Za-z0-9_-]{1,128}$/.test(password) ||
+    !/^[A-Za-z0-9_-]{0,128}$/.test(password) ||
     typeof manualToken !== 'string' ||
     !/^m_(?:[A-Za-z0-9_-]{22}|[0-9a-f]{48})$/.test(manualToken)
   ) {
