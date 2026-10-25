@@ -3192,3 +3192,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Restored scrolling in the store panel.
 - Enlarged the store filters for easier use.
+
+## v2026.1025.4 — 2026-10-25
+
+### Shop
+
+- Keep the grenade shop filter visible while browsing.
