@@ -3160,3 +3160,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Communities
 
 - You can no longer leave communities while community discovery is restricted.
+
+## v2026.1025.1 — 2026-10-25
+
+### Store
+
+- Improved store filters for easier browsing.
+- Added a new pumpkin grenade preview.
+
+### Matchmaking
+
+- Improved matchmaking flow and ready checks.
+- Improved queue and warmup handling.
+- Improved match survey prompts.
+
+### Community
+
+- Refined lobby navigation and community UI.
+- Expanded localized matchmaking text.
