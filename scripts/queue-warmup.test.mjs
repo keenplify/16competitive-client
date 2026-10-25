@@ -12,6 +12,7 @@ async function harness() {
   const calls = [],
     events = [],
     sent = []
+  const assetStarts = []
   const sockets = []
   class TestSocket {
     static OPEN = 1
@@ -34,8 +35,10 @@ async function harness() {
   }
   let activeMatch = null
   let finishAssets
-  const assets = new Promise((resolve) => {
+  let failAssets
+  const assets = new Promise((resolve, reject) => {
     finishAssets = resolve
+    failAssets = reject
   })
   const context = vm.createContext({
     console,
@@ -82,7 +85,10 @@ async function harness() {
     activateIcafeBranch: async () => {},
     toMatchmakingWsUrl: (url) => url.replace('https:', 'wss:') + '/matchmaking',
     createAutomaticMatchReporter: () => async () => {},
-    startMatchAssetPreload: async () => {},
+    startMatchAssetPreload: (matchId) => {
+      assetStarts.push(matchId)
+      return assets
+    },
     startSkinAssetSync: async () => {},
     waitForMatchAssetPreload: () => assets,
     launchCounterStrikeForMatch: async (input) => {
@@ -140,9 +146,11 @@ async function harness() {
     socket,
     sockets,
     calls,
+    assetStarts,
     events,
     sent,
     finishAssets,
+    failAssets,
     validate: module.namespace.isServerMessage
   }
 }
@@ -265,6 +273,41 @@ test('leaving during asset preparation suppresses a delayed warmup launch and st
   await h.connection.warmupLaunch
   assert.ok(!h.calls.some((call) => call[0] === 'launch'))
   assert.equal(h.connection.warmupMatchId, null)
+})
+
+test('cancelled warmup asset downloads do not show an error after leaving', async () => {
+  const h = await harness()
+  try {
+    await h.connection.joinWarmup('arena', 'fy_pool_day')
+    h.connection.handleWarmup(found, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    const leaving = h.connection.leaveWarmup()
+    h.failAssets(new Error('Match asset download was cancelled.'))
+    await leaving
+    await h.connection.warmupLaunch
+    assert.ok(!h.events.some((event) => event.type === 'error' && event.code === 'WARMUP_FAILED'))
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+test('asset failures in the current warmup still show an error', async () => {
+  const h = await harness()
+  try {
+    await h.connection.joinWarmup('arena', 'fy_pool_day')
+    h.connection.handleWarmup(found, h.socket)
+    h.connection.handleWarmup(found, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    h.failAssets(new Error('Asset hash did not match.'))
+    await h.connection.warmupLaunch
+    assert.equal(h.assetStarts.length, 1)
+    assert.equal(
+      h.events.filter((event) => event.type === 'error' && event.code === 'WARMUP_FAILED').length,
+      1
+    )
+  } finally {
+    h.connection.shutdown()
+  }
 })
 
 test('rejects invalid map IDs and warmups outside ranked queue at IPC boundary', async () => {

@@ -529,6 +529,8 @@ class MatchmakingConnection {
   private warmupApiUrl: string | null = null
   private warmupConnectingMatchId: string | null = null
   private readonly warmupMatchIds = new Set<string>()
+  private readonly warmupPreloadRequests = new Set<string>()
+  private warmupAssetFailureMatchId: string | null = null
   private warmupLaunch: Promise<void> = Promise.resolve()
   private warmupCleanup: Promise<void> = Promise.resolve()
 
@@ -564,6 +566,7 @@ class MatchmakingConnection {
       return this.warmupCleanup
     }
     this.cancelledMatchIds.add(matchId)
+    this.warmupPreloadRequests.delete(matchId)
     clearMatchAssetPreload(matchId)
     this.warmupCleanup = this.warmupCleanup.then(async () => {
       await this.warmupLaunch
@@ -593,26 +596,36 @@ class MatchmakingConnection {
       this.warmupSocket = socket
       this.warmupApiUrl = message.hostApiUrl
       if (message.mode === 'cs13_3v3') this.cs13Matches.add(message.matchId)
-      void startMatchAssetPreload(
-        message.matchId,
-        message.hostApiUrl,
-        (progress) =>
+      if (!this.warmupPreloadRequests.has(message.matchId)) {
+        this.warmupPreloadRequests.add(message.matchId)
+        this.warmupAssetFailureMatchId = null
+        void startMatchAssetPreload(
+          message.matchId,
+          message.hostApiUrl,
+          (progress) =>
+            this.notify({
+              type: 'match_assets_progress',
+              matchId: message.matchId,
+              ...progress,
+              whileQueued: true
+            }),
+          message.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+        ).catch((error) => {
+          // Leaving warmup (including a ranked handoff) cancels its preload.
+          // That expected abort must not turn the next launcher state into an error.
+          if (this.warmupMatchId !== message.matchId || this.cancelledMatchIds.has(message.matchId))
+            return
+          this.warmupPreloadRequests.delete(message.matchId)
+          this.warmupAssetFailureMatchId = message.matchId
+          console.warn('[QueueWarmup] assets failed', error)
           this.notify({
-            type: 'match_assets_progress',
-            matchId: message.matchId,
-            ...progress,
+            type: 'error',
+            code: 'WARMUP_FAILED',
+            message: 'Could not prepare warmup assets.',
             whileQueued: true
-          }),
-        message.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
-      ).catch((error) => {
-        console.warn('[QueueWarmup] assets failed', error)
-        this.notify({
-          type: 'error',
-          code: 'WARMUP_FAILED',
-          message: 'Could not prepare warmup assets.',
-          whileQueued: true
+          })
         })
-      })
+      }
     } else if (message.type === 'match_connect') {
       if (this.warmupMatchId !== message.matchId) return
       if (this.warmupConnectingMatchId === message.matchId) {
@@ -647,6 +660,9 @@ class MatchmakingConnection {
         })
         .catch((error) => {
           if (this.warmupConnectingMatchId === message.matchId) this.warmupConnectingMatchId = null
+          if (this.warmupMatchId !== message.matchId || this.cancelledMatchIds.has(message.matchId))
+            return
+          if (this.warmupAssetFailureMatchId === message.matchId) return
           console.warn('[QueueWarmup] launch failed', error)
           this.notify({
             type: 'error',
