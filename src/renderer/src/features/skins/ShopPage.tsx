@@ -1,8 +1,9 @@
 import { ModalDialog } from '../../components/ui/ModalDialog'
-import { ExternalLink, LoaderCircle, LockKeyhole, ShoppingCart, Ticket, X } from 'lucide-react'
+import { ExternalLink, LoaderCircle, LockKeyhole, Search, ShoppingCart, Ticket, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
+import { TextField } from '../../components/ui/TextField'
 import { CurrencyAmount, CurrencyBalance } from '../../components/CurrencyIcon'
 import { PurchaseConfirmModal } from './PurchaseConfirmModal'
 import { useAuthStore } from '../auth/auth.store'
@@ -18,7 +19,7 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
-import { WEAPON_CATEGORIES, weaponCategory, type WeaponCategory } from './weapon-categories'
+import { WEAPON_CATEGORIES, isGrenadeWeapon, weaponCategory, type WeaponCategory } from './weapon-categories'
 import {
   skinRarity,
   skinRarityOrder,
@@ -59,7 +60,7 @@ function StoreFilterButton({
       <button
         type="button"
         className={[
-          'flex h-10 w-full items-center justify-between gap-3  border px-3 text-left text-xs font-semibold transition',
+          'flex h-7 w-full items-center justify-between gap-1 border px-2 text-left text-[11px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-300',
           active
             ? 'border-amber-200/70 bg-amber-300 text-neutral-950 shadow-[0_0_20px_rgba(252,211,77,.12)]'
             : 'border-transparent bg-white/[0.035] text-neutral-300 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
@@ -70,7 +71,7 @@ function StoreFilterButton({
         <span className="truncate">{label}</span>
         <span
           className={[
-            'min-w-6   px-1.5 py-0.5 text-center text-[10px] tabular-nums',
+            'min-w-5 px-1 py-0.5 text-center text-[9px] tabular-nums',
             active ? 'bg-black/15 text-neutral-900' : 'bg-black/25 text-neutral-500',
             badgeClassName ?? ''
           ].join(' ')}
@@ -117,6 +118,7 @@ export function ShopPage(): JSX.Element {
   const setPoints = useAuthStore((state) => state.setPoints)
   const [selectedCategory, setSelectedCategory] = useState<WeaponCategory>('all')
   const [selectedSkinType, setSelectedSkinType] = useState<SkinTypeFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [skins, setSkins] = useState<Skin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -194,20 +196,24 @@ export function ShopPage(): JSX.Element {
   }
 
   const filteredSkins = useMemo(
-    () =>
-      skins
+    () => {
+      const query = searchQuery.trim().toLocaleLowerCase()
+      return skins
         .filter(
           (skin) =>
             (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
-            (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType)
+            (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType) &&
+            (!query || `${skin.name} ${skin.weaponKey}`.toLocaleLowerCase().includes(query))
         )
-        .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id))),
-    [ownedSkins, selectedCategory, selectedSkinType, skins]
+        .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id)))
+    },
+    [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins]
   )
 
   const clearFilters = (): void => {
     setSelectedCategory('all')
     setSelectedSkinType('all')
+    setSearchQuery('')
   }
 
   const unlock = (skin: Skin, currency: SkinCurrency): void => {
@@ -271,9 +277,9 @@ export function ShopPage(): JSX.Element {
   }, [])
 
   return (
-    <main className="shop-page min-h-[calc(100vh-5rem)] w-full p-4 text-white sm:p-6 xl:p-8">
-      <div className="w-full">
-        <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
+    <main className="shop-page flex h-[calc(100dvh-4rem)] min-h-0 w-full flex-col overflow-hidden p-4 text-white sm:h-[calc(100dvh-5rem)] sm:p-6 xl:p-8">
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+        <header className="flex shrink-0 flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
             <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
@@ -303,16 +309,15 @@ export function ShopPage(): JSX.Element {
           </p>
         )}
 
-        <div className="mt-6 grid items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className=" border border-white/10 bg-neutral-950/75 p-3 shadow-xl md:sticky md:top-5 md:z-20">
+        <div className="mt-5 grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] items-start gap-5 md:grid-cols-[210px_minmax(0,1fr)] md:grid-rows-1 xl:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="border border-white/10 bg-neutral-950/75 p-3 shadow-xl">
             <div className="flex items-center justify-between gap-3 px-1 pb-2">
               <div>
                 <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
                   Filters
                 </p>
-                <p className="mt-0.5 text-sm font-semibold text-white">Weapons</p>
               </div>
-              {(selectedCategory !== 'all' || selectedSkinType !== 'all') && (
+              {(selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim()) && (
                 <button
                   type="button"
                   className="text-[10px] font-bold tracking-wide text-sky-300 uppercase transition hover:text-sky-200"
@@ -323,8 +328,23 @@ export function ShopPage(): JSX.Element {
               )}
             </div>
 
-            <div className="space-y-1" aria-label="Filter skins by weapon">
-              {WEAPON_CATEGORIES.map((category) => (
+            <TextField
+              label="Search skins"
+              placeholder="Skin name or weapon"
+              leadingIcon={<Search className="size-4" />}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              maxLength={120}
+              autoComplete="off"
+              className="h-9 pl-9"
+            />
+
+            <p className="px-1 pt-3 pb-1.5 text-xs font-semibold text-white">Weapons</p>
+
+            <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label="Filter skins by weapon">
+              {WEAPON_CATEGORIES.filter(
+                (category) => category.id === 'all' || (weaponCounts.get(category.id) ?? 0) > 0
+              ).map((category) => (
                 <StoreFilterButton
                   key={category.id}
                   label={category.label}
@@ -335,18 +355,15 @@ export function ShopPage(): JSX.Element {
               ))}
             </div>
 
-            <div className="my-4 h-px bg-white/10" />
+            <div className="my-3 h-px bg-white/10" />
 
-            <div className="px-1 pb-2">
+            <div className="px-1 pb-1.5">
               <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
                 Skin type
               </p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                Hover a type to see its usual price.
-              </p>
             </div>
 
-            <div className="space-y-1" aria-label="Filter skins by type">
+            <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label="Filter skins by type">
               <StoreFilterButton
                 label="All types"
                 count={skins.length}
@@ -371,12 +388,12 @@ export function ShopPage(): JSX.Element {
             </div>
           </aside>
 
-          <div className="min-w-0">
+          <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain pb-4" tabIndex={0} aria-label="Skins on sale">
             <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-neutral-400">
                 <span className="font-semibold text-white">{filteredSkins.length}</span>{' '}
                 {filteredSkins.length === 1 ? 'skin' : 'skins'}
-                {(selectedCategory !== 'all' || selectedSkinType !== 'all') && (
+                {(selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim()) && (
                   <span> matching your filters</span>
                 )}
               </p>
@@ -656,6 +673,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
               target: getSkinCameraTarget(skin.weaponKey)
             }}
             animation="idle1"
+            freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
             maxFrameRate={30}
             disableZoom
             lockCameraDistance

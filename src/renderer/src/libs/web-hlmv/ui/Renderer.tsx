@@ -133,6 +133,7 @@ type Props = {
   camera?: ModelViewerCamera
   cameraLocked?: boolean
   animation?: string | number
+  freezeAnimation?: boolean
   maxFrameRate?: number
   presentationRotation?: readonly [number, number, number]
   disableZoom?: boolean
@@ -684,7 +685,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     }
 
     const delta = timer.getDelta()
-    if (!usesFixedSequenceFallback) {
+    if (!usesFixedSequenceFallback && !props.freezeAnimation) {
       controller.update(delta)
     }
 
@@ -692,7 +693,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     // material pipeline. Advance its precomputed GoldSrc animation frames here.
     const activeSequence = modelData.sequences[animationIndex]
     if (activeSequence?.numFrames > 0 && activeSequence.fps > 0) {
-      fallbackAnimationTime.current += delta
+      if (!props.freezeAnimation) fallbackAnimationTime.current += delta
       if (canRender) {
         const frame =
           Math.floor(fallbackAnimationTime.current * activeSequence.fps) % activeSequence.numFrames

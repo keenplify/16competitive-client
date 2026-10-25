@@ -127,6 +127,7 @@ interface MatchmakingState {
   completedMatch: CompletedMatch | null
   queueAgainStatus: 'idle' | 'joining' | 'error'
   readyDeadline: string | null
+  readyDeclineAvailableAt: string | null
   acceptedPlayerIds: string[]
   readyPlayersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
@@ -251,6 +252,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                   ? {
                       match: null,
                       readyDeadline: null,
+                      readyDeclineAvailableAt: null,
                       acceptedPlayerIds: [],
                       readyPlayersRequired: 0,
                       readyResponse: 'pending' as const,
@@ -317,6 +319,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           searchStage: null,
           queueStartedAt: null,
           readyDeadline: null,
+          readyDeclineAvailableAt: null,
           acceptedPlayerIds: [],
           readyPlayersRequired: 0,
           readyResponse: 'pending',
@@ -349,6 +352,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           searchStage: null,
           queueStartedAt: null,
           readyDeadline: null,
+          readyDeclineAvailableAt: null,
           acceptedPlayerIds: [],
           readyPlayersRequired: 0,
           readyResponse: 'pending',
@@ -395,6 +399,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             event.serverNow,
             serverClockNow()
           )
+          const declineRemainingMs = event.declineAvailableAt
+            ? readyCheckRemainingMs(event.declineAvailableAt, event.serverNow, serverClockNow())
+            : null
           if (
             terminalMatchIds.has(event.matchId) ||
             state.match?.matchId !== event.matchId ||
@@ -406,6 +413,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           return {
             queueStatus: 'ready_check',
             readyDeadline: new Date(Date.now() + remainingMs).toISOString(),
+            readyDeclineAvailableAt:
+              declineRemainingMs === null
+                ? null
+                : new Date(Date.now() + declineRemainingMs).toISOString(),
             acceptedPlayerIds: event.acceptedPlayerIds,
             readyPlayersRequired: event.playersRequired,
             readyResponse: readyResponseFromServer(
@@ -538,6 +549,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 queueStartedAt: null,
                 match: null,
                 readyDeadline: null,
+                readyDeclineAvailableAt: null,
                 acceptedPlayerIds: [],
                 readyPlayersRequired: 0,
                 readyResponse: 'pending',
@@ -554,6 +566,38 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'error':
+        if (event.code === 'NOT_QUEUED') {
+          const state = get()
+          if (state.queueStatus === 'ready_check') {
+            const deadline = state.readyDeadline ? timestampMs(state.readyDeadline) : null
+            // A status request may have been sent just before a match was found.
+            // Only an expired ready check can use this response to clear the match.
+            if (deadline !== null && deadline <= Date.now() && state.match) {
+              terminalMatchIds.add(state.match.matchId)
+              set({
+                queueStatus: 'idle',
+                queuedAt: null,
+                autoFillAt: null,
+                searchStage: null,
+                queueStartedAt: null,
+                match: null,
+                readyDeadline: null,
+                readyDeclineAvailableAt: null,
+                acceptedPlayerIds: [],
+                readyPlayersRequired: 0,
+                readyResponse: 'pending',
+                countdown: null,
+                assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+                connectionDetails: null,
+                matchReadyAt: null,
+                gameExited: false,
+                error: translate(useLanguageStore.getState().language, 'match.ready.expired')
+              })
+            }
+            break
+          }
+          if (!['queued', 'joining', 'leaving'].includes(state.queueStatus)) break
+        }
         if (event.code === 'BOT_FILL_NOT_AVAILABLE') {
           set({ error: translate(useLanguageStore.getState().language, 'activity.botUnavailable') })
           break
@@ -681,6 +725,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     completedMatch: null,
     queueAgainStatus: 'idle',
     readyDeadline: null,
+    readyDeclineAvailableAt: null,
     acceptedPlayerIds: [],
     readyPlayersRequired: 0,
     readyResponse: 'pending',
@@ -708,7 +753,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       }
       if (!queueStatusPollTimer) {
         queueStatusPollTimer = window.setInterval(() => {
-          if (get().connectionStatus === 'ready' && get().queueStatus === 'queued') {
+          const state = get()
+          const expiredReadyCheck =
+            state.queueStatus === 'ready_check' &&
+            state.readyDeadline !== null &&
+            (timestampMs(state.readyDeadline) ?? Infinity) + 2_000 <= Date.now()
+          if (
+            state.connectionStatus === 'ready' &&
+            (state.queueStatus === 'queued' || expiredReadyCheck)
+          ) {
             void window.api.matchmaking.getQueueStatus().catch(() => undefined)
           }
         }, 10_000)
@@ -989,13 +1042,30 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 
     respondReady: async (accepted) => {
       const matchId = get().match?.matchId
-      if (!matchId || get().readyResponse !== 'pending') return
+      const previousResponse = get().readyResponse
+      const declineAt = get().readyDeclineAvailableAt
+      if (
+        !matchId ||
+        get().queueStatus !== 'ready_check' ||
+        (get().readyResponse !== 'pending' &&
+          !(
+            get().readyResponse === 'accepted' &&
+            !accepted &&
+            declineAt &&
+            Date.parse(declineAt) <= Date.now()
+          ))
+      )
+        return
       set({ readyResponse: 'sending', error: null })
       try {
         await window.api.matchmaking.respondReady(matchId, accepted)
-        set({ readyResponse: accepted ? 'accepted' : 'declined' })
+        if (get().match?.matchId === matchId) {
+          set({ readyResponse: accepted ? 'accepted' : 'declined' })
+        }
       } catch (error) {
-        set({ readyResponse: 'pending', error: readableError(error) })
+        if (get().match?.matchId === matchId) {
+          set({ readyResponse: previousResponse, error: readableError(error) })
+        }
       }
     },
 
@@ -1039,6 +1109,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         queueStartedAt: null,
         match: null,
         readyDeadline: null,
+        readyDeclineAvailableAt: null,
         acceptedPlayerIds: [],
         readyPlayersRequired: 0,
         readyResponse: 'pending',
@@ -1102,6 +1173,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         completedMatch: null,
         queueAgainStatus: 'idle',
         readyDeadline: null,
+        readyDeclineAvailableAt: null,
         acceptedPlayerIds: [],
         readyPlayersRequired: 0,
         readyResponse: 'pending',

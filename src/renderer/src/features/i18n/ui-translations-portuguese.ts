@@ -247,6 +247,8 @@ const catalog: Record<string, string> = {
   'You left the party.': 'Você saiu do grupo.',
   Store: 'Loja',
   'Skins on sale': 'Skins à venda',
+  'Search skins': 'Buscar skins',
+  'Skin name or weapon': 'Nome da skin ou arma',
   'All weapons': 'Todas as armas',
   Pistols: 'Pistolas',
   SMGs: 'SMGs',

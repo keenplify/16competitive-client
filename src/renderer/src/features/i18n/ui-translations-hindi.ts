@@ -221,6 +221,8 @@ const catalog: Record<string, string> = {
   'Remove friend': 'दोस्त हटाएँ',
   Store: 'स्टोर',
   'Skins on sale': 'बिक्री पर स्किन',
+  'Search skins': 'स्किन खोजें',
+  'Skin name or weapon': 'स्किन का नाम या हथियार',
   'All weapons': 'सभी हथियार',
   Pistols: 'पिस्तौल',
   SMGs: 'SMG',

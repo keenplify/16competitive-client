@@ -608,6 +608,15 @@
   background: var(--vgui-face);
 }
 
+:root[data-launcher-theme='vgui2'] .vgui-window-content:has(> .shop-page) {
+  display: flex;
+  overflow: hidden;
+}
+
+:root[data-launcher-theme='vgui2'] .vgui-window-content > .shop-page {
+  height: 100%;
+}
+
 :root[data-launcher-theme='vgui2'] :where([class*='text-white/']) {
   color: #c5cdb7;
 }

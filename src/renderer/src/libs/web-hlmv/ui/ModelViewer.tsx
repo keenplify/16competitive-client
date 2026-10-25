@@ -27,6 +27,8 @@ type ModelViewerProps = {
   cameraLocked?: boolean
   /** Sequence label (for example, `idle1`) or zero-based sequence index. */
   animation?: string | number
+  /** Hold the selected sequence at its first frame while retaining orbit controls. */
+  freezeAnimation?: boolean
   /** Caps canvas rendering while keeping the animation time in sync. */
   maxFrameRate?: number
   /** Rotation in degrees that affects only this model's initial presentation. */
@@ -66,6 +68,7 @@ export function ModelViewer({
   camera,
   cameraLocked = false,
   animation,
+  freezeAnimation = false,
   maxFrameRate,
   presentationRotation,
   disableZoom = false,
@@ -173,6 +176,7 @@ export function ModelViewer({
           camera={camera}
           cameraLocked={cameraLocked}
           animation={animation}
+          freezeAnimation={freezeAnimation}
           maxFrameRate={maxFrameRate}
           presentationRotation={presentationRotation}
           disableZoom={disableZoom}

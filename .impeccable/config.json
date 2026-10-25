@@ -47,6 +47,12 @@
         ],
         "createdAt": "2026-10-19T20:44:14.202Z",
         "reason": "Unchanged primary button intentionally uses near-black text on amber for contrast. Tertiary variant added here uses cyan text on a cyan tint."
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "giftboxbounce",
+        "createdAt": "2026-10-24T15:15:57.340Z",
+        "reason": "Existing gift box opening animation; the box bounce is literal motion and SkinGiftOverlay.tsx is unchanged by the map feedback task."
       }
     ]
   }

@@ -8,7 +8,6 @@ import { TextAreaField } from '../../components/ui/TextAreaField'
 import { useTranslation } from '../i18n/i18n'
 import { PromptCard } from '../../components/ui/PromptCard'
 import { useAuthStore } from '../auth/auth.store'
-import { deferMatchSurveyForSession, isMatchSurveyDeferredForSession } from './match-survey-session'
 
 const surveyFaces = [Frown, Annoyed, Meh, Smile, Laugh] as const
 
@@ -32,15 +31,11 @@ export function MatchSurveyPrompt({
   const [funRating, setFunRating] = useState<number | null>(null)
   const [fairnessRating, setFairnessRating] = useState<number | null>(null)
   const [comment, setComment] = useState('')
-  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(() =>
-    isMatchSurveyDeferredForSession() ? 'submitted' : 'loading'
+  const [status, setStatus] = useState<'loading' | 'pending' | 'submitting' | 'submitted'>(
+    'loading'
   )
 
   useEffect(() => {
-    if (isMatchSurveyDeferredForSession()) {
-      return
-    }
-
     let active = true
     void window.api.matchHistory
       .getSurvey(matchId)
@@ -64,7 +59,6 @@ export function MatchSurveyPrompt({
   if (status === 'loading' || status === 'submitted') return null
 
   const defer = (): void => {
-    deferMatchSurveyForSession()
     setStatus('submitted')
     onDeferred?.()
   }

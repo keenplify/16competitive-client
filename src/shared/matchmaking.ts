@@ -326,6 +326,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       type: 'match_ready_check'
       matchId: string
       deadline: string
+      declineAvailableAt?: string
       serverNow?: string
       acceptedPlayerIds: string[]
       playersRequired: number

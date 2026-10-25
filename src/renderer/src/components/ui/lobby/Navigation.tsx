@@ -1,6 +1,6 @@
 import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.store'
 import type { JSX } from 'react'
-import { ClipboardList, House, Play, Settings } from 'lucide-react'
+import { ClipboardList, Gift, House, Play, Settings } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import type { TranslationKey } from '../../../features/i18n/i18n'
 import { useTranslation } from '../../../features/i18n/i18n'
@@ -37,6 +37,8 @@ interface LobbyNavigationProps {
   missionSnapshot: DailyQuestSnapshot | null
   missionLoading: boolean
   missionError: string | null
+  showDeferredSurvey?: boolean
+  onOpenDeferredSurvey?: () => void
 }
 
 export function LobbyNavigation({
@@ -48,7 +50,9 @@ export function LobbyNavigation({
   onToggleMissions,
   missionSnapshot,
   missionLoading,
-  missionError
+  missionError,
+  showDeferredSurvey = false,
+  onOpenDeferredSurvey
 }: LobbyNavigationProps): JSX.Element {
   const { t } = useTranslation()
   const scrolled = useHeaderScrolled(activePage)
@@ -144,6 +148,17 @@ export function LobbyNavigation({
             </div>
           )}
         </div>
+        {showDeferredSurvey && (
+          <IconButton
+            label={t('mapFeedback.openPending')}
+            audioSfx="forward"
+            active={false}
+            disabled={locked}
+            onClick={() => onOpenDeferredSurvey?.()}
+          >
+            <Gift className="size-4 text-amber-300 sm:size-[1.125rem]" aria-hidden="true" />
+          </IconButton>
+        )}
       </div>
 
       <div className="pointer-events-auto absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 p-1.5 sm:gap-1 sm:p-2">

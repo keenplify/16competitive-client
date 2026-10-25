@@ -39,6 +39,8 @@ const catalog: Record<string, string> = {
   Close: '閉じる',
   Save: '保存',
   Search: '検索',
+  'Search skins': 'スキンを検索',
+  'Skin name or weapon': 'スキン名または武器',
   Loading: '読み込み中',
   'Loading…': '読み込み中…',
   Retry: '再試行',

@@ -9,9 +9,15 @@ import { create } from 'zustand'
 
 async function harness() {
   let emit
+  let poll
+  let statusRequests = 0
+  let readyResponses = []
   const context = vm.createContext({
     window: {
-      setInterval: () => 1,
+      setInterval: (callback) => {
+        poll = callback
+        return 1
+      },
       clearInterval() {
         return undefined
       },
@@ -20,6 +26,12 @@ async function harness() {
       },
       api: {
         matchmaking: {
+          async getQueueStatus() {
+            statusRequests += 1
+          },
+          async respondReady(matchId, accepted) {
+            readyResponses.push({ matchId, accepted })
+          },
           onEvent(listener) {
             emit = listener
             return () => {}
@@ -95,8 +107,66 @@ async function harness() {
   await module.evaluate()
   const store = module.namespace.useMatchmakingStore
   await store.getState().connect()
-  return { store, emit: (message) => emit(message) }
+  return {
+    store,
+    emit: (message) => emit(message),
+    poll: () => poll(),
+    statusRequests: () => statusRequests,
+    readyResponses: () => readyResponses
+  }
 }
+
+test('accepted player can decline only after the server unlock time', async () => {
+  const { store, readyResponses } = await harness()
+  store.setState({
+    queueStatus: 'ready_check',
+    match: { matchId: 'waiting-match' },
+    readyResponse: 'accepted',
+    readyDeclineAvailableAt: new Date(Date.now() + 30_000).toISOString()
+  })
+  await store.getState().respondReady(false)
+  assert.equal(readyResponses().length, 0)
+  store.setState({ readyDeclineAvailableAt: new Date(Date.now() - 1).toISOString() })
+  await store.getState().respondReady(false)
+  assert.deepEqual(readyResponses(), [{ matchId: 'waiting-match', accepted: false }])
+})
+
+test('expired ready check asks the server and clears only after NOT_QUEUED', async () => {
+  const { store, emit, poll, statusRequests } = await harness()
+  const match = { matchId: 'expired-match', mode: '5v5' }
+  store.setState({
+    connectionStatus: 'ready',
+    queueStatus: 'ready_check',
+    match,
+    readyDeadline: new Date(Date.now() - 3_000).toISOString(),
+    readyResponse: 'accepted',
+    acceptedPlayerIds: ['player-1']
+  })
+  poll()
+  assert.equal(statusRequests(), 1)
+  assert.equal(store.getState().match?.matchId, match.matchId)
+  emit({ type: 'error', code: 'NOT_QUEUED', message: 'Player is not currently queued' })
+  assert.equal(store.getState().queueStatus, 'idle')
+  assert.equal(store.getState().match, null)
+  assert.equal(store.getState().readyDeadline, null)
+  assert.equal(store.getState().readyResponse, 'pending')
+  assert.equal(store.getState().error, 'match.ready.expired')
+})
+
+test('stale NOT_QUEUED response cannot dismiss an active ready check', async () => {
+  const { store, emit, poll, statusRequests } = await harness()
+  store.setState({
+    connectionStatus: 'ready',
+    queueStatus: 'ready_check',
+    match: { matchId: 'active-match', mode: '5v5' },
+    readyDeadline: new Date(Date.now() + 60_000).toISOString()
+  })
+  poll()
+  assert.equal(statusRequests(), 0)
+  emit({ type: 'error', code: 'NOT_QUEUED', message: 'Player is not currently queued' })
+  assert.equal(store.getState().queueStatus, 'ready_check')
+  assert.equal(store.getState().match.matchId, 'active-match')
+})
 
 test('restart notification preserves queued state and original wait time', async () => {
   const { store, emit } = await harness()

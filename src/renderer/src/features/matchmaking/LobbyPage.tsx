@@ -43,7 +43,11 @@ import { ShopPage } from '../skins/ShopPage'
 import { MatchResultsPage } from './MatchResultsPage'
 import { useQueueWarmupStore } from './queue-warmup.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
-import { isMatchSurveyDeferredForSession } from './match-survey-session'
+import {
+  deferMatchSurveyForSession,
+  isMatchSurveyDeferredForSession,
+  reopenMatchSurveyForSession
+} from './match-survey-session'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
@@ -196,10 +200,9 @@ export function LobbyPage(): JSX.Element {
     playerId: string
     survey: PendingMatchSurvey | null
   } | null>(null)
+  const [surveyDeferred, setSurveyDeferred] = useState(false)
   const pendingSurvey =
-    pendingSurveyState &&
-    pendingSurveyState.playerId === player?.id &&
-    !isMatchSurveyDeferredForSession()
+    pendingSurveyState && pendingSurveyState.playerId === player?.id
       ? pendingSurveyState.survey
       : null
   const missionsKey = questSnapshot
@@ -208,7 +211,10 @@ export function LobbyPage(): JSX.Element {
   const missionsNeedAttention =
     Boolean(questSnapshot?.quests.length) && missionsKey !== seenMissionsKey
   const idleHintTarget =
-    matchNavigationLocked || completedMatch || pendingSurvey || requiresGameSetup
+    matchNavigationLocked ||
+    completedMatch ||
+    (pendingSurvey && !surveyDeferred) ||
+    requiresGameSetup
       ? null
       : page === 'lobby'
         ? missionsNeedAttention && !missionsOpen
@@ -263,16 +269,17 @@ export function LobbyPage(): JSX.Element {
   }
 
   useEffect(() => {
-    if (!player?.id || isMatchSurveyDeferredForSession()) {
-      return
-    }
+    if (!player?.id) return
 
     let active = true
     void window.api.matchHistory
       .getPendingSurvey()
       .then((pending) => {
-        if (active && !isMatchSurveyDeferredForSession()) {
+        if (active) {
           setPendingSurveyState({ playerId: player.id, survey: pending })
+          setSurveyDeferred(
+            pending ? isMatchSurveyDeferredForSession(player.id, pending.matchId) : false
+          )
         }
       })
       .catch(() => {
@@ -441,19 +448,19 @@ export function LobbyPage(): JSX.Element {
     >
       <PartnerBackground />
       <LobbyScene player={player} party={party} />
-      {page === 'lobby' &&
-        !completedMatch &&
-        pendingSurvey &&
-        !isMatchSurveyDeferredForSession() && (
-          <MatchSurveyPrompt
-            key={pendingSurvey.matchId}
-            matchId={pendingSurvey.matchId}
-            mapDisplayName={pendingSurvey.mapDisplayName}
-            mode={pendingSurvey.mode}
-            onAnswered={() => setPendingSurveyState({ playerId: player.id, survey: null })}
-            onDeferred={() => setPendingSurveyState({ playerId: player.id, survey: null })}
-          />
-        )}
+      {page === 'lobby' && !completedMatch && pendingSurvey && !surveyDeferred && (
+        <MatchSurveyPrompt
+          key={pendingSurvey.matchId}
+          matchId={pendingSurvey.matchId}
+          mapDisplayName={pendingSurvey.mapDisplayName}
+          mode={pendingSurvey.mode}
+          onAnswered={() => setPendingSurveyState({ playerId: player.id, survey: null })}
+          onDeferred={() => {
+            deferMatchSurveyForSession(player.id, pendingSurvey.matchId)
+            setSurveyDeferred(true)
+          }}
+        />
+      )}
       <LobbyNavigation
         activePage={page}
         onNavigate={handleNavigate}
@@ -464,6 +471,13 @@ export function LobbyPage(): JSX.Element {
         missionSnapshot={questSnapshot}
         missionLoading={questStatus === 'loading'}
         missionError={questError}
+        showDeferredSurvey={Boolean(pendingSurvey && surveyDeferred && !completedMatch)}
+        onOpenDeferredSurvey={() => {
+          if (!player || !pendingSurvey) return
+          reopenMatchSurveyForSession(player.id, pendingSurvey.matchId)
+          setSurveyDeferred(false)
+          handleNavigate('lobby')
+        }}
       />
       <IdleActionHint targetId={idleHintTarget} />
       <PartyInvitationModal />
@@ -481,7 +495,7 @@ export function LobbyPage(): JSX.Element {
       />
       {content && (
         <div
-          className={`vgui-page-host relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingPlaySelection ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
+          className={`vgui-page-host relative z-10 bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md transition-[padding-right] duration-300 ease-out sm:pt-20 ${showingPlaySelection || page === 'store' ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
             // The friends rail renders nothing while a match needs attention, so
             // its reserved width must be released for the whole match lifecycle.
             matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'

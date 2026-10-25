@@ -9,6 +9,7 @@ export function MatchReadyOverlay(): JSX.Element | null {
   const match = useMatchmakingStore((state) => state.match)
   const status = useMatchmakingStore((state) => state.queueStatus)
   const deadline = useMatchmakingStore((state) => state.readyDeadline)
+  const declineAvailableAt = useMatchmakingStore((state) => state.readyDeclineAvailableAt)
   const accepted = useMatchmakingStore((state) => state.acceptedPlayerIds)
   const required = useMatchmakingStore((state) => state.readyPlayersRequired)
   const response = useMatchmakingStore((state) => state.readyResponse)
@@ -41,6 +42,9 @@ export function MatchReadyOverlay(): JSX.Element | null {
           readyResponse={response}
           secondsRemaining={
             deadline ? Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000)) : 0
+          }
+          canDeclineAfterAccept={
+            declineAvailableAt !== null && Date.parse(declineAvailableAt) <= now
           }
           responseError={Boolean(error)}
           preparing={status === 'match_found'}

@@ -668,7 +668,11 @@ test('MR8 results share the lobby with friends and dismiss without changing the 
       MatchResultsPage: ({ match }) =>
         React.createElement('article', { 'data-results': match.matchId }, 'MR8 result')
     },
-    './match-survey-session': { isMatchSurveyDeferredForSession: () => false },
+    './match-survey-session': {
+      isMatchSurveyDeferredForSession: () => false,
+      deferMatchSurveyForSession: () => {},
+      reopenMatchSurveyForSession: () => {}
+    },
     '../navigation/page-icons': { pageIcons: {} }
   }
   const source = await readFile(

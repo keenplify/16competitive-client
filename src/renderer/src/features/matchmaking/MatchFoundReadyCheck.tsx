@@ -22,6 +22,7 @@ interface MatchFoundReadyCheckProps {
   playersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   secondsRemaining: number
+  canDeclineAfterAccept: boolean
   responseError?: boolean
   preparing?: boolean
   playingMr8?: boolean
@@ -83,6 +84,7 @@ export function MatchFoundReadyCheck({
   playersRequired,
   readyResponse,
   secondsRemaining,
+  canDeclineAfterAccept,
   responseError = false,
   preparing = false,
   playingMr8 = false,
@@ -97,6 +99,12 @@ export function MatchFoundReadyCheck({
   const mapName = match.mapId.replace(/^de_/, '').replace(/_/g, ' ')
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
   const timeLeft = `${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, '0')}`
+  const decisionState =
+    readyResponse !== 'accepted'
+      ? 'pending'
+      : canDeclineAfterAccept
+        ? 'declineAvailable'
+        : 'accepted'
 
   return (
     <div className="match-ready-check w-full min-w-0 text-white">
@@ -184,7 +192,11 @@ export function MatchFoundReadyCheck({
             <Button
               className="min-w-28 rounded-none border border-white/15 px-6 text-white/65 hover:border-white/35"
               variant="ghost"
-              disabled={preparing || readyResponse !== 'pending'}
+              disabled={
+                preparing ||
+                (readyResponse !== 'pending' &&
+                  !(readyResponse === 'accepted' && canDeclineAfterAccept))
+              }
               onClick={onDecline}
             >
               DECLINE
@@ -194,19 +206,21 @@ export function MatchFoundReadyCheck({
             className="mt-4 grid text-center text-sm leading-relaxed text-emerald-100"
             role="status"
           >
-            {(['pending', 'accepted'] as const).map((state) => (
+            {(['pending', 'accepted', 'declineAvailable'] as const).map((state) => (
               <p
                 key={state}
                 className={twMerge(
                   'col-start-1 row-start-1',
-                  (readyResponse === 'accepted') !== (state === 'accepted') && 'invisible'
+                  state !== decisionState && 'invisible'
                 )}
-                aria-hidden={(readyResponse === 'accepted') !== (state === 'accepted')}
+                aria-hidden={state !== decisionState}
               >
                 {t(
                   state === 'accepted'
                     ? 'match.ready.decisionAccepted'
-                    : 'match.ready.decisionPending'
+                    : state === 'declineAvailable'
+                      ? 'match.ready.decisionDeclineAvailable'
+                      : 'match.ready.decisionPending'
                 )}
               </p>
             ))}
@@ -215,10 +229,7 @@ export function MatchFoundReadyCheck({
 
         <aside className="match-ready-note mt-3 flex gap-4 bg-black/85 px-5 py-3 text-xs leading-relaxed text-white/80 shadow-xl sm:px-6">
           <Info className="mt-0.5 size-5 shrink-0 text-white" aria-hidden="true" />
-          <p>
-            By accepting, you commit to this match. Leaving after acceptance may result in a
-            penalty. Please ensure you are ready to play before continuing.
-          </p>
+          <p>{t('match.ready.commitmentNote')}</p>
         </aside>
       </div>
     </div>

@@ -391,6 +391,8 @@ const ru: Record<string, string> = {
 
   Store: 'Магазин',
   'Skins on sale': 'Скины в продаже',
+  'Search skins': 'Поиск скинов',
+  'Skin name or weapon': 'Название скина или оружие',
   'Earn Points by playing. P Cash is the premium Papa Cash currency.':
     'Зарабатывайте очки в игре. P Cash — премиальная валюта Papa Cash.',
   'Filter skins by weapon': 'Фильтр скинов по оружию',
@@ -873,6 +875,8 @@ const tl: Record<string, string> = {
 
   Store: 'Store',
   'Skins on sale': 'Skins on sale',
+  'Search skins': 'Maghanap ng skin',
+  'Skin name or weapon': 'Pangalan ng skin o armas',
   'Earn Points by playing. P Cash is the premium Papa Cash currency.':
     'Earn Points by playing. P Cash ang premium Papa Cash currency.',
   'Filter skins by weapon': 'Filter skins by weapon',

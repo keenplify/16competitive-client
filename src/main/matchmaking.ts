@@ -445,6 +445,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       return (
         typeof message.matchId === 'string' &&
         typeof message.deadline === 'string' &&
+        (message.declineAvailableAt === undefined ||
+          typeof message.declineAvailableAt === 'string') &&
         (message.serverNow === undefined || typeof message.serverNow === 'string') &&
         Array.isArray(message.acceptedPlayerIds) &&
         message.acceptedPlayerIds.every((id) => typeof id === 'string') &&
@@ -1737,7 +1739,6 @@ class MatchmakingConnection {
         setTimeout(() => this.reconnectAfterMatch(), 0)
       } else if (parsed.type === 'error' && this.recoveryStatusPending) {
         this.recoveryStatusPending = false
-        if (parsed.code === 'NOT_QUEUED') return
       }
       if (parsed.type === 'match_found') {
         this.seenMatchEvents.add(`${parsed.type}:${parsed.matchId}`)

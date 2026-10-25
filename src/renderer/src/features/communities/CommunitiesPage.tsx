@@ -194,7 +194,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                 <Button
                   variant="secondary"
                   className="gap-2 text-rose-300"
-                  disabled={state.joining || state.loading}
+                  disabled={restricted || state.joining || state.loading}
                   onClick={() => state.requestLeave(true)}
                 >
                   <LogOut className="size-4" aria-hidden="true" />
@@ -374,7 +374,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           </div>
         </>
       )}
-      {state.leaveRequested && (
+      {state.leaveRequested && !restricted && (
         <ModalDialog
           open
           onClose={() => state.requestLeave(false)}
