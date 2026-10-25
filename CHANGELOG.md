@@ -3208,3 +3208,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Lobby
 
 - Added lobby artwork capture support.
+
+## v2026.1025.6 — 2026-10-25
+
+### Match Connections
+
+- Added support for manually connecting to public FFA matches.
