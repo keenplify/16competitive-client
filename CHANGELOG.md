@@ -3154,3 +3154,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - MR8 ready-check notices now appear only during an active MR8 game.
+
+## v2026.1024.5 — 2026-10-24
+
+### Communities
+
+- You can no longer leave communities while community discovery is restricted.
