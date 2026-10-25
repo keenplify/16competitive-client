@@ -3198,3 +3198,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Shop
 
 - Keep the grenade shop filter visible while browsing.
+
+## v2026.1025.5 — 2026-10-25
+
+### Branding
+
+- Partner logos now appear only when enabled.
+
+### Lobby
+
+- Added lobby artwork capture support.
