@@ -3214,3 +3214,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Connections
 
 - Added support for manually connecting to public FFA matches.
+
+## v2026.1025.7 — 2026-10-25
+
+### Warmup
+
+- Prevented outdated asset errors from appearing after cancelling warmup.
