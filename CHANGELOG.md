@@ -3231,3 +3231,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Play Page
 
 - Updates on the Play page now follow administrator visibility settings.
+
+## v2026.1026.2 — 2026-10-26
+
+### HUD
+
+- Added signed native HUD integration to the web helper.
+
+### Compatibility
+
+- Improved native HUD support for Windows game clients.
