@@ -1,3 +1,4 @@
+import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
 import { PlayerActivity } from './PlayerActivity'
 import { MatchmakingMapPool } from './MatchmakingMapPool'
 import { QueueWarmupPanel } from './QueueWarmupPanel'
@@ -73,13 +74,17 @@ export function PlayPage({
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t } = useTranslation()
   const communityText = useCommunityText()
-  const hasCommunityServers = usePartnerBrandingStore(
-    (state) =>
-      state.branding?.servers.some(
-        (server) => !hideDesktopOnlyFeatures || server.gameVersion !== 'cs13'
-      ) ?? false
-  )
+  const branding = usePartnerBrandingStore((state) => state.branding)
   const player = useAuthStore((state) => state.session?.player)
+  const hasCommunityServers = usePartnerServersStore(
+    (state) =>
+      state.accountId === player?.id &&
+      state.rows.some((server) => !hideDesktopOnlyFeatures || server.gameVersion !== 'cs13')
+  )
+  const loadCommunityServers = usePartnerServersStore((state) => state.load)
+  useEffect(() => {
+    if (player?.id) void loadCommunityServers()
+  }, [player?.id, branding, loadCommunityServers])
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -486,6 +491,11 @@ export function PlayPage({
                     </span>
                   </span>
                 </div>
+              )}
+              {webRuntime && manualConnectionAllowed && (
+                <p className="text-xs leading-5 text-neutral-300">
+                  {t('webHelper.steamLaunchHint')}
+                </p>
               )}
               {currentCustomRoom?.matchId === match?.matchId && (
                 <div className="mt-1 border-t border-white/10 pt-3 text-center">

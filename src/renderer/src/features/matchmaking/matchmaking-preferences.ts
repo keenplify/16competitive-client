@@ -3,6 +3,8 @@ import { isMatchmakingMode, type MatchmakingMode } from '../../../../shared/matc
 interface MatchmakingPreferences {
   lastMode?: MatchmakingMode
   mapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
+  // Remember every offered map so new maps default on only once per mode.
+  seenMapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
   // Remember offered review maps so a manual deselection survives catalog refreshes.
   seenReviewMapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
 }
@@ -28,6 +30,7 @@ export function readMatchmakingPreferences(playerId: string | undefined): Matchm
     return {
       lastMode: isMatchmakingMode(saved.lastMode) ? saved.lastMode : undefined,
       mapIdsByMode: readMapIds(saved.mapIdsByMode),
+      seenMapIdsByMode: readMapIds(saved.seenMapIdsByMode),
       seenReviewMapIdsByMode: readMapIds(saved.seenReviewMapIdsByMode)
     }
   } catch {
@@ -42,6 +45,7 @@ export function saveMatchmakingPreferences(
     mode?: MatchmakingMode
     mapIds?: string[]
     seenReviewMapIds?: string[]
+    seenMapIds?: string[]
   }
 ): void {
   if (!playerId) return
@@ -50,9 +54,12 @@ export function saveMatchmakingPreferences(
     const next: MatchmakingPreferences = {
       lastMode: changes.lastMode ?? saved.lastMode,
       mapIdsByMode: { ...saved.mapIdsByMode },
+      seenMapIdsByMode: { ...saved.seenMapIdsByMode },
       seenReviewMapIdsByMode: { ...saved.seenReviewMapIdsByMode }
     }
     if (changes.mode && changes.mapIds) next.mapIdsByMode![changes.mode] = changes.mapIds
+    if (changes.mode && changes.seenMapIds)
+      next.seenMapIdsByMode![changes.mode] = changes.seenMapIds
     if (changes.mode && changes.seenReviewMapIds)
       next.seenReviewMapIdsByMode![changes.mode] = changes.seenReviewMapIds
     window.localStorage.setItem(storageKey(playerId), JSON.stringify(next))

@@ -1,6 +1,10 @@
 import type { SupportedLanguageCode } from './i18n'
 
 const en = {
+  'webHelper.steamLaunchHint':
+    'For Steam launch, close Counter-Strike first. If it is already running, use Copy connection and paste the command into the game console.',
+  'webHelper.steamCredentialFallback':
+    'Steam cannot safely pass this match’s credentials. Use Copy connection and paste the command into the Counter-Strike console.',
   'webHelper.title': 'Play with a local launcher',
   'webHelper.description':
     'Optional: use the desktop app or small helper to open your installed Counter-Strike 1.3 or 1.6. Steam play remains available for supported 1.6 matches.',
@@ -34,6 +38,10 @@ export const webHelperTranslations: Record<
 > = {
   en,
   ru: {
+    'webHelper.steamLaunchHint':
+      'Перед запуском через Steam закройте Counter-Strike. Если игра уже запущена, нажмите «Копировать подключение» и вставьте команду в консоль игры.',
+    'webHelper.steamCredentialFallback':
+      'Steam не может корректно передать данные подключения этого матча. Нажмите «Копировать подключение» и вставьте команду в консоль Counter-Strike.',
     'webHelper.title': 'Играть через локальный запуск',
     'webHelper.description':
       'Необязательно: приложение или небольшой помощник откроет установленную Counter-Strike 1.3 или 1.6. Для поддерживаемых матчей 1.6 остаётся запуск через Steam.',
@@ -60,6 +68,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Закрыть настройку'
   },
   tl: {
+    'webHelper.steamLaunchHint':
+      'Isara muna ang Counter-Strike bago mag-launch sa Steam. Kung bukas na ito, gamitin ang Copy connection at i-paste ang command sa game console.',
+    'webHelper.steamCredentialFallback':
+      'Hindi maipapasa nang tama ng Steam ang credentials ng match na ito. Gamitin ang Copy connection at i-paste ang command sa Counter-Strike console.',
     'webHelper.title': 'Maglaro gamit ang lokal na launcher',
     'webHelper.description':
       'Opsyonal: buksan ang naka-install na Counter-Strike 1.3 o 1.6 gamit ang desktop app o maliit na helper. Puwede pa rin ang Steam para sa suportadong 1.6 match.',
@@ -87,6 +99,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Isara ang setup'
   },
   th: {
+    'webHelper.steamLaunchHint':
+      'ปิด Counter-Strike ก่อนเปิดผ่าน Steam หากเกมเปิดอยู่แล้ว ให้ใช้คัดลอกการเชื่อมต่อแล้ววางคำสั่งในคอนโซลเกม',
+    'webHelper.steamCredentialFallback':
+      'Steam ไม่สามารถส่งข้อมูลการเชื่อมต่อของแมตช์นี้ได้อย่างถูกต้อง ใช้คัดลอกการเชื่อมต่อแล้ววางคำสั่งในคอนโซล Counter-Strike',
     'webHelper.title': 'เล่นด้วยตัวเปิดเกมในเครื่อง',
     'webHelper.description':
       'ตัวเลือกเสริม: ใช้แอปเดสก์ท็อปหรือตัวช่วยขนาดเล็กเพื่อเปิด Counter-Strike 1.3 หรือ 1.6 ที่ติดตั้งไว้ ยังใช้ Steam ได้สำหรับแมตช์ 1.6 ที่รองรับ',
@@ -111,6 +127,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'ปิดการตั้งค่า'
   },
   id: {
+    'webHelper.steamLaunchHint':
+      'Tutup Counter-Strike sebelum membuka lewat Steam. Jika sudah berjalan, gunakan Salin koneksi dan tempel perintah di konsol game.',
+    'webHelper.steamCredentialFallback':
+      'Steam tidak dapat meneruskan kredensial pertandingan ini dengan benar. Gunakan Salin koneksi dan tempel perintah di konsol Counter-Strike.',
     'webHelper.title': 'Main dengan peluncur lokal',
     'webHelper.description':
       'Opsional: gunakan aplikasi desktop atau helper kecil untuk membuka Counter-Strike 1.3 atau 1.6 yang terpasang. Steam tetap tersedia untuk pertandingan 1.6 yang didukung.',
@@ -137,6 +157,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Tutup pengaturan'
   },
   pt: {
+    'webHelper.steamLaunchHint':
+      'Feche o Counter-Strike antes de iniciar pelo Steam. Se já estiver aberto, use Copiar conexão e cole o comando no console do jogo.',
+    'webHelper.steamCredentialFallback':
+      'O Steam não consegue transmitir corretamente as credenciais desta partida. Use Copiar conexão e cole o comando no console do Counter-Strike.',
     'webHelper.title': 'Jogar com iniciador local',
     'webHelper.description':
       'Opcional: use o aplicativo ou um pequeno auxiliar para abrir o Counter-Strike 1.3 ou 1.6 instalado. O Steam continua disponível para partidas 1.6 compatíveis.',
@@ -164,6 +188,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Fechar configuração'
   },
   ja: {
+    'webHelper.steamLaunchHint':
+      'Steam から起動する前に Counter-Strike を終了してください。起動済みの場合は「接続をコピー」でコピーしたコマンドをゲームのコンソールに貼り付けてください。',
+    'webHelper.steamCredentialFallback':
+      'Steam はこのマッチの接続情報を正しく渡せません。「接続をコピー」でコピーしたコマンドを Counter-Strike のコンソールに貼り付けてください。',
     'webHelper.title': 'ローカルランチャーでプレイ',
     'webHelper.description':
       '任意: デスクトップアプリまたは小さなヘルパーで、インストール済みの Counter-Strike 1.3 / 1.6 を起動します。対応する 1.6 マッチでは Steam も利用できます。',
@@ -190,6 +218,10 @@ export const webHelperTranslations: Record<
     'webHelper.close': '設定を閉じる'
   },
   hi: {
+    'webHelper.steamLaunchHint':
+      'Steam से शुरू करने से पहले Counter-Strike बंद करें। यदि गेम पहले से चल रहा है, तो कनेक्शन कॉपी करें और कमांड को गेम कंसोल में पेस्ट करें।',
+    'webHelper.steamCredentialFallback':
+      'Steam इस मैच के कनेक्शन विवरण सही तरह से नहीं भेज सकता। कनेक्शन कॉपी करें और कमांड को Counter-Strike कंसोल में पेस्ट करें।',
     'webHelper.title': 'लोकल लॉन्चर से खेलें',
     'webHelper.description':
       'वैकल्पिक: इंस्टॉल किए गए Counter-Strike 1.3 या 1.6 को डेस्कटॉप ऐप या छोटे हेल्पर से खोलें। समर्थित 1.6 मैचों के लिए Steam उपलब्ध रहेगा।',

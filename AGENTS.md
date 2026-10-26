@@ -693,6 +693,22 @@ The client only:
 
 Do not allow a match server to alter permanent account state through the launcher.
 
+### Steam-safe game connection credentials
+
+- Newly generated CS 1.6 server passwords and manual-token random bodies must use
+  only ASCII `A-Z`, `a-z`, and `0-9`. The required `m_` manual-token prefix is safe.
+  This rule applies to game connection credentials, not user account passwords.
+- Steam GoldSrc's startup parser treats `+` and `-` as command separators even
+  inside quoted values. URL encoding or quoting does not make these symbols safe.
+- The backend generates these credentials. Never strip, replace, or regenerate
+  characters in a received password/token in the client. Preserve compatibility
+  with existing live credentials; use the console/local-launcher fallback when
+  Steam cannot pass them intact.
+- Keep cryptographic randomness and at least 128 bits of entropy within GoldSrc's
+  small userinfo budget; the current format uses 22 random base62 characters.
+- Cover the actual GoldSrc separator behavior in launch regression tests, including
+  hyphenated legacy credentials. Do not model parsing with `split('+')` alone.
+
 ---
 
 ## Client State

@@ -35,7 +35,11 @@ async function harness(requestJson = async () => connection, hosted = false) {
     },
     URL,
     sessionStorage: { setItem: (k, v) => stored.set(k, v), getItem: (k) => stored.get(k) ?? null },
-    localStorage: { getItem: (k) => stored.get(k) ?? null, setItem: (k, v) => stored.set(k, v), removeItem: (k) => stored.delete(k) },
+    localStorage: {
+      getItem: (k) => stored.get(k) ?? null,
+      setItem: (k, v) => stored.set(k, v),
+      removeItem: (k) => stored.delete(k)
+    },
     console,
     encodeURIComponent
   })
@@ -84,39 +88,69 @@ function commands(uri) {
     .filter(Boolean)
 }
 
-for (const startup of ['cold launch', 'already running']) {
-  test(`Web Play connects with current credentials after ${startup}`, async () => {
-    const { api, location } = await harness()
-    await api.launchBrowserMatch()
-    let password = 'previous-server-password'
-    let token = 'previous-match-token'
-    let frame = 0
-    let connects = 0
-    for (const command of commands(location.href)) {
-      const [name, ...args] = command.split(' ')
-      if (name === 'wait') {
-        frame++
-        // Simulate startup overwriting credentials while launch commands wait.
-        if (startup === 'cold launch' && frame === 10) {
-          password = 'startup-password'
-          token = 'startup-token'
-        }
-      } else if (name === 'setinfo') {
-        assert.equal(args[0], '_16c')
-        token = args[1]
-      } else if (name === 'password') {
-        password = args[0]
-      } else if (name === 'connect') {
-        assert.equal(frame, 20)
-        assert.equal(token, connection.manualToken)
-        assert.equal(password, connection.password)
-        assert.equal(args[0], `${connection.host}:${connection.port}`)
-        connects++
-      } else assert.fail(`Unexpected game command: ${name}`)
-    }
-    assert.equal(connects, 1)
-  })
+// The installed Steam GoldSrc Cmd_StuffCmds_f concatenates argv and scans for
+// either sign without respecting quoting. Model that parser, not split('+').
+function steamStartupCommands(uri) {
+  const raw = decodeURIComponent(uri.slice('steam://run/10//'.length, -1))
+  return (raw.match(/\+[^+-]*/g) ?? []).map((command) => command.slice(1).trim())
 }
+function commandArgs(command) {
+  return (command.match(/"[^"\n]*"|[^\s]+/g) ?? []).map((value) => value.replace(/^"|"$/g, ''))
+}
+
+test('Web Play preserves current credentials through Steam GoldSrc startup parsing', async () => {
+  const { api, location } = await harness()
+  await api.launchBrowserMatch()
+  let password = 'previous-server-password',
+    token = 'previous-match-token',
+    frame = 0,
+    connects = 0
+  for (const command of steamStartupCommands(location.href)) {
+    const [name, ...args] = commandArgs(command)
+    if (name === 'wait') {
+      frame++
+      if (frame === 10) {
+        password = 'startup-password'
+        token = 'startup-token'
+      }
+    } else if (name === 'setinfo') {
+      assert.equal(args[0], '_16c')
+      token = args[1]
+    } else if (name === 'password') password = args[0]
+    else if (name === 'connect') {
+      assert.equal(frame, 20)
+      assert.equal(token, connection.manualToken)
+      assert.equal(password, connection.password)
+      assert.equal(args[0], `${connection.host}:${connection.port}`)
+      connects++
+    } else assert.fail(`Unexpected game command: ${name}`)
+  }
+  assert.equal(connects, 1)
+})
+
+test('hyphenated live credentials never produce a truncated Steam connection', async () => {
+  for (const legacy of [
+    { ...connection, password: 'aaaa-bbbbbbbbbbbbbbbbbb' },
+    { ...connection, password: '-' + 'a'.repeat(21) },
+    { ...connection, manualToken: `m_${'b'.repeat(10)}-${'b'.repeat(11)}` },
+    { ...connection, host: 'match-host.example.test' }
+  ]) {
+    const { api, location } = await harness(async () => legacy)
+    await assert.rejects(api.launchBrowserMatch(), /WEB_STEAM_CREDENTIALS_UNSUPPORTED/)
+    assert.equal(location.href, '')
+  }
+})
+
+test('public FFA explicitly clears an old password before connecting', async () => {
+  const { api, location } = await harness(async () => ({ ...connection, password: '' }))
+  await api.launchBrowserMatch()
+  const parsed = steamStartupCommands(location.href).map(commandArgs)
+  assert.deepEqual(
+    parsed.find((args) => args[0] === 'password'),
+    ['password', '']
+  )
+  assert.equal(parsed.at(-1)[0], 'connect')
+})
 
 test('reconnect fetches fresh manual credentials instead of reusing the socket password', async () => {
   const requests = []
@@ -133,7 +167,7 @@ test('reconnect fetches fresh manual credentials instead of reusing the socket p
     assert.equal(options.authenticated, true)
     assert.equal(options.init.method, 'POST')
   }
-  assert.ok(commands(location.href).includes(`password ${fresh.password}`))
+  assert.ok(commands(location.href).includes(`password "${fresh.password}"`))
   assert.ok(commands(location.href).includes(`setinfo _16c ${fresh.manualToken}`))
 })
 

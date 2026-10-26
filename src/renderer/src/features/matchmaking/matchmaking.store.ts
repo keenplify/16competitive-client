@@ -32,18 +32,33 @@ function selectedMapsForMode(
 ): string[] {
   const preferences = readMatchmakingPreferences(playerId)
   const savedMapIds = preferences.mapIdsByMode?.[mode]
-  const reviewMapIds = availableMaps.filter((map) => map.feedbackEnabled).map((map) => map.id)
-  const previouslySeen = new Set(preferences.seenReviewMapIdsByMode?.[mode] ?? [])
-  const selected = new Set(savedMapIds ?? availableMaps.map((map) => map.id))
-  for (const id of reviewMapIds) {
-    if (!previouslySeen.has(id)) selected.add(id)
+  const mapIds = availableMaps.map((map) => map.id)
+  // Older preferences tracked review maps only. Establish a full baseline
+  // without reselecting regular maps the player had already turned off.
+  const seenMapIds = preferences.seenMapIdsByMode?.[mode]
+  const previouslySeen = new Set(seenMapIds ?? mapIds)
+  const seenReviewMapIds = preferences.seenReviewMapIdsByMode?.[mode] ?? []
+  const selected = new Set(savedMapIds ?? mapIds)
+  for (const map of availableMaps) {
+    if (
+      !previouslySeen.has(map.id) ||
+      (!seenMapIds && map.feedbackEnabled && !seenReviewMapIds.includes(map.id))
+    ) {
+      selected.add(map.id)
+    }
   }
-  const result = availableMaps.map((map) => map.id).filter((id) => selected.has(id))
-  if (reviewMapIds.some((id) => !previouslySeen.has(id))) {
+  const result = mapIds.filter((id) => selected.has(id))
+  if (!seenMapIds || mapIds.some((id) => !previouslySeen.has(id))) {
     saveMatchmakingPreferences(playerId, {
       mode,
       mapIds: result,
-      seenReviewMapIds: [...new Set([...previouslySeen, ...reviewMapIds])]
+      seenMapIds: [...new Set([...previouslySeen, ...mapIds])],
+      seenReviewMapIds: [
+        ...new Set([
+          ...seenReviewMapIds,
+          ...availableMaps.filter((map) => map.feedbackEnabled).map((map) => map.id)
+        ])
+      ]
     })
   }
   return result
@@ -169,6 +184,8 @@ let queueStatusPollTimer: number | null = null
 
 const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Matchmaking request failed.'
+  if (error.message === 'WEB_STEAM_CREDENTIALS_UNSUPPORTED')
+    return translate(useLanguageStore.getState().language, 'webHelper.steamCredentialFallback')
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
 }

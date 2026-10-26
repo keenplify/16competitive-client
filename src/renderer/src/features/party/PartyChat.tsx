@@ -1,3 +1,4 @@
+import { ChatMessageRow } from './ChatMessageRow'
 import { useCommunityChatStore } from '../partner-branding/community-chat.store'
 import { communityText } from '../partner-branding/community-copy'
 import { MessageSquare, UserPlus, X } from 'lucide-react'
@@ -12,15 +13,6 @@ import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useWindowFocusStore } from '../navigation/window-focus.store'
 import { usePartyStore, type ChatTab } from './party.store'
-
-const formatChatTimestamp = (sentAt: string, language: string): string => {
-  const timestamp = Date.parse(sentAt)
-  if (!Number.isFinite(timestamp)) return ''
-  return new Intl.DateTimeFormat(language === 'tl' ? 'fil-PH' : language, {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(timestamp)
-}
 
 interface ChatSender {
   id: string
@@ -118,7 +110,8 @@ export function PartyChat(): JSX.Element {
   } | null>(null)
   const [chatOpen, setChatOpen] = useState(true)
   const [minimizedPing, setMinimizedPing] = useState<MinimizedChatPing | null>(null)
-  const chatVisible = page === 'lobby' || (page === 'play' && playView === 'custom')
+  const chatVisible =
+    page === 'lobby' || (page === 'play' && playView === 'custom' && Boolean(room))
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
   const globalLanguageLabel =
@@ -644,11 +637,13 @@ export function PartyChat(): JSX.Element {
                     No recent messages with {friendConversation.friend.username}. Say hello.
                   </p>
                 )}
-                {friendConversation?.messages.map((entry) => (
-                  <p
+                {friendConversation?.messages.map((entry, index) => (
+                  <ChatMessageRow
                     key={entry.id}
                     className="break-words"
-                    title={formatChatTimestamp(entry.sentAt, language)}
+                    sentAt={entry.sentAt}
+                    previousSentAt={friendConversation?.messages[index - 1]?.sentAt}
+                    language={language}
                   >
                     <span className="text-cyan-300">[Private] </span>
                     <span
@@ -658,7 +653,7 @@ export function PartyChat(): JSX.Element {
                     </span>
                     <span className="text-neutral-400">: </span>
                     <span className="text-neutral-100">{entry.message}</span>
-                  </p>
+                  </ChatMessageRow>
                 ))}
               </>
             ) : chatTab === 'room' ? (
@@ -667,11 +662,13 @@ export function PartyChat(): JSX.Element {
                   <p className="text-neutral-500">{translate(language, 'chat.roomEmpty')}</p>
                 )}
                 {roomChatId === room?.id &&
-                  roomEntries.map((entry) => (
-                    <p
+                  roomEntries.map((entry, index) => (
+                    <ChatMessageRow
                       key={entry.id}
                       className="break-words"
-                      title={formatChatTimestamp(entry.sentAt, language)}
+                      sentAt={entry.sentAt}
+                      previousSentAt={roomEntries[index - 1]?.sentAt}
+                      language={language}
                     >
                       <span className="text-emerald-300">
                         [{translate(language, 'chat.roomTab')}]{' '}
@@ -683,7 +680,7 @@ export function PartyChat(): JSX.Element {
                       </span>
                       <span className="text-neutral-400">: </span>
                       <span className="text-neutral-100">{entry.message}</span>
-                    </p>
+                    </ChatMessageRow>
                   ))}
               </>
             ) : chatTab === 'party' ? (
@@ -695,20 +692,24 @@ export function PartyChat(): JSX.Element {
                       : 'Join or create a party to use party chat.'}
                   </p>
                 )}
-                {partyEntries.map((entry) =>
+                {partyEntries.map((entry, index) =>
                   entry.type === 'party_chat_notification' ? (
-                    <p
+                    <ChatMessageRow
                       key={entry.id}
                       className="text-emerald-300"
-                      title={formatChatTimestamp(entry.sentAt, language)}
+                      sentAt={entry.sentAt}
+                      previousSentAt={partyEntries[index - 1]?.sentAt}
+                      language={language}
                     >
                       {entry.message}
-                    </p>
+                    </ChatMessageRow>
                   ) : (
-                    <p
+                    <ChatMessageRow
                       key={entry.id}
                       className="break-words"
-                      title={formatChatTimestamp(entry.sentAt, language)}
+                      sentAt={entry.sentAt}
+                      previousSentAt={partyEntries[index - 1]?.sentAt}
+                      language={language}
                     >
                       <span className="text-sky-300">[Party] </span>
                       <span
@@ -726,7 +727,7 @@ export function PartyChat(): JSX.Element {
                       </span>
                       <span className="text-neutral-400">: </span>
                       <span className="text-neutral-100">{entry.message}</span>
-                    </p>
+                    </ChatMessageRow>
                   )
                 )}
               </>
@@ -735,11 +736,13 @@ export function PartyChat(): JSX.Element {
                 {communityMessages.length === 0 && (
                   <p className="text-neutral-400">{communityText(language, 'chatEmpty')}</p>
                 )}
-                {communityMessages.map((entry) => (
-                  <p
+                {communityMessages.map((entry, index) => (
+                  <ChatMessageRow
                     key={entry.id}
                     className="break-words"
-                    title={formatChatTimestamp(entry.sentAt, language)}
+                    sentAt={entry.sentAt}
+                    previousSentAt={communityMessages[index - 1]?.sentAt}
+                    language={language}
                   >
                     <span
                       className="text-sky-300"
@@ -749,7 +752,7 @@ export function PartyChat(): JSX.Element {
                     </span>
                     <span className="text-neutral-400">: </span>
                     <span className="text-neutral-100">{entry.message}</span>
-                  </p>
+                  </ChatMessageRow>
                 ))}
               </>
             ) : chatTab === 'language' ? (
@@ -757,11 +760,13 @@ export function PartyChat(): JSX.Element {
                 {languageEntries.length === 0 && (
                   <p className="text-neutral-500">No messages in {globalLanguageLabel} chat yet.</p>
                 )}
-                {languageEntries.map((entry) => (
-                  <p
+                {languageEntries.map((entry, index) => (
+                  <ChatMessageRow
                     key={entry.id}
                     className="break-words"
-                    title={formatChatTimestamp(entry.sentAt, language)}
+                    sentAt={entry.sentAt}
+                    previousSentAt={languageEntries[index - 1]?.sentAt}
+                    language={language}
                   >
                     <span className="text-violet-300">[{globalChatLanguage.toUpperCase()}] </span>
                     <span
@@ -777,7 +782,7 @@ export function PartyChat(): JSX.Element {
                     </span>
                     <span className="text-neutral-400">: </span>
                     <span className="text-neutral-100">{entry.message}</span>
-                  </p>
+                  </ChatMessageRow>
                 ))}
               </>
             ) : (
@@ -785,12 +790,14 @@ export function PartyChat(): JSX.Element {
                 {globalFeed.length === 0 && (
                   <p className="text-neutral-500">Global messages appear here.</p>
                 )}
-                {globalFeed.map(({ kind, entry }) =>
+                {globalFeed.map(({ kind, entry }, index) =>
                   kind === 'announcement' ? (
-                    <p
+                    <ChatMessageRow
                       key={entry.id}
                       className="break-words text-amber-200"
-                      title={formatChatTimestamp(entry.sentAt, language)}
+                      sentAt={entry.sentAt}
+                      previousSentAt={globalFeed[index - 1]?.sentAt}
+                      language={language}
                     >
                       <span>[{translate(language, 'chat.communityAnnouncement')}] </span>
                       <a
@@ -801,12 +808,14 @@ export function PartyChat(): JSX.Element {
                       >
                         {translate(language, 'chat.communityVisit', { platform: entry.label })} ↗
                       </a>
-                    </p>
+                    </ChatMessageRow>
                   ) : (
-                    <p
+                    <ChatMessageRow
                       key={entry.id}
                       className="break-words"
-                      title={formatChatTimestamp(entry.sentAt, language)}
+                      sentAt={entry.sentAt}
+                      previousSentAt={globalFeed[index - 1]?.sentAt}
+                      language={language}
                     >
                       <span className="text-cyan-300">[Global] </span>
                       <span
@@ -824,7 +833,7 @@ export function PartyChat(): JSX.Element {
                       </span>
                       <span className="text-neutral-400">: </span>
                       <span className="text-neutral-100">{entry.message}</span>
-                    </p>
+                    </ChatMessageRow>
                   )
                 )}
               </>
