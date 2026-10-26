@@ -3241,3 +3241,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Improved native HUD support for Windows game clients.
+
+## v2026.1026.3 — 2026-10-26
+
+### Custom Rooms
+
+- Added round time control for custom rooms.
