@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "cs13": {
+    "windowsExecutable": "hl.exe",
+    "linuxExecutable": "hl_linux",
+    "modDirectories": ["cstrk13", "cstrike"],
+    "windowsFlags": ["-gl", "-nosierra"],
+    "passwordArgument": "+password",
+    "connectArgument": "+connect",
+    "authFilePrefix": "16c13_",
+    "authCommand": "16c13_auth"
+  },
+  "cs16": {
+    "windowsExecutable": "hl.exe",
+    "linuxExecutable": "hl_linux",
+    "modDirectories": ["cstrike"],
+    "passwordArgument": "+password",
+    "connectArgument": "+connect",
+    "joinInfoPrefix": "_16c_",
+    "startupWaitFrames": 20,
+    "startupConfigPrefix": "16competitive_web_"
+  }
+}

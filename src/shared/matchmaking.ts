@@ -419,6 +419,8 @@ export type MatchmakingEvent = { whileQueued?: boolean } & (
 )
 
 export interface MatchmakingApi {
+  checkLocalLauncher?(target?: 'electron' | 'rust'): Promise<'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null>
+  cachedLocalLauncherStatus?(): 'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null
   joinWarmup(mode: MatchmakingMode, mapIds: string | string[]): Promise<void>
   leaveWarmup(): Promise<void>
   leaveFfa(matchId: string): Promise<void>

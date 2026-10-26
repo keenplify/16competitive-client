@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { createArtifactManifest, expectedAssets, verifyArtifactManifest } from './artifacts.mjs'
 import { releaseEnvironment } from './environment.mjs'
 import { localSigningCredentials } from './publish.mjs'
+import { webHelperAssets, webHelperReleaseChanges } from '../web-helper-release.mjs'
 
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const state = join(homedir(), '.local/share/16competitive-build')
@@ -153,6 +154,32 @@ export async function buildLocalRelease(kind, root, version, commit) {
   run('tar', ['-xf', archive, '-C', source])
   await rm(artifacts, { recursive: true, force: true })
   await mkdir(artifacts)
+  let buildWebHelper = false
+  if (kind === 'desktop') {
+    const changes = webHelperReleaseChanges(root, commit)
+    buildWebHelper = changes.changed
+    if (!buildWebHelper && changes.previousTag) {
+      try {
+        for (const name of webHelperAssets)
+          run('gh', [
+            'release',
+            'download',
+            changes.previousTag,
+            '--repo',
+            'keenplify/16competitive-client',
+            '--pattern',
+            name,
+            '--dir',
+            artifacts
+          ])
+        console.log(`Reusing web helper binaries from ${changes.previousTag}.`)
+      } catch {
+        buildWebHelper = true
+        console.log('Previous web helper artifacts are unavailable; rebuilding.')
+      }
+    }
+    if (buildWebHelper) console.log('Building changed web helper for this desktop release.')
+  }
   const guest = `C:/16c-build/jobs/${kind}-${commit}`
   powershell(`New-Item -ItemType Directory -Force '${guest}' | Out-Null`)
   run('scp', [
@@ -218,6 +245,25 @@ export async function buildLocalRelease(kind, root, version, commit) {
       join(artifacts, 'papamo-cosmetic-module-linux-x86.so')
     )
   } else {
+    if (buildWebHelper) {
+      await container('helper-x64', source, 'cargo', [
+        'test',
+        '--manifest-path',
+        'web-helper/Cargo.toml',
+        '--locked'
+      ])
+      await container('helper-x64', source, 'cargo', [
+        'build',
+        '--manifest-path',
+        'web-helper/Cargo.toml',
+        '--release',
+        '--locked'
+      ])
+      await copyFile(
+        join(source, 'web-helper/target/release/competitive16-web-helper'),
+        join(artifacts, 'competitive16-web-helper-linux')
+      )
+    }
     const helper = JSON.parse(await readFile(join(source, 'helper-release.json'), 'utf8'))
     const approved = join(job, 'approved-helper')
     await rm(approved, { recursive: true, force: true })
@@ -249,7 +295,7 @@ export async function buildLocalRelease(kind, root, version, commit) {
     }
   }
   powershell(
-    `& '${guest}/windows-build.ps1' -Kind '${kind}' -Commit '${commit}'; if (!$?) { exit 1 }`
+    `& '${guest}/windows-build.ps1' -Kind '${kind}' -Commit '${commit}' -BuildWebHelper $${buildWebHelper ? 'true' : 'false'}; if (!$?) { exit 1 }`
   )
   run('scp', [...scpArgs, `build@127.0.0.1:${guest}/artifacts/*`, artifacts])
   await createArtifactManifest(artifacts, kind, version, commit, buildEnv)

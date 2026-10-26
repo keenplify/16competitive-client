@@ -21,6 +21,14 @@ async function loadModule(entry) {
     )
     modules.set(path, module)
     await module.link(async (specifier) => {
+      if (specifier.endsWith('.json')) {
+        const target = resolve(dirname(path), specifier)
+        if (modules.has(target)) return modules.get(target)
+        const value = JSON.parse(await readFile(target, 'utf8'))
+        const json = new vm.SyntheticModule(['default'], function () { this.setExport('default', value) }, { context })
+        modules.set(target, json)
+        return json
+      }
       if (!specifier.startsWith('node:')) return load(resolve(dirname(path), `${specifier}.ts`))
       if (modules.has(specifier)) return modules.get(specifier)
       const namespace = await import(specifier)

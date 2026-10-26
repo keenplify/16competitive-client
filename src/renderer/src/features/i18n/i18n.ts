@@ -13,6 +13,7 @@ import { gameDisplayTranslations } from './game-display-translations'
 import { paymentTranslations } from './payment-translations'
 import { roomSettingsTranslations } from './room-settings-translations'
 import { legacyGameTranslations } from './legacy-game-translations'
+import { webHelperTranslations } from './web-helper-translations'
 import { communityMembershipTranslations } from './community-membership-translations'
 import { newsAnnouncementTranslations } from './news-announcement-translations'
 import { matchAssetTranslations } from './match-asset-translations'
@@ -54,6 +55,7 @@ const english = {
   ...queueWarmupTranslations.en,
   ...webGameDownloadTranslations.en,
   ...legacyGameTranslations.en,
+  ...webHelperTranslations.en,
   ...steamTranslations.en,
   ...communityMembershipTranslations.en,
   ...communityDirectoryTranslations.en,
@@ -224,6 +226,7 @@ const russian: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.ru,
   ...webGameDownloadTranslations.ru,
   ...legacyGameTranslations.ru,
+  ...webHelperTranslations.ru,
   ...steamTranslations.ru,
   ...communityMembershipTranslations.ru,
   ...communityDirectoryTranslations.ru,
@@ -394,6 +397,7 @@ const taglish: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.tl,
   ...webGameDownloadTranslations.tl,
   ...legacyGameTranslations.tl,
+  ...webHelperTranslations.tl,
   ...steamTranslations.tl,
   ...communityMembershipTranslations.tl,
   ...communityDirectoryTranslations.tl,
@@ -566,6 +570,7 @@ const thai: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.th,
   ...webGameDownloadTranslations.th,
   ...legacyGameTranslations.th,
+  ...webHelperTranslations.th,
   ...steamTranslations.th,
   ...communityMembershipTranslations.th,
   ...communityDirectoryTranslations.th,
@@ -734,6 +739,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.id,
   ...webGameDownloadTranslations.id,
   ...legacyGameTranslations.id,
+  ...webHelperTranslations.id,
   ...steamTranslations.id,
   ...communityMembershipTranslations.id,
   ...communityDirectoryTranslations.id,
@@ -909,6 +915,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.pt,
   ...webGameDownloadTranslations.pt,
   ...legacyGameTranslations.pt,
+  ...webHelperTranslations.pt,
   ...steamTranslations.pt,
   ...communityMembershipTranslations.pt,
   ...communityDirectoryTranslations.pt,
@@ -1084,6 +1091,7 @@ const japanese: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.ja,
   ...webGameDownloadTranslations.ja,
   ...legacyGameTranslations.ja,
+  ...webHelperTranslations.ja,
   ...steamTranslations.ja,
   ...communityMembershipTranslations.ja,
   ...communityDirectoryTranslations.ja,
@@ -1257,6 +1265,7 @@ const hindi: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.hi,
   ...webGameDownloadTranslations.hi,
   ...legacyGameTranslations.hi,
+  ...webHelperTranslations.hi,
   ...steamTranslations.hi,
   ...communityMembershipTranslations.hi,
   ...communityDirectoryTranslations.hi,

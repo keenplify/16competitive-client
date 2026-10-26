@@ -1,4 +1,5 @@
 import { WebNextClientDownload } from './WebNextClientDownload'
+import { WebHelperSetup } from '../matchmaking/WebHelperSetup'
 import { MatchNotificationSettings } from './MatchNotificationSettings'
 import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
@@ -550,6 +551,13 @@ export function SettingsPage(): JSX.Element {
 
               {webRuntime ? (
                 <>
+                  <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <h3 className="text-lg font-semibold">{t('webHelper.title')}</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
+                      {t('webHelper.description')}
+                    </p>
+                    <WebHelperSetup className="mt-5" />
+                  </div>
                   <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                     <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">

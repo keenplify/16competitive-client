@@ -301,6 +301,12 @@ const acceptAuthResponse = async (body: BackendAuthResponse): Promise<AuthSessio
   }
 }
 
+/** Accept a single-use PWA handoff after its response has been validated. */
+export const acceptWebPlayHandoff = async (body: unknown): Promise<AuthSession> => {
+  if (!isAuthResponse(body)) throw new Error('The web handoff returned an invalid session')
+  return acceptAuthResponse(body)
+}
+
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 

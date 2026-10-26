@@ -60,6 +60,7 @@ import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import helperRelease from '../../../helper-release.json'
 import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
 import { prepareMatchStartupBridge } from './match-startup-bridge'
+import webLaunchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 import {
   matchConfigLaunchArgs,
   matchJoinCleanupConfig,
@@ -74,7 +75,7 @@ const SAFE_HOST = /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-F
 // Public FFA servers deliberately have no server password. Account admission
 // is verified by their worker; ranked servers still supply their own password.
 const SAFE_PASSWORD = /^[A-Za-z0-9_-]{0,128}$/
-const MATCH_IDENTITY_WAIT_FRAMES = 20
+const MATCH_IDENTITY_WAIT_FRAMES = webLaunchPattern.cs16.startupWaitFrames
 const MAX_MATCH_CONFIG_BYTES = 64 * 1024
 const MAX_TRACKED_JOIN_KEYS = 16
 const RELAUNCH_SETTLE_MS = 500

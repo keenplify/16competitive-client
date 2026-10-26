@@ -3,6 +3,7 @@ import { constants } from 'node:fs'
 import { open, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { cs13ConnectionArgs } from './adapters/cs13'
+import launchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
 type Connection = Parameters<typeof cs13ConnectionArgs>[0]
 export function cs13AuthContents(
@@ -21,9 +22,9 @@ export function cs13AuthContents(
     .digest('hex')
     .slice(0, 16)
   return {
-    name: `16c13_${fileId}.cfg`,
+    name: `${launchPattern.cs13.authFilePrefix}${fileId}.cfg`,
     contents:
-      `// 1.3 Competitive session authentication\ncmd 16c13_auth ${wireToken}\n` +
+      `// 1.3 Competitive session authentication\ncmd ${launchPattern.cs13.authCommand} ${wireToken}\n` +
       (controlsFile ? 'wait\n'.repeat(30) + `exec ${controlsFile}\n` : '')
   }
 }

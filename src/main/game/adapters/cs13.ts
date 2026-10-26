@@ -3,6 +3,7 @@ import { basename, dirname, isAbsolute, join, normalize, relative } from 'node:p
 import type { LegacyGameError, LegacyInstallation } from '../../../shared/legacy-game'
 import type { GameAdapter, GameLaunchPlan } from './game-adapter'
 import { gameResolutionArgs } from '../../../shared/game-display'
+import launchPattern from '../../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
 export class LegacyInstallationError extends Error {
   constructor(public readonly code: LegacyGameError) {
@@ -29,7 +30,7 @@ export const cs13ConnectionArgs = (input: {
     !/^[a-zA-Z0-9_-]{32}$/.test(input.joinToken)
   )
     throw new Error('Invalid 1.3 connection')
-  return ['+password', input.password, '+connect', `${input.host}:${input.port}`]
+  return [launchPattern.cs13.passwordArgument, input.password, launchPattern.cs13.connectArgument, `${input.host}:${input.port}`]
 }
 
 const containedFile = async (root: string, path: string): Promise<string> => {
@@ -149,8 +150,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
             ? `/desktop=16competitive-cs13,${resolution.width}x${resolution.height}`
             : '/desktop=16competitive-cs13,640x480',
           installation.executablePath,
-          '-gl',
-          '-nosierra',
+          ...launchPattern.cs13.windowsFlags,
           '-full',
           ...(options?.resolution
             ? gameResolutionArgs(resolution, 'cs13')
@@ -167,7 +167,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
       executable: installation.runtime === 'wine' ? 'wine' : installation.executablePath,
       args: [
         ...(installation.runtime === 'wine' ? [installation.executablePath] : []),
-        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? ['-gl', '-nosierra'] : []),
+        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? launchPattern.cs13.windowsFlags : []),
         ...(options?.resolution ? gameResolutionArgs(options.resolution, 'cs13') : []),
         '-game',
         installation.modDirectory

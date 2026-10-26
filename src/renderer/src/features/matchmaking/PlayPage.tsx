@@ -36,6 +36,8 @@ import { displayedPlayWindowNode } from './play-window-node'
 import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
 import { useDesktopAppUrl } from '../community/links'
+import { WebHelperPrompt } from './WebHelperPrompt'
+import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -64,6 +66,10 @@ export function PlayPage({
 }): JSX.Element {
   const desktopAppUrl = useDesktopAppUrl()
   const webRuntime = isWebRuntime()
+  const helperNeverShow = useWebHelperPromptStore((state) => state.neverShow)
+  const helperShownThisSession = useWebHelperPromptStore((state) => state.shownThisSession)
+  const showHelperPrompt = useWebHelperPromptStore((state) => state.show)
+  const setHelperStatus = useWebHelperPromptStore((state) => state.setStatus)
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t } = useTranslation()
   const communityText = useCommunityText()
@@ -220,6 +226,11 @@ export function PlayPage({
     }
   }
 
+  const beginQueue = (): void => {
+    if (selectedMode === '5v5' && player) void requestOfflineQueue(player.id)
+    else void joinQueue()
+  }
+
   const handleFindMatch = (): void => {
     if (!isConnected) {
       toast.error('Connect to matchmaking before searching.')
@@ -243,8 +254,19 @@ export function PlayPage({
       )
       return
     }
-    if (selectedMode === '5v5' && player) void requestOfflineQueue(player.id)
-    else void joinQueue()
+    if (webRuntime) {
+      const launcher = window.api.matchmaking.cachedLocalLauncherStatus?.()
+      if (launcher === 'outdated-electron' || launcher === 'outdated-rust') {
+        setHelperStatus(launcher)
+        showHelperPrompt()
+        return
+      }
+      if (!helperNeverShow && !helperShownThisSession && !launcher) {
+        showHelperPrompt()
+        return
+      }
+    }
+    beginQueue()
   }
 
   if (!player) return <main className="min-h-screen bg-neutral-950" />
@@ -502,6 +524,7 @@ export function PlayPage({
           'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
+      {webRuntime && <WebHelperPrompt onContinue={beginQueue} />}
       <div
         className={twMerge(
           'mx-auto w-full max-w-7xl',

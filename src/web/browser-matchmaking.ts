@@ -12,6 +12,7 @@ import type {
 import { manualConnectionCommand } from '../shared/matchmaking'
 import { currentApiOrigin, getWebSessionToken, requestJson } from './browser-session'
 import { webSteamLaunchUrl } from './steam-launch'
+import { cachedLocalLauncherStatus, checkLocalLauncher, launchWithLocalLauncher, preferredLocalLauncher } from './local-play'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
@@ -154,6 +155,7 @@ export const navigateToNode = async (
 }
 
 let manualConnectionMatchId: string | null = null
+let manualConnectionMode: string | null = null
 
 const getManualConnection = async (matchId: string): Promise<unknown> =>
   requestJson<unknown>(`/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`, {
@@ -173,6 +175,13 @@ const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => 
     (matchId !== manualConnectionMatchId && matchId !== warmupMatchId)
   )
     throw new Error('This match is no longer available.')
+  const launcher = preferredLocalLauncher()
+  if (launcher) {
+    await launchWithLocalLauncher(matchId, launcher)
+    return
+  }
+  if (manualConnectionMode === 'cs13_3v3')
+    throw new Error('Install and check a local launcher before opening a Counter-Strike 1.3 match.')
   const connection = await getManualConnection(matchId)
   if (
     (target.whileQueued ? warmupConnection : lastConnection)?.matchId !== matchId ||
@@ -244,6 +253,7 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
   if (message.type === 'match_found' || message.type === 'match_roster') {
     // Queue access is enforced by the backend, including admin enabled Ranked Web Play.
     manualConnectionMatchId = message.matchId
+    manualConnectionMode = message.mode
     emit(message)
     emit({
       type: 'match_assets_progress',
@@ -263,6 +273,7 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     manualConnectionMatchId === message.matchId
   ) {
     manualConnectionMatchId = null
+    manualConnectionMode = null
     lastConnection = null
   }
 
@@ -395,6 +406,8 @@ const preferences = (): MatchmakingPreferences => {
 }
 
 export const browserMatchmakingApi: MatchmakingApi = {
+  checkLocalLauncher,
+  cachedLocalLauncherStatus,
   async joinWarmup(mode, selection) {
     const mapIds = typeof selection === 'string' ? [selection] : selection
     await openSocket()

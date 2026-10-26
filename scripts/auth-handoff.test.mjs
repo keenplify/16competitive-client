@@ -36,6 +36,7 @@ function harness({ minimized = false, visible = true, ready = true } = {}) {
     focusWindowWhenReady: false,
     app: { focus: () => calls.push('app.focus') },
     isAuthReturnLink,
+    acceptWebPlayLink: () => false,
     acceptDemoLink: (value) => calls.push(['demo', value])
   })
   vm.runInContext(compiled, context)

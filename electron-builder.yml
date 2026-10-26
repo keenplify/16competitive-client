@@ -66,3 +66,6 @@ protocols:
   - name: Competitive demo playback
     schemes:
       - competitive16
+  - name: Competitive web play
+    schemes:
+      - competitive16-play

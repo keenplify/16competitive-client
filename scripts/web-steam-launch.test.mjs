@@ -35,7 +35,7 @@ async function harness(requestJson = async () => connection, hosted = false) {
     },
     URL,
     sessionStorage: { setItem: (k, v) => stored.set(k, v), getItem: (k) => stored.get(k) ?? null },
-    localStorage: { setItem: (k, v) => stored.set(k, v), removeItem: (k) => stored.delete(k) },
+    localStorage: { getItem: (k) => stored.get(k) ?? null, setItem: (k, v) => stored.set(k, v), removeItem: (k) => stored.delete(k) },
     console,
     encodeURIComponent
   })

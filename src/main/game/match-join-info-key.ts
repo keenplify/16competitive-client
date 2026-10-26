@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import launchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
 /** Standard GoldSrc executes the managed cfg explicitly after startup.
  * NextClient must use its native/userconfig handoff because +exec can crash it.
@@ -8,7 +9,7 @@ export const matchConfigLaunchArgs = (configName: string, nextClient: boolean): 
 
 /** The match server derives the same key from competitive_match_id. */
 export const matchJoinInfoKey = (matchId: string): string =>
-  `_16c_${createHash('sha256').update(matchId, 'utf8').digest('hex').slice(0, 16)}`
+  `${launchPattern.cs16.joinInfoPrefix}${createHash('sha256').update(matchId, 'utf8').digest('hex').slice(0, 16)}`
 
 export const matchJoinLaunchArgs = (
   matchId: string,

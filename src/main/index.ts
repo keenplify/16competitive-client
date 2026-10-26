@@ -45,6 +45,8 @@ import { parseDemoLink } from '../shared/demo-link'
 import { isAuthReturnLink } from '../shared/auth-link'
 import { serverClockNow } from '../shared/server-clock'
 import { registerDemoProtocol } from './demo-protocol'
+import { registerWebPlayProtocol } from './web-play-protocol'
+import { parseWebHelperCheckLink, parseWebHelperLink } from '../shared/web-helper-link'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
@@ -54,6 +56,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
   authenticate,
+  acceptWebPlayHandoff,
   authenticateWithSocial,
   requestPasswordReset,
   completePasswordReset,
@@ -512,12 +515,72 @@ function acceptDemoLink(value: string): void {
     void processPendingDemo()
   }
 }
+let pendingWebPlayLink: string | null = null
+let webPlayLinkRunning = false
+
+async function processPendingWebPlayLink(): Promise<void> {
+  if (!pendingWebPlayLink || !app.isReady() || !mainWindow || webPlayLinkRunning) return
+  const value = pendingWebPlayLink
+  pendingWebPlayLink = null
+  webPlayLinkRunning = true
+  try {
+    const development = !app.isPackaged
+    const check = parseWebHelperCheckLink(value, development)
+    const joinLink = parseWebHelperLink(value, development)
+    const link = check ?? joinLink
+    if (!link) return
+    const response = await fetch(`${link.apiOrigin}/auth/web-handoff/consume`, {
+      method: 'POST',
+      redirect: 'error',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: link.handoff, clientKind: 'electron', clientVersion: app.getVersion() }),
+      signal: AbortSignal.timeout(10_000)
+    })
+    if (!response.ok) throw new Error('Web play handoff expired')
+    const session: unknown = await response.json()
+    if (check) return
+    if (!joinLink || typeof session !== 'object' || session === null ||
+      typeof (session as Record<string, unknown>).token !== 'string')
+      throw new Error('Invalid web play session')
+    const token = (session as { token: string }).token
+    const connection = await fetch(
+      `${joinLink.apiOrigin}/matchmaking/matches/${joinLink.matchId}/helper-connection`,
+      { headers: { authorization: `Bearer ${token}` }, redirect: 'error', signal: AbortSignal.timeout(10_000) }
+    )
+    if (!connection.ok) throw new Error('Match connection is no longer available')
+    const details: unknown = await connection.json()
+    if (typeof details !== 'object' || details === null ||
+      (details as Record<string, unknown>).matchId !== joinLink.matchId ||
+      !['cs13_3v3', '5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(
+        String((details as Record<string, unknown>).mode)
+      )) throw new Error('Invalid match connection')
+    await acceptWebPlayHandoff(session)
+    matchmakingConnection.disconnect()
+    matchmakingConnection.switchApiUrl(joinLink.apiOrigin)
+    mainWindow.reload()
+    focusMainWindow()
+  } catch (error) {
+    console.error('[WebPlay] handoff failed', error instanceof Error ? error.message : error)
+  } finally {
+    webPlayLinkRunning = false
+    if (pendingWebPlayLink) void processPendingWebPlayLink()
+  }
+}
+
+function acceptWebPlayLink(value: string): boolean {
+  if (!parseWebHelperCheckLink(value, !app.isPackaged) &&
+      !parseWebHelperLink(value, !app.isPackaged)) return false
+  pendingWebPlayLink = value
+  void processPendingWebPlayLink()
+  return true
+}
 app.on('open-url', (event, url) => {
   event.preventDefault()
   acceptAppLink(url)
 })
 function acceptAppLink(value: string): void {
   if (isAuthReturnLink(value)) focusMainWindow()
+  else if (acceptWebPlayLink(value)) return
   else acceptDemoLink(value)
 }
 for (const argument of process.argv) acceptAppLink(argument)
@@ -679,6 +742,9 @@ app.whenReady().then(async () => {
       '[DemoPlayback] External demo links unavailable; in-app playback remains available:',
       error
     )
+  })
+  void registerWebPlayProtocol().catch((error) => {
+    console.warn('[WebPlay] URL handler unavailable', error)
   })
   // Gate production/remote access before creating the renderer or restoring a session.
   try {
@@ -1296,6 +1362,7 @@ app.whenReady().then(async () => {
   )
   createWindow()
   void processPendingDemo()
+  void processPendingWebPlayLink()
   updateBanner.finishStartup()
 
   app.on('activate', function () {

@@ -68,8 +68,59 @@ jobs:
             dist/renderer-update-*.unsigned.json
           if-no-files-found: error
 
+  web-helper:
+    needs: verify-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset: competitive16-web-helper.exe
+          - os: ubuntu-latest
+            asset: competitive16-web-helper-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check web helper source changes
+        id: changes
+        run: node scripts/web-helper-release.mjs
+      - name: Reuse previous release asset when source is unchanged
+        id: reuse
+        if: steps.changes.outputs.changed == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_TAG: ${{ steps.changes.outputs.previous_tag }}
+          ASSET: ${{ matrix.asset }}
+        run: |
+          if gh release download "$PREVIOUS_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ASSET" --dir .; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Previous asset unavailable; rebuilding the helper.'
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.reuse.outputs.ready != 'true'
+      - run: cargo test --manifest-path web-helper/Cargo.toml --locked
+        if: steps.reuse.outputs.ready != 'true'
+      - run: cargo build --manifest-path web-helper/Cargo.toml --release --locked
+        if: steps.reuse.outputs.ready != 'true'
+      - name: Name Windows binary
+        if: runner.os == 'Windows' && steps.reuse.outputs.ready != 'true'
+        shell: bash
+        run: cp web-helper/target/release/competitive16-web-helper.exe "${{ matrix.asset }}"
+      - name: Name Linux binary
+        if: runner.os == 'Linux' && steps.reuse.outputs.ready != 'true'
+        run: cp web-helper/target/release/competitive16-web-helper "${{ matrix.asset }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-helper-${{ runner.os }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
   publish:
-    needs: package
+    needs: [package, web-helper]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

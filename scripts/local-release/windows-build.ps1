@@ -1,4 +1,4 @@
-param([ValidateSet('helper','desktop')][string]$Kind, [ValidatePattern('^[0-9a-f]{40}$')][string]$Commit)
+param([ValidateSet('helper','desktop')][string]$Kind, [ValidatePattern('^[0-9a-f]{40}$')][string]$Commit, [bool]$BuildWebHelper = $false)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = "C:\16c-build\jobs\$Kind-$Commit"
@@ -40,6 +40,11 @@ if ($Kind -eq 'helper') {
     Copy-Item target\x86_64-pc-windows-msvc\release\game-inspector.exe (Join-Path $dist 'game-inspector-win-x64.exe')
     Copy-Item target\i686-pc-windows-msvc\release\papamo_cosmetic_module.dll (Join-Path $dist 'papamo-cosmetic-module-win-x86.dll')
 } else {
+    if ($BuildWebHelper) {
+        cargo test --manifest-path web-helper/Cargo.toml --locked; CheckExit
+        cargo build --manifest-path web-helper/Cargo.toml --release --locked; CheckExit
+        Copy-Item web-helper/target/release/competitive16-web-helper.exe (Join-Path $dist 'competitive16-web-helper.exe')
+    }
     $settings = Get-Content (Join-Path $root 'build-environment.json') -Raw | ConvertFrom-Json
     foreach ($name in @('API_BASE_URL','MATCHMAKING_WS_URL','DISCORD_CLIENT_ID','DISCORD_LARGE_IMAGE_KEY')) {
         $property = $settings.PSObject.Properties[$name]
