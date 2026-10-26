@@ -60,6 +60,8 @@ export function RoomSettingsModal({
   const [friendlyFire, setFriendlyFire] = useState(room.friendlyFire ?? room.mode !== 'arena')
   const [customMoney, setCustomMoney] = useState((room.startingMoney ?? 800) !== 800)
   const [startingMoney, setStartingMoney] = useState(String(room.startingMoney ?? 800))
+  const [customRoundTime, setCustomRoundTime] = useState(room.roundTimeMinutes != null)
+  const [roundTime, setRoundTime] = useState(String(room.roundTimeMinutes ?? 2))
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = CUSTOM_GAME_MODES.filter(
     (candidate) =>
@@ -68,6 +70,8 @@ export function RoomSettingsModal({
   )
   const selectedMode = modes.includes(mode) ? mode : (modes[0] ?? 'unrated')
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
+  const allowsRoundTime = selectedMode !== 'ffa'
+  const roundTimeValid = !allowsRoundTime || !customRoundTime || (roundTime.trim() !== '' && Number.isFinite(Number(roundTime)) && Number(roundTime) >= 1 && Number(roundTime) <= 9 && Math.abs(Math.round(Number(roundTime) * 100) - Number(roundTime) * 100) <= 1e-8)
   const moneyValid =
     !allowsMoney ||
     !customMoney ||
@@ -108,13 +112,14 @@ export function RoomSettingsModal({
           className="grid gap-5 p-6"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!saving && !disabled && selectedMapId && moneyValid)
+            if (!saving && !disabled && selectedMapId && moneyValid && roundTimeValid)
               void save({
                 name: name.trim(),
                 mode: selectedMode,
                 mapId: selectedMapId,
                 friendlyFire,
                 startingMoney: allowsMoney && customMoney ? Number(startingMoney) : 800,
+                roundTimeMinutes: allowsRoundTime && customRoundTime ? Number(roundTime) : null,
                 ...(password ? { password } : {})
               })
           }}
@@ -209,6 +214,16 @@ export function RoomSettingsModal({
               </p>
             </div>
           )}
+          {allowsRoundTime && <div className="grid gap-2">
+            <label className="flex items-center gap-2 text-sm text-neutral-200">
+              <input type="checkbox" className="size-4 shrink-0 rounded-none accent-sky-400" checked={customRoundTime} disabled={saving} onChange={(event) => setCustomRoundTime(event.target.checked)} />
+              {t('customRoom.customRoundTime')}
+            </label>
+            <Field label={t('customRoom.roundTime')}>
+              <input type="number" className={fieldClass} min={1} max={9} step={0.01} required={customRoundTime} disabled={saving || !customRoundTime} value={customRoundTime ? roundTime : ''} onChange={(event) => setRoundTime(event.target.value)} aria-describedby="room-round-time-hint" />
+            </Field>
+            <p id="room-round-time-hint" className="min-h-5 text-xs text-neutral-400">{t('customRoom.roundTimeHint')}</p>
+          </div>}
           <div className="grid gap-2">
             <Field label={t('customRoom.password')}>
               <input
@@ -240,7 +255,7 @@ export function RoomSettingsModal({
               type="submit"
               className="min-w-40"
               disabled={
-                disabled || saving || !selectedMapId || !moneyValid || name.trim().length < 3
+                disabled || saving || !selectedMapId || !moneyValid || !roundTimeValid || name.trim().length < 3
               }
               aria-busy={saving}
             >

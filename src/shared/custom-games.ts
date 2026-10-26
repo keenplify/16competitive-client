@@ -68,6 +68,7 @@ export interface CustomGameRoom {
   mode: CustomGameMode
   mapId: string
   startingMoney?: number
+  roundTimeMinutes?: number | null
   friendlyFire?: boolean
   state: CustomGameState
   maxPlayers: 18
@@ -114,6 +115,7 @@ export const isCustomGameChatMessage = (value: unknown): value is CustomGameChat
 
 export interface CustomGameSettings {
   startingMoney?: number
+  roundTimeMinutes?: number | null
   friendlyFire?: boolean
   name: string
   mode: CustomGameMode
