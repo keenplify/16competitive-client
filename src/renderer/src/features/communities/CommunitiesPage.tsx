@@ -58,7 +58,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
   const communityLinks = useConfiguredCommunityLinks()
   const loadMoreTrigger = useRef<HTMLDivElement>(null)
   const branding = usePartnerBrandingStore((store) => store.branding)
-  const restricted = branding?.allowOtherCommunities === false
+  const restricted = branding?.allowOtherCommunities === false && !state.canBypassLeaveRestriction
   const community = useDisplayedCommunity()
   const isMember = community?.id === state.currentCommunityId
   const isOwner = Boolean(community && community.id === playerId)
@@ -103,7 +103,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           {discovering ? (
             t('directory.discover')
           ) : restricted ? (
-            t('directory.title')
+            (community?.name ?? t('directory.title'))
           ) : (
             <button
               type="button"
@@ -190,24 +190,24 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
                   </a>
                 ))}
               </div>
-              {isMember ? (
+              {isMember && !restricted ? (
                 <Button
                   variant="secondary"
                   className="gap-2 text-rose-300"
-                  disabled={restricted || state.joining || state.loading}
+                  disabled={state.joining || state.loading}
                   onClick={() => state.requestLeave(true)}
                 >
                   <LogOut className="size-4" aria-hidden="true" />
                   {t('directory.leaveShort')}
                 </Button>
-              ) : (
+              ) : !isMember ? (
                 <Button
                   disabled={state.joining || state.loading}
                   onClick={() => state.select(community)}
                 >
                   {t('directory.join')}
                 </Button>
-              )}
+              ) : null}
             </div>
             <div className="community-profile-description flex min-w-0 items-start gap-2 sm:col-span-full">
               <CommunityDescription
@@ -379,6 +379,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           open
           onClose={() => state.requestLeave(false)}
           labelledBy="community-leave-title"
+          label={t('directory.leaveTitle')}
           className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
         >
           <h2 id="community-leave-title" className="text-xl font-semibold">
@@ -416,6 +417,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           open
           onClose={() => state.select(null)}
           labelledBy="community-join-title"
+          label={t('directory.joinTitle', { community: state.selected.name })}
           className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
         >
           <h2 id="community-join-title" className="text-xl font-semibold">
@@ -423,6 +425,17 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
           </h2>
           <p className="mt-3 text-sm text-neutral-300">{t('community.transferDescription')}</p>
           <p className="mt-2 text-sm text-neutral-400">{t('community.transferKeep')}</p>
+          {state.selected.canLeave === false && !state.canBypassLeaveRestriction && (
+            <div
+              className="mt-4 border border-red-500/70 bg-red-950/50 p-4 text-red-100"
+              role="alert"
+            >
+              <p className="text-lg font-extrabold tracking-wide text-red-300 uppercase">
+                {t('directory.joinCannotLeaveTitle')}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed">{t('directory.joinCannotLeave')}</p>
+            </div>
+          )}
           <div className="mt-3 min-h-10 text-sm text-rose-300" role="status">
             {state.joinError ? t('directory.joinError') : ''}
           </div>

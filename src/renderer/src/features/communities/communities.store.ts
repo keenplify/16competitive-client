@@ -65,7 +65,10 @@ const initialQuery: CommunityDirectoryQuery = {
 }
 const restrictedCommunityId = (): string | null => {
   const branding = usePartnerBrandingStore.getState().branding
-  return branding?.allowOtherCommunities === false ? branding.partnerId : null
+  return branding?.allowOtherCommunities === false &&
+    !useCommunitiesStore.getState().canBypassLeaveRestriction
+    ? branding.partnerId
+    : null
 }
 let generation = 0
 export const useCommunitiesStore = create<State>((set, get) => ({
@@ -220,6 +223,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
   leaveRequested: false,
   communities: [],
   currentCommunityId: null,
+  canBypassLeaveRestriction: false,
   viewerCountryCode: null,
   automaticCountryCode: null,
   nextCursor: null,
@@ -306,6 +310,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       set((state) => ({
         currentCommunity: result.currentCommunity,
         currentCommunityId: result.currentCommunityId,
+        canBypassLeaveRestriction: result.canBypassLeaveRestriction,
         viewerCountryCode: result.viewerCountryCode,
         nextCursor: result.nextCursor,
         communities: [
@@ -406,6 +411,7 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       leaveRequested: false,
       communities: [],
       currentCommunityId: null,
+      canBypassLeaveRestriction: false,
       viewerCountryCode: null,
       automaticCountryCode: null,
       nextCursor: null,

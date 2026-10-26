@@ -55,6 +55,7 @@ import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
 import { PartnerBackground } from '../partner-branding/PartnerBackground'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   demos: 'Admin demos',
@@ -170,6 +171,15 @@ export function LobbyPage(): JSX.Element {
   const startDailyQuests = useDailyQuestStore((state) => state.start)
   const stopDailyQuests = useDailyQuestStore((state) => state.stop)
   const page = useNavigationStore((state) => state.page)
+  const communityName = useCommunitiesStore((state) => state.currentCommunity?.name)
+  const canBypassLeaveRestriction = useCommunitiesStore((state) => state.canBypassLeaveRestriction)
+  const leaveRestricted = usePartnerBrandingStore(
+    (state) => state.branding?.allowOtherCommunities === false
+  )
+  const communityTitle =
+    leaveRestricted && !canBypassLeaveRestriction && communityName
+      ? communityName
+      : t('directory.title')
   const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
@@ -516,10 +526,10 @@ export function LobbyPage(): JSX.Element {
             title={
               completedMatch && !requiresGameSetup
                 ? t('theme.matchResults')
-                : t(
-                    page === 'communities'
-                      ? 'directory.title'
-                      : page === 'profile'
+                : page === 'communities'
+                  ? communityTitle
+                  : t(
+                      page === 'profile'
                         ? 'nav.inventory'
                         : page === 'demos'
                           ? 'nav.demos'
@@ -534,7 +544,7 @@ export function LobbyPage(): JSX.Element {
                                   : page === 'play'
                                     ? 'nav.play'
                                     : 'nav.home'
-                  )
+                    )
             }
             className="max-w-[1440px]"
             hostClassName={

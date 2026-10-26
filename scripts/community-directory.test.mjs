@@ -26,12 +26,14 @@ const card = {
   categories: ['zombie', 'pub'],
   countries: ['PH', 'SG'],
   serverCount: 2,
-  memberCount: 17
+  memberCount: 17,
+  canLeave: true
 }
 const directory = {
   currentCommunity: null,
   communities: [card],
   currentCommunityId: null,
+  canBypassLeaveRestriction: false,
   viewerCountryCode: 'PH',
   nextCursor: null
 }

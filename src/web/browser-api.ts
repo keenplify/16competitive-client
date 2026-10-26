@@ -653,6 +653,16 @@ const api: Window['api'] = {
   communityChat: {
     members: async (page, communityId) =>
       parseCommunityMembers(await authenticatedGet(communityMembersPath(page, communityId))),
+    kickMember: async (communityId, playerId) => {
+      validateCommunityJoin(communityId, null)
+      validateCommunityJoin(playerId, null)
+      const result = await requestJson<{ removed?: unknown }>(
+        `/admin/communities/${communityId}/members/${playerId}`,
+        { authenticated: true, init: { method: 'DELETE' } }
+      )
+      if (result?.removed !== true) throw new Error('COMMUNITY_KICK_FAILED')
+      return { removed: true as const }
+    },
     history: async () => parseCommunityHistory(await authenticatedGet('/partners/community/chat')),
     send: async (communityId, message) =>
       parseCommunityMessage(await jsonPost('/partners/community/chat', { communityId, message }))

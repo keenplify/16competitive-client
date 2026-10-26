@@ -12,6 +12,8 @@ import { useMatchmakingStore } from '../../../features/matchmaking/matchmaking.s
 import { displayedPlayWindowNode } from '../../../features/matchmaking/play-window-node'
 import { PlayWindowStatus } from '../../../features/matchmaking/PlayWindowStatus'
 import { useHeaderScrolled } from './useHeaderScrolled'
+import { useCommunitiesStore } from '../../../features/communities/communities.store'
+import { usePartnerBrandingStore } from '../../../features/partner-branding/partner-branding.store'
 
 const pages = [
   { id: 'demos', labelKey: 'nav.demos', icon: pageIcons.demos },
@@ -57,6 +59,15 @@ export function LobbyNavigation({
   const { t } = useTranslation()
   const scrolled = useHeaderScrolled(activePage)
   const canReview = useAdminDemosStore((state) => state.allowed)
+  const communityName = useCommunitiesStore((state) => state.currentCommunity?.name)
+  const canBypassLeaveRestriction = useCommunitiesStore((state) => state.canBypassLeaveRestriction)
+  const leaveRestricted = usePartnerBrandingStore(
+    (state) => state.branding?.allowOtherCommunities === false
+  )
+  const communityLabel =
+    leaveRestricted && !canBypassLeaveRestriction && communityName
+      ? communityName
+      : t('directory.title')
   const nodes = useMatchmakingStore((state) => state.nodes)
   const selectedNodeId = useMatchmakingStore((state) => state.selectedNodeId)
   const playWindowNode = displayedPlayWindowNode(nodes, selectedNodeId)
@@ -166,6 +177,7 @@ export function LobbyNavigation({
           if (id === 'demos' && !canReview) return null
           const active = activePage === id
           const isPlay = id === 'play'
+          const label = id === 'communities' ? communityLabel : t(labelKey)
 
           return (
             <button
@@ -174,6 +186,7 @@ export function LobbyNavigation({
               data-audio-sfx="forward"
               data-idle-hint-target={isPlay ? 'play' : undefined}
               disabled={!canNavigate(id)}
+              aria-label={label}
               aria-current={active ? 'page' : undefined}
               onClick={() => onNavigate(id)}
               className={twMerge(
@@ -193,7 +206,7 @@ export function LobbyNavigation({
                 )}
                 aria-hidden="true"
               />
-              <span className="relative z-10 hidden sm:inline">{t(labelKey)}</span>
+              <span className="relative z-10 hidden max-w-36 truncate sm:inline">{label}</span>
             </button>
           )
         })}

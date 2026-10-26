@@ -13,10 +13,12 @@ import {
   UserRound,
   UserRoundCheck,
   UserRoundPlus,
+  UserRoundX,
   Users
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
 import { createCommunityMembersStore, useCommunityMembersStore } from './community-members.store'
@@ -39,6 +41,13 @@ export function CommunityMembersSection({
     x: number
     y: number
   } | null>(null)
+  const [kickPending, setKickPending] = useState<{
+    id: string
+    username: string
+    communityId: string
+  } | null>(null)
+  const [kicking, setKicking] = useState(false)
+  const [kickError, setKickError] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!menu) return
@@ -77,10 +86,12 @@ export function CommunityMembersSection({
     loading = useMembers((s) => s.loading),
     error = useMembers((s) => s.error),
     hasMore = useMembers((s) => s.hasMore),
+    canKick = useMembers((s) => s.canKick),
     page = useMembers((s) => s.page),
     toggle = useMembers((s) => s.toggle),
     load = useMembers((s) => s.load)
   const members = memberCommunityId === communityId ? storedMembers : []
+  const mayKick = memberCommunityId === communityId && canKick
   const friends = useFriendsStore((s) => s.friends),
     actingPlayerId = useFriendsStore((s) => s.actingPlayerId),
     request = useFriendsStore((s) => s.request)
@@ -257,9 +268,74 @@ export function CommunityMembersSection({
               <FriendActionIcon className="size-4 shrink-0" aria-hidden="true" />
               {text(friendAction)}
             </button>
+            {mayKick && menu.member.id !== communityId && (
+              <button
+                role="menuitem"
+                type="button"
+                className="flex h-10 w-full items-center gap-3 px-3 text-left text-sm text-rose-300 hover:bg-white/10 focus:bg-white/10"
+                onClick={() => {
+                  setKickPending({
+                    id: menu.member.id,
+                    username: menu.member.username,
+                    communityId
+                  })
+                  setKickError(false)
+                  setMenu(null)
+                }}
+              >
+                <UserRoundX className="size-4 shrink-0" aria-hidden="true" />
+                {t('directory.kickMember')}
+              </button>
+            )}
           </div>,
           document.body
         )}
+      {kickPending && (
+        <ModalDialog
+          open
+          onClose={() => {
+            if (!kicking) setKickPending(null)
+          }}
+          label={t('directory.kickTitle', { player: kickPending.username })}
+          labelledBy="community-kick-title"
+          className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
+        >
+          <h2 id="community-kick-title" className="text-xl font-semibold">
+            {t('directory.kickTitle', { player: kickPending.username })}
+          </h2>
+          <p className="mt-3 text-sm text-neutral-300">{t('directory.kickDescription')}</p>
+          <p className="mt-3 min-h-5 text-sm text-rose-300" role={kickError ? 'alert' : 'status'}>
+            {kickError ? t('directory.kickError') : ''}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              disabled={kicking}
+              onClick={() => setKickPending(null)}
+            >
+              {t('directory.cancel')}
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={kicking}
+              onClick={() => {
+                setKicking(true)
+                void window.api.communityChat
+                  .kickMember(kickPending.communityId, kickPending.id)
+                  .then(() => {
+                    setKickPending(null)
+                    void load()
+                  })
+                  .catch(() => setKickError(true))
+                  .finally(() => setKicking(false))
+              }}
+            >
+              {t('directory.kickMember')}
+            </Button>
+          </div>
+        </ModalDialog>
+      )}
     </>
   )
 }

@@ -15,6 +15,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'Could not load communities. Try again.',
     'directory.empty': 'No communities match these filters.',
     'directory.joinTitle': 'Join {{community}}?',
+    'directory.joinCannotLeaveTitle': "You can't leave",
+    'directory.joinCannotLeave':
+      'After joining, only a community owner, partner admin, moderator, or system admin can remove you. Ask one of them if you need to leave.',
+    'directory.kickMember': 'Kick from community',
+    'directory.kickTitle': 'Kick {{player}}?',
+    'directory.kickDescription':
+      'This removes the player from this community and its chat. Their account, rank, inventory, and friends stay intact.',
+    'directory.kickError': 'Could not remove this member. Refresh and try again.',
     'directory.joinError':
       'Could not confirm your membership. Check the current community and try again.',
     'directory.join': 'Join community',
@@ -92,6 +100,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'Не удалось загрузить сообщества. Повторите попытку.',
     'directory.empty': 'Нет сообществ с такими фильтрами.',
     'directory.joinTitle': 'Присоединиться к {{community}}?',
+    'directory.joinCannotLeaveTitle': 'Вы не сможете выйти',
+    'directory.joinCannotLeave':
+      'После вступления удалить вас сможет только владелец сообщества, администратор партнёра, модератор или системный администратор. Обратитесь к ним, если захотите выйти.',
+    'directory.kickMember': 'Исключить из сообщества',
+    'directory.kickTitle': 'Исключить {{player}}?',
+    'directory.kickDescription':
+      'Игрок будет удалён из сообщества и его чата. Учётная запись, рейтинг, инвентарь и друзья сохранятся.',
+    'directory.kickError': 'Не удалось исключить участника. Обновите список и повторите попытку.',
     'directory.joinError':
       'Не удалось подтвердить участие. Проверьте текущее сообщество и повторите попытку.',
     'directory.join': 'Вступить',
@@ -171,6 +187,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'Hindi ma-load ang communities. Subukan ulit.',
     'directory.empty': 'Walang community na tugma sa filters.',
     'directory.joinTitle': 'Sumali sa {{community}}?',
+    'directory.joinCannotLeaveTitle': 'Hindi ka makakaalis',
+    'directory.joinCannotLeave':
+      'Pagkasali, ang community owner, partner admin, moderator, o system admin lang ang makakapagtanggal sa iyo. Humingi ng tulong sa kanila kung kailangan mong umalis.',
+    'directory.kickMember': 'Tanggalin sa community',
+    'directory.kickTitle': 'Tanggalin si {{player}}?',
+    'directory.kickDescription':
+      'Aalisin ang player sa community at chat nito. Mananatili ang account, rank, inventory, at friends.',
+    'directory.kickError': 'Hindi matanggal ang member. I-refresh at subukang muli.',
     'directory.joinError':
       'Hindi makumpirma ang membership. Tingnan ang kasalukuyang community at subukan ulit.',
     'directory.join': 'Sumali sa community',
@@ -249,6 +273,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'โหลดชุมชนไม่ได้ โปรดลองอีกครั้ง',
     'directory.empty': 'ไม่มีชุมชนตรงกับตัวกรอง',
     'directory.joinTitle': 'เข้าร่วม {{community}}?',
+    'directory.joinCannotLeaveTitle': 'คุณจะออกเองไม่ได้',
+    'directory.joinCannotLeave':
+      'หลังเข้าร่วม มีเพียงเจ้าของชุมชน ผู้ดูแลพาร์ตเนอร์ ผู้ดูแล หรือผู้ดูแลระบบที่นำคุณออกได้ โปรดขอความช่วยเหลือหากต้องการออก',
+    'directory.kickMember': 'นำออกจากชุมชน',
+    'directory.kickTitle': 'นำ {{player}} ออกหรือไม่?',
+    'directory.kickDescription':
+      'ผู้เล่นจะถูกนำออกจากชุมชนและแชต บัญชี แรงก์ ไอเทม และเพื่อนยังคงอยู่',
+    'directory.kickError': 'นำสมาชิกออกไม่ได้ รีเฟรชแล้วลองอีกครั้ง',
     'directory.joinError': 'ยืนยันสมาชิกไม่ได้ ตรวจสอบชุมชนปัจจุบันแล้วลองอีกครั้ง',
     'directory.join': 'เข้าร่วมชุมชน',
     'directory.joined': 'เข้าร่วมแล้ว',
@@ -325,6 +357,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'Komunitas tidak dapat dimuat. Coba lagi.',
     'directory.empty': 'Tidak ada komunitas yang cocok.',
     'directory.joinTitle': 'Bergabung dengan {{community}}?',
+    'directory.joinCannotLeaveTitle': 'Anda tidak bisa keluar sendiri',
+    'directory.joinCannotLeave':
+      'Setelah bergabung, hanya pemilik komunitas, admin mitra, moderator, atau admin sistem yang dapat mengeluarkan Anda. Minta bantuan mereka jika ingin keluar.',
+    'directory.kickMember': 'Keluarkan dari komunitas',
+    'directory.kickTitle': 'Keluarkan {{player}}?',
+    'directory.kickDescription':
+      'Pemain akan dikeluarkan dari komunitas dan obrolannya. Akun, peringkat, inventaris, dan teman tetap ada.',
+    'directory.kickError': 'Tidak dapat mengeluarkan anggota. Muat ulang dan coba lagi.',
     'directory.joinError':
       'Keanggotaan belum dapat dikonfirmasi. Periksa komunitas saat ini lalu coba lagi.',
     'directory.join': 'Gabung komunitas',
@@ -402,6 +442,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'समुदाय लोड नहीं हुए। फिर कोशिश करें।',
     'directory.empty': 'इन फ़िल्टर से कोई समुदाय नहीं मिला।',
     'directory.joinTitle': '{{community}} से जुड़ें?',
+    'directory.joinCannotLeaveTitle': 'आप खुद नहीं छोड़ सकते',
+    'directory.joinCannotLeave':
+      'शामिल होने के बाद केवल समुदाय मालिक, पार्टनर एडमिन, मॉडरेटर या सिस्टम एडमिन आपको हटा सकते हैं। छोड़ने के लिए उनसे मदद माँगें।',
+    'directory.kickMember': 'समुदाय से हटाएँ',
+    'directory.kickTitle': '{{player}} को हटाएँ?',
+    'directory.kickDescription':
+      'खिलाड़ी समुदाय और उसकी चैट से हट जाएगा। खाता, रैंक, इन्वेंटरी और दोस्त बने रहेंगे।',
+    'directory.kickError': 'सदस्य को हटाया नहीं जा सका। रीफ़्रेश करके फिर कोशिश करें।',
     'directory.joinError': 'सदस्यता की पुष्टि नहीं हुई। वर्तमान समुदाय जाँचकर फिर कोशिश करें।',
     'directory.join': 'समुदाय से जुड़ें',
     'directory.joined': 'जुड़ चुके हैं',
@@ -478,6 +526,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'Não foi possível carregar as comunidades. Tente novamente.',
     'directory.empty': 'Nenhuma comunidade corresponde aos filtros.',
     'directory.joinTitle': 'Entrar em {{community}}?',
+    'directory.joinCannotLeaveTitle': 'Você não poderá sair',
+    'directory.joinCannotLeave':
+      'Depois de entrar, só o dono da comunidade, um administrador parceiro, moderador ou administrador do sistema poderá remover você. Peça ajuda se quiser sair.',
+    'directory.kickMember': 'Remover da comunidade',
+    'directory.kickTitle': 'Remover {{player}}?',
+    'directory.kickDescription':
+      'O jogador sairá da comunidade e do chat. Conta, classificação, inventário e amigos serão mantidos.',
+    'directory.kickError': 'Não foi possível remover o membro. Atualize e tente novamente.',
     'directory.joinError':
       'Não foi possível confirmar a participação. Confira a comunidade atual e tente novamente.',
     'directory.join': 'Entrar na comunidade',
@@ -559,6 +615,14 @@ export const communityDirectoryTranslations = {
     'directory.error': 'コミュニティを読み込めませんでした。再試行してください。',
     'directory.empty': '条件に合うコミュニティはありません。',
     'directory.joinTitle': '{{community}}に参加しますか？',
+    'directory.joinCannotLeaveTitle': '自分では脱退できません',
+    'directory.joinCannotLeave':
+      '参加後に脱退するには、コミュニティ所有者、パートナー管理者、モデレーター、またはシステム管理者に削除を依頼してください。',
+    'directory.kickMember': 'コミュニティから削除',
+    'directory.kickTitle': '{{player}}を削除しますか？',
+    'directory.kickDescription':
+      'このプレイヤーをコミュニティとチャットから削除します。アカウント、ランク、所持品、フレンドはそのままです。',
+    'directory.kickError': 'メンバーを削除できませんでした。更新して再試行してください。',
     'directory.joinError':
       '参加を確認できませんでした。現在のコミュニティを確認して再試行してください。',
     'directory.join': 'コミュニティに参加',

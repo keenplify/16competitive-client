@@ -8,6 +8,7 @@ type State = {
   members: CommunityMembers['members']
   total: number
   hasMore: boolean
+  canKick: boolean
   page: number
   loading: boolean
   error: boolean
@@ -27,6 +28,7 @@ export const createCommunityMembersStore = (
     members: [],
     total: 0,
     hasMore: false,
+    canKick: false,
     page: 0,
     loading: false,
     error: false,
@@ -62,6 +64,7 @@ export const createCommunityMembersStore = (
               : data.members,
           total: data.total,
           hasMore: data.hasMore,
+          canKick: data.canKick,
           page,
           loading: false,
           ...(!data.communityId ? { expanded: false } : {})
@@ -79,6 +82,7 @@ export const createCommunityMembersStore = (
         members: [],
         total: 0,
         hasMore: false,
+        canKick: false,
         page: 0,
         loading: false,
         error: false

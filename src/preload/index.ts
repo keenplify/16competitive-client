@@ -390,6 +390,8 @@ const partnerServers: PartnerServersApi = {
 const communityChat: CommunityChatApi = {
   members: (page, communityId) =>
     ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.members, page, communityId),
+  kickMember: (communityId, playerId) =>
+    ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.kickMember, communityId, playerId),
   history: () => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.history),
   send: (id, message) => ipcRenderer.invoke(COMMUNITY_CHAT_CHANNELS.send, id, message)
 }

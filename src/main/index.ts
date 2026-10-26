@@ -36,7 +36,7 @@ import {
   markPartnerGroupLaunched,
   currentPartnerPresence
 } from './partner-servers'
-import { communityChatHistory, sendCommunityChat, communityMembers } from './community-chat'
+import { communityChatHistory, sendCommunityChat, communityMembers, kickCommunityMember } from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
 import { PARTNER_BRANDING_CHANNEL } from '../shared/partner-branding'
@@ -1116,6 +1116,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.history, () => communityChatHistory())
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.members, (_, page: unknown, communityId: unknown) =>
     communityMembers(page, communityId)
+  )
+  ipcMain.handle(COMMUNITY_CHAT_CHANNELS.kickMember, (_, communityId: unknown, playerId: unknown) =>
+    kickCommunityMember(communityId, playerId)
   )
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>
     sendCommunityChat(id, message)

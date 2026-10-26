@@ -10,6 +10,7 @@ export const PARTNER_SERVER_CHANNELS = {
 } as const
 export const COMMUNITY_CHAT_CHANNELS = {
   members: 'community-chat:members',
+  kickMember: 'community-chat:kick-member',
   history: 'community-chat:history',
   send: 'community-chat:send'
 } as const
@@ -165,6 +166,7 @@ export function parsePartnerLaunchGroup(input: unknown): PartnerLaunchGroup {
 }
 export interface CommunityChatApi {
   members(page: number, communityId?: string): Promise<CommunityMembers>
+  kickMember(communityId: string, playerId: string): Promise<{ removed: true }>
   history(): Promise<CommunityChatHistory>
   send(communityId: string, message: string): Promise<CommunityChatMessage>
 }
@@ -191,6 +193,7 @@ export interface CommunityMembers {
   }[]
   total: number
   hasMore: boolean
+  canKick: boolean
 }
 export function parseCommunityMembers(input: unknown): CommunityMembers {
   if (!input || typeof input !== 'object') throw new Error('Invalid community members')
@@ -202,7 +205,8 @@ export function parseCommunityMembers(input: unknown): CommunityMembers {
     typeof v.total !== 'number' ||
     !Number.isInteger(v.total) ||
     v.total < 0 ||
-    typeof v.hasMore !== 'boolean'
+    typeof v.hasMore !== 'boolean' ||
+    (v.canKick !== undefined && typeof v.canKick !== 'boolean')
   )
     throw new Error('Invalid community members')
   const members = v.members.map((row: unknown) => {
@@ -224,7 +228,8 @@ export function parseCommunityMembers(input: unknown): CommunityMembers {
     name: v.name as string | null,
     members,
     total: v.total,
-    hasMore: v.hasMore
+    hasMore: v.hasMore,
+    canKick: v.canKick === true
   }
 }
 export const validPartnerHost = (host: string): boolean =>

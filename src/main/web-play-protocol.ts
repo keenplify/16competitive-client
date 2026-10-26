@@ -25,6 +25,10 @@ export async function registerWebPlayProtocol(): Promise<void> {
   const executable = appImage && isAbsolute(appImage) ? appImage : process.execPath
   if (executable.startsWith('/tmp/.mount_')) throw new Error('AppImage path unavailable')
   const args = app.isPackaged ? [executable] : [executable, app.getAppPath()]
+  // Preserve an explicitly selected Chromium startup mode when a protocol
+  // opens a second instance. AppImages started this way may otherwise fail
+  // before Electron can forward the URL to the running instance.
+  if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox')
   const dataHome = process.env.XDG_DATA_HOME
   const directory = join(
     dataHome && isAbsolute(dataHome) ? dataHome : join(homedir(), '.local', 'share'),

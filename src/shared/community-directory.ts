@@ -30,6 +30,7 @@ export interface CommunityCard {
   countries: string[]
   serverCount: number
   memberCount: number | null
+  canLeave?: boolean
 }
 export interface CommunityDirectoryQuery {
   cursor: string | null
@@ -42,6 +43,7 @@ export interface CommunityDirectoryResult {
   currentCommunity: CommunityCard | null
   communities: CommunityCard[]
   currentCommunityId: string | null
+  canBypassLeaveRestriction: boolean
   viewerCountryCode: string | null
   nextCursor: string | null
 }
@@ -246,6 +248,8 @@ export function parseCommunityDirectory(value: unknown): CommunityDirectoryResul
         v.nextCursor.length > 1024 ||
         !/^[A-Za-z0-9_-]+$/.test(v.nextCursor))) ||
     (v.currentCommunityId !== null && !uuid(v.currentCommunityId)) ||
+    (v.canBypassLeaveRestriction !== undefined &&
+      typeof v.canBypassLeaveRestriction !== 'boolean') ||
     (v.viewerCountryCode !== null && !country(v.viewerCountryCode))
   )
     throw new Error('INVALID_COMMUNITY_DIRECTORY')
@@ -270,7 +274,8 @@ export function parseCommunityDirectory(value: unknown): CommunityDirectoryResul
       row.serverCount > 16 ||
       (row.memberCount !== undefined &&
         row.memberCount !== null &&
-        (!Number.isInteger(row.memberCount) || row.memberCount < 0))
+        (!Number.isInteger(row.memberCount) || row.memberCount < 0)) ||
+      (row.canLeave !== undefined && typeof row.canLeave !== 'boolean')
     )
       throw new Error('INVALID_COMMUNITY_CARD')
     if (row.imageUrl !== null) {
@@ -288,7 +293,8 @@ export function parseCommunityDirectory(value: unknown): CommunityDirectoryResul
       categories: row.categories,
       countries: row.countries,
       serverCount: row.serverCount,
-      memberCount: row.memberCount ?? null
+      memberCount: row.memberCount ?? null,
+      canLeave: row.canLeave ?? true
     }
   })
   if (new Set(communities.map((row) => row.id)).size !== communities.length)
@@ -309,6 +315,7 @@ export function parseCommunityDirectory(value: unknown): CommunityDirectoryResul
     communities,
     nextCursor: (v.nextCursor ?? null) as string | null,
     currentCommunityId: v.currentCommunityId as string | null,
+    canBypassLeaveRestriction: v.canBypassLeaveRestriction === true,
     viewerCountryCode: v.viewerCountryCode as string | null
   }
 }

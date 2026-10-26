@@ -10,7 +10,7 @@ import {
   type CommunityChatMessage
 } from '../shared/partner-community'
 export async function communityChatRequest<T>(
-  method: 'GET' | 'POST' | 'PUT',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   body?: unknown,
   path = '/partners/community/chat'
 ): Promise<T> {
@@ -43,6 +43,25 @@ export async function communityMembers(
   return parseCommunityMembers(
     await communityChatRequest('GET', undefined, communityMembersPath(page, communityId))
   )
+}
+export async function kickCommunityMember(
+  communityId: unknown,
+  playerId: unknown
+): Promise<{ removed: true }> {
+  if (
+    typeof communityId !== 'string' ||
+    !/^[0-9a-f-]{36}$/i.test(communityId) ||
+    typeof playerId !== 'string' ||
+    !/^[0-9a-f-]{36}$/i.test(playerId)
+  )
+    throw new Error('INVALID_COMMUNITY_MEMBER')
+  const result = await communityChatRequest<{ removed?: unknown }>(
+    'DELETE',
+    undefined,
+    `/admin/communities/${communityId}/members/${playerId}`
+  )
+  if (result?.removed !== true) throw new Error('COMMUNITY_KICK_FAILED')
+  return { removed: true }
 }
 export const communityChatHistory = async (): Promise<CommunityChatHistory> =>
   parseCommunityHistory(await communityChatRequest('GET'))
