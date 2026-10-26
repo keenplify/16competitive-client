@@ -3263,3 +3263,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Launcher
 
 - Improved setup for the web app launcher.
+
+## v2026.1026.5 — 2026-10-26
+
+### Changes
+
+- No player-facing changes were provided.
