@@ -216,7 +216,7 @@ import {
 import { getFeaturedRankedLadder, getTopMmrLeaderboard } from './leaderboard'
 import { LEADERBOARD_CHANNELS } from '../shared/leaderboard'
 import { NEWS_CHANNELS } from '../shared/news'
-import { getLobbyNewsPosts, getNewsPosts } from './news'
+import { getLobbyNewsPosts, getNewsPosts, getNewsVisibility } from './news'
 import { REDEEM_CODE_CHANNELS } from '../shared/redeem-codes'
 import { CUSTOM_GAME_CHANNELS } from '../shared/custom-games'
 import {
@@ -1267,6 +1267,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(LEADERBOARD_CHANNELS.getFeaturedLadder, () => getFeaturedRankedLadder())
   ipcMain.handle(NEWS_CHANNELS.getPreview, () => getLobbyNewsPosts())
   ipcMain.handle(NEWS_CHANNELS.getAll, () => getNewsPosts())
+  ipcMain.handle(NEWS_CHANNELS.getVisibility, () => getNewsVisibility())
   ipcMain.handle(OPERATION_CHANNELS.getActive, () => getActiveOperation())
   ipcMain.handle(OPERATION_CHANNELS.getMine, () => getMyOperation())
   ipcMain.handle(OPERATION_CHANNELS.markViewed, (_, operationId: unknown, viewedPoints: unknown) =>

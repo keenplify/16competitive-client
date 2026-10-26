@@ -1,8 +1,20 @@
-import type { NewsPost } from '../shared/news'
+import { parseNewsVisibility, type NewsPost, type NewsVisibility } from '../shared/news'
+import { matchmakingConnection } from './matchmaking'
+import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 
 const STATUSES_URL = 'https://mastodon.social/api/v1/accounts/117184181054588299/statuses'
 const PROFILE_URL = 'https://mastodon.social/@16competitive'
 const REQUEST_TIMEOUT_MS = 10_000
+
+export const getNewsVisibility = async (): Promise<NewsVisibility> => {
+  const base =
+    matchmakingConnection.getActiveApiUrl() ?? (await resolvePreferredMatchmakingApiUrl())
+  const response = await fetch(new URL('/news/visibility', base), {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  })
+  if (!response.ok) throw new Error(`News visibility request failed (${response.status})`)
+  return parseNewsVisibility(await response.json())
+}
 
 const parseStatus = (value: unknown): NewsPost | null => {
   if (typeof value !== 'object' || value === null) return null

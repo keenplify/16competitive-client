@@ -350,7 +350,8 @@ const leaderboard: LeaderboardApi = {
 
 const news: NewsApi = {
   getPreview: () => ipcRenderer.invoke(NEWS_CHANNELS.getPreview),
-  getAll: () => ipcRenderer.invoke(NEWS_CHANNELS.getAll)
+  getAll: () => ipcRenderer.invoke(NEWS_CHANNELS.getAll),
+  getVisibility: () => ipcRenderer.invoke(NEWS_CHANNELS.getVisibility)
 }
 
 const redeemCodes: RedeemCodesApi = {

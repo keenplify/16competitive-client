@@ -50,6 +50,7 @@ import {
 } from './match-survey-session'
 import { NewsPage } from '../news/NewsPage'
 import { LobbyNewsPanel } from '../news/LobbyNewsPanel'
+import { useNewsVisibilityStore } from '../news/news-visibility.store'
 import { LeaderboardPage } from '../leaderboard/LeaderboardPage'
 import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
@@ -105,6 +106,7 @@ const soloLobbyMember = (player: AuthPlayer): PartyMember => ({
 })
 
 const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps): JSX.Element {
+  const railEnabled = useNewsVisibilityStore((state) => state.visibility?.railEnabled)
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
   const lobbyWeaponModelPath = useLobbyLoadoutStore((state) => state.weaponModelPath)
@@ -117,7 +119,7 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
       className="fixed inset-0 z-0 flex min-h-screen flex-col overflow-y-auto pt-16 sm:pt-20"
     >
       <div className="relative flex min-h-0 flex-1">
-        <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />
+        {railEnabled && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
         <LobbyModelErrorBoundary>
           <PartyModelScene
             actors={members.map((member, index) => {
@@ -148,6 +150,13 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
 })
 
 export function LobbyPage(): JSX.Element {
+  const popupEnabled = useNewsVisibilityStore((state) => state.visibility?.popupEnabled)
+  const refreshNewsVisibility = useNewsVisibilityStore((state) => state.refresh)
+  useEffect(() => {
+    void refreshNewsVisibility()
+    const interval = window.setInterval(() => void refreshNewsVisibility(), 60_000)
+    return () => window.clearInterval(interval)
+  }, [refreshNewsVisibility])
   const { t } = useTranslation()
   const player = useAuthStore((state) => state.session?.player)
   const party = usePartyStore((state) => state.party)
@@ -547,7 +556,8 @@ export function LobbyPage(): JSX.Element {
       {!requiresGameSetup &&
         !completedMatch &&
         queueStatus === 'idle' &&
-        (page === 'lobby' || page === 'play') && <NewsAnnouncement />}
+        (page === 'lobby' || page === 'play') &&
+        popupEnabled && <NewsAnnouncement />}
     </main>
   )
 }

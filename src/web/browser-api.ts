@@ -50,7 +50,7 @@ import type {
   PendingMatchSurvey,
   PlayerProfile
 } from '../shared/match-history'
-import type { NewsPost } from '../shared/news'
+import { parseNewsVisibility, type NewsPost } from '../shared/news'
 import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
 import type {
   Party,
@@ -894,6 +894,9 @@ const api: Window['api'] = {
     },
     getAll() {
       return fetchNews(20)
+    },
+    async getVisibility() {
+      return parseNewsVisibility(await requestJson('/news/visibility'))
     }
   },
 
