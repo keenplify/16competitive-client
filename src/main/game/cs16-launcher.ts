@@ -1175,9 +1175,11 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       resolveGameResolution(gameSettings.display, gameSettings.currentDisplayResolution),
       'cs16'
     ),
-    ...(activeScoreboardSession?.matchId === input.matchId ? ['-insecure'] : []),
+    ...(activeScoreboardSession?.matchId === input.matchId
+      ? [webLaunchPattern.cs16.managedNativeFlag]
+      : []),
     ...goldClientManagedLaunchArgs(goldClient),
-    ...(useNativeNextClientMatchHandoff ? ['-noupdate'] : []),
+    ...(useNativeNextClientMatchHandoff ? [webLaunchPattern.cs16.nextClientManagedFlag] : []),
     '-condebug',
     ...matchJoinLaunchArgs(identityMatchId, input.joinToken, connectionHandoff),
     ...matchConfigLaunchArgs(matchConfigName, nextClient)

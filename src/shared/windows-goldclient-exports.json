@@ -1,0 +1,21 @@
+{
+  "omitted": [
+    "?CorpseFallThink@CBaseMonster@@QAEXXZ",
+    "?DefaultTouch@CBasePlayerAmmo@@QAEXPAVCBaseEntity@@@Z",
+    "?Materialize@CBasePlayerAmmo@@QAEXXZ",
+    "?PlayerDeathThink@CBasePlayer@@QAEXXZ"
+  ],
+  "extension": [
+    "HUD_GetFOV",
+    "HUD_GetWeapon",
+    "HUD_GetWeaponAnim",
+    "HUD_NotifyChatInputPosition",
+    "HUD_PlaySound",
+    "HUD_PlaybackEvent",
+    "HUD_SendWeaponAnim",
+    "HUD_SetMaxSpeed",
+    "HUD_WeaponsPostThink",
+    "IN_ExtraMouseUpdate",
+    "QueryInterface"
+  ]
+}

@@ -40,7 +40,10 @@ if ($Kind -eq 'helper') {
     Copy-Item target\x86_64-pc-windows-msvc\release\game-inspector.exe (Join-Path $dist 'game-inspector-win-x64.exe')
     Copy-Item target\i686-pc-windows-msvc\release\papamo_cosmetic_module.dll (Join-Path $dist 'papamo-cosmetic-module-win-x86.dll')
 } else {
+    $env:LOCAL_HELPER_ASSET_DIR = Join-Path $root 'approved-helper'
+    npm.cmd ci; CheckExit
     if ($BuildWebHelper) {
+        node --experimental-strip-types scripts/prepare-game-inspector.mjs win x64; CheckExit
         cargo test --manifest-path web-helper/Cargo.toml --locked; CheckExit
         cargo build --manifest-path web-helper/Cargo.toml --release --locked; CheckExit
         Copy-Item web-helper/target/release/competitive16-web-helper.exe (Join-Path $dist 'competitive16-web-helper.exe')
@@ -50,9 +53,7 @@ if ($Kind -eq 'helper') {
         $property = $settings.PSObject.Properties[$name]
         if ($null -ne $property) { [Environment]::SetEnvironmentVariable($name, [string]$property.Value, 'Process') }
     }
-    $env:LOCAL_HELPER_ASSET_DIR = Join-Path $root 'approved-helper'
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
-    npm.cmd ci; CheckExit
     npm.cmd run verify; CheckExit
     npm.cmd run test:helper; CheckExit
     node --experimental-strip-types --experimental-vm-modules --test scripts/renderer-update.test.mjs scripts/renderer-update-package.test.mjs scripts/updater-tolerance.test.mjs scripts/update-banner.test.mjs scripts/cs13-bootstrap.test.mjs scripts/cs13-controls.test.mjs scripts/game-display.test.mjs scripts/custom-room-settings.test.mjs scripts/goldsrc-client-capabilities.test.mjs scripts/shared-model-directory.test.mjs scripts/windows-cosmetic-compatibility.test.mjs scripts/windows-cosmetic-recovery.test.mjs; CheckExit

@@ -70,6 +70,10 @@ jobs:
 
   web-helper:
     needs: verify-version
+    environment: Prod
+    env:
+      HELPER_REPOSITORY: ${{ vars.HELPER_REPOSITORY }}
+      GH_TOKEN: ${{ secrets.HELPER_RELEASE_READ_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +106,22 @@ jobs:
           fi
       - uses: dtolnay/rust-toolchain@stable
         if: steps.reuse.outputs.ready != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.reuse.outputs.ready != 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.reuse.outputs.ready != 'true'
+      - name: Verify and stage signed native assets
+        if: steps.reuse.outputs.ready != 'true'
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            node --experimental-strip-types scripts/prepare-game-inspector.mjs win x64
+          else
+            node --experimental-strip-types scripts/prepare-game-inspector.mjs linux x64
+          fi
       - run: cargo test --manifest-path web-helper/Cargo.toml --locked
         if: steps.reuse.outputs.ready != 'true'
       - run: cargo build --manifest-path web-helper/Cargo.toml --release --locked

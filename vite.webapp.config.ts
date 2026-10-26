@@ -13,10 +13,17 @@ const webHelperFingerprint = createHash('sha256')
 for (const source of [
   'web-helper/src/main.rs',
   'web-helper/src/lib.rs',
+  'web-helper/src/native_bundle.rs',
+  'web-helper/src/native_session.rs',
+  'web-helper/src/windows_native.rs',
   'web-helper/Cargo.toml',
   'web-helper/Cargo.lock',
-  'src/shared/web-game-launch-pattern.json'
-]) webHelperFingerprint.update(readFileSync(resolve(source)))
+  'src/shared/web-game-launch-pattern.json',
+  'src/shared/windows-client-exports.json',
+  'src/shared/windows-goldclient-exports.json',
+  'helper-release.json'
+])
+  webHelperFingerprint.update(readFileSync(resolve(source)))
 
 const webAssets = {
   name: '16competitive-web-assets',

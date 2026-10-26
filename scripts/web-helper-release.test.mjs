@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { webHelperReleaseChanges } from './web-helper-release.mjs'
 
-test('web helper release rebuilds for Rust or shared launch pattern changes', async () => {
+test('web helper release rebuilds for Rust, launch contracts, or native release changes', async () => {
   const root = await mkdtemp(join(tmpdir(), '16c-web-helper-release-'))
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'ignore' })
   const commit = (message) =>
@@ -34,6 +34,21 @@ test('web helper release rebuilds for Rust or shared launch pattern changes', as
     git('add', '.')
     commit('rust helper')
     assert.deepEqual(webHelperReleaseChanges(root), { changed: true, previousTag: 'v1.0.1' })
+    git('tag', 'v1.0.2')
+    await writeFile(join(root, 'helper-release.json'), '{"version":"0.1.76"}')
+    git('add', '.')
+    commit('native release')
+    assert.deepEqual(webHelperReleaseChanges(root), { changed: true, previousTag: 'v1.0.2' })
+    git('tag', 'v1.0.3')
+    await writeFile(join(root, 'src/shared/windows-client-exports.json'), '[]')
+    git('add', '.')
+    commit('shared client exports')
+    assert.deepEqual(webHelperReleaseChanges(root), { changed: true, previousTag: 'v1.0.3' })
+    git('tag', 'v1.0.4')
+    await writeFile(join(root, 'src/shared/windows-goldclient-exports.json'), '{}')
+    git('add', '.')
+    commit('GoldClient contract')
+    assert.deepEqual(webHelperReleaseChanges(root), { changed: true, previousTag: 'v1.0.4' })
   } finally {
     await rm(root, { recursive: true, force: true })
   }

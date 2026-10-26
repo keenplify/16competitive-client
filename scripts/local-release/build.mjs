@@ -245,7 +245,24 @@ export async function buildLocalRelease(kind, root, version, commit) {
       join(artifacts, 'papamo-cosmetic-module-linux-x86.so')
     )
   } else {
+    const helper = JSON.parse(await readFile(join(source, 'helper-release.json'), 'utf8'))
+    const approved = join(job, 'approved-helper')
+    await rm(approved, { recursive: true, force: true })
+    await mkdir(approved)
+    run('gh', [
+      'release',
+      'download',
+      `v${helper.version}`,
+      '--repo',
+      helper.repository,
+      '--dir',
+      approved
+    ])
     if (buildWebHelper) {
+      await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
+      await container('desktop', source, 'node', [
+        '--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', 'linux', 'x64'
+      ], approved, buildEnv)
       await container('helper-x64', source, 'cargo', [
         'test',
         '--manifest-path',
@@ -264,21 +281,9 @@ export async function buildLocalRelease(kind, root, version, commit) {
         join(artifacts, 'competitive16-web-helper-linux')
       )
     }
-    const helper = JSON.parse(await readFile(join(source, 'helper-release.json'), 'utf8'))
-    const approved = join(job, 'approved-helper')
-    await rm(approved, { recursive: true, force: true })
-    await mkdir(approved)
-    run('gh', [
-      'release',
-      'download',
-      `v${helper.version}`,
-      '--repo',
-      helper.repository,
-      '--dir',
-      approved
-    ])
     run('scp', [...scpArgs, '-r', approved, `build@127.0.0.1:${guest}/`])
-    await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
+    if (!buildWebHelper)
+      await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
     for (const command of ['build:linux', 'build:linux:arm64']) {
       await container('desktop', source, 'npm', ['run', command], approved, buildEnv)
       await container(

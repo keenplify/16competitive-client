@@ -1,3 +1,6 @@
+import windowsClientExports from '../../shared/windows-client-exports.json' with { type: 'json' }
+import goldClientExports from '../../shared/windows-goldclient-exports.json' with { type: 'json' }
+import webLaunchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 import { readFile, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 
@@ -9,118 +12,13 @@ export const WINDOWS_STANDALONE_EXECUTABLE_NAMES = [
 
 // Named exports forwarded or wrapped by the signed Windows x86 cosmetic proxy.
 // Keep in sync with cosmetic-module/windows-client-exports.txt in the helper.
-export const WINDOWS_CLIENT_EXPORTS = [
-  '?AttemptToMaterialize@CBasePlayerItem@@QAEXXZ',
-  '?CorpseFallThink@CBaseMonster@@QAEXXZ',
-  '?DefaultTouch@CBasePlayerAmmo@@QAEXPAVCBaseEntity@@@Z',
-  '?DefaultTouch@CBasePlayerItem@@QAEXPAVCBaseEntity@@@Z',
-  '?DestroyItem@CBasePlayerItem@@QAEXXZ',
-  '?FallThink@CBasePlayerItem@@QAEXXZ',
-  '?Materialize@CBasePlayerAmmo@@QAEXXZ',
-  '?Materialize@CBasePlayerItem@@QAEXXZ',
-  '?PlayerDeathThink@CBasePlayer@@QAEXXZ',
-  '?SUB_CallUseToggle@CBaseEntity@@QAEXXZ',
-  '?SUB_Remove@CBaseEntity@@QAEXXZ',
-  '?Smack@CKnife@@QAEXXZ',
-  '?SwingAgain@CKnife@@QAEXXZ',
-  'CAM_Think',
-  'CL_CameraOffset',
-  'CL_CreateMove',
-  'CL_IsThirdPerson',
-  'ClientFactory',
-  'CreateInterface',
-  'Demo_ReadBuffer',
-  'F',
-  'HUD_AddEntity',
-  'HUD_ChatInputPosition',
-  'HUD_ConnectionlessPacket',
-  'HUD_CreateEntities',
-  'HUD_DirectorMessage',
-  'HUD_DrawNormalTriangles',
-  'HUD_DrawTransparentTriangles',
-  'HUD_Frame',
-  'HUD_GetHullBounds',
-  'HUD_GetPlayerTeam',
-  'HUD_GetStudioModelInterface',
-  'HUD_GetUserEntity',
-  'HUD_Init',
-  'HUD_Key_Event',
-  'HUD_PlayerMove',
-  'HUD_PlayerMoveInit',
-  'HUD_PlayerMoveTexture',
-  'HUD_PostRunCmd',
-  'HUD_ProcessPlayerState',
-  'HUD_Redraw',
-  'HUD_Reset',
-  'HUD_Shutdown',
-  'HUD_StudioEvent',
-  'HUD_TempEntUpdate',
-  'HUD_TxferLocalOverrides',
-  'HUD_TxferPredictionData',
-  'HUD_UpdateClientData',
-  'HUD_VidInit',
-  'HUD_VoiceStatus',
-  'IN_Accumulate',
-  'IN_ActivateMouse',
-  'IN_ClearStates',
-  'IN_DeactivateMouse',
-  'IN_MouseEvent',
-  'Initialize',
-  'KB_Find',
-  'V_CalcRefdef',
-  'weapon_ak47',
-  'weapon_aug',
-  'weapon_awp',
-  'weapon_c4',
-  'weapon_deagle',
-  'weapon_elite',
-  'weapon_famas',
-  'weapon_fiveseven',
-  'weapon_flashbang',
-  'weapon_g3sg1',
-  'weapon_galil',
-  'weapon_glock18',
-  'weapon_hegrenade',
-  'weapon_knife',
-  'weapon_m249',
-  'weapon_m3',
-  'weapon_m4a1',
-  'weapon_mac10',
-  'weapon_mp5navy',
-  'weapon_p228',
-  'weapon_p90',
-  'weapon_scout',
-  'weapon_sg550',
-  'weapon_sg552',
-  'weapon_smokegrenade',
-  'weapon_tmp',
-  'weapon_ump45',
-  'weapon_usp',
-  'weapon_xm1014'
-] as const
+export const WINDOWS_CLIENT_EXPORTS = windowsClientExports
 
 // GoldClient 2.5.7 retains the SDK callbacks but removes four unused C++
 // entity exports and adds eleven engine extension callbacks. Require the full
 // alternative surface, not an exception for arbitrary missing exports.
-export const GOLDCLIENT_EXTENSION_EXPORTS = [
-  'HUD_GetFOV',
-  'HUD_GetWeapon',
-  'HUD_GetWeaponAnim',
-  'HUD_NotifyChatInputPosition',
-  'HUD_PlaySound',
-  'HUD_PlaybackEvent',
-  'HUD_SendWeaponAnim',
-  'HUD_SetMaxSpeed',
-  'HUD_WeaponsPostThink',
-  'IN_ExtraMouseUpdate',
-  'QueryInterface'
-] as const
-const GOLDCLIENT_OMITTED_EXPORTS: readonly string[] = [
-  '?CorpseFallThink@CBaseMonster@@QAEXXZ',
-  '?DefaultTouch@CBasePlayerAmmo@@QAEXPAVCBaseEntity@@@Z',
-  '?Materialize@CBasePlayerAmmo@@QAEXXZ',
-  '?PlayerDeathThink@CBasePlayer@@QAEXXZ'
-]
+export const GOLDCLIENT_EXTENSION_EXPORTS = goldClientExports.extension
+const GOLDCLIENT_OMITTED_EXPORTS: readonly string[] = goldClientExports.omitted
 export const GOLDCLIENT_EXPORTS = [
   ...WINDOWS_CLIENT_EXPORTS.filter((name) => !GOLDCLIENT_OMITTED_EXPORTS.includes(name)),
   ...GOLDCLIENT_EXTENSION_EXPORTS
@@ -282,5 +180,5 @@ export async function isGoldClientInstallation(gameRoot: string): Promise<boolea
 }
 
 export function goldClientManagedLaunchArgs(goldClient: boolean): string[] {
-  return goldClient ? ['-noupdate'] : []
+  return goldClient ? [webLaunchPattern.cs16.goldClientManagedFlag] : []
 }

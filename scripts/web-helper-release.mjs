@@ -29,7 +29,10 @@ export function webHelperReleaseChanges(root, commit = 'HEAD') {
         commit,
         '--',
         'web-helper',
-        'src/shared/web-game-launch-pattern.json'
+        'src/shared/web-game-launch-pattern.json',
+        'src/shared/windows-client-exports.json',
+        'src/shared/windows-goldclient-exports.json',
+        'helper-release.json'
       ],
       { cwd: root, stdio: 'ignore' }
     )

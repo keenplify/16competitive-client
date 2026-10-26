@@ -12,12 +12,16 @@
   },
   "cs16": {
     "windowsExecutable": "hl.exe",
+    "nextClientExecutable": "cstrike.exe",
+    "nextClientManagedFlag": "-noupdate",
+    "goldClientManagedFlag": "-noupdate",
     "linuxExecutable": "hl_linux",
     "modDirectories": ["cstrike"],
     "passwordArgument": "+password",
     "connectArgument": "+connect",
     "joinInfoPrefix": "_16c_",
     "startupWaitFrames": 20,
-    "startupConfigPrefix": "16competitive_web_"
+    "startupConfigPrefix": "16competitive_web_",
+    "managedNativeFlag": "-insecure"
   }
 }
