@@ -3247,3 +3247,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Custom Rooms
 
 - Added round time control for custom rooms.
+
+## v2026.1026.4 — 2026-10-26
+
+### Communities
+
+- Added community moderation tools.
+- Improved community member information and translations.
+
+### Custom Games
+
+- Chat is now available in custom games.
+- Chat automatically focuses when you start typing.
+
+### Launcher
+
+- Improved setup for the web app launcher.
