@@ -1,7 +1,7 @@
 import { CommunityDescription } from './CommunityDescription'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
-import { ModalDialog } from '../../components/ui/ModalDialog'
+import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
 import { useEffect, useRef, type JSX } from 'react'
 import { ChevronLeft, Globe2, LoaderCircle, LogOut, Pencil, Search, Users } from 'lucide-react'
 import type { IconType } from 'react-icons'
@@ -375,56 +375,33 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
         </>
       )}
       {state.leaveRequested && !restricted && (
-        <ModalDialog
-          open
+        <ConfirmationDialog
+          title={t('directory.leaveTitle')}
+          description={t('directory.leaveDescription')}
+          cancelLabel={t('community.no')}
+          confirmLabel={t('directory.leave')}
+          closeLabel={t('icafe.close')}
           onClose={() => state.requestLeave(false)}
-          labelledBy="community-leave-title"
-          label={t('directory.leaveTitle')}
-          className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
-        >
-          <h2 id="community-leave-title" className="text-xl font-semibold">
-            {t('directory.leaveTitle')}
-          </h2>
-          <p className="mt-3 text-sm text-neutral-300">{t('directory.leaveDescription')}</p>
-          <div className="mt-3 min-h-10 text-sm text-rose-300" role="status">
-            {state.joinError ? t('directory.leaveError') : ''}
-          </div>
-          <div className="flex gap-3">
-            <Button
-              autoFocus
-              variant="secondary"
-              className="flex-1"
-              disabled={state.joining}
-              onClick={() => state.requestLeave(false)}
-            >
-              {t('community.no')}
-            </Button>
-            <Button
-              className="flex-1 gap-2"
-              disabled={state.joining || state.loading || state.error}
-              onClick={() => void state.leave()}
-            >
-              <span className="size-4">
-                {state.joining && <LoaderCircle className="size-4 animate-spin" />}
-              </span>
-              {t('directory.leave')}
-            </Button>
-          </div>
-        </ModalDialog>
+          onConfirm={() => void state.leave()}
+          busy={state.joining}
+          disabled={state.loading || state.error}
+          error={state.joinError ? t('directory.leaveError') : undefined}
+        />
       )}
       {state.selected && (!restricted || state.selected.id === branding.partnerId) && (
-        <ModalDialog
-          open
+        <ConfirmationDialog
+          title={t('directory.joinTitle', { community: state.selected.name })}
+          description={t('community.transferDescription')}
+          cancelLabel={t('community.no')}
+          confirmLabel={t('directory.join')}
+          closeLabel={t('icafe.close')}
           onClose={() => state.select(null)}
-          labelledBy="community-join-title"
-          label={t('directory.joinTitle', { community: state.selected.name })}
-          className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
+          onConfirm={() => void state.join()}
+          busy={state.joining}
+          disabled={state.loading || state.error}
+          error={state.joinError ? t('directory.joinError') : undefined}
         >
-          <h2 id="community-join-title" className="text-xl font-semibold">
-            {t('directory.joinTitle', { community: state.selected.name })}
-          </h2>
-          <p className="mt-3 text-sm text-neutral-300">{t('community.transferDescription')}</p>
-          <p className="mt-2 text-sm text-neutral-400">{t('community.transferKeep')}</p>
+          <p className="text-sm leading-relaxed text-neutral-300">{t('community.transferKeep')}</p>
           {state.selected.canLeave === false && !state.canBypassLeaveRestriction && (
             <div
               className="mt-4 border border-red-500/70 bg-red-950/50 p-4 text-red-100"
@@ -436,31 +413,7 @@ export function CommunitiesPage({ friendsCollapsed }: { friendsCollapsed: boolea
               <p className="mt-1 text-sm leading-relaxed">{t('directory.joinCannotLeave')}</p>
             </div>
           )}
-          <div className="mt-3 min-h-10 text-sm text-rose-300" role="status">
-            {state.joinError ? t('directory.joinError') : ''}
-          </div>
-          <div className="flex gap-3">
-            <Button
-              autoFocus
-              variant="secondary"
-              className="flex-1"
-              disabled={state.joining}
-              onClick={() => state.select(null)}
-            >
-              {t('community.no')}
-            </Button>
-            <Button
-              className="flex-1 gap-2"
-              disabled={state.joining || state.loading || state.error}
-              onClick={() => void state.join()}
-            >
-              <span className="size-4">
-                {state.joining && <LoaderCircle className="size-4 animate-spin" />}
-              </span>
-              {t('directory.join')}
-            </Button>
-          </div>
-        </ModalDialog>
+        </ConfirmationDialog>
       )}
     </section>
   )

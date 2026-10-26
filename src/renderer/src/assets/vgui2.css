@@ -653,25 +653,35 @@
   background: var(--vgui-face);
 }
 
-:root[data-launcher-theme='vgui2'] .custom-room-dialog .launcher-modal-header {
+:root[data-launcher-theme='vgui2']
+  :is(.custom-room-dialog, .confirmation-dialog)
+  .launcher-modal-header {
   padding: 12px 16px;
   gap: 6px 12px;
   border-bottom: 1px solid var(--vgui-dark);
   box-shadow: 0 1px var(--vgui-light);
 }
 
-:root[data-launcher-theme='vgui2'] .custom-room-dialog .launcher-modal-header h2 {
+:root[data-launcher-theme='vgui2']
+  :is(.custom-room-dialog, .confirmation-dialog)
+  .launcher-modal-header
+  h2 {
   font-size: 15px;
   line-height: 24px;
 }
 
-:root[data-launcher-theme='vgui2'] .custom-room-dialog .launcher-modal-close {
+:root[data-launcher-theme='vgui2']
+  :is(.custom-room-dialog, .confirmation-dialog)
+  .launcher-modal-close {
   width: 24px;
   height: 24px;
   padding: 3px;
 }
 
-:root[data-launcher-theme='vgui2'] .custom-room-dialog .launcher-modal-close svg {
+:root[data-launcher-theme='vgui2']
+  :is(.custom-room-dialog, .confirmation-dialog)
+  .launcher-modal-close
+  svg {
   width: 14px;
   height: 14px;
 }
@@ -1432,4 +1442,27 @@
   border: 1px solid var(--vgui-light);
   background: var(--vgui-inset);
   color: var(--vgui-text);
+}
+
+/* Compact confirmation windows share one header, not a frame inside a frame. */
+:root[data-launcher-theme='vgui2'] .confirmation-dialog .launcher-modal-header {
+  align-items: start;
+}
+
+:root[data-launcher-theme='vgui2'] .confirmation-dialog .launcher-modal-header h2 {
+  overflow-wrap: anywhere;
+}
+
+:root[data-launcher-theme='vgui2'] .confirmation-dialog-body {
+  padding: 12px 16px 16px;
+}
+
+:root[data-launcher-theme='vgui2'] .confirmation-dialog-actions button {
+  height: 32px;
+  font-weight: 400;
+}
+
+:root[data-launcher-theme='vgui2'] .confirmation-dialog-actions button:last-child {
+  color: var(--vgui-accent);
+  font-weight: 700;
 }
