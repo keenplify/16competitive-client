@@ -3220,3 +3220,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Warmup
 
 - Prevented outdated asset errors from appearing after cancelling warmup.
+
+## v2026.1026.1 — 2026-10-26
+
+### Web Match Helper
+
+- Added an optional helper for launching web matches through the desktop launcher.
+- Improved versioned handoff between the web experience and launcher.
+
+### Play Page
+
+- Updates on the Play page now follow administrator visibility settings.
