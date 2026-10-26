@@ -3269,3 +3269,22 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes were provided.
+
+## v2026.1026.6 — 2026-10-26
+
+### Matchmaking
+
+- Improved Play navigation and matchmaking map defaults.
+- Added clearer matchmaking preference handling.
+
+### Party Chat
+
+- Added timestamps to chat messages.
+
+### Steam Launch
+
+- Improved Steam launch safety.
+
+### Communities
+
+- Fixed the community confirmation dialog layout in the VGUI2 theme.
