@@ -51,6 +51,7 @@ export function PartyChat(): JSX.Element {
     (state) => state.maybeShowCommunityAnnouncement
   )
   const page = useNavigationStore((state) => state.page)
+  const playView = useCustomGamesStore((state) => state.playView)
   const languageEntries = usePartyStore((state) => state.languageChatEntries)
   const globalChatLanguage = usePartyStore((state) => state.globalChatLanguage)
   const globalDraft = usePartyStore((state) => state.globalChatDraft)
@@ -117,6 +118,7 @@ export function PartyChat(): JSX.Element {
   } | null>(null)
   const [chatOpen, setChatOpen] = useState(true)
   const [minimizedPing, setMinimizedPing] = useState<MinimizedChatPing | null>(null)
+  const chatVisible = page === 'lobby' || (page === 'play' && playView === 'custom')
 
   const friendConversation = activeFriendId ? conversations[activeFriendId] : undefined
   const globalLanguageLabel =
@@ -380,6 +382,59 @@ export function PartyChat(): JSX.Element {
         : chatTab === 'room'
           ? Boolean(room)
           : chatTab !== 'party' || Boolean(party)
+
+  useEffect(() => {
+    if (!chatVisible || !chatOpen || !canSend) return
+
+    const focusChatOnTyping = (event: globalThis.KeyboardEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.key.length !== 1 ||
+        !inputRef.current ||
+        document.querySelector('[role="dialog"], [aria-modal="true"], dialog[open]')
+      )
+        return
+
+      const target = event.target
+      if (
+        target instanceof Element &&
+        target.closest(
+          'input, textarea, select, button, a, summary, [contenteditable=""], [contenteditable="true"], [role="textbox"], [role="combobox"]'
+        )
+      )
+        return
+
+      event.preventDefault()
+      inputRef.current.focus()
+      const nextDraft = `${draft}${event.key}`
+      if (activeFriendId) setFriendDraft(activeFriendId, nextDraft)
+      else if (chatTab === 'room') setRoomDraft(nextDraft)
+      else if (chatTab === 'party') setPartyDraft(nextDraft)
+      else if (chatTab === 'community') setCommunityDraft(nextDraft)
+      else if (chatTab === 'language') setLanguageDraft(nextDraft)
+      else setGlobalDraft(nextDraft)
+    }
+
+    window.addEventListener('keydown', focusChatOnTyping)
+    return () => window.removeEventListener('keydown', focusChatOnTyping)
+  }, [
+    activeFriendId,
+    canSend,
+    chatOpen,
+    chatTab,
+    chatVisible,
+    draft,
+    setCommunityDraft,
+    setFriendDraft,
+    setGlobalDraft,
+    setLanguageDraft,
+    setPartyDraft,
+    setRoomDraft
+  ])
   const placeholder =
     !activeFriendId && chatTab === 'community'
       ? communityText(language, 'chatPlaceholder', { community: communityLabel })
@@ -409,12 +464,14 @@ export function PartyChat(): JSX.Element {
               ? `${globalLanguageLabel} chat message`
               : 'Global chat message'
 
+  if (!chatVisible) return <></>
+
   return (
     <>
       {!chatOpen && minimizedPing && (
         <button
           type="button"
-          className="lobby-chat-launcher fixed bottom-16 left-4 z-[6] w-[min(20rem,calc(100%-2rem))] border border-sky-400/40 bg-black/90 p-3 text-left text-white shadow-2xl backdrop-blur-md transition hover:border-sky-300/70 hover:bg-neutral-950"
+          className="lobby-chat-launcher fixed bottom-16 left-4 z-[21] w-[min(20rem,calc(100%-2rem))] border border-sky-400/40 bg-black/90 p-3 text-left text-white shadow-2xl backdrop-blur-md transition hover:border-sky-300/70 hover:bg-neutral-950"
           onClick={openMinimizedPing}
           aria-label={`Open ${minimizedPing.title}`}
         >
@@ -438,7 +495,7 @@ export function PartyChat(): JSX.Element {
       {!chatOpen && (
         <button
           type="button"
-          className="lobby-chat-launcher fixed bottom-4 left-4 z-[5] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
+          className="lobby-chat-launcher fixed bottom-4 left-4 z-[21] flex h-10 items-center gap-2 border border-white/20 bg-black/75 px-3 text-xs font-semibold tracking-wide text-white uppercase shadow-2xl backdrop-blur-sm transition hover:bg-neutral-900"
           onClick={openChat}
           aria-label="Open chat"
         >
@@ -455,7 +512,7 @@ export function PartyChat(): JSX.Element {
       )}
       {chatOpen && (
         <aside
-          className="lobby-chat-panel fixed bottom-4 left-4 z-[5] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden  border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm"
+          className="lobby-chat-panel fixed bottom-4 left-4 z-[21] flex h-72 w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden border border-white/20 bg-black/75 text-white shadow-2xl backdrop-blur-sm"
           data-active={activeSurface === 'chat'}
           onPointerDownCapture={() => activate('chat')}
           onFocusCapture={() => activate('chat')}
