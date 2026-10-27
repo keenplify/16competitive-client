@@ -3302,3 +3302,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Updated the helper download link to match the themed buttons.
 - Improved visual consistency in the match helper setup.
+
+## v2026.1027.3 — 2026-10-27
+
+### Gameplay
+
+- Restored the stock scoreboard when pressing Tab.
+- Restored kill feedback in the web helper.
