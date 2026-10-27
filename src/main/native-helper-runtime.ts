@@ -28,7 +28,7 @@ import {
 import { startMatchAssetPreload, startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { writeLiveSessionFile } from './game/live-session-file'
-import { useNativeHelperSharedAssets } from './game/shared-skin-storage'
+import { configureNativeHelperSharedAssets } from './game/shared-skin-storage'
 import {
   detectNextClientFolder,
   launchNextClientInstaller,
@@ -61,7 +61,7 @@ channel.on('error', () => {
 channel.on('close', () => {
   if (!stopping) void stop(1)
 })
-useNativeHelperSharedAssets(app.getPath('userData'))
+configureNativeHelperSharedAssets(app.getPath('userData'))
 app.setPath('userData', join(dataRoot, 'runtime-data'))
 app.setPath('sessionData', join(dataRoot, 'runtime-data', 'chromium'))
 app.on('window-all-closed', () => {

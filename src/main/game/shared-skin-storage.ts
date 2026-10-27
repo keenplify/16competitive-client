@@ -9,7 +9,7 @@ let pending: Promise<void> = Promise.resolve()
 let sharedAssetUserData: string | null = null
 
 /** Share verified model bytes with the desktop client, without sharing its login or settings. */
-export function useNativeHelperSharedAssets(desktopUserData: string): void {
+export function configureNativeHelperSharedAssets(desktopUserData: string): void {
   if (!process.argv.includes('--native-helper-runtime') || !isAbsolute(desktopUserData))
     throw new Error('Invalid helper asset storage')
   sharedAssetUserData = desktopUserData
