@@ -101,6 +101,14 @@ fn resume_command(path: &Path, args: &[String], digest: &str) -> Command {
     command
         .args(args)
         .env("COMPETITIVE16_UPDATE_APPLIED_SHA", digest);
+    #[cfg(windows)] {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    #[cfg(unix)] {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
     command
 }
 pub fn check_and_resume(args: &[String]) -> Result<bool, String> {

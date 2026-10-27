@@ -940,9 +940,18 @@ fn run() -> Result<(), String> {
     if let Some(check) = parse_check_link(&link, development) {
         session(&check.api_origin, &check.handoff)?;
         if let Some(local) = check.local_settings {
-            Command::new(&exe).args(["--local-settings", &local.port.to_string(), &local.token, &local.origin])
-                .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
-                .spawn().map_err(|e|e.to_string())?;
+            let mut bridge = Command::new(&exe);
+            bridge.args(["--local-settings", &local.port.to_string(), &local.token, &local.origin])
+                .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+            #[cfg(windows)] {
+                use std::os::windows::process::CommandExt;
+                bridge.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            #[cfg(unix)] {
+                use std::os::unix::process::CommandExt;
+                bridge.process_group(0);
+            }
+            bridge.spawn().map_err(|e|e.to_string())?;
         }
         return Ok(());
     }
