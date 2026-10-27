@@ -3384,3 +3384,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Linux setup now uses the newest downloaded web helper.
+
+## v2026.1027.10 — 2026-10-27
+
+### Linux Helper Setup
+
+- Copy the helper setup command with one click.
+- See confirmation when the command is copied, or instructions for manual copying if needed.
