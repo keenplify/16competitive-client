@@ -144,7 +144,9 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
           if (link.protocol !== 'competitive16-helper:' || /['\n\r]/.test(setup.checkUrl))
             throw new Error('Invalid helper setup link')
           set({
-            setupCommand: `cd ~/Downloads\nchmod +x competitive16-web-helper-linux\n./competitive16-web-helper-linux '${setup.checkUrl}'`
+            // Browsers append (1), (2), ... when an older download has the
+            // same name. Select the newest completed helper in this folder.
+            setupCommand: `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
           })
           const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
           if (current !== generation || !get().setupOpen) return
