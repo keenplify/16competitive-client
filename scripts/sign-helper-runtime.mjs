@@ -19,6 +19,7 @@ export async function signHelperRuntimes(directory, output, version, privateKeyP
       m.version !== version ||
       m.fileName !== name ||
       m.sizeBytes !== bytes.length ||
+      bytes.length > 512 * 1024 * 1024 ||
       m.sha256 !== createHash('sha256').update(bytes).digest('hex')
     )
       throw new Error('Runtime manifest does not match this release')

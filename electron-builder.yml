@@ -12,6 +12,13 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!native/**'
+  - '!web-helper/**'
+  - '!output/**'
+  - '!docs/**'
+  - '!scripts/**'
+  - '!.impeccable/**'
+  - '!AGENTS.md'
+  - '!vite.webapp.config.ts'
   - '!resources/native/**'
 beforePack: scripts/package-game-inspector.cjs
 afterPack: scripts/verify-packaged-native.cjs
