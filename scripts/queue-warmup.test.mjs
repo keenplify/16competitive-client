@@ -320,6 +320,8 @@ test('rejects invalid map IDs and warmups outside ranked queue at IPC boundary',
 })
 
 async function warmupStoreHarness() {
+  const timers = new Map()
+  let timerId = 0
   const { create } = await import('zustand')
   const calls = []
   const exports = {}
@@ -338,9 +340,16 @@ async function warmupStoreHarness() {
       return { create }
     },
     window: {
+      setTimeout: (callback) => {
+        timers.set(++timerId, callback)
+        return timerId
+      },
+      clearTimeout: (id) => timers.delete(id),
       api: {
         matchmaking: {
-          leaveWarmup: async () => {},
+          leaveWarmup: async () => {
+            calls.push(['leave'])
+          },
           joinWarmup: async (mode, mapId) => calls.push(['join', mode, structuredClone(mapId)]),
           reconnectGame: async (matchId) => calls.push(['launch', matchId])
         }
@@ -349,6 +358,7 @@ async function warmupStoreHarness() {
   })
   return {
     store: exports.useQueueWarmupStore,
+    timers,
     calls
   }
 }
@@ -831,3 +841,46 @@ for (const outcome of ['timeout', 'decline', 'all-ready']) {
     }
   })
 }
+
+test('unacknowledged warmup admission stops loading and leaves before retry', async () => {
+  const { store, timers, calls } = await warmupStoreHarness()
+  store.getState().select('5v5', ['de_dust2'])
+  await store.getState().join()
+  assert.equal(store.getState().status, 'starting')
+  assert.equal(timers.size, 1)
+  for (const callback of timers.values()) callback()
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(store.getState().status, 'error')
+  assert.equal(timers.size, 0)
+  assert.equal(calls.at(-1)[0], 'leave')
+  await store.getState().join()
+  assert.equal(store.getState().status, 'starting')
+  store.getState().reset()
+})
+
+test('warmup admission timer does not cancel an admitted session preparing assets', async () => {
+  const { store, timers } = await warmupStoreHarness()
+  store.getState().select('5v5', ['de_dust2'])
+  await store.getState().join()
+  const timeout = [...timers.values()][0]
+  store.getState().handleEvent({
+    type: 'match_found',
+    whileQueued: true,
+    matchId: 'warmup',
+    mode: '5v5',
+    mapId: 'de_dust2'
+  })
+  assert.equal(timers.size, 0)
+  timeout()
+  assert.equal(store.getState().status, 'starting')
+  assert.equal(store.getState().matchId, 'warmup')
+})
+
+test('legacy untagged warmup failures release the pending state', async () => {
+  const { store, timers } = await warmupStoreHarness()
+  store.getState().select('5v5', ['de_dust2'])
+  await store.getState().join()
+  store.getState().handleEvent({ type: 'error', code: 'WARMUP_FAILED', message: 'Unavailable' })
+  assert.equal(store.getState().status, 'error')
+  assert.equal(timers.size, 0)
+})

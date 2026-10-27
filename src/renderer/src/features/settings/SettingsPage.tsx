@@ -1,3 +1,5 @@
+import { NativeHelperSettingsPanel } from './NativeHelperSettingsPanel'
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { WebNextClientDownload } from './WebNextClientDownload'
 import { WebHelperSetup } from '../matchmaking/WebHelperSetup'
 import { MatchNotificationSettings } from './MatchNotificationSettings'
@@ -72,6 +74,7 @@ export function SettingsPage(): JSX.Element {
   const communityLinks = useCommunityLinks()
   const desktopAppUrl = useDesktopAppUrl()
   const { language, t } = useTranslation()
+  const nativeHelperReady = useWebHelperPromptStore((state) => state.nativeReady)
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
   const crosshairRef = useRef<HTMLElement>(null)
@@ -558,6 +561,7 @@ export function SettingsPage(): JSX.Element {
                     </p>
                     <WebHelperSetup className="mt-5" />
                   </div>
+                  {nativeHelperReady && <NativeHelperSettingsPanel />}
                   <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                     <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">

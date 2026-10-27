@@ -5,6 +5,7 @@ import { copyFile, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promise
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { verifyArtifactManifest } from './artifacts.mjs'
+import { signWebHelperUpdates } from '../sign-web-helper-update.mjs'
 import { signRendererUpdate } from '../sign-renderer-update.mjs'
 
 export const credentialsPath = join(homedir(), '.config/16competitive-release/credentials.json')
@@ -112,7 +113,14 @@ export async function publishLocalDesktop(repo, tag, artifacts, commit, root) {
     credentials.privateKeyPem,
     helper.publicKeyPem
   )
-  run('gh', ['release', 'upload', tag, '--repo', repo, '--clobber', signedPath])
+  const helperUpdates = await signWebHelperUpdates(
+    artifacts,
+    dirname(artifacts),
+    tag.slice(1),
+    credentials.privateKeyPem,
+    helper.publicKeyPem
+  )
+  run('gh', ['release', 'upload', tag, '--repo', repo, '--clobber', signedPath, ...helperUpdates])
   const notes = execFileSync(
     process.execPath,
     [join(root, 'scripts/extract-release-notes.mjs'), tag],

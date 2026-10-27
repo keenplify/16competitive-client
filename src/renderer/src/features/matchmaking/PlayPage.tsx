@@ -67,10 +67,9 @@ export function PlayPage({
 }): JSX.Element {
   const desktopAppUrl = useDesktopAppUrl()
   const webRuntime = isWebRuntime()
-  const helperNeverShow = useWebHelperPromptStore((state) => state.neverShow)
-  const helperShownThisSession = useWebHelperPromptStore((state) => state.shownThisSession)
+  const checkingHelper = useWebHelperPromptStore((state) => state.status === 'checking')
   const showHelperPrompt = useWebHelperPromptStore((state) => state.show)
-  const setHelperStatus = useWebHelperPromptStore((state) => state.setStatus)
+  const checkNativeHelper = useWebHelperPromptStore((state) => state.checkNative)
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t } = useTranslation()
   const communityText = useCommunityText()
@@ -236,7 +235,7 @@ export function PlayPage({
     else void joinQueue()
   }
 
-  const handleFindMatch = (): void => {
+  const handleFindMatch = async (): Promise<void> => {
     if (!isConnected) {
       toast.error('Connect to matchmaking before searching.')
       return
@@ -260,16 +259,17 @@ export function PlayPage({
       return
     }
     if (webRuntime) {
-      const launcher = window.api.matchmaking.cachedLocalLauncherStatus?.()
-      if (launcher === 'outdated-electron' || launcher === 'outdated-rust') {
-        setHelperStatus(launcher)
-        showHelperPrompt()
+      const accountId = player?.id
+      // Keep Continue available while the protocol check or update is pending.
+      showHelperPrompt()
+      const launcher = await checkNativeHelper()
+      // A completed check must not queue a player who signed out or navigated away.
+      if (
+        useAuthStore.getState().session?.player.id !== accountId ||
+        useNavigationStore.getState().page !== 'play'
+      )
         return
-      }
-      if (!helperNeverShow && !helperShownThisSession && !launcher) {
-        showHelperPrompt()
-        return
-      }
+      if (launcher !== 'rust' || useMatchmakingStore.getState().queueStatus !== 'idle') return
     }
     beginQueue()
   }
@@ -811,11 +811,17 @@ export function PlayPage({
                       checkingDiscord ||
                       (partyRequiresWeb && !modeAllowsWeb)
                     }
-                    aria-busy={checkingDiscord}
-                    aria-label={checkingDiscord ? t('queue.discord.checking') : undefined}
-                    onClick={handleFindMatch}
+                    aria-busy={checkingDiscord || (webRuntime && checkingHelper)}
+                    aria-label={
+                      checkingDiscord
+                        ? t('queue.discord.checking')
+                        : webRuntime && checkingHelper
+                          ? t('webHelper.checking')
+                          : undefined
+                    }
+                    onClick={() => void handleFindMatch()}
                   >
-                    {checkingDiscord && (
+                    {(checkingDiscord || (webRuntime && checkingHelper)) && (
                       <LoaderCircle
                         className="absolute left-2 size-4 animate-spin"
                         aria-hidden="true"

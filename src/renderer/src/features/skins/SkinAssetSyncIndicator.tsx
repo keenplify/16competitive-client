@@ -164,9 +164,6 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     <div
       className={`launcher-desktop-notices fixed ${reportPositionForPlay} z-40 flex flex-col items-end gap-2 text-xs transition-[right,bottom] duration-300`}
     >
-      <p className=" border border-amber-300/30 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur text-yellow-400">
-        Alpha Release Testing <b>Expect Bugs</b>
-      </p>
       <button
         type="button"
         onClick={() => setReportOpen(true)}

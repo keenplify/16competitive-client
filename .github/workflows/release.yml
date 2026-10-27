@@ -148,6 +148,11 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+      - name: Sign native web helper updates
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          HELPER_SIGNING_PRIVATE_KEY: ${{ secrets.HELPER_SIGNING_PRIVATE_KEY }}
+        run: node scripts/sign-web-helper-update.mjs release-assets
       - name: Extract release notes from changelog
         env:
           RELEASE_TAG: ${{ github.ref_name }}

@@ -87,7 +87,10 @@ verification, the host signs helper manifests, verifies the resulting signatures
 uploads them to the draft, registers the approved hashes with the backend, and
 only then publishes the helper. Desktop packaging still verifies both helper
 signatures and backend approval. Desktop files and updater metadata are likewise
-verified before publishing directly with the GitHub CLI. Signing does not disable
+verified before publishing directly with the GitHub CLI. Native web-helper update
+envelopes are signed separately with the same pinned key and a dedicated
+signature context; both platform envelopes are uploaded with the helper binaries.
+Signing does not disable
 any runtime verification or backend trust gate.
 
 Local signing material stays outside the original artifact cache. Failed helper

@@ -34,6 +34,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'Leave warmup',
     'warmup.preparing': 'Preparing your session…',
     'warmup.error': 'Could not start or leave the session. Please try again.',
+    'release.alpha': 'Alpha Release Testing',
+    'release.bugs': 'Expect bugs',
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
@@ -71,6 +73,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'Выйти из разминки',
     'warmup.preparing': 'Подготовка игры…',
     'warmup.error': 'Не удалось начать или покинуть игру. Попробуйте снова.',
+    'release.alpha': 'Тестирование альфа-версии',
+    'release.bugs': 'Возможны ошибки',
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
@@ -108,6 +112,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'Umalis sa warmup',
     'warmup.preparing': 'Inihahanda ang laro…',
     'warmup.error': 'Hindi masimulan o maiwan ang laro. Subukan ulit.',
+    'release.alpha': 'Alpha Release Testing',
+    'release.bugs': 'Maaaring may mga bug',
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
@@ -144,6 +150,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'ออกจากการวอร์มอัป',
     'warmup.preparing': 'กำลังเตรียมเกม…',
     'warmup.error': 'ไม่สามารถเริ่มหรือออกจากเกมได้ โปรดลองอีกครั้ง',
+    'release.alpha': 'การทดสอบรุ่นอัลฟา',
+    'release.bugs': 'อาจพบข้อผิดพลาด',
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
@@ -181,6 +189,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'Keluar pemanasan',
     'warmup.preparing': 'Menyiapkan permainan…',
     'warmup.error': 'Tidak dapat memulai atau meninggalkan permainan. Coba lagi.',
+    'release.alpha': 'Pengujian Rilis Alpha',
+    'release.bugs': 'Mungkin ada bug',
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
@@ -218,6 +228,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'Sair do aquecimento',
     'warmup.preparing': 'Preparando a partida…',
     'warmup.error': 'Não foi possível iniciar ou sair da partida. Tente novamente.',
+    'release.alpha': 'Teste da versão alfa',
+    'release.bugs': 'Podem ocorrer erros',
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
@@ -254,6 +266,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'ウォームアップを終了',
     'warmup.preparing': 'ゲームを準備中…',
     'warmup.error': 'ゲームを開始または終了できませんでした。再試行してください。',
+    'release.alpha': 'アルファ版テスト',
+    'release.bugs': '不具合が発生する場合があります',
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
@@ -290,6 +304,8 @@ export const queueWarmupTranslations = {
     'warmup.leave': 'वॉर्मअप छोड़ें',
     'warmup.preparing': 'गेम तैयार हो रहा है…',
     'warmup.error': 'गेम शुरू या बंद नहीं हो सका। फिर कोशिश करें।',
+    'release.alpha': 'अल्फ़ा रिलीज़ परीक्षण',
+    'release.bugs': 'बग हो सकते हैं',
     'warmup.bots': 'खाली जगहों पर बॉट आएँगे। कतार में आपकी जगह नहीं बदलेगी।'
   }
 } as const

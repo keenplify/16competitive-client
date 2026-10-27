@@ -1,3 +1,5 @@
+import { isWebRuntime } from '../../../web-runtime'
+import { useWebHelperPromptStore } from '../../../features/matchmaking/web-helper-prompt.store'
 import { useAdminDemosStore } from '../../../features/admin-demos/admin-demos.store'
 import type { JSX } from 'react'
 import { ClipboardList, Gift, House, Play, Settings } from 'lucide-react'
@@ -188,7 +190,11 @@ export function LobbyNavigation({
               disabled={!canNavigate(id)}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
-              onClick={() => onNavigate(id)}
+              onClick={() => {
+                onNavigate(id)
+                if (id === 'play' && isWebRuntime())
+                  void useWebHelperPromptStore.getState().checkNative()
+              }}
               className={twMerge(
                 'group relative inline-flex h-9 items-center justify-center gap-2  px-2.5 text-xs font-bold tracking-[0.08em] text-white/80 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:px-4 sm:text-sm',
                 active &&

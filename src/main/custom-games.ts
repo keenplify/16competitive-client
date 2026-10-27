@@ -27,6 +27,14 @@ const isMember = (value: unknown): value is CustomGameMember =>
   typeof value.isBot === 'boolean' &&
   (value.team === 0 || value.team === 1 || value.team === 2)
 
+const isRoundTime = (value: unknown): value is number | null =>
+  value === null ||
+  (typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= 1 &&
+    value <= 9 &&
+    Math.abs(Math.round(value * 100) - value * 100) <= 1e-8)
+
 const isRoom = (value: unknown): value is CustomGameRoom =>
   isObject(value) &&
   typeof value.id === 'string' &&
@@ -41,6 +49,7 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
     (Number.isInteger(value.startingMoney) &&
       Number(value.startingMoney) >= 800 &&
       Number(value.startingMoney) <= 16000)) &&
+  (value.roundTimeMinutes === undefined || isRoundTime(value.roundTimeMinutes)) &&
   (value.friendlyFire === undefined || typeof value.friendlyFire === 'boolean') &&
   value.maxPlayers === 18 &&
   Number.isInteger(value.teamOneCapacity) &&
@@ -89,7 +98,11 @@ const validateSettings = (value: unknown): CustomGameSettings => {
       Number(startingMoney) > 16000)
   )
     throw new Error('Invalid starting money')
+  const roundTimeMinutes = value.roundTimeMinutes
+  if (roundTimeMinutes !== undefined && !isRoundTime(roundTimeMinutes))
+    throw new Error('Invalid round time')
   return {
+    ...(roundTimeMinutes === undefined ? {} : { roundTimeMinutes }),
     ...(friendlyFire === undefined ? {} : { friendlyFire }),
     name,
     mode,
@@ -102,6 +115,10 @@ const validateSettings = (value: unknown): CustomGameSettings => {
 const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
   if (!isObject(value)) throw new Error('Invalid custom game settings')
   const update: CustomGameSettingsUpdate = {}
+  if (value.roundTimeMinutes !== undefined) {
+    if (!isRoundTime(value.roundTimeMinutes)) throw new Error('Invalid round time')
+    update.roundTimeMinutes = value.roundTimeMinutes
+  }
   if (value.friendlyFire !== undefined) {
     if (typeof value.friendlyFire !== 'boolean') throw new Error('Invalid friendly fire setting')
     update.friendlyFire = value.friendlyFire

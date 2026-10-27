@@ -89,11 +89,9 @@ export function QueueWarmupPanel({
         <p role="status" className="h-7 text-sm text-neutral-300">
           {warmup.status === 'error'
             ? t('warmup.error')
-            : busy
-              ? t('warmup.preparing')
-              : active
-                ? `${t('warmup.active')} · ${getMatchmakingModeLabel(warmup.mode)}`
-                : ''}
+            : active
+              ? `${t('warmup.active')} · ${getMatchmakingModeLabel(warmup.mode)}`
+              : ''}
         </p>
         <PlayQueueActions friendsCollapsed={friendsCollapsed}>
           {active && (

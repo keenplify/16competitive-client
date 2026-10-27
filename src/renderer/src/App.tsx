@@ -23,6 +23,9 @@ import { Slide, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './assets/toast.css'
 import { useEffect } from 'react'
+import { AlphaReleaseWatermark } from './components/AlphaReleaseWatermark'
+import { WebHelperController } from './features/matchmaking/WebHelperController'
+import { QueueWarmupNotice } from './features/matchmaking/QueueWarmupNotice'
 
 function App(): React.JSX.Element {
   useEffect(() => {
@@ -45,6 +48,9 @@ function App(): React.JSX.Element {
         <MatchAbandonNotice />
         <SkinAssetSyncIndicator />
         <MatchAssetPreparation />
+        <QueueWarmupNotice />
+        <WebHelperController />
+        <AlphaReleaseWatermark />
         <SkinGiftOverlay />
         <VoiceChatDock />
         <AuthLanguageOverlay />

@@ -1,4 +1,5 @@
-import { useState, type JSX } from 'react'
+import { useEffect, type JSX } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -10,87 +11,90 @@ const helperDownload = isWindows
   ? 'https://github.com/keenplify/16competitive-client/releases/latest/download/competitive16-web-helper.exe'
   : 'https://github.com/keenplify/16competitive-client/releases/latest/download/competitive16-web-helper-linux'
 
-export function WebHelperSetup({ className }: { className?: string }): JSX.Element {
+export function WebHelperSetup({
+  className,
+  onContinue
+}: {
+  className?: string
+  onContinue?: () => void
+}): JSX.Element {
   const { t } = useTranslation()
-  const [showLinuxInstructions, setShowLinuxInstructions] = useState(false)
   const status = useWebHelperPromptStore((state) => state.status)
-  const setStatus = useWebHelperPromptStore((state) => state.setStatus)
-  const check = async (target: 'electron' | 'rust'): Promise<void> => {
-    setStatus('checking')
-    try {
-      const launcher = await window.api.matchmaking.checkLocalLauncher?.(target)
-      setStatus(launcher ?? 'unavailable')
-    } catch {
-      setStatus('unavailable')
+  const setupOpen = useWebHelperPromptStore((state) => state.setupOpen)
+  const command = useWebHelperPromptStore((state) => state.setupCommand)
+  const prepareSetup = useWebHelperPromptStore((state) => state.prepareSetup)
+  const closeSetup = useWebHelperPromptStore((state) => state.closeSetup)
+  useEffect(() => {
+    const checkAfterInstall = (): void => {
+      const state = useWebHelperPromptStore.getState()
+      if (state.awaitingInstall && !state.setupOpen && state.status !== 'checking')
+        void state.checkNative()
     }
-  }
+    window.addEventListener('focus', checkAfterInstall)
+    return () => window.removeEventListener('focus', checkAfterInstall)
+  }, [])
   const statusText =
     status === 'checking'
       ? t('webHelper.checking')
-      : status === 'electron'
-        ? t('webHelper.electronReady')
-        : status === 'rust'
-          ? t('webHelper.rustReady')
-          : status === 'outdated-electron'
-            ? t('webHelper.electronOutdated')
-            : status === 'outdated-rust'
-              ? t('webHelper.rustOutdated')
-              : status === 'unavailable'
-                ? t('webHelper.unavailable')
-                : '\u00a0'
+      : status === 'rust'
+        ? t('webHelper.rustReady')
+        : status === 'outdated-rust'
+          ? t('webHelper.rustOutdated')
+          : status === 'unavailable'
+            ? t('webHelper.unavailable')
+            : '\u00a0'
 
   return (
-    <div className={twMerge('space-y-3', className)}>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={status === 'checking'}
-          onClick={() => void check('electron')}
-        >
-          {t('webHelper.check')}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={status === 'checking'}
-          onClick={() => void check('rust')}
-        >
-          {t('webHelper.checkRust')}
-        </Button>
+    <div className={twMerge('space-y-4', className)}>
+      <p
+        className="flex min-h-12 items-start gap-2 text-sm leading-6 text-neutral-300"
+        role="status"
+      >
+        {status === 'checking' && (
+          <LoaderCircle className="mt-1 size-4 shrink-0 animate-spin" aria-hidden="true" />
+        )}
+        <span>{statusText}</span>
+      </p>
+      <div className={twMerge('grid gap-3', onContinue && 'sm:grid-cols-2')}>
         <ButtonLink
-          variant="secondary"
+          variant="primary"
+          className="h-auto min-h-11 py-2 text-center"
           href={helperDownload}
           download
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => {
-            if (!isWindows) setShowLinuxInstructions(true)
+            if (!isWindows) void prepareSetup()
+            else useWebHelperPromptStore.getState().awaitInstall()
           }}
         >
-          {t(status === 'outdated-rust' ? 'webHelper.update' : 'webHelper.download')}
+          {t('webHelper.download')}
         </ButtonLink>
+        {onContinue && (
+          <Button className="h-auto min-h-11 py-2" variant="secondary" onClick={onContinue}>
+            {t('webHelper.continue')}
+          </Button>
+        )}
       </div>
-      <p className="min-h-12 text-sm text-neutral-300" role="status">
-        {statusText}
-      </p>
       <ModalDialog
-        open={showLinuxInstructions}
-        onClose={() => setShowLinuxInstructions(false)}
+        open={setupOpen}
+        onClose={closeSetup}
         label={t('webHelper.linuxTitle')}
+        className="max-w-xl"
+        vguiTitlebar={false}
       >
         <div className="space-y-4 p-6 text-white">
           <h2 className="text-xl font-semibold">{t('webHelper.linuxTitle')}</h2>
-          <p className="text-sm text-neutral-300">{t('webHelper.linuxDescription')}</p>
-          <pre className="overflow-x-auto border border-neutral-700 bg-black p-4 text-sm text-sky-200">
-            <code>
-              {
-                'cd ~/Downloads\nchmod +x competitive16-web-helper-linux\n./competitive16-web-helper-linux'
-              }
-            </code>
+          <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
+          <pre className="h-56 overflow-auto whitespace-pre-wrap break-all border border-neutral-700 bg-black p-4 text-sm text-sky-200">
+            <code>{command ?? t('webHelper.checking')}</code>
           </pre>
-          <p className="text-sm text-neutral-300">{t('webHelper.linuxAfter')}</p>
-          <Button type="button" variant="secondary" onClick={() => setShowLinuxInstructions(false)}>
+          <p className="h-16 overflow-auto text-sm leading-6 text-neutral-300" role="status">
+            {status === 'unavailable' || status === 'outdated-rust'
+              ? statusText
+              : t('webHelper.linuxAfter')}
+          </p>
+          <Button variant="secondary" onClick={closeSetup}>
             {t('webHelper.close')}
           </Button>
         </div>

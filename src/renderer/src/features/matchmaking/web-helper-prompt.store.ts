@@ -1,28 +1,147 @@
 import { create } from 'zustand'
 
-const KEY = '16competitive.web.helper-prompt-never'
+type HelperStatus =
+  'idle' | 'checking' | 'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | 'unavailable'
 
 interface WebHelperPromptState {
+  awaitingInstall: boolean
+  awaitInstall: () => void
+  nativeReady: boolean
   open: boolean
-  neverShow: boolean
-  shownThisSession: boolean
-  status: 'idle' | 'checking' | 'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | 'unavailable'
+  setupOpen: boolean
+  setupCommand: string | null
+  status: HelperStatus
+  successSequence: number
+  accountId: string | null
   show: () => void
   close: () => void
-  dismissForever: () => void
-  setStatus: (status: WebHelperPromptState['status']) => void
+  closeSetup: () => void
+  syncAccount: (accountId: string | null) => void
+  checkNative: () => Promise<HelperStatus>
+  prepareSetup: () => Promise<void>
 }
 
-export const useWebHelperPromptStore = create<WebHelperPromptState>((set) => ({
-  open: false,
-  neverShow: localStorage.getItem(KEY) === '1',
-  shownThisSession: false,
-  status: 'idle',
-  show: () => set({ open: true, shownThisSession: true }),
-  close: () => set({ open: false }),
-  setStatus: (status) => set({ status }),
-  dismissForever: () => {
-    localStorage.setItem(KEY, '1')
-    set({ open: false, neverShow: true })
+let generation = 0
+let pendingCheck: Promise<HelperStatus> | null = null
+
+export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) => {
+  const ready = (): void => {
+    const announce = get().awaitingInstall || get().setupOpen
+    set({
+      awaitingInstall: false,
+      nativeReady: true,
+      status: 'rust',
+      open: false,
+      setupOpen: false,
+      setupCommand: null,
+      successSequence: get().successSequence + (announce ? 1 : 0)
+    })
   }
-}))
+  const cancelSetup = (): void => {
+    generation++
+    pendingCheck = null
+    window.api.matchmaking.cancelNativeHelperSetup?.()
+  }
+  return {
+    awaitingInstall: false,
+    awaitInstall: () => set({ awaitingInstall: true }),
+    nativeReady: false,
+    open: false,
+    setupOpen: false,
+    setupCommand: null,
+    status: 'idle',
+    successSequence: 0,
+    accountId: null,
+    show: () => set({ open: true }),
+    close: () => {
+      cancelSetup()
+      set({
+        awaitingInstall: false,
+        open: false,
+        setupOpen: false,
+        setupCommand: null,
+        ...(get().status === 'checking' ? { status: 'idle' } : {})
+      })
+    },
+    closeSetup: () => {
+      cancelSetup()
+      set({
+        setupOpen: false,
+        setupCommand: null,
+        ...(get().status === 'checking' ? { status: 'idle' } : {})
+      })
+    },
+    syncAccount: (accountId) => {
+      if (get().accountId === accountId) return
+      cancelSetup()
+      set({
+        accountId,
+        awaitingInstall: false,
+        nativeReady: false,
+        open: false,
+        setupOpen: false,
+        setupCommand: null,
+        status: 'idle'
+      })
+      if (accountId) void get().checkNative()
+    },
+    checkNative: () => {
+      if (pendingCheck) return pendingCheck
+      const current = generation
+      set({ status: 'checking' })
+      const operation = (async (): Promise<HelperStatus> => {
+        let status: HelperStatus
+        try {
+          const result = await window.api.matchmaking.checkLocalLauncher?.('rust')
+          status = result === 'rust' || result === 'outdated-rust' ? result : 'unavailable'
+        } catch {
+          status = 'unavailable'
+        }
+        if (current === generation) {
+          if (status === 'rust') ready()
+          else set({ status })
+        }
+        return current === generation ? status : 'idle'
+      })()
+      pendingCheck = operation
+      void operation.finally(() => {
+        if (pendingCheck === operation) pendingCheck = null
+      })
+      return operation
+    },
+    prepareSetup: async () => {
+      cancelSetup()
+      const current = generation
+      set({ setupOpen: true, setupCommand: null, status: 'checking' })
+      try {
+        while (current === generation && get().setupOpen) {
+          const setup = await window.api.matchmaking.createNativeHelperSetup?.()
+          if (current !== generation || !get().setupOpen) return
+          if (!setup) throw new Error('Native helper setup unavailable')
+          // The URL is generated and validated by the web API. Quote the entire
+          // argument so its ampersand cannot split the terminal command.
+          const link = new URL(setup.checkUrl)
+          if (link.protocol !== 'competitive16-helper:' || /['\n\r]/.test(setup.checkUrl))
+            throw new Error('Invalid helper setup link')
+          set({
+            setupCommand: `cd ~/Downloads\nchmod +x competitive16-web-helper-linux\n./competitive16-web-helper-linux '${setup.checkUrl}'`
+          })
+          const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
+          if (current !== generation || !get().setupOpen) return
+          if (result === 'rust') {
+            ready()
+            return
+          }
+          if (result === 'outdated-rust') {
+            set({ status: result })
+            return
+          }
+          // Renew the short-lived command only after its verification expires.
+          if (Date.now() < Date.parse(setup.expiresAt)) throw new Error('Helper setup interrupted')
+        }
+      } catch {
+        if (current === generation) set({ status: 'unavailable' })
+      }
+    }
+  }
+})

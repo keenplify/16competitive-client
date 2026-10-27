@@ -127,10 +127,11 @@ impl NativeSession {
         connection: &Connection,
         api: &str,
         token: &str,
+        preferences: &crate::settings_bridge::NativePreferences,
     ) -> Result<Self, String> {
         let id = Uuid::new_v4().to_string();
         let directory = config_dir.join("web-sessions").join(&id);
-        Self::start_at(directory, connection, api, token)
+        Self::start_at(directory, connection, api, token, preferences)
     }
 
     pub fn start_at(
@@ -138,6 +139,7 @@ impl NativeSession {
         connection: &Connection,
         api: &str,
         token: &str,
+        preferences: &crate::settings_bridge::NativePreferences,
     ) -> Result<Self, String> {
         let id = Uuid::new_v4().to_string();
         fs::create_dir_all(directory.parent().ok_or("Invalid managed session path")?)
@@ -179,8 +181,12 @@ impl NativeSession {
             // The web helper has no Electron image renderer. Keep the stock Tab
             // scoreboard and use the native module only for supported HUD layers.
             owned_write(&directory.join("overlay.mode"), b"ally-tags\n")?;
-            owned_write(&directory.join("overlay.enabled"), b"1\n")?;
-            owned_write(&directory.join("hud-lightweight.enabled"), b"1\n")?;
+            if preferences.enhancements_enabled {
+                owned_write(&directory.join("overlay.enabled"), b"1\n")?;
+            }
+            if preferences.lightweight_hud {
+                owned_write(&directory.join("hud-lightweight.enabled"), b"1\n")?;
+            }
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
                 &directory.join("session.ticket"),
@@ -228,6 +234,7 @@ impl NativeSession {
         let token = token.to_owned();
         let match_id = connection.match_id.clone();
         let player_name = connection.player_name.clone();
+        let show_cards = preferences.enhancements_enabled && preferences.kill_cards_enabled;
         let feed = thread::spawn(move || {
             let feed_path =
                 feed_path_root.join("game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv");
@@ -238,7 +245,7 @@ impl NativeSession {
                     break;
                 }
                 if let Some(snapshot) = fetch_feed(&api, &token, &match_id) {
-                    if let Some(card) = progress.update(&snapshot, &player_name) {
+                    if let Some(card) = progress.update(&snapshot, &player_name).filter(|_| show_cards) {
                         let _ = owned_write(&card_path, card.as_bytes());
                     } else {
                         let _ = fs::remove_file(&card_path);
@@ -404,6 +411,7 @@ mod tests {
             &connection,
             &format!("http://127.0.0.1:{port}"),
             "test-token",
+            &crate::settings_bridge::NativePreferences::default(),
         )
         .unwrap();
         assert_eq!(fs::read(directory.join("overlay.mode")).unwrap(), b"ally-tags\n");

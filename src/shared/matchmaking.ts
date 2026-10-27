@@ -1,3 +1,4 @@
+import type { NativeHelperSettings, NativeHelperSettingsRequest } from './native-helper-settings'
 import type { MatchmakingActivity } from './matchmaking-activity'
 import type { ServerCustomGameMode } from './custom-games'
 import type { MatchRewardSummary } from './daily-quests'
@@ -419,7 +420,16 @@ export type MatchmakingEvent = { whileQueued?: boolean } & (
 )
 
 export interface MatchmakingApi {
-  checkLocalLauncher?(target?: 'electron' | 'rust'): Promise<'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null>
+  checkLocalLauncher?(
+    target?: 'electron' | 'rust'
+  ): Promise<'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null>
+  nativeHelperSettings?(request: NativeHelperSettingsRequest): Promise<NativeHelperSettings>
+  createNativeHelperSetup?(): Promise<{ checkUrl: string; expiresAt: string }>
+  waitForNativeHelperSetup?(setup: {
+    checkUrl: string
+    expiresAt: string
+  }): Promise<'rust' | 'outdated-rust' | null>
+  cancelNativeHelperSetup?(): void
   cachedLocalLauncherStatus?(): 'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null
   joinWarmup(mode: MatchmakingMode, mapIds: string | string[]): Promise<void>
   leaveWarmup(): Promise<void>

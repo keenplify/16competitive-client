@@ -85,10 +85,26 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
     )
       return
     set({ status: 'starting' })
+    // IPC only confirms the request was sent. Bound the wait for admission;
+    // asset downloads/server startup have their own lifecycle after match_found.
+    const admissionTimeout = window.setTimeout(() => {
+      if (get().status !== 'starting' || get().matchId) return
+      void get()
+        .leave()
+        .then(() => {
+          if (get().status === 'idle' && !get().matchId) set({ status: 'error' })
+        })
+    }, 45_000)
+    const unsubscribe = useQueueWarmupStore.subscribe((state) => {
+      if (state.matchId || state.status !== 'starting') {
+        window.clearTimeout(admissionTimeout)
+        unsubscribe()
+      }
+    })
     try {
       await window.api.matchmaking.joinWarmup(get().mode, get().selectedMapIds)
     } catch {
-      set({ status: 'error' })
+      if (get().status === 'starting' && !get().matchId) set({ status: 'error' })
     }
   },
   launch: async () => {
@@ -111,6 +127,11 @@ export const useQueueWarmupStore = create<WarmupState>((set, get) => ({
     }
   },
   handleEvent: (event) => {
+    // Older servers may omit the warmup lane on admission errors.
+    if (event.type === 'error' && event.code === 'WARMUP_FAILED') {
+      set({ status: 'error' })
+      return
+    }
     if (event.whileQueued) {
       if (event.type === 'match_finished' && event.mode === '5v5') {
         set({ completedMatch: event })

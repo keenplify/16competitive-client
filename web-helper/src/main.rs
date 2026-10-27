@@ -1,6 +1,8 @@
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod native_bundle;
 mod native_session;
+mod settings_bridge;
+mod self_update;
 #[cfg(windows)]
 mod windows_native;
 use serde::{Deserialize, Serialize};
@@ -18,6 +20,8 @@ use std::{
 struct Preferences {
     cs13: Option<PathBuf>,
     cs16: Option<PathBuf>,
+    #[serde(default)]
+    settings: settings_bridge::NativePreferences,
 }
 
 #[derive(Deserialize)]
@@ -90,6 +94,8 @@ fn helper_fingerprint() -> String {
     for source in [
         include_bytes!("main.rs").as_slice(),
         include_bytes!("lib.rs").as_slice(),
+        include_bytes!("settings_bridge.rs").as_slice(),
+        include_bytes!("self_update.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
@@ -125,17 +131,11 @@ fn user_config_dir() -> Result<PathBuf, String> {
 }
 
 fn installed_path() -> Result<PathBuf, String> {
-    #[cfg(windows)]
-    {
-        Ok(user_config_dir()?.join("competitive16-web-helper.exe"))
-    }
-    #[cfg(not(windows))]
-    {
-        Ok(
-            PathBuf::from(env::var_os("HOME").ok_or("HOME is unavailable")?)
-                .join(".local/bin/competitive16-web-helper"),
-        )
-    }
+    // Immutable version directories avoid replacing a running Windows EXE.
+    // Each completed setup re-registers the protocol to the current version.
+    Ok(user_config_dir()?.join("helper-versions").join(helper_fingerprint()).join(
+        if cfg!(windows) {"competitive16-web-helper.exe"} else {"competitive16-web-helper"}
+    ))
 }
 
 fn install_self() -> Result<PathBuf, String> {
@@ -206,6 +206,15 @@ fn register_protocol(executable: &Path) -> Result<(), String> {
     fs::write(applications.join("competitive16-web-helper.desktop"), format!(
         "[Desktop Entry]\nType=Application\nName=1.6 Competitive Web Helper\nExec=\"{}\" %u\nTerminal=false\nNoDisplay=true\nMimeType=x-scheme-handler/competitive16-helper;\n", value
     )).map_err(|e| e.to_string())?;
+    // GNOME/GIO discovers protocol handlers through mimeinfo.cache. Setting
+    // mimeapps.list alone leaves an unknown-scheme chooser with no applications.
+    let cache = Command::new("update-desktop-database")
+        .arg(&applications)
+        .output()
+        .map_err(|_| "Install desktop-file-utils, then run helper setup again".to_owned())?;
+    if !cache.status.success() {
+        return Err("Could not refresh the desktop application database".into());
+    }
     let result = Command::new("xdg-mime")
         .args([
             "default",
@@ -447,11 +456,7 @@ fn preference_path() -> Result<PathBuf, String> {
 }
 
 fn choose_installation(game: &str) -> Result<(PathBuf, PathBuf, String), String> {
-    let path = preference_path()?;
-    let mut preferences: Preferences = fs::read(&path)
-        .ok()
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default();
+    let mut preferences = settings_bridge::load()?;
     let saved = if game == "cs13" {
         &preferences.cs13
     } else {
@@ -499,12 +504,7 @@ fn choose_installation(game: &str) -> Result<(PathBuf, PathBuf, String), String>
     } else {
         preferences.cs16 = Some(installation.0.clone());
     }
-    fs::create_dir_all(path.parent().ok_or("Invalid settings path")?).map_err(|e| e.to_string())?;
-    fs::write(
-        path,
-        serde_json::to_vec(&preferences).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
+    settings_bridge::save(&preferences)?;
     Ok(installation)
 }
 
@@ -672,6 +672,7 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         &pattern.cs16
     };
     let (root, exe, mod_dir) = choose_installation(connection.game())?;
+    let preferences = settings_bridge::load()?.settings;
     let windows_cs16_args = if cfg!(windows) && connection.game() == "cs16" {
         Some(cs16_standalone_windows_args(&root, game_pattern)?)
     } else {
@@ -685,7 +686,7 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
     #[cfg(target_os = "linux")]
     if connection.game() == "cs16" && exe.file_name().is_some_and(|name| name == "hl_linux") {
         match native_bundle::prepare(&user_config_dir()?).and_then(|bundle| {
-            native_session::NativeSession::start(&user_config_dir()?, connection, api, token)
+            native_session::NativeSession::start(&user_config_dir()?, connection, api, token, &preferences)
                 .map(|session| (bundle, session))
         }) {
             Ok((bundle, session)) => native = Some((bundle, session)),
@@ -708,6 +709,7 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
                     connection,
                     api,
                     token,
+                    &preferences,
                 )?;
                 match windows_native::WindowsInstall::install(&root, &bundle) {
                     Ok(Some(installation)) => {
@@ -805,6 +807,13 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
             Command::new(&exe)
         };
     command.current_dir(&root);
+    let (width, height) = preferences.resolution(connection.game())?;
+    if connection.game() == "cs13" {
+        command.args(["-width", &width.to_string(), "-height", &height.to_string()]);
+    } else {
+        command.args(["-w", &width.to_string(), "-h", &height.to_string()]);
+        command.args(["+hud_fastswitch", if preferences.fast_switch_enabled {"1"} else {"0"}]);
+    }
     if let Some(args) = windows_cs16_args {
         command.args(args);
     } else {
@@ -901,9 +910,19 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
 }
 
 fn run() -> Result<(), String> {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("--local-settings") {
+        if args.len()!=4 {return Err("Invalid local settings arguments".into());}
+        return settings_bridge::serve(args[1].parse().map_err(|_| "Invalid settings port")?, &args[2], &args[3]);
+    }
     if env::args().any(|value| value == "--fingerprint") {
         println!("{}", helper_fingerprint());
         return Ok(());
+    }
+    match self_update::check_and_resume(&args) {
+        Ok(true) => return Ok(()),
+        Ok(false) => {},
+        Err(_) => eprintln!("Helper update could not be verified; keeping the installed version."),
     }
     let exe = install_self()?;
     register_protocol(&exe)?;
@@ -911,12 +930,20 @@ fn run() -> Result<(), String> {
         .skip(1)
         .find(|value| value.starts_with("competitive16-helper://"));
     let Some(link) = arg else {
-        notice("Web helper installed. The website can now check setup and open matches. You can close this helper; it does not run in the background.");
+        #[cfg(windows)]
+        notice("Web helper installed. Return to the website to continue setup.");
+        #[cfg(not(windows))]
+        println!("Web helper installed. Return to the website to continue setup.");
         return Ok(());
     };
     let development = cfg!(debug_assertions);
     if let Some(check) = parse_check_link(&link, development) {
         session(&check.api_origin, &check.handoff)?;
+        if let Some(local) = check.local_settings {
+            Command::new(&exe).args(["--local-settings", &local.port.to_string(), &local.token, &local.origin])
+                .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+                .spawn().map_err(|e|e.to_string())?;
+        }
         return Ok(());
     }
     let launch = parse_launch_link(&link, development).ok_or("Invalid 1.6 Competitive link")?;

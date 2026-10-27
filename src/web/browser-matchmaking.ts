@@ -12,7 +12,16 @@ import type {
 import { manualConnectionCommand } from '../shared/matchmaking'
 import { currentApiOrigin, getWebSessionToken, requestJson } from './browser-session'
 import { webSteamLaunchUrl } from './steam-launch'
-import { cachedLocalLauncherStatus, checkLocalLauncher, launchWithLocalLauncher, preferredLocalLauncher } from './local-play'
+import {
+  nativeHelperSettings,
+  createNativeHelperSetup,
+  waitForNativeHelperSetup,
+  cancelNativeHelperSetup,
+  cachedLocalLauncherStatus,
+  checkLocalLauncher,
+  launchWithLocalLauncher,
+  preferredLocalLauncher
+} from './local-play'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
@@ -407,6 +416,10 @@ const preferences = (): MatchmakingPreferences => {
 
 export const browserMatchmakingApi: MatchmakingApi = {
   checkLocalLauncher,
+  nativeHelperSettings,
+  createNativeHelperSetup,
+  waitForNativeHelperSetup,
+  cancelNativeHelperSetup,
   cachedLocalLauncherStatus,
   async joinWarmup(mode, selection) {
     const mapIds = typeof selection === 'string' ? [selection] : selection

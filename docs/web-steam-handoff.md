@@ -19,3 +19,59 @@ Before deployment, verify Windows and Linux Steam connections with CS closed
 and already open. Confirm the player joins the assigned match without a password
 rejection. Steam or game variants that ignore forwarded arguments may still
 require closing CS first or using Web Play's copied console command.
+
+## Native helper setup and local settings
+
+Web Play checks the native helper on account login, opening Play, and starting a
+search. Checks are deduplicated while pending. The prompt offers only Download
+native helper and Continue to Play; Continue remains available during a check.
+The optional helper uses its own protocol; Web Play no longer selects a cached
+desktop application as its preferred launcher.
+
+On Linux, setup refreshes the desktop MIME application database before setting
+the protocol handler. Fedora/GNOME needs `desktop-file-utils` and `xdg-mime`;
+`zenity` provides the native folder picker. Terminal instructions include a
+short-lived, account-bound verification URL. The helper consumes it directly,
+then the browser closes both setup dialogs and displays the success toast.
+Setup commands expire after two minutes and refresh while the instructions stay
+open. Closing setup or logging out ignores pending verification results.
+
+A verified setup can start a five-minute-idle loopback settings bridge. It binds
+only to `127.0.0.1` on a random high port, requires an independently generated
+256-bit capability plus the exact approved browser Origin, and exposes only
+read settings, choose a validated game folder, and save typed preferences.
+There is no arbitrary file, command, or process API. Folder paths remain on the
+machine and are never uploaded to account or matchmaking endpoints. Preferences
+live in the helper-owned `web-helper.json` and apply to the next game launch.
+CS 1.3 retains its limited resolution table; native Windows clients on Linux
+still require Wine. The helper retains the stock Tab scoreboard because Web
+Play does not provide Electron's offscreen image renderer.
+
+## Helper updates
+
+Production helper invocations check a platform-specific signed update envelope
+on the client GitHub release. The pinned Ed25519 key verifies the dedicated
+`16competitive.web-helper.update.v1` signature context; fixed filenames,
+platform/architecture, version, size, and SHA-256 are checked before execution.
+Metadata cannot redirect the download to arbitrary hosts or paths. Offline
+checks retain the installed helper. Unverifiable updates never execute.
+
+Verified updates run from a new file and preserve the original argument vector,
+including its one-time setup or match link. A verified hash skips the child's
+duplicate update check. Protocol registrations point at immutable helper-version
+directories, avoiding Windows executable replacement locks. Active game sessions
+continue under their existing helper and recovery checks.
+
+Existing helpers need one installation of this release to gain the updater.
+`npm run release:local` signs both helper update envelopes with the existing
+local release key and uploads them beside the binaries. Hosted releases require
+the matching `HELPER_SIGNING_PRIVATE_KEY` secret. Signing credentials never enter
+build containers, the Windows build VM, or the packaged helper.
+
+Run `node --experimental-strip-types --test scripts/native-helper-setup.test.mjs`
+and `cargo test --manifest-path web-helper/Cargo.toml --locked`. On Linux, build
+the helper and set `NATIVE_HELPER_TEST_BINARY` to its absolute path when running
+`scripts/native-helper-bridge.test.mjs` to exercise real local folder selection
+and preference persistence against isolated game fixtures. Actual Windows
+installation, browser protocol consent, and game launch still require platform
+verification.

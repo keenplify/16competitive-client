@@ -14,7 +14,11 @@ pub struct LaunchLink {
 pub struct CheckLink {
     pub api_origin: String,
     pub handoff: String,
+    pub local_settings: Option<LocalSettings>,
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct LocalSettings { pub port: u16, pub token: String, pub origin: String }
 
 pub fn allowed_api_origin(value: &str, development: bool) -> Option<String> {
     let url = Url::parse(value).ok()?;
@@ -66,10 +70,16 @@ pub fn parse_check_link(value: &str, development: bool) -> Option<CheckLink> {
         url.fragment().is_some() { return None; }
     let mut api = None;
     let mut handoff = None;
+    let mut port = None;
+    let mut token = None;
+    let mut origin = None;
     for (key, value) in url.query_pairs() {
         match key.as_ref() {
             "api" if api.is_none() => api = Some(value.into_owned()),
             "handoff" if handoff.is_none() => handoff = Some(value.into_owned()),
+            "localPort" if port.is_none() => port = Some(value.into_owned()),
+            "localToken" if token.is_none() => token = Some(value.into_owned()),
+            "webOrigin" if origin.is_none() => origin = Some(value.into_owned()),
             _ => return None,
         }
     }
@@ -77,7 +87,14 @@ pub fn parse_check_link(value: &str, development: bool) -> Option<CheckLink> {
     let handoff = handoff?;
     if !(32..=128).contains(&handoff.len()) ||
         !handoff.bytes().all(|ch| ch.is_ascii_alphanumeric() || ch == b'_' || ch == b'-') { return None; }
-    Some(CheckLink { api_origin, handoff })
+    let local_settings = if port.is_some() || token.is_some() || origin.is_some() {
+        let port = port?.parse::<u16>().ok()?;
+        let token = token?;
+        let origin = allowed_api_origin(&origin?, development)?;
+        if port < 49152 || token.len()!=64 || !token.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
+        Some(LocalSettings {port,token,origin})
+    } else {None};
+    Some(CheckLink { api_origin, handoff, local_settings })
 }
 
 #[derive(Debug, Deserialize)]
