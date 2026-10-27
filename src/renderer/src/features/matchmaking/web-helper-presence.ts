@@ -70,11 +70,11 @@ export function startWebHelperPresence(): () => void {
     useMatchmakingStore.subscribe(changed),
     useWebHelperPromptStore.subscribe(changed)
   ]
-  // Only party lobbies poll join callbacks frequently; unchanged activity is
-  // otherwise renewed every 30s, without reopening Discord or the helper.
+  // Presence requests also keep the local helper alive while this PWA is open.
+  // Renew well before its 30-second idle shutdown deadline.
   const timer = window.setInterval(() => {
     const party = usePartyStore.getState().party
-    if (Date.now() - lastSentAt >= (party ? 2000 : 30000)) void sync(true)
+    if (Date.now() - lastSentAt >= (party ? 2000 : 10000)) void sync(true)
   }, 2000)
   void sync()
   return () => {

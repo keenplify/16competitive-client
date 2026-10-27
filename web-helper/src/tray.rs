@@ -159,21 +159,22 @@ fn open(settings: bool) {
 
 // Small green crosshair, crisp at tray sizes. Shared RGBA source for both OSes.
 fn icon() -> Vec<u8> {
-    let mut bytes = vec![0; 32 * 32 * 4];
-    for y in 0i32..32 {
-        for x in 0i32..32 {
-            let dx = (x - 16).abs();
-            let dy = (y - 16).abs();
-            if (dx <= 1 && (5..=12).contains(&dy))
-                || (dy <= 1 && (5..=12).contains(&dx))
-                || (dx <= 1 && dy <= 1)
-            {
-                let i = ((y * 32 + x) * 4) as usize;
-                bytes[i..i + 4].copy_from_slice(&[76, 210, 120, 255]);
-            }
+    let image = include_bytes!("../../src/renderer/public/favicon-96x96.png");
+    let decoder = png::Decoder::new(std::io::Cursor::new(image));
+    let mut reader = decoder.read_info().expect("bundled tray logo");
+    let mut decoded = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut decoded).expect("bundled tray logo");
+    assert_eq!((info.width, info.height, info.color_type, info.bit_depth),
+        (96, 96, png::ColorType::Rgba, png::BitDepth::Eight));
+    let mut icon = vec![0; 32 * 32 * 4];
+    for y in 0..32 {
+        for x in 0..32 {
+            let source = ((y * 3 + 1) * 96 + x * 3 + 1) * 4;
+            let target = (y * 32 + x) * 4;
+            icon[target..target + 4].copy_from_slice(&decoded[source..source + 4]);
         }
     }
-    bytes
+    icon
 }
 
 fn diagnostic(message: &str) {
@@ -190,15 +191,15 @@ pub fn run() -> Result<(), String> {
     let Some(_ownership) = lock(&directory.join("helper-tray.lock"))? else {
         return Ok(());
     };
-    let _presence = crate::presence::Broker::start()?;
-    if let Err(error) = platform_run() {
+    let presence = crate::presence::Broker::start()?;
+    if let Err(error) = platform_run(&presence) {
         diagnostic(&error);
     }
     Ok(()) // Missing tray support must never block browser setup or launching.
 }
 
 #[cfg(target_os = "linux")]
-fn platform_run() -> Result<(), String> {
+fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     enum Event {
         Quit,
         Stopped(Result<(), String>),
@@ -266,12 +267,20 @@ fn platform_run() -> Result<(), String> {
         let result = service.run().map_err(|e| e.to_string());
         let _ = send.send(Event::Stopped(result));
     });
-    let result = match receive.recv().map_err(|e| e.to_string())? {
-        Event::Quit => {
-            handle.shutdown();
-            Ok(())
+    let result = loop {
+        match receive.recv_timeout(Duration::from_secs(1)) {
+            Ok(Event::Quit) => {
+                handle.shutdown();
+                break Ok(());
+            }
+            Ok(Event::Stopped(result)) => break result,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) if !presence.needed() => {
+                handle.shutdown();
+                break Ok(());
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(error) => break Err(error.to_string()),
         }
-        Event::Stopped(result) => result,
     };
     worker
         .join()
@@ -280,7 +289,7 @@ fn platform_run() -> Result<(), String> {
 }
 
 #[cfg(windows)]
-fn platform_run() -> Result<(), String> {
+fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     use tray_icon::{
         menu::{Menu, MenuEvent, MenuItem},
         Icon, TrayIconBuilder,
@@ -302,6 +311,9 @@ fn platform_run() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     loop {
+        if !presence.needed() {
+            return Ok(());
+        }
         unsafe {
             let mut message: MSG = std::mem::zeroed();
             while PeekMessageW(&mut message, std::ptr::null_mut(), 0, 0, PM_REMOVE) != 0 {
@@ -328,7 +340,7 @@ fn platform_run() -> Result<(), String> {
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
-fn platform_run() -> Result<(), String> {
+fn platform_run(_: &crate::presence::Broker) -> Result<(), String> {
     Ok(())
 }
 

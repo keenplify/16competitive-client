@@ -45,7 +45,11 @@ test('native setup links validate complete local capabilities and reject added f
   )
 })
 
-async function harness({ check = async () => 'rust', wait = async () => 'rust' } = {}) {
+async function harness({
+  check = async () => 'rust',
+  wait = async () => 'rust',
+  readiness = async () => ({ competitiveReady: false })
+} = {}) {
   const exports = {}
   const calls = []
   const source = ts.transpileModule(
@@ -78,6 +82,7 @@ async function harness({ check = async () => 'rust', wait = async () => 'rust' }
             calls.push(target)
             return check()
           },
+          nativeHelperReadiness: readiness,
           createNativeHelperSetup: async () => setup,
           waitForNativeHelperSetup: wait,
           cancelNativeHelperSetup: () => calls.push('cancel')
@@ -118,6 +123,20 @@ test('successful terminal verification closes instructions and upsell, emitting 
   assert.equal(store.getState().setupOpen, false)
   assert.equal(store.getState().nativeReady, true)
   assert.equal(store.getState().successSequence, 1)
+})
+
+test('verified helper remains ready while optional game runtime is unavailable', async () => {
+  const { store } = await harness({
+    readiness: async () => {
+      throw new Error('Game runtime is still downloading')
+    }
+  })
+  store.getState().show()
+  await store.getState().prepareSetup()
+  assert.equal(store.getState().status, 'rust')
+  assert.equal(store.getState().nativeReady, true)
+  assert.equal(store.getState().competitiveReady, false)
+  assert.equal(store.getState().setupOpen, false)
 })
 
 test(

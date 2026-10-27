@@ -204,6 +204,7 @@ dependencies = [
  "ksni",
  "libc",
  "libdbus-sys",
+ "png",
  "regex",
  "serde",
  "serde_json",

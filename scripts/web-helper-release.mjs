@@ -29,6 +29,7 @@ export function webHelperReleaseChanges(root, commit = 'HEAD') {
         commit,
         '--',
         'web-helper',
+        'src/renderer/public/favicon-96x96.png',
         'src/shared/web-game-launch-pattern.json',
         'src/shared/discord-application.json',
         'src/shared/windows-client-exports.json',

@@ -16,6 +16,7 @@ for (const source of [
   'web-helper/src/settings_bridge.rs',
   'web-helper/src/self_update.rs',
   'web-helper/src/tray.rs',
+  'src/renderer/public/favicon-96x96.png',
   'web-helper/src/presence.rs',
   'web-helper/src/runtime.rs',
   'web-helper/src/assets.rs',

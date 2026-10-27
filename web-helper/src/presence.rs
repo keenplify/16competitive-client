@@ -8,7 +8,7 @@ use std::{
     net::{TcpListener, TcpStream},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Mutex,
     },
     thread::{self, JoinHandle},
     time::Instant,
@@ -197,8 +197,24 @@ pub fn publish(source: &str, activity: Option<Activity>) -> Result<Status, Strin
 pub struct Broker {
     stop: Arc<AtomicBool>,
     worker: Option<JoinHandle<()>>,
+    lifetime: Arc<Mutex<Lifetime>>,
+}
+struct Lifetime {
+    started: Instant,
+    browser: Option<Instant>,
+    game_active: bool,
+}
+impl Lifetime {
+    fn needed(&self) -> bool {
+        self.started.elapsed() < Duration::from_secs(30)
+            || self.browser.is_some_and(|at| at.elapsed() < Duration::from_secs(30))
+            || self.game_active
+    }
 }
 impl Broker {
+    pub fn needed(&self) -> bool {
+        self.lifetime.lock().is_ok_and(|state| state.needed())
+    }
     pub fn start() -> Result<Self, String> {
         let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
         listener.set_nonblocking(true).map_err(|e| e.to_string())?;
@@ -228,6 +244,12 @@ impl Broker {
         fs::rename(&temp, &path).map_err(|e| e.to_string())?;
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
+        let lifetime = Arc::new(Mutex::new(Lifetime {
+            started: Instant::now(),
+            browser: None,
+            game_active: false,
+        }));
+        let worker_lifetime = lifetime.clone();
         let worker = thread::spawn(move || {
             let mut leases: HashMap<String, (Activity, Instant)> = HashMap::new();
             let mut discord = Discord::default();
@@ -284,6 +306,13 @@ impl Broker {
                     Err(_) => break,
                 }
                 leases.retain(|_, (_, at)| at.elapsed() < LEASE);
+                if let Ok(mut state) = worker_lifetime.lock() {
+                    state.browser = leases.iter()
+                        .filter(|(source, _)| source.len() == 64 && source.bytes().all(|b| b.is_ascii_hexdigit()))
+                        .map(|(_, (_, at))| *at)
+                        .max();
+                    state.game_active = leases.values().any(|(activity, _)| activity.phase == "game");
+                }
                 let activity = leases
                     .values()
                     .max_by_key(|(a, at)| (a.priority(), *at))
@@ -297,7 +326,28 @@ impl Broker {
         Ok(Self {
             stop,
             worker: Some(worker),
+            lifetime,
         })
+    }
+}
+#[cfg(test)]
+mod lifetime_tests {
+    use super::*;
+
+    #[test]
+    fn tray_stays_only_for_recent_browser_or_active_game() {
+        let mut lifetime = Lifetime {
+            started: Instant::now() - Duration::from_secs(31),
+            browser: None,
+            game_active: false,
+        };
+        assert!(!lifetime.needed());
+        lifetime.browser = Some(Instant::now());
+        assert!(lifetime.needed());
+        lifetime.browser = Some(Instant::now() - Duration::from_secs(31));
+        assert!(!lifetime.needed());
+        lifetime.game_active = true;
+        assert!(lifetime.needed());
     }
 }
 impl Drop for Broker {

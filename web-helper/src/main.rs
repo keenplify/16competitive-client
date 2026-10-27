@@ -103,6 +103,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("settings_bridge.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
         include_bytes!("tray.rs").as_slice(),
+        include_bytes!("../../src/renderer/public/favicon-96x96.png").as_slice(),
         include_bytes!("presence.rs").as_slice(),
         include_bytes!("runtime.rs").as_slice(),
         include_bytes!("assets.rs").as_slice(),

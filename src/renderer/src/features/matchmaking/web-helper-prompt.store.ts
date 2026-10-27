@@ -30,19 +30,23 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
   const ready = async (): Promise<void> => {
     const run = generation
     const accountId = get().accountId
-    const capability = await window.api.matchmaking.nativeHelperReadiness?.()
     if (get().accountId !== accountId || run !== generation) return
     const announce = get().awaitingInstall || get().setupOpen
     set({
       awaitingInstall: false,
       nativeReady: true,
-      competitiveReady: capability?.competitiveReady === true,
+      competitiveReady: false,
       status: 'rust',
       open: false,
       setupOpen: false,
       setupCommand: null,
       successSequence: get().successSequence + (announce ? 1 : 0)
     })
+    // The handoff already proved that the installed helper answered. The
+    // on-demand game runtime may still be downloading, so load it separately.
+    void get()
+      .refreshReadiness()
+      .catch(() => undefined)
   }
   const cancelSetup = (): void => {
     generation++
@@ -132,7 +136,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     prepareSetup: async () => {
       cancelSetup()
       const current = generation
-      set({ setupOpen: true, setupCommand: null, status: 'checking' })
+      set({ awaitingInstall: true, setupOpen: true, setupCommand: null, status: 'checking' })
       try {
         while (current === generation && get().setupOpen) {
           const setup = await window.api.matchmaking.createNativeHelperSetup?.()

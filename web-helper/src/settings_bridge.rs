@@ -454,6 +454,7 @@ fn respond(stream: &mut TcpStream, status: &str, origin: Option<&str>, body: &st
     let _ = write!(stream, "HTTP/1.1 {status}\r\n{cors}Content-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}", body.len());
 }
 static VOICE_STREAMS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static RUNTIME_CHECKS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 fn voice_stream(mut stream: TcpStream, origin: String) {
     struct Lease;
     impl Drop for Lease {
@@ -574,24 +575,44 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
         };
         bytes.extend_from_slice(&chunk[..n]);
     }
-    if matches!(
-        serde_json::from_slice::<Request>(&bytes[split..split + length]),
-        Ok(Request::VoiceStream)
-    ) {
-        if VOICE_STREAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 4 {
-            VOICE_STREAMS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-            respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
-            return true;
+    match serde_json::from_slice::<Request>(&bytes[split..split + length]) {
+        Ok(Request::VoiceStream) => {
+            if VOICE_STREAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 4 {
+                VOICE_STREAMS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
+                return true;
+            }
+            std::thread::spawn({
+                let origin = origin.to_owned();
+                move || voice_stream(stream, origin)
+            });
         }
-        let origin = origin.to_owned();
-        std::thread::spawn(move || voice_stream(stream, origin));
-        return true;
-    }
-    match serde_json::from_slice::<Request>(&bytes[split..split + length])
-        .map_err(|_| "Invalid settings request".to_string())
-        .and_then(|request| apply(request, token))
-    {
-        Ok(value) => respond(&mut stream, "200 OK", Some(origin), &value.to_string()),
+        Ok(request @ Request::RuntimeCheck { .. }) => {
+            if RUNTIME_CHECKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 1 {
+                RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
+                return true;
+            }
+            let origin = origin.to_owned();
+            let token = token.to_owned();
+            std::thread::spawn(move || {
+                struct Lease;
+                impl Drop for Lease {
+                    fn drop(&mut self) {
+                        RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                    }
+                }
+                let _lease = Lease;
+                match apply(request, &token) {
+                    Ok(value) => respond(&mut stream, "200 OK", Some(&origin), &value.to_string()),
+                    Err(_) => respond(&mut stream, "400 Bad Request", Some(&origin), "{}"),
+                }
+            });
+        }
+        Ok(request) => match apply(request, token) {
+            Ok(value) => respond(&mut stream, "200 OK", Some(origin), &value.to_string()),
+            Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
+        },
         Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
     }
     true
@@ -609,9 +630,10 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
         TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).map_err(|e| e.to_string())?;
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut last = Instant::now();
-    while last.elapsed() < Duration::from_secs(300)
+    while last.elapsed() < Duration::from_secs(30)
         || crate::assets::busy()
         || crate::runtime::busy()
+        || RUNTIME_CHECKS.load(std::sync::atomic::Ordering::Relaxed) > 0
     {
         match listener.accept() {
             Ok((stream, _)) => {
