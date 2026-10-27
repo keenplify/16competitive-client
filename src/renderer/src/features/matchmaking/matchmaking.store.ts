@@ -814,7 +814,9 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       try {
         const { maps, customModes } = await window.api.matchmaking.getMaps()
         const availableModesFor = (map: MatchmakingMap): MatchmakingMode[] =>
-          isWebRuntime() ? map.webModes : map.supportedModes
+          isWebRuntime() && !useWebHelperPromptStore.getState().competitiveReady
+            ? map.webModes
+            : map.supportedModes
         const selectedMode =
           get().queueStatus === 'idle' &&
           !maps.some((map) => availableModesFor(map).includes(get().selectedMode))
@@ -1218,3 +1220,4 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     }
   }
 })
+import { useWebHelperPromptStore } from './web-helper-prompt.store'

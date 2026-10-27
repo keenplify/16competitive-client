@@ -54,6 +54,12 @@ jobs:
       - run: npm ci
       - run: npm run test:helper
       - run: ${{ matrix.command }}
+      - name: Package Windows background helper runtime
+        if: matrix.command == 'npm run build:win'
+        run: node scripts/package-helper-runtime.mjs dist/win-unpacked dist win
+      - name: Package Linux background helper runtime
+        if: matrix.command == 'npm run build:linux'
+        run: node scripts/package-helper-runtime.mjs dist/linux-unpacked dist linux
       - name: Verify release backend target
         run: node --experimental-strip-types scripts/check-release-backend.mjs
       - uses: actions/upload-artifact@v4
@@ -66,6 +72,8 @@ jobs:
             dist/latest*.yml
             dist/*-renderer-win-*.asar
             dist/renderer-update-*.unsigned.json
+            dist/helper-runtime-*.tar.gz
+            dist/helper-runtime-*.tar.gz.unsigned.json
           if-no-files-found: error
 
   web-helper:
@@ -152,7 +160,9 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           HELPER_SIGNING_PRIVATE_KEY: ${{ secrets.HELPER_SIGNING_PRIVATE_KEY }}
-        run: node scripts/sign-web-helper-update.mjs release-assets
+        run: |
+          node scripts/sign-web-helper-update.mjs release-assets
+          node scripts/sign-helper-runtime.mjs release-assets
       - name: Extract release notes from changelog
         env:
           RELEASE_TAG: ${{ github.ref_name }}

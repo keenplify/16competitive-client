@@ -67,6 +67,7 @@ export function PlayPage({
 }): JSX.Element {
   const desktopAppUrl = useDesktopAppUrl()
   const webRuntime = isWebRuntime()
+  const nativeCompetitiveReady = useWebHelperPromptStore((state) => state.competitiveReady)
   const checkingHelper = useWebHelperPromptStore((state) => state.status === 'checking')
   const showHelperPrompt = useWebHelperPromptStore((state) => state.show)
   const checkNativeHelper = useWebHelperPromptStore((state) => state.checkNative)
@@ -139,7 +140,8 @@ export function PlayPage({
   const [clockNow, setClockNow] = useState(Date.now)
   const [leavingCustomMatch, setLeavingCustomMatch] = useState(false)
   const partyRequiresWeb =
-    webRuntime || Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
+    (webRuntime && !nativeCompetitiveReady) ||
+    Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
   const warmupBrowsing = useQueueWarmupStore((state) => state.browsing)
   const warmupMode = useQueueWarmupStore((state) => state.mode)

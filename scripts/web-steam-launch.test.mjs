@@ -56,6 +56,16 @@ async function harness(requestJson = async () => connection, hosted = false) {
     )
     modules.set(path, module)
     await module.link(async (name) => {
+      if (!name.startsWith('.')) {
+        const dependency = await import(name)
+        return new vm.SyntheticModule(
+          Object.keys(dependency),
+          function () {
+            for (const key of Object.keys(dependency)) this.setExport(key, dependency[key])
+          },
+          { context }
+        )
+      }
       if (name === './browser-session') {
         return new vm.SyntheticModule(
           ['requestJson', 'getWebSessionToken', 'currentApiOrigin'],

@@ -26,6 +26,70 @@ pub struct NativePreferences {
     pub enhancements_enabled: bool,
     pub lightweight_hud: bool,
     pub kill_cards_enabled: bool,
+    #[serde(default)]
+    pub crosshair_config: Option<String>,
+    #[serde(default = "default_ping")]
+    pub player_ping_key: String,
+    #[serde(default = "default_voice")]
+    pub voice_ptt_keys: Vec<String>,
+}
+fn default_voice() -> Vec<String> {
+    vec!["K".into(), "V".into()]
+}
+fn default_ping() -> String {
+    "MOUSE3".into()
+}
+fn valid_crosshair(value: &str) -> bool {
+    if value.len() > 192 || value.contains(['\r', '\0']) {
+        return false;
+    }
+    let fields: Vec<_> = value.split_whitespace().collect();
+    let cs2 = fields.first() == Some(&"cs2");
+    let fields = if cs2 { &fields[1..] } else { &fields[..] };
+    let legacy = [
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (1, 24),
+        (0, 24),
+        (1, 8),
+        (0, 4),
+        (10, 100),
+        (0, 1),
+        (0, 1),
+    ];
+    let modern = [
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 255),
+        (0, 9),
+        (0, 255),
+        (-128, 127),
+        (0, 255),
+        (0, 2),
+        (0, 1),
+        (0, 1),
+        (0, 1),
+        (0, 65535),
+        (0, 255),
+        (0, 127),
+        (0, 100),
+        (30, 100),
+        (0, 100),
+        (10, 200),
+        (0, 1),
+    ];
+    let ranges = if cs2 { &modern[..] } else { &legacy[..] };
+    fields.len() == ranges.len()
+        && fields
+            .iter()
+            .zip(ranges)
+            .all(|(value, (min, max))| value.parse::<i32>().is_ok_and(|n| n >= *min && n <= *max))
 }
 impl Default for NativePreferences {
     fn default() -> Self {
@@ -42,6 +106,9 @@ impl Default for NativePreferences {
             enhancements_enabled: true,
             lightweight_hud: true,
             kill_cards_enabled: true,
+            crosshair_config: None,
+            player_ping_key: default_ping(),
+            voice_ptt_keys: default_voice(),
         }
     }
 }
@@ -111,6 +178,68 @@ impl NativePreferences {
         Ok((w, h))
     }
     fn validate(&self) -> Result<(), String> {
+        if self.voice_ptt_keys.len() != 2
+            || self.voice_ptt_keys[0] == self.voice_ptt_keys[1]
+            || self.voice_ptt_keys.iter().any(|s| {
+                !((s.len() == 1
+                    && s.bytes()
+                        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()))
+                    || s.strip_prefix('F')
+                        .and_then(|n| n.parse::<u8>().ok())
+                        .is_some_and(|n| (1..=12).contains(&n))
+                    || [
+                        "SPACE",
+                        "CTRL",
+                        "SHIFT",
+                        "ALT",
+                        "ENTER",
+                        "TAB",
+                        "ESCAPE",
+                        "BACKSPACE",
+                        "UPARROW",
+                        "DOWNARROW",
+                        "LEFTARROW",
+                        "RIGHTARROW",
+                        "INS",
+                        "DEL",
+                        "HOME",
+                        "END",
+                        "PGUP",
+                        "PGDN",
+                        "MOUSE1",
+                        "MOUSE2",
+                        "MOUSE3",
+                        "MOUSE4",
+                        "MOUSE5",
+                    ]
+                    .contains(&s.as_str()))
+            })
+        {
+            return Err("Invalid voice keys".into());
+        }
+        if !matches!(
+            self.player_ping_key.as_str(),
+            "MOUSE3"
+                | "MOUSE4"
+                | "MOUSE5"
+                | "B"
+                | "F"
+                | "G"
+                | "H"
+                | "J"
+                | "L"
+                | "N"
+                | "P"
+                | "X"
+                | "Z"
+                | "NONE"
+        ) || self
+            .crosshair_config
+            .as_ref()
+            .is_some_and(|v| !valid_crosshair(v))
+        {
+            return Err("Invalid native input preferences".into());
+        }
         if !(320..=16384).contains(&self.current_display_resolution.width)
             || !(320..=16384).contains(&self.current_display_resolution.height)
         {
@@ -163,13 +292,106 @@ pub fn save(value: &Preferences) -> Result<(), String> {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(
+    tag = "action",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
 enum Request {
     Get,
-    Choose { game: String },
-    Save { settings: NativePreferences },
+    Choose {
+        game: String,
+    },
+    Select {
+        game: String,
+        folder_path: String,
+    },
+    Save {
+        settings: NativePreferences,
+    },
+    Presence {
+        activity: Option<crate::presence::Activity>,
+    },
+    AssetStatus,
+    AssetSync {
+        api_origin: String,
+        token: String,
+        #[serde(default)]
+        repair: bool,
+    },
+    RuntimeCheck {
+        api_origin: String,
+    },
+    NextClient {
+        api_origin: String,
+        install: bool,
+    },
+    NextClientStatus,
+    NextClientCancel,
+    VoiceStream,
+    Logout {
+        account_id: String,
+    },
 }
-fn apply(request: Request) -> Result<serde_json::Value, String> {
+fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
+    match &request {
+        Request::Logout { account_id } => {
+            uuid::Uuid::parse_str(account_id).map_err(|_| "Invalid helper account")?;
+            let at = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| e.to_string())?
+                .as_millis();
+            crate::native_session::owned_write(
+                &user_config_dir()?.join("runtime-logout.json"),
+                serde_json::json!({"accountId":account_id,"at":at})
+                    .to_string()
+                    .as_bytes(),
+            )?;
+            return Ok(serde_json::json!({"ok":true}));
+        }
+        Request::RuntimeCheck { api_origin } => {
+            return crate::runtime::invoke("check", api_origin, None, None)
+        }
+        Request::NextClient {
+            api_origin,
+            install,
+        } => {
+            return if *install {
+                crate::runtime::installer(api_origin.clone())
+            } else {
+                crate::runtime::invoke("detectNextClient", api_origin, None, None)
+            }
+        }
+        Request::NextClientStatus => return Ok(crate::runtime::installer_status()),
+        Request::NextClientCancel => {
+            crate::native_session::owned_write(
+                &user_config_dir()?.join("nextclient.cancel"),
+                b"1",
+            )?;
+            return Ok(serde_json::json!({"ok":true}));
+        }
+        Request::AssetStatus => {
+            return serde_json::to_value(crate::assets::status()).map_err(|e| e.to_string())
+        }
+        Request::AssetSync {
+            api_origin,
+            token,
+            repair,
+        } => {
+            return serde_json::to_value(crate::assets::start_catalog(
+                api_origin.clone(),
+                token.clone(),
+                *repair,
+            )?)
+            .map_err(|e| e.to_string())
+        }
+        _ => {}
+    }
+    if let Request::Presence { activity } = request {
+        return serde_json::to_value(crate::presence::publish(source, activity)?)
+            .map_err(|e| e.to_string());
+    }
     let mut prefs = load()?;
     match request {
         Request::Get => {}
@@ -188,13 +410,41 @@ fn apply(request: Request) -> Result<serde_json::Value, String> {
                 save(&prefs)?;
             }
         }
+        Request::Select { game, folder_path } => {
+            if !matches!(game.as_str(), "cs13" | "cs16") || folder_path.len() > 4096 {
+                return Err("Invalid installation folder".into());
+            }
+            let (root, _, _) = validate_installation(Path::new(&folder_path), &game)
+                .ok_or("Invalid game installation")?;
+            if game == "cs13" {
+                prefs.cs13 = Some(root);
+            } else {
+                prefs.cs16 = Some(root);
+            }
+            save(&prefs)?;
+        }
         Request::Save { settings } => {
             settings.validate()?;
             prefs.settings = settings;
             save(&prefs)?;
         }
+        Request::Presence { .. } => unreachable!(),
+        Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
+        Request::RuntimeCheck { .. } | Request::NextClient { .. } => unreachable!(),
+        Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
+        Request::VoiceStream => unreachable!(),
+        Request::Logout { .. } => unreachable!(),
     }
     let mut value = serde_json::to_value(&prefs.settings).map_err(|e| e.to_string())?;
+    value["nextClientDetected"] = serde_json::json!(
+        cfg!(windows)
+            && prefs
+                .cs16
+                .as_ref()
+                .is_some_and(|root| root.join("nitro_api2.dll").is_file()
+                    && root.join("cstrike/cl_dlls/client_mini.dll").is_file())
+    );
+    value["platform"] = serde_json::json!(if cfg!(windows) { "win32" } else { "linux" });
     value["cs13FolderPath"] = serde_json::to_value(prefs.cs13).map_err(|e| e.to_string())?;
     value["cs16FolderPath"] = serde_json::to_value(prefs.cs16).map_err(|e| e.to_string())?;
     Ok(value)
@@ -203,7 +453,54 @@ fn respond(stream: &mut TcpStream, status: &str, origin: Option<&str>, body: &st
     let cors = origin.map(|o| format!("Access-Control-Allow-Origin: {o}\r\nAccess-Control-Allow-Methods: POST, OPTIONS\r\nAccess-Control-Allow-Headers: authorization, content-type\r\nAccess-Control-Allow-Private-Network: true\r\nVary: Origin\r\n")).unwrap_or_default();
     let _ = write!(stream, "HTTP/1.1 {status}\r\n{cors}Content-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}", body.len());
 }
+static VOICE_STREAMS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+fn voice_stream(mut stream: TcpStream, origin: String) {
+    struct Lease;
+    impl Drop for Lease {
+        fn drop(&mut self) {
+            VOICE_STREAMS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+    let _lease = Lease;
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
+    if write!(stream,"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: {origin}\r\nVary: Origin\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n").is_err(){return;}
+    let start = Instant::now();
+    let mut heartbeat = Instant::now();
+    let mut last = serde_json::json!({"matchId":"","team":false,"party":false});
+    while start.elapsed() < Duration::from_secs(300) {
+        let read = || -> Option<serde_json::Value> {
+            let path = user_config_dir().ok()?.join("voice-ptt.json");
+            let meta = fs::metadata(&path).ok()?;
+            if meta.len() > 1024 || meta.modified().ok()?.elapsed().ok()?.as_millis() > 2000 {
+                return None;
+            }
+            let v: serde_json::Value = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
+            uuid::Uuid::parse_str(v["matchId"].as_str()?).ok()?;
+            if !v["team"].is_boolean() || !v["party"].is_boolean() {
+                return None;
+            }
+            Some(serde_json::json!({"matchId":v["matchId"],"team":v["team"],"party":v["party"]}))
+        };
+        let value = read().unwrap_or_else(
+            || serde_json::json!({"matchId":last["matchId"],"team":false,"party":false}),
+        );
+        if value != last {
+            if write!(stream, "data: {value}\n\n").is_err() {
+                return;
+            }
+            last = value;
+        }
+        if heartbeat.elapsed() > Duration::from_secs(1) {
+            if write!(stream, ": heartbeat\n\n").is_err() {
+                return;
+            }
+            heartbeat = Instant::now();
+        }
+        std::thread::sleep(Duration::from_millis(30));
+    }
+}
 fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
+    if stream.set_nonblocking(false).is_err(){return false;}
     let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
     let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
     let mut bytes = Vec::new();
@@ -277,9 +574,22 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
         };
         bytes.extend_from_slice(&chunk[..n]);
     }
+    if matches!(
+        serde_json::from_slice::<Request>(&bytes[split..split + length]),
+        Ok(Request::VoiceStream)
+    ) {
+        if VOICE_STREAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 4 {
+            VOICE_STREAMS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+            respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
+            return true;
+        }
+        let origin = origin.to_owned();
+        std::thread::spawn(move || voice_stream(stream, origin));
+        return true;
+    }
     match serde_json::from_slice::<Request>(&bytes[split..split + length])
         .map_err(|_| "Invalid settings request".to_string())
-        .and_then(apply)
+        .and_then(|request| apply(request, token))
     {
         Ok(value) => respond(&mut stream, "200 OK", Some(origin), &value.to_string()),
         Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
@@ -299,7 +609,10 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
         TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).map_err(|e| e.to_string())?;
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut last = Instant::now();
-    while last.elapsed() < Duration::from_secs(300) {
+    while last.elapsed() < Duration::from_secs(300)
+        || crate::assets::busy()
+        || crate::runtime::busy()
+    {
         match listener.accept() {
             Ok((stream, _)) => {
                 if handle(stream, port, token, origin) {

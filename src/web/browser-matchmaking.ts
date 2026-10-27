@@ -13,7 +13,12 @@ import { manualConnectionCommand } from '../shared/matchmaking'
 import { currentApiOrigin, getWebSessionToken, requestJson } from './browser-session'
 import { webSteamLaunchUrl } from './steam-launch'
 import {
+  nativeHelperReadiness,
+  isNativeCompetitiveReady,
+  onNativeReadiness,
+  startNativeVoice,
   nativeHelperSettings,
+  nativeHelperPresence,
   createNativeHelperSetup,
   waitForNativeHelperSetup,
   cancelNativeHelperSetup,
@@ -35,6 +40,10 @@ let rejectConnect: ((error: Error) => void) | null = null
 let reconnectTimer: number | null = null
 let heartbeatTimer: number | null = null
 let authenticated = false
+let sentClientMode: 'web' | 'desktop' = 'web'
+let capabilityAuthentication: Promise<void> | null = null
+let capabilityAuthenticated: (() => void) | null = null
+let stopNativeVoice: (() => void) | null = null
 let navigating = false
 let nodesCache: MatchmakingNode[] = []
 let nodesCacheUpdatedAt = 0
@@ -106,6 +115,48 @@ const send = (message: Record<string, unknown>): void => {
     throw new Error('Matchmaking is not connected')
   }
   socket.send(JSON.stringify(message))
+}
+
+onNativeReadiness(() => {
+  stopNativeVoice?.()
+  stopNativeVoice = isNativeCompetitiveReady()
+    ? startNativeVoice((matchId, active, channel) => {
+        emit({
+          type: 'voice_signal',
+          context: { kind: 'match', id: matchId },
+          fromPlayerId: '__16competitive_ptt__',
+          signalType: 'ice',
+          signal: JSON.stringify({ type: 'ptt', active, channel })
+        })
+      })
+    : null
+  synchronizeNativeCapability()
+})
+
+function synchronizeNativeCapability(): void {
+  const token = getWebSessionToken()
+  if (!token || socket?.readyState !== WebSocket.OPEN || !authenticated) return
+  const mode = isNativeCompetitiveReady() ? 'desktop' : 'web'
+  if (sentClientMode === mode) return
+  sentClientMode = mode
+  capabilityAuthentication = new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error('Native matchmaking authentication timed out')),
+      10_000
+    )
+    capabilityAuthenticated = () => {
+      window.clearTimeout(timer)
+      resolve()
+    }
+  })
+  // The next queue request awaits the server's acknowledgement of this change.
+  void capabilityAuthentication.catch(() => undefined)
+  send({
+    type: 'authenticate',
+    token,
+    client: mode,
+    globalChatLanguage: currentLanguage()
+  })
 }
 
 const clearTimers = (): void => {
@@ -207,10 +258,11 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
       rejectConnect?.(new Error('Sign in before connecting to matchmaking.'))
       return
     }
+    sentClientMode = isNativeCompetitiveReady() ? 'desktop' : 'web'
     send({
       type: 'authenticate',
       token,
-      client: 'web',
+      client: sentClientMode,
       globalChatLanguage: currentLanguage()
     })
     return
@@ -223,6 +275,8 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
   }
 
   if (message.type === 'authenticated') {
+    capabilityAuthenticated?.()
+    capabilityAuthenticated = null
     authenticated = true
     emit(message)
     emit({
@@ -352,6 +406,8 @@ const openSocket = (): Promise<void> => {
   socket.addEventListener('close', () => {
     const pendingReject = rejectConnect
     authenticated = false
+    capabilityAuthentication = null
+    capabilityAuthenticated = null
     connectPromise = null
     resolveConnect = null
     rejectConnect = null
@@ -417,6 +473,8 @@ const preferences = (): MatchmakingPreferences => {
 export const browserMatchmakingApi: MatchmakingApi = {
   checkLocalLauncher,
   nativeHelperSettings,
+  nativeHelperReadiness: () => nativeHelperReadiness(true),
+  nativeHelperPresence,
   createNativeHelperSetup,
   waitForNativeHelperSetup,
   cancelNativeHelperSetup,
@@ -482,6 +540,9 @@ export const browserMatchmakingApi: MatchmakingApi = {
 
   async joinQueue(mode, mapIds, allowRegionExpansion, preferredRegion, eligibleRegions) {
     await openSocket()
+    if (preferredLocalLauncher() === 'rust') await nativeHelperReadiness()
+    synchronizeNativeCapability()
+    if (capabilityAuthentication) await capabilityAuthentication
     send({
       type: 'join_queue',
       mode,

@@ -1,6 +1,8 @@
 import type { SupportedLanguageCode } from './i18n'
 
 const en = {
+  'webHelper.discordJoined': 'Joined party from Discord.',
+  'webHelper.discordInviteFailed': 'The Discord party invite is no longer available.',
   'webHelper.perkLaunch': 'Launch your installed Counter-Strike 1.3 or 1.6 from the browser.',
   'webHelper.perkSettings': 'Choose game folders and display settings on this device.',
   'webHelper.perkEnhancements': 'Use supported in-game enhancements in Counter-Strike 1.6.',
@@ -54,6 +56,8 @@ export const webHelperTranslations: Record<
 > = {
   en,
   ru: {
+    'webHelper.discordJoined': 'Вы присоединились к группе через Discord.',
+    'webHelper.discordInviteFailed': 'Приглашение в группу Discord больше недоступно.',
     'webHelper.perkLaunch': 'Запускайте установленную Counter-Strike 1.3 или 1.6 из браузера.',
     'webHelper.perkSettings': 'Выбирайте папки игры и параметры экрана на этом устройстве.',
     'webHelper.perkEnhancements': 'Используйте поддерживаемые улучшения в Counter-Strike 1.6.',
@@ -100,6 +104,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Закрыть настройку'
   },
   tl: {
+    'webHelper.discordJoined': 'Sumali sa party mula sa Discord.',
+    'webHelper.discordInviteFailed': 'Hindi na magagamit ang imbitasyon sa party sa Discord.',
     'webHelper.perkLaunch': 'Buksan ang naka-install na Counter-Strike 1.3 o 1.6 mula sa browser.',
     'webHelper.perkSettings': 'Pumili ng game folder at display settings sa device na ito.',
     'webHelper.perkEnhancements':
@@ -148,6 +154,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Isara ang setup'
   },
   th: {
+    'webHelper.discordJoined': 'เข้าร่วมปาร์ตี้จาก Discord แล้ว',
+    'webHelper.discordInviteFailed': 'คำเชิญปาร์ตี้ Discord นี้ใช้ไม่ได้แล้ว',
     'webHelper.perkLaunch': 'เปิด Counter-Strike 1.3 หรือ 1.6 ที่ติดตั้งไว้จากเบราว์เซอร์',
     'webHelper.perkSettings': 'เลือกโฟลเดอร์เกมและการตั้งค่าจอแสดงผลบนอุปกรณ์นี้',
     'webHelper.perkEnhancements': 'ใช้การปรับปรุงภายในเกมที่รองรับใน Counter-Strike 1.6',
@@ -193,6 +201,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'ปิดการตั้งค่า'
   },
   id: {
+    'webHelper.discordJoined': 'Bergabung ke party dari Discord.',
+    'webHelper.discordInviteFailed': 'Undangan party Discord ini tidak tersedia lagi.',
     'webHelper.perkLaunch': 'Buka Counter-Strike 1.3 atau 1.6 yang terpasang dari browser.',
     'webHelper.perkSettings': 'Pilih folder game dan pengaturan tampilan di perangkat ini.',
     'webHelper.perkEnhancements':
@@ -241,6 +251,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Tutup pengaturan'
   },
   pt: {
+    'webHelper.discordJoined': 'Você entrou no grupo pelo Discord.',
+    'webHelper.discordInviteFailed': 'O convite de grupo do Discord não está mais disponível.',
     'webHelper.perkLaunch': 'Abra o Counter-Strike 1.3 ou 1.6 instalado pelo navegador.',
     'webHelper.perkSettings': 'Escolha pastas do jogo e configurações de vídeo neste dispositivo.',
     'webHelper.perkEnhancements': 'Use melhorias compatíveis dentro do Counter-Strike 1.6.',
@@ -288,6 +300,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': 'Fechar configuração'
   },
   ja: {
+    'webHelper.discordJoined': 'Discord からパーティーに参加しました。',
+    'webHelper.discordInviteFailed': 'この Discord パーティー招待は利用できなくなりました。',
     'webHelper.perkLaunch': 'インストール済みのCounter-Strike 1.3または1.6をブラウザーから起動。',
     'webHelper.perkSettings': 'この端末でゲームフォルダーと画面設定を選択。',
     'webHelper.perkEnhancements': 'Counter-Strike 1.6で対応するゲーム内拡張機能を利用。',
@@ -335,6 +349,8 @@ export const webHelperTranslations: Record<
     'webHelper.close': '設定を閉じる'
   },
   hi: {
+    'webHelper.discordJoined': 'Discord से पार्टी में शामिल हुए।',
+    'webHelper.discordInviteFailed': 'Discord पार्टी का निमंत्रण अब उपलब्ध नहीं है।',
     'webHelper.perkLaunch': 'ब्राउज़र से इंस्टॉल किए गए Counter-Strike 1.3 या 1.6 को खोलें।',
     'webHelper.perkSettings': 'इस डिवाइस पर गेम फ़ोल्डर और डिस्प्ले सेटिंग चुनें।',
     'webHelper.perkEnhancements': 'Counter-Strike 1.6 में समर्थित गेम सुधारों का उपयोग करें।',

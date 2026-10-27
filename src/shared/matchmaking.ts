@@ -1,4 +1,9 @@
-import type { NativeHelperSettings, NativeHelperSettingsRequest } from './native-helper-settings'
+import type {
+  NativeHelperSettings,
+  NativeHelperSettingsRequest,
+  NativeHelperReadiness
+} from './native-helper-settings'
+import type { NativeHelperPresence, NativeHelperPresenceStatus } from './native-helper-presence'
 import type { MatchmakingActivity } from './matchmaking-activity'
 import type { ServerCustomGameMode } from './custom-games'
 import type { MatchRewardSummary } from './daily-quests'
@@ -424,6 +429,8 @@ export interface MatchmakingApi {
     target?: 'electron' | 'rust'
   ): Promise<'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | null>
   nativeHelperSettings?(request: NativeHelperSettingsRequest): Promise<NativeHelperSettings>
+  nativeHelperReadiness?(): Promise<NativeHelperReadiness>
+  nativeHelperPresence?(activity: NativeHelperPresence | null): Promise<NativeHelperPresenceStatus>
   createNativeHelperSetup?(): Promise<{ checkUrl: string; expiresAt: string }>
   waitForNativeHelperSetup?(setup: {
     checkUrl: string

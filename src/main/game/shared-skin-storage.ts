@@ -6,12 +6,25 @@ import { LegacyGameService } from './legacy-game-service'
 import { ensureSharedModelDirectory, managedAssetDestination } from './shared-model-directory'
 
 let pending: Promise<void> = Promise.resolve()
+let sharedAssetUserData: string | null = null
+
+/** Share verified model bytes with the desktop client, without sharing its login or settings. */
+export function useNativeHelperSharedAssets(desktopUserData: string): void {
+  if (!process.argv.includes('--native-helper-runtime') || !isAbsolute(desktopUserData))
+    throw new Error('Invalid helper asset storage')
+  sharedAssetUserData = desktopUserData
+}
 
 export async function prepareSkinStorage(game: 'cs16' | 'cs13' = 'cs16'): Promise<{
   contentRoot: string
   destination: (path: string) => Promise<string>
 }> {
-  const shared = join(app.getPath('userData'), 'game-assets', 'models', '16competitive')
+  const shared = join(
+    sharedAssetUserData ?? app.getPath('userData'),
+    'game-assets',
+    'models',
+    '16competitive'
+  )
   const executable = (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
   const cs16 =
     executable && isAbsolute(executable)

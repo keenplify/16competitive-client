@@ -1,4 +1,5 @@
 import { linkBrowserPartner } from './partner-attribution'
+import { logoutNativeHelper } from './local-play'
 import { validateSteamAuthorizationUrl } from '../shared/auth'
 import type {
   AuthApi,
@@ -532,6 +533,7 @@ export const browserAuthApi: AuthApi = {
 
   async logout() {
     const token = getWebSessionToken()
+    void logoutNativeHelper(readCachedSession()?.player.id ?? null).catch(() => undefined)
     try {
       if (token) {
         await requestJson('/auth/logout', {

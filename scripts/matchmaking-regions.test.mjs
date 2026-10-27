@@ -59,7 +59,11 @@ async function loadRegionsModule({
     'node:path': { dirname: () => '/tmp', join: (_dir, name) => `/tmp/${name}` },
     '../shared/matchmaking-activity': { parseMatchmakingActivity },
     './auth': { getSessionToken: () => token },
-    './config': { API_BASE_URL: 'https://bootstrap.example', LOCAL_DEVELOPMENT: false },
+    './config': {
+      API_BASE_URL: 'https://bootstrap.example',
+      LOCAL_DEVELOPMENT: false,
+      nativeHelperApiUrl: null
+    },
     './backend-policy': { isLoopbackBackend: () => false }
   }
   const context = vm.createContext({

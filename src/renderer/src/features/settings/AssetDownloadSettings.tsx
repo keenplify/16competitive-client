@@ -6,6 +6,7 @@ import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { clearCachedSkinModels } from '../skins/skin-model-cache'
 import { useGameSettingsStore } from './game-settings.store'
 import { isWebRuntime } from '../../web-runtime'
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 
 const initialProgress: SkinAssetSyncProgress = {
   status: 'idle',
@@ -19,7 +20,8 @@ const readableError = (error: unknown): string =>
     : 'Could not sync skin assets.'
 
 export function AssetDownloadSettings(): JSX.Element {
-  const webRuntime = isWebRuntime()
+  const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const webRuntime = isWebRuntime() && !nativeReady
   const savedPath = useGameSettingsStore((state) => state.savedPath)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)

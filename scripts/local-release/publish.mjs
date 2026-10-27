@@ -120,7 +120,24 @@ export async function publishLocalDesktop(repo, tag, artifacts, commit, root) {
     credentials.privateKeyPem,
     helper.publicKeyPem
   )
-  run('gh', ['release', 'upload', tag, '--repo', repo, '--clobber', signedPath, ...helperUpdates])
+  const runtimes = await signHelperRuntimes(
+    artifacts,
+    dirname(artifacts),
+    tag.slice(1),
+    credentials.privateKeyPem,
+    helper.publicKeyPem
+  )
+  run('gh', [
+    'release',
+    'upload',
+    tag,
+    '--repo',
+    repo,
+    '--clobber',
+    signedPath,
+    ...helperUpdates,
+    ...runtimes
+  ])
   const notes = execFileSync(
     process.execPath,
     [join(root, 'scripts/extract-release-notes.mjs'), tag],
@@ -131,3 +148,4 @@ export async function publishLocalDesktop(repo, tag, artifacts, commit, root) {
   run('gh', ['release', 'edit', tag, '--repo', repo, '--draft=false', '--notes-file', notesPath])
   console.log(`Desktop ${tag} verified and published locally.`)
 }
+import { signHelperRuntimes } from '../sign-helper-runtime.mjs'

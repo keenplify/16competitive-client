@@ -16,13 +16,16 @@ ureq = { version = "2", features = ["json", "tls"] }
 url = "2"
 fs2 = "0.4"
 sys-locale = "0.3"
+regex = "1"
+flate2 = "1"
+tar = "0.4"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 tray-icon = "0.19"
-windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Pipes", "Win32_UI_WindowsAndMessaging"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ksni = "0.2"

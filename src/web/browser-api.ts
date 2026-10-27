@@ -33,10 +33,27 @@ import {
 } from '../shared/partner-community'
 import { getBrowserPartnerId } from './partner-attribution'
 import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
+import {
+  onNativeDiscordJoin,
+  nativeHelperSettings,
+  nativeDeviceStatus,
+  nativeNextClient,
+  onNativeInstallerProgress,
+  cancelNativeInstaller,
+  onNativeAssetSync,
+  nativeAssetStatus,
+  syncNativeAssets
+} from './local-play'
+import type { NativeHelperSettings } from '../shared/native-helper-settings'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
-import { DEFAULT_CROSSHAIR } from '../shared/crosshair'
+import {
+  DEFAULT_CROSSHAIR,
+  serializeCrosshairConfig,
+  parseNativeCrosshairConfig,
+  parseCrosshairProfile
+} from '../shared/crosshair'
 import type {
   FeaturedRankedLadder,
   LeaderboardEntry,
@@ -148,6 +165,46 @@ const browserSettings = (): GameSettings => {
 
 const authenticatedGet = <T>(path: string): Promise<T> =>
   requestJson<T>(path, { authenticated: true })
+
+function helperGameSettings(settings: NativeHelperSettings): GameSettings {
+  return {
+    ...browserSettings(),
+    cs16FolderPath: settings.cs16FolderPath,
+    platform: settings.platform,
+    cs16ExecutablePath: settings.cs16FolderPath,
+    display: settings.display,
+    currentDisplayResolution: settings.currentDisplayResolution,
+    playerPingKey: settings.playerPingKey,
+    voicePttKeys: settings.voicePttKeys,
+    voicePttKey: settings.voicePttKeys[0],
+    crosshair: settings.crosshairConfig
+      ? parseNativeCrosshairConfig(settings.crosshairConfig)
+      : DEFAULT_CROSSHAIR,
+    nextClientIntegrationEnabled: settings.enhancementsEnabled,
+    nextClientDetected: settings.nextClientDetected,
+    fastSwitchEnabled: settings.fastSwitchEnabled,
+    fastSwitchManaged: true,
+    lightweightHud: settings.lightweightHud,
+    killCardsEnabled: settings.killCardsEnabled
+  }
+}
+
+async function saveHelperPreferences(update: Partial<NativeHelperSettings>): Promise<GameSettings> {
+  const current = await nativeHelperSettings({ action: 'get' })
+  const values = { ...current, ...update }
+  const settings = {
+    display: values.display,
+    currentDisplayResolution: values.currentDisplayResolution,
+    fastSwitchEnabled: values.fastSwitchEnabled,
+    enhancementsEnabled: values.enhancementsEnabled,
+    lightweightHud: values.lightweightHud,
+    killCardsEnabled: values.killCardsEnabled,
+    crosshairConfig: values.crosshairConfig,
+    playerPingKey: values.playerPingKey,
+    voicePttKeys: values.voicePttKeys
+  }
+  return helperGameSettings(await nativeHelperSettings({ action: 'save', settings }))
+}
 
 const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
   requestJson<T>(path, {
@@ -405,9 +462,7 @@ const party = {
   sendMessage: browserPartyRealtime.sendMessage,
   sendGlobalMessage: browserPartyRealtime.sendGlobalMessage,
   setGlobalChatLanguage: browserPartyRealtime.setGlobalChatLanguage,
-  onDiscordJoinResult() {
-    return () => undefined
-  }
+  onDiscordJoinResult: onNativeDiscordJoin
 }
 
 const skins = {
@@ -739,7 +794,7 @@ const api: Window['api'] = {
     async getDeviceStatus() {
       // The browser has no privileged hardware fingerprint. Account/server bans
       // remain enforced by authenticated backend endpoints and matchmaking.
-      return { banned: false }
+      return nativeDeviceStatus()
     }
   },
 
@@ -767,29 +822,40 @@ const api: Window['api'] = {
   },
 
   gameSettings: {
-    async setDisplay() {
-      throw new Error('Game display preferences require the desktop launcher.')
+    async setDisplay(display) {
+      return saveHelperPreferences({ display })
     },
     async get() {
-      return browserSettings()
+      try {
+        const settings = helperGameSettings(await nativeHelperSettings({ action: 'get' }))
+        const profile = await requestJson<{ profile: string | null }>('/auth/crosshair', {
+          authenticated: true
+        }).catch(() => null)
+        settings.crosshair = profile?.profile
+          ? parseNativeCrosshairConfig(profile.profile)
+          : DEFAULT_CROSSHAIR
+        return settings
+      } catch {
+        return browserSettings()
+      }
     },
     async chooseFolder() {
-      return null
+      return (await nativeHelperSettings({ action: 'choose', game: 'cs16' })).cs16FolderPath
     },
     async installNextClient() {
-      throw new Error('NextClient installation requires the Windows launcher.')
+      await nativeNextClient(true)
     },
     async cancelNextClientInstall() {
-      // The browser cannot start an installer.
+      await cancelNativeInstaller()
     },
     async detectNextClient() {
-      return null
+      return nativeNextClient(false)
     },
-    onNextClientInstallProgress() {
-      return () => undefined
-    },
-    async save() {
-      throw new Error('Browser mode launches the Steam copy of Counter-Strike directly.')
+    onNextClientInstallProgress: onNativeInstallerProgress,
+    async save(folderPath) {
+      return helperGameSettings(
+        await nativeHelperSettings({ action: 'select', game: 'cs16', folderPath })
+      )
     },
     async setVoicePttKey(key) {
       const [team, partyKey] = getPttKeys()
@@ -800,38 +866,51 @@ const api: Window['api'] = {
         throw new Error('Team and Party talk need different push-to-talk keys.')
       }
       localStorage.setItem(PTT_KEYS_KEY, JSON.stringify(next))
-      return browserSettings()
+      try {
+        return await saveHelperPreferences({ voicePttKeys: next })
+      } catch {
+        return browserSettings()
+      }
     },
-    async setCrosshair() {
-      throw new Error('Custom crosshairs require the desktop launcher.')
+    async setCrosshair(profile) {
+      const parsed = parseCrosshairProfile(profile)
+      const settings = await saveHelperPreferences({
+        crosshairConfig: serializeCrosshairConfig(parsed)
+      })
+      await requestJson('/auth/crosshair', {
+        authenticated: true,
+        init: {
+          method: 'PUT',
+          body: JSON.stringify({ profile: serializeCrosshairConfig(parsed).trim() })
+        }
+      })
+      return settings
     },
-    async setNextClientIntegration() {
-      throw new Error('NextClient integration requires the desktop launcher.')
+    async setNextClientIntegration(enabled) {
+      return saveHelperPreferences({ enhancementsEnabled: enabled })
     },
     async completeSetup() {
       throw new Error('Game setup requires the desktop launcher.')
     },
-    async setPlayerPingKey() {
-      throw new Error('Player Ping bindings require the desktop launcher.')
+    async setPlayerPingKey(key) {
+      return saveHelperPreferences({ playerPingKey: key })
     },
-    async setFastSwitch() {
-      throw new Error('Fast switch is managed by the desktop launcher.')
+    async setFastSwitch(enabled) {
+      return saveHelperPreferences({ fastSwitchEnabled: enabled })
     },
-    async setLightweightHud() {
-      throw new Error('Lightweight HUD requires the desktop launcher.')
+    async setLightweightHud(enabled) {
+      return saveHelperPreferences({ lightweightHud: enabled })
     },
-    async setKillCards() {
-      throw new Error('Kill cards require the desktop launcher.')
+    async setKillCards(enabled) {
+      return saveHelperPreferences({ killCardsEnabled: enabled })
     },
     async getAssetSyncStatus(): Promise<SkinAssetSyncProgress> {
-      return { status: 'ready', completedFiles: 0, totalFiles: 0 }
+      return nativeAssetStatus()
     },
-    async syncAssets() {
-      // Web previews stream assets from the selected regional API instead.
+    async syncAssets(mode) {
+      await syncNativeAssets(mode)
     },
-    onAssetSyncProgress() {
-      return () => undefined
-    }
+    onAssetSyncProgress: onNativeAssetSync
   },
 
   leaderboard: {

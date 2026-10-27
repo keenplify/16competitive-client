@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { DeviceBanStatus, DeviceStatus } from '../../../../shared/anti-cheat'
 import { Button } from '../../components/ui/Button'
 import { useAuthStore } from '../auth/auth.store'
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 
 import { ANTI_CHEAT_CANCELLED_MESSAGE } from '../../../../shared/anti-cheat'
 
@@ -23,6 +24,8 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
   const [status, setStatus] = useState<DeviceStatus | null>(null)
   const [cheatingDetected, setCheatingDetected] = useState(false)
   const authStatus = useAuthStore((state) => state.status)
+  const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const competitiveReady = useWebHelperPromptStore((state) => state.competitiveReady)
 
   useEffect(() => {
     let active = true
@@ -61,7 +64,7 @@ export function DeviceBanGate({ children }: { children: ReactNode }): React.JSX.
       .getDeviceStatus()
       .then((result) => setStatus(result))
       .catch(() => undefined)
-  }, [authStatus])
+  }, [authStatus, nativeReady, competitiveReady])
 
   if (status === null) {
     return <div style={{ position: 'fixed', inset: 0, background: '#080808' }} />

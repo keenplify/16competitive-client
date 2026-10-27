@@ -54,7 +54,13 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
       set({ status: `choosing-${game}` })
       try {
         const settings = await request({ action: 'choose', game })
-        if (get().accountId === accountId) set({ settings, status: 'idle' })
+        if (get().accountId === accountId) {
+          set({ settings, status: 'idle' })
+          void useWebHelperPromptStore
+            .getState()
+            .refreshReadiness()
+            .catch(() => undefined)
+        }
       } catch {
         if (get().accountId === accountId) set({ status: 'error' })
       }
@@ -72,7 +78,10 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
           fastSwitchEnabled: values.fastSwitchEnabled,
           enhancementsEnabled: values.enhancementsEnabled,
           lightweightHud: values.lightweightHud,
-          killCardsEnabled: values.killCardsEnabled
+          killCardsEnabled: values.killCardsEnabled,
+          crosshairConfig: values.crosshairConfig,
+          playerPingKey: values.playerPingKey,
+          voicePttKeys: values.voicePttKeys
         }
         const saved = await request({ action: 'save', settings })
         if (get().accountId === accountId) set({ settings: saved, status: 'idle' })

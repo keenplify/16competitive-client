@@ -1,10 +1,13 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
+mod assets;
 mod native_bundle;
 mod native_session;
-mod settings_bridge;
+mod presence;
+mod runtime;
 mod self_update;
+mod settings_bridge;
 mod tray;
 #[cfg(windows)]
 mod windows_native;
@@ -100,6 +103,9 @@ fn helper_fingerprint() -> String {
         include_bytes!("settings_bridge.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
         include_bytes!("tray.rs").as_slice(),
+        include_bytes!("presence.rs").as_slice(),
+        include_bytes!("runtime.rs").as_slice(),
+        include_bytes!("assets.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
@@ -109,6 +115,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("../../src/shared/windows-client-exports.json").as_slice(),
         include_bytes!("../../src/shared/windows-goldclient-exports.json").as_slice(),
         include_bytes!("../../helper-release.json").as_slice(),
+        include_bytes!("../../src/shared/discord-application.json").as_slice(),
     ] {
         digest.update(source);
     }
@@ -137,9 +144,14 @@ fn user_config_dir() -> Result<PathBuf, String> {
 fn installed_path() -> Result<PathBuf, String> {
     // Immutable version directories avoid replacing a running Windows EXE.
     // Each completed setup re-registers the protocol to the current version.
-    Ok(user_config_dir()?.join("helper-versions").join(helper_fingerprint()).join(
-        if cfg!(windows) {"competitive16-web-helper.exe"} else {"competitive16-web-helper"}
-    ))
+    Ok(user_config_dir()?
+        .join("helper-versions")
+        .join(helper_fingerprint())
+        .join(if cfg!(windows) {
+            "competitive16-web-helper.exe"
+        } else {
+            "competitive16-web-helper"
+        }))
 }
 
 fn install_self() -> Result<PathBuf, String> {
@@ -153,18 +165,31 @@ fn install_self() -> Result<PathBuf, String> {
     // A resident Windows tray holds its executable open. Re-running the same
     // download must reuse the verified identical installation, never replace it.
     let mut lock_options = OpenOptions::new();
-    lock_options.read(true).write(true).create(true).truncate(false);
-    #[cfg(unix)] {
+    lock_options
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false);
+    #[cfg(unix)]
+    {
         use std::os::unix::fs::OpenOptionsExt;
         lock_options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
     }
-    let install_lock = lock_options.open(user_config_dir()?.join("helper-install.lock"))
+    let install_lock = lock_options
+        .open(user_config_dir()?.join("helper-install.lock"))
         .map_err(|e| e.to_string())?;
     fs2::FileExt::lock_exclusive(&install_lock).map_err(|e| e.to_string())?;
     if installed.exists() {
-        if fs::symlink_metadata(&installed).map_err(|e| e.to_string())?.file_type().is_symlink()
-            || fs::read(&installed).map_err(|e| e.to_string())? != fs::read(&current).map_err(|e| e.to_string())? {
-            return Err("Installed helper integrity check failed. Download the helper again.".into());
+        if fs::symlink_metadata(&installed)
+            .map_err(|e| e.to_string())?
+            .file_type()
+            .is_symlink()
+            || fs::read(&installed).map_err(|e| e.to_string())?
+                != fs::read(&current).map_err(|e| e.to_string())?
+        {
+            return Err(
+                "Installed helper integrity check failed. Download the helper again.".into(),
+            );
         }
         return Ok(installed);
     }
@@ -692,6 +717,13 @@ fn cleanup_owned_file(file: Option<(PathBuf, String)>) -> Result<(), String> {
 }
 
 fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
+    // Reuse the complete desktop game adapter, rendering and scanner lifecycle.
+    // CS 1.3 retains its separate legacy adapter below.
+    if connection.game() == "cs16" {
+        choose_installation("cs16")?;
+        runtime::launch(connection, api, token)?;
+        return Ok(());
+    }
     let pattern = launch_pattern();
     let game_pattern = if connection.game() == "cs13" {
         &pattern.cs13
@@ -709,6 +741,7 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         && connection.game() == "cs16"
         && exe.file_name().is_some_and(|name| name == "cstrike.exe");
     let game_dir = root.join(&mod_dir);
+    assets::prepare_match(&game_dir, connection, api, token)?;
     let mut native: Option<(native_bundle::NativeBundle, native_session::NativeSession)> = None;
     #[cfg(target_os = "linux")]
     if connection.game() == "cs16" && exe.file_name().is_some_and(|name| name == "hl_linux") {
@@ -839,7 +872,14 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         command.args(["-width", &width.to_string(), "-height", &height.to_string()]);
     } else {
         command.args(["-w", &width.to_string(), "-h", &height.to_string()]);
-        command.args(["+hud_fastswitch", if preferences.fast_switch_enabled {"1"} else {"0"}]);
+        command.args([
+            "+hud_fastswitch",
+            if preferences.fast_switch_enabled {
+                "1"
+            } else {
+                "0"
+            },
+        ]);
     }
     if let Some(args) = windows_cs16_args {
         command.args(args);
@@ -919,6 +959,12 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
             return Err(error.to_string());
         }
     };
+    let _activity = presence::GameLease::start(
+        connection,
+        native
+            .as_ref()
+            .map(|(_, session)| session.directory.clone()),
+    );
     let wait_result = child.wait();
     let auth_cleanup = cleanup_owned_file(auth);
     let startup_cleanup = cleanup_owned_file(startup);
@@ -942,8 +988,14 @@ fn run() -> Result<(), String> {
         return tray::run();
     }
     if args.first().map(String::as_str) == Some("--local-settings") {
-        if args.len()!=4 {return Err("Invalid local settings arguments".into());}
-        return settings_bridge::serve(args[1].parse().map_err(|_| "Invalid settings port")?, &args[2], &args[3]);
+        if args.len() != 4 {
+            return Err("Invalid local settings arguments".into());
+        }
+        return settings_bridge::serve(
+            args[1].parse().map_err(|_| "Invalid settings port")?,
+            &args[2],
+            &args[3],
+        );
     }
     if env::args().any(|value| value == "--fingerprint") {
         println!("{}", helper_fingerprint());
@@ -952,14 +1004,18 @@ fn run() -> Result<(), String> {
     // The shell command returns immediately; all setup, dialogs and game
     // supervision happen without inheriting a terminal or its standard handles.
     if args.first().map(String::as_str) != Some("--background") {
-        tray::background(&env::current_exe().map_err(|e| e.to_string())?,
-            std::iter::once("--background".to_owned()).chain(args).collect::<Vec<_>>())?;
+        tray::background(
+            &env::current_exe().map_err(|e| e.to_string())?,
+            std::iter::once("--background".to_owned())
+                .chain(args)
+                .collect::<Vec<_>>(),
+        )?;
         return Ok(());
     }
     args.remove(0);
     match self_update::check_and_resume(&args) {
         Ok(true) => return Ok(()),
-        Ok(false) => {},
+        Ok(false) => {}
         Err(_) => eprintln!("Helper update could not be verified; keeping the installed version."),
     }
     let exe = install_self()?;
@@ -976,17 +1032,27 @@ fn run() -> Result<(), String> {
         session(&check.api_origin, &check.handoff)?;
         if let Some(local) = check.local_settings {
             let mut bridge = Command::new(&exe);
-            bridge.args(["--local-settings", &local.port.to_string(), &local.token, &local.origin])
-                .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-            #[cfg(windows)] {
+            bridge
+                .args([
+                    "--local-settings",
+                    &local.port.to_string(),
+                    &local.token,
+                    &local.origin,
+                ])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
+            #[cfg(windows)]
+            {
                 use std::os::windows::process::CommandExt;
                 bridge.creation_flags(0x08000000); // CREATE_NO_WINDOW
             }
-            #[cfg(unix)] {
+            #[cfg(unix)]
+            {
                 use std::os::unix::process::CommandExt;
                 bridge.process_group(0);
             }
-            bridge.spawn().map_err(|e|e.to_string())?;
+            bridge.spawn().map_err(|e| e.to_string())?;
         }
         return Ok(());
     }

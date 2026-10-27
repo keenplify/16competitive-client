@@ -63,6 +63,9 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
   ).outputText
   const dependencies = {
+    './web-helper-prompt.store': {
+      useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
+    },
     '../../../../shared/matchmaking-region-selection': { matchmakingRegionSelection },
     './queue-warmup.store': {
       useQueueWarmupStore: {
@@ -392,11 +395,7 @@ test('automatic queue excludes distant regions even with an old expansion opt-ou
     ]
   })
   assert.equal(await h.store.getState().queueAgain(), true)
-  assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])).slice(2), [
-    true,
-    'sea',
-    ['sea']
-  ])
+  assert.deepEqual(JSON.parse(JSON.stringify(h.requests[0])).slice(2), [true, 'sea', ['sea']])
 })
 
 test('MR8 settlement updates authoritative MMR once without resetting ranked search', async () => {

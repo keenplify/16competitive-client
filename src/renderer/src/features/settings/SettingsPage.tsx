@@ -127,7 +127,10 @@ export function SettingsPage(): JSX.Element {
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
   const webRuntime = isWebRuntime()
-  const showInGameAppearance = !webRuntime || desktopAppUrl !== null
+  useEffect(() => {
+    if (webRuntime && nativeHelperReady) void useGameSettingsStore.getState().load()
+  }, [webRuntime, nativeHelperReady])
+  const showInGameAppearance = !webRuntime || nativeHelperReady || desktopAppUrl !== null
 
   const [newUsername, setNewUsername] = useState('')
   const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
@@ -769,7 +772,7 @@ export function SettingsPage(): JSX.Element {
                       crosshair remains active.
                     </p>
                   </div>
-                ) : webRuntime ? (
+                ) : webRuntime && !nativeHelperReady ? (
                   <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                     <p className="text-sm leading-relaxed text-neutral-300">
                       Custom crosshairs are available in the desktop launcher. Download it to edit
@@ -852,7 +855,7 @@ export function SettingsPage(): JSX.Element {
                 </div>
               </section>
 
-              {!isWebRuntime() && <PlayerPingSetting />}
+              {(!webRuntime || nativeHelperReady) && <PlayerPingSetting />}
               {showInGameAppearance && <VoicePttKeySetting />}
             </section>
 

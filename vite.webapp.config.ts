@@ -16,6 +16,9 @@ for (const source of [
   'web-helper/src/settings_bridge.rs',
   'web-helper/src/self_update.rs',
   'web-helper/src/tray.rs',
+  'web-helper/src/presence.rs',
+  'web-helper/src/runtime.rs',
+  'web-helper/src/assets.rs',
   'web-helper/src/native_bundle.rs',
   'web-helper/src/native_session.rs',
   'web-helper/src/windows_native.rs',
@@ -24,7 +27,8 @@ for (const source of [
   'src/shared/web-game-launch-pattern.json',
   'src/shared/windows-client-exports.json',
   'src/shared/windows-goldclient-exports.json',
-  'helper-release.json'
+  'helper-release.json',
+  'src/shared/discord-application.json'
 ])
   webHelperFingerprint.update(readFileSync(resolve(source)))
 

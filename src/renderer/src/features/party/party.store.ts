@@ -1,5 +1,6 @@
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { create } from 'zustand'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import type {
   Party,
   PartyInvitationDecision,
@@ -197,10 +198,16 @@ export const usePartyStore = create<PartyState>((set, get) => ({
           party: result.party,
           status: 'idle',
           error: null,
-          notice: 'Joined party from Discord.'
+          notice: translate(useLanguageStore.getState().language, 'webHelper.discordJoined')
         })
       } else {
-        set({ error: result.message, notice: null })
+        set({
+          error:
+            result.code === 'inviteUnavailable'
+              ? translate(useLanguageStore.getState().language, 'webHelper.discordInviteFailed')
+              : result.message,
+          notice: null
+        })
       }
     })
 

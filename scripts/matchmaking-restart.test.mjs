@@ -56,6 +56,9 @@ async function harness() {
     }
   ).outputText
   const dependencies = {
+    './web-helper-prompt.store': {
+      useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
+    },
     '../../../../shared/matchmaking-region-selection': { matchmakingRegionSelection },
     './queue-warmup.store': {
       useQueueWarmupStore: {

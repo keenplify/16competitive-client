@@ -30,6 +30,7 @@ export function webHelperReleaseChanges(root, commit = 'HEAD') {
         '--',
         'web-helper',
         'src/shared/web-game-launch-pattern.json',
+        'src/shared/discord-application.json',
         'src/shared/windows-client-exports.json',
         'src/shared/windows-goldclient-exports.json',
         'helper-release.json'

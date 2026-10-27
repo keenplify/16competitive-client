@@ -3346,3 +3346,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Run the native web helper from the system tray without opening a terminal.
 - Access helper controls and status directly from the tray.
+
+## v2026.1027.7 — 2026-10-27
+
+### Native helper
+
+- Counter-Strike 1.6 browser launches now use the launcher’s existing scoreboards, crosshair profiles, animated kill cards, native pings, and managed game recovery.
+- Added Discord activity and party joins through the tray. In-game activity continues after closing the browser.
+- Added native NextClient setup and detection, local folder settings, and verified asset download and repair.
+- Competitive browser play checks the native runtime, device status, and selected installation before enabling native capabilities.
+- Required support files download once, verify their signatures, and update automatically. The background runtime closes after checks or the managed game.
+- Fixed Windows background control channels and upgrades from older tray processes.
+
+### Validation
+
+- Tested in the Windows VM: browser-to-helper readiness, NextClient launch, existing HUD frames, and restoration of original game DLL hashes.

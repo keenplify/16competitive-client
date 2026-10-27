@@ -307,6 +307,30 @@ export const acceptWebPlayHandoff = async (body: unknown): Promise<AuthSession> 
   return acceptAuthResponse(body)
 }
 
+/** Memory-only browser identity. Never restore or persist a desktop login here. */
+export const acceptNativeHelperSession = async (token: unknown): Promise<void> => {
+  if (
+    !process.argv.includes('--native-helper-runtime') ||
+    typeof token !== 'string' ||
+    token.length < 20 ||
+    token.length > 8192 ||
+    !/^[!-~]+$/.test(token)
+  )
+    throw new Error('Invalid helper authentication')
+  const response = await fetchWithServerClock(`${API_BASE_URL}/auth/session`, {
+    headers: { authorization: `Bearer ${token}` },
+    redirect: 'error',
+    signal: AbortSignal.timeout(10_000)
+  })
+  const body: unknown = await response.json()
+  if (!response.ok || !body || typeof body !== 'object' || !isAuthResponse({ ...body, token }))
+    throw new Error('Helper session expired')
+  const auth = { ...body, token } as BackendAuthResponse
+  sessionToken = token
+  sessionUsername = auth.player.username
+  sessionPlayerId = auth.player.id
+}
+
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 
@@ -630,16 +654,18 @@ const discordNotificationRequest = async (
   if (!response) throw new Error('DISCORD_NETWORK_ERROR')
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
-    const code = typeof body === 'object' && body !== null && 'error' in body
-      ? (body as { error: unknown }).error
-      : null
+    const code =
+      typeof body === 'object' && body !== null && 'error' in body
+        ? (body as { error: unknown }).error
+        : null
     throw new Error(typeof code === 'string' ? code : 'DISCORD_REQUEST_FAILED')
   }
   return body
 }
 
 const isDiscordNotificationStatus = (value: unknown): value is DiscordNotificationStatus =>
-  typeof value === 'object' && value !== null &&
+  typeof value === 'object' &&
+  value !== null &&
   typeof (value as DiscordNotificationStatus).linked === 'boolean' &&
   typeof (value as DiscordNotificationStatus).enabled === 'boolean' &&
   typeof (value as DiscordNotificationStatus).available === 'boolean'
@@ -650,7 +676,9 @@ export const getDiscordNotifications = async (): Promise<DiscordNotificationStat
   return body
 }
 
-export const setDiscordNotifications = async (enabled: unknown): Promise<DiscordNotificationStatus> => {
+export const setDiscordNotifications = async (
+  enabled: unknown
+): Promise<DiscordNotificationStatus> => {
   if (typeof enabled !== 'boolean') throw new Error('DISCORD_INVALID_PREFERENCE')
   const body = await discordNotificationRequest('', 'PUT', enabled)
   if (!isDiscordNotificationStatus(body)) throw new Error('DISCORD_INVALID_RESPONSE')

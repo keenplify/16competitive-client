@@ -23,7 +23,7 @@ fn now_ms() -> Result<u128, String> {
         .as_millis())
 }
 
-fn owned_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn owned_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let parent = path.parent().ok_or("Invalid managed session path")?;
     fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     let pending = parent.join(format!(".{}.tmp", Uuid::new_v4()));
@@ -183,6 +183,13 @@ impl NativeSession {
             owned_write(&directory.join("overlay.mode"), b"ally-tags\n")?;
             if preferences.enhancements_enabled {
                 owned_write(&directory.join("overlay.enabled"), b"1\n")?;
+                if let Some(crosshair) = &preferences.crosshair_config {
+                    owned_write(&directory.join("crosshair.conf"), crosshair.as_bytes())?;
+                }
+                owned_write(
+                    &directory.join("player-ping.key"),
+                    format!("{}\n", preferences.player_ping_key).as_bytes(),
+                )?;
             }
             if preferences.lightweight_hud {
                 owned_write(&directory.join("hud-lightweight.enabled"), b"1\n")?;
@@ -245,7 +252,10 @@ impl NativeSession {
                     break;
                 }
                 if let Some(snapshot) = fetch_feed(&api, &token, &match_id) {
-                    if let Some(card) = progress.update(&snapshot, &player_name).filter(|_| show_cards) {
+                    if let Some(card) = progress
+                        .update(&snapshot, &player_name)
+                        .filter(|_| show_cards)
+                    {
                         let _ = owned_write(&card_path, card.as_bytes());
                     } else {
                         let _ = fs::remove_file(&card_path);
@@ -373,6 +383,7 @@ mod tests {
             let deadline = std::time::Instant::now() + Duration::from_secs(5);
             loop {
                 if let Ok((mut socket, _)) = listener.accept() {
+                    socket.set_nonblocking(false).unwrap();
                     socket
                         .set_read_timeout(Some(Duration::from_secs(2)))
                         .unwrap();
@@ -414,7 +425,10 @@ mod tests {
             &crate::settings_bridge::NativePreferences::default(),
         )
         .unwrap();
-        assert_eq!(fs::read(directory.join("overlay.mode")).unwrap(), b"ally-tags\n");
+        assert_eq!(
+            fs::read(directory.join("overlay.mode")).unwrap(),
+            b"ally-tags\n"
+        );
         let ticket = fs::read_to_string(directory.join("session.ticket")).unwrap();
         let fields: Vec<_> = ticket.lines().collect();
         assert_eq!(fields[0], "v1");

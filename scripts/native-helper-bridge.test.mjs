@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { spawn } from 'node:child_process'
-import { mkdtemp, mkdir, writeFile, readFile, chmod, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, chmod, rm, utimes } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import net from 'node:net'
@@ -95,7 +95,10 @@ test(
           join(root, game)
         )
       }
-      const { cs13FolderPath, cs16FolderPath, ...preferences } = settings
+      const { cs13FolderPath, cs16FolderPath, nextClientDetected, platform, ...preferences } =
+        settings
+      assert.equal(platform, 'linux')
+      assert.equal(nextClientDetected, false)
       assert.ok(cs13FolderPath && cs16FolderPath)
       const saved = await request({
         action: 'save',
@@ -115,6 +118,34 @@ test(
       assert.equal(stored.cs16, cs16FolderPath)
       assert.equal(stored.settings.fastSwitchEnabled, false)
       assert.equal(stored.settings.display.resolution, '1280x960')
+      const selected = await request({ action: 'select', game: 'cs16', folderPath: cs16FolderPath })
+      assert.equal(
+        selected.status,
+        200,
+        'camelCase browser fields are accepted by the native protocol'
+      )
+      const voicePath = join(root, 'config/16competitive/voice-ptt.json')
+      const matchId = '12345678-1234-4234-8234-123456789abc'
+      await writeFile(voicePath, JSON.stringify({ matchId, team: true, party: false }))
+      assert.equal((await request({ action: 'voiceStream' }, 'wrong')).status, 403)
+      const voice = await request({ action: 'voiceStream' })
+      assert.equal(voice.status, 200)
+      const reader = voice.body.getReader()
+      let received = ''
+      const nextUntil = async (text) => {
+        const end = Date.now() + 5000
+        while (!received.includes(text) && Date.now() < end) {
+          const value = await reader.read()
+          assert.ok(!value.done)
+          received += new TextDecoder().decode(value.value)
+        }
+        assert.ok(received.includes(text), received)
+      }
+      await nextUntil('"team":true')
+      received = ''
+      await utimes(voicePath, new Date(0), new Date(0))
+      await nextUntil('"team":false')
+      await reader.cancel()
       assert.equal(
         (await request({ action: 'save', settings: { ...preferences, arbitraryPath: '/outside' } }))
           .status,

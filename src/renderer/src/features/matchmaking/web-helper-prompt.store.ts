@@ -7,6 +7,7 @@ interface WebHelperPromptState {
   awaitingInstall: boolean
   awaitInstall: () => void
   nativeReady: boolean
+  competitiveReady: boolean
   open: boolean
   setupOpen: boolean
   setupCommand: string | null
@@ -18,6 +19,7 @@ interface WebHelperPromptState {
   closeSetup: () => void
   syncAccount: (accountId: string | null) => void
   checkNative: () => Promise<HelperStatus>
+  refreshReadiness: () => Promise<void>
   prepareSetup: () => Promise<void>
 }
 
@@ -25,11 +27,16 @@ let generation = 0
 let pendingCheck: Promise<HelperStatus> | null = null
 
 export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) => {
-  const ready = (): void => {
+  const ready = async (): Promise<void> => {
+    const run = generation
+    const accountId = get().accountId
+    const capability = await window.api.matchmaking.nativeHelperReadiness?.()
+    if (get().accountId !== accountId || run !== generation) return
     const announce = get().awaitingInstall || get().setupOpen
     set({
       awaitingInstall: false,
       nativeReady: true,
+      competitiveReady: capability?.competitiveReady === true,
       status: 'rust',
       open: false,
       setupOpen: false,
@@ -46,11 +53,17 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     awaitingInstall: false,
     awaitInstall: () => set({ awaitingInstall: true }),
     nativeReady: false,
+    competitiveReady: false,
     open: false,
     setupOpen: false,
     setupCommand: null,
     status: 'idle',
     successSequence: 0,
+    refreshReadiness: async () => {
+      const accountId = get().accountId
+      const value = await window.api.matchmaking.nativeHelperReadiness?.()
+      if (get().accountId === accountId) set({ competitiveReady: value?.competitiveReady === true })
+    },
     accountId: null,
     show: () => set({ open: true }),
     close: () => {
@@ -78,6 +91,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
         accountId,
         awaitingInstall: false,
         nativeReady: false,
+        competitiveReady: false,
         open: false,
         setupOpen: false,
         setupCommand: null,
@@ -98,8 +112,14 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
           status = 'unavailable'
         }
         if (current === generation) {
-          if (status === 'rust') ready()
-          else set({ status })
+          if (status === 'rust') {
+            try {
+              await ready()
+            } catch {
+              status = 'unavailable'
+              if (current === generation) set({ status, competitiveReady: false })
+            }
+          } else set({ status, competitiveReady: false })
         }
         return current === generation ? status : 'idle'
       })()
@@ -129,7 +149,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
           const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
           if (current !== generation || !get().setupOpen) return
           if (result === 'rust') {
-            ready()
+            await ready()
             return
           }
           if (result === 'outdated-rust') {

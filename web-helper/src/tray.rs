@@ -26,7 +26,79 @@ pub fn background(exe: &Path, args: Vec<String>) -> Result<(), String> {
 }
 
 pub fn ensure(exe: &Path) -> Result<(), String> {
+    retire_previous_trays(exe)?;
     background(exe, vec!["--tray".into()])
+}
+
+// Version 6 had no tray control socket. Only retire our installed tray processes,
+// never game workers, bridges, recovery helpers, or another application's tray.
+fn retire_previous_trays(current: &Path) -> Result<(), String> {
+    let versions = user_config_dir()?.join("helper-versions");
+    #[allow(unused_mut)]
+    let mut retired = cfg!(windows);
+    #[cfg(target_os = "linux")]
+    for entry in fs::read_dir("/proc").map_err(|e| e.to_string())?.flatten() {
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|s| s.parse::<i32>().ok())
+        else {
+            continue;
+        };
+        if pid <= 1 {
+            continue;
+        }
+        let Ok(path) = fs::read_link(entry.path().join("exe")) else {
+            continue;
+        };
+        if path == current
+            || !path.starts_with(&versions)
+            || path
+                .file_name()
+                .is_none_or(|n| n != "competitive16-web-helper")
+        {
+            continue;
+        }
+        let Ok(args) = fs::read(entry.path().join("cmdline")) else {
+            continue;
+        };
+        let args: Vec<_> = args.split(|b| *b == 0).filter(|s| !s.is_empty()).collect();
+        if args.len() == 2 && args[1] == b"--tray" {
+            unsafe {
+                retired = libc::kill(pid, libc::SIGTERM) == 0 || retired;
+            }
+        }
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let script = r#"$root=[Environment]::GetEnvironmentVariable('C16_TRAY_VERSIONS');$current=[Environment]::GetEnvironmentVariable('C16_TRAY_CURRENT');Get-CimInstance Win32_Process -Filter 'Name = "competitive16-web-helper.exe"' | ForEach-Object { $p=$_;if($p.ExecutablePath -and $p.ExecutablePath.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase) -and ![String]::Equals($p.ExecutablePath,$current,[StringComparison]::OrdinalIgnoreCase) -and ($p.CommandLine -eq ('"'+$p.ExecutablePath+'" --tray') -or $p.CommandLine -eq ($p.ExecutablePath+' --tray'))){Stop-Process -Id $p.ProcessId -ErrorAction SilentlyContinue}}"#;
+        let status = Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .env("C16_TRAY_VERSIONS", versions)
+            .env("C16_TRAY_CURRENT", current)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .creation_flags(0x08000000)
+            .status()
+            .map_err(|_| "Could not update the helper tray")?;
+        if !status.success() {
+            return Err("Could not update the helper tray".into());
+        }
+    }
+    if !retired {
+        return Ok(());
+    }
+    // Give the previous resident UI a bounded moment to release its OS lock.
+    for _ in 0..20 {
+        if let Some(owner) = lock(&user_config_dir()?.join("helper-tray.lock"))? {
+            drop(owner);
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    Ok(())
 }
 
 fn lock(path: &Path) -> Result<Option<fs::File>, String> {
@@ -61,9 +133,9 @@ fn labels(locale: &str) -> [&'static str; 3] {
 fn open(settings: bool) {
     // Fixed HTTPS destinations only; no protocol payload enters a shell.
     let url = if settings {
-        "https://16competitive.papamo.dev/#settings"
+        "https://16competitive.papamo.dev/pwa/#settings"
     } else {
-        "https://16competitive.papamo.dev/"
+        "https://16competitive.papamo.dev/pwa/"
     };
     let mut command = Command::new(if cfg!(windows) {
         "explorer.exe"
@@ -118,6 +190,7 @@ pub fn run() -> Result<(), String> {
     let Some(_ownership) = lock(&directory.join("helper-tray.lock"))? else {
         return Ok(());
     };
+    let _presence = crate::presence::Broker::start()?;
     if let Err(error) = platform_run() {
         diagnostic(&error);
     }

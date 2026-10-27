@@ -5,7 +5,7 @@ import { createSocket } from 'node:dgram'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { getSessionToken } from './auth'
-import { API_BASE_URL, LOCAL_DEVELOPMENT } from './config'
+import { API_BASE_URL, LOCAL_DEVELOPMENT, nativeHelperApiUrl } from './config'
 import { isLoopbackBackend } from './backend-policy'
 import type { MatchmakingNode, MatchmakingPreferences } from '../shared/matchmaking'
 
@@ -461,6 +461,7 @@ export const toMatchmakingWsUrl = (apiUrl: string): string => {
 // Shared by pre-login verification, device checks and diagnostics. Discovery is public.
 let preferredServiceApi: { until: number; pending: Promise<string> } | null = null
 export const resolveServiceApiUrl = (): Promise<string> => {
+  if (nativeHelperApiUrl) return Promise.resolve(nativeHelperApiUrl)
   if (!preferredServiceApi || Date.now() >= preferredServiceApi.until) {
     preferredServiceApi = {
       until: Date.now() + 60_000,

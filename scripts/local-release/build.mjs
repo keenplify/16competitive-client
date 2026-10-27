@@ -260,9 +260,14 @@ export async function buildLocalRelease(kind, root, version, commit) {
     ])
     if (buildWebHelper) {
       await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
-      await container('desktop', source, 'node', [
-        '--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', 'linux', 'x64'
-      ], approved, buildEnv)
+      await container(
+        'desktop',
+        source,
+        'node',
+        ['--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', 'linux', 'x64'],
+        approved,
+        buildEnv
+      )
       await container('helper-x64', source, 'cargo', [
         'test',
         '--manifest-path',
@@ -282,10 +287,19 @@ export async function buildLocalRelease(kind, root, version, commit) {
       )
     }
     run('scp', [...scpArgs, '-r', approved, `build@127.0.0.1:${guest}/`])
-    if (!buildWebHelper)
-      await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
+    if (!buildWebHelper) await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
     for (const command of ['build:linux', 'build:linux:arm64']) {
       await container('desktop', source, 'npm', ['run', command], approved, buildEnv)
+      if (command === 'build:linux') {
+        await container(
+          'desktop',
+          source,
+          'node',
+          ['scripts/package-helper-runtime.mjs', 'dist/linux-unpacked', 'dist', 'linux'],
+          approved,
+          buildEnv
+        )
+      }
       await container(
         'desktop',
         source,

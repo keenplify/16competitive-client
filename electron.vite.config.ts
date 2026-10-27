@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     main: {
+      build: { rollupOptions: { input: { index: resolve('src/main/bootstrap.ts') } } },
       define: mainProcessEnv,
       plugins:
         mode === 'production'

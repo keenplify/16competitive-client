@@ -140,6 +140,9 @@ export const updateActiveKillCards = async (enabled: boolean): Promise<void> => 
   await activeScoreboardSession?.session.updateKillCards(enabled)
 }
 
+export const getActiveScoreboardDirectory = (): string | null =>
+  activeScoreboardSession?.session.directory ?? null
+
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 

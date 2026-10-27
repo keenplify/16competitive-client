@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { webHelperAssets } from '../web-helper-release.mjs'
+import { helperRuntimeAssets } from '../sign-helper-runtime.mjs'
 
 export const helperAssets = [
   'game-inspector-win-x64.exe',
@@ -26,7 +27,8 @@ export function expectedAssets(kind, version) {
     'latest-linux-arm64.yml',
     `16competitive-client-${version}-renderer-win-x64.asar`,
     'renderer-update-win-x64.unsigned.json',
-    ...webHelperAssets
+    ...webHelperAssets,
+    ...helperRuntimeAssets.flatMap((name) => [name, `${name}.unsigned.json`])
   ]
 }
 export async function createArtifactManifest(
