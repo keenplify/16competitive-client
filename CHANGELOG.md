@@ -3295,3 +3295,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed standalone CS 1.6 web helper launch flags.
 - Improved compatibility when launching CS 1.6 from the web helper.
+
+## v2026.1027.2 — 2026-10-27
+
+### Match Helper
+
+- Updated the helper download link to match the themed buttons.
+- Improved visual consistency in the match helper setup.
