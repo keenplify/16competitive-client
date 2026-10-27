@@ -3391,3 +3391,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Copy the helper setup command with one click.
 - See confirmation when the command is copied, or instructions for manual copying if needed.
+
+## v2026.1027.11 — 2026-10-27
+
+### Compatibility
+
+- Improved Linux-specific support validation.
