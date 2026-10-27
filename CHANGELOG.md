@@ -3288,3 +3288,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Communities
 
 - Fixed the community confirmation dialog layout in the VGUI2 theme.
+
+## v2026.1027.1 — 2026-10-27
+
+### Game launching
+
+- Fixed standalone CS 1.6 web helper launch flags.
+- Improved compatibility when launching CS 1.6 from the web helper.
