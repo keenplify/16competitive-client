@@ -3309,3 +3309,27 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Restored the stock scoreboard when pressing Tab.
 - Restored kill feedback in the web helper.
+
+## v2026.1027.4 — 2026-10-27
+
+### Web Helper
+
+- Improved web helper setup and Steam handoff.
+- Added clearer setup guidance and status feedback.
+- Added support for web helper updates.
+
+### Settings
+
+- Added local settings for the native helper.
+- Added a dedicated settings panel for managing helper preferences.
+
+### Matchmaking
+
+- Improved session preparation before entering a match.
+- Added clearer queue warmup information and controls.
+- Improved matchmaking prompts and translated messaging.
+
+### General
+
+- Added an alpha-release watermark.
+- Improved local play and custom game handling.
