@@ -509,6 +509,7 @@ mod tests {
             &connection,
             "https://16competitive.papamo.dev",
             "invalid-test-token",
+            &crate::settings_bridge::NativePreferences::default(),
         )
         .unwrap();
         let installation = WindowsInstall::install(&root, &bundle).unwrap().unwrap();
@@ -565,6 +566,7 @@ mod tests {
             &connection,
             "https://16competitive.papamo.dev",
             "invalid-test-token",
+            &crate::settings_bridge::NativePreferences::default(),
         )
         .unwrap();
         let installation = WindowsInstall::install(&root, &bundle).unwrap().unwrap();

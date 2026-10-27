@@ -1,8 +1,11 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod native_bundle;
 mod native_session;
 mod settings_bridge;
 mod self_update;
+mod tray;
 #[cfg(windows)]
 mod windows_native;
 use serde::{Deserialize, Serialize};
@@ -96,6 +99,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("lib.rs").as_slice(),
         include_bytes!("settings_bridge.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
+        include_bytes!("tray.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
@@ -146,15 +150,30 @@ fn install_self() -> Result<PathBuf, String> {
     }
     fs::create_dir_all(installed.parent().ok_or("Invalid install path")?)
         .map_err(|e| e.to_string())?;
+    // A resident Windows tray holds its executable open. Re-running the same
+    // download must reuse the verified identical installation, never replace it.
+    let mut lock_options = OpenOptions::new();
+    lock_options.read(true).write(true).create(true).truncate(false);
+    #[cfg(unix)] {
+        use std::os::unix::fs::OpenOptionsExt;
+        lock_options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+    }
+    let install_lock = lock_options.open(user_config_dir()?.join("helper-install.lock"))
+        .map_err(|e| e.to_string())?;
+    fs2::FileExt::lock_exclusive(&install_lock).map_err(|e| e.to_string())?;
+    if installed.exists() {
+        if fs::symlink_metadata(&installed).map_err(|e| e.to_string())?.file_type().is_symlink()
+            || fs::read(&installed).map_err(|e| e.to_string())? != fs::read(&current).map_err(|e| e.to_string())? {
+            return Err("Installed helper integrity check failed. Download the helper again.".into());
+        }
+        return Ok(installed);
+    }
     let temp = installed.with_extension("installing");
     fs::copy(current, &temp).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(&temp, fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())?;
-    }
-    if installed.exists() {
-        fs::remove_file(&installed).map_err(|e| e.to_string())?;
     }
     fs::rename(temp, &installed).map_err(|e| e.to_string())?;
     Ok(installed)
@@ -168,7 +187,7 @@ fn register_protocol(executable: &Path) -> Result<(), String> {
         vec!["add", root, "/ve", "/d", "URL:1.6 Competitive", "/f"],
         vec!["add", root, "/v", "URL Protocol", "/d", "", "/f"],
     ] {
-        if !Command::new("reg.exe")
+        if !hidden_command("reg.exe")
             .args(args)
             .output()
             .map_err(|e| e.to_string())?
@@ -179,7 +198,7 @@ fn register_protocol(executable: &Path) -> Result<(), String> {
         }
     }
     let key = format!(r"{}\shell\open\command", root);
-    if !Command::new("reg.exe")
+    if !hidden_command("reg.exe")
         .args(["add", &key, "/ve", "/d", &command, "/f"])
         .output()
         .map_err(|e| e.to_string())?
@@ -299,10 +318,18 @@ fn confirm(message: &str) -> bool {
 }
 
 #[cfg(windows)]
+fn hidden_command(program: &str) -> Command {
+    use std::os::windows::process::CommandExt;
+    let mut command = Command::new(program);
+    command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    command
+}
+
+#[cfg(windows)]
 fn browse_folder() -> Option<PathBuf> {
     // The script is constant; no path or server value is interpolated into it.
     let script = "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq 'OK') { [Console]::Write($d.SelectedPath) }";
-    let output = Command::new("powershell.exe")
+    let output = hidden_command("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .output()
         .ok()?;
@@ -910,7 +937,10 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
 }
 
 fn run() -> Result<(), String> {
-    let args: Vec<String> = env::args().skip(1).collect();
+    let mut args: Vec<String> = env::args().skip(1).collect();
+    if args.as_slice() == ["--tray"] {
+        return tray::run();
+    }
     if args.first().map(String::as_str) == Some("--local-settings") {
         if args.len()!=4 {return Err("Invalid local settings arguments".into());}
         return settings_bridge::serve(args[1].parse().map_err(|_| "Invalid settings port")?, &args[2], &args[3]);
@@ -919,6 +949,14 @@ fn run() -> Result<(), String> {
         println!("{}", helper_fingerprint());
         return Ok(());
     }
+    // The shell command returns immediately; all setup, dialogs and game
+    // supervision happen without inheriting a terminal or its standard handles.
+    if args.first().map(String::as_str) != Some("--background") {
+        tray::background(&env::current_exe().map_err(|e| e.to_string())?,
+            std::iter::once("--background".to_owned()).chain(args).collect::<Vec<_>>())?;
+        return Ok(());
+    }
+    args.remove(0);
     match self_update::check_and_resume(&args) {
         Ok(true) => return Ok(()),
         Ok(false) => {},
@@ -926,14 +964,11 @@ fn run() -> Result<(), String> {
     }
     let exe = install_self()?;
     register_protocol(&exe)?;
+    tray::ensure(&exe)?;
     let arg = env::args()
         .skip(1)
         .find(|value| value.starts_with("competitive16-helper://"));
     let Some(link) = arg else {
-        #[cfg(windows)]
-        notice("Web helper installed. Return to the website to continue setup.");
-        #[cfg(not(windows))]
-        println!("Web helper installed. Return to the website to continue setup.");
         return Ok(());
     };
     let development = cfg!(debug_assertions);

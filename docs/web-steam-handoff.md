@@ -22,6 +22,23 @@ require closing CS first or using Web Play's copied console command.
 
 ## Native helper setup and local settings
 
+The helper runs in the system tray with Open, Settings and Quit actions. Setup
+and protocol invocations detach immediately and do not keep a terminal open;
+Windows uses the GUI subsystem. Settings opens the website directly at General.
+One OS file lock prevents duplicate tray icons, including after a crash. Quit
+closes the tray only: active match workers still finish native recovery and cleanup.
+The next browser invocation starts the tray again. Updates resume the original
+launch independently, so an existing tray never holds a game or updater open.
+
+Linux uses StatusNotifier over D-Bus with a bundled D-Bus library, without GTK or
+AppIndicator library dependencies. GNOME needs its AppIndicator/KStatusNotifier
+extension to display an icon. Without it, browser setup, settings and game launches
+still work; the tray registers if the extension starts later. Tray startup errors
+are recorded in `16competitive/helper-tray.log` under the user's config directory.
+Validate with `cargo test --manifest-path web-helper/Cargo.toml --locked`, then
+`cargo build --manifest-path web-helper/Cargo.toml --locked` and
+`node scripts/native-helper-tray.test.mjs` on Linux.
+
 Web Play checks the native helper on account login, opening Play, and starting a
 search. Checks are deduplicated while pending. The prompt offers only Download
 native helper and Continue to Play; Continue remains available during a check.

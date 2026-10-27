@@ -24,7 +24,8 @@ interface NavigationState {
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
-  page: 'lobby',
+  page:
+    typeof window !== 'undefined' && window.location.hash === '#settings' ? 'settings' : 'lobby',
   profileTab: 'overview',
   settingsTarget: null,
   navigate: (page) => set({ page, settingsTarget: null }),
