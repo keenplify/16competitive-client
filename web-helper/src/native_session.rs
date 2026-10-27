@@ -64,6 +64,56 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Vec<u8>> {
     Some(bytes)
 }
 
+#[derive(Default)]
+struct KillProgress {
+    round: Option<u32>,
+    kills: u32,
+    deaths: u32,
+    cards: u32,
+}
+
+impl KillProgress {
+    fn update(&mut self, feed: &[u8], player_name: &str) -> Option<String> {
+        let text = std::str::from_utf8(feed).ok()?;
+        let mut lines = text.lines();
+        let header: Vec<_> = lines.next()?.split('\t').collect();
+        let round = header.get(2)?.parse::<u32>().ok()?;
+        let mode = if *header.get(3)? == "1" { "F" } else { "C" };
+        let row: Vec<_> = lines
+            .map(|line| line.split('\t').collect::<Vec<_>>())
+            .find(|fields| fields.last().copied() == Some(player_name))?;
+        let team = row.get(1)?.parse::<u8>().ok()?;
+        if mode == "C" && team != 1 && team != 2 {
+            return None;
+        }
+        let kills = row.get(2)?.parse::<u32>().ok()?;
+        let deaths = row.get(4)?.parse::<u32>().ok()?;
+        let alive = *row.get(6)? == "1";
+        let side = if mode == "F" {
+            "F"
+        } else if team == 2 {
+            "CT"
+        } else {
+            "T"
+        };
+        if self.round != Some(round) || kills < self.kills || deaths > self.deaths {
+            self.cards = 0;
+        } else {
+            self.cards = self
+                .cards
+                .saturating_add(kills.saturating_sub(self.kills))
+                .min(9999);
+        }
+        self.round = Some(round);
+        self.kills = kills;
+        self.deaths = deaths;
+        if !alive {
+            self.cards = 0;
+        }
+        (self.cards > 0).then(|| format!("{mode} {} 0 {side}\n", self.cards))
+    }
+}
+
 pub struct NativeSession {
     pub directory: PathBuf,
     stop: Arc<AtomicBool>,
@@ -126,7 +176,9 @@ impl NativeSession {
                 &directory.join("server.endpoint"),
                 format!("{endpoint_ip}:{}\n", connection.port).as_bytes(),
             )?;
-            owned_write(&directory.join("overlay.mode"), b"scoreboard\n")?;
+            // The web helper has no Electron image renderer. Keep the stock Tab
+            // scoreboard and use the native module only for supported HUD layers.
+            owned_write(&directory.join("overlay.mode"), b"ally-tags\n")?;
             owned_write(&directory.join("overlay.enabled"), b"1\n")?;
             owned_write(&directory.join("hud-lightweight.enabled"), b"1\n")?;
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
@@ -175,17 +227,26 @@ impl NativeSession {
         let api = api.to_owned();
         let token = token.to_owned();
         let match_id = connection.match_id.clone();
+        let player_name = connection.player_name.clone();
         let feed = thread::spawn(move || {
             let feed_path =
                 feed_path_root.join("game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv");
+            let card_path = feed_path_root.join("kill-cards.state");
+            let mut progress = KillProgress::default();
             while !feed_stop.load(Ordering::Relaxed) {
                 if now_ms().is_ok_and(|now| now >= expires) {
                     break;
                 }
                 if let Some(snapshot) = fetch_feed(&api, &token, &match_id) {
+                    if let Some(card) = progress.update(&snapshot, &player_name) {
+                        let _ = owned_write(&card_path, card.as_bytes());
+                    } else {
+                        let _ = fs::remove_file(&card_path);
+                    }
                     let _ = owned_write(&feed_path, &snapshot);
                 } else {
                     let _ = fs::remove_file(&feed_path);
+                    let _ = fs::remove_file(&card_path);
                 }
                 for _ in 0..5 {
                     if feed_stop.load(Ordering::Relaxed) {
@@ -195,6 +256,7 @@ impl NativeSession {
                 }
             }
             let _ = fs::remove_file(&feed_path);
+            let _ = fs::remove_file(&card_path);
         });
         Ok(Self {
             directory,
@@ -261,6 +323,36 @@ impl Drop for NativeSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn helper_kill_progress_resets_on_death_and_new_round() {
+        let mut progress = KillProgress::default();
+        let feed = |round: u32, kills: u32, deaths: u32, alive: u8| {
+            format!(
+            "#16c-scoreboard-v16\tde_dust2\t{round}\t0\tC\n6\t1\t{kills}\t0\t{deaths}\t40\t{alive}\t0\t800\t0\t100\t0\t0\t0\t0\tkeenplify\n"
+        )
+        };
+        assert_eq!(
+            progress.update(feed(1, 0, 0, 1).as_bytes(), "keenplify"),
+            None
+        );
+        assert_eq!(
+            progress.update(feed(1, 1, 0, 1).as_bytes(), "keenplify"),
+            Some("C 1 0 T\n".into())
+        );
+        assert_eq!(
+            progress.update(feed(1, 1, 1, 0).as_bytes(), "keenplify"),
+            None
+        );
+        assert_eq!(
+            progress.update(feed(2, 1, 1, 1).as_bytes(), "keenplify"),
+            None
+        );
+        assert_eq!(
+            progress.update(feed(2, 2, 1, 1).as_bytes(), "keenplify"),
+            Some("C 1 0 T\n".into())
+        );
+    }
     use competitive16_web_helper::Connection;
     use std::net::TcpListener;
 
@@ -314,6 +406,7 @@ mod tests {
             "test-token",
         )
         .unwrap();
+        assert_eq!(fs::read(directory.join("overlay.mode")).unwrap(), b"ally-tags\n");
         let ticket = fs::read_to_string(directory.join("session.ticket")).unwrap();
         let fields: Vec<_> = ticket.lines().collect();
         assert_eq!(fields[0], "v1");
