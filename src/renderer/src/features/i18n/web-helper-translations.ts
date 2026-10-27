@@ -33,6 +33,9 @@ const en = {
     'After the download finishes, open a terminal and run these commands. If your browser saved it elsewhere, use that folder instead of Downloads.',
   'webHelper.linuxAfter':
     'Run the full command below. This window closes automatically when setup is verified.',
+  'webHelper.copyCommand': 'Copy command',
+  'webHelper.commandCopied': 'Command copied.',
+  'webHelper.copyFailed': 'Could not copy. Select the command above and copy it manually.',
   'webHelper.download': 'Download native helper',
   'webHelper.update': 'Update native helper',
   'webHelper.checking': 'Checking native helper…',
@@ -90,6 +93,10 @@ export const webHelperTranslations: Record<
       'После загрузки откройте терминал и выполните команды. Если файл сохранён в другом месте, укажите эту папку вместо Downloads.',
     'webHelper.linuxAfter':
       'Выполните полную команду ниже. После проверки настройки это окно закроется автоматически.',
+    'webHelper.copyCommand': 'Копировать команду',
+    'webHelper.commandCopied': 'Команда скопирована.',
+    'webHelper.copyFailed':
+      'Не удалось скопировать. Выделите команду выше и скопируйте её вручную.',
     'webHelper.download': 'Скачать помощник',
     'webHelper.update': 'Обновить помощник',
     'webHelper.electronReady': 'Приложение готово.',
@@ -139,6 +146,10 @@ export const webHelperTranslations: Record<
       'Pagkatapos mag-download, buksan ang terminal at patakbuhin ang mga command. Kung sa ibang folder na-save, gamitin iyon sa halip na Downloads.',
     'webHelper.linuxAfter':
       'Patakbuhin ang buong command sa ibaba. Awtomatikong magsasara ang window kapag na-verify ang setup.',
+    'webHelper.copyCommand': 'Kopyahin ang command',
+    'webHelper.commandCopied': 'Nakopya ang command.',
+    'webHelper.copyFailed':
+      'Hindi makopya. Piliin ang command sa itaas at kopyahin ito nang mano-mano.',
     'webHelper.download': 'I-download ang helper',
     'webHelper.update': 'I-update ang helper',
     'webHelper.electronReady': 'Handa ang desktop app.',
@@ -188,6 +199,9 @@ export const webHelperTranslations: Record<
       'เมื่อดาวน์โหลดเสร็จ เปิดเทอร์มินัลและเรียกใช้คำสั่งเหล่านี้ หากบันทึกไว้ที่อื่น ให้ใช้โฟลเดอร์นั้นแทน Downloads',
     'webHelper.linuxAfter':
       'เรียกใช้คำสั่งทั้งหมดด้านล่าง หน้าต่างนี้จะปิดอัตโนมัติเมื่อตรวจสอบการตั้งค่าสำเร็จ',
+    'webHelper.copyCommand': 'คัดลอกคำสั่ง',
+    'webHelper.commandCopied': 'คัดลอกคำสั่งแล้ว',
+    'webHelper.copyFailed': 'คัดลอกไม่ได้ เลือกคำสั่งด้านบนแล้วคัดลอกด้วยตนเอง',
     'webHelper.download': 'ดาวน์โหลดตัวช่วย',
     'webHelper.update': 'อัปเดตตัวช่วย',
     'webHelper.electronReady': 'แอปเดสก์ท็อปพร้อมแล้ว',
@@ -236,6 +250,9 @@ export const webHelperTranslations: Record<
       'Setelah unduhan selesai, buka terminal dan jalankan perintah ini. Jika file tersimpan di tempat lain, gunakan folder tersebut sebagai ganti Downloads.',
     'webHelper.linuxAfter':
       'Jalankan perintah lengkap di bawah. Jendela ini akan menutup otomatis setelah penyiapan diverifikasi.',
+    'webHelper.copyCommand': 'Salin perintah',
+    'webHelper.commandCopied': 'Perintah disalin.',
+    'webHelper.copyFailed': 'Tidak dapat menyalin. Pilih perintah di atas dan salin secara manual.',
     'webHelper.download': 'Unduh helper',
     'webHelper.update': 'Perbarui helper',
     'webHelper.electronReady': 'Aplikasi desktop siap.',
@@ -285,6 +302,10 @@ export const webHelperTranslations: Record<
       'Após o download, abra um terminal e execute estes comandos. Se o arquivo estiver em outra pasta, use essa pasta no lugar de Downloads.',
     'webHelper.linuxAfter':
       'Execute o comando completo abaixo. Esta janela fechará automaticamente quando a configuração for verificada.',
+    'webHelper.copyCommand': 'Copiar comando',
+    'webHelper.commandCopied': 'Comando copiado.',
+    'webHelper.copyFailed':
+      'Não foi possível copiar. Selecione o comando acima e copie manualmente.',
     'webHelper.download': 'Baixar auxiliar',
     'webHelper.update': 'Atualizar auxiliar',
     'webHelper.electronReady': 'Aplicativo pronto.',
@@ -334,6 +355,10 @@ export const webHelperTranslations: Record<
       'ダウンロード後、端末で次のコマンドを実行してください。別の場所に保存した場合は Downloads をそのフォルダーに変更してください。',
     'webHelper.linuxAfter':
       '以下のコマンド全体を実行してください。設定が確認されると、このウィンドウは自動的に閉じます。',
+    'webHelper.copyCommand': 'コマンドをコピー',
+    'webHelper.commandCopied': 'コマンドをコピーしました。',
+    'webHelper.copyFailed':
+      'コピーできませんでした。上のコマンドを選択して手動でコピーしてください。',
     'webHelper.download': 'ヘルパーをダウンロード',
     'webHelper.update': 'ヘルパーを更新',
     'webHelper.electronReady': 'デスクトップアプリを利用できます。',
@@ -383,6 +408,9 @@ export const webHelperTranslations: Record<
       'डाउनलोड के बाद टर्मिनल खोलकर ये कमांड चलाएँ। फ़ाइल कहीं और सहेजी हो तो Downloads की जगह उस फ़ोल्डर का उपयोग करें।',
     'webHelper.linuxAfter':
       'नीचे दी गई पूरी कमांड चलाएँ। सेटअप सत्यापित होने पर यह विंडो अपने आप बंद हो जाएगी।',
+    'webHelper.copyCommand': 'कमांड कॉपी करें',
+    'webHelper.commandCopied': 'कमांड कॉपी हो गई।',
+    'webHelper.copyFailed': 'कॉपी नहीं हो सकी। ऊपर की कमांड चुनकर उसे मैन्युअल रूप से कॉपी करें।',
     'webHelper.download': 'हेल्पर डाउनलोड करें',
     'webHelper.update': 'हेल्पर अपडेट करें',
     'webHelper.electronReady': 'डेस्कटॉप ऐप तैयार है।',

@@ -1,4 +1,4 @@
-import { useEffect, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button, ButtonLink } from '../../components/ui/Button'
@@ -24,6 +24,20 @@ export function WebHelperSetup({
   const command = useWebHelperPromptStore((state) => state.setupCommand)
   const prepareSetup = useWebHelperPromptStore((state) => state.prepareSetup)
   const closeSetup = useWebHelperPromptStore((state) => state.closeSetup)
+  const [copyFeedback, setCopyFeedback] = useState<{
+    command: string
+    status: 'copied' | 'failed'
+  } | null>(null)
+  const copyStatus = setupOpen && copyFeedback?.command === command ? copyFeedback.status : 'idle'
+  const copyCommand = async (): Promise<void> => {
+    if (!command) return
+    try {
+      await navigator.clipboard.writeText(command)
+      setCopyFeedback({ command, status: 'copied' })
+    } catch {
+      setCopyFeedback({ command, status: 'failed' })
+    }
+  }
   useEffect(() => {
     const checkAfterInstall = (): void => {
       const state = useWebHelperPromptStore.getState()
@@ -94,9 +108,21 @@ export function WebHelperSetup({
               ? statusText
               : t('webHelper.linuxAfter')}
           </p>
-          <Button variant="secondary" onClick={closeSetup}>
-            {t('webHelper.close')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="primary" disabled={!command} onClick={() => void copyCommand()}>
+              {t('webHelper.copyCommand')}
+            </Button>
+            <Button variant="secondary" onClick={closeSetup}>
+              {t('webHelper.close')}
+            </Button>
+          </div>
+          <p className="h-12 overflow-auto text-sm leading-6 text-neutral-300" role="status">
+            {copyStatus === 'copied'
+              ? t('webHelper.commandCopied')
+              : copyStatus === 'failed'
+                ? t('webHelper.copyFailed')
+                : '\u00a0'}
+          </p>
         </div>
       </ModalDialog>
     </div>
