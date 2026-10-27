@@ -120,31 +120,37 @@ test('successful terminal verification closes instructions and upsell, emitting 
   assert.equal(store.getState().successSequence, 1)
 })
 
-test('Linux setup runs the newest numbered download instead of a stale original', async () => {
-  let done
-  const waiting = new Promise((resolve) => { done = resolve })
-  const { store, setup } = await harness({ wait: () => waiting })
-  const directory = await mkdtemp(join(tmpdir(), 'native-helper-downloads-'))
-  try {
-    const old = join(directory, 'competitive16-web-helper-linux')
-    const current = join(directory, 'competitive16-web-helper-linux(2)')
-    await writeFile(old, '#!/bin/sh\nprintf "old:%s\\n" "$1"\n')
-    await writeFile(current, '#!/bin/sh\nprintf "current:%s\\n" "$1"\n')
-    await utimes(old, new Date(1_700_000_000_000), new Date(1_700_000_000_000))
-    await utimes(current, new Date(1_800_000_000_000), new Date(1_800_000_000_000))
-    const pending = store.getState().prepareSetup()
-    await new Promise((resolve) => setImmediate(resolve))
-    const command = store.getState().setupCommand.replace('cd ~/Downloads', `cd '${directory}'`)
-    const result = spawnSync('bash', ['-c', command], { encoding: 'utf8' })
-    assert.equal(result.status, 0, result.stderr)
-    assert.equal(result.stdout.trim(), `current:${setup.checkUrl}`)
-    store.getState().closeSetup()
-    done('rust')
-    await pending
-  } finally {
-    await rm(directory, { recursive: true, force: true })
+test(
+  'Linux setup runs the newest numbered download instead of a stale original',
+  { skip: process.platform === 'win32' },
+  async () => {
+    let done
+    const waiting = new Promise((resolve) => {
+      done = resolve
+    })
+    const { store, setup } = await harness({ wait: () => waiting })
+    const directory = await mkdtemp(join(tmpdir(), 'native-helper-downloads-'))
+    try {
+      const old = join(directory, 'competitive16-web-helper-linux')
+      const current = join(directory, 'competitive16-web-helper-linux(2)')
+      await writeFile(old, '#!/bin/sh\nprintf "old:%s\\n" "$1"\n')
+      await writeFile(current, '#!/bin/sh\nprintf "current:%s\\n" "$1"\n')
+      await utimes(old, new Date(1_700_000_000_000), new Date(1_700_000_000_000))
+      await utimes(current, new Date(1_800_000_000_000), new Date(1_800_000_000_000))
+      const pending = store.getState().prepareSetup()
+      await new Promise((resolve) => setImmediate(resolve))
+      const command = store.getState().setupCommand.replace('cd ~/Downloads', `cd '${directory}'`)
+      const result = spawnSync('bash', ['-c', command], { encoding: 'utf8' })
+      assert.equal(result.status, 0, result.stderr)
+      assert.equal(result.stdout.trim(), `current:${setup.checkUrl}`)
+      store.getState().closeSetup()
+      done('rust')
+      await pending
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
   }
-})
+)
 
 test('logout or cancellation ignores late native setup verification', async () => {
   let done
