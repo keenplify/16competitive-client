@@ -3404,3 +3404,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - The web helper now reports when it is ready for use.
 - Idle native helper processes now stop automatically.
+
+## v2026.1027.13 — 2026-10-27
+
+### Settings
+
+- Fixed duplicate helper bridge behavior.
+- Refreshed game folder settings.
