@@ -3339,3 +3339,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Helper settings and update processes now run independently of setup consoles.
+
+## v2026.1027.6 — 2026-10-27
+
+### Native web helper
+
+- Run the native web helper from the system tray without opening a terminal.
+- Access helper controls and status directly from the tray.
