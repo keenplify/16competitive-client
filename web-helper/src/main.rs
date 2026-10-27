@@ -27,6 +27,9 @@ struct GamePattern {
     next_client_executable: Option<String>,
     next_client_managed_flag: Option<String>,
     gold_client_managed_flag: Option<String>,
+    standalone_steam_emulator_marker: Option<String>,
+    standalone_steam_flag: Option<String>,
+    standalone_windows_flags: Option<Vec<String>>,
     linux_executable: String,
     mod_directories: Vec<String>,
     password_argument: String,
@@ -54,6 +57,32 @@ fn launch_pattern() -> LaunchPattern {
     .expect("shared launch pattern is invalid");
     assert_eq!(pattern.schema, 1, "unsupported shared launch pattern");
     pattern
+}
+
+fn cs16_standalone_windows_args(root: &Path, pattern: &GamePattern) -> Result<Vec<String>, String> {
+    let marker = pattern
+        .standalone_steam_emulator_marker
+        .as_deref()
+        .ok_or("Missing CS 1.6 Steam emulator marker")?;
+    let mut args = Vec::new();
+    if root.join(marker).is_file() {
+        args.push(
+            pattern
+                .standalone_steam_flag
+                .clone()
+                .ok_or("Missing CS 1.6 Steam emulator flag")?,
+        );
+    }
+    args.extend(["-game".to_owned(), "cstrike".to_owned()]);
+    args.extend(
+        pattern
+            .standalone_windows_flags
+            .as_ref()
+            .ok_or("Missing CS 1.6 standalone flags")?
+            .iter()
+            .cloned(),
+    );
+    Ok(args)
 }
 
 fn helper_fingerprint() -> String {
@@ -643,6 +672,11 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         &pattern.cs16
     };
     let (root, exe, mod_dir) = choose_installation(connection.game())?;
+    let windows_cs16_args = if cfg!(windows) && connection.game() == "cs16" {
+        Some(cs16_standalone_windows_args(&root, game_pattern)?)
+    } else {
+        None
+    };
     let next_client = cfg!(windows)
         && connection.game() == "cs16"
         && exe.file_name().is_some_and(|name| name == "cstrike.exe");
@@ -661,9 +695,8 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
     #[cfg(windows)]
     let mut windows_install: Option<windows_native::WindowsInstall> = None;
     #[cfg(windows)]
-    let gold_client = connection.game() == "cs16"
-        && !next_client
-        && windows_native::is_gold_client(&root)?;
+    let gold_client =
+        connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root)?;
     #[cfg(windows)]
     if connection.game() == "cs16" && mod_dir == "cstrike" {
         match native_bundle::prepare(&user_config_dir()?) {
@@ -771,7 +804,12 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         } else {
             Command::new(&exe)
         };
-    command.current_dir(&root).arg("-game").arg(&mod_dir);
+    command.current_dir(&root);
+    if let Some(args) = windows_cs16_args {
+        command.args(args);
+    } else {
+        command.arg("-game").arg(&mod_dir);
+    }
     #[cfg(target_os = "linux")]
     if let Some((bundle, session)) = &native {
         command.arg(
@@ -891,5 +929,40 @@ fn main() {
     if let Err(error) = run() {
         notice(&error);
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod launch_tests {
+    use super::*;
+
+    #[test]
+    fn revemu_installation_uses_shared_steam_launch_flags() {
+        let root = env::temp_dir().join(format!("16c-warzone-launch-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("rev.ini"), b"[Emulator]\n").unwrap();
+        let pattern = launch_pattern();
+        let args = cs16_standalone_windows_args(&root, &pattern.cs16).unwrap();
+        assert_eq!(
+            args,
+            [
+                "-steam",
+                "-game",
+                "cstrike",
+                "-noforcemparms",
+                "-noforcemaccel"
+            ]
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ordinary_installation_does_not_get_steam_emulation() {
+        let root = env::temp_dir().join(format!("16c-plain-launch-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let pattern = launch_pattern();
+        let args = cs16_standalone_windows_args(&root, &pattern.cs16).unwrap();
+        assert_eq!(args.first().map(String::as_str), Some("-game"));
+        fs::remove_dir_all(root).unwrap();
     }
 }

@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { basename, dirname, join, normalize } from 'node:path'
+import launchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
 /**
  * The game directory Counter-Strike 1.6 always runs as.
@@ -46,7 +47,11 @@ export const findSteamLibraryRoot = (executable: string): string | null => {
  * expects GoldSrc to be started with `-steam`.
  */
 export const hasStandaloneSteamEmulator = async (gameDirectory: string): Promise<boolean> =>
-  (await stat(join(gameDirectory, 'rev.ini')).catch(() => null))?.isFile() === true
+  (
+    await stat(join(gameDirectory, launchPattern.cs16.standaloneSteamEmulatorMarker)).catch(
+      () => null
+    )
+  )?.isFile() === true
 
 /**
  * The directory the launcher writes its content to. The engine only ever

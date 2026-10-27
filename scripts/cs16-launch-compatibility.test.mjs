@@ -21,6 +21,20 @@ async function loadAdapter(platform) {
     })
     modules.set(path, module)
     await module.link(async (specifier) => {
+      if (specifier.endsWith('.json')) {
+        const jsonPath = resolve(dirname(path), specifier)
+        if (modules.has(jsonPath)) return modules.get(jsonPath)
+        const value = JSON.parse(await readFile(jsonPath, 'utf8'))
+        const jsonModule = new vm.SyntheticModule(
+          ['default'],
+          function () {
+            this.setExport('default', value)
+          },
+          { context }
+        )
+        modules.set(jsonPath, jsonModule)
+        return jsonModule
+      }
       if (specifier.startsWith('node:')) {
         if (modules.has(specifier)) return modules.get(specifier)
         const namespace = await import(specifier)
@@ -69,6 +83,24 @@ test('WarzOnE retains its wrapper flags and existing startup script', async () =
     assert.equal(bridge.installed, false)
     await bridge.restore()
     assert.equal(await readFile(join(game, 'valve.rc'), 'utf8'), 'player startup\n')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('WaRzOnE executable uses the same RevEmu startup flags as the web helper', async () => {
+  const root = await mkdtemp(join(tmpdir(), '16c-warzone-revemu-'))
+  try {
+    await writeFile(join(root, 'rev.ini'), '[Emulator]\n')
+    const adapter = await loadAdapter('win32')
+    const target = await adapter.resolveCs16LaunchTarget(join(root, 'hl.exe'))
+    assert.deepEqual(Array.from(target.argumentPrefix), [
+      '-steam',
+      '-game',
+      'cstrike',
+      '-noforcemparms',
+      '-noforcemaccel'
+    ])
   } finally {
     await rm(root, { recursive: true, force: true })
   }

@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { STOCK_GAME_DIR, findSteamLibraryRoot, hasStandaloneSteamEmulator } from './game-directory'
+import launchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
 export type Cs16Distribution = 'steam' | 'standalone'
 
@@ -90,11 +91,10 @@ const buildArgumentPrefix = (usesSteamEmulation: boolean): string[] => [
   // RevEmu installations load their local Steam emulator only when GoldSrc is
   // told to talk to Steam. This is the same flag the distribution's own
   // CS16Launcher.exe passes to hl.exe by default.
-  ...(usesSteamEmulation ? ['-steam'] : []),
+  ...(usesSteamEmulation ? [launchPattern.cs16.standaloneSteamFlag] : []),
   '-game',
   STOCK_GAME_DIR,
-  '-noforcemparms',
-  '-noforcemaccel'
+  ...launchPattern.cs16.standaloneWindowsFlags
 ]
 
 export const resolveCs16LaunchTarget = async (executable: string): Promise<Cs16LaunchTarget> => {
