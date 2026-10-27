@@ -626,8 +626,18 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     {
         return Err("Invalid local settings capability".into());
     }
-    let listener =
-        TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).map_err(|e| e.to_string())?;
+    let listener = match TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)) {
+        Ok(listener) => listener,
+        Err(error) if error.kind() == std::io::ErrorKind::AddrInUse => {
+            // Repeated protocol checks from the same page may start another
+            // process while its authenticated bridge is still serving.
+            if existing_bridge_matches(port, token, origin) {
+                return Ok(());
+            }
+            return Err("Local settings port is occupied by another process".into());
+        }
+        Err(error) => return Err(error.to_string()),
+    };
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut last = Instant::now();
     while last.elapsed() < Duration::from_secs(30)
@@ -650,9 +660,64 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
+    let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    let Ok(mut stream) = TcpStream::connect_timeout(&address, Duration::from_secs(1)) else {
+        return false;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
+    let body = r#"{"action":"get"}"#;
+    if write!(stream, "POST /settings HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: {origin}\r\nAuthorization: Bearer {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).is_err() {
+        return false;
+    }
+    let mut response = Vec::new();
+    if stream.take(16384).read_to_end(&mut response).is_err() {
+        return false;
+    }
+    let Ok(response) = std::str::from_utf8(&response) else {
+        return false;
+    };
+    let Some((headers, body)) = response.split_once("\r\n\r\n") else {
+        return false;
+    };
+    headers.starts_with("HTTP/1.1 200 OK\r\n")
+        && headers.lines().any(|line| line == format!("Access-Control-Allow-Origin: {origin}"))
+        && serde_json::from_str::<serde_json::Value>(body).is_ok_and(|value| {
+            value["platform"].as_str() == Some(if cfg!(windows) { "win32" } else { "linux" })
+                && (value["cs16FolderPath"].is_null() || value["cs16FolderPath"].is_string())
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn duplicate_bridge_reuses_matching_capability_and_rejects_other_listener() {
+        let listener = (60000..61000)
+            .find_map(|port| TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).ok())
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let token = "a".repeat(64);
+        let origin = "https://16competitive.papamo.dev";
+        let worker = std::thread::spawn({
+            let token = token.clone();
+            move || {
+                let (stream, _) = listener.accept().unwrap();
+                handle(stream, port, &token, origin)
+            }
+        });
+        assert!(serve(port, &token, origin).is_ok());
+        assert!(worker.join().unwrap());
+
+        let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).unwrap();
+        let worker = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = stream.write_all(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
+        });
+        assert!(serve(port, &token, origin).is_err());
+        worker.join().unwrap();
+    }
     fn exchange(request: String, token: &str) -> (bool, String) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();

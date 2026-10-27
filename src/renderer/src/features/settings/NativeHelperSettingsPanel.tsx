@@ -16,6 +16,20 @@ export function NativeHelperSettingsPanel({ className }: { className?: string })
   useEffect(() => {
     if (accountId) void load(accountId)
   }, [accountId, load])
+  useEffect(() => {
+    if (!accountId) return
+    const refresh = (): void => {
+      if (document.visibilityState === 'visible') void load(accountId)
+    }
+    // A match launch can select and save a game folder in the helper while
+    // this Settings page remains mounted in the browser.
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [accountId, load])
   const disabled = !settings || !['idle', 'error'].includes(status)
   const display = settings?.display ?? { resolution: 'current', widescreen: true }
   return (

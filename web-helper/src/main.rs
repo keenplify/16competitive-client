@@ -1065,7 +1065,13 @@ fn run() -> Result<(), String> {
 
 fn main() {
     if let Err(error) = run() {
-        notice(&error);
+        // The local bridge is spawned by a protocol check. Its failures are
+        // reported to the web page; a native dialog on every check can spam.
+        if env::args().nth(1).as_deref() == Some("--local-settings") {
+            eprintln!("Local settings bridge unavailable: {error}");
+        } else {
+            notice(&error);
+        }
         std::process::exit(1);
     }
 }
