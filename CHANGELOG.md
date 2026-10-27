@@ -3397,3 +3397,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Improved Linux-specific support validation.
+
+## v2026.1027.12 — 2026-10-27
+
+### Matchmaking
+
+- The web helper now reports when it is ready for use.
+- Idle native helper processes now stop automatically.
