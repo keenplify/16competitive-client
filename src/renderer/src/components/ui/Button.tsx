@@ -1,8 +1,14 @@
-import type { ButtonHTMLAttributes, JSX } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 
+type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'ghost'
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost'
+  variant?: ButtonVariant
+}
+
+interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  variant?: ButtonVariant
 }
 
 const variants = {
@@ -18,6 +24,13 @@ const variants = {
     'bg-transparent text-neutral-400 hover:bg-white/5 hover:text-white focus-visible:outline-neutral-400'
 } as const
 
+const buttonClassName = (variant: ButtonVariant, className?: string): string =>
+  twMerge(
+    'inline-flex h-11 items-center justify-center px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed',
+    variants[variant],
+    className
+  )
+
 export function Button({
   className,
   type = 'button',
@@ -27,12 +40,16 @@ export function Button({
   return (
     <button
       type={type}
-      className={twMerge(
-        'inline-flex h-11 items-center justify-center  px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed',
-        variants[variant],
-        className
-      )}
+      className={buttonClassName(variant, className)}
       {...props}
     />
   )
+}
+
+export function ButtonLink({
+  className,
+  variant = 'primary',
+  ...props
+}: ButtonLinkProps): JSX.Element {
+  return <a data-ui-button className={buttonClassName(variant, className)} {...props} />
 }

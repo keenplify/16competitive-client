@@ -1,6 +1,6 @@
 import { useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../../components/ui/Button'
+import { Button, ButtonLink } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useTranslation } from '../i18n/i18n'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
@@ -58,7 +58,8 @@ export function WebHelperSetup({ className }: { className?: string }): JSX.Eleme
         >
           {t('webHelper.checkRust')}
         </Button>
-        <a
+        <ButtonLink
+          variant="secondary"
           href={helperDownload}
           download
           target="_blank"
@@ -66,10 +67,9 @@ export function WebHelperSetup({ className }: { className?: string }): JSX.Eleme
           onClick={() => {
             if (!isWindows) setShowLinuxInstructions(true)
           }}
-          className="inline-flex min-h-11 items-center border border-sky-400/35 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-400/10 focus-visible:outline-2 focus-visible:outline-sky-400"
         >
           {t(status === 'outdated-rust' ? 'webHelper.update' : 'webHelper.download')}
-        </a>
+        </ButtonLink>
       </div>
       <p className="min-h-12 text-sm text-neutral-300" role="status">
         {statusText}

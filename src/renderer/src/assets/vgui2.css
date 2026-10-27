@@ -167,7 +167,7 @@
 
 /* Preserve every control's box metrics when toggling the skin. Bevels are inset
  * shadows; no new borders, padding or translations change the page geometry. */
-:root[data-launcher-theme='vgui2'] :where(button, [role='tab'], [role='button']) {
+:root[data-launcher-theme='vgui2'] :where(button, [role='tab'], [role='button'], [data-ui-button]) {
   background-color: var(--vgui-face);
   color: var(--vgui-text);
   border-color: transparent;
@@ -178,14 +178,14 @@
 }
 
 :root[data-launcher-theme='vgui2']
-  :where(button, [role='tab'], [role='button']):hover:not(:disabled) {
+  :where(button, [role='tab'], [role='button'], [data-ui-button]):hover:not(:disabled) {
   background-color: #59664f;
   color: #fff9d9;
   transform: none;
 }
 
 :root[data-launcher-theme='vgui2']
-  :where(button, [role='tab'], [role='button']):is(
+  :where(button, [role='tab'], [role='button'], [data-ui-button]):is(
     :active,
     [aria-pressed='true'],
     [aria-selected='true'],
