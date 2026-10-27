@@ -3378,3 +3378,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Validation
 
 - Tested in the Windows VM: browser-to-helper readiness, NextClient launch, existing HUD frames, and restoration of original game DLL hashes.
+
+## v2026.1027.9 — 2026-10-27
+
+### Linux
+
+- Linux setup now uses the newest downloaded web helper.
