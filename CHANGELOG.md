@@ -3333,3 +3333,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added an alpha-release watermark.
 - Improved local play and custom game handling.
+
+## v2026.1027.5 — 2026-10-27
+
+### Reliability
+
+- Helper settings and update processes now run independently of setup consoles.
