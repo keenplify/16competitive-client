@@ -3514,3 +3514,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added automatic retries when connecting to the local helper.
 - Improved reliability when starting or reconnecting to a game session.
+
+## v2026.1028.11 — 2026-10-28
+
+### Native helper setup
+
+- Improved native helper onboarding.
+- Renewed setup commands and prompts for a clearer setup flow.
+
+### Localization
+
+- Updated native helper setup translations.
