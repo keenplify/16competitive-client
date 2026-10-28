@@ -3458,3 +3458,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Desktop App
 
 - Fixed an issue that could prevent the packaged desktop app from loading correctly.
+
+## v2026.1028.5 — 2026-10-28
+
+### Linux Support
+
+- Added Linux ARM64 support for the web helper.
+
+### Security
+
+- Web helper runtime and updates are now signed.
