@@ -14,7 +14,8 @@ interface WebHelperPromptState {
   status: HelperStatus
   successSequence: number
   accountId: string | null
-  show: () => void
+  onContinue: (() => void) | null
+  show: (onContinue?: () => void) => void
   close: () => void
   closeSetup: () => void
   syncAccount: (accountId: string | null) => void
@@ -38,6 +39,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       competitiveReady: false,
       status: 'rust',
       open: false,
+      onContinue: null,
       setupOpen: false,
       setupCommand: null,
       successSequence: get().successSequence + (announce ? 1 : 0)
@@ -69,12 +71,14 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       if (get().accountId === accountId) set({ competitiveReady: value?.competitiveReady === true })
     },
     accountId: null,
-    show: () => set({ open: true }),
+    onContinue: null,
+    show: (onContinue) => set({ open: true, onContinue: onContinue ?? null }),
     close: () => {
       cancelSetup()
       set({
         awaitingInstall: false,
         open: false,
+        onContinue: null,
         setupOpen: false,
         setupCommand: null,
         ...(get().status === 'checking' ? { status: 'idle' } : {})
@@ -93,6 +97,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       cancelSetup()
       set({
         accountId,
+        onContinue: null,
         awaitingInstall: false,
         nativeReady: false,
         competitiveReady: false,
@@ -101,7 +106,15 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
         setupCommand: null,
         status: 'idle'
       })
-      if (accountId) void get().checkNative()
+      if (accountId) {
+        const current = generation
+        void get()
+          .checkNative()
+          .then((status) => {
+            if (current === generation && get().accountId === accountId && status !== 'rust')
+              set({ open: true })
+          })
+      }
     },
     checkNative: () => {
       if (pendingCheck) return pendingCheck

@@ -23,6 +23,8 @@ jobs:
           node -e "const tag=process.env.RELEASE_TAG.slice(1); const version=require('./package.json').version; if (!/^\\d{4}\\.(?:\\d{1,2}\\.\\d{1,2}|\\d{3,4}\\.\\d+)$/.test(tag) || tag !== version) throw new Error('Tag must use a supported calendar version and match package.json (' + version + ')')"
       - run: npm run typecheck
       - run: npm run lint
+      - name: Test and build web renderer before packaging
+        run: npm run verify:web
 
   package:
     needs: verify-version

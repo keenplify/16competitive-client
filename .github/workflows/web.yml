@@ -17,6 +17,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run build:web
+      - run: npm run verify:web
       - run: grep -RFq '.grid-cols-2' dist-web/assets --include='*.css'
       - run: npm run lint

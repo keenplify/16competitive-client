@@ -42,6 +42,9 @@ Validate with `cargo test --manifest-path web-helper/Cargo.toml --locked`, then
 Web Play checks the native helper on account login, opening Play, and starting a
 search. Checks are deduplicated while pending. The prompt offers only Download
 native helper and Continue to Play; Continue remains available during a check.
+After login, a missing or outdated helper opens the prompt on any lobby page.
+Continuing from that login prompt opens Play without joining the queue. Dismissing
+it lasts for the current login; account refreshes do not reopen it.
 The optional helper uses its own protocol; Web Play no longer selects a cached
 desktop application as its preferred launcher.
 
@@ -52,6 +55,26 @@ short-lived, account-bound verification URL. The helper consumes it directly,
 then the browser closes both setup dialogs and displays the success toast.
 Setup commands expire after two minutes and refresh while the instructions stay
 open. Closing setup or logging out ignores pending verification results.
+
+### Asahi Linux / ARM with Steam in muvm/FEX
+
+The published Linux web helper is an x86-64 binary. On an ARM host with 16 KB
+pages, running it directly can abort with `jemalloc: Unsupported system page size`
+from the emulation environment. Run it in Steam's existing 4 KB muvm/FEX guest:
+
+```sh
+muvm -it -- /usr/bin/FEXInterpreter "$HOME/Downloads/competitive16-web-helper-linux" --fingerprint
+```
+
+This read-only startup check was verified on Asahi Linux (16 KB host, 4 KB guest).
+For a one-time setup, replace `--fingerprint` with a **fresh** quoted setup URL
+from the website. Never reuse a consumed or expired handoff URL.
+
+This is a startup workaround, not verified end-to-end Asahi support. The current
+protocol registration launches the binary directly, and the settings bridge binds
+to guest loopback, which is separate from a browser running on the host. Host-side
+protocol dispatch and a capability-preserving bridge are still needed before
+automatic setup, local settings and match launching can be considered supported.
 
 A verified setup can start a five-minute-idle loopback settings bridge. It binds
 only to `127.0.0.1` on a random high port, requires an independently generated

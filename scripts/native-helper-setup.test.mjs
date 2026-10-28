@@ -106,6 +106,127 @@ test('login and each later Play check probe native helper without using saved su
   assert.equal(store.getState().nativeReady, false)
 })
 
+test('login prompts for a missing or outdated helper, but leaves a ready helper closed', async () => {
+  for (const result of [null, 'outdated-rust', 'rust']) {
+    const { store } = await harness({ check: async () => result })
+    store.getState().syncAccount('player')
+    await store.getState().checkNative()
+    assert.equal(store.getState().open, result !== 'rust')
+    store.getState().close()
+    store.getState().syncAccount('player')
+    await store.getState().checkNative()
+    assert.equal(store.getState().open, false, 'account refresh must respect dismissal')
+  }
+  const { store } = await harness({
+    check: async () => {
+      throw new Error('No handler')
+    }
+  })
+  store.getState().syncAccount('player')
+  await store.getState().checkNative()
+  assert.equal(store.getState().open, true)
+})
+
+test('a delayed login helper check cannot reopen the prompt after dismissal or logout', async () => {
+  for (const cancel of ['close', 'logout']) {
+    let finish
+    const { store } = await harness({
+      check: () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    })
+    store.getState().syncAccount('player')
+    const pending = store.getState().checkNative()
+    if (cancel === 'logout') store.getState().syncAccount(null)
+    else store.getState().close()
+    finish(null)
+    await pending
+    assert.equal(store.getState().open, false)
+    assert.equal(store.getState().status, 'idle')
+  }
+})
+
+test('only an explicit search attaches a queue continuation to the helper prompt', async () => {
+  const { store } = await harness({ check: async () => null })
+  store.getState().syncAccount('player')
+  await store.getState().checkNative()
+  assert.equal(store.getState().onContinue, null)
+  const beginQueue = () => {}
+  store.getState().show(beginQueue)
+  assert.equal(store.getState().onContinue, beginQueue)
+  store.getState().close()
+  assert.equal(store.getState().onContinue, null)
+  store.getState().show(beginQueue)
+  store.getState().syncAccount(null)
+  assert.equal(store.getState().onContinue, null)
+})
+
+test('login prompt renders across lobby pages and never queues without an explicit search', async () => {
+  const exports = {}
+  let web = true
+  let accountId = 'player'
+  let page = 'lobby'
+  let continuation = null
+  let queued = 0
+  const navigations = []
+  const source = ts.transpileModule(
+    await readFile(
+      new URL('../src/renderer/src/features/matchmaking/WebHelperController.tsx', import.meta.url),
+      'utf8'
+    ),
+    {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+        jsx: ts.JsxEmit.ReactJSX
+      }
+    }
+  ).outputText
+  vm.runInNewContext(source, {
+    exports,
+    require: (name) => {
+      if (name === 'react') return { useEffect: () => {}, useRef: (current) => ({ current }) }
+      if (name === 'react/jsx-runtime') return { jsx: (type, props) => ({ type, props }) }
+      if (name === '../../web-runtime') return { isWebRuntime: () => web }
+      if (name === '../auth/auth.store')
+        return {
+          useAuthStore: (select) =>
+            select({ session: accountId ? { player: { id: accountId } } : null })
+        }
+      if (name === '../navigation/navigation.store')
+        return {
+          useNavigationStore: (select) =>
+            select({ page, navigate: (target) => navigations.push(target) })
+        }
+      if (name === './web-helper-prompt.store')
+        return { useWebHelperPromptStore: (select) => select({ onContinue: continuation }) }
+      if (name === '../i18n/i18n') return { useTranslation: () => ({ t: (key) => key }) }
+      if (name === './WebHelperPrompt') return { WebHelperPrompt: 'helper-prompt' }
+      return {}
+    }
+  })
+  for (page of ['lobby', 'settings', 'play']) {
+    const dialog = exports.WebHelperController()
+    assert.equal(dialog.type, 'helper-prompt')
+    dialog.props.onContinue()
+    assert.equal(navigations.at(-1), 'play')
+  }
+  continuation = () => {
+    queued++
+  }
+  exports.WebHelperController().props.onContinue()
+  assert.equal(queued, 1)
+  page = 'settings'
+  exports.WebHelperController().props.onContinue()
+  assert.equal(queued, 1, 'leaving Play must not use a previous queue continuation')
+  accountId = null
+  assert.equal(exports.WebHelperController(), null)
+  accountId = 'player'
+  web = false
+  assert.equal(exports.WebHelperController(), null)
+})
+
 test('successful terminal verification closes instructions and upsell, emitting one success', async () => {
   let done
   const waiting = new Promise((resolve) => {

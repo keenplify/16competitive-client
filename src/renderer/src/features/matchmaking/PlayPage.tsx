@@ -37,7 +37,6 @@ import { displayedPlayWindowNode } from './play-window-node'
 import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
 import { useDesktopAppUrl } from '../community/links'
-import { WebHelperPrompt } from './WebHelperPrompt'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
 const connectionLabels = {
@@ -263,7 +262,7 @@ export function PlayPage({
     if (webRuntime) {
       const accountId = player?.id
       // Keep Continue available while the protocol check or update is pending.
-      showHelperPrompt()
+      showHelperPrompt(beginQueue)
       const launcher = await checkNativeHelper()
       // A completed check must not queue a player who signed out or navigated away.
       if (
@@ -536,7 +535,6 @@ export function PlayPage({
           'lg:h-[calc(100vh-5rem)] lg:overflow-hidden'
       )}
     >
-      {webRuntime && <WebHelperPrompt onContinue={beginQueue} />}
       <div
         className={twMerge(
           'mx-auto w-full max-w-7xl',
