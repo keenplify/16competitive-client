@@ -628,6 +628,7 @@ const queueTray = new QueueTrayController({
 let quitRequested = false
 
 let selectedRendererEntry: string | undefined
+const packagedOutputPath = (...parts: string[]): string => join(app.getAppPath(), 'out', ...parts)
 
 function createWindow(): void {
   const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
@@ -647,7 +648,7 @@ function createWindow(): void {
     title: installedAppIdentity.name,
     icon: installedAppIdentity.icon,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: packagedOutputPath('preload', 'index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
@@ -686,7 +687,7 @@ function createWindow(): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    const entry = selectedRendererEntry ?? join(__dirname, '../renderer/index.html')
+    const entry = selectedRendererEntry ?? packagedOutputPath('renderer', 'index.html')
     const startupTimer = setTimeout(() => {
       if (rollbackRendererStartup()) {
         app.relaunch()
@@ -766,7 +767,7 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
-  selectedRendererEntry = selectRendererEntry(join(__dirname, '../renderer/index.html'))
+  selectedRendererEntry = selectRendererEntry(packagedOutputPath('renderer', 'index.html'))
   if (REQUIRES_SIGNED_HELPER) {
     let checkingHelper = false
     let shuttingDown = false
