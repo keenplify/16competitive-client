@@ -3452,3 +3452,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added web crosshair settings.
 - Improved voice chat push-to-talk settings.
 - Refined match and roster views.
+
+## v2026.1028.4 — 2026-10-28
+
+### Desktop App
+
+- Fixed an issue that could prevent the packaged desktop app from loading correctly.
