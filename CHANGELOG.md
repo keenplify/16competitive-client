@@ -3475,3 +3475,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added support for loopback settings for the web helper.
 - Improved the settings panel width for easier viewing.
+
+## v2026.1028.7 — 2026-10-28
+
+### Linux
+
+- Folder pickers now open in an existing directory when available.
