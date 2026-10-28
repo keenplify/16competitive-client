@@ -371,6 +371,45 @@ test('outdated native helper does not claim setup success', async () => {
   assert.equal(store.getState().successSequence, 0)
 })
 
+test('Back returns to download and ignores late verification without restarting on focus', async () => {
+  let finish
+  const { store } = await harness({
+    check: async () => null,
+    wait: () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  })
+  store.getState().syncAccount('player')
+  await store.getState().checkNative()
+  const pending = store.getState().prepareSetup('arm64')
+  await new Promise((resolve) => setImmediate(resolve))
+  store.getState().closeSetup()
+  assert.equal(store.getState().onboardingOpen, true)
+  assert.equal(store.getState().setupOpen, false)
+  assert.equal(store.getState().setupCommand, null)
+  assert.equal(store.getState().awaitingInstall, false)
+  assert.equal(store.getState().status, 'idle')
+  finish('rust')
+  await pending
+  assert.equal(store.getState().nativeReady, false)
+  assert.equal(store.getState().successSequence, 0)
+})
+
+test('Linux setup has separate Back and Close actions with translated Back labels', async () => {
+  const setupSource = await readFile(
+    new URL('../src/renderer/src/features/matchmaking/WebHelperSetup.tsx', import.meta.url),
+    'utf8'
+  )
+  assert.match(setupSource, /onClick=\{closeSetup\}>[\s\S]*?t\('webHelper.back'\)/)
+  assert.match(setupSource, /onClick=\{close\}>[\s\S]*?t\('webHelper.close'\)/)
+  const { webHelperTranslations } =
+    await import('../src/renderer/src/features/i18n/web-helper-translations.ts')
+  for (const language of ['en', 'ru', 'tl', 'th', 'id', 'hi', 'pt', 'ja']) {
+    assert.ok(webHelperTranslations[language]['webHelper.back'], language)
+  }
+})
+
 test('copying a Linux setup command renews its short-lived handoff', async () => {
   let handoff = 0
   const { store } = await harness({

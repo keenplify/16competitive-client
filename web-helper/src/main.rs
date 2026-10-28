@@ -96,6 +96,8 @@ fn cs16_standalone_windows_args(root: &Path, pattern: &GamePattern) -> Result<Ve
     Ok(args)
 }
 
+// Keep in sync with vite.webapp.config.ts. Launcher package metadata is not
+// a helper compatibility input: unchanged binaries are reused across releases.
 fn helper_fingerprint() -> String {
     let mut digest = Sha256::new();
     for source in [
@@ -118,7 +120,6 @@ fn helper_fingerprint() -> String {
         include_bytes!("../../src/shared/windows-goldclient-exports.json").as_slice(),
         include_bytes!("../../helper-release.json").as_slice(),
         include_bytes!("../../src/shared/discord-application.json").as_slice(),
-        include_bytes!("../../package.json").as_slice(),
     ] {
         digest.update(source);
     }

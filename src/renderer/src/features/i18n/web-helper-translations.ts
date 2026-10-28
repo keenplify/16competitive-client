@@ -57,6 +57,7 @@ const en = {
     'The native helper did not respond. Download it, or continue with Steam where supported.',
   'webHelper.notNow': 'Not now',
   'webHelper.never': 'Never show again',
+  'webHelper.back': 'Back',
   'webHelper.close': 'Close setup'
 } as const
 
@@ -121,6 +122,7 @@ export const webHelperTranslations: Record<
       'Нативный помощник не ответил. Скачайте его или продолжите через Steam, где это поддерживается.',
     'webHelper.notNow': 'Не сейчас',
     'webHelper.never': 'Больше не показывать',
+    'webHelper.back': 'Назад',
     'webHelper.close': 'Закрыть настройку'
   },
   tl: {
@@ -181,6 +183,7 @@ export const webHelperTranslations: Record<
       'Hindi tumugon ang native helper. I-download ito o magpatuloy sa Steam kung suportado.',
     'webHelper.notNow': 'Huwag muna',
     'webHelper.never': 'Huwag nang ipakita',
+    'webHelper.back': 'Bumalik',
     'webHelper.close': 'Isara ang setup'
   },
   th: {
@@ -238,6 +241,7 @@ export const webHelperTranslations: Record<
     'webHelper.unavailable': 'ตัวช่วยเนทีฟไม่ตอบสนอง ดาวน์โหลดตัวช่วยหรือใช้ Steam เมื่อรองรับ',
     'webHelper.notNow': 'ยังไม่ตอนนี้',
     'webHelper.never': 'ไม่ต้องแสดงอีก',
+    'webHelper.back': 'ย้อนกลับ',
     'webHelper.close': 'ปิดการตั้งค่า'
   },
   id: {
@@ -298,6 +302,7 @@ export const webHelperTranslations: Record<
       'Helper native tidak merespons. Unduh helper atau lanjutkan dengan Steam jika didukung.',
     'webHelper.notNow': 'Jangan sekarang',
     'webHelper.never': 'Jangan tampilkan lagi',
+    'webHelper.back': 'Kembali',
     'webHelper.close': 'Tutup pengaturan'
   },
   pt: {
@@ -357,6 +362,7 @@ export const webHelperTranslations: Record<
       'O helper nativo não respondeu. Baixe-o ou continue com o Steam quando disponível.',
     'webHelper.notNow': 'Agora não',
     'webHelper.never': 'Não mostrar novamente',
+    'webHelper.back': 'Voltar',
     'webHelper.close': 'Fechar configuração'
   },
   ja: {
@@ -416,6 +422,7 @@ export const webHelperTranslations: Record<
       'ネイティブヘルパーから応答がありません。ダウンロードするか、対応している場合はSteamで続行してください。',
     'webHelper.notNow': '今はしない',
     'webHelper.never': '今後表示しない',
+    'webHelper.back': '戻る',
     'webHelper.close': '設定を閉じる'
   },
   hi: {
@@ -474,6 +481,7 @@ export const webHelperTranslations: Record<
       'नेटिव हेल्पर ने जवाब नहीं दिया। इसे डाउनलोड करें या जहाँ समर्थित हो वहाँ Steam से जारी रखें।',
     'webHelper.notNow': 'अभी नहीं',
     'webHelper.never': 'फिर कभी न दिखाएँ',
+    'webHelper.back': 'वापस',
     'webHelper.close': 'सेटअप बंद करें'
   }
 }

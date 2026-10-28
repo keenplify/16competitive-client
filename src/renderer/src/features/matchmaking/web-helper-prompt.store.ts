@@ -138,6 +138,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     closeSetup: () => {
       cancelSetup()
       set({
+        awaitingInstall: false,
         setupOpen: false,
         setupCommand: null,
         ...(get().status === 'checking' ? { status: 'idle' } : {})

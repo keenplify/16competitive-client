@@ -9,6 +9,8 @@ import tailwindcss from '@tailwindcss/vite'
 const packageVersion = (
   JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string }
 ).version
+// Compatibility follows helper sources/contracts. Launcher-only releases reuse
+// the helper binary, so package.json must not change its expected fingerprint.
 const webHelperFingerprint = createHash('sha256')
 for (const source of [
   'web-helper/src/main.rs',
@@ -29,8 +31,7 @@ for (const source of [
   'src/shared/windows-client-exports.json',
   'src/shared/windows-goldclient-exports.json',
   'helper-release.json',
-  'src/shared/discord-application.json',
-  'package.json'
+  'src/shared/discord-application.json'
 ])
   webHelperFingerprint.update(readFileSync(resolve(source)))
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react'
-import { ArrowUpRight, Copy, LoaderCircle } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Copy, LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -30,6 +30,7 @@ export function WebHelperSetup({
   const prepareSetup = useWebHelperPromptStore((state) => state.prepareSetup)
   const renewSetupCommand = useWebHelperPromptStore((state) => state.renewSetupCommand)
   const closeSetup = useWebHelperPromptStore((state) => state.closeSetup)
+  const close = useWebHelperPromptStore((state) => state.close)
   const [copyFeedback, setCopyFeedback] = useState<{
     command: string | null
     status: 'copied' | 'failed'
@@ -99,7 +100,11 @@ export function WebHelperSetup({
           : t('webHelper.linuxAfter')}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="secondary" onClick={closeSetup}>
+        <Button variant="secondary" className="min-w-28 gap-2" onClick={closeSetup}>
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {t('webHelper.back')}
+        </Button>
+        <Button variant="secondary" className="min-w-28" onClick={close}>
           {t('webHelper.close')}
         </Button>
       </div>

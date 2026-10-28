@@ -22,6 +22,7 @@ test('web helper release rebuilds for Rust, launch contracts, or native release 
     commit('baseline')
     git('tag', 'v1.0.0')
     await writeFile(join(root, 'other.txt'), 'unrelated')
+    await writeFile(join(root, 'package.json'), JSON.stringify({ version: '2026.1028.11' }))
     git('add', '.')
     commit('other')
     assert.deepEqual(webHelperReleaseChanges(root), { changed: false, previousTag: 'v1.0.0' })
