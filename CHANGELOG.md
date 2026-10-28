@@ -3411,3 +3411,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed duplicate helper bridge behavior.
 - Refreshed game folder settings.
+
+## v2026.1028.1 — 2026-10-28
+
+### Matchmaking
+
+- Fixed helper onboarding after login.
+- Improved web helper prompts during matchmaking.
+
+### Reliability
+
+- Verified web release builds for a smoother launch experience.
