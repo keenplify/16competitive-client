@@ -41,7 +41,7 @@ export function NativeHelperSettingsPanel({
   return (
     <section
       className={twMerge(
-        'mt-5 w-full max-w-3xl space-y-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7',
+        'mt-5 w-full space-y-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7',
         className
       )}
       aria-busy={!['idle', 'error'].includes(status)}
