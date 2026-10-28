@@ -40,11 +40,16 @@ test('runtime releases bind the exact archive and file inventory to the pinned s
       join(unpacked, 'resources', 'scoreboard', 'index.html'),
       '<div>existing renderer</div>'
     )
-    for (const platform of ['win', 'linux']) {
-      const manifest = await packageHelperRuntime(unpacked, root, platform)
+    for (const [platform, arch] of [
+      ['win', 'x64'],
+      ['linux', 'x64'],
+      ['linux', 'arm64']
+    ]) {
+      const manifest = await packageHelperRuntime(unpacked, root, platform, arch)
       assert.equal(manifest.version, version)
+      assert.equal(manifest.arch, arch)
       assert.ok(manifest.files['resources/scoreboard/index.html'])
-      const extracted = join(root, `extracted-${platform}`)
+      const extracted = join(root, `extracted-${platform}-${arch}`)
       await mkdir(extracted)
       execFileSync(process.platform === 'win32' ? 'tar.exe' : 'tar', [
         '-xzf',

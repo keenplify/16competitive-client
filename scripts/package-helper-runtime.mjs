@@ -52,7 +52,11 @@ async function stageRuntime(root, work) {
 }
 
 export async function packageHelperRuntime(root, output, platform, arch = 'x64') {
-  if (!['win', 'linux'].includes(platform) || arch !== 'x64')
+  if (
+    !['win', 'linux'].includes(platform) ||
+    !['x64', 'arm64'].includes(arch) ||
+    (platform === 'win' && arch !== 'x64')
+  )
     throw new Error('Unsupported runtime target')
   const executable = platform === 'win' ? '16competitive-client.exe' : '16competitive-client'
   const { version } = JSON.parse(
@@ -111,5 +115,10 @@ export async function packageHelperRuntime(root, output, platform, arch = 'x64')
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await packageHelperRuntime(resolve(process.argv[2]), resolve(process.argv[3]), process.argv[4])
+  await packageHelperRuntime(
+    resolve(process.argv[2]),
+    resolve(process.argv[3]),
+    process.argv[4],
+    process.argv[5]
+  )
 }

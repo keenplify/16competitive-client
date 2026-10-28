@@ -285,6 +285,30 @@ export async function buildLocalRelease(kind, root, version, commit) {
         join(source, 'web-helper/target/release/competitive16-web-helper'),
         join(artifacts, 'competitive16-web-helper-linux')
       )
+      await container(
+        'desktop',
+        source,
+        'node',
+        ['--experimental-strip-types', 'scripts/prepare-game-inspector.mjs', 'linux', 'arm64'],
+        approved,
+        buildEnv
+      )
+      await container('helper-arm64', source, 'cargo', [
+        'build',
+        '--manifest-path',
+        'web-helper/Cargo.toml',
+        '--release',
+        '--locked',
+        '--target',
+        'aarch64-unknown-linux-gnu'
+      ])
+      await copyFile(
+        join(
+          source,
+          'web-helper/target/aarch64-unknown-linux-gnu/release/competitive16-web-helper'
+        ),
+        join(artifacts, 'competitive16-web-helper-linux-arm64')
+      )
     }
     run('scp', [...scpArgs, '-r', approved, `build@127.0.0.1:${guest}/`])
     if (!buildWebHelper) await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
@@ -296,6 +320,15 @@ export async function buildLocalRelease(kind, root, version, commit) {
           source,
           'node',
           ['scripts/package-helper-runtime.mjs', 'dist/linux-unpacked', 'dist', 'linux'],
+          approved,
+          buildEnv
+        )
+      } else {
+        await container(
+          'desktop',
+          source,
+          'node',
+          ['scripts/package-helper-runtime.mjs', 'dist/linux-arm64-unpacked', 'dist', 'linux', 'arm64'],
           approved,
           buildEnv
         )

@@ -22,7 +22,7 @@ interface WebHelperPromptState {
   syncAccount: (accountId: string | null) => void
   checkNative: () => Promise<HelperStatus>
   refreshReadiness: () => Promise<void>
-  prepareSetup: () => Promise<void>
+  prepareSetup: (arch?: 'x64' | 'arm64') => Promise<void>
 }
 
 let generation = 0
@@ -147,7 +147,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       })
       return operation
     },
-    prepareSetup: async () => {
+    prepareSetup: async (arch = 'x64') => {
       cancelSetup()
       const current = generation
       set({ awaitingInstall: true, setupOpen: true, setupCommand: null, status: 'checking' })
@@ -164,7 +164,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
           set({
             // Browsers append (1), (2), ... when an older download has the
             // same name. Select the newest completed helper in this folder.
-            setupCommand: `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
+            setupCommand: `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux${arch === 'arm64' ? '-arm64' : ''}(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
           })
           const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
           if (current !== generation || !get().setupOpen) return

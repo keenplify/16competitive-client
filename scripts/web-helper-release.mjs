@@ -3,7 +3,11 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-export const webHelperAssets = ['competitive16-web-helper.exe', 'competitive16-web-helper-linux']
+export const webHelperAssets = [
+  'competitive16-web-helper.exe',
+  'competitive16-web-helper-linux',
+  'competitive16-web-helper-linux-arm64'
+]
 
 /** The shared launch pattern is part of the Rust binary and must trigger a rebuild. */
 export function webHelperReleaseChanges(root, commit = 'HEAD') {

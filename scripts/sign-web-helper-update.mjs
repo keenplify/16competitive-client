@@ -23,7 +23,7 @@ export async function signWebHelperUpdates(
       version,
       fileName,
       platform: fileName.endsWith('.exe') ? 'win' : 'linux',
-      arch: 'x64',
+      arch: fileName.endsWith('-arm64') ? 'arm64' : 'x64',
       sha256: createHash('sha256').update(bytes).digest('hex'),
       sizeBytes: bytes.length
     })

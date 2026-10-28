@@ -62,6 +62,9 @@ jobs:
       - name: Package Linux background helper runtime
         if: matrix.command == 'npm run build:linux'
         run: node scripts/package-helper-runtime.mjs dist/linux-unpacked dist linux
+      - name: Package Linux ARM64 background helper runtime
+        if: matrix.command == 'npm run build:linux:arm64'
+        run: node scripts/package-helper-runtime.mjs dist/linux-arm64-unpacked dist linux arm64
       - name: Verify release backend target
         run: node --experimental-strip-types scripts/check-release-backend.mjs
       - uses: actions/upload-artifact@v4
@@ -92,6 +95,8 @@ jobs:
             asset: competitive16-web-helper.exe
           - os: ubuntu-latest
             asset: competitive16-web-helper-linux
+          - os: ubuntu-latest
+            asset: competitive16-web-helper-linux-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -116,6 +121,11 @@ jobs:
           fi
       - uses: dtolnay/rust-toolchain@stable
         if: steps.reuse.outputs.ready != 'true'
+        with:
+          targets: aarch64-unknown-linux-gnu
+      - name: Install ARM64 cross compiler
+        if: matrix.asset == 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - uses: actions/setup-node@v4
         if: steps.reuse.outputs.ready != 'true'
         with:
@@ -130,22 +140,31 @@ jobs:
           if [[ "$RUNNER_OS" == Windows ]]; then
             node --experimental-strip-types scripts/prepare-game-inspector.mjs win x64
           else
-            node --experimental-strip-types scripts/prepare-game-inspector.mjs linux x64
+            node --experimental-strip-types scripts/prepare-game-inspector.mjs linux "${{ matrix.asset == 'competitive16-web-helper-linux-arm64' && 'arm64' || 'x64' }}"
           fi
       - run: cargo test --manifest-path web-helper/Cargo.toml --locked
-        if: steps.reuse.outputs.ready != 'true'
+        if: matrix.asset != 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
       - run: cargo build --manifest-path web-helper/Cargo.toml --release --locked
-        if: steps.reuse.outputs.ready != 'true'
+        if: matrix.asset != 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
+      - name: Build Linux ARM64 helper
+        if: matrix.asset == 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+        run: cargo build --manifest-path web-helper/Cargo.toml --release --locked --target aarch64-unknown-linux-gnu
       - name: Name Windows binary
         if: runner.os == 'Windows' && steps.reuse.outputs.ready != 'true'
         shell: bash
         run: cp web-helper/target/release/competitive16-web-helper.exe "${{ matrix.asset }}"
       - name: Name Linux binary
-        if: runner.os == 'Linux' && steps.reuse.outputs.ready != 'true'
+        if: matrix.asset == 'competitive16-web-helper-linux' && steps.reuse.outputs.ready != 'true'
         run: cp web-helper/target/release/competitive16-web-helper "${{ matrix.asset }}"
+      - name: Name Linux ARM64 binary
+        if: matrix.asset == 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
+        run: cp web-helper/target/aarch64-unknown-linux-gnu/release/competitive16-web-helper "${{ matrix.asset }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: web-helper-${{ runner.os }}
+          name: web-helper-${{ matrix.asset }}
           path: ${{ matrix.asset }}
           if-no-files-found: error
 

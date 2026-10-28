@@ -77,9 +77,14 @@ struct Manifest {
 fn asset() -> &'static str {
     if cfg!(windows) {
         "helper-runtime-win-x64.tar.gz"
+    } else if cfg!(target_arch = "aarch64") {
+        "helper-runtime-linux-arm64.tar.gz"
     } else {
         "helper-runtime-linux-x64.tar.gz"
     }
+}
+fn runtime_arch() -> &'static str {
+    if cfg!(target_arch = "aarch64") { "arm64" } else { "x64" }
 }
 fn hash_valid(value: &str) -> bool {
     value.len() == 64
@@ -148,7 +153,7 @@ fn verify(envelope: &Envelope) -> Result<Manifest, String> {
     .ok_or("Invalid runtime version")?;
     if m.schema_version != 1
         || m.platform != if cfg!(windows) { "win" } else { "linux" }
-        || m.arch != "x64"
+        || m.arch != runtime_arch()
         || m.file_name != asset()
         || !hash_valid(&m.sha256)
         || m.size_bytes == 0
@@ -286,9 +291,6 @@ pub fn ensure() -> Result<PathBuf, String> {
     #[cfg(debug_assertions)]
     if let Some(path) = env::var_os("COMPETITIVE16_RUNTIME_EXE") {
         return Ok(PathBuf::from(path));
-    }
-    if cfg!(target_arch = "aarch64") {
-        return Err("Native helper runtime requires x64".into());
     }
     let config = user_config_dir()?;
     fs::create_dir_all(&config).map_err(|e| e.to_string())?;

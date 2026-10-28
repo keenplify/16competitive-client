@@ -8,8 +8,14 @@ const CONTEXT: &str = "16competitive.web-helper.update.v1\n";
 const RELEASE_ROOT: &str = "https://github.com/keenplify/16competitive-client/releases";
 #[cfg(windows)]
 const ASSET: &str = "competitive16-web-helper.exe";
-#[cfg(not(windows))]
+#[cfg(all(not(windows), target_arch = "aarch64"))]
+const ASSET: &str = "competitive16-web-helper-linux-arm64";
+#[cfg(all(not(windows), not(target_arch = "aarch64")))]
 const ASSET: &str = "competitive16-web-helper-linux";
+#[cfg(target_arch = "aarch64")]
+const ARCH: &str = "arm64";
+#[cfg(not(target_arch = "aarch64"))]
+const ARCH: &str = "x64";
 #[derive(Deserialize)]
 struct Envelope {
     manifest: String,
@@ -66,7 +72,7 @@ fn verify(envelope: &Envelope, public_key: &str) -> Result<Manifest, String> {
         serde_json::from_str(&envelope.manifest).map_err(|_| "Invalid helper update manifest")?;
     if m.schema_version != 1
         || m.file_name != ASSET
-        || m.arch != "x64"
+        || m.arch != ARCH
         || m.platform != if cfg!(windows) { "win" } else { "linux" }
         || version(&m.version).is_none()
         || m.size_bytes == 0
@@ -214,7 +220,7 @@ mod tests {
             version: "2026.1027.4".into(),
             file_name: ASSET.into(),
             platform: if cfg!(windows) { "win" } else { "linux" }.into(),
-            arch: "x64".into(),
+            arch: ARCH.into(),
             sha256: format!("{:x}", Sha256::digest(&bytes)),
             size_bytes: bytes.len(),
         })

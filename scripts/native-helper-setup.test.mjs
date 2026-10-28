@@ -310,6 +310,40 @@ test(
   }
 )
 
+test(
+  'Linux ARM64 setup runs the ARM64 download',
+  { skip: process.platform === 'win32' },
+  async () => {
+    let done
+    const waiting = new Promise((resolve) => {
+      done = resolve
+    })
+    const { store, setup } = await harness({ wait: () => waiting })
+    const directory = await mkdtemp(join(tmpdir(), 'native-helper-arm-download-'))
+    try {
+      await writeFile(
+        join(directory, 'competitive16-web-helper-linux'),
+        '#!/bin/sh\nprintf "x64\\n"\n'
+      )
+      await writeFile(
+        join(directory, 'competitive16-web-helper-linux-arm64'),
+        '#!/bin/sh\nprintf "arm64:%s\\n" "$1"\n'
+      )
+      const pending = store.getState().prepareSetup('arm64')
+      await new Promise((resolve) => setImmediate(resolve))
+      const command = store.getState().setupCommand.replace('cd ~/Downloads', `cd '${directory}'`)
+      const result = spawnSync('bash', ['-c', command], { encoding: 'utf8' })
+      assert.equal(result.status, 0, result.stderr)
+      assert.equal(result.stdout.trim(), `arm64:${setup.checkUrl}`)
+      store.getState().closeSetup()
+      done('rust')
+      await pending
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  }
+)
+
 test('logout or cancellation ignores late native setup verification', async () => {
   let done
   const waiting = new Promise((resolve) => {
@@ -340,7 +374,11 @@ test('web helper update assets are signed with a distinct context and pinned key
   const directory = await mkdtemp(join(tmpdir(), 'native-helper-signing-'))
   const { privateKey, publicKey } = generateKeyPairSync('ed25519')
   try {
-    for (const asset of ['competitive16-web-helper.exe', 'competitive16-web-helper-linux'])
+    for (const asset of [
+      'competitive16-web-helper.exe',
+      'competitive16-web-helper-linux',
+      'competitive16-web-helper-linux-arm64'
+    ])
       await writeFile(join(directory, asset), 'fixture-binary')
     const paths = await signWebHelperUpdates(
       directory,
@@ -349,9 +387,13 @@ test('web helper update assets are signed with a distinct context and pinned key
       privateKey,
       publicKey
     )
-    assert.equal(paths.length, 2)
+    assert.equal(paths.length, 3)
     for (const path of paths) {
       const envelope = JSON.parse(await readFile(path, 'utf8'))
+      assert.equal(
+        JSON.parse(envelope.manifest).arch,
+        path.endsWith('-arm64.update.json') ? 'arm64' : 'x64'
+      )
       assert.ok(
         verify(
           null,

@@ -7,9 +7,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
 const isWindows = navigator.platform.toLowerCase().includes('win')
-const helperDownload = isWindows
-  ? 'https://github.com/keenplify/16competitive-client/releases/latest/download/competitive16-web-helper.exe'
-  : 'https://github.com/keenplify/16competitive-client/releases/latest/download/competitive16-web-helper-linux'
+const helperRelease = 'https://github.com/keenplify/16competitive-client/releases/latest/download/'
 
 export function WebHelperSetup({
   className,
@@ -101,20 +99,30 @@ export function WebHelperSetup({
         <span>{statusText}</span>
       </p>
       <div className={twMerge('grid gap-3', onContinue && 'sm:grid-cols-2')}>
-        <ButtonLink
-          variant="primary"
-          className="h-auto min-h-11 py-2 text-center"
-          href={helperDownload}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => {
-            if (!isWindows) void prepareSetup()
-            else useWebHelperPromptStore.getState().awaitInstall()
-          }}
-        >
-          {t('webHelper.download')}
-        </ButtonLink>
+        {(isWindows
+          ? [{ file: 'competitive16-web-helper.exe', arch: null }]
+          : [
+              { file: 'competitive16-web-helper-linux', arch: 'x64' as const },
+              { file: 'competitive16-web-helper-linux-arm64', arch: 'arm64' as const }
+            ]
+        ).map(({ file, arch }) => (
+          <ButtonLink
+            key={file}
+            variant="primary"
+            className="h-auto min-h-11 py-2 text-center"
+            href={`${helperRelease}${file}`}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (arch) void prepareSetup(arch)
+              else useWebHelperPromptStore.getState().awaitInstall()
+            }}
+          >
+            {t('webHelper.download')}
+            {arch ? ` · Linux ${arch === 'x64' ? 'x64' : 'ARM64'}` : ''}
+          </ButtonLink>
+        ))}
         {onContinue && (
           <Button className="h-auto min-h-11 py-2" variant="secondary" onClick={onContinue}>
             {t('webHelper.notNow')}

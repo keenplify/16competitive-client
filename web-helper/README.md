@@ -1,6 +1,6 @@
 # Web match helper
 
-The Rust helper handles `competitive16-helper://` browser links, registers a user-level protocol, and runs a small system tray with Open, Settings and Quit. Setup and launch commands detach without leaving a terminal. Windows and Linux x64 are supported; installation requires no administrator rights. Installation folders and preferences stay on the device. `config.cfg` is strictly out of bounds.
+The Rust helper handles `competitive16-helper://` browser links, registers a user-level protocol, and runs a small system tray with Open, Settings and Quit. Setup and launch commands detach without leaving a terminal. Windows x64, Linux x64, and Linux ARM64 are supported; installation requires no administrator rights. Installation folders and preferences stay on the device. `config.cfg` is strictly out of bounds.
 
 CS 1.6 uses the same game adapter, React scoreboard, crosshair profiles, animated kill cards, native pings, asset pipeline, scanner supervision and recovery code as the desktop client. The helper downloads a signed background runtime once and caches it. The runtime has a separate bootstrap entry: it creates no launcher window, restores no desktop account, and persists no browser session token. It runs only for checks, setup, asset synchronization or the managed game, then exits after cleanup. CS 1.3 keeps its separate legacy launch adapter.
 

@@ -6,7 +6,8 @@ import { pathToFileURL } from 'node:url'
 
 export const helperRuntimeAssets = [
   'helper-runtime-win-x64.tar.gz',
-  'helper-runtime-linux-x64.tar.gz'
+  'helper-runtime-linux-x64.tar.gz',
+  'helper-runtime-linux-arm64.tar.gz'
 ]
 export async function signHelperRuntimes(directory, output, version, privateKeyPem, publicKeyPem) {
   const paths = []
@@ -14,10 +15,14 @@ export async function signHelperRuntimes(directory, output, version, privateKeyP
     const manifest = (await readFile(join(directory, `${name}.unsigned.json`), 'utf8')).trim()
     const m = JSON.parse(manifest),
       bytes = await readFile(join(directory, name))
+    const expectedPlatform = name.includes('-win-') ? 'win' : 'linux'
+    const expectedArch = name.includes('-arm64.') ? 'arm64' : 'x64'
     if (
       m.schemaVersion !== 1 ||
       m.version !== version ||
       m.fileName !== name ||
+      m.platform !== expectedPlatform ||
+      m.arch !== expectedArch ||
       m.sizeBytes !== bytes.length ||
       bytes.length > 512 * 1024 * 1024 ||
       m.sha256 !== createHash('sha256').update(bytes).digest('hex')

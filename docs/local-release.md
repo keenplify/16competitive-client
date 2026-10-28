@@ -11,9 +11,9 @@ regression tests must pass and the browser renderer must build successfully.
 The hosted release workflow runs the same check before packaging. After desktop
 publication, the release script builds and deploys the web renderer from the exact
 release tag, including helper onboarding changes. Windows and Linux x64 web-helper
-binaries are rebuilt when their source or embedded native assets change; unchanged
-binaries can be reused from the previous release. This does not add a native ARM64
-web helper or automatic muvm integration.
+binaries for Windows x64, Linux x64, and Linux ARM64 are rebuilt when their source
+or embedded native assets change; unchanged binaries can be reused from the previous
+release. ARM64 game launch still depends on a compatible local GoldSrc environment.
 
 The local command checks Docker, GitHub CLI authentication, the Windows build VM,
 and production endpoints before creating tags. Linux x64/ARM64 builds run on the

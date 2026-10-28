@@ -51,20 +51,30 @@ struct Manifest {
 const PLATFORM: &str = "win";
 #[cfg(not(windows))]
 const PLATFORM: &str = "linux";
+#[cfg(target_arch = "aarch64")]
+const ARCH: &str = "arm64";
+#[cfg(not(target_arch = "aarch64"))]
 const ARCH: &str = "x64";
 
 #[cfg(windows)]
 const ENVELOPE: &[u8] = include_bytes!("../../resources/native/win-x64/manifest.json");
-#[cfg(not(windows))]
+#[cfg(all(not(windows), target_arch = "aarch64"))]
+const ENVELOPE: &[u8] = include_bytes!("../../resources/native/linux-arm64/manifest.json");
+#[cfg(all(not(windows), not(target_arch = "aarch64")))]
 const ENVELOPE: &[u8] = include_bytes!("../../resources/native/linux-x64/manifest.json");
 #[cfg(windows)]
 const INSPECTOR: &[u8] = include_bytes!("../../resources/native/win-x64/game-inspector.exe");
-#[cfg(not(windows))]
+#[cfg(all(not(windows), target_arch = "aarch64"))]
+const INSPECTOR: &[u8] = include_bytes!("../../resources/native/linux-arm64/game-inspector");
+#[cfg(all(not(windows), not(target_arch = "aarch64")))]
 const INSPECTOR: &[u8] = include_bytes!("../../resources/native/linux-x64/game-inspector");
 #[cfg(windows)]
 const MODULE: &[u8] =
     include_bytes!("../../resources/native/win-x64/papamo-cosmetic-module-win-x86.dll");
-#[cfg(not(windows))]
+#[cfg(all(not(windows), target_arch = "aarch64"))]
+const MODULE: &[u8] =
+    include_bytes!("../../resources/native/linux-arm64/papamo-cosmetic-module-linux-x86.so");
+#[cfg(all(not(windows), not(target_arch = "aarch64")))]
 const MODULE: &[u8] =
     include_bytes!("../../resources/native/linux-x64/papamo-cosmetic-module-linux-x86.so");
 #[cfg(windows)]
@@ -121,7 +131,7 @@ fn verify_envelope(config: &ReleaseConfig, envelope: &Envelope) -> Result<Manife
     let inspector_name = if PLATFORM == "win" {
         "game-inspector-win-x64.exe"
     } else {
-        "game-inspector-linux-x64"
+        if ARCH == "arm64" { "game-inspector-linux-arm64" } else { "game-inspector-linux-x64" }
     };
     let module_name = if PLATFORM == "win" {
         "papamo-cosmetic-module-win-x86.dll"
