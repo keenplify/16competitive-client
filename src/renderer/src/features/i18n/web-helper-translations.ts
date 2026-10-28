@@ -37,6 +37,7 @@ const en = {
   'webHelper.commandCopied': 'Command copied.',
   'webHelper.copyFailed': 'Could not copy. Select the command above and copy it manually.',
   'webHelper.download': 'Download native helper',
+  'webHelper.viewSourceCode': 'View Source Code',
   'webHelper.update': 'Update native helper',
   'webHelper.checking': 'Checking native helper…',
   'webHelper.success': 'Helper setup successfully',
@@ -104,6 +105,7 @@ export const webHelperTranslations: Record<
     'webHelper.copyFailed':
       'Не удалось скопировать. Выделите команду выше и скопируйте её вручную.',
     'webHelper.download': 'Скачать помощник',
+    'webHelper.viewSourceCode': 'Посмотреть исходный код',
     'webHelper.update': 'Обновить помощник',
     'webHelper.electronReady': 'Приложение готово.',
     'webHelper.rustReady': 'Помощник готов.',
@@ -163,6 +165,7 @@ export const webHelperTranslations: Record<
     'webHelper.copyFailed':
       'Hindi makopya. Piliin ang command sa itaas at kopyahin ito nang mano-mano.',
     'webHelper.download': 'I-download ang helper',
+    'webHelper.viewSourceCode': 'Tingnan ang source code',
     'webHelper.update': 'I-update ang helper',
     'webHelper.electronReady': 'Handa ang desktop app.',
     'webHelper.rustReady': 'Handa ang native helper.',
@@ -221,6 +224,7 @@ export const webHelperTranslations: Record<
     'webHelper.commandCopied': 'คัดลอกคำสั่งแล้ว',
     'webHelper.copyFailed': 'คัดลอกไม่ได้ เลือกคำสั่งด้านบนแล้วคัดลอกด้วยตนเอง',
     'webHelper.download': 'ดาวน์โหลดตัวช่วย',
+    'webHelper.viewSourceCode': 'ดูซอร์สโค้ด',
     'webHelper.update': 'อัปเดตตัวช่วย',
     'webHelper.electronReady': 'แอปเดสก์ท็อปพร้อมแล้ว',
     'webHelper.rustReady': 'ตัวช่วยพร้อมแล้ว',
@@ -278,6 +282,7 @@ export const webHelperTranslations: Record<
     'webHelper.commandCopied': 'Perintah disalin.',
     'webHelper.copyFailed': 'Tidak dapat menyalin. Pilih perintah di atas dan salin secara manual.',
     'webHelper.download': 'Unduh helper',
+    'webHelper.viewSourceCode': 'Lihat Kode Sumber',
     'webHelper.update': 'Perbarui helper',
     'webHelper.electronReady': 'Aplikasi desktop siap.',
     'webHelper.rustReady': 'Helper siap.',
@@ -337,6 +342,7 @@ export const webHelperTranslations: Record<
     'webHelper.copyFailed':
       'Não foi possível copiar. Selecione o comando acima e copie manualmente.',
     'webHelper.download': 'Baixar auxiliar',
+    'webHelper.viewSourceCode': 'Ver código-fonte',
     'webHelper.update': 'Atualizar auxiliar',
     'webHelper.electronReady': 'Aplicativo pronto.',
     'webHelper.rustReady': 'Auxiliar pronto.',
@@ -396,6 +402,7 @@ export const webHelperTranslations: Record<
     'webHelper.copyFailed':
       'コピーできませんでした。上のコマンドを選択して手動でコピーしてください。',
     'webHelper.download': 'ヘルパーをダウンロード',
+    'webHelper.viewSourceCode': 'ソースコードを見る',
     'webHelper.update': 'ヘルパーを更新',
     'webHelper.electronReady': 'デスクトップアプリを利用できます。',
     'webHelper.rustReady': 'ヘルパーを利用できます。',
@@ -454,6 +461,7 @@ export const webHelperTranslations: Record<
     'webHelper.commandCopied': 'कमांड कॉपी हो गई।',
     'webHelper.copyFailed': 'कॉपी नहीं हो सकी। ऊपर की कमांड चुनकर उसे मैन्युअल रूप से कॉपी करें।',
     'webHelper.download': 'हेल्पर डाउनलोड करें',
+    'webHelper.viewSourceCode': 'सोर्स कोड देखें',
     'webHelper.update': 'हेल्पर अपडेट करें',
     'webHelper.electronReady': 'डेस्कटॉप ऐप तैयार है।',
     'webHelper.rustReady': 'हेल्पर तैयार है।',

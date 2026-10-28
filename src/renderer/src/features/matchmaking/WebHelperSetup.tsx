@@ -9,6 +9,7 @@ import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
 const isWindows = navigator.platform.toLowerCase().includes('win')
 const helperRelease = 'https://github.com/keenplify/16competitive-client/releases/latest/download/'
+const helperSource = 'https://github.com/keenplify/16competitive-client/tree/main/web-helper'
 
 export function WebHelperSetup({
   className,
@@ -155,6 +156,15 @@ export function WebHelperSetup({
           </Button>
         )}
       </div>
+      <ButtonLink
+        variant="ghost"
+        className="web-helper-source-link h-9 w-fit border-0 bg-transparent px-0 text-xs text-sky-300 shadow-none hover:bg-transparent hover:text-sky-200"
+        href={helperSource}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t('webHelper.viewSourceCode')}
+      </ButtonLink>
       {inlineSetup && setupOpen && (
         <div className="border border-white/10 bg-neutral-900/90">{setupInstructions}</div>
       )}

@@ -201,6 +201,20 @@
   cursor: not-allowed;
 }
 
+:root[data-launcher-theme='vgui2'] [data-ui-button].web-helper-source-link,
+:root[data-launcher-theme='vgui2'] [data-ui-button].web-helper-source-link:hover,
+:root[data-launcher-theme='vgui2'] [data-ui-button].web-helper-source-link:active {
+  border: 0;
+  background: transparent;
+  color: var(--vgui-accent);
+  box-shadow: none;
+}
+
+:root[data-launcher-theme='vgui2'] [data-ui-button].web-helper-source-link:hover {
+  color: #fff9d9;
+  text-decoration: underline;
+}
+
 :root[data-launcher-theme='vgui2']
   :where(
     input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
