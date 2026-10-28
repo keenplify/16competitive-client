@@ -368,12 +368,20 @@ fn browse_folder() -> Option<PathBuf> {
 
 #[cfg(not(windows))]
 fn browse_folder() -> Option<PathBuf> {
+    // GTK can remember a folder on a removable drive that has since been
+    // unmounted. Give the chooser an existing starting directory every time.
+    let home = env::var_os("HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_dir())
+        .unwrap_or_else(|| PathBuf::from("/"));
+    let initial = format!("{}/", home.display());
     let output = Command::new("zenity")
         .args([
             "--file-selection",
             "--directory",
             "--title=Choose Counter-Strike folder",
         ])
+        .arg(format!("--filename={initial}"))
         .output()
         .ok()?;
     output
