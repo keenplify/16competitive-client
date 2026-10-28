@@ -3525,3 +3525,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Localization
 
 - Updated native helper setup translations.
+
+## v2026.1028.12 — 2026-10-28
+
+### Helper Setup
+
+- Improved compatibility when reusing an existing helper.
+- Added back navigation during helper setup.
