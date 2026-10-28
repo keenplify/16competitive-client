@@ -9,6 +9,7 @@ mod runtime;
 mod self_update;
 mod settings_bridge;
 mod tray;
+mod uninstall;
 #[cfg(windows)]
 mod windows_native;
 use serde::{Deserialize, Serialize};
@@ -997,6 +998,9 @@ fn run() -> Result<(), String> {
     if args.as_slice() == ["--tray"] {
         return tray::run();
     }
+    if args.as_slice() == ["--uninstall"] {
+        return uninstall::run(false);
+    }
     if args.first().map(String::as_str) == Some("--local-settings") {
         if args.len() != 4 {
             return Err("Invalid local settings arguments".into());
@@ -1030,6 +1034,7 @@ fn run() -> Result<(), String> {
     }
     let exe = install_self()?;
     register_protocol(&exe)?;
+    uninstall::register(&exe)?;
     tray::ensure(&exe)?;
     let arg = env::args()
         .skip(1)

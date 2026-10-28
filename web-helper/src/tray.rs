@@ -117,16 +117,46 @@ fn lock(path: &Path) -> Result<Option<fs::File>, String> {
     }
 }
 
-fn labels(locale: &str) -> [&'static str; 3] {
+fn labels(locale: &str) -> [&'static str; 4] {
     match locale.split(['-', '_']).next().unwrap_or("en") {
-        "ru" => ["Открыть 1.6 Competitive", "Настройки", "Выйти"],
-        "tl" | "fil" => ["Buksan ang 1.6 Competitive", "Mga Setting", "Isara"],
-        "th" => ["เปิด 1.6 Competitive", "การตั้งค่า", "ออก"],
-        "id" => ["Buka 1.6 Competitive", "Pengaturan", "Keluar"],
-        "hi" => ["1.6 Competitive खोलें", "सेटिंग्स", "बंद करें"],
-        "pt" => ["Abrir 1.6 Competitive", "Configurações", "Sair"],
-        "ja" => ["1.6 Competitive を開く", "設定", "終了"],
-        _ => ["Open 1.6 Competitive", "Settings", "Quit"],
+        "ru" => [
+            "Открыть 1.6 Competitive",
+            "Настройки",
+            "Удалить помощник",
+            "Выйти",
+        ],
+        "tl" | "fil" => [
+            "Buksan ang 1.6 Competitive",
+            "Mga Setting",
+            "I-uninstall ang Helper",
+            "Isara",
+        ],
+        "th" => ["เปิด 1.6 Competitive", "การตั้งค่า", "ถอนการติดตั้งตัวช่วย", "ออก"],
+        "id" => [
+            "Buka 1.6 Competitive",
+            "Pengaturan",
+            "Hapus Helper",
+            "Keluar",
+        ],
+        "hi" => ["1.6 Competitive खोलें", "सेटिंग्स", "हेल्पर अनइंस्टॉल करें", "बंद करें"],
+        "pt" => [
+            "Abrir 1.6 Competitive",
+            "Configurações",
+            "Desinstalar Helper",
+            "Sair",
+        ],
+        "ja" => [
+            "1.6 Competitive を開く",
+            "設定",
+            "ヘルパーをアンインストール",
+            "終了",
+        ],
+        _ => [
+            "Open 1.6 Competitive",
+            "Settings",
+            "Uninstall Helper",
+            "Quit",
+        ],
     }
 }
 
@@ -164,8 +194,10 @@ fn icon() -> Vec<u8> {
     let mut reader = decoder.read_info().expect("bundled tray logo");
     let mut decoded = vec![0; reader.output_buffer_size()];
     let info = reader.next_frame(&mut decoded).expect("bundled tray logo");
-    assert_eq!((info.width, info.height, info.color_type, info.bit_depth),
-        (96, 96, png::ColorType::Rgba, png::BitDepth::Eight));
+    assert_eq!(
+        (info.width, info.height, info.color_type, info.bit_depth),
+        (96, 96, png::ColorType::Rgba, png::BitDepth::Eight)
+    );
     let mut icon = vec![0; 32 * 32 * 4];
     for y in 0..32 {
         for x in 0..32 {
@@ -202,11 +234,12 @@ pub fn run() -> Result<(), String> {
 fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     enum Event {
         Quit,
+        Uninstall,
         Stopped(Result<(), String>),
     }
     let (send, receive) = std::sync::mpsc::channel();
     struct Tray {
-        labels: [&'static str; 3],
+        labels: [&'static str; 4],
         events: std::sync::mpsc::Sender<Event>,
     }
     impl ksni::Tray for Tray {
@@ -246,9 +279,17 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
                     ..Default::default()
                 }
                 .into(),
-                // Only this tray process exits. Independent match workers finish cleanup.
                 StandardItem {
                     label: self.labels[2].into(),
+                    activate: Box::new(|tray: &mut Self| {
+                        let _ = tray.events.send(Event::Uninstall);
+                    }),
+                    ..Default::default()
+                }
+                .into(),
+                // Only this tray process exits. Independent match workers finish cleanup.
+                StandardItem {
+                    label: self.labels[3].into(),
                     activate: Box::new(|tray: &mut Self| {
                         let _ = tray.events.send(Event::Quit);
                     }),
@@ -272,6 +313,17 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
             Ok(Event::Quit) => {
                 handle.shutdown();
                 break Ok(());
+            }
+            Ok(Event::Uninstall) => {
+                if confirm(crate::uninstall::confirmation()) {
+                    match crate::uninstall::run(true) {
+                        Ok(()) => {
+                            handle.shutdown();
+                            break Ok(());
+                        }
+                        Err(error) => notice(&error),
+                    }
+                }
             }
             Ok(Event::Stopped(result)) => break result,
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) if !presence.needed() => {
@@ -301,8 +353,9 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     let menu = Menu::new();
     let website = MenuItem::new(text[0], true, None);
     let settings = MenuItem::new(text[1], true, None);
-    let quit = MenuItem::new(text[2], true, None);
-    menu.append_items(&[&website, &settings, &quit])
+    let uninstall = MenuItem::new(text[2], true, None);
+    let quit = MenuItem::new(text[3], true, None);
+    menu.append_items(&[&website, &settings, &uninstall, &quit])
         .map_err(|e| e.to_string())?;
     let _tray = TrayIconBuilder::new()
         .with_tooltip(TITLE)
@@ -325,6 +378,14 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
             }
         }
         while let Ok(event) = MenuEvent::receiver().try_recv() {
+            if event.id == uninstall.id() {
+                if confirm(crate::uninstall::confirmation()) {
+                    match crate::uninstall::run(true) {
+                        Ok(()) => return Ok(()),
+                        Err(error) => notice(&error),
+                    }
+                }
+            }
             if event.id == quit.id() {
                 return Ok(());
             }
