@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { ArrowUpRight, Copy, LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -14,11 +14,13 @@ const helperSource = 'https://github.com/keenplify/16competitive-client/tree/mai
 export function WebHelperSetup({
   className,
   onContinue,
-  inlineSetup = false
+  inlineSetup = false,
+  instructionsOnly = false
 }: {
   className?: string
   onContinue?: () => void
   inlineSetup?: boolean
+  instructionsOnly?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
   const status = useWebHelperPromptStore((state) => state.status)
@@ -26,19 +28,24 @@ export function WebHelperSetup({
   const setupOpen = useWebHelperPromptStore((state) => state.setupOpen)
   const command = useWebHelperPromptStore((state) => state.setupCommand)
   const prepareSetup = useWebHelperPromptStore((state) => state.prepareSetup)
+  const renewSetupCommand = useWebHelperPromptStore((state) => state.renewSetupCommand)
   const closeSetup = useWebHelperPromptStore((state) => state.closeSetup)
   const [copyFeedback, setCopyFeedback] = useState<{
-    command: string
+    command: string | null
     status: 'copied' | 'failed'
   } | null>(null)
   const copyStatus = setupOpen && copyFeedback?.command === command ? copyFeedback.status : 'idle'
   const copyCommand = async (): Promise<void> => {
-    if (!command) return
     try {
-      await navigator.clipboard.writeText(command)
-      setCopyFeedback({ command, status: 'copied' })
+      const freshCommand = await renewSetupCommand()
+      if (!freshCommand) throw new Error('Could not renew setup command')
+      await navigator.clipboard.writeText(freshCommand)
+      setCopyFeedback({ command: freshCommand, status: 'copied' })
     } catch {
-      setCopyFeedback({ command, status: 'failed' })
+      setCopyFeedback({
+        command: useWebHelperPromptStore.getState().setupCommand,
+        status: 'failed'
+      })
     }
   }
   useEffect(() => {
@@ -61,21 +68,37 @@ export function WebHelperSetup({
             ? t('webHelper.unavailable')
             : '\u00a0'
   const setupInstructions = (
-    <div className="space-y-4 p-6 text-white">
-      <h2 className="text-xl font-semibold">{t('webHelper.linuxTitle')}</h2>
-      <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
-      <pre className="h-56 overflow-auto whitespace-pre-wrap break-all border border-neutral-700 bg-black p-4 text-sm text-sky-200">
-        <code>{command ?? t('webHelper.checking')}</code>
-      </pre>
+    <div className={twMerge('space-y-4 text-white', !instructionsOnly && 'p-6')}>
+      {!instructionsOnly && <h2 className="text-xl font-semibold">{t('webHelper.linuxTitle')}</h2>}
+      {!instructionsOnly && (
+        <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
+      )}
+      <div className="relative">
+        <textarea
+          readOnly
+          spellCheck={false}
+          aria-label={t('webHelper.copyCommand')}
+          value={command ?? (status === 'checking' ? t('webHelper.checking') : statusText)}
+          onFocus={(event) => event.currentTarget.select()}
+          className="h-56 w-full resize-none select-text overflow-auto border border-neutral-700 bg-black p-4 pr-14 font-mono text-sm leading-6 text-sky-200 selection:bg-sky-400/40 focus-visible:outline-2 focus-visible:outline-sky-300"
+        />
+        <Button
+          variant="ghost"
+          className="absolute top-2 right-2 size-9 border-0 bg-neutral-900 p-0 text-sky-200 hover:bg-neutral-800"
+          disabled={status === 'checking' && !command}
+          aria-label={t('webHelper.copyCommand')}
+          title={t('webHelper.copyCommand')}
+          onClick={() => void copyCommand()}
+        >
+          <Copy className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
       <p className="h-16 overflow-auto text-sm leading-6 text-neutral-300" role="status">
         {status === 'unavailable' || status === 'outdated-rust'
           ? statusText
           : t('webHelper.linuxAfter')}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" disabled={!command} onClick={() => void copyCommand()}>
-          {t('webHelper.copyCommand')}
-        </Button>
         <Button variant="secondary" onClick={closeSetup}>
           {t('webHelper.close')}
         </Button>
@@ -89,6 +112,8 @@ export function WebHelperSetup({
       </p>
     </div>
   )
+
+  if (instructionsOnly) return setupInstructions
 
   return (
     <div className={twMerge('space-y-4', className)}>
@@ -125,7 +150,7 @@ export function WebHelperSetup({
           )}
         </span>
       </div>
-      <div className={twMerge('grid gap-3', onContinue && 'sm:grid-cols-2')}>
+      <div className="grid gap-3 sm:grid-cols-2">
         {status !== 'rust' &&
           (isWindows
             ? [{ file: 'competitive16-web-helper.exe', arch: null }]
@@ -151,21 +176,28 @@ export function WebHelperSetup({
               {arch ? ` · Linux ${arch === 'x64' ? 'x64' : 'ARM64'}` : ''}
             </ButtonLink>
           ))}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <ButtonLink
+          variant="ghost"
+          className="web-helper-source-link h-9 w-fit gap-1 border-0 bg-transparent px-0 text-xs text-sky-300 shadow-none hover:bg-transparent hover:text-sky-200"
+          href={helperSource}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t('webHelper.viewSourceCode')}
+          <ArrowUpRight className="size-3.5" aria-hidden="true" />
+        </ButtonLink>
         {onContinue && (
-          <Button className="h-auto min-h-11 py-2" variant="secondary" onClick={onContinue}>
+          <Button
+            className="h-9 border-0 bg-transparent px-3 text-xs text-neutral-300 hover:bg-white/5"
+            variant="ghost"
+            onClick={onContinue}
+          >
             {t('webHelper.notNow')}
           </Button>
         )}
       </div>
-      <ButtonLink
-        variant="ghost"
-        className="web-helper-source-link h-9 w-fit border-0 bg-transparent px-0 text-xs text-sky-300 shadow-none hover:bg-transparent hover:text-sky-200"
-        href={helperSource}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {t('webHelper.viewSourceCode')}
-      </ButtonLink>
       {inlineSetup && setupOpen && (
         <div className="border border-white/10 bg-neutral-900/90">{setupInstructions}</div>
       )}

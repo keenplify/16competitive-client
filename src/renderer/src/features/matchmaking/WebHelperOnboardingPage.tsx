@@ -10,21 +10,32 @@ import { WebHelperSetup } from './WebHelperSetup'
 export function WebHelperOnboardingPage(): JSX.Element {
   const { t } = useTranslation()
   const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const setupOpen = useWebHelperPromptStore((state) => state.setupOpen)
   const close = useWebHelperPromptStore((state) => state.close)
   const folderStatus = useNativeHelperSettingsStore((state) => state.status)
-  const step = nativeReady ? 2 : 1
-  const title = t(nativeReady ? 'webHelper.folder16' : 'webHelper.title')
+  const linux = !navigator.platform.toLowerCase().includes('win')
+  const stepCount = linux ? 3 : 2
+  const step = nativeReady ? stepCount : setupOpen && linux ? 2 : 1
+  const title = t(
+    nativeReady ? 'webHelper.folder16' : step === 2 ? 'webHelper.linuxTitle' : 'webHelper.title'
+  )
 
   return (
     <SetupCard
-      eyebrow={`${t('webHelper.title')} · ${step} / 2`}
+      eyebrow={`${t('webHelper.title')} · ${step} / ${stepCount}`}
       title={title}
-      description={t(nativeReady ? 'webHelper.localSettings' : 'webHelper.description')}
+      description={t(
+        nativeReady
+          ? 'webHelper.localSettings'
+          : step === 2
+            ? 'webHelper.linuxDescription'
+            : 'webHelper.description'
+      )}
       className="max-w-xl"
       contentKey={String(step)}
     >
-      <div className="mb-7 flex gap-2" aria-label={`${title}: ${step} / 2`}>
-        {[1, 2].map((item) => (
+      <div className="mb-7 flex gap-2" aria-label={`${title}: ${step} / ${stepCount}`}>
+        {Array.from({ length: stepCount }, (_, index) => index + 1).map((item) => (
           <span
             key={item}
             className={`setup-progress h-1 flex-1 ${item <= step ? 'setup-progress-active bg-sky-400' : 'bg-white/10'}`}
@@ -45,6 +56,8 @@ export function WebHelperOnboardingPage(): JSX.Element {
             {t('legacy.continue')}
           </Button>
         </>
+      ) : step === 2 ? (
+        <WebHelperSetup instructionsOnly />
       ) : (
         <WebHelperSetup inlineSetup onContinue={close} />
       )}

@@ -48,6 +48,7 @@ test('native setup links validate complete local capabilities and reject added f
 async function harness({
   check = async () => 'rust',
   wait = async () => 'rust',
+  createSetup,
   readiness = async () => ({ competitiveReady: false })
 } = {}) {
   const exports = {}
@@ -83,7 +84,7 @@ async function harness({
             return check()
           },
           nativeHelperReadiness: readiness,
-          createNativeHelperSetup: async () => setup,
+          createNativeHelperSetup: async () => createSetup?.(setup) ?? setup,
           waitForNativeHelperSetup: wait,
           cancelNativeHelperSetup: () => calls.push('cancel')
         }
@@ -368,6 +369,32 @@ test('outdated native helper does not claim setup success', async () => {
   assert.equal(store.getState().open, true)
   assert.equal(store.getState().status, 'outdated-rust')
   assert.equal(store.getState().successSequence, 0)
+})
+
+test('copying a Linux setup command renews its short-lived handoff', async () => {
+  let handoff = 0
+  const { store } = await harness({
+    wait: () => new Promise(() => {}),
+    createSetup: (setup) => {
+      handoff++
+      const url = new URL(setup.checkUrl)
+      url.searchParams.set('handoff', String(handoff).repeat(43))
+      return {
+        ...setup,
+        checkUrl: url.href
+      }
+    }
+  })
+  await Promise.race([
+    store.getState().prepareSetup(),
+    new Promise((resolve) => setImmediate(resolve))
+  ])
+  const first = store.getState().setupCommand
+  const fresh = await store.getState().renewSetupCommand()
+  assert.notEqual(fresh, first)
+  assert.equal(store.getState().setupCommand, fresh)
+  assert.equal(store.getState().setupOpen, true)
+  store.getState().closeSetup()
 })
 
 test('web helper update assets are signed with a distinct context and pinned key', async () => {

@@ -12,6 +12,7 @@ interface WebHelperPromptState {
   open: boolean
   setupOpen: boolean
   setupCommand: string | null
+  setupArch: 'x64' | 'arm64'
   status: HelperStatus
   successSequence: number
   accountId: string | null
@@ -23,12 +24,57 @@ interface WebHelperPromptState {
   checkNative: () => Promise<HelperStatus>
   refreshReadiness: () => Promise<void>
   prepareSetup: (arch?: 'x64' | 'arm64') => Promise<void>
+  renewSetupCommand: () => Promise<string | null>
 }
 
 let generation = 0
 let pendingCheck: Promise<HelperStatus> | null = null
 
 export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) => {
+  const startSetup = async (
+    arch: 'x64' | 'arm64'
+  ): Promise<{ command: string; completion: Promise<void> } | null> => {
+    cancelSetup()
+    const current = generation
+    set({
+      awaitingInstall: true,
+      setupOpen: true,
+      setupArch: arch,
+      setupCommand: null,
+      status: 'checking'
+    })
+    try {
+      const setup = await window.api.matchmaking.createNativeHelperSetup?.()
+      if (current !== generation || !get().setupOpen) return null
+      if (!setup) throw new Error('Native helper setup unavailable')
+      const link = new URL(setup.checkUrl)
+      if (link.protocol !== 'competitive16-helper:' || /['\n\r]/.test(setup.checkUrl))
+        throw new Error('Invalid helper setup link')
+      const command = `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux${arch === 'arm64' ? '-arm64' : ''}(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
+      set({ setupCommand: command })
+      const completion = (async () => {
+        try {
+          const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
+          if (current !== generation || !get().setupOpen) return
+          if (result === 'rust') {
+            await ready()
+          } else if (result === 'outdated-rust') {
+            set({ status: result })
+          } else if (Date.now() >= Date.parse(setup.expiresAt)) {
+            void startSetup(arch)
+          } else {
+            set({ status: 'unavailable' })
+          }
+        } catch {
+          if (current === generation) set({ status: 'unavailable' })
+        }
+      })()
+      return { command, completion }
+    } catch {
+      if (current === generation) set({ status: 'unavailable' })
+      return null
+    }
+  }
   const ready = async (): Promise<void> => {
     const run = generation
     const accountId = get().accountId
@@ -66,6 +112,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     open: false,
     setupOpen: false,
     setupCommand: null,
+    setupArch: 'x64',
     status: 'idle',
     successSequence: 0,
     refreshReadiness: async () => {
@@ -148,40 +195,9 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       return operation
     },
     prepareSetup: async (arch = 'x64') => {
-      cancelSetup()
-      const current = generation
-      set({ awaitingInstall: true, setupOpen: true, setupCommand: null, status: 'checking' })
-      try {
-        while (current === generation && get().setupOpen) {
-          const setup = await window.api.matchmaking.createNativeHelperSetup?.()
-          if (current !== generation || !get().setupOpen) return
-          if (!setup) throw new Error('Native helper setup unavailable')
-          // The URL is generated and validated by the web API. Quote the entire
-          // argument so its ampersand cannot split the terminal command.
-          const link = new URL(setup.checkUrl)
-          if (link.protocol !== 'competitive16-helper:' || /['\n\r]/.test(setup.checkUrl))
-            throw new Error('Invalid helper setup link')
-          set({
-            // Browsers append (1), (2), ... when an older download has the
-            // same name. Select the newest completed helper in this folder.
-            setupCommand: `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux${arch === 'arm64' ? '-arm64' : ''}(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
-          })
-          const result = await window.api.matchmaking.waitForNativeHelperSetup?.(setup)
-          if (current !== generation || !get().setupOpen) return
-          if (result === 'rust') {
-            await ready()
-            return
-          }
-          if (result === 'outdated-rust') {
-            set({ status: result })
-            return
-          }
-          // Renew the short-lived command only after its verification expires.
-          if (Date.now() < Date.parse(setup.expiresAt)) throw new Error('Helper setup interrupted')
-        }
-      } catch {
-        if (current === generation) set({ status: 'unavailable' })
-      }
-    }
+      const setup = await startSetup(arch)
+      await setup?.completion
+    },
+    renewSetupCommand: async () => (await startSetup(get().setupArch))?.command ?? null
   }
 })
