@@ -131,7 +131,10 @@ function initializeUpdater(): void {
         status.state === 'available' || status.state === 'downloading'
           ? status.version
           : (requiredUpdateVersion ?? ''),
-      percent: Math.round(progress.percent)
+      percent: Math.round(progress.percent),
+      downloadedBytes: progress.transferred,
+      totalBytes: progress.total > 0 ? progress.total : null,
+      bytesPerSecond: progress.bytesPerSecond
     })
   })
   autoUpdater.on('update-downloaded', (info) => {
@@ -163,8 +166,8 @@ async function runUpdateCheck(): Promise<void> {
         result?.updateInfo.version === requiredUpdateVersion
       ) {
         const version = requiredUpdateVersion
-        rendererUpdateStaged = await stageRendererUpdate(version, (percent) =>
-          setStatus({ state: 'downloading', version, percent })
+        rendererUpdateStaged = await stageRendererUpdate(version, (progress) =>
+          setStatus({ state: 'downloading', version, ...progress })
         )
         if (rendererUpdateStaged) {
           setStatus({ state: 'downloaded', version })

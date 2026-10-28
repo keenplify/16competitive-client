@@ -12,6 +12,7 @@ import {
 } from 'node:fs'
 import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import type { AppUpdateStatus } from '../shared/updater'
 import releaseConfig from '../../helper-release.json'
 import {
   newerVersion,
@@ -177,7 +178,7 @@ async function boundedJson(response: Response): Promise<unknown> {
 /** False means the release needs the normal platform updater. Invalid signatures throw. */
 export async function stageRendererUpdate(
   version: string,
-  progress: (percent: number) => void
+  progress: (value: Pick<Extract<AppUpdateStatus, { state: 'downloading' }>, 'percent' | 'downloadedBytes' | 'totalBytes' | 'bytesPerSecond'>) => void
 ): Promise<boolean> {
   if (!supportsRendererUpdates() || !newerVersion(version, effectiveClientVersion())) return false
   if (readState().failedVersion === version) return false
@@ -200,6 +201,7 @@ export async function stageRendererUpdate(
   const reader = responseFile.body.getReader()
   try {
     let bytes = 0
+    const startedAt = Date.now()
     const hash = createHash('sha256')
     while (true) {
       const { value, done } = await reader.read()
@@ -213,7 +215,12 @@ export async function stageRendererUpdate(
         if (!result.bytesWritten) throw new Error('Renderer update write failed.')
         offset += result.bytesWritten
       }
-      progress(Math.min(99, Math.floor((bytes / m.size) * 100)))
+      progress({
+        percent: Math.min(99, Math.floor((bytes / m.size) * 100)),
+        downloadedBytes: bytes,
+        totalBytes: m.size,
+        bytesPerSecond: (bytes * 1_000) / Math.max(1, Date.now() - startedAt)
+      })
     }
     if (bytes !== m.size || hash.digest('hex') !== m.sha256)
       throw new Error('Renderer update failed verification.')
@@ -231,7 +238,12 @@ export async function stageRendererUpdate(
     if (!reusable) await rename(temporary, archive(m))
     verifyRendererBytes(await readFile(archive(m)), m)
     writeState({ ...readState(), pending: envelope })
-    progress(100)
+    progress({
+      percent: 100,
+      downloadedBytes: bytes,
+      totalBytes: m.size,
+      bytesPerSecond: (bytes * 1_000) / Math.max(1, Date.now() - startedAt)
+    })
     return true
   } finally {
     await handle.close().catch(() => undefined)

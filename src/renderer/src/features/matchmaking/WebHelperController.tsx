@@ -17,7 +17,6 @@ export function WebHelperController(): JSX.Element | null {
   const { t } = useTranslation()
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
   const page = useNavigationStore((state) => state.page)
-  const navigate = useNavigationStore((state) => state.navigate)
   const onContinue = useWebHelperPromptStore((state) => state.onContinue)
   const syncAccount = useWebHelperPromptStore((state) => state.syncAccount)
   const successSequence = useWebHelperPromptStore((state) => state.successSequence)
@@ -34,10 +33,11 @@ export function WebHelperController(): JSX.Element | null {
     announced.current = successSequence
     toast.success(t('webHelper.success'))
   }, [successSequence, t])
-  // A login prompt opens Play; only an explicit search can continue into a queue.
+  // Dismissing the login prompt leaves the player on the current page. Only an
+  // explicit search can continue into a queue.
   return isWebRuntime() && accountId ? (
     <WebHelperPrompt
-      onContinue={page === 'play' && onContinue ? onContinue : () => navigate('play')}
+      onContinue={page === 'play' && onContinue ? onContinue : () => {}}
     />
   ) : null
 }

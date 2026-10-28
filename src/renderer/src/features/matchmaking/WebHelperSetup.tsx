@@ -86,7 +86,7 @@ export function WebHelperSetup({
         </ButtonLink>
         {onContinue && (
           <Button className="h-auto min-h-11 py-2" variant="secondary" onClick={onContinue}>
-            {t('webHelper.continue')}
+            {t('webHelper.notNow')}
           </Button>
         )}
       </div>

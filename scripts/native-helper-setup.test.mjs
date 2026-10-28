@@ -169,7 +169,6 @@ test('login prompt renders across lobby pages and never queues without an explic
   let page = 'lobby'
   let continuation = null
   let queued = 0
-  const navigations = []
   const source = ts.transpileModule(
     await readFile(
       new URL('../src/renderer/src/features/matchmaking/WebHelperController.tsx', import.meta.url),
@@ -195,10 +194,7 @@ test('login prompt renders across lobby pages and never queues without an explic
             select({ session: accountId ? { player: { id: accountId } } : null })
         }
       if (name === '../navigation/navigation.store')
-        return {
-          useNavigationStore: (select) =>
-            select({ page, navigate: (target) => navigations.push(target) })
-        }
+        return { useNavigationStore: (select) => select({ page }) }
       if (name === './web-helper-prompt.store')
         return { useWebHelperPromptStore: (select) => select({ onContinue: continuation }) }
       if (name === '../i18n/i18n') return { useTranslation: () => ({ t: (key) => key }) }
@@ -210,7 +206,7 @@ test('login prompt renders across lobby pages and never queues without an explic
     const dialog = exports.WebHelperController()
     assert.equal(dialog.type, 'helper-prompt')
     dialog.props.onContinue()
-    assert.equal(navigations.at(-1), 'play')
+    assert.equal(queued, 0, 'Not now must leave the current page without queuing')
   }
   continuation = () => {
     queued++

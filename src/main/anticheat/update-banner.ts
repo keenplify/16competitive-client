@@ -5,6 +5,7 @@ import { guardUpdateTranslations, type GuardLanguage } from '../../shared/guard-
 import { checkForAppUpdates, getAppUpdateStatus, onAppUpdateStatus } from '../updater'
 import { showAntiCheatStartupSplash } from './startup-splash'
 import { updateRecoveryTranslations } from '../../shared/update-recovery-translations'
+import { formatUpdateTransfer } from '../../shared/updater'
 
 /** Owns update presentation, including startup before the launcher is visible. */
 export class AntiCheatUpdateBanner {
@@ -222,10 +223,17 @@ export class AntiCheatUpdateBanner {
           ? 100
           : null
     const failed = current.state === 'error'
+    const transfer = current.state === 'downloading' ? formatUpdateTransfer(current, this.language) : ''
+    const detail =
+      current.state === 'downloading'
+        ? `${percent}%${transfer ? ` · ${transfer}` : ''}`
+        : percent === null
+          ? copy.anticheat
+          : `${percent}%`
     await splash.webContents.executeJavaScript(`(() => {
       document.documentElement.lang = ${JSON.stringify(this.language)};
       document.getElementById('status-message').textContent = ${JSON.stringify(message)};
-      document.getElementById('status-detail').textContent = ${JSON.stringify(failed ? '' : percent === null ? copy.anticheat : `${percent}%`)};
+      document.getElementById('status-detail').textContent = ${JSON.stringify(failed ? '' : detail)};
       const progress = document.getElementById('status-progress');
       progress.classList.toggle('determinate', ${percent !== null || failed});
       progress.style.width = ${JSON.stringify(percent === null ? (failed ? '0%' : '38%') : `${percent}%`)};

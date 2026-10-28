@@ -48,7 +48,7 @@ const en = {
     'This native helper is outdated. Download and open the current helper once, then check again.',
   'webHelper.unavailable':
     'The native helper did not respond. Download it, or continue with Steam where supported.',
-  'webHelper.continue': 'Continue to Play',
+  'webHelper.notNow': 'Not now',
   'webHelper.never': 'Never show again',
   'webHelper.close': 'Close setup'
 } as const
@@ -106,7 +106,7 @@ export const webHelperTranslations: Record<
       'Помощник устарел. Скачайте и один раз откройте новую версию, затем проверьте снова.',
     'webHelper.unavailable':
       'Нативный помощник не ответил. Скачайте его или продолжите через Steam, где это поддерживается.',
-    'webHelper.continue': 'Продолжить игру',
+    'webHelper.notNow': 'Не сейчас',
     'webHelper.never': 'Больше не показывать',
     'webHelper.close': 'Закрыть настройку'
   },
@@ -160,7 +160,7 @@ export const webHelperTranslations: Record<
       'Luma na ang native helper. I-download at buksan nang isang beses ang bago, saka suriin muli.',
     'webHelper.unavailable':
       'Hindi tumugon ang native helper. I-download ito o magpatuloy sa Steam kung suportado.',
-    'webHelper.continue': 'Magpatuloy sa Play',
+    'webHelper.notNow': 'Huwag muna',
     'webHelper.never': 'Huwag nang ipakita',
     'webHelper.close': 'Isara ang setup'
   },
@@ -210,7 +210,7 @@ export const webHelperTranslations: Record<
     'webHelper.rustOutdated':
       'ตัวช่วยล้าสมัยแล้ว ดาวน์โหลดและเปิดรุ่นใหม่หนึ่งครั้ง แล้วตรวจสอบอีกครั้ง',
     'webHelper.unavailable': 'ตัวช่วยเนทีฟไม่ตอบสนอง ดาวน์โหลดตัวช่วยหรือใช้ Steam เมื่อรองรับ',
-    'webHelper.continue': 'เล่นต่อ',
+    'webHelper.notNow': 'ยังไม่ตอนนี้',
     'webHelper.never': 'ไม่ต้องแสดงอีก',
     'webHelper.close': 'ปิดการตั้งค่า'
   },
@@ -263,7 +263,7 @@ export const webHelperTranslations: Record<
       'Helper sudah lama. Unduh dan buka versi terbaru sekali, lalu periksa lagi.',
     'webHelper.unavailable':
       'Helper native tidak merespons. Unduh helper atau lanjutkan dengan Steam jika didukung.',
-    'webHelper.continue': 'Lanjut ke Play',
+    'webHelper.notNow': 'Jangan sekarang',
     'webHelper.never': 'Jangan tampilkan lagi',
     'webHelper.close': 'Tutup pengaturan'
   },
@@ -316,7 +316,7 @@ export const webHelperTranslations: Record<
       'O auxiliar está desatualizado. Baixe e abra a versão atual uma vez, depois verifique novamente.',
     'webHelper.unavailable':
       'O helper nativo não respondeu. Baixe-o ou continue com o Steam quando disponível.',
-    'webHelper.continue': 'Continuar para Jogar',
+    'webHelper.notNow': 'Agora não',
     'webHelper.never': 'Não mostrar novamente',
     'webHelper.close': 'Fechar configuração'
   },
@@ -369,7 +369,7 @@ export const webHelperTranslations: Record<
       'ヘルパーが古いです。最新版をダウンロードして一度開き、再確認してください。',
     'webHelper.unavailable':
       'ネイティブヘルパーから応答がありません。ダウンロードするか、対応している場合はSteamで続行してください。',
-    'webHelper.continue': 'プレイに進む',
+    'webHelper.notNow': '今はしない',
     'webHelper.never': '今後表示しない',
     'webHelper.close': '設定を閉じる'
   },
@@ -420,7 +420,7 @@ export const webHelperTranslations: Record<
       'हेल्पर पुराना है। नया संस्करण डाउनलोड करके एक बार खोलें, फिर दोबारा जाँचें।',
     'webHelper.unavailable':
       'नेटिव हेल्पर ने जवाब नहीं दिया। इसे डाउनलोड करें या जहाँ समर्थित हो वहाँ Steam से जारी रखें।',
-    'webHelper.continue': 'Play पर जाएँ',
+    'webHelper.notNow': 'अभी नहीं',
     'webHelper.never': 'फिर कभी न दिखाएँ',
     'webHelper.close': 'सेटअप बंद करें'
   }

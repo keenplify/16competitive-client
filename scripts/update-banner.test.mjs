@@ -5,6 +5,7 @@ import { EventEmitter } from 'node:events'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { formatUpdateTransfer } from '../src/shared/updater.ts'
 
 const source = ts.transpileModule(
   await readFile(new URL('../src/main/anticheat/update-banner.ts', import.meta.url), 'utf8'),
@@ -98,6 +99,7 @@ async function harness({ initial = true, launcher = false } = {}) {
         }
       }
     },
+    '../../shared/updater': { formatUpdateTransfer },
     '../updater': {
       checkForAppUpdates: () => {
         checks++
@@ -152,10 +154,18 @@ test('startup stays in the banner for downloads and required failures, and retry
   const startup = client.banner.checkBeforeStartup().then(() => {
     ready = true
   })
-  client.emit({ state: 'downloading', version: '2', percent: 45 })
+  client.emit({
+    state: 'downloading',
+    version: '2',
+    percent: 45,
+    downloadedBytes: 45_000_000,
+    totalBytes: 100_000_000,
+    bytesPerSecond: 2_500_000
+  })
   await tick()
   assert.equal(ready, false)
   assert.match(client.splash.scripts.at(-1), /45%/)
+  assert.match(client.splash.scripts.at(-1), /45\.0 \/ 100\.0 MB · 2\.5 MB\/s/)
   client.emit({ state: 'error', message: 'offline', requiredVersion: '2' })
   await tick()
   assert.equal(client.splash.interactive, true)

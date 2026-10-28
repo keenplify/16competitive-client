@@ -119,7 +119,12 @@ test('renderer downloads stage atomically, confirm a successful launch and persi
   const root = await fsp.mkdtemp(path.join(tmpdir(), '16c-renderer-'))
   try {
     const h = await harness(root)
-    assert.equal(await h.stageRendererUpdate('2026.1016.2', () => {}), true)
+    const progress = []
+    assert.equal(await h.stageRendererUpdate('2026.1016.2', (value) => progress.push(value)), true)
+    assert.equal(progress.at(-1).percent, 100)
+    assert.equal(progress.at(-1).downloadedBytes, bytes.length)
+    assert.equal(progress.at(-1).totalBytes, bytes.length)
+    assert.ok(progress.at(-1).bytesPerSecond >= 0)
     const entry = h.selectRendererEntry('/installed/index.html')
     assert.match(entry, /\.asar[/\\]index.html$/)
     assert.equal(h.effectiveClientVersion(), '2026.1016.2')
