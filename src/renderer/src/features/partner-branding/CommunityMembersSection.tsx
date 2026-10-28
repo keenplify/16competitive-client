@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
@@ -49,23 +50,10 @@ export function CommunityMembersSection({
   const [kicking, setKicking] = useState(false)
   const [kickError, setKickError] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  useDismissibleMenu(Boolean(menu), menuRef, () => setMenu(null))
   useEffect(() => {
     if (!menu) return
     menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
-    const close = (event: Event) => {
-      if (!menuRef.current?.contains(event.target as Node)) setMenu(null)
-    }
-    const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenu(null)
-    }
-    document.addEventListener('pointerdown', close)
-    document.addEventListener('keydown', key)
-    window.addEventListener('resize', close)
-    return () => {
-      document.removeEventListener('pointerdown', close)
-      document.removeEventListener('keydown', key)
-      window.removeEventListener('resize', close)
-    }
   }, [menu])
   const text = useCommunityText(),
     chatCommunityId = useCommunityChatStore((s) => s.communityId),

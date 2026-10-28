@@ -1,11 +1,12 @@
 import { useTranslation } from '../i18n/i18n'
 import { useProfileStore } from '../profile/profile.store'
 import { ArrowRight, Trophy, UserPlus, UserRound } from 'lucide-react'
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { ProfileLevelProgress } from '../../components/ui/ProfileLevelProgress'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
@@ -70,22 +71,11 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
     x: number
     y: number
   } | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+  useDismissibleMenu(Boolean(contextMenu), contextMenuRef, () => setContextMenu(null))
   const [resultsStep, setResultsStep] = useState<'missions' | 'summary'>(() =>
     rewards || questSnapshot || match.profileXp ? 'missions' : 'summary'
   )
-
-  useEffect(() => {
-    const closeContextMenu = (): void => setContextMenu(null)
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setContextMenu(null)
-    }
-    window.addEventListener('click', closeContextMenu)
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      window.removeEventListener('click', closeContextMenu)
-      window.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [])
 
   useEffect(() => {
     if (resultsStep !== 'missions') return
@@ -390,6 +380,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
       {contextMenu &&
         createPortal(
           <div
+            ref={contextMenuRef}
             className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             role="menu"

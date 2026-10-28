@@ -20,10 +20,11 @@ const card = (id) => ({
   serverCount: 0,
   memberCount: 1
 })
-const result = (communities) => ({
+const result = (communities, membershipId = other, staff = false) => ({
   communities,
-  currentCommunityId: other,
-  currentCommunity: card(other),
+  currentCommunityId: membershipId,
+  currentCommunity: membershipId ? card(membershipId) : null,
+  canBypassLeaveRestriction: staff,
   viewerCountryCode: null,
   nextCursor: null
 })
@@ -33,7 +34,7 @@ const source = ts.transpile(
   { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 )
 
-function harness(partnerId, branding) {
+function harness(partnerId, branding, membershipId = other, staff = false) {
   const calls = []
   const exports = {}
   const dependencies = {
@@ -46,8 +47,8 @@ function harness(partnerId, branding) {
         assert.equal(options.authenticated, true)
         calls.push(path)
         if (path.includes('/branding/public/')) return { branding }
-        if (path.includes('communityId=')) return result([card(id)])
-        return result([card(other)])
+        if (path.includes('communityId=')) return result([card(id)], membershipId, staff)
+        return result([card(other)], membershipId, staff)
       }
     }
   }
@@ -56,10 +57,10 @@ function harness(partnerId, branding) {
 }
 
 test('restricted partner PWA resolves its own community without fetching discovery or replacing membership', async () => {
-  const h = harness(id, { partnerId: id, allowOtherCommunities: false })
+  const h = harness(id, { partnerId: id, allowOtherCommunities: false }, id)
   const loaded = await h.load(query)
   assert.equal(loaded.preferredCommunity.id, id)
-  assert.equal(loaded.currentCommunityId, other)
+  assert.equal(loaded.currentCommunityId, id)
   assert.deepEqual(
     loaded.communities.map((row) => row.id),
     [id]
@@ -68,6 +69,23 @@ test('restricted partner PWA resolves its own community without fetching discove
     `/partners/branding/public/${id}`,
     `/partners/communities?communityId=${id}`
   ])
+})
+
+test('nonmembers and staff can discover other communities through a restricted partner PWA', async () => {
+  for (const [membershipId, staff] of [
+    [other, false],
+    [null, false],
+    [id, true]
+  ]) {
+    const h = harness(id, { partnerId: id, allowOtherCommunities: false }, membershipId, staff)
+    const loaded = await h.load(query)
+    assert.deepEqual(
+      loaded.communities.map((row) => row.id),
+      [other]
+    )
+    assert.equal(loaded.preferredCommunity.id, id)
+    assert.equal(h.calls.length, 3)
+  }
 })
 
 test('enabled partner discovery retains the linked community outside the directory page', async () => {

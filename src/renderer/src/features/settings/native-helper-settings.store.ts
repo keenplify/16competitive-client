@@ -4,6 +4,8 @@ import type {
   NativeHelperSettingsRequest
 } from '../../../../shared/native-helper-settings'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
+import { useGameSettingsStore } from './game-settings.store'
+import { requestNativeHelperSettings } from './native-helper-request'
 
 interface NativeSettingsState {
   settings: NativeHelperSettings | null
@@ -20,22 +22,20 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
   const request = async (value: NativeHelperSettingsRequest): Promise<NativeHelperSettings> => {
     const api = window.api.matchmaking.nativeHelperSettings
     if (!api) throw new Error('Native helper unavailable')
-    // A short-lived local bridge may have closed while Settings was inactive.
-    // Retry only reads; never duplicate a native picker or a settings mutation.
-    try {
-      return await api(value)
-    } catch (error) {
-      if (value.action !== 'get') throw error
-      if ((await useWebHelperPromptStore.getState().checkNative()) !== 'rust') throw error
-      return await api(value)
-    }
+    return requestNativeHelperSettings(value, api, () =>
+      useWebHelperPromptStore.getState().checkNative()
+    )
   }
   return {
     settings: null,
     status: 'idle',
     accountId: null,
     load: async (accountId) => {
-      if (get().status === 'loading' && get().accountId === accountId) return
+      if (
+        get().accountId === accountId &&
+        ['loading', 'saving', 'choosing-cs13', 'choosing-cs16'].includes(get().status)
+      )
+        return
       set({
         accountId,
         settings: get().accountId === accountId ? get().settings : null,
@@ -56,6 +56,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
         const settings = await request({ action: 'choose', game })
         if (get().accountId === accountId) {
           set({ settings, status: 'idle' })
+          void useGameSettingsStore.getState().load()
           void useWebHelperPromptStore
             .getState()
             .refreshReadiness()

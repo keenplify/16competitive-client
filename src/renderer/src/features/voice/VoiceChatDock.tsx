@@ -16,6 +16,7 @@ import { useProfileStore } from '../profile/profile.store'
 import { usePartnerPresenceStore } from '../partner-branding/partner-presence.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ModalDialog } from '../../components/ui/ModalDialog'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 import { useVoiceDockText } from './voice-dock-copy'
 
@@ -172,6 +173,8 @@ export function VoiceChatDock(): JSX.Element | null {
   const [enabled, setEnabled] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [peerMenu, setPeerMenu] = useState<{ peer: VoicePeer; x: number; y: number } | null>(null)
+  const peerMenuRef = useRef<HTMLDivElement>(null)
+  useDismissibleMenu(Boolean(peerMenu), peerMenuRef, () => setPeerMenu(null))
   const voiceText = useVoiceDockText()
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
@@ -1209,6 +1212,7 @@ export function VoiceChatDock(): JSX.Element | null {
         )}
         {peerMenu && (
           <div
+            ref={peerMenuRef}
             data-voice-peer-menu
             role="menu"
             aria-label={peerMenu.peer.username}

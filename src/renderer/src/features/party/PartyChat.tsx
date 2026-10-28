@@ -5,6 +5,7 @@ import { MessageSquare, UserPlus, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { useAuthStore } from '../auth/auth.store'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
@@ -100,6 +101,7 @@ export function PartyChat(): JSX.Element {
   const actingPlayerId = useFriendsStore((state) => state.actingPlayerId)
   const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const playerMenuRef = useRef<HTMLDivElement>(null)
   const seenPartyMessageIdsRef = useRef<Set<string> | null>(null)
   const seenFriendMessageIdsRef = useRef<Set<string> | null>(null)
   const previousRoomIdRef = useRef<string | null>(null)
@@ -108,6 +110,7 @@ export function PartyChat(): JSX.Element {
     x: number
     y: number
   } | null>(null)
+  useDismissibleMenu(Boolean(playerMenu), playerMenuRef, () => setPlayerMenu(null))
   const [chatOpen, setChatOpen] = useState(true)
   const [minimizedPing, setMinimizedPing] = useState<MinimizedChatPing | null>(null)
   const chatVisible =
@@ -261,19 +264,6 @@ export function PartyChat(): JSX.Element {
     const frame = window.requestAnimationFrame(() => inputRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [activeFriendId])
-
-  useEffect(() => {
-    const closeMenu = (): void => setPlayerMenu(null)
-    const closeOnEscape = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') setPlayerMenu(null)
-    }
-    window.addEventListener('click', closeMenu)
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      window.removeEventListener('click', closeMenu)
-      window.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [])
 
   const selectBaseTab = (tab: ChatTab): void => {
     setChatTab(tab)
@@ -900,6 +890,7 @@ export function PartyChat(): JSX.Element {
       )}
       {playerMenu && (
         <div
+          ref={playerMenuRef}
           className="fixed z-50 min-w-44 overflow-hidden border border-white/15 bg-neutral-800 py-1 text-white shadow-xl"
           style={{ left: playerMenu.x, top: playerMenu.y }}
           role="menu"

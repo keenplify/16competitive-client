@@ -25,7 +25,7 @@ import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
 import type { SocialAuthProvider, SocialConnections } from '../../../../shared/auth'
 import { CUSTOM_HUD_ENABLED } from '../../../../shared/custom-hud'
 import { serverClockNow } from '../../../../shared/server-clock'
-import { Button } from '../../components/ui/Button'
+import { Button, ButtonLink } from '../../components/ui/Button'
 import { SocialProviderIcon } from '../../components/ui/SocialProviderIcon'
 import { MUSIC_SETS, isLauncherBgmId } from '../audio/audio.paths'
 import { useAudioSettingsStore } from '../audio/audio.store'
@@ -497,15 +497,16 @@ export function SettingsPage(): JSX.Element {
                 {webRuntime ? 'Back to website' : 'Exit to desktop'}
               </Button>
               {webRuntime && desktopAppUrl && (
-                <a
+                <ButtonLink
                   href={desktopAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center justify-start  border border-sky-400/20 px-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10 hover:text-sky-200"
+                  variant="secondary"
+                  className="justify-start gap-2"
                 >
-                  <ExternalLink className="mr-2 size-4" aria-hidden="true" />
+                  <ExternalLink className="size-4" aria-hidden="true" />
                   Get desktop app
-                </a>
+                </ButtonLink>
               )}
               <p className="col-span-2 px-3 pt-1 text-[11px] text-neutral-600 lg:col-span-1">
                 {webRuntime ? 'Web' : 'Launcher'}{' '}
@@ -565,22 +566,24 @@ export function SettingsPage(): JSX.Element {
                     <WebHelperSetup className="mt-5" />
                   </div>
                   {nativeHelperReady && <NativeHelperSettingsPanel />}
-                  <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                    <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
-                      Browser matches launch the Steam copy of Counter-Strike directly. You do not
-                      need to choose a local game folder or install launcher-managed files.
-                    </p>
-                    <Button
-                      variant="ghost"
-                      className="mt-5 border border-sky-400/35 text-sky-300 hover:bg-sky-400/10 hover:text-sky-200"
-                      onClick={() => void window.api.window.openCounterStrikeSteamStore()}
-                    >
-                      <Download className="mr-2 size-4" aria-hidden="true" />
-                      Open Counter-Strike on Steam
-                    </Button>
+                  <div className="mt-5 space-y-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                    <div>
+                      <h3 className="text-lg font-semibold">Counter-Strike 1.6 on Steam</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
+                        Browser matches launch the Steam copy of Counter-Strike directly. You do not
+                        need to choose a local game folder or install launcher-managed files.
+                      </p>
+                      <Button
+                        variant="secondary"
+                        className="mt-5"
+                        onClick={() => void window.api.window.openCounterStrikeSteamStore()}
+                      >
+                        <Download className="mr-2 size-4" aria-hidden="true" />
+                        Open Counter-Strike on Steam
+                      </Button>
+                    </div>
+                    <WebNextClientDownload embedded />
                   </div>
-                  <WebNextClientDownload />
                 </>
               ) : (
                 <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">

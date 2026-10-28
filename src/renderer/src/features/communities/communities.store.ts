@@ -65,8 +65,10 @@ const initialQuery: CommunityDirectoryQuery = {
 }
 const restrictedCommunityId = (): string | null => {
   const branding = usePartnerBrandingStore.getState().branding
+  const state = useCommunitiesStore.getState()
   return branding?.allowOtherCommunities === false &&
-    !useCommunitiesStore.getState().canBypassLeaveRestriction
+    branding.partnerId === state.currentCommunityId &&
+    !state.canBypassLeaveRestriction
     ? branding.partnerId
     : null
 }

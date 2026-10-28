@@ -1,11 +1,12 @@
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useProfileStore } from '../profile/profile.store'
-import { useEffect, useState, type JSX, type MouseEvent } from 'react'
+import { useRef, useState, type JSX, type MouseEvent } from 'react'
 import { Flag, UserPlus, UserRound, Volume2, VolumeX } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import type { PlayerReportReason, QueuedPlayer } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { preferenceFor, useVoicePreferencesStore } from '../voice/voice-preferences.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { useTranslation } from '../i18n/i18n'
@@ -45,21 +46,10 @@ export function InGameRoster({
   const [contextMenu, setContextMenu] = useState<{ playerId: string; x: number; y: number } | null>(
     null
   )
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+  useDismissibleMenu(Boolean(contextMenu), contextMenuRef, () => setContextMenu(null))
   const friends = useFriendsStore((state) => state.friends)
   const requestFriend = useFriendsStore((state) => state.request)
-
-  useEffect(() => {
-    const close = (): void => setContextMenu(null)
-    const escape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') close()
-    }
-    window.addEventListener('click', close)
-    window.addEventListener('keydown', escape)
-    return () => {
-      window.removeEventListener('click', close)
-      window.removeEventListener('keydown', escape)
-    }
-  }, [])
 
   const showMenu = (event: MouseEvent<HTMLElement>, playerId: string): void => {
     event.preventDefault()
@@ -205,6 +195,7 @@ export function InGameRoster({
       </div>
       {contextMenu && (
         <div
+          ref={contextMenuRef}
           role="menu"
           className="fixed z-[110] min-w-40  border border-white/15 bg-neutral-800 py-1 text-left text-white shadow-xl"
           style={{ left: contextMenu.x, top: contextMenu.y }}

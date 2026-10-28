@@ -8,6 +8,7 @@ interface WebHelperPromptState {
   awaitInstall: () => void
   nativeReady: boolean
   competitiveReady: boolean
+  onboardingOpen: boolean
   open: boolean
   setupOpen: boolean
   setupCommand: string | null
@@ -38,6 +39,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       nativeReady: true,
       competitiveReady: false,
       status: 'rust',
+      onboardingOpen: get().onboardingOpen && announce,
       open: false,
       onContinue: null,
       setupOpen: false,
@@ -60,6 +62,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     awaitInstall: () => set({ awaitingInstall: true }),
     nativeReady: false,
     competitiveReady: false,
+    onboardingOpen: false,
     open: false,
     setupOpen: false,
     setupCommand: null,
@@ -77,6 +80,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       cancelSetup()
       set({
         awaitingInstall: false,
+        onboardingOpen: false,
         open: false,
         onContinue: null,
         setupOpen: false,
@@ -101,19 +105,16 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
         awaitingInstall: false,
         nativeReady: false,
         competitiveReady: false,
+        onboardingOpen: accountId !== null,
         open: false,
         setupOpen: false,
         setupCommand: null,
         status: 'idle'
       })
       if (accountId) {
-        const current = generation
-        void get()
-          .checkNative()
-          .then((status) => {
-            if (current === generation && get().accountId === accountId && status !== 'rust')
-              set({ open: true })
-          })
+        // Show onboarding on login while the native protocol check runs.
+        // A previously verified helper skips it in ready().
+        void get().checkNative()
       }
     },
     checkNative: () => {

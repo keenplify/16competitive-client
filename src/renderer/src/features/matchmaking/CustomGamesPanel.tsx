@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import {
   Bot,
   LoaderCircle,
@@ -18,6 +18,7 @@ import {
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { CustomGamePlayerRank } from './CustomGamePlayerRank'
 import { RoomSettingsModal } from './RoomSettingsModal'
 import { useTranslation } from '../i18n/i18n'
@@ -98,6 +99,8 @@ export function CustomGamesPanel({
     x: number
     y: number
   } | null>(null)
+  const memberMenuRef = useRef<HTMLDivElement>(null)
+  useDismissibleMenu(Boolean(memberMenu), memberMenuRef, () => setMemberMenu(null))
 
   const handleAddBot = async (button: string, team?: 1 | 2): Promise<void> => {
     setPendingBotButton(button)
@@ -122,19 +125,6 @@ export function CustomGamesPanel({
   useEffect(() => {
     if (room && room.hostNodeId !== selectedNodeId) void selectNode(room.hostNodeId)
   }, [room, selectNode, selectedNodeId])
-
-  useEffect(() => {
-    const close = (): void => setMemberMenu(null)
-    const escape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') close()
-    }
-    window.addEventListener('click', close)
-    window.addEventListener('keydown', escape)
-    return () => {
-      window.removeEventListener('click', close)
-      window.removeEventListener('keydown', escape)
-    }
-  }, [])
 
   const owner = room?.ownerId === currentPlayerId
   const editable = owner && room?.state === 'WAITING'
@@ -656,6 +646,7 @@ export function CustomGamesPanel({
 
       {memberMenu && (
         <div
+          ref={memberMenuRef}
           role="menu"
           aria-label={`Room options for ${memberMenu.member.username}`}
           className="fixed z-[90] w-44 border border-white/15 bg-neutral-950 py-1 shadow-2xl"

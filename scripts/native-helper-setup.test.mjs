@@ -106,16 +106,17 @@ test('login and each later Play check probe native helper without using saved su
   assert.equal(store.getState().nativeReady, false)
 })
 
-test('login prompts for a missing or outdated helper, but leaves a ready helper closed', async () => {
+test('login opens onboarding for a missing or outdated helper, but skips a ready helper', async () => {
   for (const result of [null, 'outdated-rust', 'rust']) {
     const { store } = await harness({ check: async () => result })
     store.getState().syncAccount('player')
     await store.getState().checkNative()
-    assert.equal(store.getState().open, result !== 'rust')
+    assert.equal(store.getState().onboardingOpen, result !== 'rust')
+    assert.equal(store.getState().open, false)
     store.getState().close()
     store.getState().syncAccount('player')
     await store.getState().checkNative()
-    assert.equal(store.getState().open, false, 'account refresh must respect dismissal')
+    assert.equal(store.getState().onboardingOpen, false, 'account refresh must respect dismissal')
   }
   const { store } = await harness({
     check: async () => {
@@ -124,10 +125,10 @@ test('login prompts for a missing or outdated helper, but leaves a ready helper 
   })
   store.getState().syncAccount('player')
   await store.getState().checkNative()
-  assert.equal(store.getState().open, true)
+  assert.equal(store.getState().onboardingOpen, true)
 })
 
-test('a delayed login helper check cannot reopen the prompt after dismissal or logout', async () => {
+test('onboarding opens before a delayed helper check and stays closed after dismissal or logout', async () => {
   for (const cancel of ['close', 'logout']) {
     let finish
     const { store } = await harness({
@@ -137,14 +138,35 @@ test('a delayed login helper check cannot reopen the prompt after dismissal or l
         })
     })
     store.getState().syncAccount('player')
+    assert.equal(
+      store.getState().onboardingOpen,
+      true,
+      'onboarding appears before the helper check finishes'
+    )
     const pending = store.getState().checkNative()
     if (cancel === 'logout') store.getState().syncAccount(null)
     else store.getState().close()
     finish(null)
     await pending
-    assert.equal(store.getState().open, false)
+    assert.equal(store.getState().onboardingOpen, false)
     assert.equal(store.getState().status, 'idle')
   }
+})
+
+test('installing a helper advances onboarding to folder selection', async () => {
+  let result = null
+  const { store } = await harness({ check: async () => result })
+  store.getState().syncAccount('player')
+  await store.getState().checkNative()
+  assert.equal(store.getState().nativeReady, false)
+  store.getState().awaitInstall()
+  // The next protocol check succeeds after the downloaded helper starts.
+  result = 'rust'
+  await store.getState().checkNative()
+  assert.equal(store.getState().nativeReady, true)
+  assert.equal(store.getState().onboardingOpen, true)
+  store.getState().close()
+  assert.equal(store.getState().onboardingOpen, false)
 })
 
 test('only an explicit search attaches a queue continuation to the helper prompt', async () => {

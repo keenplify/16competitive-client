@@ -7,6 +7,8 @@ import { clearCachedSkinModels } from '../skins/skin-model-cache'
 import { useGameSettingsStore } from './game-settings.store'
 import { isWebRuntime } from '../../web-runtime'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
+import { useNativeHelperSettingsStore } from './native-helper-settings.store'
+import { requestNativeHelperSettings } from './native-helper-request'
 
 const initialProgress: SkinAssetSyncProgress = {
   status: 'idle',
@@ -23,6 +25,8 @@ export function AssetDownloadSettings(): JSX.Element {
   const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
   const webRuntime = isWebRuntime() && !nativeReady
   const savedPath = useGameSettingsStore((state) => state.savedPath)
+  const helperPath = useNativeHelperSettingsStore((state) => state.settings?.cs16FolderPath)
+  const installationPath = nativeReady && isWebRuntime() ? (helperPath ?? savedPath) : savedPath
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)
   const [requestedMode, setRequestedMode] = useState<SkinAssetSyncMode | null>(null)
@@ -30,10 +34,25 @@ export function AssetDownloadSettings(): JSX.Element {
   useEffect(() => {
     if (webRuntime) return undefined
     const removeListener = window.api.gameSettings.onAssetSyncProgress(setProgress)
-    void window.api.gameSettings
-      .getAssetSyncStatus()
+    void (async () => {
+      if (isWebRuntime() && window.api.matchmaking.nativeHelperSettings) {
+        await requestNativeHelperSettings(
+          { action: 'get' },
+          window.api.matchmaking.nativeHelperSettings,
+          () => useWebHelperPromptStore.getState().checkNative()
+        )
+      }
+      return window.api.gameSettings.getAssetSyncStatus()
+    })()
       .then(setProgress)
-      .catch(() => undefined)
+      .catch((error: unknown) =>
+        setProgress({
+          status: 'error',
+          completedFiles: 0,
+          totalFiles: 0,
+          message: readableError(error)
+        })
+      )
     return removeListener
   }, [webRuntime])
 
@@ -60,7 +79,7 @@ export function AssetDownloadSettings(): JSX.Element {
     : 0
 
   const syncAssets = async (mode: SkinAssetSyncMode): Promise<void> => {
-    if (!savedPath || syncing || maintenanceLocked) return
+    if (!installationPath || syncing || maintenanceLocked) return
     setRequestedMode(mode)
     setProgress((current) => ({
       status: 'syncing',
@@ -69,6 +88,13 @@ export function AssetDownloadSettings(): JSX.Element {
       message: mode === 'repair' ? 'Repairing skin assets…' : 'Checking skin assets…'
     }))
     try {
+      if (isWebRuntime() && window.api.matchmaking.nativeHelperSettings) {
+        await requestNativeHelperSettings(
+          { action: 'get' },
+          window.api.matchmaking.nativeHelperSettings,
+          () => useWebHelperPromptStore.getState().checkNative()
+        )
+      }
       if (mode === 'repair') clearCachedSkinModels()
       await window.api.gameSettings.syncAssets(mode)
       if (mode === 'repair') clearCachedSkinModels()
@@ -89,7 +115,7 @@ export function AssetDownloadSettings(): JSX.Element {
   }
 
   const statusContent = (() => {
-    if (!savedPath) {
+    if (!installationPath) {
       return (
         <p className="text-sm text-neutral-400">
           Save your Counter-Strike folder above before downloading assets.
@@ -180,7 +206,7 @@ export function AssetDownloadSettings(): JSX.Element {
 
       <div className="mt-5 flex flex-wrap gap-3">
         <Button
-          disabled={!savedPath || syncing || maintenanceLocked}
+          disabled={!installationPath || syncing || maintenanceLocked}
           onClick={() => void syncAssets('download')}
         >
           {syncing && requestedMode === 'download' ? (
@@ -193,7 +219,7 @@ export function AssetDownloadSettings(): JSX.Element {
         <Button
           variant="ghost"
           className="border border-white/15 text-neutral-200 hover:bg-white/10"
-          disabled={!savedPath || syncing || maintenanceLocked}
+          disabled={!installationPath || syncing || maintenanceLocked}
           onClick={() => void syncAssets('repair')}
         >
           {syncing && requestedMode === 'repair' ? (

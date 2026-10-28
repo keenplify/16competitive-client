@@ -357,7 +357,13 @@ test('visitor member lists isolate own community data, pagination and late respo
 
 test('community details and member sidebar resolve the viewed community, including restricted partner context', () => {
   const other = { ...card, id: '22345678-1234-4123-8123-123456789abc', name: 'Viewed community' }
-  const state = { currentCommunity: card, viewedCommunity: other, preferredCommunity: other }
+  const state = {
+    currentCommunity: card,
+    currentCommunityId: id,
+    canBypassLeaveRestriction: false,
+    viewedCommunity: other,
+    preferredCommunity: other
+  }
   let branding = null
   const { useDisplayedCommunity } = rendererStore(
     '../src/renderer/src/features/communities/use-displayed-community.ts',
@@ -372,7 +378,11 @@ test('community details and member sidebar resolve the viewed community, includi
   state.viewedCommunity = null
   assert.equal(useDisplayedCommunity().id, id)
   branding = { partnerId: other.id, allowOtherCommunities: false }
+  assert.equal(useDisplayedCommunity().id, id)
+  state.currentCommunityId = other.id
   assert.equal(useDisplayedCommunity().id, other.id)
+  state.canBypassLeaveRestriction = true
+  assert.equal(useDisplayedCommunity().id, id)
 })
 
 test('partner PWA activates its preferred community without silently changing membership', async () => {
@@ -427,6 +437,27 @@ test('disabled community discovery blocks navigation and selection, independentl
   assert.equal(store.getState().selected, null)
   assert.equal(store.getState().query.search, '')
   branding.allowOtherCommunities = true
+  store.getState().setView('discover')
+  store.getState().openCommunity(other)
+  assert.equal(store.getState().viewedCommunity.id, other.id)
+})
+
+test('nonmembers and staff can open other communities in a restricted partner theme', () => {
+  const other = { ...card, id: '22345678-1234-4123-8123-123456789abc' }
+  const branding = { partnerId: id, allowOtherCommunities: false }
+  const { useCommunitiesStore: store } = rendererStore(
+    '../src/renderer/src/features/communities/communities.store.ts',
+    {
+      '../partner-branding/partner-branding.store': {
+        usePartnerBrandingStore: { getState: () => ({ branding, enabled: true }) }
+      }
+    }
+  )
+  store.setState({ currentCommunityId: null, loading: false })
+  store.getState().setView('discover')
+  store.getState().openCommunity(other)
+  assert.equal(store.getState().viewedCommunity.id, other.id)
+  store.setState({ currentCommunityId: id, canBypassLeaveRestriction: true })
   store.getState().setView('discover')
   store.getState().openCommunity(other)
   assert.equal(store.getState().viewedCommunity.id, other.id)

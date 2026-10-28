@@ -36,11 +36,13 @@ import { Button } from '../../components/ui/Button'
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar'
 import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { TextField } from '../../components/ui/TextField'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { useFriendChatStore } from '../friends/friend-chat.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { MatchSearchPanel } from '../matchmaking/MatchSearchPanel'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { usePartyStore } from './party.store'
+import { CollapsedFriendRail } from './CollapsedFriendRail'
 
 interface LobbySocialSidebarProps {
   communityOnly?: boolean
@@ -313,6 +315,7 @@ export function LobbySocialSidebar({
 }: LobbySocialSidebarProps): JSX.Element | null {
   const { t } = useTranslation()
   const profileMenuItem = useRef<HTMLButtonElement>(null)
+  const friendMenuRef = useRef<HTMLDivElement>(null)
   const hoverOpenTimer = useRef<number | null>(null)
   const searchTimer = useRef<number | null>(null)
   const [friendMenu, setFriendMenu] = useState<{
@@ -320,6 +323,12 @@ export function LobbySocialSidebar({
     x: number
     y: number
   } | null>(null)
+  useDismissibleMenu(Boolean(friendMenu), friendMenuRef, () => setFriendMenu(null))
+  /* eslint-disable react-hooks/set-state-in-effect -- A portal must close when its parent rail collapses. */
+  useEffect(() => {
+    if (collapsed) setFriendMenu(null)
+  }, [collapsed])
+  /* eslint-enable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (friendMenu) profileMenuItem.current?.focus()
   }, [friendMenu])
@@ -417,7 +426,7 @@ export function LobbySocialSidebar({
   const handleMouseLeave = (): void => {
     if (hoverOpenTimer.current !== null) window.clearTimeout(hoverOpenTimer.current)
     hoverOpenTimer.current = null
-    if (!collapsed && !pinned) onAutoClose()
+    if (!collapsed && !pinned && !friendMenu) onAutoClose()
   }
   const handleCollapsedKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
     if (!collapsed || (event.key !== 'Enter' && event.key !== ' ')) return
@@ -450,7 +459,13 @@ export function LobbySocialSidebar({
       </div>
       <aside
         className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
-        aria-label={communityOnly ? t('directory.members') : collapsed ? 'Expand Friends panel' : 'Friends panel'}
+        aria-label={
+          communityOnly
+            ? t('directory.members')
+            : collapsed
+              ? 'Expand Friends panel'
+              : 'Friends panel'
+        }
         role={collapsed ? 'button' : undefined}
         tabIndex={collapsed ? 0 : undefined}
         onClick={expandCollapsedSidebar}
@@ -459,19 +474,12 @@ export function LobbySocialSidebar({
         onMouseMove={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div
-          className={`absolute inset-0 flex flex-col items-center transition-all duration-200 ${collapsed ? 'translate-x-0 opacity-100 delay-100' : 'pointer-events-none translate-x-3 opacity-0'}`}
-          aria-hidden={!collapsed}
-        >
-          <div className="relative mt-5   p-2">
-            <Users className="size-4" aria-hidden="true" />
-            {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
-                {notificationCount}
-              </span>
-            )}
-          </div>
-        </div>
+        <CollapsedFriendRail
+          collapsed={collapsed}
+          communityOnly={communityOnly}
+          notificationCount={notificationCount}
+          friends={groups.flatMap((group) => group.items)}
+        />
 
         <div
           className={`flex h-full min-w-72 flex-1 flex-col transition-all duration-250 ease-out ${collapsed ? 'pointer-events-none translate-x-4 opacity-0' : 'translate-x-0 opacity-100 delay-75'}`}
@@ -480,135 +488,142 @@ export function LobbySocialSidebar({
           <div className="max-h-[55dvh] shrink-0 overflow-y-auto">
             <MatchSearchPanel className="static w-full max-w-none shrink-0 rounded-none border-x-0 border-t-0 shadow-none" />
           </div>
-          {communityOnly ? <div className="flex min-h-0 flex-1 flex-col"><CommunityMembersSection standalone className="flex-1" /></div> : <>
-          <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">
-            <div className="flex items-center gap-2">
-              <Users className="size-4 text-sky-300" aria-hidden="true" />
-              <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-100 uppercase">
-                Friends · {friends.length}
-              </h2>
+          {communityOnly ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <CommunityMembersSection standalone className="flex-1" />
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                className="relative   p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 disabled:cursor-default disabled:opacity-40"
-                aria-label={
-                  friendRequests.length > 0
-                    ? `Friend requests (${friendRequests.length})`
-                    : 'No friend requests'
-                }
-                title={friendRequests.length > 0 ? 'Friend requests' : 'No friend requests'}
-                disabled={friendRequests.length === 0}
-                onClick={() => setFriendRequestsOpen(true)}
-              >
-                <Mail className="size-3.5" aria-hidden="true" />
-                {friendRequests.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-neutral-950">
-                    {friendRequests.length}
-                  </span>
-                )}
-              </button>
-              {party && (
-                <Button
-                  variant="ghost"
-                  className="h-7 shrink-0 bg-red-400 px-2 text-[9px] text-neutral-950 uppercase hover:bg-red-300 hover:text-neutral-950 focus-visible:outline-red-300 disabled:bg-red-400/50"
-                  disabled={partyStatus === 'leaving'}
-                  onClick={() => void leave()}
-                >
-                  Leave party
-                </Button>
-              )}
-              <button
-                type="button"
-                className={`p-1 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 ${pinned ? 'text-sky-300' : 'text-neutral-500'}`}
-                aria-label={pinned ? 'Unpin and close Friends panel' : 'Pin Friends panel open'}
-                aria-pressed={pinned}
-                title={pinned ? 'Unpin and close' : 'Pin Friends panel'}
-                onClick={onPinToggle}
-              >
-                <Pin
-                  className="size-4"
-                  fill={pinned ? 'currentColor' : 'none'}
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-          </header>
-
-          <div className="shrink-0 border-b border-white/10 px-4 py-3">
-            <TextField
-              id="friend-search"
-              label="Find players"
-              leadingIcon={<Search className="size-3.5" />}
-              className="h-9 rounded-none pl-8"
-              value={query}
-              maxLength={32}
-              autoComplete="off"
-              placeholder="Search username"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {query.trim().length >= 2 && (
-              <div className="mt-2 max-h-40 overflow-y-auto border border-white/10 bg-black/30">
-                {searching && <p className="p-3 text-xs text-neutral-500">Searching…</p>}
-                {!searching && results.length === 0 && (
-                  <p className="p-3 text-xs text-neutral-500">No players found.</p>
-                )}
-                {!searching &&
-                  results.map((player) => (
-                    <SearchResultRow
-                      key={player.id}
-                      player={player}
-                      busy={actingPlayerId === player.id}
-                      onAdd={() => void requestFriend(player.id)}
-                    />
-                  ))}
-              </div>
-            )}
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto py-2">
-            {groups.map(
-              (group) =>
-                group.items.length > 0 && (
-                  <section key={group.label} className="mb-2">
-                    <h3 className="px-4 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
-                      {group.label} · {group.items.length}
-                    </h3>
-                    {group.items.map((friend) => (
-                      <FriendRow
-                        key={friend.id}
-                        friend={friend}
-                        canInvite={canInvite}
-                        busy={actingPlayerId === friend.id || partyStatus === 'inviting'}
-                        onInvite={() => void inviteFriend(friend.username)}
-                        onContextMenu={(event) => showFriendMenu(event, friend)}
-                      />
-                    ))}
-                  </section>
-                )
-            )}
-            {friends.length === 0 && query.trim().length < 2 && (
-              <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center">
-                <div className="flex size-10 items-center justify-center border border-white/10 bg-white/5">
-                  <UserPlus className="size-4 text-neutral-500" />
+          ) : (
+            <>
+              <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 bg-linear-to-r from-sky-950/60 to-neutral-950 px-4">
+                <div className="flex items-center gap-2">
+                  <Users className="size-4 text-sky-300" aria-hidden="true" />
+                  <h2 className="text-xs font-bold tracking-[0.16em] text-neutral-100 uppercase">
+                    Friends · {friends.length}
+                  </h2>
                 </div>
-                <p className="mt-3 text-sm font-medium text-neutral-300">Build your squad</p>
-                <p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">
-                  Find players above, add them, then invite online friends to your party.
-                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="relative   p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 disabled:cursor-default disabled:opacity-40"
+                    aria-label={
+                      friendRequests.length > 0
+                        ? `Friend requests (${friendRequests.length})`
+                        : 'No friend requests'
+                    }
+                    title={friendRequests.length > 0 ? 'Friend requests' : 'No friend requests'}
+                    disabled={friendRequests.length === 0}
+                    onClick={() => setFriendRequestsOpen(true)}
+                  >
+                    <Mail className="size-3.5" aria-hidden="true" />
+                    {friendRequests.length > 0 && (
+                      <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold text-black">
+                        {friendRequests.length}
+                      </span>
+                    )}
+                  </button>
+                  {party && (
+                    <Button
+                      variant="ghost"
+                      className="h-7 shrink-0 bg-red-400 px-2 text-[9px] text-black uppercase hover:bg-red-300 hover:text-black focus-visible:outline-red-300 disabled:bg-red-400/50"
+                      disabled={partyStatus === 'leaving'}
+                      onClick={() => void leave()}
+                    >
+                      Leave party
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    className={`p-1 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-400 ${pinned ? 'text-sky-300' : 'text-neutral-500'}`}
+                    aria-label={pinned ? 'Unpin and close Friends panel' : 'Pin Friends panel open'}
+                    aria-pressed={pinned}
+                    title={pinned ? 'Unpin and close' : 'Pin Friends panel'}
+                    onClick={onPinToggle}
+                  >
+                    <Pin
+                      className="size-4"
+                      fill={pinned ? 'currentColor' : 'none'}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              </header>
+
+              <div className="shrink-0 border-b border-white/10 px-4 py-3">
+                <TextField
+                  id="friend-search"
+                  label="Find players"
+                  leadingIcon={<Search className="size-3.5" />}
+                  className="h-9 rounded-none pl-8"
+                  value={query}
+                  maxLength={32}
+                  autoComplete="off"
+                  placeholder="Search username"
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                {query.trim().length >= 2 && (
+                  <div className="mt-2 max-h-40 overflow-y-auto border border-white/10 bg-black/30">
+                    {searching && <p className="p-3 text-xs text-neutral-500">Searching…</p>}
+                    {!searching && results.length === 0 && (
+                      <p className="p-3 text-xs text-neutral-500">No players found.</p>
+                    )}
+                    {!searching &&
+                      results.map((player) => (
+                        <SearchResultRow
+                          key={player.id}
+                          player={player}
+                          busy={actingPlayerId === player.id}
+                          onAdd={() => void requestFriend(player.id)}
+                        />
+                      ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="min-h-12 shrink-0">
-            <CommunityMembersSection />
-          </div>
-          </>}
+
+              <div className="min-h-0 flex-1 overflow-y-auto py-2">
+                {groups.map(
+                  (group) =>
+                    group.items.length > 0 && (
+                      <section key={group.label} className="mb-2">
+                        <h3 className="px-4 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
+                          {group.label} · {group.items.length}
+                        </h3>
+                        {group.items.map((friend) => (
+                          <FriendRow
+                            key={friend.id}
+                            friend={friend}
+                            canInvite={canInvite}
+                            busy={actingPlayerId === friend.id || partyStatus === 'inviting'}
+                            onInvite={() => void inviteFriend(friend.username)}
+                            onContextMenu={(event) => showFriendMenu(event, friend)}
+                          />
+                        ))}
+                      </section>
+                    )
+                )}
+                {friends.length === 0 && query.trim().length < 2 && (
+                  <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center">
+                    <div className="flex size-10 items-center justify-center border border-white/10 bg-white/5">
+                      <UserPlus className="size-4 text-neutral-500" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-neutral-300">Build your squad</p>
+                    <p className="mt-1 max-w-44 text-xs leading-relaxed text-neutral-600">
+                      Find players above, add them, then invite online friends to your party.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="min-h-12 shrink-0">
+                <CommunityMembersSection />
+              </div>
+            </>
+          )}
           <div id="friends-rail-voice-slot" className="shrink-0" />
         </div>
       </aside>
       {friendMenu &&
         createPortal(
           <div
+            ref={friendMenuRef}
             className="fixed z-[110] min-w-40 overflow-hidden border border-white/15 bg-neutral-800 py-1 shadow-xl"
             style={{
               right: Math.max(8, window.innerWidth - friendMenu.x + 8),

@@ -1,5 +1,6 @@
 import { partnerAssetPath } from './partner-runtime'
 import { loadBrowserCommunityDirectory } from './partner-community-context'
+import { saveBrowserCrosshair } from './crosshair-settings'
 import { loadCustomGameList } from '../shared/custom-game-list'
 import {
   parseCommunityJoin,
@@ -48,12 +49,7 @@ import type { NativeHelperSettings } from '../shared/native-helper-settings'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
 import type { FriendChatMessage, FriendSearchResult, FriendsSnapshot } from '../shared/friends'
 import type { GameSettings, SkinAssetSyncProgress } from '../shared/game-settings'
-import {
-  DEFAULT_CROSSHAIR,
-  serializeCrosshairConfig,
-  parseNativeCrosshairConfig,
-  parseCrosshairProfile
-} from '../shared/crosshair'
+import { DEFAULT_CROSSHAIR, parseNativeCrosshairConfig } from '../shared/crosshair'
 import type {
   FeaturedRankedLadder,
   LeaderboardEntry,
@@ -826,18 +822,33 @@ const api: Window['api'] = {
       return saveHelperPreferences({ display })
     },
     async get() {
+      let local: NativeHelperSettings | null = null
+      let settings: GameSettings
       try {
-        const settings = helperGameSettings(await nativeHelperSettings({ action: 'get' }))
+        local = await nativeHelperSettings({ action: 'get' })
+        settings = helperGameSettings(local)
+      } catch {
+        settings = browserSettings()
+      }
+      try {
         const profile = await requestJson<{ profile: string | null }>('/auth/crosshair', {
           authenticated: true
-        }).catch(() => null)
-        settings.crosshair = profile?.profile
+        })
+        settings.crosshair = profile.profile
           ? parseNativeCrosshairConfig(profile.profile)
           : DEFAULT_CROSSHAIR
-        return settings
+        if (local && profile.profile && local.crosshairConfig?.trim() !== profile.profile.trim()) {
+          try {
+            const synced = await saveHelperPreferences({ crosshairConfig: `${profile.profile}\n` })
+            return { ...synced, crosshair: settings.crosshair }
+          } catch {
+            // Account profile remains usable even if the helper has stopped.
+          }
+        }
       } catch {
-        return browserSettings()
+        // Keep the helper's local profile when the account API is unavailable.
       }
+      return settings
     },
     async chooseFolder() {
       return (await nativeHelperSettings({ action: 'choose', game: 'cs16' })).cs16FolderPath
@@ -865,26 +876,21 @@ const api: Window['api'] = {
       if (next[0].toLowerCase() === next[1].toLowerCase()) {
         throw new Error('Team and Party talk need different push-to-talk keys.')
       }
+      const settings = await saveHelperPreferences({ voicePttKeys: next })
       localStorage.setItem(PTT_KEYS_KEY, JSON.stringify(next))
-      try {
-        return await saveHelperPreferences({ voicePttKeys: next })
-      } catch {
-        return browserSettings()
-      }
+      return settings
     },
     async setCrosshair(profile) {
-      const parsed = parseCrosshairProfile(profile)
-      const settings = await saveHelperPreferences({
-        crosshairConfig: serializeCrosshairConfig(parsed)
-      })
-      await requestJson('/auth/crosshair', {
-        authenticated: true,
-        init: {
-          method: 'PUT',
-          body: JSON.stringify({ profile: serializeCrosshairConfig(parsed).trim() })
-        }
-      })
-      return settings
+      return saveBrowserCrosshair(
+        profile,
+        (config) =>
+          requestJson('/auth/crosshair', {
+            authenticated: true,
+            init: { method: 'PUT', body: JSON.stringify({ profile: config }) }
+          }),
+        (config) => saveHelperPreferences({ crosshairConfig: config }),
+        browserSettings
+      )
     },
     async setNextClientIntegration(enabled) {
       return saveHelperPreferences({ enhancementsEnabled: enabled })

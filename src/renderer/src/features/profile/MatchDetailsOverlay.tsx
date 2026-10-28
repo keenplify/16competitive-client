@@ -9,6 +9,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { useTranslation } from '../i18n/i18n'
 import { Button } from '../../components/ui/Button'
+import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 
 export function MatchDetailsOverlay(): JSX.Element | null {
   const { id, summary, status, close, open } = useMatchDetailsStore()
@@ -18,7 +19,9 @@ export function MatchDetailsOverlay(): JSX.Element | null {
   const { t } = useTranslation()
   const modeLabel = useProfileModeLabel()
   const menuButton = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  useDismissibleMenu(Boolean(menu), menuRef, () => setMenu(null))
   const [notice, setNotice] = useState<'sent' | 'error' | null>(null)
 
   useEffect(
@@ -145,6 +148,7 @@ export function MatchDetailsOverlay(): JSX.Element | null {
         )}
         {menu && (
           <div
+            ref={menuRef}
             role="menu"
             aria-label={t('profile.playerActions')}
             className="fixed z-10 w-48 border border-white/20 bg-neutral-900 p-1 shadow-xl"

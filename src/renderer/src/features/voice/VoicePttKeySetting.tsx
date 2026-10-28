@@ -3,6 +3,9 @@ import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
+import { isWebRuntime } from '../../web-runtime'
+import { requestNativeHelperSettings } from '../settings/native-helper-request'
 
 export const VOICE_PTT_KEY_CHANGED_EVENT = '16competitive:voice-ptt-key-changed'
 
@@ -64,6 +67,8 @@ const readableError = (error: unknown): string =>
 
 export function VoicePttKeySetting(): JSX.Element {
   const enhancementsEnabled = useGameSettingsStore((state) => state.nextClientIntegrationEnabled)
+  const nativeHelperReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const automaticKeysAvailable = enhancementsEnabled || (isWebRuntime() && nativeHelperReady)
   const isFfaMatch = useMatchmakingStore((state) => state.match?.mode === 'ffa')
   const matchChannelLabel = isFfaMatch ? 'All' : 'Team'
   const panelRef = useRef<HTMLDivElement>(null)
@@ -94,7 +99,7 @@ export function VoicePttKeySetting(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (!capturing || !enhancementsEnabled) return
+    if (!capturing || !automaticKeysAvailable) return
 
     const saveKey = (key: string): void => {
       const channel = capturing
@@ -103,8 +108,16 @@ export function VoicePttKeySetting(): JSX.Element {
       setError(null)
       setNotice(null)
       const value = channel === 'party' ? `party:${key}` : key
-      void window.api.gameSettings
-        .setVoicePttKey(value)
+      void (async () => {
+        if (isWebRuntime() && nativeHelperReady && window.api.matchmaking.nativeHelperSettings) {
+          await requestNativeHelperSettings(
+            { action: 'get' },
+            window.api.matchmaking.nativeHelperSettings,
+            () => useWebHelperPromptStore.getState().checkNative()
+          )
+        }
+        return window.api.gameSettings.setVoicePttKey(value)
+      })()
         .then((settings) => {
           const nextTeamKey = settings.voicePttKeys[0] ?? settings.voicePttKey
           const nextPartyKey = settings.voicePttKeys[1] ?? 'V'
@@ -156,17 +169,17 @@ export function VoicePttKeySetting(): JSX.Element {
       window.removeEventListener('keydown', keyDown, true)
       window.removeEventListener('mousedown', mouseDown, true)
     }
-  }, [capturing, enhancementsEnabled, matchChannelLabel])
+  }, [capturing, automaticKeysAvailable, matchChannelLabel, nativeHelperReady])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Turning off enhancements must end an active key capture. */
   useEffect(() => {
-    if (!enhancementsEnabled) setCapturing(null)
-  }, [enhancementsEnabled])
+    if (!automaticKeysAvailable) setCapturing(null)
+  }, [automaticKeysAvailable])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const bindingRow = (channel: VoiceTalkChannel, key: string): JSX.Element => (
     <div
-      className={`flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between ${enhancementsEnabled ? '' : 'opacity-40'}`}
+      className={`flex flex-col gap-3 border-t border-white/10 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between ${automaticKeysAvailable ? '' : 'opacity-40'}`}
     >
       <div>
         <p className="text-sm font-semibold text-white">
@@ -185,7 +198,7 @@ export function VoicePttKeySetting(): JSX.Element {
         <Button
           variant="ghost"
           data-ptt-capture-control
-          disabled={saving || !enhancementsEnabled}
+          disabled={saving || !automaticKeysAvailable}
           onClick={() => {
             setCapturing((value) => (value === channel ? null : channel))
             setError(null)
@@ -209,7 +222,7 @@ export function VoicePttKeySetting(): JSX.Element {
           Team (All in FFA) and Party talk use separate keys. Team defaults to K and Party defaults
           to V. The in-game module detects these keys without changing Counter-Strike bindings.
         </p>
-        {!enhancementsEnabled && (
+        {!automaticKeysAvailable && (
           <div className="mt-4 border border-amber-300/25 bg-amber-300/5 p-4 text-sm text-amber-100">
             <p>
               Automatic push-to-talk keys are off with In-game enhancements. You can use Open mic,
@@ -252,7 +265,7 @@ export function VoicePttKeySetting(): JSX.Element {
         {bindingRow('party', partyPttKey)}
       </div>
 
-      {capturing && enhancementsEnabled && (
+      {capturing && automaticKeysAvailable && (
         <div className="mt-2 border border-sky-400/25 bg-sky-400/5 p-4 text-sm text-sky-200">
           Press a keyboard key, or click with MOUSE1 through MOUSE5 anywhere in this panel for{' '}
           {capturing === 'team' ? matchChannelLabel : 'Party'} talk.

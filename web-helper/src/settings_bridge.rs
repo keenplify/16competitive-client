@@ -394,7 +394,45 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     }
     let mut prefs = load()?;
     match request {
-        Request::Get => {}
+        Request::Get => {
+            // Populate the web settings with a validated local installation on
+            // first use. This only saves the helper's preference; it does not
+            // change game files. A manual choice always takes precedence.
+            static CS16_DISCOVERED: std::sync::OnceLock<Vec<PathBuf>> = std::sync::OnceLock::new();
+            static CS13_DISCOVERED: std::sync::OnceLock<Vec<PathBuf>> = std::sync::OnceLock::new();
+            if prefs
+                .cs16
+                .as_ref()
+                .and_then(|folder| validate_installation(folder, "cs16"))
+                .is_none()
+            {
+                let previous = prefs.cs16.clone();
+                prefs.cs16 = CS16_DISCOVERED
+                    .get_or_init(|| discover("cs16"))
+                    .iter()
+                    .find(|folder| validate_installation(folder, "cs16").is_some())
+                    .cloned();
+                if prefs.cs16 != previous {
+                    save(&prefs)?;
+                }
+            }
+            if prefs
+                .cs13
+                .as_ref()
+                .and_then(|folder| validate_installation(folder, "cs13"))
+                .is_none()
+            {
+                let previous = prefs.cs13.clone();
+                prefs.cs13 = CS13_DISCOVERED
+                    .get_or_init(|| discover("cs13"))
+                    .iter()
+                    .find(|folder| validate_installation(folder, "cs13").is_some())
+                    .cloned();
+                if prefs.cs13 != previous {
+                    save(&prefs)?;
+                }
+            }
+        }
         Request::Choose { game } => {
             if !matches!(game.as_str(), "cs13" | "cs16") {
                 return Err("Invalid game".into());

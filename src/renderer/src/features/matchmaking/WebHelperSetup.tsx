@@ -13,10 +13,12 @@ const helperDownload = isWindows
 
 export function WebHelperSetup({
   className,
-  onContinue
+  onContinue,
+  inlineSetup = false
 }: {
   className?: string
   onContinue?: () => void
+  inlineSetup?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
   const status = useWebHelperPromptStore((state) => state.status)
@@ -57,6 +59,35 @@ export function WebHelperSetup({
           : status === 'unavailable'
             ? t('webHelper.unavailable')
             : '\u00a0'
+  const setupInstructions = (
+    <div className="space-y-4 p-6 text-white">
+      <h2 className="text-xl font-semibold">{t('webHelper.linuxTitle')}</h2>
+      <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
+      <pre className="h-56 overflow-auto whitespace-pre-wrap break-all border border-neutral-700 bg-black p-4 text-sm text-sky-200">
+        <code>{command ?? t('webHelper.checking')}</code>
+      </pre>
+      <p className="h-16 overflow-auto text-sm leading-6 text-neutral-300" role="status">
+        {status === 'unavailable' || status === 'outdated-rust'
+          ? statusText
+          : t('webHelper.linuxAfter')}
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="primary" disabled={!command} onClick={() => void copyCommand()}>
+          {t('webHelper.copyCommand')}
+        </Button>
+        <Button variant="secondary" onClick={closeSetup}>
+          {t('webHelper.close')}
+        </Button>
+      </div>
+      <p className="h-12 overflow-auto text-sm leading-6 text-neutral-300" role="status">
+        {copyStatus === 'copied'
+          ? t('webHelper.commandCopied')
+          : copyStatus === 'failed'
+            ? t('webHelper.copyFailed')
+            : '\u00a0'}
+      </p>
+    </div>
+  )
 
   return (
     <div className={twMerge('space-y-4', className)}>
@@ -90,41 +121,20 @@ export function WebHelperSetup({
           </Button>
         )}
       </div>
-      <ModalDialog
-        open={setupOpen}
-        onClose={closeSetup}
-        label={t('webHelper.linuxTitle')}
-        className="max-w-xl"
-        vguiTitlebar={false}
-      >
-        <div className="space-y-4 p-6 text-white">
-          <h2 className="text-xl font-semibold">{t('webHelper.linuxTitle')}</h2>
-          <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
-          <pre className="h-56 overflow-auto whitespace-pre-wrap break-all border border-neutral-700 bg-black p-4 text-sm text-sky-200">
-            <code>{command ?? t('webHelper.checking')}</code>
-          </pre>
-          <p className="h-16 overflow-auto text-sm leading-6 text-neutral-300" role="status">
-            {status === 'unavailable' || status === 'outdated-rust'
-              ? statusText
-              : t('webHelper.linuxAfter')}
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" disabled={!command} onClick={() => void copyCommand()}>
-              {t('webHelper.copyCommand')}
-            </Button>
-            <Button variant="secondary" onClick={closeSetup}>
-              {t('webHelper.close')}
-            </Button>
-          </div>
-          <p className="h-12 overflow-auto text-sm leading-6 text-neutral-300" role="status">
-            {copyStatus === 'copied'
-              ? t('webHelper.commandCopied')
-              : copyStatus === 'failed'
-                ? t('webHelper.copyFailed')
-                : '\u00a0'}
-          </p>
-        </div>
-      </ModalDialog>
+      {inlineSetup && setupOpen && (
+        <div className="border border-white/10 bg-neutral-900/90">{setupInstructions}</div>
+      )}
+      {!inlineSetup && (
+        <ModalDialog
+          open={setupOpen}
+          onClose={closeSetup}
+          label={t('webHelper.linuxTitle')}
+          className="max-w-xl"
+          vguiTitlebar={false}
+        >
+          {setupInstructions}
+        </ModalDialog>
+      )}
     </div>
   )
 }

@@ -31,7 +31,14 @@ export async function loadBrowserCommunityDirectory(
   )
   const preferredCommunity =
     preferred.communities.find((community) => community.id === partnerId) ?? null
-  if (!branding.allowOtherCommunities) return { ...preferred, preferredCommunity }
+  // A partner's discovery preference applies to its members, not every visitor
+  // who opened a partner link. Staff can always inspect the full directory.
+  if (
+    !branding.allowOtherCommunities &&
+    preferred.currentCommunityId === partnerId &&
+    !preferred.canBypassLeaveRestriction
+  )
+    return { ...preferred, preferredCommunity }
   const directory = parseCommunityDirectory(await authenticatedGet(communityDirectoryPath(query)))
   return { ...directory, preferredCommunity }
 }

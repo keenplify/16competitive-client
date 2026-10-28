@@ -21,6 +21,8 @@ import { MatchLauncherPage } from '../matchmaking/MatchLauncherPage'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { OnboardingPage } from '../settings/OnboardingPage'
+import { WebHelperOnboardingPage } from '../matchmaking/WebHelperOnboardingPage'
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { useOnboardingStore } from '../settings/onboarding.store'
 import { isWebRuntime } from '../../web-runtime'
 import { useAudioSettingsStore } from '../audio/audio.store'
@@ -59,6 +61,8 @@ export function AuthPage(): JSX.Element {
   const gameSettingsLoaded = useGameSettingsStore((state) => state.loaded)
   const setupCompleted = useGameSettingsStore((state) => state.setupCompleted)
   const setupCompletionPhase = useOnboardingStore((state) => state.completionPhase)
+  const helperAccountId = useWebHelperPromptStore((state) => state.accountId)
+  const helperOnboardingOpen = useWebHelperPromptStore((state) => state.onboardingOpen)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
   const setMode = useAuthStore((state) => state.setMode)
@@ -165,6 +169,9 @@ export function AuthPage(): JSX.Element {
     (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
     session
   ) {
+    if (webRuntime && (helperAccountId !== session.player.id || helperOnboardingOpen)) {
+      return <WebHelperOnboardingPage />
+    }
     if (!gameSettingsLoaded) {
       return (
         <SetupCard

@@ -546,7 +546,7 @@ async function localRequest(
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },
     body: JSON.stringify(request),
     signal: AbortSignal.timeout(
-      ['choose', 'runtimeCheck', 'nextClient'].includes(request.action) ? 300_000 : 5_000
+      ['get', 'choose', 'runtimeCheck', 'nextClient'].includes(request.action) ? 300_000 : 5_000
     ),
     credentials: 'omit',
     redirect: 'error'
