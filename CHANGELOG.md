@@ -3468,3 +3468,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Security
 
 - Web helper runtime and updates are now signed.
+
+## v2026.1028.6 — 2026-10-28
+
+### Settings
+
+- Added support for loopback settings for the web helper.
+- Improved the settings panel width for easier viewing.
