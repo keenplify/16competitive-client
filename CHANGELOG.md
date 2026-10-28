@@ -3503,3 +3503,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added cross-platform helper uninstall support.
 - Improved helper version labels.
 - Fixed the ready-to-download state for helper updates.
+
+## v2026.1028.10 — 2026-10-28
+
+### Settings
+
+- Fixed navigation between game settings pages in the web client.
+
+### Helper Connection
+
+- Added automatic retries when connecting to the local helper.
+- Improved reliability when starting or reconnecting to a game session.
