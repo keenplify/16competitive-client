@@ -22,6 +22,10 @@ import {
   webHelperLaunchUrl
 } from '../shared/web-helper-link'
 
+import { LocalBridge } from './local-bridge'
+
+const localBridge = new LocalBridge()
+
 export type LocalLauncher = 'electron' | 'rust'
 export type LocalLauncherCheck = LocalLauncher | 'outdated-electron' | 'outdated-rust' | null
 let localChannel: { port: number; token: string; origin: string } | null = null
@@ -109,7 +113,7 @@ export function startNativeVoice(
     while (!controller.signal.aborted && token && token === getWebSessionToken()) {
       try {
         const c = settingsChannel()
-        const response = await fetch(`http://127.0.0.1:${c.port}/settings`, {
+        const response = await localBridge.request(`http://127.0.0.1:${c.port}/settings`, {
           method: 'POST',
           headers: { authorization: `Bearer ${c.token}`, 'content-type': 'application/json' },
           body: JSON.stringify({ action: 'voiceStream' }),
@@ -382,6 +386,12 @@ async function probe(
         timeoutMs: 3_000
       })
       if (status.verified === true) {
+        if (
+          target === 'rust' &&
+          status.clientKind === target &&
+          status.clientVersion === expectedVersion(target)
+        )
+          localBridge.authorize()
         return status.clientKind === target && status.clientVersion === expectedVersion(target)
           ? 'ready'
           : 'outdated'
@@ -480,6 +490,7 @@ export async function waitForNativeHelperSetup(setup: {
       if (status.verified === true) {
         if (status.clientKind !== 'rust' || status.clientVersion !== expectedVersion('rust'))
           return 'outdated-rust'
+        localBridge.authorize()
         localStorage.setItem(PREFERENCE_KEY, 'rust')
         localStorage.setItem(PREFERENCE_VERSION_KEY, expectedVersion('rust'))
         return 'rust'
@@ -577,7 +588,7 @@ async function localRequest(
     | { action: 'probeNodes'; nodes: { id: string; apiOrigin: string; port: number }[] }
 ): Promise<unknown> {
   const channel = settingsChannel()
-  const response = await fetch(`http://127.0.0.1:${channel.port}/settings`, {
+  const response = await localBridge.request(`http://127.0.0.1:${channel.port}/settings`, {
     method: 'POST',
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },
     body: JSON.stringify(request),

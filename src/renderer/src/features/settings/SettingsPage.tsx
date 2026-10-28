@@ -443,7 +443,7 @@ export function SettingsPage(): JSX.Element {
       data-page-scroll="settings"
     >
       <div className="settings-content mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
-        <div className="mb-8">
+        <div className="settings-heading mb-8">
           <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
           <h1 className="mt-2 text-3xl font-semibold">
             {webRuntime ? '1.6 Competitive settings' : 'Launcher settings'}

@@ -11,7 +11,7 @@ interface NativeSettingsState {
   settings: NativeHelperSettings | null
   status: 'idle' | 'loading' | 'saving' | 'choosing-cs13' | 'choosing-cs16' | 'error'
   accountId: string | null
-  load: (accountId: string) => Promise<void>
+  load: (accountId: string, reconnect?: boolean) => Promise<void>
   choose: (game: 'cs13' | 'cs16') => Promise<void>
   save: (
     update: Partial<Omit<NativeHelperSettings, 'cs13FolderPath' | 'cs16FolderPath'>>
@@ -19,18 +19,21 @@ interface NativeSettingsState {
 }
 
 export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, get) => {
-  const request = async (value: NativeHelperSettingsRequest): Promise<NativeHelperSettings> => {
+  const request = async (
+    value: NativeHelperSettingsRequest,
+    reconnect = true
+  ): Promise<NativeHelperSettings> => {
     const api = window.api.matchmaking.nativeHelperSettings
     if (!api) throw new Error('Native helper unavailable')
     return requestNativeHelperSettings(value, api, () =>
-      useWebHelperPromptStore.getState().checkNative()
+      reconnect ? useWebHelperPromptStore.getState().checkNative() : Promise.resolve('unavailable')
     )
   }
   return {
     settings: null,
     status: 'idle',
     accountId: null,
-    load: async (accountId) => {
+    load: async (accountId, reconnect = false) => {
       if (
         get().accountId === accountId &&
         ['loading', 'saving', 'choosing-cs13', 'choosing-cs16'].includes(get().status)
@@ -42,7 +45,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
         status: 'loading'
       })
       try {
-        const settings = await request({ action: 'get' })
+        const settings = await request({ action: 'get' }, reconnect)
         if (get().accountId === accountId) set({ settings, status: 'idle' })
       } catch {
         if (get().accountId === accountId) set({ status: 'error' })

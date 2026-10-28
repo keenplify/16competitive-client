@@ -162,8 +162,10 @@ const browserSettings = (): GameSettings => {
 const authenticatedGet = <T>(path: string): Promise<T> =>
   requestJson<T>(path, { authenticated: true })
 
+let lastHelperSettings: { accountToken: string | null; settings: GameSettings } | null = null
+
 function helperGameSettings(settings: NativeHelperSettings): GameSettings {
-  return {
+  const result: GameSettings = {
     ...browserSettings(),
     cs16FolderPath: settings.cs16FolderPath,
     platform: settings.platform,
@@ -183,6 +185,8 @@ function helperGameSettings(settings: NativeHelperSettings): GameSettings {
     lightweightHud: settings.lightweightHud,
     killCardsEnabled: settings.killCardsEnabled
   }
+  lastHelperSettings = { accountToken: getWebSessionToken(), settings: result }
+  return result
 }
 
 async function saveHelperPreferences(update: Partial<NativeHelperSettings>): Promise<GameSettings> {
@@ -828,7 +832,13 @@ const api: Window['api'] = {
         local = await nativeHelperSettings({ action: 'get' })
         settings = helperGameSettings(local)
       } catch {
-        settings = browserSettings()
+        // A stopped/blocked helper must not erase the folder just selected in
+        // this account's session. Readiness still gates competitive actions.
+        settings = {
+          ...(lastHelperSettings?.accountToken === getWebSessionToken()
+            ? lastHelperSettings.settings
+            : browserSettings())
+        }
       }
       try {
         const profile = await requestJson<{ profile: string | null }>('/auth/crosshair', {

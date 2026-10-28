@@ -1,5 +1,6 @@
 import { DEFAULT_PLAYER_PING_KEY, type PlayerPingKey } from '../../../../shared/player-ping'
 import { create } from 'zustand'
+import { isWebRuntime } from '../../web-runtime'
 import type { GameDisplayPreferences, GameResolution } from '../../../../shared/game-display'
 import { DEFAULT_CROSSHAIR, type CrosshairProfile } from '../../../../shared/crosshair'
 import type {
@@ -20,6 +21,7 @@ type NextClientInstallStatus =
   | 'error'
 
 let nextClientDetectionRun = 0
+let settingsRevision = 0
 
 interface GameSettingsState {
   display: GameDisplayPreferences
@@ -186,11 +188,14 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   load: async () => {
+    if (['loading', 'choosing', 'saving'].includes(get().status)) return
+    const revision = ++settingsRevision
     const startedAt = performance.now()
     console.info('[GameSetup] settings load started')
     set({ status: 'loading', error: null })
     try {
       const settings = await window.api.gameSettings.get()
+      if (revision !== settingsRevision) return
       console.info('[GameSetup] settings loaded', {
         installationSelected: Boolean(settings.cs16ExecutablePath),
         setupCompleted: settings.setupCompleted,
@@ -204,7 +209,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         configFilePath: settings.configFilePath,
         status: 'idle',
         loaded: true,
-        requiresGameSetup: !settings.cs16ExecutablePath,
+        requiresGameSetup: !isWebRuntime() && !settings.cs16ExecutablePath,
         crosshair: settings.crosshair,
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
@@ -220,6 +225,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         platform: settings.platform
       })
     } catch (error) {
+      if (revision !== settingsRevision) return
       console.warn('[GameSetup] settings load failed', {
         elapsedMs: Math.round(performance.now() - startedAt)
       })
@@ -228,6 +234,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   choose: async () => {
+    settingsRevision += 1
     nextClientDetectionRun += 1
     set({ nextClientInstallStatus: 'idle' })
     set({ status: 'choosing', error: null, notice: null })
@@ -245,6 +252,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   save: async () => {
+    settingsRevision += 1
     const folderPath = get().folderPath
     set({ status: 'saving', error: null, notice: null })
     try {
@@ -380,11 +388,12 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   promptToConfigureForMatch: () => {
+    settingsRevision += 1
     set({
       folderPath: '',
       savedPath: null,
       error: null,
-      requiresGameSetup: true,
+      requiresGameSetup: !isWebRuntime(),
       notice: 'Set up your Counter-Strike 1.6 folder before reconnecting to the match.'
     })
   }

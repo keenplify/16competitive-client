@@ -183,7 +183,7 @@ export function NativeHelperSettingsPanel({
           )}
         </p>
         {status === 'error' && accountId && (
-          <Button variant="secondary" onClick={() => void load(accountId)}>
+          <Button variant="secondary" onClick={() => void load(accountId, true)}>
             {t('webHelper.retry')}
           </Button>
         )}

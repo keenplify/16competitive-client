@@ -1,3 +1,4 @@
+import { isWebRuntime } from '../../web-runtime'
 import { LauncherWindow } from '../../components/ui/LauncherWindow'
 import { useTranslation } from '../i18n/i18n'
 import { CommunitiesPage } from '../communities/CommunitiesPage'
@@ -183,7 +184,9 @@ export function LobbyPage(): JSX.Element {
   const playView = useCustomGamesStore((state) => state.playView)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
-  const requiresGameSetup = useGameSettingsStore((state) => state.requiresGameSetup)
+  const requiresGameSetup = useGameSettingsStore(
+    (state) => !isWebRuntime() && state.requiresGameSetup
+  )
   const connectMatchmaking = useMatchmakingStore((state) => state.connect)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const gameExitCount = useMatchmakingStore((state) => state.gameExitCount)

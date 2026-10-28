@@ -740,8 +740,8 @@
   padding: 16px;
 }
 
-:root[data-launcher-theme='vgui2'] .settings-content > div:first-child {
-  margin-bottom: 16px;
+:root[data-launcher-theme='vgui2'] .settings-heading {
+  display: none;
 }
 
 :root[data-launcher-theme='vgui2'] .settings-layout {
