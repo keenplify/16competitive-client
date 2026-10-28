@@ -3495,3 +3495,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved friend and lobby social rails.
 - Refined community member presentation and partner messaging.
 - Added visual polish for the web experience.
+
+## v2026.1028.9 — 2026-10-28
+
+### Helper management
+
+- Added cross-platform helper uninstall support.
+- Improved helper version labels.
+- Fixed the ready-to-download state for helper updates.
