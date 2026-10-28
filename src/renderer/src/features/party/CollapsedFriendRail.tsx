@@ -52,7 +52,7 @@ export function CollapsedFriendRail({
                           level={friend.level}
                           title={friend.levelTitle}
                           ariaLabel={friend.username}
-                          className="size-7"
+                          className="size-8"
                         />
                         {friend.presence !== 'OFFLINE' && (
                           <span
@@ -68,7 +68,7 @@ export function CollapsedFriendRail({
           </div>
         </>
       )}
-      <div className="grid h-11 w-full shrink-0 place-items-center border-t border-white/10 text-neutral-400">
+      <div className="grid h-12 w-full shrink-0 place-items-center border-t border-white/10 text-neutral-400">
         <Users className="size-4" aria-hidden="true" />
       </div>
     </div>

@@ -39,7 +39,7 @@ export function AssetDownloadSettings(): JSX.Element {
         await requestNativeHelperSettings(
           { action: 'get' },
           window.api.matchmaking.nativeHelperSettings,
-          () => useWebHelperPromptStore.getState().checkNative()
+          () => Promise.resolve('unavailable')
         )
       }
       return window.api.gameSettings.getAssetSyncStatus()

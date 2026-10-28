@@ -95,9 +95,27 @@ test(
           join(root, game)
         )
       }
-      const { cs13FolderPath, cs16FolderPath, nextClientDetected, platform, ...preferences } =
-        settings
+      const incomplete = join(root, 'incomplete')
+      await mkdir(join(incomplete, 'cstrike'), { recursive: true })
+      await writeFile(join(incomplete, 'cstrike/liblist.gam'), 'version "1.6"\n')
+      await writeFile(choice, incomplete)
+      const rejected = await request({ action: 'choose', game: 'cs16' })
+      assert.equal(rejected.status, 400)
+      assert.deepEqual(await rejected.json(), { code: 'INVALID_GAME_INSTALLATION' })
+      await writeFile(choice, join(root, 'cs16'))
+      const retried = await request({ action: 'choose', game: 'cs16' })
+      assert.equal(retried.status, 200)
+      assert.equal((await retried.json()).cs16FolderPath, join(root, 'cs16'))
+      const {
+        cs13FolderPath,
+        cs16FolderPath,
+        nextClientDetected,
+        platform,
+        helperVersion,
+        ...preferences
+      } = settings
       assert.equal(platform, 'linux')
+      assert.match(helperVersion, /^\d{4}\.\d{4}\.\d+$/)
       assert.equal(nextClientDetected, false)
       assert.ok(cs13FolderPath && cs16FolderPath)
       const saved = await request({

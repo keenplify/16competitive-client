@@ -549,7 +549,13 @@ fn invoke_session(
     let status = child.wait().map_err(|_| "Runtime did not exit cleanly")?;
     let value = result.ok_or("Helper runtime returned no result")?;
     if !status.success() || value["ok"] != true {
-        return Err("Helper runtime could not complete the action".into());
+        let stage = value["stage"].as_str().filter(|stage|
+            ["control", "startup", "preferences", "connection", "assets", "game"].contains(stage)
+        ).unwrap_or("unknown");
+        let code = value["error"].as_str().filter(|code|
+            ["runtimeUnavailable", "ENOENT", "EACCES", "ENOEXEC", "EPERM", "ECONNREFUSED", "ETIMEDOUT"].contains(code)
+        ).unwrap_or("runtimeUnavailable");
+        return Err(format!("Helper runtime could not complete the action (stage: {stage}, code: {code})"));
     }
     Ok(value)
 }

@@ -10,6 +10,7 @@ import { requestNativeHelperSettings } from './native-helper-request'
 interface NativeSettingsState {
   settings: NativeHelperSettings | null
   status: 'idle' | 'loading' | 'saving' | 'choosing-cs13' | 'choosing-cs16' | 'error'
+  errorCode: 'invalidInstallation' | 'unavailable' | null
   accountId: string | null
   load: (accountId: string, reconnect?: boolean) => Promise<void>
   choose: (game: 'cs13' | 'cs16') => Promise<void>
@@ -33,6 +34,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
     settings: null,
     status: 'idle',
     accountId: null,
+    errorCode: null,
     load: async (accountId, reconnect = false) => {
       if (
         get().accountId === accountId &&
@@ -42,19 +44,20 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
       set({
         accountId,
         settings: get().accountId === accountId ? get().settings : null,
+        errorCode: null,
         status: 'loading'
       })
       try {
         const settings = await request({ action: 'get' }, reconnect)
         if (get().accountId === accountId) set({ settings, status: 'idle' })
       } catch {
-        if (get().accountId === accountId) set({ status: 'error' })
+        if (get().accountId === accountId) set({ status: 'error', errorCode: 'unavailable' })
       }
     },
     choose: async (game) => {
       if (!['idle', 'error'].includes(get().status)) return
       const accountId = get().accountId
-      set({ status: `choosing-${game}` })
+      set({ status: `choosing-${game}`, errorCode: null })
       try {
         const settings = await request({ action: 'choose', game })
         if (get().accountId === accountId) {
@@ -65,15 +68,25 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
             .refreshReadiness()
             .catch(() => undefined)
         }
-      } catch {
-        if (get().accountId === accountId) set({ status: 'error' })
+      } catch (error) {
+        if (get().accountId === accountId)
+          set({
+            status: 'error',
+            errorCode:
+              error &&
+              typeof error === 'object' &&
+              'code' in error &&
+              error.code === 'invalidInstallation'
+                ? 'invalidInstallation'
+                : 'unavailable'
+          })
       }
     },
     save: async (update) => {
       const current = get().settings
       if (!current || !['idle', 'error'].includes(get().status)) return
       const accountId = get().accountId
-      set({ status: 'saving' })
+      set({ status: 'saving', errorCode: null })
       try {
         const values = { ...current, ...update }
         const settings = {
@@ -90,7 +103,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
         const saved = await request({ action: 'save', settings })
         if (get().accountId === accountId) set({ settings: saved, status: 'idle' })
       } catch {
-        if (get().accountId === accountId) set({ status: 'error' })
+        if (get().accountId === accountId) set({ status: 'error', errorCode: 'unavailable' })
       }
     }
   }

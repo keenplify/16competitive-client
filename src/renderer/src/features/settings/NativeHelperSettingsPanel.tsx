@@ -1,5 +1,6 @@
 import { useEffect, type JSX } from 'react'
 import { FolderOpen, LoaderCircle } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import { GAME_RESOLUTION_PRESETS, isWidescreen } from '../../../../shared/game-display'
 import { Button } from '../../components/ui/Button'
@@ -18,7 +19,7 @@ export function NativeHelperSettingsPanel({
 }): JSX.Element {
   const { t } = useTranslation()
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
-  const { settings, status, load, choose, save } = useNativeHelperSettingsStore()
+  const { settings, status, errorCode, load, choose, save } = useNativeHelperSettingsStore()
   useEffect(() => {
     if (accountId) void load(accountId)
   }, [accountId, load])
@@ -36,7 +37,12 @@ export function NativeHelperSettingsPanel({
       document.removeEventListener('visibilitychange', refresh)
     }
   }, [accountId, load])
-  const disabled = !settings || !['idle', 'error'].includes(status)
+  useEffect(() => {
+    if (status === 'error' && errorCode === 'invalidInstallation')
+      toast.error(t('webHelper.invalidFolder'))
+  }, [status, errorCode, t])
+  const busy = !['idle', 'error'].includes(status)
+  const disabled = !settings || busy
   const display = settings?.display ?? { resolution: 'current', widescreen: true }
   return (
     <section
@@ -65,7 +71,7 @@ export function NativeHelperSettingsPanel({
             <Button
               variant="secondary"
               className="w-full gap-2 sm:w-auto"
-              disabled={disabled}
+              disabled={busy}
               onClick={() => void choose(game)}
             >
               {status === `choosing-${game}` ? (
@@ -174,7 +180,9 @@ export function NativeHelperSettingsPanel({
         <p className={twMerge('text-sm text-neutral-300', status === 'error' && 'text-red-300')}>
           {t(
             status === 'error'
-              ? 'webHelper.settingsError'
+              ? errorCode === 'invalidInstallation'
+                ? 'webHelper.invalidFolder'
+                : 'webHelper.settingsError'
               : status === 'loading'
                 ? 'webHelper.settingsLoading'
                 : status === 'saving'

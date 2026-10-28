@@ -155,7 +155,7 @@ function FriendRow({
   const online = friend.presence !== 'OFFLINE'
   return (
     <div
-      className="group flex cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-4 py-1 transition hover:border-l-sky-400 hover:bg-white/5"
+      className="group flex h-10 shrink-0 cursor-context-menu items-center gap-2 border-l-2 border-l-transparent px-4 py-1 transition hover:border-l-sky-400 hover:bg-white/5"
       onContextMenu={onContextMenu}
     >
       <RankPopover
@@ -458,7 +458,7 @@ export function LobbySocialSidebar({
         <MatchSearchPanel variant="compact" className="" />
       </div>
       <aside
-        className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,max-height,height,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-screen w-11 cursor-pointer border border-r-0 border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-screen md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
+        className={`fixed right-0 z-20 overflow-hidden bg-neutral-950/95 text-white shadow-2xl backdrop-blur-md transition-[width,background-color] duration-300 ease-out ${collapsed ? 'top-0 h-dvh w-11 cursor-pointer border-l border-white/10 text-neutral-300 hover:bg-neutral-900 hover:text-white' : `${isSearching ? 'flex' : 'hidden'} bottom-0 max-h-[70vh] w-full border-t border-white/10 md:top-0 md:flex md:h-dvh md:max-h-none md:w-72 md:border-t-0 md:border-l`}`}
         aria-label={
           communityOnly
             ? t('directory.members')
@@ -548,7 +548,7 @@ export function LobbySocialSidebar({
                 </div>
               </header>
 
-              <div className="shrink-0 border-b border-white/10 px-4 py-3">
+              <div className="min-h-[92px] shrink-0 border-b border-white/10 px-4 py-3">
                 <TextField
                   id="friend-search"
                   label="Find players"
@@ -584,7 +584,7 @@ export function LobbySocialSidebar({
                   (group) =>
                     group.items.length > 0 && (
                       <section key={group.label} className="mb-2">
-                        <h3 className="px-4 py-1 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
+                        <h3 className="flex h-[22px] items-center px-4 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
                           {group.label} · {group.items.length}
                         </h3>
                         {group.items.map((friend) => (

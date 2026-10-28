@@ -783,10 +783,6 @@
   padding: 24px;
 }
 
-:root[data-launcher-theme='vgui2'] [data-match-session] > .pointer-events-none {
-  position: absolute;
-}
-
 :root[data-launcher-theme='vgui2'] [data-match-session] > .relative > .text-center {
   min-height: 176px;
 }

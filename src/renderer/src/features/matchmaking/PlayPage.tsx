@@ -30,6 +30,7 @@ import { useMatchmakingStore } from './matchmaking.store'
 import { OfflineQueuePrompt } from './OfflineQueuePrompt'
 import { useOfflineQueuePromptStore } from './offline-queue-prompt.store'
 import { TeamRoster } from './TeamRoster'
+import { MatchSessionBackdrop } from './MatchSessionBackdrop'
 import { InGameRoster } from './InGameRoster'
 import { MatchmakingRegionSelect } from './MatchmakingRegionSelect'
 import { PlayWindowStatus } from './PlayWindowStatus'
@@ -340,30 +341,10 @@ export function PlayPage({
         )}
       >
         {queueStatus === 'server_ready' && (
-          <div
-            className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-neutral-950"
-            aria-hidden="true"
-          >
-            {matchMapPreview && (
-              <img
-                className="absolute inset-0 h-full w-full scale-110 object-cover blur-[6px]"
-                src={matchMapPreview}
-                alt=""
-                onError={(event) => {
-                  const localPreview = match ? localMapPreviews[match.mapId] : undefined
-                  event.currentTarget.onerror = null
-                  if (localPreview && event.currentTarget.src !== localPreview) {
-                    event.currentTarget.src = localPreview
-                  } else {
-                    event.currentTarget.hidden = true
-                  }
-                }}
-              />
-            )}
-            <div className="absolute inset-0 bg-black/55" />
-            <div className="match-ambient-glow absolute -inset-1/4" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_10%,rgba(0,0,0,0.65)_100%)]" />
-          </div>
+          <MatchSessionBackdrop
+            previewUrl={matchMapPreview}
+            fallbackPreviewUrl={match ? localMapPreviews[match.mapId] : undefined}
+          />
         )}
         <div className="relative z-10 w-full max-w-5xl">
           <div className="text-center">

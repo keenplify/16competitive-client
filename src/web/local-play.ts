@@ -23,6 +23,7 @@ import {
 } from '../shared/web-helper-link'
 
 import { LocalBridge } from './local-bridge'
+import { NativeReadinessRequests } from './native-readiness-requests'
 
 const localBridge = new LocalBridge()
 
@@ -45,7 +46,13 @@ export function onNativeReadiness(listener: () => void): () => void {
     readinessListeners.delete(listener)
   }
 }
-export async function nativeHelperReadiness(force = false): Promise<NativeHelperReadiness> {
+const readinessRequests = new NativeReadinessRequests()
+export function nativeHelperReadiness(force = false): Promise<NativeHelperReadiness> {
+  const token = getWebSessionToken()
+  if (!token) return Promise.reject(new Error('Authentication required'))
+  return readinessRequests.run(token, () => checkNativeHelperReadiness(force))
+}
+async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperReadiness> {
   const token = getWebSessionToken()
   if (!token) throw new Error('Authentication required')
   if (!force && readiness?.token === token && readiness.until > Date.now()) return readiness.value
@@ -598,6 +605,22 @@ async function localRequest(
     credentials: 'omit',
     redirect: 'error'
   })
-  if (!response.ok) throw new Error('Native helper settings unavailable')
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null)
+    const invalidInstallation =
+      response.status === 400 &&
+      body !== null &&
+      typeof body === 'object' &&
+      'code' in body &&
+      body.code === 'INVALID_GAME_INSTALLATION'
+    console.warn('[NativeHelper] Settings request rejected', {
+      action: request.action,
+      status: response.status,
+      code: invalidInstallation ? 'invalidInstallation' : 'unavailable'
+    })
+    throw Object.assign(new Error('Native helper settings unavailable'), {
+      code: invalidInstallation ? 'invalidInstallation' : 'unavailable'
+    })
+  }
   return await response.json()
 }

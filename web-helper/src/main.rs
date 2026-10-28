@@ -1045,7 +1045,6 @@ fn run() -> Result<(), String> {
     };
     let development = cfg!(debug_assertions);
     if let Some(check) = parse_check_link(&link, development) {
-        session(&check.api_origin, &check.handoff)?;
         if let Some(local) = check.local_settings {
             let mut bridge = Command::new(&exe);
             bridge
@@ -1068,7 +1067,15 @@ fn run() -> Result<(), String> {
                 use std::os::unix::process::CommandExt;
                 bridge.process_group(0);
             }
-            bridge.spawn().map_err(|e| e.to_string())?;
+            let mut child = bridge.spawn().map_err(|e| e.to_string())?;
+            let ready = settings_bridge::wait_until_ready(local.port, &local.token, &local.origin);
+            if let Err(error) = ready.and_then(|_| session(&check.api_origin, &check.handoff).map(|_| ())) {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error);
+            }
+        } else {
+            session(&check.api_origin, &check.handoff)?;
         }
         return Ok(());
     }

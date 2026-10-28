@@ -547,6 +547,15 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     value["cs16FolderPath"] = serde_json::to_value(prefs.cs16).map_err(|e| e.to_string())?;
     Ok(value)
 }
+fn respond_settings_error(stream: &mut TcpStream, origin: &str, error: &str) {
+    // Send stable codes, never raw filesystem errors or local paths.
+    let code = if error == "Invalid game installation" {
+        "INVALID_GAME_INSTALLATION"
+    } else {
+        "SETTINGS_FAILED"
+    };
+    respond(stream, "400 Bad Request", Some(origin), &serde_json::json!({"code": code}).to_string());
+}
 fn respond(stream: &mut TcpStream, status: &str, origin: Option<&str>, body: &str) {
     let cors = origin.map(|o| format!("Access-Control-Allow-Origin: {o}\r\nAccess-Control-Allow-Methods: POST, OPTIONS\r\nAccess-Control-Allow-Headers: authorization, content-type\r\nAccess-Control-Allow-Private-Network: true\r\nVary: Origin\r\n")).unwrap_or_default();
     let _ = write!(stream, "HTTP/1.1 {status}\r\n{cors}Content-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}", body.len());
@@ -709,7 +718,7 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
         }
         Ok(request) => match apply(request, token) {
             Ok(value) => respond(&mut stream, "200 OK", Some(origin), &value.to_string()),
-            Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
+            Err(error) => respond_settings_error(&mut stream, origin, &error),
         },
         Err(_) => respond(&mut stream, "400 Bad Request", Some(origin), "{}"),
     }
@@ -758,6 +767,15 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn wait_until_ready(port: u16, token: &str, origin: &str) -> Result<(), String> {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if existing_bridge_matches(port, token, origin) { return Ok(()); }
+        if Instant::now() >= deadline { return Err("Native helper settings bridge did not become ready".into()); }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
 fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
     let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
     let Ok(mut stream) = TcpStream::connect_timeout(&address, Duration::from_secs(1)) else {
@@ -790,6 +808,26 @@ fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bridge_readiness_waits_for_a_responding_authenticated_listener() {
+        let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let token = "a".repeat(64);
+        let worker = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(150));
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0; 4096];
+            let count = stream.read(&mut request).unwrap();
+            let request = std::str::from_utf8(&request[..count]).unwrap();
+            assert!(request.contains(&format!("Authorization: Bearer {}", "a".repeat(64))));
+            respond(&mut stream, "200 OK", Some("https://16competitive.papamo.dev"),
+                &serde_json::json!({"platform": if cfg!(windows) {"win32"} else {"linux"}, "cs16FolderPath":null}).to_string());
+        });
+        let start = Instant::now();
+        wait_until_ready(port, &token, "https://16competitive.papamo.dev").unwrap();
+        assert!(start.elapsed() >= Duration::from_millis(100));
+        worker.join().unwrap();
+    }
     #[test]
     fn udp_probe_uses_echo_response_and_rejects_wrong_nonce() {
         for echo in [true, false] {

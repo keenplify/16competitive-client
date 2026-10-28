@@ -363,6 +363,7 @@ export function LobbyPage(): JSX.Element {
 
   useEffect(() => {
     let active = true
+    if (isWebRuntime()) return undefined
     const check = () => {
       void window.api.gameSettings
         .get()

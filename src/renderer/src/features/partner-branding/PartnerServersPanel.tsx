@@ -6,6 +6,7 @@ import { isWebRuntime } from '../../web-runtime'
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { serverIsFull, type PartnerServerStatus } from '../../../../shared/partner-community'
+import { TabList } from '../../components/ui/TabList'
 import { Button } from '../../components/ui/Button'
 import { ServerArtwork } from './ServerArtwork'
 import { useCommunityText } from './community-copy'
@@ -30,15 +31,20 @@ export function PartnerServersPanel({
   const { t } = useTranslation()
   const text = useCommunityText(),
     rows = useServers((s) => s.rows),
+    gameFilter = useServers((s) => s.gameFilter),
+    setGameFilter = useServers((s) => s.setGameFilter),
     status = useServers((s) => s.status),
     error = useServers((s) => s.error),
     selectedId = useServers((s) => s.selectedId),
     connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
   const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
-  const visibleRows = hideDesktopOnlyFeatures
-    ? rows.filter((server) => server.gameVersion !== 'cs13')
-    : rows
+  const activeGameFilter = hideDesktopOnlyFeatures && gameFilter === 'cs13' ? 'all' : gameFilter
+  const visibleRows = rows.filter(
+    (server) =>
+      (!hideDesktopOnlyFeatures || server.gameVersion !== 'cs13') &&
+      (activeGameFilter === 'all' || server.gameVersion === activeGameFilter)
+  )
   const playerId = useAuthStore((s) => s.session?.player.id)
   const groupBusy = usePartnerLaunchStore((s) => s.busy !== 'idle')
   const groupError = usePartnerLaunchStore((s) => s.error)
@@ -87,19 +93,30 @@ export function PartnerServersPanel({
       )}
       aria-label={text('serverSelection')}
     >
-      <div className="community-server-toolbar flex min-h-10 items-center justify-between gap-4">
-        <p className="text-xs text-neutral-200">
-          {text('pingHint')}{' '}
-          {visibleRows.some((server) => server.pingSource === 'api') ? text('pingApi') : ''}
-        </p>
+      <div className="flex min-h-10 items-center gap-3">
+        <TabList
+          value={activeGameFilter}
+          onChange={setGameFilter}
+          ariaLabel={text('serverSelection')}
+          className="min-w-0 flex-1"
+          items={[
+            { value: 'all', label: t('directory.all') },
+            { value: 'cs16', label: 'CS 1.6' },
+            ...(!hideDesktopOnlyFeatures ? [{ value: 'cs13' as const, label: 'CS 1.3' }] : [])
+          ]}
+        />
         <Button
           variant="ghost"
           disabled={status === 'loading' || connecting}
           onClick={() => void load()}
-          className="h-10 shrink-0 gap-2"
+          className="size-10 shrink-0 p-0"
+          aria-label={text('refresh')}
+          title={text('refresh')}
         >
-          <RefreshCw className="size-4" aria-hidden="true" />
-          {text('refresh')}
+          <RefreshCw
+            className={twMerge('size-4', status === 'loading' && 'animate-spin')}
+            aria-hidden="true"
+          />
         </Button>
       </div>
       <div className="min-h-64 flex-1 overflow-x-auto">

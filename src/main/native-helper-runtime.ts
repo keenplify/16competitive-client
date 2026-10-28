@@ -402,10 +402,28 @@ channel.on('data', (chunk: Buffer) => {
   input.fill(0)
   void run(request)
     .then(() => stop())
-    .catch((error: unknown) => {
+    .catch(async (error: unknown) => {
+      // Only bounded stage/system identifiers enter local diagnostics. Raw
+      // messages can contain account credentials or server connection data.
+      const systemCode =
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        typeof error.code === 'string' &&
+        ['ENOENT', 'EACCES', 'ENOEXEC', 'EPERM', 'ECONNREFUSED', 'ETIMEDOUT'].includes(error.code)
+          ? error.code
+          : 'runtimeUnavailable'
+      await writeLiveSessionFile(
+        join(dataRoot, 'runtime-error.json'),
+        JSON.stringify({
+          at: new Date().toISOString(),
+          stage,
+          code: systemCode
+        })
+      ).catch(() => undefined)
       emit({
         ok: false,
-        error: 'runtimeUnavailable',
+        error: systemCode,
         stage,
         ...(!app.isPackaged && LOCAL_DEVELOPMENT && error instanceof Error
           ? { diagnostic: error.message }
