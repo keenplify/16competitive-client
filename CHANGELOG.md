@@ -3432,3 +3432,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Helper setup
 
 - Dismiss helper onboarding when you’re ready to continue.
+
+## v2026.1028.3 — 2026-10-28
+
+### Web Helper
+
+- Improved web helper setup and onboarding.
+- Added clearer helper settings and download options.
+- Improved setup prompts and configuration handling.
+
+### Social
+
+- Improved social rail interactions.
+- Added a collapsed friends rail for easier navigation.
+- Refined party chat and community member views.
+
+### Gameplay
+
+- Added web crosshair settings.
+- Improved voice chat push-to-talk settings.
+- Refined match and roster views.
