@@ -3422,3 +3422,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Verified web release builds for a smoother launch experience.
+
+## v2026.1028.2 — 2026-10-28
+
+### Updates
+
+- See update download size and transfer speed while updates are in progress.
+
+### Helper setup
+
+- Dismiss helper onboarding when you’re ready to continue.
