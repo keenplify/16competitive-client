@@ -25,11 +25,13 @@ import {
   cachedLocalLauncherStatus,
   checkLocalLauncher,
   launchWithLocalLauncher,
-  preferredLocalLauncher
+  preferredLocalLauncher,
+  nativeProbeNodes
 } from './local-play'
 
 const ALLOW_EXPANSION_KEY = '16competitive.web.allow-region-expansion'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
+const AUTO_LAUNCH_KEY = '16competitive.web.auto-launched-match'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const listeners = new Set<(event: MatchmakingEvent) => void>()
@@ -344,6 +346,17 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     clearReadyAlert()
     lastConnection = message
     emit(message)
+    if (preferredLocalLauncher() === 'rust' && !message.whileQueued) {
+      const previous = sessionStorage.getItem(AUTO_LAUNCH_KEY)
+      const [previousId, previousAt] = previous?.split(':') ?? []
+      if (previousId !== message.matchId || Date.now() - Number(previousAt) > 6 * 60 * 60_000) {
+        sessionStorage.setItem(AUTO_LAUNCH_KEY, `${message.matchId}:${Date.now()}`)
+        void launchCounterStrike(message.matchId).catch((error) => {
+          sessionStorage.removeItem(AUTO_LAUNCH_KEY)
+          console.warn('[WebMatchmaking] automatic game launch failed', error)
+        })
+      }
+    }
     return
   }
 
@@ -452,9 +465,19 @@ const probeNode = async (node: MatchmakingNode): Promise<number | null> => {
 const getNodes = async (): Promise<MatchmakingNode[]> => {
   if (nodesCache.length > 0 && Date.now() - nodesCacheUpdatedAt < 15_000) return nodesCache
   const body = await requestJson<{ nodes: MatchmakingNode[] }>('/nodes')
-  const measured = await Promise.all(
-    body.nodes.map(async (node) => ({ ...node, latencyMs: await probeNode(node) }))
-  )
+  let nativeLatency: Map<string, number | null> | null = null
+  if (preferredLocalLauncher() === 'rust' && body.nodes.every((node) => node.latencyProbe?.port)) {
+    try {
+      nativeLatency = await nativeProbeNodes(body.nodes)
+    } catch (error) {
+      console.warn('[WebMatchmaking] native latency probe failed', error)
+    }
+  }
+  const measured = nativeLatency
+    ? body.nodes.map((node) => ({ ...node, latencyMs: nativeLatency.get(node.id) ?? null }))
+    : await Promise.all(
+        body.nodes.map(async (node) => ({ ...node, latencyMs: await probeNode(node) }))
+      )
   nodesCache = measured
   nodesCacheUpdatedAt = Date.now()
   return measured

@@ -7,6 +7,7 @@ export interface NativeHelperReadiness {
 }
 
 export interface NativeHelperSettings {
+  helperVersion?: string
   cs13FolderPath: string | null
   cs16FolderPath: string | null
   display: GameDisplayPreferences

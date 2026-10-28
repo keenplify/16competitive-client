@@ -304,6 +304,39 @@ export function preferredLocalLauncher(): LocalLauncher | null {
   return status === 'rust' ? status : null
 }
 
+export async function nativeProbeNodes(
+  nodes: { id: string; publicApiUrl: string; latencyProbe?: { port: number } }[]
+): Promise<Map<string, number | null>> {
+  const result = await localRequest({
+    action: 'probeNodes',
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      apiOrigin: new URL(node.publicApiUrl).origin,
+      port: node.latencyProbe?.port ?? 0
+    }))
+  })
+  if (!Array.isArray(result) || result.length !== nodes.length) {
+    throw new Error('Invalid native latency response')
+  }
+  const latency = new Map<string, number | null>()
+  for (const item of result) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      typeof item.id !== 'string' ||
+      !nodes.some((node) => node.id === item.id) ||
+      latency.has(item.id) ||
+      !(
+        item.latencyMs === null ||
+        (Number.isInteger(item.latencyMs) && item.latencyMs >= 0 && item.latencyMs <= 5000)
+      )
+    )
+      throw new Error('Invalid native latency response')
+    latency.set(item.id, item.latencyMs)
+  }
+  return latency
+}
+
 const createChallenge = async (
   baseUrl = currentApiOrigin()
 ): Promise<{ token: string; expiresAt: string }> => {
@@ -466,6 +499,8 @@ export async function nativeHelperSettings(
   const settings = value as NativeHelperSettings
   if (
     !['win32', 'linux'].includes(settings.platform) ||
+    typeof settings.helperVersion !== 'string' ||
+    !/^\d{4}\.\d{4}\.\d+$/.test(settings.helperVersion) ||
     !Array.isArray(settings.voicePttKeys) ||
     settings.voicePttKeys.length !== 2 ||
     !settings.voicePttKeys.every(
@@ -539,6 +574,7 @@ async function localRequest(
     | { action: 'nextClient'; apiOrigin: string; install: boolean }
     | { action: 'nextClientStatus' | 'nextClientCancel' }
     | { action: 'logout'; accountId: string }
+    | { action: 'probeNodes'; nodes: { id: string; apiOrigin: string; port: number }[] }
 ): Promise<unknown> {
   const channel = settingsChannel()
   const response = await fetch(`http://127.0.0.1:${channel.port}/settings`, {

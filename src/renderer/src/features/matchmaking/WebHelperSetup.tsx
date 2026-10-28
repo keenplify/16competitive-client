@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useTranslation } from '../i18n/i18n'
+import { useNativeHelperSettingsStore } from '../settings/native-helper-settings.store'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
 const isWindows = navigator.platform.toLowerCase().includes('win')
@@ -20,6 +21,7 @@ export function WebHelperSetup({
 }): JSX.Element {
   const { t } = useTranslation()
   const status = useWebHelperPromptStore((state) => state.status)
+  const installedVersion = useNativeHelperSettingsStore((state) => state.settings?.helperVersion)
   const setupOpen = useWebHelperPromptStore((state) => state.setupOpen)
   const command = useWebHelperPromptStore((state) => state.setupCommand)
   const prepareSetup = useWebHelperPromptStore((state) => state.prepareSetup)
@@ -98,6 +100,30 @@ export function WebHelperSetup({
         )}
         <span>{statusText}</span>
       </p>
+      <div className="grid min-h-12 grid-cols-2 gap-3 border-y border-white/10 py-2 text-xs text-neutral-300">
+        <span>
+          {t('webHelper.installedVersion', {
+            version:
+              status === 'rust'
+                ? (installedVersion ?? '…')
+                : status === 'outdated-rust'
+                  ? t('webHelper.olderVersion')
+                  : '—'
+          })}
+        </span>
+        <span className="text-right">
+          {t('webHelper.latestVersion', { version: __SIXTEEN_COMPETITIVE_VERSION__ })}
+        </span>
+        <span className={twMerge('col-span-2', status === 'outdated-rust' && 'text-amber-300')}>
+          {t(
+            status === 'outdated-rust'
+              ? 'webHelper.updateAvailable'
+              : status === 'rust'
+                ? 'webHelper.upToDate'
+                : 'webHelper.versionUnavailable'
+          )}
+        </span>
+      </div>
       <div className={twMerge('grid gap-3', onContinue && 'sm:grid-cols-2')}>
         {(isWindows
           ? [{ file: 'competitive16-web-helper.exe', arch: null }]

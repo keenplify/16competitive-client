@@ -13,8 +13,7 @@ import {
   UserRound,
   UserRoundCheck,
   UserRoundPlus,
-  UserRoundX,
-  Users
+  UserRoundX
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -23,6 +22,7 @@ import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
 import { createCommunityMembersStore, useCommunityMembersStore } from './community-members.store'
+import { HiUserGroup as UserGroup } from 'react-icons/hi2'
 import { useCommunityText } from './community-copy'
 import type { CommunityMembers } from '../../../../shared/partner-community'
 export function CommunityMembersSection({
@@ -90,7 +90,7 @@ export function CommunityMembersSection({
       : current?.id === communityId && current.memberCount !== null
         ? current.memberCount
         : page > 0 && memberCommunityId === communityId
-          ? total + (current?.id === communityId ? 1 : 0)
+          ? total
           : '—'
   const menuIsFriend = Boolean(
     menu &&
@@ -154,7 +154,7 @@ export function CommunityMembersSection({
             aria-label={t('directory.memberCount', { count: String(memberCount) })}
             title={t('directory.memberCount', { count: String(memberCount) })}
           >
-            <Users className="size-4" aria-hidden="true" />
+            <UserGroup className="size-4" aria-hidden="true" />
             <span aria-hidden="true">{memberCount}</span>
           </span>
         </button>
@@ -246,6 +246,7 @@ export function CommunityMembersSection({
               disabled={
                 menu.member.relationship !== 'NONE' ||
                 menuIsFriend ||
+                menu.member.id === accountId ||
                 actingPlayerId === menu.member.id
               }
               onClick={() => {
@@ -256,7 +257,7 @@ export function CommunityMembersSection({
               <FriendActionIcon className="size-4 shrink-0" aria-hidden="true" />
               {text(friendAction)}
             </button>
-            {mayKick && menu.member.id !== communityId && (
+            {mayKick && menu.member.id !== communityId && menu.member.id !== accountId && (
               <button
                 role="menuitem"
                 type="button"

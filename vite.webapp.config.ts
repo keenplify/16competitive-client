@@ -29,7 +29,8 @@ for (const source of [
   'src/shared/windows-client-exports.json',
   'src/shared/windows-goldclient-exports.json',
   'helper-release.json',
-  'src/shared/discord-application.json'
+  'src/shared/discord-application.json',
+  'package.json'
 ])
   webHelperFingerprint.update(readFileSync(resolve(source)))
 

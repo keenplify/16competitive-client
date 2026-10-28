@@ -117,6 +117,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("../../src/shared/windows-goldclient-exports.json").as_slice(),
         include_bytes!("../../helper-release.json").as_slice(),
         include_bytes!("../../src/shared/discord-application.json").as_slice(),
+        include_bytes!("../../package.json").as_slice(),
     ] {
         digest.update(source);
     }

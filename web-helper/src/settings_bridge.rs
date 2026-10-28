@@ -330,9 +330,61 @@ enum Request {
     NextClientStatus,
     NextClientCancel,
     VoiceStream,
+    ProbeNodes {
+        nodes: Vec<ProbeNode>,
+    },
     Logout {
         account_id: String,
     },
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProbeNode {
+    id: String,
+    api_origin: String,
+    port: u16,
+}
+
+fn probe_udp_latency(host: &str, port: u16) -> Option<u32> {
+    use std::net::{ToSocketAddrs, UdpSocket};
+    let address = (host, port).to_socket_addrs().ok()?.next()?;
+    let bind = if address.is_ipv4() { "0.0.0.0:0" } else { "[::]:0" };
+    let socket = UdpSocket::bind(bind).ok()?;
+    socket.connect(address).ok()?;
+    socket.set_read_timeout(Some(Duration::from_millis(1500))).ok()?;
+    let nonce = *uuid::Uuid::new_v4().as_bytes();
+    let started = Instant::now();
+    socket.send(&nonce).ok()?;
+    let mut response = [0u8; 16];
+    if socket.recv(&mut response).ok()? != nonce.len() || response != nonce {
+        return None;
+    }
+    Some(started.elapsed().as_millis().min(u32::MAX as u128) as u32)
+}
+
+fn probe_nodes(nodes: Vec<ProbeNode>) -> Result<serde_json::Value, String> {
+    if nodes.is_empty() || nodes.len() > 16 {
+        return Err("Invalid latency probes".into());
+    }
+    let mut checked = Vec::with_capacity(nodes.len());
+    let mut ids = std::collections::HashSet::new();
+    for node in nodes {
+        if node.id.is_empty() || node.id.len() > 80 || !ids.insert(node.id.clone()) || node.port == 0 {
+            return Err("Invalid latency probe".into());
+        }
+        let origin = competitive16_web_helper::allowed_api_origin(&node.api_origin, cfg!(debug_assertions))
+            .ok_or("Invalid latency probe origin")?;
+        let host = url::Url::parse(&origin).map_err(|_| "Invalid latency probe origin")?
+            .host_str().ok_or("Invalid latency probe host")?.to_owned();
+        checked.push((node.id, host, node.port));
+    }
+    let measured = std::thread::scope(|scope| {
+        checked.into_iter().map(|(id, host, port)| {
+            scope.spawn(move || serde_json::json!({"id": id, "latencyMs": probe_udp_latency(&host, port)}))
+        }).collect::<Vec<_>>().into_iter().map(|task| task.join().unwrap_or(serde_json::Value::Null)).collect::<Vec<_>>()
+    });
+    Ok(serde_json::json!(measured))
 }
 fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     match &request {
@@ -371,6 +423,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             )?;
             return Ok(serde_json::json!({"ok":true}));
         }
+        Request::ProbeNodes { nodes } => return probe_nodes(nodes.clone()),
         Request::AssetStatus => {
             return serde_json::to_value(crate::assets::status()).map_err(|e| e.to_string())
         }
@@ -471,6 +524,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         Request::RuntimeCheck { .. } | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
         Request::VoiceStream => unreachable!(),
+        Request::ProbeNodes { .. } => unreachable!(),
         Request::Logout { .. } => unreachable!(),
     }
     let mut value = serde_json::to_value(&prefs.settings).map_err(|e| e.to_string())?;
@@ -483,6 +537,12 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
                     && root.join("cstrike/cl_dlls/client_mini.dll").is_file())
     );
     value["platform"] = serde_json::json!(if cfg!(windows) { "win32" } else { "linux" });
+    value["helperVersion"] = serde_json::json!(
+        serde_json::from_str::<serde_json::Value>(include_str!("../../package.json"))
+            .ok()
+            .and_then(|package| package["version"].as_str().map(str::to_owned))
+            .ok_or("Invalid helper version")?
+    );
     value["cs13FolderPath"] = serde_json::to_value(prefs.cs13).map_err(|e| e.to_string())?;
     value["cs16FolderPath"] = serde_json::to_value(prefs.cs16).map_err(|e| e.to_string())?;
     Ok(value)
@@ -730,6 +790,21 @@ fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn udp_probe_uses_echo_response_and_rejects_wrong_nonce() {
+        for echo in [true, false] {
+            let server = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+            let port = server.local_addr().unwrap().port();
+            let worker = std::thread::spawn(move || {
+                let mut nonce = [0u8; 16];
+                let (_, peer) = server.recv_from(&mut nonce).unwrap();
+                if !echo { nonce[0] ^= 1; }
+                server.send_to(&nonce, peer).unwrap();
+            });
+            assert_eq!(probe_udp_latency("127.0.0.1", port).is_some(), echo);
+            worker.join().unwrap();
+        }
+    }
     #[test]
     fn duplicate_bridge_reuses_matching_capability_and_rejects_other_listener() {
         let listener = (60000..61000)

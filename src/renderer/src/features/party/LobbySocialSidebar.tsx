@@ -478,7 +478,7 @@ export function LobbySocialSidebar({
           collapsed={collapsed}
           communityOnly={communityOnly}
           notificationCount={notificationCount}
-          friends={groups.flatMap((group) => group.items)}
+          groups={groups}
         />
 
         <div

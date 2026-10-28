@@ -42,6 +42,12 @@ const en = {
   'webHelper.success': 'Helper setup successfully',
   'webHelper.electronReady': 'Desktop app is ready.',
   'webHelper.rustReady': 'Native helper is ready.',
+  'webHelper.installedVersion': 'Installed: {version}',
+  'webHelper.latestVersion': 'Latest: {version}',
+  'webHelper.olderVersion': 'Older version',
+  'webHelper.updateAvailable': 'Update available',
+  'webHelper.upToDate': 'Up to date',
+  'webHelper.versionUnavailable': 'Helper version unavailable',
   'webHelper.electronOutdated':
     'This desktop app is outdated. Update it, or check the native helper below.',
   'webHelper.rustOutdated':
@@ -101,6 +107,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'Обновить помощник',
     'webHelper.electronReady': 'Приложение готово.',
     'webHelper.rustReady': 'Помощник готов.',
+    'webHelper.installedVersion': 'Установлено: {version}',
+    'webHelper.latestVersion': 'Последняя версия: {version}',
+    'webHelper.olderVersion': 'Старая версия',
+    'webHelper.updateAvailable': 'Доступно обновление',
+    'webHelper.upToDate': 'Актуальная версия',
+    'webHelper.versionUnavailable': 'Версия помощника недоступна',
     'webHelper.electronOutdated': 'Приложение устарело. Обновите его или проверьте помощник ниже.',
     'webHelper.rustOutdated':
       'Помощник устарел. Скачайте и один раз откройте новую версию, затем проверьте снова.',
@@ -154,6 +166,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'I-update ang helper',
     'webHelper.electronReady': 'Handa ang desktop app.',
     'webHelper.rustReady': 'Handa ang native helper.',
+    'webHelper.installedVersion': 'Naka-install: {version}',
+    'webHelper.latestVersion': 'Pinakabago: {version}',
+    'webHelper.olderVersion': 'Lumang bersyon',
+    'webHelper.updateAvailable': 'May update',
+    'webHelper.upToDate': 'Napapanahon',
+    'webHelper.versionUnavailable': 'Hindi makita ang bersyon ng helper',
     'webHelper.electronOutdated':
       'Luma na ang desktop app. I-update ito o suriin ang native helper sa ibaba.',
     'webHelper.rustOutdated':
@@ -206,6 +224,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'อัปเดตตัวช่วย',
     'webHelper.electronReady': 'แอปเดสก์ท็อปพร้อมแล้ว',
     'webHelper.rustReady': 'ตัวช่วยพร้อมแล้ว',
+    'webHelper.installedVersion': 'ติดตั้งแล้ว: {version}',
+    'webHelper.latestVersion': 'ล่าสุด: {version}',
+    'webHelper.olderVersion': 'เวอร์ชันเก่า',
+    'webHelper.updateAvailable': 'มีอัปเดต',
+    'webHelper.upToDate': 'เป็นเวอร์ชันล่าสุด',
+    'webHelper.versionUnavailable': 'ไม่พบเวอร์ชันตัวช่วย',
     'webHelper.electronOutdated': 'แอปเดสก์ท็อปล้าสมัยแล้ว อัปเดตแอปหรือตรวจสอบตัวช่วยด้านล่าง',
     'webHelper.rustOutdated':
       'ตัวช่วยล้าสมัยแล้ว ดาวน์โหลดและเปิดรุ่นใหม่หนึ่งครั้ง แล้วตรวจสอบอีกครั้ง',
@@ -257,6 +281,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'Perbarui helper',
     'webHelper.electronReady': 'Aplikasi desktop siap.',
     'webHelper.rustReady': 'Helper siap.',
+    'webHelper.installedVersion': 'Terpasang: {version}',
+    'webHelper.latestVersion': 'Terbaru: {version}',
+    'webHelper.olderVersion': 'Versi lama',
+    'webHelper.updateAvailable': 'Pembaruan tersedia',
+    'webHelper.upToDate': 'Sudah terbaru',
+    'webHelper.versionUnavailable': 'Versi helper tidak tersedia',
     'webHelper.electronOutdated':
       'Aplikasi desktop sudah lama. Perbarui atau periksa helper di bawah.',
     'webHelper.rustOutdated':
@@ -310,6 +340,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'Atualizar auxiliar',
     'webHelper.electronReady': 'Aplicativo pronto.',
     'webHelper.rustReady': 'Auxiliar pronto.',
+    'webHelper.installedVersion': 'Instalado: {version}',
+    'webHelper.latestVersion': 'Mais recente: {version}',
+    'webHelper.olderVersion': 'Versão antiga',
+    'webHelper.updateAvailable': 'Atualização disponível',
+    'webHelper.upToDate': 'Atualizado',
+    'webHelper.versionUnavailable': 'Versão do auxiliar indisponível',
     'webHelper.electronOutdated':
       'O aplicativo está desatualizado. Atualize-o ou verifique o auxiliar abaixo.',
     'webHelper.rustOutdated':
@@ -363,6 +399,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'ヘルパーを更新',
     'webHelper.electronReady': 'デスクトップアプリを利用できます。',
     'webHelper.rustReady': 'ヘルパーを利用できます。',
+    'webHelper.installedVersion': 'インストール済み: {version}',
+    'webHelper.latestVersion': '最新版: {version}',
+    'webHelper.olderVersion': '古いバージョン',
+    'webHelper.updateAvailable': '更新できます',
+    'webHelper.upToDate': '最新です',
+    'webHelper.versionUnavailable': 'ヘルパーのバージョンを確認できません',
     'webHelper.electronOutdated':
       'デスクトップアプリが古いです。更新するか、下のヘルパーを確認してください。',
     'webHelper.rustOutdated':
@@ -415,6 +457,12 @@ export const webHelperTranslations: Record<
     'webHelper.update': 'हेल्पर अपडेट करें',
     'webHelper.electronReady': 'डेस्कटॉप ऐप तैयार है।',
     'webHelper.rustReady': 'हेल्पर तैयार है।',
+    'webHelper.installedVersion': 'इंस्टॉल: {version}',
+    'webHelper.latestVersion': 'नवीनतम: {version}',
+    'webHelper.olderVersion': 'पुराना संस्करण',
+    'webHelper.updateAvailable': 'अपडेट उपलब्ध है',
+    'webHelper.upToDate': 'नवीनतम संस्करण',
+    'webHelper.versionUnavailable': 'हेल्पर संस्करण उपलब्ध नहीं है',
     'webHelper.electronOutdated': 'डेस्कटॉप ऐप पुराना है। इसे अपडेट करें या नीचे हेल्पर जाँचें।',
     'webHelper.rustOutdated':
       'हेल्पर पुराना है। नया संस्करण डाउनलोड करके एक बार खोलें, फिर दोबारा जाँचें।',
