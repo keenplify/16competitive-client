@@ -3481,3 +3481,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Folder pickers now open in an existing directory when available.
+
+## v2026.1028.8 — 2026-10-28
+
+### Web Helper
+
+- Added clearer setup guidance and source-code links for native helper downloads.
+- Improved web helper launching and local play support.
+- Added translated web helper messaging.
+
+### Social
+
+- Improved friend and lobby social rails.
+- Refined community member presentation and partner messaging.
+- Added visual polish for the web experience.
