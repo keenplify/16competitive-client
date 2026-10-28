@@ -126,30 +126,31 @@ export function WebHelperSetup({
         </span>
       </div>
       <div className={twMerge('grid gap-3', onContinue && 'sm:grid-cols-2')}>
-        {(isWindows
-          ? [{ file: 'competitive16-web-helper.exe', arch: null }]
-          : [
-              { file: 'competitive16-web-helper-linux', arch: 'x64' as const },
-              { file: 'competitive16-web-helper-linux-arm64', arch: 'arm64' as const }
-            ]
-        ).map(({ file, arch }) => (
-          <ButtonLink
-            key={file}
-            variant="primary"
-            className="h-auto min-h-11 py-2 text-center"
-            href={`${helperRelease}${file}`}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => {
-              if (arch) void prepareSetup(arch)
-              else useWebHelperPromptStore.getState().awaitInstall()
-            }}
-          >
-            {t('webHelper.download')}
-            {arch ? ` · Linux ${arch === 'x64' ? 'x64' : 'ARM64'}` : ''}
-          </ButtonLink>
-        ))}
+        {status !== 'rust' &&
+          (isWindows
+            ? [{ file: 'competitive16-web-helper.exe', arch: null }]
+            : [
+                { file: 'competitive16-web-helper-linux', arch: 'x64' as const },
+                { file: 'competitive16-web-helper-linux-arm64', arch: 'arm64' as const }
+              ]
+          ).map(({ file, arch }) => (
+            <ButtonLink
+              key={file}
+              variant="primary"
+              className="h-auto min-h-11 py-2 text-center"
+              href={`${helperRelease}${file}`}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                if (arch) void prepareSetup(arch)
+                else useWebHelperPromptStore.getState().awaitInstall()
+              }}
+            >
+              {t('webHelper.download')}
+              {arch ? ` · Linux ${arch === 'x64' ? 'x64' : 'ARM64'}` : ''}
+            </ButtonLink>
+          ))}
         {onContinue && (
           <Button className="h-auto min-h-11 py-2" variant="secondary" onClick={onContinue}>
             {t('webHelper.notNow')}

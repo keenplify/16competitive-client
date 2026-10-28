@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { webHelperTranslations } from '../src/renderer/src/features/i18n/web-helper-translations.ts'
 import {
   parseWebHelperCheckLink,
   parseWebHelperLink,
@@ -10,6 +11,15 @@ import {
 const handoff = 'a'.repeat(43)
 const matchId = '426aaf31-e665-4cee-8bd5-56475ea5db38'
 const apiOrigin = 'https://euw.16competitive.papamo.dev'
+
+test('helper version labels use the app interpolation syntax in every language', () => {
+  for (const [language, copy] of Object.entries(webHelperTranslations)) {
+    for (const key of ['webHelper.installedVersion', 'webHelper.latestVersion']) {
+      assert.ok(copy[key].includes('{{version}}'), `${language}: ${key}`)
+      assert.equal(copy[key].split('{{version}}').join('2026.1028.8').includes('{version}'), false)
+    }
+  }
+})
 
 test('desktop web links carry only bounded handoff, match and regional API fields', () => {
   assert.deepEqual(parseWebHelperCheckLink(webHelperCheckUrl({ apiOrigin, handoff })), {
