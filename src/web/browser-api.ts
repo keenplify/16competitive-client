@@ -37,6 +37,7 @@ import { DEFAULT_PLAYER_PING_KEY } from '../shared/player-ping'
 import {
   onNativeDiscordJoin,
   nativeHelperSettings,
+  readNativeModel,
   nativeDeviceStatus,
   nativeNextClient,
   onNativeInstallerProgress,
@@ -96,6 +97,10 @@ import type {
   SkinResaleResult,
   UnlockResult
 } from '../shared/skins'
+import bundledAwpModelUrl from '../../resources/web-models/p_awp.mdl?url'
+import bundledDeagleModelUrl from '../../resources/web-models/p_deagle.mdl?url'
+import bundledMp5ModelUrl from '../../resources/web-models/p_mp5.mdl?url'
+import bundledM4a1ModelUrl from '../../resources/web-models/p_m4a1.mdl?url'
 import bundledAk47ModelUrl from '../../resources/web-models/p_ak47.mdl?url'
 import { browserAuthApi } from './browser-auth'
 import { browserMatchmakingApi, browserPartyRealtime, navigateToNode } from './browser-matchmaking'
@@ -112,10 +117,23 @@ runtimeWindow.__SIXTEEN_COMPETITIVE_WEB__ = true
 const PTT_KEYS_KEY = '16competitive.web.ptt-keys'
 const thumbnailCache = new Map<string, ArrayBuffer>()
 
-const readBundledAk47Model = async (): Promise<ArrayBuffer> => {
-  const response = await fetch(bundledAk47ModelUrl)
-  if (!response.ok) throw new Error('Bundled AK-47 model is unavailable.')
-  return response.arrayBuffer()
+const bundledModels: Record<string, string> = {
+  'p_ak47.mdl': bundledAk47ModelUrl,
+  'p_m4a1.mdl': bundledM4a1ModelUrl,
+  'p_awp.mdl': bundledAwpModelUrl,
+  'p_deagle.mdl': bundledDeagleModelUrl,
+  'p_mp5.mdl': bundledMp5ModelUrl
+}
+const previewPaths = new Map<string, string>()
+let previewAccount: string | null = null
+const rememberPreviewPaths = (items: Skin[]): void => {
+  const token = getWebSessionToken()
+  if (previewAccount !== token) {
+    previewPaths.clear()
+    previewAccount = token
+  }
+  for (const skin of items)
+    if (skin.playerModelPath) previewPaths.set(skin.id, skin.playerModelPath)
 }
 
 const getPttKeys = (): [string, string] => {
@@ -542,10 +560,13 @@ const skins = {
   },
   async list(weaponKey?: string): Promise<Skin[]> {
     const data = await authenticatedGet<Skin[]>('/skins/store')
+    rememberPreviewPaths(data)
     return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
   },
-  mine(): Promise<OwnedSkin[]> {
-    return authenticatedGet('/skins/mine')
+  async mine(): Promise<OwnedSkin[]> {
+    const items = await authenticatedGet<OwnedSkin[]>('/skins/mine')
+    rememberPreviewPaths(items.map((item) => item.skin))
+    return items
   },
   resaleQuote(skinId: string): Promise<SkinResaleQuote> {
     return authenticatedGet(`/skins/${encodeURIComponent(skinId)}/resale-quote`)
@@ -574,7 +595,10 @@ const skins = {
   async unequip(skinId: string): Promise<void> {
     await jsonPost(`/skins/${skinId}/unequip`)
   },
-  previewModel(skinId: string): Promise<ArrayBuffer> {
+  async previewModel(skinId: string): Promise<ArrayBuffer> {
+    const path = previewAccount === getWebSessionToken() ? previewPaths.get(skinId) : undefined
+    const local = path ? await readNativeModel(path) : null
+    if (local) return local
     return requestArrayBuffer(`/skins/${skinId}/preview-model`, {
       authenticated: true
     })
@@ -1070,6 +1094,8 @@ const api: Window['api'] = {
   models: {
     async read(relativePath: string): Promise<ArrayBuffer> {
       const normalized = relativePath.replace(/\\/g, '/').replace(/^models\//i, '')
+      const native = await readNativeModel(normalized)
+      if (native) return native
       if (normalized.startsWith('lobby/')) {
         const file = normalized.slice('lobby/'.length)
         if (!/^[a-z0-9_]+\.mdl$/i.test(file)) throw new Error('Invalid lobby model.')
@@ -1090,7 +1116,12 @@ const api: Window['api'] = {
         )
       }
 
-      if (normalized.toLowerCase() === 'p_ak47.mdl') return readBundledAk47Model()
+      const bundled = bundledModels[normalized.toLowerCase()]
+      if (bundled) {
+        const response = await fetch(bundled)
+        if (!response.ok) throw new Error('Bundled weapon model is unavailable.')
+        return response.arrayBuffer()
+      }
       if (/^p_[a-z0-9_]+\.mdl$/i.test(normalized)) {
         throw new Error('This stock weapon model is unavailable in the browser.')
       }

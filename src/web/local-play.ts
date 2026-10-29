@@ -720,10 +720,31 @@ export async function nativeHelperPresence(
   return { connected: result.connected, joinSecret: null }
 }
 
+// Reads only model files through the existing origin-bound helper capability.
+export async function readNativeModel(path: string): Promise<ArrayBuffer | null> {
+  if (preferredLocalLauncher() !== 'rust') return null
+  try {
+    const result = (await localRequest({ action: 'modelRead', path })) as { data?: unknown }
+    if (typeof result?.data !== 'string' || result.data.length > 45_000_000) return null
+    const bytes = Uint8Array.from(atob(result.data), (value) => value.charCodeAt(0))
+    if (
+      bytes.length < 244 ||
+      new DataView(bytes.buffer).getInt32(4, true) !== 10 ||
+      String.fromCharCode(...bytes.subarray(0, 4)) !== 'IDST'
+    )
+      return null
+    return bytes.buffer
+  } catch {
+    // Older/disconnected helpers and missing local models use the web fallback.
+    return null
+  }
+}
+
 async function localRequest(
   request:
     | NativeHelperSettingsRequest
     | { action: 'presence'; activity: NativeHelperPresence | null }
+    | { action: 'modelRead'; path: string }
     | { action: 'assetStatus' }
     | { action: 'assetSync'; apiOrigin: string; token: string; repair: boolean }
     | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string }

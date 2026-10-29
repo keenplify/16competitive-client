@@ -6,6 +6,24 @@ export const isCharacterModel = (key: string): boolean => key === 'player_ct' ||
 export const getSkinAnimation = (key: string): string | readonly string[] =>
   isCharacterModel(key) ? characterAnimationLabels(key === 'player_ct' ? 'm4a1' : 'ak47') : 'idle1'
 
+export const characterWeaponAttachment = (key: string) =>
+  isCharacterModel(key)
+    ? {
+        attachedModelPath: key === 'player_ct' ? 'p_m4a1.mdl' : 'p_ak47.mdl',
+        attachedModelRotation: (key === 'player_ct' ? [0, -78, 90] : [0, 110, 90]) as readonly [
+          number,
+          number,
+          number
+        ],
+        attachedModelHandRotation: [0, 180, 0] as const,
+        attachedModelHandOffset: (key === 'player_ct' ? [11, 0, 2] : [21, 0, 0.5]) as readonly [
+          number,
+          number,
+          number
+        ]
+      }
+    : {}
+
 export type SkinPresentationRotation = readonly [number, number, number]
 
 /** Shared framing for HE, flash, and smoke grenade model previews. */
@@ -105,5 +123,5 @@ export const getSkinPresentationRevision = (weaponKey: string): string => {
     : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
   const rotation = getSkinPresentationRotation(weaponKey).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
-  return `presentation-v3:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+  return `${isCharacterModel(weaponKey) ? 'character-armed-v1' : 'presentation-v3'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
 }

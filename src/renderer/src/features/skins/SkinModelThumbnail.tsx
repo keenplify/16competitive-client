@@ -1,4 +1,8 @@
-import { getSkinAnimation, isCharacterModel } from './skin-model-presentation'
+import {
+  characterWeaponAttachment,
+  getSkinAnimation,
+  isCharacterModel
+} from './skin-model-presentation'
 import { presentationModelPath } from '../party/party-models'
 import { LoaderCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
@@ -222,6 +226,7 @@ function SkinModelThumbnailContent({
               target: getSkinCameraTarget(weaponKey)
             }}
             animation={getSkinAnimation(weaponKey)}
+            {...characterWeaponAttachment(weaponKey)}
             maxFrameRate={20}
             cameraLocked
             onFirstFrame={capture}

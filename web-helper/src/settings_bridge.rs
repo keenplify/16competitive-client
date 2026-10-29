@@ -313,6 +313,7 @@ enum Request {
     Presence {
         activity: Option<crate::presence::Activity>,
     },
+    ModelRead { path: String },
     AssetStatus,
     AssetSync {
         api_origin: String,
@@ -388,6 +389,56 @@ fn probe_nodes(nodes: Vec<ProbeNode>) -> Result<serde_json::Value, String> {
     });
     Ok(serde_json::json!(measured))
 }
+const MAX_PREVIEW_MODEL: u64 = 32 * 1024 * 1024;
+
+fn preview_relative_path(path: &str) -> Result<String, String> {
+    let path = path.strip_prefix("models/").unwrap_or(path);
+    if path.len() > 240 || !path.ends_with(".mdl") ||
+        path.split('/').any(|part| part.is_empty() || part == "." || part == ".." ||
+            !part.bytes().all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))) {
+        return Err("Invalid model path".into());
+    }
+    if let Some(model) = path.strip_prefix("lobby/").and_then(|p| p.strip_suffix("_lobby.mdl")) {
+        if ["arctic", "gign", "gsg9", "guerilla", "leet", "sas", "terror", "urban"].contains(&model) {
+            return Ok(format!("player/{model}/{model}.mdl"));
+        }
+        return Err("Invalid model path".into());
+    }
+    Ok(path.to_owned())
+}
+
+fn read_model_under(root: &Path, path: &str) -> Result<Vec<u8>, String> {
+    let relative = preview_relative_path(path)?;
+    let models = root.join("cstrike/models").canonicalize().map_err(|_| "Model unavailable")?;
+    let file = models.join(relative).canonicalize().map_err(|_| "Model unavailable")?;
+    if !file.starts_with(&models) { return Err("Invalid model path".into()); }
+    let handle = fs::File::open(file).map_err(|_| "Model unavailable")?;
+    let meta = handle.metadata().map_err(|_| "Model unavailable")?;
+    if !meta.is_file() || !(244..=MAX_PREVIEW_MODEL).contains(&meta.len()) { return Err("Invalid model".into()); }
+    let mut bytes = Vec::new();
+    handle.take(MAX_PREVIEW_MODEL + 1).read_to_end(&mut bytes).map_err(|_| "Model unavailable")?;
+    if bytes.len() < 244 || bytes.len() as u64 > MAX_PREVIEW_MODEL || &bytes[..4] != b"IDST" ||
+        i32::from_le_bytes(bytes[4..8].try_into().unwrap()) != 10 ||
+        i32::from_le_bytes(bytes[72..76].try_into().unwrap()) != bytes.len() as i32 {
+        return Err("Invalid model".into());
+    }
+    Ok(bytes)
+}
+
+fn read_model_preview(path: &str) -> Result<serde_json::Value, String> {
+    use base64::Engine;
+    preview_relative_path(path)?;
+    let prefs = load()?;
+    for (folder, game) in [(prefs.cs16, "cs16"), (prefs.cs13, "cs13")] {
+        if let Some(root) = folder.and_then(|p| validate_installation(&p, game).map(|v| v.0)) {
+            if let Ok(bytes) = read_model_under(&root, path) {
+                return Ok(serde_json::json!({"data":base64::engine::general_purpose::STANDARD.encode(bytes)}));
+            }
+        }
+    }
+    Ok(serde_json::json!({"data":null}))
+}
+
 fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     match &request {
         Request::Logout { account_id } => {
@@ -435,6 +486,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             return Ok(serde_json::json!({"ok":true}));
         }
         Request::ProbeNodes { nodes } => return probe_nodes(nodes.clone()),
+        Request::ModelRead { path } => return read_model_preview(path),
         Request::AssetStatus => {
             return serde_json::to_value(crate::assets::status()).map_err(|e| e.to_string())
         }
@@ -531,7 +583,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             save(&prefs)?;
         }
         Request::Presence { .. } => unreachable!(),
-        Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
+        Request::ModelRead { .. } | Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
         Request::RuntimeCheck { .. } | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
         Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => unreachable!(),
@@ -931,5 +983,35 @@ mod tests {
         value.display.resolution = "current".into();
         value.current_display_resolution.width = u32::MAX;
         assert!(value.validate().is_err());
+    }
+}
+
+#[cfg(test)]
+mod model_preview_tests {
+    use super::*;
+    #[test]
+    fn preview_paths_stay_in_models() {
+        for path in ["../secret.mdl", "/p_ak47.mdl", "player//x.mdl", "a/../../x.mdl", "C:/x.mdl", "x\\y.mdl", "config.cfg", "lobby/unknown_lobby.mdl"] {
+            assert!(preview_relative_path(path).is_err(), "{path}");
+        }
+        assert_eq!(preview_relative_path("lobby/gsg9_lobby.mdl").unwrap(), "player/gsg9/gsg9.mdl");
+        assert_eq!(preview_relative_path("models/p_m4a1.mdl").unwrap(), "p_m4a1.mdl");
+    }
+    #[test]
+    fn reads_only_valid_models_and_rejects_escape() {
+        let root = std::env::temp_dir().join(format!("model-preview-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(root.join("cstrike/models")).unwrap();
+        let mut bytes = vec![0u8;244]; bytes[..4].copy_from_slice(b"IDST");
+        bytes[4..8].copy_from_slice(&10i32.to_le_bytes()); bytes[72..76].copy_from_slice(&244i32.to_le_bytes());
+        fs::write(root.join("cstrike/models/p_test.mdl"), &bytes).unwrap();
+        assert_eq!(read_model_under(&root, "p_test.mdl").unwrap(), bytes);
+        fs::write(root.join("cstrike/models/bad.mdl"), b"not a model").unwrap();
+        assert!(read_model_under(&root,"bad.mdl").is_err());
+        #[cfg(unix)] {
+            fs::write(root.join("outside.mdl"), &bytes).unwrap();
+            std::os::unix::fs::symlink(root.join("outside.mdl"),root.join("cstrike/models/link.mdl")).unwrap();
+            assert!(read_model_under(&root,"link.mdl").is_err());
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 }

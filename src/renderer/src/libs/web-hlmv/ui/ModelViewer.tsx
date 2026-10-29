@@ -95,6 +95,7 @@ export function ModelViewer({
     sourceKey: string
     buffer: ArrayBuffer
   } | null>(null)
+  const [failedAttachment, setFailedAttachment] = useState<string | null>(null)
   const attachedSourceKey = attachedModelPath ? `path:${attachedModelPath}${revision}` : ''
 
   useEffect(() => {
@@ -149,6 +150,7 @@ export function ModelViewer({
       .catch((error: unknown) => {
         if (!cancelled) {
           setAttachedModel(null)
+          setFailedAttachment(requestedSourceKey)
           console.warn('[HLMV] ModelViewer companion model load failed', {
             modelPath: attachedModelPath,
             error
@@ -163,32 +165,35 @@ export function ModelViewer({
 
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>
-      {loadedModel?.sourceKey === sourceKey && (
-        <Renderer
-          modelBuffer={loadedModel.buffer}
-          modelRootBoneRotation={modelRootBoneRotation}
-          attachedModelBuffer={
-            attachedModel?.sourceKey === attachedSourceKey ? attachedModel.buffer : undefined
-          }
-          attachedModelRotation={attachedModelRotation}
-          attachedModelHandRotation={attachedModelHandRotation}
-          attachedModelHandOffset={attachedModelHandOffset}
-          camera={camera}
-          cameraLocked={cameraLocked}
-          animation={animation}
-          freezeAnimation={freezeAnimation}
-          maxFrameRate={maxFrameRate}
-          presentationRotation={presentationRotation}
-          disableZoom={disableZoom}
-          lockCameraDistance={lockCameraDistance}
-          orbitAngleLimit={orbitAngleLimit}
-          rotateSpeed={rotateSpeed}
-          onFirstFrame={onFirstFrame}
-          className="h-full w-full"
-          setModelController={() => undefined}
-          setModelData={() => undefined}
-        />
-      )}
+      {loadedModel?.sourceKey === sourceKey &&
+        (!attachedSourceKey ||
+          attachedModel?.sourceKey === attachedSourceKey ||
+          failedAttachment === attachedSourceKey) && (
+          <Renderer
+            modelBuffer={loadedModel.buffer}
+            modelRootBoneRotation={modelRootBoneRotation}
+            attachedModelBuffer={
+              attachedModel?.sourceKey === attachedSourceKey ? attachedModel.buffer : undefined
+            }
+            attachedModelRotation={attachedModelRotation}
+            attachedModelHandRotation={attachedModelHandRotation}
+            attachedModelHandOffset={attachedModelHandOffset}
+            camera={camera}
+            cameraLocked={cameraLocked}
+            animation={animation}
+            freezeAnimation={freezeAnimation}
+            maxFrameRate={maxFrameRate}
+            presentationRotation={presentationRotation}
+            disableZoom={disableZoom}
+            lockCameraDistance={lockCameraDistance}
+            orbitAngleLimit={orbitAngleLimit}
+            rotateSpeed={rotateSpeed}
+            onFirstFrame={onFirstFrame}
+            className="h-full w-full"
+            setModelController={() => undefined}
+            setModelData={() => undefined}
+          />
+        )}
       {failedSource !== sourceKey && loadedModel?.sourceKey !== sourceKey && (
         <div
           className="absolute inset-0 flex items-center justify-center"

@@ -100,7 +100,6 @@ export function SkinsPage(): JSX.Element {
   const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [error, setError] = useState<string | null>(null)
   const [changingId, setChangingId] = useState<string | null>(null)
   const [previewSkin, setPreviewSkin] = useState<OwnedSkin['skin'] | null>(null)
   const [sale, setSale] = useState<{ owned: OwnedSkin; quote: SkinResaleQuote } | null>(null)
@@ -120,7 +119,7 @@ export function SkinsPage(): JSX.Element {
     void useCharacterLoadoutStore
       .getState()
       .showInParty(path)
-      .catch(() => setError(t('character.error')))
+      .catch(() => toast.error(t('character.error')))
   }
   const characterPending = useCharacterLoadoutStore((state) => state.pending)
   const [category, setCategory] = useState<WeaponCategory>('all')
@@ -142,7 +141,6 @@ export function SkinsPage(): JSX.Element {
 
   const refresh = (showLoading = true): void => {
     if (showLoading) setStatus('loading')
-    setError(null)
     const getLobbyLoadout = window.api.skins.getLobbyLoadout
     void Promise.all([
       window.api.skins.mine(),
@@ -171,7 +169,7 @@ export function SkinsPage(): JSX.Element {
         setStatus('ready')
       },
       (reason: unknown) => {
-        setError(errorText(reason))
+        toast.error(errorText(reason))
         if (showLoading) setStatus('error')
       }
     )
@@ -222,7 +220,6 @@ export function SkinsPage(): JSX.Element {
   const setLobbyWeapon = (owned: OwnedSkin): void => {
     if (webMode || loadoutLocked || lobbyWeaponId || lobbyWeaponSkinId === owned.skin.id) return
     setLobbyWeaponId(owned.skin.id)
-    setError(null)
     void window.api.skins
       .setLobbyWeapon(owned.skin.id)
       .then(() => Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()]))
@@ -237,14 +234,13 @@ export function SkinsPage(): JSX.Element {
         )
         toast.success(`${owned.skin.name} is now displayed in your lobby.`)
       })
-      .catch((reason: unknown) => setError(errorText(reason)))
+      .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setLobbyWeaponId(null))
   }
 
   const setDefaultLobbyWeapon = (weaponKey: string): void => {
     if (webMode || loadoutLocked || lobbyWeaponId) return
     setLobbyWeaponId(weaponKey)
-    setError(null)
     void window.api.skins
       .setLobbyWeaponKey(weaponKey)
       .then(() => {
@@ -253,14 +249,13 @@ export function SkinsPage(): JSX.Element {
         updateLobbyWeapon(weaponKey, null, null)
         toast.success(`${displayWeapon(weaponKey)} is now displayed in your lobby.`)
       })
-      .catch((reason: unknown) => setError(errorText(reason)))
+      .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setLobbyWeaponId(null))
   }
 
   const setEquipped = (owned: OwnedSkin): void => {
     if (loadoutLocked) return
     setChangingId(owned.skin.id)
-    setError(null)
     const request = owned.equippedAt
       ? window.api.skins.unequip(owned.skin.id)
       : window.api.skins.equip(owned.skin.id)
@@ -270,18 +265,17 @@ export function SkinsPage(): JSX.Element {
         setSkins(inventory)
         setStatus('ready')
       })
-      .catch((reason: unknown) => setError(errorText(reason)))
+      .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setChangingId(null))
   }
 
   const unequipAllForTeam = (): void => {
     if (loadoutLocked || equippedForTeam.length === 0 || unequippingTeam) return
     setUnequippingTeam(true)
-    setError(null)
     void Promise.all(equippedForTeam.map((owned) => window.api.skins.unequip(owned.skin.id)))
       .then(() => window.api.skins.mine())
       .then((inventory) => setSkins(inventory))
-      .catch((reason: unknown) => setError(errorText(reason)))
+      .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setUnequippingTeam(false))
   }
 
@@ -319,7 +313,7 @@ export function SkinsPage(): JSX.Element {
               lobbyLoadout.weaponSkinId
             )
           })
-          .catch((reason: unknown) => setError(errorText(reason)))
+          .catch((reason: unknown) => toast.error(errorText(reason)))
       })
       .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setSelling(false))
@@ -363,14 +357,6 @@ export function SkinsPage(): JSX.Element {
     )
   return (
     <section className="loadout-page mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
-      {error && (
-        <p
-          role="alert"
-          className="fixed right-4 bottom-4 left-4 z-50 border border-rose-400/30 bg-neutral-950 px-4 py-3 text-sm text-rose-200 shadow-lg"
-        >
-          {error}
-        </p>
-      )}
       <section className="loadout-equipped min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
@@ -555,7 +541,7 @@ export function SkinsPage(): JSX.Element {
                           .getState()
                           .equipStock(modelTeam, model)
                           .then(() => refresh(false))
-                          .catch(() => setError(t('character.error')))
+                          .catch(() => toast.error(t('character.error')))
                       }}
                       className={twMerge(
                         'w-44 max-w-full flex-none border border-white/15 p-3 text-left',

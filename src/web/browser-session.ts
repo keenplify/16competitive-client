@@ -1,9 +1,16 @@
+import { hasIncomingPartnerLogin } from './partner-login-capture'
 import type { PartnerLoginContext } from '../shared/auth'
 import { partnerApiOrigin } from './partner-runtime'
 const TOKEN_KEY = '16competitive.web.session'
 const PARTNER_LOGIN_KEY = '16competitive.web.session-partner'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
 
+// Discard the previous identity before any API or socket can use it.
+if (hasIncomingPartnerLogin()) {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(PARTNER_LOGIN_KEY)
+  localStorage.removeItem('16competitive.web.auth-session')
+}
 let sessionToken = localStorage.getItem(TOKEN_KEY)
 
 export const currentApiOrigin = (): string => partnerApiOrigin()
@@ -99,6 +106,7 @@ export const requestJson = async <T>(
   } = {}
 ): Promise<T> => {
   await webHandoffReady
+  const requestToken = sessionToken
   const base = options.baseUrl ?? currentApiOrigin()
   const headers = new Headers(options.init?.headers)
   if (options.authenticated) {
@@ -120,7 +128,12 @@ export const requestJson = async <T>(
   })
   const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
-    if (response.status === 401 && options.clearOnUnauthorized !== false) clearWebSessionToken()
+    if (
+      response.status === 401 &&
+      options.clearOnUnauthorized !== false &&
+      sessionToken === requestToken
+    )
+      clearWebSessionToken()
     const message =
       typeof body === 'object' &&
       body !== null &&

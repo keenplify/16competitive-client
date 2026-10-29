@@ -143,7 +143,7 @@ test('later session refresh does not discard the newly accepted partner session'
   assert.equal(h.token(), 'new-partner-token')
 })
 
-function sessionHarness(cache = new Map()) {
+function sessionHarness(cache = new Map(), incoming = false) {
   const exports = {}
   const storage = {
     getItem: (key) => cache.get(key) ?? null,
@@ -156,9 +156,17 @@ function sessionHarness(cache = new Map()) {
     'localStorage',
     'window',
     compile('../src/web/browser-session.ts')
-  )(() => ({ partnerApiOrigin: () => 'https://example.com' }), exports, storage, {
-    location: { href: 'https://example.com/pwa?partnerId=583704ab-6fc5-4b58-8fc2-d91cf1d7c051' }
-  })
+  )(
+    (name) =>
+      name === './partner-login-capture'
+        ? { hasIncomingPartnerLogin: () => incoming }
+        : { partnerApiOrigin: () => 'https://example.com' },
+    exports,
+    storage,
+    {
+      location: { href: 'https://example.com/pwa?partnerId=583704ab-6fc5-4b58-8fc2-d91cf1d7c051' }
+    }
+  )
   return { api: exports, cache }
 }
 test('partner return context survives reload but clears on normal login and logout', () => {
@@ -180,4 +188,23 @@ test('partner branding URL alone does not make an ordinary login a partner sessi
   const { api } = sessionHarness()
   api.setWebSessionToken('ordinary-session')
   assert.equal(api.getWebPartnerLogin(), undefined)
+})
+
+test('fresh partner navigation removes previous identity before the first API request', async () => {
+  const cache = new Map([
+    ['16competitive.web.session', 'old-session'],
+    [
+      '16competitive.web.session-partner',
+      JSON.stringify({ partnerId: 'old-partner', partnerName: 'Old' })
+    ],
+    [cacheKey, JSON.stringify({ player: { id: 'old-player' } })]
+  ])
+  const { api } = sessionHarness(cache, true)
+  assert.equal(api.getWebSessionToken(), null)
+  assert.equal(api.authenticatedHeaders().has('authorization'), false)
+  assert.equal(cache.size, 0)
+  await assert.rejects(
+    api.requestJson('/auth/session', { authenticated: true }),
+    /Authentication required/
+  )
 })

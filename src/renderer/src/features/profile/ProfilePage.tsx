@@ -40,7 +40,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
       <div className="mx-auto w-full max-w-[1800px]">
         {
           <TabList
-            className="profile-tabs sticky top-0 z-10 mt-4 bg-neutral-950"
+            className="profile-tabs sticky top-0 z-10 mt-4"
             ariaLabel={t('profile.sections')}
             value={visibleTab}
             items={[

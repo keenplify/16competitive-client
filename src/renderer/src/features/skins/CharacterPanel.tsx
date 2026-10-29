@@ -1,3 +1,4 @@
+import { characterWeaponAttachment } from './skin-model-presentation'
 import { Users, Check, LoaderCircle } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -78,10 +79,7 @@ function CharacterPanelContent({
               modelBuffer={buffer}
               modelKey={skin?.id}
               modelPath={skin ? undefined : presentationModelPath(`player/${model}/${model}.mdl`)}
-              attachedModelPath={team === 'ct' ? 'p_m4a1.mdl' : 'p_ak47.mdl'}
-              attachedModelRotation={team === 'ct' ? [0, -78, 90] : [0, 110, 90]}
-              attachedModelHandRotation={[0, 180, 0]}
-              attachedModelHandOffset={team === 'ct' ? [11, 0, 2] : [21, 0, 0.5]}
+              {...characterWeaponAttachment(`player_${team}`)}
               animation={characterAnimationLabels(team === 'ct' ? 'm4a1' : 'ak47')}
               camera={{ distanceMultiplier: 1.05 }}
               cameraLocked

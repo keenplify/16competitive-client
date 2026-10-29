@@ -518,6 +518,7 @@ export const browserAuthApi: AuthApi = {
         clearOnUnauthorized: false
       })
 
+      if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
       await linkBrowserPartner(body.player.id)
       let status: UsernameStatus | null = null
       try {
@@ -540,10 +541,12 @@ export const browserAuthApi: AuthApi = {
           usernameSuggestions: status?.usernameSuggestions ?? cached?.player.usernameSuggestions
         }
       }
+      if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
       writeCachedSession(session)
       void reportBrowserClientTelemetry()
       return session
     } catch (error) {
+      if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
       if ((error as Error & { status?: number }).status === 401) {
         clearWebSessionToken()
         clearCachedSession()
