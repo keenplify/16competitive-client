@@ -3660,3 +3660,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Refined tab hover states with a custom VGUI-inspired color palette.
 - Updated weapon previews with matching VGUI styling.
+
+## v2026.1029.13 — 2026-10-29
+
+### Loadouts
+
+- Prevented crashes when loading character thumbnails.
+- Improved thumbnail and preview rendering performance.
