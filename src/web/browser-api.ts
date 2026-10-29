@@ -43,7 +43,8 @@ import {
   cancelNativeInstaller,
   onNativeAssetSync,
   nativeAssetStatus,
-  syncNativeAssets
+  syncNativeAssets,
+  nativeDiagnosticLogs
 } from './local-play'
 import type { NativeHelperSettings } from '../shared/native-helper-settings'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
@@ -775,6 +776,13 @@ const api: Window['api'] = {
     }
   },
   partnerBranding: {
+    async getJoined() {
+      const token = getWebSessionToken()
+      if (!token) return { branding: null }
+      const result = await authenticatedGet('/partners/branding/me')
+      if (getWebSessionToken() !== token) throw new Error('Session changed.')
+      return parsePartnerBranding(result, currentApiOrigin())
+    },
     async get() {
       const token = getWebSessionToken()
       const partnerId = getBrowserPartnerId()
@@ -1170,10 +1178,13 @@ const api: Window['api'] = {
       return []
     },
     async report(description: string, rendererLogs: string[], matchId?: string) {
+      const helperLogs = await nativeDiagnosticLogs(matchId).catch(
+        () => '[Native helper diagnostics] Unavailable; reconnect the helper to include game logs.'
+      )
       return jsonPost('/auth/issue-reports', {
         description,
         ...(matchId ? { matchId } : {}),
-        logs: rendererLogs.join('\n').slice(0, 500_000) || '[no renderer logs]',
+        logs: `${rendererLogs.join('\n').slice(-300_000) || '[no renderer logs]'}\n\n${helperLogs}`,
         clientVersion: 'web'
       })
     }

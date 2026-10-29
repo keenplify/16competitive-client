@@ -1,3 +1,5 @@
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
+import { resolveCommunityMusic } from './community-music'
 import { useEffect, useRef, type JSX } from 'react'
 import { launcherAudio } from './audio.manager'
 import { useAudioSettingsStore } from './audio.store'
@@ -9,6 +11,14 @@ export function AudioController(): JSX.Element | null {
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
   const playerId = useAuthStore((state) => state.session?.player.id ?? null)
+  const branding = usePartnerBrandingStore((state) => state.joinedBranding)
+  const brandingAccountId = usePartnerBrandingStore((state) => state.accountId)
+  const { trackId, musicUrl } = resolveCommunityMusic(
+    selectedBgmId,
+    playerId,
+    brandingAccountId,
+    branding
+  )
   const match = useMatchmakingStore((state) => state.match)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -29,8 +39,8 @@ export function AudioController(): JSX.Element | null {
   const previousCompletedMatchId = useRef<string | null>(null)
 
   useEffect(() => {
-    launcherAudio.setBgmTrack(selectedBgmId)
-  }, [selectedBgmId])
+    launcherAudio.setBgmTrack(trackId, musicUrl)
+  }, [trackId, musicUrl])
 
   useEffect(() => {
     launcherAudio.setBgmLowPass(shouldUseLobbyLowPass)

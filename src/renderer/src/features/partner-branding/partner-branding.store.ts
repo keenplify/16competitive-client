@@ -14,6 +14,7 @@ const readPreference = (): boolean => {
 interface PartnerBrandingState {
   accountId: string | null
   branding: PartnerBranding | null
+  joinedBranding: PartnerBranding | null
   resolved: boolean
   enabled: boolean
   refresh: (accountId: string | null) => Promise<void>
@@ -26,16 +27,30 @@ let requestSerial = 0
 export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   accountId: null,
   branding: null,
+  joinedBranding: null,
   resolved: false,
   enabled: readPreference(),
   refresh: async (accountId) => {
     const serial = ++requestSerial
     set((state) =>
-      state.accountId === accountId ? state : { accountId, branding: null, resolved: false }
+      state.accountId === accountId
+        ? state
+        : { accountId, branding: null, joinedBranding: null, resolved: false }
     )
     try {
+      const joinedRequest =
+        accountId && window.api.partnerBranding.getJoined
+          ? window.api.partnerBranding.getJoined().catch(() => null)
+          : Promise.resolve({ branding: null })
       const result = await window.api.partnerBranding.get()
-      if (serial === requestSerial) set({ accountId, branding: result.branding, resolved: true })
+      const joined = await joinedRequest
+      if (serial === requestSerial)
+        set({
+          accountId,
+          branding: result.branding,
+          ...(joined ? { joinedBranding: joined.branding } : {}),
+          resolved: true
+        })
     } catch {
       // Keep the last verified palette during a transient connection failure.
       // A new account is always cleared before its own request starts.
@@ -44,7 +59,7 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   },
   clear: () => {
     requestSerial++
-    set({ accountId: null, branding: null, resolved: false })
+    set({ accountId: null, branding: null, joinedBranding: null, resolved: false })
   },
   setEnabled: (enabled) => {
     try {

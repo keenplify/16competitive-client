@@ -821,19 +821,21 @@ export function SettingsPage(): JSX.Element {
                 </p>
 
                 <label className="mt-6 block">
-                  <span className="text-sm font-semibold text-neutral-200">Music set</span>
+                  <span className="text-sm font-semibold text-neutral-200">
+                    {t('audio.musicSet')}
+                  </span>
                   <span className="mt-1 block text-xs text-neutral-500">
-                    Choose a music set for the launcher. Each set can provide its own background
-                    music and match-found cue.
+                    {t('audio.musicHelp')}
                   </span>
                   <select
                     className="mt-3 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400"
                     value={selectedBgmId}
                     onChange={(event) => {
                       const value = event.currentTarget.value
-                      if (isLauncherBgmId(value)) setSelectedBgmId(value)
+                      if (value === 'automatic' || isLauncherBgmId(value)) setSelectedBgmId(value)
                     }}
                   >
+                    <option value="automatic">{t('audio.automatic')}</option>
                     {MUSIC_SETS.map((set) => (
                       <option key={set.id} value={set.id}>
                         {set.label}

@@ -21,6 +21,8 @@ type Key =
   | 'unmute'
   | 'volume'
   | 'friendRequestFailed'
+  | 'helperMicUnavailable'
+  | 'helperMicHint'
 type MoreKey =
   | 'pttTest'
   | 'holdToTalk'
@@ -40,6 +42,10 @@ type MoreKey =
 
 const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
   en: {
+    helperMicUnavailable:
+      'Could not access the helper microphone. Update or reconnect the helper, check system microphone access, then retry voice.',
+    helperMicHint:
+      'The connected helper handles microphone access. Without a helper, your browser will ask for microphone permission.',
     partyVoice: 'Party voice',
     teamVoice: 'Team voice',
     serverVoice: 'Server voice',
@@ -62,6 +68,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'Could not send friend request.'
   },
   ru: {
+    helperMicUnavailable:
+      'Не удалось подключить микрофон помощника. Обновите или переподключите помощник, проверьте доступ к микрофону в системе и повторите попытку.',
+    helperMicHint:
+      'Подключённый помощник управляет микрофоном. Без помощника браузер запросит разрешение на доступ к микрофону.',
     partyVoice: 'Голос группы',
     teamVoice: 'Голос команды',
     serverVoice: 'Голос сервера',
@@ -84,6 +94,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'Не удалось отправить заявку в друзья.'
   },
   tl: {
+    helperMicUnavailable:
+      'Hindi ma-access ang mic ng helper. I-update o ikonekta muli ang helper, tingnan ang pahintulot sa mic ng system, at subukan muli ang voice.',
+    helperMicHint:
+      'Ang nakakonektang helper ang humahawak sa mic. Kung walang helper, hihingi ang browser ng pahintulot para sa mic.',
     partyVoice: 'Party voice',
     teamVoice: 'Team voice',
     serverVoice: 'Server voice',
@@ -106,6 +120,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'Hindi naipadala ang friend request.'
   },
   th: {
+    helperMicUnavailable:
+      'เข้าถึงไมโครโฟนของตัวช่วยไม่ได้ อัปเดตหรือเชื่อมต่อตัวช่วยใหม่ ตรวจสอบสิทธิ์ไมโครโฟนของระบบ แล้วลองเสียงอีกครั้ง',
+    helperMicHint:
+      'ตัวช่วยที่เชื่อมต่อจะจัดการไมโครโฟน หากไม่มีตัวช่วย เบราว์เซอร์จะขอสิทธิ์ใช้ไมโครโฟน',
     partyVoice: 'เสียงปาร์ตี้',
     teamVoice: 'เสียงทีม',
     serverVoice: 'เสียงเซิร์ฟเวอร์',
@@ -128,6 +146,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'ส่งคำขอเป็นเพื่อนไม่สำเร็จ'
   },
   id: {
+    helperMicUnavailable:
+      'Mikrofon helper tidak dapat diakses. Perbarui atau sambungkan ulang helper, periksa akses mikrofon sistem, lalu coba suara lagi.',
+    helperMicHint:
+      'Helper yang terhubung menangani mikrofon. Tanpa helper, browser akan meminta izin mikrofon.',
     partyVoice: 'Suara party',
     teamVoice: 'Suara tim',
     serverVoice: 'Suara server',
@@ -150,6 +172,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'Gagal mengirim permintaan teman.'
   },
   hi: {
+    helperMicUnavailable:
+      'हेल्पर के माइक्रोफ़ोन तक पहुँच नहीं मिली। हेल्पर अपडेट करें या फिर जोड़ें, सिस्टम में माइक की अनुमति जाँचें और वॉइस फिर आज़माएँ।',
+    helperMicHint:
+      'जुड़ा हुआ हेल्पर माइक्रोफ़ोन सँभालता है। हेल्पर के बिना ब्राउज़र माइक की अनुमति माँगेगा।',
     partyVoice: 'पार्टी वॉइस',
     teamVoice: 'टीम वॉइस',
     serverVoice: 'सर्वर वॉइस',
@@ -172,6 +198,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'दोस्ती का अनुरोध नहीं भेज सके।'
   },
   pt: {
+    helperMicUnavailable:
+      'Não foi possível acessar o microfone do helper. Atualize ou reconecte o helper, verifique o acesso ao microfone no sistema e tente a voz novamente.',
+    helperMicHint:
+      'O helper conectado gerencia o microfone. Sem o helper, o navegador solicitará permissão para o microfone.',
     partyVoice: 'Voz do grupo',
     teamVoice: 'Voz da equipe',
     serverVoice: 'Voz do servidor',
@@ -194,6 +224,10 @@ const copy: Record<SupportedLanguageCode, Record<Key, string>> = {
     friendRequestFailed: 'Não foi possível enviar o pedido de amizade.'
   },
   ja: {
+    helperMicUnavailable:
+      'ヘルパーのマイクにアクセスできません。ヘルパーを更新または再接続し、システムのマイク許可を確認してボイスを再試行してください。',
+    helperMicHint:
+      '接続されたヘルパーがマイクを管理します。ヘルパーがない場合は、ブラウザーがマイクの許可を求めます。',
     partyVoice: 'パーティーボイス',
     teamVoice: 'チームボイス',
     serverVoice: 'サーバーボイス',

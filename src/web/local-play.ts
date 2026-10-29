@@ -102,6 +102,144 @@ export async function logoutNativeHelper(accountId: string | null): Promise<void
   if (localChannel && accountId)
     await localRequest({ action: 'logout', accountId }).catch(() => undefined)
 }
+/** Prefer verified helper capture; ordinary web players retain browser voice. */
+export async function captureWebMicrophone(): Promise<{ stream: MediaStream; close: () => void }> {
+  if (!localChannel || !localBridge.isAuthorized()) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
+      video: false
+    })
+    return {
+      stream,
+      close: () => {
+        for (const track of stream.getTracks()) track.stop()
+      }
+    }
+  }
+  try {
+    return await captureNativeMicrophone()
+  } catch (cause) {
+    throw new Error('Native microphone unavailable', { cause })
+  }
+}
+
+async function captureNativeMicrophone(): Promise<{
+  stream: MediaStream
+  close: () => void
+}> {
+  const value = (await localRequest({
+    action: 'microphone',
+    apiOrigin: window.location.origin
+  })) as {
+    ok?: unknown
+    port?: unknown
+    capability?: unknown
+  }
+  if (
+    value.ok !== true ||
+    !Number.isInteger(value.port) ||
+    Number(value.port) < 1024 ||
+    Number(value.port) > 65535 ||
+    typeof value.capability !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.capability)
+  )
+    throw new Error('Invalid native microphone bridge')
+  const peer = new RTCPeerConnection({ iceServers: [] })
+  const stream = new MediaStream()
+  const close = (): void => {
+    void localBridge
+      .request(`http://127.0.0.1:${value.port}/close`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${value.capability}` },
+        credentials: 'omit',
+        redirect: 'error',
+        signal: AbortSignal.timeout(3000)
+      })
+      .catch(() => undefined)
+    peer.close()
+    for (const track of stream.getTracks()) track.stop()
+  }
+  try {
+    peer.addTransceiver('audio', { direction: 'recvonly' })
+    const trackReady = new Promise<void>((resolve) => {
+      peer.ontrack = (event) => {
+        stream.addTrack(event.track)
+        resolve()
+      }
+    })
+    await peer.setLocalDescription(await peer.createOffer())
+    if (peer.iceGatheringState !== 'complete')
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Native microphone ICE timeout')), 10_000)
+        peer.onicegatheringstatechange = () => {
+          if (peer.iceGatheringState === 'complete') {
+            clearTimeout(timeout)
+            resolve()
+          }
+        }
+      })
+    const response = await localBridge.request(`http://127.0.0.1:${value.port}/offer`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${value.capability}`, 'content-type': 'application/json' },
+      body: JSON.stringify(peer.localDescription),
+      credentials: 'omit',
+      redirect: 'error',
+      signal: AbortSignal.timeout(20_000)
+    })
+    if (!response.ok) throw new Error('Native microphone unavailable')
+    const answer = (await response.json()) as RTCSessionDescriptionInit
+    if (answer.type !== 'answer' || typeof answer.sdp !== 'string' || answer.sdp.length > 16384)
+      throw new Error('Invalid native microphone answer')
+    await peer.setRemoteDescription(answer)
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Native microphone connection timeout')),
+        15_000
+      )
+      const check = (): void => {
+        if (peer.connectionState === 'connected') {
+          clearTimeout(timeout)
+          resolve()
+        }
+        if (peer.connectionState === 'failed' || peer.connectionState === 'closed') {
+          clearTimeout(timeout)
+          reject(new Error('Native microphone disconnected'))
+        }
+      }
+      peer.onconnectionstatechange = check
+      check()
+    })
+    await trackReady
+    return { stream, close }
+  } catch (error) {
+    close()
+    throw error
+  }
+}
+
+export async function nativeDiagnosticLogs(matchId?: string): Promise<string> {
+  if (!localChannel) return '[Native helper diagnostics] Helper is not connected.'
+  const token = getWebSessionToken()
+  if (!token) throw new Error('Authentication required')
+  const value = (await localRequest({
+    action: 'diagnostics',
+    apiOrigin: currentApiOrigin(),
+    token,
+    matchId
+  })) as {
+    ok?: unknown
+    logs?: unknown
+  }
+  if (value.ok !== true || typeof value.logs !== 'string' || value.logs.length > 180_000)
+    throw new Error('Invalid native helper diagnostics')
+  return value.logs
+}
+
 /** The existing voice dock receives native key transitions while the game has focus. */
 export function startNativeVoice(
   listener: (matchId: string, active: boolean, channel: 'team' | 'party') => void
@@ -588,7 +726,8 @@ async function localRequest(
     | { action: 'presence'; activity: NativeHelperPresence | null }
     | { action: 'assetStatus' }
     | { action: 'assetSync'; apiOrigin: string; token: string; repair: boolean }
-    | { action: 'runtimeCheck'; apiOrigin: string }
+    | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string }
+    | { action: 'diagnostics'; apiOrigin: string; token: string; matchId?: string }
     | { action: 'nextClient'; apiOrigin: string; install: boolean }
     | { action: 'nextClientStatus' | 'nextClientCancel' }
     | { action: 'logout'; accountId: string }
@@ -600,7 +739,11 @@ async function localRequest(
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },
     body: JSON.stringify(request),
     signal: AbortSignal.timeout(
-      ['get', 'choose', 'runtimeCheck', 'nextClient'].includes(request.action) ? 300_000 : 5_000
+      ['get', 'choose', 'runtimeCheck', 'nextClient', 'microphone', 'diagnostics'].includes(
+        request.action
+      )
+        ? 300_000
+        : 5_000
     ),
     credentials: 'omit',
     redirect: 'error'

@@ -39,7 +39,7 @@ import {
 import { communityChatHistory, sendCommunityChat, communityMembers, kickCommunityMember } from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
-import { PARTNER_BRANDING_CHANNEL } from '../shared/partner-branding'
+import { PARTNER_BRANDING_CHANNEL, JOINED_BRANDING_CHANNEL } from '../shared/partner-branding'
 import { recordAntiCheatFailure, flushAntiCheatFailureReports } from './anticheat/failure-reports'
 import { parseDemoLink } from '../shared/demo-link'
 import { isAuthReturnLink } from '../shared/auth-link'
@@ -1096,6 +1096,9 @@ app.whenReady().then(async () => {
     linkCommunityServer(code)
   )
   ipcMain.handle(PARTNER_BRANDING_CHANNEL, () => getPartnerBranding())
+  ipcMain.handle(JOINED_BRANDING_CHANNEL, () =>
+    getSessionToken() ? getPartnerBranding() : { branding: null }
+  )
   ipcMain.handle(PARTNER_SERVER_CHANNELS.list, (_, communityId?: string) =>
     listPartnerServers(communityId)
   )

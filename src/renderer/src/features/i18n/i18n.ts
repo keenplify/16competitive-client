@@ -1,3 +1,4 @@
+import { communityMusicTranslations } from './community-music-translations'
 import { webGameDownloadTranslations } from './web-game-download-translations'
 import { partnerLoginTranslations } from './partner-login-translations'
 import { mapFeedbackTranslations } from './map-feedback-translations'
@@ -51,6 +52,7 @@ const english = {
   ...roomSettingsTranslations.en,
   ...queueAgainTranslations.en,
   ...launcherThemeTranslations.en,
+  ...communityMusicTranslations.en,
   ...mapFeedbackTranslations.en,
   ...queueWarmupTranslations.en,
   ...webGameDownloadTranslations.en,
@@ -222,6 +224,7 @@ const russian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ru,
   ...queueAgainTranslations.ru,
   ...launcherThemeTranslations.ru,
+  ...communityMusicTranslations.ru,
   ...mapFeedbackTranslations.ru,
   ...queueWarmupTranslations.ru,
   ...webGameDownloadTranslations.ru,
@@ -393,6 +396,7 @@ const taglish: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.tl,
   ...queueAgainTranslations.tl,
   ...launcherThemeTranslations.tl,
+  ...communityMusicTranslations.tl,
   ...mapFeedbackTranslations.tl,
   ...queueWarmupTranslations.tl,
   ...webGameDownloadTranslations.tl,
@@ -566,6 +570,7 @@ const thai: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.th,
   ...queueAgainTranslations.th,
   ...launcherThemeTranslations.th,
+  ...communityMusicTranslations.th,
   ...mapFeedbackTranslations.th,
   ...queueWarmupTranslations.th,
   ...webGameDownloadTranslations.th,
@@ -735,6 +740,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.id,
   ...queueAgainTranslations.id,
   ...launcherThemeTranslations.id,
+  ...communityMusicTranslations.id,
   ...mapFeedbackTranslations.id,
   ...queueWarmupTranslations.id,
   ...webGameDownloadTranslations.id,
@@ -911,6 +917,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.pt,
   ...queueAgainTranslations.pt,
   ...launcherThemeTranslations.pt,
+  ...communityMusicTranslations.pt,
   ...mapFeedbackTranslations.pt,
   ...queueWarmupTranslations.pt,
   ...webGameDownloadTranslations.pt,
@@ -1087,6 +1094,7 @@ const japanese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ja,
   ...queueAgainTranslations.ja,
   ...launcherThemeTranslations.ja,
+  ...communityMusicTranslations.ja,
   ...mapFeedbackTranslations.ja,
   ...queueWarmupTranslations.ja,
   ...webGameDownloadTranslations.ja,
@@ -1261,6 +1269,7 @@ const hindi: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.hi,
   ...queueAgainTranslations.hi,
   ...launcherThemeTranslations.hi,
+  ...communityMusicTranslations.hi,
   ...mapFeedbackTranslations.hi,
   ...queueWarmupTranslations.hi,
   ...webGameDownloadTranslations.hi,

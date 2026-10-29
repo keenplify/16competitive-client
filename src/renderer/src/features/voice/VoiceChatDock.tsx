@@ -19,6 +19,7 @@ import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 import { useVoiceDockText } from './voice-dock-copy'
+import { isWebRuntime } from '../../web-runtime'
 
 interface PeerRuntime {
   peer: VoicePeer
@@ -192,6 +193,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const [micReady, setMicReady] = useState(false)
   const [railMode, setRailMode] = useState<RailMode>('absent')
 
+  const closeCaptureRef = useRef<(() => void) | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const microphonePromiseRef = useRef<Promise<MediaStream> | null>(null)
   const requestMicrophoneRef = useRef<(() => Promise<MediaStream>) | null>(null)
@@ -513,6 +515,8 @@ export function VoiceChatDock(): JSX.Element | null {
   const stopMicrophone = (): void => {
     microphoneGenerationRef.current += 1
     microphonePromiseRef.current = null
+    closeCaptureRef.current?.()
+    closeCaptureRef.current = null
     for (const track of streamRef.current?.getTracks() ?? []) track.stop()
     streamRef.current = null
     setMicReady(false)
@@ -521,7 +525,7 @@ export function VoiceChatDock(): JSX.Element | null {
   const ensureMicrophone = async (): Promise<MediaStream> => {
     if (streamRef.current) return streamRef.current
     if (microphonePromiseRef.current) return microphonePromiseRef.current
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!isWebRuntime() && !navigator.mediaDevices?.getUserMedia) {
       const message =
         'Microphone access is unavailable. Open the PWA over HTTPS or localhost and try again.'
       setMicReady(false)
@@ -530,21 +534,33 @@ export function VoiceChatDock(): JSX.Element | null {
     }
 
     const generation = microphoneGenerationRef.current
-    const request = navigator.mediaDevices
-      .getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: false
-      })
-      .then((stream) => {
+    const capture = isWebRuntime()
+      ? import('../../../../web/local-play').then(({ captureWebMicrophone }) =>
+          captureWebMicrophone()
+        )
+      : navigator.mediaDevices
+          .getUserMedia({
+            audio: {
+              channelCount: 1,
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            },
+            video: false
+          })
+          .then((stream) => ({
+            stream,
+            close: () => {
+              for (const track of stream.getTracks()) track.stop()
+            }
+          }))
+    const request = capture
+      .then(({ stream, close }) => {
         if (generation !== microphoneGenerationRef.current) {
-          for (const track of stream.getTracks()) track.stop()
+          close()
           throw new Error('Voice microphone request was cancelled.')
         }
+        closeCaptureRef.current = close
         const track = stream.getAudioTracks()[0]
         if (track) track.enabled = true
         streamRef.current = stream
@@ -555,7 +571,11 @@ export function VoiceChatDock(): JSX.Element | null {
       .catch((error: unknown) => {
         if (generation === microphoneGenerationRef.current) {
           setMicReady(false)
-          setMicError(microphoneErrorMessage(error))
+          setMicError(
+            error instanceof Error && error.message === 'Native microphone unavailable'
+              ? voiceText('helperMicUnavailable')
+              : microphoneErrorMessage(error)
+          )
         }
         throw error
       })
@@ -866,6 +886,8 @@ export function VoiceChatDock(): JSX.Element | null {
       }
       runtimesRef.current.clear()
       microphoneGenerationRef.current += 1
+      closeCaptureRef.current?.()
+      closeCaptureRef.current = null
       for (const track of streamRef.current?.getTracks() ?? []) track.stop()
       streamRef.current = null
       microphonePromiseRef.current = null
@@ -1198,9 +1220,11 @@ export function VoiceChatDock(): JSX.Element | null {
 
           {!micReady && enabled && !micError && (
             <p className="mt-3 text-xs text-neutral-500">
-              {enhancementsEnabled
-                ? voiceText('micPermissionPttHint')
-                : voiceText('micPermissionHint')}
+              {isWebRuntime()
+                ? voiceText('helperMicHint')
+                : enhancementsEnabled
+                  ? voiceText('micPermissionPttHint')
+                  : voiceText('micPermissionHint')}
             </p>
           )}
           {micError && <p className="mt-3 text-xs text-red-300">{micError}</p>}

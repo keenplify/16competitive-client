@@ -12,7 +12,11 @@ import {
   type PartnerServersApi,
   type CommunityChatApi
 } from '../shared/partner-community'
-import { PARTNER_BRANDING_CHANNEL, type PartnerBrandingApi } from '../shared/partner-branding'
+import {
+  PARTNER_BRANDING_CHANNEL,
+  JOINED_BRANDING_CHANNEL,
+  type PartnerBrandingApi
+} from '../shared/partner-branding'
 import { ADMIN_DEMO_CHANNELS, type AdminDemosApi } from '../shared/admin-demos'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AuthApi } from '../shared/auth'
@@ -72,7 +76,8 @@ const communityMembership: CommunityMembershipApi = {
   linkServer: (code) => ipcRenderer.invoke(COMMUNITY_MEMBERSHIP_CHANNELS.link, code)
 }
 const partnerBranding: PartnerBrandingApi = {
-  get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL)
+  get: () => ipcRenderer.invoke(PARTNER_BRANDING_CHANNEL),
+  getJoined: () => ipcRenderer.invoke(JOINED_BRANDING_CHANNEL)
 }
 
 const auth: AuthApi = {

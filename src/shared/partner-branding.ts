@@ -4,6 +4,7 @@ import {
   type PartnerSocialLinks
 } from './partner-community'
 export const PARTNER_BRANDING_CHANNEL = 'partner-branding:get'
+export const JOINED_BRANDING_CHANNEL = 'partner-branding:joined'
 
 export interface PartnerAppIcon {
   pngUrl: string
@@ -22,6 +23,7 @@ export interface PartnerBranding {
   primaryColor: string
   secondaryColor: string
   tertiaryColor: string
+  musicUrl?: string | null
   backgroundUrl: string | null
   backgroundKind: 'image' | 'video' | null
   loginBackgroundUrl: string | null
@@ -41,6 +43,7 @@ export interface PartnerBrandingResponse {
 
 export interface PartnerBrandingApi {
   get(): Promise<PartnerBrandingResponse>
+  getJoined(): Promise<PartnerBrandingResponse>
 }
 
 const colorPattern = /^#[0-9a-fA-F]{6}$/
@@ -87,6 +90,8 @@ export const parsePartnerBranding = (
   ) {
     throw new Error('Invalid partner background.')
   }
+  const musicUrl = value.musicUrl ?? null
+  if (musicUrl !== null && typeof musicUrl !== 'string') throw new Error('Invalid community music.')
   const logoUrl = value.logoUrl ?? null
   const loginBackgroundKind = value.loginBackgroundKind ?? null
   const loginBackgroundUrl = value.loginBackgroundUrl ?? null
@@ -104,7 +109,8 @@ export const parsePartnerBranding = (
   for (const [mediaUrl, endpoint] of [
     [backgroundUrl, 'asset'],
     [loginBackgroundUrl, 'login-asset'],
-    [logoUrl, 'logo']
+    [logoUrl, 'logo'],
+    [musicUrl, 'music']
   ] as const) {
     if (typeof mediaUrl !== 'string') continue
     let url: URL
@@ -188,6 +194,7 @@ export const parsePartnerBranding = (
       primaryColor: value.primaryColor,
       secondaryColor: value.secondaryColor,
       tertiaryColor: value.tertiaryColor,
+      ...(value.musicUrl !== undefined ? { musicUrl: musicUrl as string | null } : {}),
       backgroundUrl: backgroundUrl as string | null,
       backgroundKind: backgroundKind as 'image' | 'video' | null,
       loginBackgroundUrl: loginBackgroundUrl as string | null,

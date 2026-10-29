@@ -102,8 +102,8 @@ export function InGameRoster({
                 ['Team B', teams.teamB]
               ]) as [string, QueuedPlayer[]][]
         ).map(([name, players]) => (
-          <section key={name} className=" border border-white/10 bg-neutral-900/90 p-5">
-            <h2 className="mb-4 text-xs font-bold tracking-[0.18em] text-neutral-400 uppercase">
+          <section key={name} className=" border border-white/10 bg-neutral-900/90 p-4">
+            <h2 className="mb-3 text-xs font-bold tracking-[0.18em] text-neutral-400 uppercase">
               {name}
             </h2>
             <ul
@@ -121,7 +121,7 @@ export function InGameRoster({
                 return (
                   <li
                     key={player.id}
-                    className="flex min-h-14 flex-wrap items-center gap-3  bg-black/25 px-3 py-2"
+                    className="flex min-h-12 flex-wrap items-center gap-3  bg-black/25 px-3 py-1.5"
                     onContextMenu={(event) => showMenu(event, player.id)}
                   >
                     <span

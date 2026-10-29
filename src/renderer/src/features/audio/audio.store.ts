@@ -1,20 +1,23 @@
 import { create } from 'zustand'
-import { DEFAULT_BGM_ID, isLauncherBgmId, type LauncherBgmId } from './audio.paths'
+import { isLauncherBgmId, type LauncherBgmId } from './audio.paths'
 
 const STORAGE_KEY = '16competitive.audio-settings'
 const DEFAULT_BGM_VOLUME = 50
 const DEFAULT_SFX_VOLUME = 50
 
+export type BgmSelection = LauncherBgmId | 'automatic'
+
 interface StoredAudioSettings {
+  selectionVersion?: 2
   bgmVolume: number
   sfxVolume: number
-  selectedBgmId: LauncherBgmId
+  selectedBgmId: BgmSelection
 }
 
 interface AudioSettingsState extends StoredAudioSettings {
   setBgmVolume: (value: number) => void
   setSfxVolume: (value: number) => void
-  setSelectedBgmId: (value: LauncherBgmId) => void
+  setSelectedBgmId: (value: BgmSelection) => void
 }
 
 const clampVolume = (value: number): number => Math.max(0, Math.min(100, Math.round(value)))
@@ -26,7 +29,7 @@ const readStoredSettings = (): StoredAudioSettings => {
       return {
         bgmVolume: DEFAULT_BGM_VOLUME,
         sfxVolume: DEFAULT_SFX_VOLUME,
-        selectedBgmId: DEFAULT_BGM_ID
+        selectedBgmId: 'automatic'
       }
     }
 
@@ -36,20 +39,24 @@ const readStoredSettings = (): StoredAudioSettings => {
         typeof parsed.bgmVolume === 'number' ? clampVolume(parsed.bgmVolume) : DEFAULT_BGM_VOLUME,
       sfxVolume:
         typeof parsed.sfxVolume === 'number' ? clampVolume(parsed.sfxVolume) : DEFAULT_SFX_VOLUME,
-      selectedBgmId: isLauncherBgmId(parsed.selectedBgmId) ? parsed.selectedBgmId : DEFAULT_BGM_ID
+      selectedBgmId:
+        parsed.selectionVersion === 2 &&
+        (parsed.selectedBgmId === 'automatic' || isLauncherBgmId(parsed.selectedBgmId))
+          ? parsed.selectedBgmId
+          : 'automatic'
     }
   } catch {
     return {
       bgmVolume: DEFAULT_BGM_VOLUME,
       sfxVolume: DEFAULT_SFX_VOLUME,
-      selectedBgmId: DEFAULT_BGM_ID
+      selectedBgmId: 'automatic'
     }
   }
 }
 
 const persistSettings = (settings: StoredAudioSettings): void => {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, selectionVersion: 2 }))
   } catch {
     // Audio preferences are non-critical. Keep the in-memory values if persistence is unavailable.
   }

@@ -5,6 +5,10 @@
 export class LocalBridge {
   private enabled = false
 
+  isAuthorized(): boolean {
+    return this.enabled
+  }
+
   authorize(): void {
     this.enabled = true
   }

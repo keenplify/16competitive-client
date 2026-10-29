@@ -357,9 +357,9 @@ fn hidden_command(program: &str) -> Command {
 #[cfg(windows)]
 fn browse_folder() -> Option<PathBuf> {
     // The script is constant; no path or server value is interpolated into it.
-    let script = "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq 'OK') { [Console]::Write($d.SelectedPath) }";
+    let script = "Add-Type -AssemblyName System.Windows.Forms; $owner = New-Object System.Windows.Forms.Form; $owner.TopMost = $true; $owner.ShowInTaskbar = $false; $owner.Opacity = 0; $owner.Show(); $owner.Activate(); $d = New-Object System.Windows.Forms.FolderBrowserDialog; try { if ($d.ShowDialog($owner) -eq 'OK') { [Console]::Write($d.SelectedPath) } } finally { $d.Dispose(); $owner.Dispose() }";
     let output = hidden_command("powershell.exe")
-        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .args(["-NoProfile", "-NonInteractive", "-STA", "-Command", script])
         .output()
         .ok()?;
     output
@@ -392,6 +392,20 @@ fn browse_folder() -> Option<PathBuf> {
         .success()
         .then(|| PathBuf::from(String::from_utf8_lossy(&output.stdout).trim()))
         .filter(|p| !p.as_os_str().is_empty())
+}
+
+fn installation_display_path(path: &Path) -> String {
+    let value = path.to_string_lossy();
+    if let Some(unc) = value.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{unc}");
+    }
+    if let Some(drive) = value.strip_prefix(r"\\?\") {
+        let bytes = drive.as_bytes();
+        if bytes.len() >= 3 && bytes[0].is_ascii_alphabetic() && bytes[1..3] == *b":\\" {
+            return drive.to_owned();
+        }
+    }
+    value.into_owned()
 }
 
 fn version_is_13(path: &Path) -> bool {
@@ -1130,5 +1144,18 @@ mod launch_tests {
         let args = cs16_standalone_windows_args(&root, &pattern.cs16).unwrap();
         assert_eq!(args.first().map(String::as_str), Some("-game"));
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod installation_path_tests {
+    use super::*;
+    #[test]
+    fn displays_windows_installations_without_verbatim_namespace() {
+        assert_eq!(installation_display_path(Path::new(r"\\?\C:\Games\CS 1.6 GoldClient")), r"C:\Games\CS 1.6 GoldClient");
+        assert_eq!(installation_display_path(Path::new(r"\\?\UNC\server\games\CS")), r"\\server\games\CS");
+        for path in [r"C:\Games\CS", r"\\server\games", "/home/player/CS", r"\\?\Volume{abc}\CS"] {
+            assert_eq!(installation_display_path(Path::new(path)), path);
+        }
     }
 }

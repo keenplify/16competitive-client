@@ -777,14 +777,21 @@
   height: auto;
 }
 
-:root[data-launcher-theme='vgui2'] .vgui-window-content > [data-match-session] {
+:root[data-launcher-theme='vgui2'] .vgui-window-content [data-match-session] {
+  min-height: 0;
   isolation: isolate;
   overflow: hidden;
   padding: 24px;
+  background: var(--vgui-face);
 }
 
 :root[data-launcher-theme='vgui2'] [data-match-session] > .relative > .text-center {
   min-height: 176px;
+}
+
+/* The in-game header has no countdown to reserve space for. */
+:root[data-launcher-theme='vgui2'] [data-match-session='server_ready'] > .relative > .text-center {
+  min-height: 56px;
 }
 
 /* Results fit the available desktop, with no scrolling or backdrop over chrome. */

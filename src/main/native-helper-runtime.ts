@@ -1,4 +1,6 @@
 import { app } from 'electron'
+import { runHelperMicrophone } from './helper-microphone'
+import { collectDiagnosticIssueLogs } from './diagnostic-logs'
 import { readFile, mkdir } from 'node:fs/promises'
 import { join, isAbsolute } from 'node:path'
 import { createConnection } from 'node:net'
@@ -68,6 +70,7 @@ app.on('window-all-closed', () => {
   /* Offscreen windows are owned by the game session. */
 })
 let stopping = false
+let auxiliaryRuntime = false
 let revokeOnExit = false
 const startedAt = Date.now()
 let poll: NodeJS.Timeout | undefined
@@ -85,11 +88,13 @@ async function stop(code = 0): Promise<void> {
   stopping = true
   clearInterval(poll)
   clearInterval(voiceHeartbeat)
-  voiceState = { ...voiceState, team: false, party: false }
-  publishVoice()
-  await voiceWrites.catch(() => undefined)
+  if (!auxiliaryRuntime) {
+    voiceState = { ...voiceState, team: false, party: false }
+    publishVoice()
+    await voiceWrites.catch(() => undefined)
+  }
   try {
-    await shutdownManagedGame()
+    if (!auxiliaryRuntime) await shutdownManagedGame()
   } catch {
     code = 1
   }
@@ -182,6 +187,8 @@ async function run(input: unknown): Promise<void> {
     typeof request.apiOrigin !== 'string' ||
     ![
       'check',
+      'microphone',
+      'diagnostics',
       'detectNextClient',
       'installNextClient',
       'syncAssets',
@@ -193,10 +200,27 @@ async function run(input: unknown): Promise<void> {
     )
   )
     throw new Error('Invalid runtime protocol')
+  auxiliaryRuntime = request.action === 'microphone' || request.action === 'diagnostics'
   setNativeHelperApiUrl(request.apiOrigin)
   stage = 'startup'
   await app.whenReady()
   await mkdir(app.getPath('userData'), { recursive: true, mode: 0o700 })
+  if (request.action === 'microphone') {
+    await runHelperMicrophone(request.apiOrigin, emit)
+    return
+  }
+  if (request.action === 'diagnostics') {
+    if (
+      request.matchId != null &&
+      (typeof request.matchId !== 'string' ||
+        !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(request.matchId))
+    )
+      throw new Error('Invalid diagnostic match')
+    await acceptNativeHelperSession(request.token)
+    await syncPreferences(true)
+    emit({ ok: true, logs: await collectDiagnosticIssueLogs([], request.matchId ?? undefined) })
+    return
+  }
   if (request.action === 'detectNextClient') {
     emit({ ok: true, folder: await detectNextClientFolder() })
     return

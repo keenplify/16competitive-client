@@ -32,6 +32,28 @@ export async function reportDiagnosticIssue(
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
+  const logs = await collectDiagnosticIssueLogs(rendererLogs, matchId)
+  const response = await fetch(`${apiUrl}/auth/issue-reports`, {
+    method: 'POST',
+    redirect: 'error',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      description,
+      ...(deduplicationKey ? { deduplicationKey } : {}),
+      ...(matchId ? { matchId } : {}),
+      logs: logs || 'No diagnostic logs recorded.',
+      clientVersion: app.getVersion()
+    }),
+    signal: AbortSignal.timeout(15_000)
+  })
+  if (!response.ok) throw new Error(`Could not report issue (${response.status}).`)
+  return (await response.json()) as { id: string; createdAt: string }
+}
+
+export async function collectDiagnosticIssueLogs(
+  rendererLogs: string[],
+  matchId?: string
+): Promise<string> {
   const launcherLogs = redactReportLogs([...entries, ...rendererLogs].join('\n')).slice(-300_000)
   const savedExecutable = await getSavedCs16Executable().catch((error: unknown) => {
     console.warn('[IssueReport] Could not resolve saved game installation:', error)
@@ -48,22 +70,7 @@ export async function reportDiagnosticIssue(
   const owner = getSessionUsername() ?? ''
   await refreshGamePerformance(owner, matchId)
   const performance = gamePerformanceReport(owner, matchId)
-  const logs = `${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
-  const response = await fetch(`${apiUrl}/auth/issue-reports`, {
-    method: 'POST',
-    redirect: 'error',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      description,
-      ...(deduplicationKey ? { deduplicationKey } : {}),
-      ...(matchId ? { matchId } : {}),
-      logs: logs || 'No diagnostic logs recorded.',
-      clientVersion: app.getVersion()
-    }),
-    signal: AbortSignal.timeout(15_000)
-  })
-  if (!response.ok) throw new Error(`Could not report issue (${response.status}).`)
-  return (await response.json()) as { id: string; createdAt: string }
+  return `${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
 }
 
 export function installDiagnosticLogCapture(): void {

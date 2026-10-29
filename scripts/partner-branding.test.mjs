@@ -92,13 +92,16 @@ test('validates partner logos and supports older branding responses', () => {
 
 test('validates Papamo Games logo visibility and defaults older responses to visible', () => {
   assert.equal(
-    parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: false } }, origin)
-      .branding.showPapamoGamesLogo,
+    parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: false } }, origin).branding
+      .showPapamoGamesLogo,
     false
   )
   const legacy = { ...branding }
   delete legacy.showPapamoGamesLogo
-  assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.showPapamoGamesLogo, true)
+  assert.equal(
+    parsePartnerBranding({ branding: legacy }, origin).branding.showPapamoGamesLogo,
+    true
+  )
   for (const bad of ['false', 0, null, {}]) {
     assert.throws(() =>
       parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: bad } }, origin)
@@ -191,4 +194,22 @@ test('installed branding validates download policy, shortcut names and hash-boun
       origin
     )
   )
+})
+
+test('music accepts only the approved regional partner endpoint and keeps old responses compatible', () => {
+  const musicUrl = `${origin}/partners/branding/${partnerId}/music?v=hash`
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, musicUrl } }, origin).branding.musicUrl,
+    musicUrl
+  )
+  assert.equal(parsePartnerBranding({ branding }, origin).branding.musicUrl, undefined)
+  for (const musicUrl of [
+    42,
+    'https://evil.test/music.mp3',
+    `${origin}/partners/branding/${partnerId}/asset?v=hash`,
+    `${origin}/partners/branding/${partnerId}/music`,
+    `${origin}/partners/branding/${partnerId}/music?v=hash&next=bad`
+  ]) {
+    assert.throws(() => parsePartnerBranding({ branding: { ...branding, musicUrl } }, origin))
+  }
 })

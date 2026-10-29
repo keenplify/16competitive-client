@@ -330,6 +330,8 @@ enum Request {
     NextClientStatus,
     NextClientCancel,
     VoiceStream,
+    Microphone { api_origin: String },
+    Diagnostics { api_origin: String, token: String, match_id: Option<String> },
     ProbeNodes {
         nodes: Vec<ProbeNode>,
     },
@@ -401,6 +403,15 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
                     .as_bytes(),
             )?;
             return Ok(serde_json::json!({"ok":true}));
+        }
+        Request::Microphone { api_origin } => {
+            return crate::runtime::microphone(api_origin.clone());
+        }
+        Request::Diagnostics { api_origin, token, match_id } => {
+            if token.len() > 4096 || match_id.as_ref().is_some_and(|id| uuid::Uuid::parse_str(id).is_err()) {
+                return Err("Invalid diagnostic request".into());
+            }
+            return crate::runtime::invoke("diagnostics", api_origin, Some(token), match_id.as_deref());
         }
         Request::RuntimeCheck { api_origin } => {
             return crate::runtime::invoke("check", api_origin, None, None)
@@ -523,7 +534,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
         Request::RuntimeCheck { .. } | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
-        Request::VoiceStream => unreachable!(),
+        Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => unreachable!(),
         Request::ProbeNodes { .. } => unreachable!(),
         Request::Logout { .. } => unreachable!(),
     }
@@ -543,8 +554,8 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             .and_then(|package| package["version"].as_str().map(str::to_owned))
             .ok_or("Invalid helper version")?
     );
-    value["cs13FolderPath"] = serde_json::to_value(prefs.cs13).map_err(|e| e.to_string())?;
-    value["cs16FolderPath"] = serde_json::to_value(prefs.cs16).map_err(|e| e.to_string())?;
+    value["cs13FolderPath"] = serde_json::to_value(prefs.cs13.as_deref().map(installation_display_path)).map_err(|e| e.to_string())?;
+    value["cs16FolderPath"] = serde_json::to_value(prefs.cs16.as_deref().map(installation_display_path)).map_err(|e| e.to_string())?;
     Ok(value)
 }
 fn respond_settings_error(stream: &mut TcpStream, origin: &str, error: &str) {
@@ -694,7 +705,7 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
                 move || voice_stream(stream, origin)
             });
         }
-        Ok(request @ Request::RuntimeCheck { .. }) => {
+        Ok(request @ (Request::RuntimeCheck { .. } | Request::Microphone { .. } | Request::Diagnostics { .. })) => {
             if RUNTIME_CHECKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 1 {
                 RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                 respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");

@@ -383,7 +383,14 @@ pub fn invoke(
     token: Option<&str>,
     match_id: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    invoke_session(action, api, token, match_id, None)
+    invoke_session(action, api, token, match_id, None, None)
+}
+pub fn microphone(api: String) -> Result<serde_json::Value, String> {
+    let (send, receive) = std::sync::mpsc::sync_channel(1);
+    std::thread::spawn(move || {
+        let _ = invoke_session("microphone", &api, None, None, None, Some(send));
+    });
+    receive.recv_timeout(Duration::from_secs(120)).map_err(|_| "Native microphone unavailable".into())
 }
 pub fn launch(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
     invoke_session(
@@ -392,6 +399,7 @@ pub fn launch(connection: &Connection, api: &str, token: &str) -> Result<(), Str
         Some(token),
         Some(&connection.match_id),
         Some(connection),
+        None,
     )
     .map(|_| ())
 }
@@ -401,15 +409,18 @@ fn invoke_session(
     token: Option<&str>,
     match_id: Option<&str>,
     connection: Option<&Connection>,
+    ready: Option<std::sync::mpsc::SyncSender<serde_json::Value>>,
 ) -> Result<serde_json::Value, String> {
     if competitive16_web_helper::allowed_api_origin(api, cfg!(debug_assertions)).as_deref()
         != Some(api)
     {
         return Err("Invalid runtime origin".into());
     }
-    let _operation_lock = if matches!(action, "launch" | "installNextClient") {
+    let _operation_lock = if matches!(action, "launch" | "installNextClient" | "microphone") {
         let path = user_config_dir()?.join(if action == "launch" {
             "runtime-game.lock"
+        } else if action == "microphone" {
+            "runtime-microphone.lock"
         } else {
             "runtime-install.lock"
         });
@@ -419,8 +430,16 @@ fn invoke_session(
             .truncate(false)
             .open(path)
             .map_err(|e| e.to_string())?;
-        fs2::FileExt::try_lock_exclusive(&file)
-            .map_err(|_| "A native helper action is already running")?;
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            match fs2::FileExt::try_lock_exclusive(&file) {
+                Ok(()) => break,
+                Err(_) if action == "microphone" && std::time::Instant::now() < deadline => {
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(_) => return Err("A native helper action is already running".into()),
+            }
+        }
         Some(file)
     } else {
         None
@@ -519,16 +538,17 @@ fn invoke_session(
     let mut result = None;
     let mut _activity: Option<crate::presence::GameLease> = None;
     loop {
+        let limit = if action == "diagnostics" { 220_000 } else { 16384 };
         let mut line = Vec::new();
         let n = reader
             .by_ref()
-            .take(16385)
+            .take((limit + 1) as u64)
             .read_until(b'\n', &mut line)
             .map_err(|_| "Runtime reply failed")?;
         if n == 0 {
             break;
         }
-        if line.len() > 16384 {
+        if line.len() > limit {
             let _ = child.kill();
             return Err("Runtime reply exceeds its limit".into());
         }
@@ -540,6 +560,14 @@ fn invoke_session(
                     connection,
                     v["sessionDirectory"].as_str().map(PathBuf::from),
                 ));
+            }
+        }
+        if v["event"] == "microphoneReady" {
+            if let Some(sender) = &ready {
+                if sender.send(v.clone()).is_err() {
+                    let _ = child.kill();
+                    return Err("Microphone requester disconnected".into());
+                }
             }
         }
         if v.get("ok").is_some() {

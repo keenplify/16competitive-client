@@ -16,6 +16,7 @@ const SFX_VOLUME_FACTOR = 0.5
 
 class LauncherAudioManager {
   private bgm: HTMLAudioElement | null = null
+  private communityMusicUrl: string | null = null
   private bgmTrackId: LauncherBgmId = DEFAULT_BGM_ID
   private audioContext: AudioContext | null = null
   private bgmSource: MediaElementAudioSourceNode | null = null
@@ -32,7 +33,18 @@ class LauncherAudioManager {
   private playbackUnlocked = window.__SIXTEEN_COMPETITIVE_WEB__ !== true
 
   private createBgm(trackId: LauncherBgmId): HTMLAudioElement {
-    const bgm = new Audio(getLauncherBgmTrack(trackId).path)
+    const bgm = new Audio()
+    // Web Audio requires CORS before src is assigned for regional media.
+    if (this.communityMusicUrl) bgm.crossOrigin = 'anonymous'
+    bgm.src = this.communityMusicUrl ?? getLauncherBgmTrack(trackId).path
+    if (this.communityMusicUrl)
+      bgm.addEventListener(
+        'error',
+        () => {
+          if (this.bgm === bgm) this.setBgmTrack(this.bgmTrackId, null)
+        },
+        { once: true }
+      )
     bgm.loop = true
     bgm.preload = 'none'
     bgm.volume = this.getEffectiveBgmVolume()
@@ -90,15 +102,19 @@ class LauncherAudioManager {
     if (this.bgm) this.bgm.volume = volume
   }
 
-  setBgmTrack(trackId: LauncherBgmId): void {
-    if (trackId === this.bgmTrackId) return
+  setBgmTrack(trackId: LauncherBgmId, communityMusicUrl: string | null = null): void {
+    if (trackId === this.bgmTrackId && communityMusicUrl === this.communityMusicUrl) return
 
     if (this.fadeFrame !== null) {
       cancelAnimationFrame(this.fadeFrame)
       this.fadeFrame = null
     }
 
-    this.bgm?.pause()
+    if (this.bgm) {
+      this.bgm.pause()
+      this.bgm.removeAttribute('src')
+      this.bgm.load()
+    }
     this.bgmSource?.disconnect()
     this.bgmFilter?.disconnect()
     this.bgmGain?.disconnect()
@@ -107,6 +123,7 @@ class LauncherAudioManager {
     this.bgmFilter = null
     this.bgmGain = null
     this.bgmTrackId = trackId
+    this.communityMusicUrl = communityMusicUrl
 
     if (this.canPlayBgm()) {
       const bgm = this.getBgm()

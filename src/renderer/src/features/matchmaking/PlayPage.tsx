@@ -335,9 +335,9 @@ export function PlayPage({
   ) {
     return (
       <main
-        data-match-session=""
+        data-match-session={queueStatus}
         className={twMerge(
-          'relative flex min-h-[calc(100vh-5rem)] items-center justify-center p-5 text-white sm:p-10 bg-transparent'
+          'relative flex min-h-dvh items-center justify-center px-5 pt-20 pb-5 text-white sm:px-10 sm:pt-24 sm:pb-10 bg-transparent'
         )}
       >
         {queueStatus === 'server_ready' && (
@@ -373,7 +373,7 @@ export function PlayPage({
 
           {queueStatus === 'server_ready' && match ? (
             <InGameRoster
-              className="mt-8"
+              className="mt-6"
               matchId={match.matchId}
               teams={match.teams}
               currentPlayerId={player.id}
@@ -399,7 +399,7 @@ export function PlayPage({
           )}
 
           {queueStatus === 'server_ready' && connectionDetails && (
-            <div className="mx-auto mt-8 flex w-full max-w-sm flex-col gap-3">
+            <div className="mx-auto mt-6 flex w-full max-w-sm flex-col gap-3">
               {match?.mode === 'ffa' && (
                 <Button
                   className="w-full gap-2"
