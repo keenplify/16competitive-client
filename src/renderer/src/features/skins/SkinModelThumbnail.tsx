@@ -1,3 +1,5 @@
+import { getSkinAnimation, isCharacterModel } from './skin-model-presentation'
+import { presentationModelPath } from '../party/party-models'
 import { LoaderCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -208,14 +210,18 @@ function SkinModelThumbnailContent({
             key={presentationRevision}
             modelBuffer={modelBuffer}
             modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
-            modelPath={modelPath}
+            modelPath={
+              modelPath && isCharacterModel(weaponKey)
+                ? presentationModelPath(modelPath)
+                : modelPath
+            }
             sourceRevision={sourceRevision}
             presentationRotation={getSkinPresentationRotation(weaponKey)}
             camera={{
               distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.5),
               target: getSkinCameraTarget(weaponKey)
             }}
-            animation="idle1"
+            animation={getSkinAnimation(weaponKey)}
             maxFrameRate={20}
             cameraLocked
             onFirstFrame={capture}

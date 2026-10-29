@@ -844,8 +844,17 @@
   max-width: none;
 }
 
-:root[data-launcher-theme='vgui2'] .profile-page [role='tablist'] {
+:root[data-launcher-theme='vgui2'] .profile-page {
+  padding-top: 0;
+}
+
+:root[data-launcher-theme='vgui2'] .profile-page .profile-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   margin-top: 0;
+  padding-top: 16px;
+  background: var(--vgui-face);
 }
 
 :root[data-launcher-theme='vgui2'] .profile-overview {

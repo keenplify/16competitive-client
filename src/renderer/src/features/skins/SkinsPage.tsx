@@ -1,11 +1,14 @@
+import { STOCK_CHARACTERS } from '../../../../shared/skins'
+import { CharacterPanel } from './CharacterPanel'
+import { useCharacterLoadoutStore } from './character-loadout.store'
+import { useTranslation } from '../i18n/i18n'
 import { Check, Crosshair, LoaderCircle, Power, PowerOff, Users } from 'lucide-react'
-import { useEffect, useMemo, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin, SkinResaleQuote } from '../../../../shared/skins'
 import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useAuthStore } from '../auth/auth.store'
-import { usePartyStore } from '../party/party.store'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import { toast } from 'react-toastify'
 import { useGameSettingsStore } from '../settings/game-settings.store'
@@ -21,12 +24,14 @@ import {
   weaponCategoryLabel,
   type WeaponCategory
 } from './weapon-categories'
-import { LOBBY_PLAYER_MODELS } from '../party/party-models'
 import { isWebRuntime } from '../../web-runtime'
 import { useHideDesktopOnlyFeatures } from '../community/links'
 
 type Team = 'ct' | 't'
-type LoadoutGroup = Exclude<WeaponCategory, 'all' | 'grenades' | 'knives'>
+type LoadoutGroup = Exclude<
+  WeaponCategory,
+  'all' | 'grenades' | 'knives' | 'player_ct' | 'player_t'
+>
 
 const loadoutGroups: Record<Team, Record<LoadoutGroup, string[]>> = {
   ct: {
@@ -101,19 +106,31 @@ export function SkinsPage(): JSX.Element {
   const [sale, setSale] = useState<{ owned: OwnedSkin; quote: SkinResaleQuote } | null>(null)
   const [quotingId, setQuotingId] = useState<string | null>(null)
   const [selling, setSelling] = useState(false)
-  const [team, setTeam] = useState<Team>('ct')
+  const { t } = useTranslation()
+  const team = useCharacterLoadoutStore((state) => state.team)
+  const setTeam = useCharacterLoadoutStore((state) => state.selectTeam)
+  const stockCharacters = useCharacterLoadoutStore((state) => state.stock)
+  const partyModel = useLobbyLoadoutStore((state) => state.playerModel)
+  const partyPending = useCharacterLoadoutStore((state) => state.partyPending)
+  const showCharacterInParty = (side: Team): void => {
+    const custom = equippedByWeapon.get(`player_${side}`)?.skin
+    const path = custom
+      ? `skin:${custom.id}`
+      : `player/${stockCharacters[side]}/${stockCharacters[side]}.mdl`
+    void useCharacterLoadoutStore
+      .getState()
+      .showInParty(path)
+      .catch(() => setError(t('character.error')))
+  }
+  const characterPending = useCharacterLoadoutStore((state) => state.pending)
   const [category, setCategory] = useState<WeaponCategory>('all')
   const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
   const [unequippingTeam, setUnequippingTeam] = useState(false)
   const [lobbyWeaponId, setLobbyWeaponId] = useState<string | null>(null)
   const [lobbyWeaponKey, setLobbyWeaponKey] = useState<string | null>(null)
   const [lobbyWeaponSkinId, setLobbyWeaponSkinId] = useState<string | null>(null)
-  const [lobbyPlayerModel, setLobbyPlayerModel] = useState<string | null>(null)
-  const [changingLobbyPlayer, setChangingLobbyPlayer] = useState(false)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const playerId = useAuthStore((state) => state.session?.player.id)
-  const party = usePartyStore((state) => state.party)
-  const updateLobbyPlayerModel = useLobbyLoadoutStore((state) => state.setPlayerModel)
   const updateLobbyWeapon = useLobbyLoadoutStore((state) => state.setWeapon)
   const loadoutLocked = [
     'match_found',
@@ -131,6 +148,8 @@ export function SkinsPage(): JSX.Element {
       window.api.skins.mine(),
       getLobbyLoadout?.() ??
         Promise.resolve({
+          ctCharacter: 'gign',
+          tCharacter: 'terror',
           playerModel: 'player/gign/gign.mdl',
           weaponSkinId: null,
           weaponKey: 'ak47',
@@ -138,8 +157,10 @@ export function SkinsPage(): JSX.Element {
         })
     ]).then(
       ([inventory, lobbyLoadout]) => {
+        useCharacterLoadoutStore
+          .getState()
+          .setStock(lobbyLoadout.ctCharacter, lobbyLoadout.tCharacter)
         setSkins(inventory)
-        setLobbyPlayerModel(lobbyLoadout.playerModel)
         setLobbyWeaponKey(lobbyLoadout.weaponKey)
         setLobbyWeaponSkinId(lobbyLoadout.weaponSkinId)
         updateLobbyWeapon(
@@ -164,26 +185,21 @@ export function SkinsPage(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId])
 
-  const equippedByWeapon = useMemo(
-    () =>
-      new Map(
-        skins.filter((owned) => owned.equippedAt).map((owned) => [owned.skin.weaponKey, owned])
-      ),
-    [skins]
+  const equippedByWeapon = new Map(
+    skins.filter((owned) => owned.equippedAt).map((owned) => [owned.skin.weaponKey, owned])
   )
   const teamWeaponKeys = new Set([
     ...Object.values(loadoutGroups[team]).flat(),
     ...GRENADE_WEAPON_KEYS,
     KNIFE_WEAPON_KEY
   ])
-  const partyLobbyPlayerModel = party?.members.find(
-    (candidate) => candidate.id === playerId
-  )?.lobbyPlayerModel
-  const selectedLobbyPlayerModel = lobbyPlayerModel ?? partyLobbyPlayerModel
   const filteredSkins = skins
     .filter(
       (owned) =>
-        teamWeaponKeys.has(owned.skin.weaponKey) &&
+        (category === 'player_ct' || category === 'player_t'
+          ? true
+          : teamWeaponKeys.has(owned.skin.weaponKey) ||
+            owned.skin.weaponKey === `player_${team}`) &&
         (category === 'all' || weaponCategory(owned.skin.weaponKey) === category) &&
         (!selectedWeapon || owned.skin.weaponKey === selectedWeapon)
     )
@@ -239,21 +255,6 @@ export function SkinsPage(): JSX.Element {
       })
       .catch((reason: unknown) => setError(errorText(reason)))
       .finally(() => setLobbyWeaponId(null))
-  }
-
-  const setLobbyPlayer = (modelPath: string): void => {
-    if (loadoutLocked || changingLobbyPlayer || selectedLobbyPlayerModel === modelPath) return
-    setChangingLobbyPlayer(true)
-    setError(null)
-    void window.api.skins
-      .setLobbyPlayerModel(modelPath)
-      .then(() => {
-        setLobbyPlayerModel(modelPath)
-        updateLobbyPlayerModel(modelPath)
-        toast.success(`${displayPlayerModel(modelPath)} is now your lobby character.`)
-      })
-      .catch((reason: unknown) => setError(errorText(reason)))
-      .finally(() => setChangingLobbyPlayer(false))
   }
 
   const setEquipped = (owned: OwnedSkin): void => {
@@ -423,60 +424,82 @@ export function SkinsPage(): JSX.Element {
             </div>
           </div>
         </header>
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
-          <span className="mr-1 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
-            Lobby character
-          </span>
-          {LOBBY_PLAYER_MODELS.map((modelPath) => {
-            const selected = selectedLobbyPlayerModel === modelPath
-            return (
-              <Button
-                key={modelPath}
-                className="h-7 px-2 text-[10px]"
-                variant={selected ? 'primary' : 'ghost'}
-                disabled={loadoutLocked || changingLobbyPlayer}
-                onClick={() => setLobbyPlayer(modelPath)}
-              >
-                {displayPlayerModel(modelPath)}
-              </Button>
-            )
-          })}
-        </div>
-        <div className="mt-4 overflow-x-auto pb-2">
-          <div className="loadout-groups grid min-w-[82rem] grid-cols-8 gap-2.5">
-            {loadoutGroupOrder.map((group) => (
-              <section key={group} className="loadout-group flex h-full flex-col">
-                <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
-                  {loadoutGroupLabels[group]}
-                </h3>
-                <div className="space-y-1.5">
-                  {loadoutGroups[team][group].map((weaponKey) => renderLoadoutCard(weaponKey))}
-                </div>
-              </section>
-            ))}
-            <section className="loadout-group flex h-full flex-col">
-              <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
-                {weaponCategoryLabel('grenades')}
-              </h3>
-              <div className="space-y-1.5">
-                {GRENADE_WEAPON_KEYS.map((weaponKey) => renderLoadoutCard(weaponKey))}
+        <div className="loadout-stage mt-4 grid grid-cols-[minmax(90px,0.8fr)_minmax(0,4fr)_minmax(90px,0.8fr)] items-stretch gap-2 lg:gap-4">
+          <CharacterPanel
+            team="ct"
+            partyPending={partyPending}
+            partySelected={
+              partyModel ===
+              (equippedByWeapon.get('player_ct')
+                ? `skin:${equippedByWeapon.get('player_ct')!.skin.id}`
+                : `player/${stockCharacters.ct}/${stockCharacters.ct}.mdl`)
+            }
+            onShowInParty={() => showCharacterInParty('ct')}
+            model={stockCharacters.ct}
+            skin={equippedByWeapon.get('player_ct')?.skin}
+            selected={team === 'ct'}
+            disabled={loadoutLocked}
+            onSelect={() => selectTeam('ct')}
+            className="order-1"
+          />
+          <div className="order-2 min-w-0">
+            {' '}
+            <div className="loadout-center min-w-0">
+              <div className="loadout-groups grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:grid-cols-8">
+                {loadoutGroupOrder.map((group) => (
+                  <section key={group} className="loadout-group flex h-full flex-col">
+                    <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
+                      {loadoutGroupLabels[group]}
+                    </h3>
+                    <div className="space-y-1.5">
+                      {loadoutGroups[team][group].map((weaponKey) => renderLoadoutCard(weaponKey))}
+                    </div>
+                  </section>
+                ))}
+                <section className="loadout-group flex h-full flex-col">
+                  <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
+                    {weaponCategoryLabel('grenades')}
+                  </h3>
+                  <div className="space-y-1.5">
+                    {GRENADE_WEAPON_KEYS.map((weaponKey) => renderLoadoutCard(weaponKey))}
+                  </div>
+                </section>
+                <section className="loadout-group flex h-full flex-col">
+                  <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
+                    {weaponCategoryLabel('knives')}
+                  </h3>
+                  <div className="space-y-1.5">{renderLoadoutCard(KNIFE_WEAPON_KEY)}</div>
+                </section>
               </div>
-            </section>
-            <section className="loadout-group flex h-full flex-col">
-              <h3 className="mb-2 text-[10px] font-bold tracking-[0.16em] text-neutral-500 uppercase">
-                {weaponCategoryLabel('knives')}
-              </h3>
-              <div className="space-y-1.5">{renderLoadoutCard(KNIFE_WEAPON_KEY)}</div>
-            </section>
+            </div>
           </div>
+          <CharacterPanel
+            team="t"
+            partyPending={partyPending}
+            partySelected={
+              partyModel ===
+              (equippedByWeapon.get('player_t')
+                ? `skin:${equippedByWeapon.get('player_t')!.skin.id}`
+                : `player/${stockCharacters.t}/${stockCharacters.t}.mdl`)
+            }
+            onShowInParty={() => showCharacterInParty('t')}
+            model={stockCharacters.t}
+            skin={equippedByWeapon.get('player_t')?.skin}
+            selected={team === 't'}
+            disabled={loadoutLocked}
+            onSelect={() => selectTeam('t')}
+            className="order-3"
+          />
         </div>
       </section>
 
-      {skins.length > 0 && (
+      {
         <section className="flex-[1] border-t border-white/10 bg-[#080a0e] p-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2" aria-label="Filter inventory by weapon type">
-              {WEAPON_CATEGORIES.map(({ id, label }) => (
+              {WEAPON_CATEGORIES.filter(
+                ({ id }) => id !== (team === 'ct' ? 'player_t' : 'player_ct')
+              ).map(({ id, label }) => (
                 <Button
                   key={id}
                   className={twMerge(
@@ -489,7 +512,13 @@ export function SkinsPage(): JSX.Element {
                     setSelectedWeapon(null)
                   }}
                 >
-                  {label}
+                  {id === 'all'
+                    ? t('character.all')
+                    : id === 'player_ct'
+                      ? t('character.ct')
+                      : id === 'player_t'
+                        ? t('character.t')
+                        : label}
                 </Button>
               ))}
             </div>
@@ -503,10 +532,56 @@ export function SkinsPage(): JSX.Element {
               </Button>
             )}
           </header>
+          {(category === 'all' || category === 'player_ct' || category === 'player_t') &&
+            !selectedWeapon && (
+              <div className="mt-4 flex flex-wrap gap-3">
+                {STOCK_CHARACTERS[
+                  category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
+                ].map((model) => {
+                  const modelTeam =
+                    category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
+                  const active =
+                    stockCharacters[modelTeam] === model &&
+                    !equippedByWeapon.has(`player_${modelTeam}`)
+                  return (
+                    <button
+                      key={model}
+                      type="button"
+                      title={`${t(active ? 'profile.equipped' : 'character.select')}: ${model.toUpperCase()}`}
+                      aria-pressed={active}
+                      disabled={loadoutLocked || characterPending || changingId !== null}
+                      onClick={() => {
+                        void useCharacterLoadoutStore
+                          .getState()
+                          .equipStock(modelTeam, model)
+                          .then(() => refresh(false))
+                          .catch(() => setError(t('character.error')))
+                      }}
+                      className={twMerge(
+                        'w-44 max-w-full flex-none border border-white/15 p-3 text-left',
+                        active && 'border-sky-300 bg-sky-300/10'
+                      )}
+                    >
+                      <span className="block h-64">
+                        <SkinModelThumbnail
+                          cacheKey={`stock-character:${model}`}
+                          weaponKey={`player_${modelTeam}`}
+                          modelPath={`player/${model}/${model}.mdl`}
+                          fallback={model.toUpperCase()}
+                        />
+                      </span>
+                      <span className="block text-sm font-bold">{model.toUpperCase()}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           {filteredSkins.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-500">
-              No unlocked skins for this weapon.
-            </p>
+            category !== 'all' && category !== 'player_ct' && category !== 'player_t' ? (
+              <p className="py-8 text-center text-sm text-neutral-500">
+                No unlocked skins for this weapon.
+              </p>
+            ) : null
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {filteredSkins.map((owned) => (
@@ -523,7 +598,7 @@ export function SkinsPage(): JSX.Element {
             </div>
           )}
         </section>
-      )}
+      }
       {previewSkin && (
         <>
           <SkinPreview
@@ -709,13 +784,5 @@ function LoadoutThumbnail({
         className="pointer-events-none absolute inset-0"
       />
     </span>
-  )
-}
-
-function displayPlayerModel(modelPath: string): string {
-  const model = modelPath.split('/').at(-2) ?? 'Character'
-  return model.replace(
-    /(^|_)([a-z])/g,
-    (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`
   )
 }

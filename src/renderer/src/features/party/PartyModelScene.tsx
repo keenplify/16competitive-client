@@ -1,7 +1,9 @@
+import { getCachedSkinModel } from '../skins/skin-model-cache'
+import { lobbyAnimationIndexFor, lobbySequenceLabelFor } from './character-animation'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import THREE from '../../libs/web-hlmv/lib/three'
-import { parseModelCached, type ModelData } from '../../libs/web-hlmv/lib/modelDataParser'
+import { parseModelCached } from '../../libs/web-hlmv/lib/modelDataParser'
 import { buildTexture } from '../../libs/web-hlmv/lib/textureBuilder'
 import {
   applyBoneTransforms,
@@ -210,51 +212,6 @@ const WEAPON_TRANSFORM: Record<string, WeaponTransform | readonly WeaponTransfor
   }
 }
 
-const WEAPON_ANIMATION_FAMILY: Record<string, string> = {
-  usp: 'onehanded',
-  glock18: 'onehanded',
-  p228: 'onehanded',
-  deagle: 'onehanded',
-  fiveseven: 'onehanded',
-  tmp: 'onehanded',
-  mac10: 'onehanded',
-  elite: 'dualpistols',
-  mp5navy: 'mp5',
-  sg552: 'mp5',
-  g3sg1: 'mp5',
-  p90: 'carbine',
-  ump45: 'carbine',
-  aug: 'carbine',
-  famas: 'carbine',
-  m4a1: 'rifle',
-  awp: 'rifle',
-  scout: 'rifle',
-  sg550: 'rifle',
-  ak47: 'ak47',
-  galil: 'ak47',
-  m249: 'm249',
-  knife: 'knife'
-}
-
-const LOBBY_SEQUENCE_BY_WEAPON: Record<string, string> = {
-  usp: 'idle_pistol',
-  glock18: 'idle_pistol',
-  p228: 'idle_pistol',
-  deagle: 'idle_pistol',
-  fiveseven: 'idle_pistol',
-  elite: 'idle_pistol',
-  awp: 'idle_sniper',
-  scout: 'idle_sniper',
-  g3sg1: 'idle_sniper',
-  sg550: 'idle_sniper',
-  mp5navy: 'idle_smg',
-  tmp: 'idle_smg',
-  mac10: 'idle_smg',
-  ump45: 'idle_smg',
-  p90: 'idle_smg',
-  knife: 'idle_knife'
-}
-
 const HOT_RENDER_REVISION = import.meta.hot
   ? ((import.meta.hot.data.partyModelSceneRevision as number | undefined) ?? 0) + 1
   : 0
@@ -262,36 +219,6 @@ const HOT_RENDER_REVISION = import.meta.hot
 if (import.meta.hot) {
   import.meta.hot.data.partyModelSceneRevision = HOT_RENDER_REVISION
 }
-
-const sequenceIndexFor = (modelData: ModelData, label: string): number =>
-  modelData.sequences.findIndex((sequence) => sequence.label.toLowerCase() === label)
-
-const idleSequenceIndexFor = (modelData: ModelData): number => {
-  const idle1 = sequenceIndexFor(modelData, 'idle1')
-  if (idle1 >= 0) return idle1
-  const idle = sequenceIndexFor(modelData, 'idle')
-  return idle >= 0 ? idle : 0
-}
-
-const weaponAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
-  const family = isGrenadeWeapon(weaponKey) ? 'grenade' : WEAPON_ANIMATION_FAMILY[weaponKey]
-  if (family) {
-    const index = sequenceIndexFor(modelData, `ref_aim_${family}`)
-    if (index >= 0) return index
-  }
-  return idleSequenceIndexFor(modelData)
-}
-
-const lobbyAnimationIndexFor = (modelData: ModelData, weaponKey: string): number => {
-  const sequenceLabel = lobbySequenceLabelFor(weaponKey)
-  const index = sequenceIndexFor(modelData, sequenceLabel)
-  return index >= 0 ? index : weaponAnimationIndexFor(modelData, weaponKey)
-}
-
-const lobbySequenceLabelFor = (weaponKey: string): string =>
-  isGrenadeWeapon(weaponKey)
-    ? 'ref_aim_grenade'
-    : (LOBBY_SEQUENCE_BY_WEAPON[weaponKey] ?? 'idle_rifle')
 
 const buildLobbyPresentation = (
   playerBuffer: ArrayBuffer,
@@ -365,6 +292,17 @@ const loadPlayerPresentation = async (
   weaponKey: string
 ): Promise<CachedLobbyPresentation> => {
   const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${actor.modelPath}:${lobbySequenceLabelFor(weaponKey)}`
+  const customSkinId = /^skin:([0-9a-f-]{36})$/i.exec(actor.modelPath)?.[1]
+  if (customSkinId) {
+    try {
+      return buildLobbyPresentation(await getCachedSkinModel(customSkinId), weaponKey)
+    } catch {
+      return buildLobbyPresentation(
+        await window.api.models.read(actor.fallbackModelPath),
+        weaponKey
+      )
+    }
+  }
   if (isGrenadeWeapon(weaponKey)) {
     const lobbyModelName = actor.modelPath.match(/^lobby\/([a-z0-9_]+)_lobby\.mdl$/i)?.[1]
     const stockModelPath = lobbyModelName

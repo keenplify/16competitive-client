@@ -1,5 +1,15 @@
+import { useTranslation } from '../i18n/i18n'
+import { getSkinAnimation } from './skin-model-presentation'
 import { ModalDialog } from '../../components/ui/ModalDialog'
-import { ExternalLink, LoaderCircle, LockKeyhole, Search, ShoppingCart, Ticket, X } from 'lucide-react'
+import {
+  ExternalLink,
+  LoaderCircle,
+  LockKeyhole,
+  Search,
+  ShoppingCart,
+  Ticket,
+  X
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
@@ -19,7 +29,12 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
-import { WEAPON_CATEGORIES, isGrenadeWeapon, weaponCategory, type WeaponCategory } from './weapon-categories'
+import {
+  WEAPON_CATEGORIES,
+  isGrenadeWeapon,
+  weaponCategory,
+  type WeaponCategory
+} from './weapon-categories'
 import {
   skinRarity,
   skinRarityOrder,
@@ -71,7 +86,7 @@ function StoreFilterButton({
         <span className="truncate">{label}</span>
         <span
           className={[
-          'min-w-6 px-1 py-0.5 text-center text-[10px] tabular-nums',
+            'min-w-6 px-1 py-0.5 text-center text-[10px] tabular-nums',
             active ? 'bg-black/15 text-neutral-900' : 'bg-black/25 text-neutral-500',
             badgeClassName ?? ''
           ].join(' ')}
@@ -114,6 +129,7 @@ const safeExternalUrl = (value: string | null): string | null => {
 }
 
 export function ShopPage(): JSX.Element {
+  const { t } = useTranslation()
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
   const [selectedCategory, setSelectedCategory] = useState<WeaponCategory>('all')
@@ -195,20 +211,17 @@ export function ShopPage(): JSX.Element {
       : 'No purchasable skins of this type are currently listed.'
   }
 
-  const filteredSkins = useMemo(
-    () => {
-      const query = searchQuery.trim().toLocaleLowerCase()
-      return skins
-        .filter(
-          (skin) =>
-            (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
-            (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType) &&
-            (!query || `${skin.name} ${skin.weaponKey}`.toLocaleLowerCase().includes(query))
-        )
-        .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id)))
-    },
-    [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins]
-  )
+  const filteredSkins = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase()
+    return skins
+      .filter(
+        (skin) =>
+          (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
+          (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType) &&
+          (!query || `${skin.name} ${skin.weaponKey}`.toLocaleLowerCase().includes(query))
+      )
+      .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id)))
+  }, [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins])
 
   const clearFilters = (): void => {
     setSelectedCategory('all')
@@ -341,13 +354,27 @@ export function ShopPage(): JSX.Element {
 
             <p className="px-1 pt-3 pb-1.5 text-xs font-semibold text-white">Weapons</p>
 
-            <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label="Filter skins by weapon">
+            <div
+              className="grid grid-cols-3 gap-1 md:grid-cols-2"
+              aria-label="Filter skins by weapon"
+            >
               {WEAPON_CATEGORIES.filter(
-                (category) => category.id === 'all' || category.id === 'grenades' || (weaponCounts.get(category.id) ?? 0) > 0
+                (category) =>
+                  category.id === 'all' ||
+                  category.id === 'grenades' ||
+                  (weaponCounts.get(category.id) ?? 0) > 0
               ).map((category) => (
                 <StoreFilterButton
                   key={category.id}
-                  label={category.label}
+                  label={
+                    category.id === 'all'
+                      ? t('character.all')
+                      : category.id === 'player_ct'
+                        ? t('character.ct')
+                        : category.id === 'player_t'
+                          ? t('character.t')
+                          : category.label
+                  }
                   count={weaponCounts.get(category.id) ?? 0}
                   active={category.id === selectedCategory}
                   onClick={() => setSelectedCategory(category.id)}
@@ -363,7 +390,10 @@ export function ShopPage(): JSX.Element {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label="Filter skins by type">
+            <div
+              className="grid grid-cols-3 gap-1 md:grid-cols-2"
+              aria-label="Filter skins by type"
+            >
               <StoreFilterButton
                 label="All types"
                 count={skins.length}
@@ -388,14 +418,18 @@ export function ShopPage(): JSX.Element {
             </div>
           </aside>
 
-          <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain pb-4" tabIndex={0} aria-label="Skins on sale">
+          <div
+            className="min-h-0 min-w-0 overflow-y-auto overscroll-contain pb-4"
+            tabIndex={0}
+            aria-label="Skins on sale"
+          >
             <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-neutral-400">
                 <span className="font-semibold text-white">{filteredSkins.length}</span>{' '}
                 {filteredSkins.length === 1 ? 'skin' : 'skins'}
-                {(selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim()) && (
-                  <span> matching your filters</span>
-                )}
+                {(selectedCategory !== 'all' ||
+                  selectedSkinType !== 'all' ||
+                  searchQuery.trim()) && <span> matching your filters</span>}
               </p>
             </div>
 
@@ -593,7 +627,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
   useEffect(() => {
     if (skin.weaponKey === 'elite') return
     let active = true
-    void getCachedSkinModel(skin.id, skinPreviewRevision(skin)).then(
+    void getCachedSkinModel(skin.id, skin.playerModelPath ?? 'unavailable').then(
       (bytes) => {
         if (active) setModel(bytes)
       },
@@ -672,7 +706,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
               distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
               target: getSkinCameraTarget(skin.weaponKey)
             }}
-            animation="idle1"
+            animation={getSkinAnimation(skin.weaponKey)}
             freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
             maxFrameRate={30}
             disableZoom

@@ -403,6 +403,25 @@ pub fn launch(connection: &Connection, api: &str, token: &str) -> Result<(), Str
     )
     .map(|_| ())
 }
+fn keep_session_channel_open(
+    stream: &std::net::TcpStream,
+    action: &str,
+    reply: &serde_json::Value,
+) -> std::io::Result<()> {
+    if reply["ok"] == true
+        && matches!(
+            (action, reply["event"].as_str()),
+            ("launch", Some("launched")) | ("microphone", Some("microphoneReady"))
+        )
+    {
+        // Ready sessions can legitimately send no further messages until exit.
+        // Timing out here drops the socket and makes the runtime close the game
+        // (or microphone). Keep startup/one-shot timeouts; the runtime still owns
+        // the fixed session expiry and closes this socket when it exits.
+        stream.set_read_timeout(None)?;
+    }
+    Ok(())
+}
 fn invoke_session(
     action: &str,
     api: &str,
@@ -554,6 +573,8 @@ fn invoke_session(
         }
         let v: serde_json::Value =
             serde_json::from_slice(&line).map_err(|_| "Invalid runtime reply")?;
+        keep_session_channel_open(reader.get_ref(), action, &v)
+            .map_err(|_| "Runtime control channel failed")?;
         if v["event"] == "launched" {
             if let Some(connection) = connection {
                 _activity = Some(crate::presence::GameLease::start(
@@ -591,6 +612,83 @@ fn invoke_session(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn only_ready_persistent_actions_remove_the_reply_timeout() {
+        let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let stream = std::net::TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let (_peer, _) = listener.accept().unwrap();
+        for action in [
+            "launch",
+            "microphone",
+            "check",
+            "diagnostics",
+            "installNextClient",
+            "syncAssets",
+        ] {
+            for reply in [
+                serde_json::json!({"ok": true, "event": "launched"}),
+                serde_json::json!({"ok": true, "event": "microphoneReady"}),
+                serde_json::json!({"ok": false, "event": "launched"}),
+                serde_json::json!({"event": "microphoneReady"}),
+                serde_json::json!({"event": "preferencesUnavailable"}),
+                serde_json::json!({"ok": true}),
+            ] {
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(300)))
+                    .unwrap();
+                keep_session_channel_open(&stream, action, &reply).unwrap();
+                let persistent = reply["ok"] == true
+                    && ((action == "launch" && reply["event"] == "launched")
+                        || (action == "microphone" && reply["event"] == "microphoneReady"));
+                assert_eq!(
+                    stream.read_timeout().unwrap().is_none(),
+                    persistent,
+                    "{action}: {reply}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn quiet_game_channel_survives_reply_deadline_and_still_observes_exit() {
+        let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let stream = std::net::TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let (mut peer, _) = listener.accept().unwrap();
+        // Scale the five-minute timeout down without changing the production path.
+        stream
+            .set_read_timeout(Some(Duration::from_millis(50)))
+            .unwrap();
+        let mut reader = BufReader::new(stream);
+        writeln!(
+            peer,
+            "{}",
+            serde_json::json!({"ok":true,"event":"launched"})
+        )
+        .unwrap();
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        keep_session_channel_open(
+            reader.get_ref(),
+            "launch",
+            &serde_json::from_str(&line).unwrap(),
+        )
+        .unwrap();
+        let worker = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(150));
+            writeln!(peer, "{}", serde_json::json!({"ok":true})).unwrap();
+            // A real runtime exit closes the control channel and triggers cleanup.
+        });
+        line.clear();
+        assert!(reader.read_line(&mut line).unwrap() > 0);
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&line).unwrap()["ok"],
+            true
+        );
+        line.clear();
+        assert_eq!(reader.read_line(&mut line).unwrap(), 0);
+        worker.join().unwrap();
+    }
+
     #[test]
     fn confines_runtime_paths() {
         for p in ["../x", "/x", "C:/x", "a\\b", "a/../b", ""] {

@@ -556,6 +556,9 @@ const skins = {
       payout: quote.payout
     })
   },
+  async setCharacter(team, model): Promise<void> {
+    await jsonPost('/skins/character', { team, model })
+  },
   getLobbyLoadout(): Promise<LobbyLoadout> {
     return authenticatedGet('/skins/lobby-loadout')
   },

@@ -1,3 +1,4 @@
+import { STOCK_CHARACTERS } from '../shared/skins'
 import { shell } from 'electron'
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
@@ -322,7 +323,10 @@ export const setLobbyWeaponKey = async (weaponKey: unknown): Promise<void> => {
 }
 
 export const setLobbyPlayerModel = async (modelPath: unknown): Promise<void> => {
-  if (typeof modelPath !== 'string' || !/^player\/[a-z0-9_]+\/[a-z0-9_]+\.mdl$/i.test(modelPath)) {
+  if (
+    typeof modelPath !== 'string' ||
+    !/^(?:player\/[a-z0-9_]+\/[a-z0-9_]+\.mdl|skin:[0-9a-f-]{36})$/i.test(modelPath)
+  ) {
     throw new Error('Invalid lobby player model')
   }
   await playerRequest('/skins/lobby-player-model', {
@@ -512,3 +516,17 @@ export const cancelManualPayment = async (id: unknown) =>
   parseManualOrder(
     await playerRequest(`/payments/manual/${validatePaymentId(id)}/cancel`, { method: 'POST' })
   )
+
+export const setCharacter = async (team: unknown, model: unknown): Promise<void> => {
+  if (
+    (team !== 'ct' && team !== 't') ||
+    typeof model !== 'string' ||
+    !(STOCK_CHARACTERS[team] as readonly string[]).includes(model)
+  )
+    throw new Error('Invalid character selection')
+  await playerRequest('/skins/character', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ team, model })
+  })
+}

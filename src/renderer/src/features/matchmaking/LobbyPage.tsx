@@ -539,7 +539,7 @@ export function LobbyPage(): JSX.Element {
                   ? communityTitle
                   : t(
                       page === 'profile'
-                        ? 'nav.inventory'
+                        ? 'nav.profile'
                         : page === 'demos'
                           ? 'nav.demos'
                           : page === 'leaderboard'
@@ -555,7 +555,7 @@ export function LobbyPage(): JSX.Element {
                                     : 'nav.home'
                     )
             }
-            className="max-w-[1440px]"
+            className={page === 'profile' ? 'max-w-[1800px]' : 'max-w-[1440px]'}
             hostClassName={
               matchNavigationLocked
                 ? 'vgui-page-window-host'

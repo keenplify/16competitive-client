@@ -1,5 +1,15 @@
 export type WeaponCategory =
-  'all' | 'pistols' | 'shotguns' | 'smgs' | 'rifles' | 'snipers' | 'heavy' | 'grenades' | 'knives'
+  | 'player_ct'
+  | 'player_t'
+  | 'all'
+  | 'pistols'
+  | 'shotguns'
+  | 'smgs'
+  | 'rifles'
+  | 'snipers'
+  | 'heavy'
+  | 'grenades'
+  | 'knives'
 
 export const PISTOL_WEAPON_KEYS: readonly string[] = [
   'glock18',
@@ -33,6 +43,7 @@ export const isGrenadeWeapon = (weaponKey: string): boolean =>
  * them show up under the "Machine gun" label and disappear from the loadout.
  */
 export const weaponCategory = (key: string): WeaponCategory => {
+  if (key === 'player_ct' || key === 'player_t') return key
   if (PISTOL_WEAPON_KEYS.includes(key)) return 'pistols'
   if (SHOTGUN_WEAPON_KEYS.includes(key)) return 'shotguns'
   if (SMG_WEAPON_KEYS.includes(key)) return 'smgs'
@@ -45,7 +56,9 @@ export const weaponCategory = (key: string): WeaponCategory => {
 
 /** Filter order mirrors the in-game buy menu: pistols, shotguns, SMGs, rifles, ... */
 export const WEAPON_CATEGORIES: ReadonlyArray<{ id: WeaponCategory; label: string }> = [
-  { id: 'all', label: 'All weapons' },
+  { id: 'all', label: 'All' },
+  { id: 'player_ct', label: 'Counter-Terrorist' },
+  { id: 'player_t', label: 'Terrorist' },
   { id: 'pistols', label: 'Pistols' },
   { id: 'shotguns', label: 'Shotguns' },
   { id: 'smgs', label: 'SMGs' },

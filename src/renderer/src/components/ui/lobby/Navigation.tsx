@@ -19,7 +19,7 @@ import { usePartnerBrandingStore } from '../../../features/partner-branding/part
 
 const pages = [
   { id: 'demos', labelKey: 'nav.demos', icon: pageIcons.demos },
-  { id: 'profile', labelKey: 'nav.inventory', icon: pageIcons.profile },
+  { id: 'profile', labelKey: 'nav.profile', icon: pageIcons.profile },
   { id: 'leaderboard', labelKey: 'nav.leaderboard', icon: pageIcons.leaderboard },
   { id: 'play', labelKey: 'nav.play', icon: pageIcons.play },
   { id: 'store', labelKey: 'nav.store', icon: pageIcons.store },

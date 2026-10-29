@@ -25,8 +25,8 @@ type ModelViewerProps = {
   attachedModelHandOffset?: readonly [number, number, number]
   camera?: ModelViewerCamera
   cameraLocked?: boolean
-  /** Sequence label (for example, `idle1`) or zero-based sequence index. */
-  animation?: string | number
+  /** Sequence label, ordered fallback labels, or zero-based sequence index. */
+  animation?: string | number | readonly string[]
   /** Hold the selected sequence at its first frame while retaining orbit controls. */
   freezeAnimation?: boolean
   /** Caps canvas rendering while keeping the animation time in sync. */

@@ -1,4 +1,10 @@
+import { characterAnimationLabels } from '../party/character-animation'
 import { isGrenadeWeapon } from './weapon-categories'
+
+export const isCharacterModel = (key: string): boolean => key === 'player_ct' || key === 'player_t'
+
+export const getSkinAnimation = (key: string): string | readonly string[] =>
+  isCharacterModel(key) ? characterAnimationLabels(key === 'player_ct' ? 'm4a1' : 'ak47') : 'idle1'
 
 export type SkinPresentationRotation = readonly [number, number, number]
 
@@ -19,6 +25,8 @@ export const GRENADE_SKIN_PREVIEW = {
  * 0.85 = move the camera 15% closer (zoom in)
  */
 export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
+  player_ct: 2.1,
+  player_t: 2.1,
   // Pistols
   glock18: 1.5,
   usp: 1.5,
@@ -69,6 +77,8 @@ export const getSkinCameraTarget = (
 ): readonly [number, number, number] | undefined => (weaponKey === 'elite' ? [0, 0, 0] : undefined)
 
 export const SKIN_PREVIEW_ROTATION_BY_WEAPON: Record<string, SkinPresentationRotation> = {
+  player_ct: [0, 0, 0],
+  player_t: [0, 0, 0],
   // Shotguns — intentionally separate so each can be tuned independently.
   m3: [90, 0, 190],
   m3super90: [0, 90, 90],
@@ -95,5 +105,5 @@ export const getSkinPresentationRevision = (weaponKey: string): string => {
     : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
   const rotation = getSkinPresentationRotation(weaponKey).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
-  return `presentation-v2:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+  return `presentation-v3:${weaponKey}:z${zoom}:r${rotation}:t${target}`
 }

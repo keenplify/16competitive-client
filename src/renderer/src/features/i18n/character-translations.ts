@@ -1,0 +1,98 @@
+export const characterTranslations = {
+  en: {
+    'character.filterCt': 'Show Counter-Terrorist weapons',
+    'character.filterT': 'Show Terrorist weapons',
+    'character.party': 'Show in party',
+    'character.partySelected': 'Shown in party',
+    'character.all': 'All',
+    'character.ct': 'Counter-Terrorist',
+    'character.t': 'Terrorist',
+    'character.stock': 'Free · Standard model',
+    'character.select': 'Select character',
+    'character.error': 'Could not update your character. Try again.'
+  },
+  ru: {
+    'character.filterCt': 'Показать оружие спецназа',
+    'character.filterT': 'Показать оружие террористов',
+    'character.party': 'Показать в группе',
+    'character.partySelected': 'Показан в группе',
+    'character.all': 'Все',
+    'character.ct': 'Спецназ',
+    'character.t': 'Террорист',
+    'character.stock': 'Бесплатно · Стандартная модель',
+    'character.select': 'Выбрать персонажа',
+    'character.error': 'Не удалось изменить персонажа. Повторите попытку.'
+  },
+  tl: {
+    'character.filterCt': 'Ipakita ang mga armas ng Counter-Terrorist',
+    'character.filterT': 'Ipakita ang mga armas ng Terrorist',
+    'character.party': 'Ipakita sa party',
+    'character.partySelected': 'Ipinapakita sa party',
+    'character.all': 'Lahat',
+    'character.ct': 'Counter-Terrorist',
+    'character.t': 'Terrorist',
+    'character.stock': 'Libre · Karaniwang modelo',
+    'character.select': 'Pumili ng karakter',
+    'character.error': 'Hindi ma-update ang karakter. Subukan muli.'
+  },
+  th: {
+    'character.filterCt': 'แสดงอาวุธของหน่วยต่อต้านผู้ก่อการร้าย',
+    'character.filterT': 'แสดงอาวุธของผู้ก่อการร้าย',
+    'character.party': 'แสดงในปาร์ตี้',
+    'character.partySelected': 'แสดงในปาร์ตี้แล้ว',
+    'character.all': 'ทั้งหมด',
+    'character.ct': 'หน่วยต่อต้านผู้ก่อการร้าย',
+    'character.t': 'ผู้ก่อการร้าย',
+    'character.stock': 'ฟรี · โมเดลมาตรฐาน',
+    'character.select': 'เลือกตัวละคร',
+    'character.error': 'อัปเดตตัวละครไม่ได้ โปรดลองอีกครั้ง'
+  },
+  id: {
+    'character.filterCt': 'Tampilkan senjata Counter-Terrorist',
+    'character.filterT': 'Tampilkan senjata Teroris',
+    'character.party': 'Tampilkan di party',
+    'character.partySelected': 'Ditampilkan di party',
+    'character.all': 'Semua',
+    'character.ct': 'Counter-Terrorist',
+    'character.t': 'Teroris',
+    'character.stock': 'Gratis · Model standar',
+    'character.select': 'Pilih karakter',
+    'character.error': 'Tidak dapat memperbarui karakter. Coba lagi.'
+  },
+  pt: {
+    'character.filterCt': 'Mostrar armas dos contraterroristas',
+    'character.filterT': 'Mostrar armas dos terroristas',
+    'character.party': 'Mostrar no grupo',
+    'character.partySelected': 'Exibido no grupo',
+    'character.all': 'Todos',
+    'character.ct': 'Contraterrorista',
+    'character.t': 'Terrorista',
+    'character.stock': 'Grátis · Modelo padrão',
+    'character.select': 'Selecionar personagem',
+    'character.error': 'Não foi possível atualizar o personagem. Tente novamente.'
+  },
+  ja: {
+    'character.filterCt': 'カウンターテロリストの武器を表示',
+    'character.filterT': 'テロリストの武器を表示',
+    'character.party': 'パーティーに表示',
+    'character.partySelected': 'パーティーに表示中',
+    'character.all': 'すべて',
+    'character.ct': 'カウンターテロリスト',
+    'character.t': 'テロリスト',
+    'character.stock': '無料 · 標準モデル',
+    'character.select': 'キャラクターを選択',
+    'character.error': 'キャラクターを更新できませんでした。もう一度お試しください。'
+  },
+  hi: {
+    'character.filterCt': 'आतंकवाद विरोधी दल के हथियार दिखाएँ',
+    'character.filterT': 'आतंकवादियों के हथियार दिखाएँ',
+    'character.party': 'पार्टी में दिखाएँ',
+    'character.partySelected': 'पार्टी में दिखाया गया',
+    'character.all': 'सभी',
+    'character.ct': 'आतंकवाद विरोधी',
+    'character.t': 'आतंकवादी',
+    'character.stock': 'मुफ़्त · मानक मॉडल',
+    'character.select': 'पात्र चुनें',
+    'character.error': 'पात्र अपडेट नहीं हो सका। फिर से प्रयास करें।'
+  }
+} as const

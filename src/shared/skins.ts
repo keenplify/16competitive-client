@@ -12,6 +12,7 @@ export const SKIN_CHANNELS = {
   resaleQuote: 'skins:resale-quote',
   sell: 'skins:sell',
   getLobbyLoadout: 'skins:get-lobby-loadout',
+  setCharacter: 'skins:set-character',
   unlock: 'skins:unlock',
   equip: 'skins:equip',
   unequip: 'skins:unequip',
@@ -83,7 +84,15 @@ export interface UnlockResult {
 
 export type SkinCurrency = 'POINTS' | 'P_CASH'
 
+export const STOCK_CHARACTERS = {
+  ct: ['urban', 'gsg9', 'sas', 'gign'],
+  t: ['terror', 'leet', 'arctic', 'guerilla']
+} as const
+export type CharacterTeam = keyof typeof STOCK_CHARACTERS
+
 export interface LobbyLoadout {
+  ctCharacter?: string
+  tCharacter?: string
   playerModel: string
   weaponSkinId: string | null
   weaponKey: string
@@ -147,6 +156,7 @@ export interface SkinsApi {
   mine(): Promise<OwnedSkin[]>
   resaleQuote(skinId: string): Promise<SkinResaleQuote>
   sell(skinId: string, quote: SkinResaleQuote): Promise<SkinResaleResult>
+  setCharacter(team: CharacterTeam, model: string): Promise<void>
   getLobbyLoadout(): Promise<LobbyLoadout>
   unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult>
   equip(skinId: string): Promise<void>

@@ -315,6 +315,7 @@ const skins: SkinsApi = {
   mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
   resaleQuote: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.resaleQuote, skinId),
   sell: (skinId, quote) => ipcRenderer.invoke(SKIN_CHANNELS.sell, skinId, quote),
+  setCharacter: (team, model) => ipcRenderer.invoke(SKIN_CHANNELS.setCharacter, team, model),
   getLobbyLoadout: () => ipcRenderer.invoke(SKIN_CHANNELS.getLobbyLoadout),
   unlock: (skinId, currency) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId, currency),
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),

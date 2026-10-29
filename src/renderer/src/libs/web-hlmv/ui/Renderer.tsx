@@ -2,6 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck bad types
 
+import { resolveAnimationIndex } from '../../../features/party/character-animation'
 import * as React from 'react'
 import { ModelData, parseModelCached } from '../lib/modelDataParser'
 import { buildTexture } from '../lib/textureBuilder'
@@ -132,7 +133,7 @@ type Props = {
   setModelData: (modelData: ModelData) => void
   camera?: ModelViewerCamera
   cameraLocked?: boolean
-  animation?: string | number
+  animation?: string | number | readonly string[]
   freezeAnimation?: boolean
   maxFrameRate?: number
   presentationRotation?: readonly [number, number, number]
@@ -259,20 +260,11 @@ export const Renderer = (props: Props): React.JSX.Element => {
       return Math.max(0, Math.min(Math.floor(props.animation), modelData.sequences.length - 1))
     }
 
-    if (typeof props.animation === 'string') {
-      const requestedLabel = props.animation.toLowerCase()
-      const index = modelData.sequences.findIndex(
-        (sequence) => sequence.label.toLowerCase() === requestedLabel
+    if (props.animation !== undefined) {
+      return resolveAnimationIndex(
+        modelData,
+        typeof props.animation === 'string' ? [props.animation] : props.animation
       )
-
-      if (index >= 0) {
-        return index
-      }
-
-      console.warn('[HLMV] Requested animation sequence was not found; using the first sequence', {
-        requested: props.animation,
-        available: modelData.sequences.map((sequence) => sequence.label)
-      })
     }
 
     return 0

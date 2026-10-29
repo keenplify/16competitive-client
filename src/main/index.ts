@@ -36,7 +36,12 @@ import {
   markPartnerGroupLaunched,
   currentPartnerPresence
 } from './partner-servers'
-import { communityChatHistory, sendCommunityChat, communityMembers, kickCommunityMember } from './community-chat'
+import {
+  communityChatHistory,
+  sendCommunityChat,
+  communityMembers,
+  kickCommunityMember
+} from './community-chat'
 import { PARTNER_SERVER_CHANNELS, COMMUNITY_CHAT_CHANNELS } from '../shared/partner-community'
 import { getPartnerBranding } from './partner-branding'
 import { PARTNER_BRANDING_CHANNEL, JOINED_BRANDING_CHANNEL } from '../shared/partner-branding'
@@ -188,6 +193,7 @@ import {
 import {
   equipSkin,
   getLobbyLoadout,
+  setCharacter,
   getOwnedSkins,
   getSkinResaleQuote,
   getSkinPreviewModel,
@@ -533,27 +539,43 @@ async function processPendingWebPlayLink(): Promise<void> {
       method: 'POST',
       redirect: 'error',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: link.handoff, clientKind: 'electron', clientVersion: app.getVersion() }),
+      body: JSON.stringify({
+        token: link.handoff,
+        clientKind: 'electron',
+        clientVersion: app.getVersion()
+      }),
       signal: AbortSignal.timeout(10_000)
     })
     if (!response.ok) throw new Error('Web play handoff expired')
     const session: unknown = await response.json()
     if (check) return
-    if (!joinLink || typeof session !== 'object' || session === null ||
-      typeof (session as Record<string, unknown>).token !== 'string')
+    if (
+      !joinLink ||
+      typeof session !== 'object' ||
+      session === null ||
+      typeof (session as Record<string, unknown>).token !== 'string'
+    )
       throw new Error('Invalid web play session')
     const token = (session as { token: string }).token
     const connection = await fetch(
       `${joinLink.apiOrigin}/matchmaking/matches/${joinLink.matchId}/helper-connection`,
-      { headers: { authorization: `Bearer ${token}` }, redirect: 'error', signal: AbortSignal.timeout(10_000) }
+      {
+        headers: { authorization: `Bearer ${token}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000)
+      }
     )
     if (!connection.ok) throw new Error('Match connection is no longer available')
     const details: unknown = await connection.json()
-    if (typeof details !== 'object' || details === null ||
+    if (
+      typeof details !== 'object' ||
+      details === null ||
       (details as Record<string, unknown>).matchId !== joinLink.matchId ||
       !['cs13_3v3', '5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(
         String((details as Record<string, unknown>).mode)
-      )) throw new Error('Invalid match connection')
+      )
+    )
+      throw new Error('Invalid match connection')
     await acceptWebPlayHandoff(session)
     matchmakingConnection.disconnect()
     matchmakingConnection.switchApiUrl(joinLink.apiOrigin)
@@ -568,8 +590,11 @@ async function processPendingWebPlayLink(): Promise<void> {
 }
 
 function acceptWebPlayLink(value: string): boolean {
-  if (!parseWebHelperCheckLink(value, !app.isPackaged) &&
-      !parseWebHelperLink(value, !app.isPackaged)) return false
+  if (
+    !parseWebHelperCheckLink(value, !app.isPackaged) &&
+    !parseWebHelperLink(value, !app.isPackaged)
+  )
+    return false
   pendingWebPlayLink = value
   void processPendingWebPlayLink()
   return true
@@ -1148,6 +1173,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
   ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>
     sellSkin(skinId, quote)
+  )
+  ipcMain.handle(SKIN_CHANNELS.setCharacter, (_, team: unknown, model: unknown) =>
+    setCharacter(team, model)
   )
   ipcMain.handle(SKIN_CHANNELS.getLobbyLoadout, () => getLobbyLoadout())
   ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown, currency: unknown) =>
