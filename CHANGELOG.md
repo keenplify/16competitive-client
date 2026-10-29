@@ -3634,3 +3634,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web helper
 
 - Improved partner branding and setup guidance in the web helper.
+
+## v2026.1029.10 — 2026-10-29
+
+### Web previews
+
+- Improved skin model previews in the web experience.
+
+### Partner accounts
+
+- Hardened partner account switching.
+- Smoother partner logout and return flow.
+- Improved translated partner attribution.
+- Simplified the web login experience.
