@@ -3674,3 +3674,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved lobby character animations.
 - Added support for compatible local player models in lobby previews.
+
+## v2026.1029.15 — 2026-10-29
+
+### Communities
+
+- Updated community and member visuals for a cleaner, more consistent look.
