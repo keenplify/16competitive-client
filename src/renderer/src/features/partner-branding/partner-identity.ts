@@ -11,7 +11,10 @@ export const hasPartnerPageContext = (): boolean => {
 export const brandAppText = (text: string, name: string | null): string =>
   name === null
     ? text
-    : text.replaceAll('1.6 Competitive by Papamo', name).replaceAll('1.6 Competitive', name)
+    : text.replace(
+        /Papamo का 1\.6 Competitive|1\.6 Competitive(?: (?:by|от|ng|dari) Papamo)?/g,
+        () => name
+      )
 
 export function useAppName(): string | null {
   return usePartnerBrandingStore(

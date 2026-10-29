@@ -351,7 +351,7 @@ export function AuthPage(): JSX.Element {
       <LauncherWindow
         title={resetOpen ? t('auth.reset.open') : isLogin ? t('auth.login') : t('auth.register')}
         className="vgui-auth-window max-w-[420px]"
-        onClose={() => void window.api.window.exit()}
+        onClose={webRuntime ? undefined : () => void window.api.window.exit()}
       >
         <section className="auth-panel flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm sm:p-10 pt-24 sm:pt-24 pb-16 md:col-span-2">
           <div className="w-full max-w-sm">
