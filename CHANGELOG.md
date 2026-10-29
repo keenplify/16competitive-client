@@ -3653,3 +3653,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Party
 
 - Character previews now match the selected party weapon in the match loadout.
+
+## v2026.1029.12 — 2026-10-29
+
+### Visual updates
+
+- Refined tab hover states with a custom VGUI-inspired color palette.
+- Updated weapon previews with matching VGUI styling.
