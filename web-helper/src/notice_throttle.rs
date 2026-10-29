@@ -19,7 +19,11 @@ pub fn acquire(path: &Path, now_ms: u64) -> io::Result<Option<File>> {
     let mut file = options.open(path)?;
     match fs2::FileExt::try_lock_exclusive(&file) {
         Ok(()) => {}
-        Err(error) if error.kind() == io::ErrorKind::WouldBlock => return Ok(None),
+        // Windows reports ERROR_LOCK_VIOLATION as Uncategorized, so compare
+        // fs2's platform-specific contention code rather than ErrorKind.
+        Err(error) if error.raw_os_error() == fs2::lock_contended_error().raw_os_error() => {
+            return Ok(None)
+        }
         Err(error) => return Err(error),
     }
     let mut previous = String::new();
