@@ -16,7 +16,9 @@ export function UsernameSetupPage(): JSX.Element {
   const checkUsername = useAuthStore((state) => state.checkUsername)
   const changeUsername = useAuthStore((state) => state.changeUsername)
   const logout = useAuthStore((state) => state.logout)
-  const [username, setUsername] = useState('')
+  const partnerUsername = session?.player.partnerUsername
+  const suggestions = session?.player.usernameSuggestions ?? []
+  const [username, setUsername] = useState(suggestions[0] ?? partnerUsername ?? '')
   const [availability, setAvailability] = useState<'idle' | 'checking' | 'available' | 'taken'>(
     'idle'
   )
@@ -64,6 +66,30 @@ export function UsernameSetupPage(): JSX.Element {
       }
     >
       <form className="grid gap-5" onSubmit={submit}>
+        {partnerUsername && suggestions.length > 0 && (
+          <div className="grid gap-3 text-sm">
+            <p>
+              Your partner username <strong data-i18n-skip>{partnerUsername}</strong> could not be
+              used here. Choose an available username:
+            </p>
+            <div className="flex flex-wrap gap-2" aria-label="Suggested usernames">
+              {suggestions.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  type="button"
+                  variant="secondary"
+                  disabled={status === 'changing_username'}
+                  onClick={() => {
+                    setUsername(suggestion)
+                    setAvailability('checking')
+                  }}
+                >
+                  <span data-i18n-skip>{suggestion}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
         <TextField
           id="first-username"
           label="Username"

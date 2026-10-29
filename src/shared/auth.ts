@@ -64,6 +64,8 @@ export interface AuthPlayer {
   hasPassword: boolean
   requiresUsernameSetup: boolean
   usernameChangeAvailableAt: string | null
+  partnerUsername?: string
+  usernameSuggestions?: string[]
 }
 
 export interface AuthSession {

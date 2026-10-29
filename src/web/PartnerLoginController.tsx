@@ -1,3 +1,4 @@
+import { PartnerAccountMatch } from './PartnerAccountMatch'
 import { useEffect, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { ModalDialog } from '../renderer/src/components/ui/ModalDialog'
@@ -12,10 +13,17 @@ export function PartnerLoginController(): JSX.Element | null {
   const authStatus = useAuthStore((s) => s.status)
   const { t } = useTranslation()
   const initialize = state.initialize
+  const { phase, error, complete } = state
   useEffect(() => {
     void initialize()
   }, [initialize])
+  useEffect(() => {
+    if (phase === 'ready' && !error && authStatus !== 'restoring' && authStatus !== 'submitting')
+      void complete('sign_in')
+  }, [phase, error, complete, authStatus])
   if (state.phase === 'idle' || state.phase === 'done') return null
+  if (['account_match', 'password', 'email', 'email_sending', 'verifying'].includes(state.phase))
+    return <PartnerAccountMatch />
   if (state.phase === 'waiting_login')
     return (
       <aside
@@ -33,6 +41,25 @@ export function PartnerLoginController(): JSX.Element | null {
     )
   const busy = state.phase === 'loading' || state.phase === 'submitting'
   const ready = state.phase === 'ready' && authStatus !== 'restoring' && authStatus !== 'submitting'
+  if (busy || (state.phase === 'ready' && !state.error)) {
+    return (
+      <ModalDialog
+        open
+        labelledBy="partner-login-title"
+        onClose={state.cancel}
+        className="max-w-lg p-6"
+        vguiTitlebar={false}
+      >
+        <h2 id="partner-login-title" className="text-2xl font-semibold">
+          {t('partnerLogin.title')}
+        </h2>
+        <p className="mt-4 flex items-center gap-3 text-sm" role="status">
+          <LoaderCircle className="size-4 animate-spin" />
+          {t('partnerLogin.loading')}
+        </p>
+      </ModalDialog>
+    )
+  }
   return (
     <ModalDialog
       open

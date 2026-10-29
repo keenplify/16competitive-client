@@ -26,7 +26,7 @@ type AuthResponse = {
 
 type UsernameStatus = Pick<
   AuthSession['player'],
-  'requiresUsernameSetup' | 'usernameChangeAvailableAt'
+  'requiresUsernameSetup' | 'usernameChangeAvailableAt' | 'partnerUsername' | 'usernameSuggestions'
 >
 
 const SOCIAL_TIMEOUT_MS = 10 * 60 * 1000
@@ -226,7 +226,9 @@ export const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
     player: {
       ...body.player,
       requiresUsernameSetup: status?.requiresUsernameSetup ?? false,
-      usernameChangeAvailableAt: status?.usernameChangeAvailableAt ?? null
+      usernameChangeAvailableAt: status?.usernameChangeAvailableAt ?? null,
+      partnerUsername: status?.partnerUsername,
+      usernameSuggestions: status?.usernameSuggestions
     }
   }
   if (getWebSessionToken() !== body.token) throw new Error('Session changed.')
@@ -514,7 +516,9 @@ export const browserAuthApi: AuthApi = {
           requiresUsernameSetup:
             status?.requiresUsernameSetup ?? cached?.player.requiresUsernameSetup ?? false,
           usernameChangeAvailableAt:
-            status?.usernameChangeAvailableAt ?? cached?.player.usernameChangeAvailableAt ?? null
+            status?.usernameChangeAvailableAt ?? cached?.player.usernameChangeAvailableAt ?? null,
+          partnerUsername: status?.partnerUsername ?? cached?.player.partnerUsername,
+          usernameSuggestions: status?.usernameSuggestions ?? cached?.player.usernameSuggestions
         }
       }
       writeCachedSession(session)
