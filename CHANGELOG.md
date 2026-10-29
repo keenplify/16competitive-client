@@ -3555,3 +3555,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Helper settings recovery is more reliable.
 - Improved in-game helper settings controls.
+
+## v2026.1029.2 — 2026-10-29
+
+### Matchmaking
+
+- Improved warmup server launching.
+- Community server version tabs are now hidden when only one version is available.
+
+### Chat
+
+- Improved chat scrolling behavior.
+
+### Notices
+
+- Improved helper notices for clearer player guidance.
