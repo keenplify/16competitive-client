@@ -3532,3 +3532,26 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved compatibility when reusing an existing helper.
 - Added back navigation during helper setup.
+
+## v2026.1029.1 — 2026-10-29
+
+### Matchmaking
+
+- Server filters are now remembered between sessions.
+- Match and lobby layouts are more stable.
+- Partner server views have been improved.
+
+### Voice Chat
+
+- Web voice chat setup and microphone handling are more reliable.
+- Voice chat remains compatible with helper readiness checks.
+
+### Community
+
+- Added community music support.
+- Improved community server browsing.
+
+### Settings
+
+- Helper settings recovery is more reliable.
+- Improved in-game helper settings controls.
