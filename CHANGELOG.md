@@ -3600,3 +3600,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner verification
 
 - Partner verification now accepts backend proofs valid for up to ten minutes.
+
+## v2026.1029.8 — 2026-10-29
+
+### Character Loadouts
+
+- Customize and save character loadouts from your profile.
+- Preview character models with improved animations and presentation.
+
+### Account & GameHub
+
+- Improved partner account handoff and sign-in flow.
+- Smoother return to GameHub after partner authentication.
+
+### Web Helper
+
+- Fixed web helper sessions becoming idle unexpectedly.
+- Improved native helper setup and session reliability.
