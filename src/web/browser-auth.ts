@@ -1,6 +1,7 @@
 import type { PartnerLoginContext } from '../shared/auth'
 import { hasIncomingPartnerLogin } from './partner-login-capture'
 import { partnerReturnUrl } from './partner-return'
+import { usePartnerReturnStore } from './partner-return.store'
 import { linkBrowserPartner } from './partner-attribution'
 import { logoutNativeHelper } from './local-play'
 import { validateSteamAuthorizationUrl } from '../shared/auth'
@@ -555,6 +556,7 @@ export const browserAuthApi: AuthApi = {
 
   async logout() {
     const returnUrl = partnerReturnUrl()
+    if (returnUrl) usePartnerReturnStore.setState({ redirecting: true })
     const token = getWebSessionToken()
     void logoutNativeHelper(readCachedSession()?.player.id ?? null).catch(() => undefined)
     try {

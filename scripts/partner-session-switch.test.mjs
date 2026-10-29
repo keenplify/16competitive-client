@@ -16,9 +16,19 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
   const cache = new Map([[cacheKey, JSON.stringify(previous)]])
   const calls = [],
     redirects = []
+  let redirecting = false
+  const transitions = []
   const deps = {
     './partner-login-capture': { hasIncomingPartnerLogin: () => incoming },
     './partner-return': { partnerReturnUrl: () => returnUrl },
+    './partner-return.store': {
+      usePartnerReturnStore: {
+        setState: (state) => {
+          redirecting = state.redirecting
+          transitions.push('cover')
+        }
+      }
+    },
     './partner-attribution': { linkBrowserPartner: async () => {} },
     './local-play': { logoutNativeHelper: async () => {} },
     '../shared/auth': {},
@@ -27,6 +37,7 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
       getWebSessionToken: () => token,
       getWebPartnerLogin: () => undefined,
       clearWebSessionToken: () => {
+        transitions.push('clear')
         token = null
       },
       requestJson: async (path) => {
@@ -45,7 +56,14 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
       removeItem: (key) => cache.delete(key),
       setItem: (key, value) => cache.set(key, value)
     },
-    { location: { replace: (url) => redirects.push(url) } }
+    {
+      location: {
+        replace: (url) => {
+          transitions.push('navigate')
+          redirects.push(url)
+        }
+      }
+    }
   )
   return {
     api: exports.browserAuthApi,
@@ -53,6 +71,8 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
     cache,
     calls,
     redirects,
+    transitions,
+    redirecting: () => redirecting,
     setToken: (value) => {
       token = value
     }
@@ -77,12 +97,15 @@ test('partner logout clears local authentication and returns even if logout requ
   assert.equal(h.token(), null)
   assert.equal(h.cache.has(cacheKey), false)
   assert.deepEqual(h.redirects, [returnUrl])
+  assert.deepEqual(h.transitions, ['cover', 'clear', 'navigate'])
+  assert.equal(h.redirecting(), true)
 })
 test('ordinary logout does not redirect', async () => {
   const h = harness()
   await h.api.logout()
   assert.equal(h.token(), null)
   assert.deepEqual(h.redirects, [])
+  assert.equal(h.redirecting(), false)
 })
 test('return destinations are restricted to the approved partner', () => {
   const source = compile('../src/web/partner-return.ts')
