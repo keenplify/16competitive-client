@@ -161,7 +161,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] ::selection {
-  color: #22291e;
+  color: var(--vgui-dark);
   background: var(--vgui-accent);
 }
 
@@ -179,8 +179,8 @@
 
 :root[data-launcher-theme='vgui2']
   :where(button, [role='tab'], [role='button'], [data-ui-button]):hover:not(:disabled) {
-  background-color: #59664f;
-  color: #fff9d9;
+  background-color: color-mix(in srgb, var(--vgui-face) 88%, var(--vgui-text));
+  color: var(--vgui-text);
   transform: none;
 }
 
@@ -211,7 +211,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] [data-ui-button].web-helper-source-link:hover {
-  color: #fff9d9;
+  color: var(--vgui-text);
   text-decoration: underline;
 }
 
@@ -229,7 +229,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] :where(input, textarea)::placeholder {
-  color: #b9c3a8;
+  color: var(--color-neutral-500);
   opacity: 1;
 }
 
@@ -349,7 +349,7 @@
     [class~='border'][class*='bg-neutral-'],
     [class~='border'][class*='bg-slate-']
   ):not(:where(button, input, select, textarea, [role='button'], [role='tab'])) {
-  border-color: #87947a;
+  border-color: var(--vgui-light);
   background-color: var(--vgui-face);
   box-shadow: var(--vgui-raised);
   backdrop-filter: none;
@@ -417,11 +417,11 @@
 }
 
 :root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-thumb:hover {
-  background: #68765b;
+  background: var(--vgui-light);
 }
 
 :root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-thumb:active {
-  background: #59664f;
+  background: color-mix(in srgb, var(--vgui-face) 88%, var(--vgui-text));
 }
 
 :root[data-launcher-theme='vgui2'] *::-webkit-scrollbar-button {
@@ -632,7 +632,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] :where([class*='text-white/']) {
-  color: #c5cdb7;
+  color: var(--color-neutral-400);
 }
 
 :root[data-launcher-theme='vgui2'] :where([class*='text-red-']) {
@@ -707,7 +707,7 @@
 :root[data-launcher-theme='vgui2']
   .custom-room-dialog
   :where(input:not([type='checkbox']), select) {
-  background-color: #293323;
+  background-color: var(--vgui-inset);
   color: var(--vgui-text);
   box-shadow: var(--vgui-sunken);
   font-weight: 400;
@@ -898,7 +898,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] .profile-activity :where(ol, li) {
-  border-color: #68765b;
+  border-color: var(--vgui-light);
 }
 
 :root[data-launcher-theme='vgui2'] .profile-activity li {
@@ -972,7 +972,7 @@
 
 :root[data-launcher-theme='vgui2'] .weapon-preview-well,
 :root[data-launcher-theme='vgui2'] .weapon-preview-well:hover:not(:disabled) {
-  background: #252d21;
+  background: var(--vgui-inset);
   border-color: transparent;
   box-shadow: var(--vgui-sunken);
 }
@@ -983,7 +983,7 @@
   padding: 0 0 12px;
   background: transparent;
   box-shadow: none;
-  border-color: #68765b;
+  border-color: var(--vgui-light);
 }
 
 :root[data-launcher-theme='vgui2'] .news-page > header > p:first-child,
@@ -1108,7 +1108,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] .vgui-scrollbar-thumb:hover {
-  background: #68765b;
+  background: var(--vgui-light);
 }
 
 :root[data-launcher-theme='vgui2'] .play-page {
@@ -1169,7 +1169,7 @@
   border: 1px solid var(--vgui-light);
   border-right-color: var(--vgui-dark);
   border-bottom-color: var(--vgui-light);
-  background: #414d39;
+  background: color-mix(in srgb, var(--vgui-face) 60%, var(--vgui-inset));
   box-shadow: none;
   color: var(--vgui-text);
   font-size: 12px;
@@ -1366,7 +1366,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] .skin-preview-stage {
-  background: #1b2218;
+  background: var(--vgui-inset);
   box-shadow: var(--vgui-sunken);
 }
 
@@ -1447,7 +1447,7 @@
 }
 
 :root[data-launcher-theme='vgui2'] .match-ready-timer > p:last-child {
-  color: #c5cdb7;
+  color: var(--color-neutral-400);
   letter-spacing: 0;
 }
 
@@ -1461,7 +1461,7 @@
   border: 0;
   background: var(--vgui-inset);
   box-shadow: var(--vgui-sunken);
-  color: #c5cdb7;
+  color: var(--color-neutral-400);
 }
 
 :root[data-launcher-theme='vgui2'] .match-ready-handoff {
