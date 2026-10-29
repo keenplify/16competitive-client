@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
+import { NativeReadinessRequests } from '../src/web/native-readiness-requests.ts'
 
 function harness(connected = false) {
   let browserRequests = 0,
@@ -75,14 +76,16 @@ function harness(connected = false) {
     source
   )(
     (name) =>
-      name === './local-bridge'
-        ? { LocalBridge: Bridge }
-        : name === './browser-session'
-          ? {
-              currentApiOrigin: () => 'https://regional.test',
-              getWebSessionToken: () => 'account-token'
-            }
-          : {},
+      name === './native-readiness-requests'
+        ? { NativeReadinessRequests }
+        : name === './local-bridge'
+          ? { LocalBridge: Bridge }
+          : name === './browser-session'
+            ? {
+                currentApiOrigin: () => 'https://regional.test',
+                getWebSessionToken: () => 'account-token'
+              }
+            : {},
     exports,
     { location: { origin: 'https://example.test' } },
     {
