@@ -1,13 +1,13 @@
-import { characterWeaponAttachment } from './skin-model-presentation'
 import { Users, Check, LoaderCircle } from 'lucide-react'
-import { useEffect, useState, type JSX } from 'react'
+import { type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { CharacterTeam, Skin } from '../../../../shared/skins'
-import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
-import { characterAnimationLabels } from '../party/character-animation'
+import { isWebRuntime } from '../../web-runtime'
+import { PartyModelScene } from '../party/PartyModelScene'
+import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
+import { useGameSettingsStore } from '../settings/game-settings.store'
 import { presentationModelPath } from '../party/party-models'
 import { useTranslation } from '../i18n/i18n'
-import { getCachedSkinModel } from './skin-model-cache'
 
 interface CharacterPanelProps {
   team: CharacterTeam
@@ -38,23 +38,12 @@ function CharacterPanelContent({
   className
 }: CharacterPanelProps): JSX.Element {
   const { t } = useTranslation()
-  const [buffer, setBuffer] = useState<ArrayBuffer>()
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    if (!skin) return
-    let active = true
-    void getCachedSkinModel(skin.id, skin.playerModelPath ?? '').then(
-      (value) => {
-        if (active) setBuffer(value)
-      },
-      () => {
-        if (active) setFailed(true)
-      }
-    )
-    return () => {
-      active = false
-    }
-  }, [skin])
+  const weaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
+  const weaponModelPath = useLobbyLoadoutStore((state) => state.weaponModelPath)
+  const weaponSkinId = useLobbyLoadoutStore((state) => state.weaponSkinId)
+  const installationPath = useGameSettingsStore((state) => state.savedPath)
+  const stockModelPath = `player/${model}/${model}.mdl`
+  const modelPath = skin ? `skin:${skin.id}` : presentationModelPath(stockModelPath)
   return (
     <div className={twMerge('relative self-start', className)}>
       <button
@@ -74,24 +63,35 @@ function CharacterPanelContent({
           {t(team === 'ct' ? 'character.ct' : 'character.t')}
         </span>
         <span className="pointer-events-none relative block min-h-64 w-full flex-1">
-          {(!skin || buffer) && (
-            <ModelViewer
-              modelBuffer={buffer}
-              modelKey={skin?.id}
-              modelPath={skin ? undefined : presentationModelPath(`player/${model}/${model}.mdl`)}
-              {...characterWeaponAttachment(`player_${team}`)}
-              animation={characterAnimationLabels(team === 'ct' ? 'm4a1' : 'ak47')}
-              camera={{ distanceMultiplier: 1.05 }}
-              cameraLocked
-              maxFrameRate={20}
-              className="absolute inset-0"
-            />
-          )}
-          {failed && (
-            <span className="absolute inset-0 flex items-center justify-center text-xs">
-              {skin?.name}
-            </span>
-          )}
+          <PartyModelScene
+            actors={[
+              {
+                member: {
+                  id: `character-preview-${team}`,
+                  username: model,
+                  mmr: 0,
+                  lobbyPlayerModel: modelPath,
+                  lobbyWeaponSkinId: weaponSkinId,
+                  lobbyWeaponKey: weaponKey,
+                  lobbyWeaponModelPath: weaponModelPath,
+                  clientMode: isWebRuntime() ? 'web' : 'desktop'
+                },
+                modelPath,
+                fallbackModelPath: stockModelPath,
+                weaponPath:
+                  weaponModelPath ?? `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`,
+                weaponSkinId,
+                weaponKey,
+                isLeader: false,
+                isCurrentPlayer: true
+              }
+            ]}
+            sourceRevision={installationPath ?? 'unloaded'}
+            showNameplates={false}
+            verticalOffset={-35}
+            cameraDistance={130}
+            className="absolute inset-0 h-full w-full"
+          />
         </span>
         <span className="px-2 py-3 pr-10 text-sm font-semibold">
           {skin?.name ?? model.toUpperCase()}

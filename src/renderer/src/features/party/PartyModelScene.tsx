@@ -669,6 +669,7 @@ interface PartyModelSceneProps {
   className?: string
   showNameplates?: boolean
   verticalOffset?: number
+  cameraDistance?: number
 }
 
 export function PartyModelScene({
@@ -676,7 +677,8 @@ export function PartyModelScene({
   sourceRevision,
   className,
   showNameplates = true,
-  verticalOffset = -45
+  verticalOffset = -45,
+  cameraDistance = 170
 }: PartyModelSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const actorsRef = useRef(actors)
@@ -794,7 +796,7 @@ export function PartyModelScene({
       }
       actorsToFade.push(model)
     })
-    camera.position.set(0, 22.5, 170)
+    camera.position.set(0, 22.5, cameraDistance)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
     let targetCurrentPlayerYaw = 0
     let targetCurrentPlayerPitch = 0
@@ -911,7 +913,7 @@ export function PartyModelScene({
       renderer.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates, verticalOffset])
+  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates, verticalOffset, cameraDistance])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }
