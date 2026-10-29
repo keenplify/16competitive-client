@@ -3594,3 +3594,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved verification retry handling during partner sign-in.
 - Failed sign-ins now return you to the login screen so you can try again.
+
+## v2026.1029.6 — 2026-10-29
+
+### Partner verification
+
+- Partner verification now accepts backend proofs valid for up to ten minutes.
