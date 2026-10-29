@@ -670,6 +670,8 @@ interface PartyModelSceneProps {
   showNameplates?: boolean
   verticalOffset?: number
   cameraDistance?: number
+  followPointer?: boolean
+  maxFrameRate?: number
 }
 
 export function PartyModelScene({
@@ -678,7 +680,9 @@ export function PartyModelScene({
   className,
   showNameplates = true,
   verticalOffset = -45,
-  cameraDistance = 170
+  cameraDistance = 170,
+  followPointer = true,
+  maxFrameRate
 }: PartyModelSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const actorsRef = useRef(actors)
@@ -784,7 +788,7 @@ export function PartyModelScene({
       pivot.position.z = formation[index]?.z ?? 2
       pivot.add(model)
       scene.add(pivot)
-      if (actor.isCurrentPlayer) {
+      if (followPointer && actor.isCurrentPlayer) {
         currentPlayerActor = model
         model.updateMatrixWorld(true)
         model.userData.pointerYawAxis = new THREE.Vector3(0, 1, 0)
@@ -808,7 +812,7 @@ export function PartyModelScene({
       targetCurrentPlayerYaw = (normalizedX * 2 - 1) * MAX_CURRENT_PLAYER_POINTER_YAW
       targetCurrentPlayerPitch = (0.5 - normalizedY) * 2 * MAX_CURRENT_PLAYER_POINTER_PITCH
     }
-    window.addEventListener('pointermove', handlePointerMove)
+    if (followPointer) window.addEventListener('pointermove', handlePointerMove)
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
       camera.aspect = bounds.width / bounds.height
@@ -819,15 +823,19 @@ export function PartyModelScene({
     observer.observe(canvas)
     resize()
     let frame = 0
+    let lastFrameAt = -Infinity
+    const frameInterval = maxFrameRate ? 1000 / Math.max(1, maxFrameRate) : 0
     const fadeStartedAt = performance.now()
     let currentPlayerYaw = 0
     let currentPlayerPitch = 0
     const render = () => {
       frame = requestAnimationFrame(render)
+      const now = performance.now()
+      if (now - lastFrameAt < frameInterval) return
+      lastFrameAt = now
       currentPlayerYaw += (targetCurrentPlayerYaw - currentPlayerYaw) * 0.06
       currentPlayerPitch += (targetCurrentPlayerPitch - currentPlayerPitch) * 0.06
       const opacity = Math.min((performance.now() - fadeStartedAt) / 450, 1)
-      const now = performance.now()
       actorsToFade.forEach((actor) => {
         setActorOpacity(actor, opacity)
         const fps = actor.userData.animationFps as number
@@ -840,32 +848,36 @@ export function PartyModelScene({
         const upperBodyPivots = actor.userData.upperBodyPivots as Float32Array[] | undefined
         const sourcePivot = upperBodyPivots?.[frame]
         const nextPivot = upperBodyPivots?.[nextFrame]
-        const upperBodyPivot = new THREE.Vector3(
-          sourcePivot && nextPivot
-            ? sourcePivot[0] + (nextPivot[0] - sourcePivot[0]) * frameProgress
-            : 0,
-          sourcePivot && nextPivot
-            ? sourcePivot[1] + (nextPivot[1] - sourcePivot[1]) * frameProgress
-            : 0,
-          sourcePivot && nextPivot
-            ? sourcePivot[2] + (nextPivot[2] - sourcePivot[2]) * frameProgress
-            : 0
-        )
-        const followsPointer = actor === currentPlayerActor
-        const pointerRotation = new THREE.Matrix4()
-          .makeRotationAxis(
-            (actor.userData.pointerYawAxis as THREE.Vector3 | undefined) ??
-              new THREE.Vector3(0, 1, 0),
-            currentPlayerYaw
-          )
-          .multiply(
-            new THREE.Matrix4().makeRotationAxis(
-              (actor.userData.pointerPitchAxis as THREE.Vector3 | undefined) ??
-                new THREE.Vector3(1, 0, 0),
-              currentPlayerPitch
+        const followsPointer = followPointer && actor === currentPlayerActor
+        const upperBodyPivot = followsPointer
+          ? new THREE.Vector3(
+              sourcePivot && nextPivot
+                ? sourcePivot[0] + (nextPivot[0] - sourcePivot[0]) * frameProgress
+                : 0,
+              sourcePivot && nextPivot
+                ? sourcePivot[1] + (nextPivot[1] - sourcePivot[1]) * frameProgress
+                : 0,
+              sourcePivot && nextPivot
+                ? sourcePivot[2] + (nextPivot[2] - sourcePivot[2]) * frameProgress
+                : 0
             )
-          )
-        const pointerVertex = new THREE.Vector3()
+          : null
+        const pointerRotation = followsPointer
+          ? new THREE.Matrix4()
+              .makeRotationAxis(
+                (actor.userData.pointerYawAxis as THREE.Vector3 | undefined) ??
+                  new THREE.Vector3(0, 1, 0),
+                currentPlayerYaw
+              )
+              .multiply(
+                new THREE.Matrix4().makeRotationAxis(
+                  (actor.userData.pointerPitchAxis as THREE.Vector3 | undefined) ??
+                    new THREE.Vector3(1, 0, 0),
+                  currentPlayerPitch
+                )
+              )
+          : null
+        const pointerVertex = followsPointer ? new THREE.Vector3() : null
         actor.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return
           const frames = object.userData.animationFrames as THREE.BufferAttribute[] | undefined
@@ -885,7 +897,7 @@ export function PartyModelScene({
             const z = current[index + 2] + (next[index + 2] - current[index + 2]) * frameProgress
             const shouldFollowPointer =
               followsPointer && (followsUpperBody || upperBodyMask?.[index / 3] === 1)
-            if (shouldFollowPointer) {
+            if (shouldFollowPointer && pointerVertex && upperBodyPivot && pointerRotation) {
               pointerVertex
                 .set(x, y, z)
                 .sub(upperBodyPivot)
@@ -908,12 +920,43 @@ export function PartyModelScene({
     render()
     return () => {
       cancelAnimationFrame(frame)
-      window.removeEventListener('pointermove', handlePointerMove)
+      if (followPointer) window.removeEventListener('pointermove', handlePointerMove)
       observer.disconnect()
+      const geometries = new Set<THREE.BufferGeometry>()
+      const materials = new Set<THREE.Material>()
+      const textures = new Set<THREE.Texture>()
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) geometries.add(object.geometry as THREE.BufferGeometry)
+        if (object instanceof THREE.Mesh || object instanceof THREE.Sprite) {
+          const ownedMaterials = Array.isArray(object.material)
+            ? object.material
+            : [object.material]
+          for (const material of ownedMaterials) {
+            materials.add(material)
+            for (const value of Object.values(material)) {
+              if (value instanceof THREE.Texture) textures.add(value)
+            }
+          }
+        }
+      })
+      geometries.forEach((geometry) => geometry.dispose())
+      materials.forEach((material) => material.dispose())
+      textures.forEach((texture) => texture.dispose())
       renderer.dispose()
+      // A weapon change reuses this canvas; only release its context after unmount.
+      if (!canvas.isConnected) renderer.forceContextLoss()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actorKey, loadedScene, HOT_RENDER_REVISION, showNameplates, verticalOffset, cameraDistance])
+  }, [
+    actorKey,
+    loadedScene,
+    HOT_RENDER_REVISION,
+    showNameplates,
+    verticalOffset,
+    cameraDistance,
+    followPointer,
+    maxFrameRate
+  ])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />
 }

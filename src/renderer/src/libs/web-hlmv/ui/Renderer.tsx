@@ -57,8 +57,8 @@ export const WindowSizeSensor = ({
   children
 }: WindowSizeSensorProps): React.JSX.Element => {
   const [size, setSize] = React.useState<WindowSize>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0
+    width: 1,
+    height: 1
   })
 
   // Keep a mutable reference to the latest onChange callback

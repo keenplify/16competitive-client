@@ -1,5 +1,7 @@
 export const characterTranslations = {
   en: {
+    'character.partyChanged': 'Player model in lobby changed.',
+    'character.partyWeaponChanged': 'Weapon model in lobby changed.',
     'character.filterCt': 'Show Counter-Terrorist weapons',
     'character.filterT': 'Show Terrorist weapons',
     'character.party': 'Show in party',
@@ -12,6 +14,8 @@ export const characterTranslations = {
     'character.error': 'Could not update your character. Try again.'
   },
   ru: {
+    'character.partyChanged': 'Модель игрока в лобби изменена.',
+    'character.partyWeaponChanged': 'Модель оружия в лобби изменена.',
     'character.filterCt': 'Показать оружие спецназа',
     'character.filterT': 'Показать оружие террористов',
     'character.party': 'Показать в группе',
@@ -24,6 +28,8 @@ export const characterTranslations = {
     'character.error': 'Не удалось изменить персонажа. Повторите попытку.'
   },
   tl: {
+    'character.partyChanged': 'Napalitan ang player model sa lobby.',
+    'character.partyWeaponChanged': 'Napalitan ang weapon model sa lobby.',
     'character.filterCt': 'Ipakita ang mga armas ng Counter-Terrorist',
     'character.filterT': 'Ipakita ang mga armas ng Terrorist',
     'character.party': 'Ipakita sa party',
@@ -36,6 +42,8 @@ export const characterTranslations = {
     'character.error': 'Hindi ma-update ang karakter. Subukan muli.'
   },
   th: {
+    'character.partyChanged': 'เปลี่ยนโมเดลผู้เล่นในล็อบบี้แล้ว',
+    'character.partyWeaponChanged': 'เปลี่ยนโมเดลอาวุธในล็อบบี้แล้ว',
     'character.filterCt': 'แสดงอาวุธของหน่วยต่อต้านผู้ก่อการร้าย',
     'character.filterT': 'แสดงอาวุธของผู้ก่อการร้าย',
     'character.party': 'แสดงในปาร์ตี้',
@@ -48,6 +56,8 @@ export const characterTranslations = {
     'character.error': 'อัปเดตตัวละครไม่ได้ โปรดลองอีกครั้ง'
   },
   id: {
+    'character.partyChanged': 'Model pemain di lobi telah diubah.',
+    'character.partyWeaponChanged': 'Model senjata di lobi telah diubah.',
     'character.filterCt': 'Tampilkan senjata Counter-Terrorist',
     'character.filterT': 'Tampilkan senjata Teroris',
     'character.party': 'Tampilkan di party',
@@ -60,6 +70,8 @@ export const characterTranslations = {
     'character.error': 'Tidak dapat memperbarui karakter. Coba lagi.'
   },
   pt: {
+    'character.partyChanged': 'Modelo do jogador no lobby alterado.',
+    'character.partyWeaponChanged': 'Modelo da arma no lobby alterado.',
     'character.filterCt': 'Mostrar armas dos contraterroristas',
     'character.filterT': 'Mostrar armas dos terroristas',
     'character.party': 'Mostrar no grupo',
@@ -72,6 +84,8 @@ export const characterTranslations = {
     'character.error': 'Não foi possível atualizar o personagem. Tente novamente.'
   },
   ja: {
+    'character.partyChanged': 'ロビーのプレイヤーモデルを変更しました。',
+    'character.partyWeaponChanged': 'ロビーの武器モデルを変更しました。',
     'character.filterCt': 'カウンターテロリストの武器を表示',
     'character.filterT': 'テロリストの武器を表示',
     'character.party': 'パーティーに表示',
@@ -84,6 +98,8 @@ export const characterTranslations = {
     'character.error': 'キャラクターを更新できませんでした。もう一度お試しください。'
   },
   hi: {
+    'character.partyChanged': 'लॉबी में खिलाड़ी का मॉडल बदल दिया गया।',
+    'character.partyWeaponChanged': 'लॉबी में हथियार का मॉडल बदल दिया गया।',
     'character.filterCt': 'आतंकवाद विरोधी दल के हथियार दिखाएँ',
     'character.filterT': 'आतंकवादियों के हथियार दिखाएँ',
     'character.party': 'पार्टी में दिखाएँ',

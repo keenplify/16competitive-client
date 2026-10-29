@@ -90,6 +90,8 @@ function CharacterPanelContent({
             showNameplates={false}
             verticalOffset={-35}
             cameraDistance={130}
+            followPointer={false}
+            maxFrameRate={20}
             className="absolute inset-0 h-full w-full"
           />
         </span>

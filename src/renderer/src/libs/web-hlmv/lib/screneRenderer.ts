@@ -68,10 +68,11 @@ export const createRenderer = (
   renderer.setClearAlpha(0)
 
   // Pixel ration setting
-  renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setPixelRatio(preserveDrawingBuffer ? 1 : Math.min(window.devicePixelRatio, 2))
 
   // Size setting
-  renderer.setSize(window.innerWidth, window.innerHeight)
+  const bounds = canvas.parentElement?.getBoundingClientRect()
+  renderer.setSize(Math.max(1, bounds?.width ?? 1), Math.max(1, bounds?.height ?? 1))
 
   return renderer
 }

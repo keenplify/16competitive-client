@@ -119,6 +119,7 @@ export function SkinsPage(): JSX.Element {
     void useCharacterLoadoutStore
       .getState()
       .showInParty(path)
+      .then(() => toast.success(t('character.partyChanged')))
       .catch(() => toast.error(t('character.error')))
   }
   const characterPending = useCharacterLoadoutStore((state) => state.pending)
@@ -232,7 +233,7 @@ export function SkinsPage(): JSX.Element {
           lobbyLoadout.weaponModelPath,
           lobbyLoadout.weaponSkinId
         )
-        toast.success(`${owned.skin.name} is now displayed in your lobby.`)
+        toast.success(t('character.partyWeaponChanged'))
       })
       .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setLobbyWeaponId(null))
@@ -247,7 +248,7 @@ export function SkinsPage(): JSX.Element {
         setLobbyWeaponKey(weaponKey)
         setLobbyWeaponSkinId(null)
         updateLobbyWeapon(weaponKey, null, null)
-        toast.success(`${displayWeapon(weaponKey)} is now displayed in your lobby.`)
+        toast.success(t('character.partyWeaponChanged'))
       })
       .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setLobbyWeaponId(null))

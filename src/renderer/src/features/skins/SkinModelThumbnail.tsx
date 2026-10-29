@@ -3,6 +3,7 @@ import {
   getSkinAnimation,
   isCharacterModel
 } from './skin-model-presentation'
+import { captureThumbnail } from './thumbnail-capture'
 import { presentationModelPath } from '../party/party-models'
 import { LoaderCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
@@ -161,26 +162,22 @@ function SkinModelThumbnailContent({
 
   const capture = useCallback(
     (canvas: HTMLCanvasElement): void => {
-      canvas.toBlob((blob) => {
-        if (!mountedRef.current || !blob) {
-          fail()
-          return
-        }
-        void Promise.all([
-          blobToDataUrl(blob),
-          PREVIEW_THUMBNAIL_CACHE_ENABLED
-            ? blob
-                .arrayBuffer()
-                .then((png) => window.api.models.writeThumbnail(presentationCacheKey, png))
-                .catch((error: unknown) => console.warn('Could not persist model thumbnail', error))
-            : Promise.resolve()
-        ]).then(([source]) => {
+      void captureThumbnail(canvas)
+        .then(async (blob) => {
+          if (!mountedRef.current) return
+          const source = await blobToDataUrl(blob)
           if (!mountedRef.current) return
           setImageUrl(source)
           setStatus('ready')
           releaseRenderer()
-        }, fail)
-      }, 'image/png')
+          if (PREVIEW_THUMBNAIL_CACHE_ENABLED) {
+            void blob
+              .arrayBuffer()
+              .then((png) => window.api.models.writeThumbnail(presentationCacheKey, png))
+              .catch((error: unknown) => console.warn('Could not persist model thumbnail', error))
+          }
+        })
+        .catch(fail)
     },
     [fail, presentationCacheKey, releaseRenderer]
   )
