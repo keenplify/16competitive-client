@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock3,
   MoreVertical,
+  UserGroup,
   UserRound,
   UserRoundCheck,
   UserRoundPlus,
@@ -22,7 +23,6 @@ import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useFriendsStore } from '../friends/friends.store'
 import { useCommunityChatStore } from './community-chat.store'
 import { createCommunityMembersStore, useCommunityMembersStore } from './community-members.store'
-import { HiUserGroup as UserGroup } from 'react-icons/hi2'
 import { useCommunityText } from './community-copy'
 import type { CommunityMembers } from '../../../../shared/partner-community'
 export function CommunityMembersSection({

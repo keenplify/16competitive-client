@@ -3,9 +3,8 @@ import { usePartnerBrandingStore } from '../partner-branding/partner-branding.st
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
 import { useEffect, useRef, type JSX } from 'react'
-import { ChevronLeft, Globe2, LoaderCircle, LogOut, Pencil, Search, Users } from 'lucide-react'
-import type { IconType } from 'react-icons'
-import { SiDiscord, SiFacebook, SiInstagram, SiKofi, SiMastodon, SiYoutube } from 'react-icons/si'
+import { ChevronLeft, LoaderCircle, LogOut, Pencil, Search, Users } from 'lucide-react'
+import { CommunitySocialIcon } from '../../components/ui/CommunitySocialIcon'
 import { Button } from '../../components/ui/Button'
 import { COUNTRY_OPTIONS, CountryFlag } from '../../components/CountryFlag'
 import {
@@ -21,22 +20,8 @@ import { CommunityEditPage } from './CommunityEditPage'
 import { useCommunityMembersStore } from '../partner-branding/community-members.store'
 import { useConfiguredCommunityLinks } from '../community/links'
 
-const communitySocialIcons: Record<string, IconType> = {
-  Discord: SiDiscord,
-  Mastodon: SiMastodon,
-  'Ko-fi': SiKofi,
-  Facebook: SiFacebook,
-  Instagram: SiInstagram,
-  YouTube: SiYoutube
-}
-
 function communityLinkIcon(label: string): JSX.Element {
-  const Icon = communitySocialIcons[label]
-  return Icon ? (
-    <Icon className="size-4" aria-hidden="true" />
-  ) : (
-    <Globe2 className="size-4" aria-hidden="true" />
-  )
+  return <CommunitySocialIcon label={label} className="size-4" />
 }
 
 function previewDescription(description: string): string {
