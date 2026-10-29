@@ -487,3 +487,19 @@ test('web helper update assets are signed with a distinct context and pinned key
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('Linux download instructions survive a failed setup handshake and can still be copied', async () => {
+  const { store } = await harness({
+    createSetup: () => {
+      throw new Error('offline')
+    }
+  })
+  await store.getState().prepareSetup('arm64')
+  assert.equal(store.getState().status, 'unavailable')
+  const command = store.getState().setupCommand
+  assert.match(command, /chmod \+x/)
+  assert.match(command, /competitive16-web-helper-linux-arm64/)
+  assert.ok(!command.includes('competitive16-helper://'))
+  assert.equal(await store.getState().renewSetupCommand(), command)
+  store.getState().closeSetup()
+})

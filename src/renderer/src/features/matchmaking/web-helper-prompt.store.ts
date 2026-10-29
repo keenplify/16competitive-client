@@ -30,6 +30,10 @@ interface WebHelperPromptState {
 let generation = 0
 let pendingCheck: Promise<HelperStatus> | null = null
 
+export function linuxHelperSetupCommand(arch: 'x64' | 'arm64', checkUrl?: string): string {
+  return `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux${arch === 'arm64' ? '-arm64' : ''}(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" ${checkUrl ? ` '${checkUrl}'` : ''}`
+}
+
 export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) => {
   const startSetup = async (
     arch: 'x64' | 'arm64'
@@ -40,7 +44,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       awaitingInstall: true,
       setupOpen: true,
       setupArch: arch,
-      setupCommand: null,
+      setupCommand: linuxHelperSetupCommand(arch),
       status: 'checking'
     })
     try {
@@ -50,7 +54,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       const link = new URL(setup.checkUrl)
       if (link.protocol !== 'competitive16-helper:' || /['\n\r]/.test(setup.checkUrl))
         throw new Error('Invalid helper setup link')
-      const command = `cd ~/Downloads\nhelper="$(find . -maxdepth 1 -type f -regextype posix-extended -regex './competitive16-web-helper-linux${arch === 'arm64' ? '-arm64' : ''}(\\([0-9]+\\))?' -printf '%T@ %f\\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"\nchmod +x -- "$helper" && "./$helper" '${setup.checkUrl}'`
+      const command = linuxHelperSetupCommand(arch, setup.checkUrl)
       set({ setupCommand: command })
       const completion = (async () => {
         try {
@@ -199,6 +203,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       const setup = await startSetup(arch)
       await setup?.completion
     },
-    renewSetupCommand: async () => (await startSetup(get().setupArch))?.command ?? null
+    renewSetupCommand: async () =>
+      (await startSetup(get().setupArch))?.command ?? get().setupCommand
   }
 })

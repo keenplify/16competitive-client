@@ -25,7 +25,7 @@ function capture(query) {
     { location: { href: `https://example.test/pwa/?${query}` } },
     { replaceState: (...args) => changes.push(args[2]) }
   )
-  return { take: exports.takePartnerLogin, changes }
+  return { take: exports.takePartnerLogin, received: exports.hasIncomingPartnerLogin, changes }
 }
 test('captures partner token once and removes credentials before app startup', () => {
   const h = capture(`partnerId=${id}&token=${raw}&validate-url=https%3A%2F%2Fevil.test`)
@@ -33,6 +33,7 @@ test('captures partner token once and removes credentials before app startup', (
   assert.equal(h.changes[0], `/pwa/?partnerId=${id}`)
   assert.deepEqual(h.take(), { partnerId: id, token: raw })
   assert.equal(h.take(), null)
+  assert.equal(h.received(), true)
   for (const query of [
     `partnerId=${id}&token=bad`,
     `partnerId=${id}&token=${raw}&token=${raw}`,
@@ -44,6 +45,7 @@ test('captures partner token once and removes credentials before app startup', (
     assert.ok(!invalid.changes[0].includes(raw))
   }
   assert.equal(capture(`partnerId=${id}`).take(), null)
+  assert.equal(capture(`partnerId=${id}`).received(), false)
 })
 const preview = () => ({
   proof,

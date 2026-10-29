@@ -1,5 +1,6 @@
 export const partnerLoginTranslations = {
   en: {
+    'partnerLogin.returnToPartner': 'Back to {{partner}}',
     'partnerLogin.title': 'Partner sign-in',
     'partnerLogin.description': 'Continue from {{partner}} as {{username}}?',
     'partnerLogin.loading': 'Checking your partner sign-in…',
@@ -20,6 +21,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Finish partner sign-in'
   },
   ru: {
+    'partnerLogin.returnToPartner': 'Вернуться в {{partner}}',
     'partnerLogin.title': 'Вход через партнёра',
     'partnerLogin.description': 'Продолжить из {{partner}} как {{username}}?',
     'partnerLogin.loading': 'Проверка входа партнёра…',
@@ -41,6 +43,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Завершить вход партнёра'
   },
   tl: {
+    'partnerLogin.returnToPartner': 'Bumalik sa {{partner}}',
     'partnerLogin.title': 'Partner sign-in',
     'partnerLogin.description': 'Magpatuloy mula sa {{partner}} bilang {{username}}?',
     'partnerLogin.loading': 'Sinusuri ang partner sign-in…',
@@ -62,6 +65,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Tapusin ang partner sign-in'
   },
   th: {
+    'partnerLogin.returnToPartner': 'กลับไปที่ {{partner}}',
     'partnerLogin.title': 'เข้าสู่ระบบผ่านพาร์ทเนอร์',
     'partnerLogin.description': 'ดำเนินการจาก {{partner}} ในชื่อ {{username}} หรือไม่?',
     'partnerLogin.loading': 'กำลังตรวจสอบการเข้าสู่ระบบ…',
@@ -80,6 +84,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'ดำเนินการเข้าสู่ระบบต่อ'
   },
   id: {
+    'partnerLogin.returnToPartner': 'Kembali ke {{partner}}',
     'partnerLogin.title': 'Login mitra',
     'partnerLogin.description': 'Lanjutkan dari {{partner}} sebagai {{username}}?',
     'partnerLogin.loading': 'Memeriksa login mitra…',
@@ -99,6 +104,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Selesaikan login mitra'
   },
   hi: {
+    'partnerLogin.returnToPartner': '{{partner}} पर वापस जाएँ',
     'partnerLogin.title': 'पार्टनर साइन-इन',
     'partnerLogin.description': '{{partner}} से {{username}} के रूप में जारी रखें?',
     'partnerLogin.loading': 'पार्टनर साइन-इन जाँचा जा रहा है…',
@@ -118,6 +124,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'पार्टनर साइन-इन पूरा करें'
   },
   pt: {
+    'partnerLogin.returnToPartner': 'Voltar para {{partner}}',
     'partnerLogin.title': 'Login do parceiro',
     'partnerLogin.description': 'Continuar de {{partner}} como {{username}}?',
     'partnerLogin.loading': 'Verificando login do parceiro…',
@@ -139,6 +146,7 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Concluir login do parceiro'
   },
   ja: {
+    'partnerLogin.returnToPartner': '{{partner}} に戻る',
     'partnerLogin.title': 'パートナーログイン',
     'partnerLogin.description': '{{partner}}から{{username}}として続行しますか？',
     'partnerLogin.loading': 'パートナーログインを確認中…',

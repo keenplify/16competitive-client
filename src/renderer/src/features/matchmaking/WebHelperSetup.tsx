@@ -79,7 +79,7 @@ export function WebHelperSetup({
           readOnly
           spellCheck={false}
           aria-label={t('webHelper.copyCommand')}
-          value={command ?? (status === 'checking' ? t('webHelper.checking') : statusText)}
+          value={command ?? ''}
           onFocus={(event) => event.currentTarget.select()}
           className="h-56 w-full resize-none select-text overflow-auto border border-neutral-700 bg-black p-4 pr-14 font-mono text-sm leading-6 text-sky-200 selection:bg-sky-400/40 focus-visible:outline-2 focus-visible:outline-sky-300"
         />
@@ -100,6 +100,13 @@ export function WebHelperSetup({
           : t('webHelper.linuxAfter')}
       </p>
       <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="primary"
+          disabled={status === 'checking'}
+          onClick={() => void useWebHelperPromptStore.getState().checkNative()}
+        >
+          {t('webHelper.checkRust')}
+        </Button>
         <Button variant="secondary" className="min-w-28 gap-2" onClick={closeSetup}>
           <ArrowLeft className="size-4" aria-hidden="true" />
           {t('webHelper.back')}

@@ -1,5 +1,6 @@
 import { partnerAssetPath } from './partner-runtime'
 import './partner-login-capture'
+import { PartnerReturnLink } from './PartnerReturnLink'
 import { PartnerLoginController } from './PartnerLoginController'
 import './browser-api'
 import '../renderer/src/features/i18n/detect-initial-language'
@@ -26,6 +27,7 @@ if (mobileOrTablet) {
     <StrictMode>
       <App />
       <PartnerLoginController />
+      <PartnerReturnLink />
     </StrictMode>
   )
 }

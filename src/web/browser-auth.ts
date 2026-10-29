@@ -1,3 +1,5 @@
+import { hasIncomingPartnerLogin } from './partner-login-capture'
+import { partnerReturnUrl } from './partner-return'
 import { linkBrowserPartner } from './partner-attribution'
 import { logoutNativeHelper } from './local-play'
 import { validateSteamAuthorizationUrl } from '../shared/auth'
@@ -32,6 +34,7 @@ type UsernameStatus = Pick<
 const SOCIAL_TIMEOUT_MS = 10 * 60 * 1000
 const SOCIAL_POLL_MS = 1250
 const SESSION_CACHE_KEY = '16competitive.web.auth-session'
+let discardSavedPartnerSession = hasIncomingPartnerLogin()
 
 const readCachedSession = (): AuthSession | null => {
   try {
@@ -485,6 +488,14 @@ export const browserAuthApi: AuthApi = {
 
   async restore() {
     await webHandoffReady
+    // A fresh external identity must never fall back to the previous browser account.
+    // The partner controller completes the handoff after restore finishes.
+    if (discardSavedPartnerSession) {
+      discardSavedPartnerSession = false
+      clearWebSessionToken()
+      clearCachedSession()
+      return null
+    }
     const token = getWebSessionToken()
     if (!token) {
       clearCachedSession()
@@ -536,6 +547,7 @@ export const browserAuthApi: AuthApi = {
   },
 
   async logout() {
+    const returnUrl = partnerReturnUrl()
     const token = getWebSessionToken()
     void logoutNativeHelper(readCachedSession()?.player.id ?? null).catch(() => undefined)
     try {
@@ -549,6 +561,7 @@ export const browserAuthApi: AuthApi = {
     } finally {
       clearWebSessionToken()
       clearCachedSession()
+      if (returnUrl) window.location.assign(returnUrl)
     }
   }
 }

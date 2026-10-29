@@ -147,12 +147,14 @@ fn user_config_dir() -> Result<PathBuf, String> {
     }
 }
 
-fn installed_path() -> Result<PathBuf, String> {
-    // Immutable version directories avoid replacing a running Windows EXE.
+fn installed_path(root: &Path, current: &Path) -> Result<PathBuf, String> {
+    // Address installation by binary content, not source fingerprint: rebuilding
+    // identical sources with a new version/toolchain can change executable bytes.
+    // Immutable directories avoid replacing a running Windows EXE.
     // Each completed setup re-registers the protocol to the current version.
-    Ok(user_config_dir()?
+    Ok(root
         .join("helper-versions")
-        .join(helper_fingerprint())
+        .join(format!("{:x}", Sha256::digest(fs::read(current).map_err(|e| e.to_string())?)))
         .join(if cfg!(windows) {
             "competitive16-web-helper.exe"
         } else {
@@ -161,8 +163,12 @@ fn installed_path() -> Result<PathBuf, String> {
 }
 
 fn install_self() -> Result<PathBuf, String> {
-    let installed = installed_path()?;
     let current = env::current_exe().map_err(|e| e.to_string())?;
+    install_binary(&user_config_dir()?, &current)
+}
+
+fn install_binary(root: &Path, current: &Path) -> Result<PathBuf, String> {
+    let installed = installed_path(root, current)?;
     if current == installed {
         return Ok(installed);
     }
@@ -182,7 +188,7 @@ fn install_self() -> Result<PathBuf, String> {
         lock_options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
     }
     let install_lock = lock_options
-        .open(user_config_dir()?.join("helper-install.lock"))
+        .open(root.join("helper-install.lock"))
         .map_err(|e| e.to_string())?;
     fs2::FileExt::lock_exclusive(&install_lock).map_err(|e| e.to_string())?;
     if installed.exists() {
@@ -1176,5 +1182,43 @@ mod installation_path_tests {
         for path in [r"C:\Games\CS", r"\\server\games", "/home/player/CS", r"\\?\Volume{abc}\CS"] {
             assert_eq!(installation_display_path(Path::new(path)), path);
         }
+    }
+}
+
+#[cfg(test)]
+mod binary_install_tests {
+    use super::*;
+
+    #[test]
+    fn different_builds_coexist_and_identical_builds_reuse_installation() {
+        let root = env::temp_dir().join(format!("16c-install-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let download = root.join("download");
+        fs::write(&download, b"first build").unwrap();
+        let first = install_binary(&root, &download).unwrap();
+        assert_eq!(install_binary(&root, &download).unwrap(), first);
+        fs::write(&download, b"second build of identical sources").unwrap();
+        let second = install_binary(&root, &download).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(fs::read(&first).unwrap(), b"first build");
+        assert_eq!(fs::read(&second).unwrap(), fs::read(&download).unwrap());
+        fs::write(&second, b"corrupted installation").unwrap();
+        assert!(install_binary(&root, &download).unwrap_err().contains("integrity"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn existing_symlink_is_never_reused_or_overwritten() {
+        let root = env::temp_dir().join(format!("16c-install-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let download = root.join("download");
+        fs::write(&download, b"binary").unwrap();
+        let target = installed_path(&root, &download).unwrap();
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(&download, &target).unwrap();
+        assert!(install_binary(&root, &download).unwrap_err().contains("integrity"));
+        assert_eq!(fs::read(&download).unwrap(), b"binary");
+        fs::remove_dir_all(root).unwrap();
     }
 }
