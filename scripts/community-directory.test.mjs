@@ -2,6 +2,7 @@ import { createLocalSnapshotCache } from '../src/shared/local-snapshot-cache.ts'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -221,17 +222,26 @@ function rendererStore(path, dependencies) {
   )
   new Function('require', 'exports', 'window', compiled)(
     (name) =>
-      name === 'zustand'
-        ? { create }
-        : (dependencies[name] ??
-          (name.endsWith('/community-cache')
-            ? { communityDirectoryCache: cache, communityServerCache: cache }
-            : null) ??
-          (name === '../partner-branding/partner-branding.store'
-            ? { usePartnerBrandingStore: { getState: () => ({ branding: null }) } }
-            : {})),
+      name === 'zustand/middleware'
+        ? { createJSONStorage, persist }
+        : name === 'zustand'
+          ? { create }
+          : (dependencies[name] ??
+            (name.endsWith('/community-cache')
+              ? { communityDirectoryCache: cache, communityServerCache: cache }
+              : null) ??
+            (name === '../partner-branding/partner-branding.store'
+              ? { usePartnerBrandingStore: { getState: () => ({ branding: null }) } }
+              : {})),
     exports,
-    dependencies.window
+    {
+      ...dependencies.window,
+      localStorage: dependencies.window?.localStorage ?? {
+        getItem: (key) => memory.get(key) ?? null,
+        setItem: (key, value) => memory.set(key, value),
+        removeItem: (key) => memory.delete(key)
+      }
+    }
   )
   return exports
 }
