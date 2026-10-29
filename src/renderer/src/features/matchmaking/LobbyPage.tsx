@@ -523,7 +523,7 @@ export function LobbyPage(): JSX.Element {
       />
       {content && (
         <div
-          className={`vgui-page-host relative z-10 transition-[padding-right] duration-300 ease-out ${showingMatchSession ? 'h-dvh overflow-y-auto' : 'bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20'} ${showingMatchSession ? '' : showingPlaySelection || page === 'store' ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
+          className={`vgui-page-host relative z-10 transition-[padding-right] duration-300 ease-out ${showingMatchSession ? 'h-dvh overflow-hidden pt-16 sm:pt-20' : 'bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20'} ${showingMatchSession ? '' : showingPlaySelection || page === 'store' ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${
             // The friends rail renders nothing while a match needs attention, so
             // its reserved width must be released for the whole match lifecycle.
             matchNavigationLocked ? 'md:pr-0' : friendsCollapsed ? 'md:pr-11' : 'md:pr-72'

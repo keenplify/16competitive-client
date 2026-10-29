@@ -24,7 +24,7 @@ export function MatchLauncherPage(): JSX.Element {
   }, [hasRoom, startParty, stopParty])
 
   return (
-    <main className="relative min-h-screen bg-neutral-950 text-white">
+    <main className="relative flex h-dvh min-h-0 flex-col overflow-hidden bg-neutral-950 text-white">
       <PartnerBackground />
       <LobbyNavigation
         activePage={activePage}
@@ -38,7 +38,9 @@ export function MatchLauncherPage(): JSX.Element {
         missionLoading={false}
         missionError={null}
       />
-      <div className="relative z-10 pt-16 sm:pt-20">
+      <div
+        className={`relative z-10 min-h-0 flex-1 pt-16 sm:pt-20 ${activePage === 'settings' ? 'overflow-y-auto' : 'overflow-hidden'}`}
+      >
         {activePage === 'settings' ? <SettingsPage /> : <PlayPage />}
       </div>
     </main>

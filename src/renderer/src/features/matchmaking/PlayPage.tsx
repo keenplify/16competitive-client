@@ -337,7 +337,7 @@ export function PlayPage({
       <main
         data-match-session={queueStatus}
         className={twMerge(
-          'relative flex min-h-dvh items-center justify-center px-5 pt-20 pb-5 text-white sm:px-10 sm:pt-24 sm:pb-10 bg-transparent'
+          'relative flex h-full min-h-0 flex-col items-center overflow-y-auto bg-transparent px-5 py-5 text-white sm:px-10 sm:py-10'
         )}
       >
         {queueStatus === 'server_ready' && (
@@ -346,7 +346,7 @@ export function PlayPage({
             fallbackPreviewUrl={match ? localMapPreviews[match.mapId] : undefined}
           />
         )}
-        <div className="relative z-10 w-full max-w-5xl">
+        <div className="relative z-10 my-auto w-full max-w-5xl shrink-0">
           <div className="text-center">
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
               {queueStatus === 'countdown'
