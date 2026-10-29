@@ -25,6 +25,7 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
     './browser-session': {
       webHandoffReady: Promise.resolve(),
       getWebSessionToken: () => token,
+      getWebPartnerLogin: () => undefined,
       clearWebSessionToken: () => {
         token = null
       },
@@ -92,7 +93,17 @@ test('return destinations are restricted to the approved partner', () => {
     ['https://evil.example/', null]
   ]) {
     const exports = {}
-    new Function('require', 'exports', source)(() => ({ getBrowserPartnerId: () => id }), exports)
+    const shared = {}
+    new Function('exports', compile('../src/shared/partner-return.ts'))(shared)
+    new Function('require', 'exports', source)(
+      (name) =>
+        name === '../shared/partner-return'
+          ? shared
+          : {
+              getWebPartnerLogin: () => (id ? { partnerId: id, partnerName: 'Partner' } : undefined)
+            },
+      exports
+    )
     assert.equal(exports.partnerReturnUrl(), expected)
   }
 })
@@ -107,4 +118,43 @@ test('later session refresh does not discard the newly accepted partner session'
   )
   assert.equal((await h.api.restore()).player.id, 'new-player')
   assert.equal(h.token(), 'new-partner-token')
+})
+
+function sessionHarness(cache = new Map()) {
+  const exports = {}
+  const storage = {
+    getItem: (key) => cache.get(key) ?? null,
+    setItem: (key, value) => cache.set(key, value),
+    removeItem: (key) => cache.delete(key)
+  }
+  new Function(
+    'require',
+    'exports',
+    'localStorage',
+    'window',
+    compile('../src/web/browser-session.ts')
+  )(() => ({ partnerApiOrigin: () => 'https://example.com' }), exports, storage, {
+    location: { href: 'https://example.com/pwa?partnerId=583704ab-6fc5-4b58-8fc2-d91cf1d7c051' }
+  })
+  return { api: exports, cache }
+}
+test('partner return context survives reload but clears on normal login and logout', () => {
+  const { api, cache } = sessionHarness()
+  const partner = {
+    partnerId: '583704ab-6fc5-4b58-8fc2-d91cf1d7c051',
+    partnerName: 'Olaguer Geyming'
+  }
+  api.setWebSessionToken('partner-session', partner)
+  assert.deepEqual(api.getWebPartnerLogin(), partner)
+  assert.deepEqual(sessionHarness(cache).api.getWebPartnerLogin(), partner)
+  api.setWebSessionToken('ordinary-session')
+  assert.equal(api.getWebPartnerLogin(), undefined)
+  api.setWebSessionToken('partner-session', partner)
+  api.clearWebSessionToken()
+  assert.equal(sessionHarness(cache).api.getWebPartnerLogin(), undefined)
+})
+test('partner branding URL alone does not make an ordinary login a partner session', () => {
+  const { api } = sessionHarness()
+  api.setWebSessionToken('ordinary-session')
+  assert.equal(api.getWebPartnerLogin(), undefined)
 })

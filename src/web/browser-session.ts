@@ -1,5 +1,7 @@
+import type { PartnerLoginContext } from '../shared/auth'
 import { partnerApiOrigin } from './partner-runtime'
 const TOKEN_KEY = '16competitive.web.session'
+const PARTNER_LOGIN_KEY = '16competitive.web.session-partner'
 const SELECTED_NODE_KEY = '16competitive.web.selected-node'
 
 let sessionToken = localStorage.getItem(TOKEN_KEY)
@@ -7,13 +9,37 @@ let sessionToken = localStorage.getItem(TOKEN_KEY)
 export const currentApiOrigin = (): string => partnerApiOrigin()
 export const getWebSessionToken = (): string | null => sessionToken
 
-export const setWebSessionToken = (token: string): void => {
+export const getWebPartnerLogin = (): PartnerLoginContext | undefined => {
+  if (!sessionToken) return undefined
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(PARTNER_LOGIN_KEY) ?? 'null')
+    if (!raw || typeof raw !== 'object') return undefined
+    const value = raw as Record<string, unknown>
+    if (
+      value &&
+      typeof value.partnerId === 'string' &&
+      /^[a-f0-9-]{36}$/i.test(value.partnerId) &&
+      typeof value.partnerName === 'string' &&
+      value.partnerName.trim() &&
+      value.partnerName.length <= 128
+    )
+      return { partnerId: value.partnerId, partnerName: value.partnerName }
+  } catch {
+    /* Invalid presentation metadata is ignored. */
+  }
+  return undefined
+}
+
+export const setWebSessionToken = (token: string, partnerLogin?: PartnerLoginContext): void => {
+  localStorage.removeItem(PARTNER_LOGIN_KEY)
+  if (partnerLogin) localStorage.setItem(PARTNER_LOGIN_KEY, JSON.stringify(partnerLogin))
   sessionToken = token
   localStorage.setItem(TOKEN_KEY, token)
 }
 
 export const clearWebSessionToken = (): void => {
   sessionToken = null
+  localStorage.removeItem(PARTNER_LOGIN_KEY)
   localStorage.removeItem(TOKEN_KEY)
 }
 

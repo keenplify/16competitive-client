@@ -1,3 +1,4 @@
+import type { PartnerLoginContext } from '../shared/auth'
 import { hasIncomingPartnerLogin } from './partner-login-capture'
 import { partnerReturnUrl } from './partner-return'
 import { linkBrowserPartner } from './partner-attribution'
@@ -17,7 +18,8 @@ import {
   getWebSessionToken,
   requestJson,
   setWebSessionToken,
-  webHandoffReady
+  webHandoffReady,
+  getWebPartnerLogin
 } from './browser-session'
 
 type AuthResponse = {
@@ -215,8 +217,11 @@ const reportBrowserClientTelemetry = async (): Promise<void> => {
   }
 }
 
-export const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
-  setWebSessionToken(body.token)
+export const acceptAuth = async (
+  body: AuthResponse,
+  partnerLogin?: PartnerLoginContext
+): Promise<AuthSession> => {
+  setWebSessionToken(body.token, partnerLogin)
   await linkBrowserPartner(body.player.id)
   let status: UsernameStatus | null = null
   try {
@@ -225,6 +230,7 @@ export const acceptAuth = async (body: AuthResponse): Promise<AuthSession> => {
     /* Optional metadata can be refreshed later. */
   }
   const session = {
+    partnerLogin: getWebPartnerLogin(),
     expiresAt: body.expiresAt,
     player: {
       ...body.player,
@@ -521,6 +527,7 @@ export const browserAuthApi: AuthApi = {
       }
 
       const session: AuthSession = {
+        partnerLogin: getWebPartnerLogin(),
         expiresAt: body.expiresAt,
         player: {
           ...body.player,
@@ -542,7 +549,7 @@ export const browserAuthApi: AuthApi = {
         return null
       }
 
-      return cached
+      return cached ? { ...cached, partnerLogin: getWebPartnerLogin() } : null
     }
   },
 

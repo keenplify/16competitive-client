@@ -36,7 +36,8 @@ interface State {
 type PartnerAuthResponse = { token: string; expiresAt: string; player: AuthSession['player'] }
 const acceptPartnerSession = async (
   response: PartnerAuthResponse,
-  originalToken: string | null
+  originalToken: string | null,
+  preview: PartnerLoginPreview
 ): Promise<void> => {
   if (getWebSessionToken() !== originalToken) throw new Error('SESSION_CHANGED')
   if (
@@ -56,7 +57,10 @@ const acceptPartnerSession = async (
     (response.player.email !== null && typeof response.player.email !== 'string')
   )
     throw new Error('INVALID_SESSION')
-  const session = await acceptAuth(response)
+  const session = await acceptAuth(response, {
+    partnerId: preview.partnerId,
+    partnerName: preview.partnerName
+  })
   if (getWebSessionToken() !== response.token) throw new Error('SESSION_CHANGED')
   useAuthStore.setState({
     session,
@@ -203,7 +207,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
           }
         }
       )
-      await acceptPartnerSession(response, originalToken)
+      await acceptPartnerSession(response, originalToken, preview)
       set({
         phase: 'done',
         preview: null,
@@ -253,7 +257,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
           })
         }
       })
-      await acceptPartnerSession(response, originalToken)
+      await acceptPartnerSession(response, originalToken, preview)
       set({ phase: 'done', preview: null, error: null })
     } catch (error) {
       logPartnerLoginFailure('complete', error)

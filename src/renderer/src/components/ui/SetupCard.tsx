@@ -12,6 +12,7 @@ interface SetupCardProps {
   description: string
   children: ReactNode
   footer?: ReactNode
+  logo?: ReactNode
   className?: string
   contentKey?: string
 }
@@ -23,6 +24,7 @@ export function SetupCard({
   description,
   children,
   footer,
+  logo,
   className,
   contentKey
 }: SetupCardProps): JSX.Element {
@@ -51,7 +53,7 @@ export function SetupCard({
             className
           )}
         >
-          <Logo className="mb-7 size-14" />
+          <div className="mb-7 size-14">{logo ?? <Logo className="size-full" />}</div>
           <div key={contentKey} className={contentKey ? 'setup-step-enter' : undefined}>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">{eyebrow}</p>
             <h1 className="mt-2 min-h-10 text-3xl font-semibold tracking-tight">{title}</h1>

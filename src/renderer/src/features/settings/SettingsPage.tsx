@@ -1,3 +1,4 @@
+import { approvedPartnerReturnUrl } from '../../../../shared/partner-return'
 import { NativeHelperSettingsPanel } from './NativeHelperSettingsPanel'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { WebNextClientDownload } from './WebNextClientDownload'
@@ -127,6 +128,11 @@ export function SettingsPage(): JSX.Element {
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
   const webRuntime = isWebRuntime()
+  const partnerLogin = webRuntime ? session?.partnerLogin : undefined
+  const partnerReturnLabel =
+    partnerLogin && approvedPartnerReturnUrl(partnerLogin.partnerId)
+      ? t('partnerLogin.returnToPartner', { partner: partnerLogin.partnerName })
+      : null
   useEffect(() => {
     if (webRuntime && nativeHelperReady) void useGameSettingsStore.getState().load()
   }, [webRuntime, nativeHelperReady])
@@ -486,7 +492,13 @@ export function SettingsPage(): JSX.Element {
                 onClick={() => void logout()}
               >
                 <LogOut className="mr-2 size-4" aria-hidden="true" />
-                {authStatus === 'logging_out' ? 'Signing out…' : 'Sign out'}
+                {partnerReturnLabel ? (
+                  <span data-i18n-skip>{partnerReturnLabel}</span>
+                ) : authStatus === 'logging_out' ? (
+                  'Signing out…'
+                ) : (
+                  'Sign out'
+                )}
               </Button>
               <Button
                 variant="ghost"

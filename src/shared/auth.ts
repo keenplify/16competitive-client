@@ -68,7 +68,13 @@ export interface AuthPlayer {
   usernameSuggestions?: string[]
 }
 
+export interface PartnerLoginContext {
+  partnerId: string
+  partnerName: string
+}
+
 export interface AuthSession {
+  partnerLogin?: PartnerLoginContext
   expiresAt: string
   player: AuthPlayer
 }

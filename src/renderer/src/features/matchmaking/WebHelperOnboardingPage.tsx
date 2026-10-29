@@ -6,6 +6,7 @@ import { NativeHelperSettingsPanel } from '../settings/NativeHelperSettingsPanel
 import { useNativeHelperSettingsStore } from '../settings/native-helper-settings.store'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 import { WebHelperSetup } from './WebHelperSetup'
+import { PartnerLogo } from '../partner-branding/PartnerLogo'
 
 export function WebHelperOnboardingPage(): JSX.Element {
   const { t } = useTranslation()
@@ -31,6 +32,7 @@ export function WebHelperOnboardingPage(): JSX.Element {
             ? 'webHelper.linuxDescription'
             : 'webHelper.description'
       )}
+      logo={<PartnerLogo className="size-full" />}
       className="max-w-xl"
       contentKey={String(step)}
     >
