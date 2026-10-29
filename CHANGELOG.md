@@ -3570,3 +3570,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Notices
 
 - Improved helper notices for clearer player guidance.
+
+## v2026.1029.3 — 2026-10-29
+
+### Windows
+
+- Improved helper notice reliability when files are temporarily locked.
