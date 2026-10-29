@@ -24,6 +24,7 @@ for (const source of [
   'web-helper/src/assets.rs',
   'web-helper/src/native_bundle.rs',
   'web-helper/src/native_session.rs',
+  'web-helper/src/notice_throttle.rs',
   'web-helper/src/windows_native.rs',
   'web-helper/Cargo.toml',
   'web-helper/Cargo.lock',

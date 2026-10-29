@@ -253,6 +253,20 @@ const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => 
   window.location.href = webSteamLaunchUrl(connection)
 }
 
+const autoLaunchWithHelper = (matchId: string): void => {
+  if (preferredLocalLauncher() !== 'rust') return
+  const previous = sessionStorage.getItem(AUTO_LAUNCH_KEY)
+  const [previousId, previousAt] = previous?.split(':') ?? []
+  if (previousId === matchId && Date.now() - Number(previousAt) <= 6 * 60 * 60_000) return
+  const marker = `${matchId}:${Date.now()}`
+  sessionStorage.setItem(AUTO_LAUNCH_KEY, marker)
+  void launchCounterStrike(matchId).catch((error) => {
+    if (sessionStorage.getItem(AUTO_LAUNCH_KEY) === marker)
+      sessionStorage.removeItem(AUTO_LAUNCH_KEY)
+    console.warn('[WebMatchmaking] automatic game launch failed', error)
+  })
+}
+
 const handleMessage = async (message: MatchmakingServerMessage): Promise<void> => {
   if (message.type === 'connected') {
     const token = getWebSessionToken()
@@ -312,6 +326,8 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
       warmupMatchId = null
     }
     emit(message)
+    if (message.type === 'match_connect' && warmupConnection === message)
+      autoLaunchWithHelper(message.matchId)
     return
   }
 
@@ -346,17 +362,7 @@ const handleMessage = async (message: MatchmakingServerMessage): Promise<void> =
     clearReadyAlert()
     lastConnection = message
     emit(message)
-    if (preferredLocalLauncher() === 'rust' && !message.whileQueued) {
-      const previous = sessionStorage.getItem(AUTO_LAUNCH_KEY)
-      const [previousId, previousAt] = previous?.split(':') ?? []
-      if (previousId !== message.matchId || Date.now() - Number(previousAt) > 6 * 60 * 60_000) {
-        sessionStorage.setItem(AUTO_LAUNCH_KEY, `${message.matchId}:${Date.now()}`)
-        void launchCounterStrike(message.matchId).catch((error) => {
-          sessionStorage.removeItem(AUTO_LAUNCH_KEY)
-          console.warn('[WebMatchmaking] automatic game launch failed', error)
-        })
-      }
-    }
+    autoLaunchWithHelper(message.matchId)
     return
   }
 

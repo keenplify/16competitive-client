@@ -35,7 +35,11 @@ async function harness(requestJson = async () => connection, hosted = false, hel
       addEventListener: () => undefined
     },
     URL,
-    sessionStorage: { setItem: (k, v) => stored.set(k, v), getItem: (k) => stored.get(k) ?? null, removeItem: (k) => stored.delete(k) },
+    sessionStorage: {
+      setItem: (k, v) => stored.set(k, v),
+      getItem: (k) => stored.get(k) ?? null,
+      removeItem: (k) => stored.delete(k)
+    },
     localStorage: {
       getItem: (k) => stored.get(k) ?? null,
       setItem: (k, v) => stored.set(k, v),
@@ -59,17 +63,32 @@ async function harness(requestJson = async () => connection, hosted = false, hel
     await module.link(async (name) => {
       if (name === './local-play' && helper) {
         const names = [
-          'nativeHelperReadiness', 'isNativeCompetitiveReady', 'onNativeReadiness',
-          'startNativeVoice', 'nativeHelperSettings', 'nativeHelperPresence',
-          'createNativeHelperSetup', 'waitForNativeHelperSetup', 'cancelNativeHelperSetup',
-          'cachedLocalLauncherStatus', 'checkLocalLauncher', 'launchWithLocalLauncher',
-          'preferredLocalLauncher', 'nativeProbeNodes'
+          'nativeHelperReadiness',
+          'isNativeCompetitiveReady',
+          'onNativeReadiness',
+          'startNativeVoice',
+          'nativeHelperSettings',
+          'nativeHelperPresence',
+          'createNativeHelperSetup',
+          'waitForNativeHelperSetup',
+          'cancelNativeHelperSetup',
+          'cachedLocalLauncherStatus',
+          'checkLocalLauncher',
+          'launchWithLocalLauncher',
+          'preferredLocalLauncher',
+          'nativeProbeNodes'
         ]
-        return new vm.SyntheticModule(names, function () {
-          for (const key of names) this.setExport(key, () => undefined)
-          this.setExport('preferredLocalLauncher', () => 'rust')
-          this.setExport('launchWithLocalLauncher', async (id) => { launches.push(id) })
-        }, { context })
+        return new vm.SyntheticModule(
+          names,
+          function () {
+            for (const key of names) this.setExport(key, () => undefined)
+            this.setExport('preferredLocalLauncher', () => 'rust')
+            this.setExport('launchWithLocalLauncher', async (id) => {
+              launches.push(id)
+            })
+          },
+          { context }
+        )
       }
       if (!name.startsWith('.')) {
         const dependency = await import(name)
@@ -239,4 +258,53 @@ test('verified helper auto-launches a match once when connection is replayed', a
   await h.api.handleMessage({ type: 'match_connect', matchId, ...connection })
   assert.deepEqual(h.launches, [matchId])
   assert.equal(h.stored.get('16competitive.web.auto-launched-match')?.startsWith(matchId), true)
+})
+
+test('verified helper automatically opens warmup once without replacing the ranked connection', async () => {
+  const h = await harness(async () => connection, false, true)
+  const warmupId = '426aaf31-e665-4cee-8bd5-56475ea5db39'
+  await h.api.handleMessage({
+    type: 'match_found',
+    matchId: warmupId,
+    mode: 'ffa',
+    whileQueued: true
+  })
+  const event = { type: 'match_connect', matchId: warmupId, ...connection, whileQueued: true }
+  await h.api.handleMessage(event)
+  await h.api.handleMessage(event)
+  assert.deepEqual(h.launches, [matchId, warmupId])
+  await h.api.browserMatchmakingApi.reconnectGame(matchId)
+  assert.deepEqual(h.launches, [matchId, warmupId, matchId])
+})
+
+test('a warmup connection without current admission does not automatically open the game', async () => {
+  const h = await harness(async () => connection, false, true)
+  await h.api.handleMessage({
+    type: 'match_connect',
+    matchId: '426aaf31-e665-4cee-8bd5-56475ea5db39',
+    ...connection,
+    whileQueued: true
+  })
+  assert.deepEqual(h.launches, [matchId])
+})
+
+test('warmup without a verified helper waits for the player to connect', async () => {
+  const h = await harness()
+  const warmupId = '426aaf31-e665-4cee-8bd5-56475ea5db39'
+  await h.api.handleMessage({
+    type: 'match_found',
+    matchId: warmupId,
+    mode: 'ffa',
+    whileQueued: true
+  })
+  await h.api.handleMessage({
+    type: 'match_connect',
+    matchId: warmupId,
+    ...connection,
+    whileQueued: true
+  })
+  assert.equal(h.location.href, '')
+  assert.deepEqual(h.launches, [])
+  await h.api.browserMatchmakingApi.reconnectGame(warmupId)
+  assert.ok(h.location.href.startsWith('steam://run/10//'))
 })

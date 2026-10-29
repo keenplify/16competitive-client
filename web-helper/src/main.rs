@@ -4,6 +4,7 @@ use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, 
 mod assets;
 mod native_bundle;
 mod native_session;
+mod notice_throttle;
 mod presence;
 mod runtime;
 mod self_update;
@@ -112,6 +113,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("assets.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
+        include_bytes!("notice_throttle.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
         include_bytes!("../Cargo.toml").as_slice(),
         include_bytes!("../Cargo.lock").as_slice(),
@@ -1105,6 +1107,23 @@ fn main() {
         // reported to the web page; a native dialog on every check can spam.
         if env::args().nth(1).as_deref() == Some("--local-settings") {
             eprintln!("Local settings bridge unavailable: {error}");
+        } else if error == "A native helper action is already running" {
+            // A slow game launch is expected. Bound this warning across all
+            // protocol invocations, keeping one dialog open at a time.
+            let permit = user_config_dir().ok().and_then(|directory| {
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .ok()?;
+                notice_throttle::acquire(
+                    &directory.join("runtime-busy-notice.lock"),
+                    now.as_millis() as u64,
+                )
+                .ok()
+                .flatten()
+            });
+            if let Some(_permit) = permit {
+                notice(&error);
+            }
         } else {
             notice(&error);
         }

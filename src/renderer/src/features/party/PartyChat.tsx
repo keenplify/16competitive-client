@@ -2,7 +2,15 @@ import { ChatMessageRow } from './ChatMessageRow'
 import { useCommunityChatStore } from '../partner-branding/community-chat.store'
 import { communityText } from '../partner-branding/community-copy'
 import { MessageSquare, UserPlus, X } from 'lucide-react'
-import { useEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type JSX,
+  type MouseEvent
+} from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
@@ -100,6 +108,7 @@ export function PartyChat(): JSX.Element {
   const requestFriend = useFriendsStore((state) => state.request)
   const actingPlayerId = useFriendsStore((state) => state.actingPlayerId)
   const feedRef = useRef<HTMLDivElement>(null)
+  const followLatestRef = useRef(true)
   const inputRef = useRef<HTMLInputElement>(null)
   const playerMenuRef = useRef<HTMLDivElement>(null)
   const seenPartyMessageIdsRef = useRef<Set<string> | null>(null)
@@ -245,12 +254,20 @@ export function PartyChat(): JSX.Element {
     }
   }, [chatOpen, conversations, playerId])
 
-  useEffect(() => {
-    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
+  // Reopening the panel or changing conversations starts at the latest message.
+  // Layout effects run after the visible feed mounts, before it is painted.
+  useLayoutEffect(() => {
+    if (!chatOpen || !chatVisible) return
+    followLatestRef.current = true
+    const feed = feedRef.current
+    if (feed) feed.scrollTop = feed.scrollHeight
+  }, [chatOpen, chatVisible, activeFriendId, chatTab, globalChatLanguage, roomId, communityId])
+
+  useLayoutEffect(() => {
+    const feed = feedRef.current
+    if (feed && followLatestRef.current) feed.scrollTop = feed.scrollHeight
   }, [
-    activeFriendId,
     friendConversation?.messages,
-    chatTab,
     partyEntries,
     roomEntries,
     globalEntries,
@@ -600,6 +617,10 @@ export function PartyChat(): JSX.Element {
 
           <div
             ref={feedRef}
+            onScroll={(event) => {
+              const feed = event.currentTarget
+              followLatestRef.current = feed.scrollHeight - feed.clientHeight - feed.scrollTop <= 32
+            }}
             className="flex-1 space-y-1 overflow-y-auto px-3 py-2 font-sans text-xs leading-relaxed"
             role="log"
             aria-live="polite"
