@@ -116,7 +116,7 @@ function harness({
           (path.endsWith('/verify-password') || path.endsWith('/email/verify')) &&
           verificationFailure
         ) {
-          ;((verificationFailure = false), (beginFailure = null), (warnings = []))
+          verificationFailure = false
           throw Object.assign(new Error(), {
             code: path.endsWith('/verify-password')
               ? 'PARTNER_PASSWORD_INVALID'
