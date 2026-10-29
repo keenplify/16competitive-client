@@ -3647,3 +3647,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Smoother partner logout and return flow.
 - Improved translated partner attribution.
 - Simplified the web login experience.
+
+## v2026.1029.11 — 2026-10-29
+
+### Party
+
+- Character previews now match the selected party weapon in the match loadout.
