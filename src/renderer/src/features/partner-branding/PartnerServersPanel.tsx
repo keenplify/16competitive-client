@@ -39,11 +39,15 @@ export function PartnerServersPanel({
     connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
   const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
-  const activeGameFilter = hideDesktopOnlyFeatures && gameFilter === 'cs13' ? 'all' : gameFilter
-  const visibleRows = rows.filter(
-    (server) =>
-      (!hideDesktopOnlyFeatures || server.gameVersion !== 'cs13') &&
-      (activeGameFilter === 'all' || server.gameVersion === activeGameFilter)
+  const availableRows = rows.filter(
+    (server) => !hideDesktopOnlyFeatures || server.gameVersion !== 'cs13'
+  )
+  const showVersionTabs =
+    new Set(availableRows.map((server) => server.gameVersion ?? 'cs16')).size > 1
+  // A saved filter must not hide the only available version when its tabs are hidden.
+  const activeGameFilter = showVersionTabs ? gameFilter : 'all'
+  const visibleRows = availableRows.filter(
+    (server) => activeGameFilter === 'all' || (server.gameVersion ?? 'cs16') === activeGameFilter
   )
   const playerId = useAuthStore((s) => s.session?.player.id)
   const groupBusy = usePartnerLaunchStore((s) => s.busy !== 'idle')
@@ -93,18 +97,20 @@ export function PartnerServersPanel({
       )}
       aria-label={text('serverSelection')}
     >
-      <div className="flex min-h-10 items-center gap-3">
-        <TabList
-          value={activeGameFilter}
-          onChange={setGameFilter}
-          ariaLabel={text('serverSelection')}
-          className="min-w-0 flex-1"
-          items={[
-            { value: 'all', label: t('directory.all') },
-            { value: 'cs16', label: 'CS 1.6' },
-            ...(!hideDesktopOnlyFeatures ? [{ value: 'cs13' as const, label: 'CS 1.3' }] : [])
-          ]}
-        />
+      <div className="flex min-h-10 items-center justify-end gap-3">
+        {showVersionTabs && (
+          <TabList
+            value={activeGameFilter}
+            onChange={setGameFilter}
+            ariaLabel={text('serverSelection')}
+            className="min-w-0 flex-1"
+            items={[
+              { value: 'all', label: t('directory.all') },
+              { value: 'cs16', label: 'CS 1.6' },
+              ...(!hideDesktopOnlyFeatures ? [{ value: 'cs13' as const, label: 'CS 1.3' }] : [])
+            ]}
+          />
+        )}
         <Button
           variant="ghost"
           disabled={status === 'loading' || connecting}
