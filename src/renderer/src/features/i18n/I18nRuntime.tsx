@@ -1,5 +1,7 @@
+import appCopy from '../partner-branding/app-copy.json'
+import { brandAppText, useAppName } from '../partner-branding/partner-identity'
 import { steamTranslations } from './steam-translations'
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { isLegacyRuntimeLanguage, useLanguageStore } from './i18n'
 import { translateRuntimeFragment } from './ui-translations-extra'
 import { translateRuntimeFinal } from './ui-translations-final'
@@ -33,10 +35,11 @@ const shouldSkipElement = (element: Element | null): boolean =>
 
 export function I18nRuntime(): null {
   const language = useLanguageStore((state) => state.language)
+  const appName = useAppName()
   const textSources = useRef(new WeakMap<Text, string>())
   const attributeSources = useRef(new WeakMap<Element, Map<TranslatableAttribute, string>>())
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const applyingText = new WeakSet<Text>()
     const applyingAttributes = new WeakMap<Element, Set<TranslatableAttribute>>()
     const translateKnown = (source: string): string => {
@@ -67,7 +70,7 @@ export function I18nRuntime(): null {
       const final = translateRuntimeFinal(language, source)
       return final !== source ? final : translateRuntimeSettings(language, source)
     }
-    const translate = (source: string): string => {
+    const translateLegacy = (source: string): string => {
       const direct = translateKnown(source)
       if (direct !== source) return direct
       const match = source.match(/^(\s*)([\s\S]*?)(\s*)$/)
@@ -77,6 +80,12 @@ export function I18nRuntime(): null {
       if (normalized === body) return source
       const translated = translateKnown(normalized)
       return translated === normalized ? source : `${leading}${translated}${trailing}`
+    }
+
+    const translate = (source: string): string => {
+      const translated = translateLegacy(source)
+      const knownCopy = appCopy.includes(source.trim().replace(/\s+/g, ' '))
+      return knownCopy ? brandAppText(translated, appName) : translated
     }
 
     const markAttribute = (element: Element, attribute: TranslatableAttribute): void => {
@@ -191,7 +200,7 @@ export function I18nRuntime(): null {
     translateTree(document.body)
 
     return () => observer.disconnect()
-  }, [language])
+  }, [language, appName])
 
   return null
 }

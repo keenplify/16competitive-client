@@ -500,14 +500,16 @@ export function SettingsPage(): JSX.Element {
                   'Sign out'
                 )}
               </Button>
-              <Button
-                variant="ghost"
-                className="justify-start border border-white/10 text-neutral-400 hover:bg-white/5 hover:text-white"
-                onClick={() => void window.api.window.exit()}
-              >
-                <Power className="mr-2 size-4" aria-hidden="true" />
-                {webRuntime ? 'Back to website' : 'Exit to desktop'}
-              </Button>
+              {!webRuntime && (
+                <Button
+                  variant="ghost"
+                  className="justify-start border border-white/10 text-neutral-400 hover:bg-white/5 hover:text-white"
+                  onClick={() => void window.api.window.exit()}
+                >
+                  <Power className="mr-2 size-4" aria-hidden="true" />
+                  Exit to desktop
+                </Button>
+              )}
               {webRuntime && desktopAppUrl && (
                 <ButtonLink
                   href={desktopAppUrl}

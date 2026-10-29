@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { webHelperTranslations } from '../src/renderer/src/features/i18n/web-helper-translations.ts'
 import {
+  allowedHelperApiOrigin,
+  allowedHelperWebOrigin,
   parseWebHelperCheckLink,
   parseWebHelperLink,
   webHelperCheckUrl,
@@ -31,6 +33,29 @@ test('desktop web links carry only bounded handoff, match and regional API field
     handoff,
     matchId
   })
-  assert.equal(parseWebHelperLink(webHelperLaunchUrl({ apiOrigin, handoff, matchId }) + '&password=secret'), null)
-  assert.throws(() => webHelperCheckUrl({ apiOrigin: 'https://euw.16competitive.papamo.dev.evil.test', handoff }))
+  assert.equal(
+    parseWebHelperLink(webHelperLaunchUrl({ apiOrigin, handoff, matchId }) + '&password=secret'),
+    null
+  )
+  assert.throws(() =>
+    webHelperCheckUrl({ apiOrigin: 'https://euw.16competitive.papamo.dev.evil.test', handoff })
+  )
+})
+
+test('partner browser origin is accepted without trusting it as an API destination', () => {
+  const origin = 'https://counterstrike.olaguergeyming.com'
+  const localSettings = { origin, port: 55001, token: 'b'.repeat(64) }
+  const input = { apiOrigin, handoff, localSettings }
+  const link = webHelperCheckUrl(input, false, 'competitive16-helper')
+  assert.deepEqual(parseWebHelperCheckLink(link, false, 'competitive16-helper'), input)
+  assert.equal(allowedHelperApiOrigin(origin), null)
+  for (const bad of [
+    origin + '.evil.test',
+    origin + '/path',
+    origin + '?x=1',
+    'http://counterstrike.olaguergeyming.com',
+    'https://evil.test'
+  ]) {
+    assert.equal(allowedHelperWebOrigin(bad), null)
+  }
 })

@@ -1,3 +1,4 @@
+import partnerWebOrigins from './partner-web-origins.json' with { type: 'json' }
 export const WEB_HELPER_PROTOCOL = 'competitive16-play'
 export const WEB_NATIVE_HELPER_PROTOCOL = 'competitive16-helper'
 
@@ -44,6 +45,13 @@ export function allowedHelperApiOrigin(value: string, development = false): stri
   }
 }
 
+/** Browser origins may be approved partner hosts; API credentials stay on platform APIs. */
+export function allowedHelperWebOrigin(value: string, development = false): string | null {
+  const api = allowedHelperApiOrigin(value, development)
+  if (api) return api
+  return Object.hasOwn(partnerWebOrigins, value) ? value : null
+}
+
 export function webHelperLaunchUrl(
   input: WebHelperLink,
   development = false,
@@ -78,7 +86,7 @@ export function webHelperCheckUrl(
       local.port < 49152 ||
       local.port > 65535 ||
       !/^[a-f0-9]{64}$/.test(local.token) ||
-      !allowedHelperApiOrigin(local.origin, development)
+      !allowedHelperWebOrigin(local.origin, development)
     )
       throw new Error('Invalid local helper settings')
     url.searchParams.set('localPort', String(local.port))
@@ -155,7 +163,7 @@ export function parseWebHelperCheckLink(
       return null
     const port = Number(url.searchParams.get('localPort'))
     const token = url.searchParams.get('localToken') ?? ''
-    const origin = allowedHelperApiOrigin(url.searchParams.get('webOrigin') ?? '', development)
+    const origin = allowedHelperWebOrigin(url.searchParams.get('webOrigin') ?? '', development)
     if (
       !Number.isInteger(port) ||
       port < 49152 ||

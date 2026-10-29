@@ -1,3 +1,4 @@
+import { brandAppText, useAppName } from '../partner-branding/partner-identity'
 import { characterTranslations } from './character-translations'
 import { communityMusicTranslations } from './community-music-translations'
 import { webGameDownloadTranslations } from './web-game-download-translations'
@@ -1518,9 +1519,10 @@ export const useLanguageStore = create<LanguageState>((set) => ({
 export const translate = (
   language: SupportedLanguageCode,
   key: TranslationKey,
-  params?: TranslationParams
+  params?: TranslationParams,
+  appName: string | null = null
 ): string => {
-  let translated = translations[language]?.[key] ?? english[key]
+  let translated = brandAppText(translations[language]?.[key] ?? english[key], appName)
   if (!params) return translated
 
   for (const [name, value] of Object.entries(params)) {
@@ -1534,9 +1536,10 @@ export function useTranslation(): {
   t: (key: TranslationKey, params?: TranslationParams) => string
 } {
   const language = useLanguageStore((state) => state.language)
+  const appName = useAppName()
   const t = useCallback(
-    (key: TranslationKey, params?: TranslationParams) => translate(language, key, params),
-    [language]
+    (key: TranslationKey, params?: TranslationParams) => translate(language, key, params, appName),
+    [language, appName]
   )
   return { language, t }
 }

@@ -1,3 +1,5 @@
+import { useDesktopAppUrl } from '../community/links'
+import { hasPartnerPageContext } from '../partner-branding/partner-identity'
 import { LauncherWindow } from '../../components/ui/LauncherWindow'
 import { CommunityTransferDialog } from '../partner-branding/CommunityTransferPrompt'
 import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
@@ -39,9 +41,10 @@ const socialProviderLabel = (provider: 'google' | 'facebook' | 'discord' | 'stea
 
 export function AuthPage(): JSX.Element {
   const { t } = useTranslation()
+  const desktopUrl = useDesktopAppUrl()
   const icafeBranch = useIcafeBranchStore((state) => state.status.info)
   const showPapamoGamesLogo = usePartnerBrandingStore(
-    (state) => state.resolved && (state.branding?.showPapamoGamesLogo ?? true)
+    (state) => state.resolved && !state.branding && !hasPartnerPageContext()
   )
   const loadIcafeBranch = useIcafeBranchStore((state) => state.load)
   const mode = useAuthStore((state) => state.mode)
@@ -531,18 +534,19 @@ export function AuthPage(): JSX.Element {
                   </Button>
                 )}
 
-                <Button
-                  className="mt-3 w-full"
-                  variant="ghost"
-                  disabled={isSubmitting}
-                  onClick={() => void window.api.window.exit()}
-                >
-                  Exit to desktop
-                </Button>
-
-                {webRuntime && (
+                {!webRuntime && (
+                  <Button
+                    className="mt-3 w-full"
+                    variant="ghost"
+                    disabled={isSubmitting}
+                    onClick={() => void window.api.window.exit()}
+                  >
+                    Exit to desktop
+                  </Button>
+                )}
+                {webRuntime && desktopUrl && (
                   <a
-                    href="https://papamo.dev/16competitive"
+                    href={desktopUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide text-sky-300 transition hover:text-sky-200 hover:underline"

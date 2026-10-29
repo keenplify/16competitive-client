@@ -111,6 +111,18 @@ async function harness(requestJson = async () => connection, hosted = false, hel
           { context }
         )
       }
+      if (name.endsWith('.json')) {
+        const data = JSON.parse(
+          await readFile(new URL(name, new URL(path, import.meta.url)), 'utf8')
+        )
+        return new vm.SyntheticModule(
+          ['default'],
+          function () {
+            this.setExport('default', data)
+          },
+          { context }
+        )
+      }
       const dependency = new URL(`${name}.ts`, new URL(path, import.meta.url))
       return load(dependency.href)
     })

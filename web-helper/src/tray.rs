@@ -162,7 +162,11 @@ fn labels(locale: &str) -> [&'static str; 4] {
 
 fn open(settings: bool) {
     // Fixed HTTPS destinations only; no protocol payload enters a shell.
-    let url = if settings {
+    let partner = crate::branding::current();
+    let partner_url = partner.map(|b| format!("{}/{}", b.origin, if settings { "#settings" } else { "" }));
+    let url = if let Some(ref url) = partner_url {
+        url.as_str()
+    } else if settings {
         "https://16competitive.papamo.dev/pwa/#settings"
     } else {
         "https://16competitive.papamo.dev/pwa/"
@@ -240,6 +244,7 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     let (send, receive) = std::sync::mpsc::channel();
     struct Tray {
         labels: [&'static str; 4],
+        branding: Option<crate::branding::Branding>,
         events: std::sync::mpsc::Sender<Event>,
     }
     impl ksni::Tray for Tray {
@@ -247,10 +252,10 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
             "competitive16-web-helper".into()
         }
         fn title(&self) -> String {
-            TITLE.into()
+            self.branding.as_ref().map(|b| b.name.clone()).unwrap_or_else(|| TITLE.into())
         }
         fn icon_pixmap(&self) -> Vec<ksni::Icon> {
-            let rgba = icon();
+            let rgba = self.branding.as_ref().map(|b| b.rgba.clone()).unwrap_or_else(icon);
             let argb = rgba
                 .chunks_exact(4)
                 .flat_map(|p| [p[3], p[0], p[1], p[2]])
@@ -268,7 +273,7 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
             use ksni::menu::StandardItem;
             vec![
                 StandardItem {
-                    label: self.labels[0].into(),
+                    label: self.labels[0].replace("1.6 Competitive", self.branding.as_ref().map(|b|b.name.as_str()).unwrap_or("1.6 Competitive")),
                     activate: Box::new(|_| open(false)),
                     ..Default::default()
                 }
@@ -302,6 +307,7 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     let service = ksni::TrayService::new(Tray {
         labels: labels(&sys_locale::get_locale().unwrap_or_default()),
         events: send.clone(),
+        branding: crate::branding::current(),
     });
     let handle = service.handle();
     let worker = std::thread::spawn(move || {
@@ -330,7 +336,10 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
                 handle.shutdown();
                 break Ok(());
             }
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                let branding = crate::branding::current();
+                handle.update(move |tray| { if tray.branding != branding { tray.branding = branding; } });
+            }
             Err(error) => break Err(error.to_string()),
         }
     };
@@ -357,13 +366,27 @@ fn platform_run(presence: &crate::presence::Broker) -> Result<(), String> {
     let quit = MenuItem::new(text[3], true, None);
     menu.append_items(&[&website, &settings, &uninstall, &quit])
         .map_err(|e| e.to_string())?;
-    let _tray = TrayIconBuilder::new()
+    let tray = TrayIconBuilder::new()
         .with_tooltip(TITLE)
         .with_menu(Box::new(menu))
         .with_icon(Icon::from_rgba(icon(), 32, 32).map_err(|e| e.to_string())?)
         .build()
         .map_err(|e| e.to_string())?;
+    let mut shown = None;
+    let mut checked = std::time::Instant::now() - Duration::from_secs(2);
     loop {
+        if checked.elapsed() >= Duration::from_secs(1) {
+            let branding = crate::branding::current();
+            if branding != shown {
+                let name = branding.as_ref().map(|b| b.name.as_str()).unwrap_or(TITLE);
+                let rgba = branding.as_ref().map(|b| b.rgba.clone()).unwrap_or_else(icon);
+                tray.set_icon(Some(Icon::from_rgba(rgba,32,32).map_err(|e|e.to_string())?)).map_err(|e|e.to_string())?;
+                tray.set_tooltip(Some(name)).map_err(|e|e.to_string())?;
+                website.set_text(text[0].replace("1.6 Competitive", branding.as_ref().map(|b|b.name.as_str()).unwrap_or("1.6 Competitive")));
+                shown = branding;
+            }
+            checked = std::time::Instant::now();
+        }
         if !presence.needed() {
             return Ok(());
         }

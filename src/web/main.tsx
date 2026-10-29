@@ -1,13 +1,12 @@
 import { partnerAssetPath } from './partner-runtime'
 import './partner-login-capture'
-import { PartnerLoginController } from './PartnerLoginController'
+import { WebApp } from './WebApp'
 import './browser-api'
 import '../renderer/src/features/i18n/detect-initial-language'
 import '../renderer/src/assets/main.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from '../renderer/src/App'
 import { installDiagnosticLogCapture } from '../renderer/src/diagnostic-logs'
 
 if ('serviceWorker' in navigator) {
@@ -24,8 +23,7 @@ if (mobileOrTablet) {
   installDiagnosticLogCapture()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
-      <PartnerLoginController />
+      <WebApp />
     </StrictMode>
   )
 }

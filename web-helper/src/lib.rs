@@ -38,6 +38,18 @@ pub fn allowed_api_origin(value: &str, development: bool) -> Option<String> {
     Some(url.origin().ascii_serialization())
 }
 
+pub fn partner_for_web_origin(value: &str) -> Option<String> {
+    let origins: std::collections::HashMap<String, String> = serde_json::from_str(
+        include_str!("../../src/shared/partner-web-origins.json")
+    ).ok()?;
+    origins.get(value).cloned()
+}
+
+pub fn allowed_web_origin(value: &str, development: bool) -> Option<String> {
+    allowed_api_origin(value, development).or_else(||
+        partner_for_web_origin(value).map(|_| value.to_owned()))
+}
+
 pub fn parse_launch_link(value: &str, development: bool) -> Option<LaunchLink> {
     let url = Url::parse(value).ok()?;
     if url.scheme() != SCHEME || url.host_str()? != "join" ||
@@ -90,7 +102,7 @@ pub fn parse_check_link(value: &str, development: bool) -> Option<CheckLink> {
     let local_settings = if port.is_some() || token.is_some() || origin.is_some() {
         let port = port?.parse::<u16>().ok()?;
         let token = token?;
-        let origin = allowed_api_origin(&origin?, development)?;
+        let origin = allowed_web_origin(&origin?, development)?;
         if port < 49152 || token.len()!=64 || !token.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
         Some(LocalSettings {port,token,origin})
     } else {None};
@@ -146,6 +158,18 @@ mod tests {
         let link = format!("competitive16-helper://join/12345678-1234-4234-8234-123456789abc?api=https%3A%2F%2Feuw.16competitive.papamo.dev&handoff={}", "a".repeat(43));
         assert_eq!(allowed_api_origin("https://euw.16competitive.papamo.dev", false).as_deref(), Some("https://euw.16competitive.papamo.dev"));
         assert_eq!(parse_launch_link(&link, false).unwrap().api_origin, "https://euw.16competitive.papamo.dev");
+    }
+
+    #[test]
+    fn partner_browser_origin_never_becomes_an_api_origin() {
+        let origin="https://counterstrike.olaguergeyming.com";
+        assert_eq!(allowed_web_origin(origin,false).as_deref(),Some(origin));
+        assert!(allowed_api_origin(origin,false).is_none());
+        let link=format!("competitive16-helper://check-setup?api=https%3A%2F%2F16competitive.papamo.dev&handoff={}&localPort=55001&localToken={}&webOrigin={}","a".repeat(43),"b".repeat(64),origin);
+        assert_eq!(parse_check_link(&link,false).unwrap().local_settings.unwrap().origin,origin);
+        for bad in [format!("{origin}.evil.test"),format!("{origin}/path"),format!("{origin}?x=1"),"https://evil.test".into()] {
+            assert!(allowed_web_origin(&bad,false).is_none());
+        }
     }
 
     #[test]

@@ -10,6 +10,7 @@ mod runtime;
 mod self_update;
 mod settings_bridge;
 mod tray;
+mod branding;
 mod uninstall;
 #[cfg(windows)]
 mod windows_native;
@@ -107,6 +108,8 @@ fn helper_fingerprint() -> String {
         include_bytes!("settings_bridge.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
         include_bytes!("tray.rs").as_slice(),
+        include_bytes!("branding.rs").as_slice(),
+        include_bytes!("../../src/shared/partner-web-origins.json").as_slice(),
         include_bytes!("../../src/renderer/public/favicon-96x96.png").as_slice(),
         include_bytes!("presence.rs").as_slice(),
         include_bytes!("runtime.rs").as_slice(),
@@ -293,7 +296,7 @@ fn notice(message: &str) {
         .encode_wide()
         .chain(Some(0))
         .collect();
-    let title: Vec<u16> = std::ffi::OsStr::new("1.6 Competitive Helper")
+    let title: Vec<u16> = std::ffi::OsStr::new(&branding::text("1.6 Competitive Helper"))
         .encode_wide()
         .chain(Some(0))
         .collect();
@@ -307,7 +310,7 @@ fn notice(message: &str) {
     if Command::new("zenity")
         .args([
             "--info",
-            "--title=1.6 Competitive Helper",
+            &format!("--title={}", branding::text("1.6 Competitive Helper")),
             "--text",
             message,
         ])
@@ -320,13 +323,15 @@ fn notice(message: &str) {
 
 #[cfg(windows)]
 fn confirm(message: &str) -> bool {
+    let branded = branding::text(message);
+    let message = branded.as_str();
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, IDYES, MB_YESNO};
     let wide: Vec<u16> = std::ffi::OsStr::new(message)
         .encode_wide()
         .chain(Some(0))
         .collect();
-    let title: Vec<u16> = std::ffi::OsStr::new("1.6 Competitive Helper")
+    let title: Vec<u16> = std::ffi::OsStr::new(&branding::text("1.6 Competitive Helper"))
         .encode_wide()
         .chain(Some(0))
         .collect();
@@ -342,10 +347,12 @@ fn confirm(message: &str) -> bool {
 
 #[cfg(not(windows))]
 fn confirm(message: &str) -> bool {
+    let branded = branding::text(message);
+    let message = branded.as_str();
     Command::new("zenity")
         .args([
             "--question",
-            "--title=1.6 Competitive Helper",
+            &format!("--title={}", branding::text("1.6 Competitive Helper")),
             "--text",
             message,
         ])

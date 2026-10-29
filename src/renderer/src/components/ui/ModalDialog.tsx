@@ -1,3 +1,4 @@
+import { useAppName } from '../../features/partner-branding/partner-identity'
 import {
   useEffect,
   useRef,
@@ -74,6 +75,7 @@ export function ModalDialog({
 }: ModalDialogProps): JSX.Element | null {
   const theme = useEffectiveLauncherTheme()
   const { t } = useTranslation()
+  const appName = useAppName()
   const ref = useRef<HTMLDialogElement>(null)
   const backdropPressed = useRef(false)
   useEffect(() => {
@@ -173,7 +175,9 @@ export function ModalDialog({
                 <ChevronLeft className="size-3.5" aria-hidden="true" />
               </button>
             )}
-            <span className="min-w-0 flex-1 truncate text-xs">{label ?? '1.6 Competitive'}</span>
+            <span className="min-w-0 flex-1 truncate text-xs">
+              {label ?? appName ?? '1.6 Competitive'}
+            </span>
             <button
               type="button"
               className="vgui-window-close"

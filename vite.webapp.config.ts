@@ -18,6 +18,8 @@ for (const source of [
   'web-helper/src/settings_bridge.rs',
   'web-helper/src/self_update.rs',
   'web-helper/src/tray.rs',
+  'web-helper/src/branding.rs',
+  'src/shared/partner-web-origins.json',
   'src/renderer/public/favicon-96x96.png',
   'web-helper/src/presence.rs',
   'web-helper/src/runtime.rs',

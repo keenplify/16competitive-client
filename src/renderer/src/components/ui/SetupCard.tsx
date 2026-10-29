@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { isWebRuntime } from '../../web-runtime'
 import { Button } from './Button'
-import { Logo } from './Logo'
+import { PartnerLogo } from '../../features/partner-branding/PartnerLogo'
 
 interface SetupCardProps {
   eyebrow: string
@@ -53,7 +53,7 @@ export function SetupCard({
             className
           )}
         >
-          <div className="mb-7 size-14">{logo ?? <Logo className="size-full" />}</div>
+          <div className="mb-7 size-14">{logo ?? <PartnerLogo className="size-full" />}</div>
           <div key={contentKey} className={contentKey ? 'setup-step-enter' : undefined}>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">{eyebrow}</p>
             <h1 className="mt-2 min-h-10 text-3xl font-semibold tracking-tight">{title}</h1>

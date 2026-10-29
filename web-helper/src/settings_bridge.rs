@@ -739,7 +739,7 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     if port < 49152
         || token.len() != 64
         || !token.bytes().all(|b| b.is_ascii_hexdigit())
-        || competitive16_web_helper::allowed_api_origin(origin, cfg!(debug_assertions)).as_deref()
+        || competitive16_web_helper::allowed_web_origin(origin, cfg!(debug_assertions)).as_deref()
             != Some(origin)
     {
         return Err("Invalid local settings capability".into());
@@ -756,6 +756,7 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
         }
         Err(error) => return Err(error.to_string()),
     };
+    let _branding = crate::branding::Lease::start(origin);
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut last = Instant::now();
     while last.elapsed() < Duration::from_secs(30)
