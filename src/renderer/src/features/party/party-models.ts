@@ -22,6 +22,15 @@ const LOBBY_PRESENTATION_MODELS = Object.fromEntries(
 export const presentationModelPath = (modelPath: string): string =>
   LOBBY_PRESENTATION_MODELS[modelPath.toLowerCase()] ?? modelPath
 
+/** Recover the selected character's actual game path from its presentation alias. */
+export const sourcePlayerModelPath = (modelPath: string): string => {
+  const match = /^lobby\/(arctic|gign|gsg9|guerilla|leet|sas|terror|urban)_lobby\.mdl$/i.exec(
+    modelPath
+  )
+  const name = match?.[1].toLowerCase()
+  return name ? `player/${name}/${name}.mdl` : modelPath
+}
+
 export const modelForSlot = (slot: number, member: PartyMember | null): string => {
   const seed = member?.id ?? `open-slot-${slot}`
   let hash = 0

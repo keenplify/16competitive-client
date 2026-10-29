@@ -1094,8 +1094,6 @@ const api: Window['api'] = {
   models: {
     async read(relativePath: string): Promise<ArrayBuffer> {
       const normalized = relativePath.replace(/\\/g, '/').replace(/^models\//i, '')
-      const native = await readNativeModel(normalized)
-      if (native) return native
       if (normalized.startsWith('lobby/')) {
         const file = normalized.slice('lobby/'.length)
         if (!/^[a-z0-9_]+\.mdl$/i.test(file)) throw new Error('Invalid lobby model.')
@@ -1103,6 +1101,8 @@ const api: Window['api'] = {
           baseUrl: window.location.origin
         })
       }
+      const native = await readNativeModel(normalized)
+      if (native) return native
 
       const stockPlayer = normalized.match(
         /^player\/(arctic|gign|gsg9|guerilla|leet|sas|terror|urban)\/\1\.mdl$/i

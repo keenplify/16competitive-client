@@ -1,17 +1,14 @@
 import { getCachedSkinModel } from '../skins/skin-model-cache'
-import { lobbyAnimationIndexFor, lobbySequenceLabelFor } from './character-animation'
+import { lobbySequenceLabelFor } from './character-animation'
+import { buildLobbyPresentation } from './lobby-presentation'
+import { presentationModelPath, sourcePlayerModelPath } from './party-models'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import THREE from '../../libs/web-hlmv/lib/three'
 import { parseModelCached } from '../../libs/web-hlmv/lib/modelDataParser'
 import { buildTexture } from '../../libs/web-hlmv/lib/textureBuilder'
-import {
-  applyBoneTransforms,
-  createTexture,
-  prepareRenderData
-} from '../../libs/web-hlmv/lib/modelRenderer'
+import { applyBoneTransforms, createTexture } from '../../libs/web-hlmv/lib/modelRenderer'
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
-import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import type { PartyMember } from '../../../../shared/party'
 import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
 import { isGrenadeWeapon } from '../skins/weapon-categories'
@@ -50,7 +47,7 @@ type LoadedScene = {
 }
 
 const LOBBY_MODEL_PREFIX = 'lobby/'
-const LOBBY_PRESENTATION_CACHE_REVISION = 2
+const LOBBY_PRESENTATION_CACHE_REVISION = 3
 const MAX_CURRENT_PLAYER_POINTER_YAW = THREE.Math.degToRad(8)
 const MAX_CURRENT_PLAYER_POINTER_PITCH = THREE.Math.degToRad(4)
 
@@ -220,112 +217,45 @@ if (import.meta.hot) {
   import.meta.hot.data.partyModelSceneRevision = HOT_RENDER_REVISION
 }
 
-const buildLobbyPresentation = (
-  playerBuffer: ArrayBuffer,
-  weaponKey: string
-): CachedLobbyPresentation => {
-  const player = parseModelCached(playerBuffer)
-  const animationIndex = lobbyAnimationIndexFor(player, weaponKey)
-  const activeSequence = player.sequences[animationIndex]
-  const renderData = prepareRenderData(player, [animationIndex])
-  const boneNames = player.bones.map((bone) => bone.name.toLowerCase())
-  const upperBodyRoot = boneNames.findIndex((boneName) => boneName === 'bip01 spine')
-  const isUpperBodyBone = (boneIndex: number): boolean => {
-    let current = boneIndex
-    while (current >= 0) {
-      if (current === upperBodyRoot) return true
-      current = player.bones[current]?.parent ?? -1
-    }
-    return false
-  }
-  const boneTransforms = Array.from({ length: activeSequence?.numFrames ?? 0 }, (_, frame) =>
-    calcRotations(player, animationIndex, frame).map((matrix) => new Float32Array(matrix))
-  )
-  const meshes = renderData.flatMap((bodyPart, bodyPartIndex) =>
-    bodyPart.flatMap((subModel, subModelIndex) =>
-      subModel.map(({ geometryBuffers, uvMap }, meshIndex) => {
-        const sourceMesh = player.meshes[bodyPartIndex][subModelIndex][meshIndex]
-        const textureIndex = player.skinRef[sourceMesh.skinRef]
-        const texture = player.textures[textureIndex]
-        const { indices } = readFacesData(
-          player.triangles[bodyPartIndex][subModelIndex][meshIndex],
-          player.vertices[bodyPartIndex][subModelIndex],
-          texture ?? { width: 1, height: 1 }
-        )
-        const vertexBones = player.vertBoneBuffer[bodyPartIndex][subModelIndex]
-        return {
-          animationFrames: geometryBuffers[animationIndex].map(
-            (frame) => new Float32Array(frame.array)
-          ),
-          upperBodyMask: Uint8Array.from(indices, (vertexIndex) =>
-            isUpperBodyBone(vertexBones[vertexIndex]) ? 1 : 0
-          ),
-          uv: new Float32Array(uvMap.array),
-          textureIndex
-        }
-      })
-    )
-  )
-
-  return {
-    fps: activeSequence?.fps ?? 0,
-    frameCount: activeSequence?.numFrames ?? 0,
-    boneNames,
-    boneTransforms,
-    upperBodyPivots: boneTransforms.map((frame) => {
-      const transform = frame[upperBodyRoot]
-      return transform
-        ? new Float32Array([transform[12], transform[13], transform[14]])
-        : new Float32Array([0, 0, 0])
-    }),
-    meshes,
-    textures: player.textures.map((texture) => ({
-      pixels: buildTexture(playerBuffer, texture),
-      width: texture.width,
-      height: texture.height
-    }))
-  }
-}
-
 const loadPlayerPresentation = async (
   actor: PartySceneActor,
   weaponKey: string
 ): Promise<CachedLobbyPresentation> => {
-  const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${actor.modelPath}:${lobbySequenceLabelFor(weaponKey)}`
   const customSkinId = /^skin:([0-9a-f-]{36})$/i.exec(actor.modelPath)?.[1]
-  if (customSkinId) {
-    try {
-      return buildLobbyPresentation(await getCachedSkinModel(customSkinId), weaponKey)
-    } catch {
-      return buildLobbyPresentation(
-        await window.api.models.read(actor.fallbackModelPath),
-        weaponKey
-      )
-    }
+  const donorPath = actor.modelPath.startsWith(LOBBY_MODEL_PREFIX)
+    ? actor.modelPath
+    : presentationModelPath(actor.fallbackModelPath)
+  // Grenades retain the model's own weapon-specific aim sequence.
+  const animationBuffer =
+    !isGrenadeWeapon(weaponKey) && donorPath.startsWith(LOBBY_MODEL_PREFIX)
+      ? await window.api.models.read(donorPath).catch(() => undefined)
+      : undefined
+  let playerBuffer: ArrayBuffer
+  try {
+    playerBuffer = customSkinId
+      ? await getCachedSkinModel(customSkinId)
+      : await window.api.models.read(sourcePlayerModelPath(actor.modelPath))
+  } catch {
+    // No selected installation / unavailable custom model: preserve the bundled preview.
+    playerBuffer = await window.api.models.read(actor.fallbackModelPath).catch((error: unknown) => {
+      if (animationBuffer) return animationBuffer
+      throw error
+    })
   }
-  if (isGrenadeWeapon(weaponKey)) {
-    const lobbyModelName = actor.modelPath.match(/^lobby\/([a-z0-9_]+)_lobby\.mdl$/i)?.[1]
-    const stockModelPath = lobbyModelName
-      ? `player/${lobbyModelName}/${lobbyModelName}.mdl`
-      : actor.fallbackModelPath
-    const playerBuffer = await window.api.models.read(stockModelPath)
-    return buildLobbyPresentation(playerBuffer, weaponKey)
-  }
-  if (actor.modelPath.startsWith(LOBBY_MODEL_PREFIX)) {
-    const cached = await readCachedLobbyPresentation(cacheKey)
-    if (cached) return cached
-    try {
-      const playerBuffer = await window.api.models.read(actor.modelPath)
-      const presentation = buildLobbyPresentation(playerBuffer, weaponKey)
-      await writeCachedLobbyPresentation(cacheKey, presentation)
-      return presentation
-    } catch {
-      // Fall through to the selected installation's stock model.
-    }
-  }
-
-  const playerBuffer = await window.api.models.read(actor.fallbackModelPath)
-  return buildLobbyPresentation(playerBuffer, weaponKey)
+  const fingerprint = async (buffer: ArrayBuffer): Promise<string> =>
+    Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buffer)), (byte) =>
+      byte.toString(16).padStart(2, '0')
+    ).join('')
+  const [playerHash, animationHash] = await Promise.all([
+    fingerprint(playerBuffer),
+    animationBuffer ? fingerprint(animationBuffer) : 'own-animation'
+  ])
+  const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${playerHash}:${animationHash}:${lobbySequenceLabelFor(weaponKey)}`
+  const cached = await readCachedLobbyPresentation(cacheKey)
+  if (cached) return cached
+  const presentation = buildLobbyPresentation(playerBuffer, weaponKey, animationBuffer)
+  await writeCachedLobbyPresentation(cacheKey, presentation)
+  return presentation
 }
 
 const isWeaponTransformArray = (

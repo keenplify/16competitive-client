@@ -129,7 +129,8 @@ export const applyRootBoneRotation = (
 export const prepareRenderData = (
   modelData: ModelData,
   sequenceIndices?: readonly number[],
-  rootBoneRotation?: readonly [number, number, number]
+  rootBoneRotation?: readonly [number, number, number],
+  calculateBoneTransforms: typeof calcRotations = calcRotations
 ): MeshRenderData[][][] => {
   const startedAt = performance.now()
   const renderData: MeshRenderData[][][] = []
@@ -157,7 +158,10 @@ export const prepareRenderData = (
     selectedSequences && !selectedSequences.has(sequenceIndex)
       ? []
       : Array.from({ length: sequence.numFrames }, (_, frame) =>
-          applyRootBoneRotation(calcRotations(modelData, sequenceIndex, frame), rootBoneRotation)
+          applyRootBoneRotation(
+            calculateBoneTransforms(modelData, sequenceIndex, frame),
+            rootBoneRotation
+          )
         )
   )
   const invalidBoneTransforms = boneTransforms
