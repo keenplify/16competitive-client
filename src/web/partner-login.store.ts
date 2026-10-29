@@ -90,6 +90,21 @@ const verificationMessage = (code?: string): string => {
       return 'Verification could not be completed. Please try again.'
   }
 }
+// Log only protocol diagnostics, never error objects, request bodies, URLs or credentials.
+const logPartnerLoginFailure = (stage: string, error: unknown): void => {
+  const details = error as { code?: unknown; status?: unknown } | null
+  const code =
+    typeof details?.code === 'string' &&
+    /^(?:PARTNER_|INVALID_|ACCOUNT_)[A-Z_]{1,48}$/.test(details.code)
+      ? details.code
+      : 'REQUEST_FAILED'
+  console.warn('Sign-in could not be completed. Return to the partner app and press PLAY again.', {
+    stage,
+    code,
+    ...(typeof details?.status === 'number' ? { status: details.status } : {})
+  })
+}
+
 export const usePartnerLoginStore = create<State>((set, get) => ({
   phase: 'idle',
   preview: null,
@@ -104,6 +119,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
       return
     }
     if (incoming === 'invalid') {
+      logPartnerLoginFailure('capture', { code: 'INVALID_PARTNER_HANDOFF' })
       set({ phase: 'failed', error: 'failed' })
       return
     }
@@ -116,7 +132,8 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
       })
       if (get().phase === 'loading')
         set({ phase: 'ready', preview: parsePartnerLoginPreview(response, incoming.partnerId) })
-    } catch {
+    } catch (error) {
+      logPartnerLoginFailure('begin', error)
       if (get().phase === 'loading') set({ phase: 'failed', error: 'failed' })
     }
   },
@@ -152,6 +169,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
       })
       set({ phase: 'email' })
     } catch (error) {
+      logPartnerLoginFailure('email_start', error)
       set({
         phase: 'account_match',
         verificationError: verificationMessage((error as { code?: string }).code)
@@ -190,6 +208,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
         verificationMethod: null
       })
     } catch (error) {
+      logPartnerLoginFailure('verify_' + verificationMethod, error)
       set({
         phase: verificationMethod,
         verificationError: verificationMessage((error as { code?: string }).code)
@@ -233,6 +252,7 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
       await acceptPartnerSession(response, originalToken)
       set({ phase: 'done', preview: null, error: null })
     } catch (error) {
+      logPartnerLoginFailure('complete', error)
       const code = (error as { code?: string }).code
       if (code === 'PARTNER_USERNAME_TAKEN') {
         set({ phase: 'account_match', error: null, verificationError: null })

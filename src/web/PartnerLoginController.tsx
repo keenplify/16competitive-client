@@ -21,7 +21,7 @@ export function PartnerLoginController(): JSX.Element | null {
     if (phase === 'ready' && !error && authStatus !== 'restoring' && authStatus !== 'submitting')
       void complete('sign_in')
   }, [phase, error, complete, authStatus])
-  if (state.phase === 'idle' || state.phase === 'done') return null
+  if (state.phase === 'idle' || state.phase === 'done' || state.phase === 'failed') return null
   if (['account_match', 'password', 'email', 'email_sending', 'verifying'].includes(state.phase))
     return <PartnerAccountMatch />
   if (state.phase === 'waiting_login')
@@ -77,7 +77,7 @@ export function PartnerLoginController(): JSX.Element | null {
               partner: state.preview.partnerName,
               username: state.preview.username
             })
-          : t('partnerLogin.loading')}
+          : null}
         {state.preview?.email && <p className="mt-2 text-neutral-400">{state.preview.email}</p>}
       </div>
       <p className="min-h-16 text-sm text-neutral-300">

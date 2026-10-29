@@ -69,7 +69,9 @@ function harness({
   existing = false,
   collision = false,
   usernameCollision = false,
-  verificationFailure = false
+  verificationFailure = false,
+  beginFailure = null,
+  warnings = []
 } = {}) {
   const calls = []
   const accepted = []
@@ -99,7 +101,10 @@ function harness({
       getWebSessionToken: () => token,
       requestJson: async (path, options) => {
         calls.push({ path, options })
-        if (path.endsWith('/begin')) return preview()
+        if (path.endsWith('/begin')) {
+          if (beginFailure) throw beginFailure
+          return preview()
+        }
         if (path.endsWith('/email/start')) return { sent: true }
         if (
           path.endsWith('/complete') &&
@@ -111,7 +116,7 @@ function harness({
           (path.endsWith('/verify-password') || path.endsWith('/email/verify')) &&
           verificationFailure
         ) {
-          verificationFailure = false
+          ;((verificationFailure = false), (beginFailure = null), (warnings = []))
           throw Object.assign(new Error(), {
             code: path.endsWith('/verify-password')
               ? 'PARTNER_PASSWORD_INVALID'
@@ -142,7 +147,9 @@ function harness({
     }
   }
   const exports = {}
-  new Function('require', 'exports', storeSource)((name) => deps[name], exports)
+  new Function('require', 'exports', 'console', storeSource)((name) => deps[name], exports, {
+    warn: (...args) => warnings.push(args)
+  })
   return {
     store: exports.usePartnerLoginStore,
     calls,
@@ -295,4 +302,28 @@ test('automatic sign-in stops at ownership verification when a username is taken
   runControllerEffects(h.store)
   await new Promise((resolve) => setImmediate(resolve))
   assert.equal(h.calls.filter((call) => call.path.endsWith('/complete')).length, 1)
+})
+
+test('failed partner validation logs safe diagnostics without exposing credentials', async () => {
+  const warnings = []
+  const secret = 'sensitive-password-and-token'
+  const h = harness({
+    warnings,
+    beginFailure: Object.assign(new Error(secret), {
+      code: 'PARTNER_VALIDATION_FAILED',
+      status: 502,
+      token: secret
+    })
+  })
+  await h.store.getState().initialize()
+  assert.equal(h.store.getState().phase, 'failed')
+  assert.equal(h.accepted.length, 0)
+  assert.equal(warnings.length, 1)
+  assert.deepEqual(warnings[0][1], {
+    stage: 'begin',
+    code: 'PARTNER_VALIDATION_FAILED',
+    status: 502
+  })
+  assert.ok(!JSON.stringify(warnings).includes(secret))
+  assert.ok(!JSON.stringify(warnings).includes(raw))
 })
