@@ -3667,3 +3667,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Prevented crashes when loading character thumbnails.
 - Improved thumbnail and preview rendering performance.
+
+## v2026.1029.14 — 2026-10-29
+
+### Lobby
+
+- Improved lobby character animations.
+- Added support for compatible local player models in lobby previews.
