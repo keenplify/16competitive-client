@@ -3587,3 +3587,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Complete partner sign-in automatically after choosing account verification options.
 - Improve account verification during partner sign-in.
+
+## v2026.1029.5 — 2026-10-29
+
+### Partner sign-in
+
+- Improved verification retry handling during partner sign-in.
+- Failed sign-ins now return you to the login screen so you can try again.
