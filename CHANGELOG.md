@@ -3600,3 +3600,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner verification
 
 - Partner verification now accepts backend proofs valid for up to ten minutes.
+
+## v2026.1029.7 — 2026-10-29
+
+### Account & Sign-In
+
+- Improved partner account handoff and session switching.
+- Added clearer partner sign-in guidance.
+
+### GameHub
+
+- Improved returning to GameHub after partner sign-in.
+
+### Matchmaking
+
+- Improved native helper setup for web matchmaking.
