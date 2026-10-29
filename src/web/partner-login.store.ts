@@ -92,12 +92,16 @@ const verificationMessage = (code?: string): string => {
 }
 // Log only protocol diagnostics, never error objects, request bodies, URLs or credentials.
 const logPartnerLoginFailure = (stage: string, error: unknown): void => {
-  const details = error as { code?: unknown; status?: unknown } | null
+  const details = error as { code?: unknown; status?: unknown; message?: unknown } | null
   const code =
     typeof details?.code === 'string' &&
     /^(?:PARTNER_|INVALID_|ACCOUNT_)[A-Z_]{1,48}$/.test(details.code)
       ? details.code
-      : 'REQUEST_FAILED'
+      : ['INVALID_PARTNER_HANDOFF', 'INVALID_SESSION', 'SESSION_CHANGED'].includes(
+            typeof details?.message === 'string' ? details.message : ''
+          )
+        ? String(details?.message)
+        : 'REQUEST_FAILED'
   console.warn('Sign-in could not be completed. Return to the partner app and press PLAY again.', {
     stage,
     code,

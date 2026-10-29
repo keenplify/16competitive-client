@@ -51,7 +51,7 @@ const preview = () => ({
   partnerName: 'Partner',
   username: 'External player',
   email: null,
-  expiresAt: new Date(Date.now() + 100_000).toISOString()
+  expiresAt: new Date(Date.now() + 10 * 60_000).toISOString()
 })
 test('confirmation previews reject malformed, expired and mismatched identities', () => {
   assert.equal(parsePartnerLoginPreview(preview(), id).proof, proof)
@@ -59,6 +59,7 @@ test('confirmation previews reject malformed, expired and mismatched identities'
     { proof: raw + 'x' },
     { expiresAt: 'bad' },
     { expiresAt: new Date(0).toISOString() },
+    { expiresAt: new Date(Date.now() + 11 * 60_000).toISOString() },
     { partnerId: 'other' },
     { username: '' },
     { email: 42 }

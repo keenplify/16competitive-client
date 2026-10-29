@@ -16,7 +16,7 @@ export function parsePartnerLoginPreview(value: unknown, partnerId: string): Par
     typeof v.expiresAt !== 'string' ||
     !Number.isFinite(Date.parse(v.expiresAt)) ||
     Date.parse(v.expiresAt) <= Date.now() ||
-    Date.parse(v.expiresAt) > Date.now() + 180_000 ||
+    Date.parse(v.expiresAt) > Date.now() + 10 * 60_000 ||
     typeof v.partnerName !== 'string' ||
     v.partnerName.length > 128 ||
     typeof v.username !== 'string' ||
