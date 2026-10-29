@@ -3576,3 +3576,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Improved helper notice reliability when files are temporarily locked.
+
+## v2026.1029.4 — 2026-10-29
+
+### Match Controls
+
+- Keep in-game match controls within the available screen area.
+
+### Partner Sign-In
+
+- Complete partner sign-in automatically after choosing account verification options.
+- Improve account verification during partner sign-in.
