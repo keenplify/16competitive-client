@@ -3617,3 +3617,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed web helper sessions becoming idle unexpectedly.
 - Improved native helper setup and session reliability.
+
+## v2026.1029.9 — 2026-10-29
+
+### Partner sign-in
+
+- Improved partner sign-in and return flows.
+- Partner sessions now keep identity and branding consistent.
+- Added support for partner helper origins.
+
+### Session management
+
+- Sign out now redirects cleanly without adding an extra browser history entry.
+- Partner return actions are limited to partner sign-in sessions.
+
+### Web helper
+
+- Improved partner branding and setup guidance in the web helper.
