@@ -44,7 +44,7 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
       removeItem: (key) => cache.delete(key),
       setItem: (key, value) => cache.set(key, value)
     },
-    { location: { assign: (url) => redirects.push(url) } }
+    { location: { replace: (url) => redirects.push(url) } }
   )
   return {
     api: exports.browserAuthApi,

@@ -561,7 +561,7 @@ export const browserAuthApi: AuthApi = {
     } finally {
       clearWebSessionToken()
       clearCachedSession()
-      if (returnUrl) window.location.assign(returnUrl)
+      if (returnUrl) window.location.replace(returnUrl)
     }
   }
 }
