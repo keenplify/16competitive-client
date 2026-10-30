@@ -1,4 +1,6 @@
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
+import { usePartnerPresenceStore } from '../partner-branding/partner-presence.store'
+import { PartnerServerSession } from '../partner-branding/PartnerServerSession'
 import { PlayerActivity } from './PlayerActivity'
 import { MatchmakingMapPool } from './MatchmakingMapPool'
 import { QueueWarmupPanel } from './QueueWarmupPanel'
@@ -76,6 +78,9 @@ export function PlayPage({
   const communityText = useCommunityText()
   const branding = usePartnerBrandingStore((state) => state.branding)
   const player = useAuthStore((state) => state.session?.player)
+  const partnerSession = usePartnerPresenceStore((state) => state.presence)
+  const partnerAccountId = usePartnerPresenceStore((state) => state.accountId)
+  const dismissedPartnerSession = usePartnerPresenceStore((state) => state.dismissedConnectionId)
   const hasCommunityServers = usePartnerServersStore(
     (state) =>
       state.accountId === player?.id &&
@@ -330,6 +335,16 @@ export function PlayPage({
     : null
 
   if (
+    player &&
+    partnerAccountId === player.id &&
+    partnerSession &&
+    dismissedPartnerSession !== partnerSession.connectionId &&
+    !['countdown', 'starting_server', 'server_ready'].includes(queueStatus)
+  ) {
+    return <PartnerServerSession presence={partnerSession} currentPlayerId={player.id} />
+  }
+
+  if (
     (match && (queueStatus === 'countdown' || queueStatus === 'starting_server')) ||
     (queueStatus === 'server_ready' && connectionDetails)
   ) {
@@ -416,26 +431,27 @@ export function PlayPage({
                 </Button>
               )}
               {(!hideDesktopOnlyFeatures || manualConnectionAllowed) && (
-                <Button
-                  className="w-full "
+                <FindMatchButton
+                  className="h-11 w-full min-w-0 px-4 text-sm font-semibold tracking-normal normal-case"
                   disabled={
                     webRuntime
                       ? !manualConnectionAllowed || !retryWindowOpen
                       : !gameExited || !retryWindowOpen
                   }
-                  variant="primary"
                   onClick={() => void handleReconnect()}
                 >
-                  {webRuntime
-                    ? manualConnectionAllowed
-                      ? 'Launch Counter-Strike'
-                      : 'Use desktop launcher for ranked'
-                    : gameExited
-                      ? retryWindowOpen
-                        ? 'Reconnect to match'
-                        : `Reconnect in ${copyWaitSeconds}s`
-                      : 'Counter-Strike is launching…'}
-                </Button>
+                  <span className="relative z-10">
+                    {webRuntime
+                      ? manualConnectionAllowed
+                        ? 'Launch Counter-Strike'
+                        : 'Use desktop launcher for ranked'
+                      : gameExited
+                        ? retryWindowOpen
+                          ? 'Reconnect to match'
+                          : `Reconnect in ${copyWaitSeconds}s`
+                        : 'Counter-Strike is launching…'}
+                  </span>
+                </FindMatchButton>
               )}
               {manualConnectionAllowed && (
                 <div className="flex items-center gap-2">

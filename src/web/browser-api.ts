@@ -1,3 +1,4 @@
+import { customGameInstallationHeaders } from './custom-game-installation'
 import { partnerAssetPath } from './partner-runtime'
 import { loadBrowserCommunityDirectory } from './partner-community-context'
 import { saveBrowserCrosshair } from './crosshair-settings'
@@ -235,11 +236,25 @@ const jsonPost = <T>(path: string, body?: unknown): Promise<T> =>
     }
   })
 
+async function customGameRequest<T>(
+  path: string,
+  options: Parameters<typeof requestJson>[1] = {}
+): Promise<T> {
+  const accountToken = getWebSessionToken()
+  const installationHeaders = await customGameInstallationHeaders(() =>
+    nativeHelperSettings({ action: 'get' })
+  )
+  if (getWebSessionToken() !== accountToken) throw new Error('Session changed.')
+  const headers = new Headers(options.init?.headers)
+  for (const [key, value] of Object.entries(installationHeaders)) headers.set(key, value)
+  return requestJson<T>(path, { ...options, init: { ...options.init, headers } })
+}
+
 const customGames: CustomGamesApi = {
   async list(selectedNodeId) {
     const nodes = await browserMatchmakingApi.getNodes()
     return loadCustomGameList(nodes, selectedNodeId, async (node) => {
-      const result = await requestJson<{ rooms: CustomGameRoom[] }>('/custom-games', {
+      const result = await customGameRequest<{ rooms: CustomGameRoom[] }>('/custom-games', {
         authenticated: true,
         baseUrl: node.publicApiUrl,
         clearOnUnauthorized: false
@@ -249,14 +264,14 @@ const customGames: CustomGamesApi = {
   },
   async mine(host) {
     return (
-      await requestJson<{ room: CustomGameRoom | null }>('/custom-games/mine', {
+      await customGameRequest<{ room: CustomGameRoom | null }>('/custom-games/mine', {
         authenticated: true,
         baseUrl: host
       })
     ).room
   },
   async getChatHistory(roomId, host) {
-    const result = await requestJson<{ messages: CustomGameChatMessage[] }>(
+    const result = await customGameRequest<{ messages: CustomGameChatMessage[] }>(
       `/custom-games/${encodeURIComponent(roomId)}/messages`,
       { authenticated: true, baseUrl: host }
     )
@@ -269,7 +284,7 @@ const customGames: CustomGamesApi = {
     return result.messages
   },
   async sendChatMessage(roomId, message, host) {
-    const result = await requestJson<{ message: CustomGameChatMessage }>(
+    const result = await customGameRequest<{ message: CustomGameChatMessage }>(
       `/custom-games/${encodeURIComponent(roomId)}/messages`,
       {
         authenticated: true,
@@ -296,7 +311,7 @@ const customGames: CustomGamesApi = {
       ? available.find((node) => node.id === preferences.selectedNodeId)
       : available.sort((left, right) => latency(left) - latency(right))[0]
     if (!target) throw new Error('No custom game server is available for your selection.')
-    const result = await requestJson<{ room: CustomGameRoom }>('/custom-games', {
+    const result = await customGameRequest<{ room: CustomGameRoom }>('/custom-games', {
       authenticated: true,
       baseUrl: target.publicApiUrl,
       init: { method: 'POST', body: JSON.stringify(settings) }
@@ -308,15 +323,18 @@ const customGames: CustomGamesApi = {
   },
   async update(roomId, settings, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(`/custom-games/${encodeURIComponent(roomId)}`, {
-        authenticated: true,
-        baseUrl: host,
-        init: { method: 'PATCH', body: JSON.stringify(settings) }
-      })
+      await customGameRequest<{ room: CustomGameRoom }>(
+        `/custom-games/${encodeURIComponent(roomId)}`,
+        {
+          authenticated: true,
+          baseUrl: host,
+          init: { method: 'PATCH', body: JSON.stringify(settings) }
+        }
+      )
     ).room
   },
   async join(roomId, password, host) {
-    const result = await requestJson<{ room: CustomGameRoom }>(
+    const result = await customGameRequest<{ room: CustomGameRoom }>(
       `/custom-games/${encodeURIComponent(roomId)}/join`,
       {
         authenticated: true,
@@ -332,7 +350,7 @@ const customGames: CustomGamesApi = {
   },
   async leave(roomId, host) {
     return (
-      await requestJson<{ room: CustomGameRoom | null }>(
+      await customGameRequest<{ room: CustomGameRoom | null }>(
         `/custom-games/${encodeURIComponent(roomId)}/leave`,
         { authenticated: true, baseUrl: host, init: { method: 'POST' } }
       )
@@ -340,7 +358,7 @@ const customGames: CustomGamesApi = {
   },
   async start(roomId, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(
+      await customGameRequest<{ room: CustomGameRoom }>(
         `/custom-games/${encodeURIComponent(roomId)}/start`,
         {
           authenticated: true,
@@ -352,7 +370,7 @@ const customGames: CustomGamesApi = {
   },
   async addBot(roomId, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(
+      await customGameRequest<{ room: CustomGameRoom }>(
         `/custom-games/${encodeURIComponent(roomId)}/bots`,
         {
           authenticated: true,
@@ -364,7 +382,7 @@ const customGames: CustomGamesApi = {
   },
   async setTeamCapacity(roomId, team, capacity, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(
+      await customGameRequest<{ room: CustomGameRoom }>(
         `/custom-games/${encodeURIComponent(roomId)}/team-capacity`,
         {
           authenticated: true,
@@ -376,7 +394,7 @@ const customGames: CustomGamesApi = {
   },
   async moveMember(roomId, playerId, team, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(
+      await customGameRequest<{ room: CustomGameRoom }>(
         `/custom-games/${encodeURIComponent(roomId)}/members/${encodeURIComponent(playerId)}/team`,
         {
           authenticated: true,
@@ -388,7 +406,7 @@ const customGames: CustomGamesApi = {
   },
   async moveServer(roomId, targetNodeId, host) {
     return (
-      await requestJson<{ room: CustomGameRoom }>(
+      await customGameRequest<{ room: CustomGameRoom }>(
         `/custom-games/${encodeURIComponent(roomId)}/move`,
         {
           authenticated: true,
@@ -400,7 +418,7 @@ const customGames: CustomGamesApi = {
   },
   async kick(roomId, playerId, host) {
     return (
-      await requestJson<{ room: CustomGameRoom | null }>(
+      await customGameRequest<{ room: CustomGameRoom | null }>(
         `/custom-games/${encodeURIComponent(roomId)}/members/${encodeURIComponent(playerId)}`,
         { authenticated: true, baseUrl: host, init: { method: 'DELETE' } }
       )

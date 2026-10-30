@@ -1,13 +1,13 @@
+import { PlayerVoiceControls } from '../voice/PlayerVoiceControls'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useProfileStore } from '../profile/profile.store'
 import { useRef, useState, type JSX, type MouseEvent } from 'react'
-import { Flag, UserPlus, UserRound, Volume2, VolumeX } from 'lucide-react'
+import { Flag, UserPlus, UserRound } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
 import type { PlayerReportReason, QueuedPlayer } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
-import { preferenceFor, useVoicePreferencesStore } from '../voice/voice-preferences.store'
 import { useFriendsStore } from '../friends/friends.store'
 import { useTranslation } from '../i18n/i18n'
 
@@ -35,8 +35,6 @@ export function InGameRoster({
   freeForAll = false
 }: Props): JSX.Element {
   const { t } = useTranslation()
-  const preferences = useVoicePreferencesStore((state) => state.preferences)
-  const setPreference = useVoicePreferencesStore((state) => state.setPreference)
   const [target, setTarget] = useState<QueuedPlayer | null>(null)
   const [reason, setReason] = useState<PlayerReportReason>('CHEATING')
   const [description, setDescription] = useState('')
@@ -117,7 +115,6 @@ export function InGameRoster({
               )}
               {players.map((player) => {
                 const own = player.id === currentPlayerId
-                const preference = preferenceFor(preferences, player.id)
                 return (
                   <li
                     key={player.id}
@@ -133,42 +130,7 @@ export function InGameRoster({
                     </span>
                     {!own && (
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="grid size-9 place-items-center  border border-white/10 text-neutral-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400"
-                          aria-label={`${preference.muted ? 'Unmute' : 'Mute'} ${player.username}`}
-                          aria-pressed={preference.muted}
-                          onClick={() =>
-                            setPreference(player.id, { ...preference, muted: !preference.muted })
-                          }
-                        >
-                          {preference.muted ? (
-                            <VolumeX className="size-4" />
-                          ) : (
-                            <Volume2 className="size-4" />
-                          )}
-                        </button>
-                        <label className="flex items-center gap-2 text-xs text-neutral-400">
-                          <span className="sr-only">{player.username} volume</span>
-                          <input
-                            aria-label={`${player.username} volume`}
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={Math.round(preference.volume * 100)}
-                            disabled={preference.muted}
-                            className="w-20 accent-sky-400 disabled:opacity-40 sm:w-24"
-                            onChange={(event) =>
-                              setPreference(player.id, {
-                                ...preference,
-                                volume: Number(event.target.value) / 100
-                              })
-                            }
-                          />
-                          <span className="w-8 text-right tabular-nums">
-                            {Math.round(preference.volume * 100)}%
-                          </span>
-                        </label>
+                        <PlayerVoiceControls playerId={player.id} username={player.username} />
                         <button
                           type="button"
                           disabled={reportedIds.includes(player.id)}

@@ -10,10 +10,39 @@ import {
   parseCommunityHistory,
   parseCommunityMembers,
   communityMembersPath,
-  parsePartnerServerStatuses
+  parsePartnerServerStatuses,
+  parsePartnerPresence
 } from '../src/shared/partner-community.ts'
 import { parseServerInfo, queryServerInfo } from '../src/main/game/partner-server-query.ts'
 const id = '12345678-1234-1234-1234-123456789abc'
+
+test('server-session presence validates its roster and remains compatible with older APIs', () => {
+  const presence = {
+    connectionId: id,
+    server: { id, name: 'Fixture', host: 'fixture.test', port: 27015 },
+    team: 2,
+    voiceMode: 'team',
+    seenAt: new Date().toISOString()
+  }
+  assert.equal(parsePartnerPresence(presence).players, undefined)
+  assert.deepEqual(
+    parsePartnerPresence({
+      ...presence,
+      communityId: id,
+      map: 'de_dust2',
+      players: [{ id, username: 'Fixture' }]
+    }).players,
+    [{ id, username: 'Fixture' }]
+  )
+  for (const extra of [
+    { players: [{ id: 'invalid', username: 'x' }] },
+    { players: [{ id, username: 'x\n' }] },
+    { players: Array(65).fill({ id, username: 'x' }) },
+    { map: '../secret' },
+    { communityId: 'invalid' }
+  ])
+    assert.throws(() => parsePartnerPresence({ ...presence, ...extra }))
+})
 const strings = (values) => Buffer.from(values.join('\0') + '\0')
 const modern = Buffer.concat([
   Buffer.from([255, 255, 255, 255, 0x49, 48]),

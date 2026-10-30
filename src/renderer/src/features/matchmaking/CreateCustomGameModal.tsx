@@ -5,6 +5,7 @@ import { ModalHeader } from '../../components/ui/ModalHeader'
 import { CUSTOM_GAME_MODES, type CustomGameMode } from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { FindMatchButton } from './FindMatchButton'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useTranslation } from '../i18n/i18n'
@@ -151,17 +152,17 @@ export function CreateCustomGameModal({
             <Button variant="ghost" type="button" disabled={submitting} onClick={close}>
               {t('customRoom.cancel')}
             </Button>
-            <Button
-              className="min-w-36"
+            <FindMatchButton
+              className="h-11 min-w-36 px-4 text-sm font-semibold tracking-normal normal-case"
               aria-busy={submitting}
               type="submit"
               disabled={disabled || submitting || !selectedMapId}
             >
-              <span className="flex size-4 shrink-0 items-center justify-center">
+              <span className="absolute left-2 flex size-4 shrink-0 items-center justify-center">
                 {submitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
               </span>
-              {t('customGames.create')}
-            </Button>
+              <span className="relative z-10">{t('customGames.create')}</span>
+            </FindMatchButton>
           </footer>
         </form>
       </ModalDialog>

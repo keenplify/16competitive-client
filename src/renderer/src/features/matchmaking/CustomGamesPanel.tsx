@@ -18,6 +18,7 @@ import {
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import type { MatchmakingNode } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
+import { FindMatchButton } from './FindMatchButton'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { CustomGamePlayerRank } from './CustomGamePlayerRank'
 import { RoomSettingsModal } from './RoomSettingsModal'
@@ -504,14 +505,14 @@ export function CustomGamesPanel({
                 {selectedNodeId === null ? 'Rooms across all servers' : 'Rooms on this server'}
               </h3>
               <div className="flex items-center gap-2">
-                <Button
-                  className="h-8 gap-1.5 px-3 text-xs"
+                <FindMatchButton
+                  className="h-8 min-w-0 gap-1.5 px-3 text-xs font-semibold tracking-normal normal-case"
                   disabled={disabled}
                   onClick={openCreateModal}
                 >
                   <Plus className="size-4" aria-hidden="true" />
-                  Create room
-                </Button>
+                  <span className="relative z-10">{t('customGames.create')}</span>
+                </FindMatchButton>
                 <Button
                   className="size-8 p-0"
                   variant="secondary"

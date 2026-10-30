@@ -94,6 +94,9 @@ export interface PartnerPresence {
   team: number
   voiceMode: 'off' | 'ffa' | 'team'
   seenAt: string
+  communityId?: string
+  map?: string | null
+  players?: { id: string; username: string }[]
 }
 export function parsePartnerPresence(input: unknown): PartnerPresence {
   if (!input || typeof input !== 'object') throw new Error('Invalid partner presence')
@@ -111,12 +114,38 @@ export function parsePartnerPresence(input: unknown): PartnerPresence {
   )
     throw new Error('Invalid partner presence')
   const server = parseCommunityBranding({ servers: [value.server] }).servers[0]
+  const uuid = (id: unknown): id is string =>
+    typeof id === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
+  if (
+    (value.communityId !== undefined && !uuid(value.communityId)) ||
+    (value.map !== undefined &&
+      value.map !== null &&
+      (typeof value.map !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(value.map))) ||
+    (value.players !== undefined &&
+      (!Array.isArray(value.players) ||
+        value.players.length > 64 ||
+        value.players.some((player: unknown) => {
+          if (!player || typeof player !== 'object') return true
+          const row = player as Record<string, unknown>
+          return (
+            !uuid(row.id) ||
+            typeof row.username !== 'string' ||
+            row.username.length < 1 ||
+            row.username.length > 64 ||
+            [...row.username].some((character) => character.charCodeAt(0) < 32)
+          )
+        })))
+  )
+    throw new Error('Invalid partner presence roster')
   return {
     connectionId: value.connectionId,
     server,
     team: value.team,
     voiceMode: value.voiceMode as PartnerPresence['voiceMode'],
-    seenAt: value.seenAt
+    seenAt: value.seenAt,
+    communityId: value.communityId as string | undefined,
+    map: value.map as string | null | undefined,
+    players: value.players as PartnerPresence['players']
   }
 }
 export interface PartnerLaunchGroup {

@@ -112,6 +112,7 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = fa
     '../../../../shared/partner-community': { serverIsFull: () => false },
     'tailwind-merge': { twMerge: (...values) => values.filter(Boolean).join(' ') },
     '../../components/ui/Button': { Button: 'Button' },
+    '../matchmaking/FindMatchButton': { FindMatchButton: 'FindMatchButton' },
     '../../components/ui/TabList': { TabList: 'TabList' }
   }
   const source = ts.transpileModule(
@@ -161,14 +162,8 @@ test('web partners without desktop downloads still display and filter CS13 serve
     1
   )
   // Play opens helper setup when it is unavailable.
-  assert.equal(
-    legacy.find((node) => node.type === 'Button' && node.props.className.includes('h-12')).props
-      .disabled,
-    false
-  )
-  const play = legacy.find(
-    (node) => node.type === 'Button' && node.props.className.includes('h-12')
-  )
+  assert.equal(legacy.find((node) => node.type === 'FindMatchButton').props.disabled, false)
+  const play = legacy.find((node) => node.type === 'FindMatchButton')
   play.props.onClick()
   assert.equal(legacy.actions.setup, 1)
   assert.equal(legacy.actions.connect, 0)
@@ -177,7 +172,7 @@ test('web partners without desktop downloads still display and filter CS13 serve
 
 test('a ready web helper enables CS13 community connection without launcher-only messaging', () => {
   const nodes = renderPanel('cs13', 'legacy', true)
-  const play = nodes.find((node) => node.type === 'Button' && node.props.className.includes('h-12'))
+  const play = nodes.find((node) => node.type === 'FindMatchButton')
   assert.equal(play.props.disabled, false)
   play.props.onClick()
   assert.equal(nodes.actions.connect, 1)
