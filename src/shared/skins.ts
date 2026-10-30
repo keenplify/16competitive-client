@@ -1,6 +1,10 @@
 import type { PaymentOrder, PaymentSnapshot } from './payments'
 
 export const SKIN_CHANNELS = {
+  musicKits: 'skins:music-kits',
+  musicBuy: 'skins:music-buy',
+  musicEquip: 'skins:music-equip',
+  musicPreview: 'skins:music-preview',
   payments: 'skins:payments',
   createPayment: 'skins:create-payment',
   createManualPayment: 'skins:create-manual-payment',
@@ -138,6 +142,10 @@ export interface SkinGift {
 }
 
 export interface SkinsApi {
+  musicKits(): Promise<import('./music-kits').MusicKitSnapshot>
+  musicBuy(id: string, expectedPrice: number): Promise<{ points: number }>
+  musicEquip(id: string | null, team: import('./music-kits').MusicTeam): Promise<void>
+  musicPreview(id: string, event: import('./music-kits').MusicEvent): Promise<ArrayBuffer>
   payments(): Promise<PaymentSnapshot>
   createManualPayment(
     requestId: string,

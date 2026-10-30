@@ -1,3 +1,4 @@
+import { MusicKits } from './MusicKits'
 import { useTranslation } from '../i18n/i18n'
 import { getSkinAnimation } from './skin-model-presentation'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -301,6 +302,7 @@ export function ShopPage(): JSX.Element {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
+            <MusicKits />
             <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code

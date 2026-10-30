@@ -1,6 +1,6 @@
 import { ProfileLoadout } from './ProfileLoadout'
 import { ProfileHistory } from './ProfileHistory'
-import { useEffect, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { useAuthStore } from '../auth/auth.store'
 import { useProfileStore } from './profile.store'
@@ -14,6 +14,7 @@ import { MatchHistoryPage } from './MatchHistoryPage'
 import { OperationPage } from '../operations/OperationPage'
 
 export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
+  const [toolbarTarget, setToolbarTarget] = useState<HTMLDivElement | null>(null)
   const accountId = useAuthStore((state) => state.session?.player.id)
   const id = playerId ?? accountId
   const own = id === accountId
@@ -39,23 +40,28 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
     >
       <div className="mx-auto w-full max-w-[1800px]">
         {
-          <TabList
-            className="profile-tabs sticky top-0 z-10 mt-4"
-            ariaLabel={t('profile.sections')}
-            value={visibleTab}
-            items={[
-              { value: 'overview', label: t('profile.overview') },
-              { value: 'skins', label: t('profile.loadout') },
-              { value: 'matches', label: t('profile.history') },
-              ...(own && !playerId
-                ? [{ value: 'operation' as const, label: t('profile.operation') }]
-                : [])
-            ]}
-            onChange={(next) => {
-              if (playerId && next !== 'operation') setPublicTab(next)
-              else setTab(next)
-            }}
-          />
+          <div className="profile-toolbar sticky top-0 z-10 flex flex-wrap items-end justify-between gap-3">
+            <TabList
+              className="profile-tabs min-w-0 flex-1"
+              ariaLabel={t('profile.sections')}
+              value={visibleTab}
+              items={[
+                { value: 'overview', label: t('profile.overview') },
+                { value: 'skins', label: t('profile.loadout') },
+                { value: 'matches', label: t('profile.history') },
+                ...(own && !playerId
+                  ? [{ value: 'operation' as const, label: t('profile.operation') }]
+                  : [])
+              ]}
+              onChange={(next) => {
+                if (playerId && next !== 'operation') setPublicTab(next)
+                else setTab(next)
+              }}
+            />
+            {visibleTab === 'skins' && own && !playerId && (
+              <div ref={setToolbarTarget} className="flex min-h-8 shrink-0 items-center pb-1" />
+            )}
+          </div>
         }
         {visibleTab === 'overview' || !own || Boolean(playerId) ? (
           <div>
@@ -90,7 +96,7 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
             )}
           </div>
         ) : visibleTab === 'skins' ? (
-          <SkinsPage />
+          <SkinsPage toolbarTarget={toolbarTarget} />
         ) : visibleTab === 'matches' ? (
           <MatchHistoryPage showHeader={false} />
         ) : (

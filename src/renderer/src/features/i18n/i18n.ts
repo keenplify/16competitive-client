@@ -1,3 +1,4 @@
+import { musicKitTranslations } from '../../../../shared/music-kit-translations'
 import { brandAppText, useAppName } from '../partner-branding/partner-identity'
 import { characterTranslations } from './character-translations'
 import { communityMusicTranslations } from './community-music-translations'
@@ -53,6 +54,7 @@ export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 const english = {
   ...roomSettingsTranslations.en,
   ...queueAgainTranslations.en,
+  ...musicKitTranslations.en,
   ...launcherThemeTranslations.en,
   ...communityMusicTranslations.en,
   ...mapFeedbackTranslations.en,
@@ -226,6 +228,7 @@ export type TranslationParams = Record<string, string | number>
 const russian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ru,
   ...queueAgainTranslations.ru,
+  ...musicKitTranslations.ru,
   ...launcherThemeTranslations.ru,
   ...communityMusicTranslations.ru,
   ...mapFeedbackTranslations.ru,
@@ -399,6 +402,7 @@ const russian: Record<TranslationKey, string> = {
 const taglish: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.tl,
   ...queueAgainTranslations.tl,
+  ...musicKitTranslations.tl,
   ...launcherThemeTranslations.tl,
   ...communityMusicTranslations.tl,
   ...mapFeedbackTranslations.tl,
@@ -574,6 +578,7 @@ const taglish: Record<TranslationKey, string> = {
 const thai: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.th,
   ...queueAgainTranslations.th,
+  ...musicKitTranslations.th,
   ...launcherThemeTranslations.th,
   ...communityMusicTranslations.th,
   ...mapFeedbackTranslations.th,
@@ -745,6 +750,7 @@ const thai: Record<TranslationKey, string> = {
 const indonesian: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.id,
   ...queueAgainTranslations.id,
+  ...musicKitTranslations.id,
   ...launcherThemeTranslations.id,
   ...communityMusicTranslations.id,
   ...mapFeedbackTranslations.id,
@@ -923,6 +929,7 @@ const indonesian: Record<TranslationKey, string> = {
 const portuguese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.pt,
   ...queueAgainTranslations.pt,
+  ...musicKitTranslations.pt,
   ...launcherThemeTranslations.pt,
   ...communityMusicTranslations.pt,
   ...mapFeedbackTranslations.pt,
@@ -1101,6 +1108,7 @@ const portuguese: Record<TranslationKey, string> = {
 const japanese: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.ja,
   ...queueAgainTranslations.ja,
+  ...musicKitTranslations.ja,
   ...launcherThemeTranslations.ja,
   ...communityMusicTranslations.ja,
   ...mapFeedbackTranslations.ja,
@@ -1277,6 +1285,7 @@ const japanese: Record<TranslationKey, string> = {
 const hindi: Record<TranslationKey, string> = {
   ...roomSettingsTranslations.hi,
   ...queueAgainTranslations.hi,
+  ...musicKitTranslations.hi,
   ...launcherThemeTranslations.hi,
   ...communityMusicTranslations.hi,
   ...mapFeedbackTranslations.hi,

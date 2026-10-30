@@ -1,3 +1,6 @@
+import { createPortal } from 'react-dom'
+import { MusicKitInventory, MusicKitSlot } from './MusicKitLoadout'
+import { useMusicKitsStore } from './music-kits.store'
 import { STOCK_CHARACTERS } from '../../../../shared/skins'
 import { CharacterPanel } from './CharacterPanel'
 import { useCharacterLoadoutStore } from './character-loadout.store'
@@ -25,7 +28,6 @@ import {
   type WeaponCategory
 } from './weapon-categories'
 import { isWebRuntime } from '../../web-runtime'
-import { useHideDesktopOnlyFeatures } from '../community/links'
 
 type Team = 'ct' | 't'
 type LoadoutGroup = Exclude<
@@ -95,9 +97,15 @@ const defaultPlayerModelPath = (weaponKey: string): string =>
 const errorText = (reason: unknown): string =>
   reason instanceof Error ? reason.message : 'Could not update your loadout.'
 
-export function SkinsPage(): JSX.Element {
+export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }): JSX.Element {
+  const musicFilter = useMusicKitsStore((s) => s.filterTeam !== null)
+  const setMusicFilter = useMusicKitsStore((s) => s.setFilterTeam)
+  const musicSnapshot = useMusicKitsStore((s) => s.snapshot)
+  const musicPending = useMusicKitsStore((s) => s.pending)
+  useEffect(() => {
+    void useMusicKitsStore.getState().load()
+  }, [])
   const webMode = isWebRuntime()
-  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [changingId, setChangingId] = useState<string | null>(null)
@@ -207,13 +215,15 @@ export function SkinsPage(): JSX.Element {
     (owned) => owned.equippedAt && teamWeaponKeys.has(owned.skin.weaponKey)
   )
 
-  const selectTeam = (nextTeam: Team): void => {
+  const selectTeam = (nextTeam: Team, clearMusic = false): void => {
+    setMusicFilter(clearMusic ? null : musicFilter ? nextTeam : null)
     setTeam(nextTeam)
     setCategory('all')
     setSelectedWeapon(null)
   }
 
   const selectLoadoutWeapon = (weaponKey: string): void => {
+    setMusicFilter(null)
     setSelectedWeapon(weaponKey)
     setCategory('all')
   }
@@ -271,9 +281,18 @@ export function SkinsPage(): JSX.Element {
   }
 
   const unequipAllForTeam = (): void => {
-    if (loadoutLocked || equippedForTeam.length === 0 || unequippingTeam) return
+    if (
+      loadoutLocked ||
+      (equippedForTeam.length === 0 && !musicSnapshot?.equipped[team]) ||
+      unequippingTeam ||
+      musicPending
+    )
+      return
     setUnequippingTeam(true)
-    void Promise.all(equippedForTeam.map((owned) => window.api.skins.unequip(owned.skin.id)))
+    void Promise.all([
+      ...equippedForTeam.map((owned) => window.api.skins.unequip(owned.skin.id)),
+      window.api.skins.musicEquip(null, team).then(() => useMusicKitsStore.getState().load())
+    ])
       .then(() => window.api.skins.mine())
       .then((inventory) => setSkins(inventory))
       .catch((reason: unknown) => toast.error(errorText(reason)))
@@ -356,79 +375,94 @@ export function SkinsPage(): JSX.Element {
         Retry inventory
       </Button>
     )
+  const loadoutActions = (
+    <div className="flex items-center gap-2">
+      <Button
+        className="h-8 w-32 rounded-none bg-transparent px-2.5 text-[9px] text-rose-300 hover:bg-transparent hover:text-rose-200 disabled:bg-transparent"
+        variant="ghost"
+        disabled={
+          loadoutLocked ||
+          unequippingTeam ||
+          musicPending ||
+          (equippedForTeam.length === 0 && !musicSnapshot?.equipped[team])
+        }
+        onClick={unequipAllForTeam}
+      >
+        <span className="mr-1 inline-flex size-3 shrink-0">
+          {unequippingTeam ? (
+            <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+          ) : (
+            <PowerOff className="size-3" aria-hidden="true" />
+          )}
+        </span>
+        {t(unequippingTeam ? 'music.unequipping' : 'music.unequipAll')}
+      </Button>
+      <div
+        className="flex border border-white/15 bg-black/25 p-1"
+        role="tablist"
+        aria-label={t('music.loadoutTeam')}
+      >
+        {(['ct', 't'] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={team === id}
+            disabled={loadoutLocked || unequippingTeam}
+            className={twMerge(
+              'px-4 py-2 text-xs font-bold tracking-wide',
+              team === id
+                ? id === 'ct'
+                  ? 'bg-sky-400 text-sky-950'
+                  : 'bg-amber-300 text-amber-950'
+                : 'text-neutral-400 hover:text-white'
+            )}
+            onClick={() => selectTeam(id)}
+          >
+            {t(id === 'ct' ? 'music.equipCt' : 'music.equipT')}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
   return (
     <section className="loadout-page mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
       <section className="loadout-equipped min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div>
-            <p className="text-xs font-bold tracking-[0.18em] text-sky-300 uppercase">
-              Active loadout
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">
-              {team === 'ct' ? 'Counter-Terrorists' : 'Terrorists'}
-            </h2>
-            {webMode && !hideDesktopOnlyFeatures && (
-              <p className="mt-1 text-xs text-neutral-400">
-                Lobby weapon selection is only available in the desktop app.
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              className="h-8 rounded-none bg-transparent px-2.5 text-[9px] text-rose-300 hover:bg-transparent hover:text-rose-200 disabled:bg-transparent"
-              variant="ghost"
-              disabled={loadoutLocked || unequippingTeam || equippedForTeam.length === 0}
-              onClick={unequipAllForTeam}
-            >
-              <PowerOff className="mr-1 size-3" />
-              {unequippingTeam ? 'UNEQUIPPING…' : 'UNEQUIP ALL'}
-            </Button>
-            <div
-              className="flex border border-white/15 bg-black/25 p-1"
-              role="tablist"
-              aria-label="Loadout team"
-            >
-              {(['ct', 't'] as const).map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={team === id}
-                  disabled={loadoutLocked || unequippingTeam}
-                  className={twMerge(
-                    'px-4 py-2 text-xs font-bold tracking-wide',
-                    team === id
-                      ? id === 'ct'
-                        ? 'bg-sky-400 text-sky-950'
-                        : 'bg-amber-300 text-amber-950'
-                      : 'text-neutral-400 hover:text-white'
-                  )}
-                  onClick={() => selectTeam(id)}
-                >
-                  EQUIP {id.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
+        {toolbarTarget ? (
+          createPortal(loadoutActions, toolbarTarget)
+        ) : (
+          <div className="mb-3 flex justify-end">{loadoutActions}</div>
+        )}
         <div className="loadout-stage mt-4 grid grid-cols-[minmax(90px,0.8fr)_minmax(0,4fr)_minmax(90px,0.8fr)] items-stretch gap-2 lg:gap-4">
-          <CharacterPanel
-            team="ct"
-            partyPending={partyPending}
-            partySelected={
-              partyModel ===
-              (equippedByWeapon.get('player_ct')
-                ? `skin:${equippedByWeapon.get('player_ct')!.skin.id}`
-                : `player/${stockCharacters.ct}/${stockCharacters.ct}.mdl`)
-            }
-            onShowInParty={() => showCharacterInParty('ct')}
-            model={stockCharacters.ct}
-            skin={equippedByWeapon.get('player_ct')?.skin}
-            selected={team === 'ct'}
-            disabled={loadoutLocked}
-            onSelect={() => selectTeam('ct')}
-            className="order-1"
-          />
+          <div className="order-1 min-w-0 self-start">
+            <CharacterPanel
+              team="ct"
+              partyPending={partyPending}
+              partySelected={
+                partyModel ===
+                (equippedByWeapon.get('player_ct')
+                  ? `skin:${equippedByWeapon.get('player_ct')!.skin.id}`
+                  : `player/${stockCharacters.ct}/${stockCharacters.ct}.mdl`)
+              }
+              onShowInParty={() => showCharacterInParty('ct')}
+              model={stockCharacters.ct}
+              skin={equippedByWeapon.get('player_ct')?.skin}
+              selected={team === 'ct'}
+              disabled={loadoutLocked}
+              onSelect={() => selectTeam('ct', true)}
+              footer={
+                <MusicKitSlot
+                  team="ct"
+                  className="mt-0"
+                  disabled={loadoutLocked || unequippingTeam}
+                  onSelect={() => {
+                    selectTeam('ct')
+                    setMusicFilter('ct')
+                  }}
+                />
+              }
+            />
+          </div>
           <div className="order-2 min-w-0">
             {' '}
             <div className="loadout-center min-w-0">
@@ -460,23 +494,35 @@ export function SkinsPage(): JSX.Element {
               </div>
             </div>
           </div>
-          <CharacterPanel
-            team="t"
-            partyPending={partyPending}
-            partySelected={
-              partyModel ===
-              (equippedByWeapon.get('player_t')
-                ? `skin:${equippedByWeapon.get('player_t')!.skin.id}`
-                : `player/${stockCharacters.t}/${stockCharacters.t}.mdl`)
-            }
-            onShowInParty={() => showCharacterInParty('t')}
-            model={stockCharacters.t}
-            skin={equippedByWeapon.get('player_t')?.skin}
-            selected={team === 't'}
-            disabled={loadoutLocked}
-            onSelect={() => selectTeam('t')}
-            className="order-3"
-          />
+          <div className="order-3 min-w-0 self-start">
+            <CharacterPanel
+              team="t"
+              partyPending={partyPending}
+              partySelected={
+                partyModel ===
+                (equippedByWeapon.get('player_t')
+                  ? `skin:${equippedByWeapon.get('player_t')!.skin.id}`
+                  : `player/${stockCharacters.t}/${stockCharacters.t}.mdl`)
+              }
+              onShowInParty={() => showCharacterInParty('t')}
+              model={stockCharacters.t}
+              skin={equippedByWeapon.get('player_t')?.skin}
+              selected={team === 't'}
+              disabled={loadoutLocked}
+              onSelect={() => selectTeam('t', true)}
+              footer={
+                <MusicKitSlot
+                  team="t"
+                  className="mt-0"
+                  disabled={loadoutLocked || unequippingTeam}
+                  onSelect={() => {
+                    selectTeam('t')
+                    setMusicFilter('t')
+                  }}
+                />
+              }
+            />
+          </div>
         </div>
       </section>
 
@@ -491,10 +537,11 @@ export function SkinsPage(): JSX.Element {
                   key={id}
                   className={twMerge(
                     'h-8 px-3 text-xs',
-                    category === id && !selectedWeapon && 'ring-1 ring-sky-300'
+                    category === id && !selectedWeapon && !musicFilter && 'ring-1 ring-sky-300'
                   )}
-                  variant={category === id && !selectedWeapon ? 'primary' : 'ghost'}
+                  variant={category === id && !selectedWeapon && !musicFilter ? 'primary' : 'ghost'}
                   onClick={() => {
+                    setMusicFilter(null)
                     setCategory(id)
                     setSelectedWeapon(null)
                   }}
@@ -508,6 +555,16 @@ export function SkinsPage(): JSX.Element {
                         : label}
                 </Button>
               ))}
+              <Button
+                className="h-8 px-3 text-xs"
+                variant={musicFilter ? 'primary' : 'ghost'}
+                onClick={() => {
+                  setSelectedWeapon(null)
+                  setMusicFilter(team)
+                }}
+              >
+                {t('music.item')}
+              </Button>
             </div>
             {selectedWeapon && (
               <Button
@@ -519,70 +576,76 @@ export function SkinsPage(): JSX.Element {
               </Button>
             )}
           </header>
-          {(category === 'all' || category === 'player_ct' || category === 'player_t') &&
-            !selectedWeapon && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {STOCK_CHARACTERS[
-                  category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
-                ].map((model) => {
-                  const modelTeam =
-                    category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
-                  const active =
-                    stockCharacters[modelTeam] === model &&
-                    !equippedByWeapon.has(`player_${modelTeam}`)
-                  return (
-                    <button
-                      key={model}
-                      type="button"
-                      title={`${t(active ? 'profile.equipped' : 'character.select')}: ${model.toUpperCase()}`}
-                      aria-pressed={active}
-                      disabled={loadoutLocked || characterPending || changingId !== null}
-                      onClick={() => {
-                        void useCharacterLoadoutStore
-                          .getState()
-                          .equipStock(modelTeam, model)
-                          .then(() => refresh(false))
-                          .catch(() => toast.error(t('character.error')))
-                      }}
-                      className={twMerge(
-                        'w-44 max-w-full flex-none border border-white/15 p-3 text-left',
-                        active && 'border-sky-300 bg-sky-300/10'
-                      )}
-                    >
-                      <span className="block h-64">
-                        <SkinModelThumbnail
-                          cacheKey={`stock-character:${model}`}
-                          weaponKey={`player_${modelTeam}`}
-                          modelPath={`player/${model}/${model}.mdl`}
-                          fallback={model.toUpperCase()}
-                        />
-                      </span>
-                      <span className="block text-sm font-bold">{model.toUpperCase()}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          {filteredSkins.length === 0 ? (
-            category !== 'all' && category !== 'player_ct' && category !== 'player_t' ? (
-              <p className="py-8 text-center text-sm text-neutral-500">
-                No unlocked skins for this weapon.
-              </p>
-            ) : null
+          {musicFilter ? (
+            <MusicKitInventory team={team} disabled={loadoutLocked || unequippingTeam} />
           ) : (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredSkins.map((owned) => (
-                <InventoryCard
-                  key={owned.skin.id}
-                  owned={owned}
-                  changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
-                  selling={selling || quotingId !== null}
-                  onEquip={() => setEquipped(owned)}
-                  onSell={() => requestSale(owned)}
-                  onPreview={() => setPreviewSkin(owned.skin)}
-                />
-              ))}
-            </div>
+            <>
+              {(category === 'all' || category === 'player_ct' || category === 'player_t') &&
+                !selectedWeapon && (
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {STOCK_CHARACTERS[
+                      category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
+                    ].map((model) => {
+                      const modelTeam =
+                        category === 'player_ct' ? 'ct' : category === 'player_t' ? 't' : team
+                      const active =
+                        stockCharacters[modelTeam] === model &&
+                        !equippedByWeapon.has(`player_${modelTeam}`)
+                      return (
+                        <button
+                          key={model}
+                          type="button"
+                          title={`${t(active ? 'profile.equipped' : 'character.select')}: ${model.toUpperCase()}`}
+                          aria-pressed={active}
+                          disabled={loadoutLocked || characterPending || changingId !== null}
+                          onClick={() => {
+                            void useCharacterLoadoutStore
+                              .getState()
+                              .equipStock(modelTeam, model)
+                              .then(() => refresh(false))
+                              .catch(() => toast.error(t('character.error')))
+                          }}
+                          className={twMerge(
+                            'w-44 max-w-full flex-none border border-white/15 p-3 text-left',
+                            active && 'border-sky-300 bg-sky-300/10'
+                          )}
+                        >
+                          <span className="block h-64">
+                            <SkinModelThumbnail
+                              cacheKey={`stock-character:${model}`}
+                              weaponKey={`player_${modelTeam}`}
+                              modelPath={`player/${model}/${model}.mdl`}
+                              fallback={model.toUpperCase()}
+                            />
+                          </span>
+                          <span className="block text-sm font-bold">{model.toUpperCase()}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              {filteredSkins.length === 0 ? (
+                category !== 'all' && category !== 'player_ct' && category !== 'player_t' ? (
+                  <p className="py-8 text-center text-sm text-neutral-500">
+                    No unlocked skins for this weapon.
+                  </p>
+                ) : null
+              ) : (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredSkins.map((owned) => (
+                    <InventoryCard
+                      key={owned.skin.id}
+                      owned={owned}
+                      changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
+                      selling={selling || quotingId !== null}
+                      onEquip={() => setEquipped(owned)}
+                      onSell={() => requestSale(owned)}
+                      onPreview={() => setPreviewSkin(owned.skin)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </section>
       }

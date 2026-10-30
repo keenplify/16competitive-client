@@ -1,3 +1,4 @@
+import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit } from './skins'
 import { initializePartnerAppIdentity, type InstalledAppIdentity } from './partner-app-identity'
 import { DEFAULT_APP_NAME, INSTALLED_APP_ID } from '../shared/partner-app-shortcuts'
 import { QueueTrayController } from './queue-tray'
@@ -1151,6 +1152,14 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>
     sendCommunityChat(id, message)
+  )
+  ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
+  ipcMain.handle(SKIN_CHANNELS.musicBuy, (_, id: unknown, price: unknown) => buyMusicKit(id, price))
+  ipcMain.handle(SKIN_CHANNELS.musicEquip, (_, id: unknown, team: unknown) =>
+    equipMusicKit(id, team)
+  )
+  ipcMain.handle(SKIN_CHANNELS.musicPreview, (_, id: unknown, event: unknown) =>
+    previewMusicKit(id, event)
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.payments, () => getPayments())

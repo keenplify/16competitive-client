@@ -302,6 +302,10 @@ const matchHistory: MatchHistoryApi = {
 }
 
 const skins: SkinsApi = {
+  musicKits: () => ipcRenderer.invoke(SKIN_CHANNELS.musicKits),
+  musicBuy: (id, price) => ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price),
+  musicEquip: (id, team) => ipcRenderer.invoke(SKIN_CHANNELS.musicEquip, id, team),
+  musicPreview: (id, event) => ipcRenderer.invoke(SKIN_CHANNELS.musicPreview, id, event),
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
   createManualPayment: (requestId, methodId, amount) =>
     ipcRenderer.invoke(SKIN_CHANNELS.createManualPayment, requestId, methodId, amount),

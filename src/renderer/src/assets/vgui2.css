@@ -1492,3 +1492,16 @@
   color: var(--vgui-accent);
   font-weight: 700;
 }
+
+/* Music items inherit the VGUI material without weapon-card geometry. */
+:root[data-launcher-theme='vgui2'] :where(.music-kit-slot, .music-kit-card) {
+  background: var(--vgui-face);
+  box-shadow: var(--vgui-raised);
+}
+:root[data-launcher-theme='vgui2'] .character-panel-frame {
+  background: var(--vgui-inset);
+  border-color: var(--vgui-light);
+}
+:root[data-launcher-theme='vgui2'] .profile-toolbar {
+  background: var(--vgui-face);
+}

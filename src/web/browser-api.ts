@@ -1,3 +1,10 @@
+import {
+  musicKitLogoUrls,
+  parseMusicKits,
+  validateMusicTeam,
+  validateMusicKitId,
+  validateMusicEvent
+} from '../shared/music-kits'
 import { customGameInstallationHeaders } from './custom-game-installation'
 import { partnerAssetPath } from './partner-runtime'
 import { loadBrowserCommunityDirectory } from './partner-community-context'
@@ -576,6 +583,35 @@ const skins = {
         init: { method: 'POST' }
       })
     )
+  },
+  async musicKits() {
+    return musicKitLogoUrls(
+      parseMusicKits(await authenticatedGet('/music-kits')),
+      currentApiOrigin()
+    )
+  },
+  async musicBuy(id: string, expectedPrice: number): Promise<{ points: number }> {
+    return jsonPost(`/music-kits/${validateMusicKitId(id)}/buy`, { expectedPrice })
+  },
+  async musicEquip(
+    id: string | null,
+    team: import('../shared/music-kits').MusicTeam
+  ): Promise<void> {
+    await jsonPost('/music-kits/equip', {
+      id: id === null ? null : validateMusicKitId(id),
+      team: validateMusicTeam(team)
+    })
+  },
+  async musicPreview(
+    id: string,
+    event: import('../shared/music-kits').MusicEvent
+  ): Promise<ArrayBuffer> {
+    const bytes = await requestArrayBuffer(
+      `/music-kits/${validateMusicKitId(id)}/preview?event=${validateMusicEvent(event)}`,
+      { authenticated: true }
+    )
+    if (bytes.byteLength > 2_000_000) throw new Error('MUSIC_PREVIEW_FAILED')
+    return bytes
   },
   async list(weaponKey?: string): Promise<Skin[]> {
     const data = await authenticatedGet<Skin[]>('/skins/store')

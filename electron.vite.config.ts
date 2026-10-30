@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const developmentContentSecurityPolicy =
-  "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http: ws: https://mastodon.social; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; media-src 'self' https: http:"
+  "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self' http: ws: https://mastodon.social; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; media-src 'self' blob: https: http:"
 
 const developmentCsp = {
   name: 'development-csp',
@@ -14,7 +14,7 @@ const developmentCsp = {
     }
 
     return html.replace(
-      "default-src 'self'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:",
+      "default-src 'self'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https:",
       developmentContentSecurityPolicy
     )
   }
