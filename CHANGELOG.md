@@ -3771,3 +3771,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added per-team Music Kit loadout slots.
 - Added Music Kit shop controls.
 - Added Music Kit previews and localized names.
+
+## v2026.1030.10 — 2026-10-30
+
+### Match Assets
+
+- Verified Music Kit assets are now accepted for matches.
+
+### Arena
+
+- Normal Arena cleanup no longer produces unnecessary notifications.
