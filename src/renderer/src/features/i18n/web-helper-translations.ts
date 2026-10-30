@@ -14,7 +14,7 @@ const en = {
   'webHelper.enhancements': 'In-game enhancements',
   'webHelper.killCards': 'Kill cards',
   'webHelper.invalidFolder':
-    'That folder is not a complete Counter-Strike installation. Choose the folder containing the game executable and cstrike files. You can select another folder.',
+    'That folder does not contain a complete installation of the selected Counter-Strike version. Choose its game folder with the executable and cstrike or cstrk13 files. A 1.6 installation cannot be used for 1.3.',
   'webHelper.settingsError':
     'Could not access helper settings or validate the selected folder. Reconnect the helper and try again.',
   'webHelper.settingsLoading': 'Loading helper settings…',
@@ -82,7 +82,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'Улучшения в игре',
     'webHelper.killCards': 'Карточки убийств',
     'webHelper.invalidFolder':
-      'В этой папке нет полной установки Counter-Strike. Выберите папку с исполняемым файлом игры и файлами cstrike. Можно выбрать другую папку.',
+      'В этой папке нет полной установки выбранной версии Counter-Strike. Выберите папку игры с исполняемым файлом и файлами cstrike или cstrk13. Установка 1.6 не подходит для 1.3.',
     'webHelper.settingsError':
       'Не удалось открыть настройки помощника или проверить папку. Подключите помощник и повторите попытку.',
     'webHelper.settingsLoading': 'Загрузка настроек помощника…',
@@ -144,7 +144,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'In-game enhancements',
     'webHelper.killCards': 'Kill cards',
     'webHelper.invalidFolder':
-      'Hindi kumpleto ang Counter-Strike sa folder na ito. Piliin ang folder na may game executable at cstrike files. Puwedeng pumili ng ibang folder.',
+      'Walang kumpletong instalasyon ng napiling bersyon ng Counter-Strike sa folder na ito. Piliin ang game folder na may executable at mga file ng cstrike o cstrk13. Hindi puwedeng gamitin ang instalasyon ng 1.6 para sa 1.3.',
     'webHelper.settingsError':
       'Hindi mabuksan ang helper settings o ma-validate ang folder. Ikonekta muli ang helper at subukan ulit.',
     'webHelper.settingsLoading': 'Nilo-load ang helper settings…',
@@ -206,7 +206,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'การปรับปรุงภายในเกม',
     'webHelper.killCards': 'การ์ดการสังหาร',
     'webHelper.invalidFolder':
-      'โฟลเดอร์นี้มีไฟล์ Counter-Strike ไม่ครบ โปรดเลือกโฟลเดอร์ที่มีไฟล์เปิดเกมและไฟล์ cstrike คุณสามารถเลือกโฟลเดอร์อื่นได้',
+      'โฟลเดอร์นี้ไม่มี Counter-Strike เวอร์ชันที่เลือกครบถ้วน โปรดเลือกโฟลเดอร์เกมที่มีไฟล์เปิดเกมและไฟล์ cstrike หรือ cstrk13 ไม่สามารถใช้ไฟล์ติดตั้ง 1.6 สำหรับ 1.3 ได้',
     'webHelper.settingsError':
       'เข้าถึงการตั้งค่าหรือตรวจสอบโฟลเดอร์ไม่ได้ เชื่อมต่อตัวช่วยอีกครั้งแล้วลองใหม่',
     'webHelper.settingsLoading': 'กำลังโหลดการตั้งค่าตัวช่วย…',
@@ -267,7 +267,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'Peningkatan dalam game',
     'webHelper.killCards': 'Kartu kill',
     'webHelper.invalidFolder':
-      'Folder ini bukan instalasi Counter-Strike yang lengkap. Pilih folder berisi berkas executable game dan berkas cstrike. Anda dapat memilih folder lain.',
+      'Folder ini tidak berisi instalasi lengkap versi Counter-Strike yang dipilih. Pilih folder game dengan berkas executable dan berkas cstrike atau cstrk13. Instalasi 1.6 tidak dapat digunakan untuk 1.3.',
     'webHelper.settingsError':
       'Tidak dapat mengakses pengaturan helper atau memvalidasi folder. Hubungkan ulang helper dan coba lagi.',
     'webHelper.settingsLoading': 'Memuat pengaturan helper…',
@@ -329,7 +329,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'Melhorias no jogo',
     'webHelper.killCards': 'Cartões de eliminação',
     'webHelper.invalidFolder':
-      'Esta pasta não contém uma instalação completa do Counter-Strike. Escolha a pasta com o executável do jogo e os arquivos cstrike. Você pode selecionar outra pasta.',
+      'Esta pasta não contém uma instalação completa da versão selecionada do Counter-Strike. Escolha a pasta do jogo com o executável e os arquivos cstrike ou cstrk13. Uma instalação 1.6 não pode ser usada para 1.3.',
     'webHelper.settingsError':
       'Não foi possível acessar as configurações ou validar a pasta. Reconecte o helper e tente novamente.',
     'webHelper.settingsLoading': 'Carregando configurações do helper…',
@@ -391,7 +391,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'ゲーム内の拡張機能',
     'webHelper.killCards': 'キルカード',
     'webHelper.invalidFolder':
-      'このフォルダーには Counter-Strike の完全なインストールがありません。ゲームの実行ファイルと cstrike ファイルを含むフォルダーを選択してください。別のフォルダーを選択できます。',
+      'このフォルダーには、選択したバージョンの Counter-Strike が完全にインストールされていません。実行ファイルと cstrike または cstrk13 のファイルを含むゲームフォルダーを選択してください。1.6 のインストールは 1.3 には使用できません。',
     'webHelper.settingsError':
       'ヘルパー設定にアクセスできないか、フォルダーを確認できません。再接続して再試行してください。',
     'webHelper.settingsLoading': 'ヘルパー設定を読み込み中…',
@@ -453,7 +453,7 @@ export const webHelperTranslations: Record<
     'webHelper.enhancements': 'गेम के अंदर सुधार',
     'webHelper.killCards': 'किल कार्ड',
     'webHelper.invalidFolder':
-      'इस फ़ोल्डर में Counter-Strike की पूरी स्थापना नहीं है। गेम की निष्पादन योग्य फ़ाइल और cstrike फ़ाइलों वाला फ़ोल्डर चुनें। आप दूसरा फ़ोल्डर चुन सकते हैं।',
+      'इस फ़ोल्डर में Counter-Strike के चुने गए संस्करण की पूरी स्थापना नहीं है। गेम की निष्पादन योग्य फ़ाइल और cstrike या cstrk13 फ़ाइलों वाला गेम फ़ोल्डर चुनें। 1.6 की स्थापना को 1.3 के लिए इस्तेमाल नहीं किया जा सकता।',
     'webHelper.settingsError':
       'हेल्पर सेटिंग नहीं खुलीं या फ़ोल्डर अमान्य है। हेल्पर दोबारा कनेक्ट करके प्रयास करें।',
     'webHelper.settingsLoading': 'हेल्पर सेटिंग लोड हो रही हैं…',

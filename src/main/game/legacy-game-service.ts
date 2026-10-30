@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join } from 'node:path'
 import type { LegacyGameError, LegacyGameProfile, LegacyGameResult } from '../../shared/legacy-game'
 import { cs13Adapter, LegacyInstallationError } from './adapters/cs13'
 import type { GameLaunchPlan } from './adapters/game-adapter'
+import { findInstallation } from './installation-search'
 
 interface LegacyGameDependencies {
   settingsPath: string
@@ -67,10 +68,21 @@ export class LegacyGameService {
     try {
       const folder = await this.dependencies.chooseFolder()
       if (folder === null) return { ok: true, value: null }
-      const installation = await cs13Adapter.validateInstallation(
-        folder,
-        this.dependencies.platform
-      )
+      const installation = await findInstallation(folder, async (candidate) => {
+        if (
+          candidate !== folder &&
+          !(await stat(join(candidate, 'hl.exe')).catch(() => null))?.isFile() &&
+          !(await stat(join(candidate, 'hl_linux')).catch(() => null))?.isFile()
+        )
+          return null
+        try {
+          return await cs13Adapter.validateInstallation(candidate, this.dependencies.platform)
+        } catch (error) {
+          if (error instanceof LegacyInstallationError) return null
+          throw error
+        }
+      })
+      if (!installation) throw new LegacyInstallationError('invalidInstallation')
       const destination = this.dependencies.settingsPath
       temporary = `${destination}.${randomUUID()}.tmp`
       await mkdir(dirname(destination), { recursive: true })

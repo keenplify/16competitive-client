@@ -6,6 +6,7 @@ import {
   chmod,
   mkdtemp,
   mkdir,
+  open,
   readFile,
   rm,
   stat,
@@ -13,7 +14,7 @@ import {
   writeFile
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
 
@@ -69,6 +70,7 @@ const { cs13Adapter, hasCs13VersionMetadata, cs13ConnectionArgs } = await loadMo
   'src/main/game/adapters/cs13.ts'
 )
 const { LegacyGameService } = await loadModule('src/main/game/legacy-game-service.ts')
+const { findInstallation } = await loadModule('src/main/game/installation-search.ts')
 const { prepareCs13MatchInstallation } = await loadModule(
   'src/main/game/cs13-match-installation.ts'
 )
@@ -164,6 +166,131 @@ async function fixture(run) {
     await rm(root, { recursive: true, force: true })
   }
 }
+
+test('recursive selection finds the requested version among nested installations', () =>
+  fixture(async ({ root, folder }) => {
+    const modern = join(root, 'a-modern', 'nested')
+    await mkdir(join(modern, 'cstrike'), { recursive: true })
+    await writeFile(join(modern, 'hl.exe'), 'fixture')
+    await writeFile(join(modern, 'cstrike', 'liblist.gam'), 'version "1.6"\n')
+    for (const version of ['1.3', '1.6']) {
+      const found = await findInstallation(root, async (candidate) => {
+        const metadata = await readFile(join(candidate, 'cstrike', 'liblist.gam'), 'utf8').catch(
+          () => ''
+        )
+        return metadata.includes(`version "${version}"`) ? candidate : null
+      })
+      assert.equal(found, version === '1.3' ? folder : modern)
+    }
+    assert.equal(await findInstallation(root, async () => null), null)
+    const service = new LegacyGameService({
+      settingsPath: join(root, 'selection.json'),
+      platform: 'win32',
+      chooseFolder: async () => root,
+      isBusy: () => false,
+      launch: async () => undefined
+    })
+    const result = await service.choose()
+    assert.equal(result.ok, true)
+    assert.equal(result.value.installation.folderPath, folder)
+  }))
+
+test('recursive selection stops at its depth bound and prefers a direct installation', () =>
+  fixture(async ({ root, folder }) => {
+    let deep = root
+    for (let depth = 0; depth < 10; depth++) deep = join(deep, 'nested')
+    await mkdir(deep, { recursive: true })
+    assert.equal(
+      await findInstallation(root, async (candidate) => (candidate === deep ? candidate : null)),
+      null
+    )
+    let calls = 0
+    assert.equal(
+      await findInstallation(folder, async (candidate) => {
+        calls++
+        return candidate
+      }),
+      folder
+    )
+    assert.equal(calls, 1)
+  }))
+
+test('desktop 1.6 search rejects nested 1.3 and resolves the 1.6 root', () =>
+  fixture(async ({ root, folder }) => {
+    const source = await readFile('src/main/game/game-settings.ts', 'utf8')
+    const parsed = ts.createSourceFile('settings.ts', source, ts.ScriptTarget.Latest, true)
+    const declaration = parsed.statements.find(
+      (node) =>
+        ts.isVariableStatement(node) &&
+        node.declarationList.declarations.some(
+          (decl) => decl.name.getText(parsed) === 'isGoldSrcInstallation'
+        )
+    )
+    const code = ts.transpile(declaration.getText(parsed), {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022
+    })
+    const validate = new Function(
+      'stat',
+      'open',
+      'join',
+      'dirname',
+      'basename',
+      'process',
+      'isNextClientExecutable',
+      code + '\nreturn isGoldSrcInstallation;'
+    )(stat, open, join, dirname, basename, { platform: 'win32' }, async () => false)
+    const modern = join(root, 'nested', 'Counter Strike 1.6')
+    await mkdir(join(modern, 'cstrike'), { recursive: true })
+    await writeFile(join(modern, 'hl.exe'), 'fixture')
+    await writeFile(join(modern, 'cstrike/liblist.gam'), 'version "1.6"\n')
+    assert.equal(await validate(join(folder, 'hl.exe')), false)
+    const found = await findInstallation(root, async (candidate) =>
+      (await validate(join(candidate, 'hl.exe'))) ? candidate : null
+    )
+    assert.equal(found, modern)
+    await writeFile(join(modern, 'cstrike/liblist.gam'), 'version "1.3"\n')
+    assert.equal(await validate(join(modern, 'hl.exe')), false)
+  }))
+
+test('recursive selection skips linked directories and junctions', () =>
+  fixture(async ({ root }) => {
+    const selected = join(root, 'selected')
+    const outside = join(root, 'outside')
+    await mkdir(selected)
+    await mkdir(outside)
+    await symlink(
+      outside,
+      join(selected, 'linked'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    )
+    const found = await findInstallation(selected, async (candidate) =>
+      candidate === outside || candidate.endsWith('linked') ? candidate : null
+    )
+    assert.equal(found, null)
+  }))
+
+test(
+  'owner-provided local 1.3 root validates without modifying its files',
+  {
+    skip: !process.env.CS13_LOCAL_TEST_ROOT
+  },
+  async () => {
+    const installation = await cs13Adapter.validateInstallation(
+      process.env.CS13_LOCAL_TEST_ROOT,
+      'win32'
+    )
+    assert.equal(installation.game, 'cs13')
+    const found = await findInstallation(dirname(installation.folderPath), async (candidate) => {
+      try {
+        return await cs13Adapter.validateInstallation(candidate, 'win32')
+      } catch {
+        return null
+      }
+    })
+    assert.equal(found.folderPath, installation.folderPath)
+  }
+)
 
 test('version evidence excludes 1.6, missing, commented and conflicting versions', () => {
   assert.equal(hasCs13VersionMetadata('version "1.3" // retail\r\n'), true)

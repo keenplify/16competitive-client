@@ -9,6 +9,7 @@ import { twMerge } from 'tailwind-merge'
 import { serverIsFull, type PartnerServerStatus } from '../../../../shared/partner-community'
 import { TabList } from '../../components/ui/TabList'
 import { Button } from '../../components/ui/Button'
+import { FindMatchButton } from '../matchmaking/FindMatchButton'
 import { ServerArtwork } from './ServerArtwork'
 import { useCommunityText } from './community-copy'
 import { createPartnerServersStore, usePartnerServersStore } from './partner-servers.store'
@@ -143,7 +144,10 @@ export function PartnerServersPanel({
                   server.id === selectedId && 'border-sky-300 ring-2 ring-sky-300/40'
                 )}
               >
-                <ServerArtwork server={server} />
+                <ServerArtwork
+                  server={server}
+                  className="transition-transform duration-500 group-hover:scale-105"
+                />
                 <div className="community-server-shade pointer-events-none absolute inset-0" />
                 <span className="community-server-ping absolute top-3 right-3 px-2 py-1 text-xs font-semibold tabular-nums text-white">
                   {server.pingMs === null
@@ -203,8 +207,9 @@ export function PartnerServersPanel({
                   ? text('cs13WebUnavailable')
                   : (selected?.name ?? text('chooseServer'))}
         </p>
-        <Button
-          className="h-12 min-w-40 shrink-0 gap-2 uppercase"
+        <FindMatchButton
+          className="min-w-40 shrink-0"
+          aria-busy={connecting || groupBusy}
           disabled={
             disabled ||
             connecting ||
@@ -219,10 +224,10 @@ export function PartnerServersPanel({
           }}
         >
           {connecting || groupBusy ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            <LoaderCircle className="absolute left-2 size-4 animate-spin" aria-hidden="true" />
           ) : null}
-          {text('play')}
-        </Button>
+          <span className="relative z-10">{text('play')}</span>
+        </FindMatchButton>
       </div>
     </section>
   )

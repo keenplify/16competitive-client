@@ -5,7 +5,8 @@ import {
 } from '../../shared/player-ping'
 import { app, dialog } from 'electron'
 import { recommendLightweightHud } from './recommended-hud'
-import { chmod, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, open, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { findInstallation } from './installation-search'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
 import type { GameSettings, SetupMode } from '../../shared/game-settings'
 import {
@@ -116,7 +117,25 @@ const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
   }
   const cstrike = join(dirname(executable), 'cstrike')
   if (!(await stat(cstrike).catch(() => null))?.isDirectory()) return false
-  if ((await stat(join(cstrike, 'liblist.gam')).catch(() => null))?.isFile()) return true
+  if ((await stat(join(cstrike, 'liblist.gam')).catch(() => null))?.isFile()) {
+    const file = await open(join(cstrike, 'liblist.gam'), 'r')
+    try {
+      if ((await file.stat()).size > 16_384) return false
+      const bytes = Buffer.alloc(16_385)
+      const { bytesRead } = await file.read(bytes, 0, bytes.length, 0)
+      if (bytesRead > 16_384) return false
+      const versions = [
+        ...bytes
+          .subarray(0, bytesRead)
+          .toString('utf8')
+          .replace(/\/\/[^\r\n]*/g, '')
+          .matchAll(/^\s*version\s+"([^"]+)"\s*$/gim)
+      ]
+      return versions.length === 1 && versions[0][1] === '1.6'
+    } finally {
+      await file.close()
+    }
+  }
   // Some valid standalone builds, including CS WaRzOnE, omit liblist.gam.
   // Require both Counter-Strike game DLLs before accepting that layout.
   if (process.platform !== 'win32') return false
@@ -184,7 +203,10 @@ const validateExecutable = async (
   return executablePath
 }
 
-const validateInstallationFolder = async (untrustedPath: unknown): Promise<string> => {
+const validateInstallationFolder = async (
+  untrustedPath: unknown,
+  ensureExecutable = true
+): Promise<string> => {
   if (typeof untrustedPath !== 'string' || !isAbsolute(untrustedPath)) {
     throw new Error('Choose an absolute Counter-Strike installation folder.')
   }
@@ -196,7 +218,8 @@ const validateInstallationFolder = async (untrustedPath: unknown): Promise<strin
     basename(selectedFolder).toLowerCase() === 'cstrike' ? dirname(selectedFolder) : selectedFolder
   for (const name of executableNamesForPlatform()) {
     const candidate = join(folder, name)
-    if (await isGoldSrcInstallation(candidate)) return validateExecutable(candidate, true)
+    if (await isGoldSrcInstallation(candidate))
+      return validateExecutable(candidate, ensureExecutable)
   }
   throw new Error(
     'Choose a Counter-Strike folder containing the game executable and cstrike files.'
@@ -488,7 +511,14 @@ export const chooseCs16Folder = async (): Promise<string | null> => {
     properties: ['openDirectory']
   })
   if (result.canceled || !result.filePaths[0]) return null
-  const executablePath = await validateInstallationFolder(result.filePaths[0])
+  const executablePath = await findInstallation(result.filePaths[0], (candidate) =>
+    validateInstallationFolder(candidate, false).catch(() => null)
+  )
+  if (!executablePath)
+    throw new Error(
+      'Choose a Counter-Strike folder containing the game executable and cstrike files.'
+    )
+  await validateExecutable(executablePath, true)
   return dirname(executablePath)
 }
 

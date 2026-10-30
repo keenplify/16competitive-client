@@ -564,7 +564,8 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             }
             if let Some(folder) = browse_folder() {
                 let (root, _, _) =
-                    validate_installation(&folder, &game).ok_or("Invalid game installation")?;
+                    installation_search::find(&folder, |candidate| validate_installation(candidate, &game))
+                        .ok_or("Invalid game installation")?;
                 if game == "cs13" {
                     prefs.cs13 = Some(root);
                 } else {
@@ -577,7 +578,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             if !matches!(game.as_str(), "cs13" | "cs16") || folder_path.len() > 4096 {
                 return Err("Invalid installation folder".into());
             }
-            let (root, _, _) = validate_installation(Path::new(&folder_path), &game)
+            let (root, _, _) = installation_search::find(Path::new(&folder_path), |candidate| validate_installation(candidate, &game))
                 .ok_or("Invalid game installation")?;
             if game == "cs13" {
                 prefs.cs13 = Some(root);

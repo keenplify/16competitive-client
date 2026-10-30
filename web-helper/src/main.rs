@@ -9,6 +9,8 @@ mod presence;
 mod runtime;
 mod self_update;
 mod settings_bridge;
+mod installation_version;
+mod installation_search;
 mod tray;
 mod branding;
 mod uninstall;
@@ -372,7 +374,9 @@ fn hidden_command(program: &str) -> Command {
 #[cfg(windows)]
 fn browse_folder() -> Option<PathBuf> {
     // The script is constant; no path or server value is interpolated into it.
-    let script = "Add-Type -AssemblyName System.Windows.Forms; $owner = New-Object System.Windows.Forms.Form; $owner.TopMost = $true; $owner.ShowInTaskbar = $false; $owner.Opacity = 0; $owner.Show(); $owner.Activate(); $d = New-Object System.Windows.Forms.FolderBrowserDialog; try { if ($d.ShowDialog($owner) -eq 'OK') { [Console]::Write($d.SelectedPath) } } finally { $d.Dispose(); $owner.Dispose() }";
+    // Keep a visible (nearly transparent) owner: a fully transparent window can
+    // fail activation when the request arrives from a background helper bridge.
+    let script = "Add-Type -AssemblyName System.Windows.Forms; $owner = New-Object System.Windows.Forms.Form; $owner.TopMost = $true; $owner.ShowInTaskbar = $false; $owner.FormBorderStyle = 'None'; $owner.Size = New-Object System.Drawing.Size(1, 1); $owner.StartPosition = 'CenterScreen'; $owner.Opacity = 0.01; $d = New-Object System.Windows.Forms.FolderBrowserDialog; try { $owner.Show(); $owner.BringToFront(); $owner.Activate(); if ($d.ShowDialog($owner) -eq 'OK') { [Console]::Write($d.SelectedPath) } } finally { $d.Dispose(); $owner.Dispose() }";
     let output = hidden_command("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-STA", "-Command", script])
         .output()
@@ -423,13 +427,6 @@ fn installation_display_path(path: &Path) -> String {
     value.into_owned()
 }
 
-fn version_is_13(path: &Path) -> bool {
-    let source = fs::read_to_string(path).unwrap_or_default();
-    source
-        .lines()
-        .any(|line| line.trim().eq_ignore_ascii_case("version \"1.3\""))
-}
-
 fn validate_installation(folder: &Path, game: &str) -> Option<(PathBuf, PathBuf, String)> {
     let pattern = launch_pattern();
     let game_pattern = if game == "cs13" {
@@ -448,8 +445,7 @@ fn validate_installation(folder: &Path, game: &str) -> Option<(PathBuf, PathBuf,
         selected
     };
     for mod_dir in &game_pattern.mod_directories {
-        let metadata = root.join(mod_dir).join("liblist.gam");
-        if !metadata.is_file() || version_is_13(&metadata) != (game == "cs13") {
+        if !installation_version::matches(&root, mod_dir, game) {
             continue;
         }
         let native_linux = cfg!(target_os = "linux") && root.join("hl_linux").is_file();
@@ -582,8 +578,8 @@ fn choose_installation(game: &str) -> Result<(PathBuf, PathBuf, String), String>
         let Some(folder) = browse_folder() else {
             return Err("Game folder selection was cancelled".into());
         };
-        if validate_installation(&folder, game).is_some() {
-            selected = Some(folder);
+        if let Some((root, _, _)) = installation_search::find(&folder, |candidate| validate_installation(candidate, game)) {
+            selected = Some(root);
         } else {
             notice(
                 "That folder is not a valid installation for the selected Counter-Strike version.",
