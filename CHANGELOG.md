@@ -3795,3 +3795,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved character and skin previews with a bundled fallback when needed.
 - Fixed preview textures to display correct colors and transparency.
+
+## v2026.1030.13 — 2026-10-30
+
+### Skin Collections
+
+- Browse featured skin collections in one place.
+- View collection details and included skins.
+- Purchase complete collections with discounted checkout pricing.
+
+### Store
+
+- Discover featured collections from the shop.
+- See collection offers and available skins more clearly.
