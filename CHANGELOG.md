@@ -3781,3 +3781,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Arena
 
 - Normal Arena cleanup no longer produces unnecessary notifications.
+
+## v2026.1030.11 — 2026-10-30
+
+### Music Kits
+
+- Clarified how shared music kits work.
+- Preserved both music kit loadout slots.
