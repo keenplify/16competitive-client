@@ -3704,3 +3704,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Improved Windows compatibility validation for shared skin storage.
+
+## v2026.1030.4 — 2026-10-30
+
+### Community Servers
+
+- Launch CS13 community servers through the native helper.
+- View CS13 servers independently of desktop downloads.
+
+### Custom Rooms
+
+- Browse custom rooms independently of desktop downloads.
+
+### Partner Sign-In
+
+- Reduced accidental dismissal during partner sign-in.
