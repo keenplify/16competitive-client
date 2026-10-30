@@ -194,6 +194,26 @@ test('FFA can leave after game exit, updates its roster, and rejoin the same pub
   assert.equal(h.requests.length, 1)
 })
 
+for (const message of ['Left FFA.', 'Left Arena.', 'Arena connection cancelled.']) {
+  test(`Arena cancellation after failed preparation does not show a leave error: ${message}`, async () => {
+    const h = await harness()
+    h.emit({
+      type: 'match_found',
+      matchId: 'failed-arena',
+      mode: 'arena',
+      mapId: 'fy_pool_day',
+      region: 'sea',
+      hostApiUrl: 'https://sea.invalid',
+      teams: { teamA: [], teamB: [] }
+    })
+    h.emit({ type: 'error', code: 'MATCH_PREPARATION_FAILED', message: 'Asset preparation failed' })
+    h.emit({ type: 'match_cancelled', matchId: 'failed-arena', reason: 'PLAYER_DECLINED', message })
+    assert.equal(h.store.getState().match, null)
+    assert.equal(h.store.getState().queueStatus, 'idle')
+    assert.equal(h.store.getState().error, null)
+  })
+}
+
 test('Arena queue again keeps the saved pool and manual region after consent', async () => {
   const h = await harness({ savedMaps: ['fy_pool_day', 'fy_iceworld'] })
   h.emit({ type: 'match_finished', ...h.completed })

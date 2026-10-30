@@ -13,6 +13,7 @@ export const isBundledPingAssetPath = (path: string): boolean =>
 const versionedPaths = [
   /^models\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(?:view|player|world|v|p|w)\.mdl$/,
   /^sound\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/action\.wav$/,
+  /^sound\/16competitive\/music\/([a-f0-9]{32})\/audio\.wav$/,
   /^sprites\/16competitive\/[a-z0-9_]+\/([a-f0-9]{16,64})\/(?:explosion|e)\.spr$/,
   /^sprites\/16competitive\/system\/([a-f0-9]{16,64})\/gas\.spr$/
 ]

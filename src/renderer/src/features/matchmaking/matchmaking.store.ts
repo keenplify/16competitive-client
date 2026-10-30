@@ -580,7 +580,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 matchReadyAt: null,
                 gameExited: false,
                 error:
-                  state.match?.mode === 'ffa' && event.reason === 'PLAYER_DECLINED'
+                  (state.match?.mode === 'ffa' || state.match?.mode === 'arena') &&
+                  event.reason === 'PLAYER_DECLINED'
                     ? null
                     : event.message
               }

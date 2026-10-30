@@ -101,6 +101,71 @@ sprite.writeInt32LE(2, 57)
 sprite.writeInt32LE(2, 61)
 const sha256 = crypto.createHash('sha256').update(sprite).digest('hex')
 
+test('Music Kit manifests accept only their versioned audio WAV paths', () => {
+  const hash = '47688106b8edd1ba59da8eeb9d5379a8'
+  assert.equal(versionedGameAssetHash(`sound/16competitive/music/${hash}/audio.wav`), hash)
+  for (const unsafe of [
+    `sound/16competitive/music/${hash}/../audio.wav`,
+    `/sound/16competitive/music/${hash}/audio.wav`,
+    `sound\\16competitive\\music\\${hash}\\audio.wav`,
+    `sound/16competitive/music/${hash.slice(0, 16)}/audio.wav`,
+    `sound/16competitive/music/${hash.repeat(2)}/audio.wav`,
+    `sound/16competitive/music/${hash}/other.wav`,
+    `sound/16competitive/music/${hash}/audio.exe`,
+    `sound/16competitive/knife/${hash}/audio.wav`
+  ])
+    assert.equal(versionedGameAssetHash(unsafe), null, unsafe)
+})
+
+test('Music Kit WAVs preload before launch, verify the full manifest hash and reuse the cache', async () => {
+  const bytes = Buffer.alloc(48)
+  bytes.write('RIFF')
+  bytes.writeUInt32LE(40, 4)
+  bytes.write('WAVEfmt ', 8)
+  bytes.writeUInt32LE(16, 16)
+  bytes.writeUInt16LE(1, 20)
+  bytes.writeUInt16LE(1, 22)
+  bytes.writeUInt32LE(22050, 24)
+  bytes.writeUInt32LE(44100, 28)
+  bytes.writeUInt16LE(2, 32)
+  bytes.writeUInt16LE(16, 34)
+  bytes.write('data', 36)
+  bytes.writeUInt32LE(4, 40)
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex')
+  const asset = { path: `sound/16competitive/music/${hash.slice(0, 32)}/audio.wav`, sha256: hash }
+  const h = await harness([asset], bytes)
+  try {
+    const preload = () =>
+      h.api.startMatchAssetPreload(matchId, 'https://backend.example.test', (value) =>
+        h.progress.push(value)
+      )
+    await preload()
+    assert.deepEqual(await fs.readFile(path.join(h.root, asset.path)), bytes)
+    assert.equal(h.progress.at(-1).status, 'ready')
+    h.api.clearMatchAssetPreload(matchId)
+    await preload()
+    assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 1)
+    await fs.writeFile(path.join(h.root, asset.path), Buffer.alloc(bytes.length))
+    h.api.clearMatchAssetPreload(matchId)
+    await preload()
+    assert.deepEqual(await fs.readFile(path.join(h.root, asset.path)), bytes)
+    assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 2)
+  } finally {
+    await h.cleanup()
+  }
+  const badHash = hash.slice(0, 32) + (hash[32] === '0' ? '1' : '0') + hash.slice(33)
+  const corrupt = await harness([{ ...asset, sha256: badHash }], bytes)
+  try {
+    await assert.rejects(
+      corrupt.api.startMatchAssetPreload(matchId, 'https://backend.example.test'),
+      /integrity check failed/
+    )
+    assert.equal(await fs.stat(path.join(corrupt.root, asset.path)).catch(() => null), null)
+  } finally {
+    await corrupt.cleanup()
+  }
+})
+
 test('allows the real default smoke path and versioned custom effects, rejecting path escapes and wrong types', () => {
   assert.equal(
     versionedGameAssetHash('sprites/16competitive/system/786058016e710e19/gas.spr'),
