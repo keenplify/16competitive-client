@@ -3746,3 +3746,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No player-facing changes provided.
+
+## v2026.1030.7 — 2026-10-30
+
+### Compatibility
+
+- Web helper now accepts verified shared model links created by the launcher.
