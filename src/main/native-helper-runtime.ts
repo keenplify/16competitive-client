@@ -31,6 +31,8 @@ import { startMatchAssetPreload, startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { writeLiveSessionFile } from './game/live-session-file'
 import { configureNativeHelperSharedAssets } from './game/shared-skin-storage'
+import { LegacyGameService } from './game/legacy-game-service'
+import { launchCs13Match, getActiveCs13ScoreboardDirectory } from './game/cs13-match-launcher'
 import {
   detectNextClientFolder,
   launchNextClientInstaller,
@@ -126,14 +128,16 @@ process.on('SIGINT', () => {
 })
 
 let lastPreferences = ''
+let activeGame: 'cs16' | 'cs13' = 'cs16'
 let stage = 'control'
 async function syncPreferences(initial = false): Promise<void> {
   const bytes = await readFile(join(dataRoot, 'web-helper.json'))
   if (bytes.length > 16384) throw new Error('Invalid helper preferences')
   const raw = bytes.toString('utf8')
-  if (raw === lastPreferences) return
+  if (raw === lastPreferences && !initial) return
   const prefs = JSON.parse(raw) as {
     cs16?: unknown
+    cs13?: unknown
     settings: {
       enhancementsEnabled: unknown
       fastSwitchEnabled: unknown
@@ -144,9 +148,22 @@ async function syncPreferences(initial = false): Promise<void> {
       voicePttKeys?: unknown[]
     }
   }
-  if (typeof prefs.cs16 !== 'string' || !isAbsolute(prefs.cs16))
+  const folder = activeGame === 'cs13' ? prefs.cs13 : prefs.cs16
+  if (typeof folder !== 'string' || !isAbsolute(folder))
     throw new Error('Choose a Counter-Strike folder first')
-  if (initial) await saveGameSettings(prefs.cs16)
+  if (initial) {
+    if (activeGame === 'cs13') {
+      const profile = await new LegacyGameService({
+        settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+        platform: process.platform,
+        chooseFolder: async () => folder,
+        isBusy: () => false,
+        launch: async () => undefined
+      }).choose()
+      if (!profile.ok || !profile.value?.installation)
+        throw new Error('legacy.error.invalidInstallation')
+    } else await saveGameSettings(folder)
+  }
   const s = prefs.settings
   const appliedPath = join(app.getPath('userData'), 'helper-preferences.json')
   const applied = await readFile(appliedPath, 'utf8')
@@ -312,8 +329,6 @@ async function run(input: unknown): Promise<void> {
     throw new Error('Invalid match request')
   await acceptNativeHelperSession(request.token)
   revokeOnExit = true
-  stage = 'preferences'
-  await syncPreferences(true)
   stage = 'connection'
   const response = await fetch(
     `${request.apiOrigin}/matchmaking/matches/${request.matchId}/helper-connection`,
@@ -329,34 +344,64 @@ async function run(input: unknown): Promise<void> {
   const c = connection as Record<string, unknown>
   if (
     c.matchId !== request.matchId ||
-    !['5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(String(c.mode)) ||
+    !['5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'cs13_3v3', 'ffa', 'arena'].includes(
+      String(c.mode)
+    ) ||
     typeof c.host !== 'string' ||
     typeof c.port !== 'number' ||
     typeof c.password !== 'string' ||
     typeof c.joinToken !== 'string'
   )
     throw new Error('Invalid match connection')
+  // The authenticated backend selects the adapter, never a browser argument.
+  activeGame = c.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+  stage = 'preferences'
+  await syncPreferences(true)
   stage = 'assets'
-  await startMatchAssetPreload(request.matchId, request.apiOrigin)
+  await startMatchAssetPreload(request.matchId, request.apiOrigin, undefined, activeGame)
   stage = 'game'
   voiceState.matchId = request.matchId
   voiceHeartbeat = setInterval(publishVoice, 500)
-  await launchCounterStrikeForMatch({
-    matchId: request.matchId,
-    host: c.host,
-    port: c.port,
-    password: c.password,
-    joinToken: c.joinToken,
-    apiUrl: request.apiOrigin,
-    onVoicePtt: (active, kind) => {
-      voiceState = { ...voiceState, [kind]: active }
-      publishVoice()
-    },
-    onExit: () => {
-      void stop()
-    }
+  const onVoicePtt = (active: boolean, kind: 'team' | 'party'): void => {
+    voiceState = { ...voiceState, [kind]: active }
+    publishVoice()
+  }
+  if (activeGame === 'cs13') {
+    await launchCs13Match(
+      {
+        type: 'match_connect',
+        matchId: request.matchId,
+        host: c.host,
+        port: c.port,
+        password: c.password,
+        joinToken: c.joinToken
+      },
+      () => {
+        void stop()
+      },
+      () => !stopping,
+      request.apiOrigin,
+      onVoicePtt
+    )
+  } else
+    await launchCounterStrikeForMatch({
+      matchId: request.matchId,
+      host: c.host,
+      port: c.port,
+      password: c.password,
+      joinToken: c.joinToken,
+      apiUrl: request.apiOrigin,
+      onVoicePtt,
+      onExit: () => {
+        void stop()
+      }
+    })
+  emit({
+    ok: true,
+    event: 'launched',
+    sessionDirectory:
+      activeGame === 'cs13' ? getActiveCs13ScoreboardDirectory() : getActiveScoreboardDirectory()
   })
-  emit({ ok: true, event: 'launched', sessionDirectory: getActiveScoreboardDirectory() })
   let refreshing = false
   let nextMatchCheck = Date.now() + 15_000
   poll = setInterval(() => {

@@ -94,7 +94,7 @@ test('denied filesystem operations retain their cause and produce actionable gui
 for (const game of ['cs13', 'cs16']) {
   test(`${game} storage never probes or modifies the other installation`, async () => {
     const roots = []
-    const context = vm.createContext({ process: { platform: 'win32', env: {} } })
+    const context = vm.createContext({ process: { platform: 'win32', env: {}, argv: [] } })
     const source = ts.transpileModule(
       await readFile(new URL('../src/main/game/shared-skin-storage.ts', import.meta.url), 'utf8'),
       { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
@@ -145,6 +145,17 @@ for (const game of ['cs13', 'cs16']) {
     assert.equal(
       await storage.destination('models/16competitive/knife/v.mdl'),
       path.join('/user-data', 'game-assets', 'models', '16competitive', 'knife', 'v.mdl')
+    )
+    context.process.argv.push('--native-helper-runtime')
+    module.namespace.configureNativeHelperSharedAssets('/desktop-user-data')
+    assert.equal(
+      module.namespace.sharedModelDirectory(),
+      path.join('/desktop-user-data', 'game-assets', 'models', '16competitive')
+    )
+    const helperStorage = await module.namespace.prepareSkinStorage(game)
+    assert.equal(
+      await helperStorage.destination('models/16competitive/knife/v.mdl'),
+      path.join('/desktop-user-data', 'game-assets', 'models', '16competitive', 'knife', 'v.mdl')
     )
   })
 }

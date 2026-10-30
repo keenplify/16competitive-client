@@ -23,6 +23,7 @@ import { registerManagedAdapterShutdown } from './managed-session-registry'
 import { prepareCs13MatchInstallation } from './cs13-match-installation'
 import { setGameConsoleDirectory } from './game-console-logs'
 import { ensureSharedModelDirectory, gameStorageError } from './shared-model-directory'
+import { sharedModelDirectory } from './shared-skin-storage'
 import { resolveGameResolution } from '../../shared/game-display'
 import { prepareCs13Controls } from './cs13-controls'
 
@@ -36,6 +37,9 @@ let running: {
   cleanupAuth: () => Promise<void>
 } | null = null
 let cleanup: Promise<void> = Promise.resolve()
+
+export const getActiveCs13ScoreboardDirectory = (): string | null =>
+  running?.overlay?.directory ?? null
 
 export async function shutdownCs13Game(matchId?: string): Promise<void> {
   const active = running
@@ -106,10 +110,7 @@ export async function launchCs13Match(
       installation.runtime
     )
     installation = await prepareCs13MatchInstallation(installation, process.platform)
-    await ensureSharedModelDirectory(
-      installation.gameDirectory,
-      join(app.getPath('userData'), 'game-assets', 'models', '16competitive')
-    )
+    await ensureSharedModelDirectory(installation.gameDirectory, sharedModelDirectory())
     await WindowsCosmeticInstallation.restorePreviousInstall(
       installation.folderPath,
       installation.modDirectory,

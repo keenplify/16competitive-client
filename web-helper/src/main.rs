@@ -768,6 +768,13 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         &pattern.cs16
     };
     let (root, exe, mod_dir) = choose_installation(connection.game())?;
+    // Windows and Wine 1.3 need the same approved WON cosmetic adapter,
+    // ownership lease and recovery lifecycle as the desktop launcher. The
+    // direct legacy path below is retained for native Linux 1.3.
+    if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe") {
+        runtime::launch(connection, api, token)?;
+        return Ok(());
+    }
     let preferences = settings_bridge::load()?.settings;
     let windows_cs16_args = if cfg!(windows) && connection.game() == "cs16" {
         Some(cs16_standalone_windows_args(&root, game_pattern)?)

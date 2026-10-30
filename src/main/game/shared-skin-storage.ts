@@ -15,16 +15,20 @@ export function configureNativeHelperSharedAssets(desktopUserData: string): void
   sharedAssetUserData = desktopUserData
 }
 
-export async function prepareSkinStorage(game: 'cs16' | 'cs13' = 'cs16'): Promise<{
-  contentRoot: string
-  destination: (path: string) => Promise<string>
-}> {
-  const shared = join(
+export function sharedModelDirectory(): string {
+  return join(
     sharedAssetUserData ?? app.getPath('userData'),
     'game-assets',
     'models',
     '16competitive'
   )
+}
+
+export async function prepareSkinStorage(game: 'cs16' | 'cs13' = 'cs16'): Promise<{
+  contentRoot: string
+  destination: (path: string) => Promise<string>
+}> {
+  const shared = sharedModelDirectory()
   let contentRoot: string | null | undefined
   if (game === 'cs13') {
     const profile = await new LegacyGameService({
