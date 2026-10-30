@@ -3719,3 +3719,24 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Partner Sign-In
 
 - Reduced accidental dismissal during partner sign-in.
+
+## v2026.1030.5 — 2026-10-30
+
+### Community Servers
+
+- View and join community server sessions directly.
+- Improved server session status and presence.
+
+### Custom Games
+
+- Updated server play controls with clearer themed styling.
+- Improved custom game and partner server session handling.
+
+### Game Detection
+
+- Counter-Strike installations can now be found inside nested folders.
+- Improved detection for legacy Counter-Strike installations.
+
+### Web Rooms
+
+- Fixed readiness handling for legacy web rooms.
