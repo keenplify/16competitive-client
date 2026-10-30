@@ -3758,3 +3758,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web CS13 Matches
 
 - Web CS13 matches now use the managed cosmetic runtime for improved cosmetic support.
+
+## v2026.1030.9 — 2026-10-30
+
+### Play
+
+- Added a dedicated Arena tab.
+- Updated Arena maps with full-width map cards.
+
+### Music Kits
+
+- Added per-team Music Kit loadout slots.
+- Added Music Kit shop controls.
+- Added Music Kit previews and localized names.
