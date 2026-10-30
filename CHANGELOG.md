@@ -3698,3 +3698,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Fixed game asset permission errors.
 - Fixed matchmaking preparation status getting stuck.
 - Improved recovery when matchmaking is restarted.
+
+## v2026.1030.3 — 2026-10-30
+
+### Reliability
+
+- Improved Windows compatibility validation for shared skin storage.
