@@ -45,7 +45,8 @@ import {
   onNativeAssetSync,
   nativeAssetStatus,
   syncNativeAssets,
-  nativeDiagnosticLogs
+  nativeDiagnosticLogs,
+  launchPartnerWithNativeHelper
 } from './local-play'
 import type { NativeHelperSettings } from '../shared/native-helper-settings'
 import type { DailyQuestSnapshot } from '../shared/daily-quests'
@@ -769,7 +770,10 @@ const api: Window['api'] = {
           ? group.server
           : servers.find((row) => row.id === id && row.online !== false)
       if (!server) throw new Error('INVALID_SERVER')
-      if (server.gameVersion === 'cs13') throw new Error('CS13_WEB_UNAVAILABLE')
+      if (server.gameVersion === 'cs13') {
+        await launchPartnerWithNativeHelper(id, groupId, communityId)
+        return
+      }
       const ticket = parsePartnerLaunchTicket(
         await jsonPost(`/partners/servers/${id}/launch-ticket`, {})
       )

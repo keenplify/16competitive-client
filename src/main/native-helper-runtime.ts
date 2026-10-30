@@ -193,10 +193,13 @@ async function run(input: unknown): Promise<void> {
       'installNextClient',
       'syncAssets',
       'repairAssets',
-      'launch'
+      'launch',
+      'launchPartner'
     ].includes(String(request.action)) ||
     Object.keys(request).some(
-      (key) => !['protocol', 'action', 'apiOrigin', 'token', 'matchId'].includes(key)
+      (key) =>
+        !['protocol', 'action', 'apiOrigin', 'token', 'matchId'].includes(key) &&
+        !(request.action === 'launchPartner' && key === 'partner')
     )
   )
     throw new Error('Invalid runtime protocol')
@@ -269,6 +272,14 @@ async function run(input: unknown): Promise<void> {
     return
   }
   if (device.banned) throw new Error('This device cannot join competitive matches')
+  if (request.action === 'launchPartner') {
+    await acceptNativeHelperSession(request.token)
+    stage = 'game'
+    const { launchNativePartnerServer } = await import('./native-partner-server')
+    await launchNativePartnerServer(dataRoot, request.partner)
+    emit({ ok: true })
+    return
+  }
   if (request.action === 'syncAssets' || request.action === 'repairAssets') {
     await acceptNativeHelperSession(request.token)
     await syncPreferences(true)

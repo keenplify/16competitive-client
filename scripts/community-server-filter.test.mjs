@@ -60,12 +60,22 @@ test('invalid saved filters fall back to All', () => {
   assert.equal(createStore('one').getState().gameFilter, 'all')
 })
 
-function renderPanel(gameFilter = 'all', selectedId = 'legacy') {
+function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = false) {
+  const actions = { setup: 0, connect: 0 }
+  const helper = (select) => select({ nativeReady })
+  helper.getState = () => ({
+    show: () => {
+      actions.setup += 1
+    }
+  })
   const state = {
     rows: [
       { id: 'legacy', gameVersion: 'cs13', name: 'Legacy server', online: true },
       { id: 'modern', gameVersion: 'cs16', name: 'Modern server', online: true }
     ],
+    connect: async () => {
+      actions.connect += 1
+    },
     gameFilter,
     selectedId,
     status: 'ready',
@@ -80,6 +90,7 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy') {
   const useServers = (select) => select(state)
   const jsx = (type, props) => ({ type, props })
   const dependencies = {
+    '../matchmaking/web-helper-prompt.store': { useWebHelperPromptStore: helper },
     react: {
       useEffect() {
         return undefined
@@ -130,6 +141,7 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy') {
     walk(node.props?.children)
   }
   walk(tree)
+  nodes.actions = actions
   return nodes
 }
 
@@ -148,11 +160,30 @@ test('web partners without desktop downloads still display and filter CS13 serve
     legacy.filter((node) => node.props?.className?.includes('community-server-card')).length,
     1
   )
-  // Visibility does not bypass the browser's unsupported CS13 launch path.
+  // Play opens helper setup when it is unavailable.
   assert.equal(
     legacy.find((node) => node.type === 'Button' && node.props.className.includes('h-12')).props
       .disabled,
-    true
+    false
   )
+  const play = legacy.find(
+    (node) => node.type === 'Button' && node.props.className.includes('h-12')
+  )
+  play.props.onClick()
+  assert.equal(legacy.actions.setup, 1)
+  assert.equal(legacy.actions.connect, 0)
   assert.ok(legacy.some((node) => node.props?.children === 'cs13WebUnavailable'))
+})
+
+test('a ready web helper enables CS13 community connection without launcher-only messaging', () => {
+  const nodes = renderPanel('cs13', 'legacy', true)
+  const play = nodes.find((node) => node.type === 'Button' && node.props.className.includes('h-12'))
+  assert.equal(play.props.disabled, false)
+  play.props.onClick()
+  assert.equal(nodes.actions.connect, 1)
+  assert.equal(nodes.actions.setup, 0)
+  assert.equal(
+    nodes.some((node) => node.props?.children === 'cs13WebUnavailable'),
+    false
+  )
 })

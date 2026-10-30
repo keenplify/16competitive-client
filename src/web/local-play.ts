@@ -572,6 +572,30 @@ export async function checkLocalLauncher(
   return result === 'outdated' ? `outdated-${target}` : null
 }
 
+/** The local helper resolves approved server IDs through the authenticated API. */
+export async function launchPartnerWithNativeHelper(
+  serverId: string,
+  groupId?: string,
+  communityId?: string
+): Promise<void> {
+  if (preferredLocalLauncher() !== 'rust') throw new Error('NATIVE_HELPER_REQUIRED')
+  const token = getWebSessionToken()
+  if (!token) throw new Error('Authentication required')
+  const settings = await nativeHelperSettings({ action: 'get' })
+  if (!settings.cs13FolderPath) throw new Error('INSTALLATION_REQUIRED')
+  if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
+  const result = await localRequest({
+    action: 'partnerLaunch',
+    apiOrigin: currentApiOrigin(),
+    token,
+    serverId,
+    groupId,
+    communityId
+  })
+  if (!result || typeof result !== 'object' || !('ok' in result) || result.ok !== true)
+    throw new Error('LAUNCH_FAILED')
+}
+
 export async function launchWithLocalLauncher(
   matchId: string,
   launcher: LocalLauncher
@@ -743,6 +767,14 @@ export async function readNativeModel(path: string): Promise<ArrayBuffer | null>
 async function localRequest(
   request:
     | NativeHelperSettingsRequest
+    | {
+        action: 'partnerLaunch'
+        apiOrigin: string
+        token: string
+        serverId: string
+        groupId?: string
+        communityId?: string
+      }
     | { action: 'presence'; activity: NativeHelperPresence | null }
     | { action: 'modelRead'; path: string }
     | { action: 'assetStatus' }
@@ -760,9 +792,15 @@ async function localRequest(
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },
     body: JSON.stringify(request),
     signal: AbortSignal.timeout(
-      ['get', 'choose', 'runtimeCheck', 'nextClient', 'microphone', 'diagnostics'].includes(
-        request.action
-      )
+      [
+        'get',
+        'choose',
+        'runtimeCheck',
+        'nextClient',
+        'microphone',
+        'diagnostics',
+        'partnerLaunch'
+      ].includes(request.action)
         ? 300_000
         : 5_000
     ),

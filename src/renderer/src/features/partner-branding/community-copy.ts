@@ -83,7 +83,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Friend Request Received',
     'Website',
     'Ping measured from our API server.',
-    'CS 1.3 servers require the desktop launcher.',
+    'Connect the helper and select your CS 1.3 folder in Settings to play.',
     'Only the party leader can choose a partner server.',
     'Could not start the party ready check. Try again.'
   ],
@@ -126,7 +126,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Заявка получена',
     'Сайт',
     'Пинг измерен с нашего API-сервера.',
-    'Для серверов CS 1.3 требуется настольный лаунчер.',
+    'Для игры подключите помощник и выберите папку CS 1.3 в настройках.',
     'Выбрать партнёрский сервер может только лидер группы.',
     'Не удалось начать проверку готовности группы. Попробуйте снова.'
   ],
@@ -169,7 +169,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'May friend request',
     'Website',
     'Mula sa aming API server ang ping.',
-    'Kailangan ang desktop launcher para sa mga CS 1.3 server.',
+    'Ikonekta ang helper at piliin ang CS 1.3 folder sa Settings para maglaro.',
     'Party leader lang ang puwedeng pumili ng partner server.',
     'Hindi masimulan ang ready check ng party. Subukan ulit.'
   ],
@@ -212,7 +212,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'ได้รับคำขอเป็นเพื่อน',
     'เว็บไซต์',
     'ปิงวัดจากเซิร์ฟเวอร์ API ของเรา',
-    'เซิร์ฟเวอร์ CS 1.3 ต้องใช้ตัวเปิดเกมบนเดสก์ท็อป',
+    'เชื่อมต่อตัวช่วยและเลือกโฟลเดอร์ CS 1.3 ในการตั้งค่าเพื่อเล่น',
     'เฉพาะหัวหน้าปาร์ตี้เท่านั้นที่เลือกเซิร์ฟเวอร์พาร์ทเนอร์ได้',
     'เริ่มการตรวจสอบความพร้อมของปาร์ตี้ไม่ได้ โปรดลองอีกครั้ง'
   ],
@@ -255,7 +255,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Permintaan diterima',
     'Situs web',
     'Ping diukur dari server API kami.',
-    'Server CS 1.3 memerlukan peluncur desktop.',
+    'Hubungkan helper dan pilih folder CS 1.3 di Pengaturan untuk bermain.',
     'Hanya pemimpin party yang dapat memilih server mitra.',
     'Gagal memulai pemeriksaan kesiapan party. Coba lagi.'
   ],
@@ -298,7 +298,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'मित्र अनुरोध प्राप्त हुआ',
     'वेबसाइट',
     'पिंग हमारे API सर्वर से मापा गया है।',
-    'CS 1.3 सर्वर के लिए डेस्कटॉप लॉन्चर आवश्यक है।',
+    'खेलने के लिए हेल्पर कनेक्ट करें और सेटिंग्स में अपना CS 1.3 फ़ोल्डर चुनें।',
     'केवल पार्टी लीडर पार्टनर सर्वर चुन सकता है।',
     'पार्टी रेडी चेक शुरू नहीं हो सका। फिर कोशिश करें।'
   ],
@@ -341,7 +341,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'Pedido recebido',
     'Site',
     'Ping medido a partir do nosso servidor API.',
-    'Servidores CS 1.3 exigem o launcher de desktop.',
+    'Conecte o helper e selecione a pasta do CS 1.3 nas Configurações para jogar.',
     'Só o líder do grupo pode escolher um servidor parceiro.',
     'Não foi possível iniciar a confirmação do grupo. Tente novamente.'
   ],
@@ -384,7 +384,7 @@ const rows: Record<SupportedLanguageCode, string[]> = {
     'フレンド申請を受信',
     'ウェブサイト',
     'Pingは当社のAPIサーバーから測定されます。',
-    'CS 1.3サーバーにはデスクトップランチャーが必要です。',
+    'プレイするにはヘルパーを接続し、設定でCS 1.3のフォルダーを選択してください。',
     'パートナーサーバーを選べるのはパーティーリーダーだけです。',
     'パーティーの準備確認を開始できませんでした。もう一度お試しください。'
   ]

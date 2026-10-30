@@ -1,3 +1,4 @@
+import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { CountryFlag } from '../../components/CountryFlag'
 import { useTranslation } from '../i18n/i18n'
@@ -67,7 +68,8 @@ export function PartnerServersPanel({
   useEffect(() => {
     if (!selected && firstVisibleId) select(firstVisibleId)
   }, [selected, firstVisibleId, select])
-  const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
+  const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const cs13NeedsHelper = isWebRuntime() && selected?.gameVersion === 'cs13' && !nativeReady
   const partyMemberCannotStart = Boolean(
     !communityId && party && party.members.length > 1 && party.leaderId !== playerId
   )
@@ -77,12 +79,15 @@ export function PartnerServersPanel({
       connecting ||
       groupBusy ||
       partyMemberCannotStart ||
-      (isWebRuntime() && server.gameVersion === 'cs13') ||
       server.online === false ||
       serverIsFull(server)
     )
       return
     select(server.id)
+    if (isWebRuntime() && server.gameVersion === 'cs13' && !nativeReady) {
+      useWebHelperPromptStore.getState().show()
+      return
+    }
     if (!communityId && party && party.members.length > 1) void startGroup(server.id)
     else void connect()
   }
@@ -194,7 +199,7 @@ export function PartnerServersPanel({
               ? text('partyLaunchFailed')
               : partyMemberCannotStart
                 ? text('partyLeaderOnly')
-                : cs13WebUnavailable
+                : cs13NeedsHelper
                   ? text('cs13WebUnavailable')
                   : (selected?.name ?? text('chooseServer'))}
         </p>
@@ -206,7 +211,6 @@ export function PartnerServersPanel({
             groupBusy ||
             partyMemberCannotStart ||
             !selected ||
-            cs13WebUnavailable ||
             selected.online === false ||
             serverIsFull(selected)
           }

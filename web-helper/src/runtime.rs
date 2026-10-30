@@ -383,12 +383,12 @@ pub fn invoke(
     token: Option<&str>,
     match_id: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    invoke_session(action, api, token, match_id, None, None)
+    invoke_session(action, api, token, match_id, None, None, None)
 }
 pub fn microphone(api: String) -> Result<serde_json::Value, String> {
     let (send, receive) = std::sync::mpsc::sync_channel(1);
     std::thread::spawn(move || {
-        let _ = invoke_session("microphone", &api, None, None, None, Some(send));
+        let _ = invoke_session("microphone", &api, None, None, None, Some(send), None);
     });
     receive.recv_timeout(Duration::from_secs(120)).map_err(|_| "Native microphone unavailable".into())
 }
@@ -400,8 +400,13 @@ pub fn launch(connection: &Connection, api: &str, token: &str) -> Result<(), Str
         Some(&connection.match_id),
         Some(connection),
         None,
+        None,
     )
     .map(|_| ())
+}
+pub fn launch_partner(api: &str, token: &str, server_id: &str, group_id: Option<&str>, community_id: Option<&str>) -> Result<serde_json::Value, String> {
+    invoke_session("launchPartner", api, Some(token), None, None, None,
+        Some(serde_json::json!({"serverId":server_id,"groupId":group_id,"communityId":community_id})))
 }
 fn keep_session_channel_open(
     stream: &std::net::TcpStream,
@@ -429,14 +434,15 @@ fn invoke_session(
     match_id: Option<&str>,
     connection: Option<&Connection>,
     ready: Option<std::sync::mpsc::SyncSender<serde_json::Value>>,
+    partner: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     if competitive16_web_helper::allowed_api_origin(api, cfg!(debug_assertions)).as_deref()
         != Some(api)
     {
         return Err("Invalid runtime origin".into());
     }
-    let _operation_lock = if matches!(action, "launch" | "installNextClient" | "microphone") {
-        let path = user_config_dir()?.join(if action == "launch" {
+    let _operation_lock = if matches!(action, "launch" | "launchPartner" | "installNextClient" | "microphone") {
+        let path = user_config_dir()?.join(if matches!(action, "launch" | "launchPartner") {
             "runtime-game.lock"
         } else if action == "microphone" {
             "runtime-microphone.lock"
@@ -507,7 +513,8 @@ fn invoke_session(
     let mut child = command
         .spawn()
         .map_err(|_| "Could not start the helper runtime")?;
-    let request = serde_json::json!({"protocol":1,"action":action,"apiOrigin":api,"token":token,"matchId":match_id});
+    let mut request = serde_json::json!({"protocol":1,"action":action,"apiOrigin":api,"token":token,"matchId":match_id});
+    if let Some(partner) = partner { request["partner"] = partner; }
     let deadline = std::time::Instant::now() + Duration::from_secs(30);
     let mut reader = loop {
         match listener.accept() {

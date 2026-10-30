@@ -34,6 +34,21 @@ test(
           'fixture'
         )
       }
+      const runtime = join(root, 'runtime-fixture.mjs')
+      await writeFile(
+        runtime,
+        `#!/usr/bin/env node
+import net from 'node:net';
+const i = process.argv.indexOf('--native-helper-runtime');
+const socket = net.createConnection({host:'127.0.0.1',port:Number(process.argv[i+2])});
+socket.on('connect',()=>socket.write(JSON.stringify({protocol:1,capability:process.argv[i+3]})+'\\n'));
+let input='';
+socket.on('data',chunk=>{input+=chunk; if(!input.includes('\\n'))return;
+const request=JSON.parse(input.split('\\n')[0]);
+socket.end(JSON.stringify({ok:request.action==='launchPartner',partner:request.partner})+'\\n',()=>socket.destroy());});
+`
+      )
+      await chmod(runtime, 0o700)
       const token = 'a'.repeat(64)
       let port
       for (let attempt = 0; attempt < 20; attempt++) {
@@ -58,6 +73,7 @@ test(
           ...process.env,
           XDG_CONFIG_HOME: join(root, 'config'),
           PATH: `${bin}:${process.env.PATH}`,
+          COMPETITIVE16_RUNTIME_EXE: runtime,
           NATIVE_HELPER_TEST_CHOICE: choice
         },
         stdio: 'pipe'
@@ -84,6 +100,24 @@ test(
       assert.equal(initial?.status, 200)
       assert.equal((await request({ action: 'get' }, 'wrong')).status, 403)
       assert.equal((await request({ action: 'get' }, token, 'https://evil.test')).status, 403)
+      const partner = {
+        serverId: '583704ab-6fc5-4b58-8fc2-d91cf1d7c051',
+        groupId: null,
+        communityId: null
+      }
+      const partnerRequest = {
+        action: 'partnerLaunch',
+        apiOrigin: origin,
+        token: 'fixture-session',
+        ...partner
+      }
+      assert.equal((await request(partnerRequest, 'wrong')).status, 403)
+      assert.equal((await request(partnerRequest, token, 'https://evil.test')).status, 403)
+      assert.equal((await request({ ...partnerRequest, executable: '/bin/sh' })).status, 400)
+      const launched = await request(partnerRequest)
+      assert.equal(launched.status, 200)
+      assert.deepEqual(await launched.json(), { ok: true, partner })
+
       let settings
       for (const game of ['cs13', 'cs16']) {
         await writeFile(choice, join(root, game))

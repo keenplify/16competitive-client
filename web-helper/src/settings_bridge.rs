@@ -321,6 +321,7 @@ enum Request {
         #[serde(default)]
         repair: bool,
     },
+    PartnerLaunch { api_origin: String, token: String, server_id: String, group_id: Option<String>, community_id: Option<String> },
     RuntimeCheck {
         api_origin: String,
     },
@@ -464,6 +465,14 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             }
             return crate::runtime::invoke("diagnostics", api_origin, Some(token), match_id.as_deref());
         }
+        Request::PartnerLaunch { api_origin, token, server_id, group_id, community_id } => {
+            if token.is_empty() || token.len() > 4096 ||
+                std::iter::once(server_id).chain(group_id.iter()).chain(community_id.iter())
+                    .any(|id| uuid::Uuid::parse_str(id).is_err()) {
+                return Err("Invalid partner launch request".into());
+            }
+            return crate::runtime::launch_partner(api_origin, token, server_id, group_id.as_deref(), community_id.as_deref());
+        }
         Request::RuntimeCheck { api_origin } => {
             return crate::runtime::invoke("check", api_origin, None, None)
         }
@@ -584,7 +593,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         }
         Request::Presence { .. } => unreachable!(),
         Request::ModelRead { .. } | Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
-        Request::RuntimeCheck { .. } | Request::NextClient { .. } => unreachable!(),
+        Request::RuntimeCheck { .. } | Request::PartnerLaunch { .. } | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
         Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => unreachable!(),
         Request::ProbeNodes { .. } => unreachable!(),
@@ -757,7 +766,7 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
                 move || voice_stream(stream, origin)
             });
         }
-        Ok(request @ (Request::RuntimeCheck { .. } | Request::Microphone { .. } | Request::Diagnostics { .. })) => {
+        Ok(request @ (Request::PartnerLaunch { .. } | Request::RuntimeCheck { .. } | Request::Microphone { .. } | Request::Diagnostics { .. })) => {
             if RUNTIME_CHECKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 1 {
                 RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                 respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
@@ -1013,5 +1022,28 @@ mod model_preview_tests {
             assert!(read_model_under(&root,"link.mdl").is_err());
         }
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod partner_launch_tests {
+    use super::*;
+    #[test]
+    fn partner_launch_accepts_ids_but_not_arbitrary_process_or_network_fields() {
+        let id = "583704ab-6fc5-4b58-8fc2-d91cf1d7c051";
+        let value = serde_json::json!({"action":"partnerLaunch", "apiOrigin":"https://16competitive.papamo.dev", "token":"fixture", "serverId":id, "communityId":id});
+        assert!(serde_json::from_value::<Request>(value.clone()).is_ok());
+        for key in ["executable", "host", "args", "folderPath"] {
+            let mut invalid = value.clone();
+            invalid[key] = serde_json::json!("untrusted");
+            assert!(serde_json::from_value::<Request>(invalid).is_err());
+        }
+    }
+    #[test]
+    fn partner_launch_rejects_invalid_ids_and_empty_credentials_before_starting_runtime() {
+        for (token, id) in [("", "583704ab-6fc5-4b58-8fc2-d91cf1d7c051"), ("fixture", "bad-id")] {
+            let request = Request::PartnerLaunch { api_origin: "https://16competitive.papamo.dev".into(), token: token.into(), server_id: id.into(), group_id: None, community_id: None };
+            assert!(apply(request, "fixture-capability").is_err());
+        }
     }
 }
