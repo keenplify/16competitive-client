@@ -27,7 +27,6 @@ import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useFriendsStore } from '../friends/friends.store'
-import { useHideDesktopOnlyFeatures } from '../community/links'
 
 interface CustomGamesPanelProps {
   currentPlayerId: string
@@ -66,10 +65,7 @@ export function CustomGamesPanel({
   disabled = false
 }: CustomGamesPanelProps): JSX.Element {
   const rooms = useCustomGamesStore((state) => state.rooms)
-  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
-  const visibleRooms = hideDesktopOnlyFeatures
-    ? rooms.filter((candidate) => candidate.mode !== 'cs13_3v3')
-    : rooms
+  const visibleRooms = rooms
   const room = useCustomGamesStore((state) => state.currentRoom)
   const status = useCustomGamesStore((state) => state.status)
   const refresh = useCustomGamesStore((state) => state.refresh)

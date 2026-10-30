@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -86,5 +88,48 @@ test('an empty registry or total outage remains an error rather than an empty su
       }),
       /customGames.listUnavailable/
     )
+  }
+})
+
+test('partner web custom creation includes backend-enabled CS13 and excludes disabled modes', () => {
+  const source = ts.transpileModule(
+    readFileSync(
+      new URL(
+        '../src/renderer/src/features/matchmaking/CreateCustomGameModal.tsx',
+        import.meta.url
+      ),
+      'utf8'
+    ),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX
+      }
+    }
+  ).outputText
+  for (const enabled of [['unrated', 'ffa', 'cs13_3v3'], ['unrated']]) {
+    const jsx = (type, props) => ({ type, props })
+    const dependencies = {
+      react: { useState: (initial) => [initial, () => undefined] },
+      'react/jsx-runtime': { jsx, jsxs: jsx },
+      '../community/links': { useHideDesktopOnlyFeatures: () => true },
+      '../i18n/i18n': { useTranslation: () => ({ t: (key) => key }) },
+      '../../../../shared/custom-games': { CUSTOM_GAME_MODES: ['unrated', 'ffa', 'cs13_3v3'] },
+      './matchmaking.store': { useMatchmakingStore: (select) => select({ customModes: enabled }) },
+      './custom-games.store': { useCustomGamesStore: (select) => select({}) }
+    }
+    const exports = {}
+    new Function('require', 'exports', source)((name) => dependencies[name] ?? {}, exports)
+    const tree = exports.CreateCustomGameModal({ maps: [], selectedNodeId: null })
+    const options = []
+    const walk = (node) => {
+      if (Array.isArray(node)) return node.forEach(walk)
+      if (!node || typeof node !== 'object') return
+      if (node.type === 'option' && node.props.value) options.push(node.props.value)
+      walk(node.props?.children)
+    }
+    walk(tree)
+    assert.deepEqual(options, enabled)
   }
 })

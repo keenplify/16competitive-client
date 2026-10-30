@@ -59,3 +59,100 @@ test('invalid saved filters fall back to All', () => {
   )
   assert.equal(createStore('one').getState().gameFilter, 'all')
 })
+
+function renderPanel(gameFilter = 'all', selectedId = 'legacy') {
+  const state = {
+    rows: [
+      { id: 'legacy', gameVersion: 'cs13', name: 'Legacy server', online: true },
+      { id: 'modern', gameVersion: 'cs16', name: 'Modern server', online: true }
+    ],
+    gameFilter,
+    selectedId,
+    status: 'ready',
+    connecting: false,
+    setGameFilter() {
+      return undefined
+    },
+    select() {
+      return undefined
+    }
+  }
+  const useServers = (select) => select(state)
+  const jsx = (type, props) => ({ type, props })
+  const dependencies = {
+    react: {
+      useEffect() {
+        return undefined
+      },
+      useMemo: (factory) => factory()
+    },
+    'react/jsx-runtime': { jsx, jsxs: jsx },
+    '../../web-runtime': { isWebRuntime: () => true },
+    '../community/links': { useHideDesktopOnlyFeatures: () => true },
+    '../i18n/i18n': { useTranslation: () => ({ t: (key) => key }) },
+    './community-copy': { useCommunityText: () => (key) => key },
+    './partner-servers.store': {
+      createPartnerServersStore: () => useServers,
+      usePartnerServersStore: useServers
+    },
+    './partner-launch.store': { usePartnerLaunchStore: (select) => select({ busy: 'idle' }) },
+    '../party/party.store': { usePartyStore: (select) => select({ party: null }) },
+    '../auth/auth.store': { useAuthStore: (select) => select({ session: null }) },
+    '../../../../shared/partner-community': { serverIsFull: () => false },
+    'tailwind-merge': { twMerge: (...values) => values.filter(Boolean).join(' ') },
+    '../../components/ui/Button': { Button: 'Button' },
+    '../../components/ui/TabList': { TabList: 'TabList' }
+  }
+  const source = ts.transpileModule(
+    readFileSync(
+      new URL(
+        '../src/renderer/src/features/partner-branding/PartnerServersPanel.tsx',
+        import.meta.url
+      ),
+      'utf8'
+    ),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX
+      }
+    }
+  ).outputText
+  const exports = {}
+  new Function('require', 'exports', source)((name) => dependencies[name] ?? {}, exports)
+  const tree = exports.PartnerServersPanel({ communityId: 'partner' })
+  const nodes = []
+  const walk = (node) => {
+    if (Array.isArray(node)) return node.forEach(walk)
+    if (!node || typeof node !== 'object') return
+    nodes.push(node)
+    walk(node.props?.children)
+  }
+  walk(tree)
+  return nodes
+}
+
+test('web partners without desktop downloads still display and filter CS13 servers', () => {
+  const all = renderPanel()
+  assert.deepEqual(
+    all.find((node) => node.type === 'TabList').props.items.map((item) => item.value),
+    ['all', 'cs16', 'cs13']
+  )
+  assert.equal(
+    all.filter((node) => node.props?.className?.includes('community-server-card')).length,
+    2
+  )
+  const legacy = renderPanel('cs13')
+  assert.equal(
+    legacy.filter((node) => node.props?.className?.includes('community-server-card')).length,
+    1
+  )
+  // Visibility does not bypass the browser's unsupported CS13 launch path.
+  assert.equal(
+    legacy.find((node) => node.type === 'Button' && node.props.className.includes('h-12')).props
+      .disabled,
+    true
+  )
+  assert.ok(legacy.some((node) => node.props?.children === 'cs13WebUnavailable'))
+})

@@ -14,7 +14,6 @@ import { createPartnerServersStore, usePartnerServersStore } from './partner-ser
 import { usePartnerLaunchStore } from './partner-launch.store'
 import { usePartyStore } from '../party/party.store'
 import { useAuthStore } from '../auth/auth.store'
-import { useHideDesktopOnlyFeatures } from '../community/links'
 export function PartnerServersPanel({
   communityId,
   disabled = false,
@@ -38,10 +37,8 @@ export function PartnerServersPanel({
     selectedId = useServers((s) => s.selectedId),
     connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
-  const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
-  const availableRows = rows.filter(
-    (server) => !hideDesktopOnlyFeatures || server.gameVersion !== 'cs13'
-  )
+  // Server discovery is independent of whether this browser can launch the game.
+  const availableRows = rows
   const showVersionTabs =
     new Set(availableRows.map((server) => server.gameVersion ?? 'cs16')).size > 1
   // A saved filter must not hide the only available version when its tabs are hidden.
@@ -68,8 +65,8 @@ export function PartnerServersPanel({
   const selected = visibleRows.find((row) => row.id === selectedId)
   const firstVisibleId = visibleRows[0]?.id
   useEffect(() => {
-    if (hideDesktopOnlyFeatures && !selected && firstVisibleId) select(firstVisibleId)
-  }, [hideDesktopOnlyFeatures, selected, firstVisibleId, select])
+    if (!selected && firstVisibleId) select(firstVisibleId)
+  }, [selected, firstVisibleId, select])
   const cs13WebUnavailable = isWebRuntime() && selected?.gameVersion === 'cs13'
   const partyMemberCannotStart = Boolean(
     !communityId && party && party.members.length > 1 && party.leaderId !== playerId
@@ -107,7 +104,7 @@ export function PartnerServersPanel({
             items={[
               { value: 'all', label: t('directory.all') },
               { value: 'cs16', label: 'CS 1.6' },
-              ...(!hideDesktopOnlyFeatures ? [{ value: 'cs13' as const, label: 'CS 1.3' }] : [])
+              { value: 'cs13', label: 'CS 1.3' }
             ]}
           />
         )}
