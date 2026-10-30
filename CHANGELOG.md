@@ -3752,3 +3752,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Web helper now accepts verified shared model links created by the launcher.
+
+## v2026.1030.8 — 2026-10-30
+
+### Web CS13 Matches
+
+- Web CS13 matches now use the managed cosmetic runtime for improved cosmetic support.
