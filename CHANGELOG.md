@@ -3740,3 +3740,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web Rooms
 
 - Fixed readiness handling for legacy web rooms.
+
+## v2026.1030.6 — 2026-10-30
+
+### Changes
+
+- No player-facing changes provided.
