@@ -13,6 +13,14 @@ export const buildLobbyPresentation = (
   animationBuffer?: ArrayBuffer
 ): CachedLobbyPresentation => {
   const localPlayer = parseModelCached(playerBuffer)
+  if (
+    localPlayer.textures.length === 0 ||
+    localPlayer.meshes
+      .flat(2)
+      .some((mesh) => !localPlayer.textures[localPlayer.skinRef[mesh.skinRef]])
+  ) {
+    throw new Error('Player preview requires embedded textures for every mesh')
+  }
   const donor = animationBuffer ? parseModelCached(animationBuffer) : null
   const source = donor ? lobbyAnimationSource(localPlayer, donor, weaponKey) : null
   const player = source && donor ? { ...localPlayer, sequences: donor.sequences } : localPlayer

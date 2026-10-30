@@ -24,19 +24,40 @@ export const createTexture = (
   width: number,
   height: number
 ): THREE.Texture => {
-  const imageData = new ImageData(skinBuffer as Uint8ClampedArray<ArrayBuffer>, width, height)
-
-  const texture = new THREE.Texture(
-    imageData as unknown as HTMLCanvasElement,
+  if (
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width < 1 ||
+    height < 1 ||
+    width > 4096 ||
+    height > 4096 ||
+    skinBuffer.byteLength !== width * height * 4
+  ) {
+    throw new Error('Invalid preview RGBA texture')
+  }
+  // Upload explicit RGBA bytes rather than treating ImageData as a canvas.
+  // Array-buffer uploads do not apply UNPACK_FLIP_Y_WEBGL, so reverse rows
+  // here to preserve the existing GoldSrc UV orientation across GL drivers.
+  const pixels = new Uint8Array(skinBuffer.byteLength)
+  const stride = width * 4
+  for (let row = 0; row < height; row++) {
+    pixels.set(skinBuffer.subarray(row * stride, (row + 1) * stride), (height - row - 1) * stride)
+  }
+  const texture = new THREE.DataTexture(
+    pixels,
+    width,
+    height,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType,
     THREE.UVMapping,
     THREE.ClampToEdgeWrapping,
     THREE.ClampToEdgeWrapping,
     THREE.LinearFilter,
-    THREE.LinearFilter,
-    THREE.RGBAFormat,
-    THREE.UnsignedByteType
+    THREE.LinearFilter
   )
-
+  texture.flipY = false
+  texture.generateMipmaps = false
+  texture.unpackAlignment = 1
   texture.needsUpdate = true
 
   return texture
@@ -286,7 +307,7 @@ export const prepareRenderData = (
 export const createModelMaterial = (texture?: THREE.Texture, textureFlags = 0) => {
   const additive = (textureFlags & NF_ADDITIVE) !== 0
   return new THREE.MeshBasicMaterial({
-    map: texture,
+    ...(texture ? { map: texture } : {}),
     side: THREE.DoubleSide,
     transparent: true,
     alphaTest: 0.5,
@@ -326,24 +347,11 @@ export const createModelMeshes = (
   textureBuffers: Uint8ClampedArray[]
 ): THREE.Mesh[][][] => {
   const textures: THREE.Texture[] = textureBuffers.map((textureBuffer, textureIndex) => {
-    const texture = new THREE.Texture(
-      new ImageData(
-        textureBuffer as Uint8ClampedArray<ArrayBuffer>,
-        modelData.textures[textureIndex].width,
-        modelData.textures[textureIndex].height
-      ) as unknown as HTMLCanvasElement,
-      THREE.UVMapping,
-      THREE.ClampToEdgeWrapping,
-      THREE.ClampToEdgeWrapping,
-      THREE.LinearFilter,
-      THREE.LinearFilter,
-      THREE.RGBAFormat,
-      THREE.UnsignedByteType
+    return createTexture(
+      textureBuffer,
+      modelData.textures[textureIndex].width,
+      modelData.textures[textureIndex].height
     )
-
-    texture.needsUpdate = true
-
-    return texture
   })
 
   const modelMeshes: THREE.Mesh[][][] = meshesRenderData.map((bodyPart, bodyPartIndex) =>

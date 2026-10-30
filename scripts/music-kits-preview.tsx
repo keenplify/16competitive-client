@@ -41,12 +41,18 @@ window.api = {
     writeThumbnail: async () => {},
     read: async (path: string) => {
       const lobby = /(?:lobby\/|player\/)([a-z0-9]+)(?:_lobby\.mdl|\/[^/]+\.mdl)$/.exec(path)?.[1]
+      const modelState = new URLSearchParams(location.search).get('models')
+      const bundled = path.startsWith('lobby/')
+      if (modelState === 'missing' && !bundled) throw new Error('Fixture installation missing')
       const url = lobby
         ? `/resources/lobby-models/${lobby}_lobby.mdl`
         : `${__MUSIC_PREVIEW_MODEL_ROOT__}/${path.replace(/^models\//, '')}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('Fixture model unavailable')
-      return response.arrayBuffer()
+      const bytes = await response.arrayBuffer()
+      if (modelState === 'untextured' && !bundled && path.startsWith('player/'))
+        new DataView(bytes).setInt32(180, 0, true)
+      return bytes
     }
   },
   skins: {

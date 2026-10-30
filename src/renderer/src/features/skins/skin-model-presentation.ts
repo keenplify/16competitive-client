@@ -123,5 +123,5 @@ export const getSkinPresentationRevision = (weaponKey: string): string => {
     : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
   const rotation = getSkinPresentationRotation(weaponKey).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
-  return `${isCharacterModel(weaponKey) ? 'character-armed-v1' : 'presentation-v3'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+  return `${isCharacterModel(weaponKey) ? 'character-armed-v2' : 'presentation-v4'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
 }

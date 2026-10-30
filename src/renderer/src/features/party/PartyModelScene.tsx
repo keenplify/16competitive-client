@@ -1,6 +1,7 @@
 import { getCachedSkinModel } from '../skins/skin-model-cache'
 import { lobbySequenceLabelFor } from './character-animation'
 import { buildLobbyPresentation } from './lobby-presentation'
+import { loadPlayerPreview } from './preview-model-fallback'
 import { presentationModelPath, sourcePlayerModelPath } from './party-models'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -43,11 +44,11 @@ type LoadedScene = {
   actorKey: string
   actors: PartySceneActor[]
   playerPresentations: CachedLobbyPresentation[]
-  weaponBuffers: ArrayBuffer[]
+  weaponBuffers: (ArrayBuffer | null)[]
 }
 
 const LOBBY_MODEL_PREFIX = 'lobby/'
-const LOBBY_PRESENTATION_CACHE_REVISION = 3
+const LOBBY_PRESENTATION_CACHE_REVISION = 4
 const MAX_CURRENT_PLAYER_POINTER_YAW = THREE.Math.degToRad(8)
 const MAX_CURRENT_PLAYER_POINTER_PITCH = THREE.Math.degToRad(4)
 
@@ -230,32 +231,30 @@ const loadPlayerPresentation = async (
     !isGrenadeWeapon(weaponKey) && donorPath.startsWith(LOBBY_MODEL_PREFIX)
       ? await window.api.models.read(donorPath).catch(() => undefined)
       : undefined
-  let playerBuffer: ArrayBuffer
-  try {
-    playerBuffer = customSkinId
-      ? await getCachedSkinModel(customSkinId)
-      : await window.api.models.read(sourcePlayerModelPath(actor.modelPath))
-  } catch {
-    // No selected installation / unavailable custom model: preserve the bundled preview.
-    playerBuffer = await window.api.models.read(actor.fallbackModelPath).catch((error: unknown) => {
-      if (animationBuffer) return animationBuffer
-      throw error
-    })
-  }
-  const fingerprint = async (buffer: ArrayBuffer): Promise<string> =>
-    Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buffer)), (byte) =>
-      byte.toString(16).padStart(2, '0')
-    ).join('')
-  const [playerHash, animationHash] = await Promise.all([
-    fingerprint(playerBuffer),
-    animationBuffer ? fingerprint(animationBuffer) : 'own-animation'
-  ])
-  const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${playerHash}:${animationHash}:${lobbySequenceLabelFor(weaponKey)}`
-  const cached = await readCachedLobbyPresentation(cacheKey)
-  if (cached) return cached
-  const presentation = buildLobbyPresentation(playerBuffer, weaponKey, animationBuffer)
-  await writeCachedLobbyPresentation(cacheKey, presentation)
-  return presentation
+  return loadPlayerPreview(
+    () =>
+      customSkinId
+        ? getCachedSkinModel(customSkinId)
+        : window.api.models.read(sourcePlayerModelPath(actor.modelPath)),
+    async () =>
+      animationBuffer ?? window.api.models.read(presentationModelPath(actor.fallbackModelPath)),
+    async (playerBuffer) => {
+      const fingerprint = async (buffer: ArrayBuffer): Promise<string> =>
+        Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buffer)), (byte) =>
+          byte.toString(16).padStart(2, '0')
+        ).join('')
+      const [playerHash, animationHash] = await Promise.all([
+        fingerprint(playerBuffer),
+        animationBuffer ? fingerprint(animationBuffer) : 'own-animation'
+      ])
+      const cacheKey = `${LOBBY_PRESENTATION_CACHE_REVISION}:${playerHash}:${animationHash}:${lobbySequenceLabelFor(weaponKey)}`
+      const cached = await readCachedLobbyPresentation(cacheKey)
+      if (cached) return cached
+      const presentation = buildLobbyPresentation(playerBuffer, weaponKey, animationBuffer)
+      await writeCachedLobbyPresentation(cacheKey, presentation)
+      return presentation
+    }
+  )
 }
 
 const isWeaponTransformArray = (
@@ -286,7 +285,7 @@ const DEFAULT_LOBBY_WEAPON_KEY = 'ak47'
 /** Keep the fallback model, animation, and transform on the same weapon. */
 const loadLobbyWeapon = async (
   actor: PartySceneActor
-): Promise<{ actor: PartySceneActor; weaponBuffer: ArrayBuffer }> => {
+): Promise<{ actor: PartySceneActor; weaponBuffer: ArrayBuffer | null }> => {
   if (actor.forceWeaponSkinPreview && actor.weaponSkinId) {
     try {
       return {
@@ -317,7 +316,8 @@ const loadLobbyWeapon = async (
     }
     return {
       actor: fallbackActor,
-      weaponBuffer: await window.api.models.read(DEFAULT_LOBBY_WEAPON_PATH)
+      // No installation is a valid menu state: show the bundled character alone.
+      weaponBuffer: await window.api.models.read(DEFAULT_LOBBY_WEAPON_PATH).catch(() => null)
     }
   }
 }
@@ -458,7 +458,7 @@ const randomAnimationPhase = (): number => crypto.getRandomValues(new Uint32Arra
 const createActor = (
   actor: PartySceneActor,
   player: CachedLobbyPresentation,
-  weaponBuffer: ArrayBuffer,
+  weaponBuffer: ArrayBuffer | null,
   showNameplate: boolean
 ): THREE.Group => {
   const presentationWeaponKey = weaponKeyFromPath(actor.weaponPath) ?? actor.weaponKey
@@ -479,94 +479,97 @@ const createActor = (
     mesh.userData.upperBodyMask = upperBodyMask
   })
 
-  const weapon = parseModelCached(weaponBuffer)
-  const weaponTextures = weapon.textures.map((texture) => buildTexture(weaponBuffer, texture))
-  const playerBoneIndices = new Map(player.boneNames.map((boneName, index) => [boneName, index]))
-  const rightHandBone = player.boneNames.findIndex((boneName) => boneName.includes('r hand'))
-  const leftHandBone = player.boneNames.findIndex((boneName) => boneName.includes('l hand'))
+  if (weaponBuffer) {
+    const weapon = parseModelCached(weaponBuffer)
+    const weaponTextures = weapon.textures.map((texture) => buildTexture(weaponBuffer, texture))
+    const playerBoneIndices = new Map(player.boneNames.map((boneName, index) => [boneName, index]))
+    const rightHandBone = player.boneNames.findIndex((boneName) => boneName.includes('r hand'))
+    const leftHandBone = player.boneNames.findIndex((boneName) => boneName.includes('l hand'))
 
-  weaponTransforms.forEach((weaponTransform) => {
-    const requestedHandBone = weaponTransform.hand === 'left' ? leftHandBone : rightHandBone
-    const handBone = requestedHandBone >= 0 ? requestedHandBone : rightHandBone
-    const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
-      new THREE.Euler(
-        ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
+    weaponTransforms.forEach((weaponTransform) => {
+      const requestedHandBone = weaponTransform.hand === 'left' ? leftHandBone : rightHandBone
+      const handBone = requestedHandBone >= 0 ? requestedHandBone : rightHandBone
+      const sourceRotation = new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Euler(
+          ...weaponTransform.modelRotation.map((degrees) => THREE.Math.degToRad(degrees))
+        )
       )
-    )
-    const weaponBoneMap = weapon.bones.map((bone) =>
-      weaponTransform.hand ? handBone : (playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone)
-    )
+      const weaponBoneMap = weapon.bones.map((bone) =>
+        weaponTransform.hand
+          ? handBone
+          : (playerBoneIndices.get(bone.name.toLowerCase()) ?? handBone)
+      )
 
-    weapon.meshes.forEach((bodyPart, bodyPartIndex) =>
-      bodyPart.forEach((subModel, subModelIndex) =>
-        subModel.forEach((sourceMesh, meshIndex) => {
-          const textureIndex = weapon.skinRef[sourceMesh.skinRef]
-          const textureInfo = weapon.textures[textureIndex]
-          const { vertices, uv, indices } = readFacesData(
-            weapon.triangles[bodyPartIndex][subModelIndex][meshIndex],
-            weapon.vertices[bodyPartIndex][subModelIndex],
-            textureInfo ?? { width: 1, height: 1 }
-          )
-          const positioned = new Float32Array(vertices.length)
-          for (let index = 0; index < vertices.length; index += 3) {
-            const vertex = new THREE.Vector3(
-              vertices[index],
-              vertices[index + 1],
-              vertices[index + 2]
-            ).applyMatrix4(sourceRotation)
-            positioned[index] = vertex.x
-            positioned[index + 1] = vertex.y
-            positioned[index + 2] = vertex.z
-          }
-          const boneBuffer = Uint8Array.from(
-            weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
-            (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
-          )
-          const animationFrames = player.boneTransforms.map((playerBones) => {
-            const handTransform = new THREE.Matrix4().fromArray(
-              playerBones[handBone] as unknown as number[]
+      weapon.meshes.forEach((bodyPart, bodyPartIndex) =>
+        bodyPart.forEach((subModel, subModelIndex) =>
+          subModel.forEach((sourceMesh, meshIndex) => {
+            const textureIndex = weapon.skinRef[sourceMesh.skinRef]
+            const textureInfo = weapon.textures[textureIndex]
+            const { vertices, uv, indices } = readFacesData(
+              weapon.triangles[bodyPartIndex][subModelIndex][meshIndex],
+              weapon.vertices[bodyPartIndex][subModelIndex],
+              textureInfo ?? { width: 1, height: 1 }
             )
-            const handRotation = handTransform
-              .clone()
-              .multiply(
-                new THREE.Matrix4().makeRotationFromEuler(
-                  new THREE.Euler(
-                    ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
+            const positioned = new Float32Array(vertices.length)
+            for (let index = 0; index < vertices.length; index += 3) {
+              const vertex = new THREE.Vector3(
+                vertices[index],
+                vertices[index + 1],
+                vertices[index + 2]
+              ).applyMatrix4(sourceRotation)
+              positioned[index] = vertex.x
+              positioned[index + 1] = vertex.y
+              positioned[index + 2] = vertex.z
+            }
+            const boneBuffer = Uint8Array.from(
+              weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
+              (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
+            )
+            const animationFrames = player.boneTransforms.map((playerBones) => {
+              const handTransform = new THREE.Matrix4().fromArray(
+                playerBones[handBone] as unknown as number[]
+              )
+              const handRotation = handTransform
+                .clone()
+                .multiply(
+                  new THREE.Matrix4().makeRotationFromEuler(
+                    new THREE.Euler(
+                      ...weaponTransform.handRotation.map((degrees) => THREE.Math.degToRad(degrees))
+                    )
                   )
                 )
-              )
-              .multiply(new THREE.Matrix4().getInverse(handTransform))
-            const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
-            const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
-              .applyMatrix4(handTransform)
-              .sub(handOrigin)
-            const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
-            for (let index = 0; index < skinned.length; index += 3) {
-              const vertex = new THREE.Vector3(
-                skinned[index],
-                skinned[index + 1],
-                skinned[index + 2]
-              ).applyMatrix4(handRotation)
-              skinned[index] = vertex.x + handOffset.x
-              skinned[index + 1] = vertex.y + handOffset.y
-              skinned[index + 2] = vertex.z + handOffset.z
-            }
-            return new THREE.BufferAttribute(skinned, 3)
+                .multiply(new THREE.Matrix4().getInverse(handTransform))
+              const handOrigin = new THREE.Vector3().setFromMatrixPosition(handTransform)
+              const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
+                .applyMatrix4(handTransform)
+                .sub(handOrigin)
+              const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
+              for (let index = 0; index < skinned.length; index += 3) {
+                const vertex = new THREE.Vector3(
+                  skinned[index],
+                  skinned[index + 1],
+                  skinned[index + 2]
+                ).applyMatrix4(handRotation)
+                skinned[index] = vertex.x + handOffset.x
+                skinned[index + 1] = vertex.y + handOffset.y
+                skinned[index + 2] = vertex.z + handOffset.z
+              }
+              return new THREE.BufferAttribute(skinned, 3)
+            })
+            const mesh = addMesh(
+              group,
+              animationFrames[0] ?? new THREE.BufferAttribute(positioned, 3),
+              new THREE.BufferAttribute(uv, 2),
+              weaponTextures[textureIndex],
+              textureInfo
+            )
+            mesh.userData.animationFrames = animationFrames
+            mesh.userData.followsUpperBody = true
           })
-          const mesh = addMesh(
-            group,
-            animationFrames[0] ?? new THREE.BufferAttribute(positioned, 3),
-            new THREE.BufferAttribute(uv, 2),
-            weaponTextures[textureIndex],
-            textureInfo
-          )
-          mesh.userData.animationFrames = animationFrames
-          mesh.userData.followsUpperBody = true
-        })
+        )
       )
-    )
-  })
-
+    })
+  }
   group.rotation.x = THREE.Math.degToRad(-90)
   group.rotation.z = THREE.Math.degToRad(-90)
   group.updateMatrixWorld(true)
@@ -705,7 +708,7 @@ export function PartyModelScene({
     sceneActors.forEach((actor, index) => {
       const playerPresentation = loadedScene.playerPresentations[index]
       const weaponBuffer = loadedScene.weaponBuffers[index]
-      if (!playerPresentation || !weaponBuffer) return
+      if (!playerPresentation) return
       const model = createActor(actor, playerPresentation, weaponBuffer, showNameplates)
       setActorOpacity(model, 0)
       const pivot = new THREE.Group()
