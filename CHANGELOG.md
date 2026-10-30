@@ -3788,3 +3788,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Clarified how shared music kits work.
 - Preserved both music kit loadout slots.
+
+## v2026.1030.12 — 2026-10-30
+
+### Model previews
+
+- Improved character and skin previews with a bundled fallback when needed.
+- Fixed preview textures to display correct colors and transparency.
