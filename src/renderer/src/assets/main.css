@@ -493,7 +493,7 @@
 }
 
 .play-map-layout-review-only {
-  width: min(100%, var(--play-map-review-only-width));
+  width: 100%;
 }
 
 .play-map-group-grid {

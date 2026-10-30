@@ -320,15 +320,20 @@ export function PlayPage({
           map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
       )
   )
+  const ffaTabModes = noncompetitiveModes.filter((mode) => mode !== 'arena')
   const activePlayTab =
     visiblePlayView !== 'matchmaking'
       ? visiblePlayView
       : showWarmup
         ? (warmupBrowsing || warmupActive) && warmupMode !== '5v5'
-          ? 'noncompetitive'
+          ? warmupMode === 'arena'
+            ? 'arena'
+            : 'noncompetitive'
           : 'competitive'
         : selectedMode !== '5v5'
-          ? 'noncompetitive'
+          ? selectedMode === 'arena'
+            ? 'arena'
+            : 'noncompetitive'
           : 'competitive'
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
@@ -642,7 +647,7 @@ export function PlayPage({
                   }
                 ]
               : []),
-            ...(!hideDesktopOnlyFeatures || noncompetitiveModes.length > 0
+            ...(!hideDesktopOnlyFeatures || ffaTabModes.length > 0
               ? [
                   {
                     value: 'noncompetitive',
@@ -650,9 +655,23 @@ export function PlayPage({
                     disabled:
                       (warmupEligible &&
                         (((warmupActive || warmupBusy) && activePlayTab !== 'noncompetitive') ||
-                          noncompetitiveModes.length === 0)) ||
-                      (isSearching && !warmupEligible && selectedMode === '5v5') ||
-                      (!isSearching && (!isLeader || noncompetitiveModes.length === 0))
+                          ffaTabModes.length === 0)) ||
+                      (isSearching && !warmupEligible && activePlayTab !== 'noncompetitive') ||
+                      (!isSearching && (!isLeader || ffaTabModes.length === 0))
+                  }
+                ]
+              : []),
+            ...(noncompetitiveModes.includes('arena')
+              ? [
+                  {
+                    value: 'arena',
+                    label: t('customRoom.mode.arena'),
+                    disabled:
+                      (warmupEligible &&
+                        (warmupActive || warmupBusy) &&
+                        activePlayTab !== 'arena') ||
+                      (isSearching && !warmupEligible && selectedMode !== 'arena') ||
+                      (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -669,9 +688,11 @@ export function PlayPage({
                 const next =
                   view === 'competitive'
                     ? '5v5'
-                    : noncompetitiveModes.includes('ffa')
-                      ? 'ffa'
-                      : noncompetitiveModes[0]
+                    : view === 'arena'
+                      ? 'arena'
+                      : ffaTabModes.includes('ffa')
+                        ? 'ffa'
+                        : ffaTabModes[0]
                 if (next && next !== warmupMode) selectWarmup(next, [])
               }
               openWarmup()
@@ -679,8 +700,9 @@ export function PlayPage({
               closeWarmup()
               if (!isSearching) {
                 if (view === 'competitive') selectMode('5v5')
-                else if (selectedMode === '5v5' && noncompetitiveModes[0])
-                  selectMode(noncompetitiveModes.includes('ffa') ? 'ffa' : noncompetitiveModes[0])
+                else if (view === 'arena') selectMode('arena')
+                else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+                  selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
               }
             }
           }}
@@ -701,18 +723,18 @@ export function PlayPage({
               />
             ) : (
               <>
-                {selectedMode !== '5v5' && noncompetitiveModes.length > 1 && (
+                {selectedMode !== '5v5' && selectedMode !== 'arena' && ffaTabModes.length > 1 && (
                   <div className="w-64 max-w-full shrink-0">
                     <SelectField
                       label={t('warmup.mode')}
                       value={selectedMode}
                       disabled={isSearching || !isLeader}
                       onChange={(event) => {
-                        const mode = noncompetitiveModes.find((mode) => mode === event.target.value)
+                        const mode = ffaTabModes.find((mode) => mode === event.target.value)
                         if (mode) selectMode(mode)
                       }}
                     >
-                      {noncompetitiveModes.map((mode) => (
+                      {ffaTabModes.map((mode) => (
                         <option key={mode} value={mode}>
                           {getMatchmakingModeLabel(mode)}
                         </option>

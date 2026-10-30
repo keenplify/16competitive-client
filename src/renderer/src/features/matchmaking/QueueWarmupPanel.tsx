@@ -53,28 +53,40 @@ export function QueueWarmupPanel({
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col gap-4', className)}
-      aria-label={t(competitive ? 'warmup.rankedMode' : 'warmup.tab')}
+      aria-label={t(
+        competitive
+          ? 'warmup.rankedMode'
+          : mode === 'arena'
+            ? 'customRoom.mode.arena'
+            : 'warmup.tab'
+      )}
     >
       <p className="text-sm text-neutral-200">{t('warmup.description')}</p>
-      {!competitive && modes.length > 1 && (
-        <div className="w-64 max-w-full shrink-0">
-          <SelectField
-            label={t('warmup.mode')}
-            value={mode ?? warmup.mode}
-            disabled={busy || active}
-            onChange={(event) => {
-              const next = modes.find((value) => value === event.target.value)
-              if (next) warmup.select(next, [])
-            }}
-          >
-            {modes.map((value) => (
-              <option key={value} value={value}>
-                {getMatchmakingModeLabel(value)}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-      )}
+      {!competitive &&
+        mode !== 'arena' &&
+        modes.filter((value) => value !== 'arena').length > 1 && (
+          <div className="w-64 max-w-full shrink-0">
+            <SelectField
+              label={t('warmup.mode')}
+              value={mode ?? warmup.mode}
+              disabled={busy || active}
+              onChange={(event) => {
+                const next = modes.find(
+                  (value) => value !== 'arena' && value === event.target.value
+                )
+                if (next) warmup.select(next, [])
+              }}
+            >
+              {modes
+                .filter((value) => value !== 'arena')
+                .map((value) => (
+                  <option key={value} value={value}>
+                    {getMatchmakingModeLabel(value)}
+                  </option>
+                ))}
+            </SelectField>
+          </div>
+        )}
       {availableMaps.length > 0 ? (
         <MatchmakingMapPool
           maps={availableMaps}

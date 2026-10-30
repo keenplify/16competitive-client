@@ -24,7 +24,7 @@ export function MatchmakingMapPool({
   ].filter((group) => group.maps.length > 0)
   const regularCount = groups.find((group) => !group.review)?.maps.length ?? 0
   const reviewCount = groups.find((group) => group.review)?.maps.length ?? 0
-  const reviewColumns = Math.ceil(reviewCount / 3)
+  const reviewColumns = regularCount === 0 ? reviewCount : Math.ceil(reviewCount / 3)
   return (
     <section
       className={twMerge('flex min-h-0 flex-1 flex-col', className)}
@@ -53,7 +53,6 @@ export function MatchmakingMapPool({
               '--play-map-regular-columns': regularCount,
               '--play-map-review-min-width': `${reviewColumns * 132}px`,
               '--play-map-review-width': `${reviewColumns * 16}%`,
-              '--play-map-review-only-width': `${reviewColumns * 220}px`,
               '--play-map-min-width': `${regularCount * 150 + reviewColumns * 132 + (regularCount && reviewCount ? 12 : 0)}px`
             } as CSSProperties
           }
@@ -86,7 +85,9 @@ export function MatchmakingMapPool({
                   <MatchmakingMapCard
                     key={map.id}
                     map={map}
-                    className={group.review ? 'play-review-map-card' : undefined}
+                    className={
+                      group.review && regularCount > 0 ? 'play-review-map-card' : undefined
+                    }
                     selected={selectedMapIds.includes(map.id)}
                     disabled={disabled}
                     onSelect={() => onSelect(map.id)}
