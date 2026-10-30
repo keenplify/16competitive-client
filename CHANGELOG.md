@@ -3690,3 +3690,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Installation
 
 - Improved Counter-Strike 1.3 installation setup and match preparation.
+
+## v2026.1030.2 — 2026-10-30
+
+### Fixes
+
+- Fixed game asset permission errors.
+- Fixed matchmaking preparation status getting stuck.
+- Improved recovery when matchmaking is restarted.
