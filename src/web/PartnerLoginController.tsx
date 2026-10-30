@@ -46,7 +46,8 @@ export function PartnerLoginController(): JSX.Element | null {
       <ModalDialog
         open
         labelledBy="partner-login-title"
-        onClose={state.cancel}
+        // Outside clicks and Escape must not discard an in-flight sign-in.
+        onClose={() => undefined}
         className="max-w-lg p-6"
         vguiTitlebar={false}
       >

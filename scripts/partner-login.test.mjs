@@ -268,7 +268,10 @@ function runControllerEffects(store, authStatus = 'idle') {
   ).outputText
   const deps = {
     react: { useEffect: (effect) => effects.push(effect) },
-    'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
+    'react/jsx-runtime': {
+      jsx: (type, props) => ({ type, props }),
+      jsxs: (type, props) => ({ type, props })
+    },
     'lucide-react': { LoaderCircle: () => null },
     './PartnerAccountMatch': { PartnerAccountMatch: () => null },
     '../renderer/src/components/ui/ModalDialog': { ModalDialog: () => null },
@@ -281,8 +284,9 @@ function runControllerEffects(store, authStatus = 'idle') {
   }
   const exports = {}
   new Function('require', 'exports', source)((name) => deps[name], exports)
-  exports.PartnerLoginController()
+  const rendered = exports.PartnerLoginController()
   for (const effect of effects) effect()
+  return rendered
 }
 test('a verified partner handoff completes automatically once account restoration finishes', async () => {
   const h = harness()
@@ -329,4 +333,42 @@ test('failed partner validation logs safe diagnostics without exposing credentia
   })
   assert.ok(!JSON.stringify(warnings).includes(secret))
   assert.ok(!JSON.stringify(warnings).includes(raw))
+})
+
+test('checking and automatic partner sign-in cannot be dismissed by modal close events', () => {
+  for (const phase of ['loading', 'submitting', 'ready']) {
+    let cancelled = 0
+    const store = {
+      getState: () => ({
+        phase,
+        error: null,
+        initialize: async () => undefined,
+        complete: async () => undefined,
+        cancel: () => {
+          cancelled += 1
+        }
+      })
+    }
+    const modal = runControllerEffects(store, 'restoring')
+    modal.props.onClose()
+    assert.equal(cancelled, 0, phase)
+  }
+})
+
+test('partner sign-in errors retain deliberate dismissal and recovery', () => {
+  let cancelled = 0
+  const store = {
+    getState: () => ({
+      phase: 'ready',
+      error: 'failed',
+      initialize: async () => undefined,
+      complete: async () => undefined,
+      cancel: () => {
+        cancelled += 1
+      }
+    })
+  }
+  const modal = runControllerEffects(store)
+  modal.props.onClose()
+  assert.equal(cancelled, 1)
 })
