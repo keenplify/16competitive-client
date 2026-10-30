@@ -144,7 +144,7 @@ for (const game of ['cs13', 'cs16']) {
     assert.deepEqual(roots, [`/${game}/cstrike`])
     assert.equal(
       await storage.destination('models/16competitive/knife/v.mdl'),
-      '/user-data/game-assets/models/16competitive/knife/v.mdl'
+      path.join('/user-data', 'game-assets', 'models', '16competitive', 'knife', 'v.mdl')
     )
   })
 }
