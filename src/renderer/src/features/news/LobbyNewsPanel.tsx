@@ -6,6 +6,9 @@ import { readableNewsContent } from './news.api'
 import { useNewsStore } from './news.store'
 import { useOperationStore } from '../operations/operation.store'
 import { useNavigationStore } from '../navigation/navigation.store'
+import { Plus } from 'lucide-react'
+import { useCollectionsStore } from '../skins/collections.store'
+import { CollectionCard } from '../skins/CollectionCard'
 
 interface LobbyNewsPanelProps {
   className?: string
@@ -31,10 +34,13 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
   const loadOperation = useOperationStore((state) => state.loadMine)
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
+  const featured = useCollectionsStore((state) => state.collections.find((item) => item.featured))
+  const loadCollections = useCollectionsStore((state) => state.load)
+  const openCollection = useCollectionsStore((state) => state.open)
 
   useEffect(() => {
-    void Promise.all([loadPreview(), loadOperation()])
-  }, [loadOperation, loadPreview])
+    void Promise.all([loadPreview(), loadOperation(), loadCollections()])
+  }, [loadOperation, loadPreview, loadCollections])
 
   const openOperation = (): void => {
     setProfileTab('operation')
@@ -121,39 +127,56 @@ export function LobbyNewsPanel({ className }: LobbyNewsPanelProps): JSX.Element 
             </span>
           </button>
         )}
-        {status === 'loading' && <p className="text-xs text-neutral-400">Loading news…</p>}
-        {status === 'error' && <p className="text-xs text-neutral-500">News is unavailable.</p>}
-        {status === 'ready' && posts.length === 0 && (
-          <p className="text-xs text-neutral-500">No news posts yet.</p>
+        {featured && (
+          <CollectionCard
+            {...featured}
+            onOpen={(id) => {
+              void openCollection(id)
+              navigate('store')
+            }}
+          />
         )}
-        {posts.slice(0, operation ? 1 : 2).map((post) => {
-          const title = readableNewsContent(post.content).split('\n').find(Boolean)
-          return (
-            <a
-              key={post.id}
-              href={post.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80"
-            >
-              {post.mediaUrl && (
-                <img
-                  src={post.mediaUrl}
-                  alt=""
-                  loading="lazy"
-                  className="mb-3 aspect-video w-full object-cover"
-                />
-              )}
-              <p className="line-clamp-2 text-xs font-semibold leading-5 text-white">
-                {title ?? '1.6 Competitive update'}
-              </p>
-              <time className="mt-2 block text-[10px] text-neutral-500" dateTime={post.createdAt}>
-                {new Date(post.createdAt).toLocaleDateString()}
-              </time>
-            </a>
-          )
-        })}
+        {!featured && (
+          <>
+            {status === 'loading' && <p className="text-xs text-neutral-400">Loading news…</p>}
+            {status === 'error' && <p className="text-xs text-neutral-500">News is unavailable.</p>}
+            {status === 'ready' && posts.length === 0 && (
+              <p className="text-xs text-neutral-500">No news posts yet.</p>
+            )}
+            {posts.slice(0, operation ? 1 : 2).map((post) => {
+              const title = readableNewsContent(post.content).split('\n').find(Boolean)
+              return (
+                <a
+                  key={post.id}
+                  href={post.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block border border-white/10 bg-neutral-950/70 p-3 transition hover:border-sky-400/50 hover:bg-neutral-900/80"
+                >
+                  {post.mediaUrl && (
+                    <img
+                      src={post.mediaUrl}
+                      alt=""
+                      loading="lazy"
+                      className="mb-3 aspect-video w-full object-cover"
+                    />
+                  )}
+                  <p className="line-clamp-2 text-xs font-semibold leading-5 text-white">
+                    {title ?? '1.6 Competitive update'}
+                  </p>
+                  <time
+                    className="mt-2 block text-[10px] text-neutral-500"
+                    dateTime={post.createdAt}
+                  >
+                    {new Date(post.createdAt).toLocaleDateString()}
+                  </time>
+                </a>
+              )
+            })}
+          </>
+        )}
         <Button variant="secondary" className="w-full" onClick={() => navigate('news')}>
+          <Plus className="size-4" aria-hidden="true" />
           {t('directory.showMoreNews')}
         </Button>
       </div>

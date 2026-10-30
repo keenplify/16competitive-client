@@ -1,3 +1,6 @@
+import { CollectionCard } from './CollectionCard'
+import { useCollectionsStore } from './collections.store'
+import { useCollectionText } from './collection-i18n'
 import { MusicKits } from './MusicKits'
 import { useTranslation } from '../i18n/i18n'
 import { getSkinAnimation } from './skin-model-presentation'
@@ -130,6 +133,14 @@ const safeExternalUrl = (value: string | null): string | null => {
 }
 
 export function ShopPage(): JSX.Element {
+  const collectionText = useCollectionText()
+  const collections = useCollectionsStore((state) => state.collections)
+  const loadCollections = useCollectionsStore((state) => state.load)
+  const openCollection = useCollectionsStore((state) => state.open)
+  useEffect(() => {
+    void loadCollections()
+  }, [loadCollections])
+
   const { t } = useTranslation()
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
@@ -425,6 +436,20 @@ export function ShopPage(): JSX.Element {
             tabIndex={0}
             aria-label="Skins on sale"
           >
+            {collections.length > 0 && (
+              <section aria-label={collectionText('title')} className="mb-6">
+                <h2 className="mb-3 text-lg font-semibold">{collectionText('title')}</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {collections.map((collection) => (
+                    <CollectionCard
+                      key={collection.id}
+                      {...collection}
+                      onOpen={(id) => void openCollection(id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
             <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-neutral-400">
                 <span className="font-semibold text-white">{filteredSkins.length}</span>{' '}

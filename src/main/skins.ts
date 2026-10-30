@@ -6,6 +6,15 @@ import {
   validateMusicEvent
 } from '../shared/music-kits'
 import { STOCK_CHARACTERS } from '../shared/skins'
+import {
+  parseCollections,
+  parseCollectionDetail,
+  parseCollectionQuote,
+  parseCollectionPurchase,
+  validateCollectionId,
+  validateCollectionCurrency,
+  validateCollectionBuy
+} from '../shared/skin-collections'
 import { shell } from 'electron'
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
@@ -143,6 +152,32 @@ const playerRequest = async (path: string, init: RequestInit = {}): Promise<unkn
   }
   return body
 }
+
+const collectionRequest = async (path: string, init?: RequestInit): Promise<unknown> => {
+  try {
+    return await playerRequest(path, init)
+  } catch (error) {
+    throw new Error((error as ApiError).code ?? 'COLLECTION_FAILED')
+  }
+}
+export const listCollections = async () =>
+  parseCollections(await collectionRequest('/skin-collections'))
+export const getCollection = async (id: unknown) =>
+  parseCollectionDetail(await collectionRequest(`/skin-collections/${validateCollectionId(id)}`))
+export const getCollectionQuote = async (id: unknown, currency: unknown) =>
+  parseCollectionQuote(
+    await collectionRequest(
+      `/skin-collections/${validateCollectionId(id)}/quote?currency=${validateCollectionCurrency(currency)}`
+    )
+  )
+export const buyCollection = async (id: unknown, input: unknown) =>
+  parseCollectionPurchase(
+    await collectionRequest(`/skin-collections/${validateCollectionId(id)}/buy`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(validateCollectionBuy(input))
+    })
+  )
 
 export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
   if (

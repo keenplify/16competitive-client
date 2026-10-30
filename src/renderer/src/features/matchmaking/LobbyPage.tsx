@@ -41,6 +41,8 @@ import { SettingsPage } from '../settings/SettingsPage'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { ProfilePage } from '../profile/ProfilePage'
 import { ShopPage } from '../skins/ShopPage'
+import { CollectionPage } from '../skins/CollectionPage'
+import { useCollectionsStore } from '../skins/collections.store'
 import { MatchResultsPage } from './MatchResultsPage'
 import { useQueueWarmupStore } from './queue-warmup.store'
 import { MatchSurveyPrompt } from './MatchSurveyPrompt'
@@ -57,6 +59,11 @@ import { useFriendsStore } from '../friends/friends.store'
 import { launcherAudio } from '../audio/audio.manager'
 import { PartnerBackground } from '../partner-branding/PartnerBackground'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
+
+function StoreContent() {
+  const selected = useCollectionsStore((state) => state.selectedId)
+  return selected ? <CollectionPage /> : <ShopPage />
+}
 
 const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
   demos: 'Admin demos',
@@ -446,7 +453,7 @@ export function LobbyPage(): JSX.Element {
   ) : page === 'profile' ? (
     <ProfilePage />
   ) : page === 'store' ? (
-    <ShopPage />
+    <StoreContent />
   ) : page === 'communities' ? (
     <CommunitiesPage friendsCollapsed={friendsCollapsed} />
   ) : page === 'news' ? (

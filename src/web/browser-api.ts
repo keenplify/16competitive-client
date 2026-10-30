@@ -590,6 +590,29 @@ const skins = {
       currentApiOrigin()
     )
   },
+  async collections() {
+    return parseCollections(await authenticatedGet('/skin-collections'))
+  },
+  async collection(id: string) {
+    return parseCollectionDetail(
+      await authenticatedGet(`/skin-collections/${validateCollectionId(id)}`)
+    )
+  },
+  async collectionQuote(id: string, currency: import('../shared/skins').SkinCurrency) {
+    return parseCollectionQuote(
+      await authenticatedGet(
+        `/skin-collections/${validateCollectionId(id)}/quote?currency=${validateCollectionCurrency(currency)}`
+      )
+    )
+  },
+  async collectionBuy(id: string, input: import('../shared/skin-collections').CollectionBuyInput) {
+    return parseCollectionPurchase(
+      await jsonPost(
+        `/skin-collections/${validateCollectionId(id)}/buy`,
+        validateCollectionBuy(input)
+      )
+    )
+  },
   async musicBuy(id: string, expectedPrice: number): Promise<{ points: number }> {
     return jsonPost(`/music-kits/${validateMusicKitId(id)}/buy`, { expectedPrice })
   },
@@ -1284,3 +1307,12 @@ const api: Window['api'] = {
 }
 
 window.api = api
+import {
+  parseCollections,
+  parseCollectionDetail,
+  parseCollectionQuote,
+  parseCollectionPurchase,
+  validateCollectionId,
+  validateCollectionCurrency,
+  validateCollectionBuy
+} from '../shared/skin-collections'
