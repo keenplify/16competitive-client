@@ -3680,3 +3680,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Communities
 
 - Updated community and member visuals for a cleaner, more consistent look.
+
+## v2026.1030.1 — 2026-10-30
+
+### Game Support
+
+- Added support for AGC Counter-Strike 1.3 installations.
+
+### Installation
+
+- Improved Counter-Strike 1.3 installation setup and match preparation.
