@@ -172,7 +172,7 @@ fn destination(root: &Path, path: &str) -> Result<PathBuf, String> {
         }
         current.push(part);
         match fs::symlink_metadata(&current) {
-            Ok(meta) if meta.file_type().is_symlink() => {
+            Ok(meta) if linked(&meta) => {
                 return Err("Managed asset directory contains a symbolic link".into())
             }
             Ok(meta) if index + 1 < parts.len() && !meta.is_dir() => {
@@ -189,6 +189,93 @@ fn destination(root: &Path, path: &str) -> Result<PathBuf, String> {
         }
     }
     Ok(current)
+}
+
+fn linked(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        return metadata.file_attributes() & 0x400 != 0; // FILE_ATTRIBUTE_REPARSE_POINT
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+/// Electron's default userData location, shared by the desktop and companion
+/// runtime. Never derive an approved storage root from the game link itself.
+fn desktop_config_home() -> Result<PathBuf, String> {
+    #[cfg(windows)]
+    let home = env::var_os("APPDATA").map(PathBuf::from);
+    #[cfg(not(windows))]
+    let home = env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|home| home.is_absolute())
+        .or_else(|| env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")));
+    home.filter(|home| home.is_absolute())
+        .ok_or_else(|| "Managed asset directory contains a symbolic link".into())
+}
+
+/// Accept only the launcher's existing models/16competitive link. Resolve all
+/// writes against the independently approved physical cache, never through the
+/// game link. Ordinary installations continue to use their existing directory.
+fn game_destination(root: &Path, path: &str) -> Result<PathBuf, String> {
+    game_destination_under(root, path, &desktop_config_home)
+}
+
+fn game_destination_under(
+    root: &Path,
+    path: &str,
+    config_home: &impl Fn() -> Result<PathBuf, String>,
+) -> Result<PathBuf, String> {
+    let Some(suffix) = path.strip_prefix("models/16competitive/") else {
+        return destination(root, path);
+    };
+    let game = fs::canonicalize(root).map_err(|e| e.to_string())?;
+    let models = game.join("models");
+    // Do not inspect or follow a namespace underneath an unapproved parent link.
+    match fs::symlink_metadata(&models) {
+        Ok(meta) if linked(&meta) => {
+            return Err("Managed asset directory contains a symbolic link".into());
+        }
+        Ok(meta) if !meta.is_dir() => {
+            return Err("Managed asset parent is not a directory".into());
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return destination(root, path);
+        }
+        Err(error) => return Err(error.to_string()),
+        _ => {}
+    }
+    let namespace = models.join("16competitive");
+    match fs::symlink_metadata(&namespace) {
+        Ok(meta) if linked(&meta) => {}
+        Ok(_) => return destination(root, path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return destination(root, path);
+        }
+        Err(error) => return Err(error.to_string()),
+    }
+    let mut approved = fs::canonicalize(config_home()?).map_err(|e| e.to_string())?;
+    for part in ["16competitive-client", "game-assets", "models", "16competitive"] {
+        approved.push(part);
+        let metadata = fs::symlink_metadata(&approved).map_err(|e| e.to_string())?;
+        if linked(&metadata) {
+            return Err("Managed asset directory contains a symbolic link".into());
+        }
+        if !metadata.is_dir() {
+            return Err("Managed asset parent is not a directory".into());
+        }
+    }
+    let approved = fs::canonicalize(approved).map_err(|e| e.to_string())?;
+    if fs::canonicalize(namespace).map_err(|e| e.to_string())? != approved {
+        return Err("Managed asset directory contains a symbolic link".into());
+    }
+    destination(&approved, suffix)
 }
 fn write_progress(value: &Progress) {
     if let Ok(dir) = user_config_dir() {
@@ -286,7 +373,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
         let total = manifest.assets.len();
         for (index, asset) in manifest.assets.iter().enumerate() {
             let expected = hash_for(asset, match_id.is_none())?;
-            let target = destination(root, &asset.path)?;
+            let target = game_destination(root, &asset.path)?;
             if !matches(&target, asset, &expected) {
                 let cached = destination(
                     &cache,
@@ -410,6 +497,151 @@ pub fn start_catalog(origin: String, token: String, repair: bool) -> Result<Prog
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_root() -> PathBuf {
+        let root = env::temp_dir().join(format!("16c-shared-assets-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        root
+    }
+
+    fn shared_root(root: &Path) -> PathBuf {
+        let shared = root.join("config/16competitive-client/game-assets/models/16competitive");
+        fs::create_dir_all(&shared).unwrap();
+        shared
+    }
+
+    #[cfg(unix)]
+    fn link_directory(target: &Path, link: &Path) {
+        std::os::unix::fs::symlink(target, link).unwrap();
+    }
+
+    #[cfg(windows)]
+    fn link_directory(target: &Path, link: &Path) {
+        // A junction exercises the actual Windows launcher layout without
+        // requiring Developer Mode or the symbolic-link privilege. The script
+        // is constant and paths are separate -File parameters, never code.
+        let script = link.parent().unwrap().join(format!("junction-{}.ps1", uuid::Uuid::new_v4()));
+        fs::write(&script, "param([string]$Link, [string]$Target)\n$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Junction -Path $Link -Target $Target | Out-Null\n").unwrap();
+        let result = hidden_command("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(&script).arg("-Link").arg(link).arg("-Target").arg(target)
+            .output().unwrap();
+        fs::remove_file(script).unwrap();
+        assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    }
+
+    #[test]
+    fn ordinary_game_directories_do_not_require_desktop_storage() {
+        let root = test_root();
+        let path = game_destination_under(&root, "models/16competitive/knife/v.mdl", &|| {
+            panic!("ordinary installation must not require desktop storage")
+        }).unwrap();
+        assert_eq!(path, root.canonicalize().unwrap().join("models/16competitive/knife/v.mdl"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn approved_model_links_use_physical_storage_for_both_game_versions() {
+        let root = test_root();
+        let shared = shared_root(&root);
+        let path = "models/16competitive/knife/v.mdl";
+        let mut bytes = vec![0; 16];
+        bytes[..4].copy_from_slice(b"IDST");
+        bytes[4..8].copy_from_slice(&10i32.to_le_bytes());
+        let hash = format!("{:x}", Sha256::digest(&bytes));
+        let asset = Asset { path: path.into(), sha256: Some(hash.clone()) };
+        for game in ["cstrike", "cstrk13"] {
+            let game = root.join(game);
+            fs::create_dir_all(game.join("models")).unwrap();
+            link_directory(&shared, &game.join("models/16competitive"));
+            let target = game_destination_under(&game, path, &|| Ok(root.join("config"))).unwrap();
+            assert_eq!(target, shared.canonicalize().unwrap().join("knife/v.mdl"));
+            fs::write(&target, &bytes).unwrap();
+            assert!(matches(&target, &asset, &hash));
+            assert!(!matches(&target, &asset, &"a".repeat(64)));
+            assert!(linked(&fs::symlink_metadata(game.join("models/16competitive")).unwrap()));
+            // Unlink only the test link before removing its fixture tree.
+            #[cfg(windows)] fs::remove_dir(game.join("models/16competitive")).unwrap();
+            #[cfg(unix)] fs::remove_file(game.join("models/16competitive")).unwrap();
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unexpected_namespace_links_are_not_redirected_or_replaced() {
+        let root = test_root();
+        let shared = shared_root(&root);
+        let game = root.join("game");
+        let outside = root.join("outside");
+        fs::create_dir_all(game.join("models")).unwrap();
+        fs::create_dir(&outside).unwrap();
+        fs::write(outside.join("untouched.mdl"), b"player bytes").unwrap();
+        link_directory(&outside, &game.join("models/16competitive"));
+        assert!(game_destination_under(&game, "models/16competitive/knife/v.mdl", &|| Ok(root.join("config"))).is_err());
+        assert_eq!(fs::read(outside.join("untouched.mdl")).unwrap(), b"player bytes");
+        assert!(!shared.join("knife").exists());
+        #[cfg(windows)] fs::remove_dir(game.join("models/16competitive")).unwrap();
+        #[cfg(unix)] fs::remove_file(game.join("models/16competitive")).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn approved_namespace_does_not_approve_nested_or_parent_links() {
+        let root = test_root();
+        let shared = shared_root(&root);
+        let game = root.join("game");
+        let outside = root.join("outside");
+        fs::create_dir_all(game.join("models")).unwrap();
+        fs::create_dir(&outside).unwrap();
+        link_directory(&shared, &game.join("models/16competitive"));
+        link_directory(&outside, &shared.join("nested"));
+        assert!(game_destination_under(&game, "models/16competitive/nested/v.mdl", &|| Ok(root.join("config"))).is_err());
+        assert!(game_destination_under(&game, "models/16competitive/../escaped.mdl", &|| Ok(root.join("config"))).is_err());
+        #[cfg(windows)] {
+            fs::remove_dir(game.join("models/16competitive")).unwrap();
+            fs::remove_dir(shared.join("nested")).unwrap();
+        }
+        #[cfg(unix)] {
+            fs::remove_file(game.join("models/16competitive")).unwrap();
+            fs::remove_file(shared.join("nested")).unwrap();
+        }
+        fs::remove_dir(game.join("models")).unwrap();
+        link_directory(&outside, &game.join("models"));
+        assert!(game_destination_under(&game, "models/16competitive/knife/v.mdl", &|| Ok(root.join("config"))).is_err());
+        #[cfg(windows)] fs::remove_dir(game.join("models")).unwrap();
+        #[cfg(unix)] fs::remove_file(game.join("models")).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn rejects_redirected_shared_storage_and_other_asset_namespaces() {
+        let root = test_root();
+        let shared = shared_root(&root);
+        let game = root.join("game");
+        fs::create_dir_all(game.join("models")).unwrap();
+        fs::create_dir_all(game.join("sound")).unwrap();
+        link_directory(&shared, &game.join("models/16competitive"));
+        link_directory(&shared, &game.join("sound/16competitive"));
+        assert!(game_destination_under(&game, "sound/16competitive/ping/ping.wav", &|| Ok(root.join("config"))).is_err());
+        // Even if the game link ultimately resolves there, a redirected parent
+        // inside the approved desktop cache must not authorize arbitrary storage.
+        let user_data = root.join("config/16competitive-client");
+        let renamed = root.join("config/redirected");
+        fs::rename(&user_data, &renamed).unwrap();
+        link_directory(&renamed, &user_data);
+        assert!(game_destination_under(&game, "models/16competitive/knife/v.mdl", &|| Ok(root.join("config"))).is_err());
+        #[cfg(windows)] {
+            fs::remove_dir(game.join("models/16competitive")).unwrap();
+            fs::remove_dir(game.join("sound/16competitive")).unwrap();
+            fs::remove_dir(user_data).unwrap();
+        }
+        #[cfg(unix)] {
+            fs::remove_file(game.join("models/16competitive")).unwrap();
+            fs::remove_file(game.join("sound/16competitive")).unwrap();
+            fs::remove_file(user_data).unwrap();
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn rejects_unmanaged_paths_and_inconsistent_hashes() {
         for path in [
