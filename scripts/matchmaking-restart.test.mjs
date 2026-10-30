@@ -197,3 +197,19 @@ test('restart notice retains a live match and its connection state', async () =>
   assert.equal(store.getState().queueStatus, 'in_match')
   assert.equal(store.getState().match.matchId, 'live-game')
 })
+
+for (const code of ['MATCH_ASSET_PRELOAD_FAILED', 'MATCH_PREPARATION_FAILED']) {
+  test(`${code} dismisses pending asset progress while preserving reconnect details`, async () => {
+    const { store, emit } = await harness()
+    const connectionDetails = { matchId: 'failed-launch' }
+    store.setState({
+      assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
+      connectionDetails
+    })
+    emit({ type: 'error', code, message: 'match.assets.storageDenied' })
+    assert.equal(store.getState().assetPreparation.status, 'idle')
+    assert.equal(store.getState().connectionDetails, connectionDetails)
+    assert.equal(store.getState().gameExited, true)
+    assert.equal(store.getState().error, 'match.assets.storageDenied')
+  })
+}

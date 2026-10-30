@@ -22,7 +22,7 @@ import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import { registerManagedAdapterShutdown } from './managed-session-registry'
 import { prepareCs13MatchInstallation } from './cs13-match-installation'
 import { setGameConsoleDirectory } from './game-console-logs'
-import { ensureSharedModelDirectory } from './shared-model-directory'
+import { ensureSharedModelDirectory, gameStorageError } from './shared-model-directory'
 import { resolveGameResolution } from '../../shared/game-display'
 import { prepareCs13Controls } from './cs13-controls'
 
@@ -292,13 +292,15 @@ export async function launchCs13Match(
       throw error
     }
   }).catch((error: unknown) => {
+    error = gameStorageError(error)
     if (
       error instanceof Error &&
       [
         'legacy.error.installationRequired',
         'legacy.error.invalidInstallation',
         'legacy.error.settingsFailed',
-        'legacy.error.busy'
+        'legacy.error.busy',
+        'match.assets.storageDenied'
       ].includes(error.message)
     )
       throw error

@@ -55,7 +55,7 @@ async function modelFiles(root: string, prefix = ''): Promise<string[]> {
  * Existing directories are merged after conflict checks, then retained as a
  * migration backup. Unknown files/links/conflicting bytes are never overwritten.
  */
-export async function ensureSharedModelDirectory(
+async function linkSharedModelDirectory(
   contentDirectory: string,
   sharedDirectory: string
 ): Promise<void> {
@@ -127,4 +127,29 @@ export async function managedAssetDestination(root: string, assetPath: string): 
       throw new Error('Unexpected managed asset link or file')
   }
   return join(dirname(destination), parts.at(-1)!)
+}
+
+/** Preserve the filesystem cause for diagnostics while exposing actionable UI text. */
+export async function ensureSharedModelDirectory(
+  contentDirectory: string,
+  sharedDirectory: string
+): Promise<void> {
+  try {
+    await linkSharedModelDirectory(contentDirectory, sharedDirectory)
+  } catch (error) {
+    throw gameStorageError(error)
+  }
+}
+
+/** Do not retry denied filesystem operations with elevation or relaxed permissions. */
+export function gameStorageError(error: unknown): unknown {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    ['EACCES', 'EPERM', 'EROFS'].includes(String(error.code))
+  ) {
+    return new Error('match.assets.storageDenied', { cause: error })
+  }
+  return error
 }

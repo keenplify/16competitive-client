@@ -25,43 +25,41 @@ export async function prepareSkinStorage(game: 'cs16' | 'cs13' = 'cs16'): Promis
     'models',
     '16competitive'
   )
-  const executable = (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
-  const cs16 =
-    executable && isAbsolute(executable)
-      ? await ensureLauncherContentDirectory(
-          process.env.CS16_CLIENT_GAME_DIRECTORY
-            ? resolve(process.env.CS16_CLIENT_GAME_DIRECTORY)
-            : dirname(executable)
-        ).catch((error: unknown) => {
-          if (game === 'cs16') throw error
-          return null
-        })
-      : null
-  const profile = await new LegacyGameService({
-    settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
-    platform: process.platform,
-    chooseFolder: async () => null,
-    isBusy: () => false,
-    launch: async () => {}
-  }).get()
-  const cs13 = profile.ok ? profile.value.installation?.gameDirectory : null
-  const contentRoot = game === 'cs13' ? cs13 : cs16
-  if (!contentRoot)
-    throw new Error(
-      game === 'cs13'
-        ? !profile.ok
-          ? 'legacy.error.settingsFailed'
-          : profile.value.folderPath
-            ? 'legacy.error.invalidInstallation'
-            : 'legacy.error.installationRequired'
-        : 'Choose your Counter-Strike folder in Settings before joining a match.'
-    )
+  let contentRoot: string | null | undefined
+  if (game === 'cs13') {
+    const profile = await new LegacyGameService({
+      settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+      platform: process.platform,
+      chooseFolder: async () => null,
+      isBusy: () => false,
+      launch: async () => {}
+    }).get()
+    if (!profile.ok) throw new Error('legacy.error.settingsFailed')
+    contentRoot = profile.value.installation?.gameDirectory
+    if (!contentRoot)
+      throw new Error(
+        profile.value.folderPath
+          ? 'legacy.error.invalidInstallation'
+          : 'legacy.error.installationRequired'
+      )
+  } else {
+    const executable = (await getSavedCs16Executable()) ?? process.env.CS16_CLIENT_EXECUTABLE_PATH
+    contentRoot =
+      executable && isAbsolute(executable)
+        ? await ensureLauncherContentDirectory(
+            process.env.CS16_CLIENT_GAME_DIRECTORY
+              ? resolve(process.env.CS16_CLIENT_GAME_DIRECTORY)
+              : dirname(executable)
+          )
+        : null
+    if (!contentRoot)
+      throw new Error('Choose your Counter-Strike folder in Settings before joining a match.')
+  }
   // Catalog sync and match preparation may overlap; migrations must serialize.
   const task = pending
     .catch(() => undefined)
     .then(async () => {
-      for (const root of new Set([cs16, cs13].filter((root): root is string => !!root)))
-        await ensureSharedModelDirectory(root, shared)
+      await ensureSharedModelDirectory(contentRoot, shared)
     })
   pending = task
   await task

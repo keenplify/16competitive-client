@@ -692,12 +692,17 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 queueStartedAt: null
               }
             : {}),
+          ...(event.code === 'MATCH_PREPARATION_FAILED' ||
+          event.code === 'MATCH_ASSET_PRELOAD_FAILED'
+            ? { assetPreparation: { status: 'idle' as const, completedFiles: 0, totalFiles: 0 } }
+            : {}),
           ...((event.code === 'MATCH_PREPARATION_FAILED' ||
             event.code === 'MATCH_ASSET_PRELOAD_FAILED') &&
           state.connectionDetails
             ? { gameExited: true }
             : {}),
           error:
+            event.message === 'match.assets.storageDenied' ||
             event.message === 'legacy.error.installationRequired' ||
             event.message === 'legacy.error.invalidInstallation' ||
             event.message === 'legacy.error.settingsFailed' ||
@@ -1106,7 +1111,13 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         await window.api.matchmaking.reconnectGame()
         set({ gameExited: false })
       } catch (error) {
-        set({ error: readableError(error) })
+        const message = readableError(error)
+        set({
+          assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+          error: message.includes('match.assets.storageDenied')
+            ? translate(useLanguageStore.getState().language, 'match.assets.storageDenied')
+            : message
+        })
       }
     },
 
