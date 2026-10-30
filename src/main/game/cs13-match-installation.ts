@@ -3,7 +3,7 @@ import { copyFile, link, lstat, mkdir, readdir, readFile, unlink } from 'node:fs
 import { randomUUID } from 'node:crypto'
 import { extname, join } from 'node:path'
 import type { LegacyInstallation } from '../../shared/legacy-game'
-import { cs13Adapter, hasCs13VersionMetadata } from './adapters/cs13'
+import { cs13Adapter, hasCs13VersionMetadata, hasAgcCs13Client } from './adapters/cs13'
 
 const assetExtensions = new Set([
   '.mdl',
@@ -47,14 +47,20 @@ export async function prepareCs13MatchInstallation(
       return null
     }
   )
-  if (
-    existingMetadata &&
-    (!existingMetadata.isFile() ||
+  if (existingMetadata) {
+    if (
+      !existingMetadata.isFile() ||
       existingMetadata.isSymbolicLink() ||
-      existingMetadata.size > 16384 ||
-      !hasCs13VersionMetadata(await readFile(join(destination, 'liblist.gam'), 'utf8')))
-  )
-    throw new Error('Existing cstrk13 directory is not a compatible Legacy 1.3 installation')
+      existingMetadata.size > 16384
+    )
+      throw new Error('Existing cstrk13 directory is not a compatible Legacy 1.3 installation')
+    const source = await readFile(join(destination, 'liblist.gam'), 'utf8')
+    if (
+      !hasCs13VersionMetadata(source) &&
+      !(await hasAgcCs13Client(installation.folderPath, destination, source))
+    )
+      throw new Error('Existing cstrk13 directory is not a compatible Legacy 1.3 installation')
+  }
 
   let files = 0
   let bytes = 0

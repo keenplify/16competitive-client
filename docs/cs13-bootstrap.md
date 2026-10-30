@@ -67,7 +67,7 @@ still requires a gameplay retry.
 
 - Accept the installation root or its `cstrike` / `cstrk13` subfolder. For a root
   containing `cstrk13`, select that community-layout directory explicitly.
-- Require one `version "1.3"` entry in the selected mod's `liblist.gam`, a direct
+- Normally require one `version "1.3"` entry in the selected mod's `liblist.gam`, a direct
   executable and a client library. Version metadata is evidence, not binary
   attestation or proof of protocol compatibility.
 - Windows uses `hl.exe` and `client.dll`. Linux supports native `hl_linux` and
@@ -362,3 +362,82 @@ installation/profile selection, authentication-file cleanup, shared-model juncti
 and safe cosmetic recovery. The local Windows packaging pipeline now runs this
 suite before building the installer. These automated checks do not establish
 visual gameplay correctness on every Windows GPU or unrecognized game build.
+
+### AGC V13.8.0 installation selection (2026-10-30)
+
+The user-selected AGC build carries stale `version "1.1"` metadata. Windows
+and Wine selection accept it only with the 655360-byte `cl_dlls/client.dll`
+whose SHA-256 is
+`71fdbe140df3598a74738537b924141f4fb4b0b828737bd99a7223d9e4549460`.
+Other 1.1 builds, conflicting metadata and native Linux clients remain excluded
+from this exception. This fingerprint recognizes the requested build; it is not
+an anti-cheat approval or proof of server protocol compatibility.
+
+The same check applies when preparing/reusing `cstrk13`. Original metadata and
+game files are left untouched. Regression checks exercised selection and match
+preparation on isolated copies for both platform branches; neither an actual
+Windows launch nor a live server connection was verified. To repeat the local
+binary integration tests, set `CS13_AGC_TEST_ROOT` to the installation root when
+running `scripts/cs13-bootstrap.test.mjs`; proprietary binaries are not committed.
+
+AGC's `hl.exe` hash differs from the approved WON enhancement host, although its
+client and OpenGL DLL hashes match the known build. Native enhancement approval
+is unchanged; accepting the folder does not enable native enhancements for AGC.
+
+### AGC Windows VM smoke (2026-10-30)
+
+Ran the updated CS 1.3 bootstrap suite in the existing Windows 11 build VM with
+isolated copies of AGC's actual executable, client DLL and metadata: 21 tests
+passed, two POSIX-only tests skipped, zero failures. This confirms native Windows
+selection, match-directory preparation/reuse and changed-client rejection.
+
+Launched a separate AGC runtime copy in the interactive Windows desktop using
+`-gl -nosierra -game cstrike -width 640 -height 480 -windowed -console -condebug`.
+The process reached Half-Life's CD-key prompt. No key was supplied by the agent;
+menu rendering, OpenGL support and live server signon are not yet verified.
+The VM uses Microsoft Basic Display Adapter, so graphics compatibility remains
+an independent limitation. The original mounted game and all player configuration
+files were excluded from writes; `config.cfg` was excluded from the transfer.
+
+### AGC Windows connection and authentication smoke (2026-10-30)
+
+After the user completed the retail key prompt, AGC reached its main menu.
+The VM's Microsoft Basic Display Adapter rejected OpenGL with “The selected
+OpenGL mode is not supported by your video card.” A diagnostic-only `-soft`
+launch rendered local Dust II. Production launch arguments were not changed.
+
+An isolated server provisioned by the backend's actual `Cs13Adapter` and
+`RunningGameServer` accepted the AGC client from the Windows VM. The client
+reported protocol 45 in software mode and received the build-2006 server signon.
+However, the original AGC resources were rejected by enabled server consistency
+checks: first `sprites/black_smoke4.spr`, then `sprites/black_smoke3.spr`.
+All four `black_smoke1.spr`–`black_smoke4.spr` files differ from the server
+runtime. Replacing only those four files in the isolated VM `cstrk13` copy
+with the expected server versions allowed entry. Server ping assets were also
+pre-staged to avoid the slow legacy in-game downloader.
+
+The normal server-requested session auth file was present. The server logged
+entry, forced the roster identity `LegacyProbe`, assigned team A/Terrorist and
+published that player on its live scoreboard alongside the two fixture bots.
+No consistency/authentication gate was disabled. This verifies connection and
+roster authentication against the local backend-generated server, not a deployed
+regional server or the complete Electron matchmaking UI. Original AGC files were
+untouched. The launcher currently accepts this installation but does not repair
+these smoke sprites; the unmodified AGC match copy still fails consistency.
+
+### Community resource consistency policy (2026-10-30)
+
+Both CS 1.3 and CS 1.6 server adapters now explicitly generate
+`mp_consistency 0`, as requested by the project owner. This disables the game
+resource-consistency gate for new adapter-generated instances, including 1.6
+public FFA; it does not disable roster authentication, match passwords or the
+separate 1.3 client-DLL signon checksum. Existing running instances are not
+changed by this source edit.
+
+Retested AGC in the Windows VM with its four original smoke sprites restored:
+the updated backend-generated 1.3 server accepted entry, authenticated the
+synthetic player as LegacyProbe, assigned the roster team and published the
+player on its scoreboard. No stock-sprite replacement is needed with this policy.
+The test used software rendering because this VM cannot create the game's
+OpenGL mode. Remote regional deployment and full Electron matchmaking were not
+part of this isolated connection test.

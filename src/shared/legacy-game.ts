@@ -17,7 +17,7 @@ export interface LegacyInstallation {
   gameDirectory: string
   modDirectory: 'cstrike' | 'cstrk13'
   /** Metadata evidence, not proof of binary authenticity or protocol compatibility. */
-  versionEvidence: 'liblist.gam'
+  versionEvidence: 'liblist.gam' | 'agc-client-sha256'
   runtime: 'native' | 'wine'
 }
 

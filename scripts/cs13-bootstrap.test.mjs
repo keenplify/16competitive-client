@@ -1,7 +1,17 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { chmod, mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import vm from 'node:vm'
@@ -25,7 +35,13 @@ async function loadModule(entry) {
         const target = resolve(dirname(path), specifier)
         if (modules.has(target)) return modules.get(target)
         const value = JSON.parse(await readFile(target, 'utf8'))
-        const json = new vm.SyntheticModule(['default'], function () { this.setExport('default', value) }, { context })
+        const json = new vm.SyntheticModule(
+          ['default'],
+          function () {
+            this.setExport('default', value)
+          },
+          { context }
+        )
         modules.set(target, json)
         return json
       }
@@ -88,14 +104,15 @@ test('custom-only 1.3 survives catalog validation even with no map pool', () => 
     Array.from(parseMatchmakingMapCatalog({ maps: [], customModes: ['unknown-mode'] }).customModes),
     []
   )
-  assert.throws(() =>
-    parseMatchmakingMapCatalog({ maps: [{ ...map, customModes: [null] }] })
-  )
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, customModes: [null] }] }))
 })
 
 test('mode renames and future modes cannot disable the entire map catalog', () => {
   const map = {
-    id: 'de_dust2', displayName: 'Dust II', game: 'cs16', previewUrl: null,
+    id: 'de_dust2',
+    displayName: 'Dust II',
+    game: 'cs16',
+    previewUrl: null,
     feedbackEnabled: true,
     supportedModes: ['5v5', 'unrated', 'arena', 'fight_yard', 'future_mode'],
     webModes: ['unrated', 'arena', 'fight_yard', 'future_mode'],
@@ -109,24 +126,27 @@ test('mode renames and future modes cannot disable the entire map catalog', () =
       .feedbackEnabled,
     false
   )
-  assert.throws(() =>
-    parseMatchmakingMapCatalog({ maps: [{ ...map, feedbackEnabled: 'true' }] })
-  )
+  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, feedbackEnabled: 'true' }] }))
   assert.deepEqual(Array.from(catalog.maps[0].supportedModes), ['5v5', 'unrated', 'arena'])
   assert.deepEqual(Array.from(catalog.maps[0].webModes), ['unrated', 'arena'])
   assert.deepEqual(Array.from(catalog.maps[0].customModes), ['unrated', 'arena'])
   assert.deepEqual(Array.from(catalog.customModes), ['arena'])
   assert.ok(input.maps[0].supportedModes.includes('fight_yard'))
-  assert.deepEqual(
-    Array.from(parseMatchmakingMapCatalog({ maps: [map] }).customModes), ['unrated', 'arena']
-  )
+  assert.deepEqual(Array.from(parseMatchmakingMapCatalog({ maps: [map] }).customModes), [
+    'unrated',
+    'arena'
+  ])
   for (const field of ['supportedModes', 'webModes', 'customModes']) {
     assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, [field]: [null] }] }))
   }
   assert.throws(() => parseMatchmakingMapCatalog({ maps: [map], customModes: [42] }))
   assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, id: '../unsafe' }] }))
-  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, previewUrl: 'javascript:bad' }] }))
-  assert.throws(() => parseMatchmakingMapCatalog({ maps: [{ ...map, webModes: ['unadvertised'] }] }))
+  assert.throws(() =>
+    parseMatchmakingMapCatalog({ maps: [{ ...map, previewUrl: 'javascript:bad' }] })
+  )
+  assert.throws(() =>
+    parseMatchmakingMapCatalog({ maps: [{ ...map, webModes: ['unadvertised'] }] })
+  )
 })
 
 async function fixture(run) {
@@ -547,3 +567,44 @@ test('1.3 uses safe startup password and a private post-connect authentication f
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('stale 1.1 metadata cannot admit an unknown client DLL', () =>
+  fixture(async ({ folder }) => {
+    await writeFile(join(folder, 'cstrike', 'liblist.gam'), 'version "1.1"\n')
+    await writeFile(join(folder, 'cstrike', 'cl_dlls', 'client.dll'), Buffer.alloc(655360))
+    for (const platform of ['win32', 'linux'])
+      await assert.rejects(cs13Adapter.validateInstallation(folder, platform), {
+        code: 'invalidInstallation'
+      })
+  }))
+
+// Opt-in local integration: proprietary game binaries are never committed.
+// Only these three files are copied; never traverse a player's installation.
+for (const platform of ['win32', 'linux']) {
+  test(
+    `AGC installed build: ${platform} selection, match preparation and revalidation`,
+    { skip: !process.env.CS13_AGC_TEST_ROOT },
+    () =>
+      fixture(async ({ folder }) => {
+        const source = process.env.CS13_AGC_TEST_ROOT
+        await rm(join(folder, 'hl_linux'))
+        for (const name of ['hl.exe', 'cstrike/liblist.gam', 'cstrike/cl_dlls/client.dll'])
+          await copyFile(join(source, name), join(folder, name))
+        const original = await readFile(join(folder, 'cstrike', 'liblist.gam'), 'utf8')
+        const installation = await cs13Adapter.validateInstallation(folder, platform)
+        assert.equal(installation.versionEvidence, 'agc-client-sha256')
+        assert.equal(installation.runtime, platform === 'linux' ? 'wine' : 'native')
+        const prepared = await prepareCs13MatchInstallation(installation, platform)
+        assert.equal(prepared.modDirectory, 'cstrk13')
+        assert.equal(prepared.versionEvidence, 'agc-client-sha256')
+        await prepareCs13MatchInstallation(installation, platform)
+        assert.equal(await readFile(join(prepared.gameDirectory, 'liblist.gam'), 'utf8'), original)
+        assert.equal(await readFile(join(folder, 'cstrike', 'liblist.gam'), 'utf8'), original)
+        await writeFile(join(prepared.gameDirectory, 'cl_dlls', 'client.dll'), Buffer.alloc(655360))
+        await assert.rejects(cs13Adapter.validateInstallation(prepared.gameDirectory, platform))
+        await assert.rejects(prepareCs13MatchInstallation(installation, platform))
+        await writeFile(join(folder, 'cstrike', 'liblist.gam'), 'version "1.6"\n')
+        await assert.rejects(cs13Adapter.validateInstallation(join(folder, 'cstrike'), platform))
+      })
+  )
+}

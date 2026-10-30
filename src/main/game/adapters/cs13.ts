@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto'
 import { open, realpath, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, relative } from 'node:path'
 import type { LegacyGameError, LegacyInstallation } from '../../../shared/legacy-game'
 import type { GameAdapter, GameLaunchPlan } from './game-adapter'
+import { WON13_CLIENT_SHA256 } from '../goldsrc-client-capabilities'
 import { gameResolutionArgs } from '../../../shared/game-display'
 import launchPattern from '../../../shared/web-game-launch-pattern.json' with { type: 'json' }
 
@@ -30,7 +32,12 @@ export const cs13ConnectionArgs = (input: {
     !/^[a-zA-Z0-9_-]{32}$/.test(input.joinToken)
   )
     throw new Error('Invalid 1.3 connection')
-  return [launchPattern.cs13.passwordArgument, input.password, launchPattern.cs13.connectArgument, `${input.host}:${input.port}`]
+  return [
+    launchPattern.cs13.passwordArgument,
+    input.password,
+    launchPattern.cs13.connectArgument,
+    `${input.host}:${input.port}`
+  ]
 }
 
 const containedFile = async (root: string, path: string): Promise<string> => {
@@ -48,6 +55,36 @@ export const hasCs13VersionMetadata = (source: string): boolean => {
     ...source.replace(/\/\/[^\r\n]*/g, '').matchAll(/^\s*version\s+"([^"]+)"\s*$/gim)
   ]
   return versions.length === 1 && versions[0][1] === '1.3'
+}
+
+/**
+ * AGC V13.8.0 ships this Windows client with stale version "1.1" metadata.
+ * This is a compatibility exception for the user-selected build, not an
+ * authenticity or server-protocol guarantee. Never accept arbitrary 1.1 builds.
+ */
+export async function hasAgcCs13Client(
+  root: string,
+  gameDirectory: string,
+  source: string
+): Promise<boolean> {
+  if (!hasCs13VersionMetadata(source.replace(/^(\s*version\s+)"1\.1"(\s*)$/gim, '$1"1.3"$2')))
+    return false
+  // Require the stale version specifically (normal 1.3 uses the metadata path).
+  if (hasCs13VersionMetadata(source)) return false
+  const path = await containedFile(root, join(gameDirectory, 'cl_dlls', 'client.dll'))
+  const file = await open(path, 'r')
+  try {
+    if ((await file.stat()).size !== 655360) return false
+    const bytes = Buffer.alloc(655361)
+    const { bytesRead } = await file.read(bytes, 0, bytes.length, 0)
+    return (
+      bytesRead === 655360 &&
+      createHash('sha256').update(bytes.subarray(0, bytesRead)).digest('hex') ===
+        WON13_CLIENT_SHA256
+    )
+  } finally {
+    await file.close()
+  }
 }
 
 export const cs13Adapter: GameAdapter<LegacyInstallation> = {
@@ -84,9 +121,14 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
         await file.close()
       }
       stage = 'version metadata (expected 1.3)'
-      if (!hasCs13VersionMetadata(source)) return invalid()
       const nativeLinux =
         platform === 'linux' && (await stat(join(root, 'hl_linux')).catch(() => null))?.isFile()
+      const standardMetadata = hasCs13VersionMetadata(source)
+      if (
+        !standardMetadata &&
+        (nativeLinux || !(await hasAgcCs13Client(root, gameDirectory, source)))
+      )
+        return invalid()
       const runtime = platform === 'linux' && !nativeLinux ? 'wine' : 'native'
       const name = nativeLinux ? 'hl_linux' : 'hl.exe'
       stage = name
@@ -103,7 +145,7 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
         executablePath,
         gameDirectory,
         modDirectory,
-        versionEvidence: 'liblist.gam',
+        versionEvidence: standardMetadata ? 'liblist.gam' : 'agc-client-sha256',
         runtime
       }
     } catch (error) {
@@ -167,7 +209,9 @@ export const cs13Adapter: GameAdapter<LegacyInstallation> = {
       executable: installation.runtime === 'wine' ? 'wine' : installation.executablePath,
       args: [
         ...(installation.runtime === 'wine' ? [installation.executablePath] : []),
-        ...(installation.executablePath.toLowerCase().endsWith('.exe') ? launchPattern.cs13.windowsFlags : []),
+        ...(installation.executablePath.toLowerCase().endsWith('.exe')
+          ? launchPattern.cs13.windowsFlags
+          : []),
         ...(options?.resolution ? gameResolutionArgs(options.resolution, 'cs13') : []),
         '-game',
         installation.modDirectory
