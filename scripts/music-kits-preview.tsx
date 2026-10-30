@@ -12,7 +12,7 @@ import '../src/renderer/src/assets/main.css'
 
 const sample: MusicKitSnapshot = {
   ownedIds: ['quake', 'arena-demo'],
-  equipped: { ct: 'quake', t: 'arena-demo' },
+  equipped: { ct: 'quake', t: 'quake' },
   kits: [
     {
       id: 'quake',
@@ -60,8 +60,8 @@ window.api = {
       sample.ownedIds.push(id)
       return { points: 5000 }
     },
-    musicEquip: async (id: string | null, team: 'ct' | 't') => {
-      sample.equipped[team] = id
+    musicEquip: async (id: string | null) => {
+      sample.equipped = { ct: id, t: id }
     },
     musicPreview: async () => {
       throw new Error('This visual fixture does not play sample audio')

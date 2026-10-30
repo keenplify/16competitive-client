@@ -1,8 +1,9 @@
 export const musicKitTranslations = {
   en: {
+    'music.equipTeam': 'Equip {{name}} for both teams',
     'music.title': 'Music Kits',
     'music.description':
-      'Hear kill and spree announcements in your kit. Everyone hears the round MVP’s anthem.',
+      'One kit for CT and T. Hear your own kills or the player you spectate. MVP anthems are shared. Muting audio keeps the announcement text.',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · Changes apply to your next match.',
     'music.event': 'Preview sound',
     'music.default': 'Quake (default)',
@@ -49,8 +50,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'Enable Music Kit audio (including MVP anthems)',
     'music.item': 'Music Kit',
     'music.empty': 'None (audio off)',
-    'music.clear': 'Clear {{team}} Music Kit (audio off)',
-    'music.equipTeam': 'Equip {{name}} for {{team}}',
+    'music.clear': 'Turn Music Kit audio off',
     'music.owned': 'Owned',
     'music.unequipAll': 'Unequip All',
     'music.unequipping': 'Unequipping…',
@@ -59,8 +59,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   ru: {
+    'music.equipTeam': 'Выбрать {{name}} для обеих сторон',
     'music.title': 'Музыкальные наборы',
-    'music.description': 'Вы слышите убийства и серии своим набором. Все слышат гимн MVP раунда.',
+    'music.description':
+      'Один набор для CT и T. Звуки ваших убийств или игрока, за которым вы наблюдаете. Общий гимн MVP. При выключенном звуке текст остаётся.',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · Изменения применятся в следующем матче.',
     'music.event': 'Прослушать звук',
     'music.default': 'Quake (по умолчанию)',
@@ -107,8 +109,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'Включить звуки набора (включая гимны MVP)',
     'music.item': 'Музыкальный набор',
     'music.empty': 'Нет (звук выключен)',
-    'music.clear': 'Убрать набор {{team}} (звук выключен)',
-    'music.equipTeam': 'Выбрать {{name}} для {{team}}',
+    'music.clear': 'Выключить звуки набора',
     'music.owned': 'Куплено',
     'music.unequipAll': 'Снять всё',
     'music.unequipping': 'Снимаем…',
@@ -117,9 +118,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Команда снаряжения'
   },
   tl: {
+    'music.equipTeam': 'Gamitin ang {{name}} para sa parehong koponan',
     'music.title': 'Music Kits',
     'music.description':
-      'Sarili mong kit ang maririnig sa kills at sprees. Lahat ay makakarinig ng anthem ng round MVP.',
+      'Isang kit para sa CT at T. Marinig ang sarili mong kills o ng pinapanood mong player. Para sa lahat ang MVP anthem. Makikita pa rin ang teksto kapag naka-off ang audio.',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · Sa susunod na match ang mga pagbabago.',
     'music.event': 'Pakinggang tunog',
     'music.default': 'Quake (default)',
@@ -166,8 +168,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'I-on ang Music Kit audio (kasama ang MVP anthems)',
     'music.item': 'Music Kit',
     'music.empty': 'Wala (naka-off ang audio)',
-    'music.clear': 'Alisin ang {{team}} Music Kit (audio off)',
-    'music.equipTeam': 'Gamitin ang {{name}} para sa {{team}}',
+    'music.clear': 'I-off ang audio ng Music Kit',
     'music.owned': 'Pag-aari',
     'music.unequipAll': 'Alisin lahat',
     'music.unequipping': 'Inaalis…',
@@ -176,8 +177,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   th: {
+    'music.equipTeam': 'ใช้ {{name}} สำหรับทั้งสองทีม',
     'music.title': 'ชุดเพลง',
-    'music.description': 'คุณได้ยินเสียงสังหารจากชุดของคุณ ทุกคนได้ยินเพลงของ MVP ประจำรอบ',
+    'music.description':
+      'ชุดเดียวสำหรับ CT และ T ได้ยินเสียงจากการสังหารของคุณหรือผู้เล่นที่คุณกำลังชม เพลง MVP ได้ยินร่วมกัน เมื่อปิดเสียงยังเห็นข้อความประกาศ',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · การเปลี่ยนแปลงมีผลในแมตช์ถัดไป',
     'music.event': 'ทดลองเสียง',
     'music.default': 'Quake (ค่าเริ่มต้น)',
@@ -224,8 +227,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'เปิดเสียงชุดเพลง (รวมเพลง MVP)',
     'music.item': 'ชุดเพลง',
     'music.empty': 'ไม่มี (ปิดเสียง)',
-    'music.clear': 'ล้างชุดเพลง {{team}} (ปิดเสียง)',
-    'music.equipTeam': 'ใช้ {{name}} สำหรับ {{team}}',
+    'music.clear': 'ปิดเสียงชุดเพลง',
     'music.owned': 'เป็นเจ้าของแล้ว',
     'music.unequipAll': 'ถอดทั้งหมด',
     'music.unequipping': 'กำลังถอด…',
@@ -234,9 +236,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'ทีมอุปกรณ์'
   },
   id: {
+    'music.equipTeam': 'Gunakan {{name}} untuk kedua tim',
     'music.title': 'Kit Musik',
     'music.description':
-      'Dengarkan pengumuman kill dengan kit Anda. Semua mendengar lagu MVP ronde.',
+      'Satu kit untuk CT dan T. Dengarkan kill Anda atau pemain yang Anda tonton. Lagu MVP didengar bersama. Teks pengumuman tetap terlihat saat audio dimatikan.',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · Perubahan berlaku pada pertandingan berikutnya.',
     'music.event': 'Pratinjau suara',
     'music.default': 'Quake (bawaan)',
@@ -283,8 +286,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'Aktifkan audio kit musik (termasuk lagu MVP)',
     'music.item': 'Kit Musik',
     'music.empty': 'Tidak ada (audio mati)',
-    'music.clear': 'Hapus kit {{team}} (audio mati)',
-    'music.equipTeam': 'Pakai {{name}} untuk {{team}}',
+    'music.clear': 'Matikan audio Kit Musik',
     'music.owned': 'Dimiliki',
     'music.unequipAll': 'Lepas semua',
     'music.unequipping': 'Melepas…',
@@ -293,9 +295,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Tim perlengkapan'
   },
   pt: {
+    'music.equipTeam': 'Equipar {{name}} para ambas as equipes',
     'music.title': 'Kits de música',
     'music.description':
-      'Ouça anúncios de eliminações com seu kit. Todos ouvem o hino do MVP da rodada.',
+      'Um kit para CT e T. Ouça suas eliminações ou as do jogador que acompanha. Hinos MVP são compartilhados. Desativar o áudio mantém os anúncios em texto.',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · Alterações valem na próxima partida.',
     'music.event': 'Ouvir som',
     'music.default': 'Quake (padrão)',
@@ -342,8 +345,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'Ativar áudio do kit (incluindo hinos MVP)',
     'music.item': 'Kit de música',
     'music.empty': 'Nenhum (áudio desligado)',
-    'music.clear': 'Remover kit de {{team}} (áudio desligado)',
-    'music.equipTeam': 'Equipar {{name}} para {{team}}',
+    'music.clear': 'Desativar áudio do kit de música',
     'music.owned': 'Adquirido',
     'music.unequipAll': 'Desequipar tudo',
     'music.unequipping': 'Desequipando…',
@@ -352,8 +354,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Equipe do equipamento'
   },
   ja: {
+    'music.equipTeam': '両チームに{{name}}を装備',
     'music.title': 'ミュージックキット',
-    'music.description': 'キルや連続キルは自分のキットで再生。ラウンドMVPの曲は全員に流れます。',
+    'music.description':
+      'CTとTで共通のキット。自分または観戦中のプレイヤーのキル音声を再生します。MVPアンセムは全員に流れます。音声オフでも通知テキストは表示されます。',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · 変更は次の試合から適用されます。',
     'music.event': '試聴する音',
     'music.default': 'Quake（標準）',
@@ -400,8 +404,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'キットの音声を有効にする（MVPアンセムを含む）',
     'music.item': 'ミュージックキット',
     'music.empty': 'なし（音声オフ）',
-    'music.clear': '{{team}}のキットを外す（音声オフ）',
-    'music.equipTeam': '{{team}}に{{name}}を装備',
+    'music.clear': 'ミュージックキットの音声をオフ',
     'music.owned': '所有済み',
     'music.unequipAll': 'すべて外す',
     'music.unequipping': '解除中…',
@@ -410,9 +413,10 @@ export const musicKitTranslations = {
     'music.loadoutTeam': '装備チーム'
   },
   hi: {
+    'music.equipTeam': 'दोनों टीमों के लिए {{name}} लगाएँ',
     'music.title': 'म्यूज़िक किट',
     'music.description':
-      'किल और स्प्री की आवाज़ें अपनी किट में सुनें। राउंड MVP की धुन सभी सुनते हैं।',
+      'CT और T के लिए एक किट। अपनी या जिस खिलाड़ी को देख रहे हैं उसकी किल की आवाज़ सुनें। MVP संगीत सबको सुनाई देता है। ऑडियो बंद होने पर भी घोषणा का टेक्स्ट दिखता है।',
     'music.nextMatch': 'Counter-Strike 1.3 / 1.6 · बदलाव अगले मैच से लागू होंगे।',
     'music.event': 'आवाज़ सुनें',
     'music.default': 'Quake (डिफ़ॉल्ट)',
@@ -459,8 +463,7 @@ export const musicKitTranslations = {
     'music.audioEnabled': 'म्यूज़िक किट ऑडियो चालू करें (MVP धुन सहित)',
     'music.item': 'म्यूज़िक किट',
     'music.empty': 'कोई नहीं (ऑडियो बंद)',
-    'music.clear': '{{team}} म्यूज़िक किट हटाएँ (ऑडियो बंद)',
-    'music.equipTeam': '{{team}} के लिए {{name}} लगाएँ',
+    'music.clear': 'म्यूज़िक किट का ऑडियो बंद करें',
     'music.owned': 'स्वामित्व में',
     'music.unequipAll': 'सब हटाएँ',
     'music.unequipping': 'हटाया जा रहा है…',
