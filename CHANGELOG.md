@@ -3834,3 +3834,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Maintenance
 
 - Minor internal cleanup.
+
+## v2026.1031.4 — 2026-10-31
+
+### Character Previews
+
+- Restored character poses in skin previews.
+
+### First-Person Knife Preview
+
+- Fixed first-person knife animation playback.
+- Improved skin preview rendering and translations.
