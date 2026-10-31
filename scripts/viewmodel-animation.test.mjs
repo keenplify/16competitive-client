@@ -4,7 +4,6 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
-import * as THREE from 'three'
 
 async function load(path, mocks = {}) {
   const context = vm.createContext({ Uint8Array, Uint8ClampedArray, console })
