@@ -329,7 +329,7 @@ const skins: SkinsApi = {
   unlock: (skinId, currency) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId, currency),
   equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
   unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
-  previewModel: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId),
+  previewModel: (skinId, kind) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId, kind),
   previewExplosionSprite: (skinId) =>
     ipcRenderer.invoke(SKIN_CHANNELS.previewExplosionSprite, skinId),
   setLobbyWeapon: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.setLobbyWeapon, skinId),

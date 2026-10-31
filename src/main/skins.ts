@@ -193,6 +193,8 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
     throw new Error('Could not load skins currently on sale.')
   }
   for (const skin of data) previewRevisions.set(skin.id, skinPreviewRevision(skin))
+  for (const skin of data)
+    previewRevisions.set(`${skin.id}-view`, skin.viewModelPath ?? 'unavailable')
   return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
 }
 
@@ -231,7 +233,10 @@ export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
   const data = await playerRequest('/skins/mine')
   if (!Array.isArray(data) || !data.every(isOwnedSkin))
     throw new Error('The server returned an invalid inventory.')
-  for (const { skin } of data) previewRevisions.set(skin.id, skinPreviewRevision(skin))
+  for (const { skin } of data) {
+    previewRevisions.set(skin.id, skinPreviewRevision(skin))
+    previewRevisions.set(`${skin.id}-view`, skin.viewModelPath ?? 'unavailable')
+  }
   return data
 }
 
@@ -380,20 +385,28 @@ export const setLobbyPlayerModel = async (modelPath: unknown): Promise<void> => 
   })
 }
 
-export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer> => {
+export const getSkinPreviewModel = async (
+  skinId: unknown,
+  kind: unknown = 'player'
+): Promise<ArrayBuffer> => {
+  if (kind !== 'player' && kind !== 'view') throw makeError('Invalid preview model type.')
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
   const validatedSkinId = validateSkinId(skinId)
-  const revision = previewRevisions.get(validatedSkinId)
+  const cacheId = kind === 'view' ? `${validatedSkinId}-view` : validatedSkinId
+  const revision = previewRevisions.get(cacheId)
   if (PREVIEW_MODEL_CACHE_ENABLED) {
-    const cached = await readCachedSkinPreview(validatedSkinId, revision)
+    const cached = await readCachedSkinPreview(cacheId, revision)
     if (cached) return cached
   }
 
-  const response = await fetch(await skinApiUrl(`/skins/${validatedSkinId}/preview-model`), {
-    headers: { authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(15_000)
-  }).catch(() => {
+  const response = await fetch(
+    await skinApiUrl(`/skins/${validatedSkinId}/preview-model?kind=${kind}`),
+    {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15_000)
+    }
+  ).catch(() => {
     throw makeError('Could not reach the preview server.')
   })
   if (response.status === 401) {
@@ -419,7 +432,7 @@ export const getSkinPreviewModel = async (skinId: unknown): Promise<ArrayBuffer>
     throw makeError('The preview model is an unsupported size.')
   }
   if (PREVIEW_MODEL_CACHE_ENABLED) {
-    await writeCachedSkinPreview(validatedSkinId, model, revision).catch((error: unknown) => {
+    await writeCachedSkinPreview(cacheId, model, revision).catch((error: unknown) => {
       console.warn('Could not cache skin preview model', { skinId: validatedSkinId, error })
     })
   }

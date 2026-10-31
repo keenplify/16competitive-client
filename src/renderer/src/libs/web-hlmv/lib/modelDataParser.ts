@@ -1,6 +1,6 @@
 import FastDataView from 'fast-dataview'
 import * as structs from '../const/structs'
-import { MAX_SRCBONES, AXLES_NUM, ANIM_VALUE, VERSION } from '../const/constants'
+import { MAX_SRCBONES, ANIM_VALUE, VERSION } from '../const/constants'
 import * as BinaryReader from './binaryReader'
 import { Struct, StructResult, short, ubyte } from './dataTypes'
 import { MultiArrayView } from './multiArrayView'
@@ -151,7 +151,7 @@ export const parseAnimValues = (
 
   // Create frames values array
   const animValues = MultiArrayView.create(
-    [sequences.length, numBones, AXLES_NUM, MAX_SRCBONES, 3],
+    [sequences.length, numBones, 6, MAX_SRCBONES, 3],
     Int16Array
   )
 
@@ -162,10 +162,9 @@ export const parseAnimValues = (
         /* seqGroup.data + */ sequences[i].animIndex +
         (blendIndex * numBones + j) * animStructLength
 
-      for (let axis = 0; axis < AXLES_NUM; axis++) {
+      for (let axis = 0; axis < 6; axis++) {
         for (let v = 0; v < MAX_SRCBONES; v++) {
-          const offset =
-            animationIndex + animations[i][j].offset[axis + AXLES_NUM] + v * short.byteLength
+          const offset = animationIndex + animations[i][j].offset[axis] + v * short.byteLength
 
           // Using the "method" instead of applying a structure is an optimization of reading
           const value = short.getValue(dataView, offset)

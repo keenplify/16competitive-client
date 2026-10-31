@@ -28,6 +28,10 @@ type ModelViewerProps = {
   /** Sequence label, ordered fallback labels, or zero-based sequence index. */
   animation?: string | number | readonly string[]
   /** Hold the selected sequence at its first frame while retaining orbit controls. */
+  firstPerson?: boolean
+  animationRestart?: number
+  playOnce?: boolean
+  onAnimationEnd?: () => void
   freezeAnimation?: boolean
   /** Caps canvas rendering while keeping the animation time in sync. */
   maxFrameRate?: number
@@ -68,6 +72,10 @@ export function ModelViewer({
   camera,
   cameraLocked = false,
   animation,
+  firstPerson = false,
+  animationRestart = 0,
+  playOnce = false,
+  onAnimationEnd,
   freezeAnimation = false,
   maxFrameRate,
   presentationRotation,
@@ -181,6 +189,10 @@ export function ModelViewer({
             camera={camera}
             cameraLocked={cameraLocked}
             animation={animation}
+            firstPerson={firstPerson}
+            animationRestart={animationRestart}
+            playOnce={playOnce}
+            onAnimationEnd={onAnimationEnd}
             freezeAnimation={freezeAnimation}
             maxFrameRate={maxFrameRate}
             presentationRotation={presentationRotation}

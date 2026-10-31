@@ -142,8 +142,10 @@ const rememberPreviewPaths = (items: Skin[]): void => {
     previewPaths.clear()
     previewAccount = token
   }
-  for (const skin of items)
+  for (const skin of items) {
     if (skin.playerModelPath) previewPaths.set(skin.id, skin.playerModelPath)
+    if (skin.viewModelPath) previewPaths.set(`${skin.id}-view`, skin.viewModelPath)
+  }
 }
 
 const getPttKeys = (): [string, string] => {
@@ -687,11 +689,14 @@ const skins = {
   async unequip(skinId: string): Promise<void> {
     await jsonPost(`/skins/${skinId}/unequip`)
   },
-  async previewModel(skinId: string): Promise<ArrayBuffer> {
-    const path = previewAccount === getWebSessionToken() ? previewPaths.get(skinId) : undefined
+  async previewModel(skinId: string, kind: 'player' | 'view' = 'player'): Promise<ArrayBuffer> {
+    const path =
+      previewAccount === getWebSessionToken()
+        ? previewPaths.get(kind === 'view' ? `${skinId}-view` : skinId)
+        : undefined
     const local = path ? await readNativeModel(path) : null
     if (local) return local
-    return requestArrayBuffer(`/skins/${skinId}/preview-model`, {
+    return requestArrayBuffer(`/skins/${skinId}/preview-model?kind=${kind}`, {
       authenticated: true
     })
   },

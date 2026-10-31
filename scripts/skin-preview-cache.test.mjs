@@ -132,3 +132,27 @@ test('a preview request started before repair cannot repopulate the memory cache
   assert.equal(await cache.getCachedSkinModel('skin', 'p.mdl'), newModel)
   assert.equal(pending.length, 2)
 })
+
+test('view and player previews never share an in-memory cache entry', async () => {
+  const reads = []
+  const cache = await loadModule('../src/renderer/src/features/skins/skin-model-cache.ts', {
+    window: {
+      api: {
+        skins: {
+          previewModel: async (id, kind) => {
+            reads.push([id, kind])
+            return modelBytes(reads.length)
+          }
+        }
+      }
+    }
+  })
+  const player = await cache.getCachedSkinModel('skin', 'same/path', 'player')
+  const view = await cache.getCachedSkinModel('skin', 'same/path', 'view')
+  assert.notDeepEqual(player, view)
+  assert.equal(await cache.getCachedSkinModel('skin', 'same/path', 'view'), view)
+  assert.deepEqual(reads, [
+    ['skin', 'player'],
+    ['skin', 'view']
+  ])
+})

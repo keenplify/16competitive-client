@@ -134,6 +134,10 @@ type Props = {
   camera?: ModelViewerCamera
   cameraLocked?: boolean
   animation?: string | number | readonly string[]
+  firstPerson?: boolean
+  animationRestart?: number
+  playOnce?: boolean
+  onAnimationEnd?: () => void
   freezeAnimation?: boolean
   maxFrameRate?: number
   presentationRotation?: readonly [number, number, number]
@@ -349,8 +353,8 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
   // Mesh container
   const container = React.useMemo(
-    () => createContainer(meshes, props.presentationRotation),
-    [meshes, props.presentationRotation]
+    () => createContainer(meshes, props.presentationRotation, props.firstPerson),
+    [meshes, props.presentationRotation, props.firstPerson]
   )
 
   // Renderer-native static fallback for legacy material/morph pipelines that
@@ -380,6 +384,9 @@ export const Renderer = (props: Props): React.JSX.Element => {
           }
 
           const fallbackMesh = new THREE.Mesh(geometry, material)
+          // The first Draw frame can be entirely outside the camera. Its bounds
+          // cannot cull later animated frames as the weapon moves into view.
+          fallbackMesh.frustumCulled = false
           fallbackMesh.userData.geometryBuffers = geometryBuffers
           fallback.add(fallbackMesh)
         })
@@ -520,7 +527,9 @@ export const Renderer = (props: Props): React.JSX.Element => {
     // Frame against the active sequence, not the legacy container's bind pose.
     // A fixed-sequence preview may deliberately skip decoding that bind pose.
     const unpositionedBounds = new THREE.Box3().setFromObject(fallback)
-    fallback.position.y = (unpositionedBounds.min.y - unpositionedBounds.max.y) / 2
+    fallback.position.y = props.firstPerson
+      ? 0
+      : (unpositionedBounds.min.y - unpositionedBounds.max.y) / 2
     fallback.updateMatrixWorld(true)
 
     const renderedBounds = new THREE.Box3().setFromObject(fallback)
@@ -532,6 +541,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     return fallback
   }, [
     animationIndex,
+    props.firstPerson,
     container,
     meshesRenderData,
     modelData,
@@ -544,9 +554,11 @@ export const Renderer = (props: Props): React.JSX.Element => {
   ])
 
   const fallbackAnimationTime = React.useRef(0)
+  const animationEnded = React.useRef(false)
   React.useEffect(() => {
     fallbackAnimationTime.current = 0
-  }, [animationIndex])
+    animationEnded.current = false
+  }, [animationIndex, props.animationRestart])
 
   const usesFixedSequenceFallback = props.animation !== undefined
 
@@ -687,8 +699,13 @@ export const Renderer = (props: Props): React.JSX.Element => {
     if (activeSequence?.numFrames > 0 && activeSequence.fps > 0) {
       if (!props.freezeAnimation) fallbackAnimationTime.current += delta
       if (canRender) {
-        const frame =
-          Math.floor(fallbackAnimationTime.current * activeSequence.fps) % activeSequence.numFrames
+        const frame = props.playOnce
+          ? Math.min(
+              Math.floor(fallbackAnimationTime.current * activeSequence.fps),
+              activeSequence.numFrames - 1
+            )
+          : Math.floor(fallbackAnimationTime.current * activeSequence.fps) %
+            activeSequence.numFrames
 
         fallbackContainer.traverse((child) => {
           if (!(child as THREE.Mesh).isMesh) return
@@ -722,6 +739,17 @@ export const Renderer = (props: Props): React.JSX.Element => {
           lines: renderer.info.render.lines
         })
       }
+    }
+
+    if (
+      renderer &&
+      props.playOnce &&
+      !animationEnded.current &&
+      activeSequence?.fps > 0 &&
+      fallbackAnimationTime.current >= activeSequence.numFrames / activeSequence.fps
+    ) {
+      animationEnded.current = true
+      props.onAnimationEnd?.()
     }
 
     const frameMilliseconds = performance.now() - startedAt

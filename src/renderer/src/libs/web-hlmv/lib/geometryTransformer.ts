@@ -48,11 +48,11 @@ export const calcBoneQuaternion = (
       angle2[axis] = angle1[axis] = bone.value[axis + 3] // default;
     } else {
       const getTotal = (index: number) =>
-        animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.TOTAL)
+        animValues.get(sequenceIndex, boneIndex, axis + 3, index, ANIM_VALUE.TOTAL)
       const getValue = (index: number) =>
-        animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.VALUE)
+        animValues.get(sequenceIndex, boneIndex, axis + 3, index, ANIM_VALUE.VALUE)
       const getValid = (index: number) =>
-        animValues.get(sequenceIndex, boneIndex, axis, index, ANIM_VALUE.VALID)
+        animValues.get(sequenceIndex, boneIndex, axis + 3, index, ANIM_VALUE.VALID)
 
       let i = 0
       let k = frame
@@ -112,17 +112,32 @@ export const getBonePositions = (
   boneIndex: number,
   s: number
 ): vec3 => {
-  void frame
-  void animOffset
-  void animValues
-  void sequenceIndex
-  void boneIndex
   void s
-
   const position: vec3 = vec3.create()
-
   for (let axis = 0; axis < 3; axis++) {
     position[axis] = bone.value[axis]
+    if (!animOffset[axis]) continue
+    let run = 0
+    let remaining = Math.floor(frame)
+    // GoldSrc run-length encoding: one header followed by valid signed samples.
+    for (let guard = 0; guard < 512; guard++) {
+      const total = animValues.get(sequenceIndex, boneIndex, axis, run, ANIM_VALUE.TOTAL)
+      const valid = animValues.get(sequenceIndex, boneIndex, axis, run, ANIM_VALUE.VALID)
+      if (total <= 0 || valid <= 0 || valid > total) break
+      if (remaining < total) {
+        const sample = animValues.get(
+          sequenceIndex,
+          boneIndex,
+          axis,
+          run + Math.min(remaining + 1, valid),
+          ANIM_VALUE.VALUE
+        )
+        position[axis] += sample * bone.scale[axis]
+        break
+      }
+      remaining -= total
+      run += valid + 1
+    }
   }
 
   return position

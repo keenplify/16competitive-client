@@ -382,7 +382,8 @@ export const createModelMeshes = (
  */
 export const createContainer = (
   meshes: THREE.Mesh[][][],
-  presentationRotation?: readonly [number, number, number]
+  presentationRotation?: readonly [number, number, number],
+  preserveOrigin = false
 ) => {
   const container = new THREE.Group()
 
@@ -411,7 +412,7 @@ export const createContainer = (
 
   // Sets to display model on the center of camera
   const boundingBox = new THREE.Box3().setFromObject(container)
-  container.position.y = (boundingBox.min.y - boundingBox.max.y) / 2
+  container.position.y = preserveOrigin ? 0 : (boundingBox.min.y - boundingBox.max.y) / 2
 
   // Preserve bounds from the same Three.js module that constructed the meshes.
   // This avoids relying on cross-module instanceof checks in the renderer.

@@ -188,7 +188,7 @@ export interface SkinsApi {
   unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult>
   equip(skinId: string): Promise<void>
   unequip(skinId: string): Promise<void>
-  previewModel(skinId: string): Promise<ArrayBuffer>
+  previewModel(skinId: string, kind?: 'player' | 'view'): Promise<ArrayBuffer>
   previewExplosionSprite(skinId: string): Promise<ArrayBuffer | null>
   setLobbyWeapon(skinId: string): Promise<void>
   setLobbyWeaponKey(weaponKey: string): Promise<void>

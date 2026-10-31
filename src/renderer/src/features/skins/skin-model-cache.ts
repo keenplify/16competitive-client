@@ -31,10 +31,14 @@ const cacheModel = (key: string, buffer: ArrayBuffer): void => {
   }
 }
 
-export const getCachedSkinModel = (skinId: string, revision = ''): Promise<ArrayBuffer> => {
-  if (!PREVIEW_MODEL_CACHE_ENABLED) return window.api.skins.previewModel(skinId)
+export const getCachedSkinModel = (
+  skinId: string,
+  revision = '',
+  kind: 'player' | 'view' = 'player'
+): Promise<ArrayBuffer> => {
+  if (!PREVIEW_MODEL_CACHE_ENABLED) return window.api.skins.previewModel(skinId, kind)
 
-  const key = JSON.stringify([skinId, revision])
+  const key = JSON.stringify([skinId, revision, kind])
   const cached = modelBuffers.get(key)
   if (cached) {
     // Refresh insertion order so the bounded cache evicts the least recently
@@ -49,7 +53,7 @@ export const getCachedSkinModel = (skinId: string, revision = ''): Promise<Array
 
   const requestGeneration = cacheGeneration
   const request = window.api.skins
-    .previewModel(skinId)
+    .previewModel(skinId, kind)
     .then((buffer) => {
       if (requestGeneration === cacheGeneration) cacheModel(key, buffer)
       return buffer

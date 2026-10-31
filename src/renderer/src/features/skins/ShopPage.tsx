@@ -10,6 +10,9 @@ import {
   isCharacterModel
 } from './skin-model-presentation'
 import { useCharacterLoadoutStore } from './character-loadout.store'
+import { TabList } from '../../components/ui/TabList'
+import { SkinFirstPersonPreview } from './SkinFirstPersonPreview'
+import previewTranslations from './skin-preview-translations.json'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import {
   ExternalLink,
@@ -761,6 +764,11 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
 }
 
 function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
+  const { language } = useTranslation()
+  const text = previewTranslations[language]
+  const [view, setView] = useState<'preview' | 'first-person'>('preview')
+  const hasFirstPerson = !isCharacterModel(skin.weaponKey) && Boolean(skin.viewModelPath)
+
   const [model, setModel] = useState<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
   const sourceUrl = safeExternalUrl(skin.sourceUrl)
@@ -788,7 +796,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
       onClose={onClose}
       vguiTitlebar={false}
       className="w-[calc(100%-2rem)] max-w-3xl overflow-hidden  border border-white/15 bg-neutral-950 shadow-2xl"
-      label={`${skin.name} preview`}
+      label={`${skin.name}: ${text.preview}`}
     >
       <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <div>
@@ -802,7 +810,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
                 rel="noreferrer"
               >
                 <ExternalLink className="size-3" aria-hidden="true" />
-                Source
+                {text.source}
               </a>
             )}
             {creatorUrl ? (
@@ -816,63 +824,85 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
                 {skin.creatorName}
               </a>
             ) : (
-              <span>By {skin.creatorName}</span>
+              <span>{text.by.replace('{{name}}', skin.creatorName)}</span>
             )}
           </div>
         </div>
         <Button
           className="size-9 px-0"
           variant="ghost"
-          aria-label="Close preview"
+          aria-label={text.close}
           data-audio-sfx="backward"
           onClick={onClose}
         >
           <X className="size-4" />
         </Button>
       </header>
+      {hasFirstPerson && (
+        <div className="px-4 pt-3">
+          <TabList
+            value={view}
+            onChange={setView}
+            ariaLabel={text.view}
+            items={[
+              { value: 'preview', label: text.preview },
+              { value: 'first-person', label: text.firstPerson }
+            ]}
+          />
+        </div>
+      )}
       <div className="skin-preview-stage relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
-        {skin.weaponKey === 'elite' ? (
-          <img
-            className="h-full w-full object-contain p-6"
-            src={elitePistolsImage}
-            alt={`${skin.name} Elite pistols`}
-            draggable={false}
-          />
-        ) : model ? (
-          <ModelViewer
-            modelBuffer={model}
-            modelKey={skin.id}
-            sourceRevision={skinPreviewRevision(skin)}
-            presentationRotation={getSkinPresentationRotation(skin.weaponKey, skin.previewRotation)}
-            camera={{
-              distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
-              target: getSkinCameraTarget(skin.weaponKey)
-            }}
-            animation={getSkinAnimation(skin.weaponKey)}
-            {...characterWeaponAttachment(skin.weaponKey)}
-            freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
-            maxFrameRate={30}
-            disableZoom
-            lockCameraDistance
-            orbitAngleLimit={0.7}
-            rotateSpeed={0.45}
-            className="absolute inset-0"
-          />
-        ) : null}
-        {skin.weaponKey !== 'elite' && !model && !error && (
-          <div className="flex h-full items-center justify-center" role="status">
-            <LoaderCircle className="size-7 animate-spin text-sky-300" />
-          </div>
-        )}
-        {skin.weaponKey !== 'elite' && error && (
-          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
-            {error}
-          </div>
-        )}
-        {skin.weaponKey !== 'elite' && model && (
-          <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
-            Drag to rotate
-          </span>
+        {view === 'first-person' && hasFirstPerson ? (
+          <SkinFirstPersonPreview skin={skin} />
+        ) : (
+          <>
+            {skin.weaponKey === 'elite' ? (
+              <img
+                className="h-full w-full object-contain p-6"
+                src={elitePistolsImage}
+                alt={`${skin.name} Elite pistols`}
+                draggable={false}
+              />
+            ) : model ? (
+              <ModelViewer
+                modelBuffer={model}
+                modelKey={skin.id}
+                sourceRevision={skinPreviewRevision(skin)}
+                presentationRotation={getSkinPresentationRotation(
+                  skin.weaponKey,
+                  skin.previewRotation
+                )}
+                camera={{
+                  distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
+                  target: getSkinCameraTarget(skin.weaponKey)
+                }}
+                animation={getSkinAnimation(skin.weaponKey)}
+                {...characterWeaponAttachment(skin.weaponKey)}
+                freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
+                maxFrameRate={30}
+                disableZoom
+                lockCameraDistance
+                orbitAngleLimit={0.7}
+                rotateSpeed={0.45}
+                className="absolute inset-0"
+              />
+            ) : null}
+            {skin.weaponKey !== 'elite' && !model && !error && (
+              <div className="flex h-full items-center justify-center" role="status">
+                <LoaderCircle className="size-7 animate-spin text-sky-300" />
+              </div>
+            )}
+            {skin.weaponKey !== 'elite' && error && (
+              <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
+                {error}
+              </div>
+            )}
+            {skin.weaponKey !== 'elite' && model && (
+              <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
+                {text.rotate}
+              </span>
+            )}
+          </>
         )}
       </div>
     </ModalDialog>
