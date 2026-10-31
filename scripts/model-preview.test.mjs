@@ -7,7 +7,7 @@ import ts from 'typescript'
 import * as THREE from 'three'
 
 async function load(path, mocks = {}) {
-  const context = vm.createContext({ Uint8Array, Uint8ClampedArray, console })
+  const context = vm.createContext({ Uint8Array, Uint8ClampedArray, console, performance })
   const code = ts.transpileModule(await readFile(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 }
   }).outputText
@@ -87,12 +87,15 @@ test('an unavailable bundled model fails once rather than retrying or overwritin
   assert.equal(reads, 1)
 })
 
-const { createTexture } = await load('../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts', {
-  './three': { default: THREE },
-  './geometryBuilder': { readFacesData: () => {} },
-  './geometryTransformer': { calcRotations: () => {} },
-  '../const/constants': { NF_ADDITIVE: 32 }
-})
+const { createTexture, applyBoneTransforms } = await load(
+  '../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts',
+  {
+    './three': { default: THREE },
+    './geometryBuilder': { readFacesData: () => {} },
+    './geometryTransformer': { calcRotations: () => {} },
+    '../const/constants': { NF_ADDITIVE: 32 }
+  }
+)
 test('RGBA upload works without DOM ImageData and preserves orientation, colors, alpha and source bytes', () => {
   const source = new Uint8ClampedArray([
     255, 0, 0, 255, 0, 255, 0, 128, 0, 0, 255, 0, 255, 255, 0, 255
@@ -120,4 +123,60 @@ test('invalid dimensions and truncated RGBA buffers cannot become white placehol
     [2, 2]
   ])
     assert.throws(() => createTexture(new Uint8ClampedArray(4), w, h), /Invalid preview/)
+})
+
+test('bone validation preserves valid translation and leaves malformed or missing bones in bind pose', () => {
+  const valid = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1])
+  const invalid = valid.slice()
+  invalid[0] = NaN
+  const vertices = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+  const before = vertices.slice()
+  const result = applyBoneTransforms(
+    vertices,
+    new Int16Array([0, 1, 2]),
+    new Uint8Array([0, 1, 2]),
+    [valid, invalid]
+  )
+  assert.deepEqual([...result], [11, 22, 33, 4, 5, 6, 7, 8, 9])
+  assert.deepEqual(vertices, before)
+})
+
+let decodedFrames = 0
+const { prepareRenderData } = await load('../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts', {
+  './three': { default: THREE },
+  './geometryBuilder': {
+    readFacesData: () => ({
+      vertices: new Float32Array([1, 2, 3]),
+      uv: new Float32Array([0, 0]),
+      indices: new Int16Array([0])
+    })
+  },
+  './geometryTransformer': {
+    calcRotations: (_model, sequence, frame) => {
+      decodedFrames++
+      return [
+        new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, sequence * 10 + frame, 0, 0, 1])
+      ]
+    }
+  },
+  '../const/constants': { NF_ADDITIVE: 32 }
+})
+test('interactive Draw, Idle and Slash frames coexist in one prepared dataset', () => {
+  const model = {
+    sequences: [{ numFrames: 2 }, { numFrames: 3 }, { numFrames: 2 }, { numFrames: 1000 }],
+    meshes: [[[{ skinRef: 0 }]]],
+    bodyParts: [{ name: 'weapon' }],
+    subModels: [[{ name: 'weapon' }]],
+    triangles: [[[[]]]],
+    vertices: [[[]]],
+    skinRef: [0],
+    textures: [{ width: 1, height: 1 }],
+    vertBoneBuffer: [[new Uint8Array([0])]]
+  }
+  const data = prepareRenderData(model, [2, 0, 1])[0][0][0]
+  assert.equal(decodedFrames, 7)
+  assert.deepEqual([...data.geometryBuffers[2][1].array], [22, 2, 3])
+  assert.deepEqual([...data.geometryBuffers[1][2].array], [13, 2, 3])
+  assert.deepEqual([...data.geometryBuffers[0][1].array], [2, 2, 3])
+  assert.equal(data.geometryBuffers[3].length, 1)
 })

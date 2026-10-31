@@ -73,6 +73,10 @@ export const applyBoneTransforms = (
   boneTransforms: mat4[]
 ): Float32Array => {
   const posArray = new Float32Array(vertices.length)
+  // Validate each bone once, rather than allocating an array for every vertex.
+  const validTransforms = boneTransforms.map(
+    (transform) => transform && Array.from(transform).every(Number.isFinite)
+  )
   for (let i = 0; i < vertIndices.length; i++) {
     const transform: mat4 = boneTransforms[vertBoneBuffer[vertIndices[i]]]
     const x = vertices[i * 3 + 0]
@@ -83,7 +87,7 @@ export const applyBoneTransforms = (
     // present in the selected MDL. Keep the bind-pose vertex visible instead
     // of feeding NaN values to Three.js, which makes the entire bounding box
     // (and therefore the model) disappear.
-    if (!transform || Array.from(transform).some((value) => !Number.isFinite(value))) {
+    if (!validTransforms[vertBoneBuffer[vertIndices[i]]]) {
       posArray[i * 3 + 0] = x
       posArray[i * 3 + 1] = y
       posArray[i * 3 + 2] = z

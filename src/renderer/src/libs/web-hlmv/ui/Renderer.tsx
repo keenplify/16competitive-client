@@ -135,6 +135,7 @@ type Props = {
   cameraLocked?: boolean
   animation?: string | number | readonly string[]
   firstPerson?: boolean
+  animationSequences?: readonly number[]
   animationRestart?: number
   playOnce?: boolean
   onAnimationEnd?: () => void
@@ -274,6 +275,19 @@ export const Renderer = (props: Props): React.JSX.Element => {
     return 0
   }, [modelData, props.animation])
 
+  // Interactive viewmodels share one prepared set across Draw/Idle/Fire/Reload.
+  // Other previews retain their existing fixed-sequence behavior.
+  const preparedSequences = React.useMemo(
+    () =>
+      props.animationSequences ?? (props.animation === undefined ? undefined : [animationIndex]),
+    [
+      props.animationSequences,
+      props.animation === undefined,
+      props.animationSequences ? undefined : animationIndex
+    ]
+  )
+  const initialSequenceIndex = preparedSequences?.[0] ?? 0
+
   // Meshes render
   const meshesRenderData = React.useMemo(() => {
     const startedAt = performance.now()
@@ -281,7 +295,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     try {
       const preparedRenderData = prepareRenderData(
         modelData,
-        props.animation === undefined ? undefined : [animationIndex],
+        preparedSequences,
         props.modelRootBoneRotation,
         props.firstPerson
           ? (model, sequence, frame) => calcRotations(model, sequence, frame, 0, true)
@@ -298,7 +312,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
       })
       throw error
     }
-  }, [animationIndex, modelData, props.animation, props.modelRootBoneRotation, props.firstPerson])
+  }, [preparedSequences, modelData, props.modelRootBoneRotation, props.firstPerson])
 
   // Textures preparing
   const textures = React.useMemo(() => {
@@ -348,11 +362,11 @@ export const Renderer = (props: Props): React.JSX.Element => {
       meshes,
       meshesRenderData,
       modelData,
-      animationIndex
+      initialSequenceIndex
     )
     console.info('[HLMV] Model controller created')
     return createdController
-  }, [animationIndex, meshes, meshesRenderData, modelData])
+  }, [initialSequenceIndex, meshes, meshesRenderData, modelData])
 
   // Mesh container
   const container = React.useMemo(
@@ -368,7 +382,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     meshesRenderData.forEach((bodyPart, bodyPartIndex) =>
       bodyPart.forEach((subModel, subModelIndex) =>
         subModel.forEach(({ geometryBuffers, uvMap }, meshIndex) => {
-          const sourcePosition = geometryBuffers[animationIndex][0]
+          const sourcePosition = geometryBuffers[initialSequenceIndex][0]
           const geometry = new THREE.BufferGeometry()
           geometry.addAttribute(
             'position',
@@ -543,7 +557,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
     return fallback
   }, [
-    animationIndex,
+    initialSequenceIndex,
     props.firstPerson,
     container,
     meshesRenderData,
@@ -558,10 +572,13 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
   const fallbackAnimationTime = React.useRef(0)
   const animationEnded = React.useRef(false)
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     fallbackAnimationTime.current = 0
     animationEnded.current = false
-  }, [animationIndex, props.animationRestart])
+    // Geometry preparation may take longer than a slash or Draw. Its elapsed
+    // time must never consume the new animation before the first visible frame.
+    timer.getDelta()
+  }, [animationIndex, props.animationRestart, fallbackContainer])
 
   const usesFixedSequenceFallback = props.animation !== undefined
 

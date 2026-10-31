@@ -29,6 +29,8 @@ type ModelViewerProps = {
   animation?: string | number | readonly string[]
   /** Hold the selected sequence at its first frame while retaining orbit controls. */
   firstPerson?: boolean
+  /** Prepare interactive sequences together so changing actions does not rebuild geometry. */
+  animationSequences?: readonly number[]
   animationRestart?: number
   playOnce?: boolean
   onAnimationEnd?: () => void
@@ -73,6 +75,7 @@ export function ModelViewer({
   cameraLocked = false,
   animation,
   firstPerson = false,
+  animationSequences,
   animationRestart = 0,
   playOnce = false,
   onAnimationEnd,
@@ -190,6 +193,7 @@ export function ModelViewer({
             cameraLocked={cameraLocked}
             animation={animation}
             firstPerson={firstPerson}
+            animationSequences={animationSequences}
             animationRestart={animationRestart}
             playOnce={playOnce}
             onAnimationEnd={onAnimationEnd}

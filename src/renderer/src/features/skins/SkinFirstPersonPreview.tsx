@@ -67,7 +67,11 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
           return [key, index >= 0 ? index : Math.max(0, idle)]
         })
       ) as Record<Action, number>
-      return { ...selected, mirror: viewmodelNeedsMirror(model, Math.max(0, idle), skin.weaponKey) }
+      return {
+        ...selected,
+        prepared: [...new Set(Object.values(selected))],
+        mirror: viewmodelNeedsMirror(model, Math.max(0, idle), skin.weaponKey)
+      }
     } catch {
       return null
     }
@@ -142,6 +146,7 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
               camera={camera}
               cameraLocked
               animation={sequences[action]}
+              animationSequences={sequences.prepared}
               animationRestart={restart}
               playOnce={action !== 'idle'}
               onAnimationEnd={ended}
