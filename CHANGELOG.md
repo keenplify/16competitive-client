@@ -3852,3 +3852,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed first-person preview animations rebuilding unexpectedly.
 - Fixed preview actions being skipped.
+
+## v2026.1031.6 — 2026-11-01
+
+### Skin previews
+
+- Grenades now play their preparation animation before throwing. Hold left click to prepare, then release to throw.
+- Thrown grenades leave from the center during the throw animation, followed by the custom explosion and synchronized sound.
+- Enlarged HE grenade thumbnails while keeping the full model in frame.
