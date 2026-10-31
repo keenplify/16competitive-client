@@ -260,7 +260,7 @@ export function LobbyPage(): JSX.Element {
   const handleNavigate = (nextPage: LobbyPageId): void => {
     if (matchNavigationLocked && nextPage !== 'settings' && nextPage !== 'play') return
     if (completedMatch) dismissCompletedMatch()
-    if (nextPage === 'store' || nextPage === 'profile') collapseFriendsSidebar()
+    if (nextPage === 'profile') collapseFriendsSidebar()
     if (nextPage === 'communities') {
       setFriendsRailMode('pinned')
       if (!useCommunitiesStore.getState().editing) useCommunitiesStore.getState().setView('home')

@@ -1,3 +1,4 @@
+import { isSkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { Skin, SkinCurrency } from './skins'
 
 export interface SkinCollection {
@@ -106,6 +107,7 @@ export function parseCollectionDetail(value: unknown): CollectionDetail {
   for (const value of r.items) {
     const item = record(value)
     if (
+      (item.previewRotation !== undefined && !isSkinPreviewRotation(item.previewRotation)) ||
       typeof item.id !== 'string' ||
       !collection.skinIds.includes(item.id) ||
       item.status !== 'ACTIVE' ||

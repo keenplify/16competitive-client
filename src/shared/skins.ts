@@ -1,3 +1,4 @@
+import { skinPreviewRotation, type SkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { PaymentOrder, PaymentSnapshot } from './payments'
 
 export const SKIN_CHANNELS = {
@@ -54,6 +55,7 @@ export interface Skin {
   attributionText: string
   viewModelPath: string | null
   playerModelPath: string | null
+  previewRotation?: SkinPreviewRotation
   worldModelPath: string | null
   actionSoundPath: string | null
   explosionSpritePath: string | null
@@ -69,8 +71,10 @@ export interface OwnedSkin {
 }
 
 /** The backend preview endpoint serves the immutable player model path. */
-export const skinPreviewRevision = (skin: Pick<Skin, 'playerModelPath'>): string =>
-  skin.playerModelPath ?? 'unavailable'
+export const skinPreviewRevision = (
+  skin: Pick<Skin, 'playerModelPath' | 'previewRotation'>
+): string =>
+  `${skin.playerModelPath ?? 'unavailable'}:rotation:${skinPreviewRotation(skin.previewRotation).join(',')}`
 
 export interface SkinResaleQuote {
   skinId: string
@@ -108,6 +112,7 @@ export interface LobbyLoadout {
 }
 
 export interface SkinGiftSkinChoice {
+  previewRotation?: SkinPreviewRotation
   id: string
   type: 'SKIN'
   skinId: string

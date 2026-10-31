@@ -13,6 +13,7 @@
     "src/renderer/src/libs/web-hlmv/webpack.config.ts"
   ],
   "compilerOptions": {
+    "rewriteRelativeImportExtensions": true,
     "composite": true,
     "jsx": "react-jsx",
     "ignoreDeprecations": "5.0"

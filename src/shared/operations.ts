@@ -1,3 +1,4 @@
+import type { SkinPreviewRotation } from './skin-preview-rotation'
 export const OPERATION_CHANNELS = {
   getActive: 'operations:get-active',
   getMine: 'operations:get-mine',
@@ -21,6 +22,7 @@ export interface OperationTier {
   skin: {
     id: string
     name: string | null
+    previewRotation?: SkinPreviewRotation
     weaponKey: string | null
     description: string | null
   } | null

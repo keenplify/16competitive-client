@@ -1,0 +1,97 @@
+.shop-scroll {
+  scrollbar-gutter: stable;
+}
+
+.shop-sidebar {
+  top: var(--shop-sidebar-top, 0px);
+}
+
+@media (max-height: 720px) {
+  :root[data-launcher-theme='vgui2'] .vgui-page-window-host:has(> .vgui-window .shop-page) {
+    top: 4rem;
+    bottom: 0.5rem;
+    left: 0.5rem;
+  }
+}
+
+/* Browser chrome can leave a 720p screen with less than 570px of content height.
+   Share one scroll area; a tall sidebar scrolls into view before sticking. */
+@media (max-height: 850px), (max-width: 1100px) {
+  .shop-page {
+    padding: 16px;
+  }
+
+  .shop-page > div > header {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+
+  .shop-page > div > header > div:first-child {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+
+  .shop-page > div > header > div:last-child {
+    gap: 8px;
+  }
+
+  .shop-page > div > header h1 {
+    margin-top: 0;
+    font-size: 1.25rem;
+  }
+
+  .shop-page > div > header > div:first-child > p:first-child {
+    display: none;
+  }
+
+  .shop-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .shop-scroll {
+    margin-top: 12px;
+  }
+
+  .shop-filter-options button {
+    height: 30px;
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+
+  .shop-skins-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    margin-top: 8px;
+    gap: 12px;
+  }
+
+  .shop-skins-grid > article {
+    padding: 12px;
+  }
+
+  .shop-skins-grid .weapon-preview-well {
+    height: clamp(80px, 16dvh, 128px);
+    margin-bottom: 8px;
+  }
+
+  .shop-skins-grid .music-store-card .weapon-preview-well {
+    height: clamp(64px, 11dvh, 112px);
+  }
+
+  .shop-skins-grid > article > p {
+    margin-top: 8px;
+  }
+
+  .shop-skins-grid > article > div:last-child {
+  }
+}
+
+@media (max-width: 600px) {
+  .shop-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shop-sidebar {
+    position: static;
+  }
+}

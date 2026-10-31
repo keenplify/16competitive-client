@@ -26,6 +26,7 @@ export function ProfileLoadout({ profile }: { profile: PlayerProfile }): JSX.Ele
                     key={skin.id}
                     cacheKey={`skin:${skin.id}`}
                     skinId={skin.id}
+                    previewRotation={skin.previewRotation}
                     weaponKey={skin.weaponKey}
                     fallback={<span className="text-sm text-neutral-300">{skin.weaponKey}</span>}
                     className="h-20 overflow-hidden bg-slate-950/75"

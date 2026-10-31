@@ -819,6 +819,7 @@ function LoadoutThumbnail({
         key={cacheKey}
         cacheKey={cacheKey}
         skinId={skinId}
+        previewRotation={equipped?.skin.previewRotation}
         modelPath={skinId ? undefined : defaultPlayerModelPath(weaponKey)}
         sourceRevision={
           equipped ? skinPreviewRevision(equipped.skin) : (installationPath ?? 'unloaded')

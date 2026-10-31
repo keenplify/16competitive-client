@@ -1,3 +1,4 @@
+import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
   musicKitLogoUrls,
   parseMusicKits,
@@ -87,6 +88,7 @@ const isSkin = (value: unknown): value is Skin => {
   if (typeof value !== 'object' || value === null) return false
   const skin = value as Record<string, unknown>
   return (
+    (skin.previewRotation === undefined || isSkinPreviewRotation(skin.previewRotation)) &&
     typeof skin.id === 'string' &&
     typeof skin.gameVersion === 'string' &&
     ['DRAFT', 'ACTIVE', 'UNLISTED', 'DISABLED'].includes(String(skin.status)) &&

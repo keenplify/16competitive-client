@@ -1,3 +1,4 @@
+import { skinPreviewRotation } from '../../../../shared/skin-preview-rotation'
 import { characterAnimationLabels } from '../party/character-animation'
 import { isGrenadeWeapon } from './weapon-categories'
 
@@ -107,21 +108,27 @@ export const SKIN_PREVIEW_ROTATION_BY_WEAPON: Record<string, SkinPresentationRot
   mac10: [90, 90, 90]
 }
 
-export const getSkinPresentationRotation = (weaponKey: string): SkinPresentationRotation =>
-  isGrenadeWeapon(weaponKey)
+export const getSkinPresentationRotation = (
+  weaponKey: string,
+  offset?: unknown
+): SkinPresentationRotation => {
+  const base = isGrenadeWeapon(weaponKey)
     ? GRENADE_SKIN_PREVIEW.rotation
     : (SKIN_PREVIEW_ROTATION_BY_WEAPON[weaponKey] ?? [90, 0, 190])
+  const rotation = skinPreviewRotation(offset)
+  return [base[0] + rotation[0], base[1] + rotation[1], base[2] + rotation[2]]
+}
 
 /**
  * Stable signature for every setting that changes how a thumbnail is framed.
  * Including this in the thumbnail/model key makes presentation tweaks refresh
  * immediately instead of reusing an image captured with older camera values.
  */
-export const getSkinPresentationRevision = (weaponKey: string): string => {
+export const getSkinPresentationRevision = (weaponKey: string, offset?: unknown): string => {
   const zoom = isGrenadeWeapon(weaponKey)
     ? GRENADE_SKIN_PREVIEW.zoom
     : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
-  const rotation = getSkinPresentationRotation(weaponKey).join('-')
+  const rotation = getSkinPresentationRotation(weaponKey, offset).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
   return `${isCharacterModel(weaponKey) ? 'character-armed-v2' : 'presentation-v4'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
 }

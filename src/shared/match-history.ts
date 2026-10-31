@@ -1,3 +1,4 @@
+import type { SkinPreviewRotation } from './skin-preview-rotation'
 export const MATCH_HISTORY_CHANNELS = {
   get: 'match-history:get',
   getSummary: 'match-history:get-summary',
@@ -82,6 +83,7 @@ export interface MatchSurveySubmission {
 }
 
 export interface ProfileLoadoutSkin {
+  previewRotation?: SkinPreviewRotation
   equipped?: boolean
   id: string
   name: string

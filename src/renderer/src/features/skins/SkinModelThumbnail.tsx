@@ -1,3 +1,4 @@
+import type { SkinPreviewRotation } from '../../../../shared/skin-preview-rotation'
 import {
   characterWeaponAttachment,
   getSkinAnimation,
@@ -59,6 +60,7 @@ interface SkinModelThumbnailProps {
   weaponKey: string
   skinId?: string
   modelPath?: string
+  previewRotation?: SkinPreviewRotation
   sourceRevision?: string | number
   modelKey?: string
   fallback: ReactNode
@@ -67,7 +69,10 @@ interface SkinModelThumbnailProps {
 
 export function SkinModelThumbnail(props: SkinModelThumbnailProps): JSX.Element {
   return (
-    <SkinModelThumbnailContent key={`${props.cacheKey}:${props.sourceRevision ?? ''}`} {...props} />
+    <SkinModelThumbnailContent
+      key={`${props.cacheKey}:${props.sourceRevision ?? ''}:${getSkinPresentationRevision(props.weaponKey, props.previewRotation)}`}
+      {...props}
+    />
   )
 }
 
@@ -77,6 +82,7 @@ function SkinModelThumbnailContent({
   skinId,
   modelPath,
   sourceRevision,
+  previewRotation,
   modelKey,
   fallback,
   className
@@ -86,7 +92,7 @@ function SkinModelThumbnailContent({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const releaseRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(true)
-  const presentationRevision = getSkinPresentationRevision(weaponKey)
+  const presentationRevision = getSkinPresentationRevision(weaponKey, previewRotation)
   const presentationCacheKey = `${cacheKey}:${sourceRevision ?? ''}:${presentationRevision}`
   const bundledPreview = bundledWeaponPreview(weaponKey, modelPath)
   const isStockModel = !skinId && /^(?:models\/)?p_[a-z0-9_]+\.mdl$/i.test(modelPath ?? '')
@@ -217,7 +223,7 @@ function SkinModelThumbnailContent({
                 : modelPath
             }
             sourceRevision={sourceRevision}
-            presentationRotation={getSkinPresentationRotation(weaponKey)}
+            presentationRotation={getSkinPresentationRotation(weaponKey, previewRotation)}
             camera={{
               distanceMultiplier: getSkinCameraDistanceMultiplier(weaponKey, 0.5),
               target: getSkinCameraTarget(weaponKey)

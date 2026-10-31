@@ -1,9 +1,15 @@
 import { CollectionCard } from './CollectionCard'
 import { useCollectionsStore } from './collections.store'
 import { useCollectionText } from './collection-i18n'
-import { MusicKits } from './MusicKits'
+import { MusicKitStoreCard, MusicKitPurchaseDialog } from './MusicKits'
+import { useMusicKitsStore } from './music-kits.store'
 import { useTranslation } from '../i18n/i18n'
-import { getSkinAnimation } from './skin-model-presentation'
+import {
+  getSkinAnimation,
+  characterWeaponAttachment,
+  isCharacterModel
+} from './skin-model-presentation'
+import { useCharacterLoadoutStore } from './character-loadout.store'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import {
   ExternalLink,
@@ -14,10 +20,12 @@ import {
   Ticket,
   X
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
+import './shop-layout.css'
+import filterTranslations from './shop-filter-translations.json'
 import { CurrencyAmount, CurrencyBalance } from '../../components/CurrencyIcon'
 import { PurchaseConfirmModal } from './PurchaseConfirmModal'
 import { useAuthStore } from '../auth/auth.store'
@@ -85,6 +93,7 @@ function StoreFilterButton({
             : 'border-transparent bg-white/[0.035] text-neutral-300 hover:border-white/10 hover:bg-white/[0.07] hover:text-white'
         ].join(' ')}
         onClick={onClick}
+        aria-pressed={active}
         title={tooltip}
       >
         <span className="truncate">{label}</span>
@@ -133,6 +142,27 @@ const safeExternalUrl = (value: string | null): string | null => {
 }
 
 export function ShopPage(): JSX.Element {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sidebarRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const scroll = scrollRef.current
+    const sidebar = sidebarRef.current
+    if (!scroll || !sidebar) return
+    // Tall filters scroll with the catalog until their bottom is visible, then stick.
+    // A short sidebar sticks to the top. Neither case needs a nested scrollbar.
+    const measure = (): void => {
+      sidebar.style.setProperty(
+        '--shop-sidebar-top',
+        `${Math.min(0, scroll.clientHeight - sidebar.offsetHeight)}px`
+      )
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(scroll)
+    observer.observe(sidebar)
+    measure()
+    return () => observer.disconnect()
+  }, [])
+
   const collectionText = useCollectionText()
   const collections = useCollectionsStore((state) => state.collections)
   const loadCollections = useCollectionsStore((state) => state.load)
@@ -141,10 +171,22 @@ export function ShopPage(): JSX.Element {
     void loadCollections()
   }, [loadCollections])
 
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const filterText = filterTranslations[language]
+  const music = useMusicKitsStore()
+  useEffect(() => {
+    void useMusicKitsStore.getState().load()
+    return () => {
+      useMusicKitsStore.getState().stopPreview()
+      useMusicKitsStore.getState().close()
+    }
+  }, [])
+  useEffect(() => {
+    if (music.error && !music.confirm && music.snapshot) toast.error(t(music.error))
+  }, [music.error, music.confirm, music.snapshot, t])
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
-  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory>('all')
+  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory | 'music'>('all')
   const [selectedSkinType, setSelectedSkinType] = useState<SkinTypeFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [skins, setSkins] = useState<Skin[]>([])
@@ -181,13 +223,13 @@ export function ShopPage(): JSX.Element {
 
   const weaponCounts = useMemo(() => {
     const counts = new Map<WeaponCategory, number>()
-    counts.set('all', skins.length)
+    counts.set('all', skins.length + (music.snapshot?.kits.length ?? 0))
     for (const skin of skins) {
       const category = weaponCategory(skin.weaponKey)
       counts.set(category, (counts.get(category) ?? 0) + 1)
     }
     return counts
-  }, [skins])
+  }, [skins, music.snapshot])
 
   const rarityStats = useMemo(() => {
     const stats = new Map<SkinRarity, { count: number; points: number[]; pCash: number[] }>()
@@ -230,10 +272,25 @@ export function ShopPage(): JSX.Element {
         (skin) =>
           (selectedCategory === 'all' || weaponCategory(skin.weaponKey) === selectedCategory) &&
           (selectedSkinType === 'all' || skinRarity(skin) === selectedSkinType) &&
-          (!query || `${skin.name} ${skin.weaponKey}`.toLocaleLowerCase().includes(query))
+          (!query ||
+            `${skin.name} ${skin.weaponKey} ${skin.weaponKey === 'player_ct' ? `${filterText.ctModels} ${t('character.ct')}` : skin.weaponKey === 'player_t' ? `${filterText.tModels} ${t('character.t')}` : ''}`
+              .toLocaleLowerCase()
+              .includes(query))
       )
       .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id)))
-  }, [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins])
+  }, [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins, filterText, t])
+
+  const filteredMusic = (music.snapshot?.kits ?? []).filter(
+    (kit) =>
+      (selectedCategory === 'all' || selectedCategory === 'music') &&
+      selectedSkinType === 'all' &&
+      `${kit.name} ${kit.id === 'quake' ? t('music.default') : ''} ${t('music.title')}`
+        .toLocaleLowerCase()
+        .includes(searchQuery.trim().toLocaleLowerCase())
+  )
+  const resultCount = filteredSkins.length + filteredMusic.length
+  const showMusic =
+    (selectedCategory === 'all' || selectedCategory === 'music') && selectedSkinType === 'all'
 
   const clearFilters = (): void => {
     setSelectedCategory('all')
@@ -286,7 +343,11 @@ export function ShopPage(): JSX.Element {
       })
   }
 
-  const openLoadout = (): void => {
+  const openLoadout = (skin?: Skin): void => {
+    useMusicKitsStore.getState().setFilterTeam(null)
+    if (skin && isCharacterModel(skin.weaponKey)) {
+      useCharacterLoadoutStore.getState().selectTeam(skin.weaponKey === 'player_ct' ? 'ct' : 't')
+    }
     setProfileTab('skins')
     navigate('profile')
   }
@@ -307,13 +368,12 @@ export function ShopPage(): JSX.Element {
         <header className="flex shrink-0 flex-wrap items-end justify-between gap-5 border-b border-white/10 pb-6 drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Store</p>
-            <h1 className="mt-2 text-3xl font-semibold">Skins on sale</h1>
+            <h1 className="mt-2 text-3xl font-semibold">{t('nav.store')}</h1>
             <p className="mt-2 text-sm text-neutral-200">
               Earn Points by playing. Papa Cash is the premium currency.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <MusicKits />
             <Button variant="ghost" onClick={() => setShowRedeemCode(true)} className="text-white">
               <Ticket className="mr-2 size-4" aria-hidden="true" />
               Redeem Code
@@ -329,241 +389,295 @@ export function ShopPage(): JSX.Element {
 
         <PCashTopUpModal />
 
-        {error && (
-          <p className="mt-5  border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-5 grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-5 md:grid-cols-[240px_minmax(0,1fr)] md:grid-rows-1 xl:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="self-start border border-white/10 bg-neutral-950/75 p-3 shadow-xl">
-            <div className="flex items-center justify-between gap-3 px-1 pb-2">
-              <div>
-                <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
-                  Filters
-                </p>
-              </div>
-              {(selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim()) && (
-                <button
-                  type="button"
-                  className="text-[10px] font-bold tracking-wide text-sky-300 uppercase transition hover:text-sky-200"
-                  onClick={clearFilters}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            <TextField
-              label="Search skins"
-              placeholder="Skin name or weapon"
-              leadingIcon={<Search className="size-4" />}
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              maxLength={120}
-              autoComplete="off"
-              className="h-10 pl-9"
-            />
-
-            <p className="px-1 pt-3 pb-1.5 text-xs font-semibold text-white">Weapons</p>
-
-            <div
-              className="grid grid-cols-3 gap-1 md:grid-cols-2"
-              aria-label="Filter skins by weapon"
+        <div
+          ref={scrollRef}
+          className="shop-scroll mt-5 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+          tabIndex={0}
+          aria-label={t('nav.store')}
+        >
+          <div className="shop-layout grid min-h-full grid-cols-[260px_minmax(0,1fr)] items-start gap-5">
+            <aside
+              ref={sidebarRef}
+              className="shop-sidebar sticky self-start border border-white/10 bg-neutral-950/75 p-3"
             >
-              {WEAPON_CATEGORIES.filter(
-                (category) =>
-                  category.id === 'all' ||
-                  category.id === 'grenades' ||
-                  (weaponCounts.get(category.id) ?? 0) > 0
-              ).map((category) => (
-                <StoreFilterButton
-                  key={category.id}
-                  label={
-                    category.id === 'all'
-                      ? t('character.all')
-                      : category.id === 'player_ct'
-                        ? t('character.ct')
-                        : category.id === 'player_t'
-                          ? t('character.t')
-                          : category.label
-                  }
-                  count={weaponCounts.get(category.id) ?? 0}
-                  active={category.id === selectedCategory}
-                  onClick={() => setSelectedCategory(category.id)}
+              <div className="shop-filter-search shrink-0 pb-3">
+                <div className="flex items-center justify-between gap-3 px-1 pb-2">
+                  <div>
+                    <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
+                      {filterText.filters}
+                    </p>
+                  </div>
+                  {(selectedCategory !== 'all' ||
+                    selectedSkinType !== 'all' ||
+                    searchQuery.trim()) && (
+                    <button
+                      type="button"
+                      className="text-[10px] font-bold tracking-wide text-sky-300 uppercase transition hover:text-sky-200"
+                      onClick={clearFilters}
+                    >
+                      {filterText.clear}
+                    </button>
+                  )}
+                </div>
+
+                <TextField
+                  label={filterText.search}
+                  placeholder={filterText.placeholder}
+                  leadingIcon={<Search className="size-4" />}
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  maxLength={120}
+                  autoComplete="off"
+                  className="h-10 pl-9"
                 />
-              ))}
-            </div>
+              </div>
+              <div className="shop-filter-options" aria-label={filterText.filters}>
+                <p className="px-1 pb-1.5 text-xs font-semibold text-white">{filterText.type}</p>
 
-            <div className="my-3 h-px bg-white/10" />
-
-            <div className="px-1 pb-1.5">
-              <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
-                Skin type
-              </p>
-            </div>
-
-            <div
-              className="grid grid-cols-3 gap-1 md:grid-cols-2"
-              aria-label="Filter skins by type"
-            >
-              <StoreFilterButton
-                label="All types"
-                count={skins.length}
-                active={selectedSkinType === 'all'}
-                onClick={() => setSelectedSkinType('all')}
-              />
-              {visibleRarities.map((rarity) => {
-                const presentation = skinRarityPresentationFor(rarity)
-                const stats = rarityStats.get(rarity)
-                return (
-                  <StoreFilterButton
-                    key={rarity}
-                    label={presentation.label}
-                    count={stats?.count ?? 0}
-                    active={selectedSkinType === rarity}
-                    onClick={() => setSelectedSkinType(rarity)}
-                    tooltip={rarityTooltip(rarity)}
-                    badgeClassName={presentation.className}
-                  />
-                )
-              })}
-            </div>
-          </aside>
-
-          <div
-            className="min-h-0 min-w-0 overflow-y-auto overscroll-contain pb-4"
-            tabIndex={0}
-            aria-label="Skins on sale"
-          >
-            {collections.length > 0 && (
-              <section aria-label={collectionText('title')} className="mb-6">
-                <h2 className="mb-3 text-lg font-semibold">{collectionText('title')}</h2>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {collections.map((collection) => (
-                    <CollectionCard
-                      key={collection.id}
-                      {...collection}
-                      onOpen={(id) => void openCollection(id)}
+                <div className="grid grid-cols-3 gap-1 md:grid-cols-2" aria-label={filterText.type}>
+                  {WEAPON_CATEGORIES.filter(
+                    (category) =>
+                      category.id === 'all' ||
+                      category.id === 'grenades' ||
+                      isCharacterModel(category.id) ||
+                      (weaponCounts.get(category.id) ?? 0) > 0
+                  ).map((category) => (
+                    <StoreFilterButton
+                      key={category.id}
+                      label={
+                        category.id === 'all'
+                          ? t('character.all')
+                          : category.id === 'player_ct'
+                            ? filterText.ctModels
+                            : category.id === 'player_t'
+                              ? filterText.tModels
+                              : filterText[category.id]
+                      }
+                      count={weaponCounts.get(category.id) ?? 0}
+                      active={category.id === selectedCategory}
+                      onClick={() => setSelectedCategory(category.id)}
                     />
                   ))}
+                  <StoreFilterButton
+                    label={t('music.title')}
+                    count={music.snapshot?.kits.length ?? 0}
+                    active={selectedCategory === 'music'}
+                    onClick={() => {
+                      setSelectedCategory('music')
+                      setSelectedSkinType('all')
+                    }}
+                  />
                 </div>
-              </section>
-            )}
-            <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-neutral-400">
-                <span className="font-semibold text-white">{filteredSkins.length}</span>{' '}
-                {filteredSkins.length === 1 ? 'skin' : 'skins'}
-                {(selectedCategory !== 'all' ||
-                  selectedSkinType !== 'all' ||
-                  searchQuery.trim()) && <span> matching your filters</span>}
-              </p>
-            </div>
 
-            {status === 'loading' ? (
-              <div className="flex min-h-72 items-center justify-center" role="status">
-                <LoaderCircle className="size-7 animate-spin text-sky-300" />
-              </div>
-            ) : null}
-            {status === 'error' ? (
-              <Button className="mt-6" variant="ghost" onClick={load}>
-                Retry catalog
-              </Button>
-            ) : null}
-            {status === 'ready' && filteredSkins.length === 0 ? (
-              <div className="mt-4  border border-dashed border-white/15 p-10 text-center text-neutral-400">
-                No skins match these filters.
-              </div>
-            ) : null}
-            {status === 'ready' && filteredSkins.length > 0 ? (
-              <section className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
-                {filteredSkins.map((skin) => {
-                  const owned = ownedSkins.get(skin.id)
-                  const buying = buyingId === skin.id
-                  const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
-                  const rarity = skinRarityPresentation(skin)
-                  return (
-                    <article
-                      key={skin.id}
-                      className={`flex min-h-72 flex-col border border-white/10 bg-neutral-900/90 p-5 ${owned ? 'opacity-75' : ''}`}
-                    >
-                      <SkinCardPreview
-                        skin={skin}
-                        owned={Boolean(owned)}
-                        onOpen={() => setPreviewSkin(skin)}
+                <div className="my-3 h-px bg-white/10" />
+
+                <div className="px-1 pb-1.5">
+                  <p className="text-[10px] font-black tracking-[0.18em] text-neutral-500 uppercase">
+                    {filterText.rarity}
+                  </p>
+                </div>
+
+                <div
+                  className="grid grid-cols-3 gap-1 md:grid-cols-2"
+                  aria-label={filterText.rarity}
+                >
+                  <StoreFilterButton
+                    label={filterText.allTypes}
+                    count={skins.length}
+                    active={selectedSkinType === 'all'}
+                    onClick={() => setSelectedSkinType('all')}
+                  />
+                  {visibleRarities.map((rarity) => {
+                    const presentation = skinRarityPresentationFor(rarity)
+                    const stats = rarityStats.get(rarity)
+                    return (
+                      <StoreFilterButton
+                        key={rarity}
+                        label={presentation.label}
+                        count={stats?.count ?? 0}
+                        active={selectedSkinType === rarity}
+                        onClick={() => setSelectedSkinType(rarity)}
+                        tooltip={rarityTooltip(rarity)}
+                        badgeClassName={presentation.className}
                       />
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
-                          {skin.weaponKey}
-                        </p>
-                        <span
-                          className={`  border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
-                        >
-                          {rarity.label}
-                        </span>
-                      </div>
-                      <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
-                      <p className="mt-3 flex-1 text-sm text-neutral-400">
-                        {skin.description ?? 'Custom weapon skin.'}
+                    )
+                  })}
+                </div>
+              </div>
+            </aside>
+
+            <div className="shop-catalog min-w-0 pb-4" aria-label={t('nav.store')}>
+              {error && (
+                <p className="mt-5  border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+                  {error}
+                </p>
+              )}
+              {collections.length > 0 && (
+                <section aria-label={collectionText('title')} className="mb-6">
+                  <h2 className="mb-3 text-lg font-semibold">{collectionText('title')}</h2>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {collections.map((collection) => (
+                      <CollectionCard
+                        key={collection.id}
+                        {...collection}
+                        onOpen={(id) => void openCollection(id)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+              <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-neutral-400">
+                  {filterText.results.replace('{{count}}', String(resultCount))}
+                </p>
+              </div>
+
+              {status === 'loading' && selectedCategory !== 'music' ? (
+                <div className="flex min-h-72 items-center justify-center" role="status">
+                  <LoaderCircle className="size-7 animate-spin text-sky-300" />
+                </div>
+              ) : null}
+              {status === 'error' && selectedCategory !== 'music' ? (
+                <Button className="mt-6" variant="ghost" onClick={load}>
+                  Retry catalog
+                </Button>
+              ) : null}
+              {(selectedCategory === 'music'
+                ? music.status === 'ready'
+                : status === 'ready' && (!showMusic || music.status === 'ready')) &&
+              resultCount === 0 ? (
+                <div className="mt-4  border border-dashed border-white/15 p-10 text-center text-neutral-400">
+                  {filterText.empty}
+                </div>
+              ) : null}
+              {resultCount > 0 || (showMusic && !music.snapshot) ? (
+                <section className="shop-skins-grid mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
+                  {showMusic && !music.snapshot && (
+                    <div
+                      className="flex min-h-72 flex-col items-center justify-center gap-4 border border-white/10 bg-neutral-900/90 p-5"
+                      role="status"
+                    >
+                      <p className="text-sm text-neutral-300">
+                        {t(music.error ?? 'music.loading')}
                       </p>
-                      <div className="mt-5 flex items-end justify-between gap-3">
-                        <div className="flex flex-col gap-1 font-semibold tabular-nums">
+                      {music.error && (
+                        <Button variant="ghost" onClick={() => void music.load()}>
+                          {t('music.retry')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {filteredMusic.map((kit) => (
+                    <MusicKitStoreCard
+                      key={`music:${kit.id}`}
+                      kit={kit}
+                      owned={music.snapshot!.ownedIds.includes(kit.id)}
+                      equipped={Object.values(music.snapshot!.equipped).includes(kit.id)}
+                      pending={music.pending || music.status !== 'ready'}
+                      playing={music.playingId === kit.id}
+                      event={music.event}
+                      onEvent={music.setEvent}
+                      onPreview={() => void music.preview(kit.id)}
+                      onBuy={() => music.choosePurchase(kit)}
+                      onEquip={() => {
+                        openLoadout()
+                        useMusicKitsStore.getState().setFilterTeam('ct')
+                      }}
+                    />
+                  ))}
+                  {filteredSkins.map((skin) => {
+                    const owned = ownedSkins.get(skin.id)
+                    const buying = buyingId === skin.id
+                    const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
+                    const rarity = skinRarityPresentation(skin)
+                    return (
+                      <article
+                        key={skin.id}
+                        className={`flex min-h-72 flex-col border border-white/10 bg-neutral-900/90 p-5 ${owned ? 'opacity-75' : ''}`}
+                      >
+                        <SkinCardPreview
+                          skin={skin}
+                          owned={Boolean(owned)}
+                          onOpen={() => setPreviewSkin(skin)}
+                        />
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
+                            {skin.weaponKey === 'player_ct'
+                              ? filterText.ctModels
+                              : skin.weaponKey === 'player_t'
+                                ? filterText.tModels
+                                : skin.weaponKey}
+                          </p>
+                          <span
+                            className={`  border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+                          >
+                            {rarity.label}
+                          </span>
+                        </div>
+                        <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
+                        <p className="mt-3 flex-1 text-sm text-neutral-400">
+                          {skin.description ?? 'Custom weapon skin.'}
+                        </p>
+                        <div className="mt-5 flex items-end justify-between gap-3">
+                          <div className="flex flex-col gap-1 font-semibold tabular-nums">
+                            {owned ? (
+                              <span className="text-emerald-300">Owned</span>
+                            ) : (
+                              <>
+                                {skin.pointsEnabled && (
+                                  <CurrencyAmount
+                                    currency="POINTS"
+                                    amount={skin.pricePoints}
+                                    className="font-semibold text-white"
+                                    iconClassName="size-5"
+                                  />
+                                )}
+                                {skin.pricePCash !== null && (
+                                  <CurrencyAmount
+                                    currency="P_CASH"
+                                    amount={skin.pricePCash}
+                                    className="font-semibold text-white"
+                                    iconClassName="size-5"
+                                  />
+                                )}
+                              </>
+                            )}
+                          </div>
                           {owned ? (
-                            <span className="text-emerald-300">Owned</span>
+                            <Button
+                              className="h-9 px-3 text-xs"
+                              variant="ghost"
+                              onClick={() => openLoadout(skin)}
+                            >
+                              Manage loadout
+                            </Button>
                           ) : (
-                            <>
-                              {skin.pointsEnabled && (
-                                <CurrencyAmount
-                                  currency="POINTS"
-                                  amount={skin.pricePoints}
-                                  className="font-semibold text-white"
-                                  iconClassName="size-5"
-                                />
+                            <Button
+                              className="size-10 px-0"
+                              variant={premiumOnly ? 'primary' : 'secondary'}
+                              disabled={buying}
+                              aria-label={`Purchase ${skin.name}`}
+                              title={`Purchase ${skin.name}`}
+                              onClick={() => setPurchaseSkin(skin)}
+                            >
+                              {buying ? (
+                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <ShoppingCart className="size-4" aria-hidden="true" />
                               )}
-                              {skin.pricePCash !== null && (
-                                <CurrencyAmount
-                                  currency="P_CASH"
-                                  amount={skin.pricePCash}
-                                  className="font-semibold text-white"
-                                  iconClassName="size-5"
-                                />
-                              )}
-                            </>
+                            </Button>
                           )}
                         </div>
-                        {owned ? (
-                          <Button
-                            className="h-9 px-3 text-xs"
-                            variant="ghost"
-                            onClick={openLoadout}
-                          >
-                            Manage loadout
-                          </Button>
-                        ) : (
-                          <Button
-                            className="size-10 px-0"
-                            variant={premiumOnly ? 'primary' : 'secondary'}
-                            disabled={buying}
-                            aria-label={`Purchase ${skin.name}`}
-                            title={`Purchase ${skin.name}`}
-                            onClick={() => setPurchaseSkin(skin)}
-                          >
-                            {buying ? (
-                              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                            ) : (
-                              <ShoppingCart className="size-4" aria-hidden="true" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </article>
-                  )
-                })}
-              </section>
-            ) : null}
+                      </article>
+                    )
+                  })}
+                </section>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
+      <MusicKitPurchaseDialog />
       {purchaseSkin && (
         <PurchaseConfirmModal
           skin={purchaseSkin}
@@ -618,6 +732,7 @@ export function SkinCardPreview({
         cacheKey={`skin-card:v3:${skin.id}`}
         skinId={skin.id}
         sourceRevision={skinPreviewRevision(skin)}
+        previewRotation={skin.previewRotation}
         modelKey={skin.id}
         weaponKey={skin.weaponKey}
         fallback={<span className="text-xs text-neutral-500">Preview unavailable</span>}
@@ -728,12 +843,13 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
             modelBuffer={model}
             modelKey={skin.id}
             sourceRevision={skinPreviewRevision(skin)}
-            presentationRotation={getSkinPresentationRotation(skin.weaponKey)}
+            presentationRotation={getSkinPresentationRotation(skin.weaponKey, skin.previewRotation)}
             camera={{
               distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
               target: getSkinCameraTarget(skin.weaponKey)
             }}
             animation={getSkinAnimation(skin.weaponKey)}
+            {...characterWeaponAttachment(skin.weaponKey)}
             freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
             maxFrameRate={30}
             disableZoom

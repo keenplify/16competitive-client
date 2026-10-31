@@ -41,6 +41,7 @@ function RewardPreview({ tier }: { tier: OperationTier }): JSX.Element {
         skinId={tier.skinId}
         modelKey={tier.skinId}
         weaponKey={tier.skin.weaponKey}
+        previewRotation={tier.skin.previewRotation}
         fallback={<Gift className="size-8 text-neutral-500" aria-hidden="true" />}
         className="absolute inset-2"
       />

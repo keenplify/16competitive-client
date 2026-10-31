@@ -1,3 +1,4 @@
+import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
   musicKitLogoUrls,
   parseMusicKits,
@@ -638,11 +639,24 @@ const skins = {
   },
   async list(weaponKey?: string): Promise<Skin[]> {
     const data = await authenticatedGet<Skin[]>('/skins/store')
+    if (
+      data.some(
+        (skin) => skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation)
+      )
+    )
+      throw new Error('Invalid skin preview rotation')
     rememberPreviewPaths(data)
     return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
   },
   async mine(): Promise<OwnedSkin[]> {
     const items = await authenticatedGet<OwnedSkin[]>('/skins/mine')
+    if (
+      items.some(
+        ({ skin }) =>
+          skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation)
+      )
+    )
+      throw new Error('Invalid skin preview rotation')
     rememberPreviewPaths(items.map((item) => item.skin))
     return items
   },
