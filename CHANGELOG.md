@@ -3828,3 +3828,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Preview cosmetics from a first-person view.
 - View skins with your saved crosshair.
+
+## v2026.1031.3 — 2026-10-31
+
+### Maintenance
+
+- Minor internal cleanup.
