@@ -80,15 +80,17 @@ export const SKIN_PREVIEW_ZOOM_BY_WEAPON: Record<string, number> = {
   xm1014: 1.3,
   m249: 1.3,
 
+  // HE models need to fill more of the card than the older grenade framing.
+  hegrenade: 2,
+
   // Melee
   knife: 1.2
 }
 
 export const getSkinCameraDistanceMultiplier = (weaponKey: string, base: number): number =>
   base *
-  (isGrenadeWeapon(weaponKey)
-    ? GRENADE_SKIN_PREVIEW.zoom
-    : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1))
+  (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ??
+    (isGrenadeWeapon(weaponKey) ? GRENADE_SKIN_PREVIEW.zoom : 1))
 
 /** Fixed target used by the dual-wield Elite model to favor one pistol. */
 export const getSkinCameraTarget = (
@@ -125,9 +127,7 @@ export const getSkinPresentationRotation = (
  * immediately instead of reusing an image captured with older camera values.
  */
 export const getSkinPresentationRevision = (weaponKey: string, offset?: unknown): string => {
-  const zoom = isGrenadeWeapon(weaponKey)
-    ? GRENADE_SKIN_PREVIEW.zoom
-    : (SKIN_PREVIEW_ZOOM_BY_WEAPON[weaponKey] ?? 1)
+  const zoom = getSkinCameraDistanceMultiplier(weaponKey, 1)
   const rotation = getSkinPresentationRotation(weaponKey, offset).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
   return `${isCharacterModel(weaponKey) ? 'character-armed-v3' : 'presentation-v5'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`

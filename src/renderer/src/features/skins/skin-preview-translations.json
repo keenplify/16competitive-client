@@ -11,7 +11,10 @@
     "close": "Close preview",
     "source": "Source",
     "by": "By {{name}}",
-    "knifeControls": "Hold left click to slash"
+    "knifeControls": "Hold left click to slash",
+    "grenadeControls": "Hold left click to prepare · Release to throw",
+    "grenadeExplosion": "Grenade explosion preview",
+    "effectUnavailable": "Some explosion effects are unavailable."
   },
   "ru": {
     "preview": "Просмотр",
@@ -25,7 +28,10 @@
     "close": "Закрыть просмотр",
     "source": "Источник",
     "by": "Автор: {{name}}",
-    "knifeControls": "Удерживайте ЛКМ для ударов ножом"
+    "knifeControls": "Удерживайте ЛКМ для ударов ножом",
+    "grenadeControls": "Удерживайте ЛКМ для подготовки · Отпустите для броска",
+    "grenadeExplosion": "Просмотр взрыва гранаты",
+    "effectUnavailable": "Некоторые эффекты взрыва недоступны."
   },
   "tl": {
     "preview": "Preview",
@@ -39,7 +45,10 @@
     "close": "Isara ang preview",
     "source": "Pinagmulan",
     "by": "Ni {{name}}",
-    "knifeControls": "Hawakan ang kaliwang click para humiwa"
+    "knifeControls": "Hawakan ang kaliwang click para humiwa",
+    "grenadeControls": "Hawakan ang kaliwang click para ihanda · Bitawan para ihagis",
+    "grenadeExplosion": "Preview ng pagsabog ng granada",
+    "effectUnavailable": "Hindi available ang ilang epekto ng pagsabog."
   },
   "th": {
     "preview": "ตัวอย่าง",
@@ -53,7 +62,10 @@
     "close": "ปิดตัวอย่าง",
     "source": "ที่มา",
     "by": "โดย {{name}}",
-    "knifeControls": "กดคลิกซ้ายค้างเพื่อฟัน"
+    "knifeControls": "กดคลิกซ้ายค้างเพื่อฟัน",
+    "grenadeControls": "กดคลิกซ้ายค้างเพื่อเตรียม · ปล่อยเพื่อขว้าง",
+    "grenadeExplosion": "ตัวอย่างการระเบิดของระเบิดมือ",
+    "effectUnavailable": "เอฟเฟกต์การระเบิดบางส่วนไม่พร้อมใช้งาน"
   },
   "id": {
     "preview": "Pratinjau",
@@ -67,7 +79,10 @@
     "close": "Tutup pratinjau",
     "source": "Sumber",
     "by": "Oleh {{name}}",
-    "knifeControls": "Tahan klik kiri untuk menebas"
+    "knifeControls": "Tahan klik kiri untuk menebas",
+    "grenadeControls": "Tahan klik kiri untuk bersiap · Lepaskan untuk melempar",
+    "grenadeExplosion": "Pratinjau ledakan granat",
+    "effectUnavailable": "Sebagian efek ledakan tidak tersedia."
   },
   "pt": {
     "preview": "Prévia",
@@ -81,7 +96,10 @@
     "close": "Fechar prévia",
     "source": "Fonte",
     "by": "Por {{name}}",
-    "knifeControls": "Segure o botão esquerdo para golpear"
+    "knifeControls": "Segure o botão esquerdo para golpear",
+    "grenadeControls": "Segure o botão esquerdo para preparar · Solte para lançar",
+    "grenadeExplosion": "Prévia da explosão da granada",
+    "effectUnavailable": "Alguns efeitos da explosão estão indisponíveis."
   },
   "ja": {
     "preview": "プレビュー",
@@ -95,7 +113,10 @@
     "close": "プレビューを閉じる",
     "source": "出典",
     "by": "作者：{{name}}",
-    "knifeControls": "左クリック長押しで斬る"
+    "knifeControls": "左クリック長押しで斬る",
+    "grenadeControls": "左クリック長押しで準備 · 離すと投げる",
+    "grenadeExplosion": "グレネード爆発のプレビュー",
+    "effectUnavailable": "一部の爆発エフェクトは利用できません。"
   },
   "hi": {
     "preview": "पूर्वावलोकन",
@@ -109,6 +130,9 @@
     "close": "पूर्वावलोकन बंद करें",
     "source": "स्रोत",
     "by": "{{name}} द्वारा",
-    "knifeControls": "वार करने के लिए बायाँ क्लिक दबाए रखें"
+    "knifeControls": "वार करने के लिए बायाँ क्लिक दबाए रखें",
+    "grenadeControls": "तैयार करने के लिए बायाँ क्लिक दबाए रखें · फेंकने के लिए छोड़ें",
+    "grenadeExplosion": "ग्रेनेड विस्फोट का पूर्वावलोकन",
+    "effectUnavailable": "विस्फोट के कुछ प्रभाव उपलब्ध नहीं हैं।"
   }
 }

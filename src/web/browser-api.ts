@@ -1,3 +1,4 @@
+import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
   musicKitLogoUrls,
@@ -705,6 +706,18 @@ const skins = {
       return await requestArrayBuffer(`/skins/${skinId}/preview-explosion-sprite`, {
         authenticated: true
       })
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Request failed (404)') return null
+      throw error
+    }
+  },
+  async previewActionSound(skinId: string): Promise<ArrayBuffer | null> {
+    try {
+      const sound = await requestArrayBuffer(`/skins/${skinId}/preview-action-sound`, {
+        authenticated: true
+      })
+      if (!isSkinPreviewAudio(sound)) throw new Error('Invalid preview audio')
+      return sound
     } catch (error) {
       if (error instanceof Error && error.message === 'Request failed (404)') return null
       throw error

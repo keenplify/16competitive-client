@@ -75,3 +75,9 @@ test('invalid untrusted metadata never produces non-finite WebGL rotations', () 
     )
   }
 })
+
+test('HE thumbnails use closer framing and a different cache revision while other grenades keep their framing', () => {
+  assert.equal(presentation.getSkinCameraDistanceMultiplier('hegrenade', 0.5), 1)
+  assert.equal(presentation.getSkinCameraDistanceMultiplier('flashbang', 0.5), 1.25)
+  assert.match(presentation.getSkinPresentationRevision('hegrenade'), /:z2:/)
+})

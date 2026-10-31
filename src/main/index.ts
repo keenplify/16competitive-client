@@ -200,6 +200,7 @@ import {
   getSkinResaleQuote,
   getSkinPreviewModel,
   getSkinPreviewExplosionSprite,
+  getSkinPreviewActionSound,
   getPendingSkinGift,
   claimSkinGift,
   listSkins,
@@ -1203,6 +1204,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown, kind: unknown) =>
     getSkinPreviewModel(skinId, kind)
+  )
+  ipcMain.handle(SKIN_CHANNELS.previewActionSound, (_, skinId: unknown) =>
+    getSkinPreviewActionSound(skinId)
   )
   ipcMain.handle(SKIN_CHANNELS.previewExplosionSprite, (_, skinId: unknown) =>
     getSkinPreviewExplosionSprite(skinId)

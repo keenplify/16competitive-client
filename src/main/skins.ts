@@ -1,3 +1,4 @@
+import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
   musicKitLogoUrls,
@@ -474,6 +475,36 @@ export const getSkinPreviewExplosionSprite = async (
     throw makeError('The preview server returned an invalid sprite.')
   }
   return sprite
+}
+
+export const getSkinPreviewActionSound = async (skinId: unknown): Promise<ArrayBuffer | null> => {
+  const token = getSessionToken()
+  if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
+  const id = validateSkinId(skinId)
+  const response = await fetch(await skinApiUrl(`/skins/${id}/preview-action-sound`), {
+    headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(15_000)
+  })
+  if (response.status === 404) return null
+  if (response.status === 401) {
+    clearSessionToken()
+    throw makeError('Your session expired. Sign in again.', 'UNAUTHORIZED')
+  }
+  if (
+    !response.ok ||
+    !response.headers.get('content-type')?.startsWith('application/octet-stream')
+  ) {
+    throw makeError('Could not load the sound preview.')
+  }
+  const size = Number(response.headers.get('content-length'))
+  if (Number.isFinite(size) && (size < 1 || size > 5 * 1024 * 1024)) {
+    throw makeError('The sound preview is an unsupported size.')
+  }
+  const sound = await response.arrayBuffer()
+  if (!isSkinPreviewAudio(sound)) {
+    throw makeError('The preview server returned an invalid WAV.')
+  }
+  return sound
 }
 
 // Keeps the launcher log readable: the gift overlay polls once a minute while the

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useStore } from 'zustand'
+import {
+  createFirstPersonPreviewStore,
+  GRENADE_FLIGHT_MS,
+  GRENADE_EXPLOSION_MS
+} from './first-person-preview.store'
+import { GrenadeThrowPreview } from './GrenadeThrowPreview'
 import { LoaderCircle } from 'lucide-react'
 import type { Skin } from '../../../../shared/skins'
 import { ModelViewer } from '../../libs/web-hlmv/ui/ModelViewer'
@@ -10,7 +17,7 @@ import { viewmodelNeedsMirror } from './viewmodel-presentation'
 import translations from './skin-preview-translations.json'
 import { getCachedSkinModel } from './skin-model-cache'
 
-type Action = 'draw' | 'idle' | 'fire' | 'reload'
+type Action = 'draw' | 'idle' | 'fire' | 'reload' | 'charge' | 'throw'
 const labels: Record<Action, readonly string[]> = {
   draw: ['draw', 'deploy', 'draw1'],
   idle: ['idle1', 'idle', 'idle2'],
@@ -26,7 +33,9 @@ const labels: Record<Action, readonly string[]> = {
     'stab',
     'throw'
   ],
-  reload: ['reload', 'reload1']
+  reload: ['reload', 'reload1'],
+  charge: ['charge', 'pullpin', 'pull_pin', 'pinpull'],
+  throw: ['throw', 'throw1', 'throw2']
 }
 const camera = { position: [0, 0, 0], target: [0, 0, 100], fov: 65, near: 0.1, far: 1000 } as const
 
@@ -34,13 +43,13 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   const { language } = useTranslation()
   const text = translations[language]
   const isKnife = skin.weaponKey === 'knife'
+  const isGrenade = ['hegrenade', 'flashbang', 'smokegrenade'].includes(skin.weaponKey)
+  const kind = isGrenade ? 'grenade' : isKnife ? 'knife' : 'firearm'
+  const playback = useMemo(() => createFirstPersonPreviewStore(kind), [kind])
+  const { action, restart, held, spread, burst, fire, finish, settle } = useStore(playback)
   const crosshair = useGameSettingsStore((state) => state.crosshair)
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null)
   const [failed, setFailed] = useState(false)
-  const [action, setAction] = useState<Action>('draw')
-  const [restart, setRestart] = useState(0)
-  const [held, setHeld] = useState(false)
-  const [spread, setSpread] = useState(0)
   const stage = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let active = true
@@ -76,68 +85,69 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
       return null
     }
   }, [buffer, skin.weaponKey])
-  const play = useCallback((next: Action) => {
-    setAction(next)
-    setRestart((n) => n + 1)
-  }, [])
-  const fire = useCallback(() => {
-    play('fire')
-    setSpread((n) => Math.min(8, n + 2))
-  }, [play])
   useEffect(() => {
-    if (!held || isKnife) return
+    if (!held || kind !== 'firearm') return
     const timer = setInterval(fire, 100)
     return () => clearInterval(timer)
-  }, [held, fire, isKnife])
+  }, [held, fire, kind])
   useEffect(() => {
     if (spread === 0) return
-    const timer = setTimeout(() => setSpread((n) => Math.max(0, n - 1)), 90)
+    const timer = setTimeout(settle, 90)
     return () => clearTimeout(timer)
-  }, [spread])
+  }, [spread, settle])
   useEffect(() => {
-    const release = (): void => setHeld(false)
+    const duration =
+      action === 'flight' ? GRENADE_FLIGHT_MS : action === 'explosion' ? GRENADE_EXPLOSION_MS : null
+    if (duration === null) return
+    const timer = setTimeout(finish, duration)
+    return () => clearTimeout(timer)
+  }, [action, finish])
+  useEffect(() => {
+    const release = (): void => playback.getState().release()
+    const cancel = (): void => playback.getState().cancel()
     const key = (event: KeyboardEvent): void => {
-      if (event.code !== 'KeyR' || event.repeat || isKnife || !buffer || !sequences) return
+      if (event.code !== 'KeyR' || event.repeat || kind !== 'firearm' || !buffer || !sequences)
+        return
       if (
         event.target instanceof HTMLElement &&
         event.target.closest('input,textarea,select,[contenteditable="true"]')
       )
         return
       event.preventDefault()
-      release()
-      play('reload')
+      playback.getState().reload()
     }
     window.addEventListener('keydown', key)
     window.addEventListener('pointerup', release)
-    window.addEventListener('pointercancel', release)
-    window.addEventListener('blur', release)
+    window.addEventListener('pointercancel', cancel)
+    window.addEventListener('blur', cancel)
     return () => {
       window.removeEventListener('keydown', key)
       window.removeEventListener('pointerup', release)
-      window.removeEventListener('pointercancel', release)
-      window.removeEventListener('blur', release)
+      window.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('blur', cancel)
     }
-  }, [buffer, sequences, play, isKnife])
-  const ended = useCallback(() => {
-    if (held && isKnife) play('fire')
-    else if (!held) setAction('idle')
-  }, [held, isKnife, play])
+  }, [buffer, sequences, playback, kind])
+  const sequenceAction =
+    action === 'hold' ? 'charge' : action === 'flight' || action === 'explosion' ? 'throw' : action
   return (
     <div
       ref={stage}
+      data-preview-action={action}
       className="absolute inset-0 overflow-hidden"
       onPointerDown={(event) => {
         if (event.button !== 0 || !buffer || !sequences) return
         event.currentTarget.setPointerCapture(event.pointerId)
-        setHeld(true)
-        fire()
+        playback.getState().press()
       }}
     >
       {buffer && sequences ? (
         <>
           <div
             className="absolute inset-0"
-            style={{ transform: sequences.mirror ? 'scaleX(-1)' : undefined }}
+            style={{
+              transform: sequences.mirror ? 'scaleX(-1)' : undefined,
+              visibility: action === 'flight' || action === 'explosion' ? 'hidden' : undefined
+            }}
           >
             <ModelViewer
               modelBuffer={buffer}
@@ -145,19 +155,29 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
               firstPerson
               camera={camera}
               cameraLocked
-              animation={sequences[action]}
+              animation={sequences[sequenceAction]}
               animationSequences={sequences.prepared}
               animationRestart={restart}
               playOnce={action !== 'idle'}
-              onAnimationEnd={ended}
+              onAnimationEnd={finish}
+              freezeAnimation={action === 'hold' || action === 'flight' || action === 'explosion'}
               maxFrameRate={60}
               disableZoom
               className="absolute inset-0"
             />
           </div>
+          {isGrenade && (
+            <GrenadeThrowPreview
+              skin={skin}
+              action={action}
+              burst={burst}
+              label={text.grenadeExplosion}
+              unavailableLabel={text.effectUnavailable}
+            />
+          )}
           <CrosshairPreview profile={crosshair} shotSpread={spread} label={text.crosshair} />
           <span className="pointer-events-none absolute bottom-3 left-4 bg-black/45 px-2 py-1 text-xs text-neutral-300">
-            {isKnife ? text.knifeControls : text.controls}
+            {isGrenade ? text.grenadeControls : isKnife ? text.knifeControls : text.controls}
           </span>
         </>
       ) : failed || (buffer && !sequences) ? (
