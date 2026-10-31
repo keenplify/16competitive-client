@@ -3821,3 +3821,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Preview skins with improved model thumbnails and presentation.
 - View rotating cosmetic previews.
 - Browse music kits in the updated store experience.
+
+## v2026.1031.2 — 2026-10-31
+
+### Skin Previews
+
+- Preview cosmetics from a first-person view.
+- View skins with your saved crosshair.
