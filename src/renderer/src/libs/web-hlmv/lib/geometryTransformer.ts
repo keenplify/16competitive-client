@@ -177,7 +177,8 @@ export const calcRotations = (
   sequenceIndex: number,
   frame: number,
   // TODO: Do something about it
-  s = 0
+  s = 0,
+  decodeTranslations = false
 ): mat4[] => {
   const boneQuaternions: quat[] = modelData.bones.map((_, boneIndex): quat =>
     calcBoneQuaternion(
@@ -191,16 +192,18 @@ export const calcRotations = (
     )
   )
 
-  const bonesPositions: vec3[] = modelData.bones.map((_, boneIndex): vec3 =>
-    getBonePositions(
-      frame,
-      modelData.bones[boneIndex],
-      modelData.animations[sequenceIndex][boneIndex].offset,
-      modelData.animValues,
-      sequenceIndex,
-      boneIndex,
-      s
-    )
+  const bonesPositions: vec3[] = modelData.bones.map((bone, boneIndex): vec3 =>
+    decodeTranslations
+      ? getBonePositions(
+          frame,
+          modelData.bones[boneIndex],
+          modelData.animations[sequenceIndex][boneIndex].offset,
+          modelData.animValues,
+          sequenceIndex,
+          boneIndex,
+          s
+        )
+      : vec3.fromValues(bone.value[0], bone.value[1], bone.value[2])
   )
 
   for (const axis of [MOTION_X, MOTION_X, MOTION_Z]) {

@@ -10,7 +10,8 @@
     "rotate": "Drag to rotate",
     "close": "Close preview",
     "source": "Source",
-    "by": "By {{name}}"
+    "by": "By {{name}}",
+    "knifeControls": "Hold left click to slash"
   },
   "ru": {
     "preview": "Просмотр",
@@ -23,7 +24,8 @@
     "rotate": "Перетащите для вращения",
     "close": "Закрыть просмотр",
     "source": "Источник",
-    "by": "Автор: {{name}}"
+    "by": "Автор: {{name}}",
+    "knifeControls": "Удерживайте ЛКМ для ударов ножом"
   },
   "tl": {
     "preview": "Preview",
@@ -36,7 +38,8 @@
     "rotate": "I-drag para paikutin",
     "close": "Isara ang preview",
     "source": "Pinagmulan",
-    "by": "Ni {{name}}"
+    "by": "Ni {{name}}",
+    "knifeControls": "Hawakan ang kaliwang click para humiwa"
   },
   "th": {
     "preview": "ตัวอย่าง",
@@ -49,7 +52,8 @@
     "rotate": "ลากเพื่อหมุน",
     "close": "ปิดตัวอย่าง",
     "source": "ที่มา",
-    "by": "โดย {{name}}"
+    "by": "โดย {{name}}",
+    "knifeControls": "กดคลิกซ้ายค้างเพื่อฟัน"
   },
   "id": {
     "preview": "Pratinjau",
@@ -62,7 +66,8 @@
     "rotate": "Seret untuk memutar",
     "close": "Tutup pratinjau",
     "source": "Sumber",
-    "by": "Oleh {{name}}"
+    "by": "Oleh {{name}}",
+    "knifeControls": "Tahan klik kiri untuk menebas"
   },
   "pt": {
     "preview": "Prévia",
@@ -75,7 +80,8 @@
     "rotate": "Arraste para girar",
     "close": "Fechar prévia",
     "source": "Fonte",
-    "by": "Por {{name}}"
+    "by": "Por {{name}}",
+    "knifeControls": "Segure o botão esquerdo para golpear"
   },
   "ja": {
     "preview": "プレビュー",
@@ -88,7 +94,8 @@
     "rotate": "ドラッグで回転",
     "close": "プレビューを閉じる",
     "source": "出典",
-    "by": "作者：{{name}}"
+    "by": "作者：{{name}}",
+    "knifeControls": "左クリック長押しで斬る"
   },
   "hi": {
     "preview": "पूर्वावलोकन",
@@ -101,6 +108,7 @@
     "rotate": "घुमाने के लिए खींचें",
     "close": "पूर्वावलोकन बंद करें",
     "source": "स्रोत",
-    "by": "{{name}} द्वारा"
+    "by": "{{name}} द्वारा",
+    "knifeControls": "वार करने के लिए बायाँ क्लिक दबाए रखें"
   }
 }

@@ -766,8 +766,10 @@ export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void
 function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
   const { language } = useTranslation()
   const text = previewTranslations[language]
-  const [view, setView] = useState<'preview' | 'first-person'>('preview')
   const hasFirstPerson = !isCharacterModel(skin.weaponKey) && Boolean(skin.viewModelPath)
+  const [view, setView] = useState<'preview' | 'first-person'>(
+    hasFirstPerson ? 'first-person' : 'preview'
+  )
 
   const [model, setModel] = useState<ArrayBuffer | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -845,8 +847,8 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
             onChange={setView}
             ariaLabel={text.view}
             items={[
-              { value: 'preview', label: text.preview },
-              { value: 'first-person', label: text.firstPerson }
+              { value: 'first-person', label: text.firstPerson },
+              { value: 'preview', label: text.preview }
             ]}
           />
         </div>

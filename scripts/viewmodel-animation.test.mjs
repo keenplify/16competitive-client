@@ -79,3 +79,44 @@ test('rotation channels remain separate from viewmodel translation channels', ()
   assert.deepEqual(Array.from(q), [0, 0, 0, 1])
   assert.ok(axes.every((axis) => axis === 3))
 })
+
+test('character and lobby poses keep their original offsets; translation decoding is explicit for viewmodels', () => {
+  const values = {
+    get: (_sequence, _bone, _axis, index, field) => (index === 0 ? [0, 1, 32][field] : 4)
+  }
+  const model = {
+    bones: [{ ...bone, parent: -1 }],
+    sequences: [{ motionType: 0, motionBone: 0 }],
+    animations: [[{ offset: [12, 0, 0, 0, 0, 0] }]],
+    animValues: values
+  }
+  const character = geometry.calcRotations(model, 0, 0)[0]
+  const viewmodel = geometry.calcRotations(model, 0, 0, 0, true)[0]
+  assert.deepEqual(Array.from(character).slice(12, 15), [10, 20, 30])
+  assert.deepEqual(Array.from(viewmodel).slice(12, 15), [12, 20, 30])
+})
+
+const presentation = await load('../src/renderer/src/features/skins/viewmodel-presentation.ts', {
+  '../../libs/web-hlmv/lib/geometryTransformer': { calcRotations: () => [] },
+  '../../libs/web-hlmv/lib/geometryBuilder': {
+    readFacesData: (_triangles, vertices) => ({ vertices, indices: new Int16Array([0]) })
+  },
+  '../../libs/web-hlmv/lib/modelRenderer': { applyBoneTransforms: (vertices) => vertices }
+})
+const weaponModel = (side) => ({
+  textures: [{ name: 'knife_falchion.bmp' }],
+  skinRef: [0],
+  meshes: [[[{ skinRef: 0 }]]],
+  triangles: [[[[]]]],
+  vertices: [[new Float32Array([10, side, -5])]],
+  vertBoneBuffer: [[new Uint8Array([0])]]
+})
+test('right-handed conversions keep their own side while stock left-handed models are mirrored', () => {
+  assert.equal(presentation.viewmodelNeedsMirror(weaponModel(-5), 0, 'knife'), false)
+  assert.equal(presentation.viewmodelNeedsMirror(weaponModel(5), 0, 'knife'), true)
+})
+test('a viewmodel without usable weapon geometry retains the conservative legacy mirror default', () => {
+  const model = weaponModel(-5)
+  model.textures[0].name = 'view_glove.bmp'
+  assert.equal(presentation.viewmodelNeedsMirror(model, 0, 'knife'), true)
+})

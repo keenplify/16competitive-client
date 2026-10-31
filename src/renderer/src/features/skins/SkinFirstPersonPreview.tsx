@@ -6,6 +6,7 @@ import { parseModelCached } from '../../libs/web-hlmv/lib/modelDataParser'
 import { CrosshairPreview } from '../../components/CrosshairPreview'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useTranslation } from '../i18n/i18n'
+import { viewmodelNeedsMirror } from './viewmodel-presentation'
 import translations from './skin-preview-translations.json'
 import { getCachedSkinModel } from './skin-model-cache'
 
@@ -13,7 +14,18 @@ type Action = 'draw' | 'idle' | 'fire' | 'reload'
 const labels: Record<Action, readonly string[]> = {
   draw: ['draw', 'deploy', 'draw1'],
   idle: ['idle1', 'idle', 'idle2'],
-  fire: ['shoot1', 'shoot', 'fire', 'fire1', 'attack1', 'slash1', 'throw'],
+  fire: [
+    'shoot1',
+    'shoot',
+    'fire',
+    'fire1',
+    'attack1',
+    'midslash1',
+    'slash1',
+    'slash2',
+    'stab',
+    'throw'
+  ],
   reload: ['reload', 'reload1']
 }
 const camera = { position: [0, 0, 0], target: [0, 0, 100], fov: 65, near: 0.1, far: 1000 } as const
@@ -21,6 +33,7 @@ const camera = { position: [0, 0, 0], target: [0, 0, 100], fov: 65, near: 0.1, f
 export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   const { language } = useTranslation()
   const text = translations[language]
+  const isKnife = skin.weaponKey === 'knife'
   const crosshair = useGameSettingsStore((state) => state.crosshair)
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null)
   const [failed, setFailed] = useState(false)
@@ -48,16 +61,17 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     try {
       const model = parseModelCached(buffer)
       const idle = model.sequences.findIndex((s) => labels.idle.includes(s.label.toLowerCase()))
-      return Object.fromEntries(
+      const selected = Object.fromEntries(
         Object.entries(labels).map(([key, names]) => {
           const index = model.sequences.findIndex((s) => names.includes(s.label.toLowerCase()))
           return [key, index >= 0 ? index : Math.max(0, idle)]
         })
       ) as Record<Action, number>
+      return { ...selected, mirror: viewmodelNeedsMirror(model, Math.max(0, idle), skin.weaponKey) }
     } catch {
       return null
     }
-  }, [buffer])
+  }, [buffer, skin.weaponKey])
   const play = useCallback((next: Action) => {
     setAction(next)
     setRestart((n) => n + 1)
@@ -67,10 +81,10 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     setSpread((n) => Math.min(8, n + 2))
   }, [play])
   useEffect(() => {
-    if (!held) return
+    if (!held || isKnife) return
     const timer = setInterval(fire, 100)
     return () => clearInterval(timer)
-  }, [held, fire])
+  }, [held, fire, isKnife])
   useEffect(() => {
     if (spread === 0) return
     const timer = setTimeout(() => setSpread((n) => Math.max(0, n - 1)), 90)
@@ -79,7 +93,7 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   useEffect(() => {
     const release = (): void => setHeld(false)
     const key = (event: KeyboardEvent): void => {
-      if (event.code !== 'KeyR' || event.repeat || !buffer || !sequences) return
+      if (event.code !== 'KeyR' || event.repeat || isKnife || !buffer || !sequences) return
       if (
         event.target instanceof HTMLElement &&
         event.target.closest('input,textarea,select,[contenteditable="true"]')
@@ -99,10 +113,11 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
       window.removeEventListener('pointercancel', release)
       window.removeEventListener('blur', release)
     }
-  }, [buffer, sequences, play])
+  }, [buffer, sequences, play, isKnife])
   const ended = useCallback(() => {
-    if (!held) setAction('idle')
-  }, [held])
+    if (held && isKnife) play('fire')
+    else if (!held) setAction('idle')
+  }, [held, isKnife, play])
   return (
     <div
       ref={stage}
@@ -116,7 +131,10 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     >
       {buffer && sequences ? (
         <>
-          <div className="absolute inset-0" style={{ transform: 'scaleX(-1)' }}>
+          <div
+            className="absolute inset-0"
+            style={{ transform: sequences.mirror ? 'scaleX(-1)' : undefined }}
+          >
             <ModelViewer
               modelBuffer={buffer}
               modelKey={`${skin.id}:view`}
@@ -134,7 +152,7 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
           </div>
           <CrosshairPreview profile={crosshair} shotSpread={spread} label={text.crosshair} />
           <span className="pointer-events-none absolute bottom-3 left-4 bg-black/45 px-2 py-1 text-xs text-neutral-300">
-            {text.controls}
+            {isKnife ? text.knifeControls : text.controls}
           </span>
         </>
       ) : failed || (buffer && !sequences) ? (

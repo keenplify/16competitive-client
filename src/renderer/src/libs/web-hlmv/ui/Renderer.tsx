@@ -282,7 +282,10 @@ export const Renderer = (props: Props): React.JSX.Element => {
       const preparedRenderData = prepareRenderData(
         modelData,
         props.animation === undefined ? undefined : [animationIndex],
-        props.modelRootBoneRotation
+        props.modelRootBoneRotation,
+        props.firstPerson
+          ? (model, sequence, frame) => calcRotations(model, sequence, frame, 0, true)
+          : undefined
       )
       console.info('[HLMV] Render data prepared', {
         milliseconds: Math.round(performance.now() - startedAt)
@@ -295,7 +298,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
       })
       throw error
     }
-  }, [animationIndex, modelData, props.animation, props.modelRootBoneRotation])
+  }, [animationIndex, modelData, props.animation, props.modelRootBoneRotation, props.firstPerson])
 
   // Textures preparing
   const textures = React.useMemo(() => {
