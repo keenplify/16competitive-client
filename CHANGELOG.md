@@ -3808,3 +3808,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Discover featured collections from the shop.
 - See collection offers and available skins more clearly.
+
+## v2026.1031.1 — 2026-10-31
+
+### Store
+
+- Enjoy a more compact, easier-to-browse store layout.
+- Use improved filters with expanded language support.
+
+### Cosmetic Previews
+
+- Preview skins with improved model thumbnails and presentation.
+- View rotating cosmetic previews.
+- Browse music kits in the updated store experience.
