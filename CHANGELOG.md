@@ -3900,3 +3900,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Added explicit MR8 retry support after game-exit cleanup.
+
+## v2026.1101.6 — 2026-11-01
+
+### Fixes
+
+- Fixed materials on held weapons.
+- Improved Windows installer detection.
