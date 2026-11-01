@@ -3875,3 +3875,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Restored chrome highlights on custom skins, including Guardian Chains.
 - Fixed held-click knife swings and prevented rapid preview clicks from selecting text.
 - Single skin packages now fill the store width, with complete 16:9 banner images.
+
+## v2026.1101.3 — 2026-11-01
+
+### Skin Previews
+
+- Added support for per-skin hidden textures in launcher previews.
+- Improved preview texture validation.
+
+### Community
+
+- Refreshed Discord invite links.
