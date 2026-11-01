@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://www.papamo.dev/1.6competitive">Website</a>
   · <a href="https://github.com/keenplify/16competitive-client/releases">Download</a>
-  · <a href="https://discord.com/invite/SgMxrvv7">Discord</a>
+  · <a href="https://discord.gg/uZwKyf2EHp">Discord</a>
   · <a href="https://github.com/keenplify/16competitive-client/issues">Report an issue</a>
 </p>
 
@@ -118,7 +118,7 @@ source sync, and graphics requirements.
 
 Bug reports and player feedback are welcome through
 [Issues](https://github.com/keenplify/16competitive-client/issues) or
-[Discord](https://discord.com/invite/SgMxrvv7). Include your launcher version,
+[Discord](https://discord.gg/uZwKyf2EHp). Include your launcher version,
 platform, what happened, and steps to reproduce. Do not include account tokens,
 passwords, or other secrets. Contact us before proposing source changes; the
 view-only license does not authorize modifications or contributions by default.
