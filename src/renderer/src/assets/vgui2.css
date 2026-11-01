@@ -631,6 +631,11 @@
   height: 100%;
 }
 
+:root[data-launcher-theme='vgui2'] .vgui-window-content > .collection-page {
+  height: auto;
+  overflow: visible;
+}
+
 :root[data-launcher-theme='vgui2'] :where([class*='text-white/']) {
   color: var(--color-neutral-400);
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
-import { ModalDialog } from '../../components/ui/ModalDialog'
+import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
 import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { useCollectionsStore } from './collections.store'
@@ -64,7 +64,7 @@ export function CollectionPage() {
   const collection = state.detail?.collection
   const uncertain = state.request?.id === state.selectedId
   return (
-    <section className="min-h-[calc(100vh-5rem)] overflow-y-auto bg-neutral-950/95 px-5 py-6 text-white md:px-10">
+    <section className="collection-page h-[calc(100dvh-4rem)] min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain bg-neutral-950/95 px-5 py-6 text-white sm:h-[calc(100dvh-5rem)] md:px-10">
       <div className="mx-auto max-w-7xl">
         <Button
           variant="ghost"
@@ -205,22 +205,25 @@ export function CollectionPage() {
           </>
         )}
         {(state.confirmation || item) && (
-          <ModalDialog
-            open
+          <ConfirmationDialog
+            title={t('confirm')}
+            description={item?.skin.name ?? collection?.name ?? ''}
+            cancelLabel={t('cancel')}
+            confirmLabel={t('confirm')}
+            closeLabel={t('cancel')}
+            busy={state.buying}
+            error={state.notice ? t(state.notice) : undefined}
             onClose={() => {
-              if (!state.buying) {
-                state.confirm(false)
-                setItem(null)
-              }
+              state.confirm(false)
+              setItem(null)
             }}
-            labelledBy="collection-confirm"
-            className="w-[calc(100%-2rem)] max-w-md border border-white/15 bg-neutral-950 p-6 text-white"
+            onConfirm={() => {
+              if (item)
+                void state.buyItem(item.skin.id, item.currency).finally(() => setItem(null))
+              else void state.buy()
+            }}
           >
-            <h2 id="collection-confirm" className="text-xl font-semibold">
-              {t('confirm')}
-            </h2>
-            <p className="mt-3 text-neutral-300">{item?.skin.name ?? collection?.name}</p>
-            <div className="mt-4 h-8">
+            <div className="h-8">
               {item ? (
                 <CurrencyAmount
                   currency={item.currency}
@@ -234,38 +237,7 @@ export function CollectionPage() {
                 )
               )}
             </div>
-            <div className="mt-3 min-h-20 text-sm leading-6 text-amber-200" role="status">
-              {state.notice ? t(state.notice) : ''}
-            </div>
-            <div className="mt-6 flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={state.buying}
-                onClick={() => {
-                  state.confirm(false)
-                  setItem(null)
-                }}
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                className="h-11 flex-1"
-                disabled={state.buying}
-                onClick={() => {
-                  if (item)
-                    void state.buyItem(item.skin.id, item.currency).finally(() => setItem(null))
-                  else void state.buy()
-                }}
-              >
-                {state.buying ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-label={t('pending')} />
-                ) : (
-                  t('confirm')
-                )}
-              </Button>
-            </div>
-          </ModalDialog>
+          </ConfirmationDialog>
         )}
       </div>
     </section>
