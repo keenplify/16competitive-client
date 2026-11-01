@@ -3894,3 +3894,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Improved purchase confirmation formatting.
 - Fixed package scrolling.
 - Updated the purchase confirmation header.
+
+## v2026.1101.5 — 2026-11-01
+
+### Matchmaking
+
+- Added explicit MR8 retry support after game-exit cleanup.
