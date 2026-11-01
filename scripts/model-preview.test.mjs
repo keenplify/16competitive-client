@@ -305,3 +305,111 @@ test('chrome preserves the authored normal indices independently of vertex indic
     assert.deepEqual([...decoded.indices.slice(0, 3)], [2, 0, 1])
   }
 })
+
+// Exercise the actual lobby mesh/actor builders without mounting React or opening a GPU context.
+const partySource = await readFile(
+  new URL('../src/renderer/src/features/party/PartyModelScene.tsx', import.meta.url),
+  'utf8'
+)
+const lobbyContext = vm.createContext({
+  THREE,
+  createModelMaterial,
+  createTexture,
+  applyBoneNormals,
+  applyBoneTransforms,
+  readFacesData,
+  NF_CHROME: 2,
+  performance,
+  randomAnimationPhase: () => 0,
+  weaponKeyFromPath: () => 'm4a1',
+  weaponTransformsFor: () => [
+    {
+      modelRotation: [0, 0, 90],
+      handRotation: [0, 0, 90],
+      handOffset: [11, 0, 2]
+    }
+  ],
+  parseModelCached: (value) => value,
+  buildTexture: () => new Uint8ClampedArray([255, 255, 255, 255])
+})
+const lobbyBuilders = [
+  partySource.slice(partySource.indexOf('const addMesh ='), partySource.indexOf('// Exposed for')),
+  partySource.slice(
+    partySource.indexOf('const setActorOpacity ='),
+    partySource.indexOf('const randomAnimationPhase =')
+  ),
+  partySource.slice(
+    partySource.indexOf('const createActor ='),
+    partySource.indexOf('interface PartyModelSceneProps')
+  )
+].join(String.fromCharCode(10))
+vm.runInContext(
+  ts.transpileModule(lobbyBuilders, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None }
+  }).outputText,
+  lobbyContext
+)
+const lobby = vm.runInContext('({ addMesh, setActorOpacity, createActor })', lobbyContext)
+
+test('held chrome weapons retain authored normals through model, bone and hand rotations', () => {
+  const identity = new THREE.Matrix4().toArray()
+  const translated = new THREE.Matrix4().makeTranslation(100, 200, 300).toArray()
+  const player = {
+    meshes: [],
+    textures: [],
+    boneNames: ['r hand'],
+    boneTransforms: [[identity], [translated]],
+    fps: 10,
+    frameCount: 2,
+    upperBodyPivots: []
+  }
+  const weapon = {
+    textures: [{ width: 1, height: 1, flags: 2 }],
+    skinRef: [0],
+    bones: [{ name: 'r hand' }],
+    meshes: [[[{ skinRef: 0 }]]],
+    triangles: [[[new Int16Array([3, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0])]]],
+    vertices: [[new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0])]],
+    normals: [[new Float32Array([1, 0, 0])]],
+    vertBoneBuffer: [[new Uint8Array([0, 0, 0])]],
+    normBoneBuffer: [[new Uint8Array([0])]]
+  }
+  const actor = lobby.createActor(
+    { weaponPath: 'p_m4a1.mdl', weaponKey: 'm4a1' },
+    player,
+    weapon,
+    false
+  )
+  const mesh = actor.children[0]
+  assert.equal(mesh.material.skinning, false)
+  const shader = { vertexShader: '#include <uv_vertex>' }
+  mesh.material.onBeforeCompile(shader)
+  assert.match(shader.vertexShader, /normalMatrix \* normal/)
+  const normals = mesh.userData.normalFrames
+  assert.equal(normals.length, 2)
+  for (const frame of normals) {
+    for (let i = 0; i < frame.array.length; i += 3) {
+      assert.ok(Math.abs(frame.array[i] + 1) < 1e-6)
+      assert.ok(Math.abs(frame.array[i + 1]) < 1e-6)
+      assert.ok(Math.abs(frame.array[i + 2]) < 1e-6)
+    }
+  }
+  assert.notEqual(mesh.geometry.getAttribute('normal').array, normals[0].array)
+})
+test('lobby fade preserves additive blending and its authored preview opacity', () => {
+  const group = new THREE.Group()
+  const mesh = lobby.addMesh(
+    group,
+    new THREE.BufferAttribute(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]), 3),
+    new THREE.BufferAttribute(new Float32Array(6), 2),
+    new Uint8ClampedArray([255, 255, 255, 255]),
+    { width: 1, height: 1, flags: 32 }
+  )
+  assert.equal(mesh.material.blending, THREE.AdditiveBlending)
+  assert.equal(mesh.material.depthWrite, false)
+  lobby.setActorOpacity(group, 0.5)
+  assert.equal(mesh.material.opacity, 0.4)
+  lobby.setActorOpacity(group, 1)
+  assert.equal(mesh.material.opacity, 0.8)
+  assert.equal(mesh.geometry.getAttribute('normal'), undefined)
+})

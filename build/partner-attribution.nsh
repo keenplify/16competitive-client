@@ -5,12 +5,25 @@
 ; Reject unsupported Windows before installing files, even if Electron cannot start.
 !macro customInit
   ; WinVer can see a compatibility/manifest version instead of the installed OS.
-  ; Prefer the native NT version. Windows 10 and 11 both have major version 10.
-  ; Keep WinVer as a fallback if the native query cannot be completed.
+  ; Accept positive evidence from any probe, just like launcher startup.
+  ; Compatibility shims can affect both WinVer and the native version query.
+  ; Windows 10 and 11 both have installed major version 10.
   StrCpy $3 0
   ${If} ${AtLeastWin10}
     StrCpy $3 1
   ${EndIf}
+  StrCpy $4 $3 ; retain WinVer result for diagnostics
+  StrCpy $5 -1 ; native major, -1 if unavailable
+  StrCpy $6 "" ; installed major, empty if unavailable
+  ; electron-builder selects the native registry view before customInit.
+  ClearErrors
+  ReadRegDWORD $6 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "CurrentMajorVersionNumber"
+  ${IfNot} ${Errors}
+    ${If} $6 >= 10
+      StrCpy $3 1
+    ${EndIf}
+  ${EndIf}
+  ClearErrors
   System::Alloc 276 ; sizeof(RTL_OSVERSIONINFOW), including 128 WCHARs
   Pop $0
   ${If} $0 != 0
@@ -19,7 +32,7 @@
     System::Call 'ntdll::RtlGetVersion(p r0) i .r1'
     ${If} $1 == 0
       System::Call '*$0(i, i .r2)'
-      StrCpy $3 0
+      StrCpy $5 $2
       ${If} $2 >= 10
         StrCpy $3 1
       ${EndIf}
@@ -51,7 +64,7 @@
     ${If} $0 == 57
       StrCpy $1 "Windows 10 या उसके बाद का संस्करण आवश्यक है। Windows 7, Windows 8 और Windows 8.1 समर्थित नहीं हैं। 1.6 Competitive का उपयोग करने के लिए Windows अपग्रेड करें।"
     ${EndIf}
-    MessageBox MB_OK|MB_ICONSTOP "$1"
+    MessageBox MB_OK|MB_ICONSTOP "$1$\r$\n$\r$\nWinVer>=10: $4$\r$\nRtlGetVersion.major: $5$\r$\nCurrentMajorVersionNumber: $6$\r$\n1.6 Competitive: ${VERSION}"
     SetErrorLevel 1
     Quit
   ${EndIf}

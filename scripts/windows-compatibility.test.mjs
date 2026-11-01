@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { readFile } from 'node:fs/promises'
 import {
   formatWindowsCompatibilityError,
   isSupportedOperatingSystem,
@@ -84,4 +85,23 @@ test('accepts a Windows 11 installation despite a compatibility-mode process ver
 test('accepts supported releases and Linux without an installed version', () => {
   assert.equal(isSupportedWindowsInstallation('win32', '10.0.26300', null), true)
   assert.equal(isSupportedWindowsInstallation('linux', '6.2.9200', null), true)
+})
+
+test('installer checks the installed Windows version and never downgrades a positive probe', async () => {
+  const source = await readFile(
+    new URL('../build/partner-attribution.nsh', import.meta.url),
+    'utf8'
+  )
+  const init = source.split('!macro customInit')[1].split('!macroend')[0]
+  assert.match(
+    init,
+    /ReadRegDWORD \$6 HKLM "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" "CurrentMajorVersionNumber"/
+  )
+  assert.match(init, /\$\{IfNot\} \$\{Errors\}\s+\$\{If\} \$6 >= 10\s+StrCpy \$3 1/)
+  // A later native result of 6.2 must not erase registry/WinVer evidence of Windows 10/11.
+  assert.equal((init.match(/StrCpy \$3 0/g) ?? []).length, 1)
+  assert.ok(init.indexOf('StrCpy $3 0') < init.indexOf('${AtLeastWin10}'))
+  assert.match(init, /RtlGetVersion.major: \$5/)
+  assert.match(init, /CurrentMajorVersionNumber: \$6/)
+  assert.ok(init.includes('1.6 Competitive: ${VERSION}'))
 })

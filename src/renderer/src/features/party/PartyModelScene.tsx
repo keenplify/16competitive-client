@@ -8,7 +8,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import THREE from '../../libs/web-hlmv/lib/three'
 import { parseModelCached } from '../../libs/web-hlmv/lib/modelDataParser'
 import { buildTexture } from '../../libs/web-hlmv/lib/textureBuilder'
-import { applyBoneTransforms, createTexture } from '../../libs/web-hlmv/lib/modelRenderer'
+import { NF_CHROME } from '../../libs/web-hlmv/const/constants'
+import {
+  applyBoneNormals,
+  applyBoneTransforms,
+  createModelMaterial,
+  createTexture
+} from '../../libs/web-hlmv/lib/modelRenderer'
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import type { PartyMember } from '../../../../shared/party'
 import { ProfileRankInsignia } from '../../components/ui/ProfileRankInsignia'
@@ -327,20 +333,23 @@ const addMesh = (
   positions: THREE.BufferAttribute,
   uv: THREE.BufferAttribute,
   texture: Uint8ClampedArray | undefined,
-  textureInfo: { width: number; height: number } | undefined
+  textureInfo: { width: number; height: number; flags?: number } | undefined
 ): THREE.Mesh => {
   const geometry = new THREE.BufferGeometry()
   geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(positions.array), 3))
   geometry.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv.array), 2))
-  const material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    transparent: true,
-    alphaTest: 0.5
-  })
-  if (texture && textureInfo)
-    material.map = createTexture(texture, textureInfo.width, textureInfo.height)
+  const material = createModelMaterial(
+    texture && textureInfo
+      ? createTexture(texture, textureInfo.width, textureInfo.height)
+      : undefined,
+    textureInfo?.flags
+  )
+  // Lobby animation is CPU-skinned; no GPU skeleton or morph targets are attached.
+  material.skinning = false
+  material.morphTargets = false
+  if ((textureInfo?.flags ?? 0) & NF_CHROME) geometry.computeVertexNormals()
   const mesh = new THREE.Mesh(geometry, material)
+  mesh.userData.baseOpacity = material.opacity
   group.add(mesh)
   return mesh
 }
@@ -448,7 +457,7 @@ const setActorOpacity = (actor: THREE.Group, opacity: number): void => {
     const materials = Array.isArray(object.material) ? object.material : [object.material]
     materials.forEach((material) => {
       material.transparent = true
-      material.opacity = opacity
+      material.opacity = opacity * ((object.userData.baseOpacity as number | undefined) ?? 1)
     })
   })
 }
@@ -525,6 +534,30 @@ const createActor = (
               weapon.vertBoneBuffer[bodyPartIndex][subModelIndex],
               (boneIndex) => weaponBoneMap[boneIndex] ?? handBone
             )
+            const sourceNormals = weapon.normals?.[bodyPartIndex]?.[subModelIndex]
+            const normalBindings = weapon.normBoneBuffer?.[bodyPartIndex]?.[subModelIndex]
+            const chromeFaces =
+              textureInfo?.flags & NF_CHROME && sourceNormals && normalBindings
+                ? readFacesData(
+                    weapon.triangles[bodyPartIndex][subModelIndex][meshIndex],
+                    sourceNormals,
+                    textureInfo,
+                    1
+                  )
+                : undefined
+            const rotatedNormals = chromeFaces?.vertices.slice()
+            if (rotatedNormals) {
+              for (let index = 0; index < rotatedNormals.length; index += 3) {
+                const normal = new THREE.Vector3()
+                  .set(rotatedNormals[index], rotatedNormals[index + 1], rotatedNormals[index + 2])
+                  .transformDirection(sourceRotation)
+                rotatedNormals.set([normal.x, normal.y, normal.z], index)
+              }
+            }
+            const normalBoneBuffer = normalBindings
+              ? Uint8Array.from(normalBindings, (boneIndex) => weaponBoneMap[boneIndex] ?? handBone)
+              : undefined
+            const normalFrames: THREE.BufferAttribute[] = []
             const animationFrames = player.boneTransforms.map((playerBones) => {
               const handTransform = new THREE.Matrix4().fromArray(
                 playerBones[handBone] as unknown as number[]
@@ -543,6 +576,21 @@ const createActor = (
               const handOffset = new THREE.Vector3(...weaponTransform.handOffset)
                 .applyMatrix4(handTransform)
                 .sub(handOrigin)
+              if (chromeFaces && rotatedNormals && normalBoneBuffer) {
+                const normals = applyBoneNormals(
+                  rotatedNormals,
+                  chromeFaces.indices,
+                  normalBoneBuffer,
+                  playerBones
+                )
+                for (let index = 0; index < normals.length; index += 3) {
+                  const normal = new THREE.Vector3()
+                    .set(normals[index], normals[index + 1], normals[index + 2])
+                    .transformDirection(handRotation)
+                  normals.set([normal.x, normal.y, normal.z], index)
+                }
+                normalFrames.push(new THREE.BufferAttribute(normals, 3))
+              }
               const skinned = applyBoneTransforms(positioned, indices, boneBuffer, playerBones)
               for (let index = 0; index < skinned.length; index += 3) {
                 const vertex = new THREE.Vector3(
@@ -565,6 +613,13 @@ const createActor = (
             )
             mesh.userData.animationFrames = animationFrames
             mesh.userData.followsUpperBody = true
+            if (normalFrames.length) {
+              mesh.userData.normalFrames = normalFrames
+              ;(mesh.geometry as THREE.BufferGeometry).addAttribute(
+                'normal',
+                normalFrames[0].clone()
+              )
+            }
           })
         )
       )
@@ -846,6 +901,30 @@ export function PartyModelScene({
             }
           }
           position.needsUpdate = true
+          const normalFrames = object.userData.normalFrames as THREE.BufferAttribute[] | undefined
+          const normal = (object.geometry as THREE.BufferGeometry).getAttribute('normal') as
+            THREE.BufferAttribute | undefined
+          if (normalFrames?.[frame] && normalFrames[nextFrame] && normal) {
+            const currentNormals = normalFrames[frame].array
+            const nextNormals = normalFrames[nextFrame].array
+            const vector = new THREE.Vector3()
+            for (let index = 0; index < normal.array.length; index += 3) {
+              vector
+                .set(
+                  currentNormals[index] +
+                    (nextNormals[index] - currentNormals[index]) * frameProgress,
+                  currentNormals[index + 1] +
+                    (nextNormals[index + 1] - currentNormals[index + 1]) * frameProgress,
+                  currentNormals[index + 2] +
+                    (nextNormals[index + 2] - currentNormals[index + 2]) * frameProgress
+                )
+                .normalize()
+              if (followsPointer && followsUpperBody && pointerRotation)
+                vector.transformDirection(pointerRotation)
+              vector.toArray(normal.array, index)
+            }
+            normal.needsUpdate = true
+          }
         })
       })
       renderer.render(scene, camera)
