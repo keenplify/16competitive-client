@@ -518,7 +518,13 @@ export function ShopPage(): JSX.Element {
               {collections.length > 0 && (
                 <section aria-label={collectionText('title')} className="mb-6">
                   <h2 className="mb-3 text-lg font-semibold">{collectionText('title')}</h2>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div
+                    className={
+                      collections.length === 1
+                        ? 'grid grid-cols-1 gap-3'
+                        : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4'
+                    }
+                  >
                     {collections.map((collection) => (
                       <CollectionCard
                         key={collection.id}

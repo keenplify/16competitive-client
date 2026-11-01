@@ -260,6 +260,15 @@ export const parseModel = (modelBuffer: ArrayBuffer) => {
     vertices: parseVertices(dataView.buffer as ArrayBuffer, subModels),
     /** Bones vertices buffer. Path: vertBoneBuffer[bodyPartIndex][subModelIndex] */
     vertBoneBuffer: parseVertBoneBuffer(dataView.buffer as ArrayBuffer, subModels),
+    /** Authored surface normals and their independent bone bindings. */
+    normals: subModels.map((body) =>
+      body.map(
+        (submodel) => new Float32Array(modelBuffer, submodel.normIndex, submodel.numNorms * 3)
+      )
+    ),
+    normBoneBuffer: subModels.map((body) =>
+      body.map((submodel) => new Uint8Array(modelBuffer, submodel.normInfoIndex, submodel.numNorms))
+    ),
     /** Mesh triangles. Path: meshes[bodyPartIndex][subModelIndex][meshIndex] */
     triangles: parseTriangles(dataView.buffer as ArrayBuffer, meshes, header.length),
 

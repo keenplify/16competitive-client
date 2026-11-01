@@ -4,7 +4,7 @@ import { mat4 } from 'gl-matrix'
 import { ModelData } from './modelDataParser'
 import { readFacesData } from './geometryBuilder'
 import { calcRotations } from './geometryTransformer'
-import { NF_ADDITIVE } from '../const/constants'
+import { NF_ADDITIVE, NF_CHROME } from '../const/constants'
 
 /** GoldSrc additive textures otherwise wash out against WebGL's bright preview background. */
 const ADDITIVE_OPACITY = 0.8
@@ -15,6 +15,7 @@ const ADDITIVE_OPACITY = 0.8
 export type MeshRenderData = {
   geometryBuffers: THREE.BufferAttribute[][]
   uvMap: THREE.BufferAttribute
+  normalBuffers?: THREE.BufferAttribute[][]
 }
 
 /**
@@ -125,6 +126,35 @@ export const applyBoneTransforms = (
   }
 
   return posArray
+}
+
+/** Normals follow bone rotation only; bone translation must not affect chrome UVs. */
+export const applyBoneNormals = (
+  normals: Float32Array,
+  indices: Int16Array,
+  bindings: Uint8Array,
+  transforms: mat4[]
+): Float32Array => {
+  const result = new Float32Array(normals.length)
+  for (let i = 0; i < indices.length; i++) {
+    const x = normals[i * 3],
+      y = normals[i * 3 + 1],
+      z = normals[i * 3 + 2]
+    const transform = transforms[bindings[indices[i]]]
+    let nx = x,
+      ny = y,
+      nz = z
+    if (transform) {
+      nx = transform[0] * x + transform[4] * y + transform[8] * z
+      ny = transform[1] * x + transform[5] * y + transform[9] * z
+      nz = transform[2] * x + transform[6] * y + transform[10] * z
+    }
+    const length = Math.hypot(nx, ny, nz)
+    if (Number.isFinite(length) && length > 0) {
+      result.set([nx / length, ny / length, nz / length], i * 3)
+    } else result.set([0, 0, 1], i * 3)
+  }
+  return result
 }
 
 /** Rotates every calculated bone around the model's root-bone origin. */
@@ -262,7 +292,37 @@ export const prepareRenderData = (
           })
         }
 
+        const sourceNormals = modelData.normals?.[bodyPartIndex]?.[subModelIndex]
+        const normalBindings = modelData.normBoneBuffer?.[bodyPartIndex]?.[subModelIndex]
+        const chromeFaces =
+          texture?.flags & NF_CHROME &&
+          sourceNormals &&
+          normalBindings &&
+          vertices.length === decodedFaces.vertices.length
+            ? readFacesData(triangles, sourceNormals, texture, 1)
+            : undefined
+        const normalBuffers =
+          chromeFaces && normalBindings
+            ? boneTransforms.map((frames) =>
+                frames.length
+                  ? frames.map(
+                      (transforms) =>
+                        new THREE.BufferAttribute(
+                          applyBoneNormals(
+                            chromeFaces.vertices,
+                            chromeFaces.indices,
+                            normalBindings,
+                            transforms
+                          ),
+                          3
+                        )
+                    )
+                  : [new THREE.BufferAttribute(chromeFaces.vertices, 3)]
+              )
+            : undefined
+
         renderData[bodyPartIndex][subModelIndex].push({
+          normalBuffers,
           // UV-map of the mesh
           uvMap: new THREE.BufferAttribute(uv, 2),
 
@@ -320,7 +380,7 @@ export const prepareRenderData = (
  */
 export const createModelMaterial = (texture?: THREE.Texture, textureFlags = 0) => {
   const additive = (textureFlags & NF_ADDITIVE) !== 0
-  return new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshBasicMaterial({
     ...(texture ? { map: texture } : {}),
     side: THREE.DoubleSide,
     transparent: true,
@@ -331,14 +391,33 @@ export const createModelMaterial = (texture?: THREE.Texture, textureFlags = 0) =
     depthWrite: !additive,
     morphTargets: true,
     skinning: true
-  })
+  }) as THREE.MeshBasicMaterial & {
+    onBeforeCompile: (shader: { vertexShader: string }) => void
+  }
+  if ((textureFlags & NF_CHROME) !== 0) {
+    // GoldSrc chrome ignores stored S/T coordinates and samples a 64x64
+    // texture with the rotated surface normal in the viewer's right/up basis.
+    // MeshBasicMaterial preserves the fullbright appearance without baked lighting.
+    material.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <uv_vertex>',
+        `#include <uv_vertex>
+#ifdef USE_MAP
+  vec3 chromeViewNormal = normalize(normalMatrix * normal);
+  vUv = vec2(0.5 + chromeViewNormal.x * 0.5, 0.5 + chromeViewNormal.y * 0.5);
+#endif`
+      )
+    }
+  }
+  return material
 }
 
 export const createMesh = (
   geometryBuffer: THREE.BufferAttribute,
   uvMap: THREE.BufferAttribute,
   texture?: THREE.Texture,
-  textureFlags = 0
+  textureFlags = 0,
+  normalBuffer?: THREE.BufferAttribute
 ) => {
   // Mesh level
   const material = createModelMaterial(texture, textureFlags)
@@ -347,6 +426,8 @@ export const createMesh = (
   const geometry = new THREE.BufferGeometry()
   geometry.addAttribute('position', geometryBuffer)
   geometry.addAttribute('uv', uvMap)
+  if (normalBuffer) geometry.addAttribute('normal', normalBuffer)
+  else if ((textureFlags & NF_CHROME) !== 0) geometry.computeVertexNormals()
 
   // Prepare mesh
   return new THREE.Mesh(geometry, material)
@@ -372,7 +453,7 @@ export const createModelMeshes = (
     // Body part level
     bodyPart.map((subModel, subModelIndex) =>
       // Sub model level
-      subModel.map(({ geometryBuffers, uvMap }, meshIndex) => {
+      subModel.map(({ geometryBuffers, uvMap, normalBuffers }, meshIndex) => {
         const initialGeometryBuffer = geometryBuffers[0][0]
         const textureIndex =
           modelData.skinRef[modelData.meshes[bodyPartIndex][subModelIndex][meshIndex].skinRef]
@@ -382,7 +463,8 @@ export const createModelMeshes = (
           initialGeometryBuffer,
           uvMap,
           texture,
-          modelData.textures[textureIndex]?.flags
+          modelData.textures[textureIndex]?.flags,
+          normalBuffers?.[0]?.[0]
         )
       })
     )

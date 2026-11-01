@@ -1,3 +1,4 @@
+import { NF_CHROME } from '../const/constants'
 /* eslint-disable react-hooks/exhaustive-deps */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck bad types
@@ -87,7 +88,7 @@ export const WindowSizeSensor = ({
     handleResize()
 
     const resizeObserver = target ? new ResizeObserver(handleResize) : undefined
-    resizeObserver?.observe(target)
+    if (target) resizeObserver?.observe(target)
     window.addEventListener('resize', handleResize)
 
     return () => {
@@ -389,7 +390,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
     meshesRenderData.forEach((bodyPart, bodyPartIndex) =>
       bodyPart.forEach((subModel, subModelIndex) =>
-        subModel.forEach(({ geometryBuffers, uvMap }, meshIndex) => {
+        subModel.forEach(({ geometryBuffers, uvMap, normalBuffers }, meshIndex) => {
           const sourcePosition = geometryBuffers[initialSequenceIndex][0]
           const geometry = new THREE.BufferGeometry()
           geometry.addAttribute(
@@ -403,6 +404,13 @@ export const Renderer = (props: Props): React.JSX.Element => {
           const textureData = textures[textureIndex]
           const textureInfo = modelData.textures[textureIndex]
           const material = createModelMaterial(undefined, textureInfo?.flags)
+          if (normalBuffers?.[initialSequenceIndex]?.[0]) {
+            const sourceNormal = normalBuffers[initialSequenceIndex][0]
+            geometry.addAttribute(
+              'normal',
+              new THREE.BufferAttribute(new Float32Array(sourceNormal.array), 3)
+            )
+          } else if ((textureInfo?.flags & NF_CHROME) !== 0) geometry.computeVertexNormals()
 
           if (textureData && textureInfo) {
             material.map = createTexture(textureData, textureInfo.width, textureInfo.height)
@@ -413,6 +421,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
           // cannot cull later animated frames as the weapon moves into view.
           fallbackMesh.frustumCulled = false
           fallbackMesh.userData.geometryBuffers = geometryBuffers
+          fallbackMesh.userData.normalBuffers = normalBuffers
           fallback.add(fallbackMesh)
         })
       )
@@ -529,6 +538,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
             )
             geometry.addAttribute('uv', new THREE.BufferAttribute(uv, 2))
             const material = createModelMaterial(undefined, textureInfo?.flags)
+            if ((textureInfo?.flags & NF_CHROME) !== 0) geometry.computeVertexNormals()
 
             if (attachedTextures[textureIndex] && textureInfo) {
               material.map = createTexture(
@@ -607,6 +617,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
         scene.remove(...lights)
       }
     }
+    return undefined
   }, [container, fallbackContainer, scene, lights, usesFixedSequenceFallback])
 
   // Update model data
@@ -746,8 +757,15 @@ export const Renderer = (props: Props): React.JSX.Element => {
           ) as THREE.BufferAttribute
 
           if (sourcePosition && position) {
-            position.array.set(sourcePosition.array)
+            ;(position.array as Float32Array).set(sourcePosition.array)
             position.needsUpdate = true
+            const sourceNormal = mesh.userData.normalBuffers?.[animationIndex]?.[frame]
+            const normal = (mesh.geometry as THREE.BufferGeometry).getAttribute('normal') as
+              THREE.BufferAttribute | undefined
+            if (sourceNormal && normal) {
+              ;(normal.array as Float32Array).set(sourceNormal.array)
+              normal.needsUpdate = true
+            }
           }
         })
       }
@@ -759,7 +777,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
       if (!hasRenderedFirstFrame.current) {
         hasRenderedFirstFrame.current = true
-        props.onFirstFrame?.(canvas)
+        if (canvas) props.onFirstFrame?.(canvas)
         console.info('[HLMV] First WebGL frame rendered', {
           calls: renderer.info.render.calls,
           triangles: renderer.info.render.triangles,

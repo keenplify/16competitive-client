@@ -17,26 +17,8 @@ import { viewmodelNeedsMirror } from './viewmodel-presentation'
 import translations from './skin-preview-translations.json'
 import { getCachedSkinModel } from './skin-model-cache'
 
-type Action = 'draw' | 'idle' | 'fire' | 'reload' | 'charge' | 'throw'
-const labels: Record<Action, readonly string[]> = {
-  draw: ['draw', 'deploy', 'draw1'],
-  idle: ['idle1', 'idle', 'idle2'],
-  fire: [
-    'shoot1',
-    'shoot',
-    'fire',
-    'fire1',
-    'attack1',
-    'midslash1',
-    'slash1',
-    'slash2',
-    'stab',
-    'throw'
-  ],
-  reload: ['reload', 'reload1'],
-  charge: ['charge', 'pullpin', 'pull_pin', 'pinpull'],
-  throw: ['throw', 'throw1', 'throw2']
-}
+import { resolvePreviewSequences } from './viewmodel-sequences'
+
 const camera = { position: [0, 0, 0], target: [0, 0, 100], fov: 65, near: 0.1, far: 1000 } as const
 
 export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
@@ -51,6 +33,7 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null)
   const [failed, setFailed] = useState(false)
   const stage = useRef<HTMLDivElement>(null)
+  const activePointer = useRef<number | null>(null)
   useEffect(() => {
     let active = true
     void getCachedSkinModel(skin.id, skin.viewModelPath ?? '', 'view').then(
@@ -69,22 +52,16 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     if (!buffer) return null
     try {
       const model = parseModelCached(buffer)
-      const idle = model.sequences.findIndex((s) => labels.idle.includes(s.label.toLowerCase()))
-      const selected = Object.fromEntries(
-        Object.entries(labels).map(([key, names]) => {
-          const index = model.sequences.findIndex((s) => names.includes(s.label.toLowerCase()))
-          return [key, index >= 0 ? index : Math.max(0, idle)]
-        })
-      ) as Record<Action, number>
+      const selected = resolvePreviewSequences(model.sequences, isKnife)
       return {
         ...selected,
         prepared: [...new Set(Object.values(selected))],
-        mirror: viewmodelNeedsMirror(model, Math.max(0, idle), skin.weaponKey)
+        mirror: viewmodelNeedsMirror(model, selected.idle, skin.weaponKey)
       }
     } catch {
       return null
     }
-  }, [buffer, skin.weaponKey])
+  }, [buffer, skin.weaponKey, isKnife])
   useEffect(() => {
     if (!held || kind !== 'firearm') return
     const timer = setInterval(fire, 100)
@@ -103,8 +80,18 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     return () => clearTimeout(timer)
   }, [action, finish])
   useEffect(() => {
-    const release = (): void => playback.getState().release()
-    const cancel = (): void => playback.getState().cancel()
+    const release = (event: PointerEvent): void => {
+      if (activePointer.current !== event.pointerId) return
+      activePointer.current = null
+      playback.getState().release()
+    }
+    const cancel = (): void => {
+      activePointer.current = null
+      playback.getState().cancel()
+    }
+    const pointerCancel = (event: PointerEvent): void => {
+      if (activePointer.current === event.pointerId) cancel()
+    }
     const key = (event: KeyboardEvent): void => {
       if (event.code !== 'KeyR' || event.repeat || kind !== 'firearm' || !buffer || !sequences)
         return
@@ -118,12 +105,12 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     }
     window.addEventListener('keydown', key)
     window.addEventListener('pointerup', release)
-    window.addEventListener('pointercancel', cancel)
+    window.addEventListener('pointercancel', pointerCancel)
     window.addEventListener('blur', cancel)
     return () => {
       window.removeEventListener('keydown', key)
       window.removeEventListener('pointerup', release)
-      window.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('pointercancel', pointerCancel)
       window.removeEventListener('blur', cancel)
     }
   }, [buffer, sequences, playback, kind])
@@ -133,11 +120,18 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
     <div
       ref={stage}
       data-preview-action={action}
-      className="absolute inset-0 overflow-hidden"
+      className="absolute inset-0 touch-none select-none overflow-hidden"
       onPointerDown={(event) => {
-        if (event.button !== 0 || !buffer || !sequences) return
+        if (event.button !== 0 || activePointer.current !== null || !buffer || !sequences) return
+        event.preventDefault()
+        activePointer.current = event.pointerId
         event.currentTarget.setPointerCapture(event.pointerId)
         playback.getState().press()
+      }}
+      onLostPointerCapture={(event) => {
+        if (activePointer.current !== event.pointerId) return
+        activePointer.current = null
+        playback.getState().cancel()
       }}
     >
       {buffer && sequences ? (

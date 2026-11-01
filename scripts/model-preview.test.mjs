@@ -88,14 +88,14 @@ test('an unavailable bundled model fails once rather than retrying or overwritin
   assert.equal(reads, 1)
 })
 
-const { createTexture, applyBoneTransforms } = await load(
+const { createTexture, applyBoneTransforms, applyBoneNormals, createModelMaterial } = await load(
   '../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts',
   {
     './three': { default: THREE },
     './preview-hand-helpers': previewHelpers,
     './geometryBuilder': { readFacesData: () => {} },
     './geometryTransformer': { calcRotations: () => {} },
-    '../const/constants': { NF_ADDITIVE: 32 }
+    '../const/constants': { NF_ADDITIVE: 32, NF_CHROME: 2 }
   }
 )
 test('RGBA upload works without DOM ImageData and preserves orientation, colors, alpha and source bytes', () => {
@@ -162,7 +162,7 @@ const { prepareRenderData } = await load('../src/renderer/src/libs/web-hlmv/lib/
       ]
     }
   },
-  '../const/constants': { NF_ADDITIVE: 32 }
+  '../const/constants': { NF_ADDITIVE: 32, NF_CHROME: 2 }
 })
 test('interactive Draw, Idle and Slash frames coexist in one prepared dataset', () => {
   const model = {
@@ -254,4 +254,54 @@ test('open or irregular hand geometry remains visible', () => {
     previewHelpers.filterPreviewHandHelpers(irregular, helperBindings, helperBones),
     irregular
   )
+})
+
+test('chrome textures derive UVs from view-space normals; ordinary and additive materials keep their UVs', () => {
+  const source = '#include <uv_vertex>'
+  const chrome = createModelMaterial(undefined, 7)
+  const shader = { vertexShader: source }
+  chrome.onBeforeCompile(shader)
+  assert.match(shader.vertexShader, /normalMatrix \* normal/)
+  assert.match(shader.vertexShader, /vUv = vec2/)
+  assert.equal(chrome.blending, THREE.NormalBlending)
+  const ordinaryShader = { vertexShader: source }
+  createModelMaterial(undefined, 0).onBeforeCompile(ordinaryShader)
+  assert.equal(ordinaryShader.vertexShader, source)
+  const additive = createModelMaterial(undefined, 32)
+  assert.equal(additive.blending, THREE.AdditiveBlending)
+  assert.equal(additive.depthWrite, false)
+})
+test('chrome normals follow bone rotation without inheriting bone translation', () => {
+  const transform = new Float32Array([0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 100, 200, 300, 1])
+  const result = applyBoneNormals(
+    new Float32Array([1, 0, 0]),
+    new Int16Array([0]),
+    new Uint8Array([0]),
+    [transform]
+  )
+  assert.deepEqual([...result], [0, 1, 0])
+  const fallback = applyBoneNormals(
+    new Float32Array([0, 0, 0]),
+    new Int16Array([0]),
+    new Uint8Array([0]),
+    []
+  )
+  assert.deepEqual([...fallback], [0, 0, 1])
+})
+const { readFacesData } = await load('../src/renderer/src/libs/web-hlmv/lib/geometryBuilder.ts', {
+  '../const/constants': { TRIANGLE_FAN: 0, TRIANGLE_STRIP: 1 }
+})
+test('chrome preserves the authored normal indices independently of vertex indices in fans and strips', () => {
+  const normals = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1])
+  for (const head of [4, -4]) {
+    const triangles = new Int16Array([head, 0, 2, 0, 0, 1, 0, 0, 0, 2, 1, 0, 0, 0, 2, 0, 0, 0])
+    const decoded = readFacesData(triangles, normals, { width: 64, height: 64 }, 1)
+    assert.equal(decoded.indices.length, 6)
+    for (let i = 0; i < decoded.indices.length; i++)
+      assert.deepEqual(
+        [...decoded.vertices.slice(i * 3, i * 3 + 3)],
+        [...normals.slice(decoded.indices[i] * 3, decoded.indices[i] * 3 + 3)]
+      )
+    assert.deepEqual([...decoded.indices.slice(0, 3)], [2, 0, 1])
+  }
 })

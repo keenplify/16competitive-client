@@ -4,6 +4,9 @@ export const VERSION = 10
 /** Maximum number of bone controllers per bone */
 export const MAX_PER_BONE_CONTROLLERS = 6
 
+/** GoldSrc view-dependent chrome texture coordinates. */
+export const NF_CHROME = 0x0002
+
 /** Flag of texture masking */
 export const NF_MASKED = 0x0040
 

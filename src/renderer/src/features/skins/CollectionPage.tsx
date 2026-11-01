@@ -86,7 +86,7 @@ export function CollectionPage() {
           </div>
         ) : (
           <>
-            <div className="mt-5 aspect-[21/8] overflow-hidden bg-neutral-900">
+            <div className="mt-5 aspect-video overflow-hidden bg-neutral-900">
               {collection.videoUrl ? (
                 <video
                   key={collection.videoUrl}
@@ -103,7 +103,7 @@ export function CollectionPage() {
                   src={collection.imageUrl}
                   alt=""
                   referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               )}
             </div>

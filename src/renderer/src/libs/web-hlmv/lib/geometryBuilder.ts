@@ -47,7 +47,8 @@ export const countVertices = (trianglesBuffer: Int16Array): number => {
 export const readFacesData = (
   trianglesBuffer: Int16Array,
   verticesBuffer: Float32Array,
-  texture: Pick<structs.Texture, 'width' | 'height'>
+  texture: Pick<structs.Texture, 'width' | 'height'>,
+  indexOffset: 0 | 1 = 0
 ) => {
   // Number of vertices for generating buffer
   const vertNumber = countVertices(trianglesBuffer)
@@ -75,12 +76,12 @@ export const readFacesData = (
 
     // For counting we will make steps for 4 array items:
     // 0 — index of the vertex origin in vertices buffer
-    // 1 — light (?)
+    // 1 — index of the surface normal
     // 2 — first uv coordinate
     // 3 — second uv coordinate
     for (let j = 0; j < trianglesNum; j++, trisPos += 4) {
-      const vertIndex: number = trianglesBuffer[trisPos]
-      const vert: number = trianglesBuffer[trisPos] * 3
+      const vertIndex: number = trianglesBuffer[trisPos + indexOffset]
+      const vert: number = vertIndex * 3
       // const light: number = trianglesBuffer[trisPos + 1] // ?
 
       // Vertex data

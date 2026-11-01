@@ -97,3 +97,24 @@ test('audio previews reject truncated, non-WAV and oversized responses before de
   big.set(bytes)
   assert.equal(isSkinPreviewAudio(big.buffer), false)
 })
+
+const { resolvePreviewSequences } = await import('../src/renderer/src/features/skins/viewmodel-sequences.ts')
+test('renamed knife sequences select the actual draw and combo instead of the eight-second idle', () => {
+  const sequences = ['idle_0','combo_1','combo_2','select','bigshot','bigshot_R1','combo_1','combo_2','observe'].map(label => ({label}))
+  const selected = resolvePreviewSequences(sequences, true)
+  assert.equal(selected.idle,0)
+  assert.equal(selected.draw,3)
+  assert.equal(selected.fire,1)
+  const slots = resolvePreviewSequences(Array.from({length:8},(_,i)=>({label:'custom'+i})),true)
+  assert.equal(slots.draw,3)
+  assert.equal(slots.fire,6)
+})
+test('rapid knife clicks cannot keep restarting an unfinished swing', () => {
+  const store=ready('knife')
+  store.getState().press()
+  const restart=store.getState().restart
+  for(let i=0;i<8;i++){store.getState().release();store.getState().press()}
+  assert.equal(store.getState().restart,restart)
+  store.getState().finish()
+  assert.equal(store.getState().restart,restart+1)
+})

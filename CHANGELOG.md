@@ -3867,3 +3867,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Automatically remove hand-reference boxes while preserving glowing eyes and mouth details.
 - Keep existing grenade models and preview rotations, without an admin hiding setting.
+
+## v2026.1101.2 — 2026-11-01
+
+### Store previews
+
+- Restored chrome highlights on custom skins, including Guardian Chains.
+- Fixed held-click knife swings and prevented rapid preview clicks from selecting text.
+- Single skin packages now fill the store width, with complete 16:9 banner images.

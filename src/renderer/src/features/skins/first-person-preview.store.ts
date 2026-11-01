@@ -36,7 +36,7 @@ export function createFirstPersonPreviewStore(kind: PreviewWeaponKind) {
         set({ held: true, action: 'charge', restart: state.restart + 1 })
       } else {
         set({ held: true })
-        get().fire()
+        if (kind !== 'knife' || state.action !== 'fire') get().fire()
       }
     },
     release: () => {

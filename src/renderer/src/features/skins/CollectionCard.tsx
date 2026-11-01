@@ -29,7 +29,7 @@ export function CollectionCard({
         alt=""
         loading="lazy"
         referrerPolicy="no-referrer"
-        className="aspect-video w-full object-cover"
+        className="aspect-video w-full object-contain"
       />
       <span className="block p-3">
         <strong className="line-clamp-2 block text-sm text-white">{name}</strong>
