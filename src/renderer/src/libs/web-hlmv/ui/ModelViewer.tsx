@@ -3,9 +3,10 @@ import { twMerge } from 'tailwind-merge'
 import { Renderer, type ModelViewerCamera } from './Renderer'
 
 type ModelViewerProps = {
-  /** Hide recognized hand-reference cuboids in standalone weapon previews. */
-  hideHandHelpers?: boolean
   /** Model bytes obtained through a narrow, authenticated API. */
+  /** Hide recognized hand-reference cuboids only in standalone weapon previews. */
+  hideHandHelpers?: boolean
+  hiddenTextures?: readonly string[]
   modelBuffer?: ArrayBuffer
   /** Stable identity for a model buffer, used when changing previews. */
   modelKey?: string
@@ -64,6 +65,7 @@ type ModelViewerProps = {
  */
 export function ModelViewer({
   hideHandHelpers = false,
+  hiddenTextures,
   modelBuffer,
   modelKey,
   sourceRevision,
@@ -185,6 +187,7 @@ export function ModelViewer({
           failedAttachment === attachedSourceKey) && (
           <Renderer
             hideHandHelpers={hideHandHelpers}
+            hiddenTextures={hiddenTextures}
             modelBuffer={loadedModel.buffer}
             modelRootBoneRotation={modelRootBoneRotation}
             attachedModelBuffer={

@@ -61,6 +61,7 @@ interface SkinModelThumbnailProps {
   weaponKey: string
   skinId?: string
   modelPath?: string
+  previewHiddenTextures?: string[]
   previewRotation?: SkinPreviewRotation
   sourceRevision?: string | number
   modelKey?: string
@@ -71,7 +72,7 @@ interface SkinModelThumbnailProps {
 export function SkinModelThumbnail(props: SkinModelThumbnailProps): JSX.Element {
   return (
     <SkinModelThumbnailContent
-      key={`${props.cacheKey}:${props.sourceRevision ?? ''}:${getSkinPresentationRevision(props.weaponKey, props.previewRotation)}`}
+      key={`${props.cacheKey}:${props.sourceRevision ?? ''}:${getSkinPresentationRevision(props.weaponKey, props.previewRotation, props.previewHiddenTextures)}`}
       {...props}
     />
   )
@@ -84,6 +85,7 @@ function SkinModelThumbnailContent({
   modelPath,
   sourceRevision,
   previewRotation,
+  previewHiddenTextures,
   modelKey,
   fallback,
   className
@@ -93,7 +95,11 @@ function SkinModelThumbnailContent({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const releaseRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(true)
-  const presentationRevision = getSkinPresentationRevision(weaponKey, previewRotation)
+  const presentationRevision = getSkinPresentationRevision(
+    weaponKey,
+    previewRotation,
+    previewHiddenTextures
+  )
   const presentationCacheKey = `${cacheKey}:${sourceRevision ?? ''}:${presentationRevision}`
   const bundledPreview = bundledWeaponPreview(weaponKey, modelPath)
   const isStockModel = !skinId && /^(?:models\/)?p_[a-z0-9_]+\.mdl$/i.test(modelPath ?? '')
@@ -217,6 +223,7 @@ function SkinModelThumbnailContent({
           <ModelViewer
             key={presentationRevision}
             hideHandHelpers={isGrenadeWeapon(weaponKey)}
+            hiddenTextures={previewHiddenTextures}
             modelBuffer={modelBuffer}
             modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
             modelPath={

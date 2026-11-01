@@ -1,3 +1,4 @@
+import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
@@ -89,6 +90,8 @@ const isSkin = (value: unknown): value is Skin => {
   if (typeof value !== 'object' || value === null) return false
   const skin = value as Record<string, unknown>
   return (
+    (skin.previewHiddenTextures === undefined ||
+      isSkinPreviewHiddenTextures(skin.previewHiddenTextures)) &&
     (skin.previewRotation === undefined || isSkinPreviewRotation(skin.previewRotation)) &&
     typeof skin.id === 'string' &&
     typeof skin.gameVersion === 'string' &&

@@ -819,6 +819,7 @@ function LoadoutThumbnail({
         key={cacheKey}
         cacheKey={cacheKey}
         skinId={skinId}
+        previewHiddenTextures={equipped?.skin.previewHiddenTextures}
         previewRotation={equipped?.skin.previewRotation}
         modelPath={skinId ? undefined : defaultPlayerModelPath(weaponKey)}
         sourceRevision={

@@ -1,3 +1,4 @@
+import { skinHiddenTexturesRevision } from './skin-preview-hidden-textures.ts'
 import { skinPreviewRotation, type SkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { PaymentOrder, PaymentSnapshot } from './payments'
 
@@ -56,6 +57,7 @@ export interface Skin {
   attributionText: string
   viewModelPath: string | null
   playerModelPath: string | null
+  previewHiddenTextures?: string[]
   previewRotation?: SkinPreviewRotation
   worldModelPath: string | null
   actionSoundPath: string | null
@@ -73,9 +75,9 @@ export interface OwnedSkin {
 
 /** The backend preview endpoint serves the immutable player model path. */
 export const skinPreviewRevision = (
-  skin: Pick<Skin, 'playerModelPath' | 'previewRotation'>
+  skin: Pick<Skin, 'playerModelPath' | 'previewRotation' | 'previewHiddenTextures'>
 ): string =>
-  `${skin.playerModelPath ?? 'unavailable'}:rotation:${skinPreviewRotation(skin.previewRotation).join(',')}`
+  `${skin.playerModelPath ?? 'unavailable'}:rotation:${skinPreviewRotation(skin.previewRotation).join(',')}:hidden:${skinHiddenTexturesRevision(skin.previewHiddenTextures)}`
 
 export interface SkinResaleQuote {
   skinId: string
@@ -113,6 +115,7 @@ export interface LobbyLoadout {
 }
 
 export interface SkinGiftSkinChoice {
+  previewHiddenTextures?: string[]
   previewRotation?: SkinPreviewRotation
   id: string
   type: 'SKIN'

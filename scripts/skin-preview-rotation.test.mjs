@@ -81,3 +81,46 @@ test('HE thumbnails use closer framing and a different cache revision while othe
   assert.equal(presentation.getSkinCameraDistanceMultiplier('flashbang', 0.5), 1.25)
   assert.match(presentation.getSkinPresentationRevision('hegrenade'), /:z2:/)
 })
+
+const visibility = (
+  await load(
+    new URL('../src/renderer/src/libs/web-hlmv/lib/preview-mesh-visibility.ts', import.meta.url)
+  )
+).namespace
+const hidden = (
+  await load(new URL('../src/shared/skin-preview-hidden-textures.ts', import.meta.url))
+).namespace
+
+test('texture flags hide only the selected mesh, with case-insensitive exact matching', () => {
+  const model = {
+    meshes: [[[{ skinRef: 0 }, { skinRef: 1 }, { skinRef: 2 }]]],
+    skinRef: [2, 0, 1],
+    textures: [
+      { name: 'pumpkin_tex.bmp' },
+      { name: 'pumpkin_stem.bmp' },
+      { name: 'Pumpkin_Light.bmp' }
+    ]
+  }
+  const selected = new Set(hidden.skinPreviewHiddenTextures(['PUMPKIN_LIGHT.BMP']))
+  assert.equal(visibility.previewMeshVisible(model, 0, 0, 0, selected), false)
+  assert.equal(visibility.previewMeshVisible(model, 0, 0, 1, selected), true)
+  assert.equal(visibility.previewMeshVisible(model, 0, 0, 2, selected), true)
+  assert.equal(visibility.previewMeshVisible(model, 0, 0, 0, new Set()), true)
+})
+test('texture-only edits invalidate cached previews while order and case do not', () => {
+  const base = { playerModelPath: 'models/16competitive/hegrenade/hash/p.mdl' }
+  const edited = { ...base, previewHiddenTextures: ['pumpkin_light.bmp'] }
+  assert.notEqual(skins.skinPreviewRevision(base), skins.skinPreviewRevision(edited))
+  assert.notEqual(
+    presentation.getSkinPresentationRevision('hegrenade'),
+    presentation.getSkinPresentationRevision('hegrenade', undefined, edited.previewHiddenTextures)
+  )
+  assert.equal(
+    hidden.skinHiddenTexturesRevision(['B', 'a']),
+    hidden.skinHiddenTexturesRevision(['A', 'b', 'a'])
+  )
+  for (const value of [null, [''], ['bad\0name'], ['x'.repeat(65)], Array(65).fill('x')]) {
+    assert.equal(hidden.isSkinPreviewHiddenTextures(value), false)
+    assert.deepEqual(Array.from(hidden.skinPreviewHiddenTextures(value)), [])
+  }
+})

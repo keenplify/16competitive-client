@@ -360,6 +360,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                             skinId={choice.skinId}
                             modelKey={choice.skinId}
                             weaponKey={choice.weaponKey}
+                            previewHiddenTextures={choice.previewHiddenTextures}
                             previewRotation={choice.previewRotation}
                             fallback={
                               <span className="text-xs text-neutral-500">

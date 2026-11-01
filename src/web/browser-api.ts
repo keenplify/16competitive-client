@@ -1,3 +1,4 @@
+import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
 import {
@@ -644,7 +645,10 @@ const skins = {
     const data = await authenticatedGet<Skin[]>('/skins/store')
     if (
       data.some(
-        (skin) => skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation)
+        (skin) =>
+          (skin.previewHiddenTextures !== undefined &&
+            !isSkinPreviewHiddenTextures(skin.previewHiddenTextures)) ||
+          (skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation))
       )
     )
       throw new Error('Invalid skin preview rotation')
@@ -656,7 +660,9 @@ const skins = {
     if (
       items.some(
         ({ skin }) =>
-          skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation)
+          (skin.previewHiddenTextures !== undefined &&
+            !isSkinPreviewHiddenTextures(skin.previewHiddenTextures)) ||
+          (skin.previewRotation !== undefined && !isSkinPreviewRotation(skin.previewRotation))
       )
     )
       throw new Error('Invalid skin preview rotation')

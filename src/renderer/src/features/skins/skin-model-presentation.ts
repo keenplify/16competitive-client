@@ -1,3 +1,4 @@
+import { skinHiddenTexturesRevision } from '../../../../shared/skin-preview-hidden-textures'
 import { skinPreviewRotation } from '../../../../shared/skin-preview-rotation'
 import { characterAnimationLabels } from '../party/character-animation'
 import { isGrenadeWeapon } from './weapon-categories'
@@ -126,9 +127,13 @@ export const getSkinPresentationRotation = (
  * Including this in the thumbnail/model key makes presentation tweaks refresh
  * immediately instead of reusing an image captured with older camera values.
  */
-export const getSkinPresentationRevision = (weaponKey: string, offset?: unknown): string => {
+export const getSkinPresentationRevision = (
+  weaponKey: string,
+  offset?: unknown,
+  hiddenTextures?: unknown
+): string => {
   const zoom = getSkinCameraDistanceMultiplier(weaponKey, 1)
   const rotation = getSkinPresentationRotation(weaponKey, offset).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
-  return `${isCharacterModel(weaponKey) ? 'character-armed-v4' : isGrenadeWeapon(weaponKey) ? 'grenade-helpers-v2' : 'presentation-v6'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+  return `${isCharacterModel(weaponKey) ? 'character-armed-v4' : isGrenadeWeapon(weaponKey) ? 'grenade-helpers-v2' : 'presentation-v6'}:${weaponKey}:z${zoom}:r${rotation}:t${target}:h${skinHiddenTexturesRevision(hiddenTextures)}`
 }

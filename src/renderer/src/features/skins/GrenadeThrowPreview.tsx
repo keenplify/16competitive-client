@@ -200,6 +200,7 @@ export function GrenadeThrowPreview({
         >
           <ModelViewer
             hideHandHelpers
+            hiddenTextures={skin.previewHiddenTextures}
             modelBuffer={projectile}
             modelKey={`${skin.id}:projectile`}
             presentationRotation={rotation}

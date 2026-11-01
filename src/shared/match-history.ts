@@ -83,6 +83,7 @@ export interface MatchSurveySubmission {
 }
 
 export interface ProfileLoadoutSkin {
+  previewHiddenTextures?: string[]
   previewRotation?: SkinPreviewRotation
   equipped?: boolean
   id: string

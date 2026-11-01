@@ -1,8 +1,10 @@
-import { NF_CHROME } from '../const/constants'
 /* eslint-disable react-hooks/exhaustive-deps */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck bad types
 
+import { NF_CHROME } from '../const/constants'
+import { previewMeshVisible } from '../lib/preview-mesh-visibility'
+import { skinPreviewHiddenTextures } from '../../../../../shared/skin-preview-hidden-textures'
 import { resolveAnimationIndex } from '../../../features/party/character-animation'
 import * as React from 'react'
 import { ModelData, parseModelCached } from '../lib/modelDataParser'
@@ -122,6 +124,7 @@ const useAnimationFrame = function <T extends (...args: unknown[]) => void>(call
 
 type Props = {
   hideHandHelpers?: boolean
+  hiddenTextures?: readonly string[]
   modelBuffer: ArrayBuffer
   modelRootBoneRotation?: readonly [number, number, number]
   /** Optional static world-model companion, positioned in the primary model's coordinate space. */
@@ -377,10 +380,28 @@ export const Renderer = (props: Props): React.JSX.Element => {
     return createdController
   }, [initialSequenceIndex, meshes, meshesRenderData, modelData])
 
+  const hiddenTextures = React.useMemo(
+    // Automatic helper cleanup preserves shared face/glow materials, including
+    // previews that still carry older whole-texture hiding metadata.
+    () => new Set(skinPreviewHiddenTextures(props.hideHandHelpers ? [] : props.hiddenTextures)),
+    [props.hiddenTextures, props.hideHandHelpers]
+  )
+  const visibleMeshes = React.useMemo(
+    () =>
+      meshes.map((body, bodyIndex) =>
+        body.map((submodel, submodelIndex) =>
+          submodel.filter((_, meshIndex) =>
+            previewMeshVisible(modelData, bodyIndex, submodelIndex, meshIndex, hiddenTextures)
+          )
+        )
+      ),
+    [meshes, modelData, hiddenTextures]
+  )
+
   // Mesh container
   const container = React.useMemo(
-    () => createContainer(meshes, props.presentationRotation, props.firstPerson),
-    [meshes, props.presentationRotation, props.firstPerson]
+    () => createContainer(visibleMeshes, props.presentationRotation, props.firstPerson),
+    [visibleMeshes, props.presentationRotation, props.firstPerson]
   )
 
   // Renderer-native static fallback for legacy material/morph pipelines that
@@ -391,6 +412,10 @@ export const Renderer = (props: Props): React.JSX.Element => {
     meshesRenderData.forEach((bodyPart, bodyPartIndex) =>
       bodyPart.forEach((subModel, subModelIndex) =>
         subModel.forEach(({ geometryBuffers, uvMap, normalBuffers }, meshIndex) => {
+          if (
+            !previewMeshVisible(modelData, bodyPartIndex, subModelIndex, meshIndex, hiddenTextures)
+          )
+            return
           const sourcePosition = geometryBuffers[initialSequenceIndex][0]
           const geometry = new THREE.BufferGeometry()
           geometry.addAttribute(
@@ -576,6 +601,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     return fallback
   }, [
     initialSequenceIndex,
+    hiddenTextures,
     props.firstPerson,
     container,
     meshesRenderData,

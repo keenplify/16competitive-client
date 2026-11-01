@@ -22,6 +22,7 @@ export interface OperationTier {
   skin: {
     id: string
     name: string | null
+    previewHiddenTextures?: string[]
     previewRotation?: SkinPreviewRotation
     weaponKey: string | null
     description: string | null

@@ -1,3 +1,4 @@
+import { isSkinPreviewHiddenTextures } from './skin-preview-hidden-textures'
 import { isSkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { Skin, SkinCurrency } from './skins'
 
@@ -107,6 +108,8 @@ export function parseCollectionDetail(value: unknown): CollectionDetail {
   for (const value of r.items) {
     const item = record(value)
     if (
+      (item.previewHiddenTextures !== undefined &&
+        !isSkinPreviewHiddenTextures(item.previewHiddenTextures)) ||
       (item.previewRotation !== undefined && !isSkinPreviewRotation(item.previewRotation)) ||
       typeof item.id !== 'string' ||
       !collection.skinIds.includes(item.id) ||

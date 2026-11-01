@@ -741,6 +741,7 @@ export function SkinCardPreview({
         cacheKey={`skin-card:v3:${skin.id}`}
         skinId={skin.id}
         sourceRevision={skinPreviewRevision(skin)}
+        previewHiddenTextures={skin.previewHiddenTextures}
         previewRotation={skin.previewRotation}
         modelKey={skin.id}
         weaponKey={skin.weaponKey}
@@ -874,6 +875,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
             ) : model ? (
               <ModelViewer
                 hideHandHelpers={isGrenadeWeapon(skin.weaponKey)}
+                hiddenTextures={skin.previewHiddenTextures}
                 modelBuffer={model}
                 modelKey={skin.id}
                 sourceRevision={skinPreviewRevision(skin)}
