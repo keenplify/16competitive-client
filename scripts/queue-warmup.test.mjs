@@ -258,6 +258,38 @@ test('warmup uses its original region, preserves ranked search, and awaits clean
   assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
 })
 
+test('an explicit MR8 retry accepts the reserved session after process-exit cleanup', async () => {
+  const h = await harness()
+  await h.connection.createSocket('test-token', 'https://eu.invalid')
+  const socket = h.sockets[0]
+  const emit = (message) => socket.listeners.get('message')({ data: JSON.stringify(message) })
+  const roster = { ...found, mode: '5v5', region: 'eu', teams: { teamA: [], teamB: [] } }
+  const connection = { ...connect, joinToken: 'a'.repeat(32) }
+  try {
+    emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+    await h.connection.joinWarmup('5v5', ['de_dust2'])
+    emit(roster)
+    emit(connection)
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    h.connection.handleGameProcessExit('warmup', 0, null)
+    await h.connection.warmupCleanup
+    assert.equal(h.connection.cancelledMatchIds.has('warmup'), true)
+    await h.connection.joinWarmup('5v5', ['de_dust2'])
+    emit(roster)
+    emit(connection)
+    await h.connection.warmupLaunch
+    assert.equal(h.connection.warmupMatchId, 'warmup')
+    assert.equal(h.calls.filter(([type]) => type === 'launch').length, 2)
+    assert.equal(h.connection.cancelledMatchIds.has('warmup'), false)
+    assert.equal(h.connection.desiredMode, '5v5')
+    assert.deepEqual(h.connection.desiredMapIds, ['de_dust2'])
+  } finally {
+    h.connection.shutdown()
+    socket.close()
+  }
+})
+
 test('leaving during asset preparation suppresses a delayed warmup launch and stale recovery', async () => {
   const h = await harness()
   await h.connection.joinWarmup('arena', 'fy_pool_day')

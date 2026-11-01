@@ -526,6 +526,7 @@ class MatchmakingConnection {
   private warmupSuppressed = false
   private warmupSocket: WebSocket | null = null
   private warmupMatchId: string | null = null
+  private resumableWarmupMatchId: string | null = null
   private warmupApiUrl: string | null = null
   private warmupConnectingMatchId: string | null = null
   private readonly warmupMatchIds = new Set<string>()
@@ -548,15 +549,24 @@ class MatchmakingConnection {
     return this.warmupCleanup.then(() => {
       if (this.desiredMode !== '5v5' || this.warmupMatchId) throw new Error('Warmup is unavailable')
       this.warmupSuppressed = false
+      // MR8 keeps its server reservation after process-exit cleanup. An explicit
+      // retry may receive that same match ID rather than a newly created one.
+      if (
+        mode === '5v5' &&
+        this.resumableWarmupMatchId &&
+        !this.finishedMatchIds.has(this.resumableWarmupMatchId)
+      )
+        this.cancelledMatchIds.delete(this.resumableWarmupMatchId)
       this.warmupSocket = this.socket
       this.send({ type: 'join_warmup', mode, mapIds })
     })
   }
 
-  leaveWarmup(): Promise<void> {
+  leaveWarmup(reason = 'requested'): Promise<void> {
     this.warmupSuppressed = true
     const matchId = this.warmupMatchId
     const socket = this.warmupSocket
+    if (matchId) console.info('[QueueWarmup] leaving session', { matchId, reason })
     this.warmupMatchId = null
     this.warmupConnectingMatchId = null
     if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'leave_warmup' }))
@@ -592,6 +602,7 @@ class MatchmakingConnection {
         return
       }
       this.warmupMatchIds.add(message.matchId)
+      if (message.mode === '5v5') this.resumableWarmupMatchId = message.matchId
       this.warmupMatchId = message.matchId
       this.warmupSocket = socket
       this.warmupApiUrl = message.hostApiUrl
@@ -672,8 +683,15 @@ class MatchmakingConnection {
           })
         })
     } else if (message.type === 'match_cancelled' || message.type === 'match_finished') {
+      console.info('[QueueWarmup] server ended session', {
+        matchId: message.matchId,
+        event: message.type,
+        ...(message.type === 'match_cancelled' ? { reason: message.reason } : {})
+      })
+      if (message.type === 'match_finished' && this.resumableWarmupMatchId === message.matchId)
+        this.resumableWarmupMatchId = null
       if (this.warmupMatchId === message.matchId)
-        void this.leaveWarmup().catch((error) =>
+        void this.leaveWarmup('server-ended').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
       if (message.type === 'match_finished' && (message.publicFfa || message.mode === '5v5'))
@@ -1241,7 +1259,7 @@ class MatchmakingConnection {
     if (this.warmupMatchIds.has(matchId)) {
       this.notify({ type: 'game_process_exited', matchId, code, signal, whileQueued: true })
       if (this.warmupMatchId === matchId)
-        void this.leaveWarmup().catch((error) =>
+        void this.leaveWarmup('game-process-exited').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
       return
