@@ -218,8 +218,7 @@ export function CollectionPage() {
               setItem(null)
             }}
             onConfirm={() => {
-              if (item)
-                void state.buyItem(item.skin.id, item.currency).finally(() => setItem(null))
+              if (item) void state.buyItem(item.skin.id, item.currency).finally(() => setItem(null))
               else void state.buy()
             }}
           >
