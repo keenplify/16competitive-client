@@ -199,6 +199,7 @@ export function GrenadeThrowPreview({
           style={{ visibility: projectileVisible ? 'visible' : 'hidden' }}
         >
           <ModelViewer
+            hideHandHelpers
             modelBuffer={projectile}
             modelKey={`${skin.id}:projectile`}
             presentationRotation={rotation}

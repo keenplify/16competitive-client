@@ -1,3 +1,4 @@
+import { isGrenadeWeapon } from './weapon-categories'
 import type { SkinPreviewRotation } from '../../../../shared/skin-preview-rotation'
 import {
   characterWeaponAttachment,
@@ -215,6 +216,7 @@ function SkinModelThumbnailContent({
         (!skinId || modelBuffer) && (
           <ModelViewer
             key={presentationRevision}
+            hideHandHelpers={isGrenadeWeapon(weaponKey)}
             modelBuffer={modelBuffer}
             modelKey={`${modelKey ?? cacheKey}:${presentationRevision}`}
             modelPath={

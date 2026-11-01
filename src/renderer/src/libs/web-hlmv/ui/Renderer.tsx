@@ -120,6 +120,7 @@ const useAnimationFrame = function <T extends (...args: unknown[]) => void>(call
 }
 
 type Props = {
+  hideHandHelpers?: boolean
   modelBuffer: ArrayBuffer
   modelRootBoneRotation?: readonly [number, number, number]
   /** Optional static world-model companion, positioned in the primary model's coordinate space. */
@@ -299,7 +300,8 @@ export const Renderer = (props: Props): React.JSX.Element => {
         props.modelRootBoneRotation,
         props.firstPerson
           ? (model, sequence, frame) => calcRotations(model, sequence, frame, 0, true)
-          : undefined
+          : undefined,
+        props.hideHandHelpers && !props.firstPerson
       )
       console.info('[HLMV] Render data prepared', {
         milliseconds: Math.round(performance.now() - startedAt)
@@ -312,7 +314,13 @@ export const Renderer = (props: Props): React.JSX.Element => {
       })
       throw error
     }
-  }, [preparedSequences, modelData, props.modelRootBoneRotation, props.firstPerson])
+  }, [
+    preparedSequences,
+    modelData,
+    props.modelRootBoneRotation,
+    props.firstPerson,
+    props.hideHandHelpers
+  ])
 
   // Textures preparing
   const textures = React.useMemo(() => {

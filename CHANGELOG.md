@@ -3860,3 +3860,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Grenades now play their preparation animation before throwing. Hold left click to prepare, then release to throw.
 - Thrown grenades leave from the center during the throw animation, followed by the custom explosion and synchronized sound.
 - Enlarged HE grenade thumbnails while keeping the full model in frame.
+
+## v2026.1101.1 — 2026-11-01
+
+### Grenade previews
+
+- Automatically remove hand-reference boxes while preserving glowing eyes and mouth details.
+- Keep existing grenade models and preview rotations, without an admin hiding setting.

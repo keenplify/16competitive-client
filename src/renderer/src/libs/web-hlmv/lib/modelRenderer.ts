@@ -1,3 +1,4 @@
+import { filterPreviewHandHelpers } from './preview-hand-helpers'
 import THREE from './three'
 import { mat4 } from 'gl-matrix'
 import { ModelData } from './modelDataParser'
@@ -155,7 +156,8 @@ export const prepareRenderData = (
   modelData: ModelData,
   sequenceIndices?: readonly number[],
   rootBoneRotation?: readonly [number, number, number],
-  calculateBoneTransforms: typeof calcRotations = calcRotations
+  calculateBoneTransforms: typeof calcRotations = calcRotations,
+  hideHandHelpers = false
 ): MeshRenderData[][][] => {
   const startedAt = performance.now()
   const renderData: MeshRenderData[][][] = []
@@ -230,7 +232,7 @@ export const prepareRenderData = (
         const texture = modelData.textures[textureIndex]
 
         // Unpack faces of the mesh
-        const { vertices, uv, indices } = readFacesData(
+        const decodedFaces = readFacesData(
           triangles,
           sourceVertices,
           texture ?? {
@@ -238,6 +240,14 @@ export const prepareRenderData = (
             height: 1
           }
         )
+
+        const { vertices, uv, indices } = hideHandHelpers
+          ? filterPreviewHandHelpers(
+              decodedFaces,
+              modelData.vertBoneBuffer[bodyPartIndex][subModelIndex],
+              modelData.bones
+            )
+          : decodedFaces
 
         if (vertices.length === 0) {
           meshesWithoutFaces += 1

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
 import * as THREE from 'three'
+import * as previewHelpers from '../src/renderer/src/libs/web-hlmv/lib/preview-hand-helpers.ts'
 
 async function load(path, mocks = {}) {
   const context = vm.createContext({ Uint8Array, Uint8ClampedArray, console, performance })
@@ -91,6 +92,7 @@ const { createTexture, applyBoneTransforms } = await load(
   '../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts',
   {
     './three': { default: THREE },
+    './preview-hand-helpers': previewHelpers,
     './geometryBuilder': { readFacesData: () => {} },
     './geometryTransformer': { calcRotations: () => {} },
     '../const/constants': { NF_ADDITIVE: 32 }
@@ -144,6 +146,7 @@ test('bone validation preserves valid translation and leaves malformed or missin
 let decodedFrames = 0
 const { prepareRenderData } = await load('../src/renderer/src/libs/web-hlmv/lib/modelRenderer.ts', {
   './three': { default: THREE },
+  './preview-hand-helpers': previewHelpers,
   './geometryBuilder': {
     readFacesData: () => ({
       vertices: new Float32Array([1, 2, 3]),
@@ -179,4 +182,76 @@ test('interactive Draw, Idle and Slash frames coexist in one prepared dataset', 
   assert.deepEqual([...data.geometryBuffers[1][2].array], [13, 2, 3])
   assert.deepEqual([...data.geometryBuffers[0][1].array], [2, 2, 3])
   assert.equal(data.geometryBuffers[3].length, 1)
+})
+
+function boxFaces(includeBody = true) {
+  const points = [
+    [0, 0, 0],
+    [3, 0, 0],
+    [3, 1, 0],
+    [0, 1, 0],
+    [0, 0, 3],
+    [3, 0, 3],
+    [3, 1, 3],
+    [0, 1, 3],
+    [6, 0, 0],
+    [7, 0, 0],
+    [6, 1, 0]
+  ]
+  const triangles = [
+    [0, 2, 1],
+    [0, 3, 2],
+    [4, 5, 6],
+    [4, 6, 7],
+    [0, 1, 5],
+    [0, 5, 4],
+    [3, 7, 6],
+    [3, 6, 2],
+    [0, 4, 7],
+    [0, 7, 3],
+    [1, 2, 6],
+    [1, 6, 5]
+  ]
+  if (includeBody) triangles.push([8, 9, 10])
+  const indices = new Int16Array(triangles.flat())
+  return {
+    vertices: new Float32Array([...indices].flatMap((index) => points[index])),
+    uv: new Float32Array([...indices].flatMap((index) => [index / 16, 0.5])),
+    indices
+  }
+}
+const helperBones = [{ name: 'Bip01 R Hand' }, { name: 'Cylinder01' }]
+const helperBindings = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1])
+test('standalone hand helper removal preserves the lit weapon faces sharing its texture', () => {
+  const faces = boxFaces(),
+    original = faces.vertices.slice()
+  const filtered = previewHelpers.filterPreviewHandHelpers(faces, helperBindings, helperBones)
+  assert.deepEqual([...filtered.indices], [8, 9, 10])
+  assert.deepEqual([...filtered.uv], [...faces.uv.slice(-6)])
+  assert.deepEqual([...filtered.vertices], [...faces.vertices.slice(-9)])
+  assert.deepEqual(faces.vertices, original)
+})
+test('a genuine cube-shaped held weapon and non-hand geometry are never hidden', () => {
+  const onlyBox = boxFaces(false)
+  assert.equal(
+    previewHelpers.filterPreviewHandHelpers(onlyBox, helperBindings, helperBones),
+    onlyBox
+  )
+  const weapon = boxFaces()
+  assert.equal(
+    previewHelpers.filterPreviewHandHelpers(weapon, new Uint8Array(11).fill(1), helperBones),
+    weapon
+  )
+})
+test('open or irregular hand geometry remains visible', () => {
+  const open = boxFaces()
+  open.indices[0] = 1
+  assert.equal(previewHelpers.filterPreviewHandHelpers(open, helperBindings, helperBones), open)
+  const irregular = boxFaces()
+  for (let i = 0; i < irregular.indices.length; i++)
+    if (irregular.indices[i] === 6) irregular.vertices[i * 3] = 1.5
+  assert.equal(
+    previewHelpers.filterPreviewHandHelpers(irregular, helperBindings, helperBones),
+    irregular
+  )
 })

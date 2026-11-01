@@ -867,6 +867,7 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
               />
             ) : model ? (
               <ModelViewer
+                hideHandHelpers={isGrenadeWeapon(skin.weaponKey)}
                 modelBuffer={model}
                 modelKey={skin.id}
                 sourceRevision={skinPreviewRevision(skin)}

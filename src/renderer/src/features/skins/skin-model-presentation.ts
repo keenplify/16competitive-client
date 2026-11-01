@@ -130,5 +130,5 @@ export const getSkinPresentationRevision = (weaponKey: string, offset?: unknown)
   const zoom = getSkinCameraDistanceMultiplier(weaponKey, 1)
   const rotation = getSkinPresentationRotation(weaponKey, offset).join('-')
   const target = getSkinCameraTarget(weaponKey)?.join('-') ?? 'auto'
-  return `${isCharacterModel(weaponKey) ? 'character-armed-v3' : 'presentation-v5'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
+  return `${isCharacterModel(weaponKey) ? 'character-armed-v3' : isGrenadeWeapon(weaponKey) ? 'grenade-helpers-v1' : 'presentation-v5'}:${weaponKey}:z${zoom}:r${rotation}:t${target}`
 }
