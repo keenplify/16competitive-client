@@ -3886,3 +3886,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Community
 
 - Refreshed Discord invite links.
+
+## v2026.1101.4 — 2026-11-01
+
+### Store
+
+- Improved purchase confirmation formatting.
+- Fixed package scrolling.
+- Updated the purchase confirmation header.
