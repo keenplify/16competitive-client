@@ -1,4 +1,4 @@
-import { isSkinPreviewHiddenTextures } from './skin-preview-hidden-textures'
+import { isSkinPreviewHiddenTextures } from './skin-preview-hidden-textures.ts'
 import { isSkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { Skin, SkinCurrency } from './skins'
 
