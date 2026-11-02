@@ -1,3 +1,5 @@
+import { useProfileStore } from './profile.store'
+import { useMatchDetailsStore } from './match-details.store'
 import { create } from 'zustand'
 import { toast } from 'react-toastify'
 import { translate, useLanguageStore } from '../i18n/i18n'
@@ -10,6 +12,9 @@ export const useMatchDemoStore = create<MatchDemoState>((set, get) => ({
   preparing: null,
   watch: async (matchId) => {
     if (get().preparing) return
+    // Native modal dialogs otherwise place global toasts behind their backdrop.
+    useMatchDetailsStore.getState().close()
+    useProfileStore.getState().dismiss()
     const language = useLanguageStore.getState().language
     const id = toast.loading(translate(language, 'demo.preparing'), {
       style: { borderRadius: 0 },
