@@ -57,6 +57,7 @@ import { parseWebHelperCheckLink, parseWebHelperLink } from '../shared/web-helpe
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
 import { listAdminDemos, watchAdminDemo, watchMatchDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
+import { installLauncherDisplayScale, launcherZoomFactor } from './launcher-display-scale'
 import { appendFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -659,7 +660,8 @@ let selectedRendererEntry: string | undefined
 const packagedOutputPath = (...parts: string[]): string => join(app.getAppPath(), 'out', ...parts)
 
 function createWindow(): void {
-  const displayBounds = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  const displayBounds = display.bounds
 
   mainWindow = new BrowserWindow({
     x: displayBounds.x,
@@ -676,6 +678,7 @@ function createWindow(): void {
     title: installedAppIdentity.name,
     icon: installedAppIdentity.icon,
     webPreferences: {
+      zoomFactor: launcherZoomFactor(display.scaleFactor),
       preload: packagedOutputPath('preload', 'index.js'),
       contextIsolation: true,
       nodeIntegration: false,
@@ -687,6 +690,7 @@ function createWindow(): void {
     mainWindow?.setTitle(installedAppIdentity.name)
   })
   installWindowDiagnostics(mainWindow)
+  installLauncherDisplayScale(mainWindow, screen)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.setBounds(displayBounds)
