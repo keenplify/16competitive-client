@@ -3918,3 +3918,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Replay Processing
 
 - Replay progress notifications remain visible when leaving match dialogs.
+
+## v2026.1102.2 — 2026-11-03
+
+### Display scaling
+
+- Keep the original launcher layout when Windows display scaling is increased, including the welcome reward picker and map selection.
+- Keep reward choices and actions visible at 150% and 200% display scaling.
+- Fix an error that could appear when closing the launcher after a display scaling change.
