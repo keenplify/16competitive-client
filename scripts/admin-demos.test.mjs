@@ -28,6 +28,16 @@ async function fixture(options = {}) {
       requests.push(String(url))
       if (String(url).endsWith('demo-playback-permission'))
         return new Response('{}', { status: options.busy ? 409 : 200 })
+      if (String(url).endsWith('/demo'))
+        return new Response(
+          JSON.stringify({
+            status: 'READY',
+            downloadUrl: options.evil
+              ? `https://evil.example/profile/matches/${id}/demo/file`
+              : `https://region.example/profile/matches/${id}/demo/file`
+          }),
+          { status: options.busy ? 409 : options.forbidden ? 404 : 200 }
+        )
       if (String(url).endsWith('/download'))
         return new Response(
           JSON.stringify({
@@ -52,7 +62,10 @@ async function fixture(options = {}) {
         argumentPrefix: ['-applaunch', '10', '-game', 'cstrike']
       })
     },
-    './matchmaking-regions': { getMatchmakingNodes: async () => [] },
+    './matchmaking-regions': {
+      getMatchmakingNodes: async () => [{ publicApiUrl: 'https://region.example' }],
+      resolvePreferredMatchmakingApiUrl: async () => 'https://region.example'
+    },
     './matchmaking': { matchmakingConnection: { isBusyForDemo: () => false } },
     'node:child_process': {
       spawn: (...args) => {
@@ -94,6 +107,7 @@ test('authorized demo download is validated, placed in cstrike, and passed as a 
     assert.equal(f.launched.length, 1)
     const args = f.launched[0][1]
     assert.equal(args.at(-2), '+viewdemo')
+    assert.doesNotMatch(args.at(-1), /[+-]/, 'GoldSrc treats +/- as startup command separators')
     assert.match(args.at(-1), /^16c_review_[a-f0-9-]+_[a-f0-9]{8}$/)
     assert.deepEqual(await readdir(join(f.directory, 'cstrike')), [args.at(-1) + '.dem'])
   } finally {
@@ -111,6 +125,31 @@ test('denies busy accounts, forbidden recordings, foreign download origins, and 
         f.requests.some((url) => url.startsWith('https://evil.example')),
         false
       )
+    } finally {
+      await f.cleanup()
+    }
+  }
+})
+
+test('match-history replay uses regional authorization and opens the game directly', async () => {
+  const f = await fixture()
+  try {
+    await f.api.watchMatchDemo(id)
+    assert.equal(f.launched.length, 1)
+    assert.equal(f.launched[0][1].at(-2), '+viewdemo')
+    assert.ok(f.requests.every((url) => url.startsWith('https://region.example/profile/matches/')))
+    assert.equal(f.requests.filter((url) => url.endsWith('/demo')).length, 3)
+  } finally {
+    await f.cleanup()
+  }
+})
+test('match replay refuses expired/unauthorized, busy, unsafe and corrupt recordings', async () => {
+  for (const options of [{ forbidden: true }, { busy: true }, { evil: true }, { invalid: true }]) {
+    const f = await fixture(options)
+    try {
+      await assert.rejects(f.api.watchMatchDemo(id))
+      assert.equal(f.launched.length, 0)
+      assert.deepEqual(await readdir(join(f.directory, 'cstrike')), [])
     } finally {
       await f.cleanup()
     }

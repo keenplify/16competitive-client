@@ -1,3 +1,4 @@
+import { useMatchContextMenu } from './use-match-context-menu'
 import { useProfileModeLabel } from './useProfileModeLabel'
 import { useMatchDetailsStore } from './match-details.store'
 import { twMerge } from 'tailwind-merge'
@@ -5,6 +6,7 @@ import type { JSX } from 'react'
 import type { PlayerProfile } from '../../../../shared/match-history'
 import { useTranslation } from '../i18n/i18n'
 export function ProfileHistory({ profile }: { profile: PlayerProfile }): JSX.Element {
+  const matchMenu = useMatchContextMenu()
   const { t, language } = useTranslation()
   const modeLabel = useProfileModeLabel()
   return (
@@ -41,11 +43,16 @@ export function ProfileHistory({ profile }: { profile: PlayerProfile }): JSX.Ele
               </thead>
               <tbody>
                 {profile.recentMatches.map((match) => (
-                  <tr key={match.id} className="border-b border-white/10 last:border-0">
+                  <tr
+                    key={match.id}
+                    onContextMenu={(event) => matchMenu.onContextMenu(event, match.id)}
+                    className="border-b border-white/10 last:border-0"
+                  >
                     <th scope="row" className="px-4 py-4 font-medium">
                       <button
                         type="button"
                         className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                        onKeyDown={(event) => matchMenu.onKeyDown(event, match.id)}
                         onClick={() => void useMatchDetailsStore.getState().open(match.id)}
                       >
                         {match.mapId}
@@ -80,6 +87,7 @@ export function ProfileHistory({ profile }: { profile: PlayerProfile }): JSX.Ele
           )}
         </div>
       </section>
+      {matchMenu.menu}
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import { getSavedCs16Executable } from './game/game-settings'
 import { resolveCs16LaunchTarget } from './game/cs16-installation'
-import { getMatchmakingNodes } from './matchmaking-regions'
+import { resolvePreferredMatchmakingApiUrl, getMatchmakingNodes } from './matchmaking-regions'
 import { matchmakingConnection } from './matchmaking'
 import type { AdminDemoList } from '../shared/admin-demos'
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
@@ -54,28 +54,59 @@ export async function listAdminDemos(page: unknown): Promise<AdminDemoList | nul
 }
 let watching = false
 export async function watchAdminDemo(id: unknown): Promise<void> {
+  return watchDemo(id, 'admin')
+}
+export async function watchMatchDemo(id: unknown): Promise<void> {
+  return watchDemo(id, 'match')
+}
+async function watchDemo(id: unknown, kind: 'admin' | 'match'): Promise<void> {
   if (typeof id !== 'string' || !uuid.test(id)) throw new Error('Invalid recording ID')
   if (watching) throw new Error('A demo is already being prepared.')
   const ensureIdle = (): void => {
     if (matchmakingConnection.isBusyForDemo())
-      throw new Error('Leave matchmaking and finish your current match before watching a demo.')
+      throw new Error(
+        kind === 'match'
+          ? 'MATCH_DEMO_BUSY'
+          : 'Leave matchmaking and finish your current match before watching a demo.'
+      )
   }
   ensureIdle()
   watching = true
   let temporary: string | undefined
   try {
     const bearer = token()
+    const origin = kind === 'match' ? await resolvePreferredMatchmakingApiUrl() : API_BASE_URL
+    const infoPath =
+      kind === 'match'
+        ? `/profile/matches/${id}/demo`
+        : `/admin/anti-cheat/recordings/${id}/download`
+    const filePath =
+      kind === 'match'
+        ? `/profile/matches/${id}/demo/file`
+        : `/admin/anti-cheat/recordings/${id}/file`
+    const demoRequest = (path: string): Promise<Response> =>
+      fetch(new URL(path, origin), {
+        headers: { authorization: `Bearer ${bearer}` },
+        redirect: 'error',
+        signal: AbortSignal.timeout(15000)
+      })
     const checkPermission = async (): Promise<void> => {
-      const permission = await request('/admin/anti-cheat/demo-playback-permission', bearer)
+      const permission = await demoRequest(
+        kind === 'match' ? infoPath : '/admin/anti-cheat/demo-playback-permission'
+      )
       if (!permission.ok)
         throw new Error(
           permission.status === 409
-            ? 'Leave matchmaking and finish your match before watching a demo.'
-            : 'Administrator playback permission could not be verified.'
+            ? kind === 'match'
+              ? 'MATCH_DEMO_BUSY'
+              : 'Leave matchmaking and finish your match before watching a demo.'
+            : kind === 'match'
+              ? 'MATCH_DEMO_UNAVAILABLE'
+              : 'Demo playback permission could not be verified.'
         )
     }
     await checkPermission()
-    const response = await request(`/admin/anti-cheat/recordings/${id}/download`, bearer)
+    const response = await demoRequest(infoPath)
     if (!response.ok) throw new Error(`Demo access denied or unavailable (${response.status}).`)
     const info: unknown = await response.json()
     if (!object(info) || info.status !== 'READY' || typeof info.downloadUrl !== 'string')
@@ -91,16 +122,21 @@ export async function watchAdminDemo(id: unknown): Promise<void> {
       url.password ||
       url.search ||
       url.hash ||
-      url.pathname !== `/admin/anti-cheat/recordings/${id}/file` ||
+      url.pathname !== filePath ||
       (url.protocol !== 'https:' && url.origin !== new URL(API_BASE_URL).origin)
     )
       throw new Error('Untrusted recording download location')
     const configured = await getSavedCs16Executable()
-    if (!configured) throw new Error('Choose your Counter-Strike installation in Settings first.')
+    if (!configured)
+      throw new Error(
+        kind === 'match'
+          ? 'MATCH_DEMO_INSTALLATION'
+          : 'Choose your Counter-Strike installation in Settings first.'
+      )
     const executable = await realpath(configured)
     const target = await resolveCs16LaunchTarget(executable)
     const gameDirectory = await realpath(join(dirname(target.gameExecutable), 'cstrike'))
-    const name = `16c_review_${id}_${randomUUID().slice(0, 8)}`
+    const name = `16c_review_${id.replaceAll('-', '')}_${randomUUID().slice(0, 8)}`
     const destination = join(gameDirectory, `${name}.dem`)
     temporary = `${destination}.part`
     const download = await fetch(url, {

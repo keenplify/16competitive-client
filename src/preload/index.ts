@@ -285,6 +285,7 @@ const gameSettings: GameSettingsApi = {
 }
 
 const matchHistory: MatchHistoryApi = {
+  watchDemo: (matchId) => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.watchDemo, matchId),
   get: () => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.get),
   getSummary: (matchId) => ipcRenderer.invoke(MATCH_HISTORY_CHANNELS.getSummary, matchId),
   getPlayerProfile: (playerId) =>

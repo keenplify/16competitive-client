@@ -1,5 +1,6 @@
 import type { SkinPreviewRotation } from './skin-preview-rotation'
 export const MATCH_HISTORY_CHANNELS = {
+  watchDemo: 'match-history:watch-demo',
   get: 'match-history:get',
   getSummary: 'match-history:get-summary',
   getPlayerProfile: 'match-history:get-player-profile',
@@ -145,6 +146,7 @@ export interface PlayerProfile {
 }
 
 export interface MatchHistoryApi {
+  watchDemo?(matchId: string): Promise<void>
   get(): Promise<MatchHistoryEntry[]>
   getSummary(matchId: string): Promise<MatchSummary>
   getPlayerProfile(playerId: string): Promise<PlayerProfile>

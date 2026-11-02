@@ -831,6 +831,15 @@ catalogs and patterns; do not leave new English-only strings behind in Settings,
 matchmaking, or other screens. Keep technical identifiers, file paths, and game
 commands untranslated.
 
+### User-action promise feedback
+
+Every promise initiated by a user action must show toast feedback: a pending/processing
+toast while it runs, followed by a success toast when it completes or an error/declined
+toast when it is rejected, denied, or fails. Update the same toast where practical;
+never leave a pending toast unresolved. Explain actionable failure/decline reasons,
+internationalize every toast in all supported languages, and keep page layout stable.
+This applies to new and changed user actions, including context-menu actions.
+
 ### Layout Stability
 
 Prevent cumulative layout shift (CLS) in all renderer changes. Loading, pending, success, and error states must preserve the geometry of controls and surrounding content wherever practical.

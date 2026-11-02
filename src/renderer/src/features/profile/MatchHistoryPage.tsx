@@ -1,3 +1,4 @@
+import { useMatchContextMenu } from './use-match-context-menu'
 import { useEffect, useState, type JSX } from 'react'
 import type { MatchHistoryEntry } from '../../../../shared/match-history'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
@@ -5,6 +6,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useMatchDetailsStore } from './match-details.store'
 
 export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }): JSX.Element {
+  const matchMenu = useMatchContextMenu()
   const player = useAuthStore((state) => state.session?.player)
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -74,6 +76,8 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
                 key={match.id}
                 type="button"
                 className="grid w-full grid-cols-[1fr_0.8fr_0.8fr_0.7fr_0.8fr] gap-4 border-b border-white/10 px-5 py-4 text-left text-sm transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none last:border-0"
+                onContextMenu={(event) => matchMenu.onContextMenu(event, match.id)}
+                onKeyDown={(event) => matchMenu.onKeyDown(event, match.id)}
                 onClick={() => openSummary(match)}
               >
                 <span className="font-medium uppercase">
@@ -112,6 +116,7 @@ export function MatchHistoryPage({ showHeader = true }: { showHeader?: boolean }
             ))}
         </section>
       </div>
+      {matchMenu.menu}
     </main>
   )
 }

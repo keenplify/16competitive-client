@@ -1,8 +1,9 @@
+import { useMatchDemoStore } from './match-demo.store'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { ProfilePopupNavigation } from './ProfilePopupNavigation'
 import { useProfileModeLabel } from './useProfileModeLabel'
 import { useEffect, useRef, useState, type JSX } from 'react'
-import { LoaderCircle, UserPlus, UserRound } from 'lucide-react'
+import { Film, LoaderCircle, UserPlus, UserRound } from 'lucide-react'
 import { useMatchDetailsStore } from './match-details.store'
 import { useProfileStore } from './profile.store'
 import { useAuthStore } from '../auth/auth.store'
@@ -13,6 +14,8 @@ import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 
 export function MatchDetailsOverlay(): JSX.Element | null {
   const { id, summary, status, close, open } = useMatchDetailsStore()
+  const preparingDemo = useMatchDemoStore((state) => state.preparing)
+  const watchDemo = useMatchDemoStore((state) => state.watch)
   const accountId = useAuthStore((state) => state.session?.player.id)
   const friends = useFriendsStore((state) => state.friends)
   const busy = useFriendsStore((state) => state.actingPlayerId)
@@ -77,6 +80,23 @@ export function MatchDetailsOverlay(): JSX.Element | null {
               {summary ? `${modeLabel(summary.mode)} · ${summary.score}` : '—'}
             </p>
           </div>
+          {window.api.matchHistory.watchDemo && (
+            <Button
+              variant="secondary"
+              className="shrink-0 gap-2 rounded-none"
+              disabled={status !== 'ready' || Boolean(preparingDemo)}
+              aria-busy={preparingDemo === id}
+              title={t('demo.retention')}
+              onClick={() => void watchDemo(id)}
+            >
+              {preparingDemo === id ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Film className="size-4" aria-hidden />
+              )}
+              {t('demo.watch')}
+            </Button>
+          )}
         </header>
         <p className="min-h-8 py-1 text-sm text-neutral-300" role="status">
           {notice

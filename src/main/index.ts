@@ -55,7 +55,7 @@ import { registerDemoProtocol } from './demo-protocol'
 import { registerWebPlayProtocol } from './web-play-protocol'
 import { parseWebHelperCheckLink, parseWebHelperLink } from '../shared/web-helper-link'
 import { ADMIN_DEMO_CHANNELS } from '../shared/admin-demos'
-import { listAdminDemos, watchAdminDemo } from './admin-demos'
+import { listAdminDemos, watchAdminDemo, watchMatchDemo } from './admin-demos'
 import { app, dialog, shell, BrowserWindow, ipcMain, screen, type WebContents } from 'electron'
 import { appendFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'path'
@@ -1090,6 +1090,7 @@ app.whenReady().then(async () => {
     (_, roomId: unknown, playerId: unknown, host: unknown) =>
       kickCustomGameMember(roomId, playerId, host)
   )
+  ipcMain.handle(MATCH_HISTORY_CHANNELS.watchDemo, (_, matchId: unknown) => watchMatchDemo(matchId))
   ipcMain.handle(MATCH_HISTORY_CHANNELS.get, () => getMatchHistory())
   ipcMain.handle(MATCH_HISTORY_CHANNELS.getSummary, (_, matchId: unknown) =>
     getMatchSummary(matchId)
