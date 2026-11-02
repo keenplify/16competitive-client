@@ -3907,3 +3907,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed materials on held weapons.
 - Improved Windows installer detection.
+
+## v2026.1102.1 — 2026-11-02
+
+### Match History
+
+- Open match replays directly from the match-history context menu.
+- Receive clear feedback while replay actions are processing, succeeding, or failing.
+
+### Replay Processing
+
+- Replay progress notifications remain visible when leaving match dialogs.
