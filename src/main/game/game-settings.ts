@@ -79,11 +79,9 @@ const steamExecutableCandidates = (): string[] => {
       )
     ]
   }
-  return [
-    join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-    join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Half-Life', 'hl_linux'),
-    join(home, '.steam', 'steam', 'steamapps', 'common', 'Half-Life', 'hl.sh')
-  ]
+  return [join(home, '.steam', 'steam'), join(home, '.local', 'share', 'Steam')].flatMap((root) =>
+    executableNamesForPlatform().map((name) => join(root, 'steamapps', 'common', 'Half-Life', name))
+  )
 }
 
 /**
@@ -108,6 +106,15 @@ const STANDALONE_SCAN_LIMIT = 64
 
 const isGoldSrcInstallation = async (executable: string): Promise<boolean> => {
   if (!(await stat(executable).catch(() => null))?.isFile()) return false
+  // Linux can hand a Windows depot to Steam/Proton, but cannot spawn a
+  // standalone Windows executable directly. Keep that fallback Steam-only.
+  if (
+    process.platform !== 'win32' &&
+    basename(executable).toLowerCase() === 'hl.exe' &&
+    (process.platform !== 'linux' || classifyCs16Distribution(executable) !== 'steam')
+  ) {
+    return false
+  }
   if (
     process.platform === 'win32' &&
     basename(executable).toLowerCase() === 'cstrike.exe' &&
@@ -149,7 +156,11 @@ const executableNamesForPlatform = (): string[] =>
   // WaRzOnE needs its supported wrapper, NextClient uses cstrike.exe, and CS
   // Xtreme V6 has launcher.exe instead and continues to use hl.exe with its
   // installation-specific arguments.
-  process.platform === 'win32' ? [...WINDOWS_STANDALONE_EXECUTABLE_NAMES] : ['hl_linux', 'hl.sh']
+  process.platform === 'win32'
+    ? [...WINDOWS_STANDALONE_EXECUTABLE_NAMES]
+    : process.platform === 'linux'
+      ? ['hl_linux', 'hl.sh', 'hl.exe']
+      : ['hl_linux', 'hl.sh']
 
 const detectStandaloneExecutables = async (): Promise<string[]> => {
   const executableNames = executableNamesForPlatform()
@@ -175,8 +186,7 @@ const detectStandaloneExecutables = async (): Promise<string[]> => {
 const detectCs16Executable = async (): Promise<string | null> => {
   for (const candidate of steamExecutableCandidates()) {
     if (!isAbsolute(candidate)) continue
-    const metadata = await stat(candidate).catch(() => null)
-    if (metadata?.isFile()) return validateExecutable(candidate, true)
+    if (await isGoldSrcInstallation(candidate)) return validateExecutable(candidate, true)
   }
 
   for (const candidate of await detectStandaloneExecutables()) {
@@ -197,7 +207,12 @@ const validateExecutable = async (
   const executablePath = normalize(untrustedPath)
   const metadata = await stat(executablePath).catch(() => null)
   if (!metadata?.isFile()) throw new Error('The selected Counter-Strike executable was not found.')
-  if (ensureExecutable && process.platform !== 'win32' && (metadata.mode & 0o111) === 0) {
+  if (
+    ensureExecutable &&
+    process.platform !== 'win32' &&
+    basename(executablePath).toLowerCase() !== 'hl.exe' &&
+    (metadata.mode & 0o111) === 0
+  ) {
     await chmod(executablePath, metadata.mode | 0o111)
   }
   return executablePath

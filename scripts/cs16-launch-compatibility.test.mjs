@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { prepareMatchStartupBridge } from '../src/main/game/match-startup-bridge.ts'
@@ -167,5 +167,104 @@ test('NextClient preserves native identity and never receives startup exec or br
     await assert.rejects(stat(join(game, 'valve.rc')), { code: 'ENOENT' })
   } finally {
     await rm(root, { recursive: true, force: true })
+  }
+})
+
+async function loadInstallationChecks(home) {
+  const adapter = await loadAdapter('linux')
+  const source = await readFile('src/main/game/game-settings.ts', 'utf8')
+  const parsed = ts.createSourceFile('settings.ts', source, ts.ScriptTarget.Latest, true)
+  const names = [
+    'steamExecutableCandidates',
+    'isGoldSrcInstallation',
+    'executableNamesForPlatform',
+    'detectCs16Executable',
+    'validateExecutable',
+    'validateInstallationFolder'
+  ]
+  const declarations = parsed.statements.filter(
+    (node) =>
+      ts.isVariableStatement(node) &&
+      node.declarationList.declarations.some((decl) => names.includes(decl.name.getText(parsed)))
+  )
+  const code = ts.transpile(declarations.map((node) => node.getText(parsed)).join('\n'), {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2022
+  })
+  return new Function(
+    'stat',
+    'open',
+    'chmod',
+    'join',
+    'dirname',
+    'basename',
+    'isAbsolute',
+    'normalize',
+    'process',
+    'classifyCs16Distribution',
+    'detectStandaloneExecutables',
+    code + '\nreturn { detectCs16Executable, validateInstallationFolder };'
+  )(
+    stat,
+    open,
+    chmod,
+    join,
+    dirname,
+    basename,
+    isAbsolute,
+    normalize,
+    { platform: 'linux', env: { HOME: home } },
+    adapter.classifyCs16Distribution,
+    async () => []
+  )
+}
+
+test('Linux selects and detects a Proton Steam depot in .local/share/Steam', async () => {
+  const home = await mkdtemp(join(tmpdir(), '16c-proton-'))
+  try {
+    const directory = join(home, '.local/share/Steam/steamapps/common/Half-Life')
+    await mkdir(join(directory, 'cstrike'), { recursive: true })
+    const executable = join(directory, 'hl.exe')
+    await writeFile(executable, 'fixture', { mode: 0o600 })
+    await writeFile(join(directory, 'cstrike/liblist.gam'), 'version "1.6"\n')
+    const checks = await loadInstallationChecks(home)
+    assert.equal(await checks.detectCs16Executable(), executable)
+    assert.equal(await checks.validateInstallationFolder(directory + '/'), executable)
+    assert.equal(await checks.validateInstallationFolder(join(directory, 'cstrike')), executable)
+    assert.equal((await stat(executable)).mode & 0o111, 0)
+    const adapter = await loadAdapter('linux')
+    const target = await adapter.resolveCs16LaunchTarget(executable)
+    assert.equal(target.executable, 'steam')
+    assert.equal(target.gameExecutable, executable)
+    assert.equal(target.usesLauncherHandoff, true)
+    assert.deepEqual(Array.from(target.argumentPrefix), ['-applaunch', '10', '-game', 'cstrike'])
+
+    // Prefer the native depot when both executables are present.
+    await writeFile(join(directory, 'hl_linux'), 'fixture')
+    assert.equal(await checks.detectCs16Executable(), join(directory, 'hl_linux'))
+    assert.equal(await checks.validateInstallationFolder(directory), join(directory, 'hl_linux'))
+    await rm(join(directory, 'hl_linux'))
+    await rm(executable)
+    await writeFile(join(directory, 'hl.sh'), 'fixture')
+    assert.equal(await checks.detectCs16Executable(), join(directory, 'hl.sh'))
+
+    await writeFile(join(directory, 'cstrike/liblist.gam'), 'version "1.3"\n')
+    assert.equal(await checks.detectCs16Executable(), null)
+    await assert.rejects(checks.validateInstallationFolder(directory))
+  } finally {
+    await rm(home, { recursive: true, force: true })
+  }
+})
+
+test('Linux does not accept standalone Windows executables as native installations', async () => {
+  const home = await mkdtemp(join(tmpdir(), '16c-windows-depot-'))
+  try {
+    await mkdir(join(home, 'cstrike'))
+    await writeFile(join(home, 'hl.exe'), 'fixture')
+    await writeFile(join(home, 'cstrike/liblist.gam'), 'version "1.6"\n')
+    const checks = await loadInstallationChecks(home)
+    await assert.rejects(checks.validateInstallationFolder(home))
+  } finally {
+    await rm(home, { recursive: true, force: true })
   }
 })
