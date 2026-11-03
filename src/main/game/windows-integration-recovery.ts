@@ -1,6 +1,12 @@
+import { protonRecoveryCommand, type SteamProtonRuntime } from './steam-proton'
+import {
+  readProtonRecoveryContext,
+  saveProtonRecoveryContext,
+  removeProtonRecoveryContext
+} from './proton-recovery-context'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { lstat, readFile, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { app } from 'electron'
 import { verifyPackagedHelper } from '../anticheat/helper-integrity'
@@ -18,34 +24,75 @@ async function runRecovery(
   root: string,
   descriptor: RecoveryDescriptor,
   mode: 'guard' | 'restore' | 'prepare-won',
-  runtime: CosmeticRuntime = 'native'
+  runtime: CosmeticRuntime = 'native',
+  proton?: SteamProtonRuntime
 ): Promise<void> {
   const wine = runtime === 'wine'
+  if (proton) await mkdir(proton.compatibilityDataPath, { recursive: true })
   const helperPath = wine ? fromWinePath(descriptor.helperPath) : descriptor.helperPath
   await verifyPackagedHelper(helperPath, undefined, wine)
   const helper = await readFile(helperPath)
   if (createHash('sha256').update(helper).digest('hex') !== descriptor.helperSha256)
     throw new Error('Cosmetic recovery helper changed')
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      wine ? 'wine' : helperPath,
-      [
-        ...(wine ? [helperPath] : []),
-        '--cosmetic-recovery',
-        wine ? toWinePath(root) : root,
-        descriptor.sessionId,
-        wine && mode === 'guard' ? '0' : String(process.pid),
-        wine && mode === 'guard' ? 'guard-lease' : mode
-      ],
-      {
-        detached: mode === 'guard',
-        windowsHide: true,
+  if (
+    proton &&
+    !(await stat(join(proton.compatibilityDataPath, 'pfx/system.reg')).catch(() => null))?.isFile()
+  ) {
+    // First-launch preparation uses Steam's selected Proton once. runinprefix
+    // then preserves the recovery helper's stdout instead of routing it through
+    // Proton's Steam game shim (which detaches the maintenance handshake).
+    const command = protonRecoveryCommand(proton, 'wineboot.exe', ['--init'])
+    await new Promise<void>((resolve, reject) => {
+      const bootstrap = spawn(command.executable, ['run', 'wineboot.exe', '--init'], {
+        env: command.env,
         shell: false,
-        stdio: ['ignore', 'pipe', 'ignore']
-      }
-    )
+        stdio: 'ignore'
+      })
+      const timer = setTimeout(() => {
+        bootstrap.kill()
+        reject(new Error('Steam Proton prefix preparation timed out'))
+      }, 60_000)
+      bootstrap.once('error', (error) => {
+        clearTimeout(timer)
+        reject(error)
+      })
+      bootstrap.once('exit', (code) => {
+        clearTimeout(timer)
+        if (code === 0) resolve()
+        else reject(new Error(`Steam Proton prefix preparation failed (${code})`))
+      })
+    })
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const args = [
+      '--cosmetic-recovery',
+      wine ? toWinePath(root) : root,
+      descriptor.sessionId,
+      wine && mode === 'guard' ? '0' : String(process.pid),
+      wine && mode === 'guard' ? 'guard-lease' : mode
+    ]
+    const command =
+      wine && proton
+        ? protonRecoveryCommand(proton, helperPath, args)
+        : {
+            executable: wine ? 'wine' : helperPath,
+            args: [...(wine ? [helperPath] : []), ...args],
+            env: process.env
+          }
+    const child = spawn(command.executable, command.args, {
+      env: command.env,
+      detached: mode === 'guard',
+      windowsHide: true,
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
     let ready = false
     let output = ''
+    let diagnostic = ''
+    child.stderr?.on('data', (bytes: Buffer) => {
+      diagnostic = (diagnostic + bytes.toString('utf8')).slice(-4096)
+    })
     const timer = setTimeout(
       () => {
         child.kill()
@@ -67,6 +114,7 @@ async function runRecovery(
         ready = true
         clearTimeout(timer)
         child.stdout?.destroy()
+        child.stderr?.destroy()
         child.unref()
         resolve()
       }
@@ -75,7 +123,12 @@ async function runRecovery(
       clearTimeout(timer)
       if (ready) return
       if (mode !== 'guard' && code === 0) resolve()
-      else reject(new Error('Cosmetic recovery helper could not complete restoration'))
+      else
+        reject(
+          new Error(
+            `Cosmetic recovery helper could not complete restoration (exit ${code}): ${diagnostic.trim()}`
+          )
+        )
     })
   })
 }
@@ -86,7 +139,8 @@ export async function armWindowsIntegrationRecovery(
   helperPath: string,
   runtime: CosmeticRuntime = 'native',
   gameDirectory: GoldSrcModDirectory = 'cstrike',
-  authFile?: RecoveryDescriptor['authFile']
+  authFile?: RecoveryDescriptor['authFile'],
+  proton?: SteamProtonRuntime
 ): Promise<RecoveryDescriptor> {
   const descriptor: RecoveryDescriptor = {
     helperPath: runtime === 'wine' ? toWinePath(helperPath) : helperPath,
@@ -99,9 +153,12 @@ export async function armWindowsIntegrationRecovery(
   }
   await writeFile(descriptorPath(root), JSON.stringify(descriptor), { flag: 'wx', mode: 0o600 })
   try {
-    await runRecovery(root, descriptor, 'guard', runtime)
+    if (proton)
+      await saveProtonRecoveryContext(app.getPath('userData'), root, descriptor.sessionId, proton)
+    await runRecovery(root, descriptor, 'guard', runtime, proton)
   } catch (error) {
     await rm(descriptorPath(root), { force: true })
+    if (proton) await removeProtonRecoveryContext(app.getPath('userData'), root)
     throw error
   }
   return descriptor
@@ -119,14 +176,18 @@ export async function prepareWonIntegration(
  * Windows mutex. Keep legacy journals on their existing recovery path. */
 export async function restoreWindowsIntegration(
   root: string,
-  runtime: CosmeticRuntime = 'native'
+  runtime: CosmeticRuntime = 'native',
+  proton?: SteamProtonRuntime
 ): Promise<boolean> {
   const path = descriptorPath(root)
   const entry = await lstat(path).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return null
     throw error
   })
-  if (!entry) return false
+  if (!entry) {
+    if (runtime === 'wine') await removeProtonRecoveryContext(app.getPath('userData'), root)
+    return false
+  }
   if (!entry.isFile() || entry.isSymbolicLink() || entry.size > 4096)
     throw new Error('Invalid cosmetic recovery descriptor')
   const contents = await readFile(path, 'utf8')
@@ -172,6 +233,11 @@ export async function restoreWindowsIntegration(
     (path) => verifyPackagedHelper(path, undefined, runtime === 'wine'),
     runtime === 'wine' ? toWinePath(currentHelperPath) : currentHelperPath
   )
-  await runRecovery(root, currentDescriptor, 'restore', runtime)
+  const savedProton =
+    runtime === 'wine'
+      ? await readProtonRecoveryContext(app.getPath('userData'), root, currentDescriptor.sessionId)
+      : undefined
+  await runRecovery(root, currentDescriptor, 'restore', runtime, savedProton ?? proton)
+  if (savedProton || proton) await removeProtonRecoveryContext(app.getPath('userData'), root)
   return true
 }

@@ -1,3 +1,4 @@
+import type { SteamProtonRuntime } from './steam-proton'
 import { encodeHudFrame } from './hud-frame'
 import { beginGamePerformance, captureGamePerformance } from './game-performance'
 import { createStandaloneRestartHandoff } from './standalone-restart'
@@ -320,6 +321,7 @@ export class ScoreboardOverlaySession {
     compatibility?: {
       gameDirectory: GoldSrcModDirectory
       runtime: CosmeticRuntime
+      proton?: SteamProtonRuntime
       authFile?: { name: string; sha256: string }
     },
     partnerUi?: { serverId: string; connectionId: string; pages: PartnerUiPage[] }
@@ -403,7 +405,8 @@ export class ScoreboardOverlaySession {
             gameRoot!,
             compatibility?.gameDirectory,
             compatibility?.runtime,
-            compatibility?.authFile
+            compatibility?.authFile,
+            compatibility?.proton
           )
       : null
     if (windowsProxy && !windowsInstallation) {
@@ -461,13 +464,13 @@ export class ScoreboardOverlaySession {
       // the authenticated launch and reads this per-match session. It also
       // works for normal Steam launches: without an active session it simply
       // executes Valve's original command.
-      await writeFile(
-        join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'),
-        buildSteamScoreboardWrapper(directory, modulePath),
-        {
-          mode: 0o700
-        }
-      )
+      if (!wine) {
+        await writeFile(
+          join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'),
+          buildSteamScoreboardWrapper(directory, modulePath),
+          { mode: 0o700 }
+        )
+      }
       const requireResource = createRequire(import.meta.url)
       const { readSnapshot, parseSnapshot } = requireResource(
         join(assets, 'scoreboard-feed.cjs')

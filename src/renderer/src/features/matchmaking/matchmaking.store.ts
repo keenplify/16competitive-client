@@ -217,6 +217,9 @@ const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Matchmaking request failed.'
   if (error.message === 'WEB_STEAM_CREDENTIALS_UNSUPPORTED')
     return translate(useLanguageStore.getState().language, 'webHelper.steamCredentialFallback')
+  const key = error.message.replace(/^.*Error: /, '')
+  if (key === 'match.proton.runtimeUnavailable' || key === 'match.proton.gameUnavailable')
+    return translate(useLanguageStore.getState().language, key)
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
 }
@@ -744,6 +747,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? { gameExited: true }
             : {}),
           error:
+            event.message === 'match.proton.runtimeUnavailable' ||
+            event.message === 'match.proton.gameUnavailable' ||
             event.message === 'match.assets.storageDenied' ||
             event.message === 'legacy.error.installationRequired' ||
             event.message === 'legacy.error.invalidInstallation' ||

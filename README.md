@@ -21,7 +21,7 @@ Available modes, maps, rewards, and regional capacity are controlled by the
 platform and may change during the alpha.
 
 - **Matchmaking:** competitive 5v5, with additional modes such as Unrated, Legacy,
-3v3, FFA, and Arena when enabled. Follow queue status, accept ready checks,
+  3v3, FFA, and Arena when enabled. Follow queue status, accept ready checks,
   and reconnect to active matches.
 - **Parties and friends:** invite teammates, chat, and queue together.
 - **Profiles and rankings:** view MMR, match history, results, and leaderboards.
@@ -65,6 +65,11 @@ Managed sessions can provide a custom scoreboard, HUD, teammate indicators,
 player pings, and crosshair controls where the game installation and packaged
 native module support them. Availability depends on the platform, game build,
 and matching server and helper versions.
+
+On Linux, native Steam launches use the Linux module. When Steam explicitly selects
+Proton, the launcher uses the signed Windows proxy and the selected Proton version
+in app 10’s library-specific prefix. Recovery retains that prefix across launcher
+updates and runtime-setting changes. Steam compatibility preferences are preserved.
 
 The crosshair editor imports current CS2 `CS…` share codes and converts older
 `CSGO-…` codes using the MIT-licensed
