@@ -3932,3 +3932,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux Support
 
 - Improved detection of Counter-Strike 1.6 installations through Steam Proton on Linux.
+
+## v2026.1103.1 — 2026-11-03
+
+### Stability
+
+- Prevented unsupported model previews from crashing launcher screens.
