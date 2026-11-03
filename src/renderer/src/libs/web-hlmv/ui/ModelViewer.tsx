@@ -1,6 +1,7 @@
 import { useEffect, useState, type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Renderer, type ModelViewerCamera } from './Renderer'
+import { parseModelCached } from '../lib/modelDataParser'
 
 type ModelViewerProps = {
   /** Model bytes obtained through a narrow, authenticated API. */
@@ -134,11 +135,15 @@ export function ModelViewer({
 
     void modelRequest
       .then((buffer) => {
+        if (abortController.signal.aborted) return
+        // Parse inside the load promise so unsupported local/custom models use
+        // the preview fallback instead of reaching the screen error boundary.
+        parseModelCached(buffer)
         setLoadedModel({ sourceKey: requestedSourceKey, buffer })
         setFailedSource(null)
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (abortController.signal.aborted) {
           return
         }
 
@@ -161,7 +166,10 @@ export function ModelViewer({
     void window.api.models
       .read(attachedModelPath)
       .then((buffer) => {
-        if (!cancelled) setAttachedModel({ sourceKey: requestedSourceKey, buffer })
+        if (cancelled) return
+        parseModelCached(buffer)
+        setAttachedModel({ sourceKey: requestedSourceKey, buffer })
+        setFailedAttachment(null)
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -181,7 +189,8 @@ export function ModelViewer({
 
   return (
     <div className={twMerge('relative h-full w-full overflow-hidden', className)}>
-      {loadedModel?.sourceKey === sourceKey &&
+      {failedSource !== sourceKey &&
+        loadedModel?.sourceKey === sourceKey &&
         (!attachedSourceKey ||
           attachedModel?.sourceKey === attachedSourceKey ||
           failedAttachment === attachedSourceKey) && (

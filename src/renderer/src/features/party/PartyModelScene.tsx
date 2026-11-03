@@ -292,24 +292,29 @@ const DEFAULT_LOBBY_WEAPON_KEY = 'ak47'
 const loadLobbyWeapon = async (
   actor: PartySceneActor
 ): Promise<{ actor: PartySceneActor; weaponBuffer: ArrayBuffer | null }> => {
+  const readWeapon = async (read: () => Promise<ArrayBuffer>): Promise<ArrayBuffer> => {
+    const buffer = await read()
+    parseModelCached(buffer)
+    return buffer
+  }
   if (actor.forceWeaponSkinPreview && actor.weaponSkinId) {
     try {
       return {
         actor,
-        weaponBuffer: await window.api.skins.previewModel(actor.weaponSkinId)
+        weaponBuffer: await readWeapon(() => window.api.skins.previewModel(actor.weaponSkinId!))
       }
     } catch {
       // Fall through to the local/stock weapon path when preview data is unavailable.
     }
   }
   try {
-    return { actor, weaponBuffer: await window.api.models.read(actor.weaponPath) }
+    return { actor, weaponBuffer: await readWeapon(() => window.api.models.read(actor.weaponPath)) }
   } catch {
     if (actor.weaponSkinId) {
       try {
         return {
           actor,
-          weaponBuffer: await window.api.skins.previewModel(actor.weaponSkinId)
+          weaponBuffer: await readWeapon(() => window.api.skins.previewModel(actor.weaponSkinId!))
         }
       } catch {
         // The skin may be unavailable to this account; use the stock fallback.
@@ -323,7 +328,9 @@ const loadLobbyWeapon = async (
     return {
       actor: fallbackActor,
       // No installation is a valid menu state: show the bundled character alone.
-      weaponBuffer: await window.api.models.read(DEFAULT_LOBBY_WEAPON_PATH).catch(() => null)
+      weaponBuffer: await readWeapon(() => window.api.models.read(DEFAULT_LOBBY_WEAPON_PATH)).catch(
+        () => null
+      )
     }
   }
 }

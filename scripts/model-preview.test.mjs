@@ -7,10 +7,20 @@ import ts from 'typescript'
 import * as THREE from 'three'
 import * as previewHelpers from '../src/renderer/src/libs/web-hlmv/lib/preview-hand-helpers.ts'
 
-async function load(path, mocks = {}) {
-  const context = vm.createContext({ Uint8Array, Uint8ClampedArray, console, performance })
+async function load(path, mocks = {}, globals = {}) {
+  const context = vm.createContext({
+    Uint8Array,
+    Uint8ClampedArray,
+    console,
+    performance,
+    ...globals
+  })
   const code = ts.transpileModule(await readFile(new URL(path, import.meta.url), 'utf8'), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 }
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ES2022,
+      jsx: ts.JsxEmit.ReactJSX
+    }
   }).outputText
   const module = new vm.SourceTextModule(code, { context })
   await module.link(async (name) => {
@@ -412,4 +422,104 @@ test('lobby fade preserves additive blending and its authored preview opacity', 
   lobby.setActorOpacity(group, 1)
   assert.equal(mesh.material.opacity, 0.8)
   assert.equal(mesh.geometry.getAttribute('normal'), undefined)
+})
+
+async function modelViewerHarness(read) {
+  const states = [],
+    effects = [],
+    errors = []
+  let index = 0
+  const renderer = () => null
+  const invalid = new ArrayBuffer(8)
+  const { ModelViewer } = await load(
+    '../src/renderer/src/libs/web-hlmv/ui/ModelViewer.tsx',
+    {
+      react: {
+        useState: (initial) => {
+          const slot = index++
+          if (!(slot in states)) states[slot] = initial
+          return [
+            states[slot],
+            (value) => {
+              states[slot] = value
+            }
+          ]
+        },
+        useEffect: (effect) => {
+          effects.push(effect)
+        }
+      },
+      './Renderer': { Renderer: renderer },
+      '../lib/modelDataParser': {
+        parseModelCached: (buffer) => {
+          if (buffer === invalid) throw new Error('Unsupported version of the MDL file')
+          return {}
+        }
+      }
+    },
+    { AbortController, window: { api: { models: { read } } } }
+  )
+  let props
+  const render = (input) => {
+    props = input ?? props
+    index = 0
+    effects.length = 0
+    return ModelViewer({
+      ...props,
+      onLoadError: (error) => errors.push(error),
+      fallback: 'fallback'
+    })
+  }
+  const start = () => effects.map((effect) => effect())
+  const flush = () => new Promise((resolve) => setImmediate(resolve))
+  const scene = (tree) => tree.props.children.flat().find((child) => child?.type === renderer)
+  return { invalid, render, start, flush, scene, errors }
+}
+
+test('unsupported primary MDL resolves to preview fallback without entering Renderer', async () => {
+  const h = await modelViewerHarness(() => Promise.resolve(h.invalid))
+  h.render({ modelPath: 'p_ak47.mdl' })
+  h.start()
+  await h.flush()
+  const tree = h.render()
+  assert.equal(h.scene(tree), undefined)
+  assert.equal(h.errors.length, 1)
+  assert.match(h.errors[0].message, /Unsupported version/)
+  assert.ok(tree.props.children.flat().some((child) => child?.props?.children === 'fallback'))
+})
+
+test('unsupported companion MDL keeps the valid primary model visible', async () => {
+  const valid = new ArrayBuffer(16)
+  const h = await modelViewerHarness((path) =>
+    Promise.resolve(path === 'weapon.mdl' ? h.invalid : valid)
+  )
+  h.render({ modelPath: 'player.mdl', attachedModelPath: 'weapon.mdl' })
+  h.start()
+  await h.flush()
+  const scene = h.scene(h.render())
+  assert.equal(scene.props.modelBuffer, valid)
+  assert.equal(scene.props.attachedModelBuffer, undefined)
+  assert.equal(h.errors.length, 0)
+})
+
+test('a stale model load cannot replace a newly selected preview or report its failure', async () => {
+  let finishOld
+  const valid = new ArrayBuffer(16)
+  const h = await modelViewerHarness((path) =>
+    path === 'old.mdl'
+      ? new Promise((resolve) => {
+          finishOld = resolve
+        })
+      : Promise.resolve(valid)
+  )
+  h.render({ modelPath: 'old.mdl' })
+  const cleanups = h.start()
+  cleanups.forEach((cleanup) => cleanup?.())
+  h.render({ modelPath: 'new.mdl' })
+  h.start()
+  await h.flush()
+  finishOld(h.invalid)
+  await h.flush()
+  assert.equal(h.scene(h.render()).props.modelBuffer, valid)
+  assert.equal(h.errors.length, 0)
 })
