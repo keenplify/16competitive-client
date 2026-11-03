@@ -4015,3 +4015,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### HUD
 
 - Hidden HUD focus is now disabled.
+
+## v2026.1103.10 — 2026-11-03
+
+### Matchmaking
+
+- Fixed ready-check activation on Linux.
+
+### Match Menu
+
+- Fixed match menu positioning.
