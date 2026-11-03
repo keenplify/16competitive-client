@@ -3995,3 +3995,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Added matchmaking support for the updated launch and recovery flow.
+
+## v2026.1103.8 — 2026-11-03
+
+### Startup
+
+- Improved Proton startup recovery reliability.
+
+### Interface
+
+- Improved consistency and spacing across in-game dialog windows.
