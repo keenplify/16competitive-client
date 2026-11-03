@@ -100,6 +100,11 @@ async function fixture({ game = false, alive = true, changed = false, tampered =
       timers.shift()?.()
       await flush()
     },
+    async exitGame() {
+      running = false
+      timers.shift()?.()
+      await flush()
+    },
     async stop() {
       owned = false
       timers.shift()?.()
@@ -109,12 +114,14 @@ async function fixture({ game = false, alive = true, changed = false, tampered =
 }
 const awaitCrypto = await import('node:crypto')
 
-test('does not keep Wine alive before Steam passes its startup barrier; arms only after hl.exe appears', async () => {
+test('keeps Wine idle before launch and during play, then restores after the game exits', async () => {
   const f = await fixture()
   assert.equal(f.calls.length, 0)
   await f.startGame()
+  assert.equal(f.calls.length, 0)
+  await f.exitGame()
   assert.equal(f.calls.length, 1)
-  assert.equal(f.calls[0][1].at(-1), 'guard-lease')
+  assert.equal(f.calls[0][1].at(-1), 'restore')
   assert.equal(f.calls[0][2].shell, false)
   assert.deepEqual(f.errors, [])
 })

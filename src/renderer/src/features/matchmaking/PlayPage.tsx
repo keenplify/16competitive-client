@@ -367,8 +367,13 @@ export function PlayPage({
             fallbackPreviewUrl={match ? localMapPreviews[match.mapId] : undefined}
           />
         )}
-        <div className="relative z-10 my-auto w-full max-w-5xl shrink-0">
-          <div className="text-center">
+        <div
+          className={twMerge(
+            'relative z-10 my-auto w-full max-w-5xl shrink-0',
+            queueStatus !== 'server_ready' && 'border border-white/15 bg-neutral-950 p-5 sm:p-8'
+          )}
+        >
+          <div className={twMerge('text-center', queueStatus !== 'server_ready' && 'min-h-56')}>
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
               {queueStatus === 'countdown'
                 ? 'All players ready'

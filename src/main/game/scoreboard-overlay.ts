@@ -166,6 +166,7 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private cardFrameWriting = false
   private stopped = false
+  private terminalMatch = false
   private readonly lease: SessionLease
   private lastSnapshot: Snapshot = null
   private feedAvailable = false
@@ -789,7 +790,7 @@ export class ScoreboardOverlaySession {
   }
 
   private scheduleRefresh(): void {
-    if (this.stopped || this.busy) return
+    if (this.stopped || this.terminalMatch || this.busy) return
     this.refreshTask = this.refresh().catch((error: unknown) =>
       console.warn('[Scoreboard] refresh failed', error)
     )
@@ -836,7 +837,7 @@ export class ScoreboardOverlaySession {
   }
 
   private async refresh(): Promise<void> {
-    if (this.stopped || this.busy) return
+    if (this.stopped || this.terminalMatch || this.busy) return
     this.busy = true
     try {
       const token = getSessionToken()
@@ -875,10 +876,22 @@ export class ScoreboardOverlaySession {
         }
       )
       // Only an authenticated match member receives 410 for a terminal match.
-      // Stop the HUD lifecycle instead of filing a false outage after shutdown.
+      // Revoke live data immediately, but keep the fixed session lease until
+      // game exit. Revoking ownership here makes the native module restart CS
+      // while the player is still viewing the final round/result screen.
       if (response.status === 410) {
-        console.info('[Scoreboard] match ended; stopping live HUD', { matchId: this.matchId })
-        this.stop()
+        console.info('[Scoreboard] match ended; stopping live feed until game exit', {
+          matchId: this.matchId
+        })
+        this.terminalMatch = true
+        this.feedAvailable = false
+        this.transportFeed = null
+        this.transportRevision = null
+        // Tab may display the last authenticated result without refreshing any
+        // live tactical data or extending its expiry.
+        if (this.timer) clearInterval(this.timer)
+        this.timer = null
+        await unlink(this.feedPath).catch(() => undefined)
         return
       }
       if (response.status === 401 || response.status === 403) {

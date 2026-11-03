@@ -2,7 +2,8 @@ import { protonRecoveryCommand, type SteamProtonRuntime } from './steam-proton'
 
 /** Host-side guard: Steam waits for the prefix to be idle before launching the
  * game. Starting a long-lived Wine helper first deadlocks that handoff. This
- * supervisor stays outside Wine until hl.exe exists, or recovery is necessary. */
+ * supervisor stays outside Wine for the session and invokes the approved
+ * restoration helper only when the game exits or ownership ends. */
 export const protonRecoveryGuardSource = String.raw`
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -33,12 +34,12 @@ async function gameRunning() {
   }
   return false;
 }
-async function run(mode) {
+async function runRestore() {
   if (!await ownsDescriptor()) return;
   const hash = crypto.createHash('sha256').update(await fs.readFile(options.helperPath)).digest('hex');
   if (hash !== options.helperSha256) throw new Error('Cosmetic recovery helper changed');
   const args = [...options.command.args];
-  args[args.length - 1] = mode;
+  args[args.length - 1] = 'restore';
   await new Promise((resolve, reject) => {
     const child = spawn(options.command.executable, args, {env: {...process.env, ELECTRON_RUN_AS_NODE: undefined}, shell:false, stdio:'ignore'});
     child.once('error', reject);
@@ -47,18 +48,19 @@ async function run(mode) {
 }
 (async () => {
   if (!await ownsDescriptor()) throw new Error('Recovery session changed');
+  const hash = crypto.createHash('sha256').update(await fs.readFile(options.helperPath)).digest('hex');
+  if (hash !== options.helperSha256) throw new Error('Cosmetic recovery helper changed');
   process.stdout.write('16c-recovery-ready\n');
   const deadline = Date.now() + 7200000;
+  let observedGame = false;
   while (await ownsDescriptor()) {
     const running = await gameRunning();
-    if (running) {
-      // Steam has passed its waitforexitandrun barrier. The approved Windows
-      // guard now watches the existing fixed ticket/heartbeat in this prefix.
-      await run('guard-lease');
-      return;
-    }
-    if (!alive(options.launcherPid) || Date.now() >= deadline) {
-      await run('restore');
+    if (running) observedGame = true;
+    // Keep the supervisor outside Wine even after launch. A long-lived Wine
+    // guard can outlive the game and keep Steam's prefix busy on the next play.
+    // The DLL still enforces the original fixed ticket/heartbeat and endpoint.
+    if ((!running && observedGame) || !alive(options.launcherPid) || Date.now() >= deadline) {
+      await runRestore();
       return;
     }
     await sleep(250);
@@ -80,7 +82,7 @@ export function protonRecoveryGuardCommand(
     wineRoot,
     sessionId,
     '0',
-    'guard-lease'
+    'restore'
   ])
   return {
     executable: process.execPath,

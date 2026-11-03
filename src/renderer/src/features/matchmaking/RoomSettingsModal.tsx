@@ -68,10 +68,18 @@ export function RoomSettingsModal({
       (candidate === room.mode || enabledModes.includes(candidate)) &&
       (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3')
   )
-  const selectedMode = modes.includes(mode) ? mode : (modes[0] ?? 'unrated')
+  const selectedMode = mode
+  const modeAvailable = modes.includes(mode)
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
   const allowsRoundTime = selectedMode !== 'ffa'
-  const roundTimeValid = !allowsRoundTime || !customRoundTime || (roundTime.trim() !== '' && Number.isFinite(Number(roundTime)) && Number(roundTime) >= 1 && Number(roundTime) <= 9 && Math.abs(Math.round(Number(roundTime) * 100) - Number(roundTime) * 100) <= 1e-8)
+  const roundTimeValid =
+    !allowsRoundTime ||
+    !customRoundTime ||
+    (roundTime.trim() !== '' &&
+      Number.isFinite(Number(roundTime)) &&
+      Number(roundTime) >= 1 &&
+      Number(roundTime) <= 9 &&
+      Math.abs(Math.round(Number(roundTime) * 100) - Number(roundTime) * 100) <= 1e-8)
   const moneyValid =
     !allowsMoney ||
     !customMoney ||
@@ -83,9 +91,8 @@ export function RoomSettingsModal({
       map.customModes.includes(selectedMode) ||
       (selectedMode === room.mode && map.id === room.mapId)
   )
-  const selectedMapId = availableMaps.some((map) => map.id === mapId)
-    ? mapId
-    : (availableMaps[0]?.id ?? '')
+  const selectedMapId = mapId
+  const mapAvailable = availableMaps.some((map) => map.id === selectedMapId)
 
   return (
     <>
@@ -112,7 +119,14 @@ export function RoomSettingsModal({
           className="grid gap-5 p-6"
           onSubmit={(event) => {
             event.preventDefault()
-            if (!saving && !disabled && selectedMapId && moneyValid && roundTimeValid)
+            if (
+              !saving &&
+              !disabled &&
+              modeAvailable &&
+              mapAvailable &&
+              moneyValid &&
+              roundTimeValid
+            )
               void save({
                 name: name.trim(),
                 mode: selectedMode,
@@ -142,8 +156,18 @@ export function RoomSettingsModal({
                 className={fieldClass}
                 value={selectedMode}
                 disabled={saving}
-                onChange={(event) => setMode(event.target.value as CustomGameMode)}
+                onChange={(event) => {
+                  const nextMode = event.target.value as CustomGameMode
+                  setMode(nextMode)
+                  if (!maps.some((map) => map.id === mapId && map.customModes.includes(nextMode)))
+                    setMapId(maps.find((map) => map.customModes.includes(nextMode))?.id ?? '')
+                }}
               >
+                {!modeAvailable && (
+                  <option value={mode} disabled>
+                    {t(`customRoom.mode.${mode}`)}
+                  </option>
+                )}
                 {modes.map((candidate) => (
                   <option key={candidate} value={candidate}>
                     {t(`customRoom.mode.${candidate}`)}
@@ -159,6 +183,11 @@ export function RoomSettingsModal({
                 onChange={(event) => setMapId(event.target.value)}
               >
                 {!availableMaps.length && <option value="">{t('legacy.customNoMaps')}</option>}
+                {selectedMapId && !mapAvailable && (
+                  <option value={selectedMapId} disabled>
+                    {selectedMapId}
+                  </option>
+                )}
                 {availableMaps.map((map) => (
                   <option key={map.id} value={map.id}>
                     {map.displayName}
@@ -214,16 +243,37 @@ export function RoomSettingsModal({
               </p>
             </div>
           )}
-          {allowsRoundTime && <div className="grid gap-2">
-            <label className="flex items-center gap-2 text-sm text-neutral-200">
-              <input type="checkbox" className="size-4 shrink-0 rounded-none accent-sky-400" checked={customRoundTime} disabled={saving} onChange={(event) => setCustomRoundTime(event.target.checked)} />
-              {t('customRoom.customRoundTime')}
-            </label>
-            <Field label={t('customRoom.roundTime')}>
-              <input type="number" className={fieldClass} min={1} max={9} step={0.01} required={customRoundTime} disabled={saving || !customRoundTime} value={customRoundTime ? roundTime : ''} onChange={(event) => setRoundTime(event.target.value)} aria-describedby="room-round-time-hint" />
-            </Field>
-            <p id="room-round-time-hint" className="min-h-5 text-xs text-neutral-400">{t('customRoom.roundTimeHint')}</p>
-          </div>}
+          {allowsRoundTime && (
+            <div className="grid gap-2">
+              <label className="flex items-center gap-2 text-sm text-neutral-200">
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 rounded-none accent-sky-400"
+                  checked={customRoundTime}
+                  disabled={saving}
+                  onChange={(event) => setCustomRoundTime(event.target.checked)}
+                />
+                {t('customRoom.customRoundTime')}
+              </label>
+              <Field label={t('customRoom.roundTime')}>
+                <input
+                  type="number"
+                  className={fieldClass}
+                  min={1}
+                  max={9}
+                  step={0.01}
+                  required={customRoundTime}
+                  disabled={saving || !customRoundTime}
+                  value={customRoundTime ? roundTime : ''}
+                  onChange={(event) => setRoundTime(event.target.value)}
+                  aria-describedby="room-round-time-hint"
+                />
+              </Field>
+              <p id="room-round-time-hint" className="min-h-5 text-xs text-neutral-400">
+                {t('customRoom.roundTimeHint')}
+              </p>
+            </div>
+          )}
           <div className="grid gap-2">
             <Field label={t('customRoom.password')}>
               <input
@@ -255,7 +305,13 @@ export function RoomSettingsModal({
               type="submit"
               className="min-w-40"
               disabled={
-                disabled || saving || !selectedMapId || !moneyValid || !roundTimeValid || name.trim().length < 3
+                disabled ||
+                saving ||
+                !modeAvailable ||
+                !mapAvailable ||
+                !moneyValid ||
+                !roundTimeValid ||
+                name.trim().length < 3
               }
               aria-busy={saving}
             >

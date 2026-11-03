@@ -25,3 +25,12 @@ test('native score merging preserves the authoritative bot identity and server l
   assert.equal(scoreboardLatency(merged.players[0], merged.showBotTags), 'BOT')
   assert.equal(scoreboardLatency(merged.players[1], merged.showBotTags), 30)
 })
+
+test('startup native zero ping retains measured server latency until the native cache fills', () => {
+  const snapshot = { players: [{ id: 1, name: 'Human', kills: 0, deaths: 0, ping: 188 }] }
+  const native = [{ id: 1, name: 'Human', kills: 1, deaths: 0, ping: 0 }]
+  const startup = mergeNativeScores(snapshot, native)
+  assert.equal(startup.players[0].ping, 188)
+  assert.equal(startup.players[0].kills, 1)
+  assert.equal(mergeNativeScores(startup, [{ ...native[0], ping: 192 }]).players[0].ping, 192)
+})

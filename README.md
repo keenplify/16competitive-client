@@ -70,6 +70,10 @@ On Linux, native Steam launches use the Linux module. When Steam explicitly sele
 Proton, the launcher uses the signed Windows proxy and the selected Proton version
 in app 10’s library-specific prefix. Recovery retains that prefix across launcher
 updates and runtime-setting changes. Steam compatibility preferences are preserved.
+Recovery supervision stays outside Wine during play and invokes the approved
+Windows restoration helper after game exit, so it does not keep Steam's prefix
+busy between matches. Native session tickets, heartbeat expiry, and server
+endpoint authorization remain enforced by the module.
 
 The crosshair editor imports current CS2 `CS…` share codes and converts older
 `CSGO-…` codes using the MIT-licensed

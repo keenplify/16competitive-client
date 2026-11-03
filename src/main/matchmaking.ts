@@ -61,7 +61,7 @@ const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_END_ATTENTION_DURATION_MS = 5_000
-const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
+const MATCH_RESULT_GRACE_PERIOD_MS = 10_000
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
@@ -1333,10 +1333,14 @@ class MatchmakingConnection {
     this.matchAttentionWindow = null
     this.restoreMatchWindowTopmost = false
 
-    // Fullscreen launchers can retain foreground/pointer ownership on Linux
-    // (including Proton) as well as Windows. Clear match attention and minimize
-    // once the launch succeeds, so clicking GoldSrc cannot raise the launcher.
-    // Match/queue notifications can still restore it when attention is needed.
+    // On Linux, minimizing a fullscreen Wayland launcher is insufficient when
+    // GoldSrc/Proton activates its X11 window: the compositor can raise the
+    // launcher again. Unmap it completely until a ready check or game exit.
+    if (process.platform === 'linux') {
+      window.flashFrame(false)
+      if (window.isVisible()) window.hide()
+      return
+    }
     if (!window.isMinimized()) window.minimize()
   }
 
@@ -1774,12 +1778,18 @@ class MatchmakingConnection {
         this.manualConnectionMatchId = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
-        this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
+        // Keep the game's final round/result screen visible during its grace
+        // period. Players already in the launcher can read the result there.
+        if (!isCounterStrikeActiveForMatch(parsed.matchId) && !this.cs13Matches.has(parsed.matchId))
+          this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
         const timer = setTimeout(
           () => {
             this.matchEndTimers.delete(parsed.matchId)
+            const superseded =
+              (this.lastConnection && this.lastConnection.matchId !== parsed.matchId) ||
+              (this.warmupMatchId && this.warmupMatchId !== parsed.matchId)
             this.closeGameForMatch(parsed.matchId)
-            this.focusLauncher()
+            if (!superseded) this.focusLauncher()
           },
           parsed.publicFfa ? 0 : MATCH_RESULT_GRACE_PERIOD_MS
         )
