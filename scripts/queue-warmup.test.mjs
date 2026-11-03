@@ -925,6 +925,10 @@ function launcherWindow() {
   const window = {
     isDestroyed: () => false,
     isMinimized: () => minimized,
+    isVisible: () => !minimized,
+    isFocused: () => false,
+    showInactive: () => calls.push('showInactive'),
+    flashFrame: (value) => calls.push(['flash', value]),
     isAlwaysOnTop: () => topmost,
     restore: () => {
       minimized = false
@@ -950,12 +954,15 @@ for (const platform of ['linux', 'win32']) {
     const h = await harness({ platform, window })
     try {
       h.connection.focusLauncher(true)
-      assert.equal(window.isAlwaysOnTop(), true)
-      assert.ok(h.connection.matchAttentionTimer)
+      assert.equal(window.isAlwaysOnTop(), platform === 'win32')
+      assert.equal(Boolean(h.connection.matchAttentionTimer), platform === 'win32')
       calls.length = 0
       h.calls.length = 0
       h.connection.yieldLauncherToGame()
-      assert.deepEqual(calls, [['topmost', false], 'minimize'])
+      assert.deepEqual(
+        calls,
+        platform === 'win32' ? [['topmost', false], 'minimize'] : ['minimize']
+      )
       assert.equal(h.connection.matchAttentionTimer, null)
       assert.equal(h.connection.matchAttentionWindow, null)
       assert.equal(h.connection.restoreMatchWindowTopmost, false)
@@ -1013,3 +1020,28 @@ test('Linux returns to the launcher after warmup exits, but ignores an old warmu
     h.connection.shutdown()
   }
 })
+
+for (const focused of [true, false]) {
+  test(`Linux ready attention avoids forced fullscreen stacking (focused=${focused})`, async () => {
+    const { window, calls } = launcherWindow()
+    window.isFocused = () => focused
+    for (const method of ['show', 'moveTop', 'setAlwaysOnTop']) {
+      window[method] = () => {
+        throw new Error(`Unsafe Linux attention: ${method}`)
+      }
+    }
+    const h = await harness({ platform: 'linux', window })
+    try {
+      h.connection.focusLauncher(true)
+      h.connection.focusLauncher(true)
+      assert.deepEqual(calls, focused ? [] : [['flash', true], 'focus', ['flash', true], 'focus'])
+      assert.equal(
+        h.calls.some(([type]) => type === 'app-focus'),
+        false
+      )
+      assert.equal(h.connection.matchAttentionTimer, null)
+    } finally {
+      h.connection.shutdown()
+    }
+  })
+}

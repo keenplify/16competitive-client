@@ -1276,6 +1276,18 @@ class MatchmakingConnection {
   private focusLauncher(urgent = false, attentionDurationMs = MATCH_ATTENTION_DURATION_MS): void {
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
+    if (process.platform === 'linux') {
+      // Re-stacking an already focused fullscreen X11 window can stall Electron
+      // until the user switches windows, blocking sockets and the ready deadline.
+      // Let the window manager handle activation; never force topmost/moveTop.
+      if (window.isMinimized()) window.restore()
+      if (!window.isVisible()) window.showInactive()
+      if (!window.isFocused()) {
+        if (urgent) window.flashFrame(true)
+        window.focus()
+      }
+      return
+    }
     if (window.isMinimized()) window.restore()
     window.show()
     if (urgent) {
