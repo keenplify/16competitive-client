@@ -1259,10 +1259,12 @@ class MatchmakingConnection {
   private handleGameProcessExit(matchId: string, code: number | null, signal: string | null): void {
     if (this.warmupMatchIds.has(matchId)) {
       this.notify({ type: 'game_process_exited', matchId, code, signal, whileQueued: true })
-      if (this.warmupMatchId === matchId)
+      if (this.warmupMatchId === matchId) {
+        this.focusLauncher()
         void this.leaveWarmup('game-process-exited').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
+      }
       return
     }
     markPostGameUpdateCheckPending()
@@ -1300,7 +1302,6 @@ class MatchmakingConnection {
   }
 
   private yieldLauncherToGame(): void {
-    if (process.platform !== 'win32') return
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
 
@@ -1320,10 +1321,10 @@ class MatchmakingConnection {
     this.matchAttentionWindow = null
     this.restoreMatchWindowTopmost = false
 
-    // The launcher is a real fullscreen Electron window on Windows. Leaving it
-    // visible behind GoldSrc can retain foreground/pointer ownership after the
-    // match-found attention window. Minimize it once the game process has
-    // successfully started; focusLauncher() restores it when the game exits.
+    // Fullscreen launchers can retain foreground/pointer ownership on Linux
+    // (including Proton) as well as Windows. Clear match attention and minimize
+    // once the launch succeeds, so clicking GoldSrc cannot raise the launcher.
+    // Match/queue notifications can still restore it when attention is needed.
     if (!window.isMinimized()) window.minimize()
   }
 

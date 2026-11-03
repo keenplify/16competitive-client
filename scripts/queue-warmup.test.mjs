@@ -8,7 +8,7 @@ import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-async function harness() {
+async function harness({ platform = 'linux', window = null } = {}) {
   const calls = [],
     events = [],
     sent = []
@@ -42,7 +42,7 @@ async function harness() {
   })
   const context = vm.createContext({
     console,
-    process: { platform: 'linux' },
+    process: { platform },
     URL,
     Map,
     Set,
@@ -104,7 +104,8 @@ async function harness() {
       calls.push(['close', id])
       if (activeMatch === id) activeMatch = null
     },
-    BrowserWindow: { fromWebContents: () => null },
+    BrowserWindow: { fromWebContents: () => window },
+    app: { focus: (options) => calls.push(['app-focus', options]) },
     discordPresence: {
       finishMatch: () => {},
       setInGame: () => {},
@@ -915,4 +916,100 @@ test('legacy untagged warmup failures release the pending state', async () => {
   store.getState().handleEvent({ type: 'error', code: 'WARMUP_FAILED', message: 'Unavailable' })
   assert.equal(store.getState().status, 'error')
   assert.equal(timers.size, 0)
+})
+
+function launcherWindow() {
+  const calls = []
+  let minimized = false,
+    topmost = false
+  const window = {
+    isDestroyed: () => false,
+    isMinimized: () => minimized,
+    isAlwaysOnTop: () => topmost,
+    restore: () => {
+      minimized = false
+      calls.push('restore')
+    },
+    show: () => calls.push('show'),
+    focus: () => calls.push('focus'),
+    moveTop: () => calls.push('moveTop'),
+    setAlwaysOnTop: (value) => {
+      topmost = value
+      calls.push(['topmost', value])
+    },
+    minimize: () => {
+      minimized = true
+      calls.push('minimize')
+    }
+  }
+  return { window, calls }
+}
+for (const platform of ['linux', 'win32']) {
+  test(`${platform} game handoff clears ready-check attention and releases the fullscreen launcher`, async () => {
+    const { window, calls } = launcherWindow()
+    const h = await harness({ platform, window })
+    try {
+      h.connection.focusLauncher(true)
+      assert.equal(window.isAlwaysOnTop(), true)
+      assert.ok(h.connection.matchAttentionTimer)
+      calls.length = 0
+      h.calls.length = 0
+      h.connection.yieldLauncherToGame()
+      assert.deepEqual(calls, [['topmost', false], 'minimize'])
+      assert.equal(h.connection.matchAttentionTimer, null)
+      assert.equal(h.connection.matchAttentionWindow, null)
+      assert.equal(h.connection.restoreMatchWindowTopmost, false)
+      assert.equal(window.isAlwaysOnTop(), false)
+      assert.equal(h.calls.length, 0, 'Handoff must not focus the app')
+      calls.length = 0
+      h.connection.yieldLauncherToGame()
+      assert.deepEqual(calls, [], 'Repeated handoffs must not raise or re-minimize the app')
+      h.connection.focusLauncher(true)
+      assert.equal(
+        window.isMinimized(),
+        false,
+        'A later ready check must still restore the launcher'
+      )
+      assert.ok(calls.includes('focus'))
+    } finally {
+      h.connection.yieldLauncherToGame()
+      h.connection.shutdown()
+    }
+  })
+}
+test('Linux bot warmup releases the launcher only after a successful game launch', async () => {
+  const { window, calls } = launcherWindow()
+  const h = await harness({ window })
+  try {
+    h.connection.handleWarmup(found, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    assert.deepEqual(calls, [])
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    assert.ok(h.calls.some(([type]) => type === 'launch'))
+    assert.deepEqual(calls, ['minimize'])
+    assert.equal(h.connection.desiredMode, '5v5')
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+test('Linux returns to the launcher after warmup exits, but ignores an old warmup exit during a new game', async () => {
+  const { window, calls } = launcherWindow()
+  const h = await harness({ window })
+  try {
+    h.connection.warmupMatchIds.add('warmup')
+    h.connection.warmupMatchId = 'warmup'
+    h.connection.yieldLauncherToGame()
+    h.connection.handleGameProcessExit('warmup', 0, null)
+    assert.equal(window.isMinimized(), false)
+    assert.ok(calls.includes('focus'))
+    await h.connection.warmupCleanup
+    calls.length = 0
+    h.connection.warmupMatchId = 'new-game'
+    h.connection.handleGameProcessExit('warmup', 0, null)
+    assert.deepEqual(calls, [])
+  } finally {
+    h.connection.shutdown()
+  }
 })

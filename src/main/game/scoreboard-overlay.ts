@@ -486,6 +486,7 @@ export class ScoreboardOverlaySession {
             frame: false,
             transparent: true,
             show: false,
+            focusable: false,
             webPreferences: {
               offscreen: true,
               preload: join(assets, 'preload.cjs'),
@@ -503,6 +504,7 @@ export class ScoreboardOverlaySession {
             frame: false,
             transparent: true,
             show: false,
+            focusable: false,
             webPreferences: {
               offscreen: true,
               preload: join(assets, 'preload.cjs'),
