@@ -3965,3 +3965,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Startup Experience
 
 - The PMGUARD splash screen now displays community logos in its header.
+
+## v2026.1103.5 — 2026-11-03
+
+### Character Preview
+
+- View a single character preview while managing your loadout.
+- Switch between team tabs above the loadout.
