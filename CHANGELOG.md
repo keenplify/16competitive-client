@@ -3953,3 +3953,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Improved launcher diagnostic reporting for troubleshooting.
+
+## v2026.1103.3 — 2026-11-03
+
+### Startup
+
+- Updated the startup splash with blue, single-line PMGUARD branding.
