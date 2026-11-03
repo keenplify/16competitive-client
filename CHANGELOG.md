@@ -3938,3 +3938,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Stability
 
 - Prevented unsupported model previews from crashing launcher screens.
+
+## v2026.1103.2 — 2026-11-03
+
+### PMGuard
+
+- Updated guard branding to PMGuard throughout the launcher.
+- Added refreshed Counter-Strike 1.6 splash and emblem assets.
+
+### Matchmaking
+
+- Improved recovery when joining a match fails.
+
+### Diagnostics
+
+- Improved launcher diagnostic reporting for troubleshooting.
