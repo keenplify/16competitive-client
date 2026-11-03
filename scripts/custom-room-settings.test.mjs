@@ -219,3 +219,64 @@ test('polling does not overlap and successful recovery clears the refresh error'
   assert.equal(h.state().status, 'ready')
   assert.equal(h.state().error, null)
 })
+
+test('slow room chat polls share one in-flight request and retry after failure', async () => {
+  const pending = deferred()
+  let calls = 0
+  const h = await harness({
+    getChatHistory: () => {
+      calls++
+      return pending.promise
+    }
+  })
+  const first = h.state().refreshChat()
+  await Promise.all([h.state().refreshChat(), h.state().refreshChat()])
+  assert.equal(calls, 1)
+  pending.reject(new Error('timeout'))
+  await first
+  assert.equal(h.state().chatRequest, null)
+  assert.equal(h.state().chatError, 'load')
+  await h.state().refreshChat()
+  assert.equal(calls, 2)
+})
+
+test('a stale room chat request cannot overwrite a moved room or clear its pending read', async () => {
+  const old = deferred(),
+    next = deferred()
+  const h = await harness({
+    getChatHistory: (_id, host) => (host === room.hostApiUrl ? old.promise : next.promise)
+  })
+  const first = h.state().refreshChat()
+  h.store.setState({ currentRoom: { ...room, hostApiUrl: 'https://other.example' } })
+  const second = h.state().refreshChat()
+  const newRequest = h.state().chatRequest
+  old.reject(new Error('old host unavailable'))
+  await first
+  assert.equal(h.state().chatRequest, newRequest)
+  assert.equal(h.state().chatError, null)
+  next.resolve([])
+  await second
+  assert.equal(h.state().chatRequest, null)
+})
+
+test('room restoration is bounded during slow responses and ignored after reset', async () => {
+  const pending = deferred()
+  let calls = 0
+  const h = await harness({
+    mine: () => {
+      calls++
+      return pending.promise
+    }
+  })
+  const first = h.state().restoreRoom(room.hostApiUrl)
+  await Promise.all([
+    h.state().restoreRoom(room.hostApiUrl),
+    h.state().restoreRoom(room.hostApiUrl)
+  ])
+  assert.equal(calls, 1)
+  h.state().reset()
+  pending.resolve(room)
+  await first
+  assert.equal(h.state().currentRoom, null)
+  assert.equal(h.state().restoreRequest, null)
+})

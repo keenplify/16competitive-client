@@ -2364,9 +2364,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ## v2026.1013.5 — 2026-10-13
 
-### Papamo Guard
+### PMGuard
 
-- Launcher updates are now shown in the Papamo Guard banner.
+- Launcher updates are now shown in the PMGuard banner.
 
 ### Crosshair Settings
 

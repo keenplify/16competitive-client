@@ -177,7 +177,7 @@ test('startup stays in the banner for downloads and required failures, and retry
         return undefined
       }
     },
-    'papamo-guard://retry'
+    'pmguard://retry'
   )
   assert.equal(client.checks, 2)
   client.emit({ state: 'idle' })
@@ -227,7 +227,7 @@ test('non-required failures do not block startup and unknown navigation cannot t
         return undefined
       }
     },
-    'papamo-guard://exit'
+    'pmguard://exit'
   )
   assert.equal(client.app.quits, undefined)
   client.emit({ state: 'error', message: 'offline' })

@@ -2,11 +2,11 @@ import { app, BrowserWindow, screen } from 'electron'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import artworkPath from '../../../resources/papamo-guard/cs16-splash-v1.png?asset'
+import artworkPath from '../../../resources/pmguard/cs16-splash-classic.png?asset'
 import fontPath from '../../../node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff2?asset'
 import boldFontPath from '../../../node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2?asset'
-import emblemPath from '../../../resources/papamo-guard/emblem-v3.png?asset'
-import { papamoGuardSplashHtml } from './startup-splash-view'
+import emblemPath from '../../../resources/pmguard/emblem-v3.png?asset'
+import { pmGuardSplashHtml } from './startup-splash-view'
 import { detectLanguage } from '../../shared/language-detection'
 import { guardUpdateTranslations, type GuardLanguage } from '../../shared/guard-update-translations'
 
@@ -28,7 +28,7 @@ export async function showAntiCheatStartupSplash(
     readFile(fontPath),
     readFile(boldFontPath)
   ])
-  const html = papamoGuardSplashHtml(
+  const html = pmGuardSplashHtml(
     {
       artwork: `data:image/png;base64,${artwork.toString('base64')}`,
       emblem: `data:image/png;base64,${emblem.toString('base64')}`,
@@ -47,7 +47,7 @@ export async function showAntiCheatStartupSplash(
     frame: false,
     roundedCorners: false,
     backgroundColor: '#080a09',
-    title: 'Papamo Guard',
+    title: 'PMGuard',
     resizable: false,
     movable: false,
     minimizable: false,
@@ -68,13 +68,13 @@ export async function showAntiCheatStartupSplash(
   splash.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   splash.webContents.on('will-navigate', (event, url) => {
     event.preventDefault()
-    if (url === 'papamo-guard://retry') onAction?.('retry')
-    if (url === 'papamo-guard://exit') onAction?.('exit')
-    if (url === 'papamo-guard://help') onAction?.('help')
+    if (url === 'pmguard://retry') onAction?.('retry')
+    if (url === 'pmguard://exit') onAction?.('exit')
+    if (url === 'pmguard://help') onAction?.('help')
   })
   splash.setIgnoreMouseEvents(true)
   // Embedded artwork exceeds Chromium's URL limit. Load a local document instead.
-  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'papamo-guard-splash-'))
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), 'pmguard-splash-'))
   try {
     const documentPath = join(temporaryDirectory, 'index.html')
     await writeFile(documentPath, html, { mode: 0o600 })
@@ -84,7 +84,7 @@ export async function showAntiCheatStartupSplash(
     throw error
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true }).catch((error: unknown) => {
-      console.warn('[Papamo Guard] splash temporary file cleanup failed', error)
+      console.warn('[PMGuard] splash temporary file cleanup failed', error)
     })
   }
   if (!splash.isDestroyed()) splash.showInactive()

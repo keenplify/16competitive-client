@@ -25,6 +25,8 @@ interface CustomGamesState {
   movingServer: boolean
   addingBot: boolean
   chatRoomId: string | null
+  chatRequest: { roomId: string; hostApiUrl: string } | null
+  restoreRequest: { hostApiUrl: string; matchId: string | undefined } | null
   chatEntries: CustomGameChatMessage[]
   chatDraft: string
   chatSending: boolean
@@ -83,6 +85,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   movingServer: false,
   addingBot: false,
   chatRoomId: null,
+  chatRequest: null,
+  restoreRequest: null,
   chatEntries: [],
   chatDraft: '',
   chatSending: false,
@@ -94,6 +98,10 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       set({ chatRoomId: null, chatEntries: [], chatDraft: '', chatSending: false, chatError: null })
       return
     }
+    const pending = get().chatRequest
+    if (pending?.roomId === room.id && pending.hostApiUrl === room.hostApiUrl) return
+    const request = { roomId: room.id, hostApiUrl: room.hostApiUrl }
+    set({ chatRequest: request })
     if (get().chatRoomId !== room.id)
       set({
         chatRoomId: room.id,
@@ -104,14 +112,25 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       })
     try {
       const incoming = await window.api.customGames.getChatHistory(room.id, room.hostApiUrl)
-      if (get().currentRoom?.id !== room.id || get().currentRoom?.hostApiUrl !== room.hostApiUrl)
+      if (
+        get().chatRequest !== request ||
+        get().currentRoom?.id !== room.id ||
+        get().currentRoom?.hostApiUrl !== room.hostApiUrl
+      )
         return
       set((state) => ({
         chatEntries: mergeChat(state.chatEntries, incoming),
         chatError: state.chatError === 'load' ? null : state.chatError
       }))
     } catch {
-      if (get().currentRoom?.id === room.id) set({ chatError: 'load' })
+      if (
+        get().chatRequest === request &&
+        get().currentRoom?.id === room.id &&
+        get().currentRoom?.hostApiUrl === room.hostApiUrl
+      )
+        set({ chatError: 'load' })
+    } finally {
+      if (get().chatRequest === request) set({ chatRequest: null })
     }
   },
   sendChat: async () => {
@@ -152,17 +171,28 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   restoreRoom: async (hostApiUrl) => {
     const previousRoom = get().currentRoom
     const matchId = useMatchmakingStore.getState().match?.matchId
+    const pending = get().restoreRequest
+    if (pending?.hostApiUrl === hostApiUrl && pending.matchId === matchId) return
+    const request = { hostApiUrl, matchId }
+    set({ restoreRequest: request })
     try {
       const currentRoom = await window.api.customGames.mine(hostApiUrl)
       // Discard a response if a leave/join or match transition happened meanwhile.
       if (
+        get().restoreRequest !== request ||
         get().currentRoom !== previousRoom ||
         useMatchmakingStore.getState().match?.matchId !== matchId
       )
         return
       set({ currentRoom, error: null })
     } catch (error) {
-      if (useMatchmakingStore.getState().match?.matchId === matchId) set({ error: message(error) })
+      if (
+        get().restoreRequest === request &&
+        useMatchmakingStore.getState().match?.matchId === matchId
+      )
+        set({ error: message(error) })
+    } finally {
+      if (get().restoreRequest === request) set({ restoreRequest: null })
     }
   },
   refresh: async () => {
@@ -371,6 +401,8 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       error: null,
       addingBot: false,
       chatRoomId: null,
+      chatRequest: null,
+      restoreRequest: null,
       chatEntries: [],
       chatDraft: '',
       chatSending: false,

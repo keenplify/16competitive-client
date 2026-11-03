@@ -31,9 +31,9 @@ export class AntiCheatUpdateBanner {
     // The startup document was created before this controller existed.
     splash?.webContents.on('will-navigate', (event, url) => {
       event.preventDefault()
-      if (url === 'papamo-guard://retry') this.action('retry')
-      if (url === 'papamo-guard://exit') this.action('exit')
-      if (url === 'papamo-guard://help') this.action('help')
+      if (url === 'pmguard://retry') this.action('retry')
+      if (url === 'pmguard://exit') this.action('exit')
+      if (url === 'pmguard://help') this.action('help')
     })
     const unsubscribe = onAppUpdateStatus((status) => {
       this.latest = status
@@ -238,9 +238,9 @@ export class AntiCheatUpdateBanner {
       progress.classList.toggle('determinate', ${percent !== null || failed});
       progress.style.width = ${JSON.stringify(percent === null ? (failed ? '0%' : '38%') : `${percent}%`)};
       document.getElementById('status-actions').hidden = ${!failed};
-      document.querySelector('a[href="papamo-guard://retry"]').textContent = ${JSON.stringify(copy.retry)};
-      document.querySelector('a[href="papamo-guard://exit"]').textContent = ${JSON.stringify(copy.exit)};
-      document.querySelector('a[href="papamo-guard://help"]').textContent = ${JSON.stringify(recovery.help)};
+      document.querySelector('a[href="pmguard://retry"]').textContent = ${JSON.stringify(copy.retry)};
+      document.querySelector('a[href="pmguard://exit"]').textContent = ${JSON.stringify(copy.exit)};
+      document.querySelector('a[href="pmguard://help"]').textContent = ${JSON.stringify(recovery.help)};
     })()`)
     splash.setIgnoreMouseEvents(!failed)
     splash.setFocusable(failed)

@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, readdir, writeFile, rm, symlink } from 'node:
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setDefaultMimeHandler } from '../src/main/linux-mimeapps.ts'
+import { postDiagnosticReport } from '../src/main/diagnostic-report-request.ts'
 import {
   collectGameConsoleLogs,
   setGameConsoleDirectory,
@@ -13,6 +14,88 @@ import {
   readMatchLaunchDiagnostics,
   saveMatchLaunchDiagnostics
 } from '../src/main/game/match-launch-diagnostics.ts'
+
+test('a failed public-game join can report diagnostics without claiming match membership', async () => {
+  const calls = []
+  const body = {
+    description: 'Arena did not launch',
+    matchId: 'attempted-match',
+    deduplicationKey: 'attempt-report',
+    logs: 'launch failed',
+    clientVersion: 'test'
+  }
+  const response = await postDiagnosticReport(
+    'https://regional.example',
+    'session',
+    body,
+    async (url, options) => {
+      calls.push({ url, ...options, payload: JSON.parse(options.body) })
+      return calls.length === 1
+        ? Response.json({ error: 'MATCH_ACCESS_DENIED' }, { status: 403 })
+        : Response.json({ id: 'saved' }, { status: 201 })
+    }
+  )
+  assert.equal(response.status, 201)
+  assert.equal(calls.length, 2)
+  assert.equal(calls[0].payload.matchId, body.matchId)
+  assert.equal(calls[1].payload.matchId, undefined)
+  assert.equal(calls[1].payload.deduplicationKey, body.deduplicationKey)
+  assert.match(calls[1].payload.logs, /match membership not verified/)
+  assert.match(calls[1].payload.logs, /launch failed/)
+  assert.equal(calls[1].url, calls[0].url)
+  assert.deepEqual(calls[1].headers, calls[0].headers)
+  assert.equal(body.matchId, 'attempted-match')
+})
+
+test('report fallback does not retry authentication, network or unrelated access failures', async () => {
+  for (const [status, error, matchId] of [
+    [401, 'INVALID_CREDENTIALS', 'match'],
+    [403, 'FORBIDDEN', 'match'],
+    [500, 'SERVER_ERROR', 'match'],
+    [403, 'MATCH_ACCESS_DENIED', undefined],
+    [201, undefined, 'match']
+  ]) {
+    let calls = 0
+    const response = await postDiagnosticReport(
+      'https://regional.example',
+      'session',
+      { description: 'test', logs: 'test', clientVersion: 'test', matchId },
+      async () => {
+        calls++
+        return Response.json({ error }, { status })
+      }
+    )
+    assert.equal(response.status, status)
+    assert.equal(calls, 1)
+  }
+  await assert.rejects(
+    postDiagnosticReport(
+      'https://regional.example',
+      'session',
+      { description: 'test', logs: 'test', clientVersion: 'test', matchId: 'match' },
+      async () => {
+        throw new Error('offline')
+      }
+    ),
+    /offline/
+  )
+})
+
+test('report fallback stays bounded and returns a failed retry without looping', async () => {
+  let calls = 0
+  const response = await postDiagnosticReport(
+    'https://regional.example',
+    'session',
+    { description: 'test', logs: 'x'.repeat(500_000), clientVersion: 'test', matchId: 'match' },
+    async (_url, options) => {
+      calls++
+      assert.ok(JSON.parse(options.body).logs.length <= 500_000)
+      return Response.json({ error: 'MATCH_ACCESS_DENIED' }, { status: 403 })
+    }
+  )
+  assert.equal(calls, 2)
+  assert.equal(response.status, 403)
+})
 
 test('connection rejection categories survive redaction without leaking accompanying secrets', () => {
   assert.equal(
