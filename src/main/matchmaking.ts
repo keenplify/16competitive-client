@@ -479,6 +479,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'match_cancelled':
       return (
         (message.connectionFailed === undefined || typeof message.connectionFailed === 'boolean') &&
+        (message.readyCheckFailed === undefined || typeof message.readyCheckFailed === 'boolean') &&
         typeof message.matchId === 'string' &&
         typeof message.reason === 'string' &&
         [

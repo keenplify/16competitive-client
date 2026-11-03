@@ -403,12 +403,22 @@ export function PartyChat(): JSX.Element {
       if (
         target instanceof Element &&
         target.closest(
-          'input, textarea, select, button, a, summary, [contenteditable=""], [contenteditable="true"], [role="textbox"], [role="combobox"]'
+          'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [role="menu"]'
         )
       )
         return
 
+      // Buttons and chat tabs retain focus after a click. Let ordinary
+      // typing reach chat, but keep Space available to activate those controls.
+      if (
+        target instanceof Element &&
+        target.closest('button, a, summary, [role="button"], [role="tab"]') &&
+        event.key === ' '
+      )
+        return
+
       event.preventDefault()
+      activate('chat')
       inputRef.current.focus()
       const nextDraft = `${draft}${event.key}`
       if (activeFriendId) setFriendDraft(activeFriendId, nextDraft)
@@ -422,6 +432,7 @@ export function PartyChat(): JSX.Element {
     window.addEventListener('keydown', focusChatOnTyping)
     return () => window.removeEventListener('keydown', focusChatOnTyping)
   }, [
+    activate,
     activeFriendId,
     canSend,
     chatOpen,
@@ -673,26 +684,42 @@ export function PartyChat(): JSX.Element {
                   <p className="text-neutral-500">{translate(language, 'chat.roomEmpty')}</p>
                 )}
                 {roomChatId === room?.id &&
-                  roomEntries.map((entry, index) => (
-                    <ChatMessageRow
-                      key={entry.id}
-                      className="break-words"
-                      sentAt={entry.sentAt}
-                      previousSentAt={roomEntries[index - 1]?.sentAt}
-                      language={language}
-                    >
-                      <span className="text-emerald-300">
-                        [{translate(language, 'chat.roomTab')}]{' '}
-                      </span>
-                      <span
-                        className={entry.sender.id === playerId ? 'text-amber-300' : 'text-white'}
+                  roomEntries.map((entry, index) =>
+                    entry.event ? (
+                      <ChatMessageRow
+                        key={entry.id}
+                        className="break-words text-emerald-300"
+                        sentAt={entry.sentAt}
+                        previousSentAt={roomEntries[index - 1]?.sentAt}
+                        language={language}
                       >
-                        {entry.sender.username}
-                      </span>
-                      <span className="text-neutral-400">: </span>
-                      <span className="text-neutral-100">{entry.message}</span>
-                    </ChatMessageRow>
-                  ))}
+                        {translate(
+                          language,
+                          entry.event === 'member_joined' ? 'chat.roomJoined' : 'chat.roomLeft',
+                          { name: entry.sender.username }
+                        )}
+                      </ChatMessageRow>
+                    ) : (
+                      <ChatMessageRow
+                        key={entry.id}
+                        className="break-words"
+                        sentAt={entry.sentAt}
+                        previousSentAt={roomEntries[index - 1]?.sentAt}
+                        language={language}
+                      >
+                        <span className="text-emerald-300">
+                          [{translate(language, 'chat.roomTab')}]{' '}
+                        </span>
+                        <span
+                          className={entry.sender.id === playerId ? 'text-amber-300' : 'text-white'}
+                        >
+                          {entry.sender.username}
+                        </span>
+                        <span className="text-neutral-400">: </span>
+                        <span className="text-neutral-100">{entry.message}</span>
+                      </ChatMessageRow>
+                    )
+                  )}
               </>
             ) : chatTab === 'party' ? (
               <>

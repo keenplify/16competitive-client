@@ -25,6 +25,34 @@ import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
 import { readMatchmakingPreferences, saveMatchmakingPreferences } from './matchmaking-preferences'
 
+// A local acknowledgement is UX state only; matchmaking penalties remain server-owned.
+interface ReadyWarningRecord {
+  matchId: string
+  acknowledged: boolean
+}
+const readyWarnings = new Map<string, ReadyWarningRecord>()
+const readReadyWarning = (playerId: string): ReadyWarningRecord | undefined => {
+  if (readyWarnings.has(playerId)) return readyWarnings.get(playerId)
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(`ready-warning:v1:${playerId}`) ?? 'null')
+    if (saved && typeof saved.matchId === 'string' && typeof saved.acknowledged === 'boolean') {
+      readyWarnings.set(playerId, saved)
+      return saved
+    }
+  } catch {
+    /* Storage can be unavailable; retain the in-memory warning. */
+  }
+  return undefined
+}
+const saveReadyWarning = (playerId: string, record: ReadyWarningRecord): void => {
+  readyWarnings.set(playerId, record)
+  try {
+    window.localStorage.setItem(`ready-warning:v1:${playerId}`, JSON.stringify(record))
+  } catch {
+    /* The current session can still acknowledge the warning. */
+  }
+}
+
 function selectedMapsForMode(
   playerId: string | undefined,
   mode: MatchmakingMode,
@@ -156,6 +184,9 @@ interface MatchmakingState {
   serverRestarting: { message: string; retryAfterMs: number } | null
   antiCheatTermination: { matchId: string; dismissed: boolean } | null
   dismissAntiCheatTermination: () => void
+  readyWarningOpen: boolean
+  showReadyWarning: () => boolean
+  acknowledgeReadyWarning: () => void
   matchAbandonNotice: MatchAbandonNotice | null
   error: string | null
   connect: () => Promise<void>
@@ -549,7 +580,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
-      case 'match_cancelled':
+      case 'match_cancelled': {
+        const playerId = useAuthStore.getState().session?.player.id
+        if (
+          event.readyCheckFailed === true &&
+          playerId &&
+          (event.reason === 'PLAYER_NOT_READY' || event.reason === 'PLAYER_DECLINED') &&
+          readReadyWarning(playerId)?.matchId !== event.matchId
+        ) {
+          saveReadyWarning(playerId, { matchId: event.matchId, acknowledged: false })
+        }
         if (terminalMatchIds.has(event.matchId)) break
         terminalMatchIds.add(event.matchId)
         set((state) =>
@@ -587,6 +627,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
               }
         )
         break
+      }
       case 'error':
         if (event.code === 'NOT_QUEUED') {
           const state = get()
@@ -771,6 +812,20 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           ? { ...state.antiCheatTermination, dismissed: true }
           : null
       })),
+    readyWarningOpen: false,
+    showReadyWarning: () => {
+      const playerId = useAuthStore.getState().session?.player.id
+      const warning = playerId ? readReadyWarning(playerId) : undefined
+      if (!warning || warning.acknowledged) return false
+      set({ readyWarningOpen: true })
+      return true
+    },
+    acknowledgeReadyWarning: () => {
+      const playerId = useAuthStore.getState().session?.player.id
+      const warning = playerId ? readReadyWarning(playerId) : undefined
+      if (playerId && warning) saveReadyWarning(playerId, { ...warning, acknowledged: true })
+      set({ readyWarningOpen: false })
+    },
     matchAbandonNotice: null,
     error: null,
 
@@ -1002,6 +1057,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     joinQueue: async (options) => {
+      if (get().showReadyWarning()) return
       const {
         connectionStatus,
         maps,
@@ -1186,6 +1242,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
 
     reset: () => {
+      set({ readyWarningOpen: false })
       useQueueWarmupStore.getState().reset()
       set({
         connectionStatus: 'disconnected',

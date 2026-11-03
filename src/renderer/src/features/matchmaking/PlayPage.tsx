@@ -243,6 +243,7 @@ export function PlayPage({
   }
 
   const handleFindMatch = async (): Promise<void> => {
+    if (useMatchmakingStore.getState().showReadyWarning()) return
     if (!isConnected) {
       toast.error('Connect to matchmaking before searching.')
       return

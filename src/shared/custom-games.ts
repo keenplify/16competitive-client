@@ -84,6 +84,7 @@ export interface CustomGameRoom {
 }
 
 export interface CustomGameChatMessage {
+  event?: 'member_joined' | 'member_left'
   id: string
   roomId: string
   sender: { id: string; username: string }
@@ -99,6 +100,9 @@ export const isCustomGameChatMessage = (value: unknown): value is CustomGameChat
   if (typeof entry.sender !== 'object' || entry.sender === null) return false
   const sender = entry.sender as Record<string, unknown>
   return (
+    (entry.event === undefined ||
+      entry.event === 'member_joined' ||
+      entry.event === 'member_left') &&
     typeof entry.id === 'string' &&
     CHAT_MESSAGE_ID.test(entry.id) &&
     typeof entry.roomId === 'string' &&

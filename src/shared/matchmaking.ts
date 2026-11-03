@@ -364,6 +364,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
         | 'PLAYER_DID_NOT_CONNECT'
         | 'CUSTOM_ROOM_EMPTY'
       connectionFailed?: boolean
+      readyCheckFailed?: boolean
       message: string
     }
   | {
