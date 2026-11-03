@@ -29,6 +29,8 @@ interface ModalDialogProps {
   onClick?: MouseEventHandler<HTMLDialogElement>
   describedBy?: string
   className?: string
+  /** Body spacing belongs here so shared window chrome stays flush with the frame. */
+  contentClassName?: string
   children: ReactNode
 }
 
@@ -63,7 +65,7 @@ export function ModalDialog({
   label,
   role = 'dialog',
   fullScreen = false,
-  vguiTitlebar = true,
+  vguiTitlebar = !fullScreen,
   vguiNavigation,
   dialogRef,
   tabIndex = -1,
@@ -71,6 +73,7 @@ export function ModalDialog({
   onClick,
   describedBy,
   className,
+  contentClassName,
   children
 }: ModalDialogProps): JSX.Element | null {
   const theme = useEffectiveLauncherTheme()
@@ -163,7 +166,7 @@ export function ModalDialog({
         }}
       >
         {theme === 'vgui2' && vguiTitlebar && (
-          <div className="vgui-window-titlebar vgui-modal-titlebar">
+          <div className="vgui-window-titlebar vgui-modal-titlebar text-left">
             {vguiNavigation && (
               <button
                 type="button"
@@ -188,7 +191,13 @@ export function ModalDialog({
             </button>
           </div>
         )}
-        {children}
+        {contentClassName ? (
+          <div className={twMerge('min-w-0', contentClassName)} data-modal-content>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </dialog>
     </ModalPortal>
   )

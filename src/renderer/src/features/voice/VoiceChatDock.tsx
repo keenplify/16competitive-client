@@ -1021,7 +1021,8 @@ export function VoiceChatDock(): JSX.Element | null {
           setSettingsOpen(false)
         }}
         labelledBy="party-voice-settings-title"
-        className="max-w-md overflow-visible p-5"
+        className="max-w-md overflow-visible"
+        contentClassName="p-5"
         onClick={(event) => {
           if (!(event.target as Element).closest('[data-voice-peer-menu]')) setPeerMenu(null)
         }}

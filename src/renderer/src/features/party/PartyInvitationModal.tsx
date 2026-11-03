@@ -14,7 +14,8 @@ export function PartyInvitationModal(): JSX.Element | null {
     <ModalDialog
       open
       onClose={() => {}}
-      className="w-[calc(100%-2rem)] max-w-md  border border-white/15 bg-neutral-900 p-6 shadow-2xl"
+      className="w-[calc(100%-2rem)] max-w-md border border-white/15 bg-neutral-900 shadow-2xl"
+      contentClassName="p-6"
       labelledBy="party-invitation-title"
     >
       <p className="text-xs font-bold tracking-[0.18em] text-sky-400 uppercase">Party</p>

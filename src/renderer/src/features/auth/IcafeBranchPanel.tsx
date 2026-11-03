@@ -60,7 +60,8 @@ export function IcafeBranchPanel(): React.JSX.Element | null {
       open
       onClose={close}
       tabIndex={-1}
-      className="w-[calc(100%-2rem)] max-w-md border border-sky-400/30 bg-slate-950 p-6 text-white shadow-2xl"
+      className="w-[calc(100%-2rem)] max-w-md border border-sky-400/30 bg-slate-950 text-white shadow-2xl"
+      contentClassName="p-6"
       labelledBy="icafe-panel-title"
     >
       <div className="flex items-start justify-between gap-3">

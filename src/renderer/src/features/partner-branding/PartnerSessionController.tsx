@@ -61,7 +61,8 @@ export function PartnerSessionController(): JSX.Element {
         else dismiss()
       }}
       labelledBy="partner-ready-title"
-      className="max-w-lg p-6"
+      className="max-w-lg"
+      contentClassName="p-6"
     >
       <p className="text-xs font-bold tracking-widest text-sky-300 uppercase">{text('title')}</p>
       <h2 id="partner-ready-title" className="mt-2 text-2xl font-semibold">

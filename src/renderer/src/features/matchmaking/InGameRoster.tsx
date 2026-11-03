@@ -195,7 +195,8 @@ export function InGameRoster({
             onClose={() => {
               if (!submitting) setTarget(null)
             }}
-            className="w-[calc(100%-2rem)] max-w-md  border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl"
+            className="w-[calc(100%-2rem)] max-w-md border border-white/15 bg-neutral-900 text-white shadow-2xl"
+            contentClassName="p-6"
             labelledBy="player-report-title"
           >
             <h2 id="player-report-title" className="text-xl font-semibold">

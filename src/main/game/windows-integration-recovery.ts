@@ -1,3 +1,4 @@
+import { protonRecoveryGuardCommand } from './proton-recovery-guard'
 import { protonRecoveryCommand, type SteamProtonRuntime } from './steam-proton'
 import {
   readProtonRecoveryContext,
@@ -73,13 +74,22 @@ async function runRecovery(
       wine && mode === 'guard' ? 'guard-lease' : mode
     ]
     const command =
-      wine && proton
-        ? protonRecoveryCommand(proton, helperPath, args)
-        : {
-            executable: wine ? 'wine' : helperPath,
-            args: [...(wine ? [helperPath] : []), ...args],
-            env: process.env
-          }
+      wine && proton && mode === 'guard'
+        ? protonRecoveryGuardCommand(
+            proton,
+            root,
+            descriptor.sessionId,
+            helperPath,
+            descriptor.helperSha256,
+            toWinePath(root)
+          )
+        : wine && proton
+          ? protonRecoveryCommand(proton, helperPath, args)
+          : {
+              executable: wine ? 'wine' : helperPath,
+              args: [...(wine ? [helperPath] : []), ...args],
+              env: process.env
+            }
     const child = spawn(command.executable, command.args, {
       env: command.env,
       detached: mode === 'guard',
