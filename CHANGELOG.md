@@ -3959,3 +3959,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Startup
 
 - Updated the startup splash with blue, single-line PMGUARD branding.
+
+## v2026.1103.4 — 2026-11-03
+
+### Startup Experience
+
+- The PMGUARD splash screen now displays community logos in its header.
