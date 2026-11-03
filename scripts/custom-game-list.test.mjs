@@ -111,12 +111,24 @@ test('partner web custom creation includes backend-enabled CS13 and excludes dis
   for (const enabled of [['unrated', 'ffa', 'cs13_3v3'], ['unrated']]) {
     const jsx = (type, props) => ({ type, props })
     const dependencies = {
-      react: { useState: (initial) => [initial, () => undefined] },
+      react: {
+        useState: (initial) => [
+          typeof initial === 'function' ? initial() : initial,
+          () => undefined
+        ]
+      },
       'react/jsx-runtime': { jsx, jsxs: jsx },
       '../community/links': { useHideDesktopOnlyFeatures: () => true },
       '../i18n/i18n': { useTranslation: () => ({ t: (key) => key }) },
-      '../../../../shared/custom-games': { CUSTOM_GAME_MODES: ['unrated', 'ffa', 'cs13_3v3'] },
-      './matchmaking.store': { useMatchmakingStore: (select) => select({ customModes: enabled }) },
+      '../../../../shared/custom-games': {
+        CUSTOM_GAME_MODES: ['unrated', 'ffa', 'cs13_3v3'],
+        isCustomGameMode: (value) => ['unrated', 'ffa', 'cs13_3v3'].includes(value)
+      },
+      './matchmaking.store': {
+        useMatchmakingStore: Object.assign((select) => select({ customModes: enabled }), {
+          getState: () => ({ selectedMode: 'unrated' })
+        })
+      },
       './custom-games.store': { useCustomGamesStore: (select) => select({}) }
     }
     const exports = {}
