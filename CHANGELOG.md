@@ -4005,3 +4005,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Interface
 
 - Improved consistency and spacing across in-game dialog windows.
+
+## v2026.1103.9 — 2026-11-03
+
+### Game Focus
+
+- Launcher focus now returns to Counter-Strike on Linux.
+
+### HUD
+
+- Hidden HUD focus is now disabled.
