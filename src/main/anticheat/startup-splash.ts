@@ -46,8 +46,8 @@ export async function showAntiCheatStartupSplash(
     height: SPLASH_HEIGHT,
     frame: false,
     roundedCorners: false,
-    backgroundColor: '#080a09',
-    title: 'PMGuard',
+    backgroundColor: '#0b1623',
+    title: 'PMGUARD',
     resizable: false,
     movable: false,
     minimizable: false,
@@ -84,7 +84,7 @@ export async function showAntiCheatStartupSplash(
     throw error
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true }).catch((error: unknown) => {
-      console.warn('[PMGuard] splash temporary file cleanup failed', error)
+      console.warn('[PMGUARD] splash temporary file cleanup failed', error)
     })
   }
   if (!splash.isDestroyed()) splash.showInactive()

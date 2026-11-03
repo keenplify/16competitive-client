@@ -2364,9 +2364,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ## v2026.1013.5 — 2026-10-13
 
-### PMGuard
+### PMGUARD
 
-- Launcher updates are now shown in the PMGuard banner.
+- Launcher updates are now shown in the PMGUARD banner.
 
 ### Crosshair Settings
 
@@ -3941,9 +3941,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ## v2026.1103.2 — 2026-11-03
 
-### PMGuard
+### PMGUARD
 
-- Updated guard branding to PMGuard throughout the launcher.
+- Updated guard branding to PMGUARD throughout the launcher.
 - Added refreshed Counter-Strike 1.6 splash and emblem assets.
 
 ### Matchmaking
