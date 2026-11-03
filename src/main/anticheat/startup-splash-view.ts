@@ -3,7 +3,7 @@ import { updateRecoveryTranslations } from '../../shared/update-recovery-transla
 
 /** Shared by the Electron splash and its static visual preview. Assets are embedded locally. */
 export function pmGuardSplashHtml(
-  assets: { artwork: string; emblem: string; font?: string; boldFont?: string },
+  assets: { artwork: string; emblem: string; logo: string; font?: string; boldFont?: string },
   language: GuardLanguage = 'en'
 ): string {
   const copy = guardUpdateTranslations[language]
@@ -24,8 +24,8 @@ export function pmGuardSplashHtml(
   .art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 75% center; }
   .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,16,28,.4), transparent 25%, transparent 58%, rgba(6,16,28,.8) 79%, #0b1623 100%); }
   .game { position: absolute; inset: 22px 14px auto; text-align: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,.24); }
-  .game-name { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -.8px; white-space: nowrap; }
-  .game-version { margin: 8px 0 0; color: #f0f9ff; font-size: 10px; font-weight: 700; letter-spacing: 4px; }
+  .game-logo { display: block; width: 112px; height: 88px; margin: 0 auto; object-fit: contain; }
+  .game-logo.stock { filter: brightness(0) invert(1); }
   .brand { position: absolute; left: 24px; right: 24px; bottom: 88px; display: flex; align-items: center; justify-content: center; gap: 11px; }
   .emblem { width: 76px; height: 76px; object-fit: contain; flex-shrink: 0; }
   .brand-name { margin: 0; display: block; white-space: nowrap; color: #38bdf8; font-size: 32px; font-weight: 950; line-height: .8; letter-spacing: -.04em; transform: skew(-5deg); }
@@ -52,8 +52,7 @@ export function pmGuardSplashHtml(
   <img class="art" src="${assets.artwork}" alt="" />
   <div class="shade" aria-hidden="true"></div>
   <header class="game">
-    <h1 class="game-name">COUNTER-STRIKE</h1>
-    <p class="game-version">1.6 COMPETITIVE</p>
+    <img id="community-logo" class="game-logo stock" src="${assets.logo}" alt="1.6 Competitive" />
   </header>
   <section class="brand" aria-label="PMGUARD">
     <img class="emblem" src="${assets.emblem}" alt="" />

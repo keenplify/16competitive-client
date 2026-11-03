@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import artworkPath from '../../../resources/pmguard/cs16-splash-classic.png?asset'
 import fontPath from '../../../node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff2?asset'
 import boldFontPath from '../../../node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2?asset'
+import logoPath from '../../renderer/public/favicon.svg?asset'
+import { loadStartupPartnerLogo } from './startup-partner-logo'
 import emblemPath from '../../../resources/pmguard/emblem-v3.png?asset'
 import { pmGuardSplashHtml } from './startup-splash-view'
 import { detectLanguage } from '../../shared/language-detection'
@@ -22,14 +24,20 @@ export async function showAntiCheatStartupSplash(
     'en'
   )
 ): Promise<BrowserWindow> {
-  const [artwork, emblem, font, boldFont] = await Promise.all([
+  const partnerLogo = loadStartupPartnerLogo().catch(() => {
+    console.warn('[PMGUARD] community logo unavailable; using the default logo')
+    return null
+  })
+  const [artwork, emblem, font, boldFont, logo] = await Promise.all([
     readFile(artworkPath),
     readFile(emblemPath),
     readFile(fontPath),
-    readFile(boldFontPath)
+    readFile(boldFontPath),
+    readFile(logoPath)
   ])
   const html = pmGuardSplashHtml(
     {
+      logo: `data:image/svg+xml;base64,${logo.toString('base64')}`,
       artwork: `data:image/png;base64,${artwork.toString('base64')}`,
       emblem: `data:image/png;base64,${emblem.toString('base64')}`,
       font: `data:font/woff2;base64,${font.toString('base64')}`,
@@ -88,5 +96,22 @@ export async function showAntiCheatStartupSplash(
     })
   }
   if (!splash.isDestroyed()) splash.showInactive()
+  void partnerLogo
+    .then(async (partner) => {
+      if (!partner || splash.isDestroyed()) return
+      await splash.webContents.executeJavaScript(`(() => {
+      const logo = document.getElementById('community-logo');
+      const image = new Image();
+      image.onload = () => {
+        logo.src = image.src;
+        logo.alt = ${JSON.stringify(partner.name)};
+        logo.classList.remove('stock');
+      };
+      image.src = ${JSON.stringify(partner.dataUrl)};
+    })()`)
+    })
+    .catch(() => {
+      if (!splash.isDestroyed()) console.warn('[PMGUARD] community logo could not be displayed')
+    })
   return splash
 }
