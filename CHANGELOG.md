@@ -3972,3 +3972,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - View a single character preview while managing your loadout.
 - Switch between team tabs above the loadout.
+
+## v2026.1103.6 — 2026-11-03
+
+### Rooms
+
+- See notices when players join or leave a room.
+- Room chat now supports clearer membership updates.
+
+### Matchmaking
+
+- Receive a warning when acknowledging a missed match.
+- Queue again with improved missed-match handling.
