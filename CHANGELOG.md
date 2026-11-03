@@ -4043,3 +4043,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved Proton recovery handling.
 - Added safeguards for scoreboard startup and terminal states.
+
+## v2026.1103.12 — 2026-11-03
+
+### Diagnostics
+
+- Improved diagnostics during warmup and matchmaking lifecycle transitions.
+- Issue reports now include ready-check and game launch status.
