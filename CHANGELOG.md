@@ -4025,3 +4025,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Menu
 
 - Fixed match menu positioning.
+
+## v2026.1103.11 — 2026-11-03
+
+### Match Experience
+
+- Fixed game focus during matchmaking and match transitions.
+- Improved post-match viewing behavior.
+- Reduced startup latency.
+
+### Custom Rooms
+
+- Fixed custom room game and mode selections.
+- Improved custom room settings and fixture support.
+
+### Reliability
+
+- Improved Proton recovery handling.
+- Added safeguards for scoreboard startup and terminal states.
