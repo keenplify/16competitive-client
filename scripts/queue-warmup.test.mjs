@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
+import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import ts from 'typescript'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
@@ -30,7 +31,7 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
     }
     close() {
       this.readyState = 3
-      this.listeners.get('close')?.()
+      this.listeners.get('close')?.({ code: 1000, wasClean: true })
     }
   }
   let activeMatch = null
@@ -78,6 +79,8 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
       ])
     }
   const mock = {
+    matchmakingDiagnostics: new MatchmakingDiagnostics(),
+    getSessionUsername: () => 'fixture-player',
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
     MATCHMAKING_CHANNELS: { event: 'event' },
     API_BASE_URL: 'https://fallback.invalid',
