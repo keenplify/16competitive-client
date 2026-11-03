@@ -55,6 +55,8 @@ window.api = new Proxy(
                 )
                 return response.arrayBuffer()
               }
+            if (area === 'skins' && method === 'musicKits')
+              return async () => ({ kits: [], owned: [], equipped: { ct: null, t: null } })
             if (area === 'skins' && method === 'mine') return async () => [...demoInventory]
             if (area === 'skins' && method === 'previewModel')
               return async (id: string) =>

@@ -397,32 +397,34 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         </span>
         {t(unequippingTeam ? 'music.unequipping' : 'music.unequipAll')}
       </Button>
-      <div
-        className="flex border border-white/15 bg-black/25 p-1"
-        role="tablist"
-        aria-label={t('music.loadoutTeam')}
-      >
-        {(['ct', 't'] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={team === id}
-            disabled={loadoutLocked || unequippingTeam}
-            className={twMerge(
-              'px-4 py-2 text-xs font-bold tracking-wide',
-              team === id
-                ? id === 'ct'
-                  ? 'bg-sky-400 text-sky-950'
-                  : 'bg-amber-300 text-amber-950'
-                : 'text-neutral-400 hover:text-white'
-            )}
-            onClick={() => selectTeam(id)}
-          >
-            {t(id === 'ct' ? 'music.equipCt' : 'music.equipT')}
-          </button>
-        ))}
-      </div>
+    </div>
+  )
+  const teamTabs = (
+    <div
+      className="grid grid-cols-2 border border-white/15 bg-black/25 p-1"
+      role="tablist"
+      aria-label={t('music.loadoutTeam')}
+    >
+      {(['ct', 't'] as const).map((id) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={team === id}
+          disabled={loadoutLocked || unequippingTeam}
+          className={twMerge(
+            'min-w-0 px-1 py-2 text-xs font-bold tracking-wide focus-visible:outline-2 focus-visible:outline-sky-300',
+            team === id
+              ? id === 'ct'
+                ? 'bg-sky-400 text-sky-950'
+                : 'bg-amber-300 text-amber-950'
+              : 'text-neutral-400 hover:text-white'
+          )}
+          onClick={() => selectTeam(id)}
+        >
+          {t(id === 'ct' ? 'music.equipCt' : 'music.equipT')}
+        </button>
+      ))}
     </div>
   )
   return (
@@ -433,31 +435,33 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         ) : (
           <div className="mb-3 flex justify-end">{loadoutActions}</div>
         )}
-        <div className="loadout-stage mt-4 grid grid-cols-[minmax(90px,0.8fr)_minmax(0,4fr)_minmax(90px,0.8fr)] items-stretch gap-2 lg:gap-4">
+        <div className="loadout-stage mt-4 grid grid-cols-[minmax(140px,0.8fr)_minmax(0,4.8fr)] items-stretch gap-2 lg:gap-4">
           <div className="order-1 min-w-0 self-start">
+            <div className="mb-2">{teamTabs}</div>
             <CharacterPanel
-              team="ct"
+              key={team}
+              team={team}
               partyPending={partyPending}
               partySelected={
                 partyModel ===
-                (equippedByWeapon.get('player_ct')
-                  ? `skin:${equippedByWeapon.get('player_ct')!.skin.id}`
-                  : `player/${stockCharacters.ct}/${stockCharacters.ct}.mdl`)
+                (equippedByWeapon.get(`player_${team}`)
+                  ? `skin:${equippedByWeapon.get(`player_${team}`)!.skin.id}`
+                  : `player/${stockCharacters[team]}/${stockCharacters[team]}.mdl`)
               }
-              onShowInParty={() => showCharacterInParty('ct')}
-              model={stockCharacters.ct}
-              skin={equippedByWeapon.get('player_ct')?.skin}
-              selected={team === 'ct'}
+              onShowInParty={() => showCharacterInParty(team)}
+              model={stockCharacters[team]}
+              skin={equippedByWeapon.get(`player_${team}`)?.skin}
+              selected
               disabled={loadoutLocked}
-              onSelect={() => selectTeam('ct', true)}
+              onSelect={() => selectTeam(team, true)}
               footer={
                 <MusicKitSlot
-                  team="ct"
+                  team={team}
                   className="mt-0"
                   disabled={loadoutLocked || unequippingTeam}
                   onSelect={() => {
-                    selectTeam('ct')
-                    setMusicFilter('ct')
+                    selectTeam(team)
+                    setMusicFilter(team)
                   }}
                 />
               }
@@ -493,35 +497,6 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                 </section>
               </div>
             </div>
-          </div>
-          <div className="order-3 min-w-0 self-start">
-            <CharacterPanel
-              team="t"
-              partyPending={partyPending}
-              partySelected={
-                partyModel ===
-                (equippedByWeapon.get('player_t')
-                  ? `skin:${equippedByWeapon.get('player_t')!.skin.id}`
-                  : `player/${stockCharacters.t}/${stockCharacters.t}.mdl`)
-              }
-              onShowInParty={() => showCharacterInParty('t')}
-              model={stockCharacters.t}
-              skin={equippedByWeapon.get('player_t')?.skin}
-              selected={team === 't'}
-              disabled={loadoutLocked}
-              onSelect={() => selectTeam('t', true)}
-              footer={
-                <MusicKitSlot
-                  team="t"
-                  className="mt-0"
-                  disabled={loadoutLocked || unequippingTeam}
-                  onSelect={() => {
-                    selectTeam('t')
-                    setMusicFilter('t')
-                  }}
-                />
-              }
-            />
           </div>
         </div>
       </section>
