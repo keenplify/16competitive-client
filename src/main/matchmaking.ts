@@ -26,12 +26,13 @@ import type {
   GlobalChatMessageDeleted,
   GlobalChatScope
 } from '../shared/matchmaking'
-import { clearSessionToken, getSessionToken } from './auth'
+import { clearSessionToken, getSessionToken, getSessionUsername } from './auth'
 import { activateIcafeBranch } from './icafe-branch'
 import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
 import { reportDiagnosticIssue } from './diagnostic-logs'
+import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
 import {
   closeCounterStrikeForMatch,
@@ -742,6 +743,31 @@ class MatchmakingConnection {
   private matchAttentionWindow: BrowserWindow | null = null
   private restoreMatchWindowTopmost = false
 
+  constructor() {
+    matchmakingDiagnostics.setSnapshot(() => this.diagnosticSnapshot())
+  }
+
+  private diagnosticSnapshot(): Record<string, unknown> {
+    return {
+      authenticated: this.authenticated,
+      socketState: this.socket?.readyState ?? null,
+      socketOpening: this.socketOpening,
+      reconnectAttempt: this.reconnectAttempt,
+      recoveryStatusPending: this.recoveryStatusPending,
+      activeApiUrl: this.activeApiUrl,
+      hostApiUrl: this.hostApiUrl,
+      matchId: this.lastConnection?.matchId ?? null,
+      hasConnection: this.lastConnection !== null,
+      clockOffsetMs: serverClockNow() - Date.now(),
+      rendererAvailable: Boolean(this.renderer && !this.renderer.isDestroyed())
+    }
+  }
+
+  private traceDiagnostic(stage: string, event: object): void {
+    matchmakingDiagnostics.setOwner(getSessionUsername())
+    matchmakingDiagnostics.record(stage, { ...this.diagnosticSnapshot(), ...event })
+  }
+
   getQueuedMode(): MatchmakingMode | null {
     return this.desiredMode
   }
@@ -1420,9 +1446,14 @@ class MatchmakingConnection {
         return
       }
       if (!isServerMessage(parsed, websocketUrl)) {
+        this.traceDiagnostic(
+          'rejected_schema',
+          parsed && typeof parsed === 'object' ? parsed : { type: 'invalid_message' }
+        )
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
+      this.traceDiagnostic('socket_received', parsed)
       if (parsed.whileQueued || ('matchId' in parsed && this.warmupMatchIds.has(parsed.matchId))) {
         if (
           'matchId' in parsed &&
@@ -1812,7 +1843,12 @@ class MatchmakingConnection {
       console.warn('[Matchmaking] WebSocket connection error')
       if (!handoff) this.handleSocketDisconnect(socket)
     })
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event) => {
+      this.traceDiagnostic('socket_closed', {
+        type: 'socket_closed',
+        closeCode: event.code,
+        wasClean: event.wasClean
+      })
       clearTimeout(connectionTimeout)
       clearInterval(branchRefresh)
       if (handoff && this.socket !== socket && !socketAuthenticated) {
@@ -1923,13 +1959,16 @@ class MatchmakingConnection {
   }
 
   private send(message: object): void {
+    this.traceDiagnostic('send_attempt', message)
     if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) {
+      this.traceDiagnostic('send_rejected_disconnected', message)
       throw new Error('Matchmaking is not connected yet')
     }
     this.socket.send(JSON.stringify(message))
   }
 
   private notify(event: MatchmakingEvent): void {
+    this.traceDiagnostic('renderer_forward', event)
     if ('matchId' in event && this.warmupMatchIds.has(event.matchId))
       event = { ...event, whileQueued: true }
     if (this.renderer && !this.renderer.isDestroyed()) {

@@ -125,7 +125,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         description.trim(),
         [
           ...getRendererDiagnosticLogs(),
-          `[ResourceLoadingSnapshot] ${JSON.stringify({
+          `[CatalogLoadingSnapshot] ${JSON.stringify({
             page,
             playView,
             status: progress?.status ?? 'unavailable',

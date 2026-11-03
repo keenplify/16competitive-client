@@ -16,6 +16,7 @@ import {
 import { create } from 'zustand'
 import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
 import { readyResponseFromServer } from '../../../../shared/matchmaking-ready-response'
+import { rendererMatchmakingDiagnostics } from '../../diagnostic-logs'
 import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
@@ -249,6 +250,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const terminalMatchIds = new Set<string>()
 
   const handleEvent = (event: MatchmakingEvent): void => {
+    rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
+    rendererMatchmakingDiagnostics.record('renderer_received', event)
     useQueueWarmupStore.getState().handleEvent(event)
     if (event.whileQueued) {
       if (event.type === 'match_finished' && !terminalMatchIds.has(event.matchId)) {
@@ -1295,3 +1298,29 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   }
 })
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
+
+rendererMatchmakingDiagnostics.setSnapshot(() => {
+  rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
+  const state = useMatchmakingStore.getState()
+  return {
+    connectionStatus: state.connectionStatus,
+    queueStatus: state.queueStatus,
+    activeApiUrl: state.activeApiUrl,
+    websocketUrl: state.websocketUrl,
+    matchId: state.match?.matchId ?? null,
+    readyDeadline: state.readyDeadline,
+    remainingMs: state.readyDeadline ? Date.parse(state.readyDeadline) - serverClockNow() : null,
+    readyResponse: state.readyResponse,
+    readyWarningOpen: state.readyWarningOpen,
+    acceptedCount: state.acceptedPlayerIds.length,
+    readyPlayersRequired: state.readyPlayersRequired,
+    status: state.assetPreparation.status,
+    completedFiles: state.assetPreparation.completedFiles,
+    totalFiles: state.assetPreparation.totalFiles,
+    hasConnection: state.connectionDetails !== null,
+    gameExited: state.gameExited,
+    gameExitCount: state.gameExitCount,
+    copyConnectionStatus: state.copyConnectionStatus,
+    clockOffsetMs: serverClockNow() - Date.now()
+  }
+})

@@ -8,6 +8,7 @@ import { serverClockNow } from '../shared/server-clock'
 import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-logs'
 import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 import { postDiagnosticReport } from './diagnostic-report-request'
+import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -49,6 +50,17 @@ export async function collectDiagnosticIssueLogs(
   rendererLogs: string[],
   matchId?: string
 ): Promise<string> {
+  matchmakingDiagnostics.setOwner(getSessionUsername())
+  const matchmaking = `[Main matchmaking diagnostics]\n${matchmakingDiagnostics.report()}`
+  const environment = `[Launcher environment] ${JSON.stringify({
+    platform: process.platform,
+    arch: process.arch,
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    sessionType: process.env.XDG_SESSION_TYPE?.slice(0, 80),
+    desktop: process.env.XDG_CURRENT_DESKTOP?.slice(0, 80),
+    clientVersion: app.getVersion()
+  })}`
   const launcherLogs = redactReportLogs([...entries, ...rendererLogs].join('\n')).slice(-300_000)
   const savedExecutable = await getSavedCs16Executable().catch((error: unknown) => {
     console.warn('[IssueReport] Could not resolve saved game installation:', error)
@@ -65,7 +77,7 @@ export async function collectDiagnosticIssueLogs(
   const owner = getSessionUsername() ?? ''
   await refreshGamePerformance(owner, matchId)
   const performance = gamePerformanceReport(owner, matchId)
-  return `${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
+  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
 }
 
 export function installDiagnosticLogCapture(): void {

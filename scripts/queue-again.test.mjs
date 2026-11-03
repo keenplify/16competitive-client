@@ -1,3 +1,4 @@
+import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
@@ -62,7 +63,9 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     ),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
   ).outputText
+  const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../../diagnostic-logs': { rendererMatchmakingDiagnostics: diagnostics },
     './web-helper-prompt.store': {
       useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
     },

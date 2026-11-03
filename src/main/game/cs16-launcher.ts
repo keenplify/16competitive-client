@@ -60,6 +60,7 @@ import {
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import helperRelease from '../../../helper-release.json'
 import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
+import { matchmakingDiagnostics } from '../matchmaking-diagnostics'
 import { prepareMatchStartupBridge } from './match-startup-bridge'
 import webLaunchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 import {
@@ -1468,7 +1469,25 @@ export const launchCounterStrikeForMatch = (input: MatchLaunchInput): Promise<vo
 
   const operation = launchQueue
     .catch(() => undefined)
-    .then(() => performLaunchCounterStrikeForMatch(input))
+    .then(async () => {
+      matchmakingDiagnostics.record('launch_started', {
+        type: 'game_process_launch',
+        matchId: input.matchId
+      })
+      try {
+        await performLaunchCounterStrikeForMatch(input)
+        matchmakingDiagnostics.record('launch_handoff_completed', {
+          type: 'game_process_launch',
+          matchId: input.matchId
+        })
+      } catch (error) {
+        matchmakingDiagnostics.record('launch_failed', {
+          type: 'game_process_launch',
+          matchId: input.matchId
+        })
+        throw error
+      }
+    })
 
   launchQueue = operation.catch(() => undefined)
 

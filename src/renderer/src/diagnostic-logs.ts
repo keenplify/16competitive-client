@@ -1,5 +1,8 @@
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
+import { MatchmakingDiagnostics } from '../../shared/matchmaking-diagnostics'
+
+export const rendererMatchmakingDiagnostics = new MatchmakingDiagnostics()
 
 const formatValue = (value: unknown): string => {
   if (typeof value === 'string') return value
@@ -26,6 +29,7 @@ export function installDiagnosticLogCapture(): void {
 
 export const getRendererDiagnosticLogs = (): string[] => [
   ...entries,
+  `[Renderer matchmaking diagnostics] ${rendererMatchmakingDiagnostics.report()}`,
   `[RendererContext] ${JSON.stringify({
     // Keep query parameters and fragments out of reports: they can contain credentials.
     screen: window.location.protocol === 'file:' ? 'desktop' : window.location.pathname,
