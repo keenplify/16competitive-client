@@ -3984,3 +3984,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Receive a warning when acknowledging a missed match.
 - Queue again with improved missed-match handling.
+
+## v2026.1103.7 — 2026-11-03
+
+### Steam Proton
+
+- Added support for cosmetic HUD features during Steam Proton launches.
+- Improved recovery support for Steam Proton sessions.
+
+### Matchmaking
+
+- Added matchmaking support for the updated launch and recovery flow.
