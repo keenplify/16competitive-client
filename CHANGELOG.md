@@ -3938,3 +3938,115 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Stability
 
 - Prevented unsupported model previews from crashing launcher screens.
+
+## v2026.1103.2 — 2026-11-03
+
+### PMGUARD
+
+- Updated guard branding to PMGUARD throughout the launcher.
+- Added refreshed Counter-Strike 1.6 splash and emblem assets.
+
+### Matchmaking
+
+- Improved recovery when joining a match fails.
+
+### Diagnostics
+
+- Improved launcher diagnostic reporting for troubleshooting.
+
+## v2026.1103.3 — 2026-11-03
+
+### Startup
+
+- Updated the startup splash with blue, single-line PMGUARD branding.
+
+## v2026.1103.4 — 2026-11-03
+
+### Startup Experience
+
+- The PMGUARD splash screen now displays community logos in its header.
+
+## v2026.1103.5 — 2026-11-03
+
+### Character Preview
+
+- View a single character preview while managing your loadout.
+- Switch between team tabs above the loadout.
+
+## v2026.1103.6 — 2026-11-03
+
+### Rooms
+
+- See notices when players join or leave a room.
+- Room chat now supports clearer membership updates.
+
+### Matchmaking
+
+- Receive a warning when acknowledging a missed match.
+- Queue again with improved missed-match handling.
+
+## v2026.1103.7 — 2026-11-03
+
+### Steam Proton
+
+- Added support for cosmetic HUD features during Steam Proton launches.
+- Improved recovery support for Steam Proton sessions.
+
+### Matchmaking
+
+- Added matchmaking support for the updated launch and recovery flow.
+
+## v2026.1103.8 — 2026-11-03
+
+### Startup
+
+- Improved Proton startup recovery reliability.
+
+### Interface
+
+- Improved consistency and spacing across in-game dialog windows.
+
+## v2026.1103.9 — 2026-11-03
+
+### Game Focus
+
+- Launcher focus now returns to Counter-Strike on Linux.
+
+### HUD
+
+- Hidden HUD focus is now disabled.
+
+## v2026.1103.10 — 2026-11-03
+
+### Matchmaking
+
+- Fixed ready-check activation on Linux.
+
+### Match Menu
+
+- Fixed match menu positioning.
+
+## v2026.1103.11 — 2026-11-03
+
+### Match Experience
+
+- Fixed game focus during matchmaking and match transitions.
+- Improved post-match viewing behavior.
+- Reduced startup latency.
+
+### Custom Rooms
+
+- Fixed custom room game and mode selections.
+- Improved custom room settings and fixture support.
+
+### Reliability
+
+- Improved Proton recovery handling.
+- Added safeguards for scoreboard startup and terminal states.
+
+## v2026.1103.12 — 2026-11-03
+
+### Diagnostics
+
+- Improved diagnostics during warmup and matchmaking lifecycle transitions.
+- Issue reports now include ready-check and game launch status.
