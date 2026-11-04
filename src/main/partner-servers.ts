@@ -1,3 +1,4 @@
+import { launchStandalonePartner } from './game/standalone-session'
 import { resolveServiceApiUrl } from './matchmaking-regions'
 import { validateCommunityJoin } from '../shared/community-directory'
 import { API_BASE_URL } from './config'
@@ -5,16 +6,14 @@ import { parsePartnerLaunchTicket, partnerLaunchArguments } from '../shared/part
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { app } from 'electron'
 import { LegacyGameService } from './game/legacy-game-service'
 import { cs13Adapter } from './game/adapters/cs13'
 import { getPartnerBranding } from './partner-branding'
 import { getSessionPlayerId, getSessionToken } from './auth'
-import { getSavedCs16Executable } from './game/game-settings'
-import { resolveCs16LaunchTarget } from './game/cs16-installation'
-import { launchOrdinaryCounterStrike } from './game/cs16-launcher'
-import { launchPartnerHtmlGame } from './game/partner-html-launch'
+import { getGameSettings } from './game/game-settings'
+import { launchOrdinaryCounterStrike, shutdownManagedGame } from './game/cs16-launcher'
 import { matchmakingConnection } from './matchmaking'
 import { queryServerInfo, type ServerInfo } from './game/partner-server-query'
 import {
@@ -269,48 +268,13 @@ export async function connectPartnerServer(
       if (group) await markPartnerGroupLaunched(group.id)
       return
     }
-    const executable = await getSavedCs16Executable()
-    if (!executable) throw new Error('INSTALLATION_REQUIRED')
-    const target = await resolveCs16LaunchTarget(executable)
-    const { ticket, connectionId } = await requestPartnerLaunchTicket(id, token)
-    if (matchmakingConnection.isBusyForPartnerServer()) throw new Error('MATCH_BUSY')
-    await launchOrdinaryCounterStrike(async () => {
-      if (getSessionToken() !== token || matchmakingConnection.isBusyForPartnerServer())
-        throw new Error('MATCH_BUSY')
-      // Ordinary community session. The single-use link ticket grants only partner session identity.
-      if (
-        await launchPartnerHtmlGame(
-          id,
-          address,
-          server.port,
-          ticket,
-          connectionId,
-          target,
-          () => getSessionToken() === token && !matchmakingConnection.isBusyForPartnerServer()
-        )
-      )
-        return
-      const child = spawn(
-        target.executable,
-        [...target.argumentPrefix, ...partnerLaunchArguments(address, server.port, ticket)],
-        {
-          cwd:
-            target.distribution === 'steam' && process.platform === 'win32'
-              ? dirname(target.executable)
-              : dirname(executable),
-          shell: false,
-          detached: true,
-          stdio: 'ignore'
-        }
-      )
-      await new Promise<void>((resolve, reject) => {
-        child.once('spawn', resolve)
-        child.once('error', () => reject(new Error('LAUNCH_FAILED')))
-      })
-      child.unref()
-      console.info('[PartnerServers] ordinary game launched', { serverId: id })
-    })
-    if (group) await markPartnerGroupLaunched(group.id)
+    const settings = await getGameSettings(true)
+    await shutdownManagedGame()
+    await launchStandalonePartner(
+      { serverId: id, groupId: group?.id, communityId },
+      await resolveServiceApiUrl(),
+      settings
+    )
   } finally {
     connecting = false
   }

@@ -9,7 +9,7 @@ use std::{
         Arc,
     },
     thread::{self, JoinHandle},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use uuid::Uuid;
 
@@ -141,6 +141,19 @@ impl NativeSession {
         token: &str,
         preferences: &crate::settings_bridge::NativePreferences,
     ) -> Result<Self, String> {
+        Self::start_owned(directory, &connection.match_id, &connection.host, connection.port,
+            &connection.player_name, api, token, preferences, None)
+    }
+
+    pub fn start_partner_at(directory: PathBuf, server: &crate::partner::Server, api: &str, token: &str,
+        preferences: &crate::settings_bridge::NativePreferences) -> Result<Self, String> {
+        Self::start_owned(directory, &server.id, &server.host, server.port, "", api, token, preferences,
+            Some(server.connection_id.clone()))
+    }
+
+    fn start_owned(directory: PathBuf, source_id: &str, host: &str, port: u16, player: &str,
+        api: &str, token: &str, preferences: &crate::settings_bridge::NativePreferences,
+        partner_connection: Option<Option<String>>) -> Result<Self, String> {
         let id = Uuid::new_v4().to_string();
         fs::create_dir_all(directory.parent().ok_or("Invalid managed session path")?)
             .map_err(|e| e.to_string())?;
@@ -154,12 +167,11 @@ impl NativeSession {
         let issued = now_ms()?;
         let expires = issued + TICKET_LIFETIME_MS;
         let setup = (|| -> Result<(), String> {
-            let endpoint_ip = connection
-                .host
+            let endpoint_ip = host
                 .parse::<Ipv4Addr>()
                 .ok()
                 .or_else(|| {
-                    (connection.host.as_str(), connection.port)
+                    (host, port)
                         .to_socket_addrs()
                         .ok()?
                         .find_map(|address| match address.ip() {
@@ -170,30 +182,18 @@ impl NativeSession {
                 .ok_or("Match server has no IPv4 endpoint")?;
             owned_write(
                 &directory.join("manifest.json"),
-                serde_json::json!({"matchId": connection.match_id})
+                (if partner_connection.is_some() { serde_json::json!({"partnerServerId": source_id}) } else { serde_json::json!({"matchId": source_id}) })
                     .to_string()
                     .as_bytes(),
             )?;
             owned_write(
                 &directory.join("server.endpoint"),
-                format!("{endpoint_ip}:{}\n", connection.port).as_bytes(),
+                format!("{endpoint_ip}:{}\n", port).as_bytes(),
             )?;
             // The web helper has no Electron image renderer. Keep the stock Tab
             // scoreboard and use the native module only for supported HUD layers.
             owned_write(&directory.join("overlay.mode"), b"ally-tags\n")?;
-            if preferences.enhancements_enabled {
-                owned_write(&directory.join("overlay.enabled"), b"1\n")?;
-                if let Some(crosshair) = &preferences.crosshair_config {
-                    owned_write(&directory.join("crosshair.conf"), crosshair.as_bytes())?;
-                }
-                owned_write(
-                    &directory.join("player-ping.key"),
-                    format!("{}\n", preferences.player_ping_key).as_bytes(),
-                )?;
-            }
-            if preferences.lightweight_hud {
-                owned_write(&directory.join("hud-lightweight.enabled"), b"1\n")?;
-            }
+            crate::native_preferences::initialize(&directory, preferences)?;
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
                 &directory.join("session.ticket"),
@@ -211,6 +211,8 @@ impl NativeSession {
         let stop = Arc::new(AtomicBool::new(false));
         let heartbeat_stop = Arc::clone(&stop);
         let heartbeat_path = directory.clone();
+        let preference_path = crate::native_preferences::live_source().ok();
+        let mut last_preferences = serde_json::to_vec(preferences).map_err(|e| e.to_string())?;
         let heartbeat = thread::spawn(move || {
             while !heartbeat_stop.load(Ordering::Relaxed) {
                 if now_ms().is_ok_and(|now| now >= expires) {
@@ -224,6 +226,20 @@ impl NativeSession {
                 {
                     break;
                 }
+                if let Some(settings) = preference_path.as_ref()
+                    .and_then(|path| crate::native_preferences::read_settings(path).ok())
+                {
+                    if let Ok(encoded) = serde_json::to_vec(&settings) {
+                        if encoded != last_preferences {
+                            if crate::native_preferences::refresh(&heartbeat_path, &settings).is_err() {
+                                // A partially applied preference update must not leave a
+                                // native session alive without its supervisor.
+                                break;
+                            }
+                            last_preferences = encoded;
+                        }
+                    }
+                }
                 for _ in 0..10 {
                     if heartbeat_stop.load(Ordering::Relaxed) {
                         break;
@@ -231,6 +247,7 @@ impl NativeSession {
                     thread::sleep(Duration::from_millis(100));
                 }
             }
+            heartbeat_stop.store(true, Ordering::Relaxed);
             let _ = owned_write(&heartbeat_path.join("launcher.stopped"), b"1\n");
             let _ = fs::remove_file(heartbeat_path.join("launcher.lease"));
             let _ = fs::remove_file(heartbeat_path.join("session.ticket"));
@@ -239,19 +256,34 @@ impl NativeSession {
         let feed_path_root = directory.clone();
         let api = api.to_owned();
         let token = token.to_owned();
-        let match_id = connection.match_id.clone();
-        let player_name = connection.player_name.clone();
+        let match_id = source_id.to_owned();
+        let player_name = player.to_owned();
         let show_cards = preferences.enhancements_enabled && preferences.kill_cards_enabled;
         let feed = thread::spawn(move || {
             let feed_path =
                 feed_path_root.join("game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv");
             let card_path = feed_path_root.join("kill-cards.state");
             let mut progress = KillProgress::default();
+            let mut next_authorization_check = Instant::now() + Duration::from_secs(15);
             while !feed_stop.load(Ordering::Relaxed) {
                 if now_ms().is_ok_and(|now| now >= expires) {
                     break;
                 }
-                if let Some(snapshot) = fetch_feed(&api, &token, &match_id) {
+                if Instant::now() >= next_authorization_check {
+                    next_authorization_check = Instant::now() + Duration::from_secs(15);
+                    let revoked = if let Some(connection) = &partner_connection {
+                        !crate::partner::authorized(&api, &token, &match_id, connection.as_deref(),
+                            now_ms().is_ok_and(|now| now < issued + 120_000))
+                    } else {
+                        crate::session_authorization::check(&api, &token, &match_id)
+                            == crate::session_authorization::Authorization::Revoked
+                    };
+                    if revoked {
+                        feed_stop.store(true, Ordering::Relaxed);
+                        break;
+                    }
+                }
+                if let Some(snapshot) = if partner_connection.is_none() { fetch_feed(&api, &token, &match_id) } else { None } {
                     if let Some(card) = progress
                         .update(&snapshot, &player_name)
                         .filter(|_| show_cards)
@@ -280,6 +312,10 @@ impl NativeSession {
             stop,
             workers: vec![heartbeat, feed],
         })
+    }
+
+    pub fn is_active(&self) -> bool {
+        !self.stop.load(Ordering::Relaxed)
     }
 
     pub fn stop(&mut self) {

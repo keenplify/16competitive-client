@@ -5,9 +5,17 @@ import test from 'node:test'
 import ts from 'typescript'
 
 const source = readFileSync(new URL('../src/main/game/cs16-launcher.ts', import.meta.url), 'utf8')
-const start = source.indexOf('export const launchOrdinaryCounterStrike =')
-const end = source.indexOf('\nconst finishAntiCheatSession', start)
-const code = ts.transpile(source.slice(start, end).replace('export ', ''), {
+const parsed = ts.createSourceFile('launcher.ts', source, ts.ScriptTarget.Latest, true)
+const declaration = (name) =>
+  parsed.statements
+    .find(
+      (node) =>
+        ts.isVariableStatement(node) &&
+        node.declarationList.declarations.some((decl) => decl.name.getText(parsed) === name)
+    )
+    .getText(parsed)
+    .replace(/^export /, '')
+const code = ts.transpile(declaration('launchOrdinaryCounterStrike'), {
   target: ts.ScriptTarget.ES2022
 })
 const launcher = (queue, cleanup) =>
@@ -57,4 +65,36 @@ test('failed managed restoration prevents an ordinary replacement launch', async
     /restoration failed/
   )
   assert.equal(launched, false)
+})
+
+test('both launcher visibility preferences use the same native match handoff', async () => {
+  const source = ts.transpile(declaration('launchCounterStrikeForMatch'), {
+    target: ts.ScriptTarget.ES2022
+  })
+  for (const lightweightHud of [true, false]) {
+    const calls = []
+    const deps = {
+      launchQueue: Promise.resolve(),
+      forcedLaunchInFlight: null,
+      matchmakingDiagnostics: { record: () => {} },
+      getGameSettings: async () => ({ lightweightHud }),
+      standaloneSessionStatus: () => ({ owned: false }),
+      shutdownManagedGame: async () => {
+        calls.push('cleanup')
+      },
+      launchStandaloneSession: async (id, api, settings, onExit) => {
+        calls.push({ id, api, settings, onExit })
+      }
+    }
+    const launch = new Function(
+      ...Object.keys(deps),
+      `${source};return launchCounterStrikeForMatch`
+    )(...Object.values(deps))
+    const onExit = () => {}
+    await launch({ matchId: 'match', apiUrl: 'https://example.test', onExit })
+    assert.deepEqual(calls, [
+      'cleanup',
+      { id: 'match', api: 'https://example.test', settings: { lightweightHud }, onExit }
+    ])
+  }
 })

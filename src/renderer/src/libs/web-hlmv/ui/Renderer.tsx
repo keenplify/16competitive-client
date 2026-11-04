@@ -140,6 +140,7 @@ type Props = {
   camera?: ModelViewerCamera
   cameraLocked?: boolean
   animation?: string | number | readonly string[]
+  onMuzzlePosition?: (x: number, y: number, visible: boolean) => void
   firstPerson?: boolean
   animationSequences?: readonly number[]
   animationRestart?: number
@@ -739,6 +740,16 @@ export const Renderer = (props: Props): React.JSX.Element => {
     usesFixedSequenceFallback
   ])
 
+  const muzzleFrames = React.useMemo(() => {
+    const attachment = modelData.attachments[0]
+    const sequence = modelData.sequences[animationIndex]
+    if (!props.onMuzzlePosition || !attachment || !sequence) return []
+    return Array.from({ length: sequence.numFrames }, (_, frame) => {
+      const bone = calcRotations(modelData, animationIndex, frame)[attachment.bone]
+      return bone ? new THREE.Vector3(...attachment.org).applyMatrix4(new THREE.Matrix4().fromArray(Array.from(bone))) : null
+    })
+  }, [modelData, animationIndex, Boolean(props.onMuzzlePosition)])
+
   // Updating animation frame
   useAnimationFrame(() => {
     const startedAt = performance.now()
@@ -806,6 +817,16 @@ export const Renderer = (props: Props): React.JSX.Element => {
     if (renderer && canRender) {
       lastRenderAt.current = startedAt
       renderer.render(scene, camera)
+      if (props.onMuzzlePosition) {
+        const sequence = modelData.sequences[animationIndex]
+        const frame = sequence ? Math.floor(fallbackAnimationTime.current * sequence.fps) : 0
+        const index = props.playOnce ? Math.min(frame, muzzleFrames.length - 1) : frame % muzzleFrames.length
+        const position = muzzleFrames[index]?.clone()
+        if (position) {
+          position.applyMatrix4(fallbackContainer.matrixWorld).project(camera)
+          props.onMuzzlePosition((position.x + 1) / 2, (1 - position.y) / 2, position.z >= -1 && position.z <= 1)
+        } else props.onMuzzlePosition(0, 0, false)
+      }
 
       if (!hasRenderedFirstFrame.current) {
         hasRenderedFirstFrame.current = true

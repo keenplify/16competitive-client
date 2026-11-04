@@ -101,7 +101,7 @@ async function watchDemo(id: unknown, kind: 'admin' | 'match'): Promise<void> {
               ? 'MATCH_DEMO_BUSY'
               : 'Leave matchmaking and finish your match before watching a demo.'
             : kind === 'match'
-              ? 'MATCH_DEMO_UNAVAILABLE'
+              ? permission.status === 404 ? 'MATCH_DEMO_UNAVAILABLE' : 'MATCH_DEMO_ACCESS_FAILED'
               : 'Demo playback permission could not be verified.'
         )
     }

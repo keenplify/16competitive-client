@@ -28,7 +28,7 @@ RGBA color integration needs the active engine's actual conversion and cache
 invalidation on gamma changes, with separate Steam and NextClient verification.
 No native color behavior was changed as part of the knife-side correction.
 
-Source: https://github.com/CS-NextClient/NextClient/tree/9eef60908fb874843f7e9aa68a0e91c0743a402a/nextclient/engine_mini/src/graphics
+Source: https://gith ub.com/CS-NextClient/NextClient/tree/9eef60908fb874843f7e9aa68a0e91c0743a402a/nextclient/engine_mini/src/graphics
 
 The knife editor and inspection now start on the opposite blade face from the
 firearm inspection view, with the existing bounded orbit. Atlas projection

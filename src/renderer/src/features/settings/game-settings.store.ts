@@ -1,3 +1,5 @@
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { DEFAULT_PLAYER_PING_KEY, type PlayerPingKey } from '../../../../shared/player-ping'
 import { create } from 'zustand'
 import { isWebRuntime } from '../../web-runtime'
@@ -111,7 +113,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   pingSaveFailed: false,
   fastSwitchEnabled: true,
   fastSwitchManaged: true,
-  lightweightHud: false,
+  lightweightHud: true,
   lightweightHudStatus: 'idle',
   killCardsEnabled: true,
   setupCompleted: false,
@@ -169,12 +171,26 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   setLightweightHud: async (enabled) => {
+    const language = useLanguageStore.getState().language
+    const feedback = toast.loading(translate(language, 'settings.lightweightHudSaving'))
     set({ lightweightHudStatus: 'saving' })
     try {
       const settings = await window.api.gameSettings.setLightweightHud(enabled)
       set({ lightweightHud: settings.lightweightHud, lightweightHudStatus: 'idle' })
+      toast.update(feedback, {
+        render: translate(language, 'settings.lightweightHudNextMatch'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
     } catch {
       set({ lightweightHudStatus: 'error' })
+      toast.update(feedback, {
+        render: translate(language, 'settings.lightweightHudError'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 6000
+      })
     }
   },
 

@@ -1,7 +1,8 @@
-import type { InputHTMLAttributes, JSX, ReactNode } from 'react'
+import type { InputHTMLAttributes, JSX, ReactNode, Ref } from 'react'
 import { twMerge } from 'tailwind-merge'
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  ref?: Ref<HTMLInputElement>
   label: string
   hint?: string
   leadingIcon?: ReactNode

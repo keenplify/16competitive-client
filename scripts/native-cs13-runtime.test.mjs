@@ -118,12 +118,14 @@ test('web CS13 selects the managed legacy adapter and its cosmetic session', asy
   assert.equal(h.calls.at(-1), 'stop')
 })
 
-test('modern matches retain the CS16 adapter', async () => {
+test('legacy Electron runtime cannot launch a second CS16 path', async () => {
   const h = launchHarness('5v5')
   const reply = await h.done
-  assert.equal(reply.error, undefined)
-  assert.equal(reply.sessionDirectory, '/cs16-overlay')
-  assert.ok(h.calls.some((call) => call[0] === 'cs16'))
+  assert.equal(reply.error, 'CS 1.6 sessions must use the native helper')
+  assert.equal(
+    h.calls.some((call) => call[0] === 'cs16'),
+    false
+  )
   assert.equal(
     h.calls.some((call) => call[0] === 'cs13'),
     false

@@ -3,6 +3,23 @@ const DATABASE_SCHEMA_VERSION = 1
 const PRESENTATIONS_STORE = 'presentations'
 const METADATA_STORE = 'metadata'
 const APP_VERSION_KEY = 'app-version'
+// Persistent caching is optional: blocked upgrades or browser storage stalls
+// must never prevent the lobby from rendering an otherwise valid model.
+const CACHE_WAIT_MS = 1000
+const boundedCache = <T>(operation: Promise<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Model cache timed out')), CACHE_WAIT_MS)
+    operation.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error: unknown) => {
+        clearTimeout(timer)
+        reject(error)
+      }
+    )
+  })
 
 export type CachedLobbyMesh = {
   animationFrames: Float32Array[]
@@ -63,6 +80,9 @@ const openDatabase = (): Promise<IDBDatabase> => {
     )
     request.addEventListener('success', () => resolve(request.result), { once: true })
     request.addEventListener('error', () => reject(request.error), { once: true })
+    request.addEventListener('blocked', () => reject(new Error('Model cache upgrade blocked')), {
+      once: true
+    })
   })
   return databasePromise
 }
@@ -72,6 +92,9 @@ const versionedDatabase = (): Promise<IDBDatabase> => {
   versionCheckPromise = Promise.all([openDatabase(), window.api.updater.getCurrentVersion()]).then(
     async ([database, appVersion]) => {
       const transaction = database.transaction([METADATA_STORE, PRESENTATIONS_STORE], 'readwrite')
+      const complete = transactionComplete(transaction)
+      // Attach a rejection handler immediately, before the metadata request settles.
+      void complete.catch(() => undefined)
       const metadata = transaction.objectStore(METADATA_STORE)
       const cachedVersion = await requestResult(metadata.get(APP_VERSION_KEY))
       if (cachedVersion !== appVersion) {
@@ -79,7 +102,7 @@ const versionedDatabase = (): Promise<IDBDatabase> => {
         metadata.put(appVersion, APP_VERSION_KEY)
         memoryCache.clear()
       }
-      await transactionComplete(transaction)
+      await complete
       return database
     }
   )
@@ -93,12 +116,15 @@ export const readCachedLobbyPresentation = async (
   if (memoryValue) return memoryValue
 
   try {
-    const database = await versionedDatabase()
+    const database = await boundedCache(versionedDatabase())
     const transaction = database.transaction(PRESENTATIONS_STORE, 'readonly')
-    const value = (await requestResult(
-      transaction.objectStore(PRESENTATIONS_STORE).get(cacheKey)
-    )) as CachedLobbyPresentation | undefined
-    await transactionComplete(transaction)
+    const complete = transactionComplete(transaction)
+    const value = (await boundedCache(
+      Promise.all([
+        requestResult(transaction.objectStore(PRESENTATIONS_STORE).get(cacheKey)),
+        complete
+      ])
+    ).then(([value]) => value)) as CachedLobbyPresentation | undefined
     if (value) memoryCache.set(cacheKey, value)
     return value ?? null
   } catch (error) {
@@ -113,10 +139,11 @@ export const writeCachedLobbyPresentation = async (
 ): Promise<void> => {
   memoryCache.set(cacheKey, presentation)
   try {
-    const database = await versionedDatabase()
+    const database = await boundedCache(versionedDatabase())
     const transaction = database.transaction(PRESENTATIONS_STORE, 'readwrite')
+    const complete = transactionComplete(transaction)
     transaction.objectStore(PRESENTATIONS_STORE).put(presentation, cacheKey)
-    await transactionComplete(transaction)
+    await boundedCache(complete)
   } catch (error) {
     console.warn('[Lobby] Could not persist prepared model cache', error)
   }

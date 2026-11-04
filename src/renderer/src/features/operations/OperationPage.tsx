@@ -1,3 +1,5 @@
+import { OperationStickerPreview } from './OperationStickerPreview'
+import { inventoryText } from '../inventory/inventory-i18n'
 import { Award, ChevronRight, Gift, LoaderCircle, LockKeyhole, Sparkles, Star } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -27,6 +29,7 @@ const TIER_CARD_WIDTH = 160
 const TIER_GAP = 12
 
 const rewardName = (tier: OperationTier): string => {
+  if (tier.rewardType === 'STICKER') return `${tier.amount ?? 1} × ${tier.sticker?.name ?? inventoryText('stickers')}`
   if (tier.rewardType === 'SKIN') return tier.skin?.name ?? 'Weapon skin'
   if (tier.rewardType === 'POINTS') return `${(tier.amount ?? 0).toLocaleString()} Points`
   if (tier.rewardType === 'P_CASH') return `${(tier.amount ?? 0).toLocaleString()} Papa Cash`
@@ -34,6 +37,7 @@ const rewardName = (tier: OperationTier): string => {
 }
 
 function RewardPreview({ tier }: { tier: OperationTier }): JSX.Element {
+  if (tier.rewardType === 'STICKER') return <OperationStickerPreview tier={tier} className="absolute inset-0" />
   if (tier.rewardType === 'SKIN' && tier.skinId && tier.skin?.weaponKey) {
     return (
       <SkinModelThumbnail

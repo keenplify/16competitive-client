@@ -451,3 +451,12 @@ export async function previewAppliedStickers(
   fullColorPreviewTextures.set(output, fullColorStickerTextures(atlas, layers))
   return output
 }
+
+/** Share immutable sticker artwork between inventory and operation reward previews. */
+export async function ensureStickerArtwork(path: string): Promise<void> {
+  const current = generation
+  if (useInventoryStore.getState().images[path]) return
+  const image = await imageData(path)
+  if (current === generation)
+    useInventoryStore.setState((state) => ({ images: { ...state.images, [path]: image.url } }))
+}

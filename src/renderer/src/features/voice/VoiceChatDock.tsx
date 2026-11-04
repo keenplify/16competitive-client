@@ -20,6 +20,7 @@ import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { preferenceFor, useVoicePreferencesStore } from './voice-preferences.store'
 import { useVoiceDockText } from './voice-dock-copy'
 import { isWebRuntime } from '../../web-runtime'
+import { useNativeVoiceStore } from './native-voice.store'
 
 interface PeerRuntime {
   peer: VoicePeer
@@ -154,7 +155,19 @@ export function VoiceChatDock(): JSX.Element | null {
   const enhancementsEnabled = useGameSettingsStore((state) => state.nextClientIntegrationEnabled)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
 
+  const nativeVoice = useNativeVoiceStore()
+  const observeNativeVoice = nativeVoice.observe
+  const nativeMatchId =
+    partnerPresence?.server.id ?? connectionDetails?.matchId ?? nativeVoice.requestedPartnerId
+  useEffect(() => {
+    if (nativeMatchId) return observeNativeVoice(nativeMatchId)
+    return undefined
+  }, [nativeMatchId, observeNativeVoice])
+  const nativeOwnsVoice = Boolean(
+    nativeMatchId && nativeVoice.matchId === nativeMatchId && nativeVoice.owned
+  )
   const desiredContext = useMemo<VoiceContext | null>(() => {
+    if (nativeOwnsVoice) return null
     if (!currentPlayerId) return null
     // Keep party chat on the community server through ranked ready-check and
     // handoff. The game server confirms departure before match voice takes over.
@@ -169,7 +182,7 @@ export function VoiceChatDock(): JSX.Element | null {
     }
     if (party) return { kind: 'party', id: party.id }
     return null
-  }, [connectionDetails, currentPlayerId, partnerPresence, party, queueStatus])
+  }, [connectionDetails, currentPlayerId, nativeOwnsVoice, partnerPresence, party, queueStatus])
 
   const [enabled, setEnabled] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -186,6 +199,12 @@ export function VoiceChatDock(): JSX.Element | null {
   const [peerStates, setPeerStates] = useState<Record<string, RTCPeerConnectionState>>({})
   const preferences = useVoicePreferencesStore((state) => state.preferences)
   const [openMic, setOpenMic] = useState(() => localStorage.getItem(OPEN_MIC_KEY) === 'true')
+  useEffect(() => {
+    const peers = Object.fromEntries(Object.entries(preferences).slice(-100))
+    void window.api.gameSettings
+      .setNativeVoice?.({ enabled, openMic, peers })
+      .catch(() => undefined)
+  }, [currentPlayerId, enabled, openMic, preferences])
   const [pttChannel, setPttChannel] = useState<VoiceTalkChannel | null>(null)
   const [teamVoicePttKey, setTeamVoicePttKey] = useState('K')
   const [partyVoicePttKey, setPartyVoicePttKey] = useState('V')
@@ -908,7 +927,9 @@ export function VoiceChatDock(): JSX.Element | null {
   const connectedPeers = voiceRoster.filter(
     ({ peer, simulated }) => simulated || peerStates[peer.id] === 'connected'
   ).length
-  const voiceConnected = enabled && Boolean(joinedContext || MARKETING_LOBBY_ENABLED)
+  const voiceConnected =
+    enabled &&
+    Boolean((nativeOwnsVoice && nativeVoice.connected) || joinedContext || MARKETING_LOBBY_ENABLED)
   const configuredPttAvailable =
     (enhancementsEnabled || activeContext?.kind === 'partner') &&
     Boolean(activeContext?.kind === 'match' ? teamVoicePttKey : partyVoicePttKey)

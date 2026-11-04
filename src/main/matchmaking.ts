@@ -1,3 +1,5 @@
+import { isStandaloneHandoffCommitted } from './game/standalone-session'
+import { isChatAnnouncement } from '../shared/friends'
 import { matchNotificationCopy } from '../shared/match-notification-copy'
 import { Notification } from 'electron'
 import { launchCs13Match, shutdownCs13Game } from './game/cs13-match-launcher'
@@ -378,6 +380,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       return true
     case 'skin_gift_available':
       return typeof message.giftId === 'string' && uuidPattern.test(message.giftId)
+    case 'chat_announcement':
+      return isChatAnnouncement(message.announcement)
     case 'friend_chat_message':
       return isFriendChatMessage(message.message)
     case 'party_presence_ping':
@@ -907,7 +911,7 @@ class MatchmakingConnection {
   }
 
   shutdown(leaveQueue = false): void {
-    if (this.warmupSocket?.readyState === WebSocket.OPEN) {
+    if (!isStandaloneHandoffCommitted() && this.warmupSocket?.readyState === WebSocket.OPEN) {
       this.warmupSocket.send(JSON.stringify({ type: 'leave_warmup' }))
       if (this.warmupSocket !== this.socket) this.warmupSocket.close()
     }

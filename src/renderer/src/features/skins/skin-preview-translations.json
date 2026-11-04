@@ -23,7 +23,8 @@
     "removeStickerTitle": "Remove sticker?",
     "removeStickerWarning": "This will permanently destroy {{name}}. You will not get the sticker back or receive a refund.",
     "removeSticker": "Remove sticker",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "addSticker": "Add sticker"
   },
   "ru": {
     "preview": "Просмотр",
@@ -49,7 +50,8 @@
     "removeStickerTitle": "Удалить наклейку?",
     "removeStickerWarning": "{{name}} будет уничтожена навсегда. Наклейка и потраченные средства не возвращаются.",
     "removeSticker": "Удалить наклейку",
-    "cancel": "Отмена"
+    "cancel": "Отмена",
+    "addSticker": "Добавить наклейку"
   },
   "tl": {
     "preview": "Preview",
@@ -75,7 +77,8 @@
     "removeStickerTitle": "Alisin ang sticker?",
     "removeStickerWarning": "Permanenteng masisira ang {{name}}. Hindi na maibabalik ang sticker at walang refund.",
     "removeSticker": "Alisin ang sticker",
-    "cancel": "Kanselahin"
+    "cancel": "Kanselahin",
+    "addSticker": "Magdagdag ng sticker"
   },
   "th": {
     "preview": "ตัวอย่าง",
@@ -101,7 +104,8 @@
     "removeStickerTitle": "นำสติกเกอร์ออกหรือไม่?",
     "removeStickerWarning": "{{name}} จะถูกทำลายถาวร คุณจะไม่ได้รับสติกเกอร์คืนหรือเงินคืน",
     "removeSticker": "นำสติกเกอร์ออก",
-    "cancel": "ยกเลิก"
+    "cancel": "ยกเลิก",
+    "addSticker": "เพิ่มสติกเกอร์"
   },
   "id": {
     "preview": "Pratinjau",
@@ -127,7 +131,8 @@
     "removeStickerTitle": "Hapus stiker?",
     "removeStickerWarning": "{{name}} akan dihancurkan secara permanen. Stiker dan pembayaran tidak akan dikembalikan.",
     "removeSticker": "Hapus stiker",
-    "cancel": "Batal"
+    "cancel": "Batal",
+    "addSticker": "Tambahkan stiker"
   },
   "pt": {
     "preview": "Prévia",
@@ -153,7 +158,8 @@
     "removeStickerTitle": "Remover adesivo?",
     "removeStickerWarning": "Isso destruirá {{name}} permanentemente. Você não receberá o adesivo de volta nem um reembolso.",
     "removeSticker": "Remover adesivo",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "addSticker": "Adicionar adesivo"
   },
   "ja": {
     "preview": "プレビュー",
@@ -179,7 +185,8 @@
     "removeStickerTitle": "ステッカーを削除しますか？",
     "removeStickerWarning": "{{name}}は完全に破棄されます。ステッカーは戻らず、返金もありません。",
     "removeSticker": "ステッカーを削除",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "addSticker": "ステッカーを追加"
   },
   "hi": {
     "preview": "पूर्वावलोकन",
@@ -205,6 +212,7 @@
     "removeStickerTitle": "स्टिकर हटाएँ?",
     "removeStickerWarning": "{{name}} हमेशा के लिए नष्ट हो जाएगा। स्टिकर वापस नहीं मिलेगा और कोई रिफ़ंड नहीं होगा।",
     "removeSticker": "स्टिकर हटाएँ",
-    "cancel": "रद्द करें"
+    "cancel": "रद्द करें",
+    "addSticker": "स्टिकर जोड़ें"
   }
 }

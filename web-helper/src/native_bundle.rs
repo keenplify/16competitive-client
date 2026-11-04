@@ -6,7 +6,7 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, OpenOptions},
-    io::Write,
+    io::{Read, Write},
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -81,11 +81,61 @@ const MODULE: &[u8] =
 const NEXT_CLIENT: &[u8] =
     include_bytes!("../../resources/native/win-x64/papamo-nextclient-client-mini-win-x86.dll");
 
+#[derive(Clone)]
 pub struct NativeBundle {
     pub inspector: PathBuf,
     pub module: PathBuf,
     #[cfg(windows)]
     pub next_client: Option<PathBuf>,
+}
+
+impl NativeBundle {
+    pub(crate) fn verify_approval(&self) -> Result<(), ApprovalError> {
+        let config: ReleaseConfig = serde_json::from_str(include_str!("../../helper-release.json"))
+            .map_err(|_| ApprovalError::Rejected)?;
+        let envelope: Envelope =
+            serde_json::from_slice(ENVELOPE).map_err(|_| ApprovalError::Rejected)?;
+        verify_envelope(&config, &envelope).map_err(|_| ApprovalError::Rejected)?;
+        approve(&config, &envelope)
+    }
+
+    /// Recheck the on-disk scanner immediately before spawning it. Preparation
+    /// has already required backend approval; a cache replacement is not trusted.
+    pub(crate) fn verify_inspector(&self) -> Result<(), String> {
+        let metadata =
+            fs::symlink_metadata(&self.inspector).map_err(|_| "Native inspector is unavailable")?;
+        if !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || metadata.len() != INSPECTOR.len() as u64
+        {
+            return Err("Native inspector integrity check failed".into());
+        }
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+        }
+        let file = options
+            .open(&self.inspector)
+            .map_err(|_| "Native inspector is unavailable")?;
+        if !file
+            .metadata()
+            .map_err(|_| "Native inspector is unavailable")?
+            .is_file()
+        {
+            return Err("Native inspector integrity check failed".into());
+        }
+        let mut bytes = Vec::new();
+        file.take(INSPECTOR.len() as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|_| "Native inspector integrity check failed")?;
+        if bytes != INSPECTOR {
+            return Err("Native inspector integrity check failed".into());
+        }
+        Ok(())
+    }
 }
 
 fn valid_asset(asset: &Asset, expected: &str, bytes: &[u8]) -> bool {
@@ -131,7 +181,11 @@ fn verify_envelope(config: &ReleaseConfig, envelope: &Envelope) -> Result<Manife
     let inspector_name = if PLATFORM == "win" {
         "game-inspector-win-x64.exe"
     } else {
-        if ARCH == "arm64" { "game-inspector-linux-arm64" } else { "game-inspector-linux-x64" }
+        if ARCH == "arm64" {
+            "game-inspector-linux-arm64"
+        } else {
+            "game-inspector-linux-x64"
+        }
     };
     let module_name = if PLATFORM == "win" {
         "papamo-cosmetic-module-win-x86.dll"
@@ -168,9 +222,23 @@ fn verify_envelope(config: &ReleaseConfig, envelope: &Envelope) -> Result<Manife
     Ok(manifest)
 }
 
-fn approve(config: &ReleaseConfig, envelope: &Envelope) -> Result<(), String> {
-    let origin =
-        url::Url::parse(&config.registry_url).map_err(|_| "Invalid native release registry")?;
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum ApprovalError {
+    Unavailable,
+    Rejected,
+}
+
+impl std::fmt::Display for ApprovalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Unavailable => "Native release approval is unavailable",
+            Self::Rejected => "Native release approval was rejected",
+        })
+    }
+}
+
+fn approve(config: &ReleaseConfig, envelope: &Envelope) -> Result<(), ApprovalError> {
+    let origin = url::Url::parse(&config.registry_url).map_err(|_| ApprovalError::Rejected)?;
     if origin.scheme() != "https"
         || origin.username() != ""
         || origin.password().is_some()
@@ -178,26 +246,38 @@ fn approve(config: &ReleaseConfig, envelope: &Envelope) -> Result<(), String> {
         || origin.query().is_some()
         || origin.fragment().is_some()
     {
-        return Err("Invalid native release registry".into());
+        return Err(ApprovalError::Rejected);
     }
     let endpoint = origin
         .join(&format!(
             "helper-releases/{}/{PLATFORM}/{ARCH}",
             config.version
         ))
-        .map_err(|_| "Invalid native release registry")?;
+        .map_err(|_| ApprovalError::Rejected)?;
     let agent = ureq::AgentBuilder::new()
         .redirects(0)
         .timeout(Duration::from_secs(10))
         .build();
-    let reply: Envelope = agent
-        .get(endpoint.as_str())
-        .call()
-        .map_err(|_| "Native release approval is unavailable")?
-        .into_json()
-        .map_err(|_| "Invalid native release approval")?;
+    let response = match agent.get(endpoint.as_str()).call() {
+        Ok(response) => response,
+        Err(ureq::Error::Transport(_)) => return Err(ApprovalError::Unavailable),
+        Err(ureq::Error::Status(status, _)) if status == 429 || status >= 500 => {
+            return Err(ApprovalError::Unavailable)
+        }
+        Err(_) => return Err(ApprovalError::Rejected),
+    };
+    let mut bytes = Vec::new();
+    response
+        .into_reader()
+        .take(16385)
+        .read_to_end(&mut bytes)
+        .map_err(|_| ApprovalError::Unavailable)?;
+    if bytes.len() > 16384 {
+        return Err(ApprovalError::Rejected);
+    }
+    let reply: Envelope = serde_json::from_slice(&bytes).map_err(|_| ApprovalError::Rejected)?;
     if reply.manifest != envelope.manifest || reply.signature != envelope.signature {
-        return Err("Native release differs from backend approval".into());
+        return Err(ApprovalError::Rejected);
     }
     Ok(())
 }
@@ -238,7 +318,7 @@ pub fn prepare(config_dir: &Path) -> Result<NativeBundle, String> {
     let envelope: Envelope =
         serde_json::from_slice(ENVELOPE).map_err(|_| "Invalid embedded native release")?;
     let manifest = verify_envelope(&config, &envelope)?;
-    approve(&config, &envelope)?;
+    approve(&config, &envelope).map_err(|error| error.to_string())?;
     let directory = config_dir
         .join("native")
         .join(format!("v{}", config.version));
@@ -274,6 +354,35 @@ pub fn prepare(config_dir: &Path) -> Result<NativeBundle, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scanner_revalidation_rejects_replaced_or_linked_bytes() {
+        let root =
+            std::env::temp_dir().join(format!("16c-inspector-integrity-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let inspector = root.join("inspector");
+        fs::write(&inspector, INSPECTOR).unwrap();
+        let bundle = NativeBundle {
+            inspector: inspector.clone(),
+            module: root.join("unused-module"),
+            #[cfg(windows)]
+            next_client: None,
+        };
+        bundle.verify_inspector().unwrap();
+        let mut changed = INSPECTOR.to_vec();
+        changed[0] ^= 1;
+        fs::write(&inspector, changed).unwrap();
+        assert!(bundle.verify_inspector().is_err());
+        fs::remove_file(&inspector).unwrap();
+        #[cfg(unix)]
+        {
+            let target = root.join("other");
+            fs::write(&target, INSPECTOR).unwrap();
+            std::os::unix::fs::symlink(target, &inspector).unwrap();
+            assert!(bundle.verify_inspector().is_err());
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn embedded_bundle_matches_signed_release() {

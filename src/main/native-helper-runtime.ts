@@ -20,13 +20,7 @@ import {
   saveKillCards,
   saveGameDisplay
 } from './game/game-settings'
-import {
-  launchCounterStrikeForMatch,
-  shutdownManagedGame,
-  updateActiveCrosshair,
-  updateActiveKillCards,
-  getActiveScoreboardDirectory
-} from './game/cs16-launcher'
+import { shutdownManagedGame } from './game/cs16-launcher'
 import { startMatchAssetPreload, startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { writeLiveSessionFile } from './game/live-session-file'
@@ -186,9 +180,7 @@ async function syncPreferences(initial = false): Promise<void> {
   }
   // Account restoration uses the existing parser and sync, including account
   // switching. A previous player's local profile cannot replace this account.
-  const settings = await getGameSettings(true)
-  await updateActiveCrosshair(settings.crosshair)
-  await updateActiveKillCards(settings.killCardsEnabled)
+  await getGameSettings(true)
   await writeLiveSessionFile(
     appliedPath,
     JSON.stringify({ enhancementsEnabled: s.enhancementsEnabled })
@@ -383,24 +375,13 @@ async function run(input: unknown): Promise<void> {
       request.apiOrigin,
       onVoicePtt
     )
-  } else
-    await launchCounterStrikeForMatch({
-      matchId: request.matchId,
-      host: c.host,
-      port: c.port,
-      password: c.password,
-      joinToken: c.joinToken,
-      apiUrl: request.apiOrigin,
-      onVoicePtt,
-      onExit: () => {
-        void stop()
-      }
-    })
+  } else {
+    throw new Error('CS 1.6 sessions must use the native helper')
+  }
   emit({
     ok: true,
     event: 'launched',
-    sessionDirectory:
-      activeGame === 'cs13' ? getActiveCs13ScoreboardDirectory() : getActiveScoreboardDirectory()
+    sessionDirectory: getActiveCs13ScoreboardDirectory()
   })
   let refreshing = false
   let nextMatchCheck = Date.now() + 15_000

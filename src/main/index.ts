@@ -1,3 +1,8 @@
+import {
+  setStandaloneVoice,
+  standaloneSessionStatus,
+  updateStandaloneSettings
+} from './game/standalone-session'
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { validateReportImages } from '../shared/diagnostic-logs'
 import { STICKER_CHANNELS } from '../shared/stickers'
@@ -181,12 +186,7 @@ import { startSkinAssetSync } from './game/match-assets'
 import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { clearCachedSkinPreviews } from './skin-preview-cache'
 import { restoreStaleManagedSkinAudio } from './game/skin-audio-override'
-import {
-  closeCounterStrikeForMatch,
-  shutdownManagedGame,
-  updateActiveCrosshair,
-  updateActiveKillCards
-} from './game/cs16-launcher'
+import { closeCounterStrikeForMatch, shutdownManagedGame } from './game/cs16-launcher'
 import { disableSteamScoreboardWrapper } from './game/steam-scoreboard-options'
 import { SKIN_CHANNELS } from '../shared/skins'
 import {
@@ -1171,7 +1171,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(STICKER_CHANNELS.snapshot, () => listStickers())
   ipcMain.handle(STICKER_CHANNELS.buy, (_event, id, input) => buySticker(id, input))
   ipcMain.handle(STICKER_CHANNELS.remove, (_event, id) => removeSticker(id))
-  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection) => applySticker(id, weaponKey, projection))
+  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection) =>
+    applySticker(id, weaponKey, projection)
+  )
   ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
   ipcMain.handle(SKIN_CHANNELS.collections, () => listCollections())
@@ -1348,10 +1350,16 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.cancelNextClientInstall, () => cancelNextClientInstaller())
   ipcMain.handle(GAME_SETTINGS_CHANNELS.detectNextClient, () => detectNextClientFolder())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.nativeSessionStatus, (_, id: unknown) =>
+    standaloneSessionStatus(id)
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setNativeVoice, (_, preferences: unknown) =>
+    setStandaloneVoice(preferences)
+  )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, async (_, profile: unknown) => {
     const settings = await saveCrosshair(profile)
-    await updateActiveCrosshair(settings.crosshair)
+    updateStandaloneSettings(settings)
     return settings
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setNextClientIntegration, (_, enabled: unknown) =>
@@ -1371,7 +1379,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setKillCards, async (_, enabled: unknown) => {
     const settings = await saveKillCards(enabled)
-    await updateActiveKillCards(settings.killCardsEnabled)
+    updateStandaloneSettings(settings)
     return settings
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)

@@ -17,6 +17,7 @@ export interface FriendConversation {
 }
 
 interface FriendChatState {
+  lastIncoming: FriendChatMessage | null
   openFriendIds: string[]
   activeFriendId: string | null
   conversations: Record<string, FriendConversation>
@@ -130,6 +131,12 @@ const bootstrapOfflineChats = async (
     .filter((conversation): conversation is OfflineConversation => conversation !== null)
     .sort((left, right) => right.latestIncomingAt - left.latestIncomingAt)
 
+  const latestIncoming = histories.flatMap(history => history.messages)
+    .filter(message => message.recipientPlayerId === playerId && message.sender.id !== playerId)
+    .sort(compareMessages).at(-1)
+  if (latestIncoming && (!get().lastIncoming || compareMessages(get().lastIncoming!, latestIncoming) < 0)) {
+    set({ lastIncoming: latestIncoming })
+  }
   const stateBeforeBootstrap = get()
   const hasNewOfflineMessage = offlineConversations.some(({ friend, messages }) => {
     const knownIds = new Set(
@@ -193,6 +200,7 @@ const bootstrapOfflineChats = async (
 }
 
 export const useFriendChatStore = create<FriendChatState>((set, get) => ({
+  lastIncoming: null,
   openFriendIds: [],
   activeFriendId: null,
   conversations: {},
@@ -223,6 +231,10 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
       const friendId = incoming ? message.sender.id : message.recipientPlayerId
       const current = get().conversations[friendId]
       const alreadyKnown = current?.messages.some((entry) => entry.id === message.id) ?? false
+
+      if (incoming && (!get().lastIncoming || compareMessages(get().lastIncoming!, message) < 0)) {
+        set({ lastIncoming: message })
+      }
 
       if (incoming && !alreadyKnown) {
         playChatMessageSound()
@@ -299,7 +311,7 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
     refreshInFlight.clear()
 
     if (!sameAuthenticatedPlayer) {
-      set({ openFriendIds: [], activeFriendId: null, conversations: {} })
+      set({ lastIncoming: null, openFriendIds: [], activeFriendId: null, conversations: {} })
     }
   },
 
@@ -469,6 +481,6 @@ export const useFriendChatStore = create<FriendChatState>((set, get) => ({
 
   reset: () => {
     get().stop()
-    set({ openFriendIds: [], activeFriendId: null, conversations: {} })
+    set({ lastIncoming: null, openFriendIds: [], activeFriendId: null, conversations: {} })
   }
 }))

@@ -1,166 +1,64 @@
+import { useEffect, useRef, useState, type FormEvent, type JSX } from 'react'
+import { CheckCircle2, LoaderCircle, Ticket, X } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { CurrencyAmount } from '../../components/CurrencyIcon'
-import { useState, type FormEvent, type JSX } from 'react'
-import { CheckCircle2, LoaderCircle, Ticket, X } from 'lucide-react'
 import type { RedeemCodeResult } from '../../../../shared/redeem-codes'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { useAuthStore } from '../auth/auth.store'
+import { useTranslation } from '../i18n/i18n'
+import { ensureStickerArtwork, useInventoryStore } from '../inventory/inventory.store'
+import translations from './redeem-translations.json'
 
-interface RedeemCodeModalProps {
-  onClose: () => void
-  onRedeemed: () => void | Promise<void>
-}
-
-export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): JSX.Element {
+export function RedeemCodeModal({ onClose, onRedeemed }: { onClose: () => void; onRedeemed: () => void | Promise<void> }): JSX.Element {
+  const { language } = useTranslation()
+  const text = translations[language]
+  const input = useRef<HTMLInputElement>(null)
   const [code, setCode] = useState('')
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RedeemCodeResult | null>(null)
-  const refreshSession = useAuthStore((state) => state.refreshSession)
-  const setPoints = useAuthStore((state) => state.setPoints)
-  const isSubmitting = status === 'submitting'
-
+  const artwork = useInventoryStore(state => result?.sticker ? state.images[result.sticker.imagePath] : undefined)
+  useEffect(() => {
+    if (result?.sticker) void ensureStickerArtwork(result.sticker.imagePath).catch(() => undefined)
+  }, [result])
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    const trimmedCode = code.trim()
-    if (!trimmedCode) {
-      setError('Enter a redeem code.')
-      return
-    }
-
-    setStatus('submitting')
-    setError(null)
-    void window.api.redeemCodes
-      .redeem(trimmedCode)
-      .then((response) => {
-        if (!response.ok) {
-          setError(response.message)
-          setStatus('idle')
-          return
-        }
-        setPoints(response.result.points)
-        setResult(response.result)
-        setStatus('success')
-        void Promise.allSettled([refreshSession(), Promise.resolve(onRedeemed())])
-      })
-      .catch(() => {
-        setError('Could not redeem the code. Please try again.')
-        setStatus('idle')
-      })
+    if (pending || !code.trim()) return
+    setPending(true); setError(null)
+    const feedback = toast.loading(text.pending)
+    void window.api.redeemCodes.redeem(code.trim()).then(async response => {
+      if (!response.ok) throw new Error(response.error)
+      useAuthStore.getState().setPoints(response.result.points)
+      setResult(response.result)
+      toast.update(feedback, { render: text.success, type: 'success', isLoading: false, autoClose: 4000 })
+      await Promise.allSettled([useAuthStore.getState().refreshSession(), useInventoryStore.getState().load(), Promise.resolve().then(onRedeemed)])
+    }).catch(() => {
+      setError(text.failed)
+      toast.update(feedback, { render: text.failed, type: 'error', isLoading: false, autoClose: 6000 })
+    }).finally(() => setPending(false))
   }
-
-  return (
-    <ModalDialog
-      open
-      vguiTitlebar={false}
-      onClose={() => {
-        if (!isSubmitting) onClose()
-      }}
-      className="w-[calc(100%-2rem)] max-w-md  border border-white/10 bg-neutral-900 p-6 shadow-2xl"
-      labelledBy="redeem-code-title"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center  bg-amber-300/10 text-amber-300">
-            <Ticket className="size-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 id="redeem-code-title" className="text-xl font-semibold text-white">
-              Redeem Code
-            </h2>
-            <p className="mt-1 text-sm text-neutral-400">Claim points or an inventory reward.</p>
-          </div>
+  return <ModalDialog open vguiTitlebar={false} initialFocusRef={input} onClose={() => { if (!pending) onClose() }} className="max-w-md border-white/10 bg-neutral-900 p-6 shadow-2xl" labelledBy="redeem-code-title">
+    <header className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3"><Ticket className="size-6 shrink-0 text-amber-300" /><div><h2 id="redeem-code-title" className="text-xl font-semibold">{text.title}</h2><p className="mt-1 text-sm text-neutral-400">{text.description}</p></div></div>
+      <Button variant="ghost" className="size-9 shrink-0 px-0" aria-label={text.cancel} disabled={pending} onClick={onClose}><X className="size-4" /></Button>
+    </header>
+    <div className="mt-6 min-h-56">
+      {result ? <div>
+        <div className="space-y-3 border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm">
+          <p className="flex items-center gap-2 font-semibold text-emerald-200"><CheckCircle2 className="size-5" />{text.success}</p>
+          {result.pointsGranted > 0 && <CurrencyAmount currency="POINTS" amount={result.pointsGranted} />}
+          {(result.pCashGranted ?? 0) > 0 && <CurrencyAmount currency="P_CASH" amount={result.pCashGranted!} />}
+          {result.skinId && <p>{result.skinName ?? text.skin}{!result.skinGranted && ` · ${text.owned}`}</p>}
+          {(result.stickersGranted ?? 0) > 0 && <div className="flex items-center gap-3"><div className="flex size-16 shrink-0 items-center justify-center">{artwork && <img className="size-full object-contain" src={artwork} alt={result.sticker?.name ?? text.sticker} />}</div><span>{result.sticker?.name ?? result.stickerId ?? text.sticker} ×{result.stickersGranted}</span></div>}
         </div>
-        <button
-          type="button"
-          className=" p-2 text-neutral-500 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-300 disabled:opacity-40"
-          aria-label="Close redeem code dialog"
-          data-audio-sfx="backward"
-          disabled={isSubmitting}
-          onClick={onClose}
-        >
-          <X className="size-5" aria-hidden="true" />
-        </button>
-      </div>
-
-      {status === 'success' && result ? (
-        <div className="mt-6">
-          <div className=" border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm text-emerald-100">
-            <p className="flex items-center gap-2 font-semibold">
-              <CheckCircle2 className="size-5 text-emerald-300" aria-hidden="true" />
-              Code redeemed
-            </p>
-            {result.pointsGranted > 0 && (
-              <p className="mt-3">
-                You received {result.pointsGranted.toLocaleString()} points. Your new balance is{' '}
-                {result.points.toLocaleString()} points.
-              </p>
-            )}
-            {(result.pCashGranted ?? 0) > 0 && (
-              <p className="mt-3 flex flex-wrap items-center gap-1.5">
-                +<CurrencyAmount currency="P_CASH" amount={result.pCashGranted ?? 0} />
-                {typeof result.pCash === 'number' && (
-                  <>
-                    · <CurrencyAmount currency="P_CASH" amount={result.pCash} />
-                  </>
-                )}
-              </p>
-            )}
-            {result.skinGranted && (
-              <p className="mt-2">The reward skin was added to your inventory.</p>
-            )}
-            {result.skinId && !result.skinGranted && (
-              <p className="mt-2">You already owned the reward skin.</p>
-            )}
-          </div>
-          <Button className="mt-5 w-full" data-audio-sfx="backward" onClick={onClose}>
-            Done
-          </Button>
-        </div>
-      ) : (
-        <form className="mt-6" onSubmit={submit}>
-          <TextField
-            id="redeem-code"
-            label="Code"
-            value={code}
-            minLength={3}
-            maxLength={64}
-            autoComplete="off"
-            autoFocus
-            placeholder="WELCOME_2026"
-            className="font-mono uppercase"
-            disabled={isSubmitting}
-            onChange={(event) => {
-              setCode(event.target.value)
-              setError(null)
-            }}
-          />
-          <div className="mt-3 min-h-5" aria-live="polite">
-            {error && <p className="text-sm text-rose-300">{error}</p>}
-          </div>
-          <div className="mt-4 flex justify-end gap-3">
-            <Button
-              variant="ghost"
-              data-audio-sfx="backward"
-              disabled={isSubmitting}
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || code.trim().length < 3}>
-              {isSubmitting ? (
-                <>
-                  <LoaderCircle className="mr-2 size-4 animate-spin" aria-hidden="true" />
-                  Redeeming…
-                </>
-              ) : (
-                'Redeem'
-              )}
-            </Button>
-          </div>
-        </form>
-      )}
-    </ModalDialog>
-  )
+        <Button className="mt-5 w-full" onClick={onClose}>{text.done}</Button>
+      </div> : <form onSubmit={submit}>
+        <TextField ref={input} id="redeem-code" label={text.code} value={code} minLength={3} maxLength={64} autoComplete="off" placeholder="WELCOME_2026" className="font-mono uppercase" disabled={pending} onChange={event => { setCode(event.target.value); setError(null) }} />
+        <div className="mt-3 h-16 text-sm text-rose-300" aria-live="polite">{error}</div>
+        <div className="mt-4 flex justify-end gap-3"><Button variant="ghost" disabled={pending} onClick={onClose}>{text.cancel}</Button><Button type="submit" className="relative min-w-28" disabled={pending || code.trim().length < 3}><span className={pending ? 'invisible' : undefined}>{text.redeem}</span>{pending && <LoaderCircle className="absolute size-4 animate-spin" aria-label={text.pending} />}</Button></div>
+      </form>}
+    </div>
+  </ModalDialog>
 }

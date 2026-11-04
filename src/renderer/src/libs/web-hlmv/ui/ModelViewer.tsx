@@ -32,6 +32,7 @@ type ModelViewerProps = {
   /** Sequence label, ordered fallback labels, or zero-based sequence index. */
   animation?: string | number | readonly string[]
   /** Hold the selected sequence at its first frame while retaining orbit controls. */
+  onMuzzlePosition?: (x: number, y: number, visible: boolean) => void
   firstPerson?: boolean
   /** Prepare interactive sequences together so changing actions does not rebuild geometry. */
   animationSequences?: readonly number[]
@@ -81,6 +82,7 @@ export function ModelViewer({
   cameraLocked = false,
   animation,
   firstPerson = false,
+  onMuzzlePosition,
   animationSequences,
   animationRestart = 0,
   playOnce = false,
@@ -209,6 +211,7 @@ export function ModelViewer({
             cameraLocked={cameraLocked}
             animation={animation}
             firstPerson={firstPerson}
+            onMuzzlePosition={onMuzzlePosition}
             animationSequences={animationSequences}
             animationRestart={animationRestart}
             playOnce={playOnce}

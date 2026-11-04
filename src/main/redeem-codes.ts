@@ -1,3 +1,4 @@
+import { validRedeemRewardDetails } from '../shared/redeem-codes'
 import { clearSessionToken, getSessionToken } from './auth'
 import { API_BASE_URL } from './config'
 import type {
@@ -43,7 +44,7 @@ const isRedeemResult = (value: unknown): value is RedeemCodeResult => {
       (Number.isInteger(result.pCash) && (result.pCash as number) >= 0)) &&
     (result.skinId === null ||
       (typeof result.skinId === 'string' && uuidPattern.test(result.skinId))) &&
-    typeof result.skinGranted === 'boolean'
+    typeof result.skinGranted === 'boolean' && validRedeemRewardDetails(result)
   )
 }
 

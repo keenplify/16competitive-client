@@ -3,7 +3,18 @@
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod assets;
 mod native_bundle;
+mod inspector;
+mod native_voice;
+mod stickers;
+mod session_mode;
+mod desktop_session;
+mod owned_game;
+mod steam_proton;
+mod compatibility;
+mod partner;
 mod native_session;
+mod native_preferences;
+mod session_authorization;
 mod notice_throttle;
 mod presence;
 mod runtime;
@@ -118,6 +129,20 @@ fn helper_fingerprint() -> String {
         include_bytes!("assets.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
+        include_bytes!("native_preferences.rs").as_slice(),
+        include_bytes!("session_authorization.rs").as_slice(),
+        include_bytes!("inspector.rs").as_slice(),
+        include_bytes!("native_voice/mod.rs").as_slice(),
+        include_bytes!("native_voice/audio.rs").as_slice(),
+        include_bytes!("native_voice/peer.rs").as_slice(),
+        include_bytes!("stickers.rs").as_slice(),
+        include_bytes!("session_mode.rs").as_slice(),
+        include_bytes!("desktop_session.rs").as_slice(),
+        include_bytes!("owned_game.rs").as_slice(),
+        include_bytes!("steam_proton.rs").as_slice(),
+        include_bytes!("compatibility.rs").as_slice(),
+        include_bytes!("partner.rs").as_slice(),
+        include_bytes!("../assets/sticker-baker.js").as_slice(),
         include_bytes!("notice_throttle.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
         include_bytes!("../Cargo.toml").as_slice(),
@@ -597,7 +622,7 @@ fn choose_installation(game: &str) -> Result<(PathBuf, PathBuf, String), String>
     Ok(installation)
 }
 
-fn session(api: &str, handoff: &str) -> Result<String, String> {
+fn session(api: &str, handoff: &str) -> Result<session_authorization::HelperToken, String> {
     let agent = ureq::AgentBuilder::new()
         .redirects(0)
         .timeout(Duration::from_secs(10))
@@ -609,7 +634,7 @@ fn session(api: &str, handoff: &str) -> Result<String, String> {
     if response.token.len() < 20 || response.token.len() > 2048 {
         return Err("Invalid authentication response".into());
     }
-    Ok(response.token)
+    session_authorization::HelperToken::new(api, response.token)
 }
 
 fn connection(api: &str, token: &str, match_id: &str) -> Result<Connection, String> {
@@ -754,13 +779,40 @@ fn cleanup_owned_file(file: Option<(PathBuf, String)>) -> Result<(), String> {
 }
 
 fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
-    // Reuse the complete desktop game adapter, rendering and scanner lifecycle.
-    // CS 1.3 retains its separate legacy adapter below.
-    if connection.game() == "cs16" {
-        choose_installation("cs16")?;
-        runtime::launch(connection, api, token)?;
-        return Ok(());
+    launch_native_match(connection, api, token, &mut || Ok(()))
+}
+
+fn cs16_requires_steam(root: &Path, next_client: bool, gold_client: bool) -> bool {
+    !next_client && !gold_client
+        && !root.join(launch_pattern().cs16.standalone_steam_emulator_marker
+            .as_deref().unwrap_or("rev.ini")).is_file()
+}
+
+fn start_steam_client() -> Result<(), String> {
+    #[cfg(target_os="linux")]
+    {
+        let running=fs::read_dir("/proc").map_err(|_|"Could not check Steam")?.take(32768).flatten()
+            .any(|entry|entry.file_name().to_string_lossy().bytes().all(|c|c.is_ascii_digit()) &&
+                fs::read_to_string(entry.path().join("comm")).is_ok_and(|name|name.trim()=="steam"));
+        if !running {
+            Command::new("steam").arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+                .spawn().map_err(|_|"Start Steam and sign in before launching Counter-Strike")?;
+        }
     }
+    #[cfg(windows)]
+    {
+        if env::var_os("COMPETITIVE16_NATIVE_STEAM").is_some() { return Ok(()); }
+        use windows_sys::Win32::UI::Shell::ShellExecuteW;
+        let verb:Vec<u16>="open".encode_utf16().chain(Some(0)).collect();
+        let uri:Vec<u16>="steam://open/main".encode_utf16().chain(Some(0)).collect();
+        let result=unsafe{ShellExecuteW(std::ptr::null_mut(),verb.as_ptr(),uri.as_ptr(),std::ptr::null(),std::ptr::null(),0)};
+        if result as usize <= 32 { return Err("Start Steam and sign in before launching Counter-Strike".into()); }
+    }
+    Ok(())
+}
+
+fn launch_native_match(connection: &Connection, api: &str, token: &str,
+    ready: &mut dyn FnMut() -> Result<(), String>) -> Result<(), String> {
     let pattern = launch_pattern();
     let game_pattern = if connection.game() == "cs13" {
         &pattern.cs13
@@ -775,6 +827,16 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         runtime::launch(connection, api, token)?;
         return Ok(());
     }
+    #[cfg(target_os = "linux")]
+    if connection.game() == "cs16" {
+        let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
+        let proton = steam_proton::resolve(&root, &home)?;
+        if proton.is_some() || exe.extension().is_some_and(|extension| extension == "exe") {
+            return compatibility::launch(connection, api, token, &root, proton.as_ref(), ready);
+        }
+    }
+    let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id)?;
+    let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?)?;
     let preferences = settings_bridge::load()?.settings;
     let windows_cs16_args = if cfg!(windows) && connection.game() == "cs16" {
         Some(cs16_standalone_windows_args(&root, game_pattern)?)
@@ -784,9 +846,37 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
     let next_client = cfg!(windows)
         && connection.game() == "cs16"
         && exe.file_name().is_some_and(|name| name == "cstrike.exe");
+    #[cfg(windows)]
+    let gold_client = connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root)?;
+    #[cfg(not(windows))]
+    let gold_client = false;
     let game_dir = root.join(&mod_dir);
+    if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) { start_steam_client()?; }
+    let game_startup = owned_game::Startup::prepare(&exe, &game_dir)?;
+    let scanner_bundle = native_bundle::prepare(&user_config_dir()?)?;
+    if inspector::check_device(&scanner_bundle, api)?["banned"] == true {
+        return Err("This device cannot join competitive matches".into());
+    }
     assets::prepare_match(&game_dir, connection, api, token)?;
+    let mut scanner = inspector::Session::start(&scanner_bundle, inspector::SessionOptions {
+        api,
+        token,
+        match_id: &connection.match_id,
+        executable: &exe,
+        runtime_executable: &exe,
+        game_directory: &game_dir,
+        // The direct legacy adapter is standalone; the native CS1.6 adapter
+        // uses Steam unless the shared Windows launch pattern selects emulation.
+        steam: connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client),
+    })?;
     let mut native: Option<(native_bundle::NativeBundle, native_session::NativeSession)> = None;
+    #[cfg(windows)]
+    let mut windows_install: Option<windows_native::WindowsInstall> = None;
+    let mut auth = None;
+    let mut startup = None;
+    // Every preparation failure follows the same restoration path, including
+    // validation errors after a Windows module has already been installed.
+    let wait_result = (|| -> Result<(), String> {
     #[cfg(target_os = "linux")]
     if connection.game() == "cs16" && exe.file_name().is_some_and(|name| name == "hl_linux") {
         match native_bundle::prepare(&user_config_dir()?).and_then(|bundle| {
@@ -794,14 +884,9 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
                 .map(|session| (bundle, session))
         }) {
             Ok((bundle, session)) => native = Some((bundle, session)),
-            Err(error) => notice(&format!("In-game enhancements are unavailable: {error}\nThe match will open with the stock game HUD.")),
+            Err(error) => return Err(format!("Native session preparation failed: {error}")),
         }
     }
-    #[cfg(windows)]
-    let mut windows_install: Option<windows_native::WindowsInstall> = None;
-    #[cfg(windows)]
-    let gold_client =
-        connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root)?;
     #[cfg(windows)]
     if connection.game() == "cs16" && mod_dir == "cstrike" {
         match native_bundle::prepare(&user_config_dir()?) {
@@ -851,7 +936,7 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
                         "NextClient requires the approved native helper: {error}"
                     ));
                 }
-                notice(&format!("In-game enhancements are unavailable: {error}\nThe match will open with the stock game HUD."));
+                return Err(format!("Native session preparation failed: {error}"));
             }
         }
     }
@@ -869,36 +954,19 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
             &format!("{:x}", Sha256::digest(connection.match_id.as_bytes()))[..16]
         );
         if let Err(error) = session.1.write_nextclient_handoff(connection, &key) {
-            if let Some((_, mut session)) = native.take() {
-                session.stop();
-                if let Some(installation) = windows_install.take() {
-                    installation.restore()?;
-                }
-                session.cleanup()?;
-            }
             return Err(error);
         }
     }
-    let auth = if connection.game() == "cs13" {
+    if connection.game() == "cs16" && native.is_none() {
+        return Err("This installation does not support the native session module".into());
+    }
+    auth = if connection.game() == "cs13" {
         Some(cs13_auth_file(&game_dir, connection)?)
     } else {
         None
     };
-    let startup = if connection.game() == "cs16" && !next_client {
-        match cs16_startup_file(&game_dir, connection) {
-            Ok(file) => Some(file),
-            Err(error) => {
-                if let Some((_, mut session)) = native {
-                    session.stop();
-                    #[cfg(windows)]
-                    if let Some(installation) = windows_install {
-                        installation.restore()?;
-                    }
-                    session.cleanup()?;
-                }
-                return Err(error);
-            }
-        }
+    startup = if connection.game() == "cs16" && !next_client {
+        Some(cs16_startup_file(&game_dir, connection)?)
     } else {
         None
     };
@@ -911,6 +979,12 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
             Command::new(&exe)
         };
     command.current_dir(&root);
+    #[cfg(target_os = "linux")]
+    {
+        command.env("SteamAppId", "10").env("SteamGameId", "10");
+        let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
+        command.env("LD_LIBRARY_PATH", steam_proton::native_library_path(&root, &home)?);
+    }
     let (width, height) = preferences.resolution(connection.game())?;
     if connection.game() == "cs13" {
         command.args(["-width", &width.to_string(), "-height", &height.to_string()]);
@@ -943,6 +1017,8 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
     }
     #[cfg(windows)]
     if let Some((_, session)) = &native {
+        // Native HUD and cosmetics require the OpenGL renderer.
+        command.arg("-gl");
         command.arg(
             game_pattern
                 .managed_native_flag
@@ -985,31 +1061,85 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    let mut child = match command.spawn() {
-        Ok(child) => child,
-        Err(error) => {
-            let auth_cleanup = cleanup_owned_file(auth);
-            let startup_cleanup = cleanup_owned_file(startup);
-            if let Some((_, mut session)) = native {
-                session.stop();
-                #[cfg(windows)]
-                if let Some(installation) = windows_install {
-                    installation.restore()?;
-                }
-                session.cleanup()?;
-            }
-            auth_cleanup?;
-            startup_cleanup?;
-            return Err(error.to_string());
+    let prepared_child = (|| -> Result<std::process::Child, String> {
+        if let Some((_, session)) = &native {
+            stickers::prepare(&game_dir, &session.directory, api, token, &connection.match_id)?;
         }
-    };
+        game_startup.recheck()?;
+        command.spawn().map_err(|error| error.to_string())
+    })();
+    let mut child = prepared_child?;
     let _activity = presence::GameLease::start(
         connection,
         native
             .as_ref()
             .map(|(_, session)| session.directory.clone()),
     );
-    let wait_result = child.wait();
+    let mut owned_game = None;
+    let wait_result = (|| -> Result<(), String> {
+        owned_game = Some(game_startup.wait()?);
+        scanner.attach(owned_game.as_ref().unwrap().pid)?;
+        scanner.await_attachment(Duration::from_secs(20))?;
+        ready()?;
+        if let Some((_, session)) = &native {
+            voice_ownership.ready(&connection.match_id, &session.directory)?;
+        }
+        let voice = native.as_ref().map(|(_, session)| {
+            native_voice::Session::start(session.directory.clone(), api.into(), token.into(),
+                native_voice::Context { kind: "match".into(), id: connection.match_id.clone() })
+        }).transpose()?;
+        let expires = std::time::Instant::now() + Duration::from_secs(2 * 60 * 60);
+        let mut next_authorization = std::time::Instant::now() + Duration::from_secs(15);
+        loop {
+            if owned_game.as_ref().unwrap().exited()? { return Ok(()); }
+            if desktop_session::stop_requested() {
+                owned_game.as_ref().unwrap().stop()?;
+                return Ok(());
+            }
+            if voice.as_ref().is_some_and(|voice| voice.needs_launcher()) {
+                owned_game.as_ref().unwrap().stop()?;
+                return Ok(());
+            }
+            let now = std::time::Instant::now();
+            if now >= expires {
+                return Err("Managed game session expired".into());
+            }
+            // Sessions without the cosmetic module still require backend
+            // authorization. NativeSession owns the same check when present.
+            if native.is_none() && now >= next_authorization {
+                next_authorization = now + Duration::from_secs(15);
+                if session_authorization::check(api, token, &connection.match_id)
+                    == session_authorization::Authorization::Revoked
+                {
+                    return Err("Managed game authorization ended".into());
+                }
+            }
+            if native.as_ref().is_some_and(|(_, session)| !session.is_active()) {
+                return Err("Managed game authorization ended".into());
+            }
+            if scanner.poll()? {
+                // Only the attached PID belongs to this session. Never adopt a
+                // clean standalone replacement process during recovery.
+                // Do not block indefinitely on a scanner/OS disagreement.
+                // The error path below terminates and waits for our child
+                // before touching the native installation.
+                if !owned_game.as_ref().unwrap().exited()? {
+                    return Err("Inspector lost the managed game process".into());
+                }
+                return Ok(());
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    })();
+    if wait_result.is_err() {
+        if let Some(game) = &owned_game { game.stop()?; }
+        let _ = child.kill();
+        // Native DLL restoration must wait until the owned process releases them.
+        child.wait().map_err(|_| "Could not wait for the managed game to exit")?;
+    }
+    wait_result
+    })();
+    let scanner_result = scanner.stop();
     let auth_cleanup = cleanup_owned_file(auth);
     let startup_cleanup = cleanup_owned_file(startup);
     if let Some((_, mut session)) = native {
@@ -1022,12 +1152,16 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
     }
     auth_cleanup?;
     startup_cleanup?;
-    wait_result.map_err(|e| e.to_string())?;
+    wait_result?;
+    scanner_result?;
     Ok(())
 }
 
 fn run() -> Result<(), String> {
     let mut args: Vec<String> = env::args().skip(1).collect();
+    if args.as_slice() == ["--desktop-session"] { return desktop_session::run(); }
+    #[cfg(windows)]
+    if args.as_slice() == ["--compatibility-session"] { return desktop_session::run_compatibility(); }
     if args.as_slice() == ["--tray"] {
         return tray::run();
     }
@@ -1121,7 +1255,11 @@ fn main() {
     if let Err(error) = run() {
         // The local bridge is spawned by a protocol check. Its failures are
         // reported to the web page; a native dialog on every check can spam.
-        if env::args().nth(1).as_deref() == Some("--local-settings") {
+        if matches!(env::args().nth(1).as_deref(), Some("--desktop-session" | "--compatibility-session")) {
+            // The launcher owns handoff feedback. After a committed session it
+            // reopens and restores authoritative results/reconnect state.
+            eprintln!("Standalone session ended: {error}");
+        } else if env::args().nth(1).as_deref() == Some("--local-settings") {
             eprintln!("Local settings bridge unavailable: {error}");
         } else if error == "A native helper action is already running" {
             // A slow game launch is expected. Bound this warning across all
@@ -1150,6 +1288,17 @@ fn main() {
 #[cfg(test)]
 mod launch_tests {
     use super::*;
+    #[test]
+    fn standalone_variants_do_not_require_a_steam_client() {
+        let root = env::temp_dir().join(format!("16c-steam-requirement-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        assert!(cs16_requires_steam(&root, false, false));
+        assert!(!cs16_requires_steam(&root, true, false));
+        assert!(!cs16_requires_steam(&root, false, true));
+        fs::write(root.join("rev.ini"), b"fixture").unwrap();
+        assert!(!cs16_requires_steam(&root, false, false));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn revemu_installation_uses_shared_steam_launch_flags() {

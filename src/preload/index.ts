@@ -243,6 +243,8 @@ const friends: FriendsApi = {
   discard: (requestId) => ipcRenderer.invoke(FRIEND_CHANNELS.discard, requestId),
   remove: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.remove, playerId),
   getChatHistory: (playerId) => ipcRenderer.invoke(FRIEND_CHANNELS.chatHistory, playerId),
+  announce: (message, requestId) =>
+    ipcRenderer.invoke(FRIEND_CHANNELS.announce, message, requestId),
   sendChatMessage: (playerId, message) =>
     ipcRenderer.invoke(FRIEND_CHANNELS.chatSend, playerId, message),
   requestAttention: () => ipcRenderer.invoke(FRIEND_CHANNELS.requestAttention)
@@ -265,6 +267,9 @@ const gameSettings: GameSettingsApi = {
       ipcRenderer.removeListener(GAME_SETTINGS_CHANNELS.nextClientInstallProgress, handler)
   },
   save: (folderPath) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.save, folderPath),
+  nativeSessionStatus: (id) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.nativeSessionStatus, id),
+  setNativeVoice: (preferences) =>
+    ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setNativeVoice, preferences),
   setVoicePttKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setVoicePttKey, key),
   setCrosshair: (profile) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCrosshair, profile),
   setNextClientIntegration: (enabled) =>
@@ -307,7 +312,8 @@ const skins: SkinsApi = {
   stickers: () => ipcRenderer.invoke(STICKER_CHANNELS.snapshot),
   stickerBuy: (id, input) => ipcRenderer.invoke(STICKER_CHANNELS.buy, id, input),
   stickerRemove: (id) => ipcRenderer.invoke(STICKER_CHANNELS.remove, id),
-  stickerApply: (id, weaponKey, projection) => ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection),
+  stickerApply: (id, weaponKey, projection) =>
+    ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection),
   stickerImage: (path) => ipcRenderer.invoke(STICKER_CHANNELS.image, path),
   collections: () => ipcRenderer.invoke(SKIN_CHANNELS.collections),
   collection: (id) => ipcRenderer.invoke(SKIN_CHANNELS.collection, id),

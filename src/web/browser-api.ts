@@ -1,7 +1,15 @@
+import { parseNativeVoicePreferences } from '../shared/native-voice'
+import { validRedeemRewardDetails } from '../shared/redeem-codes'
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { parseStickerPurchase } from '../shared/stickers'
 import { validateReportImages, type ReportImage } from '../shared/diagnostic-logs'
-import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
+import {
+  parseStickerSnapshot,
+  stickerId,
+  stickerUuid,
+  stickerImagePath,
+  validateStickerBuy
+} from '../shared/stickers'
 import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
@@ -82,7 +90,12 @@ import type {
   PlayerProfile
 } from '../shared/match-history'
 import { parseNewsVisibility, type NewsPost } from '../shared/news'
-import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
+import {
+  validateOperationStickerRewards,
+  type Operation,
+  type OperationSnapshot,
+  type OperationViewedResult
+} from '../shared/operations'
 import type {
   Party,
   PartyInvitationResponse,
@@ -187,7 +200,7 @@ const browserSettings = (): GameSettings => {
     nextClientIntegrationDisabledReason: null,
     fastSwitchEnabled: true,
     fastSwitchManaged: false,
-    lightweightHud: false,
+    lightweightHud: true,
     killCardsEnabled: false,
     setupCompleted: true,
     setupMode: null,
@@ -245,6 +258,7 @@ async function saveHelperPreferences(update: Partial<NativeHelperSettings>): Pro
     killCardsEnabled: values.killCardsEnabled,
     crosshairConfig: values.crosshairConfig,
     playerPingKey: values.playerPingKey,
+    voice: values.voice,
     voicePttKeys: values.voicePttKeys
   }
   return helperGameSettings(await nativeHelperSettings({ action: 'save', settings }))
@@ -484,6 +498,9 @@ const friends = {
     )
     return body.messages
   },
+  async announce(message: string, requestId: string): Promise<void> {
+    await jsonPost('/friends/announce', { message, requestId })
+  },
   async sendChatMessage(playerId: string, message: string): Promise<FriendChatMessage> {
     const body = await jsonPost<{ message: FriendChatMessage }>(`/friends/${playerId}/messages`, {
       message: message.trim()
@@ -600,23 +617,40 @@ const skins = {
       })
     )
   },
-  async stickers() { return parseStickerSnapshot(await authenticatedGet('/stickers')) },
-  async stickerBuy(id: string, input: import('../shared/stickers').StickerBuy): Promise<{id:string}> {
-    return parseStickerPurchase(await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input)))
+  async stickers() {
+    return parseStickerSnapshot(await authenticatedGet('/stickers'))
+  },
+  async stickerBuy(
+    id: string,
+    input: import('../shared/stickers').StickerBuy
+  ): Promise<{ id: string }> {
+    return parseStickerPurchase(
+      await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input))
+    )
   },
   async stickerRemove(id: string): Promise<void> {
     await jsonPost(`/stickers/items/${stickerUuid(id)}/remove`, {})
   },
-  async stickerApply(id: string, weaponKey: string, projection: import('../shared/stickers').StickerProjection): Promise<void> {
+  async stickerApply(
+    id: string,
+    weaponKey: string,
+    projection: import('../shared/stickers').StickerProjection
+  ): Promise<void> {
     await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, { weaponKey, projection })
   },
   async stickerImage(path: string): Promise<ArrayBuffer> {
     const key = stickerImagePath(path)
-    const response = await fetch(new URL(`/fastdl/${key}`, currentApiOrigin()), { signal: AbortSignal.timeout(10000), redirect: 'error' })
-    if (!response.ok || Number(response.headers.get('content-length')) > 2000000) throw new Error('STICKER_IMAGE_INVALID')
+    const response = await fetch(new URL(`/fastdl/${key}`, currentApiOrigin()), {
+      signal: AbortSignal.timeout(10000),
+      redirect: 'error'
+    })
+    if (!response.ok || Number(response.headers.get('content-length')) > 2000000)
+      throw new Error('STICKER_IMAGE_INVALID')
     const bytes = await response.arrayBuffer()
     if (bytes.byteLength > 2000000) throw new Error('STICKER_IMAGE_INVALID')
-    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('')
+    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
     if (hash !== key.split('/')[3]) throw new Error('STICKER_IMAGE_INVALID')
     return bytes
   },
@@ -1007,6 +1041,13 @@ const api: Window['api'] = {
   },
 
   gameSettings: {
+    async nativeSessionStatus(id) {
+      const { nativeVoiceStatus } = await import('./local-play')
+      return nativeVoiceStatus(id)
+    },
+    async setNativeVoice(preferences) {
+      await saveHelperPreferences({ voice: parseNativeVoicePreferences(preferences) })
+    },
     async setDisplay(display) {
       return saveHelperPreferences({ display })
     },
@@ -1196,10 +1237,12 @@ const api: Window['api'] = {
   operations: {
     async getActive(): Promise<Operation | null> {
       const body = await requestJson<{ operation: Operation | null }>('/operations/active')
-      return body.operation
+      return validateOperationStickerRewards(body.operation)
     },
     async getMine(): Promise<OperationSnapshot> {
-      return authenticatedGet('/operations/me')
+      const snapshot = await authenticatedGet<OperationSnapshot>('/operations/me')
+      validateOperationStickerRewards(snapshot.operation)
+      return snapshot
     },
     async markViewed(operationId: string, viewedPoints: number): Promise<OperationViewedResult> {
       return jsonPost(`/operations/${operationId}/view`, { viewedPoints })
@@ -1218,6 +1261,7 @@ const api: Window['api'] = {
           skinId: string | null
           skinGranted: boolean
         }>('/redeem-codes/redeem', { code: code.trim() })
+        if (!validRedeemRewardDetails(result)) throw new Error('Invalid redemption response')
         return { ok: true, result }
       } catch (error) {
         const codeValue = (error as Error & { code?: string }).code
@@ -1364,7 +1408,12 @@ const api: Window['api'] = {
     async get() {
       return []
     },
-    async report(description: string, rendererLogs: string[], matchId?: string, images?: ReportImage[]) {
+    async report(
+      description: string,
+      rendererLogs: string[],
+      matchId?: string,
+      images?: ReportImage[]
+    ) {
       const helperLogs = await nativeDiagnosticLogs(matchId).catch(
         () => '[Native helper diagnostics] Unavailable; reconnect the helper to include game logs.'
       )

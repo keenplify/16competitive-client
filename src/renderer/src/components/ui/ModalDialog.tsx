@@ -23,6 +23,7 @@ interface ModalDialogProps {
   /** Disable injected VGUI chrome when the content supplies its own header. */
   vguiTitlebar?: boolean
   vguiNavigation?: { backLabel: string; onBack: () => void; onClose: () => void }
+  initialFocusRef?: RefObject<HTMLElement | null>
   dialogRef?: RefObject<HTMLElement | null>
   tabIndex?: number
   style?: React.CSSProperties
@@ -68,6 +69,7 @@ export function ModalDialog({
   vguiTitlebar = !fullScreen,
   vguiNavigation,
   dialogRef,
+  initialFocusRef,
   tabIndex = -1,
   style,
   onClick,
@@ -88,12 +90,13 @@ export function ModalDialog({
       document.activeElement instanceof HTMLElement ? document.activeElement : null
     const unlockBody = lockBody()
     dialog.showModal()
+    initialFocusRef?.current?.focus({ preventScroll: true })
     return () => {
       dialog.close()
       unlockBody()
       if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true })
     }
-  }, [open])
+  }, [open, initialFocusRef])
   if (!open) return null
   return (
     <ModalPortal>

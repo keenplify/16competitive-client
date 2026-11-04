@@ -1,3 +1,4 @@
+import type { ChatAnnouncement } from './friends'
 import type {
   NativeHelperSettings,
   NativeHelperSettingsRequest,
@@ -305,6 +306,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
   | { type: 'friends_updated' }
   | { type: 'skin_gift_available'; giftId: string }
   | { type: 'friend_chat_message'; message: FriendChatMessage }
+  | { type: 'chat_announcement'; announcement: ChatAnnouncement }
   | { type: 'party_presence_ping'; nonce: string }
   | PartyChatEvent
   | GlobalChatMessage

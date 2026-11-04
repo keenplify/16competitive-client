@@ -98,6 +98,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
           killCardsEnabled: values.killCardsEnabled,
           crosshairConfig: values.crosshairConfig,
           playerPingKey: values.playerPingKey,
+          voice: values.voice,
           voicePttKeys: values.voicePttKeys
         }
         const saved = await request({ action: 'save', settings })

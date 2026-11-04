@@ -7,6 +7,7 @@ export const FRIEND_CHANNELS = {
   remove: 'friends:remove',
   chatHistory: 'friends:chat-history',
   chatSend: 'friends:chat-send',
+  announce: 'friends:announce',
   requestAttention: 'friends:request-attention'
 } as const
 
@@ -46,7 +47,28 @@ export interface FriendChatMessage {
   sentAt: string
 }
 
+export interface ChatAnnouncement {
+  id: string
+  sender: { id: string; username: string }
+  communityId: string | null
+  tag: string
+  message: string
+  sentAt: string
+}
+
+export const isChatAnnouncement = (value: unknown): value is ChatAnnouncement => {
+  if (!value || typeof value !== 'object') return false
+  const a = value as Record<string, unknown>
+  const sender = a.sender as Record<string, unknown> | undefined
+  return typeof a.id === 'string' && /^[a-f0-9-]{36}$/.test(a.id) &&
+    !!sender && typeof sender.id === 'string' && typeof sender.username === 'string' &&
+    (a.communityId === null || typeof a.communityId === 'string') &&
+    typeof a.tag === 'string' && a.tag.length <= 256 && typeof a.message === 'string' && a.message.length <= 300 &&
+    typeof a.sentAt === 'string' && Number.isFinite(Date.parse(a.sentAt))
+}
+
 export interface FriendsApi {
+  announce(message: string, requestId: string): Promise<void>
   list(): Promise<FriendsSnapshot>
   search(query: string): Promise<FriendSearchResult[]>
   request(playerId: string): Promise<void>

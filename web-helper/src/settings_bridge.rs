@@ -32,6 +32,8 @@ pub struct NativePreferences {
     pub player_ping_key: String,
     #[serde(default = "default_voice")]
     pub voice_ptt_keys: Vec<String>,
+    #[serde(default)]
+    pub voice: crate::native_voice::Preferences,
 }
 fn default_voice() -> Vec<String> {
     vec!["K".into(), "V".into()]
@@ -109,6 +111,7 @@ impl Default for NativePreferences {
             crosshair_config: None,
             player_ping_key: default_ping(),
             voice_ptt_keys: default_voice(),
+            voice: crate::native_voice::Preferences::default(),
         }
     }
 }
@@ -177,44 +180,12 @@ impl NativePreferences {
         w = w.max(320);
         Ok((w, h))
     }
-    fn validate(&self) -> Result<(), String> {
-        if self.voice_ptt_keys.len() != 2
-            || self.voice_ptt_keys[0] == self.voice_ptt_keys[1]
-            || self.voice_ptt_keys.iter().any(|s| {
-                !((s.len() == 1
-                    && s.bytes()
-                        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()))
-                    || s.strip_prefix('F')
-                        .and_then(|n| n.parse::<u8>().ok())
-                        .is_some_and(|n| (1..=12).contains(&n))
-                    || [
-                        "SPACE",
-                        "CTRL",
-                        "SHIFT",
-                        "ALT",
-                        "ENTER",
-                        "TAB",
-                        "ESCAPE",
-                        "BACKSPACE",
-                        "UPARROW",
-                        "DOWNARROW",
-                        "LEFTARROW",
-                        "RIGHTARROW",
-                        "INS",
-                        "DEL",
-                        "HOME",
-                        "END",
-                        "PGUP",
-                        "PGDN",
-                        "MOUSE1",
-                        "MOUSE2",
-                        "MOUSE3",
-                        "MOUSE4",
-                        "MOUSE5",
-                    ]
-                    .contains(&s.as_str()))
-            })
-        {
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        self.voice.validate()?;
+        let codes: Vec<_> = self.voice_ptt_keys.iter()
+            .map(|key| crate::native_preferences::goldsrc_key(key))
+            .collect();
+        if codes.len() != 2 || codes.iter().any(Option::is_none) || codes[0] == codes[1] {
             return Err("Invalid voice keys".into());
         }
         if !matches!(
@@ -251,15 +222,10 @@ impl NativePreferences {
 
 pub fn load() -> Result<Preferences, String> {
     let path = preference_path()?;
-    match fs::read(&path) {
-        Ok(bytes) if bytes.len() <= 16384 => {
-            let preferences: Preferences =
-                serde_json::from_slice(&bytes).map_err(|_| "Invalid local helper settings")?;
-            preferences.settings.validate()?;
-            Ok(preferences)
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
-        _ => Err("Could not read local helper settings".into()),
+    match fs::symlink_metadata(&path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
+        Err(_) => Err("Could not read local helper settings".into()),
+        Ok(_) => crate::native_preferences::read_preferences(&path),
     }
 }
 pub fn save(value: &Preferences) -> Result<(), String> {
@@ -315,6 +281,7 @@ enum Request {
     },
     ModelRead { path: String },
     AssetStatus,
+    VoiceStatus { match_id: String },
     AssetSync {
         api_origin: String,
         token: String,
@@ -471,10 +438,22 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
                     .any(|id| uuid::Uuid::parse_str(id).is_err()) {
                 return Err("Invalid partner launch request".into());
             }
-            return crate::runtime::launch_partner(api_origin, token, server_id, group_id.as_deref(), community_id.as_deref());
+            {
+                return crate::partner::start_background(api_origin, token, crate::partner::Launch {
+                    server_id: server_id.clone(), group_id: group_id.clone(), community_id: community_id.clone()
+                });
+            }
         }
         Request::RuntimeCheck { api_origin } => {
-            return crate::runtime::invoke("check", api_origin, None, None)
+            // Setup checks use the signed Rust inspector directly. They must not
+            // start an Electron runtime beside an already supervised game.
+            let bundle = crate::native_bundle::prepare(&user_config_dir()?)?;
+            let device = crate::inspector::check_device(&bundle, api_origin)?;
+            let installation_ready = load().ok().and_then(|prefs| prefs.cs16)
+                .and_then(|folder| validate_installation(&folder, "cs16")).is_some();
+            return Ok(serde_json::json!({"ok":true,"protocol":1,
+                "competitiveReady":device["banned"] == false && installation_ready,
+                "device":device}));
         }
         Request::NextClient {
             api_origin,
@@ -496,6 +475,10 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         }
         Request::ProbeNodes { nodes } => return probe_nodes(nodes.clone()),
         Request::ModelRead { path } => return read_model_preview(path),
+        Request::VoiceStatus { match_id } => {
+            if uuid::Uuid::parse_str(match_id).is_err() { return Err("Invalid voice session".into()); }
+            return Ok(crate::session_mode::voice_status(&user_config_dir()?, match_id));
+        }
         Request::AssetStatus => {
             return serde_json::to_value(crate::assets::status()).map_err(|e| e.to_string())
         }
@@ -592,7 +575,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             prefs.settings = settings;
             save(&prefs)?;
         }
-        Request::Presence { .. } => unreachable!(),
+        Request::Presence { .. } | Request::VoiceStatus { .. } => unreachable!(),
         Request::ModelRead { .. } | Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
         Request::RuntimeCheck { .. } | Request::PartnerLaunch { .. } | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
@@ -824,6 +807,7 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
     while last.elapsed() < Duration::from_secs(30)
         || crate::assets::busy()
         || crate::runtime::busy()
+        || crate::partner::busy()
         || RUNTIME_CHECKS.load(std::sync::atomic::Ordering::Relaxed) > 0
     {
         match listener.accept() {

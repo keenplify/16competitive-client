@@ -453,7 +453,7 @@ export const getSkinPreviewExplosionSprite = async (
 ): Promise<ArrayBuffer | null> => {
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
-  const id = validateSkinId(skinId)
+  const id = typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId) ? skinId : validateSkinId(skinId)
   const response = await fetch(await skinApiUrl(`/skins/${id}/preview-explosion-sprite`), {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000)
@@ -488,7 +488,7 @@ export const getSkinPreviewExplosionSprite = async (
 export const getSkinPreviewActionSound = async (skinId: unknown): Promise<ArrayBuffer | null> => {
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
-  const id = validateSkinId(skinId)
+  const id = typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId) ? skinId : validateSkinId(skinId)
   const response = await fetch(await skinApiUrl(`/skins/${id}/preview-action-sound`), {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000)

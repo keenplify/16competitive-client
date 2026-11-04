@@ -42,12 +42,12 @@ if ($Kind -eq 'helper') {
 } else {
     $env:LOCAL_HELPER_ASSET_DIR = Join-Path $root 'approved-helper'
     npm.cmd ci; CheckExit
-    if ($BuildWebHelper) {
-        node --experimental-strip-types scripts/prepare-game-inspector.mjs win x64; CheckExit
-        cargo test --manifest-path web-helper/Cargo.toml --locked; CheckExit
-        cargo build --manifest-path web-helper/Cargo.toml --release --locked; CheckExit
-        Copy-Item web-helper/target/release/competitive16-web-helper.exe (Join-Path $dist 'competitive16-web-helper.exe')
-    }
+    # The desktop package always carries the standalone session supervisor.
+    node --experimental-strip-types scripts/prepare-game-inspector.mjs win x64; CheckExit
+    node scripts/build-native-sticker-baker.mjs --check; CheckExit
+    cargo test --manifest-path web-helper/Cargo.toml --locked; CheckExit
+    cargo build --manifest-path web-helper/Cargo.toml --release --locked; CheckExit
+    Copy-Item web-helper/target/release/competitive16-web-helper.exe (Join-Path $dist 'competitive16-web-helper.exe')
     $settings = Get-Content (Join-Path $root 'build-environment.json') -Raw | ConvertFrom-Json
     foreach ($name in @('API_BASE_URL','MATCHMAKING_WS_URL','DISCORD_CLIENT_ID','DISCORD_LARGE_IMAGE_KEY')) {
         $property = $settings.PSObject.Properties[$name]

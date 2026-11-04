@@ -70,7 +70,7 @@ fn hash_for(asset: &Asset, catalog: bool) -> Result<String, String> {
     if !(if catalog {
         CATALOG.is_match(&asset.path)
     } else {
-        path_hash.is_some() || PING.contains(&asset.path.as_str()) || MAP.is_match(&asset.path)
+        CATALOG.is_match(&asset.path) || PING.contains(&asset.path.as_str()) || MAP.is_match(&asset.path)
     }) {
         return Err("Unsupported managed asset path".into());
     }
@@ -223,7 +223,7 @@ fn desktop_config_home() -> Result<PathBuf, String> {
 /// Accept only the launcher's existing models/16competitive link. Resolve all
 /// writes against the independently approved physical cache, never through the
 /// game link. Ordinary installations continue to use their existing directory.
-fn game_destination(root: &Path, path: &str) -> Result<PathBuf, String> {
+pub(crate) fn game_destination(root: &Path, path: &str) -> Result<PathBuf, String> {
     game_destination_under(root, path, &desktop_config_home)
 }
 
@@ -301,7 +301,7 @@ pub fn status() -> Progress {
         total_files: 0,
     })
 }
-fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
+pub(crate) fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
     if competitive16_web_helper::allowed_api_origin(origin, cfg!(debug_assertions)).as_deref()
         != Some(origin)
         || token.len() > 8192
@@ -315,7 +315,7 @@ fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
         .timeout(Duration::from_secs(90))
         .build())
 }
-fn request(agent: &ureq::Agent, url: &str, token: &str, max: u64) -> Result<Vec<u8>, String> {
+pub(crate) fn request(agent: &ureq::Agent, url: &str, token: &str, max: u64) -> Result<Vec<u8>, String> {
     let reply = agent
         .get(url)
         .set("Authorization", &format!("Bearer {token}"))
@@ -461,11 +461,11 @@ pub fn prepare_match(
 ) -> Result<(), String> {
     sync(root, origin, token, Some(&connection.match_id))
 }
-pub fn start_catalog(origin: String, token: String, repair: bool) -> Result<Progress, String> {
+pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Progress, String> {
     api(&origin, &token)?;
     let prefs = settings_bridge::load()?;
     let folder = prefs.cs16.ok_or("Choose a Counter-Strike folder first")?;
-    validate_installation(&folder, "cs16").ok_or("Counter-Strike folder is invalid")?;
+    let (root, _, mod_dir) = validate_installation(&folder, "cs16").ok_or("Counter-Strike folder is invalid")?;
     if BUSY.swap(true, Ordering::SeqCst) {
         return Ok(status());
     }
@@ -475,13 +475,8 @@ pub fn start_catalog(origin: String, token: String, repair: bool) -> Result<Prog
         total_files: 0,
     });
     std::thread::spawn(move || {
-        if crate::runtime::invoke(
-            if repair { "repairAssets" } else { "syncAssets" },
-            &origin,
-            Some(&token),
-            None,
-        )
-        .is_err()
+        // Both operations verify every content hash and repair damaged files.
+        if sync(&root.join(mod_dir), &origin, &token, None).is_err()
         {
             write_progress(&Progress {
                 status: "error".into(),

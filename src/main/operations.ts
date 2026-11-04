@@ -1,7 +1,7 @@
 import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
-import type { Operation, OperationSnapshot, OperationViewedResult } from '../shared/operations'
+import { isOperationStickerTier, type Operation, type OperationSnapshot, type OperationViewedResult } from '../shared/operations'
 
 type ApiError = Error & { code?: string }
 
@@ -63,7 +63,8 @@ const isTier = (value: unknown): boolean => {
     Number.isInteger(tier.requiredPoints) &&
     typeof tier.isMajor === 'boolean' &&
     typeof tier.rewardType === 'string' &&
-    ['SKIN', 'POINTS', 'P_CASH', 'SHOWCASE'].includes(tier.rewardType) &&
+    ['SKIN', 'POINTS', 'P_CASH', 'SHOWCASE', 'STICKER'].includes(tier.rewardType) &&
+    isOperationStickerTier(tier) &&
     stringOrNull(tier.skinId) &&
     (typeof tier.amount === 'number' || tier.amount === null) &&
     stringOrNull(tier.showcaseKey) &&

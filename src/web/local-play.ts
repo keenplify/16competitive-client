@@ -97,6 +97,8 @@ export function nativeDeviceStatus(): DeviceStatus {
   return readiness?.token === getWebSessionToken() ? readiness.value.device : { banned: false }
 }
 export async function logoutNativeHelper(accountId: string | null): Promise<void> {
+  const { useNativeVoiceStore } = await import('../renderer/src/features/voice/native-voice.store')
+  useNativeVoiceStore.setState({ requestedPartnerId: null })
   readiness = null
   for (const listener of readinessListeners) listener()
   if (localChannel && accountId)
@@ -582,18 +584,31 @@ export async function launchPartnerWithNativeHelper(
   const token = getWebSessionToken()
   if (!token) throw new Error('Authentication required')
   const settings = await nativeHelperSettings({ action: 'get' })
-  if (!settings.cs13FolderPath) throw new Error('INSTALLATION_REQUIRED')
+  if (!settings.cs13FolderPath && !settings.cs16FolderPath) throw new Error('INSTALLATION_REQUIRED')
   if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
-  const result = await localRequest({
-    action: 'partnerLaunch',
-    apiOrigin: currentApiOrigin(),
-    token,
-    serverId,
-    groupId,
-    communityId
-  })
-  if (!result || typeof result !== 'object' || !('ok' in result) || result.ok !== true)
-    throw new Error('LAUNCH_FAILED')
+  if (settings.lightweightHud) {
+    const { useNativeVoiceStore } =
+      await import('../renderer/src/features/voice/native-voice.store')
+    useNativeVoiceStore.setState({ requestedPartnerId: serverId })
+  }
+  try {
+    const result = await localRequest({
+      action: 'partnerLaunch',
+      apiOrigin: currentApiOrigin(),
+      token,
+      serverId,
+      groupId,
+      communityId
+    })
+    if (!result || typeof result !== 'object' || !('ok' in result) || result.ok !== true)
+      throw new Error('LAUNCH_FAILED')
+  } catch (error) {
+    const { useNativeVoiceStore } =
+      await import('../renderer/src/features/voice/native-voice.store')
+    if (useNativeVoiceStore.getState().requestedPartnerId === serverId)
+      useNativeVoiceStore.setState({ requestedPartnerId: null })
+    throw error
+  }
 }
 
 export async function launchWithLocalLauncher(
@@ -669,6 +684,18 @@ export async function waitForNativeHelperSetup(setup: {
     }
   }
   return null
+}
+
+export async function nativeVoiceStatus(
+  matchId: string
+): Promise<{ owned: boolean; connected: boolean }> {
+  const value = (await localRequest({ action: 'voiceStatus', matchId })) as {
+    owned?: unknown
+    connected?: unknown
+  }
+  if (typeof value?.owned !== 'boolean' || typeof value.connected !== 'boolean')
+    throw new Error('Invalid native voice status')
+  return { owned: value.owned, connected: value.connected }
 }
 
 export async function nativeHelperSettings(
@@ -778,6 +805,7 @@ async function localRequest(
     | { action: 'presence'; activity: NativeHelperPresence | null }
     | { action: 'modelRead'; path: string }
     | { action: 'assetStatus' }
+    | { action: 'voiceStatus'; matchId: string }
     | { action: 'assetSync'; apiOrigin: string; token: string; repair: boolean }
     | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string }
     | { action: 'diagnostics'; apiOrigin: string; token: string; matchId?: string }

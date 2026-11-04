@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { X, LoaderCircle } from 'lucide-react'
+import { X, LoaderCircle, Plus } from 'lucide-react'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { Button } from '../../components/ui/Button'
 import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import type { OwnedSticker } from '../../../../shared/stickers'
 import { useCollectionsStore } from './collections.store'
 import { twMerge } from 'tailwind-merge'
+import { stockStickerModel } from '../../../../shared/stock-sticker-models'
+import { useInventoryText } from '../inventory/inventory-i18n'
 import { useInventoryStore } from '../inventory/inventory.store'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useTranslation } from '../i18n/i18n'
@@ -13,16 +15,19 @@ import translations from './skin-preview-translations.json'
 
 export function AttachedStickerLinks({
   targetKey,
+  targetName,
   onClose,
   className
 }: {
   targetKey: string
+  targetName?: string
   onClose: () => void
   className?: string
 }) {
   const [removing, setRemoving] = useState<OwnedSticker | null>(null)
   const pending = useInventoryStore((s) => s.pending)
   const theme = useEffectiveLauncherTheme()
+  const inventoryText = useInventoryText()
   const closeRemoval = () => {
     if (!useInventoryStore.getState().pending) setRemoving(null)
   }
@@ -86,6 +91,30 @@ export function AttachedStickerLinks({
             </div>
           )
         })}
+        {(targetKey.startsWith('skin:') || stockStickerModel(targetKey.slice(6))) && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="size-14 shrink-0 p-0"
+            disabled={pending || stickers.length >= 5}
+            aria-label={text.addSticker}
+            title={stickers.length >= 5 ? inventoryText('limit') : text.addSticker}
+            onClick={() => {
+              const inventory = useInventoryStore.getState()
+              if (inventory.pending) return
+              inventory.close()
+              useCollectionsStore.getState().close()
+              onClose()
+              inventory.selectWeapon({
+                key: targetKey,
+                name: targetName ?? targetKey,
+                ...(targetKey.startsWith('skin:') ? { skinId: targetKey.slice(5) } : {})
+              })
+            }}
+          >
+            <Plus className="size-6" aria-hidden="true" />
+          </Button>
+        )}
       </footer>
       <ModalDialog
         open={!!removing}

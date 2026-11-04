@@ -1,3 +1,6 @@
+import { ChatAnnouncements } from '../chat/ChatAnnouncements'
+import { ChatCommandPopover } from '../chat/ChatCommandPopover'
+import { isChatCommand, useChatCommandsStore } from '../chat/chat-commands.store'
 import { ChatMessageRow } from './ChatMessageRow'
 import { useCommunityChatStore } from '../partner-branding/community-chat.store'
 import { communityText } from '../partner-branding/community-copy'
@@ -37,6 +40,7 @@ interface MinimizedChatPing {
 }
 
 export function PartyChat(): JSX.Element {
+  const commandPending = useChatCommandsStore(state => state.pending)
   const activeSurface = useWindowFocusStore((state) => state.activeSurface)
   const activate = useWindowFocusStore((state) => state.activate)
   const playerId = useAuthStore((state) => state.session?.player.id)
@@ -308,6 +312,28 @@ export function PartyChat(): JSX.Element {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
+    if (isChatCommand(draft)) {
+      const originalDraft = draft
+      const sourceFriendId = activeFriendId
+      const sourceTab = chatTab
+      void useChatCommandsStore.getState().send(draft).then(sent => {
+        if (!sent) return
+        // Preserve a newer draft typed while the request was in flight.
+        if (sourceFriendId) {
+          if (useFriendChatStore.getState().conversations[sourceFriendId]?.draft === originalDraft) setFriendDraft(sourceFriendId, '')
+        } else if (sourceTab === 'community') {
+          if (useCommunityChatStore.getState().draft === originalDraft) setCommunityDraft('')
+        } else if (sourceTab === 'room') {
+          if (useCustomGamesStore.getState().chatDraft === originalDraft) setRoomDraft('')
+        } else {
+          const state = usePartyStore.getState()
+          if (sourceTab === 'party' && state.chatDraft === originalDraft) setPartyDraft('')
+          else if (sourceTab === 'language' && state.languageChatDraft === originalDraft) setLanguageDraft('')
+          else if (sourceTab === 'global' && state.globalChatDraft === originalDraft) setGlobalDraft('')
+        }
+      })
+      return
+    }
     if (activeFriendId) {
       void sendFriendChat(activeFriendId)
       return
@@ -344,6 +370,22 @@ export function PartyChat(): JSX.Element {
             : chatTab === 'language'
               ? languageDraft
               : globalDraft
+  const setDraft = (value: string): void => {
+                    if (activeFriendId) {
+                      setFriendDraft(activeFriendId, value)
+                    } else if (chatTab === 'room') {
+                      setRoomDraft(value)
+                    } else if (chatTab === 'party') {
+                      setPartyDraft(value)
+                    } else if (chatTab === 'community') {
+                      setCommunityDraft(value)
+                    } else if (chatTab === 'language') {
+                      setLanguageDraft(value)
+                    } else {
+                      setGlobalDraft(value)
+                    }
+                    }
+
   const sending =
     !activeFriendId && chatTab === 'community'
       ? communitySending
@@ -479,6 +521,7 @@ export function PartyChat(): JSX.Element {
 
   return (
     <>
+      <ChatAnnouncements />
       {!chatOpen && minimizedPing && (
         <button
           type="button"
@@ -879,7 +922,8 @@ export function PartyChat(): JSX.Element {
           </div>
 
           {canSend ? (
-            <form className="border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
+            <form className="relative border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
+              <ChatCommandPopover draft={draft} onChoose={(value) => { setDraft(value); inputRef.current?.focus() }} />
               <div className="flex">
                 <input
                   ref={inputRef}
@@ -888,27 +932,13 @@ export function PartyChat(): JSX.Element {
                   maxLength={300}
                   placeholder={placeholder}
                   aria-label={messageLabel}
-                  onChange={(event) => {
-                    if (activeFriendId) {
-                      setFriendDraft(activeFriendId, event.target.value)
-                    } else if (chatTab === 'room') {
-                      setRoomDraft(event.target.value)
-                    } else if (chatTab === 'party') {
-                      setPartyDraft(event.target.value)
-                    } else if (chatTab === 'community') {
-                      setCommunityDraft(event.target.value)
-                    } else if (chatTab === 'language') {
-                      setLanguageDraft(event.target.value)
-                    } else {
-                      setGlobalDraft(event.target.value)
-                    }
-                  }}
+                  onChange={(event) => setDraft(event.target.value)}
                 />
                 <Button
                   className="h-9 rounded-none bg-transparent px-4 text-xs tracking-wide text-neutral-300 uppercase hover:bg-white/5 hover:text-white disabled:bg-transparent"
                   variant="ghost"
                   type="submit"
-                  disabled={!draft.trim() || sending}
+                  disabled={!draft.trim() || sending || commandPending}
                 >
                   {communityText(language, 'send')}
                 </Button>

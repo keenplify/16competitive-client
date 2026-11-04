@@ -20,6 +20,11 @@ export interface NativeHelperSettings {
   playerPingKey: import('./player-ping').PlayerPingKey
   nextClientDetected: boolean
   platform: 'win32' | 'linux'
+  voice?: {
+    enabled: boolean
+    openMic: boolean
+    peers: Record<string, { muted: boolean; volume: number }>
+  }
   voicePttKeys: [string, string]
 }
 

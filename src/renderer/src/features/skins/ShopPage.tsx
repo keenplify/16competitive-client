@@ -318,6 +318,8 @@ export function ShopPage(): JSX.Element {
   const showMusic =
     (selectedCategory === 'all' || selectedCategory === 'music') && selectedSkinType === 'all'
 
+  const hasActiveFilters = selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim().length > 0
+
   const clearFilters = (): void => {
     setSelectedCategory('all')
     setSelectedSkinType('all')
@@ -452,9 +454,7 @@ export function ShopPage(): JSX.Element {
                       {filterText.filters}
                     </p>
                   </div>
-                  {(selectedCategory !== 'all' ||
-                    selectedSkinType !== 'all' ||
-                    searchQuery.trim()) && (
+                  {hasActiveFilters && (
                     <button
                       type="button"
                       className="text-[10px] font-bold tracking-wide text-sky-300 uppercase transition hover:text-sky-200"
@@ -566,7 +566,7 @@ export function ShopPage(): JSX.Element {
                   {error}
                 </p>
               )}
-              {collections.length > 0 && (
+              {!hasActiveFilters && collections.length > 0 && (
                 <section aria-label={collectionText('title')} className="mb-6">
                   <h2 className="mb-3 text-lg font-semibold">{collectionText('title')}</h2>
                   <div
@@ -819,6 +819,7 @@ export function SkinCardPreview({
       <SkinModelThumbnail
         key={`${skin.id}:${skinPreviewRevision(skin)}`}
         cacheKey={`skin-card:v3:${skin.id}`}
+        showAppliedStickers={owned}
         skinId={skin.id}
         sourceRevision={skinPreviewRevision(skin)}
         previewHiddenTextures={skin.previewHiddenTextures}
@@ -996,7 +997,7 @@ function SkinPreviewContent({
           </div>
         )}
       </div>
-      {stickerTargetKey && <AttachedStickerLinks targetKey={stickerTargetKey} onClose={onClose} />}
+      {stickerTargetKey && <AttachedStickerLinks targetKey={stickerTargetKey} targetName={skin.name} onClose={onClose} />}
     </ModalDialog>
   )
 }

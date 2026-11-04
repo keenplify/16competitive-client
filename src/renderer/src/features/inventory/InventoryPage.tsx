@@ -253,6 +253,11 @@ export function InventoryDialogs() {
           </Button>
         </header>
         <div className="grid max-h-[65vh] min-h-48 grid-cols-2 gap-4 overflow-y-auto sm:grid-cols-3">
+          {s.target && !s.loading && unused.length === 0 && (
+            <p className="col-span-full flex min-h-48 items-center justify-center text-sm text-neutral-400">
+              {t('empty')}
+            </p>
+          )}
           {s.target ? (
             unused.map((item) => (
               <InventoryTile

@@ -49,6 +49,7 @@ window.mountThumbnail=()=>{
  window.api.models.writeThumbnail=async(key,png)=>{window.thumbnailCache.set(key,png)}
  root.render(<StrictMode><SkinModelThumbnail cacheKey="fixture-old-p-cache" weaponKey="ak47" showAppliedStickers fallback={<span>Failed</span>} /></StrictMode>)
 }
+window.getInventory=()=>useInventoryStore.getState()
 window.mountStickerLinks=()=>root.render(<StrictMode><AttachedStickerLinks targetKey="stock:ak47" onClose={()=>{window.closedPreview=true}} /></StrictMode>)
 window.setFixtureTheme=theme=>{useLauncherThemeStore.setState({theme,hasPreference:true});document.documentElement.dataset.launcherTheme=theme}
 window.removalCalls=[]
@@ -136,7 +137,7 @@ window.mount=async(bytes)=>{
 const {app,BrowserWindow}=require('electron'),{readFileSync,writeFileSync}=require('fs'),assert=require('assert/strict')
 app.commandLine.appendSwitch('enable-unsafe-swiftshader')
 app.whenReady().then(async()=>{
- const w=new BrowserWindow({show:true,width:1000,height:700,webPreferences:{backgroundThrottling:false,sandbox:true,contextIsolation:true,nodeIntegration:false}})
+ const w=new BrowserWindow({show:false,width:1000,height:700,webPreferences:{backgroundThrottling:false,sandbox:true,contextIsolation:true,nodeIntegration:false}})
  const errors=[]
  setTimeout(()=>{console.error('Preview runtime timed out');app.exit(1)},45000)
  w.webContents.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message)})
@@ -185,7 +186,10 @@ app.whenReady().then(async()=>{
  assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("img").length'),1)
  await w.webContents.executeJavaScript('mountStickerLinks()')
  await new Promise(r=>setTimeout(r,100))
- assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),2)
+ assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),3)
+ await w.webContents.executeJavaScript('[...document.querySelectorAll("footer button")].find(b=>b.getAttribute("aria-label")==="Add sticker").click()')
+ assert.equal(await w.webContents.executeJavaScript('getInventory().target.key'),'stock:ak47')
+ assert.equal(await w.webContents.executeJavaScript('getInventory().selectedSticker'),null)
  await w.webContents.executeJavaScript('document.querySelector("footer button").click()')
  assert.equal(await w.webContents.executeJavaScript('closedPreview'),true)
  assert.equal(await w.webContents.executeJavaScript('getNavigation().page'),'store')
@@ -209,7 +213,7 @@ app.whenReady().then(async()=>{
  await w.webContents.executeJavaScript('[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Remove sticker").click()')
  await new Promise(r=>setTimeout(r,100))
  assert.equal(await w.webContents.executeJavaScript('removalCalls[0]'),'fixture')
- assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),0)
+ assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),1)
  await w.webContents.executeJavaScript('mountThumbnail()')
  await new Promise(r=>setTimeout(r,100))
  await w.webContents.executeJavaScript('removeFixtureSticker()')

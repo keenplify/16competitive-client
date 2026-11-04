@@ -1,3 +1,4 @@
+import refundTranslations from './refund-translations.json'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { stockStickerModel } from '../../../../shared/stock-sticker-models'
 import { stockWeaponPreview } from './stock-weapon-preview'
@@ -11,7 +12,7 @@ import { STOCK_CHARACTERS } from '../../../../shared/skins'
 import { CharacterPanel } from './CharacterPanel'
 import { useCharacterLoadoutStore } from './character-loadout.store'
 import { useTranslation } from '../i18n/i18n'
-import { Check, Crosshair, LoaderCircle, Power, PowerOff, Users } from 'lucide-react'
+import { Check, Crosshair, LoaderCircle, Eye, EyeOff, TicketSlash, Users } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin, SkinResaleQuote } from '../../../../shared/skins'
@@ -130,7 +131,8 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   const [sale, setSale] = useState<{ owned: OwnedSkin; quote: SkinResaleQuote } | null>(null)
   const [quotingId, setQuotingId] = useState<string | null>(null)
   const [selling, setSelling] = useState(false)
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const refundText = refundTranslations[language]
   const inventoryText = useInventoryText()
   const team = useCharacterLoadoutStore((state) => state.team)
   const setTeam = useCharacterLoadoutStore((state) => state.selectTeam)
@@ -339,16 +341,18 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   const requestSale = (owned: OwnedSkin): void => {
     if (loadoutLocked || quotingId || selling) return
     setQuotingId(owned.skin.id)
+    const feedback = toast.loading(inventoryText('pending'))
     void window.api.skins
       .resaleQuote(owned.skin.id)
-      .then((quote) => setSale({ owned, quote }))
-      .catch((reason: unknown) => toast.error(errorText(reason)))
+      .then((quote) => { setSale({ owned, quote }); toast.update(feedback, { render: refundText.confirm, type: 'success', isLoading: false, autoClose: 2000 }) })
+      .catch(() => toast.update(feedback, { render: refundText.failed, type: 'error', isLoading: false, autoClose: 6000 }))
       .finally(() => setQuotingId(null))
   }
 
   const confirmSale = (): void => {
     if (!sale || selling) return
     setSelling(true)
+    const feedback = toast.loading(refundText.pending)
     const { owned, quote } = sale
     void window.api.skins
       .sell(owned.skin.id, quote)
@@ -356,9 +360,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         setSkins((current) => current.filter((item) => item.skin.id !== owned.skin.id))
         setSale(null)
         if (result.currency === 'POINTS') useAuthStore.getState().setPoints(result.balance)
-        toast.success(
-          `${owned.skin.name} sold for ${result.payout.toLocaleString()} ${result.currency === 'POINTS' ? 'Points' : 'Papa Cash'}.`
-        )
+        toast.update(feedback, { render: refundText.success, type: 'success', isLoading: false, autoClose: 4000 })
         void Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()])
           .then(([inventory, lobbyLoadout]) => {
             setSkins(inventory)
@@ -372,7 +374,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
           })
           .catch((reason: unknown) => toast.error(errorText(reason)))
       })
-      .catch((reason: unknown) => toast.error(errorText(reason)))
+      .catch(() => toast.update(feedback, { render: refundText.failed, type: 'error', isLoading: false, autoClose: 6000 }))
       .finally(() => setSelling(false))
   }
 
@@ -438,7 +440,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
           {unequippingTeam ? (
             <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
           ) : (
-            <PowerOff className="size-3" aria-hidden="true" />
+            <EyeOff className="size-3" aria-hidden="true" />
           )}
         </span>
         {t(unequippingTeam ? 'music.unequipping' : 'music.unequipAll')}
@@ -654,6 +656,17 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                 ) : null
               ) : (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredSkins.map((owned) => (
+                    <InventoryCard
+                      key={owned.skin.id}
+                      owned={owned}
+                      changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
+                      selling={selling || quotingId !== null}
+                      onEquip={() => setEquipped(owned)}
+                      onSell={() => requestSale(owned)}
+                      onPreview={() => setPreviewSkin(owned.skin)}
+                    />
+                  ))}
                   {stockWeapons.map((weaponKey) => (
                     <StockWeaponCard
                       key={weaponKey}
@@ -675,17 +688,6 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                           )
                         )
                       }
-                    />
-                  ))}
-                  {filteredSkins.map((owned) => (
-                    <InventoryCard
-                      key={owned.skin.id}
-                      owned={owned}
-                      changing={loadoutLocked || unequippingTeam || changingId === owned.skin.id}
-                      selling={selling || quotingId !== null}
-                      onEquip={() => setEquipped(owned)}
-                      onSell={() => requestSale(owned)}
-                      onPreview={() => setPreviewSkin(owned.skin)}
                     />
                   ))}
                 </div>
@@ -736,6 +738,8 @@ function InventoryCard({
   onPreview: () => void
 }): JSX.Element {
   const inventoryText = useInventoryText()
+  const { language } = useTranslation()
+  const refundText = refundTranslations[language]
   const customize = () =>
     useInventoryStore
       .getState()
@@ -772,7 +776,8 @@ function InventoryCard({
             disabled={changing || selling}
             onClick={onSell}
           >
-            {selling ? 'Loading…' : 'Sell'}
+            {selling ? <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" /> : <TicketSlash className="mr-1 size-3.5" aria-hidden="true" />}
+            {refundText.refund}
           </Button>
         )}
         <Button
@@ -782,14 +787,14 @@ function InventoryCard({
           onClick={onEquip}
         >
           {changing ? (
-            'Updating…'
+            <LoaderCircle className="size-3.5 animate-spin" aria-label={inventoryText('pending')} />
           ) : equipped ? (
             <>
-              <PowerOff className="mr-1 size-3.5" /> Unequip
+              <EyeOff className="mr-1 size-3.5" aria-hidden="true" /> {inventoryText('equipped')}
             </>
           ) : (
             <>
-              <Power className="mr-1 size-3.5" /> Equip
+              <Eye className="mr-1 size-3.5" aria-hidden="true" /> {inventoryText('equip')}
             </>
           )}
         </Button>
@@ -985,6 +990,7 @@ function StockWeaponCard({
           variant={equipped ? 'ghost' : 'primary'}
           onClick={onEquip}
         >
+          {changing ? <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" /> : equipped ? <EyeOff className="mr-1 size-3.5" aria-hidden="true" /> : <Eye className="mr-1 size-3.5" aria-hidden="true" />}
           {t(changing ? 'pending' : equipped ? 'equipped' : 'equip')}
         </Button>
       </div>

@@ -178,3 +178,8 @@ ipcMain.handle(FRIEND_CHANNELS.chatSend, (_, playerId: unknown, message: unknown
   sendFriendChatMessage(playerId, message)
 )
 ipcMain.handle(FRIEND_CHANNELS.requestAttention, () => requestFriendMessageAttention())
+
+ipcMain.handle(FRIEND_CHANNELS.announce, async (_, message: unknown, requestId: unknown) => {
+  if (typeof message !== 'string' || !message.trim() || message.length > 300) throw new Error('Invalid announcement')
+  await friendsRequest('/friends/announce', { method: 'POST', body: JSON.stringify({ message, requestId: validId(requestId) }) })
+})

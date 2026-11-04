@@ -11,6 +11,8 @@ export const GAME_SETTINGS_CHANNELS = {
   nextClientInstallProgress: 'game-settings:nextclient-install-progress',
   save: 'game-settings:save',
   setVoicePttKey: 'game-settings:set-voice-ptt-key',
+  setNativeVoice: 'game-settings:set-native-voice',
+  nativeSessionStatus: 'game-settings:native-session-status',
   setCrosshair: 'game-settings:set-crosshair',
   setNextClientIntegration: 'game-settings:set-nextclient-integration',
   setFastSwitch: 'game-settings:set-fast-switch',
@@ -75,6 +77,8 @@ export interface GameSettingsApi {
   onNextClientInstallProgress(listener: (progress: NextClientInstallProgress) => void): () => void
   save(folderPath: string): Promise<GameSettings>
   setVoicePttKey(key: string): Promise<GameSettings>
+  nativeSessionStatus(id: string): Promise<{ owned: boolean; connected: boolean }>
+  setNativeVoice(preferences: import('./native-voice').NativeVoicePreferences): Promise<void>
   setCrosshair(profile: CrosshairProfile): Promise<GameSettings>
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
   setFastSwitch(enabled: boolean): Promise<GameSettings>

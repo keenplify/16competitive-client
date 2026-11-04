@@ -83,7 +83,7 @@ export function StickerPurchaseDialog() {
                 onClick={() => buy(currency)}
                 aria-label={`${t('buy')} — ${currency === 'POINTS' ? t('points') : t('pCash')} ${price}`}
               >
-                <span className={pending && input.currency === currency ? 'invisible' : undefined}>
+                <span className={`flex items-center justify-center ${pending && input.currency === currency ? 'invisible' : ''}`}>
                   <CurrencyAmount currency={currency} amount={price} showTooltip={false} />
                 </span>
                 {pending && input.currency === currency && (

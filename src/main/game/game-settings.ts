@@ -4,7 +4,6 @@ import {
   type PlayerPingKey
 } from '../../shared/player-ping'
 import { app, dialog } from 'electron'
-import { recommendLightweightHud } from './recommended-hud'
 import { chmod, mkdir, open, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { findInstallation } from './installation-search'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
@@ -385,7 +384,7 @@ const buildSettings = async (
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
   killCardsEnabled: storedSettings.killCardsEnabled !== false,
-  lightweightHud: storedSettings.lightweightHud === true,
+  lightweightHud: storedSettings.lightweightHud !== false,
   setupCompleted: storedSettings.setupCompleted === true,
   setupMode: storedSettings.setupMode ?? null,
   clientType: cs16ExecutablePath
@@ -423,7 +422,7 @@ const persistResolvedSettings = async (
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
     killCardsEnabled: storedSettings.killCardsEnabled !== false,
-    lightweightHud: storedSettings.lightweightHud === true,
+    lightweightHud: storedSettings.lightweightHud !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
       : {}),
@@ -494,7 +493,7 @@ export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSet
           fastSwitchEnabled: true,
           fastSwitchManaged: true,
           killCardsEnabled: true,
-          lightweightHud: storedSettings.lightweightHud === true || recommendLightweightHud()
+          lightweightHud: storedSettings.lightweightHud !== false
         }
       : {
           nextClientIntegrationEnabled: false,

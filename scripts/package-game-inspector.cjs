@@ -12,4 +12,6 @@ module.exports = async function beforePack(context) {
       shell: false
     }
   )
+  const { stageSessionHelper } = await import('./stage-session-helper.mjs')
+  await stageSessionHelper(join(__dirname, '..'), platform, arch)
 }

@@ -1,3 +1,4 @@
+import { lobbySceneTranslations } from './lobby-scene-translations'
 import { matchDemoTranslations } from './match-demo-translations'
 import { musicKitTranslations } from '../../../../shared/music-kit-translations'
 import { brandAppText, useAppName } from '../partner-branding/partner-identity'
@@ -76,6 +77,7 @@ const english = {
   ...anticheatNoticeTranslations.en,
   ...preferHumansTranslations.en,
   ...lightweightHudTranslations.en,
+  ...lobbySceneTranslations.en,
   ...gameDisplayTranslations.en,
   ...fastSwitchTranslations.en,
   ...discordNotificationTranslations.en,
@@ -261,6 +263,7 @@ const russian: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.ru,
   ...preferHumansTranslations.ru,
   ...lightweightHudTranslations.ru,
+  ...lobbySceneTranslations.ru,
   ...gameDisplayTranslations.ru,
   ...fastSwitchTranslations.ru,
   ...discordNotificationTranslations.ru,
@@ -446,6 +449,7 @@ const taglish: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.tl,
   ...preferHumansTranslations.tl,
   ...lightweightHudTranslations.tl,
+  ...lobbySceneTranslations.tl,
   ...gameDisplayTranslations.tl,
   ...fastSwitchTranslations.tl,
   ...discordNotificationTranslations.tl,
@@ -633,6 +637,7 @@ const thai: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.th,
   ...preferHumansTranslations.th,
   ...lightweightHudTranslations.th,
+  ...lobbySceneTranslations.th,
   ...gameDisplayTranslations.th,
   ...fastSwitchTranslations.th,
   ...discordNotificationTranslations.th,
@@ -816,6 +821,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.id,
   ...preferHumansTranslations.id,
   ...lightweightHudTranslations.id,
+  ...lobbySceneTranslations.id,
   ...gameDisplayTranslations.id,
   ...fastSwitchTranslations.id,
   ...discordNotificationTranslations.id,
@@ -1006,6 +1012,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.pt,
   ...preferHumansTranslations.pt,
   ...lightweightHudTranslations.pt,
+  ...lobbySceneTranslations.pt,
   ...gameDisplayTranslations.pt,
   ...fastSwitchTranslations.pt,
   ...discordNotificationTranslations.pt,
@@ -1196,6 +1203,7 @@ const japanese: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.ja,
   ...preferHumansTranslations.ja,
   ...lightweightHudTranslations.ja,
+  ...lobbySceneTranslations.ja,
   ...gameDisplayTranslations.ja,
   ...fastSwitchTranslations.ja,
   ...discordNotificationTranslations.ja,
@@ -1384,6 +1392,7 @@ const hindi: Record<TranslationKey, string> = {
   ...anticheatNoticeTranslations.hi,
   ...preferHumansTranslations.hi,
   ...lightweightHudTranslations.hi,
+  ...lobbySceneTranslations.hi,
   ...gameDisplayTranslations.hi,
   ...fastSwitchTranslations.hi,
   ...discordNotificationTranslations.hi,

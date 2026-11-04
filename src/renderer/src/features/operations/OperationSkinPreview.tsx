@@ -1,3 +1,4 @@
+import { OperationStickerPreview } from './OperationStickerPreview'
 import { Award, LoaderCircle } from 'lucide-react'
 import { type CSSProperties, type JSX } from 'react'
 import type { OperationTier } from '../../../../shared/operations'
@@ -70,6 +71,7 @@ function SkinSpotlight({ tier }: { tier: OperationTier }): JSX.Element {
 }
 
 export function OperationSkinPreview({ tier }: { tier: OperationTier }): JSX.Element {
+  if (tier.rewardType === 'STICKER') return <OperationStickerPreview tier={tier} className="mx-auto max-w-sm p-8" />
   if (tier.rewardType === 'SKIN' && tier.skinId && tier.skin?.weaponKey) {
     return <SkinSpotlight tier={tier} />
   }

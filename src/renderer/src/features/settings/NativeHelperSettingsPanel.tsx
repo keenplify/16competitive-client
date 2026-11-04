@@ -156,12 +156,6 @@ export function NativeHelperSettingsPanel({
                 {t('settings.anticheatNotice')}
               </p>
             </div>
-            <HelperCheckbox
-              label={t('settings.lightweightHud')}
-              checked={settings?.lightweightHud ?? true}
-              disabled={disabled || !settings?.enhancementsEnabled}
-              onChange={(lightweightHud) => void save({ lightweightHud })}
-            />
             <div>
               <HelperCheckbox
                 label={t('webHelper.killCards')}

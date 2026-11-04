@@ -59,10 +59,10 @@ const setupCode = ts.transpileModule(setup + '\nglobalThis.runSetup = completeGa
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None }
 }).outputText
 
-test('setup persists the recommendation, preserves enabled HUD, and leaves Custom unchanged', async () => {
+test('setup defaults to closing the launcher and preserves explicit preferences', async () => {
   for (const mode of ['recommended', 'custom']) {
     for (const lowResource of [false, true]) {
-      for (const enabled of [false, true]) {
+      for (const enabled of [undefined, false, true]) {
         let saved
         const context = vm.createContext({
           readStoredSettings: async () => ({ lightweightHud: enabled }),
@@ -78,7 +78,7 @@ test('setup persists the recommendation, preserves enabled HUD, and leaves Custo
         })
         vm.runInContext(setupCode, context)
         const result = await context.runSetup(mode)
-        const expected = enabled || (mode === 'recommended' && lowResource)
+        const expected = mode === 'recommended' ? enabled !== false : enabled
         assert.equal(saved.lightweightHud, expected)
         assert.equal(result.lightweightHud, expected)
         assert.equal(result.nextClientIntegrationEnabled, mode === 'recommended')

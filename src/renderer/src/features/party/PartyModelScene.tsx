@@ -257,7 +257,7 @@ const loadPlayerPresentation = async (
       const cached = await readCachedLobbyPresentation(cacheKey)
       if (cached) return cached
       const presentation = buildLobbyPresentation(playerBuffer, weaponKey, animationBuffer)
-      await writeCachedLobbyPresentation(cacheKey, presentation)
+      void writeCachedLobbyPresentation(cacheKey, presentation)
       return presentation
     }
   )
@@ -659,6 +659,7 @@ const createActor = (
 }
 
 interface PartyModelSceneProps {
+  onStatus?: (status: PartySceneStatus) => void
   actors: PartySceneActor[]
   sourceRevision?: string | number
   className?: string
@@ -669,8 +670,11 @@ interface PartyModelSceneProps {
   maxFrameRate?: number
 }
 
+export type PartySceneStatus = 'loading' | 'ready' | 'error'
+
 export function PartyModelScene({
   actors,
+  onStatus,
   sourceRevision,
   className,
   showNameplates = true,
@@ -704,6 +708,7 @@ export function PartyModelScene({
 
   useEffect(() => {
     let active = true
+    onStatus?.('loading')
     const loadKey = actorKey
     const actorsSnapshot = [...actorsRef.current]
     void Promise.all(
@@ -731,11 +736,15 @@ export function PartyModelScene({
           weaponBuffers: loaded.map(({ weaponBuffer }) => weaponBuffer)
         })
       })
-      .catch((error: unknown) => console.error('[Lobby] Could not load party scene models', error))
+      .catch((error: unknown) => {
+        if (!active) return
+        console.error('[Lobby] Could not load party scene models', error)
+        onStatus?.('error')
+      })
     return () => {
       active = false
     }
-  }, [actorKey, sourceRevision])
+  }, [actorKey, sourceRevision, onStatus])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -753,6 +762,7 @@ export function PartyModelScene({
         '[Lobby] Could not initialize the 3D scene; leaving the lobby UI available',
         error
       )
+      onStatus?.('error')
       return
     }
     const ambient = new THREE.AmbientLight(0xffffff, 1.2)
@@ -808,8 +818,11 @@ export function PartyModelScene({
       targetCurrentPlayerPitch = (0.5 - normalizedY) * 2 * MAX_CURRENT_PLAYER_POINTER_PITCH
     }
     if (followPointer) window.addEventListener('pointermove', handlePointerMove)
+    let hasSize = false
     const resize = () => {
       const bounds = canvas.getBoundingClientRect()
+      hasSize = bounds.width > 0 && bounds.height > 0
+      if (!hasSize) return
       camera.aspect = bounds.width / bounds.height
       camera.updateProjectionMatrix()
       renderer.setSize(bounds.width, bounds.height, false)
@@ -823,8 +836,10 @@ export function PartyModelScene({
     const fadeStartedAt = performance.now()
     let currentPlayerYaw = 0
     let currentPlayerPitch = 0
+    let reportedReady = false
     const render = () => {
       frame = requestAnimationFrame(render)
+      if (!hasSize || renderer.getContext().isContextLost()) return
       const now = performance.now()
       if (now - lastFrameAt < frameInterval) return
       lastFrameAt = now
@@ -934,10 +949,32 @@ export function PartyModelScene({
           }
         })
       })
-      renderer.render(scene, camera)
+      try {
+        renderer.render(scene, camera)
+        if (!reportedReady) {
+          reportedReady = true
+          onStatus?.('ready')
+        }
+      } catch (error) {
+        cancelAnimationFrame(frame)
+        onStatus?.('error')
+        console.error('[Lobby] Could not render party scene', error)
+      }
     }
     render()
+    const lost = (): void => {
+      reportedReady = false
+      onStatus?.('error')
+    }
+    const restored = (): void => {
+      reportedReady = false
+      onStatus?.('loading')
+    }
+    canvas.addEventListener('webglcontextlost', lost)
+    canvas.addEventListener('webglcontextrestored', restored)
     return () => {
+      canvas.removeEventListener('webglcontextlost', lost)
+      canvas.removeEventListener('webglcontextrestored', restored)
       cancelAnimationFrame(frame)
       if (followPointer) window.removeEventListener('pointermove', handlePointerMove)
       observer.disconnect()
@@ -974,7 +1011,8 @@ export function PartyModelScene({
     verticalOffset,
     cameraDistance,
     followPointer,
-    maxFrameRate
+    maxFrameRate,
+    onStatus
   ])
 
   return <canvas ref={canvasRef} className={className} aria-label="Party model scene" />

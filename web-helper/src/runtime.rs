@@ -404,10 +404,6 @@ pub fn launch(connection: &Connection, api: &str, token: &str) -> Result<(), Str
     )
     .map(|_| ())
 }
-pub fn launch_partner(api: &str, token: &str, server_id: &str, group_id: Option<&str>, community_id: Option<&str>) -> Result<serde_json::Value, String> {
-    invoke_session("launchPartner", api, Some(token), None, None, None,
-        Some(serde_json::json!({"serverId":server_id,"groupId":group_id,"communityId":community_id})))
-}
 fn keep_session_channel_open(
     stream: &std::net::TcpStream,
     action: &str,
@@ -441,6 +437,7 @@ fn invoke_session(
     {
         return Err("Invalid runtime origin".into());
     }
+    let _mode = crate::session_mode::Lease::electron(&user_config_dir()?)?;
     let _operation_lock = if matches!(action, "launch" | "launchPartner" | "installNextClient" | "microphone") {
         let path = user_config_dir()?.join(if matches!(action, "launch" | "launchPartner") {
             "runtime-game.lock"

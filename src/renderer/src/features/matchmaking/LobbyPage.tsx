@@ -1,3 +1,4 @@
+import { Button } from '../../components/ui/Button'
 import { InventoryDialogs } from '../inventory/InventoryPage'
 import { isWebRuntime } from '../../web-runtime'
 import { LauncherWindow } from '../../components/ui/LauncherWindow'
@@ -24,7 +25,7 @@ import { IdleActionHint } from '../guidance/IdleActionHint'
 import { PartyInvitationModal } from '../party/PartyInvitationModal'
 import { PartyChat } from '../party/PartyChat'
 import { modelForSlot, presentationModelPath } from '../party/party-models'
-import { PartyModelScene } from '../party/PartyModelScene'
+import { PartyModelScene, type PartySceneStatus } from '../party/PartyModelScene'
 import { LobbySocialSidebar } from '../party/LobbySocialSidebar'
 import { usePartyStore } from '../party/party.store'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
@@ -79,7 +80,10 @@ const pageLabels: Record<Exclude<LobbyPageId, 'lobby' | 'play'>, string> = {
 const defaultWeaponModelPath = (weaponKey: string): string =>
   `p_${weaponKey === 'mp5navy' ? 'mp5' : weaponKey}.mdl`
 
-class LobbyModelErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class LobbyModelErrorBoundary extends Component<
+  { children: ReactNode; onFailure: () => void },
+  { failed: boolean }
+> {
   state = { failed: false }
 
   static getDerivedStateFromError(): { failed: boolean } {
@@ -88,6 +92,7 @@ class LobbyModelErrorBoundary extends Component<{ children: ReactNode }, { faile
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('[Lobby] 3D scene failed; leaving the launcher UI available', error, info)
+    this.props.onFailure()
   }
 
   render(): ReactNode {
@@ -116,6 +121,10 @@ const soloLobbyMember = (player: AuthPlayer): PartyMember => ({
 })
 
 const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps): JSX.Element {
+  const { t } = useTranslation()
+  const [sceneStatus, setSceneStatus] = useState<PartySceneStatus>('loading')
+  const showFallback = useNavigationStore((state) => state.page === 'lobby')
+  const failScene = useCallback(() => setSceneStatus('error'), [])
   const railEnabled = useNewsVisibilityStore((state) => state.visibility?.railEnabled)
   const lobbyPlayerModel = useLobbyLoadoutStore((state) => state.playerModel)
   const lobbyWeaponKey = useLobbyLoadoutStore((state) => state.weaponKey)
@@ -130,8 +139,9 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
     >
       <div className="relative flex min-h-0 flex-1">
         {railEnabled && <LobbyNewsPanel className="absolute top-0 left-0 z-10 h-full" />}
-        <LobbyModelErrorBoundary>
+        <LobbyModelErrorBoundary onFailure={failScene}>
           <PartyModelScene
+            onStatus={setSceneStatus}
             actors={members.map((member, index) => {
               const isCurrentPlayer = member.id === player.id
               const fallbackModelPath = modelForSlot(index, member)
@@ -154,6 +164,22 @@ const LobbyScene = memo(function LobbyScene({ player, party }: LobbySceneProps):
             className="h-full min-h-[calc(100vh-5rem)] w-full"
           />
         </LobbyModelErrorBoundary>
+        {showFallback && sceneStatus !== 'ready' && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4 md:pr-72 md:pl-60">
+            <section className="pointer-events-auto w-full max-w-sm border border-white/15 bg-neutral-950/95 p-6 text-center">
+              <p className="truncate text-lg font-semibold">{player.username}</p>
+              <p role="status" className="mt-2 min-h-16 text-sm text-neutral-300">
+                {t(sceneStatus === 'error' ? 'lobby.sceneUnavailable' : 'lobby.sceneLoading')}
+              </p>
+              <Button
+                className="mt-4 w-full"
+                onClick={() => useNavigationStore.getState().navigate('play')}
+              >
+                {t('nav.play')}
+              </Button>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -41,6 +41,21 @@ fn version(value: &str) -> Option<Vec<u32>> {
     (parts.len() == 3).then_some(parts)
 }
 fn verify(envelope: &Envelope, public_key: &str) -> Result<Manifest, String> {
+    verify_target(
+        envelope,
+        public_key,
+        ASSET,
+        if cfg!(windows) { "win" } else { "linux" },
+        ARCH,
+    )
+}
+fn verify_target(
+    envelope: &Envelope,
+    public_key: &str,
+    asset: &str,
+    platform: &str,
+    arch: &str,
+) -> Result<Manifest, String> {
     if envelope.manifest.len() > 4096 || envelope.signature.len() != 88 {
         return Err("Invalid helper update envelope".into());
     }
@@ -71,9 +86,9 @@ fn verify(envelope: &Envelope, public_key: &str) -> Result<Manifest, String> {
     let m: Manifest =
         serde_json::from_str(&envelope.manifest).map_err(|_| "Invalid helper update manifest")?;
     if m.schema_version != 1
-        || m.file_name != ASSET
-        || m.arch != ARCH
-        || m.platform != if cfg!(windows) { "win" } else { "linux" }
+        || m.file_name != asset
+        || m.arch != arch
+        || m.platform != platform
         || version(&m.version).is_none()
         || m.size_bytes == 0
         || m.size_bytes > 256 * 1024 * 1024
@@ -107,16 +122,102 @@ fn resume_command(path: &Path, args: &[String], digest: &str) -> Command {
     command
         .args(args)
         .env("COMPETITIVE16_UPDATE_APPLIED_SHA", digest);
-    #[cfg(windows)] {
+    #[cfg(windows)]
+    {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
-    #[cfg(unix)] {
+    #[cfg(unix)]
+    {
         use std::os::unix::process::CommandExt;
         command.process_group(0);
     }
     command
 }
+#[cfg(target_os = "linux")]
+pub fn windows_supervisor() -> Result<PathBuf, String> {
+    if cfg!(debug_assertions) {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target/x86_64-pc-windows-gnu/debug/competitive16-web-helper.exe");
+        if !path.is_file() {
+            return Err("Build the Windows Rust session helper before testing Wine/Proton".into());
+        }
+        return Ok(path);
+    }
+    let package: serde_json::Value =
+        serde_json::from_str(include_str!("../../package.json")).map_err(|e| e.to_string())?;
+    let version = package["version"]
+        .as_str()
+        .ok_or("Invalid helper version")?;
+    let config: serde_json::Value = serde_json::from_str(include_str!("../../helper-release.json"))
+        .map_err(|e| e.to_string())?;
+    let asset = "competitive16-web-helper.exe";
+    let base = format!("{RELEASE_ROOT}/download/v{version}/{asset}");
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(45))
+        .build();
+    let envelope: Envelope = serde_json::from_slice(&limited_response(
+        agent
+            .get(&format!("{base}.update.json"))
+            .call()
+            .map_err(|_| "Could not obtain the signed Windows session helper")?,
+        8192,
+    )?)
+    .map_err(|_| "Invalid Windows helper signature")?;
+    let manifest = verify_target(
+        &envelope,
+        config["publicKeyPem"]
+            .as_str()
+            .ok_or("Missing helper key")?,
+        asset,
+        "win",
+        "x64",
+    )?;
+    if manifest.version != version {
+        return Err("Windows session helper version mismatch".into());
+    }
+    let folder = user_config_dir()?
+        .join("compatibility-helper")
+        .join(&manifest.sha256);
+    // Validate every existing ancestor before creating the cache. Never stage
+    // executable bytes through a redirected parent, including dangling links.
+    for ancestor in folder.ancestors() {
+        match fs::symlink_metadata(ancestor) {
+            Ok(info) if !info.is_dir() || info.file_type().is_symlink() =>
+                return Err("Unsafe Windows helper cache directory".into()),
+            Ok(_) => (),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+            Err(_) => return Err("Windows helper cache unavailable".into()),
+        }
+    }
+    fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+    let destination = folder.join(asset);
+    if destination.exists() {
+        let info = fs::symlink_metadata(&destination).map_err(|e| e.to_string())?;
+        if !info.is_file()
+            || info.file_type().is_symlink()
+            || info.len() != manifest.size_bytes as u64
+        {
+            return Err("Invalid cached Windows helper".into());
+        }
+        verify_bytes(
+            &fs::read(&destination).map_err(|e| e.to_string())?,
+            &manifest,
+        )?;
+    } else {
+        let bytes = limited_response(
+            agent
+                .get(&base)
+                .call()
+                .map_err(|_| "Could not download Windows session helper")?,
+            manifest.size_bytes,
+        )?;
+        verify_bytes(&bytes, &manifest)?;
+        crate::native_session::owned_write(&destination, &bytes)?;
+    }
+    Ok(destination)
+}
+
 pub fn check_and_resume(args: &[String]) -> Result<bool, String> {
     // Development binaries never replace themselves with a production release.
     if cfg!(debug_assertions) {

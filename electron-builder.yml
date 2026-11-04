@@ -20,11 +20,15 @@ files:
   - '!AGENTS.md'
   - '!vite.webapp.config.ts'
   - '!resources/native/**'
+  - '!resources/session-helper/**'
+  - '!resources/session-binaries/**'
 beforePack: scripts/package-game-inspector.cjs
 afterPack: scripts/verify-packaged-native.cjs
 asarUnpack:
   - resources/**
 extraResources:
+  - from: resources/session-helper/${os}-${arch}
+    to: session-helper
   - from: resources/native/${os}-${arch}
     to: native
   - from: resources/scoreboard

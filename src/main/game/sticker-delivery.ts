@@ -218,7 +218,7 @@ export async function stageMatchStickers(options: {
   if (!rows.length) return
   await writeFile(
     join(session, 'stickers.tsv.tmp'),
-    `16c-stickers-v1\n${options.wine ? toWinePath(root) : root}\n${rows.join('\n')}\n`,
+    `16c-stickers-v2\n${options.wine ? toWinePath(root) : root}\n${rows.join('\n')}\n`,
     { mode: 0o600 }
   )
   await rename(join(session, 'stickers.tsv.tmp'), join(session, 'stickers.tsv'))

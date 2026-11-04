@@ -310,6 +310,10 @@ export async function buildLocalRelease(kind, root, version, commit) {
         join(artifacts, 'competitive16-web-helper-linux-arm64')
       )
     }
+    await mkdir(join(source, 'resources/session-binaries'), { recursive: true })
+    for (const asset of webHelperAssets.filter((name) => !name.endsWith('.exe'))) {
+      await copyFile(join(artifacts, asset), join(source, 'resources/session-binaries', asset))
+    }
     run('scp', [...scpArgs, '-r', approved, `build@127.0.0.1:${guest}/`])
     if (!buildWebHelper) await container('desktop', source, 'npm', ['ci'], approved, buildEnv)
     for (const command of ['build:linux', 'build:linux:arm64']) {

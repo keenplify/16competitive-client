@@ -27,7 +27,7 @@ jobs:
         run: npm run verify:web
 
   package:
-    needs: verify-version
+    needs: [verify-version, web-helper]
     environment: Prod
     env:
       DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
@@ -55,6 +55,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:helper
+      - run: npm run test:standalone
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: competitive16-web-helper*
+          path: resources/session-binaries
+          merge-multiple: true
       - run: ${{ matrix.command }}
       - name: Package Windows background helper runtime
         if: matrix.command == 'npm run build:win'
@@ -123,15 +129,35 @@ jobs:
         if: steps.reuse.outputs.ready != 'true'
         with:
           targets: aarch64-unknown-linux-gnu
+      - name: Install native audio build dependencies
+        if: runner.os == 'Linux' && matrix.asset != 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libasound2-dev
       - name: Install ARM64 cross compiler
         if: matrix.asset == 'competitive16-web-helper-linux-arm64' && steps.reuse.outputs.ready != 'true'
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          import re
+          path = Path('/etc/apt/sources.list.d/ubuntu.sources')
+          stanzas = []
+          for stanza in path.read_text().strip().split('\n\n'):
+              stanza = re.sub(r'^Architectures:.*\n?', '', stanza, flags=re.M)
+              stanzas.append(stanza.rstrip() + '\nArchitectures: amd64')
+          path.write_text('\n\n'.join(stanzas) + '\n')
+          PYTHON
+          . /etc/os-release
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $VERSION_CODENAME main universe" | sudo tee /etc/apt/sources.list.d/arm64.list
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross libasound2-dev:arm64
       - uses: actions/setup-node@v4
         if: steps.reuse.outputs.ready != 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        if: steps.reuse.outputs.ready != 'true'
+      - run: node scripts/build-native-sticker-baker.mjs --check
         if: steps.reuse.outputs.ready != 'true'
       - name: Verify and stage signed native assets
         if: steps.reuse.outputs.ready != 'true'
@@ -151,6 +177,8 @@ jobs:
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          PKG_CONFIG_ALLOW_CROSS: 1
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
         run: cargo build --manifest-path web-helper/Cargo.toml --release --locked --target aarch64-unknown-linux-gnu
       - name: Name Windows binary
         if: runner.os == 'Windows' && steps.reuse.outputs.ready != 'true'
