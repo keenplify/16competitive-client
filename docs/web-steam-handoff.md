@@ -58,23 +58,26 @@ open. Closing setup or logging out ignores pending verification results.
 
 ### Asahi Linux / ARM with Steam in muvm/FEX
 
-The published Linux web helper is an x86-64 binary. On an ARM host with 16 KB
-pages, running it directly can abort with `jemalloc: Unsupported system page size`
-from the emulation environment. Run it in Steam's existing 4 KB muvm/FEX guest:
+Use the ARM64 helper on an ARM64 host. Setup, the protocol handler, tray and
+loopback settings bridge stay on the host so the browser can reach them.
+When `/usr/bin/muvm` and FEX are installed, web match links automatically start
+the installed helper inside muvm with `--emu=fex`. The worker re-enters before
+exchanging the one-time handoff; an authenticated session bearer is never passed
+in process arguments. `/run/muvm-host` identifies the guest and prevents recursion.
+The signed inspector and game run with the worker in the guest process namespace;
+process ownership, attachment and cleanup checks remain required.
 
-```sh
-muvm -it -- /usr/bin/FEXInterpreter "$HOME/Downloads/competitive16-web-helper-linux" --fingerprint
-```
+Inside muvm, start the existing x86 Steam client's `steam.sh` from
+`~/.steam/steam` or `~/.local/share/Steam`. This avoids accidentally using a host
+`steam` wrapper that selects a different native ARM installation. Sign in to that
+Steam client and allow its runtime setup to finish before joining a match.
 
-This read-only startup check was verified on Asahi Linux (16 KB host, 4 KB guest).
-For a one-time setup, replace `--fingerprint` with a **fresh** quoted setup URL
-from the website. Never reuse a consumed or expired handoff URL.
-
-This is a startup workaround, not verified end-to-end Asahi support. The current
-protocol registration launches the binary directly, and the settings bridge binds
-to guest loopback, which is separate from a browser running on the host. Host-side
-protocol dispatch and a capability-preserving bridge are still needed before
-automatic setup, local settings and match launching can be considered supported.
+This routing applies to web match links. The desktop inherited-pipe session
+protocol and Windows/Proton launches are separate paths. Automatic routing does
+not prove FEX game/module/inspector compatibility: CS 1.6 startup, attachment,
+connection and cleanup still require an end-to-end test on the target device.
+Basic muvm command execution and the installed x86 Steam setup entry were tested
+on the ARM64 device; a complete managed match has not yet been verified.
 
 A verified setup can start a five-minute-idle loopback settings bridge. It binds
 only to `127.0.0.1` on a random high port, requires an independently generated

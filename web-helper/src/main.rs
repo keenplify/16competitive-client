@@ -11,6 +11,8 @@ mod session_mode;
 mod desktop_session;
 mod owned_game;
 mod steam_proton;
+#[cfg(target_os = "linux")]
+mod linux_emulation;
 mod compatibility;
 mod partner;
 mod native_session;
@@ -141,6 +143,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("desktop_session.rs").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
+        include_bytes!("linux_emulation.rs").as_slice(),
         include_bytes!("compatibility.rs").as_slice(),
         include_bytes!("partner.rs").as_slice(),
         include_bytes!("../assets/sticker-baker.js").as_slice(),
@@ -797,7 +800,7 @@ fn start_steam_client() -> Result<(), String> {
             .any(|entry|entry.file_name().to_string_lossy().bytes().all(|c|c.is_ascii_digit()) &&
                 fs::read_to_string(entry.path().join("comm")).is_ok_and(|name|name.trim()=="steam"));
         if !running {
-            Command::new("steam").arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+            Command::new(linux_emulation::steam_command()?).arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
                 .spawn().map_err(|_|"Start Steam and sign in before launching Counter-Strike")?;
         }
     }
@@ -1175,6 +1178,19 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
 
 fn run() -> Result<(), String> {
     let mut args: Vec<String> = env::args().skip(1).collect();
+    #[cfg(target_os = "linux")]
+    if args.first().map(String::as_str) == Some("--muvm-match") {
+        if args.len() != 2 || !linux_emulation::in_guest() {
+            return Err("Invalid muvm match worker invocation".into());
+        }
+        // Host setup/update/protocol registration already completed. Keep the
+        // tray and browser settings bridge on the host; only own the game here.
+        let launch = parse_launch_link(&args[1], cfg!(debug_assertions))
+            .ok_or("Invalid 1.6 Competitive link")?;
+        let token = session(&launch.api_origin, &launch.handoff)?;
+        let connection = connection(&launch.api_origin, &token, &launch.match_id)?;
+        return launch_match(&connection, &launch.api_origin, &token);
+    }
     if args.as_slice() == ["--desktop-session"] { return desktop_session::run(); }
     #[cfg(windows)]
     if args.as_slice() == ["--compatibility-session"] { return desktop_session::run_compatibility(); }
@@ -1262,6 +1278,8 @@ fn run() -> Result<(), String> {
         return Ok(());
     }
     let launch = parse_launch_link(&link, development).ok_or("Invalid 1.6 Competitive link")?;
+    #[cfg(target_os = "linux")]
+    if linux_emulation::dispatch_web_match(&exe, &link)? { return Ok(()); }
     let token = session(&launch.api_origin, &launch.handoff)?;
     let connection = connection(&launch.api_origin, &token, &launch.match_id)?;
     launch_match(&connection, &launch.api_origin, &token)

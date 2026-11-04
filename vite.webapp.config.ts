@@ -37,6 +37,7 @@ for (const source of [
   'web-helper/src/desktop_session.rs',
   'web-helper/src/owned_game.rs',
   'web-helper/src/steam_proton.rs',
+  'web-helper/src/linux_emulation.rs',
   'web-helper/src/compatibility.rs',
   'web-helper/src/partner.rs',
   'web-helper/assets/sticker-baker.js',
