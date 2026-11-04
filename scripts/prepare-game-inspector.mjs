@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { execFileSync } from 'node:child_process'
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,19 @@ import {
   verifyHelperRelease,
   verifyHelperBinary
 } from '../src/main/anticheat/helper-release-verifier.ts'
+
+// Never truncate a helper/module mapped by a running Linux game. Rename keeps
+// that process on its original inode; verification still gates the next launch.
+async function installFile(source, destination) {
+  const stage = await mkdtemp(join(dirname(destination), '.helper-install-'))
+  try {
+    const temporary = join(stage, 'asset')
+    await copyFile(source, temporary)
+    await rename(temporary, destination)
+  } finally {
+    await rm(stage, { recursive: true, force: true })
+  }
+}
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const localAssets = process.env.LOCAL_HELPER_ASSET_DIR
@@ -127,11 +140,11 @@ async function prepare(platform, arch, checkOnly, destinationOverride) {
         destinationOverride ?? join(root, 'resources', 'native', `${platform}-${arch}`)
       await mkdir(destination, { recursive: true })
       const binary = join(destination, platform === 'win' ? 'game-inspector.exe' : 'game-inspector')
-      await copyFile(join(temporary, asset), binary)
+      await installFile(join(temporary, asset), binary)
       await writeFile(join(destination, 'manifest.json'), JSON.stringify(envelope) + '\n')
-      await copyFile(join(temporary, cosmeticAsset), join(destination, cosmeticAsset))
+      await installFile(join(temporary, cosmeticAsset), join(destination, cosmeticAsset))
       if (platform === 'win')
-        await copyFile(join(temporary, nextClientAsset), join(destination, nextClientAsset))
+        await installFile(join(temporary, nextClientAsset), join(destination, nextClientAsset))
       if (platform === 'linux') await chmod(join(destination, cosmeticAsset), 0o755)
       if (platform !== 'win') await chmod(binary, 0o755)
     }
