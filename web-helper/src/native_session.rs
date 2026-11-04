@@ -16,6 +16,14 @@ use uuid::Uuid;
 const TICKET_LIFETIME_MS: u128 = 2 * 60 * 60 * 1000;
 const MAX_FEED: u64 = 8192;
 
+fn overlay_mode(partner: bool, vgui_supported: bool) -> &'static [u8] {
+    if !partner && vgui_supported {
+        b"vgui-scoreboard\n"
+    } else {
+        b"ally-tags\n"
+    }
+}
+
 fn now_ms() -> Result<u128, String> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -40,7 +48,11 @@ pub(crate) fn owned_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     fs::rename(&pending, path).map_err(|e| e.to_string())
 }
 
-fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Vec<u8>> {
+struct Feed {
+    bytes: Vec<u8>,
+    policy: String,
+}
+fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Feed> {
     let agent = ureq::AgentBuilder::new()
         .redirects(0)
         .timeout(Duration::from_secs(5))
@@ -52,6 +64,16 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Vec<u8>> {
         .set("X-Scoreboard-VIP", "v1")
         .call()
         .ok()?;
+    let bots = match reply.header("x-scoreboard-bot-tags") {
+        None | Some("0") => false,
+        Some("1") => true,
+        _ => return None,
+    };
+    let straight = match reply.header("x-scoreboard-round-layout") {
+        None | Some("standard") => false,
+        Some("straight") => true,
+        _ => return None,
+    };
     let mut bytes = Vec::new();
     reply
         .into_reader()
@@ -61,57 +83,14 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Vec<u8>> {
     if bytes.len() as u64 > MAX_FEED || !bytes.starts_with(b"#16c-scoreboard-v") {
         return None;
     }
-    Some(bytes)
-}
-
-#[derive(Default)]
-struct KillProgress {
-    round: Option<u32>,
-    kills: u32,
-    deaths: u32,
-    cards: u32,
-}
-
-impl KillProgress {
-    fn update(&mut self, feed: &[u8], player_name: &str) -> Option<String> {
-        let text = std::str::from_utf8(feed).ok()?;
-        let mut lines = text.lines();
-        let header: Vec<_> = lines.next()?.split('\t').collect();
-        let round = header.get(2)?.parse::<u32>().ok()?;
-        let mode = if *header.get(3)? == "1" { "F" } else { "C" };
-        let row: Vec<_> = lines
-            .map(|line| line.split('\t').collect::<Vec<_>>())
-            .find(|fields| fields.last().copied() == Some(player_name))?;
-        let team = row.get(1)?.parse::<u8>().ok()?;
-        if mode == "C" && team != 1 && team != 2 {
-            return None;
-        }
-        let kills = row.get(2)?.parse::<u32>().ok()?;
-        let deaths = row.get(4)?.parse::<u32>().ok()?;
-        let alive = *row.get(6)? == "1";
-        let side = if mode == "F" {
-            "F"
-        } else if team == 2 {
-            "CT"
-        } else {
-            "T"
-        };
-        if self.round != Some(round) || kills < self.kills || deaths > self.deaths {
-            self.cards = 0;
-        } else {
-            self.cards = self
-                .cards
-                .saturating_add(kills.saturating_sub(self.kills))
-                .min(9999);
-        }
-        self.round = Some(round);
-        self.kills = kills;
-        self.deaths = deaths;
-        if !alive {
-            self.cards = 0;
-        }
-        (self.cards > 0).then(|| format!("{mode} {} 0 {side}\n", self.cards))
-    }
+    use sha2::{Digest, Sha256};
+    let policy = format!(
+        "v1\n{:x}\n{} {}\n",
+        Sha256::digest(&bytes),
+        u8::from(bots),
+        u8::from(straight)
+    );
+    Some(Feed { bytes, policy })
 }
 
 pub struct NativeSession {
@@ -141,19 +120,50 @@ impl NativeSession {
         token: &str,
         preferences: &crate::settings_bridge::NativePreferences,
     ) -> Result<Self, String> {
-        Self::start_owned(directory, &connection.match_id, &connection.host, connection.port,
-            &connection.player_name, api, token, preferences, None)
+        Self::start_owned(
+            directory,
+            &connection.match_id,
+            &connection.host,
+            connection.port,
+            &connection.player_name,
+            api,
+            token,
+            preferences,
+            None,
+        )
     }
 
-    pub fn start_partner_at(directory: PathBuf, server: &crate::partner::Server, api: &str, token: &str,
-        preferences: &crate::settings_bridge::NativePreferences) -> Result<Self, String> {
-        Self::start_owned(directory, &server.id, &server.host, server.port, "", api, token, preferences,
-            Some(server.connection_id.clone()))
+    pub fn start_partner_at(
+        directory: PathBuf,
+        server: &crate::partner::Server,
+        api: &str,
+        token: &str,
+        preferences: &crate::settings_bridge::NativePreferences,
+    ) -> Result<Self, String> {
+        Self::start_owned(
+            directory,
+            &server.id,
+            &server.host,
+            server.port,
+            "",
+            api,
+            token,
+            preferences,
+            Some(server.connection_id.clone()),
+        )
     }
 
-    fn start_owned(directory: PathBuf, source_id: &str, host: &str, port: u16, player: &str,
-        api: &str, token: &str, preferences: &crate::settings_bridge::NativePreferences,
-        partner_connection: Option<Option<String>>) -> Result<Self, String> {
+    fn start_owned(
+        directory: PathBuf,
+        source_id: &str,
+        host: &str,
+        port: u16,
+        _player: &str,
+        api: &str,
+        token: &str,
+        preferences: &crate::settings_bridge::NativePreferences,
+        partner_connection: Option<Option<String>>,
+    ) -> Result<Self, String> {
         let id = Uuid::new_v4().to_string();
         fs::create_dir_all(directory.parent().ok_or("Invalid managed session path")?)
             .map_err(|e| e.to_string())?;
@@ -167,32 +177,41 @@ impl NativeSession {
         let issued = now_ms()?;
         let expires = issued + TICKET_LIFETIME_MS;
         let setup = (|| -> Result<(), String> {
-            let endpoint_ip = host
-                .parse::<Ipv4Addr>()
-                .ok()
-                .or_else(|| {
-                    (host, port)
-                        .to_socket_addrs()
-                        .ok()?
-                        .find_map(|address| match address.ip() {
-                            std::net::IpAddr::V4(ip) => Some(ip),
-                            _ => None,
+            let endpoint_ip =
+                host.parse::<Ipv4Addr>()
+                    .ok()
+                    .or_else(|| {
+                        (host, port).to_socket_addrs().ok()?.find_map(|address| {
+                            match address.ip() {
+                                std::net::IpAddr::V4(ip) => Some(ip),
+                                _ => None,
+                            }
                         })
-                })
-                .ok_or("Match server has no IPv4 endpoint")?;
+                    })
+                    .ok_or("Match server has no IPv4 endpoint")?;
             owned_write(
                 &directory.join("manifest.json"),
-                (if partner_connection.is_some() { serde_json::json!({"partnerServerId": source_id}) } else { serde_json::json!({"matchId": source_id}) })
-                    .to_string()
-                    .as_bytes(),
+                (if partner_connection.is_some() {
+                    serde_json::json!({"partnerServerId": source_id})
+                } else {
+                    serde_json::json!({"matchId": source_id})
+                })
+                .to_string()
+                .as_bytes(),
             )?;
             owned_write(
                 &directory.join("server.endpoint"),
                 format!("{endpoint_ip}:{}\n", port).as_bytes(),
             )?;
-            // The web helper has no Electron image renderer. Keep the stock Tab
-            // scoreboard and use the native module only for supported HUD layers.
-            owned_write(&directory.join("overlay.mode"), b"ally-tags\n")?;
+            // Only platform matches opt into the native VGUI2 scoreboard. Partner
+            // and ordinary servers retain their own scoreboard.
+            owned_write(
+                &directory.join("overlay.mode"),
+                overlay_mode(
+                    partner_connection.is_some(),
+                    crate::native_bundle::supports_vgui_scoreboard(),
+                ),
+            )?;
             crate::native_preferences::initialize(&directory, preferences)?;
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
@@ -226,12 +245,15 @@ impl NativeSession {
                 {
                     break;
                 }
-                if let Some(settings) = preference_path.as_ref()
+                if let Some(settings) = preference_path
+                    .as_ref()
                     .and_then(|path| crate::native_preferences::read_settings(path).ok())
                 {
                     if let Ok(encoded) = serde_json::to_vec(&settings) {
                         if encoded != last_preferences {
-                            if crate::native_preferences::refresh(&heartbeat_path, &settings).is_err() {
+                            if crate::native_preferences::refresh(&heartbeat_path, &settings)
+                                .is_err()
+                            {
                                 // A partially applied preference update must not leave a
                                 // native session alive without its supervisor.
                                 break;
@@ -257,13 +279,9 @@ impl NativeSession {
         let api = api.to_owned();
         let token = token.to_owned();
         let match_id = source_id.to_owned();
-        let player_name = player.to_owned();
-        let show_cards = preferences.enhancements_enabled && preferences.kill_cards_enabled;
         let feed = thread::spawn(move || {
             let feed_path =
                 feed_path_root.join("game/cstrike/addons/amxmodx/data/16c_scoreboard.tsv");
-            let card_path = feed_path_root.join("kill-cards.state");
-            let mut progress = KillProgress::default();
             let mut next_authorization_check = Instant::now() + Duration::from_secs(15);
             while !feed_stop.load(Ordering::Relaxed) {
                 if now_ms().is_ok_and(|now| now >= expires) {
@@ -272,8 +290,13 @@ impl NativeSession {
                 if Instant::now() >= next_authorization_check {
                     next_authorization_check = Instant::now() + Duration::from_secs(15);
                     let revoked = if let Some(connection) = &partner_connection {
-                        !crate::partner::authorized(&api, &token, &match_id, connection.as_deref(),
-                            now_ms().is_ok_and(|now| now < issued + 120_000))
+                        !crate::partner::authorized(
+                            &api,
+                            &token,
+                            &match_id,
+                            connection.as_deref(),
+                            now_ms().is_ok_and(|now| now < issued + 120_000),
+                        )
                     } else {
                         crate::session_authorization::check(&api, &token, &match_id)
                             == crate::session_authorization::Authorization::Revoked
@@ -283,19 +306,25 @@ impl NativeSession {
                         break;
                     }
                 }
-                if let Some(snapshot) = if partner_connection.is_none() { fetch_feed(&api, &token, &match_id) } else { None } {
-                    if let Some(card) = progress
-                        .update(&snapshot, &player_name)
-                        .filter(|_| show_cards)
+                if let Some(snapshot) = if partner_connection.is_none() {
+                    fetch_feed(&api, &token, &match_id)
+                } else {
+                    None
+                } {
+                    // Bind policy and feed so asynchronous readers never apply
+                    // one match revision's visibility/layout to another.
+                    if owned_write(
+                        &feed_path_root.join("scoreboard.policy"),
+                        snapshot.policy.as_bytes(),
+                    )
+                    .is_ok()
                     {
-                        let _ = owned_write(&card_path, card.as_bytes());
+                        let _ = owned_write(&feed_path, &snapshot.bytes);
                     } else {
-                        let _ = fs::remove_file(&card_path);
+                        let _ = fs::remove_file(&feed_path);
                     }
-                    let _ = owned_write(&feed_path, &snapshot);
                 } else {
                     let _ = fs::remove_file(&feed_path);
-                    let _ = fs::remove_file(&card_path);
                 }
                 for _ in 0..5 {
                     if feed_stop.load(Ordering::Relaxed) {
@@ -305,7 +334,6 @@ impl NativeSession {
                 }
             }
             let _ = fs::remove_file(&feed_path);
-            let _ = fs::remove_file(&card_path);
         });
         Ok(Self {
             directory,
@@ -377,37 +405,16 @@ impl Drop for NativeSession {
 mod tests {
     use super::*;
 
-    #[test]
-    fn helper_kill_progress_resets_on_death_and_new_round() {
-        let mut progress = KillProgress::default();
-        let feed = |round: u32, kills: u32, deaths: u32, alive: u8| {
-            format!(
-            "#16c-scoreboard-v16\tde_dust2\t{round}\t0\tC\n6\t1\t{kills}\t0\t{deaths}\t40\t{alive}\t0\t800\t0\t100\t0\t0\t0\t0\tkeenplify\n"
-        )
-        };
-        assert_eq!(
-            progress.update(feed(1, 0, 0, 1).as_bytes(), "keenplify"),
-            None
-        );
-        assert_eq!(
-            progress.update(feed(1, 1, 0, 1).as_bytes(), "keenplify"),
-            Some("C 1 0 T\n".into())
-        );
-        assert_eq!(
-            progress.update(feed(1, 1, 1, 0).as_bytes(), "keenplify"),
-            None
-        );
-        assert_eq!(
-            progress.update(feed(2, 1, 1, 1).as_bytes(), "keenplify"),
-            None
-        );
-        assert_eq!(
-            progress.update(feed(2, 2, 1, 1).as_bytes(), "keenplify"),
-            Some("C 1 0 T\n".into())
-        );
-    }
     use competitive16_web_helper::Connection;
     use std::net::TcpListener;
+
+    #[test]
+    fn only_supported_platform_matches_select_vgui() {
+        assert_eq!(overlay_mode(false, true), b"vgui-scoreboard\n");
+        assert_eq!(overlay_mode(false, false), b"ally-tags\n");
+        assert_eq!(overlay_mode(true, true), b"ally-tags\n");
+        assert_eq!(overlay_mode(true, false), b"ally-tags\n");
+    }
 
     #[test]
     fn managed_session_uses_fixed_ticket_and_authenticated_feed() {
@@ -429,7 +436,7 @@ mod tests {
                     assert!(request.contains("/matches/"));
                     assert!(request.contains("authorization: bearer test-token"));
                     let header = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nX-Scoreboard-Bot-Tags: 1\r\nX-Scoreboard-Round-Layout: straight\r\nConnection: close\r\n\r\n",
                         feed.len()
                     );
                     socket.write_all(header.as_bytes()).unwrap();
@@ -463,7 +470,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             fs::read(directory.join("overlay.mode")).unwrap(),
-            b"ally-tags\n"
+            overlay_mode(false, crate::native_bundle::supports_vgui_scoreboard())
         );
         let ticket = fs::read_to_string(directory.join("session.ticket")).unwrap();
         let fields: Vec<_> = ticket.lines().collect();
@@ -479,6 +486,12 @@ mod tests {
             thread::sleep(Duration::from_millis(10));
         }
         assert_eq!(fs::read(feed_path).unwrap(), expected);
+        use sha2::{Digest, Sha256};
+        assert_eq!(
+            fs::read_to_string(directory.join("scoreboard.policy")).unwrap(),
+            format!("v1\n{:x}\n1 1\n", Sha256::digest(&expected))
+        );
+        assert!(!directory.join("kill-cards.state").exists());
         session.stop();
         assert!(!directory.join("session.ticket").exists());
         assert!(!directory.join("launcher.lease").exists());

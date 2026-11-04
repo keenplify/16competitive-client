@@ -128,7 +128,7 @@ function sessionPreferences(settings: GameSettings) {
     fastSwitchEnabled: settings.fastSwitchEnabled,
     enhancementsEnabled: settings.nextClientIntegrationEnabled,
     lightweightHud: true,
-    killCardsEnabled: settings.killCardsEnabled,
+    killCardsEnabled: false,
     crosshairConfig: serializeCrosshairConfig(settings.crosshair),
     playerPingKey: settings.playerPingKey,
     voicePttKeys: settings.voicePttKeys,
@@ -180,6 +180,9 @@ async function launchStandaloneTargetInner(
   const executable = await realpath(process.env.APPIMAGE || process.execPath)
   const args = app.isPackaged ? [] : [app.getAppPath()]
   if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox')
+  // Competitive HUD now lives in VGUI2. An old offscreen-HUD preference
+  // must not keep Electron alive for a platform match.
+  const keepLauncherOpen = 'partner' in target && settings.lightweightHud === false
   const request = {
     protocol: 1,
     apiOrigin: api,
@@ -187,11 +190,8 @@ async function launchStandaloneTargetInner(
     ...target,
     installation: settings.cs16FolderPath,
     settings: sessionPreferences(settings),
-    keepLauncherOpen: settings.lightweightHud === false,
-    reopen:
-      settings.lightweightHud === false
-        ? null
-        : { executable, sha256: await hashFile(executable), args }
+    keepLauncherOpen,
+    reopen: keepLauncherOpen ? null : { executable, sha256: await hashFile(executable), args }
   }
   const environment = { ...process.env }
   delete environment.ELECTRON_RUN_AS_NODE
@@ -286,7 +286,7 @@ async function launchStandaloneTargetInner(
               settings,
               connected: false
             }
-            if (settings.lightweightHud === false) {
+            if (keepLauncherOpen) {
               child.stdin.write('{"release":true}\n')
               resolve()
               return

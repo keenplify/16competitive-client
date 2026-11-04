@@ -77,6 +77,12 @@ const MODULE: &[u8] =
 #[cfg(all(not(windows), not(target_arch = "aarch64")))]
 const MODULE: &[u8] =
     include_bytes!("../../resources/native/linux-x64/papamo-cosmetic-module-linux-x86.so");
+
+/// Feature selection only; signature/hash/registry approval remains mandatory.
+pub(crate) fn supports_vgui_scoreboard() -> bool {
+    const MARKER: &[u8] = b"papamo_vgui_scoreboard_v1";
+    MODULE.windows(MARKER.len()).any(|bytes| bytes == MARKER)
+}
 #[cfg(windows)]
 const NEXT_CLIENT: &[u8] =
     include_bytes!("../../resources/native/win-x64/papamo-nextclient-client-mini-win-x86.dll");

@@ -111,8 +111,6 @@ export function SettingsPage(): JSX.Element {
   const setupMode = useGameSettingsStore((state) => state.setupMode)
   const completeSetup = useGameSettingsStore((state) => state.completeSetup)
   const setFastSwitch = useGameSettingsStore((state) => state.setFastSwitch)
-  const killCardsEnabled = useGameSettingsStore((state) => state.killCardsEnabled)
-  const setKillCards = useGameSettingsStore((state) => state.setKillCards)
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -708,11 +706,11 @@ export function SettingsPage(): JSX.Element {
                     <div>
                       <p className="text-sm font-semibold text-neutral-100">In-game enhancements</p>
                       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
-                        Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill
-                        cards in supported Counter-Strike 1.6 clients on Steam and standalone
-                        installations on Windows or Linux. NextClient uses its own compatible host
-                        and crosshair settings. Game files are restored after exit. This setting
-                        does not control match screenshot review.
+                        Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in
+                        supported Counter-Strike 1.6 clients on Steam and standalone installations
+                        on Windows or Linux. NextClient uses its own compatible host and crosshair
+                        settings. Game files are restored after exit. This setting does not control
+                        match screenshot review.
                       </p>
                       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-amber-300">
                         {t('settings.anticheatNotice')}
@@ -752,33 +750,6 @@ export function SettingsPage(): JSX.Element {
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold">HUD and crosshair</h2>
                 </div>
-                {!webRuntime && (
-                  <div className="mb-5 flex items-start justify-between gap-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                    <div>
-                      <h3 className="text-lg font-semibold">Animated kill cards</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-neutral-400">
-                        Show an animated card for each kill above the round timer. The last card is
-                        ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.
-                      </p>
-                      {!inGameEnhancementsEnabled && (
-                        <p className="mt-2 text-xs text-neutral-500">
-                          Enable In-game enhancements in General to use kill cards.
-                        </p>
-                      )}
-                    </div>
-                    <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        className="peer sr-only"
-                        checked={killCardsEnabled}
-                        disabled={!inGameEnhancementsEnabled}
-                        onChange={(event) => void setKillCards(event.currentTarget.checked)}
-                      />
-                      <span className="h-6 w-11 border border-white/20 bg-neutral-700 transition peer-checked:border-amber-400 peer-checked:bg-amber-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-sky-400 peer-disabled:opacity-40 after:absolute after:top-1 after:left-1 after:size-4 after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                      <span className="sr-only">Enable animated kill cards</span>
-                    </label>
-                  </div>
-                )}
                 {nextClientDetected ? (
                   <CrosshairSettings />
                 ) : !CUSTOM_HUD_ENABLED ? (

@@ -107,7 +107,7 @@ impl Default for NativePreferences {
             fast_switch_enabled: true,
             enhancements_enabled: true,
             lightweight_hud: true,
-            kill_cards_enabled: true,
+            kill_cards_enabled: false,
             crosshair_config: None,
             player_ping_key: default_ping(),
             voice_ptt_keys: default_voice(),
@@ -225,7 +225,10 @@ pub fn load() -> Result<Preferences, String> {
     match fs::symlink_metadata(&path) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
         Err(_) => Err("Could not read local helper settings".into()),
-        Ok(_) => crate::native_preferences::read_preferences(&path),
+        Ok(_) => crate::native_preferences::read_preferences(&path).map(|mut prefs| {
+            prefs.settings.kill_cards_enabled = false;
+            prefs
+        }),
     }
 }
 pub fn save(value: &Preferences) -> Result<(), String> {
@@ -573,6 +576,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         Request::Save { settings } => {
             settings.validate()?;
             prefs.settings = settings;
+            prefs.settings.kill_cards_enabled = false;
             save(&prefs)?;
         }
         Request::Presence { .. } | Request::VoiceStatus { .. } => unreachable!(),

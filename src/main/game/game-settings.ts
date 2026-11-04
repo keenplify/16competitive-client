@@ -383,7 +383,7 @@ const buildSettings = async (
   nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
-  killCardsEnabled: storedSettings.killCardsEnabled !== false,
+  killCardsEnabled: false,
   lightweightHud: storedSettings.lightweightHud !== false,
   setupCompleted: storedSettings.setupCompleted === true,
   setupMode: storedSettings.setupMode ?? null,
@@ -421,7 +421,7 @@ const persistResolvedSettings = async (
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
-    killCardsEnabled: storedSettings.killCardsEnabled !== false,
+    killCardsEnabled: false,
     lightweightHud: storedSettings.lightweightHud !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
@@ -492,7 +492,7 @@ export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSet
           nextClientIntegrationDisabledReason: undefined,
           fastSwitchEnabled: true,
           fastSwitchManaged: true,
-          killCardsEnabled: true,
+          killCardsEnabled: false,
           lightweightHud: storedSettings.lightweightHud !== false
         }
       : {
@@ -723,7 +723,7 @@ export const saveLightweightHud = async (untrustedEnabled: unknown): Promise<Gam
 export const saveKillCards = async (untrustedEnabled: unknown): Promise<GameSettings> => {
   if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid kill cards setting')
   const storedSettings = await readStoredSettings()
-  const updated: StoredGameSettings = { ...storedSettings, killCardsEnabled: untrustedEnabled }
+  const updated: StoredGameSettings = { ...storedSettings, killCardsEnabled: false }
   const cs16ExecutablePath = await validateStoredPath(updated)
   const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(

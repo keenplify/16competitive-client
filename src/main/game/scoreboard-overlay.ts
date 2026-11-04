@@ -132,7 +132,7 @@ export class ScoreboardOverlaySession {
   private frameRequestedAt: number | null = null
   private lightweightHud = false
   private cardPaintTimer: ReturnType<typeof setTimeout> | null = null
-  private killCardsEnabled = true
+  private killCardsEnabled = false
   private lastKillCardState: string | null = null
   private lastKillCardKinds = ''
   private lastCardFrameAt = 0
@@ -204,8 +204,8 @@ export class ScoreboardOverlaySession {
     if (!this.stopped) await writeCrosshairConfig(this.directory, crosshair)
   }
 
-  async updateKillCards(enabled: boolean): Promise<void> {
-    this.killCardsEnabled = enabled
+  async updateKillCards(): Promise<void> {
+    this.killCardsEnabled = false
     await this.syncKillCards(this.readSnapshot(this.directory))
   }
 
@@ -456,9 +456,19 @@ export class ScoreboardOverlaySession {
       })
       if (gameRoot && !partnerUi && (!compatibility || compatibility.gameDirectory === 'cstrike')) {
         const token = getSessionToken()
-        if (token) await stageMatchStickers({ matchId, apiUrl, token, gameRoot, session: directory, wine }).catch(error => {
-          console.warn('[Stickers] match preparation unavailable; using ordinary models', { error: error instanceof Error ? error.message : String(error) })
-        })
+        if (token)
+          await stageMatchStickers({
+            matchId,
+            apiUrl,
+            token,
+            gameRoot,
+            session: directory,
+            wine
+          }).catch((error) => {
+            console.warn('[Stickers] match preparation unavailable; using ordinary models', {
+              error: error instanceof Error ? error.message : String(error)
+            })
+          })
       }
       await writeFile(join(directory, 'server.endpoint'), `${serverEndpoint}\n`, { mode: 0o600 })
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
@@ -534,7 +544,7 @@ export class ScoreboardOverlaySession {
         windowsInstallation
       )
       startupLease = createdSession.lease
-      createdSession.killCardsEnabled = gameSettings.killCardsEnabled
+      createdSession.killCardsEnabled = false
       createdSession.lightweightHud = gameSettings.lightweightHud
       await writeLiveSessionFile(
         join(directory, 'hud-lightweight.enabled'),

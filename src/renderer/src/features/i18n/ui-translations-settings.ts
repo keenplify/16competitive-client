@@ -6,6 +6,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       '1.6 Competitive от Papamo предназначен для игроков на настольных компьютерах. Все в вашей группе должны использовать настольный клиент, прежде чем лидер сможет встать в очередь.',
     '1.6 Competitive settings': 'Настройки 1.6 Competitive',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'Включить соревновательный HUD, косметику и быстрое переключение оружия. Личные настройки остаются без изменений.',
     'Animated kill cards': 'Анимированные карты убийств',
     'Apply code': 'Применить код',
     'Applying referral code…': 'Применение реферального кода…',
@@ -127,8 +129,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'Поделитесь своим реферальным кодом. Когда друг использует его, вы оба получаете награды.',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'Покажите анимированную карточку за каждое убийство над таймером раунда. Последняя карта — ACE в боях 3 на 3 или 5 на 5. FFA складывает до 16 карт без ACE.',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Показывать табло 1.6 Competitive, прицел, метки союзников и карточки убийств в поддерживаемых клиентах Counter-Strike 1.6 в Steam и отдельных установках Windows или Linux. NextClient использует собственные настройки. Игровые файлы восстанавливаются после выхода. Этот параметр не влияет на проверку скриншотов матча.',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Показывать табло 1.6 Competitive, прицел и метки союзников в поддерживаемых клиентах Counter-Strike 1.6 в Steam и отдельных установках Windows или Linux. NextClient использует собственные настройки. Игровые файлы восстанавливаются после выхода. Этот параметр не влияет на проверку скриншотов матча.',
     'Skip for now': 'Пропустить сейчас',
     'Streamed from your region': 'Трансляция из вашего региона',
     Style: 'Стиль',
@@ -167,6 +169,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       'Inilalaan ng 1.6 Competitive ng Papamo ang mode na ito para sa mga desktop player. Dapat gamitin ng lahat sa iyong partido ang desktop client bago makapila ang pinuno.',
     '1.6 Competitive settings': 'Mga setting ng 1.6 Competitive',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'Paganahin ang competitive HUD, cosmetics, at mabilis na pagpapalit ng armas. Hindi gagalawin ang personal na settings.',
     'Animated kill cards': 'Mga animated na kill card',
     'Apply code': 'Ilapat ang code',
     'Applying referral code…': 'Inilalapat ang referral code…',
@@ -288,8 +292,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'Ibahagi ang iyong referral code. Kapag ginamit ito ng isang kaibigan, pareho kayong makakatanggap ng mga reward.',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'Magpakita ng animated na card para sa bawat pagpatay sa itaas ng round timer. Ang huling card ay ACE sa 3v3 o 5v5. Nag-stack ang FFA ng hanggang 16 na card na walang ACE.',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Ipakita ang 1.6 Competitive scoreboard, crosshair, teammate tags, at kill cards sa supported Counter-Strike 1.6 clients sa Steam at standalone installs sa Windows o Linux. Sariling compatible host at crosshair settings ang gamit ng NextClient. Ibinabalik ang game files pag-exit. Hindi nito kontrolado ang match screenshot review.',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Ipakita ang 1.6 Competitive scoreboard, crosshair, at teammate tags sa supported Counter-Strike 1.6 clients sa Steam at standalone installs sa Windows o Linux. Sariling compatible host at crosshair settings ang gamit ng NextClient. Ibinabalik ang game files pag-exit. Hindi nito kontrolado ang match screenshot review.',
     'Skip for now': 'Laktawan sa ngayon',
     'Streamed from your region': 'Naka-stream mula sa iyong rehiyon',
     Style: 'Estilo',
@@ -361,6 +365,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       '1.6 Competitive by Papamo สงวนโหมดนี้ไว้สำหรับผู้เล่นบนเดสก์ท็อป ทุกคนในปาร์ตี้ของคุณต้องใช้ไคลเอนต์เดสก์ท็อปก่อนที่ผู้นำจะสามารถเข้าคิวได้',
     '1.6 Competitive settings': 'การตั้งค่า 1.6 Competitive',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'เปิดใช้ HUD การแข่งขัน ของตกแต่ง และการสลับอาวุธอย่างรวดเร็ว โดยไม่เปลี่ยนการตั้งค่าส่วนตัว',
     'Animated kill cards': 'การ์ดสังหารแบบเคลื่อนไหว',
     'Apply code': 'ใส่โค้ด',
     'Applying referral code…': 'กำลังใช้รหัสอ้างอิง...',
@@ -480,8 +486,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'แบ่งปันรหัสอ้างอิงของคุณ เมื่อเพื่อนใช้มัน คุณทั้งคู่จะได้รับรางวัล',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'แสดงการ์ดภาพเคลื่อนไหวสำหรับการสังหารแต่ละครั้งเหนือตัวจับเวลายก ไพ่ใบสุดท้ายคือ ACE ใน 3v3 หรือ 5v5 FFA ซ้อนการ์ดได้สูงสุด 16 ใบโดยไม่มี ACE',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'แสดงกระดานคะแนน 1.6 Competitive เป้าเล็ง ป้ายชื่อเพื่อนร่วมทีม และการ์ดการสังหารในไคลเอนต์ Counter-Strike 1.6 ที่รองรับบน Steam หรือการติดตั้งแยกบน Windows และ Linux NextClient ใช้การตั้งค่าที่เข้ากันได้ของตนเอง ไฟล์เกมจะถูกคืนค่าหลังออกจากเกม การตั้งค่านี้ไม่เกี่ยวกับการตรวจภาพหน้าจอของแมตช์',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'แสดงกระดานคะแนน 1.6 Competitive เป้าเล็ง และป้ายชื่อเพื่อนร่วมทีมในไคลเอนต์ Counter-Strike 1.6 ที่รองรับบน Steam หรือการติดตั้งแยกบน Windows และ Linux NextClient ใช้การตั้งค่าที่เข้ากันได้ของตนเอง ไฟล์เกมจะถูกคืนค่าหลังออกจากเกม การตั้งค่านี้ไม่เกี่ยวกับการตรวจภาพหน้าจอของแมตช์',
     'Skip for now': 'ข้ามไปก่อน',
     'Streamed from your region': 'สตรีมจากภูมิภาคของคุณ',
     Style: 'สไตล์',
@@ -545,6 +551,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       '1.6 Competitive dari Papamo menyediakan mode ini untuk pemain desktop. Semua anggota party harus memakai klien desktop sebelum pemimpin dapat masuk antrean.',
     '1.6 Competitive settings': 'Pengaturan 1.6 Competitive',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'Aktifkan HUD kompetitif, kosmetik, dan pergantian senjata cepat. Pengaturan pribadi tidak diubah.',
     'Animated kill cards': 'Kartu pembunuhan animasi',
     'Apply code': 'Terapkan kode',
     'Applying referral code…': 'Menerapkan kode referensi…',
@@ -666,8 +674,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'Bagikan kode referensi Anda. Saat seorang teman menggunakannya, Anda berdua menerima hadiah.',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'Tampilkan kartu animasi untuk setiap pembunuhan di atas pengatur waktu putaran. Kartu terakhir adalah ACE dalam 3v3 atau 5v5. FFA menumpuk hingga 16 kartu tanpa ACE.',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Tampilkan papan skor 1.6 Competitive, bidikan, penanda rekan tim, dan kartu kill pada klien Counter-Strike 1.6 yang didukung di Steam atau instalasi mandiri Windows dan Linux. NextClient menggunakan pengaturannya sendiri yang kompatibel. File game dipulihkan setelah keluar. Pengaturan ini tidak memengaruhi peninjauan tangkapan layar pertandingan.',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Tampilkan papan skor 1.6 Competitive, bidikan, dan penanda rekan tim pada klien Counter-Strike 1.6 yang didukung di Steam atau instalasi mandiri Windows dan Linux. NextClient menggunakan pengaturannya sendiri yang kompatibel. File game dipulihkan setelah keluar. Pengaturan ini tidak memengaruhi peninjauan tangkapan layar pertandingan.',
     'Skip for now': 'Lewati untuk saat ini',
     'Streamed from your region': 'Dialirkan dari wilayah Anda',
     Style: 'Gaya',
@@ -732,6 +740,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       'Papamo का 1.6 Competitive इस मोड को डेस्कटॉप खिलाड़ियों के लिए रखता है। लीडर के कतार में शामिल होने से पहले पार्टी के सभी सदस्यों को डेस्कटॉप क्लाइंट इस्तेमाल करना होगा।',
     '1.6 Competitive settings': '1.6 Competitive सेटिंग्स',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'प्रतिस्पर्धी HUD, कॉस्मेटिक्स और तेज़ हथियार स्विचिंग सक्षम करें। निजी सेटिंग्स अपरिवर्तित रहेंगी।',
     'Animated kill cards': 'एनिमेटेड किल कार्ड',
     'Apply code': 'कोड लागू करें',
     'Applying referral code…': 'रेफरल कोड लागू किया जा रहा है...',
@@ -854,8 +864,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'अपना रेफरल कोड साझा करें. जब कोई मित्र इसका उपयोग करता है, तो आप दोनों को पुरस्कार मिलते हैं।',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'राउंड टाइमर के ऊपर प्रत्येक किल के लिए एक एनिमेटेड कार्ड दिखाएं। अंतिम कार्ड 3v3 या 5v5 में ACE है। एफएफए में एसीई के बिना 16 कार्ड तक जमा हो जाते हैं।',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Steam और Windows या Linux की स्वतंत्र इंस्टॉलेशन पर समर्थित Counter-Strike 1.6 क्लाइंट में 1.6 Competitive स्कोरबोर्ड, क्रॉसहेयर, टीममेट टैग और किल कार्ड दिखाएँ। NextClient अपनी संगत सेटिंग्स का उपयोग करता है। गेम से बाहर निकलने पर फाइलें बहाल हो जाती हैं। यह सेटिंग मैच के स्क्रीनशॉट की समीक्षा को नियंत्रित नहीं करती।',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Steam और Windows या Linux की स्वतंत्र इंस्टॉलेशन पर समर्थित Counter-Strike 1.6 क्लाइंट में 1.6 Competitive स्कोरबोर्ड, क्रॉसहेयर और टीममेट टैग दिखाएँ। NextClient अपनी संगत सेटिंग्स का उपयोग करता है। गेम से बाहर निकलने पर फाइलें बहाल हो जाती हैं। यह सेटिंग मैच के स्क्रीनशॉट की समीक्षा को नियंत्रित नहीं करती।',
     'Skip for now': 'अभी के लिए छोड़ें',
     'Streamed from your region': 'आपके क्षेत्र से स्ट्रीम किया गया',
     Style: 'अंदाज',
@@ -926,6 +936,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       '1.6 Competitive by Papamo reserva este modo para jogadores de desktop. Todos no seu grupo devem usar o cliente de desktop antes que o líder possa entrar na fila.',
     '1.6 Competitive settings': 'Configurações do 1.6 Competitive',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      'Ative o HUD competitivo, os cosméticos e a troca rápida de armas. As configurações pessoais permanecem intactas.',
     'Animated kill cards': 'Cartões de morte animados',
     'Apply code': 'Aplicar código',
     'Applying referral code…': 'Aplicando código de referência…',
@@ -1047,8 +1059,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       'Compartilhe seu código de referência. Quando um amigo o usa, vocês dois recebem recompensas.',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'Mostre um cartão animado para cada morte acima do cronômetro da rodada. A última carta é ACE em 3v3 ou 5v5. FFA empilha até 16 cartas sem ACE.',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Mostre o placar do 1.6 Competitive, a mira, as marcas dos colegas de equipe e os cartões de eliminação em clientes compatíveis do Counter-Strike 1.6 no Steam ou em instalações independentes no Windows e Linux. O NextClient usa suas próprias configurações compatíveis. Os arquivos do jogo são restaurados ao sair. Esta opção não controla a análise de capturas de tela da partida.',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Mostre o placar do 1.6 Competitive, a mira e as marcas dos colegas de equipe em clientes compatíveis do Counter-Strike 1.6 no Steam ou em instalações independentes no Windows e Linux. O NextClient usa suas próprias configurações compatíveis. Os arquivos do jogo são restaurados ao sair. Esta opção não controla a análise de capturas de tela da partida.',
     'Skip for now': 'Pular por enquanto',
     'Streamed from your region': 'Transmitido da sua região',
     Style: 'Estilo',
@@ -1111,6 +1123,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
     '1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in your party must use the desktop client before the leader can queue.':
       '1.6 Competitive by Papamo は、このモードをデスクトップ プレーヤー用に予約しています。リーダーがキューに入る前に、パーティーの全員がデスクトップ クライアントを使用する必要があります。',
     '1.6 Competitive settings': '1.6 Competitive の設定',
+    'Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched.':
+      '対戦用HUD、コスメティック、素早い武器切り替えを有効にします。個人設定は変更しません。',
     'Animated kill cards': 'アニメーションキルカード',
     'Apply code': 'コードを適用する',
     'Applying referral code…': '紹介コードを適用中…',
@@ -1232,8 +1246,8 @@ const catalogs: Partial<Record<SupportedLanguageCode, Record<string, string>>> =
       '紹介コードを共有してください。友達がそれを使用すると、両方とも報酬を受け取ります。',
     'Show an animated card for each kill above the round timer. The last card is ACE in 3v3 or 5v5. FFA stacks up to 16 cards without ACE.':
       'ラウンドタイマーの上にキルごとにアニメーションカードを表示します。最後のカードは 3v3 または 5v5 の ACE です。 FFA は ACE なしで最大 16 枚のカードをスタックします。',
-    'Show the 1.6 Competitive scoreboard, crosshair, teammate tags, and kill cards in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
-      'Steam版およびWindows・Linuxの単独インストールで対応するCounter-Strike 1.6クライアントに、1.6 Competitiveのスコアボード、クロスヘア、味方タグ、キルカードを表示します。NextClientは独自の互換設定を使用します。ゲーム終了後にファイルは復元されます。この設定は試合のスクリーンショット審査には影響しません。',
+    'Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in supported Counter-Strike 1.6 clients on Steam and standalone installations on Windows or Linux. NextClient uses its own compatible host and crosshair settings. Game files are restored after exit. This setting does not control match screenshot review.':
+      'Steam版およびWindows・Linuxの単独インストールで対応するCounter-Strike 1.6クライアントに、1.6 Competitiveのスコアボード、クロスヘア、味方タグを表示します。NextClientは独自の互換設定を使用します。ゲーム終了後にファイルは復元されます。この設定は試合のスクリーンショット審査には影響しません。',
     'Skip for now': '今のところスキップしてください',
     'Streamed from your region': 'お住まいの地域からストリーミング',
     Style: 'スタイル',

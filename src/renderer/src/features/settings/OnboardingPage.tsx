@@ -393,7 +393,7 @@ export function OnboardingPage(): JSX.Element {
                 <ChoiceCard
                   title="Recommended Setup"
                   badge="Recommended"
-                  description="Enable the competitive HUD, cosmetics, kill cards, and fast weapon switching. Personal settings stay untouched."
+                  description="Enable the competitive HUD, cosmetics, and fast weapon switching. Personal settings stay untouched."
                   icon={<ShieldCheck className="size-5" aria-hidden="true" />}
                   selected={mode === 'recommended'}
                   onClick={() => setMode('recommended')}

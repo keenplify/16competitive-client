@@ -115,7 +115,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   fastSwitchManaged: true,
   lightweightHud: true,
   lightweightHudStatus: 'idle',
-  killCardsEnabled: true,
+  killCardsEnabled: false,
   setupCompleted: false,
   setupMode: null,
   clientType: null,

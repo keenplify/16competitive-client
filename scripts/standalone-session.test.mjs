@@ -58,6 +58,7 @@ const helper = join(native, name)
 const marker = join(root, 'events.json')
 const {
   launchStandaloneSession,
+  launchStandalonePartner,
   setStandaloneVoice,
   stopStandaloneSession,
   standaloneSessionStatus
@@ -88,7 +89,8 @@ rl.on('line', line=>{
   if(!request){request=value;console.log(JSON.stringify({protocol:1,event:'ready'}));}
   else {
     fs.writeFileSync(${JSON.stringify(marker)},JSON.stringify({commit:value.commit,voice:request.settings.voice,
-      dedicated:request.handoff!== 'desktop-token', argv:process.argv.slice(2)}));
+      dedicated:request.handoff!== 'desktop-token', argv:process.argv.slice(2),
+      keep:request.keepLauncherOpen,reopen:!!request.reopen,cards:request.settings.killCardsEnabled}));
     console.log(JSON.stringify({protocol:1,event:'committed'}));
     setTimeout(()=>process.exit(0),300);
   }
@@ -101,14 +103,20 @@ rl.on('line', line=>{
       openMic: false,
       peers: { friend: { muted: true, volume: 0.3 } }
     })
-    await launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, settings)
+    await launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, {
+      ...settings,
+      lightweightHud: false
+    })
     assert.equal(quits, 1, 'quit must follow acknowledgement, not process spawn')
     const events = JSON.parse(await readFile(marker, 'utf8'))
     assert.deepEqual(events, {
       commit: true,
       voice: { enabled: false, openMic: false, peers: { friend: { muted: true, volume: 0.3 } } },
       dedicated: true,
-      argv: ['--desktop-session']
+      argv: ['--desktop-session'],
+      keep: false,
+      reopen: true,
+      cards: false
     })
     await new Promise((resolve) => setTimeout(resolve, 200))
     assert.equal(quits, 1)
@@ -164,7 +172,7 @@ rl.on('line',()=>{
 )
 
 test(
-  'keeping Electron open uses the same helper, releases ownership, and stops only its session',
+  'partner sessions retain their existing launcher ownership option',
   { skip: process.platform === 'win32' },
   async () => {
     quits = 0
@@ -183,9 +191,9 @@ rl.on('line',line=>{const value=JSON.parse(line);
       { mode: 0o755 }
     )
     const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-    let exits = 0
-    await launchStandaloneSession(id, undefined, { ...settings, lightweightHud: false }, () => {
-      exits++
+    await launchStandalonePartner({ serverId: id }, 'https://16competitive.papamo.dev', {
+      ...settings,
+      lightweightHud: false
     })
     assert.equal(quits, 0)
     assert.equal(standaloneSessionStatus(id).owned, true)
@@ -194,7 +202,6 @@ rl.on('line',line=>{const value=JSON.parse(line);
     assert.deepEqual(JSON.parse(await readFile(marker, 'utf8')), { keep: true, reopen: null })
     assert.equal(standaloneSessionStatus(id).connected, true)
     await stopStandaloneSession()
-    assert.equal(exits, 1)
     assert.equal(standaloneSessionStatus(id).owned, false)
     assert.equal(quits, 0)
   }

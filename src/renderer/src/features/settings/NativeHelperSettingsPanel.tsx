@@ -156,17 +156,6 @@ export function NativeHelperSettingsPanel({
                 {t('settings.anticheatNotice')}
               </p>
             </div>
-            <div>
-              <HelperCheckbox
-                label={t('webHelper.killCards')}
-                checked={settings?.killCardsEnabled ?? true}
-                disabled={disabled || !settings?.enhancementsEnabled}
-                onChange={(killCardsEnabled) => void save({ killCardsEnabled })}
-              />
-              <p className="pb-2 text-xs leading-5 text-neutral-400">
-                {t('settings.lightweightHudNextMatch')}
-              </p>
-            </div>
           </div>
         </div>
       )}
