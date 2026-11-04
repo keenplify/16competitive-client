@@ -43,6 +43,7 @@ type InventoryState = {
   reload: () => Promise<void>
   selectPurchase: (item: StickerCatalogItem, currency?: 'POINTS' | 'P_CASH') => void
   buy: () => Promise<void>
+  remove: (id: string) => Promise<boolean>
   apply: () => Promise<void>
   selectSticker: (item: OwnedSticker) => void
   selectWeapon: (target: WeaponTarget) => void
@@ -339,6 +340,27 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       )
     } catch {
       /* Keep purchase for retry. */
+    } finally {
+      if (current === generation) set({ pending: false })
+    }
+  },
+  remove: async (id) => {
+    if (get().pending) return false
+    const current = generation
+    set({ pending: true })
+    try {
+      await feedback(async () => {
+        await window.api.skins.stickerRemove(id)
+        if (current !== generation) return
+        set((state) => ({
+          snapshot: state.snapshot
+            ? { ...state.snapshot, items: state.snapshot.items.filter((item) => item.id !== id) }
+            : null
+        }))
+      })
+      return current === generation
+    } catch {
+      return false
     } finally {
       if (current === generation) set({ pending: false })
     }

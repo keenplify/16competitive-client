@@ -697,6 +697,9 @@ export const listStickers = async () => parseStickerSnapshot(await collectionReq
 export const buySticker = async (id: unknown, input: unknown): Promise<{id:string}> => {
   return parseStickerPurchase(await collectionRequest(`/stickers/${stickerId(id)}/buy`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(validateStickerBuy(input)) }))
 }
+export const removeSticker = async (id: unknown): Promise<void> => {
+  await collectionRequest(`/stickers/items/${stickerUuid(id)}/remove`, { method: 'POST' })
+}
 export const applySticker = async (id: unknown, weaponKey: unknown, projection: unknown): Promise<void> => {
   if (typeof weaponKey !== 'string' || !(weaponKey.startsWith('stock:') ? stockStickerModel(weaponKey.slice(6)) : /^skin:[a-f0-9-]{36}$/.test(weaponKey))) throw new Error('STICKER_WEAPON_INVALID')
   await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ weaponKey, projection: validateProjection(projection) }) })

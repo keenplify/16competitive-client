@@ -1,7 +1,7 @@
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { validateReportImages } from '../shared/diagnostic-logs'
 import { STICKER_CHANNELS } from '../shared/stickers'
-import { listStickers, buySticker, applySticker, getStickerImage } from './skins'
+import { listStickers, buySticker, removeSticker, applySticker, getStickerImage } from './skins'
 import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit } from './skins'
 import { listCollections, getCollection, getCollectionQuote, buyCollection } from './skins'
 import { initializePartnerAppIdentity, type InstalledAppIdentity } from './partner-app-identity'
@@ -1170,6 +1170,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(STICKER_CHANNELS.snapshot, () => listStickers())
   ipcMain.handle(STICKER_CHANNELS.buy, (_event, id, input) => buySticker(id, input))
+  ipcMain.handle(STICKER_CHANNELS.remove, (_event, id) => removeSticker(id))
   ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection) => applySticker(id, weaponKey, projection))
   ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())

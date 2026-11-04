@@ -23,6 +23,7 @@ import {createRoot} from 'react-dom/client'
 import {ModelViewer} from './src/renderer/src/libs/web-hlmv/ui/ModelViewer'
 import {StickerPurchaseDialog} from './src/renderer/src/features/inventory/StickerPurchaseDialog'
 import {AttachedStickerLinks} from './src/renderer/src/features/skins/AttachedStickerLinks'
+import {useLauncherThemeStore} from './src/renderer/src/features/settings/launcher-theme.store'
 import {useNavigationStore} from './src/renderer/src/features/navigation/navigation.store'
 import {SkinModelThumbnail} from './src/renderer/src/features/skins/SkinModelThumbnail'
 import {SkinFirstPersonPreview} from './src/renderer/src/features/skins/SkinFirstPersonPreview'
@@ -49,6 +50,9 @@ window.mountThumbnail=()=>{
  root.render(<StrictMode><SkinModelThumbnail cacheKey="fixture-old-p-cache" weaponKey="ak47" showAppliedStickers fallback={<span>Failed</span>} /></StrictMode>)
 }
 window.mountStickerLinks=()=>root.render(<StrictMode><AttachedStickerLinks targetKey="stock:ak47" onClose={()=>{window.closedPreview=true}} /></StrictMode>)
+window.setFixtureTheme=theme=>{useLauncherThemeStore.setState({theme,hasPreference:true});document.documentElement.dataset.launcherTheme=theme}
+window.removalCalls=[]
+window.apiRemove=()=>{window.api.skins.stickerRemove=async id=>{window.removalCalls.push(id)}}
 window.getNavigation=()=>useNavigationStore.getState()
 window.mountPurchase=(points,cash,attempted=false)=>{
  useInventoryStore.setState({pending:false,purchase:{item:{id:'purchase-fixture',name:'Test sticker',imagePath:'fixture.png',pricePoints:points,pricePCash:cash},input:{currency:'POINTS',expectedPrice:points,requestId:'original'},attempted},buy:async()=>{window.bought=useInventoryStore.getState().purchase.input}})
@@ -169,9 +173,9 @@ app.whenReady().then(async()=>{
  await w.webContents.executeJavaScript('mountThumbnail()')
  await new Promise(r=>setTimeout(r,1500))
  assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("img").length'),1)
- assert.ok(await w.webContents.executeJavaScript('thumbnailReads.every(key=>key.startsWith("viewmodel-inspection-v6:"))'))
+ assert.ok(await w.webContents.executeJavaScript('thumbnailReads.every(key=>key.startsWith("viewmodel-inspection-v7:"))'))
  assert.equal(await w.webContents.executeJavaScript('thumbnailCache.size'),2)
- const thumbnailSize=await w.webContents.executeJavaScript('(async()=>{const entry=[...thumbnailCache.entries()].find(([key])=>key.startsWith("viewmodel-inspection-v6:"));const image=await createImageBitmap(new Blob([entry[1]],{type:"image/png"}));return [image.width,image.height]})()')
+ const thumbnailSize=await w.webContents.executeJavaScript('(async()=>{const entry=[...thumbnailCache.entries()].find(([key])=>key.startsWith("viewmodel-inspection-v7:"));const image=await createImageBitmap(new Blob([entry[1]],{type:"image/png"}));return [image.width,image.height]})()')
  assert.deepEqual(thumbnailSize,[512,256],'Cached thumbnails must use a fixed aspect ratio regardless of card dimensions')
  await w.webContents.executeJavaScript('mountHeld('+JSON.stringify([...readFileSync(${JSON.stringify(model.replace('v_ak47.mdl', 'p_ak47.mdl'))})])+')')
  await new Promise(r=>setTimeout(r,200))
@@ -181,11 +185,31 @@ app.whenReady().then(async()=>{
  assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("img").length'),1)
  await w.webContents.executeJavaScript('mountStickerLinks()')
  await new Promise(r=>setTimeout(r,100))
- assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),1)
+ assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),2)
  await w.webContents.executeJavaScript('document.querySelector("footer button").click()')
  assert.equal(await w.webContents.executeJavaScript('closedPreview'),true)
  assert.equal(await w.webContents.executeJavaScript('getNavigation().page'),'store')
  assert.equal(await w.webContents.executeJavaScript('getNavigation().storeStickerSearch'),'Test')
+ await w.webContents.executeJavaScript('apiRemove();document.querySelectorAll("footer button")[1].click()')
+ await new Promise(r=>setTimeout(r,100))
+ assert.equal(await w.webContents.executeJavaScript('document.querySelector("dialog[role=alertdialog]").open'),true)
+ assert.equal(await w.webContents.executeJavaScript('removalCalls.length'),0)
+ await w.webContents.insertCSS(readFileSync(require('path').join(process.cwd(),'dist-web/assets',require('fs').readdirSync('dist-web/assets').find(f=>f.startsWith('index-')&&f.endsWith('.css'))),'utf8'))
+ for(const theme of ['latest','vgui2']) {
+  await w.webContents.executeJavaScript('setFixtureTheme('+JSON.stringify(theme)+')')
+  await new Promise(r=>setTimeout(r,1500))
+  writeFileSync('/tmp/sticker-remove-'+theme+'.png',(await w.webContents.capturePage()).toPNG())
+ }
+ await w.webContents.executeJavaScript('setFixtureTheme("latest")')
+ await new Promise(r=>setTimeout(r,100))
+ await w.webContents.executeJavaScript('[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Cancel").click()')
+ assert.equal(await w.webContents.executeJavaScript('removalCalls.length'),0)
+ await w.webContents.executeJavaScript('document.querySelectorAll("footer button")[1].click()')
+ await new Promise(r=>setTimeout(r,100))
+ await w.webContents.executeJavaScript('[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Remove sticker").click()')
+ await new Promise(r=>setTimeout(r,100))
+ assert.equal(await w.webContents.executeJavaScript('removalCalls[0]'),'fixture')
+ assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("footer button").length'),0)
  await w.webContents.executeJavaScript('mountThumbnail()')
  await new Promise(r=>setTimeout(r,100))
  await w.webContents.executeJavaScript('removeFixtureSticker()')

@@ -604,6 +604,9 @@ const skins = {
   async stickerBuy(id: string, input: import('../shared/stickers').StickerBuy): Promise<{id:string}> {
     return parseStickerPurchase(await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input)))
   },
+  async stickerRemove(id: string): Promise<void> {
+    await jsonPost(`/stickers/items/${stickerUuid(id)}/remove`, {})
+  },
   async stickerApply(id: string, weaponKey: string, projection: import('../shared/stickers').StickerProjection): Promise<void> {
     await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, { weaponKey, projection })
   },

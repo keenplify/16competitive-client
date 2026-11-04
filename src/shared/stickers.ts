@@ -31,6 +31,7 @@ export const STICKER_CHANNELS = {
   snapshot: 'inventory:stickers',
   buy: 'inventory:sticker-buy',
   apply: 'inventory:sticker-apply',
+  remove: 'inventory:sticker-remove',
   image: 'inventory:sticker-image'
 } as const
 export const stickerId = (value: unknown): string => {

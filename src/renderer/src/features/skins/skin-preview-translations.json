@@ -18,7 +18,12 @@
     "heldWeapon": "Held weapon",
     "experimental": "Experimental",
     "attachedStickers": "Attached stickers",
-    "viewStickerInStore": "View {{name}} in Store"
+    "viewStickerInStore": "View {{name}} in Store",
+    "removeStickerLabel": "Remove {{name}}",
+    "removeStickerTitle": "Remove sticker?",
+    "removeStickerWarning": "This will permanently destroy {{name}}. You will not get the sticker back or receive a refund.",
+    "removeSticker": "Remove sticker",
+    "cancel": "Cancel"
   },
   "ru": {
     "preview": "Просмотр",
@@ -39,7 +44,12 @@
     "heldWeapon": "Оружие в руках",
     "experimental": "Экспериментальный",
     "attachedStickers": "Наклеенные стикеры",
-    "viewStickerInStore": "Посмотреть {{name}} в магазине"
+    "viewStickerInStore": "Посмотреть {{name}} в магазине",
+    "removeStickerLabel": "Удалить {{name}}",
+    "removeStickerTitle": "Удалить наклейку?",
+    "removeStickerWarning": "{{name}} будет уничтожена навсегда. Наклейка и потраченные средства не возвращаются.",
+    "removeSticker": "Удалить наклейку",
+    "cancel": "Отмена"
   },
   "tl": {
     "preview": "Preview",
@@ -60,7 +70,12 @@
     "heldWeapon": "Hawak na armas",
     "experimental": "Eksperimental",
     "attachedStickers": "Mga nakakabit na sticker",
-    "viewStickerInStore": "Tingnan ang {{name}} sa Store"
+    "viewStickerInStore": "Tingnan ang {{name}} sa Store",
+    "removeStickerLabel": "Alisin ang {{name}}",
+    "removeStickerTitle": "Alisin ang sticker?",
+    "removeStickerWarning": "Permanenteng masisira ang {{name}}. Hindi na maibabalik ang sticker at walang refund.",
+    "removeSticker": "Alisin ang sticker",
+    "cancel": "Kanselahin"
   },
   "th": {
     "preview": "ตัวอย่าง",
@@ -81,7 +96,12 @@
     "heldWeapon": "อาวุธในมือ",
     "experimental": "ทดลอง",
     "attachedStickers": "สติกเกอร์ที่ติดอยู่",
-    "viewStickerInStore": "ดู {{name}} ในร้านค้า"
+    "viewStickerInStore": "ดู {{name}} ในร้านค้า",
+    "removeStickerLabel": "นำ {{name}} ออก",
+    "removeStickerTitle": "นำสติกเกอร์ออกหรือไม่?",
+    "removeStickerWarning": "{{name}} จะถูกทำลายถาวร คุณจะไม่ได้รับสติกเกอร์คืนหรือเงินคืน",
+    "removeSticker": "นำสติกเกอร์ออก",
+    "cancel": "ยกเลิก"
   },
   "id": {
     "preview": "Pratinjau",
@@ -102,7 +122,12 @@
     "heldWeapon": "Senjata yang dipegang",
     "experimental": "Eksperimental",
     "attachedStickers": "Stiker terpasang",
-    "viewStickerInStore": "Lihat {{name}} di Toko"
+    "viewStickerInStore": "Lihat {{name}} di Toko",
+    "removeStickerLabel": "Hapus {{name}}",
+    "removeStickerTitle": "Hapus stiker?",
+    "removeStickerWarning": "{{name}} akan dihancurkan secara permanen. Stiker dan pembayaran tidak akan dikembalikan.",
+    "removeSticker": "Hapus stiker",
+    "cancel": "Batal"
   },
   "pt": {
     "preview": "Prévia",
@@ -123,7 +148,12 @@
     "heldWeapon": "Arma em mãos",
     "experimental": "Experimental",
     "attachedStickers": "Adesivos aplicados",
-    "viewStickerInStore": "Ver {{name}} na Loja"
+    "viewStickerInStore": "Ver {{name}} na Loja",
+    "removeStickerLabel": "Remover {{name}}",
+    "removeStickerTitle": "Remover adesivo?",
+    "removeStickerWarning": "Isso destruirá {{name}} permanentemente. Você não receberá o adesivo de volta nem um reembolso.",
+    "removeSticker": "Remover adesivo",
+    "cancel": "Cancelar"
   },
   "ja": {
     "preview": "プレビュー",
@@ -144,7 +174,12 @@
     "heldWeapon": "手持ち武器",
     "experimental": "実験的",
     "attachedStickers": "貼り付け済みステッカー",
-    "viewStickerInStore": "ストアで{{name}}を見る"
+    "viewStickerInStore": "ストアで{{name}}を見る",
+    "removeStickerLabel": "{{name}}を削除",
+    "removeStickerTitle": "ステッカーを削除しますか？",
+    "removeStickerWarning": "{{name}}は完全に破棄されます。ステッカーは戻らず、返金もありません。",
+    "removeSticker": "ステッカーを削除",
+    "cancel": "キャンセル"
   },
   "hi": {
     "preview": "पूर्वावलोकन",
@@ -165,6 +200,11 @@
     "heldWeapon": "हाथ में हथियार",
     "experimental": "प्रायोगिक",
     "attachedStickers": "लगे हुए स्टिकर",
-    "viewStickerInStore": "स्टोर में {{name}} देखें"
+    "viewStickerInStore": "स्टोर में {{name}} देखें",
+    "removeStickerLabel": "{{name}} हटाएँ",
+    "removeStickerTitle": "स्टिकर हटाएँ?",
+    "removeStickerWarning": "{{name}} हमेशा के लिए नष्ट हो जाएगा। स्टिकर वापस नहीं मिलेगा और कोई रिफ़ंड नहीं होगा।",
+    "removeSticker": "स्टिकर हटाएँ",
+    "cancel": "रद्द करें"
   }
 }
