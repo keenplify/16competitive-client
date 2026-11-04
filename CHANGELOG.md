@@ -4082,3 +4082,23 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Sticker Artwork
 
 - Verified sticker artwork is now cached and persisted for reuse.
+
+## v2026.1104.4 — 2026-11-04
+
+### Stickers
+
+- Fixed sticker sources and previews.
+- Improved sticker editor viewport behavior.
+
+### Skins
+
+- Added more reliable skin previews and thumbnails.
+- Improved asset warming for smoother browsing.
+
+### Purchases
+
+- Improved purchase flow and purchase success feedback.
+
+### Reports
+
+- Added an issue-report form with improved submission flow.
