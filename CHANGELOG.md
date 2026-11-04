@@ -4154,3 +4154,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Windows
 
 - Sticker baking now works with the correct entry path on Windows.
+
+## v2026.1104.11 — 2026-11-04
+
+### Reliability
+
+- Improved error reporting when preparing standalone sessions.
+- Compatibility-related preparation failures are now surfaced safely.
