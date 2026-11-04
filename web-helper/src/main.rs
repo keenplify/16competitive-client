@@ -986,6 +986,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         command.env("SteamAppId", "10").env("SteamGameId", "10");
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
         command.env("LD_LIBRARY_PATH", steam_proton::native_library_path(&root, &home)?);
+        if connection.game() == "cs16" {
+            steam_proton::configure_native_display(&mut command);
+        }
     }
     let (width, height) = preferences.resolution(connection.game())?;
     if connection.game() == "cs13" {

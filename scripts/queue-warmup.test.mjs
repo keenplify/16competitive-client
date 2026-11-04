@@ -218,6 +218,50 @@ const connect = {
   whileQueued: true
 }
 
+for (const freshProcess of [true, false]) {
+  test(`match restoration waits for explicit reconnect (fresh=${freshProcess})`, async () => {
+    const h = await harness()
+    const connection = { ...connect, whileQueued: false, joinToken: 'a'.repeat(32) }
+    h.connection.freshProcess = freshProcess
+    if (!freshProcess) h.connection.lastConnection = connection
+    try {
+      await h.connection.createSocket('test-token', 'https://eu.invalid')
+      const emit = (message) =>
+        h.sockets[0].listeners.get('message')({ data: JSON.stringify(message) })
+      emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+      emit(connection)
+      emit(connection)
+      h.finishAssets()
+      await new Promise((resolve) => setImmediate(resolve))
+      assert.equal(h.calls.filter(([type]) => type === 'launch').length, 0)
+      assert.equal(h.connection.lastConnection.matchId, connection.matchId)
+      assert.ok(h.events.some((event) => event.type === 'game_process_exited'))
+      await h.connection.reconnectGame()
+      assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
+    } finally {
+      h.connection.shutdown()
+    }
+  })
+}
+
+test('a newly accepted match launches once, including duplicate connection events', async () => {
+  const h = await harness()
+  try {
+    await h.connection.createSocket('test-token', 'https://eu.invalid')
+    const emit = (message) =>
+      h.sockets[0].listeners.get('message')({ data: JSON.stringify(message) })
+    emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+    const connection = { ...connect, whileQueued: false, joinToken: 'a'.repeat(32) }
+    emit(connection)
+    emit(connection)
+    h.finishAssets()
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
 test('reopening the launcher restores a server queue without sending leave_queue', async () => {
   const h = await harness()
   h.connection.freshProcess = true

@@ -1703,6 +1703,23 @@ class MatchmakingConnection {
               })
         )
       } else if (parsed.type === 'match_connect') {
+        // Restoring a live match is not permission to restart its game. The
+        // standalone helper reopens Electron after exit (including crashes).
+        // Keep reconnect available without creating a crash/relaunch loop.
+        if (this.freshProcess || this.lastConnection?.matchId === parsed.matchId) {
+          this.recoveryStatusPending = false
+          this.lastConnection = parsed
+          this.notify(parsed)
+          if (!isCounterStrikeActiveForMatch(parsed.matchId)) {
+            this.notify({
+              type: 'game_process_exited',
+              matchId: parsed.matchId,
+              code: null,
+              signal: null
+            })
+          }
+          return
+        }
         if (this.cs13Matches.has(parsed.matchId)) {
           this.recoveryStatusPending = false
           this.lastConnection = parsed

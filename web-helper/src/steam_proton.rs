@@ -8,6 +8,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// GoldSrc's CEF uses GTK2. SDL's Wayland decorations can load GTK3 into
+/// the same process and crash CEF in gdk_display_open. Use XWayland/X11
+/// for the native game only; do not alter the desktop or Proton environment.
+#[cfg(target_os = "linux")]
+pub fn configure_native_display(command: &mut std::process::Command) {
+    command.env("SDL_VIDEODRIVER", "x11").env("GDK_BACKEND", "x11");
+}
+
 /// Ask Steam's runtime to select pinned/host/fallback libraries in its own
 /// order. Prepending all bundled libraries can break the host Mesa driver.
 #[cfg(target_os = "linux")]
@@ -344,6 +352,17 @@ pub fn resolve(game: &Path, home: &Path) -> Result<Option<Runtime>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn native_display_overrides_wayland_without_changing_parent() {
+        let mut command = std::process::Command::new("/bin/sh");
+        command.env("SDL_VIDEODRIVER", "wayland").env("GDK_BACKEND", "wayland");
+        configure_native_display(&mut command);
+        let output = command.args(["-c", "printf '%s:%s' \"$SDL_VIDEODRIVER\" \"$GDK_BACKEND\""])
+            .output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"x11:x11");
+    }
     #[cfg(target_os = "linux")]
     #[test]
     fn native_runtime_uses_steams_library_order_without_starting_game() {
