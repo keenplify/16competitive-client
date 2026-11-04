@@ -510,7 +510,19 @@ mod tests {
         let binary = directory.join("inspector");
         std::fs::write(&binary, format!("#!/bin/sh\n{script}")).unwrap();
         std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
-        let process = Process::spawn(&binary, "--session").unwrap();
+        // Parallel tests can briefly retain a freshly written executable through
+        // fork on Linux. Retry only ETXTBSY; protocol/startup failures still fail.
+        let mut attempts = 0;
+        let process = loop {
+            match Process::spawn(&binary, "--session") {
+                Ok(process) => break process,
+                Err(error) if error.contains("Text file busy (os error 26)") && attempts < 20 => {
+                    attempts += 1;
+                    thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => panic!("Inspector fixture failed: {error}"),
+            }
+        };
         (directory, process)
     }
 
