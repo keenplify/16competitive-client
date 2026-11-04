@@ -4198,3 +4198,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Display
 
 - Improved isolation for the native GoldSrc display backend.
+
+## v2026.1104.16 — 2026-11-04
+
+### Stability
+
+- Improved cleanup when exiting sessions.
