@@ -4126,3 +4126,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Permanently remove stickers from weapon previews with confirmation.
 - Improved sticker removal feedback and translations.
+
+## v2026.1104.8 — 2026-11-04
+
+### Game Sessions
+
+- Added support for standalone game sessions.
+
+### Chat
+
+- Added integrated chat with party and friend conversations.
+- Added chat commands and announcements.
+
+### Cosmetics
+
+- Added cosmetic previews for skins, stickers, weapons, and lobby models.
+- Improved sticker preview handling.
