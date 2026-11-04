@@ -4050,3 +4050,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved diagnostics during warmup and matchmaking lifecycle transitions.
 - Issue reports now include ready-check and game launch status.
+
+## v2026.1104.1 — 2026-11-04
+
+### Stickers
+
+- Added sticker inventory and purchasing.
+- Added sticker previews and placement tools.
+- Added support for attaching stickers to eligible items.
+- Added improved sticker model and color previews.
+
+### Launcher
+
+- Improved launcher updates and helper installation reliability.
+- Added clearer update and readiness warnings.
