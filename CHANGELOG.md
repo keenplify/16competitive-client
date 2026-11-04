@@ -4177,3 +4177,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Leaving an FFA queue no longer triggers the action twice.
+
+## v2026.1104.14 — 2026-11-04
+
+### Cosmetics
+
+- Improved cosmetic cache handoff for Proton users.
+- Added support for sharing cached cosmetics more reliably.
+
+### Reconnects
+
+- Improved diagnostics when reconnecting after connection issues.
