@@ -4167,3 +4167,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Stickers
 
 - Standalone sticker artwork now loads through FastDL.
+
+## v2026.1104.13 — 2026-11-04
+
+### Match Joining
+
+- Standalone game joins now clear leftover match information.
+
+### Matchmaking
+
+- Leaving an FFA queue no longer triggers the action twice.
