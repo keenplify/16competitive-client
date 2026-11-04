@@ -4220,3 +4220,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Release notifications
 
 - Release notifications are now correctly marked as handled after you dismiss the dialog.
+
+## v2026.1104.19 — 2026-11-04
+
+### Session Flow
+
+- Improved managed-session tray behavior.
+- Improved the return flow between the game and launcher.
+
+### Launching
+
+- Improved preparation before launching a managed session.
