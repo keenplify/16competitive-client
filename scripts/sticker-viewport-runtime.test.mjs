@@ -22,6 +22,7 @@ import React, {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
 import {StickerViewport} from './src/renderer/src/features/sticker-editor/StickerViewport'
 import {useStickerEditor} from './src/renderer/src/features/sticker-editor/sticker-editor.store'
+import {modelTextures} from './src/shared/sticker-model'
 import {prepareStickerAtlas} from './src/renderer/src/libs/web-hlmv/lib/sticker-atlas'
 let root
 window.mount = (bytes, weaponKey = 'ak47') => {
@@ -30,7 +31,23 @@ window.mount = (bytes, weaponKey = 'ak47') => {
   root=createRoot(document.getElementById('root'))
   root.render(<StrictMode><StickerViewport label={weaponKey} weaponKey={weaponKey} /></StrictMode>)
 }
-window.unmount = () => root.unmount()
+window.previewResult = {}
+window.mountPreview = (bytes, shared = false) => {
+  const buffer = new Uint8Array(bytes).buffer
+  if (shared) {
+    const view = new DataView(buffer)
+    const table = view.getInt32(184, true)
+    if(view.getInt32(180,true)<2) throw new Error('fixture requires two textures')
+    for(const offset of [68,72,76]) view.setInt32(table+80+offset,view.getInt32(table+offset,true),true)
+    let rejected=false
+    try {modelTextures(new Uint8Array(buffer))} catch {rejected=true}
+    if(!rejected) throw new Error('fixture must fail authoring validation')
+  }
+  window.previewResult = {frames:0, failures:0}
+  if (!root) root=createRoot(document.getElementById('root'))
+  root.render(<StrictMode><StickerViewport label="preview" previewModel={buffer} weaponKey="ak47" onFirstFrame={()=>window.previewResult.frames++} onError={()=>window.previewResult.failures++}/></StrictMode>)
+}
+window.unmount = () => {root.unmount();root=undefined}
 window.state = () => ({placed:useStickerEditor.getState().placed,projection:useStickerEditor.getState().projection,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),canvases:document.querySelectorAll('canvas').length})
 `
         },
@@ -112,6 +129,20 @@ w.show()
 await new Promise(r=>setTimeout(r,200))
 writeFileSync('/tmp/16c-knife-sticker-verified.png',(await w.webContents.capturePage()).toPNG())
 assert.ok(projection.normal[1]<-0.5,'knife starts on the opposite authored blade face from the old firearm camera')
+await w.webContents.executeJavaScript('unmount()')
+await w.webContents.executeJavaScript('mountPreview('+JSON.stringify(bytes)+',true)')
+await new Promise(r=>setTimeout(r,700))
+assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
+assert.ok(await w.webContents.executeJavaScript('previewResult.frames > 0'),'shared texture preview renders')
+await w.webContents.executeJavaScript('mountPreview([0,0,0,0])')
+await new Promise(r=>setTimeout(r,300))
+assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),['previewError'])
+assert.ok(await w.webContents.executeJavaScript('previewResult.failures > 0'))
+assert.equal(await w.webContents.executeJavaScript('state().canvases'),0)
+await w.webContents.executeJavaScript('mountPreview('+JSON.stringify(bytes)+')')
+await new Promise(r=>setTimeout(r,700))
+assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
+assert.ok(await w.webContents.executeJavaScript('previewResult.frames > 0'),'preview recovers after malformed input')
 await w.webContents.executeJavaScript('unmount()')
 assert.deepEqual(errors.filter(e=>/precision|TypeError|Error creating WebGL/.test(e)),[])
 console.log('StrictMode mount, mouse placement, and reopen passed')

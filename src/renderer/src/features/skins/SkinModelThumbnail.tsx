@@ -285,7 +285,7 @@ function SkinModelThumbnailContent({
 }
 
 // Bump this namespace whenever the rendered weapon presentation changes.
-const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v5'
+const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v6'
 function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
   const target = props.skinId ? `skin:${props.skinId}` : `stock:${props.weaponKey}`
   const stickers = useInventoryStore((s) =>
