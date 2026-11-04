@@ -1,3 +1,4 @@
+import { createEarlyAssetSync } from '../src/shared/early-asset-sync.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -6,6 +7,7 @@ import ts from 'typescript'
 
 function harness() {
   let token = 'account-a'
+  const syncs = []
   let available = true
   let folder = '/games/cs16'
   const window = {}
@@ -15,8 +17,10 @@ function harness() {
   ).outputText
   new Function('require', 'exports', 'window', 'localStorage', source)(
     (name) => {
+      if (name === '../shared/early-asset-sync') return { createEarlyAssetSync }
       if (name === './local-play')
         return {
+          syncNativeAssets: async (mode) => { syncs.push({ folder, mode }) },
           nativeHelperSettings: async () => {
             if (!available) throw new Error('Helper stopped')
             return { cs16FolderPath: folder, platform: 'linux', voicePttKeys: ['K', 'V'] }
@@ -37,6 +41,7 @@ function harness() {
   )
   return {
     api: window.api.gameSettings,
+    syncs,
     stop: () => {
       available = false
     },
@@ -69,4 +74,12 @@ test('an available helper remains authoritative when its installation is cleared
   await h.api.get()
   h.clearFolder()
   assert.equal((await h.api.get()).cs16FolderPath, null)
+})
+
+test('knowing the helper folder prepares assets before any matchmaking action', async () => {
+  const h = harness()
+  await h.api.get()
+  await h.api.get()
+  await Promise.resolve()
+  assert.deepEqual(h.syncs, [{ folder: '/games/cs16', mode: 'download' }])
 })

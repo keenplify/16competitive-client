@@ -18,7 +18,7 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 
-async function harness(assets, bytes, failures = []) {
+async function harness(assets, bytes, failures = [], stickerAssets = []) {
   const directory = await fs.mkdtemp(path.join(tmpdir(), '16c-smoke-loader-'))
   const root = path.join(directory, 'cstrike')
   await fs.mkdir(root)
@@ -48,7 +48,7 @@ async function harness(assets, bytes, failures = []) {
       if (failure === 'network') throw new TypeError('fetch failed')
       if (typeof failure === 'number') return new Response('', { status: failure })
       if (target.pathname.endsWith('/manifest') || target.pathname.endsWith('/assets'))
-        return Response.json({ assets })
+        return Response.json({ assets, stickerAssets })
       // Deliberately omit Content-Length, as valid streamed regional responses may do.
       return new Response(bytes, { headers: { 'content-type': 'application/octet-stream' } })
     }
@@ -63,6 +63,17 @@ async function harness(assets, bytes, failures = []) {
         contentRoot: root,
         destination: async (asset) => path.join(root, asset)
       })
+    },
+    './sticker-image-cache': {
+      cachedStickerImage: async (path) =>
+        requests.push(new URL(`/fastdl/${path}`, 'https://backend.example.test'))
+    },
+    '../../shared/stickers': {
+      stickerImagePath: (value) => {
+        if (!/^media\/16competitive\/stickers\/[a-f0-9]{64}\/image\.png$/.test(value))
+          throw new Error('Invalid sticker')
+        return value
+      }
     },
     '../../shared/game-asset-path': { isBundledPingAssetPath, versionedGameAssetHash }
   }
@@ -346,6 +357,59 @@ test('catalog does not retry authorization failures', async () => {
   try {
     await assert.rejects(h.api.startSkinAssetSync('https://regional.example', () => {}))
     assert.equal(h.requests.length, 1)
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('early catalog preparation is reused by a later match without downloading the same assets', async () => {
+  const asset = { path: `sprites/16competitive/system/${sha256.slice(0, 16)}/gas.spr`, sha256 }
+  const h = await harness([asset], sprite)
+  try {
+    await h.api.startSkinAssetSync('https://backend.example.test', () => {})
+    const before = h.requests.length
+    await h.api.startMatchAssetPreload(matchId, 'https://backend.example.test')
+    assert.deepEqual(
+      h.requests.slice(before).map((url) => url.pathname),
+      [`/matches/${matchId}/assets`]
+    )
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('early catalog prepares sticker artwork and includes it in completion progress', async () => {
+  const sticker = {
+    path: `media/16competitive/stickers/${'a'.repeat(64)}/image.png`,
+    sha256: 'a'.repeat(64)
+  }
+  const h = await harness([], sprite, [], [sticker])
+  try {
+    await h.api.startSkinAssetSync('https://backend.example.test', (value) =>
+      h.progress.push(value)
+    )
+    assert.ok(h.requests.some((url) => url.pathname === `/fastdl/${sticker.path}`))
+    assert.equal(h.progress.at(-1).status, 'ready')
+    assert.equal(h.progress.at(-1).completedFiles, 1)
+    assert.equal(h.progress.at(-1).totalFiles, 1)
+  } finally {
+    await h.cleanup()
+  }
+})
+
+test('overlapping early preparation callers both receive completion from the shared download', async () => {
+  const asset = { path: `sprites/16competitive/system/${sha256.slice(0, 16)}/gas.spr`, sha256 }
+  const h = await harness([asset], sprite)
+  const first = [],
+    second = []
+  try {
+    await Promise.all([
+      h.api.startSkinAssetSync('https://backend.example.test', (value) => first.push(value)),
+      h.api.startSkinAssetSync('https://backend.example.test', (value) => second.push(value))
+    ])
+    assert.equal(first.at(-1).status, 'ready')
+    assert.equal(second.at(-1).status, 'ready')
+    assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 1)
   } finally {
     await h.cleanup()
   }

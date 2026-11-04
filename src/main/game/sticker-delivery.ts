@@ -1,3 +1,4 @@
+import { cachedStickerImage } from './sticker-image-cache'
 import { sharedModelDirectory } from './shared-skin-storage'
 import { toWinePath } from './goldsrc-client-capabilities'
 import { app, nativeImage } from 'electron'
@@ -162,13 +163,7 @@ export async function stageMatchStickers(options: {
       for (const item of recipe.stickers) {
         let image = imageCache.get(item.imagePath)
         if (!image) {
-          const response = await fetch(new URL(`/fastdl/${item.imagePath}`, apiUrl), {
-            redirect: 'error',
-            signal: AbortSignal.timeout(10000)
-          })
-          const bytes = await boundedResponse(response, 2000000)
-          if (hash(bytes) !== item.imagePath.split('/')[3])
-            throw new Error('Sticker artwork hash mismatch')
+          const bytes = await cachedStickerImage(item.imagePath, apiUrl)
           image = { path: item.imagePath, bytes, pixels: pixels(bytes) }
           imageCache.set(item.imagePath, image)
         }

@@ -1,3 +1,4 @@
+import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { STICKER_CHANNELS } from '../shared/stickers'
 import { listStickers, buySticker, applySticker, getStickerImage } from './skins'
 import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit } from './skins'
@@ -410,6 +411,8 @@ function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSy
   skinAssetSyncProgress = progress
   if (!sender.isDestroyed()) sender.send(GAME_SETTINGS_CHANNELS.assetSyncProgress, progress)
 }
+
+const earlyAssetSync = createEarlyAssetSync()
 
 async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): Promise<void> {
   const startedAt = performance.now()
@@ -1320,7 +1323,13 @@ app.whenReady().then(async () => {
     shell.openExternal(COUNTER_STRIKE_STEAM_STORE_URL)
   )
   ipcMain.handle(WINDOW_CHANNELS.exit, () => mainWindow?.close())
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.get, () => getGameSettings())
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.get, async (event) => {
+    const settings = await getGameSettings()
+    void earlyAssetSync(settings.cs16ExecutablePath, getSessionToken(), () =>
+      runSkinAssetSync(event.sender, 'download')
+    ).catch((error: unknown) => console.warn('[GameSettings] early asset sync failed', error))
+    return settings
+  })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setDisplay, (_, preferences: unknown) =>
     saveGameDisplay(preferences)
   )
@@ -1368,7 +1377,9 @@ app.whenReady().then(async () => {
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, folderPath: unknown) => {
     const settings = await saveGameSettings(folderPath)
-    void runSkinAssetSync(event.sender, 'download').catch((error: unknown) => {
+    void earlyAssetSync(settings.cs16ExecutablePath, getSessionToken(), () =>
+      runSkinAssetSync(event.sender, 'download')
+    ).catch((error: unknown) => {
       console.warn(
         '[GameSettings] skin asset sync retry failed',
         error instanceof Error ? error.message : String(error)

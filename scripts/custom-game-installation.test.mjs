@@ -1,3 +1,4 @@
+import { createEarlyAssetSync } from '../src/shared/early-asset-sync.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
@@ -32,6 +33,7 @@ test('browser create, join, update and polling send fresh installation readiness
   ).outputText
   new Function('require', 'exports', 'window', 'localStorage', source)(
     (name) => {
+      if (name === '../shared/early-asset-sync') return { createEarlyAssetSync }
       if (name === './custom-game-installation') return { customGameInstallationHeaders }
       if (name === './local-play')
         return { nativeHelperSettings: async () => ({ cs13FolderPath: folder }) }

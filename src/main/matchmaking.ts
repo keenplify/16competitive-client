@@ -782,6 +782,10 @@ class MatchmakingConnection {
     const key = `${matchId}:${deadline}`
     if (this.readyAlertKey === key || Date.parse(deadline) <= serverClockNow()) return
     this.readyAlertKey = key
+    // Linux notification-service discovery/show can synchronously stall Electron
+    // on an unavailable D-Bus service. Avoid this suspected XFCE stall; timers cannot isolate
+    // that native call. Use launcher activation/taskbar attention on Linux.
+    if (process.platform === 'linux') return
     if (!Notification.isSupported()) return
     try {
       const copy = matchNotificationCopy(this.globalChatLanguage)
@@ -1620,13 +1624,16 @@ class MatchmakingConnection {
           this.desiredPreferredRegion = parsed.region
         }
         if (parsed.type === 'match_ready_check') {
+          this.freshProcess = false
+          // Deliver the deadline before optional native desktop attention.
+          this.notify(parsed)
           if (
             !this.authenticatedPlayer ||
             !parsed.acceptedPlayerIds.includes(this.authenticatedPlayer.id)
           )
             this.showReadyNotification(parsed.matchId, parsed.deadline)
-          this.freshProcess = false
           this.focusLauncher(true)
+          return
         }
       } else if (parsed.type === 'queue_joined') {
         this.freshProcess = false

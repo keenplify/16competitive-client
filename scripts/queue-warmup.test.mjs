@@ -79,6 +79,14 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
       ])
     }
   const mock = {
+    Notification: {
+      isSupported: () => {
+        calls.push(['notification-support'])
+        return false
+      }
+    },
+    readyCheckRemainingMs: (deadline) => Date.parse(deadline) - Date.now(),
+    serverClockNow: () => Date.now(),
     matchmakingDiagnostics: new MatchmakingDiagnostics(),
     getSessionUsername: () => 'fixture-player',
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
@@ -1120,6 +1128,46 @@ for (const superseded of [false, true]) {
       assert.equal(
         h.calls.some(([type, id]) => type === 'close' && id === 'new-game'),
         false
+      )
+    } finally {
+      h.connection.shutdown()
+    }
+  })
+}
+
+for (const platform of ['linux', 'win32']) {
+  test(`${platform} delivers ready checks before native attention and keeps accept responsive`, async () => {
+    const h = await harness({ platform })
+    try {
+      await h.connection.createSocket('test-token', 'https://eu.invalid')
+      const emit = (message) =>
+        h.sockets[0].listeners.get('message')({ data: JSON.stringify(message) })
+      emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+      const ready = {
+        type: 'match_ready_check',
+        matchId: '37bd42ae-5741-4ac9-911c-135e19a8f0ce',
+        deadline: new Date(Date.now() + 120_000).toISOString(),
+        acceptedPlayerIds: [],
+        playersRequired: 1
+      }
+      h.connection.focusLauncher = () => {
+        assert.equal(h.events.filter((event) => event.type === 'match_ready_check').length, 1)
+      }
+      emit(ready)
+      assert.equal(h.events.filter((event) => event.type === 'match_ready_check').length, 1)
+      assert.equal(
+        h.calls.filter(([type]) => type === 'notification-support').length,
+        platform === 'linux' ? 0 : 1
+      )
+      assert.equal(h.connection.recoveryStatusPending, false)
+      h.connection.respondReady(ready.matchId, true)
+      assert.ok(
+        h.sent.some(
+          (message) =>
+            message.type === 'match_ready_response' &&
+            message.matchId === ready.matchId &&
+            message.accepted === true
+        )
       )
     } finally {
       h.connection.shutdown()

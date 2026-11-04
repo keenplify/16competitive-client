@@ -1,3 +1,4 @@
+import { cachedStickerImage } from './game/sticker-image-cache'
 import { stockStickerModel } from '../shared/stock-sticker-models'
 import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
 import { validateProjection } from '../renderer/src/libs/web-hlmv/lib/sticker-atlas'
@@ -701,11 +702,6 @@ export const applySticker = async (id: unknown, weaponKey: unknown, projection: 
 }
 export const getStickerImage = async (path: unknown): Promise<ArrayBuffer> => {
   const key = stickerImagePath(path)
-  const response = await fetch(await skinApiUrl(`/fastdl/${key}`), { signal: AbortSignal.timeout(10000), redirect: 'error' })
-  if (!response.ok || Number(response.headers.get('content-length')) > 2000000) throw new Error('STICKER_IMAGE_INVALID')
-  const bytes = await response.arrayBuffer()
-  if (bytes.byteLength > 2000000) throw new Error('STICKER_IMAGE_INVALID')
-  const { createHash } = await import('node:crypto')
-  if (createHash('sha256').update(new Uint8Array(bytes)).digest('hex') !== key.split('/')[3]) throw new Error('STICKER_IMAGE_INVALID')
-  return bytes
+  const bytes = await cachedStickerImage(key, await skinApiUrl('/'))
+  return Uint8Array.from(bytes).buffer
 }
