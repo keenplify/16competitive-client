@@ -4214,3 +4214,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Kill Cards
 
 - Kill cards are disabled during competitive matches.
+
+## v2026.1104.18 — 2026-11-04
+
+### Release notifications
+
+- Release notifications are now correctly marked as handled after you dismiss the dialog.
