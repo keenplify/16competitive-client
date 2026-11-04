@@ -4161,3 +4161,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved error reporting when preparing standalone sessions.
 - Compatibility-related preparation failures are now surfaced safely.
+
+## v2026.1104.12 — 2026-11-04
+
+### Stickers
+
+- Standalone sticker artwork now loads through FastDL.
