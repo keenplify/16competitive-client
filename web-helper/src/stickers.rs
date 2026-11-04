@@ -258,7 +258,7 @@ pub fn prepare(
         for artwork in &recipe.stickers {
             let bytes = crate::assets::request(
                 &agent,
-                &format!("{api}/{}", artwork.image_path),
+                &format!("{api}/fastdl/{}", artwork.image_path),
                 token,
                 2_000_000,
             )?;
