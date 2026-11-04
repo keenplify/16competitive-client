@@ -4231,3 +4231,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Launching
 
 - Improved preparation before launching a managed session.
+
+## v2026.1104.20 — 2026-11-04
+
+### Changes
+
+- No release changes were provided.
