@@ -134,9 +134,10 @@ fn launch_target(
     if inspector::check_device(&bundle, api)?["banned"] == true {
         return Err("This device cannot join competitive matches".into());
     }
-    let helper = self_update::windows_supervisor()?;
+    let helper = self_update::windows_supervisor().map_err(|_| "WINDOWS_HELPER_DOWNLOAD_FAILED")?;
     let installation = windows_path(runtime, root)?;
     let source = windows_path(runtime, &preference_path()?)?;
+    let asset_config_home = windows_path(runtime, &assets::desktop_config_home()?)?;
     let agent = ureq::AgentBuilder::new()
         .redirects(0)
         .timeout(Duration::from_secs(10))
@@ -158,7 +159,7 @@ fn launch_target(
         })
         .ok_or("Invalid compatibility authorization")?;
     let mut request = serde_json::json!({"protocol":1,"apiOrigin":api,"handoff":handoff,
-        "installation":installation,"settings":settings_bridge::load()?.settings,"reopen":null,"keepLauncherOpen":true,"preferencesSource":source});
+        "installation":installation,"settings":settings_bridge::load()?.settings,"reopen":null,"keepLauncherOpen":true,"preferencesSource":source,"assetConfigHome":asset_config_home});
     for (key, value) in target.as_object().ok_or("Invalid compatibility target")? {
         request[key] = value.clone();
     }

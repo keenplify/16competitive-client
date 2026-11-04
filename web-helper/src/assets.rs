@@ -208,7 +208,19 @@ fn linked(metadata: &fs::Metadata) -> bool {
 
 /// Electron's default userData location, shared by the desktop and companion
 /// runtime. Never derive an approved storage root from the game link itself.
-fn desktop_config_home() -> Result<PathBuf, String> {
+static COMPATIBILITY_CONFIG_HOME: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+// Supplied only through the private compatibility handoff, independently of
+// the game symlink. Keep the same ancestor and destination validation below.
+pub(crate) fn set_compatibility_config_home(path: PathBuf) -> Result<(), String> {
+    if !path.is_absolute() { return Err("Invalid compatibility cache root".into()); }
+    let path = fs::canonicalize(path).map_err(|_| "Invalid compatibility cache root")?;
+    if !path.is_dir() { return Err("Invalid compatibility cache root".into()); }
+    COMPATIBILITY_CONFIG_HOME.set(path).map_err(|_| "Compatibility cache root already set".into())
+}
+
+pub(crate) fn desktop_config_home() -> Result<PathBuf, String> {
+    if let Some(path) = COMPATIBILITY_CONFIG_HOME.get() { return Ok(path.clone()); }
     #[cfg(windows)]
     let home = env::var_os("APPDATA").map(PathBuf::from);
     #[cfg(not(windows))]
@@ -532,6 +544,24 @@ mod tests {
             panic!("ordinary installation must not require desktop storage")
         }).unwrap();
         assert_eq!(path, root.canonicalize().unwrap().join("models/16competitive/knife/v.mdl"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn compatibility_cache_uses_host_root_not_prefix_storage() {
+        let root = test_root();
+        let shared = shared_root(&root);
+        let game = root.join("cstrike");
+        fs::create_dir_all(game.join("models")).unwrap();
+        link_directory(&shared, &game.join("models/16competitive"));
+        let prefix = root.join("windows-appdata");
+        fs::create_dir_all(&prefix).unwrap();
+        let path = "models/16competitive/knife/v.mdl";
+        assert!(game_destination_under(&game, path, &|| Ok(prefix.clone())).is_err());
+        let target = game_destination_under(&game, path, &|| Ok(root.join("config"))).unwrap();
+        assert_eq!(target, shared.canonicalize().unwrap().join("knife/v.mdl"));
+        // Reconnect must resolve the same physical cache without replacing the link.
+        assert_eq!(game_destination_under(&game, path, &|| Ok(root.join("config"))).unwrap(), target);
         fs::remove_dir_all(root).unwrap();
     }
 

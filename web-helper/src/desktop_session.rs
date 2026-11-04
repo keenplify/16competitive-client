@@ -21,6 +21,8 @@ struct Request {
     keep_launcher_open: bool,
     #[serde(default)]
     preferences_source: Option<PathBuf>,
+    #[serde(default)]
+    asset_config_home: Option<PathBuf>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -115,6 +117,19 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "Invalid Wine path" | "Wine path conversion failed" | "COMPATIBILITY_PATH_FAILED" => "COMPATIBILITY_PATH_FAILED",
         "Launcher restart verification failed" | "LAUNCHER_VERIFICATION_FAILED" => "LAUNCHER_VERIFICATION_FAILED",
         "This device cannot join competitive matches" | "DEVICE_DENIED" => "DEVICE_DENIED",
+        "GAME_ALREADY_RUNNING" | "Close the existing Counter-Strike game before starting a managed session" => "GAME_ALREADY_RUNNING",
+        "NATIVE_RECOVERY_FAILED" => "NATIVE_RECOVERY_FAILED",
+        "Wine path conversion timed out" | "Wine output timed out" => "COMPATIBILITY_PATH_FAILED",
+        "Could not obtain the signed Windows session helper" | "Could not download Windows session helper" | "WINDOWS_HELPER_DOWNLOAD_FAILED" => "WINDOWS_HELPER_DOWNLOAD_FAILED",
+        "Native inspector integrity check failed" | "NATIVE_INTEGRITY_FAILED" => "NATIVE_INTEGRITY_FAILED",
+        "Invalid compatibility cache root" | "COMPATIBILITY_CACHE_FAILED" => "COMPATIBILITY_CACHE_FAILED",
+        "NATIVE_INSTALL_FAILED" => "NATIVE_INSTALL_FAILED",
+        "STICKER_REQUEST_FAILED" => "STICKER_REQUEST_FAILED",
+        "STICKER_PREPARATION_FAILED" => "STICKER_PREPARATION_FAILED",
+        "ASSET_PREPARATION_FAILED" => "ASSET_PREPARATION_FAILED",
+        "STARTUP_CONFIG_FAILED" => "STARTUP_CONFIG_FAILED",
+        value if value.starts_with("Sticker cache") => "STICKER_CACHE_FAILED",
+        "STICKER_CACHE_FAILED" => "STICKER_CACHE_FAILED",
         _ => "PREPARATION_FAILED",
     }
 }
@@ -216,6 +231,10 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
         return Err("Invalid launcher handoff".into());
     }
     request.settings.validate()?;
+    if let Some(path) = &request.asset_config_home {
+        if !compatibility { return Err("Invalid compatibility cache root".into()); }
+        assets::set_compatibility_config_home(path.clone())?;
+    }
     match &request.reopen {
         Some(reopen) if !compatibility => reopen.validate()?,
         None if compatibility || request.keep_launcher_open => {}
@@ -335,6 +354,10 @@ mod tests {
     fn failure_codes_survive_compatibility_handoff_without_echoing_details() {
         assert_eq!(failure_code("Device authorization check failed"), "DEVICE_CHECK_FAILED");
         assert_eq!(failure_code("DEVICE_CHECK_FAILED"), "DEVICE_CHECK_FAILED");
+        for code in ["STICKER_REQUEST_FAILED", "STICKER_PREPARATION_FAILED", "ASSET_PREPARATION_FAILED", "NATIVE_RECOVERY_FAILED", "WINDOWS_HELPER_DOWNLOAD_FAILED", "COMPATIBILITY_CACHE_FAILED"] {
+            assert_eq!(failure_code(code), code);
+        }
+        assert_eq!(failure_code("Close the existing Counter-Strike game before starting a managed session"), "GAME_ALREADY_RUNNING");
         assert_eq!(failure_code("secret token or private backend body"), "PREPARATION_FAILED");
     }
     #[test]

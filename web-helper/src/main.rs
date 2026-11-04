@@ -859,7 +859,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     if inspector::check_device(&scanner_bundle, api)?["banned"] == true {
         return Err("This device cannot join competitive matches".into());
     }
-    assets::prepare_match(&game_dir, connection, api, token)?;
+    assets::prepare_match(&game_dir, connection, api, token).map_err(|_| "ASSET_PREPARATION_FAILED")?;
     let mut scanner = inspector::Session::start(&scanner_bundle, inspector::SessionOptions {
         api,
         token,
@@ -894,7 +894,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         match native_bundle::prepare(&user_config_dir()?) {
             Ok(bundle) => {
                 windows_native::validate_root(&root)?;
-                windows_native::restore_previous(&root, &bundle)?;
+                windows_native::restore_previous(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
                 let session = native_session::NativeSession::start_at(
                     root.join("16competitive/live-session"),
                     connection,
@@ -968,7 +968,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         None
     };
     startup = if connection.game() == "cs16" && !next_client {
-        Some(cs16_startup_file(&game_dir, connection)?)
+        Some(cs16_startup_file(&game_dir, connection).map_err(|_| "STARTUP_CONFIG_FAILED")?)
     } else {
         None
     };
@@ -1065,7 +1065,10 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         .stderr(Stdio::null());
     let prepared_child = (|| -> Result<std::process::Child, String> {
         if let Some((_, session)) = &native {
-            stickers::prepare(&game_dir, &session.directory, api, token, &connection.match_id)?;
+            stickers::prepare(&game_dir, &session.directory, api, token, &connection.match_id).map_err(|error| {
+                let code = desktop_session::failure_code(&error);
+                if code == "PREPARATION_FAILED" { "STICKER_PREPARATION_FAILED" } else { code }
+            })?;
         }
         game_startup.recheck()?;
         command.spawn().map_err(|error| error.to_string())

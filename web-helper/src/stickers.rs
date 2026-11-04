@@ -189,6 +189,14 @@ fn immutable(root: &Path, bytes: &[u8], extension: &str) -> Result<String, Strin
         root,
         &format!("models/16competitive/st/{}.{}", &digest[..32], extension),
     )?;
+    // Reconnects reuse immutable verified bytes. Some Wine/filesystem pairs
+    // report access denied (not AlreadyExists) for hard-linking over a cache hit.
+    if path.exists() {
+        if hash(&read(&path, TEXTURE_LIMIT)?) != digest {
+            return Err("Sticker cache hash mismatch".into());
+        }
+        return Ok(digest);
+    }
     let temporary = path.with_file_name(format!(".{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
         let mut options = fs::OpenOptions::new();
@@ -231,7 +239,7 @@ pub fn prepare(
         &format!("{api}/matches/{match_id}/stickers"),
         token,
         128 * 1024,
-    )?;
+    ).map_err(|_| "STICKER_REQUEST_FAILED")?;
     let recipes = recipes(&bytes)?;
     if recipes.is_empty() {
         return Ok(());
@@ -291,6 +299,21 @@ mod tests {
         assert!(recipes(br#"{"recipes":[]}"#).unwrap().is_empty());
         assert!(recipes(br#"{"recipes":[{"sourcePath":"../outside"}]}"#).is_err());
         assert!(recipes(br#"{"recipes":[{"version":1,"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourcePath":"models/16competitive/a/v.mdl","sourceSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stickers":[]}]}"#).is_err());
+    }
+    #[test]
+    fn reconnect_reuses_verified_cache_and_rejects_modified_bytes() {
+        let root=std::env::temp_dir().join(format!("16c-sticker-cache-{}",uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let bytes=b"immutable fixture";
+        let first=immutable(&root,bytes,"mdl").unwrap();
+        let path=root.join(format!("models/16competitive/st/{}.mdl",&first[..32]));
+        let modified=fs::metadata(&path).unwrap().modified().unwrap();
+        assert_eq!(immutable(&root,bytes,"mdl").unwrap(),first);
+        assert_eq!(fs::metadata(&path).unwrap().modified().unwrap(),modified);
+        fs::write(&path,b"modified").unwrap();
+        assert!(immutable(&root,bytes,"mdl").is_err());
+        assert_eq!(fs::read(&path).unwrap(),b"modified");
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn png_decoder_rejects_non_images() {
