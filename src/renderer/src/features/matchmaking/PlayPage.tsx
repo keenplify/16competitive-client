@@ -430,7 +430,7 @@ export function PlayPage({
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mx-auto mt-6 flex w-full max-w-sm flex-col gap-3">
-              {match?.mode === 'ffa' && (
+              {match?.mode === 'ffa' && currentCustomRoom?.matchId !== match.matchId && (
                 <Button
                   className="w-full gap-2"
                   variant="secondary"

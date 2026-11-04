@@ -2,6 +2,7 @@
 
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod assets;
+mod join_info;
 mod native_bundle;
 mod inspector;
 mod native_voice;
@@ -730,8 +731,9 @@ fn cs16_startup_file(
         .as_deref()
         .ok_or("Missing CS 1.6 join prefix")?;
     let path = game_dir.join(format!("{prefix}{short_id}.cfg"));
+    let cleanup = join_info::cleanup_commands(game_dir, &format!("{key}{short_id}"))?;
     let identity = format!(
-        "name \"{}\"\nsetinfo \"{key}{short_id}\" \"{}\"\npassword \"{}\"\n",
+        "{cleanup}name \"{}\"\nsetinfo \"{key}{short_id}\" \"{}\"\npassword \"{}\"\n",
         connection.player_name, connection.join_token, connection.password
     );
     let waits = "wait\n".repeat(
