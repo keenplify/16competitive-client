@@ -4108,3 +4108,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Game connection info string overflow errors are now automatically reported.
+
+## v2026.1104.6 — 2026-11-04
+
+### Stickers
+
+- Apply stickers to custom skins.
+- Preview sticker placement on custom skins.
+
+### Skin Previews
+
+- Improved skin preview accuracy and rotation views.
