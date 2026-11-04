@@ -4064,3 +4064,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved launcher updates and helper installation reliability.
 - Added clearer update and readiness warnings.
+
+## v2026.1104.2 — 2026-11-04
+
+### Fixes
+
+- Fixed crashes in custom weapon previews.
+- Improved handling of model errors in weapon and sticker previews.
