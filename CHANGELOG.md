@@ -4071,3 +4071,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed crashes in custom weapon previews.
 - Improved handling of model errors in weapon and sticker previews.
+
+## v2026.1104.3 — 2026-11-04
+
+### Match Preparation
+
+- Game assets now begin preparing earlier, helping matches get ready sooner.
+- Verified match assets are reused when available.
+
+### Sticker Artwork
+
+- Verified sticker artwork is now cached and persisted for reuse.
