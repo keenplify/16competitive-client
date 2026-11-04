@@ -4119,3 +4119,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Skin Previews
 
 - Improved skin preview accuracy and rotation views.
+
+## v2026.1104.7 — 2026-11-04
+
+### Weapon Previews
+
+- Permanently remove stickers from weapon previews with confirmation.
+- Improved sticker removal feedback and translations.
