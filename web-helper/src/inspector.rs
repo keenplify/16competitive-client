@@ -231,6 +231,10 @@ fn device_status(value: Value) -> Result<Value, String> {
 }
 
 pub(crate) fn check_device(bundle: &NativeBundle, api: &str) -> Result<Value, String> {
+    check_device_inner(bundle, api).map_err(|_| "Device authorization check failed".into())
+}
+
+fn check_device_inner(bundle: &NativeBundle, api: &str) -> Result<Value, String> {
     api_origin(api)?;
     bundle.verify_inspector()?;
     let mut process = Process::spawn(&bundle.inspector, "--device")?;

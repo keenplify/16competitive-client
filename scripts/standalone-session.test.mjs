@@ -199,3 +199,25 @@ rl.on('line',line=>{const value=JSON.parse(line);
     assert.equal(quits, 0)
   }
 )
+
+test(
+  'preparation failures retain safe helper codes without quitting the launcher',
+  { skip: process.platform === 'win32' },
+  async () => {
+    quits = 0
+    await writeFile(
+      helper,
+      `#!/usr/bin/env node
+process.stdin.once('data',()=>console.log('{"protocol":1,"event":"error","code":"DEVICE_CHECK_FAILED"}'));
+process.stdin.on('end',()=>process.exit(1));
+`,
+      { mode: 0o755 }
+    )
+    await assert.rejects(
+      launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, settings),
+      /DEVICE_CHECK_FAILED/
+    )
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    assert.equal(quits, 0)
+  }
+)

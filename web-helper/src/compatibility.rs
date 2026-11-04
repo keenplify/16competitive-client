@@ -202,6 +202,9 @@ fn launch_target(
             .recv_timeout(Duration::from_secs(300))
             .map_err(|_| "Windows session preparation failed")?
             .ok_or("Invalid compatibility readiness")?;
+        if frame["protocol"] == 1 && frame["event"] == "error" {
+            return Err(desktop_session::failure_code(frame["code"].as_str().unwrap_or("")).into());
+        }
         if frame != serde_json::json!({"event":"ready","protocol":1}) {
             return Err("Unsupported Windows supervisor protocol".into());
         }

@@ -106,6 +106,25 @@ impl Reopen {
 
 static STOP_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+// Return only fixed diagnostic codes, never paths, tokens or backend bodies.
+pub(crate) fn failure_code(error: &str) -> &'static str {
+    match error {
+        "Device authorization check failed" | "DEVICE_CHECK_FAILED" => "DEVICE_CHECK_FAILED",
+        "Match connection is no longer available" | "MATCH_UNAVAILABLE" => "MATCH_UNAVAILABLE",
+        "Invalid game installation" | "INSTALLATION_INVALID" => "INSTALLATION_INVALID",
+        "Invalid Wine path" | "Wine path conversion failed" | "COMPATIBILITY_PATH_FAILED" => "COMPATIBILITY_PATH_FAILED",
+        "Launcher restart verification failed" | "LAUNCHER_VERIFICATION_FAILED" => "LAUNCHER_VERIFICATION_FAILED",
+        "This device cannot join competitive matches" | "DEVICE_DENIED" => "DEVICE_DENIED",
+        _ => "PREPARATION_FAILED",
+    }
+}
+
+pub(crate) fn report_failure(error: &str) {
+    let mut output = std::io::stdout().lock();
+    let _ = writeln!(output, "{}", serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)}));
+    let _ = output.flush();
+}
+
 pub fn stop_requested() -> bool {
     STOP_REQUESTED.load(std::sync::atomic::Ordering::Acquire)
 }
@@ -312,6 +331,12 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn failure_codes_survive_compatibility_handoff_without_echoing_details() {
+        assert_eq!(failure_code("Device authorization check failed"), "DEVICE_CHECK_FAILED");
+        assert_eq!(failure_code("DEVICE_CHECK_FAILED"), "DEVICE_CHECK_FAILED");
+        assert_eq!(failure_code("secret token or private backend body"), "PREPARATION_FAILED");
+    }
     #[test]
     fn handoff_needs_commit_and_parent_exit_before_ownership() {
         let (tx, rx) = mpsc::sync_channel(3);

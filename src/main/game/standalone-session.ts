@@ -249,13 +249,21 @@ async function launchStandaloneTargetInner(
       while ((end = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, end)
         buffer = buffer.slice(end + 1)
-        let event: { protocol?: unknown; event?: unknown; connected?: unknown }
+        let event: { protocol?: unknown; event?: unknown; connected?: unknown; code?: unknown }
         try {
           event = JSON.parse(line)
         } catch {
           return fail(new Error('Invalid standalone response'))
         }
         if (event.protocol !== 1) return fail(new Error('Invalid standalone response'))
+        if (event.event === 'error') {
+          const code =
+            typeof event.code === 'string' && /^[A-Z_]{1,64}$/.test(event.code)
+              ? event.code
+              : 'PREPARATION_FAILED'
+          console.warn('[Standalone] preparation failed', { code })
+          return fail(new Error(`Standalone game preparation failed (${code})`))
+        }
         if (event.event === 'status' && committed && typeof event.connected === 'boolean') {
           if (active?.child === child) active.connected = event.connected
           continue

@@ -1256,6 +1256,7 @@ fn main() {
         // The local bridge is spawned by a protocol check. Its failures are
         // reported to the web page; a native dialog on every check can spam.
         if matches!(env::args().nth(1).as_deref(), Some("--desktop-session" | "--compatibility-session")) {
+            desktop_session::report_failure(&error);
             // The launcher owns handoff feedback. After a committed session it
             // reopens and restores authoritative results/reconnect state.
             eprintln!("Standalone session ended: {error}");
