@@ -4188,3 +4188,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reconnects
 
 - Improved diagnostics when reconnecting after connection issues.
+
+## v2026.1104.15 — 2026-11-04
+
+### Match Recovery
+
+- Restored matches no longer relaunch unexpectedly.
+
+### Game Display
+
+- Improved isolation for the native GoldSrc display backend.
