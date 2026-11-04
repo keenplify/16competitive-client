@@ -27,18 +27,20 @@ export function parseStickerRecipes(value: unknown): StickerRecipe[] {
       recipe.version !== STICKER_EXPORT_VERSION ||
       typeof recipe.id !== 'string' ||
       !/^[a-f0-9]{32}$/.test(recipe.id) ||
-      !Object.values(STOCK_STICKER_MODELS).some(
-        (entry) =>
-          entry.sha256 === recipe.sourceSha256 &&
-          (recipe.sourcePath === `models/v_${entry.model}.mdl` ||
-            recipe.sourcePath.startsWith('models/16competitive/'))
-      ) ||
+      typeof recipe.sourceSha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(recipe.sourceSha256) ||
       typeof recipe.sourcePath !== 'string' ||
       recipe.sourcePath.length >= 64 ||
       recipe.sourcePath.includes('..') ||
       !/^(models\/v_[a-z0-9]+\.mdl|models\/16competitive\/[a-zA-Z0-9_/-]+\.mdl)$/.test(
         recipe.sourcePath
       ) ||
+      (!recipe.sourcePath.startsWith('models/16competitive/') &&
+        !Object.values(STOCK_STICKER_MODELS).some(
+          (entry) =>
+            recipe.sourcePath === `models/v_${entry.model}.mdl` &&
+            recipe.sourceSha256 === entry.sha256
+        )) ||
       !Array.isArray(recipe.stickers) ||
       recipe.stickers.length < 1 ||
       recipe.stickers.length > 5

@@ -159,21 +159,16 @@ export function WeaponTile({
 }) {
   const t = useInventoryText()
   const open = () => {
-    if (!target.skinId && stockStickerModel(weaponKey))
-      useInventoryStore.getState().selectWeapon(target)
+    if (stockStickerModel(weaponKey)) useInventoryStore.getState().selectWeapon(target)
   }
-  const menu = useItemContextMenu(
-    t('customize'),
-    open,
-    !!target.skinId || !stockStickerModel(weaponKey)
-  )
+  const menu = useItemContextMenu(t('customize'), open, !stockStickerModel(weaponKey))
   return (
     <div
       className={twMerge('relative min-w-0 border border-white/15 bg-neutral-900/70', className)}
     >
       <button
         type="button"
-        disabled={!!target.skinId || !stockStickerModel(weaponKey)}
+        disabled={!stockStickerModel(weaponKey)}
         onClick={open}
         onContextMenu={menu.onContextMenu}
         onKeyDown={menu.onKeyDown}
@@ -192,11 +187,7 @@ export function WeaponTile({
         />
         <span className="w-full truncate text-center text-sm font-semibold">{target.name}</span>
         <span className="min-h-8 text-center text-xs text-neutral-400">
-          {target.skinId
-            ? t('customStickerUnsupported')
-            : !stockStickerModel(weaponKey)
-              ? t('stickerUnsupported')
-              : ''}
+          {!stockStickerModel(weaponKey) ? t('stickerUnsupported') : ''}
         </span>
       </button>
       {equipped && (
@@ -228,6 +219,13 @@ export function InventoryDialogs() {
         {s.editing && (
           <StickerPlacementSurface
             name={s.target?.name ?? ''}
+            stockModel={!s.target?.skinId}
+            presentationRotation={
+              s.weapons.find((w) => w.skin.id === s.target?.skinId)?.skin.previewRotation
+            }
+            hiddenTextures={
+              s.weapons.find((w) => w.skin.id === s.target?.skinId)?.skin.previewHiddenTextures
+            }
             weaponKey={
               s.target?.skinId
                 ? s.weapons.find((weapon) => weapon.skin.id === s.target?.skinId)?.skin.weaponKey

@@ -219,10 +219,6 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
   selectWeapon: (target) => {
     if (get().pending) return
-    if (target.skinId) {
-      set({ notice: { kind: 'error', key: 'customStickerUnsupported' } })
-      return
-    }
     set({ notice: null, target })
     if (!get().snapshot) void get().reload()
     if (get().selectedSticker) void get().openEditor()
@@ -249,10 +245,13 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
-        // Only verified stock binaries enter the legacy viewer parser.
-        if (!Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash))
+        // Stock sources retain exact pins; custom previews come from the authenticated catalog.
+        if (
+          !target.skinId &&
+          !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
+        )
           throw new Error('MODEL_UNSUPPORTED')
-        const atlas = prepareStickerAtlas(new Uint8Array(bytes))
+        const atlas = prepareStickerAtlas(new Uint8Array(bytes), !!target.skinId)
         const sticker = (await imageData(selectedSticker.imagePath)).pixels
         const applied = await Promise.all(
           attached.map(async (item) => ({
@@ -414,9 +413,12 @@ export async function previewAppliedStickers(
   const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
-  if (!Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash))
+  if (
+    weaponKey.startsWith('stock:') &&
+    !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
+  )
     throw new Error('MODEL_UNSUPPORTED')
-  const atlas = prepareStickerAtlas(new Uint8Array(bytes))
+  const atlas = prepareStickerAtlas(new Uint8Array(bytes), weaponKey.startsWith('skin:'))
   const layers = await Promise.all(
     applied.map(async (item) => ({
       sticker: (await imageData(item.imagePath)).pixels,

@@ -156,7 +156,7 @@ Counter-Strike and Steam are trademarks and/or registered trademarks of Valve
 Corporation. 1.6 Competitive is independent and is not affiliated with or
 endorsed by Valve Corporation.
 
-Loadout includes stock weapons alongside owned skins. Right-click a weapon and choose Preview for the detailed v_ inspection view, or switch to First Person. Weapon cards share the inspection presentation. Versioned thumbnail keys invalidate older p_ previews automatically. Saved stickers appear on the matching weapon variant in Loadout previews and cards. Inventory contains unused stickers and consumables; buy stickers in Store. Sticker authoring supports the 28 hash-pinned Steam CS 1.6 stock weapon viewmodels, including pistols, rifles, grenades and knife. MP5 uses the `mp5navy` weapon key and `v_mp5.mdl` file. Custom model binaries still require separate exporter validation; p_/w_ sticker rendering is not enabled. The expanded in-game allowlist requires a new approved helper release.
+Loadout includes stock weapons alongside owned skins. Right-click a weapon and choose Preview for the detailed v_ inspection view, or switch to First Person. Weapon cards share the inspection presentation. Versioned thumbnail keys invalidate older p_ previews automatically. Saved stickers appear on the matching weapon variant in Loadout previews and cards. Inventory contains unused stickers and consumables; buy stickers in Store. Sticker authoring supports the 28 hash-pinned Steam CS 1.6 stock weapon viewmodels, including pistols, rifles, grenades and knife. MP5 uses the `mp5navy` weapon key and `v_mp5.mdl` file. Owned custom weapon skins use the same editor with validated model geometry and authoritative source hashes. The current 54 custom catalog models pass atlas and projected-sticker bake validation. Incompatible future models fail validation before application; p_/w_ sticker rendering is not enabled. Custom delivery uses the v2 source-hash manifest and requires a matching approved helper release.
 
 Full-color sticker previews preserve RGBA artwork instead of reducing it to the
 MDL palette. Managed launches also stage content-addressed `.rgba` sidecars and
@@ -166,3 +166,5 @@ release and in-game verification on classic Linux/Windows and NextClient.
 Inspection thumbnails use cache namespace `viewmodel-inspection-v4`; the stock
 USP uses its animated idle pose and stock M3 reload-shell geometry is hidden only
 in inspection views, leaving first-person animations and source files intact.
+
+Admin rotation preview is exported with `node scripts/export-admin-weapon-preview.mjs` to the sibling admin repository. Inspection and static first-person `v_` views share the launcher renderer. A bounded 512×512 depth pass marks the inspection-visible triangles yellow in both views; this is an orientation guide, not game lighting. Unsaved angles change inspection presentation and the mask, never the first-person pose.

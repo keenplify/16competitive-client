@@ -1,3 +1,4 @@
+import { STOCK_STICKER_MODELS } from '../../shared/stock-sticker-models'
 import { createHash } from 'node:crypto'
 import type { StickerPixels } from '../../shared/sticker-model'
 import { parseStickerRecipes, type StickerRecipe } from '../../shared/sticker-recipes'
@@ -48,7 +49,10 @@ export async function bakeStickerRecipe(
       throw new Error('STICKER_IMAGE_INVALID')
     placements.push({ sticker: await decodeImage(bytes), projection: item.projection })
   }
-  const atlas = prepareStickerAtlas(source)
+  const atlas = prepareStickerAtlas(
+    source,
+    !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === recipe.sourceSha256)
+  )
   const bytes = bakeProjectedStickers(atlas, placements)
   const textures = fullColorStickerTextures(atlas, placements)
   const textureBytes = new Uint8Array(12 + textures.reduce((sum, t) => sum + 12 + t.rgba.length, 0))

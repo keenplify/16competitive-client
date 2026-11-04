@@ -1,3 +1,5 @@
+import { tintInspectionSide } from '../../libs/web-hlmv/lib/inspection-side-tint'
+import { viewmodelNeedsMirror } from '../skins/viewmodel-presentation'
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import {
@@ -23,14 +25,18 @@ import { useStickerEditor } from './sticker-editor.store'
 export function StickerViewport({
   label,
   previewModel,
-  stockModel = false,
+  stockModel = previewModel === undefined,
   presentationRotation,
   hiddenTextures,
   weaponKey,
+  firstPerson = false,
+  highlightInspectionSide = false,
   onFirstFrame,
   onError
 }: {
   label: string
+  firstPerson?: boolean
+  highlightInspectionSide?: boolean
   previewModel?: ArrayBuffer
   stockModel?: boolean
   presentationRotation?: readonly [number, number, number]
@@ -102,7 +108,7 @@ export function StickerViewport({
         staticData,
         [0],
         undefined,
-        readOnly
+        readOnly || !stockModel
           ? (model, sequence, frame) => calcRotations(model, sequence, frame, 0, true)
           : undefined
       )
@@ -185,7 +191,7 @@ export function StickerViewport({
           })
         )
       )
-      const container = createContainer(meshes, readOnly ? presentationRotation : undefined)
+      const container = createContainer(meshes, presentationRotation)
       scene.add(container)
       if (readOnly && stockModel && weaponKey === 'elite') {
         // Move complete pistol body parts, keeping their meshes aligned. These are
@@ -226,7 +232,7 @@ export function StickerViewport({
         // Use the same side for inspection and placement; never duplicate the decal
         // onto the back face. Orbit limits below keep placement on this side.
         new THREE.Vector3(
-          weaponKey === 'knife' && (!readOnly || stockModel) ? 1 : -1,
+          weaponKey === 'knife' && stockModel ? 1 : -1,
           readOnly ? 0 : 0.2,
           readOnly ? 0 : 0.35
         )
@@ -246,6 +252,32 @@ export function StickerViewport({
       controls.maxAzimuthAngle = azimuth + Math.PI / 9
       controls.minPolarAngle = polar - Math.PI / 12
       controls.maxPolarAngle = polar + Math.PI / 12
+      if (highlightInspectionSide && readOnly) {
+        tintInspectionSide(
+          flat.filter((mesh) => mesh.visible),
+          renderer,
+          camera
+        )
+      }
+      if (firstPerson && readOnly) {
+        // Inspection offsets select the highlighted side; they never rotate the in-game pose.
+        container.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
+        container.position.set(0, 0, 0)
+        container.updateMatrixWorld(true)
+        meshes.forEach((body) =>
+          body.forEach((part, pi) =>
+            part.forEach((mesh) => {
+              mesh.visible = pi === 0
+            })
+          )
+        )
+        element.style.transform = viewmodelNeedsMirror(data, 0, weaponKey ?? '') ? 'scaleX(-1)' : ''
+        camera.fov = 65
+        camera.position.set(0, 0, 0)
+        camera.lookAt(new THREE.Vector3(0, 0, 100))
+        camera.updateProjectionMatrix()
+        controls.enabled = false
+      }
       const raycaster = new THREE.Raycaster()
       let frame = 0,
         dirty = true,
@@ -486,7 +518,9 @@ export function StickerViewport({
     hiddenTextures,
     weaponKey,
     onFirstFrame,
-    onError
+    onError,
+    firstPerson,
+    highlightInspectionSide
   ])
   return (
     <div ref={host} className="absolute inset-0" aria-label={label} role="img">

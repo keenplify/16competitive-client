@@ -13,6 +13,8 @@ test('main-process apply sends every supported stock weapon and rejects unknown 
     const outfile = join(dir, 'main.mjs')
     const mocks = {
       electron: 'export const shell = {}',
+      './game/sticker-image-cache':
+        'export const cachedStickerImage=()=>{throw new Error("unexpected image read")}',
       './auth': 'export const getSessionToken=()=>"fixture"; export const clearSessionToken=()=>{}',
       './matchmaking': 'export const matchmakingConnection={getActiveApiUrl:()=>null}',
       './matchmaking-regions':
@@ -78,6 +80,8 @@ test('main-process apply sends every supported stock weapon and rejects unknown 
     for (const key of ['stock:unknown', 'stock:../knife', 'stock:constructor', null])
       await assert.rejects(applySticker(id, key, projection), /STICKER_WEAPON_INVALID/)
     assert.equal(requests.length, 28)
+    await applySticker(id, `skin:${id}`, projection)
+    assert.deepEqual(JSON.parse(requests.at(-1).init.body), { weaponKey: `skin:${id}`, projection })
   } finally {
     globalThis.fetch = originalFetch
     await rm(dir, { recursive: true, force: true })

@@ -129,14 +129,78 @@ export function validateStudioTextureLayout(bytes: Uint8Array): void {
   }
 }
 
-export function prepareStickerAtlas(input: Uint8Array): StickerAtlas {
+/** Bound allocation-driving tables before the legacy viewer parses catalog models. */
+export function validateStickerSourceLayout(bytes: Uint8Array): void {
+  modelTextures(bytes)
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const int = (at: number): number => view.getInt32(at, true)
+  const boundary = int(188)
+  const table = (countAt: number, offsetAt: number, size: number, max: number): number => {
+    const count = int(countAt),
+      offset = int(offsetAt)
+    if (
+      count < 0 ||
+      count > max ||
+      (count > 0 && (offset < 244 || offset + count * size > boundary))
+    )
+      throw new Error('model')
+    return count
+  }
+  const bones = table(140, 144, 112, 128),
+    sequences = table(164, 168, 176, 256)
+  if (!bones || !sequences || bones * sequences > 16384) throw new Error('model')
+  table(148, 152, 24, 32)
+  table(156, 160, 32, 256)
+  if (table(172, 176, 104, 1) !== 1) throw new Error('model')
+  table(212, 216, 88, 256)
+  for (let b = 0; b < bones; b++) {
+    const at = int(144) + b * 112,
+      parent = int(at + 32)
+    if (parent < -1 || parent >= b) throw new Error('model')
+    for (let axis = 0; axis < 12; axis++)
+      if (!Number.isFinite(view.getFloat32(at + 64 + axis * 4, true))) throw new Error('model')
+  }
+  for (let n = 0; n < sequences; n++) {
+    const at = int(168) + n * 176,
+      frames = int(at + 56),
+      blends = int(at + 120),
+      animation = int(at + 124)
+    if (
+      frames < 1 ||
+      frames > 10000 ||
+      blends < 1 ||
+      blends > 9 ||
+      int(at + 156) !== 0 ||
+      animation < 244 ||
+      animation + bones * blends * 12 > boundary
+    )
+      throw new Error('model')
+  }
+}
+
+export function prepareStickerAtlas(input: Uint8Array, decodeTranslations = false): StickerAtlas {
+  for (const density of [1, 0.5, 0.25, 0.125]) {
+    try {
+      return buildStickerAtlas(input, decodeTranslations, density)
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'atlas-capacity') throw error
+    }
+  }
+  throw new Error('MODEL_UNSUPPORTED')
+}
+function buildStickerAtlas(
+  input: Uint8Array,
+  decodeTranslations: boolean,
+  density: number
+): StickerAtlas {
+  validateStickerSourceLayout(input)
   validateStudioNormalLayout(input)
   validateStudioTextureLayout(input)
   const source = input.slice(),
     textures = modelTextures(source),
     view = new DataView(source.buffer)
   const model = parseModelCached(source.buffer),
-    transforms = calcRotations(model, 0, 0)
+    transforms = calcRotations(model, 0, 0, 0, decodeTranslations)
   if (model.header.numSkinFamilies !== 1) throw new Error('model')
   type Page = {
     original: number
@@ -163,7 +227,7 @@ export function prepareStickerAtlas(input: Uint8Array): StickerAtlas {
     const offset = end
     chunks.push(bytes)
     end += bytes.length
-    if (end > 16 * 1024 * 1024) throw new Error('model')
+    if (end > 16 * 1024 * 1024) throw new Error('atlas-capacity')
     return offset
   }
   const allocate = (
@@ -174,7 +238,8 @@ export function prepareStickerAtlas(input: Uint8Array): StickerAtlas {
     if (w > PAGE || h > PAGE) throw new Error('model')
     for (let i = 0; i <= pages.length; i++) {
       if (i === pages.length) {
-        if (pages.length + textures.length >= 128) throw new Error('model')
+        if (pages.length >= 32 || pages.length + textures.length >= 128)
+          throw new Error('atlas-capacity')
         pages.push({
           original,
           pixels: new Uint8Array(PAGE * PAGE + 768),
@@ -247,19 +312,36 @@ export function prepareStickerAtlas(input: Uint8Array): StickerAtlas {
                   : [vertices[j - 2], vertices[j - 1], vertices[j]]
             const lowX = Math.min(...tri.map((v) => v[2])),
               lowY = Math.min(...tri.map((v) => v[3]))
-            const width = Math.max(...tri.map((v) => v[2])) - lowX + 1 + PAD * 2,
-              height = Math.max(...tri.map((v) => v[3])) - lowY + 1 + PAD * 2
+            const spanX = Math.max(...tri.map((v) => v[2])) - lowX,
+              spanY = Math.max(...tri.map((v) => v[3])) - lowY
+            // Fit large authored UV spans in a bounded atlas page. Keep aspect ratio
+            // and map sampling/triangle UVs through the same scale.
+            const scale = Math.min(density, (PAGE - PAD * 2 - 1) / Math.max(1, spanX, spanY))
+            const width = Math.ceil(spanX * scale) + 1 + PAD * 2,
+              height = Math.ceil(spanY * scale) + 1 + PAD * 2
             const slot = allocate(original, width, height),
               page = pages[slot.page]
             for (let y = 0; y < height; y++)
               for (let x = 0; x < width; x++) {
-                const sx = Math.max(0, Math.min(texture.width - 1, lowX + x - PAD)),
-                  sy = Math.max(0, Math.min(texture.height - 1, lowY + y - PAD))
+                const sx = Math.max(
+                    0,
+                    Math.min(texture.width - 1, Math.round(lowX + (x - PAD) / scale))
+                  ),
+                  sy = Math.max(
+                    0,
+                    Math.min(texture.height - 1, Math.round(lowY + (y - PAD) / scale))
+                  )
                 page.pixels[(slot.y + y) * PAGE + slot.x + x] =
                   source[texture.offset + sy * texture.width + sx]
               }
             const remapped = tri.map(
-              (c) => [c[0], c[1], c[2] - lowX + slot.x + PAD, c[3] - lowY + slot.y + PAD] as Corner
+              (c) =>
+                [
+                  c[0],
+                  c[1],
+                  Math.round((c[2] - lowX) * scale) + slot.x + PAD,
+                  Math.round((c[3] - lowY) * scale) + slot.y + PAD
+                ] as Corner
             )
             const points = tri.map((c) => {
               if (c[0] < 0 || c[0] >= part.numVerts || c[1] < 0 || c[1] >= part.numNorms)
@@ -365,7 +447,7 @@ export function prepareStickerAtlas(input: Uint8Array): StickerAtlas {
     chunks.push(pixels)
     end += pixels.length
   })
-  if (end > 16 * 1024 * 1024) throw new Error('model')
+  if (end > 16 * 1024 * 1024) throw new Error('atlas-capacity')
   view.setInt32(188, textureDataOffset, true)
   view.setInt32(72, end, true)
   view.setInt32(180, textures.length + pages.length, true)

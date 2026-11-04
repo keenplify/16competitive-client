@@ -526,3 +526,80 @@ test(
     }
   }
 )
+
+test(
+  'custom catalog skins bake projected stickers with verified source hashes',
+  {
+    skip: !process.env.CUSTOM_STICKER_CATALOG || !process.env.CUSTOM_STICKER_MODEL_ROOT
+  },
+  async () => {
+    const bakePath = path.join(temp, 'custom-bake.mjs')
+    await build({
+      entryPoints: [new URL('../src/main/game/sticker-bake.ts', import.meta.url).pathname],
+      outfile: bakePath,
+      bundle: true,
+      platform: 'node',
+      format: 'esm',
+      logLevel: 'silent'
+    })
+    const { bakeStickerRecipe } = await import(pathToFileURL(bakePath).href)
+    const catalog = JSON.parse(await readFile(process.env.CUSTOM_STICKER_CATALOG, 'utf8'))
+    const image = new Uint8Array([1, 2, 3])
+    const imageHash = createHash('sha256').update(image).digest('hex')
+    for (const skin of catalog) {
+      const source = new Uint8Array(
+        await readFile(path.join(process.env.CUSTOM_STICKER_MODEL_ROOT, skin.view_model_path))
+      )
+      const atlas = prepareStickerAtlas(source, true)
+      assert.ok(atlas.faces.length, skin.name)
+      const [a, b, c] = atlas.faces[0].points
+      const sub = (a, b) => a.map((n, i) => n - b[i])
+      const unit = (a) => a.map((n) => n / Math.hypot(...a))
+      const cross = (a, b) => [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]
+      ]
+      const right = unit(sub(b, a)),
+        normal = unit(cross(sub(b, a), sub(c, a)))
+      const projection = {
+        center: a.map((n, i) => (n + b[i] + c[i]) / 3),
+        right,
+        up: unit(cross(normal, right)),
+        normal,
+        size: 0.2,
+        angle: 0
+      }
+      const content = {
+        version: 1,
+        sourcePath: skin.view_model_path,
+        sourceSha256: createHash('sha256').update(source).digest('hex'),
+        stickers: [{ imagePath: `media/16competitive/stickers/${imageHash}/image.png`, projection }]
+      }
+      const recipe = {
+        ...content,
+        id: createHash('sha256').update(JSON.stringify(content)).digest('hex').slice(0, 32)
+      }
+      const result = await bakeStickerRecipe(
+        recipe,
+        source,
+        async () => image,
+        async () => testSticker()
+      )
+      validateStudioNormalLayout(result.bytes)
+      validateStudioTextureLayout(result.bytes)
+      assert.notDeepEqual(result.bytes, atlas.model, skin.name)
+      const altered = source.slice()
+      altered[100] ^= 1
+      await assert.rejects(
+        bakeStickerRecipe(
+          recipe,
+          altered,
+          async () => image,
+          async () => testSticker()
+        ),
+        /MODEL_UNSUPPORTED/
+      )
+    }
+  }
+)

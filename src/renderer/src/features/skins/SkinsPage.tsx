@@ -742,9 +742,9 @@ function InventoryCard({
       .selectWeapon({ key: `skin:${owned.skin.id}`, skinId: owned.skin.id, name: owned.skin.name })
   const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
     {
-      label: inventoryText('customStickerUnsupported'),
+      label: inventoryText('customize'),
       action: customize,
-      disabled: true
+      disabled: !stockStickerModel(owned.skin.weaponKey)
     }
   ])
   const equipped = owned.equippedAt !== null
@@ -826,7 +826,7 @@ function LoadoutWeaponCard({
   const inventoryText = useInventoryText()
   const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
     {
-      label: inventoryText(equipped ? 'customStickerUnsupported' : 'customize'),
+      label: inventoryText('customize'),
       action: () =>
         useInventoryStore.getState().selectWeapon(
           equipped
@@ -837,7 +837,7 @@ function LoadoutWeaponCard({
               }
             : { key: `stock:${weaponKey}`, name: inventoryText('stock') }
         ),
-      disabled: !!equipped || !stockStickerModel(weaponKey)
+      disabled: !stockStickerModel(weaponKey)
     }
   ])
   const lobbyButtonLabel = lobbySelected ? 'Shown in your lobby' : 'Show this weapon in your lobby'

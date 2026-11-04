@@ -9,6 +9,9 @@ import './sticker-placement.css'
 export function StickerPlacementSurface({
   name,
   weaponKey,
+  stockModel = true,
+  presentationRotation,
+  hiddenTextures,
   count,
   onApply,
   onClose,
@@ -17,6 +20,9 @@ export function StickerPlacementSurface({
 }: {
   name: string
   weaponKey?: string
+  stockModel?: boolean
+  presentationRotation?: readonly [number, number, number]
+  hiddenTextures?: readonly string[]
   count: number
   onApply: () => void
   onClose?: () => void
@@ -58,7 +64,13 @@ export function StickerPlacementSurface({
         </button>
       )}
       <div className="sticker-placement-model">
-        <StickerViewport label={name} weaponKey={weaponKey} />
+        <StickerViewport
+          label={name}
+          weaponKey={weaponKey}
+          stockModel={stockModel}
+          presentationRotation={presentationRotation}
+          hiddenTextures={hiddenTextures}
+        />
         {!model && <LoaderCircle className="animate-spin" aria-label={t('pending')} />}
       </div>
       <footer className="sticker-placement-footer">

@@ -43,8 +43,8 @@ export function modelTextures(bytes: Uint8Array): StickerTexture[] {
     if (
       width < 1 ||
       height < 1 ||
-      width > 1024 ||
-      height > 1024 ||
+      width > 2048 ||
+      height > 2048 ||
       offset < 244 ||
       (offset < start + count * 80 && end > start) ||
       end > bytes.length ||

@@ -207,7 +207,7 @@ export async function stageMatchStickers(options: {
       } finally {
         await rm(textureTemporary, { force: true })
       }
-      rows.push(`${recipe.id}\t${artifact.sha256}\t${recipe.sourcePath}`)
+      rows.push(`${recipe.id}\t${artifact.sha256}\t${recipe.sourcePath}\t${recipe.sourceSha256}`)
     } catch (error) {
       console.warn('[Stickers] recipe unavailable; using ordinary model', {
         recipeId: recipe.id,
