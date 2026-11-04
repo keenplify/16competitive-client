@@ -156,7 +156,7 @@ export interface SkinGift {
 
 export interface SkinsApi {
   stickers(): Promise<import('./stickers').StickerSnapshot>
-  stickerBuy(id: string, input: import('./stickers').StickerBuy): Promise<void>
+  stickerBuy(id: string, input: import('./stickers').StickerBuy): Promise<{id:string}>
   stickerApply(id: string, weaponKey: string, projection: import('./stickers').StickerProjection): Promise<void>
   stickerImage(path: string): Promise<ArrayBuffer>
   collections(): Promise<import('./skin-collections').SkinCollection[]>

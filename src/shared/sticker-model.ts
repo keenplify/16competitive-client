@@ -1,6 +1,6 @@
 /** Match hand-material tokens, never weapon names such as handle.bmp. */
 export function isHandTexture(name: string): boolean {
-  return /(?:^|[^a-z0-9])(?:glove|finger|skin|hand|sleeve)(?:[^a-z0-9]|$)/i.test(name)
+  return /(?:^|[^a-z0-9])(?:gloves?|fingers?|skin|hands?|sleeves?)(?:[^a-z0-9]|$)/i.test(name)
 }
 
 /** Private AK-47 editor: immutable, palette-preserving IDST v10 texture baking. */

@@ -141,6 +141,9 @@ export function SkinFirstPersonPreview({
       <StickerViewport
         label={`${skin.name}: ${text.preview}`}
         previewModel={buffer}
+        stockModel={stock}
+        presentationRotation={skin.previewRotation}
+        hiddenTextures={skin.previewHiddenTextures}
         weaponKey={skin.weaponKey}
       />
     )

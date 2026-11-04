@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, resolve, sep } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
+import { readStockStickerSource } from './stock-sticker-source'
 
 const LOBBY_MODEL_PREFIX = 'lobby/'
 const LOBBY_MODEL_FILES = new Set([
@@ -47,6 +48,8 @@ export const readCounterStrikeModel = async (relativePath: unknown): Promise<Arr
   if (!isSafeModelPath(relativePath)) {
     throw new Error('A relative .mdl model path is required')
   }
+  const canonical = await readStockStickerSource(relativePath)
+  if (canonical) return canonical
 
   if (relativePath.startsWith(LOBBY_MODEL_PREFIX)) {
     const fileName = relativePath.slice(LOBBY_MODEL_PREFIX.length)

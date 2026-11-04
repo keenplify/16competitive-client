@@ -71,6 +71,7 @@ interface SkinModelThumbnailProps {
   modelKey?: string
   fallback: ReactNode
   className?: string
+  onSettled?: () => void
 }
 
 export function SkinModelThumbnail(props: SkinModelThumbnailProps): JSX.Element {
@@ -285,7 +286,7 @@ function SkinModelThumbnailContent({
 }
 
 // Bump this namespace whenever the rendered weapon presentation changes.
-const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v6'
+const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v7'
 function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
   const target = props.skinId ? `skin:${props.skinId}` : `stock:${props.weaponKey}`
   const stickers = useInventoryStore((s) =>
@@ -296,7 +297,11 @@ function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
     )
   )
   let revision = 2166136261
-  for (const character of stickers)
+  for (const character of JSON.stringify([
+    stickers,
+    props.previewRotation,
+    props.previewHiddenTextures
+  ]))
     revision = Math.imul(revision ^ character.charCodeAt(0), 16777619)
   const key = `${WEAPON_PREVIEW_VERSION}:${props.cacheKey}:${props.sourceRevision ?? ''}:${revision >>> 0}`
   return <WeaponThumbnailContent key={key} {...props} thumbnailKey={key} target={target} />
@@ -304,6 +309,7 @@ function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
 function WeaponThumbnailContent({
   thumbnailKey,
   target,
+  onSettled,
   ...props
 }: SkinModelThumbnailProps & { thumbnailKey: string; target: string }): JSX.Element {
   const [buffer, setBuffer] = useState<ArrayBuffer>()
@@ -311,6 +317,9 @@ function WeaponThumbnailContent({
   const [failed, setFailed] = useState(false)
   const active = useRef(false)
   const release = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    if (image || failed) onSettled?.()
+  }, [image, failed, onSettled])
   useEffect(() => {
     let cancelled = false
     active.current = true
@@ -404,6 +413,9 @@ function WeaponThumbnailContent({
             <StickerViewport
               label=""
               previewModel={buffer}
+              stockModel={!props.skinId}
+              presentationRotation={props.previewRotation}
+              hiddenTextures={props.previewHiddenTextures}
               weaponKey={props.weaponKey}
               onFirstFrame={capture}
               onError={fail}

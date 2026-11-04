@@ -1,3 +1,4 @@
+import { PurchaseSuccess } from '../inventory/PurchaseSuccess'
 import { AttachedStickerLinks } from './AttachedStickerLinks'
 import { StickerStoreCard } from '../inventory/InventoryPage'
 import { useInventoryStore } from '../inventory/inventory.store'
@@ -324,6 +325,7 @@ export function ShopPage(): JSX.Element {
   }
 
   const unlock = (skin: Skin, currency: SkinCurrency): void => {
+    const feedback = toast.loading(inventoryText('pending'))
     setBuyingId(skin.id)
     setPurchaseSkin(skin)
     setError(null)
@@ -343,6 +345,19 @@ export function ShopPage(): JSX.Element {
       .then(([inventory, catalog]) => {
         setOwnedSkins(new Map(inventory.map((item) => [item.skin.id, item])))
         setSkins(catalog)
+        toast.update(feedback, {
+          render: (
+            <PurchaseSuccess
+              item={{ kind: 'skin', id: skin.id }}
+              closeToast={() => toast.dismiss(feedback)}
+            />
+          ),
+          type: 'success',
+          isLoading: false,
+          autoClose: false,
+          closeButton: true,
+          closeOnClick: false
+        })
       })
       .catch((reason: unknown) => {
         const failure = errorDetails(reason)
@@ -360,7 +375,12 @@ export function ShopPage(): JSX.Element {
             : failure.code === 'INSUFFICIENT_P_CASH'
               ? 'You need more Papa Cash to unlock this skin.'
               : failure.message
-        toast.error(message)
+        toast.update(feedback, {
+          render: message,
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
       })
       .finally(() => {
         setBuyingId(null)

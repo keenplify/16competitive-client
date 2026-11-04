@@ -1,10 +1,11 @@
+import { cachedStickerImage } from './sticker-image-cache'
 import { sharedModelDirectory } from './shared-skin-storage'
 import { toWinePath } from './goldsrc-client-capabilities'
 import { app, nativeImage } from 'electron'
 import { Worker } from 'node:worker_threads'
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, open, realpath, writeFile, rename, link, rm } from 'node:fs/promises'
-import { join, relative, isAbsolute } from 'node:path'
+import { join, relative, isAbsolute, resolve } from 'node:path'
 import { parseStickerRecipes, type StickerRecipe } from '../../shared/sticker-recipes'
 import type { StickerArtifact } from './sticker-bake'
 import type { StickerPixels } from '../../shared/sticker-model'
@@ -155,20 +156,23 @@ export async function stageMatchStickers(options: {
     try {
       const sourcePath = await realpath(join(root, recipe.sourcePath))
       const sourceRelative = relative(root, sourcePath)
-      if (sourceRelative.startsWith('..') || isAbsolute(sourceRelative))
-        throw new Error('Invalid sticker source path')
+      const managedPrefix = 'models/16competitive/'
+      const outsideRoot = sourceRelative.startsWith('..') || isAbsolute(sourceRelative)
+      const sharedSource =
+        outsideRoot &&
+        recipe.sourcePath.startsWith(managedPrefix) &&
+        sourcePath ===
+          resolve(
+            await realpath(sharedModelDirectory()),
+            recipe.sourcePath.slice(managedPrefix.length)
+          )
+      if (outsideRoot && !sharedSource) throw new Error('Invalid sticker source path')
       const source = await boundedFile(sourcePath, 16 * 1024 * 1024)
       const images: { path: string; bytes: Uint8Array; pixels: StickerPixels }[] = []
       for (const item of recipe.stickers) {
         let image = imageCache.get(item.imagePath)
         if (!image) {
-          const response = await fetch(new URL(`/fastdl/${item.imagePath}`, apiUrl), {
-            redirect: 'error',
-            signal: AbortSignal.timeout(10000)
-          })
-          const bytes = await boundedResponse(response, 2000000)
-          if (hash(bytes) !== item.imagePath.split('/')[3])
-            throw new Error('Sticker artwork hash mismatch')
+          const bytes = await cachedStickerImage(item.imagePath, apiUrl)
           image = { path: item.imagePath, bytes, pixels: pixels(bytes) }
           imageCache.set(item.imagePath, image)
         }

@@ -1,3 +1,6 @@
+import { createEarlyAssetSync } from '../shared/early-asset-sync'
+import { parseStickerPurchase } from '../shared/stickers'
+import { validateReportImages, type ReportImage } from '../shared/diagnostic-logs'
 import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
 import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
@@ -195,6 +198,13 @@ const browserSettings = (): GameSettings => {
 
 const authenticatedGet = <T>(path: string): Promise<T> =>
   requestJson<T>(path, { authenticated: true })
+
+const earlyHelperAssetSync = createEarlyAssetSync()
+function prepareHelperAssets(settings: GameSettings): void {
+  void earlyHelperAssetSync(settings.cs16ExecutablePath, getWebSessionToken(), () =>
+    syncNativeAssets('download')
+  ).catch((error: unknown) => console.warn('[GameSettings] early helper asset sync failed', error))
+}
 
 let lastHelperSettings: { accountToken: string | null; settings: GameSettings } | null = null
 
@@ -591,8 +601,8 @@ const skins = {
     )
   },
   async stickers() { return parseStickerSnapshot(await authenticatedGet('/stickers')) },
-  async stickerBuy(id: string, input: import('../shared/stickers').StickerBuy): Promise<void> {
-    await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input))
+  async stickerBuy(id: string, input: import('../shared/stickers').StickerBuy): Promise<{id:string}> {
+    return parseStickerPurchase(await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input)))
   },
   async stickerApply(id: string, weaponKey: string, projection: import('../shared/stickers').StickerProjection): Promise<void> {
     await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, { weaponKey, projection })
@@ -1003,6 +1013,7 @@ const api: Window['api'] = {
       try {
         local = await nativeHelperSettings({ action: 'get' })
         settings = helperGameSettings(local)
+        prepareHelperAssets(settings)
       } catch {
         // A stopped/blocked helper must not erase the folder just selected in
         // this account's session. Readiness still gates competitive actions.
@@ -1046,9 +1057,11 @@ const api: Window['api'] = {
     },
     onNextClientInstallProgress: onNativeInstallerProgress,
     async save(folderPath) {
-      return helperGameSettings(
+      const settings = helperGameSettings(
         await nativeHelperSettings({ action: 'select', game: 'cs16', folderPath })
       )
+      prepareHelperAssets(settings)
+      return settings
     },
     async setVoicePttKey(key) {
       const [team, partyKey] = getPttKeys()
@@ -1348,11 +1361,12 @@ const api: Window['api'] = {
     async get() {
       return []
     },
-    async report(description: string, rendererLogs: string[], matchId?: string) {
+    async report(description: string, rendererLogs: string[], matchId?: string, images?: ReportImage[]) {
       const helperLogs = await nativeDiagnosticLogs(matchId).catch(
         () => '[Native helper diagnostics] Unavailable; reconnect the helper to include game logs.'
       )
       return jsonPost('/auth/issue-reports', {
+        images: validateReportImages(images),
         description,
         ...(matchId ? { matchId } : {}),
         logs: `${rendererLogs.join('\n').slice(-300_000) || '[no renderer logs]'}\n\n${helperLogs}`,

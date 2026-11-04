@@ -389,8 +389,8 @@ const operations: OperationsApi = {
 
 const diagnosticLogs: DiagnosticLogsApi = {
   get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
-  report: (description, rendererLogs, matchId) =>
-    ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs, matchId)
+  report: (description, rendererLogs, matchId, images) =>
+    ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs, matchId, images)
 }
 
 const adminDemos: AdminDemosApi = {

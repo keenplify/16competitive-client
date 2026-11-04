@@ -1,9 +1,10 @@
+import { IssueReportForm } from '../issue-report/IssueReportForm'
+import { useIssueReport } from '../issue-report/issue-report.store'
 import { Clipboard, Download, LoaderCircle } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import type { SkinAssetSyncProgress } from '../../../../shared/game-settings'
-import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
 import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
 import { translateRuntimeHindi } from '../i18n/ui-translations-hindi'
@@ -11,7 +12,6 @@ import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useCustomGamesStore } from '../matchmaking/custom-games.store'
-import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
@@ -20,15 +20,8 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
   const playView = useCustomGamesStore((state) => state.playView)
-  const matchId = useMatchmakingStore(
-    (state) =>
-      state.match?.matchId ?? state.connectionDetails?.matchId ?? state.completedMatch?.matchId
-  )
   const [progress, setProgress] = useState<SkinAssetSyncProgress | null>(null)
-  const [reportOpen, setReportOpen] = useState(false)
-  const [description, setDescription] = useState('')
-  const [reporting, setReporting] = useState(false)
-  const [reportStatus, setReportStatus] = useState('')
+  const reportOpen = useIssueReport((s) => s.open)
   const [railMode, setRailMode] = useState<RailMode>('absent')
 
   useEffect(() => {
@@ -113,41 +106,6 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
           : 'right-4 bottom-24'
       : reportPosition
 
-  const reportIssue = async (): Promise<void> => {
-    if (!description.trim()) {
-      setReportStatus('Please describe what went wrong.')
-      return
-    }
-    setReporting(true)
-    setReportStatus('')
-    try {
-      await window.api.diagnosticLogs.report(
-        description.trim(),
-        [
-          ...getRendererDiagnosticLogs(),
-          `[CatalogLoadingSnapshot] ${JSON.stringify({
-            page,
-            playView,
-            status: progress?.status ?? 'unavailable',
-            completedFiles: progress?.completedFiles ?? null,
-            totalFiles: progress?.totalFiles ?? null
-          })}`
-        ],
-        matchId ?? undefined
-      )
-      setReportStatus('Issue reported. Thank you!')
-      setDescription('')
-      window.setTimeout(() => {
-        setReportOpen(false)
-        setReportStatus('')
-      }, 2000)
-    } catch (error) {
-      setReportStatus(error instanceof Error ? error.message : 'Could not report issue.')
-    } finally {
-      setReporting(false)
-    }
-  }
-
   const renderPanels = (children: ReactNode): ReactNode =>
     theme === 'vgui2'
       ? createPortal(
@@ -166,7 +124,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
     >
       <button
         type="button"
-        onClick={() => setReportOpen(true)}
+        onClick={() => useIssueReport.setState({ open: true })}
         className="flex items-center gap-2  border border-cyan-300/30 bg-slate-950/90 px-3 py-2 text-cyan-100 shadow-xl backdrop-blur transition hover:bg-slate-800"
       >
         <Clipboard className="size-4" aria-hidden="true" />
@@ -174,38 +132,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
       </button>
       {renderPanels(
         <>
-          {reportOpen && (
-            <div className="w-80  border border-cyan-300/30 bg-slate-950/95 p-3 text-left text-cyan-100 shadow-xl backdrop-blur">
-              <p className="mb-2 font-medium">What went wrong?</p>
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                maxLength={10_000}
-                rows={4}
-                className="w-full resize-y   border border-slate-700 bg-slate-900 p-2 text-xs text-white outline-none focus:border-cyan-300"
-                placeholder="Tell us what happened and what you expected."
-              />
-              {reportStatus && <p className="mt-2 text-amber-200">{reportStatus}</p>}
-              <div className="mt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setReportOpen(false)}
-                  disabled={reporting}
-                  className="  px-2 py-1 text-slate-300 hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void reportIssue()}
-                  disabled={reporting}
-                  className="  bg-cyan-700 px-2 py-1 text-white hover:bg-cyan-600"
-                >
-                  {reporting ? 'Reporting…' : 'Submit report'}
-                </button>
-              </div>
-            </div>
-          )}
+          {reportOpen && <IssueReportForm />}
           {progress && (progress.status === 'syncing' || progress.status === 'error') && (
             <aside
               className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}

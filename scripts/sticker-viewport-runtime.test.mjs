@@ -25,14 +25,14 @@ import {useStickerEditor} from './src/renderer/src/features/sticker-editor/stick
 import {modelTextures} from './src/shared/sticker-model'
 import {prepareStickerAtlas} from './src/renderer/src/libs/web-hlmv/lib/sticker-atlas'
 let root
-window.mount = (bytes, weaponKey = 'ak47') => {
+window.mount = (bytes, weaponKey = 'ak47', rotation) => {
   const atlas=prepareStickerAtlas(new Uint8Array(bytes))
   useStickerEditor.setState({model:atlas.model,atlas,sticker:{width:8,height:8,rgba:new Uint8Array(256).fill(255)},applied:[],placed:false,projection:undefined})
   root=createRoot(document.getElementById('root'))
   root.render(<StrictMode><StickerViewport label={weaponKey} weaponKey={weaponKey} /></StrictMode>)
 }
 window.previewResult = {}
-window.mountPreview = (bytes, shared = false) => {
+window.mountPreview = (bytes, shared = false, weaponKey = 'ak47', rotation) => {
   const buffer = new Uint8Array(bytes).buffer
   if (shared) {
     const view = new DataView(buffer)
@@ -45,7 +45,7 @@ window.mountPreview = (bytes, shared = false) => {
   }
   window.previewResult = {frames:0, failures:0}
   if (!root) root=createRoot(document.getElementById('root'))
-  root.render(<StrictMode><StickerViewport label="preview" previewModel={buffer} weaponKey="ak47" onFirstFrame={()=>window.previewResult.frames++} onError={()=>window.previewResult.failures++}/></StrictMode>)
+  root.render(<StrictMode><StickerViewport label="preview" previewModel={buffer} presentationRotation={rotation} weaponKey={weaponKey} onFirstFrame={()=>window.previewResult.frames++} onError={()=>window.previewResult.failures++}/></StrictMode>)
 }
 window.unmount = () => {root.unmount();root=undefined}
 window.state = () => ({placed:useStickerEditor.getState().placed,projection:useStickerEditor.getState().projection,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),canvases:document.querySelectorAll('canvas').length})
@@ -145,6 +145,16 @@ assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
 assert.ok(await w.webContents.executeJavaScript('previewResult.frames > 0'),'preview recovers after malformed input')
 await w.webContents.executeJavaScript('unmount()')
 assert.deepEqual(errors.filter(e=>/precision|TypeError|Error creating WebGL/.test(e)),[])
+const fixtures = ${JSON.stringify(process.env.INSPECTION_FIXTURES ? JSON.parse(process.env.INSPECTION_FIXTURES) : [])}
+for (const fixture of fixtures) {
+ const modelBytes=[...readFileSync(fixture.path)]
+ await w.webContents.executeJavaScript('mountPreview('+JSON.stringify(modelBytes)+',false,'+JSON.stringify(fixture.weapon)+','+JSON.stringify(fixture.rotation || [0,0,0])+')')
+ await new Promise(r=>setTimeout(r,700))
+ assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
+ assert.ok(await w.webContents.executeJavaScript('previewResult.frames > 0'))
+ writeFileSync(fixture.screenshot,(await w.webContents.capturePage()).toPNG())
+ await w.webContents.executeJavaScript('unmount()')
+}
 console.log('StrictMode mount, mouse placement, and reopen passed')
 w.destroy();app.exit(0)
 }catch(e){console.error(e);w.destroy();app.exit(1)}

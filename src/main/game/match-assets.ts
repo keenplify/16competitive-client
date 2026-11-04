@@ -1,3 +1,5 @@
+import { cachedStickerImage } from './sticker-image-cache'
+import { stickerImagePath } from '../../shared/stickers'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
@@ -363,13 +365,19 @@ const fetchCatalogResource = async (
   throw new Error('Asset service retries exhausted.')
 }
 
-let skinSyncTask: Promise<void> | null = null
+let skinSyncTask: {
+  key: string
+  task: Promise<void>
+  listeners: Set<(progress: SkinAssetSyncProgress) => void>
+  progress: SkinAssetSyncProgress | null
+} | null = null
 
 const syncSkinAssets = async (
   apiUrl: string,
-  onProgress: (progress: SkinAssetSyncProgress) => void
+  onProgress: (progress: SkinAssetSyncProgress) => void,
+  storage: AssetStorage,
+  token: string | null
 ): Promise<void> => {
-  const token = getSessionToken()
   if (!token) {
     console.info('[MatchAssets] catalog sync blocked: no authenticated session')
     throw new NonRetryableAssetError('Sign in before downloading skin assets.')
@@ -396,8 +404,19 @@ const syncSkinAssets = async (
   if (!assets || !assets.every(isCatalogAsset)) {
     throw new Error('Skin asset catalog did not include valid SHA-256 hashes.')
   }
+  const stickerAssets = (payload as { stickerAssets?: unknown }).stickerAssets ?? []
+  if (!Array.isArray(stickerAssets) || stickerAssets.length > 10_000)
+    throw new Error('Invalid sticker asset catalog')
+  for (const asset of stickerAssets) {
+    if (
+      !isMatchAsset(asset) ||
+      !asset.sha256 ||
+      stickerImagePath(asset.path).split('/')[3] !== asset.sha256
+    )
+      throw new Error('Invalid sticker asset catalog')
+  }
   const catalog = assets as CatalogAsset[]
-  const storage = await prepareSkinStorage()
+  const totalFiles = catalog.length + stickerAssets.length
   console.info('[MatchAssets] catalog loaded', {
     entries: catalog.length,
     assetRoot: storage.contentRoot
@@ -405,9 +424,9 @@ const syncSkinAssets = async (
   let completedFiles = 0
   console.info('[MatchAssets] catalog progress', {
     completedFiles,
-    totalFiles: catalog.length
+    totalFiles
   })
-  onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+  onProgress({ status: 'syncing', completedFiles, totalFiles })
   await runWithConcurrency(
     catalog.map((asset) => async () => {
       console.info('[MatchAssets] catalog asset started', { path: asset.path })
@@ -456,46 +475,82 @@ const syncSkinAssets = async (
       completedFiles += 1
       console.info('[MatchAssets] catalog progress', {
         completedFiles,
-        totalFiles: catalog.length,
+        totalFiles,
         path: asset.path
       })
-      onProgress({ status: 'syncing', completedFiles, totalFiles: catalog.length })
+      onProgress({ status: 'syncing', completedFiles, totalFiles })
     })
   )
-  onProgress({ status: 'ready', completedFiles: catalog.length, totalFiles: catalog.length })
-  console.info('[MatchAssets] catalog sync ready', { count: catalog.length })
+  for (const asset of stickerAssets as CatalogAsset[]) {
+    await cachedStickerImage(asset.path, apiUrl)
+    completedFiles += 1
+    onProgress({ status: 'syncing', completedFiles, totalFiles })
+  }
+  onProgress({ status: 'ready', completedFiles: totalFiles, totalFiles })
+  console.info('[MatchAssets] catalog sync ready', { count: totalFiles })
 }
 
-export const startSkinAssetSync = (
+export const startSkinAssetSync = async (
   apiUrl: string,
   onProgress: (progress: SkinAssetSyncProgress) => void
 ): Promise<void> => {
-  if (skinSyncTask) {
-    console.info('[MatchAssets] catalog sync joined existing task')
-    return skinSyncTask
+  try {
+    const storage = await prepareSkinStorage()
+    const token = getSessionToken()
+    const key = JSON.stringify([storage.contentRoot, apiUrl, token])
+    while (skinSyncTask && skinSyncTask.key !== key) {
+      await skinSyncTask.task.catch(() => undefined)
+    }
+    if (!skinSyncTask) {
+      const entry = {
+        key,
+        task: Promise.resolve(),
+        listeners: new Set<(progress: SkinAssetSyncProgress) => void>(),
+        progress: null as SkinAssetSyncProgress | null
+      }
+      skinSyncTask = entry
+      // Start on the next microtask so the first subscriber sees every update.
+      entry.task = Promise.resolve()
+        .then(() =>
+          syncSkinAssets(
+            apiUrl,
+            (progress) => {
+              entry.progress = progress
+              for (const listener of entry.listeners) listener(progress)
+            },
+            storage,
+            token
+          )
+        )
+        .finally(() => {
+          if (skinSyncTask === entry) skinSyncTask = null
+        })
+    }
+    const entry = skinSyncTask
+    entry.listeners.add(onProgress)
+    if (entry.progress) onProgress(entry.progress)
+    try {
+      await entry.task
+    } finally {
+      entry.listeners.delete(onProgress)
+    }
+  } catch (error) {
+    console.error('[MatchAssets] catalog sync failed', {
+      error: error instanceof Error ? error.message : String(error)
+    })
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : ''
+    const message =
+      code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
+        ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
+        : error instanceof Error && error.message.includes('Choose your Counter-Strike folder')
+          ? 'Choose your Counter-Strike folder in Settings to download skin assets.'
+          : 'Could not download skin assets. Check your connection and try again.'
+    onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })
+    throw error
   }
-  skinSyncTask = syncSkinAssets(apiUrl, onProgress)
-    .catch((error: unknown) => {
-      console.error('[MatchAssets] catalog sync failed', {
-        error: error instanceof Error ? error.message : String(error)
-      })
-      const code =
-        typeof error === 'object' && error !== null && 'code' in error
-          ? String((error as { code?: unknown }).code)
-          : ''
-      const message =
-        code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
-          ? 'Counter-Strike folder is not writable. Check its permissions in Settings.'
-          : error instanceof Error && error.message.includes('Choose your Counter-Strike folder')
-            ? 'Choose your Counter-Strike folder in Settings to download skin assets.'
-            : 'Could not download skin assets. Check your connection and try again.'
-      onProgress({ status: 'error', completedFiles: 0, totalFiles: 0, message })
-      throw error
-    })
-    .finally(() => {
-      skinSyncTask = null
-    })
-  return skinSyncTask
 }
 
 const runWithConcurrency = async (tasks: Array<() => Promise<void>>): Promise<void> => {

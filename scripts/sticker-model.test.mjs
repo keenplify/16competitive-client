@@ -456,6 +456,10 @@ test('hand texture filtering keeps the weapon grip visible and paintable', () =>
     'view_skin.BMP',
     'view_finger.bmp',
     'hand.bmp',
+    'v_hands.bmp',
+    'gloves.bmp',
+    'fingers.bmp',
+    'sleeves.bmp',
     'sleeve_01.bmp'
   ])
     assert.equal(isHandTexture(name), true, name)

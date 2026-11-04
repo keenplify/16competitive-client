@@ -43,7 +43,9 @@
     "preview": "Preview",
     "points": "Points",
     "pCash": "P Cash",
-    "stickerUnsupported": "Stickers not supported yet"
+    "stickerUnsupported": "Stickers not supported yet",
+    "customStickerUnsupported": "Stickers on custom skins are not supported yet. Choose a stock weapon.",
+    "openLoadout": "Open loadout"
   },
   "ru": {
     "inventory": "Инвентарь",
@@ -89,7 +91,9 @@
     "preview": "Просмотр",
     "points": "Очки",
     "pCash": "P Cash",
-    "stickerUnsupported": "Наклейки пока не поддерживаются"
+    "stickerUnsupported": "Наклейки пока не поддерживаются",
+    "customStickerUnsupported": "Наклейки на пользовательских скинах пока не поддерживаются. Выберите стандартное оружие.",
+    "openLoadout": "Открыть снаряжение"
   },
   "tl": {
     "inventory": "Inventory",
@@ -135,7 +139,9 @@
     "preview": "Preview",
     "points": "Puntos",
     "pCash": "P Cash",
-    "stickerUnsupported": "Hindi pa suportado ang mga sticker"
+    "stickerUnsupported": "Hindi pa suportado ang mga sticker",
+    "customStickerUnsupported": "Hindi pa suportado ang stickers sa custom skins. Pumili ng stock na armas.",
+    "openLoadout": "Buksan ang loadout"
   },
   "th": {
     "inventory": "คลังไอเทม",
@@ -181,7 +187,9 @@
     "preview": "พรีวิว",
     "points": "คะแนน",
     "pCash": "P Cash",
-    "stickerUnsupported": "ยังไม่รองรับสติกเกอร์"
+    "stickerUnsupported": "ยังไม่รองรับสติกเกอร์",
+    "customStickerUnsupported": "ยังไม่รองรับสติกเกอร์บนสกินปรับแต่ง กรุณาเลือกอาวุธมาตรฐาน",
+    "openLoadout": "เปิดชุดอุปกรณ์"
   },
   "id": {
     "inventory": "Inventaris",
@@ -227,7 +235,9 @@
     "preview": "Pratinjau",
     "points": "Poin",
     "pCash": "P Cash",
-    "stickerUnsupported": "Stiker belum didukung"
+    "stickerUnsupported": "Stiker belum didukung",
+    "customStickerUnsupported": "Stiker pada skin kustom belum didukung. Pilih senjata bawaan.",
+    "openLoadout": "Buka perlengkapan"
   },
   "hi": {
     "inventory": "इन्वेंटरी",
@@ -273,7 +283,9 @@
     "preview": "प्रीव्यू",
     "points": "पॉइंट्स",
     "pCash": "P Cash",
-    "stickerUnsupported": "स्टिकर अभी समर्थित नहीं हैं"
+    "stickerUnsupported": "स्टिकर अभी समर्थित नहीं हैं",
+    "customStickerUnsupported": "कस्टम स्किन पर स्टिकर अभी समर्थित नहीं हैं। मूल हथियार चुनें।",
+    "openLoadout": "लोडआउट खोलें"
   },
   "pt": {
     "inventory": "Inventário",
@@ -319,7 +331,9 @@
     "preview": "Prévia",
     "points": "Pontos",
     "pCash": "P Cash",
-    "stickerUnsupported": "Adesivos ainda não disponíveis"
+    "stickerUnsupported": "Adesivos ainda não disponíveis",
+    "customStickerUnsupported": "Adesivos em skins personalizadas ainda não são suportados. Escolha uma arma padrão.",
+    "openLoadout": "Abrir equipamento"
   },
   "ja": {
     "inventory": "インベントリ",
@@ -365,6 +379,8 @@
     "preview": "プレビュー",
     "points": "ポイント",
     "pCash": "P Cash",
-    "stickerUnsupported": "ステッカーはまだ未対応です"
+    "stickerUnsupported": "ステッカーはまだ未対応です",
+    "customStickerUnsupported": "カスタムスキンへのステッカーはまだ対応していません。標準の武器を選んでください。",
+    "openLoadout": "ロードアウトを開く"
   }
 }

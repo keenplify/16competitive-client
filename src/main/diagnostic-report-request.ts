@@ -1,4 +1,6 @@
+import type { ReportImage } from '../shared/diagnostic-logs'
 type DiagnosticReportBody = {
+  images?: ReportImage[]
   description: string
   deduplicationKey?: string
   matchId?: string
@@ -18,7 +20,7 @@ export async function postDiagnosticReport(
       redirect: 'error',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15_000)
+      signal: AbortSignal.timeout(45_000)
     })
   const response = await post(body)
   if (response.status !== 403 || !body.matchId) return response

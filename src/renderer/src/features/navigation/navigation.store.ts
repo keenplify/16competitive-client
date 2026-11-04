@@ -13,7 +13,10 @@ export type LobbyPageId =
 
 export type ProfileTabId = 'overview' | 'matches' | 'skins' | 'inventory' | 'operation'
 
+export type PurchasedItem = { kind: 'skin' | 'sticker'; id: string }
 interface NavigationState {
+  purchasedItem: PurchasedItem | null
+  openPurchasedItem: (item: PurchasedItem) => void
   page: LobbyPageId
   profileTab: ProfileTabId
   storeStickerSearch: string | null
@@ -29,6 +32,13 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   page:
     typeof window !== 'undefined' && window.location.hash === '#settings' ? 'settings' : 'lobby',
   profileTab: 'overview',
+  purchasedItem: null,
+  openPurchasedItem: (item) =>
+    set({
+      page: 'profile',
+      profileTab: item.kind === 'sticker' ? 'inventory' : 'skins',
+      purchasedItem: item
+    }),
   storeStickerSearch: null,
   openStickerStore: (name) =>
     set({ page: 'store', storeStickerSearch: name, settingsTarget: null }),

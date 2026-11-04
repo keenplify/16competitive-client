@@ -1,3 +1,4 @@
+import type { ReportImage } from '../shared/diagnostic-logs'
 import { app } from 'electron'
 import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
@@ -30,19 +31,25 @@ export async function reportDiagnosticIssue(
   rendererLogs: string[],
   deduplicationKey?: string,
   matchId?: string,
-  apiUrl = API_BASE_URL
+  apiUrl = API_BASE_URL,
+  images?: ReportImage[]
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
   const logs = await collectDiagnosticIssueLogs(rendererLogs, matchId)
   const response = await postDiagnosticReport(apiUrl, token, {
     description,
+    images,
     ...(deduplicationKey ? { deduplicationKey } : {}),
     ...(matchId ? { matchId } : {}),
     logs: logs || 'No diagnostic logs recorded.',
     clientVersion: app.getVersion()
   })
-  if (!response.ok) throw new Error(`Could not report issue (${response.status}).`)
+  if (!response.ok) {
+    const failure = await response.json().catch(() => null)
+    if (failure?.error === 'INVALID_REPORT_IMAGES') throw new Error('INVALID_REPORT_IMAGES')
+    throw new Error(`Could not report issue (${response.status}).`)
+  }
   return (await response.json()) as { id: string; createdAt: string }
 }
 

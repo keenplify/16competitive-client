@@ -119,3 +119,10 @@ export function stockStickerModel(key: string): { model: string; sha256: string 
     ? STOCK_STICKER_MODELS[key]
     : undefined
 }
+
+/** Canonical source shared by the editor, match server and native module. */
+export function stockStickerModelPath(key: string): string {
+  const model = stockStickerModel(key)
+  if (!model) throw new Error('STICKER_WEAPON_INVALID')
+  return `models/16competitive/stock/${model.sha256.slice(0, 16)}/v.mdl`
+}

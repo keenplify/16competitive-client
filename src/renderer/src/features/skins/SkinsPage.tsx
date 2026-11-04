@@ -1,3 +1,4 @@
+import { useNavigationStore } from '../navigation/navigation.store'
 import { stockStickerModel } from '../../../../shared/stock-sticker-models'
 import { stockWeaponPreview } from './stock-weapon-preview'
 import { useItemContextMenu } from '../inventory/use-item-context-menu'
@@ -116,6 +117,16 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [changingId, setChangingId] = useState<string | null>(null)
   const [previewSkin, setPreviewSkin] = useState<OwnedSkin['skin'] | null>(null)
+  const purchased = useNavigationStore((s) => s.purchasedItem)
+  useEffect(() => {
+    if (purchased?.kind !== 'skin') return
+    const item = skins.find((i) => i.skin.id === purchased.id)
+    if (!item) return
+    // Synchronize the purchase navigation request after inventory has loaded.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPreviewSkin(item.skin)
+    useNavigationStore.setState({ purchasedItem: null })
+  }, [purchased, skins])
   const [sale, setSale] = useState<{ owned: OwnedSkin; quote: SkinResaleQuote } | null>(null)
   const [quotingId, setQuotingId] = useState<string | null>(null)
   const [selling, setSelling] = useState(false)
@@ -731,9 +742,9 @@ function InventoryCard({
       .selectWeapon({ key: `skin:${owned.skin.id}`, skinId: owned.skin.id, name: owned.skin.name })
   const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
     {
-      label: inventoryText('customize'),
+      label: inventoryText('customStickerUnsupported'),
       action: customize,
-      disabled: !stockStickerModel(owned.skin.weaponKey) || !!owned.reviewOnly
+      disabled: true
     }
   ])
   const equipped = owned.equippedAt !== null
@@ -815,7 +826,7 @@ function LoadoutWeaponCard({
   const inventoryText = useInventoryText()
   const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
     {
-      label: inventoryText('customize'),
+      label: inventoryText(equipped ? 'customStickerUnsupported' : 'customize'),
       action: () =>
         useInventoryStore.getState().selectWeapon(
           equipped
@@ -826,7 +837,7 @@ function LoadoutWeaponCard({
               }
             : { key: `stock:${weaponKey}`, name: inventoryText('stock') }
         ),
-      disabled: !stockStickerModel(weaponKey) || !!equipped?.reviewOnly
+      disabled: !!equipped || !stockStickerModel(weaponKey)
     }
   ])
   const lobbyButtonLabel = lobbySelected ? 'Shown in your lobby' : 'Show this weapon in your lobby'

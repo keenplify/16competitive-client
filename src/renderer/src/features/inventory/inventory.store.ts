@@ -1,4 +1,10 @@
-import { STOCK_STICKER_MODELS, stockStickerModel } from '../../../../shared/stock-sticker-models'
+import { createElement } from 'react'
+import { PurchaseSuccess } from './PurchaseSuccess'
+import type { PurchasedItem } from '../navigation/navigation.store'
+import {
+  STOCK_STICKER_MODELS,
+  stockStickerModelPath
+} from '../../../../shared/stock-sticker-models'
 import { create } from 'zustand'
 import { toast } from 'react-toastify'
 import type { OwnedSkin } from '../../../../shared/skins'
@@ -87,10 +93,20 @@ function errorKey(error: unknown): InventoryText {
           ? 'modelError'
           : 'error'
 }
-async function feedback(action: () => Promise<void>) {
+async function feedback(action: () => Promise<void>, purchased?: () => PurchasedItem | undefined) {
   const current = generation
   useInventoryStore.setState({ notice: { kind: 'pending', key: 'pending' } })
-  const id = toast.loading(t('pending'), { closeButton: false, closeOnClick: false })
+  const id = 'inventory-action'
+  if (toast.isActive(id))
+    toast.update(id, {
+      render: t('pending'),
+      isLoading: true,
+      type: 'default',
+      autoClose: false,
+      closeButton: false,
+      closeOnClick: false
+    })
+  else toast.loading(t('pending'), { toastId: id, closeButton: false, closeOnClick: false })
   try {
     await action()
     if (current !== generation) {
@@ -98,11 +114,14 @@ async function feedback(action: () => Promise<void>) {
       return
     }
     useInventoryStore.setState({ notice: { kind: 'success', key: 'done' } })
+    const item = purchased?.()
     toast.update(id, {
-      render: t('done'),
+      render: item
+        ? createElement(PurchaseSuccess, { item, closeToast: () => toast.dismiss(id) })
+        : t('done'),
       type: 'success',
       isLoading: false,
-      autoClose: 4000,
+      autoClose: item ? false : 4000,
       closeButton: true
     })
   } catch (error) {
@@ -200,6 +219,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
   selectWeapon: (target) => {
     if (get().pending) return
+    if (target.skinId) {
+      set({ notice: { kind: 'error', key: 'customStickerUnsupported' } })
+      return
+    }
     set({ notice: null, target })
     if (!get().snapshot) void get().reload()
     if (get().selectedSticker) void get().openEditor()
@@ -221,9 +244,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         if (attached.length >= 5) throw new Error('STICKER_LIMIT')
         const bytes = target.skinId
           ? await window.api.skins.previewModel(target.skinId, 'view')
-          : await window.api.models.read(
-              `v_${stockStickerModel(target.key.slice(6))?.model ?? 'invalid'}.mdl`
-            )
+          : await window.api.models.read(stockStickerModelPath(target.key.slice(6)))
         if (bytes.byteLength > 16 * 1024 * 1024) throw new Error('MODEL_UNSUPPORTED')
         const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
           .map((b) => b.toString(16).padStart(2, '0'))
@@ -290,29 +311,33 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (!purchase || pending) return
     const current = generation
     set({ pending: true })
+    let boughtId: string | undefined
     try {
-      await feedback(async () => {
-        // Retain uncertain requests even when the dialog is closed/reopened.
-        purchaseIntents.set(purchase.item.id, purchase.input)
-        set({ purchase: { ...purchase, attempted: true } })
-        try {
-          await window.api.skins.stickerBuy(purchase.item.id, purchase.input)
-        } catch (error) {
-          if (
-            current === generation &&
-            error instanceof Error &&
-            /INSUFFICIENT_|PRICE_CHANGED|STICKER_UNAVAILABLE/.test(error.message)
-          ) {
-            purchaseIntents.delete(purchase.item.id)
-            if (current === generation) set({ purchase: { ...purchase, attempted: false } })
+      await feedback(
+        async () => {
+          // Retain uncertain requests even when the dialog is closed/reopened.
+          purchaseIntents.set(purchase.item.id, purchase.input)
+          set({ purchase: { ...purchase, attempted: true } })
+          try {
+            boughtId = (await window.api.skins.stickerBuy(purchase.item.id, purchase.input)).id
+          } catch (error) {
+            if (
+              current === generation &&
+              error instanceof Error &&
+              /INSUFFICIENT_|PRICE_CHANGED|STICKER_UNAVAILABLE/.test(error.message)
+            ) {
+              purchaseIntents.delete(purchase.item.id)
+              if (current === generation) set({ purchase: { ...purchase, attempted: false } })
+            }
+            throw error
           }
-          throw error
-        }
-        if (current !== generation) return
-        purchaseIntents.delete(purchase.item.id)
-        set({ purchase: null })
-        await Promise.all([get().load(), useAuthStore.getState().refreshSession()])
-      })
+          if (current !== generation) return
+          purchaseIntents.delete(purchase.item.id)
+          set({ purchase: null })
+          await Promise.all([get().load(), useAuthStore.getState().refreshSession()])
+        },
+        () => (boughtId ? { kind: 'sticker', id: boughtId } : undefined)
+      )
     } catch {
       /* Keep purchase for retry. */
     } finally {
@@ -384,6 +409,8 @@ export async function previewAppliedStickers(
     .filter((item) => item.weaponKey === weaponKey && item.projection && item.appliedAt)
     .sort((a, b) => a.appliedAt!.localeCompare(b.appliedAt!) || a.id.localeCompare(b.id))
   if (!applied.length) return bytes
+  if (weaponKey.startsWith('stock:'))
+    bytes = await window.api.models.read(stockStickerModelPath(weaponKey.slice(6)))
   const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')

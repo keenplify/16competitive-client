@@ -13,7 +13,7 @@ import { stockWeaponPreview } from '../skins/stock-weapon-preview'
 import { isCharacterModel } from '../skins/skin-model-presentation'
 import { StickerPurchaseDialog } from './StickerPurchaseDialog'
 import { useNavigationStore } from '../navigation/navigation.store'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Package, Sticker, LoaderCircle } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -31,8 +31,10 @@ export function InventoryTile({
   children,
   onClick,
   className,
-  actionLabel
+  actionLabel,
+  focused
 }: {
+  focused?: boolean
   actionLabel?: string
   title: string
   image?: string
@@ -41,10 +43,24 @@ export function InventoryTile({
   className?: string
 }) {
   const t = useInventoryText()
+  const button = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (focused) {
+      button.current?.scrollIntoView({ block: 'center' })
+      button.current?.focus({ preventScroll: true })
+    }
+  }, [focused])
   const menu = useItemContextMenu(actionLabel ?? t('apply'), onClick)
   return (
-    <div className={twMerge('min-w-0 border border-white/15 bg-neutral-900/70', className)}>
+    <div
+      className={twMerge(
+        'min-w-0 border border-white/15 bg-neutral-900/70',
+        focused && 'ring-2 ring-sky-300',
+        className
+      )}
+    >
       <button
+        ref={button}
         type="button"
         className="flex w-full flex-col items-center gap-3 p-4 text-center hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-sky-300"
         onClick={onClick}
@@ -74,6 +90,10 @@ export function InventoryPage() {
     void useInventoryStore.getState().load()
   }, [])
   const items = state.snapshot?.items.filter((i) => !i.appliedAt) ?? []
+  const focus = useNavigationStore((s) => s.purchasedItem)
+  useEffect(() => {
+    if (focus?.kind === 'sticker') useInventoryStore.setState({ filter: 'all' })
+  }, [focus])
   const showStickers = ['all', 'stickers'].includes(state.filter)
   return (
     <section className="min-h-[560px] py-6" aria-label={t('inventory')}>
@@ -108,6 +128,7 @@ export function InventoryPage() {
             items.map((item) => (
               <InventoryTile
                 key={item.id}
+                focused={focus?.kind === 'sticker' && focus.id === item.id}
                 title={item.name}
                 image={state.images[item.imagePath]}
                 onClick={() => state.selectSticker(item)}
@@ -138,16 +159,21 @@ export function WeaponTile({
 }) {
   const t = useInventoryText()
   const open = () => {
-    if (stockStickerModel(weaponKey)) useInventoryStore.getState().selectWeapon(target)
+    if (!target.skinId && stockStickerModel(weaponKey))
+      useInventoryStore.getState().selectWeapon(target)
   }
-  const menu = useItemContextMenu(t('customize'), open, !stockStickerModel(weaponKey))
+  const menu = useItemContextMenu(
+    t('customize'),
+    open,
+    !!target.skinId || !stockStickerModel(weaponKey)
+  )
   return (
     <div
       className={twMerge('relative min-w-0 border border-white/15 bg-neutral-900/70', className)}
     >
       <button
         type="button"
-        disabled={!stockStickerModel(weaponKey)}
+        disabled={!!target.skinId || !stockStickerModel(weaponKey)}
         onClick={open}
         onContextMenu={menu.onContextMenu}
         onKeyDown={menu.onKeyDown}
@@ -166,7 +192,11 @@ export function WeaponTile({
         />
         <span className="w-full truncate text-center text-sm font-semibold">{target.name}</span>
         <span className="min-h-8 text-center text-xs text-neutral-400">
-          {!stockStickerModel(weaponKey) ? t('stickerUnsupported') : ''}
+          {target.skinId
+            ? t('customStickerUnsupported')
+            : !stockStickerModel(weaponKey)
+              ? t('stickerUnsupported')
+              : ''}
         </span>
       </button>
       {equipped && (
@@ -238,6 +268,15 @@ export function InventoryDialogs() {
             ))
           ) : (
             <>
+              {s.weapons
+                .filter((w) => !isCharacterModel(w.skin.weaponKey) && !w.reviewOnly)
+                .map((w) => (
+                  <WeaponTile
+                    key={w.skin.id}
+                    weaponKey={w.skin.weaponKey}
+                    target={{ key: `skin:${w.skin.id}`, name: w.skin.name, skinId: w.skin.id }}
+                  />
+                ))}
               {stickerPickerWeapons.map((weaponKey) => (
                 <WeaponTile
                   key={`stock:${weaponKey}`}
@@ -251,15 +290,6 @@ export function InventoryDialogs() {
                   }}
                 />
               ))}
-              {s.weapons
-                .filter((w) => !isCharacterModel(w.skin.weaponKey) && !w.reviewOnly)
-                .map((w) => (
-                  <WeaponTile
-                    key={w.skin.id}
-                    weaponKey={w.skin.weaponKey}
-                    target={{ key: `skin:${w.skin.id}`, name: w.skin.name, skinId: w.skin.id }}
-                  />
-                ))}
             </>
           )}
           {s.target && !unused.length && (

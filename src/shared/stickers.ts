@@ -161,3 +161,9 @@ export function parseStickerProjection(value: unknown): StickerProjection {
     angle: p.angle
   }
 }
+
+export function parseStickerPurchase(value: unknown): { id: string } {
+  if (!value || typeof value !== 'object' || !('id' in value))
+    throw new Error('STICKER_RESPONSE_INVALID')
+  return { id: stickerUuid(value.id) }
+}

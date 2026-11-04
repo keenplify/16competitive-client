@@ -23,12 +23,18 @@ import { useStickerEditor } from './sticker-editor.store'
 export function StickerViewport({
   label,
   previewModel,
+  stockModel = false,
+  presentationRotation,
+  hiddenTextures,
   weaponKey,
   onFirstFrame,
   onError
 }: {
   label: string
   previewModel?: ArrayBuffer
+  stockModel?: boolean
+  presentationRotation?: readonly [number, number, number]
+  hiddenTextures?: readonly string[]
   weaponKey?: string
   onFirstFrame?: (canvas: HTMLCanvasElement) => void
   onError?: () => void
@@ -96,7 +102,7 @@ export function StickerViewport({
         staticData,
         [0],
         undefined,
-        readOnly && weaponKey === 'usp'
+        readOnly
           ? (model, sequence, frame) => calcRotations(model, sequence, frame, 0, true)
           : undefined
       )
@@ -117,6 +123,7 @@ export function StickerViewport({
       })
       if (
         readOnly &&
+        stockModel &&
         weaponKey === 'm3' &&
         data.bones.length === 43 &&
         data.bones[42].name === 'Bone54'
@@ -164,15 +171,23 @@ export function StickerViewport({
               !isHandTexture(data.textures[mesh.userData.texture].name) &&
               !(
                 readOnly &&
+                hiddenTextures?.some(
+                  (name) =>
+                    name.toLowerCase() === data.textures[mesh.userData.texture].name.toLowerCase()
+                )
+              ) &&
+              !(
+                readOnly &&
+                stockModel &&
                 weaponKey === 'xm1014' &&
                 data.textures[mesh.userData.texture].name.toLowerCase() === 'shell.bmp'
               )
           })
         )
       )
-      const container = createContainer(meshes)
+      const container = createContainer(meshes, readOnly ? presentationRotation : undefined)
       scene.add(container)
-      if (readOnly && weaponKey === 'elite') {
+      if (readOnly && stockModel && weaponKey === 'elite') {
         // Move complete pistol body parts, keeping their meshes aligned. These are
         // presentation transforms only; source geometry and sticker UVs stay intact.
         const pistols = meshes.flatMap((body, index) => {
@@ -210,7 +225,11 @@ export function StickerViewport({
         // The stock knife exposes the opposite blade face from the firearm view.
         // Use the same side for inspection and placement; never duplicate the decal
         // onto the back face. Orbit limits below keep placement on this side.
-        new THREE.Vector3(weaponKey === 'knife' ? 1 : -1, readOnly ? 0 : 0.2, readOnly ? 0 : 0.35)
+        new THREE.Vector3(
+          weaponKey === 'knife' && (!readOnly || stockModel) ? 1 : -1,
+          readOnly ? 0 : 0.2,
+          readOnly ? 0 : 0.35
+        )
           .normalize()
           .multiplyScalar(size.length() * distanceScale)
       )
@@ -458,7 +477,17 @@ export function StickerViewport({
       fail(error)
     }
     return cleanup
-  }, [model, previewModel, readOnly, weaponKey, onFirstFrame, onError])
+  }, [
+    model,
+    previewModel,
+    readOnly,
+    stockModel,
+    presentationRotation,
+    hiddenTextures,
+    weaponKey,
+    onFirstFrame,
+    onError
+  ])
   return (
     <div ref={host} className="absolute inset-0" aria-label={label} role="img">
       {failed && (

@@ -16,6 +16,7 @@ import { ConnectionBanner } from './features/matchmaking/ConnectionBanner'
 import { MatchAbandonNotice } from './features/matchmaking/MatchAbandonNotice'
 import { UpdateBanner } from './features/updates/UpdateBanner'
 import { SkinAssetSyncIndicator } from './features/skins/SkinAssetSyncIndicator'
+import { ThumbnailWarmup } from './features/skins/ThumbnailWarmup'
 import { SkinGiftOverlay } from './features/skins/SkinGiftOverlay'
 import { VoiceChatDock } from './features/voice/VoiceChatDock'
 import { PartnerThemeController } from './features/partner-branding/PartnerThemeController'
@@ -49,6 +50,7 @@ function App(): React.JSX.Element {
         <MatchAbandonNotice />
         <ReadyCheckWarning />
         <SkinAssetSyncIndicator />
+        <ThumbnailWarmup />
         <MatchAssetPreparation />
         <QueueWarmupNotice />
         <WebHelperController />
