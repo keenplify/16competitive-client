@@ -7,6 +7,14 @@ use std::{
 pub struct Lease {
     _file: File,
 }
+impl Drop for Lease {
+    fn drop(&mut self) {
+        // A concurrently spawned child briefly inherits this file until exec.
+        // Closing our descriptor alone leaves flock held by that child. Release
+        // ownership explicitly so stale status cannot survive the owner's drop.
+        let _ = fs2::FileExt::unlock(&self._file);
+    }
+}
 impl Lease {
     pub fn native_wait(directory: &Path) -> Result<Self, String> {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
@@ -162,6 +170,24 @@ pub fn voice_status(directory: &Path, match_id: &str) -> serde_json::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn dropping_owner_releases_lock_even_with_inherited_descriptor() {
+        // dup models the shared open-file description inherited during fork,
+        // without forking the multithreaded test runner.
+        let root = std::env::temp_dir().join(format!("16c-inherited-lease-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let owner = VoiceOwnership::start(&root, "match-a").unwrap();
+        let inherited = owner._lease._file.try_clone().unwrap();
+        drop(owner);
+        fs::write(root.join("native-voice-owner.json"), br#"{"matchId":"match-a"}"#).unwrap();
+        assert_eq!(voice_status(&root, "match-a")["owned"], false);
+        let replacement = VoiceOwnership::start(&root, "match-b").unwrap();
+        drop(inherited);
+        assert_eq!(voice_status(&root, "match-b")["owned"], true);
+        drop(replacement);
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn voice_ownership_is_match_scoped_and_stale_files_do_not_claim_audio() {
         let root = std::env::temp_dir().join(format!("16c-voice-owner-{}", uuid::Uuid::new_v4()));
