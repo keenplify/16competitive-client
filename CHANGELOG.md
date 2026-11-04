@@ -4142,3 +4142,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added cosmetic previews for skins, stickers, weapons, and lobby models.
 - Improved sticker preview handling.
+
+## v2026.1104.9 — 2026-11-04
+
+### Reliability
+
+- Improved reliability when executable files are busy.
