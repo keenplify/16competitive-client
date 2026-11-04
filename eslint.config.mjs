@@ -15,6 +15,7 @@ export default defineConfig(
       '**/build',
       '**/dist-web',
       'resources/scoreboard/**',
+      'web-helper/assets/sticker-baker.js',
       'src/renderer/src/libs/web-hlmv/**'
     ]
   },

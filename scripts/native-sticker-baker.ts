@@ -19,7 +19,8 @@ Object.assign(globalThis, {
   },
   TextEncoder: class {
     encode(value: string): Uint8Array {
-      if (!/^[\x00-\x7f]*$/.test(value)) throw new Error('Non-ASCII texture name')
+      if (Array.from(value).some((character) => character.charCodeAt(0) > 127))
+        throw new Error('Non-ASCII texture name')
       return Uint8Array.from(value, (c) => c.charCodeAt(0))
     }
   }
@@ -29,6 +30,7 @@ export function recipes(json: string): string {
   return JSON.stringify(
     parseStickerRecipes(JSON.parse(json)).map((recipe) => {
       const { id, ...content } = recipe
+      void id
       return { ...recipe, canonical: JSON.stringify(content) }
     })
   )
