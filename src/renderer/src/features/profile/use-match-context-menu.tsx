@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent } from 'react'
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type JSX,
+  type KeyboardEvent,
+  type MouseEvent
+} from 'react'
 import { Film } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
@@ -17,16 +24,24 @@ export function useMatchContextMenu(className?: string): {
   const { t } = useTranslation()
   const dismiss = (): void => setTarget(null)
   useDismissibleMenu(Boolean(target), ref, dismiss)
-  useEffect(() => {
-    if (target) ref.current?.querySelector('button')?.focus()
+  useLayoutEffect(() => {
+    const menu = ref.current
+    if (!target || !menu) return
+    // The top layer keeps viewport coordinates independent of draggable window
+    // transforms and scrolling containers, while retaining modal focus ownership.
+    menu.showPopover()
+    const rect = menu.getBoundingClientRect()
+    menu.style.left = `${Math.max(8, Math.min(target.x, window.innerWidth - rect.width - 8))}px`
+    menu.style.top = `${Math.max(8, Math.min(target.y, window.innerHeight - rect.height - 8))}px`
+    menu.querySelector('button')?.focus({ preventScroll: true })
   }, [target])
   const show = (element: HTMLElement, id: string, x: number, y: number): void => {
     if (!window.api.matchHistory.watchDemo) return
     trigger.current = element
     setTarget({
       id,
-      x: Math.max(8, Math.min(x, window.innerWidth - 280)),
-      y: Math.max(8, Math.min(y, window.innerHeight - 120))
+      x,
+      y
     })
   }
   return {
@@ -43,10 +58,11 @@ export function useMatchContextMenu(className?: string): {
     menu: target ? (
       <div
         ref={ref}
+        popover="manual"
         role="menu"
         aria-label={t('demo.watch')}
         className={twMerge(
-          'fixed z-50 w-64 rounded-none border border-white/20 bg-neutral-900 p-1 text-white',
+          'fixed right-auto bottom-auto z-50 m-0 max-h-[calc(100dvh-1rem)] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-none border border-white/20 bg-neutral-900 p-1 text-white',
           className
         )}
         style={{ left: target.x, top: target.y }}

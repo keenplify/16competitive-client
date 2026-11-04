@@ -1,3 +1,5 @@
+import { STICKER_CHANNELS } from '../shared/stickers'
+import { listStickers, buySticker, applySticker, getStickerImage } from './skins'
 import { listMusicKits, buyMusicKit, equipMusicKit, previewMusicKit } from './skins'
 import { listCollections, getCollection, getCollectionQuote, buyCollection } from './skins'
 import { initializePartnerAppIdentity, type InstalledAppIdentity } from './partner-app-identity'
@@ -1160,6 +1162,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(COMMUNITY_CHAT_CHANNELS.send, (_, id: unknown, message: unknown) =>
     sendCommunityChat(id, message)
   )
+  ipcMain.handle(STICKER_CHANNELS.snapshot, () => listStickers())
+  ipcMain.handle(STICKER_CHANNELS.buy, (_event, id, input) => buySticker(id, input))
+  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection) => applySticker(id, weaponKey, projection))
+  ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
   ipcMain.handle(SKIN_CHANNELS.collections, () => listCollections())
   ipcMain.handle(SKIN_CHANNELS.collection, (_, id: unknown) => getCollection(id))

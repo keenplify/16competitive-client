@@ -3,6 +3,7 @@ import { ExternalLink, LoaderCircle, RefreshCw, RotateCcwClock, X } from 'lucide
 import { twMerge } from 'tailwind-merge'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { Button } from '../../components/ui/Button'
+import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { useTranslation } from '../i18n/i18n'
 import { usePaymentsStore } from './payments.store'
 
@@ -65,7 +66,11 @@ export function TopUpHistory(): JSX.Element {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 space-y-1">
                       <p className="text-lg font-semibold tabular-nums">
-                        {entry.order.pCashAmount.toLocaleString(language)} P-Cash
+                        <CurrencyAmount
+                          currency="P_CASH"
+                          amount={entry.order.pCashAmount}
+                          locale={language}
+                        />
                       </p>
                       <p className="text-sm text-neutral-300">
                         {entry.kind === 'paymento'

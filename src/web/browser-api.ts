@@ -1,3 +1,4 @@
+import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
 import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
@@ -588,6 +589,23 @@ const skins = {
         init: { method: 'POST' }
       })
     )
+  },
+  async stickers() { return parseStickerSnapshot(await authenticatedGet('/stickers')) },
+  async stickerBuy(id: string, input: import('../shared/stickers').StickerBuy): Promise<void> {
+    await jsonPost(`/stickers/${stickerId(id)}/buy`, validateStickerBuy(input))
+  },
+  async stickerApply(id: string, weaponKey: string, projection: import('../shared/stickers').StickerProjection): Promise<void> {
+    await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, { weaponKey, projection })
+  },
+  async stickerImage(path: string): Promise<ArrayBuffer> {
+    const key = stickerImagePath(path)
+    const response = await fetch(new URL(`/fastdl/${key}`, currentApiOrigin()), { signal: AbortSignal.timeout(10000), redirect: 'error' })
+    if (!response.ok || Number(response.headers.get('content-length')) > 2000000) throw new Error('STICKER_IMAGE_INVALID')
+    const bytes = await response.arrayBuffer()
+    if (bytes.byteLength > 2000000) throw new Error('STICKER_IMAGE_INVALID')
+    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('')
+    if (hash !== key.split('/')[3]) throw new Error('STICKER_IMAGE_INVALID')
+    return bytes
   },
   async musicKits() {
     return musicKitLogoUrls(

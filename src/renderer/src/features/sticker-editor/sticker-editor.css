@@ -1,0 +1,17 @@
+:root { font-family: 'Rajdhani', sans-serif; color: #edf3fa; background: #121b27; color-scheme: dark; scrollbar-color: #586878 #151b23; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; border-radius: 0; }
+button { cursor: pointer; }
+::selection { background: #70c9e8; color: #0b141b; }
+.standalone-sticker-editor { min-height: 100vh; }
+.standalone-sticker-editor > .sticker-placement { height: 100vh; }
+.sticker-development { position: absolute; top: 16px; left: 16px; max-width: 300px; font-size: 13px; z-index: 2; color: #bdcbd9; }
+.sticker-development[open] { background: #172331; padding: 12px; border: 1px solid #627184; }
+.sticker-development label { display: flex; justify-content: space-between; margin: 12px 0; }
+.sticker-development button, .sticker-development select { color: #edf3fa; background: #202c3b; border: 1px solid #627184; padding: 6px; }
+.sticker-development code { display: block; overflow-wrap: anywhere; font-size: 10px; margin-top: 10px; }
+.editor-toast { position: fixed; bottom: 24px; left: 24px; max-width: min(580px, 85vw); padding: 12px 18px; background: #253747; border: 1px solid #70c9e8; display: flex; gap: 10px; align-items: center; box-shadow: 0 8px 24px #0006; z-index: 10; }
+.spinner, .animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner, .animate-spin { animation: none; } }

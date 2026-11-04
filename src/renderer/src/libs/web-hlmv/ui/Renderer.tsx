@@ -1,3 +1,4 @@
+import { fullColorPreviewTextures } from '../lib/sticker-atlas'
 /* eslint-disable react-hooks/exhaustive-deps */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck bad types
@@ -331,9 +332,14 @@ export const Renderer = (props: Props): React.JSX.Element => {
     const startedAt = performance.now()
     console.info('[HLMV] Preparing textures', { textures: modelData.textures.length })
     try {
-      const preparedTextures = modelData.textures.map((texture) =>
-        buildTexture(props.modelBuffer, texture)
-      )
+      const preparedTextures = modelData.textures.map((texture, index) => {
+        const override = fullColorPreviewTextures
+          .get(props.modelBuffer)
+          ?.find((item) => item.texture === index)
+        return override
+          ? new Uint8ClampedArray(override.rgba)
+          : buildTexture(props.modelBuffer, texture)
+      })
       console.info('[HLMV] Textures prepared', {
         milliseconds: Math.round(performance.now() - startedAt),
         textures: preparedTextures.length

@@ -95,6 +95,16 @@ const english = {
   'chat.roomMessageLabel': 'Room chat message',
   'chat.roomMessagesLabel': 'Room chat messages',
   'chat.roomEmpty': 'Room messages appear here.',
+  'match.proton.runtimeUnavailable':
+    'Steam’s selected Proton version could not be found. Install it in Steam, then reconnect.',
+  'match.proton.gameUnavailable':
+    'The Windows Counter-Strike files required by Proton are missing. Verify the game files in Steam, then reconnect.',
+  'match.readyWarning.title': 'Match acceptance warning',
+  'match.readyWarning.description':
+    'You didn’t accept your last match. Missing or declining another match may result in a temporary matchmaking ban. Only click Play when you’re ready to accept.',
+  'match.readyWarning.acknowledge': 'I acknowledge',
+  'chat.roomJoined': '{{name}} joined the room.',
+  'chat.roomLeft': '{{name}} left the room.',
   'chat.roomLoadError': 'Could not load room messages. Retrying…',
   'chat.roomSendError': 'Could not send your message. Try again.',
   'app.renderErrorTitle': 'The launcher ran into a problem',
@@ -270,6 +280,16 @@ const russian: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'Сообщение в чат комнаты',
   'chat.roomMessagesLabel': 'Сообщения чата комнаты',
   'chat.roomEmpty': 'Сообщения комнаты появятся здесь.',
+  'match.proton.runtimeUnavailable':
+    'Выбранная в Steam версия Proton не найдена. Установите её в Steam и подключитесь снова.',
+  'match.proton.gameUnavailable':
+    'Отсутствуют файлы Counter-Strike для Windows, необходимые Proton. Проверьте файлы игры в Steam и подключитесь снова.',
+  'match.readyWarning.title': 'Предупреждение о принятии матча',
+  'match.readyWarning.description':
+    'Вы не приняли последний матч. Повторный пропуск или отказ может привести к временной блокировке поиска матчей. Нажимайте «Играть», только когда готовы принять матч.',
+  'match.readyWarning.acknowledge': 'Я понимаю',
+  'chat.roomJoined': '{{name}} присоединился к комнате.',
+  'chat.roomLeft': '{{name}} покинул комнату.',
   'chat.roomLoadError': 'Не удалось загрузить сообщения. Повторяем попытку…',
   'chat.roomSendError': 'Не удалось отправить сообщение. Попробуйте ещё раз.',
   'app.renderErrorTitle': 'В лаунчере произошла ошибка',
@@ -445,6 +465,16 @@ const taglish: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'Mensahe sa room chat',
   'chat.roomMessagesLabel': 'Mga mensahe sa room chat',
   'chat.roomEmpty': 'Dito lalabas ang mga mensahe sa room.',
+  'match.proton.runtimeUnavailable':
+    'Hindi makita ang bersyon ng Proton na pinili sa Steam. I-install ito sa Steam, saka kumonekta muli.',
+  'match.proton.gameUnavailable':
+    'Kulang ang mga Windows file ng Counter-Strike na kailangan ng Proton. I-verify ang game files sa Steam, saka kumonekta muli.',
+  'match.readyWarning.title': 'Babala sa pagtanggap ng laban',
+  'match.readyWarning.description':
+    'Hindi mo tinanggap ang huling laban. Ang muling hindi pagtanggap o pagtanggi ay maaaring magresulta sa pansamantalang pagbabawal sa matchmaking. Pindutin lang ang Play kapag handa kang tumanggap.',
+  'match.readyWarning.acknowledge': 'Nauunawaan ko',
+  'chat.roomJoined': 'Sumali si {{name}} sa room.',
+  'chat.roomLeft': 'Umalis si {{name}} sa room.',
   'chat.roomLoadError': 'Hindi ma-load ang mga mensahe. Susubukan ulit…',
   'chat.roomSendError': 'Hindi naipadala ang mensahe. Subukan ulit.',
   'app.renderErrorTitle': 'Nagka-problema ang launcher',
@@ -622,6 +652,16 @@ const thai: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'ข้อความแชตห้อง',
   'chat.roomMessagesLabel': 'ข้อความในแชตห้อง',
   'chat.roomEmpty': 'ข้อความในห้องจะปรากฏที่นี่',
+  'match.proton.runtimeUnavailable':
+    'ไม่พบเวอร์ชัน Proton ที่เลือกใน Steam โปรดติดตั้งใน Steam แล้วเชื่อมต่อใหม่',
+  'match.proton.gameUnavailable':
+    'ไม่พบไฟล์ Counter-Strike สำหรับ Windows ที่ Proton ต้องใช้ โปรดตรวจสอบไฟล์เกมใน Steam แล้วเชื่อมต่อใหม่',
+  'match.readyWarning.title': 'คำเตือนการยอมรับแมตช์',
+  'match.readyWarning.description':
+    'คุณไม่ได้ยอมรับแมตช์ล่าสุด หากพลาดหรือปฏิเสธอีกครั้ง คุณอาจถูกระงับการค้นหาแมตช์ชั่วคราว กดเล่นเมื่อพร้อมยอมรับแมตช์เท่านั้น',
+  'match.readyWarning.acknowledge': 'รับทราบ',
+  'chat.roomJoined': '{{name}} เข้าร่วมห้องแล้ว',
+  'chat.roomLeft': '{{name}} ออกจากห้องแล้ว',
   'chat.roomLoadError': 'โหลดข้อความไม่ได้ กำลังลองอีกครั้ง…',
   'chat.roomSendError': 'ส่งข้อความไม่ได้ โปรดลองอีกครั้ง',
   'app.renderErrorTitle': 'ตัวเปิดเกมพบปัญหา',
@@ -795,6 +835,16 @@ const indonesian: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'Pesan obrolan ruang',
   'chat.roomMessagesLabel': 'Pesan obrolan ruang',
   'chat.roomEmpty': 'Pesan ruang akan muncul di sini.',
+  'match.proton.runtimeUnavailable':
+    'Versi Proton yang dipilih di Steam tidak ditemukan. Instal melalui Steam, lalu hubungkan kembali.',
+  'match.proton.gameUnavailable':
+    'File Counter-Strike Windows yang diperlukan Proton tidak ditemukan. Verifikasi file game di Steam, lalu hubungkan kembali.',
+  'match.readyWarning.title': 'Peringatan penerimaan pertandingan',
+  'match.readyWarning.description':
+    'Kamu tidak menerima pertandingan terakhir. Melewatkan atau menolak pertandingan lagi dapat mengakibatkan larangan matchmaking sementara. Klik Main hanya saat siap menerima.',
+  'match.readyWarning.acknowledge': 'Saya mengerti',
+  'chat.roomJoined': '{{name}} bergabung ke ruang.',
+  'chat.roomLeft': '{{name}} meninggalkan ruang.',
   'chat.roomLoadError': 'Tidak dapat memuat pesan. Mencoba lagi…',
   'chat.roomSendError': 'Pesan tidak terkirim. Coba lagi.',
   'app.renderErrorTitle': 'Launcher mengalami masalah',
@@ -975,6 +1025,16 @@ const portuguese: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'Mensagem do chat da sala',
   'chat.roomMessagesLabel': 'Mensagens do chat da sala',
   'chat.roomEmpty': 'As mensagens da sala aparecerão aqui.',
+  'match.proton.runtimeUnavailable':
+    'A versão do Proton selecionada no Steam não foi encontrada. Instale-a pelo Steam e reconecte.',
+  'match.proton.gameUnavailable':
+    'Os arquivos do Counter-Strike para Windows necessários ao Proton estão ausentes. Verifique os arquivos do jogo no Steam e reconecte.',
+  'match.readyWarning.title': 'Aviso de aceitação de partida',
+  'match.readyWarning.description':
+    'Você não aceitou sua última partida. Deixar de aceitar ou recusar outra partida pode resultar em um bloqueio temporário da busca de partidas. Clique em Jogar apenas quando estiver pronto para aceitar.',
+  'match.readyWarning.acknowledge': 'Estou ciente',
+  'chat.roomJoined': '{{name}} entrou na sala.',
+  'chat.roomLeft': '{{name}} saiu da sala.',
   'chat.roomLoadError': 'Não foi possível carregar as mensagens. Tentando novamente…',
   'chat.roomSendError': 'Não foi possível enviar a mensagem. Tente novamente.',
   'app.renderErrorTitle': 'O launcher encontrou um problema',
@@ -1155,6 +1215,16 @@ const japanese: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'ルームチャットのメッセージ',
   'chat.roomMessagesLabel': 'ルームチャットのメッセージ',
   'chat.roomEmpty': 'ルームのメッセージはここに表示されます。',
+  'match.proton.runtimeUnavailable':
+    'Steamで選択したProtonが見つかりません。Steamでインストールしてから再接続してください。',
+  'match.proton.gameUnavailable':
+    'Protonに必要なWindows版Counter-Strikeのファイルがありません。Steamでゲームファイルを確認してから再接続してください。',
+  'match.readyWarning.title': 'マッチ承認の警告',
+  'match.readyWarning.description':
+    '前回のマッチを承認しませんでした。再び承認を逃したり辞退したりすると、マッチメイキングが一時的に制限される場合があります。承認できる状態でのみプレイを押してください。',
+  'match.readyWarning.acknowledge': '確認しました',
+  'chat.roomJoined': '{{name}}がルームに参加しました。',
+  'chat.roomLeft': '{{name}}がルームを退出しました。',
   'chat.roomLoadError': 'メッセージを読み込めません。再試行中…',
   'chat.roomSendError': 'メッセージを送信できません。もう一度お試しください。',
   'app.renderErrorTitle': 'ランチャーで問題が発生しました',
@@ -1333,6 +1403,16 @@ const hindi: Record<TranslationKey, string> = {
   'chat.roomMessageLabel': 'रूम चैट संदेश',
   'chat.roomMessagesLabel': 'रूम चैट संदेश',
   'chat.roomEmpty': 'रूम के संदेश यहाँ दिखाई देंगे।',
+  'match.proton.runtimeUnavailable':
+    'Steam में चुना गया Proton संस्करण नहीं मिला। इसे Steam में इंस्टॉल करें, फिर दोबारा कनेक्ट करें।',
+  'match.proton.gameUnavailable':
+    'Proton के लिए ज़रूरी Windows Counter-Strike फ़ाइलें नहीं मिलीं। Steam में गेम फ़ाइलें सत्यापित करें, फिर दोबारा कनेक्ट करें।',
+  'match.readyWarning.title': 'मैच स्वीकार करने की चेतावनी',
+  'match.readyWarning.description':
+    'आपने पिछला मैच स्वीकार नहीं किया। दोबारा मैच चूकने या अस्वीकार करने पर मैचमेकिंग से अस्थायी प्रतिबंध लग सकता है। स्वीकार करने के लिए तैयार होने पर ही खेलें दबाएँ।',
+  'match.readyWarning.acknowledge': 'मैं समझ गया',
+  'chat.roomJoined': '{{name}} रूम में शामिल हुए।',
+  'chat.roomLeft': '{{name}} रूम से बाहर गए।',
   'chat.roomLoadError': 'संदेश लोड नहीं हो सके। फिर कोशिश की जा रही है…',
   'chat.roomSendError': 'संदेश नहीं भेजा जा सका। फिर कोशिश करें।',
   'app.renderErrorTitle': 'लॉन्चर में समस्या आई',

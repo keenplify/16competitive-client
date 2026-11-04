@@ -140,6 +140,26 @@ export function buildGameInspector(platform, arch, { force = false } = {}) {
   const cosmetic = cosmeticTargets[`${platform}-${arch}`]
   const name = platform === 'win' ? 'game-inspector.exe' : 'game-inspector'
   const destination = join(root, 'resources', 'native', `${platform}-${arch}`)
+  if (!force && existsSync(join(destination, 'manifest.json'))) {
+    const prepared = spawnSync(
+      process.execPath,
+      [
+        '--experimental-strip-types',
+        join(root, 'scripts/check-prepared-helper.mjs'),
+        '--check',
+        root,
+        platform,
+        arch
+      ],
+      { stdio: 'ignore' }
+    )
+    if (prepared.status === 0) {
+      console.log(
+        `Preserving signed pinned helper ${platform}-${arch}; use --force for a local rebuild.`
+      )
+      return
+    }
+  }
   const stamp = join(destination, '.helper-build.json')
   const outputs = [join(destination, name)]
   if (cosmetic) outputs.push(join(destination, cosmetic.destination))

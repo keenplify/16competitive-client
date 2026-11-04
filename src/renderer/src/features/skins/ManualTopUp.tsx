@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { TextField } from '../../components/ui/TextField'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useTranslation } from '../i18n/i18n'
@@ -28,7 +29,8 @@ export function ManualTransferPopup({ order }: { order: ManualOrder }): JSX.Elem
             <h2 id="manual-payment-summary" className="text-xl font-semibold">
               {order.method.name} · {amount}
             </h2>
-            <p className="mt-1 text-sm text-neutral-300">
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-300">
+              <CurrencyIcon currency="P_CASH" className="size-5" />
               {t('payments.usdQuantity', {
                 amount: order.pCashAmount.toLocaleString(language),
                 usdt: order.amount.toLocaleString(language)

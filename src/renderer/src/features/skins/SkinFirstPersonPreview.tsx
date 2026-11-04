@@ -1,3 +1,5 @@
+import { StickerViewport } from '../sticker-editor/StickerViewport'
+import { previewAppliedStickers, useInventoryStore } from '../inventory/inventory.store'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useStore } from 'zustand'
 import {
@@ -21,7 +23,20 @@ import { resolvePreviewSequences } from './viewmodel-sequences'
 
 const camera = { position: [0, 0, 0], target: [0, 0, 100], fov: 65, near: 0.1, far: 1000 } as const
 
-export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
+export function SkinFirstPersonPreview({
+  skin,
+  stock = false,
+  stickerTargetKey,
+  inspection = false
+}: {
+  skin: Skin
+  stock?: boolean
+  stickerTargetKey?: string
+  inspection?: boolean
+}): JSX.Element {
+  const stickerRevision = useInventoryStore((s) =>
+    JSON.stringify(s.snapshot?.items.filter((i) => i.weaponKey === stickerTargetKey) ?? [])
+  )
   const { language } = useTranslation()
   const text = translations[language]
   const isKnife = skin.weaponKey === 'knife'
@@ -36,18 +51,23 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   const activePointer = useRef<number | null>(null)
   useEffect(() => {
     let active = true
-    void getCachedSkinModel(skin.id, skin.viewModelPath ?? '', 'view').then(
-      (bytes) => {
-        if (active) setBuffer(bytes)
-      },
-      () => {
-        if (active) setFailed(true)
-      }
-    )
+    const source = stock
+      ? window.api.models.read(skin.viewModelPath!)
+      : getCachedSkinModel(skin.id, skin.viewModelPath ?? '', 'view')
+    void source
+      .then((bytes) => (stickerTargetKey ? previewAppliedStickers(bytes, stickerTargetKey) : bytes))
+      .then(
+        (bytes) => {
+          if (active) setBuffer(bytes)
+        },
+        () => {
+          if (active) setFailed(true)
+        }
+      )
     return () => {
       active = false
     }
-  }, [skin.id, skin.viewModelPath])
+  }, [skin.id, skin.viewModelPath, stock, stickerTargetKey, stickerRevision])
   const sequences = useMemo(() => {
     if (!buffer) return null
     try {
@@ -116,6 +136,14 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
   }, [buffer, sequences, playback, kind])
   const sequenceAction =
     action === 'hold' ? 'charge' : action === 'flight' || action === 'explosion' ? 'throw' : action
+  if (inspection && buffer)
+    return (
+      <StickerViewport
+        label={`${skin.name}: ${text.preview}`}
+        previewModel={buffer}
+        weaponKey={skin.weaponKey}
+      />
+    )
   return (
     <div
       ref={stage}
@@ -145,7 +173,7 @@ export function SkinFirstPersonPreview({ skin }: { skin: Skin }): JSX.Element {
           >
             <ModelViewer
               modelBuffer={buffer}
-              modelKey={`${skin.id}:view`}
+              modelKey={`${skin.id}:view:${stickerRevision}`}
               firstPerson
               camera={camera}
               cameraLocked

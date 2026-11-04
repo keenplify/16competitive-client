@@ -340,18 +340,24 @@
   outline-offset: 2px;
 }
 
-/* Existing panels retain their sizes and content, with the original VGUI bevel. */
+/* Content wells are recessed; window chrome is a separate flat face. */
 :root[data-launcher-theme='vgui2']
   :where(
-    dialog,
-    [data-modal-dialog],
     .setup-card-enter,
     [class~='border'][class*='bg-neutral-'],
     [class~='border'][class*='bg-slate-']
   ):not(:where(button, input, select, textarea, [role='button'], [role='tab'])) {
   border-color: var(--vgui-light);
+  background-color: var(--vgui-inset);
+  box-shadow: var(--vgui-sunken);
+  backdrop-filter: none;
+}
+
+/* A window is one flat surface, with no extra raised frame around its title. */
+:root[data-launcher-theme='vgui2'] [data-modal-dialog] {
+  border-color: var(--vgui-light);
   background-color: var(--vgui-face);
-  box-shadow: var(--vgui-raised);
+  box-shadow: none;
   backdrop-filter: none;
 }
 
@@ -479,9 +485,7 @@
   padding: 4px;
   border: 1px solid var(--vgui-light);
   background: var(--vgui-face);
-  box-shadow:
-    var(--vgui-raised),
-    0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: none;
   pointer-events: auto;
 }
 
@@ -513,12 +517,16 @@
   cursor: move;
 }
 
-:root[data-launcher-theme='vgui2'] .vgui-window-close {
+:root[data-launcher-theme='vgui2'] .vgui-window-close,
+:root[data-launcher-theme='vgui2'] .vgui-window-close:hover:not(:disabled) {
   display: grid;
   place-items: center;
   width: 20px;
   height: 20px;
   padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -661,9 +669,10 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 4px 6px;
+  padding: 4px 8px;
+  border: 0;
   background: var(--vgui-face);
-  box-shadow: var(--vgui-raised);
+  box-shadow: none;
 }
 
 /* Room dialogs own their header, so there is a single close control. Keep
@@ -1382,9 +1391,7 @@
   padding: 4px;
   border: 1px solid var(--vgui-light);
   background: var(--vgui-face);
-  box-shadow:
-    var(--vgui-raised),
-    0 8px 24px rgb(0 0 0 / 40%);
+  box-shadow: none;
   outline: none;
 }
 

@@ -122,7 +122,8 @@ export function MusicKitPurchaseDialog(): JSX.Element {
         if (!state.pending) state.choosePurchase(null)
       }}
       labelledBy="music-purchase-title"
-      className="w-[calc(100%-2rem)] max-w-md border border-white/15 bg-neutral-950 p-5 text-white"
+      className="w-[calc(100%-2rem)] max-w-md border border-white/15 bg-neutral-950 text-white"
+      contentClassName="p-5"
     >
       <h2 id="music-purchase-title" className="text-xl font-semibold">
         {t('music.title')}

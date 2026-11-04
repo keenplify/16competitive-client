@@ -1,3 +1,6 @@
+import { StickerViewport } from '../sticker-editor/StickerViewport'
+import { previewAppliedStickers, useInventoryStore } from '../inventory/inventory.store'
+import { stockWeaponPreview } from './stock-weapon-preview'
 import { isGrenadeWeapon } from './weapon-categories'
 import type { SkinPreviewRotation } from '../../../../shared/skin-preview-rotation'
 import {
@@ -60,6 +63,7 @@ interface SkinModelThumbnailProps {
   cacheKey: string
   weaponKey: string
   skinId?: string
+  showAppliedStickers?: boolean
   modelPath?: string
   previewHiddenTextures?: string[]
   previewRotation?: SkinPreviewRotation
@@ -70,6 +74,7 @@ interface SkinModelThumbnailProps {
 }
 
 export function SkinModelThumbnail(props: SkinModelThumbnailProps): JSX.Element {
+  if (!isCharacterModel(props.weaponKey)) return <WeaponThumbnail {...props} />
   return (
     <SkinModelThumbnailContent
       key={`${props.cacheKey}:${props.sourceRevision ?? ''}:${getSkinPresentationRevision(props.weaponKey, props.previewRotation, props.previewHiddenTextures)}`}
@@ -273,6 +278,144 @@ function SkinModelThumbnailContent({
           ) : (
             fallback
           )}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// Bump this namespace whenever the rendered weapon presentation changes.
+const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v5'
+function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
+  const target = props.skinId ? `skin:${props.skinId}` : `stock:${props.weaponKey}`
+  const stickers = useInventoryStore((s) =>
+    JSON.stringify(
+      props.showAppliedStickers
+        ? (s.snapshot?.items.filter((i) => i.weaponKey === target) ?? [])
+        : []
+    )
+  )
+  let revision = 2166136261
+  for (const character of stickers)
+    revision = Math.imul(revision ^ character.charCodeAt(0), 16777619)
+  const key = `${WEAPON_PREVIEW_VERSION}:${props.cacheKey}:${props.sourceRevision ?? ''}:${revision >>> 0}`
+  return <WeaponThumbnailContent key={key} {...props} thumbnailKey={key} target={target} />
+}
+function WeaponThumbnailContent({
+  thumbnailKey,
+  target,
+  ...props
+}: SkinModelThumbnailProps & { thumbnailKey: string; target: string }): JSX.Element {
+  const [buffer, setBuffer] = useState<ArrayBuffer>()
+  const [image, setImage] = useState<string>()
+  const [failed, setFailed] = useState(false)
+  const active = useRef(false)
+  const release = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    active.current = true
+    void (async () => {
+      try {
+        const cached = await window.api.models.readThumbnail(thumbnailKey)
+        if (cancelled) return
+        if (cached) {
+          const url = await blobToDataUrl(new Blob([cached], { type: 'image/png' }))
+          if (!cancelled) setImage(url)
+          return
+        }
+        const done = await acquireRenderer()
+        if (cancelled) {
+          done()
+          return
+        }
+        release.current = done
+        const bytes = props.skinId
+          ? await getCachedSkinModel(props.skinId, String(props.sourceRevision ?? ''), 'view')
+          : await window.api.models.read(stockWeaponPreview(props.weaponKey, '').viewModelPath!)
+        const decorated =
+          props.showAppliedStickers && useInventoryStore.getState().snapshot
+            ? await previewAppliedStickers(bytes, target)
+            : bytes
+        if (!cancelled) setBuffer(decorated)
+      } catch {
+        if (!cancelled) {
+          setFailed(true)
+          release.current?.()
+          release.current = null
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+      active.current = false
+      release.current?.()
+      release.current = null
+    }
+  }, [
+    thumbnailKey,
+    target,
+    props.skinId,
+    props.sourceRevision,
+    props.weaponKey,
+    props.showAppliedStickers
+  ])
+  const fail = useCallback(() => {
+    if (active.current) {
+      setFailed(true)
+      release.current?.()
+      release.current = null
+    }
+  }, [])
+  const capture = useCallback(
+    (canvas: HTMLCanvasElement) => {
+      void captureThumbnail(canvas)
+        .then(async (blob) => {
+          const url = await blobToDataUrl(blob)
+          if (!active.current) return
+          setImage(url)
+          release.current?.()
+          release.current = null
+          await window.api.models.writeThumbnail(thumbnailKey, await blob.arrayBuffer())
+        })
+        .catch((error: unknown) => {
+          console.warn('Could not capture weapon thumbnail', error)
+          if (active.current) {
+            setFailed(true)
+            release.current?.()
+            release.current = null
+          }
+        })
+    },
+    [thumbnailKey]
+  )
+  return (
+    <span className={twMerge('relative block h-full w-full', props.className)}>
+      {image ? (
+        <img className="h-full w-full object-contain" src={image} alt="" draggable={false} />
+      ) : failed ? (
+        props.fallback
+      ) : buffer ? (
+        <span className="absolute inset-0 overflow-hidden">
+          {/* Cache one stable aspect ratio, independent of the card that renders first. */}
+          <span
+            className="pointer-events-none absolute opacity-0"
+            style={{ width: 512, height: 256 }}
+          >
+            <StickerViewport
+              label=""
+              previewModel={buffer}
+              weaponKey={props.weaponKey}
+              onFirstFrame={capture}
+              onError={fail}
+            />
+          </span>
+          <span className="absolute inset-0 flex items-center justify-center" role="status">
+            <LoaderCircle className="size-5 animate-spin text-sky-300" />
+          </span>
+        </span>
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center" role="status">
+          <LoaderCircle className="size-5 animate-spin text-sky-300" />
         </span>
       )}
     </span>

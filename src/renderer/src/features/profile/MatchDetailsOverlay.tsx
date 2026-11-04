@@ -51,7 +51,8 @@ export function MatchDetailsOverlay(): JSX.Element | null {
           if (menu) setMenu(null)
           else dismiss()
         }}
-        className="fixed inset-0 m-auto max-h-[90vh] w-[min(1000px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 p-6 text-white backdrop:bg-black/80 sm:p-8"
+        className="fixed inset-0 m-auto max-h-[90vh] w-[min(1000px,94vw)] max-w-none overflow-y-auto rounded-none border border-white/15 bg-neutral-950 text-white backdrop:bg-black/80"
+        contentClassName="p-6 sm:p-8"
         label={t('profile.matchDetails')}
         vguiNavigation={{
           backLabel: t('profile.back'),

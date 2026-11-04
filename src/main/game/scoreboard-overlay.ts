@@ -1,3 +1,5 @@
+import { stageMatchStickers } from './sticker-delivery'
+import type { SteamProtonRuntime } from './steam-proton'
 import { encodeHudFrame } from './hud-frame'
 import { beginGamePerformance, captureGamePerformance } from './game-performance'
 import { createStandaloneRestartHandoff } from './standalone-restart'
@@ -165,6 +167,7 @@ export class ScoreboardOverlaySession {
   private frameWriting = false
   private cardFrameWriting = false
   private stopped = false
+  private terminalMatch = false
   private readonly lease: SessionLease
   private lastSnapshot: Snapshot = null
   private feedAvailable = false
@@ -320,6 +323,7 @@ export class ScoreboardOverlaySession {
     compatibility?: {
       gameDirectory: GoldSrcModDirectory
       runtime: CosmeticRuntime
+      proton?: SteamProtonRuntime
       authFile?: { name: string; sha256: string }
     },
     partnerUi?: { serverId: string; connectionId: string; pages: PartnerUiPage[] }
@@ -403,7 +407,8 @@ export class ScoreboardOverlaySession {
             gameRoot!,
             compatibility?.gameDirectory,
             compatibility?.runtime,
-            compatibility?.authFile
+            compatibility?.authFile,
+            compatibility?.proton
           )
       : null
     if (windowsProxy && !windowsInstallation) {
@@ -449,6 +454,12 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'manifest.json'), JSON.stringify({ matchId }), {
         mode: 0o600
       })
+      if (gameRoot && !partnerUi && (!compatibility || compatibility.gameDirectory === 'cstrike')) {
+        const token = getSessionToken()
+        if (token) await stageMatchStickers({ matchId, apiUrl, token, gameRoot, session: directory, wine }).catch(error => {
+          console.warn('[Stickers] match preparation unavailable; using ordinary models', { error: error instanceof Error ? error.message : String(error) })
+        })
+      }
       await writeFile(join(directory, 'server.endpoint'), `${serverEndpoint}\n`, { mode: 0o600 })
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
@@ -461,13 +472,13 @@ export class ScoreboardOverlaySession {
       // the authenticated launch and reads this per-match session. It also
       // works for normal Steam launches: without an active session it simply
       // executes Valve's original command.
-      await writeFile(
-        join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'),
-        buildSteamScoreboardWrapper(directory, modulePath),
-        {
-          mode: 0o700
-        }
-      )
+      if (!wine) {
+        await writeFile(
+          join(app.getPath('userData'), 'scoreboard-steam-wrapper.sh'),
+          buildSteamScoreboardWrapper(directory, modulePath),
+          { mode: 0o700 }
+        )
+      }
       const requireResource = createRequire(import.meta.url)
       const { readSnapshot, parseSnapshot } = requireResource(
         join(assets, 'scoreboard-feed.cjs')
@@ -483,6 +494,7 @@ export class ScoreboardOverlaySession {
             frame: false,
             transparent: true,
             show: false,
+            focusable: false,
             webPreferences: {
               offscreen: true,
               preload: join(assets, 'preload.cjs'),
@@ -500,6 +512,7 @@ export class ScoreboardOverlaySession {
             frame: false,
             transparent: true,
             show: false,
+            focusable: false,
             webPreferences: {
               offscreen: true,
               preload: join(assets, 'preload.cjs'),
@@ -784,7 +797,7 @@ export class ScoreboardOverlaySession {
   }
 
   private scheduleRefresh(): void {
-    if (this.stopped || this.busy) return
+    if (this.stopped || this.terminalMatch || this.busy) return
     this.refreshTask = this.refresh().catch((error: unknown) =>
       console.warn('[Scoreboard] refresh failed', error)
     )
@@ -831,7 +844,7 @@ export class ScoreboardOverlaySession {
   }
 
   private async refresh(): Promise<void> {
-    if (this.stopped || this.busy) return
+    if (this.stopped || this.terminalMatch || this.busy) return
     this.busy = true
     try {
       const token = getSessionToken()
@@ -870,10 +883,22 @@ export class ScoreboardOverlaySession {
         }
       )
       // Only an authenticated match member receives 410 for a terminal match.
-      // Stop the HUD lifecycle instead of filing a false outage after shutdown.
+      // Revoke live data immediately, but keep the fixed session lease until
+      // game exit. Revoking ownership here makes the native module restart CS
+      // while the player is still viewing the final round/result screen.
       if (response.status === 410) {
-        console.info('[Scoreboard] match ended; stopping live HUD', { matchId: this.matchId })
-        this.stop()
+        console.info('[Scoreboard] match ended; stopping live feed until game exit', {
+          matchId: this.matchId
+        })
+        this.terminalMatch = true
+        this.feedAvailable = false
+        this.transportFeed = null
+        this.transportRevision = null
+        // Tab may display the last authenticated result without refreshing any
+        // live tactical data or extending its expiry.
+        if (this.timer) clearInterval(this.timer)
+        this.timer = null
+        await unlink(this.feedPath).catch(() => undefined)
         return
       }
       if (response.status === 401 || response.status === 403) {

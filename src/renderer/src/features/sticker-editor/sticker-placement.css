@@ -1,0 +1,24 @@
+.sticker-placement { position: relative; display: grid; grid-template-rows: auto minmax(240px, 1fr) auto; min-height: 620px; height: 100%; color: #edf3fa; background: #121b27; font-family: 'Rajdhani', sans-serif; }
+.sticker-placement button, .sticker-placement input { border-radius: 0; font: inherit; }
+.sticker-placement button:focus-visible, .sticker-placement input:focus-visible { outline: 2px solid #a4e6ff; outline-offset: 4px; }
+.sticker-placement button:disabled { opacity: .45; cursor: default; }
+.sticker-placement-heading { display: block; text-align: center; padding: 28px 64px 12px; }
+.sticker-placement-heading h1 { margin: 0; font-size: clamp(26px, 3vw, 40px); font-weight: 700; line-height: 1.15; }
+.sticker-placement-heading h1 span { color: #b6c6d6; font-variant-numeric: tabular-nums; }
+.sticker-placement-heading p { margin: 8px 0; font-size: 22px; }
+.sticker-placement-heading small { color: #c0cbd6; font-size: 14px; }
+.sticker-placement-close { position: absolute; top: 24px; right: 24px; padding: 8px; background: transparent; border: 0; color: inherit; cursor: pointer; }
+.sticker-placement-model { min-height: 240px; position: relative; overflow: hidden; }
+.sticker-placement-model canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.sticker-placement-model > svg { position: absolute; top: 45%; left: 50%; }
+.sticker-placement-footer { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 24px 24px; }
+.sticker-placement-footer > p { margin: 0; color: #bdcbd9; font-size: 14px; text-align: center; }
+.sticker-placement-tools { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; }
+.sticker-placement-tools canvas { width: 64px; height: 64px; object-fit: contain; cursor: grab; }
+.sticker-placement-tools label { display: grid; grid-template-columns: 16px 1fr; gap: 6px 8px; font-size: 14px; width: 150px; }
+.sticker-placement-tools input { grid-column: 1/-1; width: 100%; accent-color: #8dd6e8; }
+.sticker-placement-actions { display: flex; justify-content: center; gap: 12px; min-height: 42px; }
+.sticker-placement-actions button { min-width: 140px; padding: 10px 16px; border: 1px solid #627184; color: #edf3fa; background: #202c3b; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.sticker-placement-actions .sticker-placement-apply { background: #177a4b; border-color: #2b9f66; font-weight: 700; }
+.sticker-placement-actions button:hover:not(:disabled) { filter: brightness(1.15); }
+@media (max-width: 700px) { .sticker-placement-heading { padding-top: 20px; } .sticker-placement-tools { gap: 16px; } .sticker-placement-tools label { width: 115px; } }

@@ -104,3 +104,62 @@ test('helper builds reuse only successful, unchanged commits and complete output
   build()
   assert.equal(builds, 25, 'changed build script rebuilds')
 })
+
+test('prepared bundles require the pinned signature and every native binary', async (t) => {
+  const { createHash, generateKeyPairSync, sign } = await import('node:crypto')
+  const { checkPreparedHelper } = await import('./check-prepared-helper.mjs')
+  const root = mkdtempSync(join(tmpdir(), 'prepared-helper-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const directory = join(root, 'resources/native/win-x64')
+  mkdirSync(directory, { recursive: true })
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519')
+  const config = {
+    version: '0.1.78',
+    publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' })
+  }
+  writeFileSync(join(root, 'helper-release.json'), JSON.stringify(config))
+  const bytes = Buffer.from('fixture')
+  const asset = (fileName) => ({
+    fileName,
+    sizeBytes: bytes.length,
+    sha256: createHash('sha256').update(bytes).digest('hex')
+  })
+  const payload = {
+    schemaVersion: 1,
+    version: config.version,
+    platform: 'win',
+    arch: 'x64',
+    ...asset('game-inspector-win-x64.exe'),
+    cosmeticModule: asset('papamo-cosmetic-module-win-x86.dll'),
+    nextClientModule: asset('papamo-nextclient-client-mini-win-x86.dll')
+  }
+  const manifest = JSON.stringify(payload)
+  const envelope = {
+    manifest,
+    signature: sign(null, Buffer.from(manifest), privateKey).toString('base64')
+  }
+  writeFileSync(join(directory, 'manifest.json'), JSON.stringify(envelope))
+  const names = [
+    'game-inspector.exe',
+    payload.cosmeticModule.fileName,
+    payload.nextClientModule.fileName
+  ]
+  for (const name of names) writeFileSync(join(directory, name), bytes)
+  assert.doesNotThrow(() => checkPreparedHelper(root, 'win', 'x64'))
+  for (const name of names) {
+    writeFileSync(join(directory, name), 'modified')
+    assert.throws(() => checkPreparedHelper(root, 'win', 'x64'), /hash or size/)
+    writeFileSync(join(directory, name), bytes)
+  }
+  rmSync(join(directory, payload.nextClientModule.fileName))
+  assert.throws(() => checkPreparedHelper(root, 'win', 'x64'))
+  writeFileSync(join(directory, payload.nextClientModule.fileName), bytes)
+  writeFileSync(join(root, 'helper-release.json'), JSON.stringify({ ...config, version: '0.1.79' }))
+  assert.throws(() => checkPreparedHelper(root, 'win', 'x64'), /pin/)
+  writeFileSync(join(root, 'helper-release.json'), JSON.stringify(config))
+  writeFileSync(
+    join(directory, 'manifest.json'),
+    JSON.stringify({ ...envelope, manifest: manifest.replace('0.1.78', '0.1.79') })
+  )
+  assert.throws(() => checkPreparedHelper(root, 'win', 'x64'), /signature/)
+})

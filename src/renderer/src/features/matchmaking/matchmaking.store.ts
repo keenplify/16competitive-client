@@ -16,6 +16,7 @@ import {
 import { create } from 'zustand'
 import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
 import { readyResponseFromServer } from '../../../../shared/matchmaking-ready-response'
+import { rendererMatchmakingDiagnostics } from '../../diagnostic-logs'
 import { serverClockNow, syncServerClock } from '../../../../shared/server-clock'
 import type { ProfileXpAward } from '../../../../shared/profile-level'
 import { useAuthStore } from '../auth/auth.store'
@@ -24,6 +25,34 @@ import { translate, useLanguageStore } from '../i18n/i18n'
 import type { AssetPreparation } from './MatchAssetPreparation'
 import { isWebRuntime } from '../../web-runtime'
 import { readMatchmakingPreferences, saveMatchmakingPreferences } from './matchmaking-preferences'
+
+// A local acknowledgement is UX state only; matchmaking penalties remain server-owned.
+interface ReadyWarningRecord {
+  matchId: string
+  acknowledged: boolean
+}
+const readyWarnings = new Map<string, ReadyWarningRecord>()
+const readReadyWarning = (playerId: string): ReadyWarningRecord | undefined => {
+  if (readyWarnings.has(playerId)) return readyWarnings.get(playerId)
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(`ready-warning:v1:${playerId}`) ?? 'null')
+    if (saved && typeof saved.matchId === 'string' && typeof saved.acknowledged === 'boolean') {
+      readyWarnings.set(playerId, saved)
+      return saved
+    }
+  } catch {
+    /* Storage can be unavailable; retain the in-memory warning. */
+  }
+  return undefined
+}
+const saveReadyWarning = (playerId: string, record: ReadyWarningRecord): void => {
+  readyWarnings.set(playerId, record)
+  try {
+    window.localStorage.setItem(`ready-warning:v1:${playerId}`, JSON.stringify(record))
+  } catch {
+    /* The current session can still acknowledge the warning. */
+  }
+}
 
 function selectedMapsForMode(
   playerId: string | undefined,
@@ -156,6 +185,9 @@ interface MatchmakingState {
   serverRestarting: { message: string; retryAfterMs: number } | null
   antiCheatTermination: { matchId: string; dismissed: boolean } | null
   dismissAntiCheatTermination: () => void
+  readyWarningOpen: boolean
+  showReadyWarning: () => boolean
+  acknowledgeReadyWarning: () => void
   matchAbandonNotice: MatchAbandonNotice | null
   error: string | null
   connect: () => Promise<void>
@@ -186,6 +218,9 @@ const readableError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'Matchmaking request failed.'
   if (error.message === 'WEB_STEAM_CREDENTIALS_UNSUPPORTED')
     return translate(useLanguageStore.getState().language, 'webHelper.steamCredentialFallback')
+  const key = error.message.replace(/^.*Error: /, '')
+  if (key === 'match.proton.runtimeUnavailable' || key === 'match.proton.gameUnavailable')
+    return translate(useLanguageStore.getState().language, key)
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
 }
@@ -215,6 +250,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const terminalMatchIds = new Set<string>()
 
   const handleEvent = (event: MatchmakingEvent): void => {
+    rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
+    rendererMatchmakingDiagnostics.record('renderer_received', event)
     useQueueWarmupStore.getState().handleEvent(event)
     if (event.whileQueued) {
       if (event.type === 'match_finished' && !terminalMatchIds.has(event.matchId)) {
@@ -549,7 +586,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         window.setTimeout(() => void useAuthStore.getState().refreshSession(), 1_000)
         break
-      case 'match_cancelled':
+      case 'match_cancelled': {
+        const playerId = useAuthStore.getState().session?.player.id
+        if (
+          event.readyCheckFailed === true &&
+          playerId &&
+          (event.reason === 'PLAYER_NOT_READY' || event.reason === 'PLAYER_DECLINED') &&
+          readReadyWarning(playerId)?.matchId !== event.matchId
+        ) {
+          saveReadyWarning(playerId, { matchId: event.matchId, acknowledged: false })
+        }
         if (terminalMatchIds.has(event.matchId)) break
         terminalMatchIds.add(event.matchId)
         set((state) =>
@@ -587,6 +633,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
               }
         )
         break
+      }
       case 'error':
         if (event.code === 'NOT_QUEUED') {
           const state = get()
@@ -703,6 +750,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             ? { gameExited: true }
             : {}),
           error:
+            event.message === 'match.proton.runtimeUnavailable' ||
+            event.message === 'match.proton.gameUnavailable' ||
             event.message === 'match.assets.storageDenied' ||
             event.message === 'legacy.error.installationRequired' ||
             event.message === 'legacy.error.invalidInstallation' ||
@@ -771,6 +820,20 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           ? { ...state.antiCheatTermination, dismissed: true }
           : null
       })),
+    readyWarningOpen: false,
+    showReadyWarning: () => {
+      const playerId = useAuthStore.getState().session?.player.id
+      const warning = playerId ? readReadyWarning(playerId) : undefined
+      if (!warning || warning.acknowledged) return false
+      set({ readyWarningOpen: true })
+      return true
+    },
+    acknowledgeReadyWarning: () => {
+      const playerId = useAuthStore.getState().session?.player.id
+      const warning = playerId ? readReadyWarning(playerId) : undefined
+      if (playerId && warning) saveReadyWarning(playerId, { ...warning, acknowledged: true })
+      set({ readyWarningOpen: false })
+    },
     matchAbandonNotice: null,
     error: null,
 
@@ -1002,6 +1065,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     joinQueue: async (options) => {
+      if (get().showReadyWarning()) return
       const {
         connectionStatus,
         maps,
@@ -1186,6 +1250,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
 
     reset: () => {
+      set({ readyWarningOpen: false })
       useQueueWarmupStore.getState().reset()
       set({
         connectionStatus: 'disconnected',
@@ -1233,3 +1298,29 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   }
 })
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
+
+rendererMatchmakingDiagnostics.setSnapshot(() => {
+  rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
+  const state = useMatchmakingStore.getState()
+  return {
+    connectionStatus: state.connectionStatus,
+    queueStatus: state.queueStatus,
+    activeApiUrl: state.activeApiUrl,
+    websocketUrl: state.websocketUrl,
+    matchId: state.match?.matchId ?? null,
+    readyDeadline: state.readyDeadline,
+    remainingMs: state.readyDeadline ? Date.parse(state.readyDeadline) - serverClockNow() : null,
+    readyResponse: state.readyResponse,
+    readyWarningOpen: state.readyWarningOpen,
+    acceptedCount: state.acceptedPlayerIds.length,
+    readyPlayersRequired: state.readyPlayersRequired,
+    status: state.assetPreparation.status,
+    completedFiles: state.assetPreparation.completedFiles,
+    totalFiles: state.assetPreparation.totalFiles,
+    hasConnection: state.connectionDetails !== null,
+    gameExited: state.gameExited,
+    gameExitCount: state.gameExitCount,
+    copyConnectionStatus: state.copyConnectionStatus,
+    clockOffsetMs: serverClockNow() - Date.now()
+  }
+})

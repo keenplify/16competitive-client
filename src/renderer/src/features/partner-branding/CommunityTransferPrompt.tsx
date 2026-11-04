@@ -76,7 +76,8 @@ function TransferModal() {
       <ModalDialog
         open
         onClose={() => {}}
-        className="m-auto max-h-[90vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-none border border-white/15 bg-neutral-900 p-6 text-white shadow-2xl backdrop:bg-neutral-950/85"
+        className="m-auto max-h-[90vh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-none border border-white/15 bg-neutral-900 text-white shadow-2xl backdrop:bg-neutral-950/85"
+        contentClassName="p-6"
         labelledBy="community-transfer-title"
       >
         <CommunityTransferPrompt />

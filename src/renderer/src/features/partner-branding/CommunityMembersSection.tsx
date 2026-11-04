@@ -287,7 +287,8 @@ export function CommunityMembersSection({
           }}
           label={t('directory.kickTitle', { player: kickPending.username })}
           labelledBy="community-kick-title"
-          className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 p-6 text-white backdrop:bg-black/80"
+          className="m-auto w-[min(28rem,calc(100vw-2rem))] border border-white/20 bg-neutral-950 text-white backdrop:bg-black/80"
+          contentClassName="p-6"
         >
           <h2 id="community-kick-title" className="text-xl font-semibold">
             {t('directory.kickTitle', { player: kickPending.username })}

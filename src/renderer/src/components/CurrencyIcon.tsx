@@ -86,6 +86,7 @@ export function CurrencyAmount({
   amount,
   className,
   iconClassName,
+  locale,
   showTooltip = true,
   animated = false
 }: {
@@ -93,6 +94,7 @@ export function CurrencyAmount({
   amount: number
   className?: string
   iconClassName?: string
+  locale?: string
   showTooltip?: boolean
   animated?: boolean
 }): JSX.Element {
@@ -104,14 +106,14 @@ export function CurrencyAmount({
         'group/currency relative inline-flex items-center gap-1.5 tabular-nums',
         className
       )}
-      aria-label={`${amount.toLocaleString()} ${presentation.label}`}
+      aria-label={`${amount.toLocaleString(locale)} ${presentation.label}`}
     >
       <CurrencyIcon
         currency={currency}
         animated={animated}
         className={twMerge('size-5', iconClassName)}
       />
-      <span>{amount.toLocaleString()}</span>
+      <span>{amount.toLocaleString(locale)}</span>
       {showTooltip && (
         <span
           role="tooltip"

@@ -3,12 +3,13 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
+import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import ts from 'typescript'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-async function harness() {
+async function harness({ platform = 'linux', window = null, timers = null } = {}) {
   const calls = [],
     events = [],
     sent = []
@@ -30,7 +31,7 @@ async function harness() {
     }
     close() {
       this.readyState = 3
-      this.listeners.get('close')?.()
+      this.listeners.get('close')?.({ code: 1000, wasClean: true })
     }
   }
   let activeMatch = null
@@ -42,14 +43,14 @@ async function harness() {
   })
   const context = vm.createContext({
     console,
-    process: { platform: 'linux' },
+    process: { platform },
     URL,
     Map,
     Set,
     Date,
     Promise,
-    setTimeout,
-    clearTimeout,
+    setTimeout: timers?.setTimeout ?? setTimeout,
+    clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval,
     clearInterval,
     WebSocket: TestSocket
@@ -78,6 +79,8 @@ async function harness() {
       ])
     }
   const mock = {
+    matchmakingDiagnostics: new MatchmakingDiagnostics(),
+    getSessionUsername: () => 'fixture-player',
     isMatchmakingMode: (value) => ['5v5', 'arena', 'ffa', '3v3'].includes(value),
     MATCHMAKING_CHANNELS: { event: 'event' },
     API_BASE_URL: 'https://fallback.invalid',
@@ -104,7 +107,8 @@ async function harness() {
       calls.push(['close', id])
       if (activeMatch === id) activeMatch = null
     },
-    BrowserWindow: { fromWebContents: () => null },
+    BrowserWindow: { fromWebContents: () => window },
+    app: { focus: (options) => calls.push(['app-focus', options]) },
     discordPresence: {
       finishMatch: () => {},
       setInGame: () => {},
@@ -151,6 +155,9 @@ async function harness() {
     sent,
     finishAssets,
     failAssets,
+    setActiveMatch: (matchId) => {
+      activeMatch = matchId
+    },
     validate: module.namespace.isServerMessage
   }
 }
@@ -916,3 +923,206 @@ test('legacy untagged warmup failures release the pending state', async () => {
   assert.equal(store.getState().status, 'error')
   assert.equal(timers.size, 0)
 })
+
+function launcherWindow() {
+  const calls = []
+  let minimized = false,
+    topmost = false,
+    visible = true
+  const window = {
+    isDestroyed: () => false,
+    isMinimized: () => minimized,
+    isVisible: () => visible && !minimized,
+    isFocused: () => false,
+    showInactive: () => {
+      visible = true
+      calls.push('showInactive')
+    },
+    hide: () => {
+      visible = false
+      calls.push('hide')
+    },
+    flashFrame: (value) => calls.push(['flash', value]),
+    isAlwaysOnTop: () => topmost,
+    restore: () => {
+      minimized = false
+      calls.push('restore')
+    },
+    show: () => calls.push('show'),
+    focus: () => calls.push('focus'),
+    moveTop: () => calls.push('moveTop'),
+    setAlwaysOnTop: (value) => {
+      topmost = value
+      calls.push(['topmost', value])
+    },
+    minimize: () => {
+      minimized = true
+      calls.push('minimize')
+    }
+  }
+  return { window, calls }
+}
+for (const platform of ['linux', 'win32']) {
+  test(`${platform} game handoff clears ready-check attention and releases the fullscreen launcher`, async () => {
+    const { window, calls } = launcherWindow()
+    const h = await harness({ platform, window })
+    try {
+      h.connection.focusLauncher(true)
+      assert.equal(window.isAlwaysOnTop(), platform === 'win32')
+      assert.equal(Boolean(h.connection.matchAttentionTimer), platform === 'win32')
+      calls.length = 0
+      h.calls.length = 0
+      h.connection.yieldLauncherToGame()
+      assert.deepEqual(
+        calls,
+        platform === 'win32' ? [['topmost', false], 'minimize'] : [['flash', false], 'hide']
+      )
+      assert.equal(h.connection.matchAttentionTimer, null)
+      assert.equal(h.connection.matchAttentionWindow, null)
+      assert.equal(h.connection.restoreMatchWindowTopmost, false)
+      assert.equal(window.isAlwaysOnTop(), false)
+      assert.equal(h.calls.length, 0, 'Handoff must not focus the app')
+      calls.length = 0
+      h.connection.yieldLauncherToGame()
+      assert.deepEqual(
+        calls,
+        platform === 'linux' ? [['flash', false]] : [],
+        'Repeated handoffs must not raise the app'
+      )
+      h.connection.focusLauncher(true)
+      assert.equal(
+        window.isMinimized(),
+        false,
+        'A later ready check must still restore the launcher'
+      )
+      assert.ok(calls.includes('focus'))
+      assert.equal(window.isVisible(), true, 'Ready checks show the hidden launcher')
+    } finally {
+      h.connection.yieldLauncherToGame()
+      h.connection.shutdown()
+    }
+  })
+}
+test('Linux bot warmup releases the launcher only after a successful game launch', async () => {
+  const { window, calls } = launcherWindow()
+  const h = await harness({ window })
+  try {
+    h.connection.handleWarmup(found, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    assert.deepEqual(calls, [])
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    assert.ok(h.calls.some(([type]) => type === 'launch'))
+    assert.deepEqual(calls, [['flash', false], 'hide'])
+    assert.equal(window.isVisible(), false)
+    assert.equal(h.connection.desiredMode, '5v5')
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+test('Linux returns to the launcher after warmup exits, but ignores an old warmup exit during a new game', async () => {
+  const { window, calls } = launcherWindow()
+  const h = await harness({ window })
+  try {
+    h.connection.warmupMatchIds.add('warmup')
+    h.connection.warmupMatchId = 'warmup'
+    h.connection.yieldLauncherToGame()
+    h.connection.handleGameProcessExit('warmup', 0, null)
+    assert.equal(window.isMinimized(), false)
+    assert.equal(window.isVisible(), true)
+    assert.ok(calls.includes('showInactive'))
+    assert.ok(calls.includes('focus'))
+    await h.connection.warmupCleanup
+    calls.length = 0
+    h.connection.warmupMatchId = 'new-game'
+    h.connection.handleGameProcessExit('warmup', 0, null)
+    assert.deepEqual(calls, [])
+  } finally {
+    h.connection.shutdown()
+  }
+})
+
+for (const focused of [true, false]) {
+  test(`Linux ready attention avoids forced fullscreen stacking (focused=${focused})`, async () => {
+    const { window, calls } = launcherWindow()
+    window.isFocused = () => focused
+    for (const method of ['show', 'moveTop', 'setAlwaysOnTop']) {
+      window[method] = () => {
+        throw new Error(`Unsafe Linux attention: ${method}`)
+      }
+    }
+    const h = await harness({ platform: 'linux', window })
+    try {
+      h.connection.focusLauncher(true)
+      h.connection.focusLauncher(true)
+      assert.deepEqual(calls, focused ? [] : [['flash', true], 'focus', ['flash', true], 'focus'])
+      assert.equal(
+        h.calls.some(([type]) => type === 'app-focus'),
+        false
+      )
+      assert.equal(h.connection.matchAttentionTimer, null)
+    } finally {
+      h.connection.shutdown()
+    }
+  })
+}
+
+for (const superseded of [false, true]) {
+  test(`post-match view lasts ten seconds without raising the launcher (superseded=${superseded})`, async () => {
+    const pending = []
+    const timers = {
+      setTimeout: (callback, ms) => {
+        const timer = {
+          callback,
+          ms,
+          unref() {
+            return this
+          }
+        }
+        pending.push(timer)
+        return timer
+      },
+      clearTimeout: () => undefined
+    }
+    const { window, calls } = launcherWindow()
+    const h = await harness({ window, timers })
+    try {
+      await h.connection.createSocket('test-token', 'https://eu.invalid')
+      h.setActiveMatch('finished')
+      const emit = (message) =>
+        h.sockets[0].listeners.get('message')({ data: JSON.stringify(message) })
+      emit({
+        type: 'match_finished',
+        matchId: 'finished',
+        mode: 'arena',
+        mapId: 'fy_contact',
+        teams: { teamA: [], teamB: [] },
+        winner: 1,
+        teamAScore: 7,
+        teamBScore: 9,
+        players: []
+      })
+      assert.equal(h.connection.finishedMatchIds.has('finished'), true)
+      assert.deepEqual(calls, [], 'Results must stay in the game, without launcher activation')
+      assert.equal(
+        h.calls.some(([type]) => type === 'close'),
+        false
+      )
+      const timer = pending.find((timer) => timer.ms === 10_000)
+      assert.ok(timer, 'The game must receive a ten-second result window')
+      if (superseded) {
+        h.connection.lastConnection = { matchId: 'new-game' }
+        h.setActiveMatch('new-game')
+      }
+      timer.callback()
+      assert.equal(calls.includes('focus'), !superseded)
+      assert.equal(
+        h.calls.some(([type, id]) => type === 'close' && id === 'new-game'),
+        false
+      )
+    } finally {
+      h.connection.shutdown()
+    }
+  })
+}

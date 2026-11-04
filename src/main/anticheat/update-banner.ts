@@ -16,6 +16,7 @@ export class AntiCheatUpdateBanner {
   private renderPending = false
   private presentationFailed: (() => void) | null = null
   private latest: AppUpdateStatus = { state: 'idle' }
+  private updateConfirmed = false
   private hiddenLauncher: BrowserWindow | null = null
   private language: GuardLanguage = detectLanguage(
     app.getPreferredSystemLanguages(),
@@ -31,11 +32,18 @@ export class AntiCheatUpdateBanner {
     // The startup document was created before this controller existed.
     splash?.webContents.on('will-navigate', (event, url) => {
       event.preventDefault()
-      if (url === 'papamo-guard://retry') this.action('retry')
-      if (url === 'papamo-guard://exit') this.action('exit')
-      if (url === 'papamo-guard://help') this.action('help')
+      if (url === 'pmguard://retry') this.action('retry')
+      if (url === 'pmguard://exit') this.action('exit')
+      if (url === 'pmguard://help') this.action('help')
     })
     const unsubscribe = onAppUpdateStatus((status) => {
+      if (status.state !== 'checking') {
+        this.updateConfirmed =
+          status.state === 'available' ||
+          status.state === 'downloading' ||
+          status.state === 'downloaded' ||
+          (status.state === 'error' && Boolean(status.requiredVersion))
+      }
       this.latest = status
       void this.render().catch((error: unknown) => {
         console.warn('[Updater] Could not present update banner', error)
@@ -86,12 +94,7 @@ export class AntiCheatUpdateBanner {
   }
 
   isPresenting(): boolean {
-    return Boolean(
-      this.splash &&
-      !this.splash.isDestroyed() &&
-      this.latest.state !== 'idle' &&
-      !(this.latest.state === 'error' && !this.latest.requiredVersion)
-    )
+    return Boolean(this.splash && !this.splash.isDestroyed() && this.shouldPresent(this.latest))
   }
 
   launcherReady(): void {
@@ -161,9 +164,17 @@ export class AntiCheatUpdateBanner {
     }
   }
 
+  private shouldPresent(status: AppUpdateStatus): boolean {
+    if (status.state === 'idle' || (status.state === 'error' && !status.requiredVersion))
+      return false
+    // After startup, checking alone belongs in the launcher. A retry for a
+    // previously confirmed update keeps its existing updater window visible.
+    return status.state !== 'checking' || this.starting || this.updateConfirmed
+  }
+
   private async present(): Promise<void> {
     const status = this.latest
-    if (status.state === 'idle' || (status.state === 'error' && !status.requiredVersion)) {
+    if (!this.shouldPresent(status)) {
       this.close()
       return
     }
@@ -180,7 +191,7 @@ export class AntiCheatUpdateBanner {
     const splash = this.splash
     if (!splash || splash.isDestroyed()) return
     let current = this.latest // Downloads can advance while the window loads.
-    if (current.state === 'idle' || (current.state === 'error' && !current.requiredVersion)) {
+    if (!this.shouldPresent(current)) {
       this.close()
       return
     }
@@ -194,7 +205,7 @@ export class AntiCheatUpdateBanner {
         this.language = saved as GuardLanguage
       current = this.latest
       if (splash.isDestroyed()) return
-      if (current.state === 'idle' || (current.state === 'error' && !current.requiredVersion)) {
+      if (!this.shouldPresent(current)) {
         this.close()
         return
       }
@@ -223,7 +234,8 @@ export class AntiCheatUpdateBanner {
           ? 100
           : null
     const failed = current.state === 'error'
-    const transfer = current.state === 'downloading' ? formatUpdateTransfer(current, this.language) : ''
+    const transfer =
+      current.state === 'downloading' ? formatUpdateTransfer(current, this.language) : ''
     const detail =
       current.state === 'downloading'
         ? `${percent}%${transfer ? ` · ${transfer}` : ''}`
@@ -238,9 +250,9 @@ export class AntiCheatUpdateBanner {
       progress.classList.toggle('determinate', ${percent !== null || failed});
       progress.style.width = ${JSON.stringify(percent === null ? (failed ? '0%' : '38%') : `${percent}%`)};
       document.getElementById('status-actions').hidden = ${!failed};
-      document.querySelector('a[href="papamo-guard://retry"]').textContent = ${JSON.stringify(copy.retry)};
-      document.querySelector('a[href="papamo-guard://exit"]').textContent = ${JSON.stringify(copy.exit)};
-      document.querySelector('a[href="papamo-guard://help"]').textContent = ${JSON.stringify(recovery.help)};
+      document.querySelector('a[href="pmguard://retry"]').textContent = ${JSON.stringify(copy.retry)};
+      document.querySelector('a[href="pmguard://exit"]').textContent = ${JSON.stringify(copy.exit)};
+      document.querySelector('a[href="pmguard://help"]').textContent = ${JSON.stringify(recovery.help)};
     })()`)
     splash.setIgnoreMouseEvents(!failed)
     splash.setFocusable(failed)

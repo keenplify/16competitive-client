@@ -1,3 +1,4 @@
+import { resolveSteamProtonRuntime } from './steam-proton'
 import { playerPingCommands } from '../../shared/player-ping'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
@@ -59,6 +60,7 @@ import {
 import { CUSTOM_HUD_ENABLED } from '../../shared/custom-hud'
 import helperRelease from '../../../helper-release.json'
 import { saveMatchLaunchDiagnostics } from './match-launch-diagnostics'
+import { matchmakingDiagnostics } from '../matchmaking-diagnostics'
 import { prepareMatchStartupBridge } from './match-startup-bridge'
 import webLaunchPattern from '../../shared/web-game-launch-pattern.json' with { type: 'json' }
 import {
@@ -665,9 +667,6 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   if (!(await stat(executable)).isFile()) {
     throw new Error('The configured Counter-Strike executable was not found.')
   }
-  if (process.platform !== 'win32' && ((await stat(executable)).mode & 0o111) === 0) {
-    throw new Error('The configured Counter-Strike executable is not executable.')
-  }
 
   const configuredDirectory = process.env.CS16_CLIENT_GAME_DIRECTORY
   const configuredGameDirectory = configuredDirectory
@@ -683,8 +682,26 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // content goes into.
   const launchGameDirectory = await ensureLauncherContentDirectory(cwd)
   const launchTarget = await resolveCs16LaunchTarget(executable)
+  const proton =
+    process.platform === 'linux' && launchTarget.distribution === 'steam'
+      ? await resolveSteamProtonRuntime(cwd)
+      : null
+  if (proton) {
+    launchTarget.gameExecutable = join(cwd, 'hl.exe')
+    if (!(await stat(launchTarget.gameExecutable).catch(() => null))?.isFile())
+      throw new Error('match.proton.gameUnavailable')
+    console.info('[GameLaunch] Steam Proton runtime selected', {
+      protonPath: proton.protonPath,
+      compatibilityDataPath: proton.compatibilityDataPath
+    })
+  }
+
+  if (process.platform !== 'win32' && !proton && ((await stat(executable)).mode & 0o111) === 0) {
+    throw new Error('The configured Counter-Strike executable is not executable.')
+  }
+
   if (
-    process.platform === 'win32' &&
+    (process.platform === 'win32' || proton) &&
     !(await stat(join(launchGameDirectory, 'cl_dlls', 'client.dll')).catch(() => null))?.isFile()
   ) {
     throw new Error(
@@ -772,13 +789,22 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   // The Windows proxy in 2026.927.2 crashed some GoldSrc distributions while
   // loading client.dll. Restore any interrupted installation before launching
   // the original game client, including on a forced reconnect.
-  if (process.platform === 'win32') {
+  if (
+    process.platform === 'win32' ||
+    (process.platform === 'linux' && launchTarget.distribution === 'steam')
+  ) {
     console.info('[GameLaunch] restoring previous Windows cosmetic integration', {
       matchId: input.matchId
     })
     try {
-      await WindowsCosmeticInstallation.restorePreviousInstall(cwd)
-      await WindowsNextClientInstallation.restorePreviousInstall(cwd)
+      await WindowsCosmeticInstallation.restorePreviousInstall(
+        cwd,
+        'cstrike',
+        process.platform === 'linux' ? 'wine' : 'native',
+        proton ?? undefined
+      )
+      if (process.platform === 'win32')
+        await WindowsNextClientInstallation.restorePreviousInstall(cwd)
     } catch (error) {
       console.error('[GameLaunch] Windows cosmetic integration recovery failed', {
         matchId: input.matchId,
@@ -956,7 +982,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
   console.info('[Scoreboard] native enhancement configuration', {
     featureEnabled: CUSTOM_HUD_ENABLED,
     userEnabled: gameSettings.nextClientIntegrationEnabled,
-    platform: process.platform
+    platform: process.platform,
+    runtime: proton ? 'proton' : 'native'
   })
 
   if (
@@ -968,7 +995,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
       const session = await ScoreboardOverlaySession.start(
         input.matchId,
         input.apiUrl,
-        process.platform === 'win32' ? cwd : undefined,
+        cwd,
         allowNextClientIntegration,
         `${isIP(input.host) === 4 ? input.host : (await lookup(input.host, { family: 4 })).address}:${input.port}`,
         async () => {
@@ -991,7 +1018,8 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
           clearMatchConfig(matchConfigGeneration)
           await matchConfigCleanup
           input.onExit?.({ code: 0, signal: null })
-        }
+        },
+        proton ? { gameDirectory: 'cstrike', runtime: 'wine', proton } : undefined
       )
       if (session) {
         activeScoreboardSession = { matchId: input.matchId, session }
@@ -1002,7 +1030,7 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
           `${gameSettings.playerPingKey}\n`,
           { encoding: 'ascii', mode: 0o600 }
         )
-        if (process.platform === 'linux' && launchTarget.distribution === 'steam') {
+        if (process.platform === 'linux' && launchTarget.distribution === 'steam' && !proton) {
           steamExitWatchGeneration++
           const configured = await ensureSteamScoreboardOption(
             session.steamWrapperPath,
@@ -1441,7 +1469,25 @@ export const launchCounterStrikeForMatch = (input: MatchLaunchInput): Promise<vo
 
   const operation = launchQueue
     .catch(() => undefined)
-    .then(() => performLaunchCounterStrikeForMatch(input))
+    .then(async () => {
+      matchmakingDiagnostics.record('launch_started', {
+        type: 'game_process_launch',
+        matchId: input.matchId
+      })
+      try {
+        await performLaunchCounterStrikeForMatch(input)
+        matchmakingDiagnostics.record('launch_handoff_completed', {
+          type: 'game_process_launch',
+          matchId: input.matchId
+        })
+      } catch (error) {
+        matchmakingDiagnostics.record('launch_failed', {
+          type: 'game_process_launch',
+          matchId: input.matchId
+        })
+        throw error
+      }
+    })
 
   launchQueue = operation.catch(() => undefined)
 

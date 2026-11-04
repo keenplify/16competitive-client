@@ -41,6 +41,8 @@ import { localMapPreviews } from './map-previews'
 import { isWebRuntime } from '../../web-runtime'
 import { useDesktopAppUrl } from '../community/links'
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
+import { useUpdaterStore } from '../updates/updater.store'
+import { guardUpdateTranslations } from '../../../../shared/guard-update-translations'
 
 const connectionLabels = {
   disconnected: 'Offline',
@@ -74,7 +76,7 @@ export function PlayPage({
   const showHelperPrompt = useWebHelperPromptStore((state) => state.show)
   const checkNativeHelper = useWebHelperPromptStore((state) => state.checkNative)
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const communityText = useCommunityText()
   const branding = usePartnerBrandingStore((state) => state.branding)
   const player = useAuthStore((state) => state.session?.player)
@@ -93,6 +95,7 @@ export function PlayPage({
   const party = usePartyStore((state) => state.party)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
+  const checkingForUpdates = useUpdaterStore((state) => state.status.state === 'checking')
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const maps = useMatchmakingStore((state) => state.maps)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
@@ -243,6 +246,8 @@ export function PlayPage({
   }
 
   const handleFindMatch = async (): Promise<void> => {
+    if (checkingForUpdates || queueStatus === 'joining') return
+    if (useMatchmakingStore.getState().showReadyWarning()) return
     if (!isConnected) {
       toast.error('Connect to matchmaking before searching.')
       return
@@ -366,8 +371,13 @@ export function PlayPage({
             fallbackPreviewUrl={match ? localMapPreviews[match.mapId] : undefined}
           />
         )}
-        <div className="relative z-10 my-auto w-full max-w-5xl shrink-0">
-          <div className="text-center">
+        <div
+          className={twMerge(
+            'relative z-10 my-auto w-full max-w-5xl shrink-0',
+            queueStatus !== 'server_ready' && 'border border-white/15 bg-neutral-950 p-5 sm:p-8'
+          )}
+        >
+          <div className={twMerge('text-center', queueStatus !== 'server_ready' && 'min-h-56')}>
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
               {queueStatus === 'countdown'
                 ? 'All players ready'
@@ -827,29 +837,42 @@ export function PlayPage({
                       !isLeader ||
                       isSearching ||
                       queueStatus === 'joining' ||
+                      checkingForUpdates ||
                       checkingDiscord ||
                       (partyRequiresWeb && !modeAllowsWeb)
                     }
-                    aria-busy={checkingDiscord || (webRuntime && checkingHelper)}
+                    aria-busy={
+                      checkingForUpdates ||
+                      queueStatus === 'joining' ||
+                      checkingDiscord ||
+                      (webRuntime && checkingHelper)
+                    }
                     aria-label={
-                      checkingDiscord
-                        ? t('queue.discord.checking')
-                        : webRuntime && checkingHelper
-                          ? t('webHelper.checking')
-                          : undefined
+                      checkingForUpdates
+                        ? guardUpdateTranslations[language].checking
+                        : queueStatus === 'joining'
+                          ? t('play.joining')
+                          : checkingDiscord
+                            ? t('queue.discord.checking')
+                            : webRuntime && checkingHelper
+                              ? t('webHelper.checking')
+                              : undefined
                     }
                     onClick={() => void handleFindMatch()}
                   >
-                    {(checkingDiscord || (webRuntime && checkingHelper)) && (
+                    {(checkingForUpdates ||
+                      queueStatus === 'joining' ||
+                      checkingDiscord ||
+                      (webRuntime && checkingHelper)) && (
                       <LoaderCircle
-                        className="absolute left-2 size-4 animate-spin"
+                        className="absolute left-2 size-4 animate-spin text-lime-400"
                         aria-hidden="true"
                       />
                     )}
                     <span className="relative z-10">
                       {isSearching
                         ? t('play.searching')
-                        : queueStatus === 'joining'
+                        : queueStatus === 'joining' && !checkingForUpdates
                           ? t('play.joining')
                           : isLeader
                             ? t('warmup.join')

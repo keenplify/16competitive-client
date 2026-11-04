@@ -21,7 +21,7 @@ Available modes, maps, rewards, and regional capacity are controlled by the
 platform and may change during the alpha.
 
 - **Matchmaking:** competitive 5v5, with additional modes such as Unrated, Legacy,
-3v3, FFA, and Arena when enabled. Follow queue status, accept ready checks,
+  3v3, FFA, and Arena when enabled. Follow queue status, accept ready checks,
   and reconnect to active matches.
 - **Parties and friends:** invite teammates, chat, and queue together.
 - **Profiles and rankings:** view MMR, match history, results, and leaderboards.
@@ -65,6 +65,15 @@ Managed sessions can provide a custom scoreboard, HUD, teammate indicators,
 player pings, and crosshair controls where the game installation and packaged
 native module support them. Availability depends on the platform, game build,
 and matching server and helper versions.
+
+On Linux, native Steam launches use the Linux module. When Steam explicitly selects
+Proton, the launcher uses the signed Windows proxy and the selected Proton version
+in app 10’s library-specific prefix. Recovery retains that prefix across launcher
+updates and runtime-setting changes. Steam compatibility preferences are preserved.
+Recovery supervision stays outside Wine during play and invokes the approved
+Windows restoration helper after game exit, so it does not keep Steam's prefix
+busy between matches. Native session tickets, heartbeat expiry, and server
+endpoint authorization remain enforced by the module.
 
 The crosshair editor imports current CS2 `CS…` share codes and converts older
 `CSGO-…` codes using the MIT-licensed
@@ -140,3 +149,14 @@ end-user permissions.
 Counter-Strike and Steam are trademarks and/or registered trademarks of Valve
 Corporation. 1.6 Competitive is independent and is not affiliated with or
 endorsed by Valve Corporation.
+
+Loadout includes stock weapons alongside owned skins. Right-click a weapon and choose Preview for the detailed v_ inspection view, or switch to First Person. Weapon cards share the inspection presentation. Versioned thumbnail keys invalidate older p_ previews automatically. Saved stickers appear on the matching weapon variant in Loadout previews and cards. Inventory contains unused stickers and consumables; buy stickers in Store. Sticker authoring supports the 28 hash-pinned Steam CS 1.6 stock weapon viewmodels, including pistols, rifles, grenades and knife. MP5 uses the `mp5navy` weapon key and `v_mp5.mdl` file. Custom model binaries still require separate exporter validation; p_/w_ sticker rendering is not enabled. The expanded in-game allowlist requires a new approved helper release.
+
+Full-color sticker previews preserve RGBA artwork instead of reducing it to the
+MDL palette. Managed launches also stage content-addressed `.rgba` sidecars and
+an optional `sticker-textures.tsv` manifest; older helpers retain the indexed MDL
+fallback. The new native RGBA receiver is source-only pending an approved helper
+release and in-game verification on classic Linux/Windows and NextClient.
+Inspection thumbnails use cache namespace `viewmodel-inspection-v4`; the stock
+USP uses its animated idle pose and stock M3 reload-shell geometry is hidden only
+in inspection views, leaving first-person animations and source files intact.

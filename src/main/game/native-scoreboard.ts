@@ -71,7 +71,14 @@ export function mergeNativeScores<
       .map((player) => {
         const local = native.find((row) => row.id === player.id && row.name === player.name)
         return local
-          ? { ...player, kills: local.kills, deaths: local.deaths, ping: local.ping }
+          ? {
+              ...player,
+              kills: local.kills,
+              deaths: local.deaths,
+              // GoldSrc's local ping cache is empty until its first update.
+              // Keep the server measurement during that startup interval.
+              ping: local.ping > 0 ? local.ping : player.ping
+            }
           : player
       })
       // Native updates replace the scores used to order the server snapshot.

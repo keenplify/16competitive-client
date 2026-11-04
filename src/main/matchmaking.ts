@@ -26,12 +26,13 @@ import type {
   GlobalChatMessageDeleted,
   GlobalChatScope
 } from '../shared/matchmaking'
-import { clearSessionToken, getSessionToken } from './auth'
+import { clearSessionToken, getSessionToken, getSessionUsername } from './auth'
 import { activateIcafeBranch } from './icafe-branch'
 import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
 import { reportDiagnosticIssue } from './diagnostic-logs'
+import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
 import {
   closeCounterStrikeForMatch,
@@ -61,7 +62,7 @@ const PING_INTERVAL_MS = 20_000
 const PONG_TIMEOUT_MS = 10_000
 const MATCH_ATTENTION_DURATION_MS = 1_500
 const MATCH_END_ATTENTION_DURATION_MS = 5_000
-const MATCH_RESULT_GRACE_PERIOD_MS = 5_000
+const MATCH_RESULT_GRACE_PERIOD_MS = 10_000
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isGlobalChatLanguage = (value: unknown): value is string =>
@@ -479,6 +480,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'match_cancelled':
       return (
         (message.connectionFailed === undefined || typeof message.connectionFailed === 'boolean') &&
+        (message.readyCheckFailed === undefined || typeof message.readyCheckFailed === 'boolean') &&
         typeof message.matchId === 'string' &&
         typeof message.reason === 'string' &&
         [
@@ -740,6 +742,31 @@ class MatchmakingConnection {
   private matchAttentionTimer: ReturnType<typeof setTimeout> | null = null
   private matchAttentionWindow: BrowserWindow | null = null
   private restoreMatchWindowTopmost = false
+
+  constructor() {
+    matchmakingDiagnostics.setSnapshot(() => this.diagnosticSnapshot())
+  }
+
+  private diagnosticSnapshot(): Record<string, unknown> {
+    return {
+      authenticated: this.authenticated,
+      socketState: this.socket?.readyState ?? null,
+      socketOpening: this.socketOpening,
+      reconnectAttempt: this.reconnectAttempt,
+      recoveryStatusPending: this.recoveryStatusPending,
+      activeApiUrl: this.activeApiUrl,
+      hostApiUrl: this.hostApiUrl,
+      matchId: this.lastConnection?.matchId ?? null,
+      hasConnection: this.lastConnection !== null,
+      clockOffsetMs: serverClockNow() - Date.now(),
+      rendererAvailable: Boolean(this.renderer && !this.renderer.isDestroyed())
+    }
+  }
+
+  private traceDiagnostic(stage: string, event: object): void {
+    matchmakingDiagnostics.setOwner(getSessionUsername())
+    matchmakingDiagnostics.record(stage, { ...this.diagnosticSnapshot(), ...event })
+  }
 
   getQueuedMode(): MatchmakingMode | null {
     return this.desiredMode
@@ -1258,10 +1285,12 @@ class MatchmakingConnection {
   private handleGameProcessExit(matchId: string, code: number | null, signal: string | null): void {
     if (this.warmupMatchIds.has(matchId)) {
       this.notify({ type: 'game_process_exited', matchId, code, signal, whileQueued: true })
-      if (this.warmupMatchId === matchId)
+      if (this.warmupMatchId === matchId) {
+        this.focusLauncher()
         void this.leaveWarmup('game-process-exited').catch((error) =>
           console.warn('[QueueWarmup] cleanup failed', error)
         )
+      }
       return
     }
     markPostGameUpdateCheckPending()
@@ -1273,6 +1302,18 @@ class MatchmakingConnection {
   private focusLauncher(urgent = false, attentionDurationMs = MATCH_ATTENTION_DURATION_MS): void {
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
+    if (process.platform === 'linux') {
+      // Re-stacking an already focused fullscreen X11 window can stall Electron
+      // until the user switches windows, blocking sockets and the ready deadline.
+      // Let the window manager handle activation; never force topmost/moveTop.
+      if (window.isMinimized()) window.restore()
+      if (!window.isVisible()) window.showInactive()
+      if (!window.isFocused()) {
+        if (urgent) window.flashFrame(true)
+        window.focus()
+      }
+      return
+    }
     if (window.isMinimized()) window.restore()
     window.show()
     if (urgent) {
@@ -1299,7 +1340,6 @@ class MatchmakingConnection {
   }
 
   private yieldLauncherToGame(): void {
-    if (process.platform !== 'win32') return
     const window = this.renderer ? BrowserWindow.fromWebContents(this.renderer) : null
     if (!window || window.isDestroyed()) return
 
@@ -1319,10 +1359,14 @@ class MatchmakingConnection {
     this.matchAttentionWindow = null
     this.restoreMatchWindowTopmost = false
 
-    // The launcher is a real fullscreen Electron window on Windows. Leaving it
-    // visible behind GoldSrc can retain foreground/pointer ownership after the
-    // match-found attention window. Minimize it once the game process has
-    // successfully started; focusLauncher() restores it when the game exits.
+    // On Linux, minimizing a fullscreen Wayland launcher is insufficient when
+    // GoldSrc/Proton activates its X11 window: the compositor can raise the
+    // launcher again. Unmap it completely until a ready check or game exit.
+    if (process.platform === 'linux') {
+      window.flashFrame(false)
+      if (window.isVisible()) window.hide()
+      return
+    }
     if (!window.isMinimized()) window.minimize()
   }
 
@@ -1402,9 +1446,14 @@ class MatchmakingConnection {
         return
       }
       if (!isServerMessage(parsed, websocketUrl)) {
+        this.traceDiagnostic(
+          'rejected_schema',
+          parsed && typeof parsed === 'object' ? parsed : { type: 'invalid_message' }
+        )
         this.notify({ type: 'error', code: 'INVALID_MESSAGE', message: 'Invalid server message' })
         return
       }
+      this.traceDiagnostic('socket_received', parsed)
       if (parsed.whileQueued || ('matchId' in parsed && this.warmupMatchIds.has(parsed.matchId))) {
         if (
           'matchId' in parsed &&
@@ -1760,12 +1809,18 @@ class MatchmakingConnection {
         this.manualConnectionMatchId = null
         clearMatchAssetPreload(parsed.matchId)
         this.hostApiUrl = null
-        this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
+        // Keep the game's final round/result screen visible during its grace
+        // period. Players already in the launcher can read the result there.
+        if (!isCounterStrikeActiveForMatch(parsed.matchId) && !this.cs13Matches.has(parsed.matchId))
+          this.focusLauncher(true, MATCH_END_ATTENTION_DURATION_MS)
         const timer = setTimeout(
           () => {
             this.matchEndTimers.delete(parsed.matchId)
+            const superseded =
+              (this.lastConnection && this.lastConnection.matchId !== parsed.matchId) ||
+              (this.warmupMatchId && this.warmupMatchId !== parsed.matchId)
             this.closeGameForMatch(parsed.matchId)
-            this.focusLauncher()
+            if (!superseded) this.focusLauncher()
           },
           parsed.publicFfa ? 0 : MATCH_RESULT_GRACE_PERIOD_MS
         )
@@ -1788,7 +1843,12 @@ class MatchmakingConnection {
       console.warn('[Matchmaking] WebSocket connection error')
       if (!handoff) this.handleSocketDisconnect(socket)
     })
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event) => {
+      this.traceDiagnostic('socket_closed', {
+        type: 'socket_closed',
+        closeCode: event.code,
+        wasClean: event.wasClean
+      })
       clearTimeout(connectionTimeout)
       clearInterval(branchRefresh)
       if (handoff && this.socket !== socket && !socketAuthenticated) {
@@ -1899,13 +1959,16 @@ class MatchmakingConnection {
   }
 
   private send(message: object): void {
+    this.traceDiagnostic('send_attempt', message)
     if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) {
+      this.traceDiagnostic('send_rejected_disconnected', message)
       throw new Error('Matchmaking is not connected yet')
     }
     this.socket.send(JSON.stringify(message))
   }
 
   private notify(event: MatchmakingEvent): void {
+    this.traceDiagnostic('renderer_forward', event)
     if ('matchId' in event && this.warmupMatchIds.has(event.matchId))
       event = { ...event, whileQueued: true }
     if (this.renderer && !this.renderer.isDestroyed()) {

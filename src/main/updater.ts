@@ -278,6 +278,9 @@ export async function ensureLatestClientForMatchmaking(): Promise<void> {
         new Promise<never>((_, reject) => {
           timeout = setTimeout(() => {
             timedOut = true
+            // The provider promise can outlive the matchmaking deadline. Stop
+            // presenting it as an active check so the player can try again.
+            if (!hasPendingUpdate()) markUpdateFailure('Could not check for launcher updates.')
             reject(new Error('Launcher update check timed out.'))
           }, MATCHMAKING_UPDATE_CHECK_TIMEOUT_MS)
         })

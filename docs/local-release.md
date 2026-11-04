@@ -88,7 +88,7 @@ parent directory. It contains `privateKeyPath`, `registryUrl` (HTTPS origin), an
 `publisherToken`. The referenced Ed25519 key must also be a regular owner-only
 file (`0600`) and must match `helper-release.json`'s pinned public key. Never put
 these credentials in the client `.env`, source archives, VM or containers.
-This machine uses `~/.config/papamo-guard-signing/private.pem` for the existing key.
+The existing signing key is referenced by `privateKeyPath` in the protected credentials file.
 Protect and back up that key securely; GitHub secrets cannot be downloaded later.
 
 Credential checks run before tags or builds. After exact source/artifact hash

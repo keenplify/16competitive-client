@@ -2,7 +2,11 @@ import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useState, type FormEvent, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { ModalHeader } from '../../components/ui/ModalHeader'
-import { CUSTOM_GAME_MODES, type CustomGameMode } from '../../../../shared/custom-games'
+import {
+  CUSTOM_GAME_MODES,
+  isCustomGameMode,
+  type CustomGameMode
+} from '../../../../shared/custom-games'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { FindMatchButton } from './FindMatchButton'
@@ -30,21 +34,26 @@ export function CreateCustomGameModal({
   const createRoom = useCustomGamesStore((state) => state.createRoom)
   const error = useCustomGamesStore((state) => state.error)
   const [name, setName] = useState(t('customGames.defaultName'))
-  const [mode, setMode] = useState<CustomGameMode>('unrated')
-  const [mapId, setMapId] = useState('de_dust2')
+  const [mode, setMode] = useState<CustomGameMode>(() => {
+    const selected = useMatchmakingStore.getState().selectedMode
+    return isCustomGameMode(selected) ? selected : 'unrated'
+  })
+  const [mapId, setMapId] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const availableModes = CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate))
-  const selectedMode = availableModes.includes(mode) ? mode : (availableModes[0] ?? 'unrated')
+  // Catalog refreshes must never substitute a different mode for the draft.
+  const selectedMode = mode
+  const modeAvailable = availableModes.includes(mode)
   const supportedMaps = maps.filter(({ customModes }) => customModes.includes(selectedMode))
-  const selectedMapId = supportedMaps.some((map) => map.id === mapId)
-    ? mapId
-    : (supportedMaps[0]?.id ?? '')
+  const selectedMapId =
+    mapId ?? supportedMaps.find((map) => map.id === 'de_dust2')?.id ?? supportedMaps[0]?.id ?? ''
+  const mapAvailable = supportedMaps.some((map) => map.id === selectedMapId)
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (disabled || !selectedMapId || submitting) return
+    if (disabled || !modeAvailable || !mapAvailable || submitting) return
     setSubmitting(true)
     void createRoom({
       name: name.trim() || t('customGames.defaultName'),
@@ -100,8 +109,16 @@ export function CreateCustomGameModal({
                 className={fieldClass}
                 value={selectedMode}
                 disabled={submitting || availableModes.length === 0}
-                onChange={(event) => setMode(event.target.value as CustomGameMode)}
+                onChange={(event) => {
+                  setMode(event.target.value as CustomGameMode)
+                  setMapId(null)
+                }}
               >
+                {!modeAvailable && (
+                  <option value={mode} disabled>
+                    {t(`customRoom.mode.${mode}`)}
+                  </option>
+                )}
                 {availableModes.map((availableMode) => (
                   <option key={availableMode} value={availableMode}>
                     {t(`customRoom.mode.${availableMode}`)}
@@ -117,6 +134,11 @@ export function CreateCustomGameModal({
                 disabled={submitting || supportedMaps.length === 0}
                 onChange={(event) => setMapId(event.target.value)}
               >
+                {selectedMapId && !mapAvailable && (
+                  <option value={selectedMapId} disabled>
+                    {selectedMapId}
+                  </option>
+                )}
                 {supportedMaps.length === 0 && <option value="">{t('legacy.customNoMaps')}</option>}
                 {supportedMaps.map((map) => (
                   <option key={map.id} value={map.id}>
@@ -156,7 +178,7 @@ export function CreateCustomGameModal({
               className="h-11 min-w-36 px-4 text-sm font-semibold tracking-normal normal-case"
               aria-busy={submitting}
               type="submit"
-              disabled={disabled || submitting || !selectedMapId}
+              disabled={disabled || submitting || !modeAvailable || !mapAvailable}
             >
               <span className="absolute left-2 flex size-4 shrink-0 items-center justify-center">
                 {submitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}

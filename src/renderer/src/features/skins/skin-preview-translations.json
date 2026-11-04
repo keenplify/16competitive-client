@@ -14,7 +14,11 @@
     "knifeControls": "Hold left click to slash",
     "grenadeControls": "Hold left click to prepare · Release to throw",
     "grenadeExplosion": "Grenade explosion preview",
-    "effectUnavailable": "Some explosion effects are unavailable."
+    "effectUnavailable": "Some explosion effects are unavailable.",
+    "heldWeapon": "Held weapon",
+    "experimental": "Experimental",
+    "attachedStickers": "Attached stickers",
+    "viewStickerInStore": "View {{name}} in Store"
   },
   "ru": {
     "preview": "Просмотр",
@@ -31,7 +35,11 @@
     "knifeControls": "Удерживайте ЛКМ для ударов ножом",
     "grenadeControls": "Удерживайте ЛКМ для подготовки · Отпустите для броска",
     "grenadeExplosion": "Просмотр взрыва гранаты",
-    "effectUnavailable": "Некоторые эффекты взрыва недоступны."
+    "effectUnavailable": "Некоторые эффекты взрыва недоступны.",
+    "heldWeapon": "Оружие в руках",
+    "experimental": "Экспериментальный",
+    "attachedStickers": "Наклеенные стикеры",
+    "viewStickerInStore": "Посмотреть {{name}} в магазине"
   },
   "tl": {
     "preview": "Preview",
@@ -48,7 +56,11 @@
     "knifeControls": "Hawakan ang kaliwang click para humiwa",
     "grenadeControls": "Hawakan ang kaliwang click para ihanda · Bitawan para ihagis",
     "grenadeExplosion": "Preview ng pagsabog ng granada",
-    "effectUnavailable": "Hindi available ang ilang epekto ng pagsabog."
+    "effectUnavailable": "Hindi available ang ilang epekto ng pagsabog.",
+    "heldWeapon": "Hawak na armas",
+    "experimental": "Eksperimental",
+    "attachedStickers": "Mga nakakabit na sticker",
+    "viewStickerInStore": "Tingnan ang {{name}} sa Store"
   },
   "th": {
     "preview": "ตัวอย่าง",
@@ -65,7 +77,11 @@
     "knifeControls": "กดคลิกซ้ายค้างเพื่อฟัน",
     "grenadeControls": "กดคลิกซ้ายค้างเพื่อเตรียม · ปล่อยเพื่อขว้าง",
     "grenadeExplosion": "ตัวอย่างการระเบิดของระเบิดมือ",
-    "effectUnavailable": "เอฟเฟกต์การระเบิดบางส่วนไม่พร้อมใช้งาน"
+    "effectUnavailable": "เอฟเฟกต์การระเบิดบางส่วนไม่พร้อมใช้งาน",
+    "heldWeapon": "อาวุธในมือ",
+    "experimental": "ทดลอง",
+    "attachedStickers": "สติกเกอร์ที่ติดอยู่",
+    "viewStickerInStore": "ดู {{name}} ในร้านค้า"
   },
   "id": {
     "preview": "Pratinjau",
@@ -82,7 +98,11 @@
     "knifeControls": "Tahan klik kiri untuk menebas",
     "grenadeControls": "Tahan klik kiri untuk bersiap · Lepaskan untuk melempar",
     "grenadeExplosion": "Pratinjau ledakan granat",
-    "effectUnavailable": "Sebagian efek ledakan tidak tersedia."
+    "effectUnavailable": "Sebagian efek ledakan tidak tersedia.",
+    "heldWeapon": "Senjata yang dipegang",
+    "experimental": "Eksperimental",
+    "attachedStickers": "Stiker terpasang",
+    "viewStickerInStore": "Lihat {{name}} di Toko"
   },
   "pt": {
     "preview": "Prévia",
@@ -99,7 +119,11 @@
     "knifeControls": "Segure o botão esquerdo para golpear",
     "grenadeControls": "Segure o botão esquerdo para preparar · Solte para lançar",
     "grenadeExplosion": "Prévia da explosão da granada",
-    "effectUnavailable": "Alguns efeitos da explosão estão indisponíveis."
+    "effectUnavailable": "Alguns efeitos da explosão estão indisponíveis.",
+    "heldWeapon": "Arma em mãos",
+    "experimental": "Experimental",
+    "attachedStickers": "Adesivos aplicados",
+    "viewStickerInStore": "Ver {{name}} na Loja"
   },
   "ja": {
     "preview": "プレビュー",
@@ -116,7 +140,11 @@
     "knifeControls": "左クリック長押しで斬る",
     "grenadeControls": "左クリック長押しで準備 · 離すと投げる",
     "grenadeExplosion": "グレネード爆発のプレビュー",
-    "effectUnavailable": "一部の爆発エフェクトは利用できません。"
+    "effectUnavailable": "一部の爆発エフェクトは利用できません。",
+    "heldWeapon": "手持ち武器",
+    "experimental": "実験的",
+    "attachedStickers": "貼り付け済みステッカー",
+    "viewStickerInStore": "ストアで{{name}}を見る"
   },
   "hi": {
     "preview": "पूर्वावलोकन",
@@ -133,6 +161,10 @@
     "knifeControls": "वार करने के लिए बायाँ क्लिक दबाए रखें",
     "grenadeControls": "तैयार करने के लिए बायाँ क्लिक दबाए रखें · फेंकने के लिए छोड़ें",
     "grenadeExplosion": "ग्रेनेड विस्फोट का पूर्वावलोकन",
-    "effectUnavailable": "विस्फोट के कुछ प्रभाव उपलब्ध नहीं हैं।"
+    "effectUnavailable": "विस्फोट के कुछ प्रभाव उपलब्ध नहीं हैं।",
+    "heldWeapon": "हाथ में हथियार",
+    "experimental": "प्रायोगिक",
+    "attachedStickers": "लगे हुए स्टिकर",
+    "viewStickerInStore": "स्टोर में {{name}} देखें"
   }
 }

@@ -55,7 +55,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     main: {
-      build: { rollupOptions: { input: { index: resolve('src/main/bootstrap.ts') } } },
+      resolve: { extensions: ['.mjs', '.mts', '.ts', '.tsx', '.js', '.jsx', '.json'] },
+      build: {
+        rollupOptions: {
+          input: {
+            index: resolve('src/main/bootstrap.ts'),
+            'sticker-bake-worker': resolve('src/main/game/sticker-bake-worker.ts')
+          }
+        }
+      },
       define: mainProcessEnv,
       plugins:
         mode === 'production'

@@ -1,3 +1,6 @@
+import { stockStickerModel } from '../shared/stock-sticker-models'
+import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
+import { validateProjection } from '../renderer/src/libs/web-hlmv/lib/sticker-atlas'
 import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
 import { isSkinPreviewRotation } from '../shared/skin-preview-rotation'
@@ -685,5 +688,24 @@ export const previewMusicKit = async (id: unknown, event: unknown): Promise<Arra
     throw new Error('MUSIC_PREVIEW_FAILED')
   const bytes = await response.arrayBuffer()
   if (bytes.byteLength > 2_000_000) throw new Error('MUSIC_PREVIEW_FAILED')
+  return bytes
+}
+
+export const listStickers = async () => parseStickerSnapshot(await collectionRequest('/stickers'))
+export const buySticker = async (id: unknown, input: unknown): Promise<void> => {
+  await collectionRequest(`/stickers/${stickerId(id)}/buy`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(validateStickerBuy(input)) })
+}
+export const applySticker = async (id: unknown, weaponKey: unknown, projection: unknown): Promise<void> => {
+  if (typeof weaponKey !== 'string' || !(weaponKey.startsWith('stock:') ? stockStickerModel(weaponKey.slice(6)) : /^skin:[a-f0-9-]{36}$/.test(weaponKey))) throw new Error('STICKER_WEAPON_INVALID')
+  await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ weaponKey, projection: validateProjection(projection) }) })
+}
+export const getStickerImage = async (path: unknown): Promise<ArrayBuffer> => {
+  const key = stickerImagePath(path)
+  const response = await fetch(await skinApiUrl(`/fastdl/${key}`), { signal: AbortSignal.timeout(10000), redirect: 'error' })
+  if (!response.ok || Number(response.headers.get('content-length')) > 2000000) throw new Error('STICKER_IMAGE_INVALID')
+  const bytes = await response.arrayBuffer()
+  if (bytes.byteLength > 2000000) throw new Error('STICKER_IMAGE_INVALID')
+  const { createHash } = await import('node:crypto')
+  if (createHash('sha256').update(new Uint8Array(bytes)).digest('hex') !== key.split('/')[3]) throw new Error('STICKER_IMAGE_INVALID')
   return bytes
 }

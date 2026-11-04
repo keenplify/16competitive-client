@@ -177,7 +177,7 @@ test('startup stays in the banner for downloads and required failures, and retry
         return undefined
       }
     },
-    'papamo-guard://retry'
+    'pmguard://retry'
   )
   assert.equal(client.checks, 2)
   client.emit({ state: 'idle' })
@@ -227,9 +227,67 @@ test('non-required failures do not block startup and unknown navigation cannot t
         return undefined
       }
     },
-    'papamo-guard://exit'
+    'pmguard://exit'
   )
   assert.equal(client.app.quits, undefined)
   client.emit({ state: 'error', message: 'offline' })
   await startup
+})
+
+test('matchmaking checks leave the launcher visible and never open an updater without a release', async () => {
+  const client = await harness({ launcher: true })
+  client.banner.finishStartup()
+  const windowCount = client.windows.length
+  client.emit({ state: 'checking' })
+  client.banner.launcherReady()
+  await tick()
+  assert.equal(client.main.visible, true)
+  assert.equal(client.windows.length, windowCount)
+  assert.equal(client.banner.isPresenting(), false)
+  assert.equal(client.app.quits, undefined)
+  client.emit({ state: 'idle' })
+  await tick()
+  assert.equal(client.main.visible, true)
+  assert.equal(client.windows.length, windowCount)
+})
+
+test('failed version checks keep the launcher visible and allow another check', async () => {
+  const client = await harness({ initial: false, launcher: true })
+  client.banner.finishStartup()
+  client.emit({ state: 'checking' })
+  client.emit({ state: 'error', message: 'offline' })
+  await tick()
+  client.emit({ state: 'checking' })
+  await tick()
+  assert.equal(client.main.visible, true)
+  assert.equal(client.windows.length, 1)
+  assert.equal(client.banner.isPresenting(), false)
+  assert.equal(client.app.quits, undefined)
+})
+
+test('a confirmed release takes over only after discovery and remains visible during retry', async () => {
+  const client = await harness({ initial: false, launcher: true })
+  client.banner.finishStartup()
+  client.emit({ state: 'checking' })
+  await tick()
+  assert.equal(client.windows.length, 1)
+  client.emit({ state: 'available', version: '2' })
+  await tick()
+  assert.equal(client.windows.length, 2)
+  assert.equal(client.main.visible, false)
+  assert.equal(client.banner.isPresenting(), true)
+  client.emit({ state: 'error', message: 'download failed', requiredVersion: '2' })
+  await tick()
+  client.emit({ state: 'checking' })
+  await tick()
+  assert.equal(client.main.visible, false)
+  assert.equal(client.banner.isPresenting(), true)
+  assert.equal(client.windows.length, 2)
+  client.emit({ state: 'idle' })
+  await tick()
+  assert.equal(client.main.visible, true)
+  client.emit({ state: 'checking' })
+  await tick()
+  assert.equal(client.main.visible, true)
+  assert.equal(client.windows.length, 2)
 })

@@ -11,11 +11,13 @@ export type LobbyPageId =
   | 'settings'
   | 'profile'
 
-export type ProfileTabId = 'overview' | 'matches' | 'skins' | 'operation'
+export type ProfileTabId = 'overview' | 'matches' | 'skins' | 'inventory' | 'operation'
 
 interface NavigationState {
   page: LobbyPageId
   profileTab: ProfileTabId
+  storeStickerSearch: string | null
+  openStickerStore: (name: string) => void
   settingsTarget: 'discord' | null
   navigate: (page: LobbyPageId) => void
   openDiscordSettings: () => void
@@ -27,8 +29,11 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   page:
     typeof window !== 'undefined' && window.location.hash === '#settings' ? 'settings' : 'lobby',
   profileTab: 'overview',
+  storeStickerSearch: null,
+  openStickerStore: (name) =>
+    set({ page: 'store', storeStickerSearch: name, settingsTarget: null }),
   settingsTarget: null,
-  navigate: (page) => set({ page, settingsTarget: null }),
+  navigate: (page) => set({ page, settingsTarget: null, storeStickerSearch: null }),
   openDiscordSettings: () => set({ page: 'settings', settingsTarget: 'discord' }),
   clearSettingsTarget: () => set({ settingsTarget: null }),
   setProfileTab: (profileTab) => set({ profileTab })

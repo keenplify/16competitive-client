@@ -1,3 +1,4 @@
+import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
@@ -62,7 +63,9 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     ),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
   ).outputText
+  const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../../diagnostic-logs': { rendererMatchmakingDiagnostics: diagnostics },
     './web-helper-prompt.store': {
       useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
     },
@@ -434,4 +437,42 @@ test('MR8 settlement updates authoritative MMR once without resetting ranked sea
   assert.equal(store.getState().queueStatus, 'queued')
   assert.equal(store.getState().queuedAt, '2026-10-23T10:00:00Z')
   assert.equal(store.getState().completedMatch, null)
+})
+
+test('missed acceptance warns on next Play only, acknowledges once and survives reset', async () => {
+  const h = await harness()
+  const event = {
+    type: 'match_cancelled',
+    matchId: 'missed-match',
+    reason: 'PLAYER_NOT_READY',
+    message: 'Not ready',
+    readyCheckFailed: true
+  }
+  h.emit(event)
+  assert.equal(h.store.getState().readyWarningOpen, false)
+  await h.store.getState().joinQueue()
+  assert.equal(h.requests.length, 0)
+  assert.equal(h.store.getState().readyWarningOpen, true)
+  h.store.getState().reset()
+  assert.equal(h.store.getState().readyWarningOpen, false)
+  assert.equal(h.store.getState().showReadyWarning(), true)
+  h.store.getState().acknowledgeReadyWarning()
+  assert.equal(h.store.getState().readyWarningOpen, false)
+  assert.equal(h.requests.length, 0)
+  h.emit(event)
+  assert.equal(h.store.getState().showReadyWarning(), false)
+  h.emit({ ...event, matchId: 'missed-again' })
+  assert.equal(h.store.getState().showReadyWarning(), true)
+})
+
+test('another player declining or a server failure does not warn this player', async () => {
+  const h = await harness()
+  for (const event of [
+    { reason: 'PLAYER_DECLINED' },
+    { reason: 'PLAYER_NOT_READY', readyCheckFailed: false },
+    { reason: 'SERVER_START_FAILED', readyCheckFailed: true }
+  ]) {
+    h.emit({ type: 'match_cancelled', matchId: event.reason, message: 'Cancelled', ...event })
+    assert.equal(h.store.getState().showReadyWarning(), false)
+  }
 })

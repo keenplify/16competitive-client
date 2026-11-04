@@ -1,3 +1,4 @@
+import { ReadyCheckWarning } from './features/matchmaking/ReadyCheckWarning'
 import './features/settings/launcher-theme.store'
 import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
 import { ProfileOverlay } from './features/profile/ProfileOverlay'
@@ -46,6 +47,7 @@ function App(): React.JSX.Element {
         <ConnectionBanner />
         <AntiCheatMatchCancellationNotice />
         <MatchAbandonNotice />
+        <ReadyCheckWarning />
         <SkinAssetSyncIndicator />
         <MatchAssetPreparation />
         <QueueWarmupNotice />

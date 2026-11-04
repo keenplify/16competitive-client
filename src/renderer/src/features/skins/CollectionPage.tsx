@@ -3,6 +3,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
 import { CurrencyAmount } from '../../components/CurrencyIcon'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { SkinCardPreview, SkinPreview } from './ShopPage'
 import { useCollectionsStore } from './collections.store'
 import { useCollectionText } from './collection-i18n'
@@ -107,10 +108,10 @@ export function CollectionPage() {
                 />
               )}
             </div>
-            <div className="my-8 grid gap-8 lg:grid-cols-[1fr_24rem]">
-              <div>
+            <div className="my-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+              <div className="min-w-0">
                 <h1 className="text-3xl font-semibold md:text-4xl">{collection.name}</h1>
-                <p className="mt-4 max-w-prose whitespace-pre-wrap text-sm leading-7 text-neutral-300">
+                <p className="mt-5 whitespace-pre-wrap text-lg leading-relaxed text-neutral-200 lg:text-xl">
                   {collection.description}
                 </p>
               </div>
@@ -122,18 +123,16 @@ export function CollectionPage() {
                 <p className="mt-2 text-sm text-amber-200">
                   {t('discount', { percent: String(collection.discountPercent) })}
                 </p>
-                <label className="mt-4 flex items-center justify-between gap-3 text-sm">
+                <div className="mt-4 flex items-center justify-between gap-3 text-sm">
                   {t('currency')}
-                  <select
+                  <CurrencySelect
                     value={state.currency}
+                    label={t('currency')}
+                    labels={{ P_CASH: t('pCash'), POINTS: t('points') }}
                     disabled={state.buying || Boolean(state.request)}
-                    onChange={(e) => void state.setCurrency(e.target.value as SkinCurrency)}
-                    className="h-10 rounded-none border border-white/20 bg-neutral-950 px-3"
-                  >
-                    <option value="P_CASH">P Cash</option>
-                    <option value="POINTS">Points</option>
-                  </select>
-                </label>
+                    onChange={(currency) => void state.setCurrency(currency)}
+                  />
+                </div>
                 <div
                   className="mt-4 flex h-9 items-center justify-between gap-3 tabular-nums"
                   aria-live="polite"

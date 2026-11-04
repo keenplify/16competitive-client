@@ -1,3 +1,4 @@
+import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
@@ -55,7 +56,9 @@ async function harness() {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 }
     }
   ).outputText
+  const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../../diagnostic-logs': { rendererMatchmakingDiagnostics: diagnostics },
     './web-helper-prompt.store': {
       useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
     },
@@ -112,12 +115,34 @@ async function harness() {
   await store.getState().connect()
   return {
     store,
+    diagnostics,
     emit: (message) => emit(message),
     poll: () => poll(),
     statusRequests: () => statusRequests,
     readyResponses: () => readyResponses
   }
 }
+
+test('issue snapshot separates catalog completion from a missing match ready check', async () => {
+  const { store, diagnostics } = await harness()
+  store.setState({
+    connectionStatus: 'reconnecting',
+    queueStatus: 'ready_check',
+    match: { matchId: 'stuck-match' },
+    readyDeadline: null,
+    readyResponse: 'pending',
+    assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
+    connectionDetails: { matchId: 'stuck-match', password: 'never-report-this' }
+  })
+  const report = diagnostics.report()
+  const { snapshot } = JSON.parse(report)
+  assert.equal(snapshot.matchId, 'stuck-match')
+  assert.equal(snapshot.readyDeadline, null)
+  assert.equal(snapshot.connectionStatus, 'reconnecting')
+  assert.equal(snapshot.status, 'checking')
+  assert.equal(snapshot.hasConnection, true)
+  assert.ok(!report.includes('never-report-this'))
+})
 
 test('accepted player can decline only after the server unlock time', async () => {
   const { store, readyResponses } = await harness()

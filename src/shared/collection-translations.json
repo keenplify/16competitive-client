@@ -38,7 +38,9 @@
     "empty": "No items are currently available.",
     "cancel": "Cancel",
     "discountLabel": "Package discount (%)",
-    "adminError": "Could not load or save the package. Check the fields and retry."
+    "adminError": "Could not load or save the package. Check the fields and retry.",
+    "pCash": "P Cash",
+    "points": "Points"
   },
   "ru": {
     "title": "Наборы скинов",
@@ -79,7 +81,9 @@
     "empty": "Сейчас нет доступных предметов.",
     "cancel": "Отмена",
     "discountLabel": "Скидка на набор (%)",
-    "adminError": "Не удалось загрузить или сохранить набор. Проверьте поля и повторите."
+    "adminError": "Не удалось загрузить или сохранить набор. Проверьте поля и повторите.",
+    "pCash": "P Cash",
+    "points": "Очки"
   },
   "tl": {
     "title": "Mga skin package",
@@ -120,7 +124,9 @@
     "empty": "Wala pang available na item.",
     "cancel": "Kanselahin",
     "discountLabel": "Diskuwento ng package (%)",
-    "adminError": "Hindi ma-load o ma-save ang package. Suriin ang mga field at subukan muli."
+    "adminError": "Hindi ma-load o ma-save ang package. Suriin ang mga field at subukan muli.",
+    "pCash": "P Cash",
+    "points": "Points"
   },
   "th": {
     "title": "แพ็กสกิน",
@@ -161,7 +167,9 @@
     "empty": "ยังไม่มีไอเทมที่พร้อมขาย",
     "cancel": "ยกเลิก",
     "discountLabel": "ส่วนลดแพ็ก (%)",
-    "adminError": "โหลดหรือบันทึกแพ็กไม่ได้ ตรวจสอบข้อมูลแล้วลองอีกครั้ง"
+    "adminError": "โหลดหรือบันทึกแพ็กไม่ได้ ตรวจสอบข้อมูลแล้วลองอีกครั้ง",
+    "pCash": "P Cash",
+    "points": "แต้ม"
   },
   "id": {
     "title": "Paket skin",
@@ -202,7 +210,9 @@
     "empty": "Belum ada item yang tersedia.",
     "cancel": "Batal",
     "discountLabel": "Diskon paket (%)",
-    "adminError": "Paket tidak dapat dimuat atau disimpan. Periksa isian dan coba lagi."
+    "adminError": "Paket tidak dapat dimuat atau disimpan. Periksa isian dan coba lagi.",
+    "pCash": "P Cash",
+    "points": "Poin"
   },
   "pt": {
     "title": "Pacotes de skins",
@@ -243,7 +253,9 @@
     "empty": "Nenhum item disponível no momento.",
     "cancel": "Cancelar",
     "discountLabel": "Desconto do pacote (%)",
-    "adminError": "Não foi possível carregar ou salvar o pacote. Confira os campos e tente novamente."
+    "adminError": "Não foi possível carregar ou salvar o pacote. Confira os campos e tente novamente.",
+    "pCash": "P Cash",
+    "points": "Pontos"
   },
   "ja": {
     "title": "スキンパッケージ",
@@ -284,7 +296,9 @@
     "empty": "現在購入可能なアイテムはありません。",
     "cancel": "キャンセル",
     "discountLabel": "パッケージ割引（%）",
-    "adminError": "読み込みまたは保存に失敗しました。入力を確認して再試行してください。"
+    "adminError": "読み込みまたは保存に失敗しました。入力を確認して再試行してください。",
+    "pCash": "P Cash",
+    "points": "ポイント"
   },
   "hi": {
     "title": "स्किन पैकेज",
@@ -325,6 +339,8 @@
     "empty": "अभी कोई आइटम उपलब्ध नहीं है।",
     "cancel": "रद्द करें",
     "discountLabel": "पैकेज छूट (%)",
-    "adminError": "पैकेज लोड या सहेजा नहीं जा सका। जानकारी जाँचकर फिर कोशिश करें।"
+    "adminError": "पैकेज लोड या सहेजा नहीं जा सका। जानकारी जाँचकर फिर कोशिश करें।",
+    "pCash": "P Cash",
+    "points": "अंक"
   }
 }

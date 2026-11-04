@@ -1,0 +1,140 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { build } from 'esbuild'
+import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { tmpdir, homedir } from 'node:os'
+import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import electron from 'electron'
+
+test(
+  'sticker viewport survives StrictMode, places a sticker and reopens',
+  { timeout: 60000 },
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), '16c-sticker-viewport-'))
+    try {
+      await build({
+        stdin: {
+          resolveDir: process.cwd(),
+          loader: 'tsx',
+          contents: `
+import React, {StrictMode} from 'react'
+import {createRoot} from 'react-dom/client'
+import {StickerViewport} from './src/renderer/src/features/sticker-editor/StickerViewport'
+import {useStickerEditor} from './src/renderer/src/features/sticker-editor/sticker-editor.store'
+import {prepareStickerAtlas} from './src/renderer/src/libs/web-hlmv/lib/sticker-atlas'
+let root
+window.mount = (bytes, weaponKey = 'ak47') => {
+  const atlas=prepareStickerAtlas(new Uint8Array(bytes))
+  useStickerEditor.setState({model:atlas.model,atlas,sticker:{width:8,height:8,rgba:new Uint8Array(256).fill(255)},applied:[],placed:false,projection:undefined})
+  root=createRoot(document.getElementById('root'))
+  root.render(<StrictMode><StickerViewport label={weaponKey} weaponKey={weaponKey} /></StrictMode>)
+}
+window.unmount = () => root.unmount()
+window.state = () => ({placed:useStickerEditor.getState().placed,projection:useStickerEditor.getState().projection,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),canvases:document.querySelectorAll('canvas').length})
+`
+        },
+        outfile: join(dir, 'renderer.js'),
+        bundle: true,
+        platform: 'browser',
+        jsx: 'automatic',
+        resolveExtensions: ['.ts', '.tsx', '.js', '.json'],
+        define: { 'process.env.NODE_ENV': '"development"' },
+        plugins: [
+          {
+            name: 'test-labels',
+            setup(b) {
+              b.onResolve({ filter: /inventory-i18n$/ }, () => ({
+                path: 'labels',
+                namespace: 'fixture'
+              }))
+              b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({
+                contents: 'export const useInventoryText=()=>key=>key',
+                loader: 'js'
+              }))
+            }
+          }
+        ]
+      })
+      await writeFile(
+        join(dir, 'index.html'),
+        '<style>html,body,#root{margin:0;width:100%;height:100%;background:#121b27}#root>div{position:absolute;inset:0}canvas{width:100%;height:100%}</style><div id="root"></div><script src="renderer.js"></script>'
+      )
+      const model =
+        process.env.STICKER_TEST_MODEL ||
+        join(homedir(), '.steam/steam/steamapps/common/Half-Life/cstrike/models/v_ak47.mdl')
+      await writeFile(
+        join(dir, 'main.cjs'),
+        `
+const {app,BrowserWindow}=require('electron')
+const {readFileSync,writeFileSync}=require('fs')
+const assert=require('assert/strict')
+app.commandLine.appendSwitch('enable-unsafe-swiftshader')
+app.whenReady().then(async()=>{
+const w=new BrowserWindow({show:false,width:1000,height:700,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}})
+const errors=[]
+w.webContents.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message)})
+try{
+await w.loadFile(${JSON.stringify(join(dir, 'index.html'))})
+const bytes=[...readFileSync(${JSON.stringify(model)})]
+for(let pass=0;pass<2;pass++){
+await w.webContents.executeJavaScript('mount('+JSON.stringify(bytes)+')')
+await new Promise(r=>setTimeout(r,700))
+assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
+assert.equal(await w.webContents.executeJavaScript('state().canvases'),1)
+assert.equal(await w.webContents.executeJavaScript('state().placed'),true,'new sticker starts on central weapon surface')
+let placed=false, hitX=0, hitY=0
+for(let y=200;y<500&&!placed;y+=30)for(let x=200;x<800&&!placed;x+=30){
+w.webContents.sendInputEvent({type:'mouseDown',button:'left',x,y,clickCount:1})
+w.webContents.sendInputEvent({type:'mouseUp',button:'left',x,y,clickCount:1})
+await new Promise(r=>setTimeout(r,10))
+placed=await w.webContents.executeJavaScript('state().placed');if(placed){hitX=x;hitY=y}
+}
+assert.equal(placed,true,'mouse click must project sticker onto weapon')
+w.webContents.sendInputEvent({type:'mouseDown',button:'right',x:450,y:300,clickCount:1})
+w.webContents.sendInputEvent({type:'mouseMove',button:'right',x:650,y:400})
+w.webContents.sendInputEvent({type:'mouseUp',button:'right',x:650,y:400,clickCount:1})
+w.webContents.sendInputEvent({type:'mouseDown',button:'left',x:hitX,y:hitY,clickCount:1})
+w.webContents.sendInputEvent({type:'mouseUp',button:'left',x:hitX,y:hitY,clickCount:1})
+await new Promise(r=>setTimeout(r,100))
+assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[], 'limited orbit stays usable')
+
+await new Promise(r=>setTimeout(r,100))
+if(pass===0)writeFileSync('/tmp/16c-sticker-viewport-verified.png',(await w.webContents.capturePage()).toPNG())
+await w.webContents.executeJavaScript('unmount()')
+}
+const knife=[...readFileSync(${JSON.stringify(join(homedir(), '.steam/steam/steamapps/common/Half-Life/cstrike/models/v_knife.mdl'))})]
+await w.webContents.executeJavaScript('mount('+JSON.stringify(knife)+',"knife")')
+await new Promise(r=>setTimeout(r,700))
+const projection=await w.webContents.executeJavaScript('state().projection')
+assert.ok(projection,'knife starts with a valid placement')
+w.show()
+await new Promise(r=>setTimeout(r,200))
+writeFileSync('/tmp/16c-knife-sticker-verified.png',(await w.webContents.capturePage()).toPNG())
+assert.ok(projection.normal[1]<-0.5,'knife starts on the opposite authored blade face from the old firearm camera')
+await w.webContents.executeJavaScript('unmount()')
+assert.deepEqual(errors.filter(e=>/precision|TypeError|Error creating WebGL/.test(e)),[])
+console.log('StrictMode mount, mouse placement, and reopen passed')
+w.destroy();app.exit(0)
+}catch(e){console.error(e);w.destroy();app.exit(1)}
+})
+`
+      )
+      const output = await new Promise((resolve, reject) => {
+        const child = spawn(electron, [join(dir, 'main.cjs')], {
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+          stdio: ['ignore', 'pipe', 'pipe']
+        })
+        let text = ''
+        child.stdout.on('data', (d) => (text += d))
+        child.stderr.on('data', (d) => (text += d))
+        child.on('error', reject)
+        child.on('exit', (code) => resolve({ code, text }))
+      })
+      assert.equal(output.code, 0, output.text)
+      console.log(output.text)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  }
+)

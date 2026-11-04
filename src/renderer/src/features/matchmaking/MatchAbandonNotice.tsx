@@ -15,7 +15,8 @@ export function MatchAbandonNotice(): JSX.Element | null {
       <ModalDialog
         open
         onClose={dismiss}
-        className="w-[calc(100%-2rem)] max-w-md  border border-red-400/25 bg-neutral-900 p-6 text-center shadow-2xl"
+        className="w-[calc(100%-2rem)] max-w-md border border-red-400/25 bg-neutral-900 text-center shadow-2xl"
+        contentClassName="p-6"
         labelledBy="match-abandon-title"
         describedBy="match-abandon-description"
         role="alertdialog"

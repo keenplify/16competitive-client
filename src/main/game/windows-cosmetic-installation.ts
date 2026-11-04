@@ -1,3 +1,4 @@
+import type { SteamProtonRuntime } from './steam-proton'
 import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import { copyFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -49,7 +50,8 @@ export class WindowsCosmeticInstallation {
   private constructor(
     private readonly gameRoot: string,
     private readonly gameDirectory: GoldSrcModDirectory = 'cstrike',
-    private readonly runtime: CosmeticRuntime = 'native'
+    private readonly runtime: CosmeticRuntime = 'native',
+    private readonly proton?: SteamProtonRuntime
   ) {
     this.clientPath = join(gameRoot, gameDirectory, 'cl_dlls', 'client.dll')
     // The proxy's PE forwarded exports resolve this name from the EXE root.
@@ -62,24 +64,26 @@ export class WindowsCosmeticInstallation {
   static async restorePreviousInstall(
     gameRoot: string,
     gameDirectory: GoldSrcModDirectory = 'cstrike',
-    runtime: CosmeticRuntime = 'native'
+    runtime: CosmeticRuntime = 'native',
+    proton?: SteamProtonRuntime
   ): Promise<void> {
     if (process.platform !== 'win32' && !(process.platform === 'linux' && runtime === 'wine'))
       return
     await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
-    await new WindowsCosmeticInstallation(gameRoot, gameDirectory, runtime).restore()
+    await new WindowsCosmeticInstallation(gameRoot, gameDirectory, runtime, proton).restore()
   }
 
   static async install(
     gameRoot: string,
     gameDirectory: GoldSrcModDirectory = 'cstrike',
     runtime: CosmeticRuntime = 'native',
-    authFile?: RecoveryDescriptor['authFile']
+    authFile?: RecoveryDescriptor['authFile'],
+    proton?: SteamProtonRuntime
   ): Promise<WindowsCosmeticInstallation | null> {
     if (process.platform !== 'win32' && !(process.platform === 'linux' && runtime === 'wine'))
       throw new Error('Windows cosmetic installation requires Windows')
     await WindowsCosmeticInstallation.pendingRestore.catch(() => undefined)
-    const installation = new WindowsCosmeticInstallation(gameRoot, gameDirectory, runtime)
+    const installation = new WindowsCosmeticInstallation(gameRoot, gameDirectory, runtime, proton)
     await installation.recover()
     if (gameDirectory === 'cstrike' && (await isNextClientInstallation(gameRoot))) {
       console.info('[Scoreboard] NextClient uses its own client hooks; using stock HUD')
@@ -199,7 +203,8 @@ export class WindowsCosmeticInstallation {
         join(native, 'game-inspector.exe'),
         runtime,
         gameDirectory,
-        authFile
+        authFile,
+        proton
       )
       recoveryArmed = true
       await writeFile(temporary, module, { flag: 'wx' })
@@ -225,14 +230,14 @@ export class WindowsCosmeticInstallation {
   }
 
   private async recover(): Promise<void> {
-    if (await restoreWindowsIntegration(this.gameRoot, this.runtime)) return
+    if (await restoreWindowsIntegration(this.gameRoot, this.runtime, this.proton)) return
     await recoverWindowsCosmeticInstallation(this.gameRoot, this.gameDirectory)
   }
 
   async restore(): Promise<void> {
     // An exiting hl.exe can briefly hold client.dll open. Leave the journal and
     // original in place if restoration fails; the next launch recovers them.
-    if (await restoreWindowsIntegration(this.gameRoot, this.runtime)) return
+    if (await restoreWindowsIntegration(this.gameRoot, this.runtime, this.proton)) return
     await rm(this.sessionDirectory, { recursive: true, force: true }).catch(() => undefined)
     for (let attempt = 0; attempt < 30; attempt++) {
       try {

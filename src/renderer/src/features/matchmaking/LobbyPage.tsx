@@ -1,3 +1,4 @@
+import { InventoryDialogs } from '../inventory/InventoryPage'
 import { isWebRuntime } from '../../web-runtime'
 import { LauncherWindow } from '../../components/ui/LauncherWindow'
 import { useTranslation } from '../i18n/i18n'
@@ -528,6 +529,7 @@ export function LobbyPage(): JSX.Element {
         onPinToggle={handleFriendsPinToggle}
         hoverOpenDisabledUntil={friendsHoverOpenDisabledUntil}
       />
+      <InventoryDialogs />
       {content && (
         <div
           className={`vgui-page-host relative z-10 transition-[padding-right] duration-300 ease-out ${showingMatchSession ? 'h-dvh overflow-hidden pt-16 sm:pt-20' : 'bg-linear-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/25 pt-16 backdrop-blur-md sm:pt-20'} ${showingMatchSession ? '' : showingPlaySelection || page === 'store' ? 'h-dvh overflow-hidden' : 'min-h-screen'} ${

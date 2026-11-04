@@ -1,3 +1,4 @@
+import { STICKER_CHANNELS } from '../shared/stickers'
 import {
   COMMUNITY_DIRECTORY_CHANNELS,
   type CommunityDirectoryApi
@@ -303,6 +304,10 @@ const matchHistory: MatchHistoryApi = {
 }
 
 const skins: SkinsApi = {
+  stickers: () => ipcRenderer.invoke(STICKER_CHANNELS.snapshot),
+  stickerBuy: (id, input) => ipcRenderer.invoke(STICKER_CHANNELS.buy, id, input),
+  stickerApply: (id, weaponKey, projection) => ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection),
+  stickerImage: (path) => ipcRenderer.invoke(STICKER_CHANNELS.image, path),
   collections: () => ipcRenderer.invoke(SKIN_CHANNELS.collections),
   collection: (id) => ipcRenderer.invoke(SKIN_CHANNELS.collection, id),
   collectionQuote: (id, currency) =>

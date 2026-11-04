@@ -1,3 +1,8 @@
+import { stockStickerModel } from '../../../../shared/stock-sticker-models'
+import { stockWeaponPreview } from './stock-weapon-preview'
+import { useItemContextMenu } from '../inventory/use-item-context-menu'
+import { useInventoryStore } from '../inventory/inventory.store'
+import { useInventoryText } from '../inventory/inventory-i18n'
 import { createPortal } from 'react-dom'
 import { MusicKitInventory, MusicKitSlot } from './MusicKitLoadout'
 import { useMusicKitsStore } from './music-kits.store'
@@ -104,6 +109,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   const musicPending = useMusicKitsStore((s) => s.pending)
   useEffect(() => {
     void useMusicKitsStore.getState().load()
+    void useInventoryStore.getState().load()
   }, [])
   const webMode = isWebRuntime()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
@@ -114,6 +120,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   const [quotingId, setQuotingId] = useState<string | null>(null)
   const [selling, setSelling] = useState(false)
   const { t } = useTranslation()
+  const inventoryText = useInventoryText()
   const team = useCharacterLoadoutStore((state) => state.team)
   const setTeam = useCharacterLoadoutStore((state) => state.selectTeam)
   const stockCharacters = useCharacterLoadoutStore((state) => state.stock)
@@ -200,6 +207,11 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     ...GRENADE_WEAPON_KEYS,
     KNIFE_WEAPON_KEY
   ])
+  const stockWeapons = [...teamWeaponKeys].filter(
+    (key) =>
+      (category === 'all' || weaponCategory(key) === category) &&
+      (!selectedWeapon || key === selectedWeapon)
+  )
   const filteredSkins = skins
     .filter(
       (owned) =>
@@ -270,13 +282,27 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     const request = owned.equippedAt
       ? window.api.skins.unequip(owned.skin.id)
       : window.api.skins.equip(owned.skin.id)
+    const feedback = toast.loading(inventoryText('pending'))
     void request
       .then(() => window.api.skins.mine())
       .then((inventory) => {
         setSkins(inventory)
         setStatus('ready')
+        toast.update(feedback, {
+          render: inventoryText('done'),
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000
+        })
       })
-      .catch((reason: unknown) => toast.error(errorText(reason)))
+      .catch(() =>
+        toast.update(feedback, {
+          render: inventoryText('error'),
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000
+        })
+      )
       .finally(() => setChangingId(null))
   }
 
@@ -357,6 +383,15 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         onSetLobbyWeapon={setLobbyWeapon}
         onSetDefaultLobbyWeapon={setDefaultLobbyWeapon}
         onSelect={() => selectLoadoutWeapon(weaponKey)}
+        onPreview={() =>
+          setPreviewSkin(
+            equipped?.skin ??
+              stockWeaponPreview(
+                weaponKey,
+                inventoryText('stockWeapon').replace('{{weapon}}', displayWeapon(weaponKey))
+              )
+          )
+        }
       />
     )
   }
@@ -397,32 +432,34 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         </span>
         {t(unequippingTeam ? 'music.unequipping' : 'music.unequipAll')}
       </Button>
-      <div
-        className="flex border border-white/15 bg-black/25 p-1"
-        role="tablist"
-        aria-label={t('music.loadoutTeam')}
-      >
-        {(['ct', 't'] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={team === id}
-            disabled={loadoutLocked || unequippingTeam}
-            className={twMerge(
-              'px-4 py-2 text-xs font-bold tracking-wide',
-              team === id
-                ? id === 'ct'
-                  ? 'bg-sky-400 text-sky-950'
-                  : 'bg-amber-300 text-amber-950'
-                : 'text-neutral-400 hover:text-white'
-            )}
-            onClick={() => selectTeam(id)}
-          >
-            {t(id === 'ct' ? 'music.equipCt' : 'music.equipT')}
-          </button>
-        ))}
-      </div>
+    </div>
+  )
+  const teamTabs = (
+    <div
+      className="grid grid-cols-2 border border-white/15 bg-black/25 p-1"
+      role="tablist"
+      aria-label={t('music.loadoutTeam')}
+    >
+      {(['ct', 't'] as const).map((id) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={team === id}
+          disabled={loadoutLocked || unequippingTeam}
+          className={twMerge(
+            'min-w-0 px-1 py-2 text-xs font-bold tracking-wide focus-visible:outline-2 focus-visible:outline-sky-300',
+            team === id
+              ? id === 'ct'
+                ? 'bg-sky-400 text-sky-950'
+                : 'bg-amber-300 text-amber-950'
+              : 'text-neutral-400 hover:text-white'
+          )}
+          onClick={() => selectTeam(id)}
+        >
+          {t(id === 'ct' ? 'music.equipCt' : 'music.equipT')}
+        </button>
+      ))}
     </div>
   )
   return (
@@ -433,31 +470,33 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         ) : (
           <div className="mb-3 flex justify-end">{loadoutActions}</div>
         )}
-        <div className="loadout-stage mt-4 grid grid-cols-[minmax(90px,0.8fr)_minmax(0,4fr)_minmax(90px,0.8fr)] items-stretch gap-2 lg:gap-4">
+        <div className="loadout-stage mt-4 grid grid-cols-[minmax(140px,0.8fr)_minmax(0,4.8fr)] items-stretch gap-2 lg:gap-4">
           <div className="order-1 min-w-0 self-start">
+            <div className="mb-2">{teamTabs}</div>
             <CharacterPanel
-              team="ct"
+              key={team}
+              team={team}
               partyPending={partyPending}
               partySelected={
                 partyModel ===
-                (equippedByWeapon.get('player_ct')
-                  ? `skin:${equippedByWeapon.get('player_ct')!.skin.id}`
-                  : `player/${stockCharacters.ct}/${stockCharacters.ct}.mdl`)
+                (equippedByWeapon.get(`player_${team}`)
+                  ? `skin:${equippedByWeapon.get(`player_${team}`)!.skin.id}`
+                  : `player/${stockCharacters[team]}/${stockCharacters[team]}.mdl`)
               }
-              onShowInParty={() => showCharacterInParty('ct')}
-              model={stockCharacters.ct}
-              skin={equippedByWeapon.get('player_ct')?.skin}
-              selected={team === 'ct'}
+              onShowInParty={() => showCharacterInParty(team)}
+              model={stockCharacters[team]}
+              skin={equippedByWeapon.get(`player_${team}`)?.skin}
+              selected
               disabled={loadoutLocked}
-              onSelect={() => selectTeam('ct', true)}
+              onSelect={() => selectTeam(team, true)}
               footer={
                 <MusicKitSlot
-                  team="ct"
+                  team={team}
                   className="mt-0"
                   disabled={loadoutLocked || unequippingTeam}
                   onSelect={() => {
-                    selectTeam('ct')
-                    setMusicFilter('ct')
+                    selectTeam(team)
+                    setMusicFilter(team)
                   }}
                 />
               }
@@ -493,35 +532,6 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                 </section>
               </div>
             </div>
-          </div>
-          <div className="order-3 min-w-0 self-start">
-            <CharacterPanel
-              team="t"
-              partyPending={partyPending}
-              partySelected={
-                partyModel ===
-                (equippedByWeapon.get('player_t')
-                  ? `skin:${equippedByWeapon.get('player_t')!.skin.id}`
-                  : `player/${stockCharacters.t}/${stockCharacters.t}.mdl`)
-              }
-              onShowInParty={() => showCharacterInParty('t')}
-              model={stockCharacters.t}
-              skin={equippedByWeapon.get('player_t')?.skin}
-              selected={team === 't'}
-              disabled={loadoutLocked}
-              onSelect={() => selectTeam('t', true)}
-              footer={
-                <MusicKitSlot
-                  team="t"
-                  className="mt-0"
-                  disabled={loadoutLocked || unequippingTeam}
-                  onSelect={() => {
-                    selectTeam('t')
-                    setMusicFilter('t')
-                  }}
-                />
-              }
-            />
           </div>
         </div>
       </section>
@@ -612,6 +622,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                         >
                           <span className="block h-64">
                             <SkinModelThumbnail
+                              showAppliedStickers
                               cacheKey={`stock-character:${model}`}
                               weaponKey={`player_${modelTeam}`}
                               modelPath={`player/${model}/${model}.mdl`}
@@ -624,7 +635,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                     })}
                   </div>
                 )}
-              {filteredSkins.length === 0 ? (
+              {filteredSkins.length === 0 && stockWeapons.length === 0 ? (
                 category !== 'all' && category !== 'player_ct' && category !== 'player_t' ? (
                   <p className="py-8 text-center text-sm text-neutral-500">
                     No unlocked skins for this weapon.
@@ -632,6 +643,29 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                 ) : null
               ) : (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {stockWeapons.map((weaponKey) => (
+                    <StockWeaponCard
+                      key={weaponKey}
+                      weaponKey={weaponKey}
+                      equipped={!equippedByWeapon.has(weaponKey)}
+                      changing={loadoutLocked || unequippingTeam || changingId !== null}
+                      onEquip={() => {
+                        const equipped = equippedByWeapon.get(weaponKey)
+                        if (equipped) setEquipped(equipped)
+                      }}
+                      onPreview={() =>
+                        setPreviewSkin(
+                          stockWeaponPreview(
+                            weaponKey,
+                            inventoryText('stockWeapon').replace(
+                              '{{weapon}}',
+                              displayWeapon(weaponKey)
+                            )
+                          )
+                        )
+                      }
+                    />
+                  ))}
                   {filteredSkins.map((owned) => (
                     <InventoryCard
                       key={owned.skin.id}
@@ -654,6 +688,10 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
           <SkinPreview
             key={previewSkin.id}
             skin={previewSkin}
+            stock={previewSkin.id.startsWith('stock:')}
+            stickerTargetKey={
+              previewSkin.id.startsWith('stock:') ? previewSkin.id : `skin:${previewSkin.id}`
+            }
             onClose={() => setPreviewSkin(null)}
           />
         </>
@@ -686,9 +724,27 @@ function InventoryCard({
   onSell: () => void
   onPreview: () => void
 }): JSX.Element {
+  const inventoryText = useInventoryText()
+  const customize = () =>
+    useInventoryStore
+      .getState()
+      .selectWeapon({ key: `skin:${owned.skin.id}`, skinId: owned.skin.id, name: owned.skin.name })
+  const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
+    {
+      label: inventoryText('customize'),
+      action: customize,
+      disabled: !stockStickerModel(owned.skin.weaponKey) || !!owned.reviewOnly
+    }
+  ])
   const equipped = owned.equippedAt !== null
   return (
-    <article className="flex min-h-56 flex-col border border-white/10 bg-neutral-900/90 p-4">
+    <article
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
+      tabIndex={0}
+      className="flex min-h-56 flex-col border border-white/10 bg-neutral-900/90 p-4"
+    >
+      {menu.menu}
       <SkinCardPreview skin={owned.skin} owned onOpen={onPreview} />
       <p className="text-[10px] font-bold tracking-[0.16em] text-sky-400 uppercase">
         {owned.skin.weaponKey}
@@ -741,7 +797,8 @@ function LoadoutWeaponCard({
   canChangeLobbyWeapon,
   onSetLobbyWeapon,
   onSetDefaultLobbyWeapon,
-  onSelect
+  onSelect,
+  onPreview
 }: {
   weaponKey: string
   equipped: OwnedSkin | undefined
@@ -753,10 +810,30 @@ function LoadoutWeaponCard({
   onSetLobbyWeapon: (owned: OwnedSkin) => void
   onSetDefaultLobbyWeapon: (weaponKey: string) => void
   onSelect: () => void
+  onPreview: () => void
 }): JSX.Element {
+  const inventoryText = useInventoryText()
+  const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
+    {
+      label: inventoryText('customize'),
+      action: () =>
+        useInventoryStore.getState().selectWeapon(
+          equipped
+            ? {
+                key: `skin:${equipped.skin.id}`,
+                name: equipped.skin.name,
+                skinId: equipped.skin.id
+              }
+            : { key: `stock:${weaponKey}`, name: inventoryText('stock') }
+        ),
+      disabled: !stockStickerModel(weaponKey) || !!equipped?.reviewOnly
+    }
+  ])
   const lobbyButtonLabel = lobbySelected ? 'Shown in your lobby' : 'Show this weapon in your lobby'
   return (
     <div
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
       className={twMerge(
         'loadout-weapon-card group relative grid w-full grid-rows-[5rem_2rem] gap-1 border bg-black/35 p-1.5 text-left transition hover:border-sky-300/70 hover:bg-sky-400/10',
         selected ? 'border-sky-300 bg-sky-400/15 ring-1 ring-sky-300/50' : 'border-white/10'
@@ -774,6 +851,7 @@ function LoadoutWeaponCard({
           equipped={equipped}
         />
       </button>
+      {menu.menu}
       {canChangeLobbyWeapon && !equipped?.reviewOnly && equipped?.skin.status !== 'DRAFT' && (
         <button
           type="button"
@@ -816,6 +894,7 @@ function LoadoutThumbnail({
   return (
     <span className="weapon-preview-well relative flex h-20 w-full shrink-0 items-center justify-center overflow-hidden bg-slate-950/75">
       <SkinModelThumbnail
+        showAppliedStickers
         key={cacheKey}
         cacheKey={cacheKey}
         skinId={skinId}
@@ -836,5 +915,68 @@ function LoadoutThumbnail({
         className="pointer-events-none absolute inset-0"
       />
     </span>
+  )
+}
+
+function StockWeaponCard({
+  weaponKey,
+  equipped,
+  changing,
+  onEquip,
+  onPreview
+}: {
+  weaponKey: string
+  equipped: boolean
+  changing: boolean
+  onEquip: () => void
+  onPreview: () => void
+}) {
+  const t = useInventoryText()
+  const name = t('stockWeapon').replace('{{weapon}}', displayWeapon(weaponKey))
+  const menu = useItemContextMenu(t('preview'), onPreview, false, undefined, [
+    {
+      label: t('customize'),
+      disabled: !stockStickerModel(weaponKey),
+      action: () => useInventoryStore.getState().selectWeapon({ key: `stock:${weaponKey}`, name })
+    }
+  ])
+  return (
+    <article
+      tabIndex={0}
+      onContextMenu={menu.onContextMenu}
+      onKeyDown={menu.onKeyDown}
+      className="flex min-h-56 flex-col border border-white/10 bg-neutral-900/90 p-4"
+    >
+      {menu.menu}
+      <button
+        type="button"
+        className="relative h-40 w-full"
+        aria-label={`${t('preview')}: ${name}`}
+        onClick={onPreview}
+      >
+        <SkinModelThumbnail
+          showAppliedStickers
+          cacheKey={`stock-list:${weaponKey}`}
+          weaponKey={weaponKey}
+          modelPath={defaultPlayerModelPath(weaponKey)}
+          fallback={name}
+          className="absolute inset-0"
+        />
+      </button>
+      <h3 className="mt-1 text-sm font-semibold">{name}</h3>
+      <div className="mt-auto flex justify-end gap-2 border-t border-white/10 pt-3">
+        <Button variant="ghost" onClick={onPreview}>
+          {t('preview')}
+        </Button>
+        <Button
+          className="min-w-28"
+          disabled={changing || equipped}
+          variant={equipped ? 'ghost' : 'primary'}
+          onClick={onEquip}
+        >
+          {t(changing ? 'pending' : equipped ? 'equipped' : 'equip')}
+        </Button>
+      </div>
+    </article>
   )
 }

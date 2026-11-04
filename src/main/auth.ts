@@ -98,6 +98,16 @@ const persistToken = async (token: string) => {
   }
 }
 
+/** Main-process-only access for startup branding before renderer session restoration. */
+export const readStoredSessionToken = async (): Promise<string | null> => {
+  if (!safeStorage.isEncryptionAvailable()) return null
+  try {
+    return safeStorage.decryptString(await readFile(tokenPath()))
+  } catch {
+    return null
+  }
+}
+
 export const getSessionToken = (): string | null => sessionToken
 export const getSessionUsername = (): string | null => sessionUsername
 export const getSessionPlayerId = (): string | null => sessionPlayerId

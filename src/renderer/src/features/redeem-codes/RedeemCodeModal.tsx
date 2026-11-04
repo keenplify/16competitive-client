@@ -1,4 +1,5 @@
 import { ModalDialog } from '../../components/ui/ModalDialog'
+import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { useState, type FormEvent, type JSX } from 'react'
 import { CheckCircle2, LoaderCircle, Ticket, X } from 'lucide-react'
 import type { RedeemCodeResult } from '../../../../shared/redeem-codes'
@@ -97,11 +98,13 @@ export function RedeemCodeModal({ onClose, onRedeemed }: RedeemCodeModalProps): 
               </p>
             )}
             {(result.pCashGranted ?? 0) > 0 && (
-              <p className="mt-3">
-                +{(result.pCashGranted ?? 0).toLocaleString()} P Cash
-                {typeof result.pCash === 'number'
-                  ? ` · ${result.pCash.toLocaleString()} P Cash`
-                  : ''}
+              <p className="mt-3 flex flex-wrap items-center gap-1.5">
+                +<CurrencyAmount currency="P_CASH" amount={result.pCashGranted ?? 0} />
+                {typeof result.pCash === 'number' && (
+                  <>
+                    · <CurrencyAmount currency="P_CASH" amount={result.pCash} />
+                  </>
+                )}
               </p>
             )}
             {result.skinGranted && (

@@ -203,4 +203,7 @@ test('an unverified first launch cannot bypass a failed or hanging update check'
   const result = assert.rejects(pending, /Could not verify/)
   client.timeout()
   await result
+  assert.equal(client.status().state, 'error')
+  assert.equal(client.status().requiredVersion, undefined)
+  assert.deepEqual(client.installs, [])
 })

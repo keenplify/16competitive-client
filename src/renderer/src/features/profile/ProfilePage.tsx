@@ -1,3 +1,5 @@
+import { InventoryPage } from '../inventory/InventoryPage'
+import { useInventoryText } from '../inventory/inventory-i18n'
 import { ProfileLoadout } from './ProfileLoadout'
 import { ProfileHistory } from './ProfileHistory'
 import { useEffect, useState, type JSX } from 'react'
@@ -14,6 +16,7 @@ import { MatchHistoryPage } from './MatchHistoryPage'
 import { OperationPage } from '../operations/OperationPage'
 
 export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
+  const inventoryText = useInventoryText()
   const [toolbarTarget, setToolbarTarget] = useState<HTMLDivElement | null>(null)
   const accountId = useAuthStore((state) => state.session?.player.id)
   const id = playerId ?? accountId
@@ -48,13 +51,16 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
               items={[
                 { value: 'overview', label: t('profile.overview') },
                 { value: 'skins', label: t('profile.loadout') },
+                ...(own && !playerId
+                  ? [{ value: 'inventory' as const, label: inventoryText('inventory') }]
+                  : []),
                 { value: 'matches', label: t('profile.history') },
                 ...(own && !playerId
                   ? [{ value: 'operation' as const, label: t('profile.operation') }]
                   : [])
               ]}
               onChange={(next) => {
-                if (playerId && next !== 'operation') setPublicTab(next)
+                if (playerId && next !== 'operation' && next !== 'inventory') setPublicTab(next)
                 else setTab(next)
               }}
             />
@@ -97,6 +103,8 @@ export function ProfilePage({ playerId }: { playerId?: string }): JSX.Element {
           </div>
         ) : visibleTab === 'skins' ? (
           <SkinsPage toolbarTarget={toolbarTarget} />
+        ) : visibleTab === 'inventory' ? (
+          <InventoryPage />
         ) : visibleTab === 'matches' ? (
           <MatchHistoryPage showHeader={false} />
         ) : (

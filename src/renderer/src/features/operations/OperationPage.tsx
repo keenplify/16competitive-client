@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OperationTier } from '../../../../shared/operations'
 import { Button } from '../../components/ui/Button'
-import { CurrencyIcon } from '../../components/CurrencyIcon'
+import { CurrencyAmount, CurrencyIcon } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
 import { OperationSkinPreview } from './OperationSkinPreview'
 import waterBackground from '../../assets/operations/pixel-water-background.png'
@@ -421,9 +421,11 @@ export function OperationPage(): JSX.Element {
                 {operation.phase}
               </span>
               <span className="border border-white/15 bg-black/30 px-2.5 py-1.5 text-neutral-200">
-                {operation.accessType === 'FREE'
-                  ? 'Free Operation'
-                  : `${operation.pricePCash?.toLocaleString() ?? 0} Papa Cash`}
+                {operation.accessType === 'FREE' ? (
+                  'Free Operation'
+                ) : (
+                  <CurrencyAmount currency="P_CASH" amount={operation.pricePCash ?? 0} />
+                )}
               </span>
               <span className="border border-white/15 bg-black/30 px-2.5 py-1.5 text-neutral-200">
                 Ends {new Date(operation.endsAt).toLocaleDateString()}

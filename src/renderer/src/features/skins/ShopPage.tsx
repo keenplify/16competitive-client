@@ -1,3 +1,7 @@
+import { AttachedStickerLinks } from './AttachedStickerLinks'
+import { StickerStoreCard } from '../inventory/InventoryPage'
+import { useInventoryStore } from '../inventory/inventory.store'
+import { useInventoryText } from '../inventory/inventory-i18n'
 import { CollectionCard } from './CollectionCard'
 import { useCollectionsStore } from './collections.store'
 import { useCollectionText } from './collection-i18n'
@@ -44,12 +48,7 @@ import {
   getSkinPresentationRotation
 } from './skin-model-presentation'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
-import {
-  WEAPON_CATEGORIES,
-  isGrenadeWeapon,
-  weaponCategory,
-  type WeaponCategory
-} from './weapon-categories'
+import { WEAPON_CATEGORIES, weaponCategory, type WeaponCategory } from './weapon-categories'
 import {
   skinRarity,
   skinRarityOrder,
@@ -57,7 +56,6 @@ import {
   skinRarityPresentationFor,
   type SkinRarity
 } from './skin-rarity'
-import elitePistolsImage from '../../assets/elite-pistols.png'
 import { PCashTopUpButton, PCashTopUpModal } from './PCashTopUp'
 import { usePaymentsStore } from './payments.store'
 
@@ -145,6 +143,11 @@ const safeExternalUrl = (value: string | null): string | null => {
 }
 
 export function ShopPage(): JSX.Element {
+  const inventoryText = useInventoryText()
+  const inventory = useInventoryStore()
+  useEffect(() => {
+    void useInventoryStore.getState().load()
+  }, [])
   const scrollRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
@@ -189,9 +192,13 @@ export function ShopPage(): JSX.Element {
   }, [music.error, music.confirm, music.snapshot, t])
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
-  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory | 'music'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<WeaponCategory | 'music' | 'stickers'>(
+    useNavigationStore.getState().storeStickerSearch ? 'stickers' : 'all'
+  )
   const [selectedSkinType, setSelectedSkinType] = useState<SkinTypeFilter>('all')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(
+    useNavigationStore.getState().storeStickerSearch ?? ''
+  )
   const [skins, setSkins] = useState<Skin[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -226,13 +233,16 @@ export function ShopPage(): JSX.Element {
 
   const weaponCounts = useMemo(() => {
     const counts = new Map<WeaponCategory, number>()
-    counts.set('all', skins.length + (music.snapshot?.kits.length ?? 0))
+    counts.set(
+      'all',
+      skins.length + (music.snapshot?.kits.length ?? 0) + (inventory.snapshot?.catalog.length ?? 0)
+    )
     for (const skin of skins) {
       const category = weaponCategory(skin.weaponKey)
       counts.set(category, (counts.get(category) ?? 0) + 1)
     }
     return counts
-  }, [skins, music.snapshot])
+  }, [skins, music.snapshot, inventory.snapshot])
 
   const rarityStats = useMemo(() => {
     const stats = new Map<SkinRarity, { count: number; points: number[]; pCash: number[] }>()
@@ -280,7 +290,11 @@ export function ShopPage(): JSX.Element {
               .toLocaleLowerCase()
               .includes(query))
       )
-      .sort((left, right) => Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id)))
+      .sort(
+        (left, right) =>
+          Number(isCharacterModel(right.weaponKey)) - Number(isCharacterModel(left.weaponKey)) ||
+          Number(ownedSkins.has(left.id)) - Number(ownedSkins.has(right.id))
+      )
   }, [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins, filterText, t])
 
   const filteredMusic = (music.snapshot?.kits ?? []).filter(
@@ -291,7 +305,15 @@ export function ShopPage(): JSX.Element {
         .toLocaleLowerCase()
         .includes(searchQuery.trim().toLocaleLowerCase())
   )
-  const resultCount = filteredSkins.length + filteredMusic.length
+  const showStickers =
+    (selectedCategory === 'all' || selectedCategory === 'stickers') && selectedSkinType === 'all'
+  const filteredStickers = (inventory.snapshot?.catalog ?? []).filter(
+    (item) =>
+      showStickers &&
+      item.imagePath &&
+      item.name.toLocaleLowerCase().includes(searchQuery.trim().toLocaleLowerCase())
+  )
+  const resultCount = filteredSkins.length + filteredMusic.length + filteredStickers.length
   const showMusic =
     (selectedCategory === 'all' || selectedCategory === 'music') && selectedSkinType === 'all'
 
@@ -462,6 +484,15 @@ export function ShopPage(): JSX.Element {
                     />
                   ))}
                   <StoreFilterButton
+                    label={inventoryText('stickers')}
+                    count={inventory.snapshot?.catalog.length ?? 0}
+                    active={selectedCategory === 'stickers'}
+                    onClick={() => {
+                      setSelectedCategory('stickers')
+                      setSelectedSkinType('all')
+                    }}
+                  />
+                  <StoreFilterButton
                     label={t('music.title')}
                     count={music.snapshot?.kits.length ?? 0}
                     active={selectedCategory === 'music'}
@@ -525,13 +556,15 @@ export function ShopPage(): JSX.Element {
                         : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4'
                     }
                   >
-                    {collections.map((collection) => (
-                      <CollectionCard
-                        key={collection.id}
-                        {...collection}
-                        onOpen={(id) => void openCollection(id)}
-                      />
-                    ))}
+                    {[...collections]
+                      .sort((a, b) => Number(b.discountPercent > 0) - Number(a.discountPercent > 0))
+                      .map((collection) => (
+                        <CollectionCard
+                          key={collection.id}
+                          {...collection}
+                          onOpen={(id) => void openCollection(id)}
+                        />
+                      ))}
                   </div>
                 </section>
               )}
@@ -541,59 +574,46 @@ export function ShopPage(): JSX.Element {
                 </p>
               </div>
 
-              {status === 'loading' && selectedCategory !== 'music' ? (
+              {status === 'loading' &&
+              selectedCategory !== 'music' &&
+              selectedCategory !== 'stickers' ? (
                 <div className="flex min-h-72 items-center justify-center" role="status">
                   <LoaderCircle className="size-7 animate-spin text-sky-300" />
                 </div>
               ) : null}
-              {status === 'error' && selectedCategory !== 'music' ? (
+              {status === 'error' &&
+              selectedCategory !== 'music' &&
+              selectedCategory !== 'stickers' ? (
                 <Button className="mt-6" variant="ghost" onClick={load}>
                   Retry catalog
                 </Button>
               ) : null}
-              {(selectedCategory === 'music'
-                ? music.status === 'ready'
-                : status === 'ready' && (!showMusic || music.status === 'ready')) &&
-              resultCount === 0 ? (
+              {(selectedCategory === 'stickers'
+                ? !!inventory.snapshot
+                : selectedCategory === 'music'
+                  ? music.status === 'ready'
+                  : status === 'ready' && (!showMusic || music.status === 'ready')) &&
+              resultCount === 0 &&
+              (!showStickers || (!!inventory.snapshot && !inventory.error)) ? (
                 <div className="mt-4  border border-dashed border-white/15 p-10 text-center text-neutral-400">
                   {filterText.empty}
                 </div>
               ) : null}
+              {showStickers && (inventory.error || !inventory.snapshot) && (
+                <div
+                  className="grid min-h-72 place-content-center gap-4"
+                  role={inventory.error ? 'alert' : 'status'}
+                >
+                  <p>{inventoryText(inventory.error ? 'error' : 'pending')}</p>
+                  {inventory.error && (
+                    <Button onClick={() => void inventory.reload()}>
+                      {inventoryText('retry')}
+                    </Button>
+                  )}
+                </div>
+              )}
               {resultCount > 0 || (showMusic && !music.snapshot) ? (
                 <section className="shop-skins-grid mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
-                  {showMusic && !music.snapshot && (
-                    <div
-                      className="flex min-h-72 flex-col items-center justify-center gap-4 border border-white/10 bg-neutral-900/90 p-5"
-                      role="status"
-                    >
-                      <p className="text-sm text-neutral-300">
-                        {t(music.error ?? 'music.loading')}
-                      </p>
-                      {music.error && (
-                        <Button variant="ghost" onClick={() => void music.load()}>
-                          {t('music.retry')}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {filteredMusic.map((kit) => (
-                    <MusicKitStoreCard
-                      key={`music:${kit.id}`}
-                      kit={kit}
-                      owned={music.snapshot!.ownedIds.includes(kit.id)}
-                      equipped={Object.values(music.snapshot!.equipped).includes(kit.id)}
-                      pending={music.pending || music.status !== 'ready'}
-                      playing={music.playingId === kit.id}
-                      event={music.event}
-                      onEvent={music.setEvent}
-                      onPreview={() => void music.preview(kit.id)}
-                      onBuy={() => music.choosePurchase(kit)}
-                      onEquip={() => {
-                        openLoadout()
-                        useMusicKitsStore.getState().setFilterTeam('ct')
-                      }}
-                    />
-                  ))}
                   {filteredSkins.map((skin) => {
                     const owned = ownedSkins.get(skin.id)
                     const buying = buyingId === skin.id
@@ -680,6 +700,46 @@ export function ShopPage(): JSX.Element {
                       </article>
                     )
                   })}
+                  {showMusic && !music.snapshot && (
+                    <div
+                      className="flex min-h-72 flex-col items-center justify-center gap-4 border border-white/10 bg-neutral-900/90 p-5"
+                      role="status"
+                    >
+                      <p className="text-sm text-neutral-300">
+                        {t(music.error ?? 'music.loading')}
+                      </p>
+                      {music.error && (
+                        <Button variant="ghost" onClick={() => void music.load()}>
+                          {t('music.retry')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {filteredMusic.map((kit) => (
+                    <MusicKitStoreCard
+                      key={`music:${kit.id}`}
+                      kit={kit}
+                      owned={music.snapshot!.ownedIds.includes(kit.id)}
+                      equipped={Object.values(music.snapshot!.equipped).includes(kit.id)}
+                      pending={music.pending || music.status !== 'ready'}
+                      playing={music.playingId === kit.id}
+                      event={music.event}
+                      onEvent={music.setEvent}
+                      onPreview={() => void music.preview(kit.id)}
+                      onBuy={() => music.choosePurchase(kit)}
+                      onEquip={() => {
+                        openLoadout()
+                        useMusicKitsStore.getState().setFilterTeam('ct')
+                      }}
+                    />
+                  ))}
+                  {filteredStickers.map((item) => (
+                    <StickerStoreCard
+                      key={item.id}
+                      item={item}
+                      image={inventory.images[item.imagePath!]}
+                    />
+                  ))}
                 </section>
               ) : null}
             </div>
@@ -760,17 +820,35 @@ export function SkinCardPreview({
   )
 }
 
-export function SkinPreview({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
+type SkinPreviewProps = {
+  skin: Skin
+  onClose: () => void
+  stock?: boolean
+  stickerTargetKey?: string
+}
+export function SkinPreview({
+  skin,
+  onClose,
+  stock,
+  stickerTargetKey
+}: SkinPreviewProps): JSX.Element {
   return (
     <SkinPreviewContent
       key={`${skin.id}:${skinPreviewRevision(skin)}`}
+      stock={stock}
+      stickerTargetKey={stickerTargetKey}
       skin={skin}
       onClose={onClose}
     />
   )
 }
 
-function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void }): JSX.Element {
+function SkinPreviewContent({
+  skin,
+  onClose,
+  stock,
+  stickerTargetKey
+}: SkinPreviewProps): JSX.Element {
   const { language } = useTranslation()
   const text = previewTranslations[language]
   const hasFirstPerson = !isCharacterModel(skin.weaponKey) && Boolean(skin.viewModelPath)
@@ -779,25 +857,25 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
   )
 
   const [model, setModel] = useState<ArrayBuffer | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const sourceUrl = safeExternalUrl(skin.sourceUrl)
-  const creatorUrl = safeExternalUrl(skin.creatorUrl)
-
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
-    if (skin.weaponKey === 'elite') return
+    if (hasFirstPerson) return
     let active = true
-    void getCachedSkinModel(skin.id, skin.playerModelPath ?? 'unavailable').then(
+    void getCachedSkinModel(skin.id, skinPreviewRevision(skin)).then(
       (bytes) => {
         if (active) setModel(bytes)
       },
-      (reason: unknown) => {
-        if (active) setError(errorDetails(reason).message)
+      () => {
+        if (active) setFailed(true)
       }
     )
     return () => {
       active = false
     }
-  }, [skin.id, skin.weaponKey, skin.playerModelPath])
+  }, [hasFirstPerson, skin])
+
+  const sourceUrl = safeExternalUrl(skin.sourceUrl)
+  const creatorUrl = safeExternalUrl(skin.creatorUrl)
 
   return (
     <ModalDialog
@@ -861,61 +939,44 @@ function SkinPreviewContent({ skin, onClose }: { skin: Skin; onClose: () => void
         </div>
       )}
       <div className="skin-preview-stage relative h-96 bg-[radial-gradient(circle_at_center,_rgba(14,116,144,0.25),_transparent_65%)]">
-        {view === 'first-person' && hasFirstPerson ? (
-          <SkinFirstPersonPreview skin={skin} />
+        {hasFirstPerson ? (
+          <SkinFirstPersonPreview
+            key={view}
+            skin={skin}
+            stock={stock}
+            stickerTargetKey={stickerTargetKey}
+            inspection={view === 'preview'}
+          />
+        ) : model ? (
+          <ModelViewer
+            modelBuffer={model}
+            modelKey={skin.id}
+            hiddenTextures={skin.previewHiddenTextures}
+            presentationRotation={getSkinPresentationRotation(skin.weaponKey, skin.previewRotation)}
+            camera={{
+              distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
+              target: getSkinCameraTarget(skin.weaponKey)
+            }}
+            animation={getSkinAnimation(skin.weaponKey)}
+            {...characterWeaponAttachment(skin.weaponKey)}
+            maxFrameRate={30}
+            disableZoom
+            lockCameraDistance
+            orbitAngleLimit={0.7}
+            rotateSpeed={0.45}
+            className="absolute inset-0"
+          />
         ) : (
-          <>
-            {skin.weaponKey === 'elite' ? (
-              <img
-                className="h-full w-full object-contain p-6"
-                src={elitePistolsImage}
-                alt={`${skin.name} Elite pistols`}
-                draggable={false}
-              />
-            ) : model ? (
-              <ModelViewer
-                hideHandHelpers={isGrenadeWeapon(skin.weaponKey)}
-                hiddenTextures={skin.previewHiddenTextures}
-                modelBuffer={model}
-                modelKey={skin.id}
-                sourceRevision={skinPreviewRevision(skin)}
-                presentationRotation={getSkinPresentationRotation(
-                  skin.weaponKey,
-                  skin.previewRotation
-                )}
-                camera={{
-                  distanceMultiplier: getSkinCameraDistanceMultiplier(skin.weaponKey, 0.9),
-                  target: getSkinCameraTarget(skin.weaponKey)
-                }}
-                animation={getSkinAnimation(skin.weaponKey)}
-                {...characterWeaponAttachment(skin.weaponKey)}
-                freezeAnimation={isGrenadeWeapon(skin.weaponKey)}
-                maxFrameRate={30}
-                disableZoom
-                lockCameraDistance
-                orbitAngleLimit={0.7}
-                rotateSpeed={0.45}
-                className="absolute inset-0"
-              />
-            ) : null}
-            {skin.weaponKey !== 'elite' && !model && !error && (
-              <div className="flex h-full items-center justify-center" role="status">
-                <LoaderCircle className="size-7 animate-spin text-sky-300" />
-              </div>
+          <div className="absolute inset-0 flex items-center justify-center" role="status">
+            {failed ? (
+              text.unavailable
+            ) : (
+              <LoaderCircle className="size-7 animate-spin text-sky-300" />
             )}
-            {skin.weaponKey !== 'elite' && error && (
-              <div className="flex h-full items-center justify-center px-8 text-center text-sm text-rose-300">
-                {error}
-              </div>
-            )}
-            {skin.weaponKey !== 'elite' && model && (
-              <span className="pointer-events-none absolute bottom-3 left-4   bg-black/45 px-2 py-1 text-xs text-neutral-300 backdrop-blur-sm">
-                {text.rotate}
-              </span>
-            )}
-          </>
+          </div>
         )}
       </div>
+      {stickerTargetKey && <AttachedStickerLinks targetKey={stickerTargetKey} onClose={onClose} />}
     </ModalDialog>
   )
 }

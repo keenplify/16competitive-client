@@ -7,6 +7,7 @@ import { useTranslation } from '../i18n/i18n'
 import { guardUpdateTranslations } from '../../../../shared/guard-update-translations'
 import { updateRecoveryTranslations } from '../../../../shared/update-recovery-translations'
 import { formatUpdateTransfer } from '../../../../shared/updater'
+import { toast } from 'react-toastify'
 
 export function UpdateBanner(): JSX.Element | null {
   const { language } = useTranslation()
@@ -21,6 +22,12 @@ export function UpdateBanner(): JSX.Element | null {
     startListening()
     return stopListening
   }, [startListening, stopListening])
+
+  useEffect(() => {
+    if (status.state !== 'checking') return
+    const id = toast.loading(copy.checking, { closeButton: false, closeOnClick: false })
+    return () => toast.dismiss(id)
+  }, [status.state, copy.checking])
 
   const isBlocking =
     status.state === 'available' ||
@@ -125,7 +132,10 @@ export function UpdateBanner(): JSX.Element | null {
           <p id="update-dialog-message" className="mt-2 text-sm text-neutral-300">
             {content.message}
           </p>
-          <p className="mt-1 min-h-5 text-sm font-medium text-neutral-200 tabular-nums" role="status">
+          <p
+            className="mt-1 min-h-5 text-sm font-medium text-neutral-200 tabular-nums"
+            role="status"
+          >
             {status.state === 'downloading' ? formatUpdateTransfer(status, language) : '\u00a0'}
           </p>
           <p className="mt-4 min-h-56 text-sm leading-relaxed text-neutral-300">
