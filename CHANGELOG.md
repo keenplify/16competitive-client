@@ -4102,3 +4102,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reports
 
 - Added an issue-report form with improved submission flow.
+
+## v2026.1104.5 — 2026-11-04
+
+### Improvements
+
+- Game connection info string overflow errors are now automatically reported.
