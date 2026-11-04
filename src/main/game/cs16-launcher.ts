@@ -1,3 +1,5 @@
+import { createConnectionErrorMonitor } from './connection-error-monitor'
+import { reportDiagnosticIssue } from '../diagnostic-logs'
 import { resolveSteamProtonRuntime } from './steam-proton'
 import { playerPingCommands } from '../../shared/player-ping'
 import { spawn, type ChildProcess } from 'node:child_process'
@@ -114,6 +116,13 @@ let linuxMonitorGeneration = 0
 let launchQueue: Promise<void> = Promise.resolve()
 let forcedLaunchInFlight: { matchId: string; promise: Promise<void> } | null = null
 let steamExitWatchGeneration = 0
+let activeConnectionMonitor: { matchId: string; stop: () => void } | null = null
+const stopConnectionMonitor = (matchId?: string): void => {
+  if (!activeConnectionMonitor || (matchId && activeConnectionMonitor.matchId !== matchId)) return
+  activeConnectionMonitor.stop()
+  activeConnectionMonitor = null
+}
+
 let activeVoicePttSession: { matchId: string; session: VoicePttSession } | null = null
 let activeAntiCheatSession: { matchId: string; session: AntiCheatSession } | null = null
 let activeScoreboardSession: { matchId: string; session: ScoreboardOverlaySession } | null = null
@@ -163,6 +172,7 @@ const stopAntiCheatSession = (session: AntiCheatSession, reason: string): void =
   session.stop(reason)
   if (activeAntiCheatSession?.session === session) {
     const matchId = activeAntiCheatSession.matchId
+    stopConnectionMonitor(matchId)
     activeAntiCheatSession = null
     finishScoreboardSession(matchId)
   }
@@ -238,6 +248,7 @@ export const launchOrdinaryCounterStrike = (launch: () => Promise<void>): Promis
 }
 
 const finishAntiCheatSession = (matchId?: string, reason = 'session-ended'): void => {
+  stopConnectionMonitor(matchId)
   const active = activeAntiCheatSession
   if (!active || (matchId && active.matchId !== matchId)) return
   activeAntiCheatSession = null
@@ -1265,6 +1276,19 @@ const performLaunchCounterStrikeForMatch = async (input: MatchLaunchInput): Prom
     voicePttKeys: voicePttSession.keys,
     relaunchingSameMatch
   })
+
+  stopConnectionMonitor()
+  const consoleOwner = getSessionUsername()
+  const monitor = await createConnectionErrorMonitor({
+    directory: cwd,
+    matchId: input.matchId,
+    isCurrent: () =>
+      !!consoleOwner &&
+      processGeneration === gameProcessGeneration &&
+      getSessionUsername() === consoleOwner,
+    report: reportDiagnosticIssue
+  })
+  activeConnectionMonitor = { matchId: input.matchId, stop: monitor.stop }
 
   let spawnedProcess: ChildProcess
   try {

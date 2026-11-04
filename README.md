@@ -96,7 +96,13 @@ as `16competitive_match.cfg`, launch arguments, or isolated native mechanisms.
 
 Local diagnostic logs cover connectivity, asset preparation, and game launching.
 Persistent scoreboard or connection failures can submit automatic issue reports
-with relevant launcher/session diagnostics. Submitted issue reports can also
+with relevant launcher/session diagnostics. During the first five minutes of a
+managed CS 1.6 launch, the launcher checks newly appended `qconsole.log` output
+once per second for `Info string length exceeded`. That error automatically
+submits a report with a per-match deduplication key and up to three upload attempts.
+Existing log content does not trigger reports; credentials remain redacted.
+Monitoring ends with the managed session and is scoped to the signed-in account.
+Submitted issue reports can also
 include recent native HUD-cadence FPS samples when available; these estimate
 game HUD cadence, not GPU timing or launcher-renderer FPS. Missing samples are
 reported as unavailable. Arbitrary local files are not collected for reports.
