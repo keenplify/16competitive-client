@@ -4204,3 +4204,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Stability
 
 - Improved cleanup when exiting sessions.
+
+## v2026.1104.17 — 2026-11-04
+
+### Scoreboard
+
+- Competitive matches now use the native in-game scoreboard.
+
+### Kill Cards
+
+- Kill cards are disabled during competitive matches.
