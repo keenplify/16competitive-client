@@ -180,6 +180,7 @@ async function launchStandaloneTargetInner(
   const executable = await realpath(process.env.APPIMAGE || process.execPath)
   const args = app.isPackaged ? [] : [app.getAppPath()]
   if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox')
+  args.push('--return-from-game')
   // Competitive HUD now lives in VGUI2. An old offscreen-HUD preference
   // must not keep Electron alive for a platform match.
   const keepLauncherOpen = 'partner' in target && settings.lightweightHud === false

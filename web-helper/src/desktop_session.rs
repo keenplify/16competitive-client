@@ -259,6 +259,10 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
     preferences.settings.lightweight_hud = true;
     settings_bridge::save(&preferences)?;
     let token = session(&request.api_origin, &request.handoff)?;
+    // Use the same resident UI and OS lock as browser sessions. Do not delay
+    // game preparation for tray startup or community image downloads.
+    let _branding = if compatibility { None } else { Some(branding::Lease::start_game(&request.api_origin, &token)) };
+    let _partner_activity = request.partner.as_ref().map(|_| presence::GameLease::partner());
     let status_stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let mut status_worker = None;
     let mut committed = false;
@@ -270,6 +274,13 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
             Duration::from_secs(15),
             request.keep_launcher_open,
         )?;
+        if !compatibility {
+            if let Ok(exe) = env::current_exe() {
+                std::thread::spawn(move || {
+                    if let Err(error) = tray::ensure(&exe) { eprintln!("Tray startup failed: {error}"); }
+                });
+            }
+        }
         if request.keep_launcher_open {
             // The pipe controls only this retained session. EOF after release
             // requests cleanup; it can never target a replacement game.

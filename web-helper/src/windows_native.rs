@@ -178,8 +178,15 @@ pub fn validate_root(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn recovery_command(inspector: &Path) -> Command {
+    use std::os::windows::process::CommandExt;
+    let mut command = Command::new(inspector);
+    command.creation_flags(0x08000000); // CREATE_NO_WINDOW; retain the readiness pipe.
+    command
+}
+
 fn run_recovery(root: &Path, inspector: &Path, id: &str, mode: &str) -> Result<(), String> {
-    let mut child = Command::new(inspector)
+    let mut child = recovery_command(inspector)
         .args([
             "--cosmetic-recovery",
             root.to_str().ok_or("Invalid game root")?,
@@ -472,6 +479,17 @@ mod tests {
     use super::*;
     use crate::native_session::NativeSession;
     use competitive16_web_helper::Connection;
+
+    #[test]
+    fn recovery_child_has_no_console_and_keeps_stdout() {
+        let script = r#"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class ConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 1 }; [Console]::Out.Write('16c-recovery-ready')"#;
+        let output = recovery_command(Path::new("powershell.exe"))
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped())
+            .output().unwrap();
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        assert_eq!(output.stdout, b"16c-recovery-ready");
+    }
 
     #[test]
     fn inspected_client_exports_are_supported() {

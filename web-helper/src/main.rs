@@ -854,6 +854,12 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     let gold_client = false;
     let game_dir = root.join(&mod_dir);
     if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) { start_steam_client()?; }
+    #[cfg(target_os = "linux")]
+    let library_paths = {
+        let root = root.clone();
+        let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
+        std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
+    };
     let game_startup = owned_game::Startup::prepare(&exe, &game_dir)?;
     let scanner_bundle = native_bundle::prepare(&user_config_dir()?)?;
     if inspector::check_device(&scanner_bundle, api)?["banned"] == true {
@@ -881,7 +887,8 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     let wait_result = (|| -> Result<(), String> {
     #[cfg(target_os = "linux")]
     if connection.game() == "cs16" && exe.file_name().is_some_and(|name| name == "hl_linux") {
-        match native_bundle::prepare(&user_config_dir()?).and_then(|bundle| {
+        match scanner_bundle.verify_modules().and_then(|_| {
+            let bundle = scanner_bundle.clone();
             native_session::NativeSession::start(&user_config_dir()?, connection, api, token, &preferences)
                 .map(|session| (bundle, session))
         }) {
@@ -891,8 +898,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     }
     #[cfg(windows)]
     if connection.game() == "cs16" && mod_dir == "cstrike" {
-        match native_bundle::prepare(&user_config_dir()?) {
-            Ok(bundle) => {
+        match scanner_bundle.verify_modules() {
+            Ok(()) => {
+                let bundle = scanner_bundle.clone();
                 windows_native::validate_root(&root)?;
                 windows_native::restore_previous(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
                 let session = native_session::NativeSession::start_at(
@@ -984,8 +992,8 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     #[cfg(target_os = "linux")]
     {
         command.env("SteamAppId", "10").env("SteamGameId", "10");
-        let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
-        command.env("LD_LIBRARY_PATH", steam_proton::native_library_path(&root, &home)?);
+        command.env("LD_LIBRARY_PATH", library_paths.join()
+            .map_err(|_| "Steam runtime initialization failed")??);
         if connection.game() == "cs16" {
             steam_proton::configure_native_display(&mut command);
         }

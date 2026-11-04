@@ -96,6 +96,23 @@ pub struct NativeBundle {
 }
 
 impl NativeBundle {
+    /// Recheck staged modules at use without a second registry round trip.
+    pub(crate) fn verify_modules(&self) -> Result<(), String> {
+        let verify = |path: &Path, expected: &[u8]| -> Result<(), String> {
+            let metadata = fs::symlink_metadata(path).map_err(|_| "Native module unavailable")?;
+            if !metadata.is_file() || metadata.file_type().is_symlink()
+                || metadata.len() != expected.len() as u64
+                || fs::read(path).map_err(|_| "Native module unavailable")? != expected {
+                return Err("Native module integrity check failed".into());
+            }
+            Ok(())
+        };
+        verify(&self.module, MODULE)?;
+        #[cfg(windows)]
+        if let Some(path) = &self.next_client { verify(path, NEXT_CLIENT)?; }
+        Ok(())
+    }
+
     pub(crate) fn verify_approval(&self) -> Result<(), ApprovalError> {
         let config: ReleaseConfig = serde_json::from_str(include_str!("../../helper-release.json"))
             .map_err(|_| ApprovalError::Rejected)?;
@@ -360,6 +377,21 @@ pub fn prepare(config_dir: &Path) -> Result<NativeBundle, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn module_revalidation_rejects_changed_bytes_without_network() {
+        let root = std::env::temp_dir().join(format!("16c-module-check-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let module = root.join("module");
+        fs::write(&module, MODULE).unwrap();
+        let bundle = NativeBundle { inspector: root.join("unused"), module: module.clone(),
+            #[cfg(windows)] next_client: None };
+        bundle.verify_modules().unwrap();
+        let mut changed = MODULE.to_vec(); changed[0] ^= 1;
+        fs::write(&module, changed).unwrap();
+        assert!(bundle.verify_modules().is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn scanner_revalidation_rejects_replaced_or_linked_bytes() {

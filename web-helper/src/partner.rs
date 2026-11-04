@@ -302,6 +302,12 @@ pub fn launch(
     if cs16_requires_steam(&root, root.join("nitro_api2.dll").is_file(), gold_client) {
         start_steam_client()?;
     }
+    #[cfg(target_os = "linux")]
+    let library_paths = {
+        let root = root.clone();
+        let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
+        std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
+    };
     let server = resolve(api, token, launch)?;
     let config = user_config_dir()?;
     let ownership = session_mode::VoiceOwnership::start(&config, &server.id)?;
@@ -393,10 +399,9 @@ pub fn launch(
                 .env("LD_PRELOAD", &bundle.module)
                 .env("SteamAppId", "10")
                 .env("SteamGameId", "10");
-            let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
             command.env(
                 "LD_LIBRARY_PATH",
-                steam_proton::native_library_path(&root, &home)?,
+                library_paths.join().map_err(|_| "Steam runtime initialization failed")??,
             );
         }
         startup.recheck()?;

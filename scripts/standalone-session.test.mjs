@@ -90,7 +90,7 @@ rl.on('line', line=>{
   else {
     fs.writeFileSync(${JSON.stringify(marker)},JSON.stringify({commit:value.commit,voice:request.settings.voice,
       dedicated:request.handoff!== 'desktop-token', argv:process.argv.slice(2),
-      keep:request.keepLauncherOpen,reopen:!!request.reopen,cards:request.settings.killCardsEnabled}));
+      keep:request.keepLauncherOpen,reopen:!!request.reopen,resume:request.reopen?.args.includes('--return-from-game'),cards:request.settings.killCardsEnabled}));
     console.log(JSON.stringify({protocol:1,event:'committed'}));
     setTimeout(()=>process.exit(0),300);
   }
@@ -116,6 +116,7 @@ rl.on('line', line=>{
       argv: ['--desktop-session'],
       keep: false,
       reopen: true,
+      resume: true,
       cards: false
     })
     await new Promise((resolve) => setTimeout(resolve, 200))
@@ -228,3 +229,35 @@ process.stdin.on('end',()=>process.exit(1));
     assert.equal(quits, 0)
   }
 )
+
+test('returning from a game skips the startup network check and splash delay only', async () => {
+  const { transform } = await import('esbuild')
+  const index = await readFile('src/main/index.ts', 'utf8')
+  const block = index.slice(
+    index.indexOf("  if (!process.argv.includes('--return-from-game'))"),
+    index.indexOf('  await initializePartnerAppIdentity(icon')
+  )
+  assert.ok(block.includes('checkBeforeStartup'))
+  const { code } = await transform(block, { loader: 'ts' })
+  const run = new (Object.getPrototypeOf(async function () {
+    return undefined
+  }).constructor)('process', 'updateBanner', 'setTimeout', code)
+  for (const returning of [true, false]) {
+    let checks = 0
+    const delays = []
+    await run(
+      { argv: returning ? ['launcher', '--return-from-game'] : ['launcher'] },
+      {
+        checkBeforeStartup: async () => {
+          checks++
+        }
+      },
+      (resolve, delay) => {
+        delays.push(delay)
+        resolve()
+      }
+    )
+    assert.equal(checks, returning ? 0 : 1)
+    assert.deepEqual(delays, returning ? [] : [3000])
+  }
+})

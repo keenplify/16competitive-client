@@ -366,8 +366,13 @@ pub struct GameLease {
 }
 impl GameLease {
     pub fn start(connection: &Connection, directory: Option<PathBuf>) -> Self {
+        Self::start_mode(Some(connection.mode.clone()), directory)
+    }
+    pub fn partner() -> Self {
+        Self::start_mode(None, None)
+    }
+    fn start_mode(mode: Option<String>, directory: Option<PathBuf>) -> Self {
         let source = format!("game-{}", uuid::Uuid::new_v4());
-        let mode = connection.mode.clone();
         let started = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .ok()
@@ -390,7 +395,7 @@ impl GameLease {
                     &source,
                     Some(Activity {
                         phase: "game".into(),
-                        mode: Some(mode.clone()),
+                        mode: mode.clone(),
                         map,
                         party_id: None,
                         party_size: 0,

@@ -1436,10 +1436,14 @@ app.whenReady().then(async () => {
 
   const startupSplash = await startupSplashPromise
   updateBanner = new AntiCheatUpdateBanner(startupSplash, () => mainWindow)
-  await Promise.all([
-    updateBanner.checkBeforeStartup(),
-    new Promise<void>((resolve) => setTimeout(resolve, 3_000))
-  ])
+  // Returning from a managed game is a resume, not a cold launch.
+  // Matchmaking still enforces its own current-version gate.
+  if (!process.argv.includes('--return-from-game')) {
+    await Promise.all([
+      updateBanner.checkBeforeStartup(),
+      new Promise<void>((resolve) => setTimeout(resolve, 3_000))
+    ])
+  }
   await initializePartnerAppIdentity(icon, (identity) => {
     installedAppIdentity = identity
     const userData = app.getPath('userData')
