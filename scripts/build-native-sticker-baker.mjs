@@ -1,8 +1,9 @@
 import { build } from 'esbuild'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 const target = new URL('../web-helper/assets/sticker-baker.js', import.meta.url)
 const result = await build({
-  entryPoints: [new URL('./native-sticker-baker.ts', import.meta.url).pathname],
+  entryPoints: [fileURLToPath(new URL('./native-sticker-baker.ts', import.meta.url))],
   bundle: true,
   format: 'iife',
   globalName: 'StickerBaker',
