@@ -4318,3 +4318,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Standalone launches
 
 - Standalone game launches no longer require Steam.
+
+## v2026.1106.1 — 2026-11-05
+
+### Music Kits
+
+- Equipped music kits now continue playing in the background.
+- Music kit loadouts are saved and restored more reliably.
+
+### Audio
+
+- Improved audio playback state handling.
+- Added support for translated music kit names and descriptions.
