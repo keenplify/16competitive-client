@@ -29,7 +29,7 @@ import { AlphaReleaseWatermark } from './components/AlphaReleaseWatermark'
 import { WebHelperController } from './features/matchmaking/WebHelperController'
 import { QueueWarmupNotice } from './features/matchmaking/QueueWarmupNotice'
 
-function App(): React.JSX.Element {
+function App({ preserveMusic = false }: { preserveMusic?: boolean }): React.JSX.Element {
   useEffect(() => {
     void window.api.updater
       .rendererReady()
@@ -43,7 +43,7 @@ function App(): React.JSX.Element {
         <CommunityMembershipController />
         <PartnerSessionController />
         <ChatTranslationInitializer />
-        <AudioController />
+        <AudioController preserveMusic={preserveMusic} />
         <UpdateBanner />
         <ConnectionBanner />
         <AntiCheatMatchCancellationNotice />

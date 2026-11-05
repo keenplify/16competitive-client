@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { PartnerReturnScreen } from './PartnerReturnScreen'
 import App from '../renderer/src/App'
 import { hasIncomingPartnerLogin } from './partner-login-capture'
 import { usePartnerLoginStore } from './partner-login.store'
@@ -13,9 +14,10 @@ export function WebApp(): JSX.Element {
   return (
     <>
       <div hidden={signingIn || redirecting}>
-        <App />
+        <App preserveMusic={redirecting} />
       </div>
-      {(signingIn || redirecting) && <div className="fixed inset-0 bg-neutral-950" aria-busy />}
+      {signingIn && !redirecting && <div className="fixed inset-0 bg-neutral-950" aria-busy />}
+      {redirecting && <PartnerReturnScreen />}
       {!redirecting && <PartnerLoginController />}
     </>
   )

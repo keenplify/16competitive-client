@@ -180,3 +180,38 @@ test('partner PWA music follows joined membership independently of the linked pr
   assert.equal((await window.api.partnerBranding.getJoined()).branding, null)
   assert.equal(calls.length, 2)
 })
+
+test('partner return preserves the community track after authentication is cleared', () => {
+  const tracks = []
+  const effects = []
+  let playerId = 'player'
+  const store = (get) => (selector) => selector(get())
+  const { AudioController } = load('AudioController.tsx', {
+    react: { useEffect: (effect) => effects.push(effect), useRef: (current) => ({ current }) },
+    './community-music': { resolveCommunityMusic },
+    './audio.manager': { launcherAudio: { setBgmTrack: (...args) => tracks.push(args) } },
+    './audio.store': { useAudioSettingsStore: store(() => ({ selectedBgmId: 'automatic' })) },
+    '../auth/auth.store': {
+      useAuthStore: store(() => ({ session: playerId ? { player: { id: playerId } } : null }))
+    },
+    '../partner-branding/partner-branding.store': {
+      usePartnerBrandingStore: store(() => ({
+        joinedBranding: playerId ? branding : null,
+        accountId: playerId
+      }))
+    },
+    '../matchmaking/matchmaking.store': { useMatchmakingStore: store(() => ({})) }
+  })
+  AudioController({})
+  effects[0]()
+  assert.deepEqual(tracks, [['rock', branding.musicUrl]])
+  playerId = null
+  effects.length = 0
+  AudioController({ preserveMusic: true })
+  effects[0]()
+  assert.equal(tracks.length, 1)
+  effects.length = 0
+  AudioController({})
+  effects[0]()
+  assert.deepEqual(tracks.at(-1), ['rock', null])
+})

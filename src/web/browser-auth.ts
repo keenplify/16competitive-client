@@ -559,7 +559,14 @@ export const browserAuthApi: AuthApi = {
 
   async logout() {
     const returnUrl = partnerReturnUrl()
-    if (returnUrl) usePartnerReturnStore.setState({ redirecting: true })
+    if (returnUrl) {
+      usePartnerReturnStore.setState({
+        ready: false,
+        redirecting: true,
+        returnUrl,
+        partnerName: getWebPartnerLogin()?.partnerName ?? ''
+      })
+    }
     const token = getWebSessionToken()
     void logoutNativeHelper(readCachedSession()?.player.id ?? null).catch(() => undefined)
     try {
@@ -567,13 +574,26 @@ export const browserAuthApi: AuthApi = {
         await requestJson('/auth/logout', {
           authenticated: true,
           clearOnUnauthorized: false,
+          timeoutMs: 5000,
           init: { method: 'POST' }
         })
       }
+    } catch (error) {
+      if (!returnUrl) throw error
+      console.warn('[Partner return] Remote logout failed; clearing local session', error)
     } finally {
       clearWebSessionToken()
       clearCachedSession()
-      if (returnUrl) window.location.replace(returnUrl)
+      if (returnUrl) {
+        usePartnerReturnStore.setState({ ready: true })
+        // Embedded partner clients must leave the frame, not load the partner inside it.
+        // Browsers may block top navigation; the return screen retains a user-clickable link.
+        try {
+          ;(window.top ?? window).location.replace(returnUrl)
+        } catch {
+          // Keep the explicit return link available when navigation is blocked.
+        }
+      }
     }
   }
 }

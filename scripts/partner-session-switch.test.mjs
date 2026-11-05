@@ -10,13 +10,20 @@ const compile = (path) =>
   })
 const source = compile('../src/web/browser-auth.ts')
 const cacheKey = '16competitive.web.auth-session'
-function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
+function harness({
+  incoming = false,
+  returnUrl = null,
+  failure = false,
+  embedded = false,
+  blocked = false
+} = {}) {
   let token = 'previous-token'
   const previous = { expiresAt: '2099-01-01T00:00:00Z', player: { id: 'previous-player' } }
   const cache = new Map([[cacheKey, JSON.stringify(previous)]])
   const calls = [],
     redirects = []
   let redirecting = false
+  let returnState
   const transitions = []
   const deps = {
     './partner-login-capture': { hasIncomingPartnerLogin: () => incoming },
@@ -24,8 +31,11 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
     './partner-return.store': {
       usePartnerReturnStore: {
         setState: (state) => {
-          redirecting = state.redirecting
-          transitions.push('cover')
+          returnState = { ...returnState, ...state }
+          if ('redirecting' in state) {
+            redirecting = state.redirecting
+            transitions.push('cover')
+          }
         }
       }
     },
@@ -57,6 +67,17 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
       setItem: (key, value) => cache.set(key, value)
     },
     {
+      top: embedded
+        ? {
+            location: {
+              replace: (url) => {
+                if (blocked) throw new Error('Navigation blocked')
+                transitions.push('navigate-top')
+                redirects.push(url)
+              }
+            }
+          }
+        : undefined,
       location: {
         replace: (url) => {
           transitions.push('navigate')
@@ -73,6 +94,7 @@ function harness({ incoming = false, returnUrl = null, failure = false } = {}) {
     redirects,
     transitions,
     redirecting: () => redirecting,
+    returnState: () => returnState,
     setToken: (value) => {
       token = value
     }
@@ -93,7 +115,7 @@ test('ordinary PWA reopen retains its offline session fallback', async () => {
 test('partner logout clears local authentication and returns even if logout request fails', async () => {
   const returnUrl = 'https://www.olaguergeyming.com/gamehub/'
   const h = harness({ returnUrl, failure: true })
-  await assert.rejects(h.api.logout())
+  await h.api.logout()
   assert.equal(h.token(), null)
   assert.equal(h.cache.has(cacheKey), false)
   assert.deepEqual(h.redirects, [returnUrl])
@@ -207,4 +229,20 @@ test('fresh partner navigation removes previous identity before the first API re
     api.requestJson('/auth/session', { authenticated: true }),
     /Authentication required/
   )
+})
+
+test('embedded partner return navigates the top-level page', async () => {
+  const returnUrl = 'https://www.olaguergeyming.com/gamehub/'
+  const h = harness({ returnUrl, embedded: true })
+  await h.api.logout()
+  assert.deepEqual(h.transitions, ['cover', 'clear', 'navigate-top'])
+  assert.deepEqual(h.redirects, [returnUrl])
+})
+test('blocked top navigation retains the approved destination for the manual return link', async () => {
+  const returnUrl = 'https://www.olaguergeyming.com/gamehub/'
+  const h = harness({ returnUrl, embedded: true, blocked: true })
+  await h.api.logout()
+  assert.equal(h.token(), null)
+  assert.equal(h.returnState().returnUrl, returnUrl)
+  assert.equal(h.redirecting(), true)
 })

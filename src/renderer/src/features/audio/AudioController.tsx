@@ -6,7 +6,11 @@ import { useAudioSettingsStore } from './audio.store'
 import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 
-export function AudioController(): JSX.Element | null {
+export function AudioController({
+  preserveMusic = false
+}: {
+  preserveMusic?: boolean
+}): JSX.Element | null {
   const bgmVolume = useAudioSettingsStore((state) => state.bgmVolume)
   const sfxVolume = useAudioSettingsStore((state) => state.sfxVolume)
   const selectedBgmId = useAudioSettingsStore((state) => state.selectedBgmId)
@@ -39,8 +43,8 @@ export function AudioController(): JSX.Element | null {
   const previousCompletedMatchId = useRef<string | null>(null)
 
   useEffect(() => {
-    launcherAudio.setBgmTrack(trackId, musicUrl)
-  }, [trackId, musicUrl])
+    if (!preserveMusic) launcherAudio.setBgmTrack(trackId, musicUrl)
+  }, [trackId, musicUrl, preserveMusic])
 
   useEffect(() => {
     launcherAudio.setBgmLowPass(shouldUseLobbyLowPass)

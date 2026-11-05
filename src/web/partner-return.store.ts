@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
-// Keep the signed-out UI hidden until the browser leaves this document.
-export const usePartnerReturnStore = create<{ redirecting: boolean }>(() => ({
-  redirecting: false
-}))
+// Retain the approved destination after logout clears the partner session.
+export const usePartnerReturnStore = create<{
+  ready: boolean
+  redirecting: boolean
+  returnUrl: string | null
+  partnerName: string
+}>(() => ({ ready: false, redirecting: false, returnUrl: null, partnerName: '' }))
