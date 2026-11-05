@@ -92,6 +92,7 @@ async function harness() {
         return undefined
       }
     },
+    'react-toastify': { toast: { loading: () => 1, update() {} } },
     zustand: { create },
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'fixture' },
     '../../../../shared/matchmaking': { allowsManualMatchConnection: () => false },
