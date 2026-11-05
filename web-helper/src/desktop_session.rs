@@ -135,6 +135,7 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "STEAM_START_FAILED" => "STEAM_START_FAILED",
         "GAME_SPAWN_FAILED" => "GAME_SPAWN_FAILED",
         "GAME_STARTUP_FAILED" => "GAME_STARTUP_FAILED",
+        "MATCH_RECOVERY_REQUIRED" => "MATCH_RECOVERY_REQUIRED",
         value if value.starts_with("Sticker cache") => "STICKER_CACHE_FAILED",
         "STICKER_CACHE_FAILED" => "STICKER_CACHE_FAILED",
         _ => "PREPARATION_FAILED",

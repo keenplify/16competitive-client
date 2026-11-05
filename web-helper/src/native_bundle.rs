@@ -78,6 +78,12 @@ const MODULE: &[u8] =
 const MODULE: &[u8] =
     include_bytes!("../../resources/native/linux-x64/papamo-cosmetic-module-linux-x86.so");
 
+pub(crate) fn supports_substitutes() -> bool {
+    const MARKER: &[u8] = b"papamo_vgui_substitutes_v1";
+    static SUPPORTED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *SUPPORTED.get_or_init(|| MODULE.windows(MARKER.len()).any(|bytes| bytes == MARKER))
+}
+
 /// Feature selection only; signature/hash/registry approval remains mandatory.
 pub(crate) fn supports_vgui_scoreboard() -> bool {
     const MARKER: &[u8] = b"papamo_vgui_scoreboard_v1";

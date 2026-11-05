@@ -62,6 +62,7 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Feed> {
         .set("Authorization", &format!("Bearer {token}"))
         .set("X-Scoreboard-Utilities", "v1")
         .set("X-Scoreboard-VIP", "v1")
+        .set("X-Scoreboard-Substitutes", if crate::native_bundle::supports_substitutes() { "v1" } else { "none" })
         .call()
         .ok()?;
     let bots = match reply.header("x-scoreboard-bot-tags") {
@@ -212,6 +213,9 @@ impl NativeSession {
                     crate::native_bundle::supports_vgui_scoreboard(),
                 ),
             )?;
+            if partner_connection.is_none() {
+                owned_write(&directory.join("match-recovery.policy"), b"v1\n")?;
+            }
             crate::native_preferences::initialize(&directory, preferences)?;
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
@@ -340,6 +344,15 @@ impl NativeSession {
             stop,
             workers: vec![heartbeat, feed],
         })
+    }
+
+    pub fn recovery_requested(&self) -> bool {
+        self.is_active() && fs::File::open(self.directory.join("match-recovery.requested"))
+            .ok().and_then(|file| {
+                let mut bytes = Vec::new();
+                file.take(4).read_to_end(&mut bytes).ok()?;
+                Some(bytes == b"v1\n")
+            }).unwrap_or(false)
     }
 
     pub fn is_active(&self) -> bool {

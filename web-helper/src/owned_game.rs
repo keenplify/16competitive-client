@@ -165,6 +165,14 @@ mod windows {
                 _ => Err("Game process status unavailable".into()),
             }
         }
+        pub fn failed_exit(&self, _: &mut std::process::Child) -> Result<bool, String> {
+            if !self.exited()? { return Ok(false); }
+            let mut code = 0;
+            if unsafe { GetExitCodeProcess(self.handle.0, &mut code) } == 0 {
+                return Err("Game exit status unavailable".into());
+            }
+            Ok(code != 0)
+        }
         pub fn stop(&self) -> Result<(), String> {
             if self.exited()? {
                 return Ok(());
@@ -369,6 +377,12 @@ mod linux {
             }
             Ok(result > 0)
         }
+        pub fn failed_exit(&self, child: &mut std::process::Child) -> Result<bool, String> {
+            // A bootstrap's exit status cannot describe the retained game PID.
+            if child.id() != self.pid { return Ok(false); }
+            Ok(child.try_wait().map_err(|_| "Game exit status unavailable")?
+                .is_some_and(|status| !status.success()))
+        }
         pub fn stop(&self) -> Result<(), String> {
             if self.exited()? {
                 return Ok(());
@@ -400,6 +414,18 @@ mod linux {
     #[cfg(test)]
     mod tests {
         use super::*;
+        #[test]
+        fn retained_child_exit_status_distinguishes_quit_and_failure() {
+            for (program, failure) in [("true", false), ("false", true)] {
+                let mut child = std::process::Command::new(program).spawn().unwrap();
+                let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, child.id(), 0) } as i32;
+                assert!(fd >= 0);
+                let owned = Owned { pid: child.id(), handle: unsafe { File::from_raw_fd(fd) } };
+                child.wait().unwrap();
+                assert!(owned.exited().unwrap());
+                assert_eq!(owned.failed_exit(&mut child).unwrap(), failure);
+            }
+        }
         #[test]
         fn process_handle_does_not_follow_replacement() {
             let mut first = std::process::Command::new("sleep")

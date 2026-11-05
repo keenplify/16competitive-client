@@ -10,6 +10,7 @@ mod stickers;
 mod session_mode;
 mod desktop_session;
 mod owned_game;
+mod match_recovery;
 mod steam_proton;
 #[cfg(target_os = "linux")]
 mod linux_emulation;
@@ -788,7 +789,12 @@ fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), S
 }
 
 fn cs16_requires_steam(root: &Path, next_client: bool, gold_client: bool) -> bool {
+    // Absence of an emulator marker is not evidence of a Steam installation.
+    // Match the desktop launcher's Steam-library classification.
     !next_client && !gold_client
+        && root.ancestors().take(8).any(|path| {
+            path.file_name().is_some_and(|name| name.to_string_lossy().eq_ignore_ascii_case("steamapps"))
+        })
         && !root.join(launch_pattern().cs16.standalone_steam_emulator_marker
             .as_deref().unwrap_or("rev.ini")).is_file()
 }
@@ -816,7 +822,20 @@ fn start_steam_client() -> Result<(), String> {
     Ok(())
 }
 
-fn launch_native_match(connection: &Connection, api: &str, token: &str,
+fn launch_native_match(initial: &Connection, api: &str, token: &str,
+    ready: &mut dyn FnMut() -> Result<(), String>) -> Result<(), String> {
+    let mut announced = false;
+    let mut ready_once = || {
+        if !announced { ready()?; announced = true; }
+        Ok(())
+    };
+    match_recovery::run(initial,
+        |current| launch_native_match_attempt(current, api, token, &mut ready_once),
+        || connection(api, token, &initial.match_id),
+        desktop_session::stop_requested)
+}
+
+fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     ready: &mut dyn FnMut() -> Result<(), String>) -> Result<(), String> {
     let pattern = launch_pattern();
     let game_pattern = if connection.game() == "cs13" {
@@ -1113,7 +1132,11 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         let expires = std::time::Instant::now() + Duration::from_secs(2 * 60 * 60);
         let mut next_authorization = std::time::Instant::now() + Duration::from_secs(15);
         loop {
-            if owned_game.as_ref().unwrap().exited()? { return Ok(()); }
+            if owned_game.as_ref().unwrap().exited()? {
+                return if owned_game.as_ref().unwrap().failed_exit(&mut child)? {
+                    Err(match_recovery::REQUIRED.into())
+                } else { Ok(()) };
+            }
             if desktop_session::stop_requested() {
                 owned_game.as_ref().unwrap().stop()?;
                 return Ok(());
@@ -1136,6 +1159,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
                     return Err("Managed game authorization ended".into());
                 }
             }
+            if native.as_ref().is_some_and(|(_, session)| session.recovery_requested()) {
+                return Err(match_recovery::REQUIRED.into());
+            }
             if native.as_ref().is_some_and(|(_, session)| !session.is_active()) {
                 return Err("Managed game authorization ended".into());
             }
@@ -1148,7 +1174,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
                 if !owned_game.as_ref().unwrap().exited()? {
                     return Err("Inspector lost the managed game process".into());
                 }
-                return Ok(());
+                return if owned_game.as_ref().unwrap().failed_exit(&mut child)? {
+                    Err(match_recovery::REQUIRED.into())
+                } else { Ok(()) };
             }
             std::thread::sleep(Duration::from_millis(100));
         }
@@ -1329,10 +1357,18 @@ mod launch_tests {
     fn standalone_variants_do_not_require_a_steam_client() {
         let root = env::temp_dir().join(format!("16c-steam-requirement-{}", uuid::Uuid::new_v4()));
         fs::create_dir(&root).unwrap();
-        assert!(cs16_requires_steam(&root, false, false));
+        assert!(!cs16_requires_steam(&root, false, false));
+        let steam = root.join("SteamApps/common/Half-Life");
+        assert!(cs16_requires_steam(&steam, false, false));
+        assert!(!cs16_requires_steam(&steam, true, false));
+        assert!(!cs16_requires_steam(&steam, false, true));
+        assert!(!cs16_requires_steam(&root.join("Games/CS 1.3"), false, false));
         assert!(!cs16_requires_steam(&root, true, false));
         assert!(!cs16_requires_steam(&root, false, true));
-        fs::write(root.join("rev.ini"), b"fixture").unwrap();
+        fs::create_dir_all(&steam).unwrap();
+        fs::write(steam.join("rev.ini"), b"fixture").unwrap();
+        assert!(!cs16_requires_steam(&steam, false, false));
+        fs::write(root.join("steam_appid.txt"), b"10").unwrap();
         assert!(!cs16_requires_steam(&root, false, false));
         fs::remove_dir_all(root).unwrap();
     }
