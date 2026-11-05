@@ -20,11 +20,27 @@ test(
           contents: `
 import React, {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
+import THREE from './src/renderer/src/libs/web-hlmv/lib/three'
 import {StickerViewport} from './src/renderer/src/features/sticker-editor/StickerViewport'
 import {useStickerEditor} from './src/renderer/src/features/sticker-editor/sticker-editor.store'
 import {modelTextures} from './src/shared/sticker-model'
 import {prepareStickerAtlas} from './src/renderer/src/libs/web-hlmv/lib/sticker-atlas'
 let root
+let disposals=0, picks=0
+const originalDispose=THREE.Texture.prototype.dispose
+THREE.Texture.prototype.dispose=function(){disposals++;return originalDispose.call(this)}
+useStickerEditor.subscribe((state,previous)=>{if(state.projection!==previous.projection)picks++})
+window.dragProbe=async()=>{
+ const canvas=document.querySelector('canvas'),rect=canvas.getBoundingClientRect()
+ const startPicks=picks,startDisposals=disposals
+ const normal=useStickerEditor.getState().projection.normal
+ canvas.dispatchEvent(new PointerEvent('pointerdown',{button:0,pointerId:1,clientX:rect.width/2,clientY:rect.height/2}))
+ for(let i=0;i<100;i++)canvas.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:rect.width/2+i/10,clientY:rect.height/2}))
+ await new Promise(requestAnimationFrame)
+ canvas.dispatchEvent(new PointerEvent('pointerup',{button:0,pointerId:1}))
+ await new Promise(requestAnimationFrame)
+ return {picks:picks-startPicks,disposals:disposals-startDisposals,width:canvas.width,height:canvas.height,cssWidth:rect.width,cssHeight:rect.height,normal,finalNormal:useStickerEditor.getState().projection.normal}
+}
 window.mount = (bytes, weaponKey = 'ak47', rotation) => {
   const atlas=prepareStickerAtlas(new Uint8Array(bytes))
   useStickerEditor.setState({model:atlas.model,atlas,sticker:{width:8,height:8,rgba:new Uint8Array(256).fill(255)},applied:[],placed:false,projection:undefined})
@@ -88,7 +104,7 @@ const {readFileSync,writeFileSync}=require('fs')
 const assert=require('assert/strict')
 app.commandLine.appendSwitch('enable-unsafe-swiftshader')
 app.whenReady().then(async()=>{
-const w=new BrowserWindow({show:false,width:1000,height:700,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}})
+const w=new BrowserWindow({show:true,width:1000,height:700,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}})
 const errors=[]
 w.webContents.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message)})
 try{
@@ -100,6 +116,12 @@ await new Promise(r=>setTimeout(r,700))
 assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
 assert.equal(await w.webContents.executeJavaScript('state().canvases'),1)
 assert.equal(await w.webContents.executeJavaScript('state().placed'),true,'new sticker starts on central weapon surface')
+const probe=await w.webContents.executeJavaScript('dragProbe()')
+assert.equal(probe.width,probe.cssWidth*4,'placement canvas has 4x horizontal resolution')
+assert.equal(probe.height,probe.cssHeight*4,'placement canvas has 4x vertical resolution')
+assert.ok(probe.picks>=1 && probe.picks<=3,'pointer bursts are coalesced to frame updates')
+assert.equal(probe.disposals,0,'dragging reuses GPU textures')
+assert.deepEqual(probe.finalNormal,probe.normal,'dragging across small faces keeps the same view-aligned projection')
 let placed=false, hitX=0, hitY=0
 for(let y=200;y<500&&!placed;y+=30)for(let x=200;x<800&&!placed;x+=30){
 w.webContents.sendInputEvent({type:'mouseDown',button:'left',x,y,clickCount:1})
@@ -128,7 +150,7 @@ assert.ok(projection,'knife starts with a valid placement')
 w.show()
 await new Promise(r=>setTimeout(r,200))
 writeFileSync('/tmp/16c-knife-sticker-verified.png',(await w.webContents.capturePage()).toPNG())
-assert.ok(projection.normal[1]<-0.5,'knife starts on the opposite authored blade face from the old firearm camera')
+assert.ok(projection.normal[1]<-0.5,'knife starts on the opposite authored blade face from the old firearm camera: '+JSON.stringify(projection))
 await w.webContents.executeJavaScript('unmount()')
 await w.webContents.executeJavaScript('mountPreview('+JSON.stringify(bytes)+',true)')
 await new Promise(r=>setTimeout(r,700))

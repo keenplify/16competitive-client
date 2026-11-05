@@ -30,7 +30,12 @@ export function StickerPlacementSurface({
   children?: React.ReactNode
 }) {
   const t = useInventoryText()
-  const { sticker, placement, setPlacement, placed, busy, model } = useStickerEditor()
+  const sticker = useStickerEditor((state) => state.sticker)
+  const placement = useStickerEditor((state) => state.placement)
+  const setPlacement = useStickerEditor((state) => state.setPlacement)
+  const placed = useStickerEditor((state) => state.placed)
+  const busy = useStickerEditor((state) => state.busy)
+  const model = useStickerEditor((state) => state.model)
   const decal = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     if (!decal.current || !sticker) return

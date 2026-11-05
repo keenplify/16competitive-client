@@ -48,7 +48,8 @@ export const useStickerEditor = create<State>((set, get) => ({
       projection,
       placed: true,
       message: '',
-      placement: { ...state.placement, texture }
+      placement:
+        state.placement.texture === texture ? state.placement : { ...state.placement, texture }
     })),
   run: async (action) => {
     if (get().busy) return

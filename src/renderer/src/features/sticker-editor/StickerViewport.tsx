@@ -3,7 +3,6 @@ import { viewmodelNeedsMirror } from '../skins/viewmodel-presentation'
 import { readFacesData } from '../../libs/web-hlmv/lib/geometryBuilder'
 import { calcRotations } from '../../libs/web-hlmv/lib/geometryTransformer'
 import {
-  bakeProjectedStickers,
   fullColorStickerTextures,
   fullColorPreviewTextures
 } from '../../libs/web-hlmv/lib/sticker-atlas'
@@ -19,7 +18,7 @@ import {
 } from '../../libs/web-hlmv/lib/modelRenderer'
 import { createRenderer, createOrbitControls } from '../../libs/web-hlmv/lib/screneRenderer'
 import { buildTexture } from '../../libs/web-hlmv/lib/textureBuilder'
-import { isHandTexture, modelTextures, texturePixels } from '../../../../shared/sticker-model'
+import { isHandTexture } from '../../../../shared/sticker-model'
 import { useStickerEditor } from './sticker-editor.store'
 
 export function StickerViewport({
@@ -86,6 +85,8 @@ export function StickerViewport({
         renderer.dispose()
         renderer.forceContextLoss()
       })
+      // Authoring uses four backing pixels per CSS pixel, independent of display DPI.
+      if (!readOnly) renderer.setPixelRatio(4)
       // Synchronize the overlay with the new external WebGL context.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (readOnly) setPreviewFailed(false)
@@ -306,64 +307,49 @@ export function StickerViewport({
       })
       resources.push(() => resize.disconnect())
       resize.observe(element.parentElement!)
-      let currentMaps: THREE.Texture[] = []
+      // Keep the decoded model maps. Previewing must never quantize/export the model,
+      // or dispose/reallocate every texture while the pointer moves.
+      const baseMaps = flat.map((mesh) => (mesh.material as THREE.MeshBasicMaterial).map!)
+      baseMaps.forEach((map) => ownedMaps.add(map))
+      const previewMaps = new Map<number, THREE.DataTexture>()
       const update = () => {
         const state = useStickerEditor.getState()
         element.style.cursor = 'grab'
-        let bytes = modelBytes
-        let overrides = previewModel ? fullColorPreviewTextures.get(previewModel) : undefined
-        if (!readOnly && state.atlas) {
-          overrides = fullColorStickerTextures(state.atlas, [
-            ...state.applied,
-            ...(state.projection && state.sticker
-              ? [{ sticker: state.sticker, projection: state.projection }]
-              : [])
-          ])
-          bytes = bakeProjectedStickers(state.atlas, [
-            ...state.applied,
-            ...(state.projection && state.sticker
-              ? [{ sticker: state.sticker, projection: state.projection }]
-              : [])
-          ])
+        const overrides = readOnly
+          ? fullColorPreviewTextures.get(previewModel!)
+          : state.atlas
+            ? fullColorStickerTextures(state.atlas, [
+                ...state.applied,
+                ...(state.projection && state.sticker
+                  ? [{ sticker: state.sticker, projection: state.projection }]
+                  : [])
+              ])
+            : undefined
+        const active = new Set<number>()
+        for (const override of overrides ?? []) {
+          active.add(override.texture)
+          let map = previewMaps.get(override.texture)
+          if (!map) {
+            map = createTexture(override.rgba, override.width, override.height) as THREE.DataTexture
+            previewMaps.set(override.texture, map)
+            ownedMaps.add(map)
+          } else {
+            // DataTexture uploads use bottom-up rows, matching createTexture.
+            const stride = override.width * 4
+            for (let row = 0; row < override.height; row++)
+              map.image.data.set(
+                override.rgba.subarray(row * stride, (row + 1) * stride),
+                (override.height - row - 1) * stride
+              )
+            map.needsUpdate = true
+          }
         }
-        // Custom catalog models only need the HLMV decoding path. Strict sticker
-        // authoring validation must not reject an otherwise renderable thumbnail.
-        if (readOnly) {
-          if (!overrides?.length) return
-          flat.forEach((mesh) => {
-            const override = overrides.find((item) => item.texture === mesh.userData.texture)
-            if (!override) return
-            const texture = data.textures[mesh.userData.texture]
-            const material = mesh.material as THREE.MeshBasicMaterial
-            if (material.map) ownedMaps.add(material.map)
-            material.map = createTexture(override.rgba, texture.width, texture.height)
-            ownedMaps.add(material.map)
-            material.needsUpdate = true
-          })
-          return
-        }
-        const textures = modelTextures(bytes)
-        const maps = textures.map((t, index) => {
-          const map = createTexture(
-            overrides?.find((item) => item.texture === index)?.rgba ?? texturePixels(bytes, t),
-            t.width,
-            t.height
-          )
-          ownedMaps.add(map)
-          return map
-        })
-        const previous = new Set<THREE.Texture>(currentMaps)
-        flat.forEach((mesh) => {
+        flat.forEach((mesh, index) => {
           const material = mesh.material as THREE.MeshBasicMaterial
-          if (material.map) previous.add(material.map)
-          material.map = maps[mesh.userData.texture]
-          material.needsUpdate = true
+          const texture = mesh.userData.texture as number
+          // Restore the unpainted map when dragging away from a page.
+          material.map = active.has(texture) ? previewMaps.get(texture)! : baseMaps[index]
         })
-        previous.forEach((texture) => {
-          texture.dispose()
-          ownedMaps.delete(texture)
-        })
-        currentMaps = maps
         dirty = true
       }
       let updatePending = false
@@ -402,7 +388,14 @@ export function StickerViewport({
           return
         }
         if (!hit.face) return
-        const normal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
+        // Project from the inspection view instead of adopting a tiny bevel's normal.
+        // Face-normal projection can turn a decal edge-on and smear it across nearby
+        // surfaces when dragging over seams, rivets, or curved magazine geometry.
+        const normal = camera.getWorldDirection(new THREE.Vector3()).negate()
+        // Some authored GoldSrc meshes have inward triangle winding. Preserve its
+        // signed side gate without adopting the bevel's projection angle.
+        const faceNormal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
+        if (normal.dot(faceNormal) < 0) normal.negate()
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
         right.addScaledVector(normal, -right.dot(normal)).normalize()
         const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion)
@@ -430,10 +423,14 @@ export function StickerViewport({
         element.setPointerCapture(event.pointerId)
         pick(event)
       }
+      let pendingPick: { clientX: number; clientY: number } | undefined
       const move = (event: PointerEvent) => {
-        if (drag) pick(event)
+        if (drag) pendingPick = { clientX: event.clientX, clientY: event.clientY }
       }
       const up = () => {
+        // Commit the last move synchronously so Apply always uses the final position.
+        if (pendingPick) pick(pendingPick)
+        pendingPick = undefined
         drag = false
       }
       const over = (event: DragEvent) => {
@@ -468,6 +465,10 @@ export function StickerViewport({
         if (disposed) return
         try {
           frame = requestAnimationFrame(draw)
+          if (pendingPick) {
+            pick(pendingPick)
+            pendingPick = undefined
+          }
           if (updatePending) {
             updatePending = false
             update()

@@ -556,12 +556,13 @@ function projectedStickerLayers(
           const u = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / den
           const v = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / den,
             w = 1 - u - v
-          const xyz = [0, 1, 2].map(
-            (i) => coordinates[0][i] * u + coordinates[1][i] * v + coordinates[2][i] * w
-          )
-          if (Math.abs(xyz[2]) > width * 0.7) continue
-          const sx = Math.floor(((xyz[0] * cos + xyz[1] * sin) / width + 0.5) * sticker.width)
-          const sy = Math.floor((0.5 - (-xyz[0] * sin + xyz[1] * cos) / height) * sticker.height)
+          // Scalar interpolation avoids allocating an array and callback per texel.
+          const px = coordinates[0][0] * u + coordinates[1][0] * v + coordinates[2][0] * w
+          const py = coordinates[0][1] * u + coordinates[1][1] * v + coordinates[2][1] * w
+          const pz = coordinates[0][2] * u + coordinates[1][2] * v + coordinates[2][2] * w
+          if (Math.abs(pz) > width * 0.7) continue
+          const sx = Math.floor(((px * cos + py * sin) / width + 0.5) * sticker.width)
+          const sy = Math.floor((0.5 - (-px * sin + py * cos) / height) * sticker.height)
           if (sx < 0 || sy < 0 || sx >= sticker.width || sy >= sticker.height) continue
           const at = (sy * sticker.width + sx) * 4
           if (!sticker.rgba[at + 3]) continue
