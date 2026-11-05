@@ -150,7 +150,9 @@ jobs:
           path.write_text('\n\n'.join(stanzas) + '\n')
           PYTHON
           . /etc/os-release
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $VERSION_CODENAME main universe" | sudo tee /etc/apt/sources.list.d/arm64.list
+          for suite in "$VERSION_CODENAME" "$VERSION_CODENAME-updates" "$VERSION_CODENAME-security" "$VERSION_CODENAME-backports"; do
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $suite main universe"
+          done | sudo tee /etc/apt/sources.list.d/arm64.list
           sudo apt-get update
           sudo apt-get install -y cmake pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross libasound2-dev:arm64
       - uses: actions/setup-node@v4
