@@ -4290,3 +4290,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added a P Cash withdrawal flow.
 - Improved withdrawal modal behavior.
+
+## v2026.1105.5 — 2026-11-05
+
+### Packaging
+
+- Ensured required web helper files are included in desktop packages.
