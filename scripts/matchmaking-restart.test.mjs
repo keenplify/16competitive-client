@@ -58,6 +58,9 @@ async function harness() {
   ).outputText
   const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    './pcash-bets.store': {
+      usePCashBetsStore: { getState: () => ({ load: async () => {} }) }
+    },
     '../../diagnostic-logs': { rendererMatchmakingDiagnostics: diagnostics },
     './web-helper-prompt.store': {
       useWebHelperPromptStore: { getState: () => ({ competitiveReady: false }) }
