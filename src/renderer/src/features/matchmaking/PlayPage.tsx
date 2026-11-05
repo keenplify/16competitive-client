@@ -430,21 +430,22 @@ export function PlayPage({
 
           {queueStatus === 'server_ready' && connectionDetails && (
             <div className="mx-auto mt-6 flex w-full max-w-sm flex-col gap-3">
-              {match?.mode === 'ffa' && currentCustomRoom?.matchId !== match.matchId && (
-                <Button
-                  className="w-full gap-2"
-                  variant="secondary"
-                  disabled={leavingFfa}
-                  onClick={() => void leaveFfa()}
-                >
-                  {leavingFfa ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <LogOut className="size-4" aria-hidden="true" />
-                  )}
-                  {t('ffa.leave')}
-                </Button>
-              )}
+              {(match?.mode === 'ffa' || match?.mode === 'arena') &&
+                currentCustomRoom?.matchId !== match.matchId && (
+                  <Button
+                    className="w-full gap-2"
+                    variant="secondary"
+                    disabled={leavingFfa}
+                    onClick={() => void leaveFfa()}
+                  >
+                    {leavingFfa ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <LogOut className="size-4" aria-hidden="true" />
+                    )}
+                    {t('ffa.leave')}
+                  </Button>
+                )}
               {(!hideDesktopOnlyFeatures || manualConnectionAllowed) && (
                 <FindMatchButton
                   className="h-11 w-full min-w-0 px-4 text-sm font-semibold tracking-normal normal-case"

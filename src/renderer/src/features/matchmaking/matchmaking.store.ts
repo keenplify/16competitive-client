@@ -14,6 +14,7 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
+import { toast } from 'react-toastify'
 import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
 import { readyResponseFromServer } from '../../../../shared/matchmaking-ready-response'
 import { rendererMatchmakingDiagnostics } from '../../diagnostic-logs'
@@ -388,7 +389,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
         break
       case 'match_found':
-        if (event.mode === 'ffa' && get().queueStatus === 'joining')
+        if ((event.mode === 'ffa' || event.mode === 'arena') && get().queueStatus === 'joining')
           terminalMatchIds.delete(event.matchId)
         if (terminalMatchIds.has(event.matchId)) break
         set({
@@ -1233,12 +1234,28 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     leavingFfa: false,
     leaveFfa: async () => {
       const match = get().match
-      if (!match || match.mode !== 'ffa' || get().leavingFfa) return
+      if (!match || (match.mode !== 'ffa' && match.mode !== 'arena') || get().leavingFfa) return
       set({ leavingFfa: true, error: null })
+      const t = (key: 'ffa.leaving' | 'ffa.left' | 'ffa.leaveError'): string =>
+        translate(useLanguageStore.getState().language, key)
+      const feedback = toast.loading(t('ffa.leaving'))
       try {
         await window.api.matchmaking.leaveFfa(match.matchId)
+        toast.update(feedback, {
+          render: t('ffa.left'),
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000
+        })
       } catch {
-        set({ error: translate(useLanguageStore.getState().language, 'ffa.leaveError') })
+        const message = t('ffa.leaveError')
+        set({ error: message })
+        toast.update(feedback, {
+          render: message,
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
       } finally {
         set({ leavingFfa: false })
       }

@@ -9,8 +9,16 @@ import ts from 'typescript'
 import { create } from 'zustand'
 import { readyResponseFromServer } from '../src/shared/matchmaking-ready-response.ts'
 
-async function harness({ party = null, fail = false, settings, savedMaps, web = false } = {}) {
+async function harness({
+  party = null,
+  fail = false,
+  settings,
+  savedMaps,
+  web = false,
+  failLeave = false
+} = {}) {
   const requests = []
+  const feedback = []
   const mmrUpdates = []
   let emit
   const completed = {
@@ -37,6 +45,7 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
         matchmaking: {
           async leaveFfa(matchId) {
             requests.push(['leave_ffa', matchId])
+            if (failLeave) throw new Error('offline')
           },
           onEvent(listener) {
             emit = listener
@@ -80,6 +89,15 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
             return undefined
           }
         })
+      }
+    },
+    'react-toastify': {
+      toast: {
+        loading: (message) => {
+          feedback.push({ pending: message })
+          return 1
+        },
+        update: (id, options) => feedback.push({ id, ...options })
       }
     },
     zustand: { create },
@@ -149,53 +167,57 @@ async function harness({ party = null, fail = false, settings, savedMaps, web = 
     selectedNodeId: 'node',
     allowRegionExpansion: false
   })
-  return { store, completed, requests, mmrUpdates, emit: (message) => emit(message) }
+  return { store, completed, requests, mmrUpdates, feedback, emit: (message) => emit(message) }
 }
 
-test('FFA can leave after game exit, updates its roster, and rejoin the same public round', async () => {
-  const h = await harness()
-  const found = {
-    type: 'match_found',
-    matchId: 'public-round',
-    mode: 'ffa',
-    mapId: 'de_dust2',
-    region: 'sea',
-    hostApiUrl: 'https://sea.invalid',
-    teams: { teamA: [{ id: 'self', username: 'Player' }], teamB: [] }
-  }
-  h.emit(found)
-  h.emit({
-    ...found,
-    teams: { teamA: [{ id: 'bot', username: 'Bot' }], teamB: [] },
-    type: 'match_roster'
+for (const mode of ['ffa', 'arena'])
+  test(`${mode} can leave after game exit, updates its roster, and rejoin the same public round`, async () => {
+    const h = await harness()
+    const found = {
+      type: 'match_found',
+      matchId: 'public-round',
+      mode,
+      mapId: 'de_dust2',
+      region: 'sea',
+      hostApiUrl: 'https://sea.invalid',
+      teams: { teamA: [{ id: 'self', username: 'Player' }], teamB: [] }
+    }
+    h.emit(found)
+    h.emit({
+      ...found,
+      teams: { teamA: [{ id: 'bot', username: 'Bot' }], teamB: [] },
+      type: 'match_roster'
+    })
+    assert.equal(h.store.getState().match.teams.teamA[0].id, 'bot')
+    h.emit({
+      type: 'match_connect',
+      matchId: found.matchId,
+      host: '192.0.2.1',
+      port: 27020,
+      password: ''
+    })
+    h.emit({ type: 'game_process_exited', matchId: found.matchId, code: 0, signal: null })
+    await h.store.getState().leaveFfa()
+    assert.equal(h.requests[0][0], 'leave_ffa')
+    assert.equal(h.feedback.length, 2)
+    assert.equal(h.feedback[1].type, 'success')
+    assert.equal(h.feedback[1].isLoading, false)
+    h.emit({
+      type: 'match_cancelled',
+      matchId: found.matchId,
+      reason: 'PLAYER_DECLINED',
+      message: 'Left FFA.'
+    })
+    assert.equal(h.store.getState().match, null)
+    assert.equal(h.store.getState().queueStatus, 'idle')
+    assert.equal(h.store.getState().error, null)
+    h.store.setState({ queueStatus: 'joining' })
+    h.emit(found)
+    assert.equal(h.store.getState().match.matchId, found.matchId)
+    h.store.setState({ match: { ...found, mode: '5v5' } })
+    await h.store.getState().leaveFfa()
+    assert.equal(h.requests.length, 1)
   })
-  assert.equal(h.store.getState().match.teams.teamA[0].id, 'bot')
-  h.emit({
-    type: 'match_connect',
-    matchId: found.matchId,
-    host: '192.0.2.1',
-    port: 27020,
-    password: ''
-  })
-  h.emit({ type: 'game_process_exited', matchId: found.matchId, code: 0, signal: null })
-  await h.store.getState().leaveFfa()
-  assert.equal(h.requests[0][0], 'leave_ffa')
-  h.emit({
-    type: 'match_cancelled',
-    matchId: found.matchId,
-    reason: 'PLAYER_DECLINED',
-    message: 'Left FFA.'
-  })
-  assert.equal(h.store.getState().match, null)
-  assert.equal(h.store.getState().queueStatus, 'idle')
-  assert.equal(h.store.getState().error, null)
-  h.store.setState({ queueStatus: 'joining' })
-  h.emit(found)
-  assert.equal(h.store.getState().match.matchId, found.matchId)
-  h.store.setState({ match: { ...found, mode: '5v5' } })
-  await h.store.getState().leaveFfa()
-  assert.equal(h.requests.length, 1)
-})
 
 for (const message of ['Left FFA.', 'Left Arena.', 'Arena connection cancelled.']) {
   test(`Arena cancellation after failed preparation does not show a leave error: ${message}`, async () => {
@@ -476,3 +498,21 @@ test('another player declining or a server failure does not warn this player', a
     assert.equal(h.store.getState().showReadyWarning(), false)
   }
 })
+
+for (const mode of ['ffa', 'arena'])
+  test(`${mode} failed-launch leave can fail and retry with resolved toast feedback`, async () => {
+    const h = await harness({ failLeave: true })
+    h.store.setState({
+      match: { matchId: 'failed-launch', mode },
+      queueStatus: 'server_ready',
+      gameExited: true
+    })
+    await h.store.getState().leaveFfa()
+    assert.equal(h.requests.length, 1)
+    assert.equal(h.store.getState().leavingFfa, false)
+    assert.equal(h.store.getState().match.matchId, 'failed-launch')
+    assert.equal(h.feedback[1].type, 'error')
+    assert.equal(h.feedback[1].isLoading, false)
+    await h.store.getState().leaveFfa()
+    assert.equal(h.requests.length, 2)
+  })

@@ -958,7 +958,7 @@ class MatchmakingConnection {
       throw new Error('Invalid regional search preference')
     if (!isPreferredRegion(preferredRegion)) throw new Error('Invalid matchmaking region')
     if (!isEligibleRegions(eligibleRegions)) throw new Error('Invalid eligible matchmaking regions')
-    if (mode === 'ffa') {
+    if (mode === 'ffa' || mode === 'arena') {
       for (const matchId of this.leftFfaMatchIds) {
         this.cancelledMatchIds.delete(matchId)
         this.seenMatchEvents.delete(`match_found:${matchId}`)
@@ -1016,7 +1016,7 @@ class MatchmakingConnection {
     this.lastConnection = null
     this.manualConnectionMatchId = null
     clearMatchAssetPreload(matchId)
-    if (this.desiredMode === 'ffa') {
+    if (this.desiredMode === 'ffa' || this.desiredMode === 'arena') {
       this.desiredMode = null
       this.desiredMapIds = []
     }
@@ -1509,7 +1509,7 @@ class MatchmakingConnection {
         return
       }
       if (parsed.type === 'match_found' || parsed.type === 'match_roster') {
-        if (parsed.mode === 'ffa') {
+        if (parsed.mode === 'ffa' || parsed.mode === 'arena') {
           this.ffaMatchIds.add(parsed.matchId)
           if (this.ffaMatchIds.size > 128)
             this.ffaMatchIds.delete(this.ffaMatchIds.values().next().value!)

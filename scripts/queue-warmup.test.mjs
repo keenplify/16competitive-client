@@ -118,6 +118,7 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
     BrowserWindow: { fromWebContents: () => window },
     app: { focus: (options) => calls.push(['app-focus', options]) },
     discordPresence: {
+      setMatch: () => {},
       finishMatch: () => {},
       setInGame: () => {},
       setQueue: () => {},
@@ -170,36 +171,51 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
   }
 }
 
-test('FFA leave validates the session and cannot leave ranked matchmaking', async () => {
-  const h = await harness()
-  const matchId = '37bd42ae-5741-4ac9-911c-135e19a8f0ce'
-  try {
-    await assert.rejects(() => h.connection.leaveFfa('invalid'), /Invalid FFA/)
-    h.connection.desiredMode = '5v5'
-    h.connection.lastConnection = { matchId }
-    await assert.rejects(() => h.connection.leaveFfa(matchId), /No active FFA/)
-    h.connection.ffaMatchIds.add(matchId)
-    h.connection.desiredMode = null // match_found clears queue intent before play
-    await assert.rejects(
-      () => h.connection.leaveFfa('6c563edf-6908-48d8-bffc-b12001ef99b6'),
-      /No active FFA/
-    )
-    await h.connection.leaveFfa(matchId)
-    assert.ok(h.sent.some((message) => message.type === 'leave_ffa' && message.matchId === matchId))
-    assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
-    assert.equal(h.connection.desiredMode, null)
-    assert.ok(
-      h.events.some((event) => event.type === 'match_cancelled' && event.matchId === matchId)
-    )
-    h.connection.cancelledMatchIds.add(matchId)
-    h.connection.seenMatchEvents.add(`match_found:${matchId}`)
-    h.connection.joinQueue('ffa', ['de_dust2'], false, 'eu', ['eu'])
-    assert.equal(h.connection.cancelledMatchIds.has(matchId), false)
-    assert.equal(h.connection.seenMatchEvents.has(`match_found:${matchId}`), false)
-  } finally {
-    h.connection.shutdown()
-  }
-})
+for (const mode of ['ffa', 'arena'])
+  test(`${mode} leave validates the session and cannot leave ranked matchmaking`, async () => {
+    const h = await harness()
+    const matchId = '37bd42ae-5741-4ac9-911c-135e19a8f0ce'
+    try {
+      await assert.rejects(() => h.connection.leaveFfa('invalid'), /Invalid FFA/)
+      h.connection.desiredMode = '5v5'
+      h.connection.lastConnection = { matchId }
+      await assert.rejects(() => h.connection.leaveFfa(matchId), /No active FFA/)
+      await h.connection.createSocket('test-token', 'https://eu.invalid')
+      h.sockets[0].listeners.get('message')({
+        data: JSON.stringify({
+          type: 'match_found',
+          matchId,
+          mode,
+          mapId: 'de_dust2',
+          region: 'eu',
+          hostApiUrl: 'https://eu.invalid',
+          teams: { teamA: [], teamB: [] }
+        })
+      })
+      assert.equal(h.connection.ffaMatchIds.has(matchId), true)
+      h.connection.desiredMode = null // match_found clears queue intent before play
+      await assert.rejects(
+        () => h.connection.leaveFfa('6c563edf-6908-48d8-bffc-b12001ef99b6'),
+        /No active FFA/
+      )
+      await h.connection.leaveFfa(matchId)
+      assert.ok(
+        h.sent.some((message) => message.type === 'leave_ffa' && message.matchId === matchId)
+      )
+      assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
+      assert.equal(h.connection.desiredMode, null)
+      assert.ok(
+        h.events.some((event) => event.type === 'match_cancelled' && event.matchId === matchId)
+      )
+      h.connection.cancelledMatchIds.add(matchId)
+      h.connection.seenMatchEvents.add(`match_found:${matchId}`)
+      h.connection.joinQueue(mode, ['de_dust2'], false, 'eu', ['eu'])
+      assert.equal(h.connection.cancelledMatchIds.has(matchId), false)
+      assert.equal(h.connection.seenMatchEvents.has(`match_found:${matchId}`), false)
+    } finally {
+      h.connection.shutdown()
+    }
+  })
 const found = {
   type: 'match_found',
   matchId: 'warmup',

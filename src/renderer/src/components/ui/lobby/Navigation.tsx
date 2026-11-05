@@ -192,6 +192,7 @@ export function LobbyNavigation({
               aria-current={active ? 'page' : undefined}
               onClick={() => {
                 onNavigate(id)
+                if (id === 'play') useMatchmakingStore.getState().showReadyWarning()
                 if (id === 'play' && isWebRuntime())
                   void useWebHelperPromptStore.getState().checkNative()
               }}
