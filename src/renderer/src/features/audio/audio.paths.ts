@@ -1,10 +1,10 @@
 export const MUSIC_SETS = [
   {
     id: 'rock',
-    label: 'Rock',
+    label: 'Counter-Strike · Huguito',
     backgroundMusic: {
-      title: 'Rock',
-      path: 'audio/bgm/default.mp3'
+      title: 'Improved Counter Strike Menu Music 2026 — Huguito [v1.1]',
+      path: 'audio/bgm/huguito-menu-2026-v1-1.mp3'
     },
     cues: {
       matchFound: 'audio/sfx/match-found.mp3'

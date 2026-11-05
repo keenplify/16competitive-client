@@ -337,6 +337,7 @@ mod tests {
     #[test]
     fn saved_recipe_skips_rebaking_and_invalidates_modified_artifacts() {
         let root=std::env::temp_dir().join(format!("16c-sticker-recipe-{}",uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
         let recipe=Recipe {id:"a".repeat(32),source_path:"models/v_ak47.mdl".into(),source_sha256:"b".repeat(64),canonical:String::new(),stickers:vec![]};
         let model=immutable(&root,b"model pixels","mdl").unwrap();
         let textures=immutable(&root,b"texture pixels","rgba").unwrap();

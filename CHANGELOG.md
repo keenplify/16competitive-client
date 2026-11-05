@@ -4358,3 +4358,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Save sticker artwork in 4× resolution for supported in-game renderers.
 - Reuse verified sticker textures across reconnects and repeated previews.
 - Keep muzzle flashes attached to animated gun barrels in first-person previews.
+
+## v2026.1106.6 — 2026-11-06
+
+- Use Huguito’s Improved Counter Strike Menu Music 2026 [v1.1] as the default background track.
+- Save and cache 4× sticker textures, improve sticker dragging, and stabilize placement across seams.
+- Keep preview muzzle flashes attached to animated gun barrels.
