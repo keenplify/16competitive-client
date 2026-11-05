@@ -4346,3 +4346,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Music-kit artwork now shows the uploaded logo on an album cover, with a plain dark disc behind it.
 - The shared artwork appears in the main shop, inventory, and equipped music-kit slots.
+
+## v2026.1106.4 — 2026-11-06
+
+- Reduce sticker placement drag overhead and reuse preview textures.
+- Render the sticker placement preview at 4× resolution.
+- Stabilize sticker projection across bevels and seams.
