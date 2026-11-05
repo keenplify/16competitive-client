@@ -889,7 +889,14 @@ export function VoiceChatDock(): JSX.Element | null {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (!enabled || desiredContext?.kind !== 'partner' || connectionStatus !== 'ready') return
+    // Public room assignments and Arena teams can change while voice stays connected.
+    if (
+      !enabled ||
+      !desiredContext ||
+      desiredContext.kind === 'party' ||
+      connectionStatus !== 'ready'
+    )
+      return
     const timer = window.setInterval(() => {
       void window.api.matchmaking.voiceJoin(desiredContext).catch(() => undefined)
     }, 12_000)

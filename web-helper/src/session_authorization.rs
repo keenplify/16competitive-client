@@ -82,6 +82,17 @@ pub(crate) fn check(api: &str, token: &str, match_id: &str) -> Authorization {
     }
 }
 
+/// Call only after the owned game has stopped and all restoration has succeeded.
+pub(crate) fn finish_session(result: Result<(), String>) -> Result<(), String> {
+    match result {
+        Err(error) if error == "Managed game authorization ended" => {
+            eprintln!("Managed game session ended; cleanup complete");
+            Ok(())
+        }
+        other => other,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,6 +101,14 @@ mod tests {
         net::TcpListener,
         thread,
     };
+
+    #[test]
+    fn completed_authorization_is_quiet_but_real_failures_remain_errors() {
+        assert_eq!(finish_session(Err("Managed game authorization ended".into())), Ok(()));
+        for reason in ["Managed game session expired", "Inspector lost the managed game process", "DLL restoration failed"] {
+            assert_eq!(finish_session(Err(reason.into())), Err(reason.into()));
+        }
+    }
 
     #[test]
     fn only_explicit_denial_revokes_session() {

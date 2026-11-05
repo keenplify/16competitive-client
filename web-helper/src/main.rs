@@ -1171,9 +1171,8 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     }
     auth_cleanup?;
     startup_cleanup?;
-    wait_result?;
     scanner_result?;
-    Ok(())
+    session_authorization::finish_session(wait_result)
 }
 
 fn run() -> Result<(), String> {
