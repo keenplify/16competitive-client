@@ -58,7 +58,7 @@ jobs:
       - run: npm run test:standalone
       - uses: actions/download-artifact@v4
         with:
-          pattern: competitive16-web-helper*
+          pattern: web-helper-competitive16-web-helper*
           path: resources/session-binaries
           merge-multiple: true
       - run: ${{ matrix.command }}
