@@ -1,3 +1,4 @@
+import { usePCashBetsStore } from './pcash-bets.store'
 import { matchmakingRegionSelection } from '../../../../shared/matchmaking-region-selection'
 import type { MatchmakingActivity } from '../../../../shared/matchmaking-activity'
 import { useQueueWarmupStore } from './queue-warmup.store'
@@ -599,6 +600,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         }
         if (terminalMatchIds.has(event.matchId)) break
         terminalMatchIds.add(event.matchId)
+        if (event.serverCrashed) {
+          const language = useLanguageStore.getState().language
+          toast.error(translate(language, event.pCashRefunded ? 'bet.crashRefunded' : 'bet.crashed', { amount: event.pCashRefunded ?? 0 }), { toastId: `server-crash:${event.matchId}` })
+          void usePCashBetsStore.getState().load(event.matchId)
+        }
         set((state) =>
           (state.match && state.match.matchId !== event.matchId) ||
           (!state.match && ['queued', 'joining', 'leaving'].includes(state.queueStatus))
@@ -627,7 +633,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 matchReadyAt: null,
                 gameExited: false,
                 error:
-                  (state.match?.mode === 'ffa' || state.match?.mode === 'arena') &&
+                  event.serverCrashed ? null : (state.match?.mode === 'ffa' || state.match?.mode === 'arena') &&
                   event.reason === 'PLAYER_DECLINED'
                     ? null
                     : event.message

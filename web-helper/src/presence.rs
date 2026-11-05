@@ -39,7 +39,7 @@ impl Activity {
                         | "unrated"
                         | "legacy"
                         | "legacy_3v3"
-                        | "cs13_3v3"
+                        | "cs13_3v3" | "cs13_1v1"
                         | "casual"
                         | "ffa"
                         | "arena"

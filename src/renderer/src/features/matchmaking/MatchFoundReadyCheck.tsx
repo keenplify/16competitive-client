@@ -1,3 +1,5 @@
+import { PCashStakePanel } from './PCashStakePanel'
+import { usePCashBetsStore } from './pcash-bets.store'
 import { useTranslation } from '../i18n/i18n'
 import { Check, Info } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
@@ -92,10 +94,18 @@ export function MatchFoundReadyCheck({
   onDecline
 }: MatchFoundReadyCheckProps): JSX.Element {
   const { t } = useTranslation()
+  const placingBet = usePCashBetsStore((state) => state.busy)
   const loadRanks = useReadyPlayerRanksStore((state) => state.load)
   useEffect(() => {
     void loadRanks(match.matchId, [...match.teams.teamA, ...match.teams.teamB])
   }, [loadRanks, match.matchId, match.teams])
+  const acceptSelection = async (): Promise<void> => {
+    const bets = usePCashBetsStore.getState()
+    if (bets.matchId === match.matchId && bets.snapshot?.enabled && Number(bets.amount) > 0 && !bets.snapshot.bet) {
+      if (!(await bets.place())) return
+    }
+    onAccept()
+  }
   const mapName = match.mapId.replace(/^de_/, '').replace(/_/g, ' ')
   const mapDisplayName = mapName.replace(/\b\w/g, (letter) => letter.toUpperCase())
   const timeLeft = `${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, '0')}`
@@ -177,11 +187,13 @@ export function MatchFoundReadyCheck({
             </aside>
           )}
 
+          <PCashStakePanel matchId={match.matchId} mode={match.mode} disabled={preparing || placingBet || readyResponse !== 'pending'} className="mt-5" />
+
           <div className="match-ready-actions mt-5 flex flex-wrap justify-center gap-3">
             <Button
               className="min-w-40 rounded-none bg-emerald-400 text-base font-extrabold text-emerald-950 shadow-[0_4px_0_rgb(5,100,55)] hover:bg-emerald-300 disabled:bg-emerald-400/50"
-              disabled={preparing || readyResponse !== 'pending'}
-              onClick={onAccept}
+              disabled={preparing || placingBet || readyResponse !== 'pending'}
+              onClick={() => void acceptSelection()}
             >
               {readyResponse === 'accepted'
                 ? 'ACCEPTED'
@@ -193,7 +205,7 @@ export function MatchFoundReadyCheck({
               className="min-w-28 rounded-none border border-white/15 px-6 text-white/65 hover:border-white/35"
               variant="ghost"
               disabled={
-                preparing ||
+                preparing || placingBet ||
                 (readyResponse !== 'pending' &&
                   !(readyResponse === 'accepted' && canDeclineAfterAccept))
               }

@@ -1,3 +1,5 @@
+import { PCASH_BET_CHANNELS } from '../shared/pcash-bets'
+import { requestPCashBet } from './pcash-bets'
 import {
   setStandaloneVoice,
   standaloneSessionStatus,
@@ -581,7 +583,7 @@ async function processPendingWebPlayLink(): Promise<void> {
       typeof details !== 'object' ||
       details === null ||
       (details as Record<string, unknown>).matchId !== joinLink.matchId ||
-      !['cs13_3v3', '5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(
+      !['cs13_3v3', 'cs13_1v1', '5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(
         String((details as Record<string, unknown>).mode)
       )
     )
@@ -889,6 +891,8 @@ app.whenReady().then(async () => {
     return null
   })
 
+  ipcMain.handle(PCASH_BET_CHANNELS.get, (_, id: unknown) => requestPCashBet(id))
+  ipcMain.handle(PCASH_BET_CHANNELS.place, (_, id: unknown, input: unknown) => requestPCashBet(id, input))
   ipcMain.handle(ADMIN_DEMO_CHANNELS.list, (_, page: unknown) => listAdminDemos(page))
   ipcMain.handle(ADMIN_DEMO_CHANNELS.watch, (_, id: unknown) => watchAdminDemo(id))
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>

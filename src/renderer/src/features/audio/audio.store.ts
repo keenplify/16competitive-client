@@ -8,6 +8,7 @@ const DEFAULT_SFX_VOLUME = 50
 export type BgmSelection = LauncherBgmId | 'automatic'
 
 interface StoredAudioSettings {
+  communityAudioRevision?: string | null
   selectionVersion?: 2
   bgmVolume: number
   sfxVolume: number
@@ -15,6 +16,7 @@ interface StoredAudioSettings {
 }
 
 interface AudioSettingsState extends StoredAudioSettings {
+  applyCommunityAudioDefaults: (revision: string, volume: number) => void
   setBgmVolume: (value: number) => void
   setSfxVolume: (value: number) => void
   setSelectedBgmId: (value: BgmSelection) => void
@@ -35,6 +37,7 @@ const readStoredSettings = (): StoredAudioSettings => {
 
     const parsed = JSON.parse(raw) as Partial<StoredAudioSettings>
     return {
+      communityAudioRevision: typeof parsed.communityAudioRevision === 'string' ? parsed.communityAudioRevision : null,
       bgmVolume:
         typeof parsed.bgmVolume === 'number' ? clampVolume(parsed.bgmVolume) : DEFAULT_BGM_VOLUME,
       sfxVolume:
@@ -66,12 +69,19 @@ const initialSettings = readStoredSettings()
 
 export const useAudioSettingsStore = create<AudioSettingsState>((set) => ({
   ...initialSettings,
+  applyCommunityAudioDefaults: (revision, volume) => set(state => {
+    if (state.communityAudioRevision === revision) return state
+    const next = { bgmVolume: clampVolume(volume), sfxVolume: state.sfxVolume, selectedBgmId: state.selectedBgmId, communityAudioRevision: revision }
+    persistSettings(next)
+    return next
+  }),
   setBgmVolume: (value) =>
     set((state) => {
       const bgmVolume = clampVolume(value)
       persistSettings({
         bgmVolume,
         sfxVolume: state.sfxVolume,
+        communityAudioRevision: state.communityAudioRevision,
         selectedBgmId: state.selectedBgmId
       })
       return { bgmVolume }
@@ -82,6 +92,7 @@ export const useAudioSettingsStore = create<AudioSettingsState>((set) => ({
       persistSettings({
         bgmVolume: state.bgmVolume,
         sfxVolume,
+        communityAudioRevision: state.communityAudioRevision,
         selectedBgmId: state.selectedBgmId
       })
       return { sfxVolume }
@@ -91,6 +102,7 @@ export const useAudioSettingsStore = create<AudioSettingsState>((set) => ({
       persistSettings({
         bgmVolume: state.bgmVolume,
         sfxVolume: state.sfxVolume,
+        communityAudioRevision: state.communityAudioRevision,
         selectedBgmId
       })
       return { selectedBgmId }

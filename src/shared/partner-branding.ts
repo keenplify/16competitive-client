@@ -23,6 +23,9 @@ export interface PartnerBranding {
   primaryColor: string
   secondaryColor: string
   tertiaryColor: string
+  musicMufflePercent?: number
+  musicVolumePercent?: number
+  musicAudioRevision?: number
   musicUrl?: string | null
   backgroundUrl: string | null
   backgroundKind: 'image' | 'video' | null
@@ -90,6 +93,11 @@ export const parsePartnerBranding = (
   ) {
     throw new Error('Invalid partner background.')
   }
+  for (const key of ['musicMufflePercent','musicVolumePercent'] as const) {
+    const amount = value[key]
+    if (amount !== undefined && (!Number.isSafeInteger(amount) || Number(amount) < 0 || Number(amount) > 100)) throw new Error('Invalid community audio settings.')
+  }
+  if (value.musicAudioRevision !== undefined && (!Number.isSafeInteger(value.musicAudioRevision) || Number(value.musicAudioRevision) < 1)) throw new Error('Invalid community audio revision.')
   const musicUrl = value.musicUrl ?? null
   if (musicUrl !== null && typeof musicUrl !== 'string') throw new Error('Invalid community music.')
   const logoUrl = value.logoUrl ?? null
@@ -194,6 +202,9 @@ export const parsePartnerBranding = (
       primaryColor: value.primaryColor,
       secondaryColor: value.secondaryColor,
       tertiaryColor: value.tertiaryColor,
+      musicMufflePercent: (value.musicMufflePercent as number | undefined) ?? 100,
+      musicVolumePercent: (value.musicVolumePercent as number | undefined) ?? 50,
+      musicAudioRevision: (value.musicAudioRevision as number | undefined) ?? 1,
       ...(value.musicUrl !== undefined ? { musicUrl: musicUrl as string | null } : {}),
       backgroundUrl: backgroundUrl as string | null,
       backgroundKind: backgroundKind as 'image' | 'video' | null,

@@ -242,7 +242,7 @@ const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => 
     await launchWithLocalLauncher(matchId, launcher)
     return
   }
-  if (manualConnectionMode === 'cs13_3v3')
+  if ((manualConnectionMode === 'cs13_3v3' || manualConnectionMode === 'cs13_1v1'))
     throw new Error('Install and check a local launcher before opening a Counter-Strike 1.3 match.')
   const connection = await getManualConnection(matchId)
   if (

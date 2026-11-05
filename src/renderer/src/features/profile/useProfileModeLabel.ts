@@ -13,6 +13,8 @@ export function useProfileModeLabel(): (id: string) => string {
       case 'legacy':
         return 'CS 1.3 · 5v5'
       case 'legacy_3v3':
+      case 'cs13_1v1':
+        return 'CS 1.3 1v1'
       case 'cs13_3v3':
         return 'CS 1.3 · 3v3'
       case 'ffa':

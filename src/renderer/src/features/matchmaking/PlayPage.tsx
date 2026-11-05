@@ -59,6 +59,7 @@ const queueModes = [
   'legacy',
   'legacy_3v3',
   'cs13_3v3',
+  'cs13_1v1',
   'ffa',
   'arena',
   '3v3'
@@ -301,7 +302,7 @@ export function PlayPage({
         )
       : hideDesktopOnlyFeatures
         ? []
-        : queueModes.filter((mode) => mode !== 'cs13_3v3')
+        : queueModes.filter((mode) => (mode !== 'cs13_3v3' && mode !== 'cs13_1v1'))
   const showCompetitive = !hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5')
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))

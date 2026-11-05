@@ -1,3 +1,4 @@
+import { parsePCashBetSnapshot, validateBetInput, validateBetMatchId } from '../shared/pcash-bets'
 import { parseNativeVoicePreferences } from '../shared/native-voice'
 import { validRedeemRewardDetails } from '../shared/redeem-codes'
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
@@ -856,6 +857,17 @@ const fetchNews = async (limit: 4 | 20, pinned = false): Promise<NewsPost[]> => 
 }
 
 const api: Window['api'] = {
+  pCashBets: {
+    get: async (id) => {
+      validateBetMatchId(id)
+      return parsePCashBetSnapshot(await authenticatedGet(`/matches/${id}/p-cash-bet`), id)
+    },
+    place: async (id, input) => {
+      validateBetMatchId(id)
+      validateBetInput(input)
+      return parsePCashBetSnapshot(await jsonPost(`/matches/${id}/p-cash-bet`, input), id)
+    }
+  },
   auth: browserAuthApi,
   communityDirectory: {
     leave: async (expectedCommunityId) => {

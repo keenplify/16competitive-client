@@ -44,6 +44,7 @@ export const MATCHMAKING_MODES = [
   'legacy',
   'legacy_3v3',
   'cs13_3v3',
+  'cs13_1v1',
   'casual',
   'ffa',
   'arena'
@@ -60,10 +61,14 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   legacy: 'Legacy',
   legacy_3v3: 'Legacy 3v3',
   cs13_3v3: 'Legacy 1.3',
+  cs13_1v1: 'CS 1.3 1v1',
   casual: 'Casual',
   ffa: 'FFA',
   arena: 'Arena'
 }
+
+export const isRankedMatchmakingMode = (mode: string): boolean =>
+  ['5v5', '3v3', 'cs13_3v3'].includes(mode)
 
 export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
@@ -365,6 +370,8 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
         | 'SERVER_START_FAILED'
         | 'PLAYER_DID_NOT_CONNECT'
         | 'CUSTOM_ROOM_EMPTY'
+      serverCrashed?: boolean
+      pCashRefunded?: number
       connectionFailed?: boolean
       readyCheckFailed?: boolean
       message: string

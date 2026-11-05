@@ -336,7 +336,7 @@ async function run(input: unknown): Promise<void> {
   const c = connection as Record<string, unknown>
   if (
     c.matchId !== request.matchId ||
-    !['5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'cs13_3v3', 'ffa', 'arena'].includes(
+    !['5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'cs13_3v3', 'cs13_1v1', 'ffa', 'arena'].includes(
       String(c.mode)
     ) ||
     typeof c.host !== 'string' ||
@@ -346,7 +346,7 @@ async function run(input: unknown): Promise<void> {
   )
     throw new Error('Invalid match connection')
   // The authenticated backend selects the adapter, never a browser argument.
-  activeGame = c.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+  activeGame = (c.mode === 'cs13_3v3' || c.mode === 'cs13_1v1') ? 'cs13' : 'cs16'
   stage = 'preferences'
   await syncPreferences(true)
   stage = 'assets'

@@ -87,6 +87,7 @@ export function CurrencyAmount({
   amount,
   className,
   iconClassName,
+  amountClassName,
   locale,
   showTooltip = true,
   animated = false
@@ -95,6 +96,7 @@ export function CurrencyAmount({
   amount: number
   className?: string
   iconClassName?: string
+  amountClassName?: string
   locale?: string
   showTooltip?: boolean
   animated?: boolean
@@ -130,7 +132,7 @@ export function CurrencyAmount({
         animated={animated}
         className={twMerge('size-5', iconClassName)}
       />
-      <span>{amount.toLocaleString(locale)}</span>
+      <span className={amountClassName}>{amount.toLocaleString(locale)}</span>
       {tooltipVisible && (
         <AnchoredTooltip id={tooltipId} anchorRef={anchorRef}>
           <strong className="block font-semibold text-white">{presentation.label}</strong>

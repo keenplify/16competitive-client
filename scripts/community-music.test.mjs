@@ -107,6 +107,41 @@ function audioHarness() {
   )
   return { manager: launcherAudio, instances }
 }
+test('partner audio revisions invalidate volume overrides once and survive launcher restarts', () => {
+  let stored = null
+  const globals = { window: { localStorage: {
+    getItem: () => stored,
+    setItem: (_, value) => { stored = value }
+  } } }
+  const restore = () => load('audio.store.ts', { zustand: require('zustand') }, globals).useAudioSettingsStore
+  let store = restore()
+  store.getState().applyCommunityAudioDefaults('player:partner:1', 60)
+  assert.equal(store.getState().bgmVolume, 60)
+  store.getState().setBgmVolume(23)
+  store.getState().applyCommunityAudioDefaults('player:partner:1', 60)
+  assert.equal(store.getState().bgmVolume, 23)
+  store = restore()
+  store.getState().applyCommunityAudioDefaults('player:partner:1', 60)
+  assert.equal(store.getState().bgmVolume, 23)
+  store.getState().applyCommunityAudioDefaults('player:partner:2', 75)
+  assert.equal(store.getState().bgmVolume, 75)
+  store.getState().setBgmVolume(10)
+  store.getState().applyCommunityAudioDefaults('player:partner:3', 0)
+  assert.equal(store.getState().bgmVolume, 0)
+  assert.equal(restore().getState().bgmVolume, 0)
+})
+
+test('zero muffle disables lobby attenuation and intermediate strengths interpolate it', () => {
+  const { manager, instances } = audioHarness()
+  manager.setBgmTrack('rock', branding.musicUrl)
+  manager.setBgmVolume(80)
+  manager.setBgmLowPass(true, 0, 100)
+  assert.equal(instances.at(-1).volume, 0.4)
+  manager.setBgmLowPass(true, 0, 50)
+  assert.ok(Math.abs(instances.at(-1).volume - 0.6) < 1e-12)
+  manager.setBgmLowPass(true, 0, 0)
+  assert.equal(instances.at(-1).volume, 0.8)
+})
 test('community tracks loop with existing volume controls and switch cleanly to bundled on failure or leave', () => {
   const { manager, instances } = audioHarness()
   manager.setBgmTrack('rock', branding.musicUrl)

@@ -1,3 +1,4 @@
+import { PCashBetResult } from './PCashBetResult'
 import { useTranslation } from '../i18n/i18n'
 import { useProfileStore } from '../profile/profile.store'
 import { ArrowRight, Trophy, UserPlus, UserRound } from 'lucide-react'
@@ -8,7 +9,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { ProfileLevelProgress } from '../../components/ui/ProfileLevelProgress'
-import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
+import { getMatchmakingModeLabel, isRankedMatchmakingMode } from '../../../../shared/matchmaking'
 import { useAuthStore } from '../auth/auth.store'
 import { DailyQuestsPanel } from '../daily-quests/DailyQuestsPanel'
 import { useDailyQuestStore } from '../daily-quests/daily-quests.store'
@@ -176,6 +177,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                 <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
               </Button>
             </div>
+            <PCashBetResult matchId={match.matchId} mode={match.mode} className="mb-4" />
             {match.profileXp && (
               <ProfileLevelProgress key={match.matchId} award={match.profileXp} className="mb-4" />
             )}
@@ -342,15 +344,16 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
             {score[0]} <span className="text-neutral-500">—</span> {score[1]}
           </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
-            {getMatchmakingModeLabel(match.mode)} · {match.mode === '5v5' ? 'Ranked' : 'Unranked'}
+            {getMatchmakingModeLabel(match.mode)} · {t(isRankedMatchmakingMode(match.mode) ? 'bet.ranked' : 'bet.unranked')}
           </p>
+          <PCashBetResult matchId={match.matchId} mode={match.mode} className="mx-auto mt-4 mb-4 w-full max-w-2xl" />
           <>
             <Team
               label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
               players={match.teams.teamA}
               stats={match.players}
-              ratedMatch={match.mode === '5v5'}
-              compact={match.mode === 'legacy_3v3' || match.mode === '3v3'}
+              ratedMatch={isRankedMatchmakingMode(match.mode)}
+              compact={match.mode !== '5v5' && match.mode !== 'unrated'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />
@@ -358,8 +361,8 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
               players={match.teams.teamB}
               stats={match.players}
-              ratedMatch={match.mode === '5v5'}
-              compact={match.mode === 'legacy_3v3' || match.mode === '3v3'}
+              ratedMatch={isRankedMatchmakingMode(match.mode)}
+              compact={match.mode !== '5v5' && match.mode !== 'unrated'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
             />

@@ -23,6 +23,9 @@ const origin = 'https://api.example.test'
 const partnerId = '12345678-1234-1234-1234-123456789abc'
 const branding = {
   partnerId,
+  musicAudioRevision: 1,
+  musicMufflePercent: 100,
+  musicVolumePercent: 50,
   logoUrl: null,
   showPapamoGamesLogo: true,
   communityName: null,
@@ -38,6 +41,23 @@ const branding = {
   backgroundKind: 'video',
   backgroundUrl: `${origin}/partners/branding/${partnerId}/asset?v=sha256`
 }
+
+test('audio settings validate percentages and revisions and support legacy responses', () => {
+  const legacy = { ...branding }
+  delete legacy.musicAudioRevision
+  delete legacy.musicMufflePercent
+  delete legacy.musicVolumePercent
+  const parsed = parsePartnerBranding({branding:legacy},origin).branding
+  assert.equal(parsed.musicAudioRevision, 1)
+  assert.equal(parsed.musicMufflePercent, 100)
+  assert.equal(parsed.musicVolumePercent, 50)
+  for (const key of ['musicMufflePercent','musicVolumePercent']) {
+    for (const value of [-1,101,1.5,'50',null])
+      assert.throws(() => parsePartnerBranding({branding:{...branding,[key]:value}},origin))
+  }
+  for (const value of [0,-1,1.5,'2',null])
+    assert.throws(() => parsePartnerBranding({branding:{...branding,musicAudioRevision:value}},origin))
+})
 
 test('accepts a verified palette and same-origin media URL', () => {
   assert.deepEqual(parsePartnerBranding({ branding }, origin), { branding })

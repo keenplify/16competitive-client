@@ -10,12 +10,12 @@ const en = {
     'The ModDB download is the 1.3 mod for Half-Life Retail. Install it into a compatible Half-Life installation, then select that folder. On Linux, Windows installations require Wine.',
   'legacy.error.downloadFailed': 'Could not open ModDB. Try the download button again.',
   'legacy.modeHelp':
-    'Counter-Strike 1.3 · 3v3 · MR12: 12 rounds per half, first to 13. Requires a separate 1.3 installation.',
+    'Counter-Strike 1.3 · 3v3 · MR8: 8 rounds per half, first to 9. Requires a separate 1.3 installation.',
   'legacy.queueUnavailable':
     '1.3 3v3 matchmaking is not ready yet. You can set up your 1.3 folder in Settings now.',
   'legacy.onboardingTitle': 'Want to play Counter-Strike 1.3?',
   'legacy.onboardingDescription':
-    '1.3 3v3 uses a separate installation and MR12 rules. Set it up now or add it later in Settings.',
+    '1.3 3v3 uses a separate installation and MR8 rules. Set it up now or add it later in Settings.',
   'legacy.yes': 'Yes, set up 1.3',
   'legacy.yesHelp': 'Choose your 1.3 installation folder.',
   'legacy.no': 'Not now',
@@ -59,12 +59,12 @@ export const legacyGameTranslations: Record<
       'На ModDB размещён мод 1.3 для Half-Life Retail. Установите его в совместимую Half-Life и выберите эту папку. В Linux для Windows-версии нужен Wine.',
     'legacy.error.downloadFailed': 'Не удалось открыть ModDB. Нажмите кнопку скачивания ещё раз.',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: 12 раундов за половину, победа при 13. Нужна отдельная установка 1.3.',
+      'Counter-Strike 1.3 · 3v3 · MR8: 8 раундов за половину, победа при 9. Нужна отдельная установка 1.3.',
     'legacy.queueUnavailable':
       'Подбор матчей 1.3 3v3 пока не готов. Папку 1.3 уже можно выбрать в настройках.',
     'legacy.onboardingTitle': 'Хотите играть в Counter-Strike 1.3?',
     'legacy.onboardingDescription':
-      'Для 1.3 3v3 нужна отдельная установка; используются правила MR12. Настройте сейчас или позже в настройках.',
+      'Для 1.3 3v3 нужна отдельная установка; используются правила MR8. Настройте сейчас или позже в настройках.',
     'legacy.yes': 'Да, настроить 1.3',
     'legacy.yesHelp': 'Выберите папку установки 1.3.',
     'legacy.no': 'Не сейчас',
@@ -102,12 +102,12 @@ export const legacyGameTranslations: Record<
       'Ang ModDB download ay 1.3 mod para sa Half-Life Retail. I-install sa compatible na Half-Life, tapos piliin ang folder. Kailangan ng Wine sa Linux para sa Windows installation.',
     'legacy.error.downloadFailed': 'Hindi mabuksan ang ModDB. Pindutin ulit ang download button.',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: 12 rounds kada half, unang maka-13. Kailangan ng hiwalay na 1.3 installation.',
+      'Counter-Strike 1.3 · 3v3 · MR8: 8 rounds kada half, unang maka-9. Kailangan ng hiwalay na 1.3 installation.',
     'legacy.queueUnavailable':
       'Hindi pa handa ang 1.3 3v3 matchmaking. Maaari mo nang piliin ang 1.3 folder sa Settings.',
     'legacy.onboardingTitle': 'Gusto mong maglaro ng Counter-Strike 1.3?',
     'legacy.onboardingDescription':
-      'Hiwalay na installation at MR12 rules ang gamit ng 1.3 3v3. I-set up ngayon o idagdag sa Settings mamaya.',
+      'Hiwalay na installation at MR8 rules ang gamit ng 1.3 3v3. I-set up ngayon o idagdag sa Settings mamaya.',
     'legacy.yes': 'Oo, i-set up ang 1.3',
     'legacy.yesHelp': 'Piliin ang 1.3 installation folder mo.',
     'legacy.no': 'Hindi muna',
@@ -145,12 +145,12 @@ export const legacyGameTranslations: Record<
       'ไฟล์จาก ModDB เป็นม็อด 1.3 สำหรับ Half-Life Retail ติดตั้งใน Half-Life ที่เข้ากันได้แล้วเลือกโฟลเดอร์นั้น บน Linux การติดตั้งแบบ Windows ต้องใช้ Wine',
     'legacy.error.downloadFailed': 'เปิด ModDB ไม่ได้ โปรดลองกดปุ่มดาวน์โหลดอีกครั้ง',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: ครึ่งละ 12 รอบ ชนะเมื่อถึง 13 รอบ ต้องติดตั้ง 1.3 แยกต่างหาก',
+      'Counter-Strike 1.3 · 3v3 · MR8: ครึ่งละ 8 รอบ ชนะเมื่อถึง 9 รอบ ต้องติดตั้ง 1.3 แยกต่างหาก',
     'legacy.queueUnavailable':
       'ระบบจับคู่ 1.3 3v3 ยังไม่พร้อม คุณสามารถตั้งค่าโฟลเดอร์ 1.3 ในการตั้งค่าได้แล้ว',
     'legacy.onboardingTitle': 'ต้องการเล่น Counter-Strike 1.3 หรือไม่?',
     'legacy.onboardingDescription':
-      '1.3 3v3 ใช้การติดตั้งแยกและกติกา MR12 ตั้งค่าตอนนี้หรือเพิ่มภายหลังในการตั้งค่า',
+      '1.3 3v3 ใช้การติดตั้งแยกและกติกา MR8 ตั้งค่าตอนนี้หรือเพิ่มภายหลังในการตั้งค่า',
     'legacy.yes': 'ใช่ ตั้งค่า 1.3',
     'legacy.yesHelp': 'เลือกโฟลเดอร์ติดตั้ง 1.3',
     'legacy.no': 'ยังไม่ใช่ตอนนี้',
@@ -188,12 +188,12 @@ export const legacyGameTranslations: Record<
       'Unduhan ModDB adalah mod 1.3 untuk Half-Life Retail. Pasang pada Half-Life yang kompatibel, lalu pilih foldernya. Instalasi Windows di Linux memerlukan Wine.',
     'legacy.error.downloadFailed': 'Tidak dapat membuka ModDB. Coba tombol unduh lagi.',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: 12 ronde per babak, pertama mencapai 13. Memerlukan instalasi 1.3 terpisah.',
+      'Counter-Strike 1.3 · 3v3 · MR8: 8 ronde per babak, pertama mencapai 9. Memerlukan instalasi 1.3 terpisah.',
     'legacy.queueUnavailable':
       'Matchmaking 1.3 3v3 belum siap. Anda dapat menyiapkan folder 1.3 di Pengaturan sekarang.',
     'legacy.onboardingTitle': 'Ingin bermain Counter-Strike 1.3?',
     'legacy.onboardingDescription':
-      '1.3 3v3 memakai instalasi terpisah dan aturan MR12. Siapkan sekarang atau tambahkan nanti di Pengaturan.',
+      '1.3 3v3 memakai instalasi terpisah dan aturan MR8. Siapkan sekarang atau tambahkan nanti di Pengaturan.',
     'legacy.yes': 'Ya, siapkan 1.3',
     'legacy.yesHelp': 'Pilih folder instalasi 1.3 Anda.',
     'legacy.no': 'Tidak sekarang',
@@ -231,12 +231,12 @@ export const legacyGameTranslations: Record<
       'ModDB डाउनलोड Half-Life Retail के लिए 1.3 मॉड है। इसे संगत Half-Life इंस्टॉलेशन में इंस्टॉल करके वह फ़ोल्डर चुनें। Linux पर Windows इंस्टॉलेशन के लिए Wine चाहिए।',
     'legacy.error.downloadFailed': 'ModDB नहीं खुल सका। डाउनलोड बटन फिर दबाएँ।',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: हर हाफ में 12 राउंड, पहले 13 जीतने वाली टीम विजेता। अलग 1.3 इंस्टॉलेशन चाहिए।',
+      'Counter-Strike 1.3 · 3v3 · MR8: हर हाफ में 8 राउंड, पहले 9 जीतने वाली टीम विजेता। अलग 1.3 इंस्टॉलेशन चाहिए।',
     'legacy.queueUnavailable':
       '1.3 3v3 मैचमेकिंग अभी तैयार नहीं है। अभी सेटिंग्स में 1.3 फ़ोल्डर चुन सकते हैं।',
     'legacy.onboardingTitle': 'क्या आप Counter-Strike 1.3 खेलना चाहते हैं?',
     'legacy.onboardingDescription':
-      '1.3 3v3 अलग इंस्टॉलेशन और MR12 नियम इस्तेमाल करता है। अभी सेटअप करें या बाद में सेटिंग्स में जोड़ें।',
+      '1.3 3v3 अलग इंस्टॉलेशन और MR8 नियम इस्तेमाल करता है। अभी सेटअप करें या बाद में सेटिंग्स में जोड़ें।',
     'legacy.yes': 'हाँ, 1.3 सेटअप करें',
     'legacy.yesHelp': 'अपना 1.3 इंस्टॉलेशन फ़ोल्डर चुनें।',
     'legacy.no': 'अभी नहीं',
@@ -275,12 +275,12 @@ export const legacyGameTranslations: Record<
     'legacy.error.downloadFailed':
       'Não foi possível abrir o ModDB. Tente o botão de download novamente.',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12: 12 rounds por metade, primeiro a 13. Exige instalação separada do 1.3.',
+      'Counter-Strike 1.3 · 3v3 · MR8: 8 rounds por metade, primeiro a 9. Exige instalação separada do 1.3.',
     'legacy.queueUnavailable':
       'O matchmaking 1.3 3v3 ainda não está pronto. Você já pode configurar a pasta do 1.3 nas Configurações.',
     'legacy.onboardingTitle': 'Quer jogar Counter-Strike 1.3?',
     'legacy.onboardingDescription':
-      '1.3 3v3 usa uma instalação separada e regras MR12. Configure agora ou adicione depois nas Configurações.',
+      '1.3 3v3 usa uma instalação separada e regras MR8. Configure agora ou adicione depois nas Configurações.',
     'legacy.yes': 'Sim, configurar 1.3',
     'legacy.yesHelp': 'Escolha a pasta de instalação do 1.3.',
     'legacy.no': 'Agora não',
@@ -319,12 +319,12 @@ export const legacyGameTranslations: Record<
     'legacy.error.downloadFailed':
       'ModDBを開けませんでした。ダウンロードボタンをもう一度押してください。',
     'legacy.modeHelp':
-      'Counter-Strike 1.3 · 3v3 · MR12：前後半各12ラウンド、先に13勝で勝利。別途1.3のインストールが必要です。',
+      'Counter-Strike 1.3 · 3v3 · MR8：前後半各8ラウンド、先に9勝で勝利。別途1.3のインストールが必要です。',
     'legacy.queueUnavailable':
       '1.3 3v3のマッチメイキングはまだ準備中です。設定で1.3のフォルダーを指定できます。',
     'legacy.onboardingTitle': 'Counter-Strike 1.3もプレイしますか？',
     'legacy.onboardingDescription':
-      '1.3 3v3は別のインストールとMR12ルールを使用します。今設定するか、後で設定画面から追加できます。',
+      '1.3 3v3は別のインストールとMR8ルールを使用します。今設定するか、後で設定画面から追加できます。',
     'legacy.yes': 'はい、1.3を設定',
     'legacy.yesHelp': '1.3のインストールフォルダーを選択します。',
     'legacy.no': '今は設定しない',

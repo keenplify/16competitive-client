@@ -23,6 +23,8 @@ export function AudioController({
     brandingAccountId,
     branding
   )
+  const communityAudio = selectedBgmId === 'automatic' && playerId && brandingAccountId === playerId ? branding : null
+  const audioRevision = communityAudio ? `${playerId}:${communityAudio.partnerId}:${communityAudio.musicAudioRevision ?? 1}` : null
   const match = useMatchmakingStore((state) => state.match)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -47,8 +49,12 @@ export function AudioController({
   }, [trackId, musicUrl, preserveMusic])
 
   useEffect(() => {
-    launcherAudio.setBgmLowPass(shouldUseLobbyLowPass)
-  }, [shouldUseLobbyLowPass])
+    if (audioRevision) useAudioSettingsStore.getState().applyCommunityAudioDefaults(audioRevision, communityAudio?.musicVolumePercent ?? 50)
+  }, [audioRevision, communityAudio?.musicVolumePercent])
+
+  useEffect(() => {
+    launcherAudio.setBgmLowPass(shouldUseLobbyLowPass, 1000, communityAudio?.musicMufflePercent ?? 100)
+  }, [shouldUseLobbyLowPass, communityAudio?.musicMufflePercent])
 
   useEffect(() => {
     launcherAudio.setBgmVolume(bgmVolume)

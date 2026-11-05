@@ -66,7 +66,7 @@ export function RoomSettingsModal({
   const modes = CUSTOM_GAME_MODES.filter(
     (candidate) =>
       (candidate === room.mode || enabledModes.includes(candidate)) &&
-      (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3')
+      (!hideDesktopOnlyFeatures || (candidate !== 'cs13_3v3' && candidate !== 'cs13_1v1'))
   )
   const selectedMode = mode
   const modeAvailable = modes.includes(mode)

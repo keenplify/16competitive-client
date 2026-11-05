@@ -22,6 +22,7 @@ class LauncherAudioManager {
   private bgmSource: MediaElementAudioSourceNode | null = null
   private bgmFilter: BiquadFilterNode | null = null
   private bgmGain: GainNode | null = null
+  private bgmMufflePercent = 100
   private bgmLowPass = false
   private bgmVolume = 50
   private bgmPlaybackVolume = volumeToUnit(this.bgmVolume)
@@ -68,7 +69,7 @@ class LauncherAudioManager {
     const gain = context.createGain()
     filter.type = 'lowpass'
     filter.Q.value = 0.7
-    filter.frequency.value = this.bgmLowPass ? LOBBY_LOWPASS_FREQUENCY : NORMAL_FILTER_FREQUENCY
+    filter.frequency.value = this.bgmLowPass ? this.muffleFrequency() : NORMAL_FILTER_FREQUENCY
     source.connect(filter)
     filter.connect(gain)
     gain.connect(context.destination)
@@ -87,7 +88,7 @@ class LauncherAudioManager {
   }
 
   private getEffectiveBgmVolume(): number {
-    const lobbyFactor = this.bgmLowPass ? LOBBY_BGM_VOLUME_FACTOR : 1
+    const lobbyFactor = this.bgmLowPass ? 1 - (1 - LOBBY_BGM_VOLUME_FACTOR) * this.bgmMufflePercent / 100 : 1
     const duckFactor = this.bgmDuckCount > 0 ? MATCH_FOUND_BGM_DUCK_FACTOR : 1
     return this.bgmPlaybackVolume * lobbyFactor * duckFactor
   }
@@ -164,13 +165,19 @@ class LauncherAudioManager {
     this.sfxVolume = Math.max(0, Math.min(100, value))
   }
 
-  setBgmLowPass(enabled: boolean, durationMs = 1_000): void {
-    if (enabled === this.bgmLowPass) return
+  private muffleFrequency(): number {
+    return NORMAL_FILTER_FREQUENCY * Math.pow(LOBBY_LOWPASS_FREQUENCY / NORMAL_FILTER_FREQUENCY, this.bgmMufflePercent / 100)
+  }
+
+  setBgmLowPass(enabled: boolean, durationMs = 1_000, percent = 100): void {
+    const strength = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 100
+    if (enabled === this.bgmLowPass && strength === this.bgmMufflePercent) return
     this.bgmLowPass = enabled
+    this.bgmMufflePercent = strength
     this.applyBgmVolume()
     if (!this.bgmFilter || !this.audioContext) return
 
-    const targetFrequency = enabled ? LOBBY_LOWPASS_FREQUENCY : NORMAL_FILTER_FREQUENCY
+    const targetFrequency = enabled ? this.muffleFrequency() : NORMAL_FILTER_FREQUENCY
     const now = this.audioContext.currentTime
     this.bgmFilter.frequency.cancelScheduledValues(now)
     this.bgmFilter.frequency.setValueAtTime(this.bgmFilter.frequency.value, now)

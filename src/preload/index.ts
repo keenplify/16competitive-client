@@ -1,3 +1,4 @@
+import { PCASH_BET_CHANNELS, type PCashBetsApi } from '../shared/pcash-bets'
 import { STICKER_CHANNELS } from '../shared/stickers'
 import {
   COMMUNITY_DIRECTORY_CHANNELS,
@@ -431,7 +432,13 @@ const legacyGame: LegacyGameApi = {
   openDownload: () => ipcRenderer.invoke(LEGACY_GAME_CHANNELS.openDownload)
 }
 
+const pCashBets: PCashBetsApi = {
+  get: (id) => ipcRenderer.invoke(PCASH_BET_CHANNELS.get, id),
+  place: (id, input) => ipcRenderer.invoke(PCASH_BET_CHANNELS.place, id, input)
+}
+
 const api = {
+  pCashBets,
   legacyGame,
   partnerServers,
   communityChat,

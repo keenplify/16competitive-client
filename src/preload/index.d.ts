@@ -1,3 +1,4 @@
+import type { PCashBetsApi } from '../shared/pcash-bets'
 import type { CommunityDirectoryApi } from '../shared/community-directory'
 import type { CommunityMembershipApi } from '../shared/community-membership'
 import type { PartnerServersApi, CommunityChatApi } from '../shared/partner-community'
@@ -27,6 +28,7 @@ declare global {
   interface Window {
     api: {
       adminDemos?: AdminDemosApi
+      pCashBets: PCashBetsApi
       partnerServers: PartnerServersApi
       communityChat: CommunityChatApi
       partnerBranding: PartnerBrandingApi

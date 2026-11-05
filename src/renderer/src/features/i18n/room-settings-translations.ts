@@ -27,6 +27,7 @@ const english = {
   'customRoom.mode.legacy': 'Legacy',
   'customRoom.mode.legacy_3v3': 'Legacy 3v3',
   'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
   'customRoom.mode.ffa': 'FFA',
   'customRoom.mode.arena': 'Arena'
 } as const
@@ -63,6 +64,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'Классика',
     'customRoom.mode.legacy_3v3': 'Классика 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Каждый за себя',
     'customRoom.mode.arena': 'Арена'
   },
@@ -94,6 +96,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'Legacy',
     'customRoom.mode.legacy_3v3': 'Legacy 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Lahat magkakalaban',
     'customRoom.mode.arena': 'Arena'
   },
@@ -124,6 +127,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'ดั้งเดิม',
     'customRoom.mode.legacy_3v3': 'ดั้งเดิม 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'ทุกคนเป็นศัตรู',
     'customRoom.mode.arena': 'อารีนา'
   },
@@ -155,6 +159,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'Klasik',
     'customRoom.mode.legacy_3v3': 'Klasik 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Semua lawan semua',
     'customRoom.mode.arena': 'Arena'
   },
@@ -186,6 +191,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'लेगेसी',
     'customRoom.mode.legacy_3v3': 'लेगेसी 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'सबके विरुद्ध सब',
     'customRoom.mode.arena': 'एरीना'
   },
@@ -216,6 +222,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'Clássico',
     'customRoom.mode.legacy_3v3': 'Clássico 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Todos contra todos',
     'customRoom.mode.arena': 'Arena'
   },
@@ -246,6 +253,7 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.legacy': 'レガシー',
     'customRoom.mode.legacy_3v3': 'レガシー 3v3',
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
+    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': '全員が敵',
     'customRoom.mode.arena': 'アリーナ'
   }

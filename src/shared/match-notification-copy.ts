@@ -72,6 +72,7 @@ const queueModeLabels = {
     legacy: 'Legacy 5v5',
     legacy_3v3: 'Legacy 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'Casual',
     ffa: 'FFA',
     arena: 'Arena'
@@ -83,6 +84,7 @@ const queueModeLabels = {
     legacy: 'Классический 5v5',
     legacy_3v3: 'Классический 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'Обычный',
     ffa: 'FFA',
     arena: 'Арена'
@@ -94,6 +96,7 @@ const queueModeLabels = {
     legacy: 'Legacy 5v5',
     legacy_3v3: 'Legacy 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'Casual',
     ffa: 'FFA',
     arena: 'Arena'
@@ -105,6 +108,7 @@ const queueModeLabels = {
     legacy: 'คลาสสิก 5v5',
     legacy_3v3: 'คลาสสิก 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'ทั่วไป',
     ffa: 'FFA',
     arena: 'อารีนา'
@@ -116,6 +120,7 @@ const queueModeLabels = {
     legacy: 'Klasik 5v5',
     legacy_3v3: 'Klasik 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'Kasual',
     ffa: 'FFA',
     arena: 'Arena'
@@ -127,6 +132,7 @@ const queueModeLabels = {
     legacy: 'क्लासिक 5v5',
     legacy_3v3: 'क्लासिक 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'कैज़ुअल',
     ffa: 'FFA',
     arena: 'अरीना'
@@ -138,6 +144,7 @@ const queueModeLabels = {
     legacy: 'Clássico 5v5',
     legacy_3v3: 'Clássico 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'Casual',
     ffa: 'FFA',
     arena: 'Arena'
@@ -149,6 +156,7 @@ const queueModeLabels = {
     legacy: 'クラシック 5v5',
     legacy_3v3: 'クラシック 3v3',
     cs13_3v3: 'CS 1.3 · 3v3',
+    cs13_1v1: 'CS 1.3 · 1v1',
     casual: 'カジュアル',
     ffa: 'FFA',
     arena: 'アリーナ'

@@ -483,6 +483,8 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       )
     case 'match_cancelled':
       return (
+        (message.serverCrashed === undefined || typeof message.serverCrashed === 'boolean') &&
+        (message.pCashRefunded === undefined || (Number.isSafeInteger(message.pCashRefunded) && Number(message.pCashRefunded) >= 0 && Number(message.pCashRefunded) <= 1000000)) &&
         (message.connectionFailed === undefined || typeof message.connectionFailed === 'boolean') &&
         (message.readyCheckFailed === undefined || typeof message.readyCheckFailed === 'boolean') &&
         typeof message.matchId === 'string' &&
@@ -612,7 +614,7 @@ class MatchmakingConnection {
       this.warmupMatchId = message.matchId
       this.warmupSocket = socket
       this.warmupApiUrl = message.hostApiUrl
-      if (message.mode === 'cs13_3v3') this.cs13Matches.add(message.matchId)
+      if ((message.mode === 'cs13_3v3' || message.mode === 'cs13_1v1')) this.cs13Matches.add(message.matchId)
       if (!this.warmupPreloadRequests.has(message.matchId)) {
         this.warmupPreloadRequests.add(message.matchId)
         this.warmupAssetFailureMatchId = null
@@ -626,7 +628,7 @@ class MatchmakingConnection {
               ...progress,
               whileQueued: true
             }),
-          message.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+          (message.mode === 'cs13_3v3' || message.mode === 'cs13_1v1') ? 'cs13' : 'cs16'
         ).catch((error) => {
           // Leaving warmup (including a ranked handoff) cancels its preload.
           // That expected abort must not turn the next launcher state into an error.
@@ -1520,7 +1522,7 @@ class MatchmakingConnection {
           if (this.ffaMatchIds.size > 128)
             this.ffaMatchIds.delete(this.ffaMatchIds.values().next().value!)
         }
-        if (parsed.mode === 'cs13_3v3') {
+        if ((parsed.mode === 'cs13_3v3' || parsed.mode === 'cs13_1v1')) {
           this.cs13Matches.add(parsed.matchId)
           // Keep this defensive history bounded across long-running launcher sessions.
           if (this.cs13Matches.size > 128) {
@@ -1693,7 +1695,7 @@ class MatchmakingConnection {
                   matchId: parsed.matchId,
                   ...progress
                 }),
-          parsed.mode === 'cs13_3v3' ? 'cs13' : 'cs16'
+          (parsed.mode === 'cs13_3v3' || parsed.mode === 'cs13_1v1') ? 'cs13' : 'cs16'
         ).catch((error: unknown) =>
           this.cancelledMatchIds.has(parsed.matchId) ||
           this.fastDlMatchIds.has(parsed.matchId) ||

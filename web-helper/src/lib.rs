@@ -127,7 +127,7 @@ pub struct Connection {
 impl Connection {
     pub fn validate(&self, expected_match_id: &str) -> Result<(), &'static str> {
         if self.match_id != expected_match_id || self.port == 0 ||
-            !matches!(self.mode.as_str(), "cs13_3v3" | "5v5" | "3v3" | "unrated" | "legacy" | "legacy_3v3" | "ffa" | "arena") ||
+            !matches!(self.mode.as_str(), "cs13_3v3" | "cs13_1v1" | "5v5" | "3v3" | "unrated" | "legacy" | "legacy_3v3" | "ffa" | "arena") ||
             self.host.is_empty() || self.host.len() > 253 ||
             !self.host.bytes().all(|ch| ch.is_ascii_alphanumeric() || ch == b'.' || ch == b'-') ||
             self.password.len() > 128 ||
@@ -140,18 +140,27 @@ impl Connection {
             !self.player_name.bytes().all(|ch| ch.is_ascii_alphanumeric() || ch == b'_') {
             return Err("Invalid player name from server");
         }
-        if self.mode == "cs13_3v3" &&
+        if (self.mode == "cs13_3v3" || self.mode == "cs13_1v1") &&
             (self.password.len() != 24 || !self.password.bytes().all(|ch| ch.is_ascii_hexdigit()) ||
              self.join_token.len() != 32) { return Err("Invalid CS 1.3 match connection"); }
         Ok(())
     }
 
-    pub fn game(&self) -> &'static str { if self.mode == "cs13_3v3" { "cs13" } else { "cs16" } }
+    pub fn game(&self) -> &'static str { if (self.mode == "cs13_3v3" || self.mode == "cs13_1v1") { "cs13" } else { "cs16" } }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cs13_duel_uses_the_legacy_game_and_rejects_modern_credentials() {
+        let mut connection = Connection { match_id: "duel".into(), mode: "cs13_1v1".into(), host: "127.0.0.1".into(), port: 27015, password: "a".repeat(24), join_token: "b".repeat(32), player_name: "DuelPlayer".into() };
+        assert_eq!(connection.game(), "cs13");
+        assert!(connection.validate("duel").is_ok());
+        connection.password = "short".into();
+        assert!(connection.validate("duel").is_err());
+    }
 
     #[test]
     fn accepts_one_time_link() {
