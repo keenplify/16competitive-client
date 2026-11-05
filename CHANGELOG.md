@@ -4302,3 +4302,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Improved ARM64 release packaging reliability.
+
+## v2026.1105.7 — 2026-11-05
+
+### Linux ARM64
+
+- Improved compatibility for ARM64 Linux packages.
