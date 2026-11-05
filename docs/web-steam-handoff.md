@@ -67,10 +67,11 @@ in process arguments. `/run/muvm-host` identifies the guest and prevents recursi
 The signed inspector and game run with the worker in the guest process namespace;
 process ownership, attachment and cleanup checks remain required.
 
-Inside muvm, start the existing x86 Steam client's `steam.sh` from
+Inside muvm, run the existing x86 Steam client's `steam.sh` through `FEXBash` from
 `~/.steam/steam` or `~/.local/share/Steam`. This avoids accidentally using a host
 `steam` wrapper that selects a different native ARM installation. Sign in to that
 Steam client and allow its runtime setup to finish before joining a match.
+Using the ARM shell for this script can incorrectly report missing x86 `libc.so.6`.
 
 This routing applies to web match links. The desktop inherited-pipe session
 protocol and Windows/Proton launches are separate paths. Automatic routing does

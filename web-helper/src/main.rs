@@ -800,7 +800,7 @@ fn start_steam_client() -> Result<(), String> {
             .any(|entry|entry.file_name().to_string_lossy().bytes().all(|c|c.is_ascii_digit()) &&
                 fs::read_to_string(entry.path().join("comm")).is_ok_and(|name|name.trim()=="steam"));
         if !running {
-            Command::new(linux_emulation::steam_command()?).arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
+            linux_emulation::steam_command()?.arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
                 .spawn().map_err(|_|"Start Steam and sign in before launching Counter-Strike")?;
         }
     }
