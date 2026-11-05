@@ -33,7 +33,7 @@
     "marketing:lobby": "electron-vite dev --mode marketing",
     "marketing:lobby-artwork": "vite --config scripts/lobby-artwork.vite.config.ts",
     "sticker:editor": "node scripts/start-sticker-editor.mjs",
-    "test:stickers": "node --experimental-strip-types --test scripts/sticker-model.test.mjs",
+    "test:stickers": "node --experimental-strip-types --test scripts/sticker-model.test.mjs scripts/sticker-artifact-cache.test.mjs",
     "overlay:probe": "node scripts/start-cosmetic-overlay-probe.cjs",
     "ally-tags:probe": "node scripts/start-cosmetic-overlay-probe.cjs ally-tags",
     "scoreboard:probe": "node scripts/start-cosmetic-overlay-probe.cjs scoreboard",
@@ -58,7 +58,7 @@
     "predev": "npm run build:helper && npm run build:scoreboard",
     "prebuild": "npm run build:scoreboard",
     "test:partner-ui:runtime": "node --test scripts/partner-html-runtime.test.mjs",
-    "test:stickers:runtime": "node --test scripts/sticker-viewport-runtime.test.mjs scripts/loadout-sticker-preview-runtime.test.mjs",
+    "test:stickers:runtime": "node --test scripts/sticker-viewport-runtime.test.mjs scripts/loadout-sticker-preview-runtime.test.mjs scripts/muzzle-preview-runtime.test.mjs",
     "test:reports:runtime": "npm run build:web && node --test scripts/issue-report-runtime.test.mjs"
   },
   "dependencies": {

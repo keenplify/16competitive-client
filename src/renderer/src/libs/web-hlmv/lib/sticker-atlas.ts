@@ -19,6 +19,14 @@ export type AtlasFace = {
   tile: [number, number, number, number]
 }
 export type StickerAtlas = { model: Uint8Array; faces: AtlasFace[]; extent: number }
+import {
+  STICKER_TEXTURE_SCALE,
+  STICKER_TEXTURE_BYTE_LIMIT
+} from '../../../../../shared/sticker-rendering'
+export {
+  STICKER_TEXTURE_SCALE,
+  STICKER_TEXTURE_BYTE_LIMIT
+} from '../../../../../shared/sticker-rendering'
 const PAGE = 512,
   PAD = 2
 const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
@@ -504,8 +512,11 @@ export function bakeProjectedSticker(
 /** Composite in application order, then quantize each texture exactly once. */
 function projectedStickerLayers(
   atlas: StickerAtlas,
-  placements: readonly { sticker: StickerPixels; projection: Projection }[]
+  placements: readonly { sticker: StickerPixels; projection: Projection }[],
+  resolutionScale = 1
 ): Map<number, Uint8Array> {
+  if (resolutionScale !== 1 && resolutionScale !== STICKER_TEXTURE_SCALE) throw new Error('image')
+  const pageSize = PAGE * resolutionScale
   if (placements.length > 5) throw new Error('placement')
   const overlays = new Map<number, Uint8Array>()
   for (const { sticker, projection } of placements) {
@@ -551,27 +562,63 @@ function projectedStickerLayers(
       )
         continue
       const [tx, ty, tw, th] = face.tile
-      for (let y = ty; y < ty + th; y++)
-        for (let x = tx; x < tx + tw; x++) {
-          const u = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / den
-          const v = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / den,
+      // Invert the affine projection to bound this decal in UV space. Small
+      // stickers must not scan every texel of large face tiles at 4x resolution.
+      const [pa, pb, pc] = projected
+      const determinant = (pb[1] - pc[1]) * (pa[0] - pc[0]) + (pc[0] - pb[0]) * (pa[1] - pc[1])
+      if (Math.abs(determinant) < 1e-12) continue
+      const corners = [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [-0.5, 0.5],
+        [0.5, 0.5]
+      ].map(([px, py]) => {
+        const u = ((pb[1] - pc[1]) * (px - pc[0]) + (pc[0] - pb[0]) * (py - pc[1])) / determinant
+        const v = ((pc[1] - pa[1]) * (px - pc[0]) + (pa[0] - pc[0]) * (py - pc[1])) / determinant
+        return [a[0] * u + b[0] * v + c[0] * (1 - u - v), a[1] * u + b[1] * v + c[1] * (1 - u - v)]
+      })
+      const left = Math.max(
+        tx * resolutionScale,
+        Math.floor(Math.min(...corners.map((p) => p[0])) * resolutionScale) - 1
+      )
+      const right = Math.min(
+        (tx + tw) * resolutionScale,
+        Math.ceil(Math.max(...corners.map((p) => p[0])) * resolutionScale) + 1
+      )
+      const top = Math.max(
+        ty * resolutionScale,
+        Math.floor(Math.min(...corners.map((p) => p[1])) * resolutionScale) - 1
+      )
+      const bottom = Math.min(
+        (ty + th) * resolutionScale,
+        Math.ceil(Math.max(...corners.map((p) => p[1])) * resolutionScale) + 1
+      )
+      for (let y = top; y < bottom; y++)
+        for (let x = left; x < right; x++) {
+          const ax = x / resolutionScale,
+            ay = y / resolutionScale
+          const u = ((b[1] - c[1]) * (ax - c[0]) + (c[0] - b[0]) * (ay - c[1])) / den
+          const v = ((c[1] - a[1]) * (ax - c[0]) + (a[0] - c[0]) * (ay - c[1])) / den,
             w = 1 - u - v
-          // Scalar interpolation avoids allocating an array and callback per texel.
-          const px = coordinates[0][0] * u + coordinates[1][0] * v + coordinates[2][0] * w
-          const py = coordinates[0][1] * u + coordinates[1][1] * v + coordinates[2][1] * w
           const pz = coordinates[0][2] * u + coordinates[1][2] * v + coordinates[2][2] * w
           if (Math.abs(pz) > width * 0.7) continue
-          const sx = Math.floor(((px * cos + py * sin) / width + 0.5) * sticker.width)
-          const sy = Math.floor((0.5 - (-px * sin + py * cos) / height) * sticker.height)
+          const sx = Math.floor((pa[0] * u + pb[0] * v + pc[0] * w + 0.5) * sticker.width)
+          const sy = Math.floor((0.5 - pa[1] * u - pb[1] * v - pc[1] * w) * sticker.height)
           if (sx < 0 || sy < 0 || sx >= sticker.width || sy >= sticker.height) continue
           const at = (sy * sticker.width + sx) * 4
           if (!sticker.rgba[at + 3]) continue
           let pixels = overlays.get(face.texture)
           if (!pixels) {
-            pixels = new Uint8Array(PAGE * PAGE * 4)
+            // Bound the complete serialized sidecar before allocating another page.
+            if (
+              12 + (overlays.size + 1) * (12 + pageSize * pageSize * 4) >
+              STICKER_TEXTURE_BYTE_LIMIT
+            )
+              throw new Error('atlas-capacity')
+            pixels = new Uint8Array(pageSize * pageSize * 4)
             overlays.set(face.texture, pixels)
           }
-          const destination = (y * PAGE + x) * 4
+          const destination = (y * pageSize + x) * 4
           const alpha = sticker.rgba[at + 3] / 255
           const previousAlpha = pixels[destination + 3] / 255
           const combined = alpha + previousAlpha * (1 - alpha)
@@ -598,21 +645,35 @@ export type FullColorStickerTexture = {
 /** Keep original sticker colors; composite onto opaque weapon pixels without quantization. */
 export function fullColorStickerTextures(
   atlas: StickerAtlas,
-  placements: readonly { sticker: StickerPixels; projection: Projection }[]
+  placements: readonly { sticker: StickerPixels; projection: Projection }[],
+  resolutionScale = 1
 ): FullColorStickerTexture[] {
   const textures = modelTextures(atlas.model)
-  return [...projectedStickerLayers(atlas, placements)].map(([texture, overlay]) => {
-    const base = texturePixels(atlas.model, textures[texture])
-    for (let i = 0; i < base.length; i += 4) {
-      const alpha = overlay[i + 3] / 255
-      for (let channel = 0; channel < 3; channel++)
-        base[i + channel] = Math.round(
-          overlay[i + channel] * alpha + base[i + channel] * (1 - alpha)
-        )
-      base[i + 3] = 255
+  return [...projectedStickerLayers(atlas, placements, resolutionScale)].map(
+    ([texture, overlay]) => {
+      const source = texturePixels(atlas.model, textures[texture])
+      const width = textures[texture].width * resolutionScale
+      const height = textures[texture].height * resolutionScale
+      // Composite in-place to keep the 4x export bounded; an extra full-size copy
+      // per layer would triple peak memory before serialization in QuickJS.
+      const base = new Uint8ClampedArray(overlay.buffer, overlay.byteOffset, overlay.byteLength)
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++) {
+          const at =
+            (Math.floor(y / resolutionScale) * textures[texture].width +
+              Math.floor(x / resolutionScale)) *
+            4
+          const i = (y * width + x) * 4
+          const alpha = overlay[i + 3] / 255
+          for (let channel = 0; channel < 3; channel++)
+            base[i + channel] = Math.round(
+              overlay[i + channel] * alpha + source[at + channel] * (1 - alpha)
+            )
+          base[i + 3] = 255
+        }
+      return { texture, width, height, rgba: base }
     }
-    return { texture, width: textures[texture].width, height: textures[texture].height, rgba: base }
-  })
+  )
 }
 
 export function bakeProjectedStickers(

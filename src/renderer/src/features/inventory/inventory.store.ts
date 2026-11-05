@@ -19,6 +19,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useStickerEditor } from '../sticker-editor/sticker-editor.store'
 import {
   bakeProjectedStickers,
+  STICKER_TEXTURE_SCALE,
   fullColorStickerTextures,
   fullColorPreviewTextures,
   prepareStickerAtlas
@@ -393,6 +394,7 @@ useAuthStore.subscribe((state, previous) => {
   if (state.session?.player.id === previous.session?.player.id) return
   generation++
   imageCache.clear()
+  previewCache.clear()
   purchaseIntents.clear()
   useInventoryStore.setState({
     notice: null,
@@ -418,6 +420,19 @@ useAuthStore.subscribe((state, previous) => {
   })
 })
 
+// Small LRU: computed previews belong to source hash + exact saved placements.
+// Keeping the RGBA WeakMap keyed by each returned buffer shares GPU upload pixels.
+const previewCache = new Map<string, { promise: Promise<ArrayBuffer>; bytes: number }>()
+const PREVIEW_CACHE_BUDGET = 96 * 1024 * 1024
+function trimPreviewCache(): void {
+  let bytes = [...previewCache.values()].reduce((sum, item) => sum + item.bytes, 0)
+  while (previewCache.size > 2 || (bytes > PREVIEW_CACHE_BUDGET && previewCache.size > 1)) {
+    const key = previewCache.keys().next().value!
+    bytes -= previewCache.get(key)!.bytes
+    previewCache.delete(key)
+  }
+}
+
 /** Display-only preview; authoritative ownership and application remain on the backend. */
 export async function previewAppliedStickers(
   bytes: ArrayBuffer,
@@ -440,16 +455,35 @@ export async function previewAppliedStickers(
     !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
   )
     throw new Error('MODEL_UNSUPPORTED')
-  const atlas = prepareStickerAtlas(new Uint8Array(bytes), weaponKey.startsWith('skin:'))
-  const layers = await Promise.all(
-    applied.map(async (item) => ({
-      sticker: (await imageData(item.imagePath)).pixels,
-      projection: item.projection!
-    }))
-  )
-  const output = bakeProjectedStickers(atlas, layers).slice().buffer as ArrayBuffer
-  fullColorPreviewTextures.set(output, fullColorStickerTextures(atlas, layers))
-  return output
+  const cacheKey = JSON.stringify([STICKER_TEXTURE_SCALE, hash, weaponKey, applied])
+  const cached = previewCache.get(cacheKey)
+  if (cached) {
+    previewCache.delete(cacheKey)
+    previewCache.set(cacheKey, cached)
+    return cached.promise
+  }
+  const entry = { promise: Promise.resolve(bytes), bytes: 0 }
+  entry.promise = (async () => {
+    const atlas = prepareStickerAtlas(new Uint8Array(bytes), weaponKey.startsWith('skin:'))
+    const layers = await Promise.all(
+      applied.map(async (item) => ({
+        sticker: (await imageData(item.imagePath)).pixels,
+        projection: item.projection!
+      }))
+    )
+    const output = bakeProjectedStickers(atlas, layers).slice().buffer as ArrayBuffer
+    const textures = fullColorStickerTextures(atlas, layers, STICKER_TEXTURE_SCALE)
+    fullColorPreviewTextures.set(output, textures)
+    entry.bytes = output.byteLength + textures.reduce((sum, item) => sum + item.rgba.byteLength, 0)
+    trimPreviewCache()
+    return output
+  })()
+  previewCache.set(cacheKey, entry)
+  trimPreviewCache()
+  void entry.promise.catch(() => {
+    if (previewCache.get(cacheKey) === entry) previewCache.delete(cacheKey)
+  })
+  return entry.promise
 }
 
 /** Share immutable sticker artwork between inventory and operation reward previews. */

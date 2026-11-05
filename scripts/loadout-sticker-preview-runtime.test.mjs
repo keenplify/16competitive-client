@@ -65,7 +65,7 @@ window.mount=async(bytes)=>{
  const canvas=document.createElement('canvas');canvas.width=canvas.height=8
  const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,8,8)
  const png=await (await fetch(canvas.toDataURL())).arrayBuffer()
- window.api={models:{read:async()=>original.slice().buffer},skins:{stickerImage:async()=>png}}
+ window.api={models:{read:async()=>original.slice().buffer},skins:{stickerImage:async()=>png,previewExplosionSprite:async()=>null,previewActionSound:async()=>null}}
  const atlas=prepareStickerAtlas(original)
  const face=atlas.faces.find(f=>{
   const a=f.points[0],b=f.points[1],c=f.points[2]
@@ -137,7 +137,7 @@ window.mount=async(bytes)=>{
 const {app,BrowserWindow}=require('electron'),{readFileSync,writeFileSync}=require('fs'),assert=require('assert/strict')
 app.commandLine.appendSwitch('enable-unsafe-swiftshader')
 app.whenReady().then(async()=>{
- const w=new BrowserWindow({show:false,width:1000,height:700,webPreferences:{backgroundThrottling:false,sandbox:true,contextIsolation:true,nodeIntegration:false}})
+ const w=new BrowserWindow({show:true,width:1000,height:700,webPreferences:{backgroundThrottling:false,sandbox:true,contextIsolation:true,nodeIntegration:false}})
  const errors=[]
  setTimeout(()=>{console.error('Preview runtime timed out');app.exit(1)},45000)
  w.webContents.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message)})
@@ -147,7 +147,7 @@ app.whenReady().then(async()=>{
  await new Promise(r=>setTimeout(r,4500))
  const result=await w.webContents.executeJavaScript('result')
  assert.ok(result.bakedSize>result.originalSize);assert.ok(result.sourceUnchanged);assert.ok(result.otherUnchanged)
- assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("canvas").length'),1)
+ assert.equal(await w.webContents.executeJavaScript('document.querySelectorAll("canvas").length'),2,JSON.stringify({errors,body:await w.webContents.executeJavaScript('document.body.innerText')}))
  assert.deepEqual(errors,[])
  assert.equal(await w.webContents.executeJavaScript('document.querySelector("[data-preview-action]").dataset.previewAction'), 'idle')
  const capture=await w.webContents.capturePage()

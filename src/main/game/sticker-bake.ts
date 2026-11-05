@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import type { StickerPixels } from '../../shared/sticker-model'
 import { parseStickerRecipes, type StickerRecipe } from '../../shared/sticker-recipes'
 import {
+  STICKER_TEXTURE_SCALE,
   bakeProjectedStickers,
   fullColorStickerTextures,
   prepareStickerAtlas,
@@ -54,7 +55,7 @@ export async function bakeStickerRecipe(
     !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === recipe.sourceSha256)
   )
   const bytes = bakeProjectedStickers(atlas, placements)
-  const textures = fullColorStickerTextures(atlas, placements)
+  const textures = fullColorStickerTextures(atlas, placements, STICKER_TEXTURE_SCALE)
   const textureBytes = new Uint8Array(12 + textures.reduce((sum, t) => sum + 12 + t.rgba.length, 0))
   textureBytes.set(new TextEncoder().encode('16CRGBA1'))
   const view = new DataView(textureBytes.buffer)

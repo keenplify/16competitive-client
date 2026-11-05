@@ -68,7 +68,11 @@ export function texturePixels(bytes: Uint8Array, texture: StickerTexture): Uint8
     palette = offset + width * height
   for (let i = 0; i < width * height; i++) {
     const p = palette + bytes[offset + i] * 3
-    pixels.set([bytes[p], bytes[p + 1], bytes[p + 2], 255], i * 4)
+    const at = i * 4
+    pixels[at] = bytes[p]
+    pixels[at + 1] = bytes[p + 1]
+    pixels[at + 2] = bytes[p + 2]
+    pixels[at + 3] = 255
   }
   return pixels
 }

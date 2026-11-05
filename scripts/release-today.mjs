@@ -52,10 +52,11 @@ try {
   }
   git('fetch', '--tags', '--quiet', 'origin')
 
+  // Version dates follow the build host calendar (or an explicit TZ override).
   const now = new Date()
-  const year = now.getUTCFullYear()
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(now.getUTCDate()).padStart(2, '0')
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
   const dateCode = Number(`${month}${day}`)
   const versionPrefix = `${year}.${dateCode}`
   const existingTags = git('tag', '--list', `v${versionPrefix}.*`).split('\n')

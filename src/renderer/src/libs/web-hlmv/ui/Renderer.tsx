@@ -355,12 +355,28 @@ export const Renderer = (props: Props): React.JSX.Element => {
     }
   }, [modelData, props.modelBuffer])
 
+  // GPU image dimensions may exceed the MDL's UV coordinate dimensions.
+  const textureDimensions = React.useMemo(
+    () =>
+      modelData.textures.map(
+        (texture, index) =>
+          fullColorPreviewTextures.get(props.modelBuffer)?.find((item) => item.texture === index) ??
+          texture
+      ),
+    [modelData, props.modelBuffer]
+  )
+
   // Generation meshes
   const meshes = React.useMemo(() => {
     const startedAt = performance.now()
     console.info('[HLMV] Creating model meshes')
     try {
-      const createdMeshes = createModelMeshes(meshesRenderData, modelData, textures)
+      const createdMeshes = createModelMeshes(
+        meshesRenderData,
+        modelData,
+        textures,
+        textureDimensions
+      )
       console.info('[HLMV] Model meshes created', {
         milliseconds: Math.round(performance.now() - startedAt)
       })
@@ -372,7 +388,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
       })
       throw error
     }
-  }, [meshesRenderData, modelData, textures])
+  }, [meshesRenderData, modelData, textures, textureDimensions])
 
   // Creating model controller
   const controller: ModelController = React.useMemo(() => {
@@ -445,7 +461,11 @@ export const Renderer = (props: Props): React.JSX.Element => {
           } else if ((textureInfo?.flags & NF_CHROME) !== 0) geometry.computeVertexNormals()
 
           if (textureData && textureInfo) {
-            material.map = createTexture(textureData, textureInfo.width, textureInfo.height)
+            material.map = createTexture(
+              textureData,
+              textureDimensions[textureIndex].width,
+              textureDimensions[textureIndex].height
+            )
           }
 
           const fallbackMesh = new THREE.Mesh(geometry, material)
@@ -618,7 +638,8 @@ export const Renderer = (props: Props): React.JSX.Element => {
     props.attachedModelHandOffset,
     props.attachedModelHandRotation,
     props.attachedModelRotation,
-    textures
+    textures,
+    textureDimensions
   ])
 
   const fallbackAnimationTime = React.useRef(0)
@@ -745,10 +766,23 @@ export const Renderer = (props: Props): React.JSX.Element => {
     const sequence = modelData.sequences[animationIndex]
     if (!props.onMuzzlePosition || !attachment || !sequence) return []
     return Array.from({ length: sequence.numFrames }, (_, frame) => {
-      const bone = calcRotations(modelData, animationIndex, frame)[attachment.bone]
-      return bone ? new THREE.Vector3(...attachment.org).applyMatrix4(new THREE.Matrix4().fromArray(Array.from(bone))) : null
+      const bone = applyRootBoneRotation(
+        calcRotations(modelData, animationIndex, frame, 0, props.firstPerson),
+        props.modelRootBoneRotation
+      )[attachment.bone]
+      return bone
+        ? new THREE.Vector3(...attachment.org).applyMatrix4(
+            new THREE.Matrix4().fromArray(Array.from(bone))
+          )
+        : null
     })
-  }, [modelData, animationIndex, Boolean(props.onMuzzlePosition)])
+  }, [
+    modelData,
+    animationIndex,
+    Boolean(props.onMuzzlePosition),
+    props.firstPerson,
+    props.modelRootBoneRotation
+  ])
 
   // Updating animation frame
   useAnimationFrame(() => {
@@ -820,11 +854,17 @@ export const Renderer = (props: Props): React.JSX.Element => {
       if (props.onMuzzlePosition) {
         const sequence = modelData.sequences[animationIndex]
         const frame = sequence ? Math.floor(fallbackAnimationTime.current * sequence.fps) : 0
-        const index = props.playOnce ? Math.min(frame, muzzleFrames.length - 1) : frame % muzzleFrames.length
+        const index = props.playOnce
+          ? Math.min(frame, muzzleFrames.length - 1)
+          : frame % muzzleFrames.length
         const position = muzzleFrames[index]?.clone()
         if (position) {
           position.applyMatrix4(fallbackContainer.matrixWorld).project(camera)
-          props.onMuzzlePosition((position.x + 1) / 2, (1 - position.y) / 2, position.z >= -1 && position.z <= 1)
+          props.onMuzzlePosition(
+            (position.x + 1) / 2,
+            (1 - position.y) / 2,
+            position.z >= -1 && position.z <= 1
+          )
         } else props.onMuzzlePosition(0, 0, false)
       }
 

@@ -86,6 +86,24 @@ The game copy omits the launcher-managed model-cache link; Steam's fixed sibling
 SDL alias is copied as a regular file. Other symlinks remain rejected. Private
 test sessions remain available for diagnostics; they are not normal installations.
 
+## Saved 4× textures and cache reuse
+
+Managed exports keep the compatibility MDL's 512×512 UV pages and save matching
+2048×2048 full-color RGBA textures alongside it. Sticker artwork is projected at
+that resolution, rather than scaling an already rasterized decal. The signed
+native module uses normalized UVs and substitutes the verified 2048px GL images
+only for the authorized draw. Older or unsupported helpers retain indexed models.
+Only affected texture pages are generated; allocation and session budgets remain
+bounded. A coordinated helper update is required for the higher resolution.
+
+Desktop and browser helpers persist an exporter-versioned recipe index after
+atomically saving the content-addressed MDL and RGBA files. Fresh authenticated
+recipes and source hashes remain required on every match. A valid disk cache skips
+artwork decoding and baking; missing, changed, or obsolete outputs are rebuilt.
+The renderer also shares bounded computed preview buffers between repeated views.
+Dragging deliberately recomputes the changed placement once per frame at the live
+preview resolution; it does not run the saved-texture exporter.
+
 ## Scope and validation
 
 The standalone development editor affects only the local first-person AK-47.

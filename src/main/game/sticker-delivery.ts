@@ -1,16 +1,15 @@
+import { cachedStickerArtifact } from './sticker-artifact-cache'
 import { cachedStickerImage } from './sticker-image-cache'
 import { sharedModelDirectory } from './shared-skin-storage'
 import { toWinePath } from './goldsrc-client-capabilities'
 import { app, nativeImage } from 'electron'
 import { Worker } from 'node:worker_threads'
-import { createHash, randomUUID } from 'node:crypto'
-import { lstat, mkdir, open, realpath, writeFile, rename, link, rm } from 'node:fs/promises'
+import { lstat, mkdir, open, realpath, writeFile, rename } from 'node:fs/promises'
 import { join, relative, isAbsolute, resolve } from 'node:path'
 import { parseStickerRecipes, type StickerRecipe } from '../../shared/sticker-recipes'
 import type { StickerArtifact } from './sticker-bake'
 import type { StickerPixels } from '../../shared/sticker-model'
 
-const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 async function boundedResponse(response: Response, limit: number): Promise<Uint8Array> {
   if (!response.ok || Number(response.headers.get('content-length')) > limit || !response.body)
     throw new Error('Sticker download failed')
@@ -168,45 +167,20 @@ export async function stageMatchStickers(options: {
           )
       if (outsideRoot && !sharedSource) throw new Error('Invalid sticker source path')
       const source = await boundedFile(sourcePath, 16 * 1024 * 1024)
-      const images: { path: string; bytes: Uint8Array; pixels: StickerPixels }[] = []
-      for (const item of recipe.stickers) {
-        let image = imageCache.get(item.imagePath)
-        if (!image) {
-          const bytes = await cachedStickerImage(item.imagePath, apiUrl)
-          image = { path: item.imagePath, bytes, pixels: pixels(bytes) }
-          imageCache.set(item.imagePath, image)
+      const artifact = await cachedStickerArtifact(directory, recipe, source, async () => {
+        const images: { path: string; bytes: Uint8Array; pixels: StickerPixels }[] = []
+        for (const item of recipe.stickers) {
+          let image = imageCache.get(item.imagePath)
+          if (!image) {
+            const bytes = await cachedStickerImage(item.imagePath, apiUrl)
+            image = { path: item.imagePath, bytes, pixels: pixels(bytes) }
+            imageCache.set(item.imagePath, image)
+          }
+          images.push(image)
         }
-        images.push(image)
-      }
-      const artifact = await bake(recipe, source, images)
-      const output = join(directory, `${artifact.sha256.slice(0, 32)}.mdl`)
-      const temporary = join(directory, `.${randomUUID()}.tmp`)
-      try {
-        await writeFile(temporary, artifact.bytes, { flag: 'wx', mode: 0o600 })
-        await link(temporary, output).catch((error) => {
-          if (error.code !== 'EEXIST') throw error
-        })
-        if (hash(await boundedFile(output, 16 * 1024 * 1024)) !== artifact.sha256)
-          throw new Error('Sticker cache hash mismatch')
-      } finally {
-        await rm(temporary, { force: true })
-      }
-      // Optional sidecar: older approved helpers continue using the palette model.
-      const textureOutput = join(directory, `${artifact.textureSha256.slice(0, 32)}.rgba`)
-      const textureTemporary = join(directory, `.${randomUUID()}.tmp`)
-      try {
-        await writeFile(textureTemporary, artifact.textureBytes, { flag: 'wx', mode: 0o600 })
-        await link(textureTemporary, textureOutput).catch((error) => {
-          if (error.code !== 'EEXIST') throw error
-        })
-        if (hash(await boundedFile(textureOutput, 32 * 1024 * 1024)) !== artifact.textureSha256)
-          throw new Error('Sticker texture cache hash mismatch')
-        textureRows.push(`${recipe.id}\t${artifact.sha256}\t${artifact.textureSha256}`)
-      } catch (error) {
-        console.warn('[Stickers] full-color texture unavailable; using palette model', error)
-      } finally {
-        await rm(textureTemporary, { force: true })
-      }
+        return bake(recipe, source, images)
+      })
+      textureRows.push(`${recipe.id}\t${artifact.sha256}\t${artifact.textureSha256}`)
       rows.push(`${recipe.id}\t${artifact.sha256}\t${recipe.sourcePath}\t${recipe.sourceSha256}`)
     } catch (error) {
       console.warn('[Stickers] recipe unavailable; using ordinary model', {

@@ -317,10 +317,31 @@ test('multiple transparent stickers composite in order before palette conversion
   const rich = fullColorStickerTextures(atlas, [
     { sticker: { width: 64, height: 64, rgba: gradient }, projection }
   ])[0].rgba
+  // A small decal has fewer atlas texels than its source artwork at 1x.
+  const fineProjection = { ...projection, size: 0.08 }
+  const fine = fullColorStickerTextures(atlas, [
+    { sticker: { width: 64, height: 64, rgba: gradient }, projection: fineProjection }
+  ])[0]
+  const high = fullColorStickerTextures(
+    atlas,
+    [{ sticker: { width: 64, height: 64, rgba: gradient }, projection: fineProjection }],
+    4
+  )[0]
+  assert.deepEqual([high.width, high.height, high.rgba.length], [2048, 2048, 2048 * 2048 * 4])
+  const highColors = new Set()
+  for (let at = 0; at < high.rgba.length; at += 4)
+    highColors.add(`${high.rgba[at]},${high.rgba[at + 1]},${high.rgba[at + 2]}`)
   const colors = new Set()
   for (let at = 0; at < rich.length; at += 4)
     colors.add(`${rich[at]},${rich[at + 1]},${rich[at + 2]}`)
   assert.ok(colors.size > 256, 'RGBA output is not reduced to a model palette')
+  const fineColors = new Set()
+  for (let at = 0; at < fine.rgba.length; at += 4)
+    fineColors.add(`${fine.rgba[at]},${fine.rgba[at + 1]},${fine.rgba[at + 2]}`)
+  assert.ok(
+    highColors.size > fineColors.size,
+    '4x output reprojects artwork at higher resolution instead of enlarging low-res texels'
+  )
   const output = bakeProjectedStickers(atlas, [
     { sticker: red, projection },
     { sticker: blue, projection }
@@ -384,6 +405,23 @@ test(
     const imageBytes = new Uint8Array([1, 2, 3])
     const imageHash = createHash('sha256').update(imageBytes).digest('hex')
     const source = new Uint8Array(await readFile(process.env.STICKER_TEST_MODEL))
+    const atlas = prepareStickerAtlas(source)
+    const sub = (a, b) => a.map((v, i) => v - b[i])
+    const cross = (a, b) => [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0]
+    ]
+    const unit = (a) => a.map((v) => v / Math.hypot(...a))
+    const face = atlas.faces.reduce((best, f) =>
+      Math.hypot(...cross(sub(f.points[1], f.points[0]), sub(f.points[2], f.points[0]))) >
+      Math.hypot(...cross(sub(best.points[1], best.points[0]), sub(best.points[2], best.points[0])))
+        ? f
+        : best
+    )
+    const [a, b, c] = face.points
+    const right = unit(sub(b, a)),
+      normal = unit(cross(sub(b, a), sub(c, a)))
     const content = {
       version: 1,
       sourcePath: 'models/v_ak47.mdl',
@@ -392,10 +430,10 @@ test(
         {
           imagePath: `media/16competitive/stickers/${imageHash}/image.png`,
           projection: {
-            center: [0, 0, 0],
-            right: [1, 0, 0],
-            up: [0, 1, 0],
-            normal: [0, 0, 1],
+            center: a.map((v, i) => (v + b[i] + c[i]) / 3),
+            right,
+            up: unit(cross(normal, right)),
+            normal,
             size: 0.2,
             angle: 0
           }
@@ -418,6 +456,13 @@ test(
       createHash('sha256').update(artifact.textureBytes).digest('hex')
     )
     assert.equal(Buffer.from(artifact.textureBytes.subarray(0, 8)).toString(), '16CRGBA1')
+    const savedView = new DataView(artifact.textureBytes.buffer)
+    assert.ok(savedView.getUint32(8, true) > 0, 'saved artifact contains painted textures')
+    for (let i = 0, at = 12; i < savedView.getUint32(8, true); i++) {
+      assert.equal(savedView.getUint32(at + 4, true), 2048)
+      assert.equal(savedView.getUint32(at + 8, true), 2048)
+      at += 12 + 2048 * 2048 * 4
+    }
     assert.equal(artifact.sha256, createHash('sha256').update(artifact.bytes).digest('hex'))
     assert.doesNotThrow(() => validateStudioTextureLayout(artifact.bytes))
     await assert.rejects(

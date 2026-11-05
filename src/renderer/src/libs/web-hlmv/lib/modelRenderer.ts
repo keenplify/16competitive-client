@@ -439,13 +439,14 @@ export const createMesh = (
 export const createModelMeshes = (
   meshesRenderData: MeshRenderData[][][],
   modelData: ModelData,
-  textureBuffers: Uint8ClampedArray[]
+  textureBuffers: Uint8ClampedArray[],
+  textureDimensions: readonly { width: number; height: number }[] = modelData.textures
 ): THREE.Mesh[][][] => {
   const textures: THREE.Texture[] = textureBuffers.map((textureBuffer, textureIndex) => {
     return createTexture(
       textureBuffer,
-      modelData.textures[textureIndex].width,
-      modelData.textures[textureIndex].height
+      textureDimensions[textureIndex].width,
+      textureDimensions[textureIndex].height
     )
   })
 

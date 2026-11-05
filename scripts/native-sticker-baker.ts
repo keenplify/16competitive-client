@@ -2,6 +2,7 @@
 import { parseStickerRecipes } from '../src/shared/sticker-recipes'
 import { STOCK_STICKER_MODELS } from '../src/shared/stock-sticker-models'
 import {
+  STICKER_TEXTURE_SCALE,
   bakeProjectedStickers,
   fullColorStickerTextures,
   prepareStickerAtlas,
@@ -61,7 +62,7 @@ export function bake(
     !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === recipe.sourceSha256)
   )
   const model = bakeProjectedStickers(atlas, placements)
-  const textures = fullColorStickerTextures(atlas, placements)
+  const textures = fullColorStickerTextures(atlas, placements, STICKER_TEXTURE_SCALE)
   const bytes = new Uint8Array(12 + textures.reduce((sum, t) => sum + 12 + t.rgba.length, 0))
   bytes.set([49, 54, 67, 82, 71, 66, 65, 49])
   const view = new DataView(bytes.buffer)

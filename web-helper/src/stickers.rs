@@ -11,7 +11,7 @@ use std::{
 
 const SCRIPT: &str = include_str!("../assets/sticker-baker.js");
 const MODEL_LIMIT: usize = 16 * 1024 * 1024;
-const TEXTURE_LIMIT: usize = 32 * 1024 * 1024;
+const TEXTURE_LIMIT: usize = 512 * 1024 * 1024 + 12 + 32 * 12;
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -38,9 +38,9 @@ struct Pixels {
 
 fn engine() -> Result<(Runtime, Context), String> {
     let runtime = Runtime::new().map_err(|_| "Sticker engine unavailable")?;
-    runtime.set_memory_limit(256 * 1024 * 1024);
+    runtime.set_memory_limit(1536 * 1024 * 1024);
     runtime.set_max_stack_size(1024 * 1024);
-    let deadline = Instant::now() + Duration::from_secs(30);
+    let deadline = Instant::now() + Duration::from_secs(90);
     runtime.set_interrupt_handler(Some(Box::new(move || Instant::now() >= deadline)));
     let context = Context::full(&runtime).map_err(|_| "Sticker engine unavailable")?;
     context
@@ -192,10 +192,9 @@ fn immutable(root: &Path, bytes: &[u8], extension: &str) -> Result<String, Strin
     // Reconnects reuse immutable verified bytes. Some Wine/filesystem pairs
     // report access denied (not AlreadyExists) for hard-linking over a cache hit.
     if path.exists() {
-        if hash(&read(&path, TEXTURE_LIMIT)?) != digest {
-            return Err("Sticker cache hash mismatch".into());
-        }
-        return Ok(digest);
+        if read(&path,TEXTURE_LIMIT).is_ok_and(|bytes| hash(&bytes)==digest) { return Ok(digest); }
+        // This content-addressed launcher cache is corrupt; leave the original game files alone.
+        fs::remove_file(&path).map_err(|_|"Sticker cache repair failed")?;
     }
     let temporary = path.with_file_name(format!(".{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
@@ -224,6 +223,27 @@ fn immutable(root: &Path, bytes: &[u8], extension: &str) -> Result<String, Strin
     })();
     let _ = fs::remove_file(temporary);
     result
+}
+
+#[derive(serde::Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CachedRecipe { recipe_id: String, exporter: String, model_hash: String, texture_hash: String }
+fn cache_index(root: &Path, recipe: &Recipe) -> Result<std::path::PathBuf, String> {
+    crate::assets::game_destination(root, &format!("models/16competitive/st/recipe-{}-{}.json", recipe.id, &hash(SCRIPT.as_bytes())[..16]))
+}
+fn cached_recipe(root: &Path, recipe: &Recipe) -> Option<(String,String)> {
+    let saved: CachedRecipe = serde_json::from_slice(&read(&cache_index(root,recipe).ok()?,2048).ok()?).ok()?;
+    let valid_hash = |h: &str| h.len()==64 && h.bytes().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c));
+    if saved.recipe_id != recipe.id || saved.exporter != hash(SCRIPT.as_bytes()) || !valid_hash(&saved.model_hash) || !valid_hash(&saved.texture_hash) { return None; }
+    for (digest,extension,limit) in [(&saved.model_hash,"mdl",MODEL_LIMIT),(&saved.texture_hash,"rgba",TEXTURE_LIMIT)] {
+        let path=crate::assets::game_destination(root,&format!("models/16competitive/st/{}.{}",&digest[..32],extension)).ok()?;
+        if hash(&read(&path,limit).ok()?) != *digest { return None; }
+    }
+    Some((saved.model_hash,saved.texture_hash))
+}
+fn save_recipe(root: &Path,recipe: &Recipe,model_hash: &str,texture_hash: &str) -> Result<(),String> {
+    let saved=CachedRecipe {recipe_id:recipe.id.clone(),exporter:hash(SCRIPT.as_bytes()),model_hash:model_hash.into(),texture_hash:texture_hash.into()};
+    crate::native_session::owned_write(&cache_index(root,recipe)?, &serde_json::to_vec(&saved).map_err(|_|"Sticker cache metadata failed")?)
 }
 
 pub fn prepare(
@@ -262,22 +282,21 @@ pub fn prepare(
         if hash(&source) != recipe.source_sha256 {
             return Err("Sticker source hash mismatch".into());
         }
-        let mut images = Vec::new();
-        for artwork in &recipe.stickers {
-            let bytes = crate::assets::request(
-                &agent,
-                &format!("{api}/fastdl/{}", artwork.image_path),
-                token,
-                2_000_000,
-            )?;
-            if Some(hash(&bytes).as_str()) != artwork.image_path.split('/').nth(3) {
-                return Err("Sticker artwork hash mismatch".into());
+        let (model_hash,texture_hash) = if let Some(saved) = cached_recipe(root,&recipe) {
+            saved
+        } else {
+            let mut images = Vec::new();
+            for artwork in &recipe.stickers {
+                let bytes = crate::assets::request(&agent,&format!("{api}/fastdl/{}",artwork.image_path),token,2_000_000)?;
+                if Some(hash(&bytes).as_str()) != artwork.image_path.split('/').nth(3) { return Err("Sticker artwork hash mismatch".into()); }
+                images.push(pixels(&bytes)?);
             }
-            images.push(pixels(&bytes)?);
-        }
-        let (model, textures) = bake(&recipe, source, images)?;
-        let model_hash = immutable(root, &model, "mdl")?;
-        let texture_hash = immutable(root, &textures, "rgba")?;
+            let (model,textures)=bake(&recipe,source,images)?;
+            let model_hash=immutable(root,&model,"mdl")?;
+            let texture_hash=immutable(root,&textures,"rgba")?;
+            save_recipe(root,&recipe,&model_hash,&texture_hash)?;
+            (model_hash,texture_hash)
+        };
         rows.push_str(&format!(
             "{}\t{model_hash}\t{}\t{}\n",
             recipe.id, recipe.source_path, recipe.source_sha256
@@ -311,8 +330,24 @@ mod tests {
         assert_eq!(immutable(&root,bytes,"mdl").unwrap(),first);
         assert_eq!(fs::metadata(&path).unwrap().modified().unwrap(),modified);
         fs::write(&path,b"modified").unwrap();
-        assert!(immutable(&root,bytes,"mdl").is_err());
-        assert_eq!(fs::read(&path).unwrap(),b"modified");
+        assert_eq!(immutable(&root,bytes,"mdl").unwrap(),hash(bytes));
+        assert_eq!(fs::read(&path).unwrap(),bytes);
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn saved_recipe_skips_rebaking_and_invalidates_modified_artifacts() {
+        let root=std::env::temp_dir().join(format!("16c-sticker-recipe-{}",uuid::Uuid::new_v4()));
+        let recipe=Recipe {id:"a".repeat(32),source_path:"models/v_ak47.mdl".into(),source_sha256:"b".repeat(64),canonical:String::new(),stickers:vec![]};
+        let model=immutable(&root,b"model pixels","mdl").unwrap();
+        let textures=immutable(&root,b"texture pixels","rgba").unwrap();
+        assert!(cached_recipe(&root,&recipe).is_none());
+        save_recipe(&root,&recipe,&model,&textures).unwrap();
+        assert_eq!(cached_recipe(&root,&recipe),Some((model.clone(),textures.clone())));
+        let file=crate::assets::game_destination(&root,&format!("models/16competitive/st/{}.rgba",&textures[..32])).unwrap();
+        fs::write(&file,b"modified").unwrap();
+        assert!(cached_recipe(&root,&recipe).is_none());
+        assert_eq!(immutable(&root,b"texture pixels","rgba").unwrap(),textures);
+        assert_eq!(cached_recipe(&root,&recipe),Some((model,textures)));
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
@@ -326,7 +361,7 @@ mod tests {
         let source =
             fs::read(std::env::var_os("STICKER_TEST_MODEL").expect("STICKER_TEST_MODEL")).unwrap();
         let content = format!(
-            r#"{{"version":1,"sourcePath":"models/v_ak47.mdl","sourceSha256":"{}","stickers":[{{"imagePath":"media/16competitive/stickers/{}/image.png","projection":{{"center":[0,0,0],"right":[1,0,0],"up":[0,1,0],"normal":[0,0,1],"size":0.2,"angle":0}}}}]}}"#,
+            r#"{{"version":1,"sourcePath":"models/v_ak47.mdl","sourceSha256":"{}","stickers":[{{"imagePath":"media/16competitive/stickers/{}/image.png","projection":{{"center":[20,-5,0],"right":[1,0,0],"up":[0,0,1],"normal":[0,-1,0],"size":0.2,"angle":0}}}}]}}"#,
             hash(&source),
             "a".repeat(64)
         );
@@ -343,6 +378,9 @@ mod tests {
         let (model, textures) = bake(&recipe, source.clone(), vec![image()]).unwrap();
         assert_eq!(&model[..4], b"IDST");
         assert_eq!(&textures[..8], b"16CRGBA1");
+        assert!(u32::from_le_bytes(textures[8..12].try_into().unwrap()) > 0);
+        assert_eq!(u32::from_le_bytes(textures[16..20].try_into().unwrap()), 2048);
+        assert_eq!(u32::from_le_bytes(textures[20..24].try_into().unwrap()), 2048);
         assert_ne!(model, source);
         let again = bake(&recipe, source, vec![image()]).unwrap();
         assert_eq!(model, again.0);

@@ -4352,3 +4352,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Reduce sticker placement drag overhead and reuse preview textures.
 - Render the sticker placement preview at 4× resolution.
 - Stabilize sticker projection across bevels and seams.
+
+## v2026.1106.5 — 2026-11-06
+
+- Save sticker artwork in 4× resolution for supported in-game renderers.
+- Reuse verified sticker textures across reconnects and repeated previews.
+- Keep muzzle flashes attached to animated gun barrels in first-person previews.
