@@ -4266,3 +4266,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Managed sessions now finish quietly.
 - Community music is preserved during partner navigation.
+
+## v2026.1105.3 — 2026-11-05
+
+### Matchmaking
+
+- Added ranked CS13 queues.
+- Added community PCash stakes and bet previews.
+- Improved match result and stake information.
+
+### Audio
+
+- Added partner audio defaults.
+
+### Usability
+
+- Fixed clipped tooltips and VGUI controls.
+- Improved retries after failed game launches.
