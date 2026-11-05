@@ -31,6 +31,7 @@ import {
 } from '../lib/screneRenderer'
 import { calcRotations } from '../lib/geometryTransformer'
 import THREE from '../lib/three'
+import { createMuzzleFlash, updateMuzzleFlash, type MuzzleFlashSource } from '../lib/muzzle-flash'
 
 export type WindowSize = {
   width: number
@@ -141,6 +142,7 @@ type Props = {
   cameraLocked?: boolean
   animation?: string | number | readonly string[]
   onMuzzlePosition?: (x: number, y: number, visible: boolean) => void
+  muzzleFlash?: MuzzleFlashSource
   firstPerson?: boolean
   animationSequences?: readonly number[]
   animationRestart?: number
@@ -761,10 +763,24 @@ export const Renderer = (props: Props): React.JSX.Element => {
     usesFixedSequenceFallback
   ])
 
+  const muzzleSprite = React.useMemo(
+    () => (props.muzzleFlash ? createMuzzleFlash(props.muzzleFlash) : null),
+    [props.muzzleFlash]
+  )
+  React.useEffect(() => {
+    if (!muzzleSprite) return
+    scene.add(muzzleSprite)
+    return () => {
+      scene.remove(muzzleSprite)
+      muzzleSprite.material.map?.dispose()
+      muzzleSprite.material.dispose()
+    }
+  }, [scene, muzzleSprite])
+
   const muzzleFrames = React.useMemo(() => {
     const attachment = modelData.attachments[0]
     const sequence = modelData.sequences[animationIndex]
-    if (!props.onMuzzlePosition || !attachment || !sequence) return []
+    if ((!props.onMuzzlePosition && !props.muzzleFlash) || !attachment || !sequence) return []
     return Array.from({ length: sequence.numFrames }, (_, frame) => {
       const bone = applyRootBoneRotation(
         calcRotations(modelData, animationIndex, frame, 0, props.firstPerson),
@@ -780,6 +796,7 @@ export const Renderer = (props: Props): React.JSX.Element => {
     modelData,
     animationIndex,
     Boolean(props.onMuzzlePosition),
+    Boolean(props.muzzleFlash),
     props.firstPerson,
     props.modelRootBoneRotation
   ])
@@ -850,23 +867,33 @@ export const Renderer = (props: Props): React.JSX.Element => {
 
     if (renderer && canRender) {
       lastRenderAt.current = startedAt
-      renderer.render(scene, camera)
-      if (props.onMuzzlePosition) {
+      if (props.onMuzzlePosition || props.muzzleFlash) {
         const sequence = modelData.sequences[animationIndex]
         const frame = sequence ? Math.floor(fallbackAnimationTime.current * sequence.fps) : 0
         const index = props.playOnce
           ? Math.min(frame, muzzleFrames.length - 1)
           : frame % muzzleFrames.length
         const position = muzzleFrames[index]?.clone()
+        if (position) position.applyMatrix4(fallbackContainer.matrixWorld)
+        if (muzzleSprite && props.muzzleFlash) {
+          updateMuzzleFlash(
+            muzzleSprite,
+            props.muzzleFlash,
+            position ?? undefined,
+            camera,
+            canvas?.clientHeight ?? 0
+          )
+        }
         if (position) {
-          position.applyMatrix4(fallbackContainer.matrixWorld).project(camera)
-          props.onMuzzlePosition(
+          position.project(camera)
+          props.onMuzzlePosition?.(
             (position.x + 1) / 2,
             (1 - position.y) / 2,
             position.z >= -1 && position.z <= 1
           )
-        } else props.onMuzzlePosition(0, 0, false)
+        } else props.onMuzzlePosition?.(0, 0, false)
       }
+      renderer.render(scene, camera)
 
       if (!hasRenderedFirstFrame.current) {
         hasRenderedFirstFrame.current = true

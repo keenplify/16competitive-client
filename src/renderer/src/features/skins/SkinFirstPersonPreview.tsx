@@ -1,7 +1,8 @@
 import { GunPreviewEffects } from './GunPreviewEffects'
 import { StickerViewport } from '../sticker-editor/StickerViewport'
 import { previewAppliedStickers, useInventoryStore } from '../inventory/inventory.store'
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import type { MuzzleFlashSource } from '../../libs/web-hlmv/lib/muzzle-flash'
 import { useStore } from 'zustand'
 import {
   createFirstPersonPreviewStore,
@@ -48,14 +49,14 @@ export function SkinFirstPersonPreview({
   const crosshair = useGameSettingsStore((state) => state.crosshair)
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null)
   const [failed, setFailed] = useState(false)
-  const muzzleCanvas = useRef<HTMLCanvasElement>(null)
-  const positionMuzzle = useCallback((x: number, y: number, visible: boolean) => {
-    const canvas = muzzleCanvas.current
-    if (!canvas) return
-    canvas.style.left = `${x * 100}%`
-    canvas.style.top = `${y * 100}%`
-    canvas.style.visibility = visible ? 'visible' : 'hidden'
-  }, [])
+  const muzzleFlash = useMemo<MuzzleFlashSource>(
+    () => ({
+      canvas: document.createElement('canvas'),
+      visible: false,
+      revision: 0
+    }),
+    []
+  )
   const stage = useRef<HTMLDivElement>(null)
   const activePointer = useRef<number | null>(null)
   useEffect(() => {
@@ -187,7 +188,7 @@ export function SkinFirstPersonPreview({
               modelBuffer={buffer}
               modelKey={`${skin.id}:view:${stickerRevision}`}
               firstPerson
-              onMuzzlePosition={kind === 'firearm' ? positionMuzzle : undefined}
+              muzzleFlash={kind === 'firearm' ? muzzleFlash : undefined}
               camera={camera}
               cameraLocked
               animation={sequences[sequenceAction]}
@@ -200,7 +201,14 @@ export function SkinFirstPersonPreview({
               disableZoom
               className="absolute inset-0"
             />
-            {kind === 'firearm' && <GunPreviewEffects skin={skin} shot={restart} firing={action === 'fire'} canvas={muzzleCanvas} />}
+            {kind === 'firearm' && (
+              <GunPreviewEffects
+                skin={skin}
+                shot={restart}
+                firing={action === 'fire'}
+                muzzleFlash={muzzleFlash}
+              />
+            )}
           </div>
           {isGrenade && (
             <GrenadeThrowPreview

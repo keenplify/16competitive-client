@@ -23,7 +23,33 @@ import {ModelViewer} from './src/renderer/src/libs/web-hlmv/ui/ModelViewer'
 import {parseModelCached} from './src/renderer/src/libs/web-hlmv/lib/modelDataParser'
 import {calcRotations} from './src/renderer/src/libs/web-hlmv/lib/geometryTransformer'
 import THREE from './src/renderer/src/libs/web-hlmv/lib/three'
+import {createMuzzleFlash,updateMuzzleFlash} from './src/renderer/src/libs/web-hlmv/lib/muzzle-flash'
 window.React=React
+window.verifyMuzzleDepth=()=>{
+ const renderer=new THREE.WebGLRenderer({antialias:false}),scene=new THREE.Scene()
+ const camera=new THREE.PerspectiveCamera(65,1,.1,1000)
+ camera.lookAt(new THREE.Vector3(0,0,100));camera.updateMatrixWorld(true)
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=4
+ const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,4,4)
+ const source={canvas,visible:true,revision:1},sprite=createMuzzleFlash(source)
+ scene.add(sprite)
+ const material=new THREE.MeshBasicMaterial({color:0x00ff00,side:THREE.DoubleSide,transparent:true,depthWrite:true})
+ const blocker=new THREE.Mesh(new THREE.PlaneGeometry(4,4),material)
+ blocker.position.set(2,0,5);scene.add(blocker)
+ const target=new THREE.WebGLRenderTarget(256,256),pixels=new Uint8Array(256*256*4)
+ const sample=(x,y)=>Array.from(pixels.slice((y*256+x)*4,(y*256+x)*4+3))
+ const draw=(z)=>{
+  updateMuzzleFlash(sprite,source,new THREE.Vector3(0,0,z),camera,256)
+  renderer.render(scene,camera,target);renderer.readRenderTargetPixels(target,0,0,256,256,pixels)
+  return {left:sample(112,128),right:sample(144,128)}
+ }
+ const behind=draw(10),front=draw(3)
+ source.visible=false
+ const hidden=draw(10)
+ const result={behind,front,hidden}
+ sprite.material.map.dispose();sprite.material.dispose();blocker.geometry.dispose();material.dispose();target.dispose();renderer.dispose()
+ return result
+}
 let root=createRoot(document.getElementById('root'))
 const cameraProps={position:[0,0,0],target:[0,0,100],fov:65,near:.1,far:1000}
 const onMuzzlePosition=(x,y,visible)=>{window.actual={x,y,visible};const marker=document.getElementById('muzzle');marker.style.left=x*100+'%';marker.style.top=y*100+'%';marker.style.display=visible?'block':'none'}
@@ -62,6 +88,12 @@ const w=new BrowserWindow({show:true,width:1000,height:700,useContentSize:true,w
 w.webContents.on('console-message',(_e,level,msg)=>{if(level>=3)errors.push(msg)})
 try{
 await w.loadFile(${JSON.stringify(join(dir, 'index.html'))})
+const depth=await w.webContents.executeJavaScript('verifyMuzzleDepth()')
+assert.deepEqual(depth.behind.left,[0,255,0],'gun must occlude flash behind it')
+assert.deepEqual(depth.behind.right,[255,255,255],'exposed flash remains visible')
+assert.deepEqual(depth.front.left,[255,255,255],'flash in front of the gun remains visible')
+assert.deepEqual(depth.hidden.right,[0,0,0],'flash disappears when its lifetime ends')
+console.log('Muzzle depth occlusion: '+JSON.stringify(depth))
 for(const weapon of ['xm1014','aug','awp']){
 const raw=[...readFileSync(${JSON.stringify(join(homedir(), '.steam/steam/steamapps/common/Half-Life/cstrike/models'))}+'/v_'+weapon+'.mdl')]
 await w.webContents.executeJavaScript('mount('+JSON.stringify(raw)+','+JSON.stringify(weapon)+')')

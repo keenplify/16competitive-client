@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Renderer, type ModelViewerCamera } from './Renderer'
 import { parseModelCached } from '../lib/modelDataParser'
+import type { MuzzleFlashSource } from '../lib/muzzle-flash'
 
 type ModelViewerProps = {
   /** Model bytes obtained through a narrow, authenticated API. */
@@ -33,6 +34,7 @@ type ModelViewerProps = {
   animation?: string | number | readonly string[]
   /** Hold the selected sequence at its first frame while retaining orbit controls. */
   onMuzzlePosition?: (x: number, y: number, visible: boolean) => void
+  muzzleFlash?: MuzzleFlashSource
   firstPerson?: boolean
   /** Prepare interactive sequences together so changing actions does not rebuild geometry. */
   animationSequences?: readonly number[]
@@ -83,6 +85,7 @@ export function ModelViewer({
   animation,
   firstPerson = false,
   onMuzzlePosition,
+  muzzleFlash,
   animationSequences,
   animationRestart = 0,
   playOnce = false,
@@ -212,6 +215,7 @@ export function ModelViewer({
             animation={animation}
             firstPerson={firstPerson}
             onMuzzlePosition={onMuzzlePosition}
+            muzzleFlash={muzzleFlash}
             animationSequences={animationSequences}
             animationRestart={animationRestart}
             playOnce={playOnce}
