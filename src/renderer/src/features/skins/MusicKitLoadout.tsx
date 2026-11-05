@@ -1,5 +1,4 @@
 import { useEffect, type JSX } from 'react'
-import { toast } from 'react-toastify'
 import { Headphones, LoaderCircle, Play, Square, X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -83,10 +82,7 @@ export function MusicKitSlot({
             aria-label={t('music.clear', { team: team.toUpperCase() })}
             title={t('music.clear', { team: team.toUpperCase() })}
             onClick={() => {
-              void equip(null, team).then(() => {
-                const error = useMusicKitsStore.getState().error
-                if (error) toast.error(t(error))
-              })
+              void equip(null, team)
             }}
             className="absolute right-0 bottom-0 flex size-5 items-center justify-center border border-white/30 bg-neutral-950 text-white hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-50"
           >

@@ -1,5 +1,15 @@
 export const musicKitTranslations = {
   en: {
+    'music.bgm': 'Launcher background music',
+    'music.bgmFormat':
+      'MP3 · up to 20 MiB. Loops in launcher menus. Missing BGM uses the fallback kit, then bundled music.',
+    'music.uploadBgm': 'Upload BGM',
+    'music.equippedBgm': 'Equipped music kit',
+    'music.bgmHelp':
+      'Uses the BGM of the kit activated in Inventory. Missing BGM uses its fallback, then bundled music.',
+    'music.processing': 'Processing…',
+    'music.activated': 'Music kit activated.',
+    'music.deactivated': 'Music kit deactivated.',
     'music.equipTeam': 'Equip {{name}} for both teams',
     'music.title': 'Music Kits',
     'music.description':
@@ -59,6 +69,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   ru: {
+    'music.bgm': 'Фоновая музыка лаунчера',
+    'music.bgmFormat':
+      'MP3 · до 20 МиБ. Играет по кругу в меню. Если музыки нет, используется резервный набор, затем музыка лаунчера.',
+    'music.uploadBgm': 'Загрузить музыку',
+    'music.equippedBgm': 'Выбранный музыкальный набор',
+    'music.bgmHelp':
+      'Использует музыку набора из инвентаря. Если музыки нет, используется резервный набор, затем музыка лаунчера.',
+    'music.processing': 'Обработка…',
+    'music.activated': 'Музыкальный набор активирован.',
+    'music.deactivated': 'Музыкальный набор отключён.',
     'music.equipTeam': 'Выбрать {{name}} для обеих сторон',
     'music.title': 'Музыкальные наборы',
     'music.description':
@@ -118,6 +138,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Команда снаряжения'
   },
   tl: {
+    'music.bgm': 'Background music ng launcher',
+    'music.bgmFormat':
+      'MP3 · hanggang 20 MiB. Paulit-ulit sa menu. Kapag walang BGM, fallback kit muna, saka bundled music.',
+    'music.uploadBgm': 'I-upload ang BGM',
+    'music.equippedBgm': 'Gamit na music kit',
+    'music.bgmHelp':
+      'BGM ng kit na aktibo sa Inventory. Kung walang BGM, fallback muna, saka bundled music.',
+    'music.processing': 'Pinoproseso…',
+    'music.activated': 'Na-activate ang music kit.',
+    'music.deactivated': 'Na-deactivate ang music kit.',
     'music.equipTeam': 'Gamitin ang {{name}} para sa parehong koponan',
     'music.title': 'Music Kits',
     'music.description':
@@ -177,6 +207,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   th: {
+    'music.bgm': 'เพลงพื้นหลังลอนเชอร์',
+    'music.bgmFormat':
+      'MP3 · ไม่เกิน 20 MiB เล่นวนในเมนู หากไม่มี BGM จะใช้ชุดสำรอง แล้วจึงใช้เพลงของลอนเชอร์',
+    'music.uploadBgm': 'อัปโหลด BGM',
+    'music.equippedBgm': 'ชุดเพลงที่ใช้อยู่',
+    'music.bgmHelp':
+      'ใช้ BGM ของชุดที่เปิดใช้ในคลัง หากไม่มี BGM จะใช้ชุดสำรอง แล้วจึงใช้เพลงของลอนเชอร์',
+    'music.processing': 'กำลังดำเนินการ…',
+    'music.activated': 'เปิดใช้ชุดเพลงแล้ว',
+    'music.deactivated': 'ปิดใช้ชุดเพลงแล้ว',
     'music.equipTeam': 'ใช้ {{name}} สำหรับทั้งสองทีม',
     'music.title': 'ชุดเพลง',
     'music.description':
@@ -236,6 +276,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'ทีมอุปกรณ์'
   },
   id: {
+    'music.bgm': 'Musik latar peluncur',
+    'music.bgmFormat':
+      'MP3 · maksimal 20 MiB. Berulang di menu. BGM yang kosong memakai kit cadangan, lalu musik bawaan.',
+    'music.uploadBgm': 'Unggah BGM',
+    'music.equippedBgm': 'Kit musik yang dipakai',
+    'music.bgmHelp':
+      'Memakai BGM kit aktif di Inventaris. BGM kosong memakai kit cadangan, lalu musik bawaan.',
+    'music.processing': 'Memproses…',
+    'music.activated': 'Kit musik diaktifkan.',
+    'music.deactivated': 'Kit musik dinonaktifkan.',
     'music.equipTeam': 'Gunakan {{name}} untuk kedua tim',
     'music.title': 'Kit Musik',
     'music.description':
@@ -295,6 +345,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Tim perlengkapan'
   },
   pt: {
+    'music.bgm': 'Música de fundo do launcher',
+    'music.bgmFormat':
+      'MP3 · até 20 MiB. Repete nos menus. Sem BGM, usa o kit alternativo e depois a música padrão.',
+    'music.uploadBgm': 'Enviar BGM',
+    'music.equippedBgm': 'Kit de música equipado',
+    'music.bgmHelp':
+      'Usa o BGM do kit ativo no Inventário. Sem BGM, usa o kit alternativo e depois a música padrão.',
+    'music.processing': 'Processando…',
+    'music.activated': 'Kit de música ativado.',
+    'music.deactivated': 'Kit de música desativado.',
     'music.equipTeam': 'Equipar {{name}} para ambas as equipes',
     'music.title': 'Kits de música',
     'music.description':
@@ -354,6 +414,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Equipe do equipamento'
   },
   ja: {
+    'music.bgm': 'ランチャーの背景音楽',
+    'music.bgmFormat':
+      'MP3 · 最大20 MiB。メニューでループ再生します。BGMがない場合は代替キット、次に標準の音楽を使用します。',
+    'music.uploadBgm': 'BGMをアップロード',
+    'music.equippedBgm': '装備中のミュージックキット',
+    'music.bgmHelp':
+      'インベントリで有効にしたキットのBGMを使用します。BGMがない場合は代替キット、次に標準の音楽を使用します。',
+    'music.processing': '処理中…',
+    'music.activated': 'ミュージックキットを有効にしました。',
+    'music.deactivated': 'ミュージックキットを無効にしました。',
     'music.equipTeam': '両チームに{{name}}を装備',
     'music.title': 'ミュージックキット',
     'music.description':
@@ -413,6 +483,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': '装備チーム'
   },
   hi: {
+    'music.bgm': 'लॉन्चर का बैकग्राउंड संगीत',
+    'music.bgmFormat':
+      'MP3 · अधिकतम 20 MiB। मेन्यू में बार-बार चलेगा। BGM न होने पर वैकल्पिक किट, फिर लॉन्चर का संगीत चलेगा।',
+    'music.uploadBgm': 'BGM अपलोड करें',
+    'music.equippedBgm': 'लगाई गई म्यूज़िक किट',
+    'music.bgmHelp':
+      'इन्वेंटरी में सक्रिय किट का BGM चलेगा। BGM न होने पर वैकल्पिक किट, फिर लॉन्चर का संगीत चलेगा।',
+    'music.processing': 'प्रक्रिया जारी है…',
+    'music.activated': 'म्यूज़िक किट सक्रिय हुई।',
+    'music.deactivated': 'म्यूज़िक किट निष्क्रिय हुई।',
     'music.equipTeam': 'दोनों टीमों के लिए {{name}} लगाएँ',
     'music.title': 'म्यूज़िक किट',
     'music.description':

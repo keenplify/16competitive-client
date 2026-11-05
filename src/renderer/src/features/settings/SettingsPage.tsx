@@ -817,16 +817,23 @@ export function SettingsPage(): JSX.Element {
                     value={selectedBgmId}
                     onChange={(event) => {
                       const value = event.currentTarget.value
-                      if (value === 'automatic' || isLauncherBgmId(value)) setSelectedBgmId(value)
+                      if (
+                        value === 'automatic' ||
+                        value === 'equipped-kit' ||
+                        isLauncherBgmId(value)
+                      )
+                        setSelectedBgmId(value)
                     }}
                   >
                     <option value="automatic">{t('audio.automatic')}</option>
+                    <option value="equipped-kit">{t('music.equippedBgm')}</option>
                     {MUSIC_SETS.map((set) => (
                       <option key={set.id} value={set.id}>
                         {set.label}
                       </option>
                     ))}
                   </select>
+                  <span className="mt-2 block text-xs text-neutral-500">{t('music.bgmHelp')}</span>
                 </label>
 
                 <div className="mt-6 grid gap-6 sm:grid-cols-2">

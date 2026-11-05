@@ -9,7 +9,7 @@ export function resolveCommunityMusic(
   branding: PartnerBranding | null
 ): { trackId: LauncherBgmId; musicUrl: string | null } {
   return {
-    trackId: selection === 'automatic' ? DEFAULT_BGM_ID : selection,
+    trackId: selection === 'automatic' || selection === 'equipped-kit' ? DEFAULT_BGM_ID : selection,
     musicUrl:
       selection === 'automatic' && playerId && brandingAccountId === playerId && branding
         ? (branding.musicUrl ?? null)

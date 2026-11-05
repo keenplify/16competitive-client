@@ -40,3 +40,23 @@ test('untrusted catalog assets cannot supply remote URLs or unsafe paths', () =>
   value.kits[0].sounds = { unknown: 'sound/untrusted.wav' }
   assert.throws(() => parseMusicKits(value))
 })
+
+test('BGM accepts only launcher-owned media paths and uses the regional media origin', () => {
+  for (const bgmPath of [
+    'https://evil.test/music.mp3',
+    '../music.mp3',
+    'javascript:alert(1)',
+    'sound/game.wav'
+  ]) {
+    const value = snapshot()
+    value.kits[0].bgmPath = bgmPath
+    assert.throws(() => parseMusicKits(value), /INVALID_MUSIC_BGM/)
+  }
+  const value = snapshot()
+  value.kits[0].bgmPath = `media/16competitive/music/${'b'.repeat(64)}/bgm.mp3`
+  assert.equal(
+    musicKitLogoUrls(parseMusicKits(value), 'https://warsaw.example.test').kits[0].bgmUrl,
+    `https://warsaw.example.test/fastdl/${value.kits[0].bgmPath}`
+  )
+  assert.equal(parseMusicKits(snapshot()).kits[0].bgmPath, null)
+})

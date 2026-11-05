@@ -6,6 +6,8 @@ import type {
   MusicTeam
 } from '../../../../shared/music-kits'
 import { useAuthStore } from '../auth/auth.store'
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore, type TranslationKey } from '../i18n/i18n'
 
 type MusicState = {
   open: boolean
@@ -106,12 +108,31 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
   equip: async (id, team) => {
     if (get().pending) return
     const generation = accountGeneration
+    const t = (key: TranslationKey): string => translate(useLanguageStore.getState().language, key)
+    const feedback = toast.loading(t('music.processing'))
     set({ pending: true, error: null })
     try {
       await window.api.skins.musicEquip(id, team)
       if (generation === accountGeneration) await get().load()
+      const error = get().error
+      toast.update(feedback, {
+        render: t(
+          generation !== accountGeneration
+            ? 'music.error'
+            : (error ?? (id === null ? 'music.deactivated' : 'music.activated'))
+        ),
+        type: generation !== accountGeneration || error ? 'error' : 'success',
+        isLoading: false,
+        autoClose: 5000
+      })
     } catch (e) {
       if (generation === accountGeneration) set({ error: errorKey(e) })
+      toast.update(feedback, {
+        render: t(errorKey(e) ?? 'music.error'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
     } finally {
       if (generation === accountGeneration) set({ pending: false })
     }

@@ -109,11 +109,18 @@ function audioHarness() {
 }
 test('partner audio revisions invalidate volume overrides once and survive launcher restarts', () => {
   let stored = null
-  const globals = { window: { localStorage: {
-    getItem: () => stored,
-    setItem: (_, value) => { stored = value }
-  } } }
-  const restore = () => load('audio.store.ts', { zustand: require('zustand') }, globals).useAudioSettingsStore
+  const globals = {
+    window: {
+      localStorage: {
+        getItem: () => stored,
+        setItem: (_, value) => {
+          stored = value
+        }
+      }
+    }
+  }
+  const restore = () =>
+    load('audio.store.ts', { zustand: require('zustand') }, globals).useAudioSettingsStore
   let store = restore()
   store.getState().applyCommunityAudioDefaults('player:partner:1', 60)
   assert.equal(store.getState().bgmVolume, 60)
@@ -235,7 +242,8 @@ test('partner return preserves the community track after authentication is clear
         accountId: playerId
       }))
     },
-    '../matchmaking/matchmaking.store': { useMatchmakingStore: store(() => ({})) }
+    '../matchmaking/matchmaking.store': { useMatchmakingStore: store(() => ({})) },
+    '../skins/music-kits.store': { useMusicKitsStore: store(() => ({ snapshot: null })) }
   })
   AudioController({})
   effects[0]()
@@ -248,5 +256,65 @@ test('partner return preserves the community track after authentication is clear
   effects.length = 0
   AudioController({})
   effects[0]()
+  assert.deepEqual(tracks.at(-1), ['rock', null])
+})
+
+test('equipped kit selection persists and follows activation, clearing and logout', () => {
+  let stored = null
+  const globals = {
+    window: {
+      localStorage: {
+        getItem: () => stored,
+        setItem: (_, value) => {
+          stored = value
+        }
+      }
+    }
+  }
+  const restore = () =>
+    load('audio.store.ts', { zustand: require('zustand') }, globals).useAudioSettingsStore
+  restore().getState().setSelectedBgmId('equipped-kit')
+  assert.equal(restore().getState().selectedBgmId, 'equipped-kit')
+  const effects = [],
+    tracks = []
+  let playerId = 'player',
+    active = 'alpha'
+  const kits = [
+    { id: 'alpha', bgmUrl: 'https://regional.test/a.mp3' },
+    { id: 'beta', bgmUrl: 'https://regional.test/b.mp3' }
+  ]
+  const store = (get) => (selector) => selector(get())
+  const { AudioController } = load('AudioController.tsx', {
+    react: { useEffect: (effect) => effects.push(effect), useRef: (current) => ({ current }) },
+    './community-music': { resolveCommunityMusic },
+    './audio.manager': { launcherAudio: { setBgmTrack: (...args) => tracks.push(args) } },
+    './audio.store': { useAudioSettingsStore: store(() => ({ selectedBgmId: 'equipped-kit' })) },
+    '../auth/auth.store': {
+      useAuthStore: store(() => ({ session: playerId ? { player: { id: playerId } } : null }))
+    },
+    '../partner-branding/partner-branding.store': { usePartnerBrandingStore: store(() => ({})) },
+    '../matchmaking/matchmaking.store': { useMatchmakingStore: store(() => ({})) },
+    '../skins/music-kits.store': {
+      useMusicKitsStore: store(() => ({
+        snapshot: { kits, ownedIds: ['alpha', 'beta'], equipped: { ct: active, t: active } }
+      }))
+    }
+  })
+  const update = () => {
+    effects.length = 0
+    AudioController({})
+    effects[0]()
+  }
+  update()
+  assert.deepEqual(tracks.at(-1), ['rock', kits[0].bgmUrl])
+  active = 'beta'
+  update()
+  assert.deepEqual(tracks.at(-1), ['rock', kits[1].bgmUrl])
+  active = null
+  update()
+  assert.deepEqual(tracks.at(-1), ['rock', null])
+  active = 'alpha'
+  playerId = null
+  update()
   assert.deepEqual(tracks.at(-1), ['rock', null])
 })

@@ -5,6 +5,7 @@ import { launcherAudio } from './audio.manager'
 import { useAudioSettingsStore } from './audio.store'
 import { useAuthStore } from '../auth/auth.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
+import { useMusicKitsStore } from '../skins/music-kits.store'
 
 export function AudioController({
   preserveMusic = false
@@ -17,14 +18,21 @@ export function AudioController({
   const playerId = useAuthStore((state) => state.session?.player.id ?? null)
   const branding = usePartnerBrandingStore((state) => state.joinedBranding)
   const brandingAccountId = usePartnerBrandingStore((state) => state.accountId)
-  const { trackId, musicUrl } = resolveCommunityMusic(
-    selectedBgmId,
-    playerId,
-    brandingAccountId,
-    branding
+  const musicSnapshot = useMusicKitsStore((state) => state.snapshot)
+  const equippedKit = musicSnapshot?.kits.find(
+    (kit) => kit.id === musicSnapshot.equipped.ct && musicSnapshot.ownedIds.includes(kit.id)
   )
-  const communityAudio = selectedBgmId === 'automatic' && playerId && brandingAccountId === playerId ? branding : null
-  const audioRevision = communityAudio ? `${playerId}:${communityAudio.partnerId}:${communityAudio.musicAudioRevision ?? 1}` : null
+  const communityMusic = resolveCommunityMusic(selectedBgmId, playerId, brandingAccountId, branding)
+  const { trackId } = communityMusic
+  const musicUrl =
+    selectedBgmId === 'equipped-kit' && playerId
+      ? (equippedKit?.bgmUrl ?? null)
+      : communityMusic.musicUrl
+  const communityAudio =
+    selectedBgmId === 'automatic' && playerId && brandingAccountId === playerId ? branding : null
+  const audioRevision = communityAudio
+    ? `${playerId}:${communityAudio.partnerId}:${communityAudio.musicAudioRevision ?? 1}`
+    : null
   const match = useMatchmakingStore((state) => state.match)
   const readyResponse = useMatchmakingStore((state) => state.readyResponse)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
@@ -49,11 +57,22 @@ export function AudioController({
   }, [trackId, musicUrl, preserveMusic])
 
   useEffect(() => {
-    if (audioRevision) useAudioSettingsStore.getState().applyCommunityAudioDefaults(audioRevision, communityAudio?.musicVolumePercent ?? 50)
+    if (playerId) void useMusicKitsStore.getState().load()
+  }, [playerId])
+
+  useEffect(() => {
+    if (audioRevision)
+      useAudioSettingsStore
+        .getState()
+        .applyCommunityAudioDefaults(audioRevision, communityAudio?.musicVolumePercent ?? 50)
   }, [audioRevision, communityAudio?.musicVolumePercent])
 
   useEffect(() => {
-    launcherAudio.setBgmLowPass(shouldUseLobbyLowPass, 1000, communityAudio?.musicMufflePercent ?? 100)
+    launcherAudio.setBgmLowPass(
+      shouldUseLobbyLowPass,
+      1000,
+      communityAudio?.musicMufflePercent ?? 100
+    )
   }, [shouldUseLobbyLowPass, communityAudio?.musicMufflePercent])
 
   useEffect(() => {

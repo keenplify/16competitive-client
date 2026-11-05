@@ -22,6 +22,8 @@ export interface MusicKit {
   enabled: boolean
   logoPath: string | null
   logoUrl?: string
+  bgmPath?: string | null
+  bgmUrl?: string
   sounds: Partial<Record<MusicEvent, string>>
 }
 export interface MusicKitSnapshot {
@@ -82,13 +84,20 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
         !/^media\/16competitive\/music\/[a-f0-9]{64}\/logo\.png$/.test(k.logoPath))
     )
       throw new Error('INVALID_MUSIC_LOGO')
+    if (
+      k.bgmPath != null &&
+      (typeof k.bgmPath !== 'string' ||
+        !/^media\/16competitive\/music\/[a-f0-9]{64}\/bgm\.mp3$/.test(k.bgmPath))
+    )
+      throw new Error('INVALID_MUSIC_BGM')
     return {
       id,
       name: k.name,
       pricePoints: k.pricePoints,
       enabled: k.enabled,
       sounds,
-      logoPath: k.logoPath
+      logoPath: k.logoPath,
+      bgmPath: typeof k.bgmPath === 'string' ? k.bgmPath : null
     }
   })
   const ownedIds = s.ownedIds.map(validateMusicKitId)
@@ -112,7 +121,8 @@ export function musicKitLogoUrls(snapshot: MusicKitSnapshot, apiUrl: string): Mu
     ...snapshot,
     kits: snapshot.kits.map((kit) => ({
       ...kit,
-      logoUrl: kit.logoPath ? new URL(`/fastdl/${kit.logoPath}`, apiUrl).toString() : undefined
+      logoUrl: kit.logoPath ? new URL(`/fastdl/${kit.logoPath}`, apiUrl).toString() : undefined,
+      bgmUrl: kit.bgmPath ? new URL(`/fastdl/${kit.bgmPath}`, apiUrl).toString() : undefined
     }))
   }
 }
