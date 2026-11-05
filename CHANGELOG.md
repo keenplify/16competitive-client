@@ -4296,3 +4296,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Packaging
 
 - Ensured required web helper files are included in desktop packages.
+
+## v2026.1105.6 — 2026-11-05
+
+### Improvements
+
+- Improved ARM64 release packaging reliability.
