@@ -4237,3 +4237,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Changes
 
 - No release changes were provided.
+
+## v2026.1105.1 — 2026-11-05
+
+### Matchmaking
+
+- You can now leave and rejoin Arena matchmaking.
+- Play now shows warnings when matchmaking actions need attention.
+
+### Linux Compatibility
+
+- Guest Steam scripts now launch through FEXBash.
+- ARM web match launches now use muvm FEX for improved compatibility.
