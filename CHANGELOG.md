@@ -4249,3 +4249,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Guest Steam scripts now launch through FEXBash.
 - ARM web match launches now use muvm FEX for improved compatibility.
+
+## v2026.1105.2 — 2026-11-05
+
+### Voice Chat
+
+- Refreshed public voice rooms.
+- Improved voice chat dock behavior.
+
+### Partner Return
+
+- Fixed navigation when returning from a partner service.
+- Added clearer partner sign-in messaging.
+
+### Sessions & Music
+
+- Managed sessions now finish quietly.
+- Community music is preserved during partner navigation.
