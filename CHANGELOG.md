@@ -4283,3 +4283,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fixed clipped tooltips and VGUI controls.
 - Improved retries after failed game launches.
+
+## v2026.1105.4 — 2026-11-05
+
+### Shop
+
+- Added a P Cash withdrawal flow.
+- Improved withdrawal modal behavior.
