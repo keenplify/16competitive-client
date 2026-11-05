@@ -1,3 +1,4 @@
+import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { parsePCashBetSnapshot, validateBetInput, validateBetMatchId } from '../shared/pcash-bets'
 import { parseNativeVoicePreferences } from '../shared/native-voice'
 import { validRedeemRewardDetails } from '../shared/redeem-codes'
@@ -699,8 +700,8 @@ const skins = {
       )
     )
   },
-  async musicBuy(id: string, expectedPrice: number): Promise<{ points: number }> {
-    return jsonPost(`/music-kits/${validateMusicKitId(id)}/buy`, { expectedPrice })
+  async musicBuy(id: string, expectedPrice: number, currency: 'POINTS' | 'P_CASH' = 'POINTS'): Promise<{ points: number; pCash?: number }> {
+    return parseMusicPurchase(await jsonPost(`/music-kits/${validateMusicKitId(id)}/buy`, validateMusicBuy(expectedPrice, currency)))
   },
   async musicEquip(
     id: string | null,

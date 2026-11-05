@@ -174,7 +174,7 @@ export interface SkinsApi {
     input: import('./skin-collections').CollectionBuyInput
   ): Promise<import('./skin-collections').CollectionPurchase>
   musicKits(): Promise<import('./music-kits').MusicKitSnapshot>
-  musicBuy(id: string, expectedPrice: number): Promise<{ points: number }>
+  musicBuy(id: string, expectedPrice: number, currency?: 'POINTS' | 'P_CASH'): Promise<{ points: number; pCash?: number }>
   musicEquip(id: string | null, team: import('./music-kits').MusicTeam): Promise<void>
   musicPreview(id: string, event: import('./music-kits').MusicEvent): Promise<ArrayBuffer>
   payments(): Promise<PaymentSnapshot>

@@ -1191,7 +1191,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.collectionBuy, (_, id: unknown, input: unknown) =>
     buyCollection(id, input)
   )
-  ipcMain.handle(SKIN_CHANNELS.musicBuy, (_, id: unknown, price: unknown) => buyMusicKit(id, price))
+  ipcMain.handle(SKIN_CHANNELS.musicBuy, (_, id: unknown, price: unknown, currency: unknown) => buyMusicKit(id, price, currency))
   ipcMain.handle(SKIN_CHANNELS.musicEquip, (_, id: unknown, team: unknown) =>
     equipMusicKit(id, team)
   )

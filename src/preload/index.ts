@@ -322,7 +322,7 @@ const skins: SkinsApi = {
     ipcRenderer.invoke(SKIN_CHANNELS.collectionQuote, id, currency),
   collectionBuy: (id, input) => ipcRenderer.invoke(SKIN_CHANNELS.collectionBuy, id, input),
   musicKits: () => ipcRenderer.invoke(SKIN_CHANNELS.musicKits),
-  musicBuy: (id, price) => ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price),
+  musicBuy: (id, price, currency) => ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price, currency),
   musicEquip: (id, team) => ipcRenderer.invoke(SKIN_CHANNELS.musicEquip, id, team),
   musicPreview: (id, event) => ipcRenderer.invoke(SKIN_CHANNELS.musicPreview, id, event),
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),

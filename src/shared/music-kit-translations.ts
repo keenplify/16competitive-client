@@ -1,5 +1,16 @@
 export const musicKitTranslations = {
   en: {
+    'music.pointsEnabled': 'Allow Points purchases',
+    'music.cashEnabled': 'Allow P Cash purchases',
+    'music.cashPrice': 'Price in P Cash',
+    'music.currency': 'Payment currency',
+    'music.insufficientCash': 'Not enough P Cash. Top up your balance.',
+    'music.currencyUnavailable':
+      'This currency is no longer available. Refresh the kit and try again.',
+    'music.purchased': 'Music kit purchased.',
+    'music.confirmCash': 'Buy {{name}} for {{price}} P Cash?',
+    'music.pricingRequired':
+      'Enable Points or set a P Cash price before making this kit available in the shop.',
     'music.bgm': 'Launcher background music',
     'music.bgmFormat':
       'MP3 · up to 20 MiB. Loops in launcher menus. Missing BGM uses the fallback kit, then bundled music.',
@@ -69,6 +80,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   ru: {
+    'music.pointsEnabled': 'Разрешить покупку за очки',
+    'music.cashEnabled': 'Разрешить покупку за P Cash',
+    'music.cashPrice': 'Цена в P Cash',
+    'music.currency': 'Валюта оплаты',
+    'music.insufficientCash': 'Недостаточно P Cash. Пополните баланс.',
+    'music.currencyUnavailable': 'Эта валюта больше недоступна. Обновите набор и повторите.',
+    'music.purchased': 'Музыкальный набор куплен.',
+    'music.confirmCash': 'Купить {{name}} за {{price}} P Cash?',
+    'music.pricingRequired':
+      'Разрешите покупку за очки или укажите цену в P Cash перед публикацией в магазине.',
     'music.bgm': 'Фоновая музыка лаунчера',
     'music.bgmFormat':
       'MP3 · до 20 МиБ. Играет по кругу в меню. Если музыки нет, используется резервный набор, затем музыка лаунчера.',
@@ -138,6 +159,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Команда снаряжения'
   },
   tl: {
+    'music.pointsEnabled': 'Payagan ang pagbili gamit ang Points',
+    'music.cashEnabled': 'Payagan ang pagbili gamit ang P Cash',
+    'music.cashPrice': 'Presyo sa P Cash',
+    'music.currency': 'Pambayad',
+    'music.insufficientCash': 'Kulang ang P Cash. Mag-top up ng balanse.',
+    'music.currencyUnavailable':
+      'Hindi na available ang currency na ito. I-refresh ang kit at subukan muli.',
+    'music.purchased': 'Nabili ang music kit.',
+    'music.confirmCash': 'Bilhin ang {{name}} sa {{price}} P Cash?',
+    'music.pricingRequired':
+      'I-enable ang Points o magtakda ng presyo sa P Cash bago ilagay sa shop.',
     'music.bgm': 'Background music ng launcher',
     'music.bgmFormat':
       'MP3 · hanggang 20 MiB. Paulit-ulit sa menu. Kapag walang BGM, fallback kit muna, saka bundled music.',
@@ -207,6 +239,15 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   th: {
+    'music.pointsEnabled': 'อนุญาตให้ซื้อด้วย Points',
+    'music.cashEnabled': 'อนุญาตให้ซื้อด้วย P Cash',
+    'music.cashPrice': 'ราคาเป็น P Cash',
+    'music.currency': 'สกุลเงินที่ชำระ',
+    'music.insufficientCash': 'P Cash ไม่เพียงพอ โปรดเติมเงิน',
+    'music.currencyUnavailable': 'ไม่สามารถใช้สกุลเงินนี้ได้แล้ว รีเฟรชชุดและลองอีกครั้ง',
+    'music.purchased': 'ซื้อชุดเพลงแล้ว',
+    'music.confirmCash': 'ซื้อ {{name}} ในราคา {{price}} P Cash?',
+    'music.pricingRequired': 'เปิดใช้ Points หรือกำหนดราคา P Cash ก่อนวางขายในร้านค้า',
     'music.bgm': 'เพลงพื้นหลังลอนเชอร์',
     'music.bgmFormat':
       'MP3 · ไม่เกิน 20 MiB เล่นวนในเมนู หากไม่มี BGM จะใช้ชุดสำรอง แล้วจึงใช้เพลงของลอนเชอร์',
@@ -276,6 +317,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'ทีมอุปกรณ์'
   },
   id: {
+    'music.pointsEnabled': 'Izinkan pembelian dengan Points',
+    'music.cashEnabled': 'Izinkan pembelian dengan P Cash',
+    'music.cashPrice': 'Harga P Cash',
+    'music.currency': 'Mata uang pembayaran',
+    'music.insufficientCash': 'P Cash tidak cukup. Isi saldo Anda.',
+    'music.currencyUnavailable': 'Mata uang ini tidak lagi tersedia. Muat ulang kit dan coba lagi.',
+    'music.purchased': 'Kit musik dibeli.',
+    'music.confirmCash': 'Beli {{name}} seharga {{price}} P Cash?',
+    'music.pricingRequired':
+      'Aktifkan Points atau tetapkan harga P Cash sebelum menjual kit di toko.',
     'music.bgm': 'Musik latar peluncur',
     'music.bgmFormat':
       'MP3 · maksimal 20 MiB. Berulang di menu. BGM yang kosong memakai kit cadangan, lalu musik bawaan.',
@@ -345,6 +396,17 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Tim perlengkapan'
   },
   pt: {
+    'music.pointsEnabled': 'Permitir compras com Points',
+    'music.cashEnabled': 'Permitir compras com P Cash',
+    'music.cashPrice': 'Preço em P Cash',
+    'music.currency': 'Moeda de pagamento',
+    'music.insufficientCash': 'P Cash insuficiente. Recarregue seu saldo.',
+    'music.currencyUnavailable':
+      'Esta moeda não está mais disponível. Atualize o kit e tente novamente.',
+    'music.purchased': 'Kit de música comprado.',
+    'music.confirmCash': 'Comprar {{name}} por {{price}} P Cash?',
+    'music.pricingRequired':
+      'Ative Points ou defina um preço em P Cash antes de disponibilizar este kit na loja.',
     'music.bgm': 'Música de fundo do launcher',
     'music.bgmFormat':
       'MP3 · até 20 MiB. Repete nos menus. Sem BGM, usa o kit alternativo e depois a música padrão.',
@@ -414,6 +476,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Equipe do equipamento'
   },
   ja: {
+    'music.pointsEnabled': 'Pointsでの購入を許可',
+    'music.cashEnabled': 'P Cashでの購入を許可',
+    'music.cashPrice': 'P Cash価格',
+    'music.currency': '支払い通貨',
+    'music.insufficientCash': 'P Cashが不足しています。チャージしてください。',
+    'music.currencyUnavailable':
+      'この通貨は利用できなくなりました。キットを更新して再試行してください。',
+    'music.purchased': 'ミュージックキットを購入しました。',
+    'music.confirmCash': '{{name}}を{{price}} P Cashで購入しますか？',
+    'music.pricingRequired': '販売する前にPointsを有効にするか、P Cash価格を設定してください。',
     'music.bgm': 'ランチャーの背景音楽',
     'music.bgmFormat':
       'MP3 · 最大20 MiB。メニューでループ再生します。BGMがない場合は代替キット、次に標準の音楽を使用します。',
@@ -483,6 +555,16 @@ export const musicKitTranslations = {
     'music.loadoutTeam': '装備チーム'
   },
   hi: {
+    'music.pointsEnabled': 'Points से खरीदने की अनुमति दें',
+    'music.cashEnabled': 'P Cash से खरीदने की अनुमति दें',
+    'music.cashPrice': 'P Cash में कीमत',
+    'music.currency': 'भुगतान मुद्रा',
+    'music.insufficientCash': 'P Cash कम है। बैलेंस टॉप अप करें।',
+    'music.currencyUnavailable': 'यह मुद्रा अब उपलब्ध नहीं है। किट रीफ़्रेश करके फिर कोशिश करें।',
+    'music.purchased': 'म्यूज़िक किट खरीद ली गई।',
+    'music.confirmCash': '{{name}} को {{price}} P Cash में खरीदें?',
+    'music.pricingRequired':
+      'दुकान में उपलब्ध करने से पहले Points चालू करें या P Cash की कीमत तय करें।',
     'music.bgm': 'लॉन्चर का बैकग्राउंड संगीत',
     'music.bgmFormat':
       'MP3 · अधिकतम 20 MiB। मेन्यू में बार-बार चलेगा। BGM न होने पर वैकल्पिक किट, फिर लॉन्चर का संगीत चलेगा।',

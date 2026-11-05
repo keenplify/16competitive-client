@@ -19,6 +19,8 @@ export interface MusicKit {
   id: string
   name: string
   pricePoints: number
+  pointsEnabled?: boolean
+  pricePCash?: number | null
   enabled: boolean
   logoPath: string | null
   logoUrl?: string
@@ -69,6 +71,15 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
       Array.isArray(k.sounds)
     )
       throw new Error('INVALID_MUSIC_KITS')
+    if (
+      (k.pointsEnabled !== undefined && typeof k.pointsEnabled !== 'boolean') ||
+      (k.pricePCash != null &&
+        (typeof k.pricePCash !== 'number' ||
+          !Number.isSafeInteger(k.pricePCash) ||
+          k.pricePCash < 1 ||
+          k.pricePCash > 1_000_000))
+    )
+      throw new Error('INVALID_MUSIC_PRICING')
     const sounds: MusicKit['sounds'] = {}
     for (const [event, path] of Object.entries(k.sounds)) {
       if (
@@ -94,6 +105,8 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
       id,
       name: k.name,
       pricePoints: k.pricePoints,
+      pointsEnabled: k.pointsEnabled !== false,
+      pricePCash: typeof k.pricePCash === 'number' ? k.pricePCash : null,
       enabled: k.enabled,
       sounds,
       logoPath: k.logoPath,
@@ -130,4 +143,36 @@ export function musicKitLogoUrls(snapshot: MusicKitSnapshot, apiUrl: string): Mu
 export function validateMusicTeam(team: unknown): MusicTeam {
   if (team !== 'ct' && team !== 't') throw new Error('INVALID_MUSIC_TEAM')
   return team
+}
+
+export type MusicCurrency = 'POINTS' | 'P_CASH'
+export function validateMusicBuy(
+  expectedPrice: unknown,
+  currency: unknown = 'POINTS'
+): { expectedPrice: number; currency: MusicCurrency } {
+  if (
+    typeof expectedPrice !== 'number' ||
+    !Number.isSafeInteger(expectedPrice) ||
+    expectedPrice < 0 ||
+    expectedPrice > 1_000_000
+  )
+    throw new Error('INVALID_MUSIC_PRICE')
+  if (currency !== 'POINTS' && currency !== 'P_CASH') throw new Error('INVALID_MUSIC_CURRENCY')
+  return { expectedPrice, currency }
+}
+export function parseMusicPurchase(result: unknown): { points: number; pCash?: number } {
+  if (typeof result !== 'object' || !result) throw new Error('INVALID_MUSIC_BALANCE')
+  const value = result as Record<string, unknown>
+  if (
+    typeof value.points !== 'number' ||
+    !Number.isSafeInteger(value.points) ||
+    value.points < 0 ||
+    (value.pCash !== undefined &&
+      (typeof value.pCash !== 'number' || !Number.isSafeInteger(value.pCash)))
+  )
+    throw new Error('INVALID_MUSIC_BALANCE')
+  return {
+    points: value.points,
+    ...(typeof value.pCash === 'number' ? { pCash: value.pCash } : {})
+  }
 }

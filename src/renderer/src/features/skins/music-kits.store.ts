@@ -1,3 +1,5 @@
+import { usePaymentsStore } from './payments.store'
+import type { MusicCurrency } from '../../../../shared/music-kits'
 import { create } from 'zustand'
 import type {
   MusicEvent,
@@ -14,8 +16,16 @@ type MusicState = {
   snapshot: MusicKitSnapshot | null
   status: 'idle' | 'loading' | 'ready' | 'error'
   pending: boolean
-  error: 'music.error' | 'music.insufficient' | 'music.changed' | null
+  error:
+    | 'music.error'
+    | 'music.insufficient'
+    | 'music.changed'
+    | 'music.insufficientCash'
+    | 'music.currencyUnavailable'
+    | null
   event: MusicEvent
+  currency: MusicCurrency
+  setCurrency: (currency: MusicCurrency) => void
   confirm: MusicKit | null
   playingId: string | null
   show: () => void
@@ -44,11 +54,15 @@ const stopAudio = (): void => {
 }
 const errorKey = (error: unknown): MusicState['error'] => {
   const message = error instanceof Error ? error.message : ''
-  return message.includes('INSUFFICIENT_POINTS')
-    ? 'music.insufficient'
-    : message.includes('MUSIC_PRICE_CHANGED')
-      ? 'music.changed'
-      : 'music.error'
+  return message.includes('INSUFFICIENT_P_CASH')
+    ? 'music.insufficientCash'
+    : message.includes('MUSIC_CURRENCY_UNAVAILABLE')
+      ? 'music.currencyUnavailable'
+      : message.includes('INSUFFICIENT_POINTS')
+        ? 'music.insufficient'
+        : message.includes('MUSIC_PRICE_CHANGED')
+          ? 'music.changed'
+          : 'music.error'
 }
 export const useMusicKitsStore = create<MusicState>((set, get) => ({
   open: false,
@@ -59,6 +73,8 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
   filterTeam: null,
   setFilterTeam: (filterTeam) => set({ filterTeam }),
   event: 'killingspree',
+  currency: 'POINTS',
+  setCurrency: (currency) => set({ currency, error: null }),
   confirm: null,
   playingId: null,
   show: () => {
@@ -74,7 +90,8 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
     stopAudio()
     set({ event, playingId: null })
   },
-  choosePurchase: (confirm) => set({ confirm, error: null }),
+  choosePurchase: (confirm) =>
+    set({ confirm, currency: confirm?.pointsEnabled === false ? 'P_CASH' : 'POINTS', error: null }),
   load: async () => {
     const generation = accountGeneration
     const request = ++loadGeneration
@@ -92,14 +109,43 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
     const kit = get().confirm
     if (!kit || get().pending) return
     const generation = accountGeneration
+    const currency = get().currency
+    const price =
+      currency === 'POINTS'
+        ? kit.pointsEnabled === false
+          ? null
+          : kit.pricePoints
+        : (kit.pricePCash ?? null)
+    if (price === null) {
+      set({ error: 'music.currencyUnavailable' })
+      return
+    }
+    const t = (key: TranslationKey): string => translate(useLanguageStore.getState().language, key)
+    const feedback = toast.loading(t('music.processing'))
     set({ pending: true, error: null })
     try {
-      const result = await window.api.skins.musicBuy(kit.id, kit.pricePoints)
-      if (generation !== accountGeneration) return
+      const result = await window.api.skins.musicBuy(kit.id, price, currency)
+      if (generation !== accountGeneration) throw new Error('ACCOUNT_CHANGED')
       useAuthStore.getState().setPoints(result.points)
+      if (result.pCash !== undefined)
+        usePaymentsStore.setState((state) => ({
+          snapshot: state.snapshot ? { ...state.snapshot, pCash: result.pCash! } : null
+        }))
       set({ confirm: null })
       await get().load()
+      toast.update(feedback, {
+        render: t('music.purchased'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 5000
+      })
     } catch (e) {
+      toast.update(feedback, {
+        render: t(errorKey(e) ?? 'music.error'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
       if (generation === accountGeneration) set({ error: errorKey(e) })
     } finally {
       if (generation === accountGeneration) set({ pending: false })

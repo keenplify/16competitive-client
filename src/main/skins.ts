@@ -1,3 +1,4 @@
+import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { cachedStickerImage } from './game/sticker-image-cache'
 import { parseStickerPurchase } from '../shared/stickers'
 import { stockStickerModel } from '../shared/stock-sticker-models'
@@ -653,7 +654,10 @@ const musicRequest = async (path: string, init?: RequestInit): Promise<unknown> 
     return await playerRequest(path, init)
   } catch (error) {
     const code = (error as ApiError).code
-    if (code && /^(?:MUSIC_[A-Z_]+|INSUFFICIENT_POINTS|UNAUTHORIZED)$/.test(code))
+    if (
+      code &&
+      /^(?:MUSIC_[A-Z_]+|INSUFFICIENT_POINTS|INSUFFICIENT_P_CASH|UNAUTHORIZED)$/.test(code)
+    )
       throw new Error(code)
     throw error
   }
@@ -662,30 +666,17 @@ export const listMusicKits = async () =>
   musicKitLogoUrls(parseMusicKits(await musicRequest('/music-kits')), await getSkinApiUrl())
 export const buyMusicKit = async (
   id: unknown,
-  expectedPrice: unknown
-): Promise<{ points: number }> => {
-  if (
-    typeof expectedPrice !== 'number' ||
-    !Number.isSafeInteger(expectedPrice) ||
-    expectedPrice < 0 ||
-    expectedPrice > 1_000_000
+  expectedPrice: unknown,
+  currency: unknown = 'POINTS'
+): Promise<{ points: number; pCash?: number }> => {
+  const input = validateMusicBuy(expectedPrice, currency)
+  return parseMusicPurchase(
+    await musicRequest(`/music-kits/${validateMusicKitId(id)}/buy`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input)
+    })
   )
-    throw new Error('INVALID_MUSIC_PRICE')
-  const result = await musicRequest(`/music-kits/${validateMusicKitId(id)}/buy`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ expectedPrice })
-  })
-  if (
-    typeof result !== 'object' ||
-    !result ||
-    !('points' in result) ||
-    typeof result.points !== 'number' ||
-    !Number.isSafeInteger(result.points) ||
-    result.points < 0
-  )
-    throw new Error('INVALID_MUSIC_BALANCE')
-  return { points: result.points }
 }
 export const equipMusicKit = async (id: unknown, team: unknown): Promise<void> => {
   await musicRequest('/music-kits/equip', {

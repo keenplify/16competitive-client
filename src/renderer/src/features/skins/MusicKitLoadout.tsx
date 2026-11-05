@@ -48,7 +48,7 @@ export function MusicKitSlot({
   const equip = useMusicKitsStore((s) => s.equip)
   const id = snapshot?.equipped[team]
   const kit = snapshot?.kits.find((k) => k.id === id)
-  const title = `${t('music.item')}: ${kit ? (kit.id === 'quake' ? t('music.default') : kit.name) : t('music.empty')}`
+  const title = `${t('music.item')}: ${kit ? (kit.name) : t('music.empty')}`
   return (
     <div className={twMerge('flex flex-col items-center gap-1.5', className)}>
       <div
@@ -156,7 +156,7 @@ export function MusicKitInventory({
               >
                 <MusicKitArtwork kit={kit} className="h-28 w-full" />
                 <span className="min-h-10 w-full break-words text-center text-sm font-bold">
-                  {kit.id === 'quake' ? t('music.default') : kit.name}
+                  {kit.name}
                 </span>
               </button>
               <Button
