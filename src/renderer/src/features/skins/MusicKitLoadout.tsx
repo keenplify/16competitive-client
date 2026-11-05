@@ -1,4 +1,4 @@
-import { useEffect, type JSX } from 'react'
+import { useEffect, useId, type JSX } from 'react'
 import { Headphones, LoaderCircle, Play, Square, X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
@@ -18,10 +18,50 @@ export function MusicKitArtwork({
   kit?: MusicKit
   className?: string
 }): JSX.Element {
+  const discGradient = useId()
   return (
     <span className={twMerge('flex items-center justify-center overflow-hidden', className)}>
-      {kit?.logoUrl ? (
-        <img src={kit.logoUrl} alt="" className="size-full object-contain" loading="lazy" />
+      {kit ? (
+        <svg viewBox="0 0 280 200" className="size-full" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id={discGradient} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#08090b" />
+              <stop offset="0.32" stopColor="#30333a" />
+              <stop offset="0.48" stopColor="#111216" />
+              <stop offset="0.78" stopColor="#090a0c" />
+              <stop offset="1" stopColor="#282a30" />
+            </linearGradient>
+          </defs>
+          <circle cx="184" cy="100" r="89" fill={`url(#${discGradient})`} stroke="#45474e" />
+          {[82, 78, 74, 70, 66, 62].map((radius) => (
+            <circle
+              key={radius}
+              cx="184"
+              cy="100"
+              r={radius}
+              fill="none"
+              stroke="#ffffff"
+              strokeOpacity="0.045"
+            />
+          ))}
+          <circle cx="184" cy="100" r="28" fill="#191b20" stroke="#555861" strokeWidth="0.75" />
+          <circle cx="184" cy="100" r="8" fill="#08090b" stroke="#6b6e76" />
+          <path d="M12 14h184v180H12z" fill="#000" opacity="0.35" />
+          <path d="M6 8h184v184H6z" fill="#16191f" stroke="#71747c" strokeWidth="1" />
+          {kit.logoUrl ? (
+            <image
+              href={kit.logoUrl}
+              x="7"
+              y="9"
+              width="182"
+              height="182"
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : (
+            <Headphones x="58" y="60" width="80" height="80" color="#b7c0cd" strokeWidth="1.25" />
+          )}
+          <path d="M7 9h5v182H7z" fill="#fff" opacity="0.08" />
+        </svg>
       ) : (
         <Headphones className="size-7 text-neutral-300" aria-hidden="true" />
       )}
@@ -48,7 +88,7 @@ export function MusicKitSlot({
   const equip = useMusicKitsStore((s) => s.equip)
   const id = snapshot?.equipped[team]
   const kit = snapshot?.kits.find((k) => k.id === id)
-  const title = `${t('music.item')}: ${kit ? (kit.name) : t('music.empty')}`
+  const title = `${t('music.item')}: ${kit ? kit.name : t('music.empty')}`
   return (
     <div className={twMerge('flex flex-col items-center gap-1.5', className)}>
       <div
