@@ -142,6 +142,9 @@ jobs:
           path = Path('/etc/apt/sources.list.d/ubuntu.sources')
           stanzas = []
           for stanza in path.read_text().strip().split('\n\n'):
+              if not re.search(r'^Types:', stanza, flags=re.M):
+                  stanzas.append(stanza)
+                  continue
               stanza = re.sub(r'^Architectures:.*\n?', '', stanza, flags=re.M)
               stanzas.append(stanza.rstrip() + '\nArchitectures: amd64')
           path.write_text('\n\n'.join(stanzas) + '\n')
