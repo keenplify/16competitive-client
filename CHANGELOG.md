@@ -4308,3 +4308,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux ARM64
 
 - Improved compatibility for ARM64 Linux packages.
+
+## v2026.1105.8 — 2026-11-05
+
+### Match recovery
+
+- Managed match sessions can now be recovered after interruptions.
+
+### Standalone launches
+
+- Standalone game launches no longer require Steam.
