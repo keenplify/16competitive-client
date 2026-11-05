@@ -4339,3 +4339,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - The shop displays available prices and confirms the selected payment currency before purchasing.
 - Purchase feedback and wallet balances update after a successful purchase.
 - Music kit names reflect admin edits, including the built-in Quake kit.
+
+## v2026.1106.3 — 2026-11-06
+
+### Music kits
+
+- Music-kit artwork now shows the uploaded logo on an album cover, with a plain dark disc behind it.
+- The shared artwork appears in the main shop, inventory, and equipped music-kit slots.
