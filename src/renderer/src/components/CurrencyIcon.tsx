@@ -1,5 +1,6 @@
 import { twMerge } from 'tailwind-merge'
-import type { JSX, ReactNode } from 'react'
+import { useId, useRef, useState, type JSX, type ReactNode } from 'react'
+import { AnchoredTooltip } from './ui/AnchoredTooltip'
 import pointsCoin from '../assets/currency-points.svg'
 import papaCashCoin from '../assets/currency-pcash.svg'
 
@@ -100,13 +101,29 @@ export function CurrencyAmount({
 }): JSX.Element {
   const presentation = currencyPresentation[currency]
 
+  const anchorRef = useRef<HTMLSpanElement>(null)
+  const tooltipId = useId()
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const tooltipVisible = showTooltip && (hovered || focused)
+
   return (
     <span
-      className={twMerge(
-        'group/currency relative inline-flex items-center gap-1.5 tabular-nums',
-        className
-      )}
+      ref={anchorRef}
+      className={twMerge('relative inline-flex items-center gap-1.5 tabular-nums', className)}
       aria-label={`${amount.toLocaleString(locale)} ${presentation.label}`}
+      aria-describedby={tooltipVisible ? tooltipId : undefined}
+      tabIndex={showTooltip ? 0 : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          setHovered(false)
+          setFocused(false)
+        }
+      }}
     >
       <CurrencyIcon
         currency={currency}
@@ -114,14 +131,11 @@ export function CurrencyAmount({
         className={twMerge('size-5', iconClassName)}
       />
       <span>{amount.toLocaleString(locale)}</span>
-      {showTooltip && (
-        <span
-          role="tooltip"
-          className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-50 w-max max-w-56 -translate-x-1/2 translate-y-1   border border-white/15 bg-neutral-950/95 px-3 py-2 text-left text-[11px] font-normal leading-4 text-neutral-200 opacity-0 shadow-2xl backdrop-blur transition group-hover/currency:translate-y-0 group-hover/currency:opacity-100 group-focus-within/currency:translate-y-0 group-focus-within/currency:opacity-100"
-        >
+      {tooltipVisible && (
+        <AnchoredTooltip id={tooltipId} anchorRef={anchorRef}>
           <strong className="block font-semibold text-white">{presentation.label}</strong>
           <span className="text-neutral-400">{presentation.description}</span>
-        </span>
+        </AnchoredTooltip>
       )}
     </span>
   )

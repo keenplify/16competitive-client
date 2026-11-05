@@ -4,7 +4,8 @@ import {
   type PlayerPingKey
 } from '../../shared/player-ping'
 import { app, dialog } from 'electron'
-import { chmod, mkdir, open, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { replaceLiveSessionFile } from './live-session-file'
 import { findInstallation } from './installation-search'
 import { basename, dirname, isAbsolute, join, normalize } from 'node:path'
 import type { GameSettings, SetupMode } from '../../shared/game-settings'
@@ -313,7 +314,7 @@ const writeStoredSettings = (settings: StoredGameSettings): Promise<void> => {
       encoding: 'utf8',
       mode: 0o600
     })
-    await rename(temporary, destination)
+    await replaceLiveSessionFile(temporary, destination)
     if (process.platform !== 'win32') await chmod(destination, 0o600)
   }
   const pending = settingsWriteQueue.then(write, write)

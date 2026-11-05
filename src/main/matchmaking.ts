@@ -687,6 +687,12 @@ class MatchmakingConnection {
             message: 'Could not launch the warmup.',
             whileQueued: true
           })
+          // The server repeats match_connect until admission. A failed local
+          // preparation must require an explicit retry, not reopen Steam on
+          // every heartbeat. Do not await cleanup here: it awaits this launch.
+          void this.leaveWarmup('launch-failed').catch((cleanupError) =>
+            console.warn('[QueueWarmup] cleanup failed', cleanupError)
+          )
         })
     } else if (message.type === 'match_cancelled' || message.type === 'match_finished') {
       console.info('[QueueWarmup] server ended session', {

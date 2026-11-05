@@ -9,7 +9,12 @@ import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-async function harness({ platform = 'linux', window = null, timers = null } = {}) {
+async function harness({
+  platform = 'linux',
+  window = null,
+  timers = null,
+  launchError = null
+} = {}) {
   const calls = [],
     events = [],
     sent = []
@@ -103,8 +108,9 @@ async function harness({ platform = 'linux', window = null, timers = null } = {}
     startSkinAssetSync: async () => {},
     waitForMatchAssetPreload: () => assets,
     launchCounterStrikeForMatch: async (input) => {
-      activeMatch = input.matchId
       calls.push(['launch', input.matchId, input.apiUrl])
+      if (launchError) throw launchError
+      activeMatch = input.matchId
     },
     isCounterStrikeActiveForMatch: (id) => activeMatch === id,
     shutdownManagedGame: async () => {
@@ -331,6 +337,26 @@ test('warmup uses its original region, preserves ranked search, and awaits clean
   assert.ok(!h.events.some((event) => event.type === 'error'))
   assert.ok(h.sent.some((message) => message.type === 'leave_warmup'))
   assert.ok(!h.sent.some((message) => message.type === 'leave_queue'))
+})
+
+test('failed preparation leaves warmup once and ignores repeated server launch messages', async () => {
+  const h = await harness({ launchError: new Error('Standalone game preparation failed') })
+  await h.connection.joinWarmup('5v5', 'de_dust2')
+  h.connection.handleWarmup({ ...found, mode: '5v5' }, h.socket)
+  h.connection.handleWarmup(connect, h.socket)
+  h.finishAssets()
+  await h.connection.warmupLaunch
+  await h.connection.warmupCleanup
+  for (let i = 0; i < 3; i++) h.connection.handleWarmup(connect, h.socket)
+  await h.connection.warmupLaunch
+  assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
+  assert.equal(h.events.filter((event) => event.code === 'WARMUP_FAILED').length, 1)
+  assert.equal(h.sent.filter((event) => event.type === 'leave_warmup').length, 1)
+  assert.equal(h.connection.warmupMatchId, null)
+  assert.equal(h.connection.desiredMode, '5v5')
+  await h.connection.joinWarmup('5v5', 'de_dust2')
+  assert.equal(h.connection.warmupSuppressed, false)
+  assert.equal(h.connection.cancelledMatchIds.has(connect.matchId), false)
 })
 
 test('an explicit MR8 retry accepts the reserved session after process-exit cleanup', async () => {

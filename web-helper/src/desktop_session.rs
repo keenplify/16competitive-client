@@ -128,10 +128,23 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "STICKER_PREPARATION_FAILED" => "STICKER_PREPARATION_FAILED",
         "ASSET_PREPARATION_FAILED" => "ASSET_PREPARATION_FAILED",
         "STARTUP_CONFIG_FAILED" => "STARTUP_CONFIG_FAILED",
+        "NATIVE_BUNDLE_FAILED" => "NATIVE_BUNDLE_FAILED",
+        "NATIVE_SESSION_FAILED" => "NATIVE_SESSION_FAILED",
+        "NATIVE_INSTALL_UNSUPPORTED" => "NATIVE_INSTALL_UNSUPPORTED",
+        "INSPECTOR_START_FAILED" => "INSPECTOR_START_FAILED",
+        "STEAM_START_FAILED" => "STEAM_START_FAILED",
+        "GAME_SPAWN_FAILED" => "GAME_SPAWN_FAILED",
+        "GAME_STARTUP_FAILED" => "GAME_STARTUP_FAILED",
         value if value.starts_with("Sticker cache") => "STICKER_CACHE_FAILED",
         "STICKER_CACHE_FAILED" => "STICKER_CACHE_FAILED",
         _ => "PREPARATION_FAILED",
     }
+}
+
+/// Preserve a recognized failure, otherwise expose only the fixed failing step.
+pub(crate) fn preparation_error(error: &str, step: &str) -> String {
+    let code = failure_code(error);
+    if code == "PREPARATION_FAILED" { failure_code(step).into() } else { code.into() }
 }
 
 pub(crate) fn report_failure(error: &str) {
@@ -370,6 +383,9 @@ mod tests {
         }
         assert_eq!(failure_code("Close the existing Counter-Strike game before starting a managed session"), "GAME_ALREADY_RUNNING");
         assert_eq!(failure_code("secret token or private backend body"), "PREPARATION_FAILED");
+        assert_eq!(preparation_error("private path and token", "NATIVE_BUNDLE_FAILED"), "NATIVE_BUNDLE_FAILED");
+        assert_eq!(preparation_error("NATIVE_RECOVERY_FAILED", "NATIVE_SESSION_FAILED"), "NATIVE_RECOVERY_FAILED");
+        assert_eq!(preparation_error("private token", "private step"), "PREPARATION_FAILED");
     }
     #[test]
     fn handoff_needs_commit_and_parent_exit_before_ownership() {

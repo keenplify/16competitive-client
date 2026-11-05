@@ -856,7 +856,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     #[cfg(not(windows))]
     let gold_client = false;
     let game_dir = root.join(&mod_dir);
-    if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) { start_steam_client()?; }
+    if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
+        start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
+    }
     #[cfg(target_os = "linux")]
     let library_paths = {
         let root = root.clone();
@@ -864,8 +866,9 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
     let game_startup = owned_game::Startup::prepare(&exe, &game_dir)?;
-    let scanner_bundle = native_bundle::prepare(&user_config_dir()?)?;
-    if inspector::check_device(&scanner_bundle, api)?["banned"] == true {
+    let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
+        .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
+    if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
         return Err("This device cannot join competitive matches".into());
     }
     assets::prepare_match(&game_dir, connection, api, token).map_err(|_| "ASSET_PREPARATION_FAILED")?;
@@ -879,7 +882,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         // The direct legacy adapter is standalone; the native CS1.6 adapter
         // uses Steam unless the shared Windows launch pattern selects emulation.
         steam: connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client),
-    })?;
+    }).map_err(|e| desktop_session::preparation_error(&e, "INSPECTOR_START_FAILED"))?;
     let mut native: Option<(native_bundle::NativeBundle, native_session::NativeSession)> = None;
     #[cfg(windows)]
     let mut windows_install: Option<windows_native::WindowsInstall> = None;
@@ -896,7 +899,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
                 .map(|session| (bundle, session))
         }) {
             Ok((bundle, session)) => native = Some((bundle, session)),
-            Err(error) => return Err(format!("Native session preparation failed: {error}")),
+            Err(error) => return Err(desktop_session::preparation_error(&error, "NATIVE_SESSION_FAILED")),
         }
     }
     #[cfg(windows)]
@@ -912,7 +915,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
                     api,
                     token,
                     &preferences,
-                )?;
+                ).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_SESSION_FAILED"))?;
                 match windows_native::WindowsInstall::install(&root, &bundle) {
                     Ok(Some(installation)) => {
                         windows_install = Some(installation);
@@ -931,7 +934,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
                         {
                             session.cleanup()?;
                         }
-                        return Err(error);
+                        return Err(desktop_session::preparation_error(&error, "NATIVE_INSTALL_FAILED"));
                     }
                 }
             }
@@ -971,7 +974,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
         }
     }
     if connection.game() == "cs16" && native.is_none() {
-        return Err("This installation does not support the native session module".into());
+        return Err("NATIVE_INSTALL_UNSUPPORTED".into());
     }
     auth = if connection.game() == "cs13" {
         Some(cs13_auth_file(&game_dir, connection)?)
@@ -1085,7 +1088,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
             })?;
         }
         game_startup.recheck()?;
-        command.spawn().map_err(|error| error.to_string())
+        command.spawn().map_err(|_| "GAME_SPAWN_FAILED".into())
     })();
     let mut child = prepared_child?;
     let _activity = presence::GameLease::start(
@@ -1096,7 +1099,7 @@ fn launch_native_match(connection: &Connection, api: &str, token: &str,
     );
     let mut owned_game = None;
     let wait_result = (|| -> Result<(), String> {
-        owned_game = Some(game_startup.wait()?);
+        owned_game = Some(game_startup.wait().map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?);
         scanner.attach(owned_game.as_ref().unwrap().pid)?;
         scanner.await_attachment(Duration::from_secs(20))?;
         ready()?;
