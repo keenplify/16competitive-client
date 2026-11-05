@@ -4330,3 +4330,12 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved audio playback state handling.
 - Added support for translated music kit names and descriptions.
+
+## v2026.1106.2 — 2026-11-06
+
+### Music kits
+
+- Buy music kits with Points, P Cash, or either currency when enabled by the kit creator.
+- The shop displays available prices and confirms the selected payment currency before purchasing.
+- Purchase feedback and wallet balances update after a successful purchase.
+- Music kit names reflect admin edits, including the built-in Quake kit.
