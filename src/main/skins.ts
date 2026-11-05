@@ -48,6 +48,12 @@ import {
   validatePaymentAmount,
   validatePaymentId
 } from '../shared/payments'
+import {
+  parseWithdrawalHistory,
+  parseWithdrawalOptions,
+  parseWithdrawalResult,
+  validateCreateWithdrawal
+} from '../shared/withdrawals'
 
 const PREVIEW_MODEL_CACHE_ENABLED = true
 const SKIN_API_URL_CACHE_MS = 5_000
@@ -208,6 +214,21 @@ export const listSkins = async (weaponKey?: unknown): Promise<Skin[]> => {
 }
 
 export const getPayments = async () => parsePaymentSnapshot(await playerRequest('/payments/p-cash'))
+
+export const getWithdrawalOptions = async () =>
+  parseWithdrawalOptions(await playerRequest('/withdrawals/options'))
+
+export const getWithdrawalHistory = async () =>
+  parseWithdrawalHistory(await playerRequest('/withdrawals'))
+
+export const createWithdrawal = async (input: unknown) =>
+  parseWithdrawalResult(
+    await playerRequest('/withdrawals', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(validateCreateWithdrawal(input))
+    })
+  )
 
 export const createPayment = async (requestId: unknown, amount: unknown) => {
   const data = await playerRequest('/payments/p-cash', {

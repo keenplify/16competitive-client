@@ -326,6 +326,9 @@ const skins: SkinsApi = {
   musicEquip: (id, team) => ipcRenderer.invoke(SKIN_CHANNELS.musicEquip, id, team),
   musicPreview: (id, event) => ipcRenderer.invoke(SKIN_CHANNELS.musicPreview, id, event),
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
+  withdrawalOptions: () => ipcRenderer.invoke(SKIN_CHANNELS.withdrawalOptions),
+  withdrawalHistory: () => ipcRenderer.invoke(SKIN_CHANNELS.withdrawalHistory),
+  createWithdrawal: (input) => ipcRenderer.invoke(SKIN_CHANNELS.createWithdrawal, input),
   createManualPayment: (requestId, methodId, amount) =>
     ipcRenderer.invoke(SKIN_CHANNELS.createManualPayment, requestId, methodId, amount),
   submitManualPayment: (id, senderName, reference) =>

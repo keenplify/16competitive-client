@@ -58,6 +58,7 @@ import {
   type SkinRarity
 } from './skin-rarity'
 import { PCashTopUpButton, PCashTopUpModal } from './PCashTopUp'
+import { WithdrawButton, WithdrawModal } from './Withdraw'
 import { usePaymentsStore } from './payments.store'
 
 type SkinTypeFilter = 'all' | SkinRarity
@@ -208,6 +209,25 @@ export function ShopPage(): JSX.Element {
   const [purchaseSkin, setPurchaseSkin] = useState<Skin | null>(null)
   const [previewSkin, setPreviewSkin] = useState<Skin | null>(null)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
+  const [showWithdraw, setShowWithdraw] = useState(false)
+  const [withdrawEnabled, setWithdrawEnabled] = useState(false)
+  const ownerId = useAuthStore((state) => state.session?.player.id ?? null)
+  useEffect(() => {
+    let active = true
+    setWithdrawEnabled(false)
+    if (!ownerId) return
+    void window.api.skins
+      .withdrawalOptions()
+      .then((options) => {
+        if (active) setWithdrawEnabled(options.enabled)
+      })
+      .catch(() => {
+        if (active) setWithdrawEnabled(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [ownerId])
   const navigate = useNavigationStore((state) => state.navigate)
   const setProfileTab = useNavigationStore((state) => state.setProfileTab)
   const paymentBalance = usePaymentsStore((state) => state.snapshot?.pCash)
@@ -429,12 +449,20 @@ export function ShopPage(): JSX.Element {
             <CurrencyBalance
               currency="P_CASH"
               amount={pCash}
-              action={<PCashTopUpButton className="size-8" />}
+              action={
+                <span className="flex items-center gap-1">
+                  {withdrawEnabled && (
+                    <WithdrawButton className="size-8" onClick={() => setShowWithdraw(true)} />
+                  )}
+                  <PCashTopUpButton className="size-8" />
+                </span>
+              }
             />
           </div>
         </header>
 
         <PCashTopUpModal />
+        <WithdrawModal open={showWithdraw} onClose={() => setShowWithdraw(false)} />
 
         <div
           ref={scrollRef}

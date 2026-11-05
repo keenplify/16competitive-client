@@ -12,6 +12,9 @@ export const SKIN_CHANNELS = {
   musicEquip: 'skins:music-equip',
   musicPreview: 'skins:music-preview',
   payments: 'skins:payments',
+  withdrawalOptions: 'skins:withdrawal-options',
+  withdrawalHistory: 'skins:withdrawal-history',
+  createWithdrawal: 'skins:create-withdrawal',
   createPayment: 'skins:create-payment',
   createManualPayment: 'skins:create-manual-payment',
   submitManualPayment: 'skins:submit-manual-payment',
@@ -175,6 +178,11 @@ export interface SkinsApi {
   musicEquip(id: string | null, team: import('./music-kits').MusicTeam): Promise<void>
   musicPreview(id: string, event: import('./music-kits').MusicEvent): Promise<ArrayBuffer>
   payments(): Promise<PaymentSnapshot>
+  withdrawalOptions(): Promise<import('./withdrawals').WithdrawalOptions>
+  withdrawalHistory(): Promise<import('./withdrawals').WithdrawalRequest[]>
+  createWithdrawal(
+    input: import('./withdrawals').CreateWithdrawalInput
+  ): Promise<import('./withdrawals').WithdrawalResult>
   createManualPayment(
     requestId: string,
     methodId: string,

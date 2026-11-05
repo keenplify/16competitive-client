@@ -197,7 +197,10 @@ import {
   refreshPayment,
   createManualPayment,
   submitManualPayment,
-  cancelManualPayment
+  cancelManualPayment,
+  getWithdrawalOptions,
+  getWithdrawalHistory,
+  createWithdrawal
 } from './skins'
 import {
   equipSkin,
@@ -1197,6 +1200,11 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(SKIN_CHANNELS.list, (_, weaponKey: unknown) => listSkins(weaponKey))
   ipcMain.handle(SKIN_CHANNELS.payments, () => getPayments())
+  ipcMain.handle(SKIN_CHANNELS.withdrawalOptions, () => getWithdrawalOptions())
+  ipcMain.handle(SKIN_CHANNELS.withdrawalHistory, () => getWithdrawalHistory())
+  ipcMain.handle(SKIN_CHANNELS.createWithdrawal, (_, input: unknown) =>
+    createWithdrawal(input)
+  )
   ipcMain.handle(
     SKIN_CHANNELS.createManualPayment,
     (_, requestId: unknown, methodId: unknown, amount: unknown) =>

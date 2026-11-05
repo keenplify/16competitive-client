@@ -18,6 +18,7 @@ import { profileTranslations } from './profile-translations'
 import { queueAgainTranslations } from './queue-again-translations'
 import { gameDisplayTranslations } from './game-display-translations'
 import { paymentTranslations } from './payment-translations'
+import { withdrawalTranslations } from './withdrawal-translations'
 import { roomSettingsTranslations } from './room-settings-translations'
 import { legacyGameTranslations } from './legacy-game-translations'
 import { webHelperTranslations } from './web-helper-translations'
@@ -86,6 +87,7 @@ const english = {
   ...matchNotificationTranslations.en,
   ...playerPingTranslations.en,
   ...paymentTranslations.en,
+  ...withdrawalTranslations.en,
   ...profileTranslations.en,
   ...characterTranslations.en,
   ...passwordResetTranslations.en,
@@ -273,6 +275,7 @@ const russian: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.ru,
   ...playerPingTranslations.ru,
   ...paymentTranslations.ru,
+  ...withdrawalTranslations.ru,
   ...profileTranslations.ru,
   ...characterTranslations.ru,
   ...passwordResetTranslations.ru,
@@ -460,6 +463,7 @@ const taglish: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.tl,
   ...playerPingTranslations.tl,
   ...paymentTranslations.tl,
+  ...withdrawalTranslations.tl,
   ...profileTranslations.tl,
   ...characterTranslations.tl,
   ...passwordResetTranslations.tl,
@@ -649,6 +653,7 @@ const thai: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.th,
   ...playerPingTranslations.th,
   ...paymentTranslations.th,
+  ...withdrawalTranslations.th,
   ...profileTranslations.th,
   ...characterTranslations.th,
   ...passwordResetTranslations.th,
@@ -834,6 +839,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.id,
   ...playerPingTranslations.id,
   ...paymentTranslations.id,
+  ...withdrawalTranslations.id,
   ...profileTranslations.id,
   ...characterTranslations.id,
   ...passwordResetTranslations.id,
@@ -1026,6 +1032,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.pt,
   ...playerPingTranslations.pt,
   ...paymentTranslations.pt,
+  ...withdrawalTranslations.pt,
   ...profileTranslations.pt,
   ...characterTranslations.pt,
   ...passwordResetTranslations.pt,
@@ -1218,6 +1225,7 @@ const japanese: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.ja,
   ...playerPingTranslations.ja,
   ...paymentTranslations.ja,
+  ...withdrawalTranslations.ja,
   ...profileTranslations.ja,
   ...characterTranslations.ja,
   ...passwordResetTranslations.ja,
@@ -1408,6 +1416,7 @@ const hindi: Record<TranslationKey, string> = {
   ...matchNotificationTranslations.hi,
   ...playerPingTranslations.hi,
   ...paymentTranslations.hi,
+  ...withdrawalTranslations.hi,
   ...profileTranslations.hi,
   ...characterTranslations.hi,
   ...passwordResetTranslations.hi,

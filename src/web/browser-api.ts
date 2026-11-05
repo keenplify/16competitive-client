@@ -116,6 +116,12 @@ import {
   validatePaymentAmount,
   validatePaymentId
 } from '../shared/payments'
+import {
+  parseWithdrawalHistory,
+  parseWithdrawalOptions,
+  parseWithdrawalResult,
+  validateCreateWithdrawal
+} from '../shared/withdrawals'
 import type {
   LobbyLoadout,
   OwnedSkin,
@@ -547,6 +553,15 @@ const party = {
 const skins = {
   async payments() {
     return parsePaymentSnapshot(await authenticatedGet('/payments/p-cash'))
+  },
+  async withdrawalOptions() {
+    return parseWithdrawalOptions(await authenticatedGet('/withdrawals/options'))
+  },
+  async withdrawalHistory() {
+    return parseWithdrawalHistory(await authenticatedGet('/withdrawals'))
+  },
+  async createWithdrawal(input: import('../shared/withdrawals').CreateWithdrawalInput) {
+    return parseWithdrawalResult(await jsonPost('/withdrawals', validateCreateWithdrawal(input)))
   },
   async createManualPayment(requestId: string, methodId: string, amount: number) {
     return parseManualOrder(
