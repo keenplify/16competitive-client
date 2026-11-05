@@ -210,19 +210,23 @@ export function ShopPage(): JSX.Element {
   const [previewSkin, setPreviewSkin] = useState<Skin | null>(null)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
-  const [withdrawEnabled, setWithdrawEnabled] = useState(false)
+  const [withdrawAvailability, setWithdrawAvailability] = useState<{
+    ownerId: string
+    enabled: boolean
+  } | null>(null)
   const ownerId = useAuthStore((state) => state.session?.player.id ?? null)
+  const withdrawEnabled =
+    withdrawAvailability?.ownerId === ownerId && withdrawAvailability?.enabled === true
   useEffect(() => {
     let active = true
-    setWithdrawEnabled(false)
     if (!ownerId) return
     void window.api.skins
       .withdrawalOptions()
       .then((options) => {
-        if (active) setWithdrawEnabled(options.enabled)
+        if (active) setWithdrawAvailability({ ownerId, enabled: options.enabled })
       })
       .catch(() => {
-        if (active) setWithdrawEnabled(false)
+        if (active) setWithdrawAvailability({ ownerId, enabled: false })
       })
     return () => {
       active = false
@@ -338,7 +342,8 @@ export function ShopPage(): JSX.Element {
   const showMusic =
     (selectedCategory === 'all' || selectedCategory === 'music') && selectedSkinType === 'all'
 
-  const hasActiveFilters = selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim().length > 0
+  const hasActiveFilters =
+    selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim().length > 0
 
   const clearFilters = (): void => {
     setSelectedCategory('all')
@@ -1025,7 +1030,13 @@ function SkinPreviewContent({
           </div>
         )}
       </div>
-      {stickerTargetKey && <AttachedStickerLinks targetKey={stickerTargetKey} targetName={skin.name} onClose={onClose} />}
+      {stickerTargetKey && (
+        <AttachedStickerLinks
+          targetKey={stickerTargetKey}
+          targetName={skin.name}
+          onClose={onClose}
+        />
+      )}
     </ModalDialog>
   )
 }

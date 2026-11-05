@@ -55,8 +55,7 @@ export function WithdrawButton({
   )
 }
 
-const statusKey = (status: WithdrawalRequest['status']) =>
-  `withdraw.status.${status}` as const
+const statusKey = (status: WithdrawalRequest['status']) => `withdraw.status.${status}` as const
 
 function WithdrawalHistory({
   history,
@@ -74,12 +73,7 @@ function WithdrawalHistory({
   const { t, language } = useTranslation()
   const number = new Intl.NumberFormat(language)
   return (
-    <ModalDialog
-      open
-      onClose={onClose}
-      labelledBy="withdraw-history-title"
-      className="max-w-3xl"
-    >
+    <ModalDialog open onClose={onClose} labelledBy="withdraw-history-title" className="max-w-3xl">
       <header className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <RotateCcwClock className="size-6 shrink-0 text-emerald-200" aria-hidden="true" />
@@ -133,15 +127,11 @@ function WithdrawalHistory({
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 space-y-1">
                       <p className="text-lg font-semibold tabular-nums">
-                        {number.format(
-                          Math.floor((request.amountUsdCents * pCashPerUsd) / 100)
-                        )}{' '}
+                        {number.format(Math.floor((request.amountUsdCents * pCashPerUsd) / 100))}{' '}
                         P-Cash
                       </p>
                       <p className="text-sm text-neutral-300">{request.channel}</p>
-                      <p className="text-xs break-words text-neutral-400">
-                        {request.destination}
-                      </p>
+                      <p className="text-xs break-words text-neutral-400">{request.destination}</p>
                       <p className="text-xs text-neutral-400">
                         {new Date(request.createdAt).toLocaleString(language)}
                       </p>
@@ -178,11 +168,23 @@ export function WithdrawModal({
   onClose: () => void
   className?: string
 }): JSX.Element | null {
-  const { t, language } = useTranslation()
   const ownerId = useAuthStore((state) => state.session?.player.id ?? null)
+  return open && ownerId ? (
+    <WithdrawForm key={ownerId} onClose={onClose} className={className} />
+  ) : null
+}
+
+function WithdrawForm({
+  onClose,
+  className
+}: {
+  onClose: () => void
+  className?: string
+}): JSX.Element {
+  const { t, language } = useTranslation()
   const [options, setOptions] = useState<WithdrawalOptions | null>(null)
   const [history, setHistory] = useState<WithdrawalRequest[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -190,12 +192,9 @@ export function WithdrawModal({
   const [details, setDetails] = useState<Record<string, string>>({})
   const [amount, setAmount] = useState('')
 
-  const showError = useCallback(
-    (message: string, toastId = 'withdraw-error') => {
-      toast.error(message, { toastId })
-    },
-    []
-  )
+  const showError = useCallback((message: string, toastId = 'withdraw-error') => {
+    toast.error(message, { toastId })
+  }, [])
 
   const refreshHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -211,36 +210,31 @@ export function WithdrawModal({
     }
   }, [showError, t])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [nextOptions, nextHistory] = await Promise.all([
-        window.api.skins.withdrawalOptions(),
-        window.api.skins.withdrawalHistory()
-      ])
-      setOptions(nextOptions)
-      setHistory(nextHistory)
-      const preferred = nextOptions.account?.channelId ?? nextOptions.channels[0]?.id ?? ''
-      setChannelId(preferred)
-      setDetails(
-        nextOptions.account?.channelId === preferred ? nextOptions.account.details : {}
-      )
-    } catch (caught) {
-      showError(caught instanceof Error ? caught.message : t('withdraw.unknownError'))
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    let active = true
+    const load = async (): Promise<void> => {
+      try {
+        const [nextOptions, nextHistory] = await Promise.all([
+          window.api.skins.withdrawalOptions(),
+          window.api.skins.withdrawalHistory()
+        ])
+        if (!active) return
+        setOptions(nextOptions)
+        setHistory(nextHistory)
+        const preferred = nextOptions.account?.channelId ?? nextOptions.channels[0]?.id ?? ''
+        setChannelId(preferred)
+        setDetails(nextOptions.account?.channelId === preferred ? nextOptions.account.details : {})
+      } catch (caught) {
+        if (active) showError(caught instanceof Error ? caught.message : t('withdraw.unknownError'))
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      active = false
     }
   }, [showError, t])
-
-  useEffect(() => {
-    if (open && ownerId) void load()
-  }, [open, ownerId, load])
-
-  useEffect(() => {
-    if (!open) setHistoryOpen(false)
-  }, [open])
-
-  if (!open) return null
 
   const channel: WithdrawalChannel | undefined = options?.channels.find(
     (item) => item.id === channelId
@@ -274,7 +268,9 @@ export function WithdrawModal({
       toast.success(t('withdraw.success'))
       setAmount('')
       setOptions((current) =>
-        current ? { ...current, balancePCash: result.balancePCash, account: result.account } : current
+        current
+          ? { ...current, balancePCash: result.balancePCash, account: result.account }
+          : current
       )
       void refreshHistory()
     } catch (caught) {
@@ -285,12 +281,7 @@ export function WithdrawModal({
   }
   return (
     <>
-      <ModalDialog
-        open
-        onClose={onClose}
-        labelledBy="withdraw-title"
-        className={className}
-      >
+      <ModalDialog open onClose={onClose} labelledBy="withdraw-title" className={className}>
         <div id="p-cash-withdraw">
           <header className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
@@ -420,9 +411,7 @@ export function WithdrawModal({
                       variant="secondary"
                       className="h-11 shrink-0 gap-2 px-3 text-emerald-300"
                       disabled={busy || (options.balancePCash ?? 0) <= 0}
-                      onClick={() =>
-                        setAmount(String(Math.max(0, options.balancePCash ?? 0)))
-                      }
+                      onClick={() => setAmount(String(Math.max(0, options.balancePCash ?? 0)))}
                     >
                       <ChevronsUp className="size-5" aria-hidden="true" />
                       {t('withdraw.all')}
