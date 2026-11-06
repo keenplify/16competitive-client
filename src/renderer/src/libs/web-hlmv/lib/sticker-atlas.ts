@@ -646,7 +646,14 @@ export type FullColorStickerTexture = {
 export function fullColorStickerTextures(
   atlas: StickerAtlas,
   placements: readonly { sticker: StickerPixels; projection: Projection }[],
-  resolutionScale = 1
+  resolutionScale = 1,
+  composite?: (
+    overlay: Uint8Array,
+    source: Uint8ClampedArray,
+    width: number,
+    height: number,
+    scale: number
+  ) => Uint8ClampedArray
 ): FullColorStickerTexture[] {
   const textures = modelTextures(atlas.model)
   return [...projectedStickerLayers(atlas, placements, resolutionScale)].map(
@@ -654,6 +661,19 @@ export function fullColorStickerTextures(
       const source = texturePixels(atlas.model, textures[texture])
       const width = textures[texture].width * resolutionScale
       const height = textures[texture].height * resolutionScale
+      if (composite)
+        return {
+          texture,
+          width,
+          height,
+          rgba: composite(
+            overlay,
+            source,
+            textures[texture].width,
+            textures[texture].height,
+            resolutionScale
+          )
+        }
       // Composite in-place to keep the 4x export bounded; an extra full-size copy
       // per layer would triple peak memory before serialization in QuickJS.
       const base = new Uint8ClampedArray(overlay.buffer, overlay.byteOffset, overlay.byteLength)

@@ -1,5 +1,5 @@
 //! Trusted, embedded geometry code; all IO and hash checks remain in Rust.
-use rquickjs::{Array, ArrayBuffer, Context, Function, Object, Runtime};
+use rquickjs::{Array, ArrayBuffer, Context, Ctx, Function, Object, Runtime};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::{
@@ -36,6 +36,44 @@ struct Pixels {
     rgba: Vec<u8>,
 }
 
+// Keep the full-resolution pixel loop out of interpreted JavaScript. It can
+// otherwise exhaust the launch budget even when every recipe is valid.
+fn composite_texture(
+    overlay: &[u8], source: &[u8], width: u32, height: u32, scale: u32,
+) -> Result<Vec<u8>, &'static str> {
+    if width == 0 || height == 0 || width > 512 || height > 512 || ![1, 4].contains(&scale) {
+        return Err("Invalid sticker texture dimensions");
+    }
+    let (width, height, scale) = (width as usize, height as usize, scale as usize);
+    if source.len() != width * height * 4 || overlay.len() != width * height * scale * scale * 4 {
+        return Err("Invalid sticker texture bytes");
+    }
+    let mut output = overlay.to_vec();
+    let stride = width * scale;
+    for (index, pixel) in output.chunks_exact_mut(4).enumerate() {
+        let at = ((index / stride / scale) * width + (index % stride / scale)) * 4;
+        // Match Math.round in the browser exporter, including half-way values.
+        let alpha = pixel[3] as f64 / 255.0;
+        for channel in 0..3 {
+            pixel[channel] = (pixel[channel] as f64 * alpha + source[at + channel] as f64 * (1.0 - alpha)).round() as u8;
+        }
+        pixel[3] = 255;
+    }
+    Ok(output)
+}
+
+fn native_composite<'js>(
+    ctx: Ctx<'js>, overlay: ArrayBuffer<'js>, source: ArrayBuffer<'js>,
+    width: u32, height: u32, scale: u32,
+) -> rquickjs::Result<ArrayBuffer<'js>> {
+    // No JavaScript executes while borrowing these unshared input buffers.
+    let output = unsafe { overlay.as_bytes().zip(source.as_bytes()) }
+        .ok_or(rquickjs::Error::Unknown)
+        .and_then(|(overlay, source)| composite_texture(overlay, source, width, height, scale)
+            .map_err(|_| rquickjs::Error::Unknown))?;
+    ArrayBuffer::new(ctx, output)
+}
+
 fn engine(deadline: Instant) -> Result<(Runtime, Context), String> {
     let runtime = Runtime::new().map_err(|_| "Sticker engine unavailable")?;
     runtime.set_memory_limit(1536 * 1024 * 1024);
@@ -44,6 +82,10 @@ fn engine(deadline: Instant) -> Result<(Runtime, Context), String> {
     let context = Context::full(&runtime).map_err(|_| "Sticker engine unavailable")?;
     context
         .with(|ctx| -> rquickjs::Result<()> {
+            ctx.globals().set(
+                "nativeCompositeStickerTexture",
+                Function::new(ctx.clone(), native_composite)?,
+            )?;
             ctx.globals().set(
                 "nativeDecodeUtf8",
                 Function::new(ctx.clone(), |bytes: ArrayBuffer<'_>| {
@@ -324,6 +366,40 @@ pub fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_compositor_matches_browser_pixels_for_every_alpha() {
+        let (_runtime, context) = engine(Instant::now() + Duration::from_secs(10)).unwrap();
+        for scale in [1, 4] {
+            let source: Vec<u8> = (0..16*16*4).map(|i| (i * 73) as u8).collect();
+            let overlay: Vec<u8> = (0..16*16*scale*scale).flat_map(|i| [((i*19)%256) as u8, 127, 255, (i%256) as u8]).collect();
+            let actual = composite_texture(&overlay, &source, 16, 16, scale).unwrap();
+            let reference = context.with(|ctx| -> rquickjs::Result<Vec<u8>> {
+                let run: Function = ctx.eval(r#"(overlay, source, scale) => {
+                    const o = new Uint8Array(overlay), s = new Uint8Array(source);
+                    const width = 16 * scale;
+                    for (let y = 0; y < width; y++) for (let x = 0; x < width; x++) {
+                        const at = (Math.floor(y/scale)*16+Math.floor(x/scale))*4;
+                        const i = (y*width+x)*4, alpha = o[i+3]/255;
+                        for (let c=0;c<3;c++) o[i+c] = Math.round(o[i+c]*alpha+s[at+c]*(1-alpha));
+                        o[i+3] = 255;
+                    }
+                    return o.buffer;
+                }"#)?;
+                let result: ArrayBuffer = run.call((ArrayBuffer::new(ctx.clone(), overlay)?, ArrayBuffer::new(ctx.clone(), source)?, scale))?;
+                Ok(unsafe { result.as_bytes() }.unwrap().to_vec())
+            }).unwrap();
+            assert_eq!(actual, reference);
+        }
+    }
+
+    #[test]
+    fn native_compositor_rejects_invalid_sizes_before_allocation() {
+        for (width, height, scale) in [(0,1,1), (513,1,1), (1,513,1), (1,1,2), (u32::MAX,u32::MAX,4)] {
+            assert!(composite_texture(&[], &[], width, height, scale).is_err());
+        }
+        assert!(composite_texture(&[0; 4], &[0; 4], 1, 1, 4).is_err());
+        assert!(composite_texture(&[0; 64], &[], 1, 1, 4).is_err());
+    }
     #[test]
     fn embedded_parser_rejects_untrusted_paths_and_recipe_ids() {
         assert!(recipes(br#"{"recipes":[]}"#).unwrap().is_empty());

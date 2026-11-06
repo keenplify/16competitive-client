@@ -12,6 +12,13 @@ import {
 
 // The atlas exporter uses TextEncoder only for ASCII texture names.
 declare const nativeDecodeUtf8: (bytes: ArrayBuffer) => string
+declare const nativeCompositeStickerTexture: (
+  overlay: ArrayBufferLike,
+  source: ArrayBufferLike,
+  width: number,
+  height: number,
+  scale: number
+) => ArrayBuffer
 Object.assign(globalThis, {
   TextDecoder: class {
     decode(bytes: Uint8Array): string {
@@ -62,7 +69,15 @@ export function bake(
     !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === recipe.sourceSha256)
   )
   const model = bakeProjectedStickers(atlas, placements)
-  const textures = fullColorStickerTextures(atlas, placements, STICKER_TEXTURE_SCALE)
+  const textures = fullColorStickerTextures(
+    atlas,
+    placements,
+    STICKER_TEXTURE_SCALE,
+    (overlay, pixels, width, height, scale) =>
+      new Uint8ClampedArray(
+        nativeCompositeStickerTexture(overlay.buffer, pixels.buffer, width, height, scale)
+      )
+  )
   const bytes = new Uint8Array(12 + textures.reduce((sum, t) => sum + 12 + t.rgba.length, 0))
   bytes.set([49, 54, 67, 82, 71, 66, 65, 49])
   const view = new DataView(bytes.buffer)
