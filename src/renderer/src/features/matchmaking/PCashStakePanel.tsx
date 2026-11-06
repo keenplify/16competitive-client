@@ -158,7 +158,7 @@ export function PCashStakePanel({
     const timer = window.setInterval(() => void usePCashBetsStore.getState().load(matchId), 3000)
     return () => window.clearInterval(timer)
   }, [eligible, matchId, ownerId, state.load])
-  if (!eligible) return null
+  if (!eligible || !state.snapshot?.enabled) return null
   const same = state.matchId === matchId && state.ownerId === ownerId
   return (
     <PCashStakeView
