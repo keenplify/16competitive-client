@@ -50,6 +50,18 @@ const items = [
   owned: i === 0
 })) as (Skin & { owned: boolean })[]
 
+if (params.get('large') === '1') {
+  const samples = [...items]
+  items.push(
+    ...Array.from({ length: 1492 }, (_, index) => ({
+      ...samples[index % samples.length],
+      id: `${(index + 100).toString(16).padStart(8, '0')}-1111-4111-8111-111111111111`,
+      name: `Catalog skin ${index + 9}`,
+      owned: false
+    }))
+  )
+}
+
 items.push(
   ...(['ct', 't'] as const).map((team, index) => ({
     ...items[0],
@@ -89,7 +101,27 @@ const musicSample = {
   ownedIds: ['quake'],
   equipped: { ct: 'quake', t: 'quake' }
 }
-const musicActions = { purchases: 0, previews: 0 }
+if (params.get('large') === '1') {
+  musicSample.kits.push(
+    ...Array.from({ length: 198 }, (_, index) => ({
+      ...musicSample.kits[1],
+      id: `music-${index}`,
+      name: `Music kit ${index + 3}`
+    }))
+  )
+}
+const stickerSample = {
+  catalog: Array.from({ length: params.get('large') === '1' ? 100 : 2 }, (_, index) => ({
+    id: `sticker-${index}`,
+    name: `Sticker ${index + 1}`,
+    enabled: true,
+    pricePoints: 1500,
+    pricePCash: null,
+    imagePath: `media/16competitive/stickers/${(index + 1).toString(16).padStart(64, '0')}/image.png`
+  })),
+  items: []
+}
+const musicActions = { purchases: 0, previews: 0, stickerRequests: 0 }
 Object.assign(window, { musicActions })
 window.api = {
   models: {
@@ -115,7 +147,19 @@ window.api = {
             .filter((item) => item.id.startsWith('character-'))
             .map((skin) => ({ skin, acquiredAt: '2026-01-01T00:00:00Z', equippedAt: null }))
         : [],
+    withdrawalOptions: async () => ({ enabled: false, minimumAmount: 0, channels: [] }),
     collections: async () => [],
+    stickers: async () => structuredClone(stickerSample),
+    stickerImage: async () => {
+      musicActions.stickerRequests++
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 32
+      const context = canvas.getContext('2d')!
+      context.fillStyle = '#ffaa00'
+      context.fillRect(0, 0, 32, 32)
+      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((blob) => resolve(blob!)))
+      return blob.arrayBuffer()
+    },
     musicKits: async () => {
       if (params.get('music') === 'error') throw new Error('Preview music unavailable')
       return structuredClone(musicSample)

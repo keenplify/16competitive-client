@@ -165,13 +165,9 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       ])
       if (current !== generation) return
       set({ snapshot, weapons, loading: false })
-      // Decode only the bounded catalog/inventory images; failed artwork doesn't hide ownership.
+      // Owned artwork may be reused by loadouts; shop artwork loads only as cards mount.
       const paths = [
-        ...new Set(
-          [...snapshot.catalog, ...snapshot.items]
-            .map((i) => i.imagePath)
-            .filter((p): p is string => !!p)
-        )
+        ...new Set(snapshot.items.map((i) => i.imagePath).filter((p): p is string => !!p))
       ]
       for (let index = 0; index < paths.length; index += 4) {
         await Promise.all(

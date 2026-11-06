@@ -1,3 +1,4 @@
+import { VirtualGrid } from '../../components/VirtualGrid'
 import { PurchaseSuccess } from '../inventory/PurchaseSuccess'
 import { AttachedStickerLinks } from './AttachedStickerLinks'
 import { StickerStoreCard } from '../inventory/InventoryPage'
@@ -28,7 +29,16 @@ import {
   Ticket,
   X
 } from 'lucide-react'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX
+} from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
@@ -151,6 +161,7 @@ export function ShopPage(): JSX.Element {
     void useInventoryStore.getState().load()
   }, [])
   const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollContainerId = useId()
   const sidebarRef = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const scroll = scrollRef.current
@@ -322,25 +333,176 @@ export function ShopPage(): JSX.Element {
       )
   }, [ownedSkins, searchQuery, selectedCategory, selectedSkinType, skins, filterText, t])
 
-  const filteredMusic = (music.snapshot?.kits ?? []).filter(
-    (kit) =>
-      (selectedCategory === 'all' || selectedCategory === 'music') &&
-      selectedSkinType === 'all' &&
-      `${kit.name} ${kit.id === 'quake' ? t('music.default') : ''} ${t('music.title')}`
-        .toLocaleLowerCase()
-        .includes(searchQuery.trim().toLocaleLowerCase())
+  const filteredMusic = useMemo(
+    () =>
+      (music.snapshot?.kits ?? []).filter(
+        (kit) =>
+          (selectedCategory === 'all' || selectedCategory === 'music') &&
+          selectedSkinType === 'all' &&
+          `${kit.name} ${kit.id === 'quake' ? t('music.default') : ''} ${t('music.title')}`
+            .toLocaleLowerCase()
+            .includes(searchQuery.trim().toLocaleLowerCase())
+      ),
+    [music.snapshot, selectedCategory, selectedSkinType, searchQuery, t]
   )
   const showStickers =
     (selectedCategory === 'all' || selectedCategory === 'stickers') && selectedSkinType === 'all'
-  const filteredStickers = (inventory.snapshot?.catalog ?? []).filter(
-    (item) =>
-      showStickers &&
-      item.imagePath &&
-      item.name.toLocaleLowerCase().includes(searchQuery.trim().toLocaleLowerCase())
+  const filteredStickers = useMemo(
+    () =>
+      (inventory.snapshot?.catalog ?? []).filter(
+        (item) =>
+          showStickers &&
+          item.imagePath &&
+          item.name.toLocaleLowerCase().includes(searchQuery.trim().toLocaleLowerCase())
+      ),
+    [inventory.snapshot, showStickers, searchQuery]
   )
   const resultCount = filteredSkins.length + filteredMusic.length + filteredStickers.length
   const showMusic =
     (selectedCategory === 'all' || selectedCategory === 'music') && selectedSkinType === 'all'
+
+  const shopItems = useMemo(
+    () => [
+      ...filteredSkins.map((skin) => ({ id: `skin:${skin.id}`, kind: 'skin' as const, skin })),
+      ...filteredStickers.map((sticker) => ({
+        id: `sticker:${sticker.id}`,
+        kind: 'sticker' as const,
+        sticker
+      })),
+      ...(showMusic && !music.snapshot ? [{ id: 'music-loading', kind: 'loading' as const }] : []),
+      ...filteredMusic.map((kit) => ({ id: `music:${kit.id}`, kind: 'music' as const, kit }))
+    ],
+    [filteredSkins, filteredStickers, filteredMusic, showMusic, music.snapshot]
+  )
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [selectedCategory, selectedSkinType, searchQuery])
+
+  const renderShopItem = (entry: (typeof shopItems)[number]): JSX.Element => {
+    if (entry.kind === 'skin') {
+      const skin = entry.skin
+      const owned = ownedSkins.get(skin.id)
+      const buying = buyingId === skin.id
+      const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
+      const rarity = skinRarityPresentation(skin)
+      return (
+        <article
+          key={skin.id}
+          className={`flex min-h-72 flex-col border border-white/10 bg-neutral-900/90 p-5 ${owned ? 'opacity-75' : ''}`}
+        >
+          <SkinCardPreview skin={skin} owned={Boolean(owned)} onOpen={() => setPreviewSkin(skin)} />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
+              {skin.weaponKey === 'player_ct'
+                ? filterText.ctModels
+                : skin.weaponKey === 'player_t'
+                  ? filterText.tModels
+                  : skin.weaponKey}
+            </p>
+            <span
+              className={`  border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
+            >
+              {rarity.label}
+            </span>
+          </div>
+          <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
+          <p className="mt-3 flex-1 text-sm text-neutral-400">
+            {skin.description ?? 'Custom weapon skin.'}
+          </p>
+          <div className="mt-5 flex items-end justify-between gap-3">
+            <div className="flex flex-col gap-1 font-semibold tabular-nums">
+              {owned ? (
+                <span className="text-emerald-300">Owned</span>
+              ) : (
+                <>
+                  {skin.pointsEnabled && (
+                    <CurrencyAmount
+                      currency="POINTS"
+                      amount={skin.pricePoints}
+                      className="font-semibold text-white"
+                      iconClassName="size-5"
+                    />
+                  )}
+                  {skin.pricePCash !== null && (
+                    <CurrencyAmount
+                      currency="P_CASH"
+                      amount={skin.pricePCash}
+                      className="font-semibold text-white"
+                      iconClassName="size-5"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+            {owned ? (
+              <Button
+                className="h-9 px-3 text-xs"
+                variant="ghost"
+                onClick={() => openLoadout(skin)}
+              >
+                Manage loadout
+              </Button>
+            ) : (
+              <Button
+                className="size-10 px-0"
+                variant={premiumOnly ? 'primary' : 'secondary'}
+                disabled={buying}
+                aria-label={`Purchase ${skin.name}`}
+                title={`Purchase ${skin.name}`}
+                onClick={() => setPurchaseSkin(skin)}
+              >
+                {buying ? (
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <ShoppingCart className="size-4" aria-hidden="true" />
+                )}
+              </Button>
+            )}
+          </div>
+        </article>
+      )
+    }
+    if (entry.kind === 'sticker') {
+      const item = entry.sticker
+      return (
+        <StickerStoreCard key={item.id} item={item} image={inventory.images[item.imagePath!]} />
+      )
+    }
+    if (entry.kind === 'loading')
+      return (
+        <div
+          className="flex min-h-72 flex-col items-center justify-center gap-4 border border-white/10 bg-neutral-900/90 p-5"
+          role="status"
+        >
+          <p className="text-sm text-neutral-300">{t(music.error ?? 'music.loading')}</p>
+          {music.error && (
+            <Button variant="ghost" onClick={() => void music.load()}>
+              {t('music.retry')}
+            </Button>
+          )}
+        </div>
+      )
+    const kit = entry.kit
+    return (
+      <MusicKitStoreCard
+        key={`music:${kit.id}`}
+        kit={kit}
+        owned={music.snapshot!.ownedIds.includes(kit.id)}
+        equipped={Object.values(music.snapshot!.equipped).includes(kit.id)}
+        pending={music.pending || music.status !== 'ready'}
+        playing={music.playingId === kit.id}
+        event={music.event}
+        onEvent={music.setEvent}
+        onPreview={() => void music.preview(kit.id)}
+        onBuy={() => music.choosePurchase(kit)}
+        onEquip={() => {
+          openLoadout()
+          useMusicKitsStore.getState().setFilterTeam('ct')
+        }}
+      />
+    )
+  }
 
   const hasActiveFilters =
     selectedCategory !== 'all' || selectedSkinType !== 'all' || searchQuery.trim().length > 0
@@ -471,6 +633,7 @@ export function ShopPage(): JSX.Element {
 
         <div
           ref={scrollRef}
+          id={scrollContainerId}
           className="shop-scroll mt-5 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
           tabIndex={0}
           aria-label={t('nav.store')}
@@ -666,134 +829,13 @@ export function ShopPage(): JSX.Element {
                 </div>
               )}
               {resultCount > 0 || (showMusic && !music.snapshot) ? (
-                <section className="shop-skins-grid mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
-                  {filteredSkins.map((skin) => {
-                    const owned = ownedSkins.get(skin.id)
-                    const buying = buyingId === skin.id
-                    const premiumOnly = !skin.pointsEnabled && skin.pricePCash !== null
-                    const rarity = skinRarityPresentation(skin)
-                    return (
-                      <article
-                        key={skin.id}
-                        className={`flex min-h-72 flex-col border border-white/10 bg-neutral-900/90 p-5 ${owned ? 'opacity-75' : ''}`}
-                      >
-                        <SkinCardPreview
-                          skin={skin}
-                          owned={Boolean(owned)}
-                          onOpen={() => setPreviewSkin(skin)}
-                        />
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-bold tracking-[0.16em] text-sky-400 uppercase">
-                            {skin.weaponKey === 'player_ct'
-                              ? filterText.ctModels
-                              : skin.weaponKey === 'player_t'
-                                ? filterText.tModels
-                                : skin.weaponKey}
-                          </p>
-                          <span
-                            className={`  border px-2 py-1 text-[10px] font-bold tracking-wide uppercase ${rarity.className}`}
-                          >
-                            {rarity.label}
-                          </span>
-                        </div>
-                        <h2 className="mt-2 text-xl font-semibold">{skin.name}</h2>
-                        <p className="mt-3 flex-1 text-sm text-neutral-400">
-                          {skin.description ?? 'Custom weapon skin.'}
-                        </p>
-                        <div className="mt-5 flex items-end justify-between gap-3">
-                          <div className="flex flex-col gap-1 font-semibold tabular-nums">
-                            {owned ? (
-                              <span className="text-emerald-300">Owned</span>
-                            ) : (
-                              <>
-                                {skin.pointsEnabled && (
-                                  <CurrencyAmount
-                                    currency="POINTS"
-                                    amount={skin.pricePoints}
-                                    className="font-semibold text-white"
-                                    iconClassName="size-5"
-                                  />
-                                )}
-                                {skin.pricePCash !== null && (
-                                  <CurrencyAmount
-                                    currency="P_CASH"
-                                    amount={skin.pricePCash}
-                                    className="font-semibold text-white"
-                                    iconClassName="size-5"
-                                  />
-                                )}
-                              </>
-                            )}
-                          </div>
-                          {owned ? (
-                            <Button
-                              className="h-9 px-3 text-xs"
-                              variant="ghost"
-                              onClick={() => openLoadout(skin)}
-                            >
-                              Manage loadout
-                            </Button>
-                          ) : (
-                            <Button
-                              className="size-10 px-0"
-                              variant={premiumOnly ? 'primary' : 'secondary'}
-                              disabled={buying}
-                              aria-label={`Purchase ${skin.name}`}
-                              title={`Purchase ${skin.name}`}
-                              onClick={() => setPurchaseSkin(skin)}
-                            >
-                              {buying ? (
-                                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                              ) : (
-                                <ShoppingCart className="size-4" aria-hidden="true" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </article>
-                    )
-                  })}
-                  {showMusic && !music.snapshot && (
-                    <div
-                      className="flex min-h-72 flex-col items-center justify-center gap-4 border border-white/10 bg-neutral-900/90 p-5"
-                      role="status"
-                    >
-                      <p className="text-sm text-neutral-300">
-                        {t(music.error ?? 'music.loading')}
-                      </p>
-                      {music.error && (
-                        <Button variant="ghost" onClick={() => void music.load()}>
-                          {t('music.retry')}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {filteredMusic.map((kit) => (
-                    <MusicKitStoreCard
-                      key={`music:${kit.id}`}
-                      kit={kit}
-                      owned={music.snapshot!.ownedIds.includes(kit.id)}
-                      equipped={Object.values(music.snapshot!.equipped).includes(kit.id)}
-                      pending={music.pending || music.status !== 'ready'}
-                      playing={music.playingId === kit.id}
-                      event={music.event}
-                      onEvent={music.setEvent}
-                      onPreview={() => void music.preview(kit.id)}
-                      onBuy={() => music.choosePurchase(kit)}
-                      onEquip={() => {
-                        openLoadout()
-                        useMusicKitsStore.getState().setFilterTeam('ct')
-                      }}
-                    />
-                  ))}
-                  {filteredStickers.map((item) => (
-                    <StickerStoreCard
-                      key={item.id}
-                      item={item}
-                      image={inventory.images[item.imagePath!]}
-                    />
-                  ))}
-                </section>
+                <VirtualGrid
+                  key={`${selectedCategory}:${filteredSkins.length}:${filteredStickers.length}:${filteredMusic.length}`}
+                  items={shopItems}
+                  renderItem={renderShopItem}
+                  scrollContainerId={scrollContainerId}
+                  className="shop-skins-grid mt-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5"
+                />
               ) : null}
             </div>
           </div>

@@ -1,5 +1,6 @@
 .shop-scroll {
   scrollbar-gutter: stable;
+  overflow-anchor: none;
 }
 
 .shop-sidebar {
@@ -65,7 +66,7 @@
     gap: 12px;
   }
 
-  .shop-skins-grid > article {
+  .shop-skins-grid > .virtual-grid-item > article {
     padding: 12px;
   }
 
@@ -78,11 +79,11 @@
     height: clamp(64px, 11dvh, 112px);
   }
 
-  .shop-skins-grid > article > p {
+  .shop-skins-grid > .virtual-grid-item > article > p {
     margin-top: 8px;
   }
 
-  .shop-skins-grid > article > div:last-child {
+  .shop-skins-grid > .virtual-grid-item > article > div:last-child {
   }
 }
 

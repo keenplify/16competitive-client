@@ -20,7 +20,7 @@ import { Button } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { CurrencyAmount } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
-import { useInventoryStore, type WeaponTarget } from './inventory.store'
+import { ensureStickerArtwork, useInventoryStore, type WeaponTarget } from './inventory.store'
 import { useInventoryText } from './inventory-i18n'
 import { StickerPlacementSurface } from '../sticker-editor/StickerPlacementSurface'
 import { useItemContextMenu } from './use-item-context-menu'
@@ -328,6 +328,13 @@ export function StickerStoreCard({
   image?: string
 }) {
   const t = useInventoryText()
+  useEffect(() => {
+    if (item.imagePath && !image) {
+      void ensureStickerArtwork(item.imagePath).catch(() => {
+        console.warn('[Shop] sticker artwork unavailable', { id: item.id })
+      })
+    }
+  }, [item.id, item.imagePath, image])
   return (
     <InventoryTile
       title={item.name}
