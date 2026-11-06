@@ -4392,3 +4392,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Partner helper setup preferences are now honored.
 - Partner setup preferences now use validated defaults.
+
+## v2026.1106.9 — 2026-11-06
+
+### Inventory & Store
+
+- Improved menu contrast for easier reading.
+- Added action icons to inventory menus.
+- Linked the sticker picker to the store.
+
+### Music
+
+- Added verified WAV music cues.
+- Added support for WAV menu audio.
