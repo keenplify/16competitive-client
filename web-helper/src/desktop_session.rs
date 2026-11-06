@@ -127,6 +127,17 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "NATIVE_INSTALL_FAILED" => "NATIVE_INSTALL_FAILED",
         "STICKER_REQUEST_FAILED" => "STICKER_REQUEST_FAILED",
         "STICKER_PREPARATION_FAILED" => "STICKER_PREPARATION_FAILED",
+        "Sticker preparation timed out" | "STICKER_TIMEOUT" => "STICKER_TIMEOUT",
+        "Sticker recipe hash mismatch" | "STICKER_RECIPE_HASH_MISMATCH" => "STICKER_RECIPE_HASH_MISMATCH",
+        "Sticker source hash mismatch" | "STICKER_SOURCE_HASH_MISMATCH" => "STICKER_SOURCE_HASH_MISMATCH",
+        "Sticker artwork hash mismatch" | "STICKER_ARTWORK_HASH_MISMATCH" => "STICKER_ARTWORK_HASH_MISMATCH",
+        "STICKER_RECIPE_INVALID" => "STICKER_RECIPE_INVALID",
+        "STICKER_SOURCE_FAILED" => "STICKER_SOURCE_FAILED",
+        "STICKER_ARTWORK_REQUEST_FAILED" => "STICKER_ARTWORK_REQUEST_FAILED",
+        "STICKER_IMAGE_INVALID" => "STICKER_IMAGE_INVALID",
+        "STICKER_BAKE_FAILED" => "STICKER_BAKE_FAILED",
+        "STICKER_BAKE_TIMEOUT" => "STICKER_BAKE_TIMEOUT",
+        "STICKER_SESSION_WRITE_FAILED" => "STICKER_SESSION_WRITE_FAILED",
         "ASSET_PREPARATION_FAILED" => "ASSET_PREPARATION_FAILED",
         "STARTUP_CONFIG_FAILED" => "STARTUP_CONFIG_FAILED",
         "NATIVE_BUNDLE_FAILED" => "NATIVE_BUNDLE_FAILED",
@@ -459,6 +470,32 @@ mod tests {
         assert_eq!(preparation_error("private path and token", "NATIVE_BUNDLE_FAILED"), "NATIVE_BUNDLE_FAILED");
         assert_eq!(preparation_error("NATIVE_RECOVERY_FAILED", "NATIVE_SESSION_FAILED"), "NATIVE_RECOVERY_FAILED");
         assert_eq!(preparation_error("private token", "private step"), "PREPARATION_FAILED");
+    }
+    #[test]
+    fn sticker_failures_keep_the_specific_reason_across_handoffs() {
+        for code in [
+            "STICKER_RECIPE_INVALID", "STICKER_RECIPE_HASH_MISMATCH",
+            "STICKER_SOURCE_FAILED", "STICKER_SOURCE_HASH_MISMATCH",
+            "STICKER_ARTWORK_REQUEST_FAILED", "STICKER_ARTWORK_HASH_MISMATCH",
+            "STICKER_IMAGE_INVALID", "STICKER_BAKE_FAILED", "STICKER_BAKE_TIMEOUT", "STICKER_CACHE_FAILED",
+            "STICKER_SESSION_WRITE_FAILED", "STICKER_TIMEOUT",
+        ] {
+            let error = preparation_error(code, "STICKER_PREPARATION_FAILED");
+            let frame = failure_frame(&error);
+            assert_eq!(frame["code"], code);
+            assert_eq!(failure_code(&error), code);
+        }
+        for (error, expected) in [
+            ("Sticker preparation timed out", "STICKER_TIMEOUT"),
+            ("Sticker recipe hash mismatch", "STICKER_RECIPE_HASH_MISMATCH"),
+            ("Sticker source hash mismatch", "STICKER_SOURCE_HASH_MISMATCH"),
+            ("Sticker artwork hash mismatch", "STICKER_ARTWORK_HASH_MISMATCH"),
+        ] {
+            assert_eq!(preparation_error(error, "STICKER_PREPARATION_FAILED"), expected);
+        }
+        let error = preparation_error("C:\\private\\file: secret bearer", "STICKER_SOURCE_FAILED");
+        assert_eq!(failure_frame(&error)["code"], "STICKER_SOURCE_FAILED");
+        assert!(!failure_frame(&error).to_string().contains("private"));
     }
     #[test]
     fn handoff_needs_commit_and_parent_exit_before_ownership() {

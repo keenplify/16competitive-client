@@ -335,3 +335,70 @@ test('returning from a game skips the startup network check and splash delay onl
     assert.deepEqual(delays, returning ? [] : [3000])
   }
 })
+
+test('sticker failures reach issue-report console logs without raw helper data on every platform', async () => {
+  const { transform } = await import('esbuild')
+  const source = await readFile('src/main/game/standalone-session.ts', 'utf8')
+  const callback = source.slice(
+    source.indexOf("    child.stdout.on('data',"),
+    source.indexOf('    child.stdin.write(`${JSON.stringify(request)}')
+  )
+  const { code } = await transform(callback, { loader: 'ts' })
+  for (const failureCode of [
+    'STICKER_RECIPE_INVALID',
+    'STICKER_RECIPE_HASH_MISMATCH',
+    'STICKER_SOURCE_FAILED',
+    'STICKER_SOURCE_HASH_MISMATCH',
+    'STICKER_ARTWORK_REQUEST_FAILED',
+    'STICKER_ARTWORK_HASH_MISMATCH',
+    'STICKER_IMAGE_INVALID',
+    'STICKER_BAKE_FAILED',
+    'STICKER_BAKE_TIMEOUT',
+    'STICKER_CACHE_FAILED',
+    'STICKER_SESSION_WRITE_FAILED',
+    'STICKER_TIMEOUT'
+  ]) {
+    let receive
+    let failure
+    const logs = []
+    const register = new Function(
+      'child',
+      'fail',
+      'console',
+      `
+      let complete = false, active = null, buffer = '';
+      ${code}
+    `
+    )
+    register(
+      {
+        stdout: {
+          on: (_event, callback) => {
+            receive = callback
+          }
+        }
+      },
+      (error) => {
+        failure = error
+      },
+      { warn: (...args) => logs.push(args) }
+    )
+    const frame =
+      JSON.stringify({
+        protocol: 1,
+        event: 'error',
+        code: failureCode,
+        message: 'private backend response',
+        token: 'secret',
+        path: 'private file'
+      }) + '\n'
+    // Exercise the actual pipe parser, including fragmented frames.
+    receive(Buffer.from(frame.slice(0, 15)))
+    assert.equal(logs.length, 0)
+    receive(Buffer.from(frame.slice(15)))
+    assert.deepEqual(logs, [['[Standalone] preparation failed', { code: failureCode }]])
+    assert.match(failure.message, new RegExp(failureCode))
+    assert.ok(!JSON.stringify(logs).includes('private'))
+    assert.ok(!JSON.stringify(logs).includes('secret'))
+  }
+})

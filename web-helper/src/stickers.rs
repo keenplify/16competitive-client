@@ -36,11 +36,10 @@ struct Pixels {
     rgba: Vec<u8>,
 }
 
-fn engine() -> Result<(Runtime, Context), String> {
+fn engine(deadline: Instant) -> Result<(Runtime, Context), String> {
     let runtime = Runtime::new().map_err(|_| "Sticker engine unavailable")?;
     runtime.set_memory_limit(1536 * 1024 * 1024);
     runtime.set_max_stack_size(1024 * 1024);
-    let deadline = Instant::now() + Duration::from_secs(90);
     runtime.set_interrupt_handler(Some(Box::new(move || Instant::now() >= deadline)));
     let context = Context::full(&runtime).map_err(|_| "Sticker engine unavailable")?;
     context
@@ -62,7 +61,7 @@ fn engine() -> Result<(Runtime, Context), String> {
 
 fn recipes(bytes: &[u8]) -> Result<Vec<Recipe>, String> {
     let text = std::str::from_utf8(bytes).map_err(|_| "Invalid sticker recipes")?;
-    let (_runtime, context) = engine()?;
+    let (_runtime, context) = engine(Instant::now() + Duration::from_secs(90))?;
     let normalized: String = context
         .with(|ctx| -> rquickjs::Result<String> {
             let baker: Object = ctx.globals().get("StickerBaker")?;
@@ -119,7 +118,8 @@ fn bake(
     source: Vec<u8>,
     images: Vec<Pixels>,
 ) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let (_runtime, context) = engine()?;
+    let deadline = Instant::now() + Duration::from_secs(90);
+    let (_runtime, context) = engine(deadline)?;
     context
         .with(|ctx| -> rquickjs::Result<_> {
             let baker: Object = ctx.globals().get("StickerBaker")?;
@@ -155,7 +155,13 @@ fn bake(
             }
             Ok((model.to_vec(), textures.to_vec()))
         })
-        .map_err(|_| "Sticker preparation failed or exceeded its limits".into())
+        .map_err(|_| {
+            if Instant::now() >= deadline {
+                "STICKER_BAKE_TIMEOUT".into()
+            } else {
+                "STICKER_BAKE_FAILED".into()
+            }
+        })
 }
 
 fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
@@ -260,25 +266,27 @@ pub fn prepare(
         token,
         128 * 1024,
     ).map_err(|_| "STICKER_REQUEST_FAILED")?;
-    let recipes = recipes(&bytes)?;
+    let recipes = recipes(&bytes)
+        .map_err(|error| crate::desktop_session::preparation_error(&error, "STICKER_RECIPE_INVALID"))?;
     if recipes.is_empty() {
         return Ok(());
     }
     let root_text = root
         .to_str()
         .filter(|s| !s.contains(['\r', '\n', '\t']))
-        .ok_or("Invalid sticker root")?;
+        .ok_or("STICKER_SOURCE_FAILED")?;
     let mut rows = format!("16c-stickers-v2\n{root_text}\n");
     let mut texture_rows = "16c-sticker-textures-v1\n".to_string();
     let deadline = Instant::now() + Duration::from_secs(120);
     for recipe in recipes {
         if Instant::now() >= deadline {
-            return Err("Sticker preparation timed out".into());
+            return Err("STICKER_TIMEOUT".into());
         }
         let source = read(
-            &crate::assets::game_destination(root, &recipe.source_path)?,
+            &crate::assets::game_destination(root, &recipe.source_path)
+                .map_err(|_| "STICKER_SOURCE_FAILED")?,
             MODEL_LIMIT,
-        )?;
+        ).map_err(|error| crate::desktop_session::preparation_error(&error, "STICKER_SOURCE_FAILED"))?;
         if hash(&source) != recipe.source_sha256 {
             return Err("Sticker source hash mismatch".into());
         }
@@ -287,14 +295,16 @@ pub fn prepare(
         } else {
             let mut images = Vec::new();
             for artwork in &recipe.stickers {
-                let bytes = crate::assets::request(&agent,&format!("{api}/fastdl/{}",artwork.image_path),token,2_000_000)?;
+                let bytes = crate::assets::request(&agent,&format!("{api}/fastdl/{}",artwork.image_path),token,2_000_000)
+                    .map_err(|_| "STICKER_ARTWORK_REQUEST_FAILED")?;
                 if Some(hash(&bytes).as_str()) != artwork.image_path.split('/').nth(3) { return Err("Sticker artwork hash mismatch".into()); }
-                images.push(pixels(&bytes)?);
+                images.push(pixels(&bytes).map_err(|_| "STICKER_IMAGE_INVALID")?);
             }
-            let (model,textures)=bake(&recipe,source,images)?;
-            let model_hash=immutable(root,&model,"mdl")?;
-            let texture_hash=immutable(root,&textures,"rgba")?;
-            save_recipe(root,&recipe,&model_hash,&texture_hash)?;
+            let (model,textures)=bake(&recipe,source,images)
+                .map_err(|error| crate::desktop_session::preparation_error(&error, "STICKER_BAKE_FAILED"))?;
+            let model_hash=immutable(root,&model,"mdl").map_err(|_| "STICKER_CACHE_FAILED")?;
+            let texture_hash=immutable(root,&textures,"rgba").map_err(|_| "STICKER_CACHE_FAILED")?;
+            save_recipe(root,&recipe,&model_hash,&texture_hash).map_err(|_| "STICKER_CACHE_FAILED")?;
             (model_hash,texture_hash)
         };
         rows.push_str(&format!(
@@ -303,11 +313,12 @@ pub fn prepare(
         ));
         texture_rows.push_str(&format!("{}\t{model_hash}\t{texture_hash}\n", recipe.id));
     }
-    crate::native_session::owned_write(&session.join("stickers.tsv"), rows.as_bytes())?;
+    crate::native_session::owned_write(&session.join("stickers.tsv"), rows.as_bytes())
+        .map_err(|_| "STICKER_SESSION_WRITE_FAILED")?;
     crate::native_session::owned_write(
         &session.join("sticker-textures.tsv"),
         texture_rows.as_bytes(),
-    )
+    ).map_err(|_| "STICKER_SESSION_WRITE_FAILED".into())
 }
 
 #[cfg(test)]
