@@ -1,3 +1,5 @@
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { communityDirectoryCache, communityServerCache } from './community-cache'
 import { create } from 'zustand'
 import type {
@@ -206,9 +208,18 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       !editDraft.name.trim()
     )
       return
+    const language = useLanguageStore.getState().language
+    const feedback = toast.loading(translate(language, 'directory.savingSettings'))
     set({ saving: true, saveError: false })
     try {
       await window.api.communityDirectory.update(editDraft)
+      toast.update(feedback, {
+        render: translate(language, 'directory.settingsSaved'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
+      void useCommunityChatStore.getState().load()
       communityDirectoryCache.invalidate(accountId)
       if (useAuthStore.getState().session?.player.id !== accountId) return
       await get().load()
@@ -217,6 +228,12 @@ export const useCommunitiesStore = create<State>((set, get) => ({
       void usePartnerBrandingStore.getState().refresh(accountId)
       void usePartnerServersStore.getState().load()
     } catch {
+      toast.update(feedback, {
+        render: translate(language, 'directory.settingsSaveError'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 6000
+      })
       if (useAuthStore.getState().session?.player.id === accountId)
         set({ saving: false, saveError: true })
     }

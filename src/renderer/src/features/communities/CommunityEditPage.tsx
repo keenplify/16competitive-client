@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { CheckboxSetting } from '../../components/CheckboxSetting'
 import { LoaderCircle, Plus, Save } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
@@ -32,6 +33,13 @@ export function CommunityEditPage({
         <section className="border border-white/15 bg-neutral-950/80 p-5 sm:p-7">
           <h2 className="text-xl font-semibold">{t('directory.yourCommunity')}</h2>
           <div className="mt-5 grid gap-5">
+            <CheckboxSetting
+              label={t('directory.hideChat')}
+              description={t('directory.hideChatHint')}
+              checked={state.editDraft.hideCommunityChat ?? false}
+              disabled={state.saving || state.editLoading || state.editLoadError}
+              onChange={(hideCommunityChat) => state.updateDraft({ hideCommunityChat })}
+            />
             <TextField
               id="community-edit-name"
               label={t('directory.name')}
@@ -44,13 +52,18 @@ export function CommunityEditPage({
             <label className="grid gap-2 text-sm font-medium text-neutral-200">
               <span className="flex items-center gap-2">
                 {t('directory.communityCountry')}
-                <CountryFlag code={state.editDraft.communityCountryCode} className="h-4 w-6 object-cover" />
+                <CountryFlag
+                  code={state.editDraft.communityCountryCode}
+                  className="h-4 w-6 object-cover"
+                />
               </span>
               <select
                 className="h-11 border border-white/15 bg-neutral-950 px-3 text-sm text-white focus:border-amber-400"
                 value={state.editDraft.communityCountryCode ?? ''}
                 disabled={state.saving || state.editLoading}
-                onChange={(event) => state.updateDraft({ communityCountryCode: event.target.value || null })}
+                onChange={(event) =>
+                  state.updateDraft({ communityCountryCode: event.target.value || null })
+                }
               >
                 <option value="">{t('directory.noCountry')}</option>
                 {COUNTRY_OPTIONS.map((country) => (

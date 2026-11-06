@@ -74,6 +74,7 @@ export interface CommunityChatMessage {
   sentAt: string
 }
 export interface CommunityChatHistory {
+  chatHidden?: boolean
   communityId: string | null
   name: string | null
   messages: CommunityChatMessage[]
@@ -469,6 +470,7 @@ export function parseCommunityHistory(input: unknown): CommunityChatHistory {
   if (
     (v.communityId !== null && !uuid(v.communityId)) ||
     (v.name !== null && (typeof v.name !== 'string' || [...v.name].length > 32)) ||
+    (v.chatHidden !== undefined && typeof v.chatHidden !== 'boolean') ||
     !Array.isArray(v.messages) ||
     v.messages.length > 100
   )
@@ -477,7 +479,8 @@ export function parseCommunityHistory(input: unknown): CommunityChatHistory {
   return {
     communityId: v.communityId as string | null,
     name: v.name as string | null,
-    messages: v.messages.map(parseCommunityMessage)
+    ...(v.chatHidden !== undefined ? { chatHidden: v.chatHidden as boolean } : {}),
+    messages: v.chatHidden === true ? [] : v.messages.map(parseCommunityMessage)
   }
 }
 

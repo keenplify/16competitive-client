@@ -40,7 +40,7 @@ interface MinimizedChatPing {
 }
 
 export function PartyChat(): JSX.Element {
-  const commandPending = useChatCommandsStore(state => state.pending)
+  const commandPending = useChatCommandsStore((state) => state.pending)
   const activeSurface = useWindowFocusStore((state) => state.activeSurface)
   const activate = useWindowFocusStore((state) => state.activate)
   const playerId = useAuthStore((state) => state.session?.player.id)
@@ -84,7 +84,8 @@ export function PartyChat(): JSX.Element {
   const loadCommunity = useCommunityChatStore((state) => state.load)
   const setCommunityDraft = useCommunityChatStore((state) => state.setDraft)
   const sendCommunity = useCommunityChatStore((state) => state.send)
-  const hasCommunity = Boolean(communityId && communityName?.trim())
+  const communityChatHidden = useCommunityChatStore((state) => state.chatHidden)
+  const hasCommunity = Boolean(communityId && communityName?.trim() && !communityChatHidden)
   const communityLabel = communityName || communityText(language, 'community')
 
   const room = useCustomGamesStore((state) => state.currentRoom)
@@ -316,22 +317,30 @@ export function PartyChat(): JSX.Element {
       const originalDraft = draft
       const sourceFriendId = activeFriendId
       const sourceTab = chatTab
-      void useChatCommandsStore.getState().send(draft).then(sent => {
-        if (!sent) return
-        // Preserve a newer draft typed while the request was in flight.
-        if (sourceFriendId) {
-          if (useFriendChatStore.getState().conversations[sourceFriendId]?.draft === originalDraft) setFriendDraft(sourceFriendId, '')
-        } else if (sourceTab === 'community') {
-          if (useCommunityChatStore.getState().draft === originalDraft) setCommunityDraft('')
-        } else if (sourceTab === 'room') {
-          if (useCustomGamesStore.getState().chatDraft === originalDraft) setRoomDraft('')
-        } else {
-          const state = usePartyStore.getState()
-          if (sourceTab === 'party' && state.chatDraft === originalDraft) setPartyDraft('')
-          else if (sourceTab === 'language' && state.languageChatDraft === originalDraft) setLanguageDraft('')
-          else if (sourceTab === 'global' && state.globalChatDraft === originalDraft) setGlobalDraft('')
-        }
-      })
+      void useChatCommandsStore
+        .getState()
+        .send(draft)
+        .then((sent) => {
+          if (!sent) return
+          // Preserve a newer draft typed while the request was in flight.
+          if (sourceFriendId) {
+            if (
+              useFriendChatStore.getState().conversations[sourceFriendId]?.draft === originalDraft
+            )
+              setFriendDraft(sourceFriendId, '')
+          } else if (sourceTab === 'community') {
+            if (useCommunityChatStore.getState().draft === originalDraft) setCommunityDraft('')
+          } else if (sourceTab === 'room') {
+            if (useCustomGamesStore.getState().chatDraft === originalDraft) setRoomDraft('')
+          } else {
+            const state = usePartyStore.getState()
+            if (sourceTab === 'party' && state.chatDraft === originalDraft) setPartyDraft('')
+            else if (sourceTab === 'language' && state.languageChatDraft === originalDraft)
+              setLanguageDraft('')
+            else if (sourceTab === 'global' && state.globalChatDraft === originalDraft)
+              setGlobalDraft('')
+          }
+        })
       return
     }
     if (activeFriendId) {
@@ -371,20 +380,20 @@ export function PartyChat(): JSX.Element {
               ? languageDraft
               : globalDraft
   const setDraft = (value: string): void => {
-                    if (activeFriendId) {
-                      setFriendDraft(activeFriendId, value)
-                    } else if (chatTab === 'room') {
-                      setRoomDraft(value)
-                    } else if (chatTab === 'party') {
-                      setPartyDraft(value)
-                    } else if (chatTab === 'community') {
-                      setCommunityDraft(value)
-                    } else if (chatTab === 'language') {
-                      setLanguageDraft(value)
-                    } else {
-                      setGlobalDraft(value)
-                    }
-                    }
+    if (activeFriendId) {
+      setFriendDraft(activeFriendId, value)
+    } else if (chatTab === 'room') {
+      setRoomDraft(value)
+    } else if (chatTab === 'party') {
+      setPartyDraft(value)
+    } else if (chatTab === 'community') {
+      setCommunityDraft(value)
+    } else if (chatTab === 'language') {
+      setLanguageDraft(value)
+    } else {
+      setGlobalDraft(value)
+    }
+  }
 
   const sending =
     !activeFriendId && chatTab === 'community'
@@ -922,8 +931,17 @@ export function PartyChat(): JSX.Element {
           </div>
 
           {canSend ? (
-            <form className="relative border-t border-white/15 bg-black/50 p-2" onSubmit={handleSubmit}>
-              <ChatCommandPopover draft={draft} onChoose={(value) => { setDraft(value); inputRef.current?.focus() }} />
+            <form
+              className="relative border-t border-white/15 bg-black/50 p-2"
+              onSubmit={handleSubmit}
+            >
+              <ChatCommandPopover
+                draft={draft}
+                onChoose={(value) => {
+                  setDraft(value)
+                  inputRef.current?.focus()
+                }}
+              />
               <div className="flex">
                 <input
                   ref={inputRef}

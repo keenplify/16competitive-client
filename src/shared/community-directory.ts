@@ -59,6 +59,7 @@ export interface CommunityDirectoryApi {
   uploadServerImage(id: string, bytes: Uint8Array): Promise<{ imageUrl: string }>
 }
 export interface CommunityUpdate {
+  hideCommunityChat?: boolean
   name: string
   communityCountryCode: string | null
   description: string
@@ -67,6 +68,9 @@ export interface CommunityUpdate {
 export function communityUpdateBody(input: CommunityUpdate) {
   return {
     communityName: input.name.trim(),
+    ...(input.hideCommunityChat !== undefined
+      ? { hideCommunityChat: input.hideCommunityChat }
+      : {}),
     communityCountryCode: input.communityCountryCode,
     description: input.description,
     servers: input.servers.map(({ id, name, host, port, category, countryCode, gameVersion }) => ({
@@ -172,6 +176,9 @@ export function parseCommunityOwnerSettings(input: unknown): CommunityUpdate {
     throw new Error('INVALID_COMMUNITY_SETTINGS')
   const output = {
     name: value.communityName,
+    ...(value.hideCommunityChat !== undefined
+      ? { hideCommunityChat: value.hideCommunityChat }
+      : {}),
     communityCountryCode: value.communityCountryCode ?? null,
     description: value.description,
     servers: parseCommunityServers(value.servers)
@@ -183,6 +190,7 @@ export function validateCommunityUpdate(input: unknown): asserts input is Commun
   if (!input || typeof input !== 'object') throw new Error('INVALID_COMMUNITY_UPDATE')
   const value = input as Record<string, unknown>
   if (
+    (value.hideCommunityChat !== undefined && typeof value.hideCommunityChat !== 'boolean') ||
     typeof value.name !== 'string' ||
     !value.name.trim() ||
     [...value.name].length > 32 ||

@@ -303,7 +303,10 @@ export function PlayPage({
       : hideDesktopOnlyFeatures
         ? []
         : queueModes.filter((mode) => (mode !== 'cs13_3v3' && mode !== 'cs13_1v1'))
-  const showCompetitive = !hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5')
+  const showCompetitive =
+    mapsStatus === 'ready'
+      ? visibleQueueModes.includes('5v5')
+      : !hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5')
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10

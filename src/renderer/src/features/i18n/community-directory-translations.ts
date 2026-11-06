@@ -1,5 +1,16 @@
 export const communityDirectoryTranslations = {
   en: {
+    'directory.hideChat': 'Hide community chat',
+    'directory.hideChatHint':
+      'Hide the community chat tab and stop sending or reading messages. Members and message history are kept.',
+    'directory.savingSettings': 'Saving community settings…',
+    'directory.settingsSaved': 'Community settings saved.',
+    'directory.settingsSaveError':
+      'Could not save community settings. Check your connection and try again.',
+    'directory.sendingChat': 'Sending message…',
+    'directory.chatSent': 'Message sent.',
+    'directory.chatHidden': 'Community chat has been hidden by its owner.',
+    'directory.chatSendError': 'Could not send the message. Refresh chat and try again.',
     'directory.showDescription': 'Show full description',
     'directory.hideDescription': 'Show less',
     'directory.view': 'View community',
@@ -85,6 +96,17 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit community servers'
   },
   ru: {
+    'directory.hideChat': 'Скрыть чат сообщества',
+    'directory.hideChatHint':
+      'Скрывает вкладку чата и запрещает чтение и отправку сообщений. Участники и история сохраняются.',
+    'directory.savingSettings': 'Сохранение настроек сообщества…',
+    'directory.settingsSaved': 'Настройки сообщества сохранены.',
+    'directory.settingsSaveError':
+      'Не удалось сохранить настройки. Проверьте подключение и повторите попытку.',
+    'directory.sendingChat': 'Отправка сообщения…',
+    'directory.chatSent': 'Сообщение отправлено.',
+    'directory.chatHidden': 'Владелец скрыл чат сообщества.',
+    'directory.chatSendError': 'Не удалось отправить сообщение. Обновите чат и повторите попытку.',
     'directory.showDescription': 'Показать полное описание',
     'directory.hideDescription': 'Свернуть',
     'directory.view': 'Посмотреть сообщество',
@@ -172,6 +194,17 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Изменить серверы сообщества'
   },
   tl: {
+    'directory.hideChat': 'Itago ang community chat',
+    'directory.hideChatHint':
+      'Itago ang chat tab at ihinto ang pagbabasa at pagpapadala ng mensahe. Mananatili ang mga miyembro at kasaysayan ng chat.',
+    'directory.savingSettings': 'Sine-save ang community settings…',
+    'directory.settingsSaved': 'Na-save ang community settings.',
+    'directory.settingsSaveError':
+      'Hindi ma-save ang settings. Suriin ang koneksyon at subukan ulit.',
+    'directory.sendingChat': 'Ipinapadala ang mensahe…',
+    'directory.chatSent': 'Naipadala ang mensahe.',
+    'directory.chatHidden': 'Itinago ng may-ari ang community chat.',
+    'directory.chatSendError': 'Hindi maipadala ang mensahe. I-refresh ang chat at subukan ulit.',
     'directory.showDescription': 'Ipakita ang buong paglalarawan',
     'directory.hideDescription': 'Ipakita nang mas kaunti',
     'directory.view': 'Tingnan ang komunidad',
@@ -258,6 +291,16 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'I-edit ang mga server ng community'
   },
   th: {
+    'directory.hideChat': 'ซ่อนแชทชุมชน',
+    'directory.hideChatHint':
+      'ซ่อนแท็บแชทและหยุดการอ่านหรือส่งข้อความ โดยเก็บสมาชิกและประวัติข้อความไว้',
+    'directory.savingSettings': 'กำลังบันทึกการตั้งค่าชุมชน…',
+    'directory.settingsSaved': 'บันทึกการตั้งค่าชุมชนแล้ว',
+    'directory.settingsSaveError': 'บันทึกการตั้งค่าไม่ได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
+    'directory.sendingChat': 'กำลังส่งข้อความ…',
+    'directory.chatSent': 'ส่งข้อความแล้ว',
+    'directory.chatHidden': 'เจ้าของชุมชนซ่อนแชทแล้ว',
+    'directory.chatSendError': 'ส่งข้อความไม่ได้ รีเฟรชแชทแล้วลองอีกครั้ง',
     'directory.showDescription': 'แสดงคำอธิบายทั้งหมด',
     'directory.hideDescription': 'แสดงน้อยลง',
     'directory.view': 'ดูชุมชน',
@@ -342,6 +385,17 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'แก้ไขเซิร์ฟเวอร์ชุมชน'
   },
   id: {
+    'directory.hideChat': 'Sembunyikan chat komunitas',
+    'directory.hideChatHint':
+      'Sembunyikan tab chat dan hentikan pembacaan serta pengiriman pesan. Anggota dan riwayat pesan tetap disimpan.',
+    'directory.savingSettings': 'Menyimpan pengaturan komunitas…',
+    'directory.settingsSaved': 'Pengaturan komunitas disimpan.',
+    'directory.settingsSaveError':
+      'Pengaturan tidak dapat disimpan. Periksa koneksi dan coba lagi.',
+    'directory.sendingChat': 'Mengirim pesan…',
+    'directory.chatSent': 'Pesan terkirim.',
+    'directory.chatHidden': 'Chat komunitas disembunyikan oleh pemiliknya.',
+    'directory.chatSendError': 'Pesan tidak dapat dikirim. Muat ulang chat dan coba lagi.',
     'directory.showDescription': 'Tampilkan deskripsi lengkap',
     'directory.hideDescription': 'Tampilkan lebih sedikit',
     'directory.view': 'Lihat komunitas',
@@ -427,6 +481,16 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Edit server komunitas'
   },
   hi: {
+    'directory.hideChat': 'समुदाय चैट छिपाएँ',
+    'directory.hideChatHint':
+      'चैट टैब छिपाएँ और संदेश पढ़ना व भेजना बंद करें। सदस्य और संदेश इतिहास सुरक्षित रहेंगे।',
+    'directory.savingSettings': 'समुदाय सेटिंग सहेजी जा रही हैं…',
+    'directory.settingsSaved': 'समुदाय सेटिंग सहेजी गईं।',
+    'directory.settingsSaveError': 'सेटिंग सहेजी नहीं जा सकीं। कनेक्शन जाँचें और फिर कोशिश करें।',
+    'directory.sendingChat': 'संदेश भेजा जा रहा है…',
+    'directory.chatSent': 'संदेश भेजा गया।',
+    'directory.chatHidden': 'समुदाय के मालिक ने चैट छिपा दी है।',
+    'directory.chatSendError': 'संदेश भेजा नहीं जा सका। चैट रीफ़्रेश करें और फिर कोशिश करें।',
     'directory.showDescription': 'पूरा विवरण दिखाएँ',
     'directory.hideDescription': 'कम दिखाएँ',
     'directory.view': 'समुदाय देखें',
@@ -511,6 +575,18 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'समुदाय के सर्वर संपादित करें'
   },
   pt: {
+    'directory.hideChat': 'Ocultar chat da comunidade',
+    'directory.hideChatHint':
+      'Oculta a aba de chat e impede a leitura e o envio de mensagens. Os membros e o histórico são mantidos.',
+    'directory.savingSettings': 'Salvando configurações da comunidade…',
+    'directory.settingsSaved': 'Configurações da comunidade salvas.',
+    'directory.settingsSaveError':
+      'Não foi possível salvar. Verifique a conexão e tente novamente.',
+    'directory.sendingChat': 'Enviando mensagem…',
+    'directory.chatSent': 'Mensagem enviada.',
+    'directory.chatHidden': 'O proprietário ocultou o chat da comunidade.',
+    'directory.chatSendError':
+      'Não foi possível enviar a mensagem. Atualize o chat e tente novamente.',
     'directory.showDescription': 'Mostrar descrição completa',
     'directory.hideDescription': 'Mostrar menos',
     'directory.view': 'Ver comunidade',
@@ -599,6 +675,17 @@ export const communityDirectoryTranslations = {
     'directory.editServers': 'Editar servidores da comunidade'
   },
   ja: {
+    'directory.hideChat': 'コミュニティチャットを非表示',
+    'directory.hideChatHint':
+      'チャットタブを非表示にし、メッセージの閲覧と送信を停止します。メンバーと履歴は保持されます。',
+    'directory.savingSettings': 'コミュニティ設定を保存中…',
+    'directory.settingsSaved': 'コミュニティ設定を保存しました。',
+    'directory.settingsSaveError': '設定を保存できませんでした。接続を確認して再試行してください。',
+    'directory.sendingChat': 'メッセージを送信中…',
+    'directory.chatSent': 'メッセージを送信しました。',
+    'directory.chatHidden': 'オーナーがコミュニティチャットを非表示にしました。',
+    'directory.chatSendError':
+      'メッセージを送信できませんでした。チャットを更新して再試行してください。',
     'directory.showDescription': '説明をすべて表示',
     'directory.hideDescription': '折りたたむ',
     'directory.view': 'コミュニティを見る',

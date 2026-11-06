@@ -15,6 +15,7 @@ export interface PartnerAppIcon {
   smallSha256: string
 }
 export interface PartnerBranding {
+  hideCommunityChat?: boolean
   partnerId: string
   hideNativeHelperSetup?: boolean
   desktopAppEnabled?: boolean
@@ -94,11 +95,19 @@ export const parsePartnerBranding = (
   ) {
     throw new Error('Invalid partner background.')
   }
-  for (const key of ['musicMufflePercent','musicVolumePercent'] as const) {
+  for (const key of ['musicMufflePercent', 'musicVolumePercent'] as const) {
     const amount = value[key]
-    if (amount !== undefined && (!Number.isSafeInteger(amount) || Number(amount) < 0 || Number(amount) > 100)) throw new Error('Invalid community audio settings.')
+    if (
+      amount !== undefined &&
+      (!Number.isSafeInteger(amount) || Number(amount) < 0 || Number(amount) > 100)
+    )
+      throw new Error('Invalid community audio settings.')
   }
-  if (value.musicAudioRevision !== undefined && (!Number.isSafeInteger(value.musicAudioRevision) || Number(value.musicAudioRevision) < 1)) throw new Error('Invalid community audio revision.')
+  if (
+    value.musicAudioRevision !== undefined &&
+    (!Number.isSafeInteger(value.musicAudioRevision) || Number(value.musicAudioRevision) < 1)
+  )
+    throw new Error('Invalid community audio revision.')
   const musicUrl = value.musicUrl ?? null
   if (musicUrl !== null && typeof musicUrl !== 'string') throw new Error('Invalid community music.')
   const logoUrl = value.logoUrl ?? null
@@ -148,6 +157,8 @@ export const parsePartnerBranding = (
     throw new Error('Invalid native helper setup visibility.')
   if (value.desktopAppEnabled !== undefined && typeof value.desktopAppEnabled !== 'boolean')
     throw new Error('Invalid desktop download setting.')
+  if (value.hideCommunityChat !== undefined && typeof value.hideCommunityChat !== 'boolean')
+    throw new Error('Invalid community chat visibility.')
   const appName = value.appName
   if (
     appName != null &&
@@ -198,6 +209,9 @@ export const parsePartnerBranding = (
         : {}),
       partnerId: value.partnerId,
       hideNativeHelperSetup: value.hideNativeHelperSetup === true,
+      ...(value.hideCommunityChat !== undefined
+        ? { hideCommunityChat: value.hideCommunityChat as boolean }
+        : {}),
       ...(value.desktopAppEnabled !== undefined
         ? { desktopAppEnabled: value.desktopAppEnabled as boolean }
         : {}),

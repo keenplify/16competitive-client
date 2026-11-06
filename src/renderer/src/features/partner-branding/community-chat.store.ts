@@ -1,9 +1,13 @@
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
+import { communityText } from './community-copy'
 import type { CommunityChatMessage } from '../../../../shared/partner-community'
 import { useAuthStore } from '../auth/auth.store'
 type State = {
   accountId: string | null
   communityId: string | null
+  chatHidden: boolean
   name: string | null
   messages: CommunityChatMessage[]
   draft: string
@@ -17,6 +21,7 @@ type State = {
 }
 let serial = 0
 export const useCommunityChatStore = create<State>((set, get) => ({
+  chatHidden: false,
   accountId: null,
   communityId: null,
   name: null,
@@ -45,7 +50,9 @@ export const useCommunityChatStore = create<State>((set, get) => ({
       if (request !== serial || useAuthStore.getState().session?.player.id !== accountId) return
       set((state) => ({
         ...history,
+        chatHidden: history.chatHidden ?? false,
         messages:
+          !history.chatHidden &&
           state.communityId === history.communityId &&
           state.messages.length === history.messages.length &&
           state.messages.every(
@@ -58,7 +65,7 @@ export const useCommunityChatStore = create<State>((set, get) => ({
             : history.messages,
         loading: false,
         error: null,
-        ...(state.communityId !== history.communityId ? { draft: '' } : {})
+        ...(state.communityId !== history.communityId || history.chatHidden ? { draft: '' } : {})
       }))
     } catch {
       if (request === serial) set({ loading: false, error: 'chatError' })
@@ -68,15 +75,24 @@ export const useCommunityChatStore = create<State>((set, get) => ({
   send: async () => {
     const { communityId, accountId, draft, sending } = get()
     if (
+      get().chatHidden ||
       !communityId ||
       !draft.trim() ||
       sending ||
       accountId !== useAuthStore.getState().session?.player.id
     )
       return
+    const language = useLanguageStore.getState().language
+    const feedback = toast.loading(translate(language, 'directory.sendingChat'))
     set({ sending: true, error: null })
     try {
       const message = await window.api.communityChat.send(communityId, draft.trim())
+      toast.update(feedback, {
+        render: translate(language, 'directory.chatSent'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000
+      })
       if (get().accountId === accountId && get().communityId === communityId) {
         serial++ // Do not let an older history snapshot remove the just-sent message.
         set((state) => ({
@@ -86,6 +102,18 @@ export const useCommunityChatStore = create<State>((set, get) => ({
         }))
       }
     } catch (error) {
+      const failureCode = error instanceof Error ? error.message : ''
+      const hidden = failureCode.includes('COMMUNITY_CHAT_HIDDEN')
+      toast.update(feedback, {
+        render: failureCode.includes('CHAT_RATE_LIMIT')
+          ? communityText(language, 'chatRateLimit')
+          : failureCode.includes('COMMUNITY_ACCESS_REQUIRED')
+            ? communityText(language, 'chatMembership')
+            : translate(language, hidden ? 'directory.chatHidden' : 'directory.chatSendError'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 6000
+      })
       if (get().accountId === accountId && get().communityId === communityId) {
         const code = error instanceof Error ? error.message : ''
         set({
@@ -95,6 +123,10 @@ export const useCommunityChatStore = create<State>((set, get) => ({
               ? 'chatMembership'
               : 'chatError'
         })
+        if (code.includes('COMMUNITY_CHAT_HIDDEN')) {
+          serial++ // Discard history fetched before the owner hid chat.
+          set({ loading: false, chatHidden: true, messages: [], draft: '' })
+        }
         if (code.includes('COMMUNITY_ACCESS_REQUIRED')) {
           set({ communityId: null, messages: [], draft: '' })
           void get().load()
@@ -107,6 +139,7 @@ export const useCommunityChatStore = create<State>((set, get) => ({
   clear: () => {
     serial++
     set({
+      chatHidden: false,
       accountId: null,
       communityId: null,
       name: null,

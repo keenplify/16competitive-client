@@ -270,3 +270,20 @@ test('member requests validate pagination and scope the selected community for d
   for (const args of [[0], [1.5], [10001], ['1'], [1, null], [1, '../other'], [1, id + '&page=99']])
     assert.throws(() => communityMembersPath(...args))
 })
+
+test('hidden community history keeps membership but discards messages and validates the flag', () => {
+  const message = {
+    id,
+    sender: { id, username: 'Member' },
+    message: 'private',
+    sentAt: new Date().toISOString()
+  }
+  const history = { communityId: id, name: 'Community', messages: [message] }
+  assert.deepEqual(parseCommunityHistory(history), history)
+  const hidden = parseCommunityHistory({ ...history, chatHidden: true })
+  assert.equal(hidden.communityId, id)
+  assert.equal(hidden.chatHidden, true)
+  assert.deepEqual(hidden.messages, [])
+  for (const chatHidden of ['true', 1, null])
+    assert.throws(() => parseCommunityHistory({ ...history, chatHidden }))
+})

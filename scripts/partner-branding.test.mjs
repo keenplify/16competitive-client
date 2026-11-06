@@ -48,16 +48,18 @@ test('audio settings validate percentages and revisions and support legacy respo
   delete legacy.musicAudioRevision
   delete legacy.musicMufflePercent
   delete legacy.musicVolumePercent
-  const parsed = parsePartnerBranding({branding:legacy},origin).branding
+  const parsed = parsePartnerBranding({ branding: legacy }, origin).branding
   assert.equal(parsed.musicAudioRevision, 1)
   assert.equal(parsed.musicMufflePercent, 100)
   assert.equal(parsed.musicVolumePercent, 50)
-  for (const key of ['musicMufflePercent','musicVolumePercent']) {
-    for (const value of [-1,101,1.5,'50',null])
-      assert.throws(() => parsePartnerBranding({branding:{...branding,[key]:value}},origin))
+  for (const key of ['musicMufflePercent', 'musicVolumePercent']) {
+    for (const value of [-1, 101, 1.5, '50', null])
+      assert.throws(() => parsePartnerBranding({ branding: { ...branding, [key]: value } }, origin))
   }
-  for (const value of [0,-1,1.5,'2',null])
-    assert.throws(() => parsePartnerBranding({branding:{...branding,musicAudioRevision:value}},origin))
+  for (const value of [0, -1, 1.5, '2', null])
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, musicAudioRevision: value } }, origin)
+    )
 })
 
 test('accepts a verified palette and same-origin media URL', () => {
@@ -133,9 +135,19 @@ test('validates Papamo Games logo visibility and defaults older responses to vis
 test('setup dialog visibility defaults to false and rejects non-boolean flags', () => {
   const legacy = { ...branding }
   delete legacy.hideNativeHelperSetup
-  assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.hideNativeHelperSetup, false)
-  assert.equal(parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: true } }, origin).branding.hideNativeHelperSetup, true)
-  for (const bad of ['true', 1, null, {}]) assert.throws(() => parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: bad } }, origin))
+  assert.equal(
+    parsePartnerBranding({ branding: legacy }, origin).branding.hideNativeHelperSetup,
+    false
+  )
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: true } }, origin)
+      .branding.hideNativeHelperSetup,
+    true
+  )
+  for (const bad of ['true', 1, null, {}])
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: bad } }, origin)
+    )
 })
 
 test('login backgrounds have an independent kind and approved endpoint', () => {
@@ -241,4 +253,17 @@ test('music accepts only the approved regional partner endpoint and keeps old re
   ]) {
     assert.throws(() => parsePartnerBranding({ branding: { ...branding, musicUrl } }, origin))
   }
+})
+
+test('community chat visibility is validated and retained', () => {
+  for (const hideCommunityChat of [true, false])
+    assert.equal(
+      parsePartnerBranding({ branding: { ...branding, hideCommunityChat } }, origin).branding
+        .hideCommunityChat,
+      hideCommunityChat
+    )
+  for (const hideCommunityChat of ['true', 1, null])
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, hideCommunityChat } }, origin)
+    )
 })

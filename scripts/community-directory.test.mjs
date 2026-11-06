@@ -567,3 +567,97 @@ test('community cache displays before its network refresh finishes', async () =>
   await pending
   assert.equal(store.getState().communities[0].name, 'Updated name')
 })
+
+test('community chat visibility survives owner settings and updates without coercing forged flags', () => {
+  const settings = {
+    name: 'Demo',
+    description: '',
+    communityCountryCode: null,
+    servers: [],
+    hideCommunityChat: true
+  }
+  validateCommunityUpdate(settings)
+  assert.equal(communityUpdateBody(settings).hideCommunityChat, true)
+  assert.equal(
+    parseCommunityOwnerSettings({ branding: { ...communityUpdateBody(settings) } })
+      .hideCommunityChat,
+    true
+  )
+  for (const hideCommunityChat of ['true', 1, null])
+    assert.throws(() => validateCommunityUpdate({ ...settings, hideCommunityChat }))
+})
+
+test('hiding chat clears stale content, blocks sending and cannot be undone by an older history response', async () => {
+  const auth = create(() => ({ session: { player: { id } } }))
+  const feedback = []
+  const message = {
+    id,
+    sender: { id, username: 'Member' },
+    message: 'hello',
+    sentAt: new Date().toISOString()
+  }
+  let history = { communityId: id, name: 'Community', chatHidden: false, messages: [message] }
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  let fetch = async () => history
+  let sends = 0
+  const chat = rendererStore(
+    '../src/renderer/src/features/partner-branding/community-chat.store.ts',
+    {
+      '../auth/auth.store': { useAuthStore: auth },
+      './community-copy': { communityText: (_language, key) => key },
+      '../i18n/i18n': {
+        useLanguageStore: { getState: () => ({ language: 'en' }) },
+        translate: (_language, key) => key
+      },
+      'react-toastify': {
+        toast: {
+          loading: (text) => {
+            feedback.push(text)
+            return 'pending'
+          },
+          update: (_id, result) => feedback.push(result)
+        }
+      },
+      window: {
+        api: {
+          communityChat: {
+            history: () => fetch(),
+            send: async () => {
+              sends++
+              throw new Error('COMMUNITY_CHAT_HIDDEN')
+            }
+          }
+        }
+      }
+    }
+  ).useCommunityChatStore
+  await chat.getState().load()
+  chat.getState().setDraft('draft')
+  history = { ...history, chatHidden: true, messages: [] }
+  await chat.getState().load()
+  assert.equal(chat.getState().communityId, id, 'membership remains')
+  assert.equal(chat.getState().chatHidden, true)
+  assert.equal(chat.getState().draft, '')
+  assert.deepEqual(chat.getState().messages, [])
+  chat.getState().setDraft('blocked')
+  await chat.getState().send()
+  assert.equal(sends, 0)
+  history = { ...history, chatHidden: false, messages: [message] }
+  await chat.getState().load()
+  chat.getState().setDraft('old draft')
+  let release
+  fetch = () =>
+    new Promise((resolve) => {
+      release = resolve
+    })
+  const stale = chat.getState().load()
+  await chat.getState().send()
+  release(history)
+  await stale
+  assert.equal(chat.getState().chatHidden, true)
+  assert.deepEqual(chat.getState().messages, [])
+  assert.equal(chat.getState().sending, false)
+  assert.equal(chat.getState().loading, false)
+  assert.equal(feedback.at(-1).render, 'directory.chatHidden')
+  assert.equal(feedback.at(-1).isLoading, false)
+})
