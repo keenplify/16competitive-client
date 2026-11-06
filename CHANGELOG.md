@@ -4364,3 +4364,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Use Huguito’s Improved Counter Strike Menu Music 2026 [v1.1] as the default background track.
 - Save and cache 4× sticker textures, improve sticker dragging, and stabilize placement across seams.
 - Keep preview muzzle flashes attached to animated gun barrels.
+
+## v2026.1106.7 — 2026-11-06
+
+### Shop
+
+- Improved shop performance with smoother browsing of large card collections.
+- Shop artwork now loads as needed.
+
+### Music
+
+- Music kits now download on demand.
+- Native sessions now persist between launches.
+
+### Weapon Previews
+
+- Fixed muzzle flashes appearing through weapons in previews.
