@@ -502,7 +502,20 @@ mod replacement_tests {
         command.args(["-t", "127.0.0.1"]);
         #[cfg(target_os = "linux")]
         command.arg("60");
-        Fixture(command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap())
+        command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        loop {
+            match command.spawn() {
+                Ok(child) => return Fixture(child),
+                // Parallel test subprocesses can briefly inherit a descriptor
+                // used to copy this fixture until their exec closes it.
+                Err(error) if cfg!(target_os = "linux") && error.raw_os_error() == Some(26)
+                    && std::time::Instant::now() < deadline => {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => panic!("Could not spawn process fixture: {error}"),
+            }
+        }
     }
 
     #[test]
