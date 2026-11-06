@@ -4449,3 +4449,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Improved reliability when preparing the game on Linux during temporary file-copy conflicts.
+
+## v2026.1107.3 — 2026-11-06
+
+### Sticker Preparation
+
+- Improved sticker preparation on Windows to help avoid timeouts.
+- Sticker preparation failures now preserve their specific reason in issue reports.
