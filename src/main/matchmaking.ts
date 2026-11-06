@@ -686,7 +686,12 @@ class MatchmakingConnection {
           this.notify({
             type: 'error',
             code: 'WARMUP_FAILED',
-            message: 'Could not launch the warmup.',
+            message:
+              error instanceof Error &&
+              (error.message === 'match.launch.closeFailed' ||
+                error.message === 'match.launch.alreadyRunning')
+                ? error.message
+                : 'Could not launch the warmup.',
             whileQueued: true
           })
           // The server repeats match_connect until admission. A failed local

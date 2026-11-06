@@ -299,9 +299,6 @@ pub fn launch(
     let gold_client = !root.join("nitro_api2.dll").is_file() && windows_native::is_gold_client(&root)?;
     #[cfg(not(windows))]
     let gold_client = false;
-    if cs16_requires_steam(&root, root.join("nitro_api2.dll").is_file(), gold_client) {
-        start_steam_client()?;
-    }
     #[cfg(target_os = "linux")]
     let library_paths = {
         let root = root.clone();
@@ -314,7 +311,11 @@ pub fn launch(
     let _mode = session_mode::Lease::native_wait(&config)?;
     let preferences = settings_bridge::load()?.settings;
     let bundle = native_bundle::prepare(&config)?;
-    let startup = owned_game::Startup::prepare(&executable, &root.join(&mod_dir))?;
+    let startup = owned_game::Startup::prepare_replacing(&executable, &root.join(&mod_dir))
+        .map_err(|_| "GAME_CLOSE_FAILED")?;
+    if cs16_requires_steam(&root, root.join("nitro_api2.dll").is_file(), gold_client) {
+        start_steam_client()?;
+    }
     #[cfg(windows)]
     windows_native::prepare_existing(&root, &bundle)?;
     let directory = if cfg!(windows) {

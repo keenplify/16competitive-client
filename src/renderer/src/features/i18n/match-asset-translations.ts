@@ -1,5 +1,9 @@
 export const matchAssetTranslations = {
   en: {
+    'match.launch.closeFailed':
+      'Could not close the existing Counter-Strike process. Close it in Task Manager (or your system monitor), then reconnect.',
+    'match.launch.alreadyRunning':
+      'Counter-Strike started again while the launcher was preparing. Close the game, then reconnect.',
     'assets.sync.downloading': 'Downloading assets — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} files',
     'assets.sync.checking': 'Checking cached files…',
@@ -10,6 +14,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike will download missing skins in game'
   },
   ru: {
+    'match.launch.closeFailed':
+      'Не удалось завершить запущенный процесс Counter-Strike. Закройте его в диспетчере задач или системном мониторе и подключитесь снова.',
+    'match.launch.alreadyRunning':
+      'Counter-Strike снова запустился во время подготовки. Закройте игру и подключитесь снова.',
     'assets.sync.downloading': 'Загрузка ресурсов — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} файлов',
     'assets.sync.checking': 'Проверка файлов в кэше…',
@@ -20,6 +28,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike загрузит недостающие скины в игре'
   },
   tl: {
+    'match.launch.closeFailed':
+      'Hindi maisara ang tumatakbong Counter-Strike process. Isara ito sa Task Manager (o system monitor), saka kumonekta ulit.',
+    'match.launch.alreadyRunning':
+      'Nagbukas ulit ang Counter-Strike habang naghahanda ang launcher. Isara ang laro, saka kumonekta ulit.',
     'assets.sync.downloading': 'Dina-download ang assets — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} file',
     'assets.sync.checking': 'Tinitingnan ang mga naka-cache na file…',
@@ -30,6 +42,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Ida-download ng Counter-Strike ang mga kulang na skin sa laro'
   },
   th: {
+    'match.launch.closeFailed':
+      'ไม่สามารถปิดโปรเซส Counter-Strike ที่ทำงานอยู่ได้ ปิดใน Task Manager หรือตัวตรวจสอบระบบ แล้วเชื่อมต่อใหม่',
+    'match.launch.alreadyRunning':
+      'Counter-Strike เริ่มทำงานอีกครั้งระหว่างเตรียมเกม ปิดเกมแล้วเชื่อมต่อใหม่',
     'assets.sync.downloading': 'กำลังดาวน์โหลดไฟล์ — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} ไฟล์',
     'assets.sync.checking': 'กำลังตรวจสอบไฟล์ในแคช…',
@@ -40,6 +56,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike จะดาวน์โหลดสกินที่ขาดภายในเกม'
   },
   id: {
+    'match.launch.closeFailed':
+      'Proses Counter-Strike yang sedang berjalan tidak dapat ditutup. Tutup melalui Task Manager atau monitor sistem, lalu sambungkan kembali.',
+    'match.launch.alreadyRunning':
+      'Counter-Strike terbuka lagi saat launcher menyiapkan permainan. Tutup game, lalu sambungkan kembali.',
     'assets.sync.downloading': 'Mengunduh aset — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} file',
     'assets.sync.checking': 'Memeriksa file dalam cache…',
@@ -50,6 +70,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike akan mengunduh skin yang belum tersedia di dalam game'
   },
   hi: {
+    'match.launch.closeFailed':
+      'चल रही Counter-Strike प्रक्रिया बंद नहीं हो सकी। उसे Task Manager या सिस्टम मॉनिटर में बंद करें, फिर दोबारा कनेक्ट करें।',
+    'match.launch.alreadyRunning':
+      'लॉन्चर की तैयारी के दौरान Counter-Strike फिर शुरू हो गया। गेम बंद करें, फिर दोबारा कनेक्ट करें।',
     'assets.sync.downloading': 'एसेट्स डाउनलोड हो रहे हैं — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} फ़ाइलें',
     'assets.sync.checking': 'कैश की गई फ़ाइलें जाँची जा रही हैं…',
@@ -60,6 +84,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike खेल में अनुपलब्ध स्किन डाउनलोड करेगा'
   },
   pt: {
+    'match.launch.closeFailed':
+      'Não foi possível encerrar o processo do Counter-Strike. Feche-o no Gerenciador de Tarefas ou monitor do sistema e reconecte.',
+    'match.launch.alreadyRunning':
+      'O Counter-Strike abriu novamente durante a preparação. Feche o jogo e reconecte.',
     'assets.sync.downloading': 'Baixando arquivos — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} arquivos',
     'assets.sync.checking': 'Verificando arquivos em cache…',
@@ -70,6 +98,10 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'O Counter-Strike baixará as skins ausentes no jogo'
   },
   ja: {
+    'match.launch.closeFailed':
+      '実行中のCounter-Strikeを終了できませんでした。タスクマネージャーまたはシステムモニターで終了してから再接続してください。',
+    'match.launch.alreadyRunning':
+      '準備中にCounter-Strikeが再び起動しました。ゲームを終了してから再接続してください。',
     'assets.sync.downloading': 'アセットをダウンロード中 — {{percent}}%',
     'assets.sync.files': '{{completed}} / {{total}} ファイル',
     'assets.sync.checking': 'キャッシュ済みファイルを確認中…',

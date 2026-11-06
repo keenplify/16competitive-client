@@ -230,6 +230,80 @@ process.stdin.on('end',()=>process.exit(1));
   }
 )
 
+test(
+  'spawn diagnostics reach report logs while untrusted helper details are excluded',
+  { skip: process.platform === 'win32' },
+  async () => {
+    for (const [details, expected] of [
+      [
+        { osError: 740, errorKind: 'PermissionDenied' },
+        { osError: 740, errorKind: 'PermissionDenied' }
+      ],
+      [{ osError: 'private token', errorKind: 'C:\\private\\hl.exe' }, {}],
+      [{ osError: 2 ** 40, errorKind: 'x'.repeat(100) }, {}]
+    ]) {
+      quits = 0
+      const frame = {
+        protocol: 1,
+        event: 'error',
+        code: 'GAME_SPAWN_FAILED',
+        ...details,
+        message: 'private path and token',
+        argv: ['secret']
+      }
+      await writeFile(
+        helper,
+        `#!/usr/bin/env node
+process.stdin.once('data',()=>console.log(${JSON.stringify(JSON.stringify(frame))}));
+process.stdin.on('end',()=>process.exit(1));
+`,
+        { mode: 0o755 }
+      )
+      const logs = []
+      const previousWarn = console.warn
+      console.warn = (...args) => logs.push(args)
+      try {
+        await assert.rejects(
+          launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, settings),
+          /GAME_SPAWN_FAILED/
+        )
+      } finally {
+        console.warn = previousWarn
+      }
+      assert.deepEqual(logs, [
+        ['[Standalone] preparation failed', { code: 'GAME_SPAWN_FAILED', ...expected }]
+      ])
+      assert.equal(quits, 0)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+)
+
+test(
+  'existing-game failures return translation keys and retain technical codes in logs',
+  { skip: process.platform === 'win32' },
+  async () => {
+    for (const [code, message] of [
+      ['GAME_CLOSE_FAILED', 'match.launch.closeFailed'],
+      ['GAME_ALREADY_RUNNING', 'match.launch.alreadyRunning']
+    ]) {
+      await writeFile(
+        helper,
+        `#!/usr/bin/env node
+process.stdin.once('data',()=>console.log(JSON.stringify({protocol:1,event:'error',code:${JSON.stringify(code)}})));
+process.stdin.on('end',()=>process.exit(1));
+`,
+        { mode: 0o755 }
+      )
+      await assert.rejects(
+        launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, settings),
+        (error) => error.message === message
+      )
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+)
+
 test('returning from a game skips the startup network check and splash delay only', async () => {
   const { transform } = await import('esbuild')
   const index = await readFile('src/main/index.ts', 'utf8')

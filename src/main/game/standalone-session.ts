@@ -250,7 +250,14 @@ async function launchStandaloneTargetInner(
       while ((end = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, end)
         buffer = buffer.slice(end + 1)
-        let event: { protocol?: unknown; event?: unknown; connected?: unknown; code?: unknown }
+        let event: {
+          protocol?: unknown
+          event?: unknown
+          connected?: unknown
+          code?: unknown
+          osError?: unknown
+          errorKind?: unknown
+        }
         try {
           event = JSON.parse(line)
         } catch {
@@ -262,8 +269,32 @@ async function launchStandaloneTargetInner(
             typeof event.code === 'string' && /^[A-Z_]{1,64}$/.test(event.code)
               ? event.code
               : 'PREPARATION_FAILED'
-          console.warn('[Standalone] preparation failed', { code })
-          return fail(new Error(`Standalone game preparation failed (${code})`))
+          // Never log raw helper frames, OS messages, paths or launch arguments.
+          const diagnostics =
+            code === 'GAME_SPAWN_FAILED'
+              ? {
+                  ...(typeof event.osError === 'number' &&
+                  Number.isInteger(event.osError) &&
+                  event.osError >= -2147483648 &&
+                  event.osError <= 2147483647
+                    ? { osError: event.osError }
+                    : {}),
+                  ...(typeof event.errorKind === 'string' &&
+                  /^[A-Za-z]{1,48}$/.test(event.errorKind)
+                    ? { errorKind: event.errorKind }
+                    : {})
+                }
+              : {}
+          console.warn('[Standalone] preparation failed', { code, ...diagnostics })
+          return fail(
+            new Error(
+              code === 'GAME_CLOSE_FAILED'
+                ? 'match.launch.closeFailed'
+                : code === 'GAME_ALREADY_RUNNING'
+                  ? 'match.launch.alreadyRunning'
+                  : `Standalone game preparation failed (${code})`
+            )
+          )
         }
         if (event.event === 'status' && committed && typeof event.connected === 'boolean') {
           if (active?.child === child) active.connected = event.connected

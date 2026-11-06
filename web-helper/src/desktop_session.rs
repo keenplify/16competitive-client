@@ -118,6 +118,7 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "Launcher restart verification failed" | "LAUNCHER_VERIFICATION_FAILED" => "LAUNCHER_VERIFICATION_FAILED",
         "This device cannot join competitive matches" | "DEVICE_DENIED" => "DEVICE_DENIED",
         "GAME_ALREADY_RUNNING" | "Close the existing Counter-Strike game before starting a managed session" => "GAME_ALREADY_RUNNING",
+        "GAME_CLOSE_FAILED" => "GAME_CLOSE_FAILED",
         "NATIVE_RECOVERY_FAILED" => "NATIVE_RECOVERY_FAILED",
         "Wine path conversion timed out" | "Wine output timed out" => "COMPATIBILITY_PATH_FAILED",
         "Could not obtain the signed Windows session helper" | "Could not download Windows session helper" | "WINDOWS_HELPER_DOWNLOAD_FAILED" => "WINDOWS_HELPER_DOWNLOAD_FAILED",
@@ -148,9 +149,33 @@ pub(crate) fn preparation_error(error: &str, step: &str) -> String {
     if code == "PREPARATION_FAILED" { failure_code(step).into() } else { code.into() }
 }
 
+thread_local! {
+    static SPAWN_FAILURE: std::cell::RefCell<Option<(Option<i32>, String)>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Keep only OS diagnostics, never the error message, executable path or argv.
+pub(crate) fn game_spawn_failure(error: std::io::Error) -> String {
+    SPAWN_FAILURE.with(|slot| {
+        *slot.borrow_mut() = Some((error.raw_os_error(), format!("{:?}", error.kind())));
+    });
+    "GAME_SPAWN_FAILED".into()
+}
+
+fn failure_frame(error: &str) -> serde_json::Value {
+    let mut frame = serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)});
+    // Consume the context so an unrelated later failure cannot inherit it.
+    if let Some((os_error, kind)) = SPAWN_FAILURE.with(|slot| slot.borrow_mut().take()) {
+        if error == "GAME_SPAWN_FAILED" {
+            frame["osError"] = serde_json::json!(os_error);
+            frame["errorKind"] = serde_json::json!(kind);
+        }
+    }
+    frame
+}
+
 pub(crate) fn report_failure(error: &str) {
     let mut output = std::io::stdout().lock();
-    let _ = writeln!(output, "{}", serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)}));
+    let _ = writeln!(output, "{}", failure_frame(error));
     let _ = output.flush();
 }
 
@@ -375,6 +400,53 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn spawn_failure_retains_os_code_without_private_error_text() {
+        let code = game_spawn_failure(std::io::Error::from_raw_os_error(740));
+        let frame = failure_frame(&code);
+        assert_eq!(frame["code"], "GAME_SPAWN_FAILED");
+        assert_eq!(frame["osError"], 740);
+        assert!(frame["errorKind"].is_string());
+        assert!(failure_frame(&code).get("osError").is_none());
+
+        game_spawn_failure(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "private path and token"));
+        let frame = failure_frame("GAME_SPAWN_FAILED");
+        assert_eq!(frame["errorKind"], "PermissionDenied");
+        assert!(frame["osError"].is_null());
+        assert!(!frame.to_string().contains("private"));
+
+        game_spawn_failure(std::io::Error::from_raw_os_error(5));
+        assert!(failure_frame("NATIVE_INSTALL_FAILED").get("osError").is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn real_windows_spawn_errors_reach_the_failure_frame() {
+        let root = env::temp_dir().join(format!("16c-spawn-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let executable = root.join("fixture.exe");
+        for invalid_image in [false, true] {
+            if invalid_image {
+                fs::write(&executable, b"deliberately invalid executable").unwrap();
+            }
+            let error = Command::new(&executable).spawn().unwrap_err();
+            let actual = error.raw_os_error().unwrap();
+            if invalid_image {
+                // Windows may classify the bytes as an invalid PE image or
+                // as an unsupported legacy executable for this machine.
+                assert!(matches!(actual, 193 | 216), "unexpected OS error: {actual}");
+            } else {
+                assert_eq!(actual, 2);
+            }
+            let code = game_spawn_failure(error);
+            let frame = failure_frame(&code);
+            assert_eq!(frame["osError"], actual);
+            assert_eq!(frame["code"], "GAME_SPAWN_FAILED");
+            assert!(!frame.to_string().contains("fixture.exe"));
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn failure_codes_survive_compatibility_handoff_without_echoing_details() {
         assert_eq!(failure_code("Device authorization check failed"), "DEVICE_CHECK_FAILED");

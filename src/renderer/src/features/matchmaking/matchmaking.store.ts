@@ -221,7 +221,12 @@ const readableError = (error: unknown): string => {
   if (error.message === 'WEB_STEAM_CREDENTIALS_UNSUPPORTED')
     return translate(useLanguageStore.getState().language, 'webHelper.steamCredentialFallback')
   const key = error.message.replace(/^.*Error: /, '')
-  if (key === 'match.proton.runtimeUnavailable' || key === 'match.proton.gameUnavailable')
+  if (
+    key === 'match.proton.runtimeUnavailable' ||
+    key === 'match.proton.gameUnavailable' ||
+    key === 'match.launch.closeFailed' ||
+    key === 'match.launch.alreadyRunning'
+  )
     return translate(useLanguageStore.getState().language, key)
   const remoteError = error.message.match(/Error: (.+)$/)
   return remoteError?.[1] ?? error.message
@@ -256,6 +261,15 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     rendererMatchmakingDiagnostics.record('renderer_received', event)
     useQueueWarmupStore.getState().handleEvent(event)
     if (event.whileQueued) {
+      if (
+        event.type === 'error' &&
+        (event.message === 'match.launch.closeFailed' ||
+          event.message === 'match.launch.alreadyRunning')
+      ) {
+        toast.error(translate(useLanguageStore.getState().language, event.message), {
+          toastId: event.message
+        })
+      }
       if (event.type === 'match_finished' && !terminalMatchIds.has(event.matchId)) {
         terminalMatchIds.add(event.matchId)
         const currentPlayerId = useAuthStore.getState().session?.player.id
@@ -760,6 +774,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             event.message === 'match.proton.runtimeUnavailable' ||
             event.message === 'match.proton.gameUnavailable' ||
             event.message === 'match.assets.storageDenied' ||
+            event.message === 'match.launch.closeFailed' ||
+            event.message === 'match.launch.alreadyRunning' ||
             event.message === 'legacy.error.installationRequired' ||
             event.message === 'legacy.error.invalidInstallation' ||
             event.message === 'legacy.error.settingsFailed' ||

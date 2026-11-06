@@ -54,6 +54,7 @@ async function harness({
     Set,
     Date,
     Promise,
+    Error,
     setTimeout: timers?.setTimeout ?? setTimeout,
     clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval,
@@ -358,6 +359,19 @@ test('failed preparation leaves warmup once and ignores repeated server launch m
   assert.equal(h.connection.warmupSuppressed, false)
   assert.equal(h.connection.cancelledMatchIds.has(connect.matchId), false)
 })
+
+for (const key of ['match.launch.closeFailed', 'match.launch.alreadyRunning']) {
+  test(`warmup preserves actionable launch failure ${key}`, async () => {
+    const h = await harness({ launchError: new Error(key) })
+    await h.connection.joinWarmup('5v5', 'de_dust2')
+    h.connection.handleWarmup({ ...found, mode: '5v5' }, h.socket)
+    h.connection.handleWarmup(connect, h.socket)
+    h.finishAssets()
+    await h.connection.warmupLaunch
+    await h.connection.warmupCleanup
+    assert.equal(h.events.find((event) => event.code === 'WARMUP_FAILED').message, key)
+  })
+}
 
 test('an explicit MR8 retry accepts the reserved session after process-exit cleanup', async () => {
   const h = await harness()

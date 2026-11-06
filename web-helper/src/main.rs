@@ -878,22 +878,26 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     #[cfg(not(windows))]
     let gold_client = false;
     let game_dir = root.join(&mod_dir);
-    if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
-        start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
-    }
     #[cfg(target_os = "linux")]
     let library_paths = {
         let root = root.clone();
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
-    let game_startup = owned_game::Startup::prepare(&exe, &game_dir)?;
     let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
         .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
     if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
         return Err("This device cannot join competitive matches".into());
     }
     assets::prepare_match(&game_dir, connection, api, token).map_err(|_| "ASSET_PREPARATION_FAILED")?;
+    let game_startup = if connection.game() == "cs16" {
+        owned_game::Startup::prepare_replacing(&exe, &game_dir).map_err(|_| "GAME_CLOSE_FAILED")?
+    } else {
+        owned_game::Startup::prepare(&exe, &game_dir)?
+    };
+    if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
+        start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
+    }
     let mut scanner = inspector::Session::start(&scanner_bundle, inspector::SessionOptions {
         api,
         token,
@@ -1110,7 +1114,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             })?;
         }
         game_startup.recheck()?;
-        command.spawn().map_err(|_| "GAME_SPAWN_FAILED".into())
+        command.spawn().map_err(desktop_session::game_spawn_failure)
     })();
     let mut child = prepared_child?;
     if let Some((_, session)) = native.as_mut() {

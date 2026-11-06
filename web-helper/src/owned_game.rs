@@ -121,6 +121,15 @@ mod windows {
         handle: Handle,
     }
     impl Startup {
+        /// Explicit CS 1.6 launch policy: close only exact-path matches and
+        /// retain their handles through shutdown. Never kill by basename/PID.
+        pub fn prepare_replacing(executable: &Path, game: &Path) -> Result<Self, String> {
+            let existing = matching(executable)?;
+            for (pid, handle) in existing {
+                Owned { pid, handle }.stop()?;
+            }
+            Self::prepare(executable, game)
+        }
         pub fn prepare(executable: &Path, game: &Path) -> Result<Self, String> {
             if !matching(executable)?.is_empty() {
                 return Err(
@@ -321,6 +330,27 @@ mod linux {
         handle: File,
     }
     impl Startup {
+        pub fn prepare_replacing(executable: &Path, game: &Path) -> Result<Self, String> {
+            let expected = fs::canonicalize(executable).map_err(|_| "Game executable unavailable")?;
+            for pid in matching(executable)? {
+                let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, pid, 0) } as i32;
+                if fd < 0 {
+                    if std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+                        continue;
+                    }
+                    return Err("Could not retain the existing game process handle".into());
+                }
+                let owned = Owned { pid, handle: unsafe { File::from_raw_fd(fd) } };
+                // Recheck identity after acquiring the pidfd. A process that
+                // exited/reused its PID or changed its executable is not ours.
+                if owned.exited()? { continue; }
+                if !fs::read_link(format!("/proc/{pid}/exe")).is_ok_and(|path| path == expected) {
+                    return Err("Existing game process identity changed".into());
+                }
+                owned.stop()?;
+            }
+            Self::prepare(executable, game)
+        }
         pub fn prepare(executable: &Path, game: &Path) -> Result<Self, String> {
             if !matching(executable)?.is_empty() {
                 return Err(
@@ -453,3 +483,58 @@ mod linux {
 }
 #[cfg(target_os = "linux")]
 pub use linux::Startup;
+
+#[cfg(test)]
+mod replacement_tests {
+    use super::Startup;
+    use std::{fs, path::Path, process::{Child, Command, Stdio}, time::Duration};
+
+    struct Fixture(Child);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    fn spawn(executable: &Path) -> Fixture {
+        let mut command = Command::new(executable);
+        #[cfg(windows)]
+        command.args(["-t", "127.0.0.1"]);
+        #[cfg(target_os = "linux")]
+        command.arg("60");
+        Fixture(command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap())
+    }
+
+    #[test]
+    fn closes_only_selected_installation_and_recheck_never_kills_a_new_process() {
+        let root = std::env::temp_dir().join(format!("16c-replace-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(root.join("selected")).unwrap();
+        fs::create_dir_all(root.join("other")).unwrap();
+        #[cfg(windows)]
+        let source = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/ping.exe");
+        #[cfg(target_os = "linux")]
+        let source = std::path::PathBuf::from("/bin/sleep");
+        let selected = root.join("selected/hl.exe");
+        let other = root.join("other/hl.exe");
+        fs::copy(&source, &selected).unwrap();
+        fs::copy(&source, &other).unwrap();
+        {
+            let mut selected_process = spawn(&selected);
+            let mut other_process = spawn(&other);
+            std::thread::sleep(Duration::from_millis(100));
+            assert!(selected_process.0.try_wait().unwrap().is_none());
+            assert!(other_process.0.try_wait().unwrap().is_none());
+            // The legacy/late-start check retains its refusal behavior.
+            assert!(Startup::prepare(&selected, &root).is_err());
+            let startup = Startup::prepare_replacing(&selected, &root).unwrap();
+            assert!(!selected_process.0.wait().unwrap().success());
+            assert!(other_process.0.try_wait().unwrap().is_none());
+            startup.recheck().unwrap();
+            let mut late_process = spawn(&selected);
+            std::thread::sleep(Duration::from_millis(100));
+            assert!(startup.recheck().is_err());
+            assert!(late_process.0.try_wait().unwrap().is_none());
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+}
