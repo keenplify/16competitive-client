@@ -4380,3 +4380,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Weapon Previews
 
 - Fixed muzzle flashes appearing through weapons in previews.
+
+## v2026.1106.8 — 2026-11-06
+
+### Music Kits
+
+- Music kits now use full music cues.
+- Music cue labels and translations have been improved.
+
+### Partner Setup
+
+- Partner helper setup preferences are now honored.
+- Partner setup preferences now use validated defaults.
