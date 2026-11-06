@@ -4430,3 +4430,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Music Kits
 
 - Music kits are now downloaded on demand when needed.
+
+## v2026.1107.1 — 2026-11-06
+
+### Game Launch
+
+- Improved Counter-Strike 1.6 launch handling.
+- Added safer Windows diagnostics.
+
+### Communities
+
+- Community matchmaking visibility now follows community settings.
+- Community chat visibility now follows community settings.
+- Improved community directory and partner community support.
