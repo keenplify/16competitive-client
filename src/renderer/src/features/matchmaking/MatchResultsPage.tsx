@@ -1,3 +1,4 @@
+import { useVoiceDockText } from '../voice/voice-dock-copy'
 import { PCashBetResult } from './PCashBetResult'
 import { useTranslation } from '../i18n/i18n'
 import { useProfileStore } from '../profile/profile.store'
@@ -23,6 +24,7 @@ import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const { t } = useTranslation()
+  const voiceText = useVoiceDockText()
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
   const party = usePartyStore((state) => state.party)
   const visibleMmrPlayerIds = new Set([
@@ -344,9 +346,14 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
             {score[0]} <span className="text-neutral-500">—</span> {score[1]}
           </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
-            {getMatchmakingModeLabel(match.mode)} · {t(isRankedMatchmakingMode(match.mode) ? 'bet.ranked' : 'bet.unranked')}
+            {getMatchmakingModeLabel(match.mode)} ·{' '}
+            {t(isRankedMatchmakingMode(match.mode) ? 'bet.ranked' : 'bet.unranked')}
           </p>
-          <PCashBetResult matchId={match.matchId} mode={match.mode} className="mx-auto mt-4 mb-4 w-full max-w-2xl" />
+          <PCashBetResult
+            matchId={match.matchId}
+            mode={match.mode}
+            className="mx-auto mt-4 mb-4 w-full max-w-2xl"
+          />
           <>
             <Team
               label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
@@ -384,31 +391,32 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
         createPortal(
           <div
             ref={contextMenuRef}
-            className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left shadow-xl"
+            className="fixed z-50 min-w-40 overflow-hidden  border border-white/15 bg-neutral-800 py-1 text-left text-neutral-100 shadow-xl"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             role="menu"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
               role="menuitem"
               onClick={() => openPlayerProfile(contextMenu.playerId)}
             >
-              <UserRound className="size-4 text-sky-300" aria-hidden="true" /> View profile
+              <UserRound className="size-4 text-sky-300" aria-hidden="true" />{' '}
+              {voiceText('viewProfile')}
             </button>
             {contextMenu.playerId !== currentPlayerId && (
               <button
                 type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-white/35"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-neutral-100 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-white/35"
                 role="menuitem"
                 disabled={friends.some((friend) => friend.id === contextMenu.playerId)}
                 onClick={() => addFriend(contextMenu.playerId)}
               >
                 <UserPlus className="size-4 text-emerald-300" aria-hidden="true" />
                 {friends.some((friend) => friend.id === contextMenu.playerId)
-                  ? 'Already friends'
-                  : 'Add friend'}
+                  ? t('profile.alreadyFriends')
+                  : t('profile.addFriend')}
               </button>
             )}
           </div>,

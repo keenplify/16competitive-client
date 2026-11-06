@@ -206,7 +206,7 @@ export function ShopPage(): JSX.Element {
   const points = useAuthStore((state) => state.session?.player.points ?? 0)
   const setPoints = useAuthStore((state) => state.setPoints)
   const [selectedCategory, setSelectedCategory] = useState<WeaponCategory | 'music' | 'stickers'>(
-    useNavigationStore.getState().storeStickerSearch ? 'stickers' : 'all'
+    useNavigationStore.getState().storeStickerSearch !== null ? 'stickers' : 'all'
   )
   const [selectedSkinType, setSelectedSkinType] = useState<SkinTypeFilter>('all')
   const [searchQuery, setSearchQuery] = useState(

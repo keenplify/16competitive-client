@@ -14,7 +14,7 @@ import { isCharacterModel } from '../skins/skin-model-presentation'
 import { StickerPurchaseDialog } from './StickerPurchaseDialog'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Package, Sticker, LoaderCircle } from 'lucide-react'
+import { Package, Sticker, LoaderCircle, Paintbrush, ShoppingBag } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -161,7 +161,14 @@ export function WeaponTile({
   const open = () => {
     if (stockStickerModel(weaponKey)) useInventoryStore.getState().selectWeapon(target)
   }
-  const menu = useItemContextMenu(t('customize'), open, !stockStickerModel(weaponKey))
+  const menu = useItemContextMenu(
+    t('customize'),
+    open,
+    !stockStickerModel(weaponKey),
+    undefined,
+    [],
+    Paintbrush
+  )
   return (
     <div
       className={twMerge('relative min-w-0 border border-white/15 bg-neutral-900/70', className)}
@@ -248,9 +255,24 @@ export function InventoryDialogs() {
           <h2 className="text-xl font-semibold">
             {t(s.target ? 'chooseSticker' : 'chooseWeapon')}
           </h2>
-          <Button variant="ghost" disabled={s.pending} onClick={s.close}>
-            {t('close')}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {s.target && (
+              <Button
+                variant="secondary"
+                disabled={s.pending}
+                onClick={() => {
+                  s.close()
+                  useNavigationStore.getState().openStickerStore('')
+                }}
+              >
+                <ShoppingBag className="size-4 shrink-0" aria-hidden="true" />
+                {t('browseStickers')}
+              </Button>
+            )}
+            <Button variant="ghost" disabled={s.pending} onClick={s.close}>
+              {t('close')}
+            </Button>
+          </div>
         </header>
         <div className="grid max-h-[65vh] min-h-48 grid-cols-2 gap-4 overflow-y-auto sm:grid-cols-3">
           {s.target && !s.loading && unused.length === 0 && (

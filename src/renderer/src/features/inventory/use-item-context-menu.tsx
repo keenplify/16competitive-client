@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
   type MouseEvent
 } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 
@@ -14,13 +15,19 @@ export function useItemContextMenu(
   action: () => void,
   disabled = false,
   className?: string,
-  additionalActions: { label: string; action: () => void; disabled?: boolean }[] = []
+  additionalActions: {
+    label: string
+    action: () => void
+    disabled?: boolean
+    icon?: LucideIcon
+  }[] = [],
+  icon?: LucideIcon
 ): {
   menu: JSX.Element | null
   onContextMenu: (event: MouseEvent<HTMLElement>) => void
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void
 } {
-  const actions = [{ label, action, disabled }, ...additionalActions].filter(
+  const actions = [{ label, action, disabled, icon }, ...additionalActions].filter(
     (item) => !item.disabled
   )
   const [target, setTarget] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -82,13 +89,14 @@ export function useItemContextMenu(
             key={item.label}
             type="button"
             role="menuitem"
-            className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-left text-sm hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-300"
+            className="flex w-full items-center gap-2 rounded-none px-3 py-2 text-left text-sm text-neutral-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-300"
             onClick={() => {
               dismiss()
               trigger.current?.focus()
               item.action()
             }}
           >
+            {item.icon && <item.icon className="size-4 shrink-0 text-sky-300" aria-hidden="true" />}
             {item.label}
           </button>
         ))}

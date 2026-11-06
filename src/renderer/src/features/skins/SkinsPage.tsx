@@ -12,7 +12,16 @@ import { STOCK_CHARACTERS } from '../../../../shared/skins'
 import { CharacterPanel } from './CharacterPanel'
 import { useCharacterLoadoutStore } from './character-loadout.store'
 import { useTranslation } from '../i18n/i18n'
-import { Check, Crosshair, LoaderCircle, Eye, EyeOff, TicketSlash, Users } from 'lucide-react'
+import {
+  Check,
+  Crosshair,
+  LoaderCircle,
+  Eye,
+  EyeOff,
+  Paintbrush,
+  TicketSlash,
+  Users
+} from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin, SkinResaleQuote } from '../../../../shared/skins'
@@ -344,8 +353,23 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     const feedback = toast.loading(inventoryText('pending'))
     void window.api.skins
       .resaleQuote(owned.skin.id)
-      .then((quote) => { setSale({ owned, quote }); toast.update(feedback, { render: refundText.confirm, type: 'success', isLoading: false, autoClose: 2000 }) })
-      .catch(() => toast.update(feedback, { render: refundText.failed, type: 'error', isLoading: false, autoClose: 6000 }))
+      .then((quote) => {
+        setSale({ owned, quote })
+        toast.update(feedback, {
+          render: refundText.confirm,
+          type: 'success',
+          isLoading: false,
+          autoClose: 2000
+        })
+      })
+      .catch(() =>
+        toast.update(feedback, {
+          render: refundText.failed,
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
+      )
       .finally(() => setQuotingId(null))
   }
 
@@ -360,7 +384,12 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         setSkins((current) => current.filter((item) => item.skin.id !== owned.skin.id))
         setSale(null)
         if (result.currency === 'POINTS') useAuthStore.getState().setPoints(result.balance)
-        toast.update(feedback, { render: refundText.success, type: 'success', isLoading: false, autoClose: 4000 })
+        toast.update(feedback, {
+          render: refundText.success,
+          type: 'success',
+          isLoading: false,
+          autoClose: 4000
+        })
         void Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()])
           .then(([inventory, lobbyLoadout]) => {
             setSkins(inventory)
@@ -374,7 +403,14 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
           })
           .catch((reason: unknown) => toast.error(errorText(reason)))
       })
-      .catch(() => toast.update(feedback, { render: refundText.failed, type: 'error', isLoading: false, autoClose: 6000 }))
+      .catch(() =>
+        toast.update(feedback, {
+          render: refundText.failed,
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
+      )
       .finally(() => setSelling(false))
   }
 
@@ -744,13 +780,21 @@ function InventoryCard({
     useInventoryStore
       .getState()
       .selectWeapon({ key: `skin:${owned.skin.id}`, skinId: owned.skin.id, name: owned.skin.name })
-  const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
-    {
-      label: inventoryText('customize'),
-      action: customize,
-      disabled: !stockStickerModel(owned.skin.weaponKey)
-    }
-  ])
+  const menu = useItemContextMenu(
+    inventoryText('preview'),
+    onPreview,
+    false,
+    undefined,
+    [
+      {
+        label: inventoryText('customize'),
+        icon: Paintbrush,
+        action: customize,
+        disabled: !stockStickerModel(owned.skin.weaponKey)
+      }
+    ],
+    Eye
+  )
   const equipped = owned.equippedAt !== null
   return (
     <article
@@ -776,7 +820,11 @@ function InventoryCard({
             disabled={changing || selling}
             onClick={onSell}
           >
-            {selling ? <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" /> : <TicketSlash className="mr-1 size-3.5" aria-hidden="true" />}
+            {selling ? (
+              <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <TicketSlash className="mr-1 size-3.5" aria-hidden="true" />
+            )}
             {refundText.refund}
           </Button>
         )}
@@ -829,22 +877,30 @@ function LoadoutWeaponCard({
   onPreview: () => void
 }): JSX.Element {
   const inventoryText = useInventoryText()
-  const menu = useItemContextMenu(inventoryText('preview'), onPreview, false, undefined, [
-    {
-      label: inventoryText('customize'),
-      action: () =>
-        useInventoryStore.getState().selectWeapon(
-          equipped
-            ? {
-                key: `skin:${equipped.skin.id}`,
-                name: equipped.skin.name,
-                skinId: equipped.skin.id
-              }
-            : { key: `stock:${weaponKey}`, name: inventoryText('stock') }
-        ),
-      disabled: !stockStickerModel(weaponKey)
-    }
-  ])
+  const menu = useItemContextMenu(
+    inventoryText('preview'),
+    onPreview,
+    false,
+    undefined,
+    [
+      {
+        label: inventoryText('customize'),
+        icon: Paintbrush,
+        action: () =>
+          useInventoryStore.getState().selectWeapon(
+            equipped
+              ? {
+                  key: `skin:${equipped.skin.id}`,
+                  name: equipped.skin.name,
+                  skinId: equipped.skin.id
+                }
+              : { key: `stock:${weaponKey}`, name: inventoryText('stock') }
+          ),
+        disabled: !stockStickerModel(weaponKey)
+      }
+    ],
+    Eye
+  )
   const lobbyButtonLabel = lobbySelected ? 'Shown in your lobby' : 'Show this weapon in your lobby'
   return (
     <div
@@ -949,13 +1005,21 @@ function StockWeaponCard({
 }) {
   const t = useInventoryText()
   const name = t('stockWeapon').replace('{{weapon}}', displayWeapon(weaponKey))
-  const menu = useItemContextMenu(t('preview'), onPreview, false, undefined, [
-    {
-      label: t('customize'),
-      disabled: !stockStickerModel(weaponKey),
-      action: () => useInventoryStore.getState().selectWeapon({ key: `stock:${weaponKey}`, name })
-    }
-  ])
+  const menu = useItemContextMenu(
+    t('preview'),
+    onPreview,
+    false,
+    undefined,
+    [
+      {
+        label: t('customize'),
+        icon: Paintbrush,
+        disabled: !stockStickerModel(weaponKey),
+        action: () => useInventoryStore.getState().selectWeapon({ key: `stock:${weaponKey}`, name })
+      }
+    ],
+    Eye
+  )
   return (
     <article
       tabIndex={0}
@@ -990,7 +1054,13 @@ function StockWeaponCard({
           variant={equipped ? 'ghost' : 'primary'}
           onClick={onEquip}
         >
-          {changing ? <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" /> : equipped ? <EyeOff className="mr-1 size-3.5" aria-hidden="true" /> : <Eye className="mr-1 size-3.5" aria-hidden="true" />}
+          {changing ? (
+            <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" />
+          ) : equipped ? (
+            <EyeOff className="mr-1 size-3.5" aria-hidden="true" />
+          ) : (
+            <Eye className="mr-1 size-3.5" aria-hidden="true" />
+          )}
           {t(changing ? 'pending' : equipped ? 'equipped' : 'equip')}
         </Button>
       </div>
