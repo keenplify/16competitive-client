@@ -4405,3 +4405,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added verified WAV music cues.
 - Added support for WAV menu audio.
+
+## v2026.1106.10 — 2026-11-06
+
+### Music
+
+- Music stop assets now use SHA-256-derived paths to prevent invalid catalog entries.
+
+### Matchmaking
+
+- Stake eligibility now correctly accounts for snapshot state.
+
+### Diagnostics
+
+- Unauthorized file-path access attempts are now logged.
