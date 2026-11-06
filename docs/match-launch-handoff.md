@@ -13,8 +13,10 @@ the game, then resolves the toast on commit or failure. Progress cannot commit a
 session. Linux/Wine forwards validated preparation frames without extending its
 existing readiness deadline. Preparation progress is also captured in issue logs.
 
-Native local Music Kit downloads allow 90 seconds per transfer with a five-second
-connect/read timeout and cancellation checks between chunks. They never block
+Native local Music Kit downloads check a 90-second transfer budget between chunks,
+with five-second connect/read/write timeouts and cancellation checks. The overall
+ureq timeout must stay unset because it overrides the shorter stalled-read timeout.
+These optional downloads never block
 launch. Desktop Match Found also starts a bounded background prefetch of the
 backend-selected MP3s through the regional match asset endpoint. It verifies full
 hashes and publishes atomically; the native helper reuses and revalidates those
@@ -22,6 +24,16 @@ files. The helper retains one bounded `music-diagnostics.json` delivery summary;
 Report an Issue includes it only for the matching match within ten minutes. Counts
 describe verified downloads, not playback, volume, or authoritative kit ownership.
 The updated helper must be rebuilt and packaged for these changes to take effect.
+
+NextClient WAV playback requires the exact `16competitive_music 3` capability
+command. The module emits it once per second while the assigned session is active;
+the server withholds local WAV cues without a fresh protocol-3 announcement. The
+old host allowlist stopped at protocol 2, so cached WAVs alone could not restore
+playback. Helper 0.1.94 adds only the missing exact command, retaining the endpoint
+gate and rejecting extra arguments or appended commands. Ship its signed host and
+module together. Denzel Curry ULTIMATE currently uses WAV tracks; an absent MP3
+cache is not evidence of failed delivery for that kit. Its catalog has round and
+MVP tracks; missing event cues remain silent by design.
 
 Normal Counter-Strike launches keep engine startup flags on the process command
 line. Steam also needs `-applaunch 10` and `-game cstrike`. The launcher passes
