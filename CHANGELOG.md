@@ -4443,3 +4443,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Community matchmaking visibility now follows community settings.
 - Community chat visibility now follows community settings.
 - Improved community directory and partner community support.
+
+## v2026.1107.2 — 2026-11-06
+
+### Linux
+
+- Improved reliability when preparing the game on Linux during temporary file-copy conflicts.
