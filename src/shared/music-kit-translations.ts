@@ -1,5 +1,25 @@
 export const musicKitTranslations = {
   en: {
+    'music.artistName': 'Artist name (optional)',
+    'music.artistUrl': 'Artist link (optional)',
+    'music.artistCredit': 'Artist',
+    'music.artistSite': 'Artist website',
+    'music.creatorAccount': 'Sales credit account (optional)',
+    'music.creatorHelp':
+      'Select the account credited for sales and eligible royalties. Artist display credits do not choose the beneficiary.',
+    'music.searchAccounts': 'Search accounts',
+    'music.searchHint': 'Type at least 2 characters',
+    'music.noAccounts': 'No accounts found',
+    'music.accountsLoaded': 'Account search complete.',
+    'music.accountError': 'Could not search accounts. Try again.',
+    'music.invalidArtist':
+      'Use an artist name of up to 128 characters and a valid HTTP or HTTPS link, or leave them blank.',
+    'music.creatorUnavailable':
+      'This account is unavailable. Search and select an existing player.',
+    'music.creators': 'Creators',
+    'music.revenueHelp':
+      'Uses the same revenue terms as skins. Points purchases count as sales; eligible P Cash purchases generate royalties.',
+
     'music.pointsEnabled': 'Allow Points purchases',
     'music.cashEnabled': 'Allow P Cash purchases',
     'music.cashPrice': 'Price in P Cash',
@@ -80,6 +100,25 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   ru: {
+    'music.artistName': 'Имя исполнителя (необязательно)',
+    'music.artistUrl': 'Ссылка исполнителя (необязательно)',
+    'music.artistCredit': 'Исполнитель',
+    'music.artistSite': 'Сайт исполнителя',
+    'music.creatorAccount': 'Получатель продаж (необязательно)',
+    'music.creatorHelp':
+      'Выберите аккаунт для учёта продаж и роялти. Отображаемое имя исполнителя не определяет получателя.',
+    'music.searchAccounts': 'Найти аккаунты',
+    'music.searchHint': 'Введите не менее 2 символов',
+    'music.noAccounts': 'Аккаунты не найдены',
+    'music.accountsLoaded': 'Поиск аккаунтов завершён.',
+    'music.accountError': 'Не удалось найти аккаунты. Повторите попытку.',
+    'music.invalidArtist':
+      'Укажите имя до 128 символов и корректную HTTP- или HTTPS-ссылку либо оставьте поля пустыми.',
+    'music.creatorUnavailable': 'Этот аккаунт недоступен. Найдите существующего игрока.',
+    'music.creators': 'Авторы',
+    'music.revenueHelp':
+      'Те же условия дохода, что у скинов. Покупки за очки учитываются как продажи; подходящие покупки за P Cash приносят роялти.',
+
     'music.pointsEnabled': 'Разрешить покупку за очки',
     'music.cashEnabled': 'Разрешить покупку за P Cash',
     'music.cashPrice': 'Цена в P Cash',
@@ -159,6 +198,25 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Команда снаряжения'
   },
   tl: {
+    'music.artistName': 'Pangalan ng artist (opsyonal)',
+    'music.artistUrl': 'Link ng artist (opsyonal)',
+    'music.artistCredit': 'Artist',
+    'music.artistSite': 'Website ng artist',
+    'music.creatorAccount': 'Account para sa sales credit (opsyonal)',
+    'music.creatorHelp':
+      'Piliin ang account na ikikredito para sa sales at kwalipikadong royalties. Hindi pinipili ng artist display credit ang tatanggap.',
+    'music.searchAccounts': 'Maghanap ng account',
+    'music.searchHint': 'Mag-type ng hindi bababa sa 2 character',
+    'music.noAccounts': 'Walang nahanap na account',
+    'music.accountsLoaded': 'Tapos na ang paghahanap ng account.',
+    'music.accountError': 'Hindi mahanap ang mga account. Subukan muli.',
+    'music.invalidArtist':
+      'Gumamit ng artist name na hanggang 128 character at wastong HTTP o HTTPS link, o iwang blangko.',
+    'music.creatorUnavailable': 'Hindi available ang account. Maghanap ng umiiral na player.',
+    'music.creators': 'Mga creator',
+    'music.revenueHelp':
+      'Pareho sa skins ang revenue terms. Binibilang na sales ang Points purchases; may royalties ang kwalipikadong P Cash purchases.',
+
     'music.pointsEnabled': 'Payagan ang pagbili gamit ang Points',
     'music.cashEnabled': 'Payagan ang pagbili gamit ang P Cash',
     'music.cashPrice': 'Presyo sa P Cash',
@@ -239,6 +297,25 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Loadout team'
   },
   th: {
+    'music.artistName': 'ชื่อศิลปิน (ไม่บังคับ)',
+    'music.artistUrl': 'ลิงก์ศิลปิน (ไม่บังคับ)',
+    'music.artistCredit': 'ศิลปิน',
+    'music.artistSite': 'เว็บไซต์ศิลปิน',
+    'music.creatorAccount': 'บัญชีรับเครดิตยอดขาย (ไม่บังคับ)',
+    'music.creatorHelp':
+      'เลือกบัญชีที่ได้รับเครดิตยอดขายและค่าลิขสิทธิ์ที่เข้าเกณฑ์ ชื่อศิลปินที่แสดงไม่ได้เลือกผู้รับเงิน',
+    'music.searchAccounts': 'ค้นหาบัญชี',
+    'music.searchHint': 'พิมพ์อย่างน้อย 2 ตัวอักษร',
+    'music.noAccounts': 'ไม่พบบัญชี',
+    'music.accountsLoaded': 'ค้นหาบัญชีเสร็จแล้ว',
+    'music.accountError': 'ค้นหาบัญชีไม่ได้ โปรดลองอีกครั้ง',
+    'music.invalidArtist':
+      'ใช้ชื่อศิลปินไม่เกิน 128 ตัวอักษรและลิงก์ HTTP หรือ HTTPS ที่ถูกต้อง หรือเว้นว่างไว้',
+    'music.creatorUnavailable': 'บัญชีนี้ไม่พร้อมใช้งาน โปรดค้นหาผู้เล่นที่มีอยู่',
+    'music.creators': 'ผู้สร้าง',
+    'music.revenueHelp':
+      'ใช้เงื่อนไขรายได้เดียวกับสกิน การซื้อด้วย Points นับเป็นยอดขาย ส่วนการซื้อด้วย P Cash ที่เข้าเกณฑ์จะสร้างค่าลิขสิทธิ์',
+
     'music.pointsEnabled': 'อนุญาตให้ซื้อด้วย Points',
     'music.cashEnabled': 'อนุญาตให้ซื้อด้วย P Cash',
     'music.cashPrice': 'ราคาเป็น P Cash',
@@ -317,6 +394,25 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'ทีมอุปกรณ์'
   },
   id: {
+    'music.artistName': 'Nama artis (opsional)',
+    'music.artistUrl': 'Tautan artis (opsional)',
+    'music.artistCredit': 'Artis',
+    'music.artistSite': 'Situs artis',
+    'music.creatorAccount': 'Akun penerima penjualan (opsional)',
+    'music.creatorHelp':
+      'Pilih akun untuk kredit penjualan dan royalti yang memenuhi syarat. Kredit artis yang ditampilkan tidak menentukan penerima.',
+    'music.searchAccounts': 'Cari akun',
+    'music.searchHint': 'Ketik minimal 2 karakter',
+    'music.noAccounts': 'Akun tidak ditemukan',
+    'music.accountsLoaded': 'Pencarian akun selesai.',
+    'music.accountError': 'Tidak dapat mencari akun. Coba lagi.',
+    'music.invalidArtist':
+      'Gunakan nama artis maksimal 128 karakter dan tautan HTTP atau HTTPS yang valid, atau kosongkan.',
+    'music.creatorUnavailable': 'Akun tidak tersedia. Cari dan pilih pemain yang ada.',
+    'music.creators': 'Kreator',
+    'music.revenueHelp':
+      'Menggunakan ketentuan pendapatan yang sama dengan skin. Pembelian Points dihitung sebagai penjualan; pembelian P Cash yang memenuhi syarat menghasilkan royalti.',
+
     'music.pointsEnabled': 'Izinkan pembelian dengan Points',
     'music.cashEnabled': 'Izinkan pembelian dengan P Cash',
     'music.cashPrice': 'Harga P Cash',
@@ -396,6 +492,25 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Tim perlengkapan'
   },
   pt: {
+    'music.artistName': 'Nome do artista (opcional)',
+    'music.artistUrl': 'Link do artista (opcional)',
+    'music.artistCredit': 'Artista',
+    'music.artistSite': 'Site do artista',
+    'music.creatorAccount': 'Conta creditada nas vendas (opcional)',
+    'music.creatorHelp':
+      'Selecione a conta que recebe o crédito pelas vendas e royalties elegíveis. Os créditos públicos do artista não definem o beneficiário.',
+    'music.searchAccounts': 'Buscar contas',
+    'music.searchHint': 'Digite pelo menos 2 caracteres',
+    'music.noAccounts': 'Nenhuma conta encontrada',
+    'music.accountsLoaded': 'Busca de contas concluída.',
+    'music.accountError': 'Não foi possível buscar contas. Tente novamente.',
+    'music.invalidArtist':
+      'Use um nome de até 128 caracteres e um link HTTP ou HTTPS válido, ou deixe em branco.',
+    'music.creatorUnavailable': 'Esta conta não está disponível. Busque um jogador existente.',
+    'music.creators': 'Criadores',
+    'music.revenueHelp':
+      'Usa os mesmos termos de receita das skins. Compras com Points contam como vendas; compras elegíveis com P Cash geram royalties.',
+
     'music.pointsEnabled': 'Permitir compras com Points',
     'music.cashEnabled': 'Permitir compras com P Cash',
     'music.cashPrice': 'Preço em P Cash',
@@ -476,6 +591,26 @@ export const musicKitTranslations = {
     'music.loadoutTeam': 'Equipe do equipamento'
   },
   ja: {
+    'music.artistName': 'アーティスト名（任意）',
+    'music.artistUrl': 'アーティストのリンク（任意）',
+    'music.artistCredit': 'アーティスト',
+    'music.artistSite': 'アーティストのサイト',
+    'music.creatorAccount': '売上を計上するアカウント（任意）',
+    'music.creatorHelp':
+      '売上と対象ロイヤリティを計上するアカウントを選択します。表示用のアーティスト情報は受取人を指定しません。',
+    'music.searchAccounts': 'アカウントを検索',
+    'music.searchHint': '2文字以上入力してください',
+    'music.noAccounts': 'アカウントが見つかりません',
+    'music.accountsLoaded': 'アカウント検索が完了しました。',
+    'music.accountError': '検索できませんでした。もう一度お試しください。',
+    'music.invalidArtist':
+      '128文字以内の名前と有効なHTTPまたはHTTPSリンクを入力するか、空欄にしてください。',
+    'music.creatorUnavailable':
+      'このアカウントは利用できません。既存のプレイヤーを検索してください。',
+    'music.creators': 'クリエイター',
+    'music.revenueHelp':
+      'スキンと同じ収益条件を使用します。Pointsでの購入は売上として記録され、対象のP Cash購入にはロイヤリティが発生します。',
+
     'music.pointsEnabled': 'Pointsでの購入を許可',
     'music.cashEnabled': 'P Cashでの購入を許可',
     'music.cashPrice': 'P Cash価格',
@@ -555,6 +690,24 @@ export const musicKitTranslations = {
     'music.loadoutTeam': '装備チーム'
   },
   hi: {
+    'music.artistName': 'कलाकार का नाम (वैकल्पिक)',
+    'music.artistUrl': 'कलाकार का लिंक (वैकल्पिक)',
+    'music.artistCredit': 'कलाकार',
+    'music.artistSite': 'कलाकार की वेबसाइट',
+    'music.creatorAccount': 'बिक्री का श्रेय पाने वाला खाता (वैकल्पिक)',
+    'music.creatorHelp':
+      'बिक्री और योग्य रॉयल्टी का श्रेय पाने वाला खाता चुनें। दिखने वाला कलाकार क्रेडिट लाभार्थी तय नहीं करता।',
+    'music.searchAccounts': 'खाते खोजें',
+    'music.searchHint': 'कम से कम 2 अक्षर लिखें',
+    'music.noAccounts': 'कोई खाता नहीं मिला',
+    'music.accountsLoaded': 'खाता खोज पूरी हुई।',
+    'music.accountError': 'खाते नहीं खोज सके। फिर कोशिश करें।',
+    'music.invalidArtist': '128 अक्षरों तक का नाम और मान्य HTTP या HTTPS लिंक दें, या खाली छोड़ें।',
+    'music.creatorUnavailable': 'यह खाता उपलब्ध नहीं है। किसी मौजूदा खिलाड़ी को खोजें।',
+    'music.creators': 'क्रिएटर',
+    'music.revenueHelp':
+      'स्किन वाली राजस्व शर्तें लागू होती हैं। Points की खरीद बिक्री में गिनी जाती है; योग्य P Cash खरीद से रॉयल्टी मिलती है।',
+
     'music.pointsEnabled': 'Points से खरीदने की अनुमति दें',
     'music.cashEnabled': 'P Cash से खरीदने की अनुमति दें',
     'music.cashPrice': 'P Cash में कीमत',

@@ -11,13 +11,15 @@ import {
   verifyNextClientModule
 } from '../anticheat/helper-release-verifier'
 import { isNextClientInstallation } from './windows-cosmetic-compatibility'
+import { armWindowsIntegrationRecovery } from './windows-integration-recovery'
 import {
-  armWindowsIntegrationRecovery,
-  restoreWindowsIntegration
-} from './windows-integration-recovery'
+  readNativeFile,
+  replacePersistentNativeFile,
+  replaceNativeMetadata,
+  verifyPersistentNativeFile
+} from './persistent-native-file'
 
 const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
-const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 const missingOnly = (error: unknown): null => {
   if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
   throw error
@@ -30,7 +32,7 @@ interface Journal {
   ownsCosmetic: boolean
 }
 
-/** Transactional, match-scoped installation of the signed NextClient host pair. */
+/** Persistent signed NextClient host pair; only session data expires after play. */
 export class WindowsNextClientInstallation {
   private static pendingRestore: Promise<void> = Promise.resolve()
   readonly sessionDirectory: string
@@ -40,7 +42,7 @@ export class WindowsNextClientInstallation {
   private readonly cosmeticPath: string
   private readonly journalPath: string
 
-  private constructor(private readonly gameRoot: string) {
+  private constructor(gameRoot: string) {
     const managed = join(gameRoot, '16competitive')
     this.managedPath = managed
     this.miniPath = join(gameRoot, 'cstrike', 'cl_dlls', 'client_mini.dll')
@@ -111,6 +113,51 @@ export class WindowsNextClientInstallation {
     verifyCosmeticModule(cosmetic, manifest)
     verifyNextClientModule(customMini, manifest)
 
+    if (!cosmetic.includes(Buffer.from('papamo_persistent_session_v1')))
+      throw new Error('The approved native bundle needs persistent-session support')
+    const previousBytes = await readNativeFile(installation.journalPath).catch(missingOnly)
+    if (previousBytes) {
+      if (previousBytes.length > 512) throw new Error('Invalid persistent NextClient journal')
+      const previous = JSON.parse(previousBytes.toString('utf8')) as Partial<Journal>
+      if (
+        !previous.originalMiniSha256 ||
+        !previous.customMiniSha256 ||
+        !previous.cosmeticSha256 ||
+        typeof previous.ownsCosmetic !== 'boolean' ||
+        ![previous.originalMiniSha256, previous.customMiniSha256, previous.cosmeticSha256].every(
+          (value) => /^[a-f0-9]{64}$/.test(value)
+        ) ||
+        hash(await readNativeFile(installation.originalMiniPath)) !== previous.originalMiniSha256
+      )
+        throw new Error('Invalid persistent NextClient journal')
+      await verifyPersistentNativeFile(installation.miniPath, previous.customMiniSha256, customMini)
+      await verifyPersistentNativeFile(installation.cosmeticPath, previous.cosmeticSha256, cosmetic)
+      if (!previous.ownsCosmetic && hash(cosmetic) !== previous.cosmeticSha256)
+        throw new Error('An existing unowned cosmetic module needs manual updating')
+      await replacePersistentNativeFile(
+        installation.miniPath,
+        previous.customMiniSha256,
+        customMini
+      )
+      if (previous.ownsCosmetic)
+        await replacePersistentNativeFile(
+          installation.cosmeticPath,
+          previous.cosmeticSha256,
+          cosmetic
+        )
+      await replaceNativeMetadata(
+        installation.journalPath,
+        Buffer.from(
+          JSON.stringify({
+            ...previous,
+            customMiniSha256: hash(customMini),
+            cosmeticSha256: hash(cosmetic)
+          })
+        )
+      )
+      await mkdir(installation.sessionDirectory, { recursive: false })
+      return installation
+    }
     const originalMini = await readFile(installation.miniPath)
     const existingCosmeticEntry = await lstat(installation.cosmeticPath).catch(missingOnly)
     if (
@@ -142,7 +189,15 @@ export class WindowsNextClientInstallation {
         flag: 'wx',
         mode: 0o600
       })
-      await armWindowsIntegrationRecovery(gameRoot, join(native, 'game-inspector.exe'))
+      await armWindowsIntegrationRecovery(
+        gameRoot,
+        join(native, 'game-inspector.exe'),
+        'native',
+        'cstrike',
+        undefined,
+        undefined,
+        false
+      )
       await writeFile(miniTemporary, customMini, { flag: 'wx' })
       await rename(miniTemporary, installation.miniPath)
       if (!existingCosmeticEntry) {
@@ -160,59 +215,11 @@ export class WindowsNextClientInstallation {
   }
 
   private async recover(): Promise<void> {
-    if (await restoreWindowsIntegration(this.gameRoot)) return
-    const journalBytes = await readFile(this.journalPath).catch(missingOnly)
-    if (!journalBytes) return
-    if (journalBytes.length > 512) throw new Error('Invalid NextClient integration journal')
-    const journal = JSON.parse(journalBytes.toString('utf8')) as Partial<Journal>
-    if (
-      !journal.originalMiniSha256 ||
-      !journal.customMiniSha256 ||
-      !journal.cosmeticSha256 ||
-      typeof journal.ownsCosmetic !== 'boolean' ||
-      ![journal.originalMiniSha256, journal.customMiniSha256, journal.cosmeticSha256].every(
-        (value) => /^[a-f0-9]{64}$/.test(value)
-      )
-    )
-      throw new Error('Invalid NextClient integration journal')
-
-    const original = await readFile(this.originalMiniPath)
-    const current = await readFile(this.miniPath)
-    const originalHash = hash(original)
-    const currentHash = hash(current)
-    if (
-      originalHash !== journal.originalMiniSha256 ||
-      ![journal.originalMiniSha256, journal.customMiniSha256].includes(currentHash)
-    )
-      throw new Error('NextClient client_mini.dll changed during integration')
-    if (currentHash === journal.customMiniSha256)
-      await copyFile(this.originalMiniPath, this.miniPath)
-
-    if (journal.ownsCosmetic) {
-      const cosmetic = await readFile(this.cosmeticPath).catch(missingOnly)
-      if (cosmetic && hash(cosmetic) !== journal.cosmeticSha256)
-        throw new Error('NextClient cosmetic module changed during integration')
-      if (cosmetic) await rm(this.cosmeticPath)
-    }
     await rm(this.sessionDirectory, { recursive: true, force: true })
-    await rm(`${this.miniPath}.16competitive.tmp`, { force: true })
-    await rm(`${this.cosmeticPath}.16competitive.tmp`, { force: true })
-    await rm(this.originalMiniPath)
-    await rm(this.journalPath)
   }
 
   async restore(): Promise<void> {
-    if (await restoreWindowsIntegration(this.gameRoot)) return
-    await rm(this.sessionDirectory, { recursive: true, force: true }).catch(() => undefined)
-    for (let attempt = 0; attempt < 30; attempt++) {
-      try {
-        await this.recover()
-        return
-      } catch (error) {
-        if (attempt === 29) throw error
-        await pause(500)
-      }
-    }
+    await this.recover()
   }
 
   queueRestore(): Promise<void> {

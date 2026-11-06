@@ -217,6 +217,9 @@ impl NativeSession {
                 owned_write(&directory.join("match-recovery.policy"), b"v1\n")?;
             }
             crate::native_preferences::initialize(&directory, preferences)?;
+            if partner_connection.is_some() && crate::native_bundle::supports_papamovgui2() {
+                owned_write(&directory.join("papamovgui2-server.enabled"),b"1\n")?;
+            }
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
                 &directory.join("session.ticket"),
@@ -344,6 +347,10 @@ impl NativeSession {
             stop,
             workers: vec![heartbeat, feed],
         })
+    }
+
+    pub fn start_music(&mut self, root: &Path, api: &str, token: &str, match_id: &str) {
+        self.workers.push(crate::music::start(root.to_path_buf(), self.directory.clone(), api.into(), token.into(), match_id.into(), self.stop.clone()));
     }
 
     pub fn recovery_requested(&self) -> bool {

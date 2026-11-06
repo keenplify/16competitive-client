@@ -316,7 +316,7 @@ pub fn launch(
     let bundle = native_bundle::prepare(&config)?;
     let startup = owned_game::Startup::prepare(&executable, &root.join(&mod_dir))?;
     #[cfg(windows)]
-    windows_native::restore_previous(&root, &bundle)?;
+    windows_native::prepare_existing(&root, &bundle)?;
     let directory = if cfg!(windows) {
         root.join("16competitive/live-session")
     } else {
@@ -446,9 +446,7 @@ pub fn launch(
     })();
     session.stop();
     #[cfg(windows)]
-    if let Some(installation) = installation {
-        installation.restore()?;
-    }
+    let _installation = installation; // Keep the verified host/module installed.
     session.cleanup()?;
     result
 }

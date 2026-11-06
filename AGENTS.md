@@ -1007,39 +1007,27 @@ A modified client can lie.
 
 ## Native Cosmetic Module (Verified Prototype)
 
-### Mandatory cleanup and standalone launches
+### Persistent CS 1.6 installation and session shutdown
 
-- Recovery must survive launcher/helper updates. Before restoring an older
-  session, verify the current packaged helper and atomically refresh only its
-  path/hash in the recovery descriptor. Preserve the session ID and DLL journals;
-  never bypass signature approval or DLL hash checks to clear an update mismatch.
+Owner decision on November 6, 2026: remove automatic cosmetic DLL/module
+restoration for CS 1.6, including Steam and non-Steam. Keep verified original
+backups and installation journals for explicit maintenance. Do not arm recovery
+guardians, restore DLLs after each game, remove installed modules, or force a
+standalone restore-and-restart. Reuse/update only hash-journaled installed files;
+preserve unknown player changes. Older interrupted updates must fail closed.
 
-- Managed native ownership uses `session.ticket` with a random per-launch ID,
-  issue time and fixed two-hour expiry, paired with the matching short-lived
-  launcher heartbeat. Every match/reconnect creates a fresh ticket; heartbeats
-  never extend its expiry. Remove it on session cleanup. Windows ownership must
-  not depend on Steam forwarding `-insecure` into OS process arguments.
-- Native game modifications are scoped to the managed 1.6 Competitive session.
-  Restore original DLLs and remove launcher-owned module/session files after game
-  exit and launcher shutdown. Await cleanup before Electron exits; keep recovery
-  available independently of the launcher for crashes and Windows file locks.
-- A leftover managed module loaded by a standalone `hl.exe`/NextClient must turn
-  off its custom features and request a clean restart. The recovery helper must
-  wait for the old game process to exit, verify and restore original DLL hashes,
-  remove managed launch credentials, and only then start the ordinary game menu.
-  Never carry match arguments/session variables into the replacement process.
-- Bind native features to a live launcher lease and the assigned server endpoint.
-  Missing/stale ownership or another server must fail closed. Restoration failure
-  must preserve backups/journals and prevent restart loops or a modified relaunch.
-  Preserve unknown player changes; never overwrite an unrecognized DLL.
-- Release the clean standalone process from match monitors, watchdogs, and helper
-  supervision. Old match events must never close or modify the replacement game.
-- Keep the notice under Settings → In-game enhancements in every supported
-  language: do not run 1.6 Competitive alongside another client-side anti-cheat;
-  close the managed game and launcher, then start the game normally before using
-  another anti-cheat client. Do not claim compatibility with third-party anti-cheat
-  or imply that detecting a different server after connecting is sufficient.
-- `config.cfg` remains strictly out of bounds during every cleanup/restart path.
+Session shutdown still stops and joins workers and removes temporary credentials,
+feed files, session tickets and heartbeats. Managed ownership uses a random
+per-launch ID with fixed two-hour expiry; heartbeats never extend it. Features
+require a live lease and the assigned endpoint and stay inactive outside that
+session. Persistence never grants cosmetic ownership or an anti-cheat exemption.
+
+The separate CS 1.3/WON adapter retains its existing restoration lifecycle. Do
+not change its engine-patching behavior as part of CS 1.6 persistence work.
+
+Keep the Settings anti-cheat notice in every supported language. Do not claim
+VAC or third-party anti-cheat compatibility. `config.cfg` stays strictly out of
+bounds. Signed-bundle approval and exact DLL/hash checks remain mandatory.
 
 ### Prototype background
 

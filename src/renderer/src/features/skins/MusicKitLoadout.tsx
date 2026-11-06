@@ -10,6 +10,7 @@ import {
 import { useMusicKitsStore } from './music-kits.store'
 import { useTranslation } from '../i18n/i18n'
 import { Button } from '../../components/ui/Button'
+import { MusicKitCredit } from './MusicKitCredit'
 
 export function MusicKitArtwork({
   kit,
@@ -199,6 +200,7 @@ export function MusicKitInventory({
                   {kit.name}
                 </span>
               </button>
+              <MusicKitCredit kit={kit} className="w-full text-center" />
               <Button
                 variant="ghost"
                 className="h-8 gap-2 px-1 text-xs"

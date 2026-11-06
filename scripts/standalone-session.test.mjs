@@ -117,7 +117,7 @@ rl.on('line', line=>{
       keep: false,
       reopen: true,
       resume: true,
-      cards: false
+      cards: true
     })
     await new Promise((resolve) => setTimeout(resolve, 200))
     assert.equal(quits, 1)

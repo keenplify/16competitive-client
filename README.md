@@ -84,8 +84,13 @@ rendering imported codes requires a compatible native module.
 **Do not run 1.6 Competitive alongside another client-side anti-cheat.** Close
 the managed game and launcher, then start the game normally before using
 another anti-cheat client. Third-party anti-cheat compatibility is not claimed.
-Managed module changes are scoped to launcher-owned sessions, with cleanup and
-recovery mechanisms for game exit, crashes, and interrupted sessions.
+Native features are scoped to authorized managed sessions. The new CS 1.6 source
+path retains verified Windows/NextClient modules after game exit and cleans up
+session workers and temporary credentials. Original DLL backups remain available
+for explicit maintenance; automatic restoration and standalone restart are removed.
+This requires a coordinated approved helper release. See the
+[PAPAMOVGUI2 developer docs](https://www.papamo.dev/docs/papamovgui2) for interfaces,
+animation architecture and release status.
 
 ## Configuration and diagnostics
 

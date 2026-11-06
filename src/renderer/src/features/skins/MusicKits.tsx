@@ -11,6 +11,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { useMusicKitsStore } from './music-kits.store'
 import { MusicKitArtwork } from './MusicKitLoadout'
+import { MusicKitCredit } from './MusicKitCredit'
 
 export function MusicKitStoreCard({
   kit,
@@ -54,6 +55,7 @@ export function MusicKitStoreCard({
         {t('music.item')}
       </p>
       <h2 className="mt-2 break-words text-xl font-semibold">{kit.name}</h2>
+      <MusicKitCredit kit={kit} className="mt-1" />
       <div className="mt-3 flex-1">
         <SelectField
           label={t('music.event')}

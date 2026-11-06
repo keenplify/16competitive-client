@@ -128,7 +128,7 @@ function sessionPreferences(settings: GameSettings) {
     fastSwitchEnabled: settings.fastSwitchEnabled,
     enhancementsEnabled: settings.nextClientIntegrationEnabled,
     lightweightHud: true,
-    killCardsEnabled: false,
+    killCardsEnabled: settings.killCardsEnabled,
     crosshairConfig: serializeCrosshairConfig(settings.crosshair),
     playerPingKey: settings.playerPingKey,
     voicePttKeys: settings.voicePttKeys,

@@ -17,6 +17,8 @@ mod linux_emulation;
 mod compatibility;
 mod partner;
 mod native_session;
+mod music;
+mod persistent_native;
 mod native_preferences;
 mod session_authorization;
 mod notice_throttle;
@@ -133,6 +135,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("assets.rs").as_slice(),
         include_bytes!("native_bundle.rs").as_slice(),
         include_bytes!("native_session.rs").as_slice(),
+        include_bytes!("music.rs").as_slice(),
         include_bytes!("native_preferences.rs").as_slice(),
         include_bytes!("session_authorization.rs").as_slice(),
         include_bytes!("inspector.rs").as_slice(),
@@ -927,7 +930,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             Ok(()) => {
                 let bundle = scanner_bundle.clone();
                 windows_native::validate_root(&root)?;
-                windows_native::restore_previous(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
+                windows_native::prepare_existing(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
                 let session = native_session::NativeSession::start_at(
                     root.join("16competitive/live-session"),
                     connection,
@@ -1110,6 +1113,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         command.spawn().map_err(|_| "GAME_SPAWN_FAILED".into())
     })();
     let mut child = prepared_child?;
+    if let Some((_, session)) = native.as_mut() {
+        session.start_music(&game_dir, api, token, &connection.match_id);
+    }
     let _activity = presence::GameLease::start(
         connection,
         native
@@ -1195,9 +1201,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     if let Some((_, mut session)) = native {
         session.stop();
         #[cfg(windows)]
-        if let Some(installation) = windows_install {
-            installation.restore()?;
-        }
+        let _installation = windows_install; // DLLs persist; only session state is removed.
         session.cleanup()?;
     }
     auth_cleanup?;

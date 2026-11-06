@@ -150,7 +150,8 @@ export async function armWindowsIntegrationRecovery(
   runtime: CosmeticRuntime = 'native',
   gameDirectory: GoldSrcModDirectory = 'cstrike',
   authFile?: RecoveryDescriptor['authFile'],
-  proton?: SteamProtonRuntime
+  proton?: SteamProtonRuntime,
+  automaticRestore = true
 ): Promise<RecoveryDescriptor> {
   const descriptor: RecoveryDescriptor = {
     helperPath: runtime === 'wine' ? toWinePath(helperPath) : helperPath,
@@ -163,9 +164,9 @@ export async function armWindowsIntegrationRecovery(
   }
   await writeFile(descriptorPath(root), JSON.stringify(descriptor), { flag: 'wx', mode: 0o600 })
   try {
-    if (proton)
+    if (proton && automaticRestore)
       await saveProtonRecoveryContext(app.getPath('userData'), root, descriptor.sessionId, proton)
-    await runRecovery(root, descriptor, 'guard', runtime, proton)
+    if (automaticRestore) await runRecovery(root, descriptor, 'guard', runtime, proton)
   } catch (error) {
     await rm(descriptorPath(root), { force: true })
     if (proton) await removeProtonRecoveryContext(app.getPath('userData'), root)

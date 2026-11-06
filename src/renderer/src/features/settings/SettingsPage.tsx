@@ -6,6 +6,7 @@ import { WebHelperSetup } from '../matchmaking/WebHelperSetup'
 import { MatchNotificationSettings } from './MatchNotificationSettings'
 import { LauncherThemeSetting } from './LauncherThemeSetting'
 import { CommunitySettings } from '../partner-branding/CommunitySettings'
+import { KillCardsSetting } from './KillCardsSetting'
 import { LightweightHudSetting } from './LightweightHudSetting'
 import { LegacyGameSettings } from './LegacyGameSettings'
 import { GameDisplaySettings } from './GameDisplaySettings'
@@ -706,11 +707,7 @@ export function SettingsPage(): JSX.Element {
                     <div>
                       <p className="text-sm font-semibold text-neutral-100">In-game enhancements</p>
                       <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-400">
-                        Show the 1.6 Competitive scoreboard, crosshair, and teammate tags in
-                        supported Counter-Strike 1.6 clients on Steam and standalone installations
-                        on Windows or Linux. NextClient uses its own compatible host and crosshair
-                        settings. Game files are restored after exit. This setting does not control
-                        match screenshot review.
+                        {t('settings.enhancementsDescription')}
                       </p>
                       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-amber-300">
                         {t('settings.anticheatNotice')}
@@ -734,6 +731,7 @@ export function SettingsPage(): JSX.Element {
                       <span className="sr-only">Enable in-game enhancements</span>
                     </label>
                   </div>
+                  <KillCardsSetting className="mt-5" />
                   <LightweightHudSetting className="mt-5 mb-0" />
                 </div>
               )}

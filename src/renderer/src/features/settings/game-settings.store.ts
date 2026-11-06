@@ -50,6 +50,7 @@ interface GameSettingsState {
   fastSwitchManaged: boolean
   lightweightHud: boolean
   lightweightHudStatus: 'idle' | 'saving' | 'error'
+  killCardsSaving: boolean
   killCardsEnabled: boolean
   setupCompleted: boolean
   setupMode: SetupMode | null
@@ -115,6 +116,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   fastSwitchManaged: true,
   lightweightHud: true,
   lightweightHudStatus: 'idle',
+  killCardsSaving: false,
   killCardsEnabled: false,
   setupCompleted: false,
   setupMode: null,
@@ -195,11 +197,28 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   setKillCards: async (enabled) => {
+    if (get().killCardsSaving) return
+    set({ killCardsSaving: true })
+    const language = useLanguageStore.getState().language
+    const feedback = toast.loading(translate(language, 'settings.killCardsSaving'))
     try {
       const settings = await window.api.gameSettings.setKillCards(enabled)
       set({ killCardsEnabled: settings.killCardsEnabled, error: null })
-    } catch (error) {
-      set({ error: message(error) })
+      toast.update(feedback, {
+        render: translate(language, 'settings.killCardsSaved'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
+    } catch {
+      toast.update(feedback, {
+        render: translate(language, 'settings.killCardsError'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 6000
+      })
+    } finally {
+      set({ killCardsSaving: false })
     }
   },
 

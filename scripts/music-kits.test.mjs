@@ -81,3 +81,9 @@ test('music pricing accepts legacy catalogs and validates new currencies and bal
   assert.throws(() => parseMusicPurchase({ points: -1 }))
   assert.throws(() => parseMusicPurchase({ points: 12, pCash: '75' }))
 })
+
+test('content-addressed local MP3 event paths are accepted without remote URLs', () => {
+  const value = snapshot()
+  value.kits[0].sounds = { mvp: `sound/16competitive/music/${'a'.repeat(32)}/audio.mp3` }
+  assert.equal(parseMusicKits(value).kits[0].sounds.mvp, value.kits[0].sounds.mvp)
+})

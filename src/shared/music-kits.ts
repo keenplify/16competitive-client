@@ -18,6 +18,8 @@ export type MusicEvent = (typeof MUSIC_EVENTS)[number]
 export interface MusicKit {
   id: string
   name: string
+  artistName?: string | null
+  artistUrl?: string | null
   pricePoints: number
   pointsEnabled?: boolean
   pricePCash?: number | null
@@ -43,6 +45,9 @@ export function validateMusicEvent(event: unknown): MusicEvent {
     throw new Error('INVALID_MUSIC_EVENT')
   return event as MusicEvent
 }
+const hasControlCharacter = (value: string): boolean =>
+  [...value].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
+
 export function parseMusicKits(value: unknown): MusicKitSnapshot {
   if (typeof value !== 'object' || !value) throw new Error('INVALID_MUSIC_KITS')
   const s = value as Record<string, unknown>
@@ -57,6 +62,15 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     if (typeof value !== 'object' || !value) throw new Error('INVALID_MUSIC_KITS')
     const k = value as Record<string, unknown>
     const id = validateMusicKitId(k.id)
+    const artistUrl = parseMusicArtistUrl(k.artistUrl)
+    if (
+      k.artistName != null &&
+      (typeof k.artistName !== 'string' ||
+        !k.artistName.trim() ||
+        k.artistName.length > 128 ||
+        hasControlCharacter(k.artistName))
+    )
+      throw new Error('INVALID_MUSIC_ARTIST')
     if (
       typeof k.name !== 'string' ||
       !k.name.trim() ||
@@ -84,7 +98,7 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     for (const [event, path] of Object.entries(k.sounds)) {
       if (
         typeof path !== 'string' ||
-        !/^sound\/16competitive\/music\/[a-f0-9]{32}\/audio\.wav$/.test(path)
+        !/^sound\/16competitive\/music\/[a-f0-9]{32}\/audio\.(?:wav|mp3)$/.test(path)
       )
         throw new Error('INVALID_MUSIC_SOUND')
       sounds[validateMusicEvent(event)] = path
@@ -104,6 +118,8 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     return {
       id,
       name: k.name,
+      artistName: typeof k.artistName === 'string' ? k.artistName : null,
+      artistUrl,
       pricePoints: k.pricePoints,
       pointsEnabled: k.pointsEnabled !== false,
       pricePCash: typeof k.pricePCash === 'number' ? k.pricePCash : null,
@@ -128,6 +144,25 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
   )
     throw new Error('INVALID_MUSIC_KITS')
   return { kits, equipped, ownedIds }
+}
+
+export function parseMusicArtistUrl(value: unknown): string | null {
+  if (value == null) return null
+  if (typeof value !== 'string' || value.length > 2048 || hasControlCharacter(value))
+    throw new Error('INVALID_MUSIC_ARTIST_URL')
+  try {
+    const url = new URL(value)
+    if (
+      !['https:', 'http:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.href.length > 2048
+    )
+      throw new Error()
+    return url.href
+  } catch {
+    throw new Error('INVALID_MUSIC_ARTIST_URL')
+  }
 }
 export function musicKitLogoUrls(snapshot: MusicKitSnapshot, apiUrl: string): MusicKitSnapshot {
   return {

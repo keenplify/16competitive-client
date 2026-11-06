@@ -23,6 +23,12 @@ import {
   type GoldSrcModDirectory,
   type CosmeticRuntime
 } from './goldsrc-client-capabilities'
+import {
+  readNativeFile,
+  nativeFileHash,
+  replacePersistentNativeFile,
+  replaceNativeMetadata
+} from './persistent-native-file'
 import type { RecoveryDescriptor } from './recovery-helper-upgrade'
 
 const hash = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
@@ -39,7 +45,7 @@ type Journal = {
   wonLoader?: true
 }
 
-/** The proxy is opt-in for a match and is restored after GoldSrc exits. */
+/** CS 1.6 keeps its verified proxy installed; legacy WON retains its separate adapter. */
 export class WindowsCosmeticInstallation {
   private static pendingRestore: Promise<void> = Promise.resolve()
   readonly sessionDirectory: string
@@ -89,7 +95,18 @@ export class WindowsCosmeticInstallation {
       console.info('[Scoreboard] NextClient uses its own client hooks; using stock HUD')
       return null
     }
-    const original = await readFile(installation.clientPath)
+    const previousBytes =
+      gameDirectory === 'cstrike'
+        ? await readNativeFile(installation.journalPath).catch(missingOnly)
+        : null
+    if (previousBytes && previousBytes.length > 512)
+      throw new Error('Invalid persistent cosmetic journal')
+    const previous = previousBytes
+      ? (JSON.parse(previousBytes.toString('utf8')) as Partial<Journal>)
+      : null
+    const original = await readNativeFile(
+      previous ? installation.originalPath : installation.clientPath
+    )
     const family = await detectGoldSrcCosmeticFamily(gameRoot, gameDirectory)
     const clientSha256 = hash(original)
     if (!family || !supportsWindowsCosmeticClient(original, family)) {
@@ -151,9 +168,41 @@ export class WindowsCosmeticInstallation {
     const clientEntry = await lstat(installation.clientPath)
     if (!clientEntry.isFile() || clientEntry.isSymbolicLink())
       throw new Error('Counter-Strike client DLL contains an unsupported link')
+    if (
+      gameDirectory === 'cstrike' &&
+      !module.includes(Buffer.from('papamo_persistent_session_v1'))
+    ) {
+      throw new Error('The approved native bundle needs persistent-session support')
+    }
     const managed = await lstat(join(gameRoot, '16competitive')).catch(missingOnly)
     if (managed && (!managed.isDirectory() || managed.isSymbolicLink()))
       throw new Error('Counter-Strike managed directory contains an unsupported link')
+    if (previous) {
+      if (
+        previous.wonLoader ||
+        typeof previous.ownsBackup !== 'boolean' ||
+        !previous.originalSha256 ||
+        !previous.moduleSha256 ||
+        ![previous.originalSha256, previous.moduleSha256].every((value) =>
+          /^[a-f0-9]{64}$/.test(value)
+        ) ||
+        hash(original) !== previous.originalSha256
+      )
+        throw new Error('Invalid persistent cosmetic journal')
+      await replacePersistentNativeFile(installation.clientPath, previous.moduleSha256, module)
+      await replaceNativeMetadata(
+        installation.journalPath,
+        Buffer.from(
+          JSON.stringify({
+            originalSha256: previous.originalSha256,
+            moduleSha256: nativeFileHash(module),
+            ownsBackup: previous.ownsBackup
+          })
+        )
+      )
+      await mkdir(installation.sessionDirectory, { recursive: false })
+      return installation
+    }
     if (
       (await lstat(installation.journalPath).catch(missingOnly)) ||
       (await lstat(installation.sessionDirectory).catch(missingOnly))
@@ -204,7 +253,8 @@ export class WindowsCosmeticInstallation {
         runtime,
         gameDirectory,
         authFile,
-        proton
+        proton,
+        gameDirectory !== 'cstrike'
       )
       recoveryArmed = true
       await writeFile(temporary, module, { flag: 'wx' })
@@ -230,11 +280,19 @@ export class WindowsCosmeticInstallation {
   }
 
   private async recover(): Promise<void> {
+    if (this.gameDirectory === 'cstrike') {
+      await rm(this.sessionDirectory, { recursive: true, force: true })
+      return
+    }
     if (await restoreWindowsIntegration(this.gameRoot, this.runtime, this.proton)) return
     await recoverWindowsCosmeticInstallation(this.gameRoot, this.gameDirectory)
   }
 
   async restore(): Promise<void> {
+    if (this.gameDirectory === 'cstrike') {
+      await this.recover()
+      return
+    }
     // An exiting hl.exe can briefly hold client.dll open. Leave the journal and
     // original in place if restoration fails; the next launch recovers them.
     if (await restoreWindowsIntegration(this.gameRoot, this.runtime, this.proton)) return

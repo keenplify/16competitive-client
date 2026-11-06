@@ -1,6 +1,7 @@
 #![cfg(windows)]
 
 use crate::native_bundle::NativeBundle;
+use crate::persistent_native::{replace_metadata, replace_owned, verify_owned};
 use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -10,10 +11,6 @@ use std::{
     io::{Read, Write},
     os::windows::fs::MetadataExt,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
-    sync::mpsc,
-    thread,
-    time::{Duration, Instant},
 };
 use uuid::Uuid;
 
@@ -29,16 +26,16 @@ struct Recovery {
     auth_file: Option<serde_json::Value>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Journal {
     original_sha256: String,
     module_sha256: String,
     owns_backup: bool,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct NextJournal {
     original_mini_sha256: String,
     custom_mini_sha256: String,
@@ -147,7 +144,12 @@ fn supported_client(bytes: &[u8]) -> bool {
 }
 
 pub fn is_gold_client(root: &Path) -> Result<bool, String> {
-    let bytes = read_limited(&root.join("cstrike/cl_dlls/client.dll"), 128 * 1024 * 1024)?;
+    let path = if root.join("16competitive/cosmetic-install.json").exists() {
+        root.join("client_original.dll")
+    } else {
+        root.join("cstrike/cl_dlls/client.dll")
+    };
+    let bytes = read_limited(&path, 128 * 1024 * 1024)?;
     let Some(exports) = client_exports(&bytes) else {
         return Ok(false);
     };
@@ -178,69 +180,12 @@ pub fn validate_root(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn recovery_command(inspector: &Path) -> Command {
-    use std::os::windows::process::CommandExt;
-    let mut command = Command::new(inspector);
-    command.creation_flags(0x08000000); // CREATE_NO_WINDOW; retain the readiness pipe.
-    command
-}
-
-fn run_recovery(root: &Path, inspector: &Path, id: &str, mode: &str) -> Result<(), String> {
-    let mut child = recovery_command(inspector)
-        .args([
-            "--cosmetic-recovery",
-            root.to_str().ok_or("Invalid game root")?,
-            id,
-            &std::process::id().to_string(),
-            mode,
-        ])
-        .stdin(Stdio::null())
-        .stdout(if mode == "guard" {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    if mode == "guard" {
-        let mut stdout = child.stdout.take().ok_or("Recovery helper did not open")?;
-        let (sender, receiver) = mpsc::channel();
-        thread::spawn(move || {
-            let mut ready = [0u8; 19];
-            let result = stdout
-                .read_exact(&mut ready)
-                .map(|_| ready == *b"16c-recovery-ready\n");
-            let _ = sender.send(result.unwrap_or(false));
-        });
-        match receiver.recv_timeout(Duration::from_secs(10)) {
-            Ok(true) => Ok(()),
-            _ => {
-                let _ = child.kill();
-                Err("Native recovery helper did not become ready".into())
-            }
-        }
-    } else {
-        let deadline = Instant::now() + Duration::from_secs(55);
-        loop {
-            match child.try_wait().map_err(|e| e.to_string())? {
-                Some(status) if status.success() => break Ok(()),
-                Some(_) => {
-                    break Err("Native recovery could not restore the original client DLL".into())
-                }
-                None if Instant::now() < deadline => thread::sleep(Duration::from_millis(250)),
-                None => {
-                    let _ = child.kill();
-                    break Err(
-                        "Native recovery timed out; the original DLL remains journaled".into(),
-                    );
-                }
-            }
-        }
+pub fn prepare_existing(root: &Path, bundle: &NativeBundle) -> Result<(), String> {
+    let session = root.join("16competitive/live-session");
+    if session.exists() {
+        ordinary_directory(&session)?;
+        fs::remove_dir_all(&session).map_err(|e| e.to_string())?;
     }
-}
-
-pub fn restore_previous(root: &Path, bundle: &NativeBundle) -> Result<(), String> {
     let descriptor = recovery_path(root);
     if !descriptor.exists() {
         if root.join("16competitive/cosmetic-install.json").exists()
@@ -277,20 +222,27 @@ pub fn restore_previous(root: &Path, bundle: &NativeBundle) -> Result<(), String
         return Err("Native recovery session changed during helper update".into());
     }
     fs::rename(&pending, &descriptor).map_err(|e| e.to_string())?;
-    run_recovery(root, &bundle.inspector, &state.session_id, "restore")
+    Ok(())
 }
 
-pub struct WindowsInstall {
-    root: PathBuf,
-    inspector: PathBuf,
-    session_id: String,
-}
+pub struct WindowsInstall;
 
 impl WindowsInstall {
     pub fn install(root: &Path, bundle: &NativeBundle) -> Result<Option<Self>, String> {
+        let module = read_limited(&bundle.module, 32 * 1024 * 1024)?;
+        let marker = b"papamo_persistent_session_v1";
+        if !module.windows(marker.len()).any(|bytes| bytes == marker) {
+            return Err("The approved native bundle needs persistent-session support".into());
+        }
         let client = root.join("cstrike/cl_dlls/client.dll");
         for directory in [root, &root.join("cstrike"), &root.join("cstrike/cl_dlls")] {
             ordinary_directory(directory)?;
+        }
+        if root.join("16competitive").exists() {
+            ordinary_directory(&root.join("16competitive"))?;
+        }
+        if Self::refresh_installed(root, bundle)? {
+            return Ok(Some(Self));
         }
         if root.join("cstrike/cl_dlls/client_mini.dll").exists()
             && root.join("nitro_api2.dll").exists()
@@ -363,14 +315,6 @@ impl WindowsInstall {
             }
             return Err(error);
         }
-        if let Err(error) = run_recovery(root, &bundle.inspector, &state.session_id, "guard") {
-            let _ = fs::remove_file(&descriptor);
-            let _ = fs::remove_file(&journal);
-            if owns_backup {
-                let _ = fs::remove_file(&backup);
-            }
-            return Err(error);
-        }
         let pending = root.join("cstrike/cl_dlls/client.dll.16competitive.tmp");
         if pending.exists() {
             return Err("Existing native DLL staging file needs inspection".into());
@@ -380,11 +324,7 @@ impl WindowsInstall {
             return Err("Counter-Strike client backup changed during installation".into());
         }
         fs::rename(&pending, &client).map_err(|e| e.to_string())?;
-        Ok(Some(Self {
-            root: root.to_path_buf(),
-            inspector: bundle.inspector.clone(),
-            session_id: state.session_id,
-        }))
+        Ok(Some(Self))
     }
 
     fn install_next_client(root: &Path, bundle: &NativeBundle) -> Result<Self, String> {
@@ -450,27 +390,98 @@ impl WindowsInstall {
             let _ = fs::remove_file(&backup);
             return Err(error);
         }
-        if let Err(error) = run_recovery(root, &bundle.inspector, &state.session_id, "guard") {
-            let _ = fs::remove_file(&descriptor);
-            let _ = fs::remove_file(&journal);
-            let _ = fs::remove_file(&backup);
-            return Err(error);
-        }
         write_new(&mini_temp, &custom)?;
         fs::rename(&mini_temp, &mini).map_err(|e| e.to_string())?;
         if owns_cosmetic {
             write_new(&cosmetic_temp, &module)?;
             fs::rename(&cosmetic_temp, &cosmetic).map_err(|e| e.to_string())?;
         }
-        Ok(Self {
-            root: root.to_path_buf(),
-            inspector: bundle.inspector.clone(),
-            session_id: state.session_id,
-        })
+        Ok(Self)
     }
 
-    pub fn restore(&self) -> Result<(), String> {
-        run_recovery(&self.root, &self.inspector, &self.session_id, "restore")
+    /// Reuse or update only our hash-journaled DLLs. Originals remain available
+    /// for explicit maintenance; ending a session never restores an installation.
+    fn refresh_installed(root: &Path, bundle: &NativeBundle) -> Result<bool, String> {
+        let managed = root.join("16competitive");
+        let proxy = managed.join("cosmetic-install.json");
+        let next = managed.join("nextclient-install.json");
+        if proxy.exists() && next.exists() {
+            return Err("Ambiguous native installation".into());
+        }
+        if proxy.exists() {
+            let mut journal: Journal = serde_json::from_slice(&read_limited(&proxy, 1024)?)
+                .map_err(|_| "Invalid native installation journal")?;
+            let backup = read_limited(&root.join("client_original.dll"), 128 * 1024 * 1024)?;
+            if digest(&backup) != journal.original_sha256 || !supported_client(&backup) {
+                return Err("Original native client backup changed".into());
+            }
+            let module = read_limited(&bundle.module, 32 * 1024 * 1024)?;
+            replace_owned(
+                &root.join("cstrike/cl_dlls/client.dll"),
+                &journal.module_sha256,
+                &module,
+            )?;
+            journal.module_sha256 = digest(&module);
+            replace_metadata(
+                &proxy,
+                &serde_json::to_vec(&journal).map_err(|e| e.to_string())?,
+            )?;
+            return Ok(true);
+        }
+        if next.exists() {
+            let mut journal: NextJournal = serde_json::from_slice(&read_limited(&next, 1024)?)
+                .map_err(|_| "Invalid NextClient installation journal")?;
+            if digest(&read_limited(
+                &managed.join("nextclient-client-mini.original.dll"),
+                128 * 1024 * 1024,
+            )?) != journal.original_mini_sha256
+            {
+                return Err("Original NextClient backup changed".into());
+            }
+            let mini = read_limited(
+                bundle
+                    .next_client
+                    .as_ref()
+                    .ok_or("Missing approved NextClient host")?,
+                32 * 1024 * 1024,
+            )?;
+            let module = read_limited(&bundle.module, 32 * 1024 * 1024)?;
+            // Validate both before changing either. Interrupted updates can retry
+            // the same approved bundle, but never overwrite an unknown player file.
+            verify_owned(
+                &root.join("cstrike/cl_dlls/client_mini.dll"),
+                &journal.custom_mini_sha256,
+                &mini,
+            )?;
+            verify_owned(
+                &root.join("papamo_cosmetic_module.dll"),
+                &journal.cosmetic_sha256,
+                &module,
+            )?;
+            if !journal.owns_cosmetic && digest(&module) != journal.cosmetic_sha256 {
+                return Err("An existing unowned cosmetic module needs manual updating".into());
+            }
+            replace_owned(
+                &root.join("cstrike/cl_dlls/client_mini.dll"),
+                &journal.custom_mini_sha256,
+                &mini,
+            )?;
+            if journal.owns_cosmetic {
+                replace_owned(
+                    &root.join("papamo_cosmetic_module.dll"),
+                    &journal.cosmetic_sha256,
+                    &module,
+                )?;
+            }
+            journal.custom_mini_sha256 = digest(&mini);
+            journal.cosmetic_sha256 = digest(&module);
+            replace_metadata(
+                &next,
+                &serde_json::to_vec(&journal).map_err(|e| e.to_string())?,
+            )?;
+            return Ok(true);
+        }
+        Ok(false)
     }
 }
 
@@ -479,17 +490,6 @@ mod tests {
     use super::*;
     use crate::native_session::NativeSession;
     use competitive16_web_helper::Connection;
-
-    #[test]
-    fn recovery_child_has_no_console_and_keeps_stdout() {
-        let script = r#"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class ConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 1 }; [Console]::Out.Write('16c-recovery-ready')"#;
-        let output = recovery_command(Path::new("powershell.exe"))
-            .args(["-NoProfile", "-NonInteractive", "-Command", script])
-            .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped())
-            .output().unwrap();
-        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-        assert_eq!(output.stdout, b"16c-recovery-ready");
-    }
 
     #[test]
     fn inspected_client_exports_are_supported() {
@@ -501,7 +501,7 @@ mod tests {
     }
 
     #[test]
-    fn managed_dll_restores_original_client() {
+    fn managed_dll_retains_module_after_session_cleanup() {
         let Ok(path) = std::env::var("C16_TEST_CLIENT_DLL") else {
             return;
         };
@@ -536,19 +536,24 @@ mod tests {
             fs::read(&bundle.module).unwrap()
         );
         session.stop();
-        installation.restore().unwrap();
+        let _installation = installation;
         session.cleanup().unwrap();
-        assert_eq!(fs::read(client_dir.join("client.dll")).unwrap(), original);
-        assert!(!root.join("client_original.dll").exists());
-        assert!(!root.join("16competitive/cosmetic-install.json").exists());
-        assert!(!root.join("16competitive/recovery.json").exists());
+        assert_eq!(
+            fs::read(client_dir.join("client.dll")).unwrap(),
+            fs::read(&bundle.module).unwrap()
+        );
+        assert_eq!(
+            fs::read(root.join("client_original.dll")).unwrap(),
+            original
+        );
+        assert!(root.join("16competitive/cosmetic-install.json").exists());
+        assert!(WindowsInstall::install(&root, &bundle).unwrap().is_some());
         fs::remove_dir_all(root).unwrap();
-        // The guard can keep its verified executable open briefly on Windows.
         let _ = fs::remove_dir_all(cache);
     }
 
     #[test]
-    fn managed_nextclient_restores_original_host() {
+    fn managed_nextclient_retains_host_after_session_cleanup() {
         let Ok(source) = std::env::var("C16_TEST_NEXTCLIENT_ROOT") else {
             return;
         };
@@ -597,15 +602,19 @@ mod tests {
             fs::read(&bundle.module).unwrap()
         );
         session.stop();
-        installation.restore().unwrap();
+        let _installation = installation;
         session.cleanup().unwrap();
         assert_eq!(
             fs::read(client_dir.join("client_mini.dll")).unwrap(),
+            fs::read(bundle.next_client.as_ref().unwrap()).unwrap()
+        );
+        assert_eq!(
+            fs::read(root.join("16competitive/nextclient-client-mini.original.dll")).unwrap(),
             original
         );
-        assert!(!root.join("papamo_cosmetic_module.dll").exists());
-        assert!(!root.join("16competitive/nextclient-install.json").exists());
-        assert!(!root.join("16competitive/recovery.json").exists());
+        assert!(root.join("papamo_cosmetic_module.dll").exists());
+        assert!(root.join("16competitive/nextclient-install.json").exists());
+        assert!(WindowsInstall::install(&root, &bundle).unwrap().is_some());
         fs::remove_dir_all(root).unwrap();
         let _ = fs::remove_dir_all(cache);
     }

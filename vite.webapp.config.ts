@@ -26,6 +26,7 @@ for (const source of [
   'web-helper/src/assets.rs',
   'web-helper/src/native_bundle.rs',
   'web-helper/src/native_session.rs',
+  'web-helper/src/music.rs',
   'web-helper/src/native_preferences.rs',
   'web-helper/src/session_authorization.rs',
   'web-helper/src/inspector.rs',

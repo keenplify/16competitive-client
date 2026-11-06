@@ -69,6 +69,7 @@ pub(crate) fn refresh(directory: &Path, settings: &NativePreferences) -> Result<
     settings.validate()?;
     for (name, enabled) in [
         ("overlay.enabled", settings.enhancements_enabled),
+        ("kill-cards.enabled", settings.enhancements_enabled && settings.kill_cards_enabled && crate::native_bundle::supports_papamovgui2()),
         // Native sessions always own the HUD; launcher visibility is independent.
         ("hud-lightweight.enabled", true),
     ] {

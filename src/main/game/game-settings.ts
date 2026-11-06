@@ -384,7 +384,7 @@ const buildSettings = async (
   nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
-  killCardsEnabled: false,
+  killCardsEnabled: storedSettings.killCardsEnabled === true,
   lightweightHud: storedSettings.lightweightHud !== false,
   setupCompleted: storedSettings.setupCompleted === true,
   setupMode: storedSettings.setupMode ?? null,
@@ -422,7 +422,7 @@ const persistResolvedSettings = async (
     nextClientIntegrationEnabled: storedSettings.nextClientIntegrationEnabled !== false,
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
-    killCardsEnabled: false,
+    killCardsEnabled: storedSettings.killCardsEnabled === true,
     lightweightHud: storedSettings.lightweightHud !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
@@ -724,7 +724,7 @@ export const saveLightweightHud = async (untrustedEnabled: unknown): Promise<Gam
 export const saveKillCards = async (untrustedEnabled: unknown): Promise<GameSettings> => {
   if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid kill cards setting')
   const storedSettings = await readStoredSettings()
-  const updated: StoredGameSettings = { ...storedSettings, killCardsEnabled: false }
+  const updated: StoredGameSettings = { ...storedSettings, killCardsEnabled: untrustedEnabled }
   const cs16ExecutablePath = await validateStoredPath(updated)
   const keys = await resolveVoicePttKeys(updated)
   await persistResolvedSettings(

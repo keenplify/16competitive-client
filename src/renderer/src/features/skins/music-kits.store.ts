@@ -197,7 +197,7 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
     try {
       const bytes = await window.api.skins.musicPreview(id, get().event)
       if (generation !== previewGeneration) return
-      audioUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }))
+      audioUrl = URL.createObjectURL(new Blob([bytes], { type: new Uint8Array(bytes).subarray(0, 4).toString() === '82,73,70,70' ? 'audio/wav' : 'audio/mpeg' }))
       audio = new Audio(audioUrl)
       audio.onended = () => {
         stopAudio()
