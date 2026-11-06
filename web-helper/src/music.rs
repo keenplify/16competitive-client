@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const LIMIT: u64 = 20 * 1024 * 1024;
+const LIMIT: u64 = 24 * 1024 * 1024;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Manifest {
@@ -29,7 +29,7 @@ fn valid(asset: &Asset) -> bool {
     let Some(hash) = asset
         .path
         .strip_prefix("sound/16competitive/music/")
-        .and_then(|s| s.strip_suffix("/audio.mp3"))
+        .and_then(|s| s.strip_suffix("/audio.mp3").or_else(|| s.strip_suffix("/audio.wav")))
     else {
         return false;
     };
@@ -109,7 +109,12 @@ fn sync(
     {
         return Err("Invalid music manifest".into());
     }
-    let mut ready = format!("#16c-music-v1\n{}\n", root.display());
+    // One PCM16 zero sample replaces the owned music channel without stopping gunfire.
+    const SILENCE: &[u8] = b"RIFF&\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x22\x56\0\0\x44\xac\0\0\x02\0\x10\0data\x02\0\0\0\0\0";
+    const SILENCE_KEY: &str = "sound/16competitive/music/bf3e2006c07d1c47471e4d45e61cb30d7/audio.wav";
+    crate::native_session::owned_write(&crate::assets::game_destination(root, SILENCE_KEY)?, SILENCE)?;
+    let mut ready = format!("#16c-music-v1\n{}\n{}\t{:x}\n", root.display(), SILENCE_KEY, Sha256::digest(SILENCE));
+    crate::native_session::owned_write(&session.join("music-assets.tsv"), ready.as_bytes())?;
     for asset in manifest.music_assets {
         if stop.load(Ordering::Relaxed) {
             return Ok(());

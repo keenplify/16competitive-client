@@ -150,7 +150,7 @@ export function parseMusicKits(value: unknown): MusicKitSnapshot {
     if (
       k.bgmPath != null &&
       (typeof k.bgmPath !== 'string' ||
-        !/^media\/16competitive\/music\/[a-f0-9]{64}\/bgm\.mp3$/.test(k.bgmPath))
+        ! /^(?:media\/16competitive\/music\/[a-f0-9]{64}\/bgm\.(?:mp3|wav)|sound\/16competitive\/music\/[a-f0-9]{32}\/audio\.wav)$/.test(k.bgmPath))
     )
       throw new Error('INVALID_MUSIC_BGM')
     return {
