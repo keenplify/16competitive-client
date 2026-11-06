@@ -4456,3 +4456,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved sticker preparation on Windows to help avoid timeouts.
 - Sticker preparation failures now preserve their specific reason in issue reports.
+
+## v2026.1107.4 — 2026-11-06
+
+### Match Launch
+
+- Added clearer progress updates while preparing to launch a match.
+- Match artwork and music now begin loading earlier.
+
+### Audio
+
+- Improved audio transfer reliability and reduced delays during downloads.
+
+### Downloads
+
+- Added safer, reviewed limits for match asset downloads.
