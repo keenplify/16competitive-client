@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useEffectiveLauncherTheme } from '../settings/use-effective-launcher-theme'
 import type { SkinAssetSyncProgress } from '../../../../shared/game-settings'
-import { isLegacyRuntimeLanguage, useLanguageStore } from '../i18n/i18n'
+import { isLegacyRuntimeLanguage, useLanguageStore, useTranslation } from '../i18n/i18n'
 import { translateRuntimePortuguese } from '../i18n/ui-translations-portuguese'
 import { translateRuntimeHindi } from '../i18n/ui-translations-hindi'
 import { translateRuntimeSea } from '../i18n/ui-translations-sea'
@@ -16,6 +16,7 @@ import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
+  const { t } = useTranslation()
   const theme = useEffectiveLauncherTheme()
   const language = useLanguageStore((state) => state.language)
   const page = useNavigationStore((state) => state.page)
@@ -135,20 +136,35 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
           {reportOpen && <IssueReportForm />}
           {progress && (progress.status === 'syncing' || progress.status === 'error') && (
             <aside
-              className={`flex items-center gap-2  border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
+              className={`flex w-96 max-w-[calc(100vw-2rem)] items-start gap-2 rounded-none border px-3 py-2 shadow-xl backdrop-blur ${failed ? 'border-red-300/30 bg-red-950/90 text-red-100' : 'border-cyan-300/30 bg-slate-950/90 text-cyan-100'}`}
               role="status"
               aria-live="polite"
             >
               {failed ? (
-                <Download className="size-4" aria-hidden="true" />
+                <Download className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               ) : (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden="true" />
               )}
-              <span>
-                {failed
-                  ? (progress.message ?? 'Could not download skin assets.')
-                  : `Downloading assets — ${percentage}%`}
-              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex h-5 items-center justify-between gap-2">
+                  <span className="truncate">
+                    {failed
+                      ? (progress.message ?? 'Could not download skin assets.')
+                      : t('assets.sync.downloading', { percent: percentage })}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {t('assets.sync.files', {
+                      completed: progress.completedFiles,
+                      total: progress.totalFiles
+                    })}
+                  </span>
+                </div>
+                <div className="h-8 text-[11px] leading-4" title={progress.currentFile}>
+                  <span className="line-clamp-2 break-all font-mono">
+                    {progress.currentFile ?? (failed ? '' : t('assets.sync.checking'))}
+                  </span>
+                </div>
+              </div>
             </aside>
           )}
         </>

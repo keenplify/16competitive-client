@@ -64,6 +64,7 @@ export interface SkinAssetSyncProgress {
   status: 'idle' | 'syncing' | 'ready' | 'error'
   completedFiles: number
   totalFiles: number
+  currentFile?: string
   message?: string
 }
 

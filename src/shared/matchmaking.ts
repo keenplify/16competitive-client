@@ -425,6 +425,7 @@ export type MatchmakingEvent = { whileQueued?: boolean } & (
       status: 'syncing' | 'ready' | 'error'
       completedFiles: number
       totalFiles: number
+      currentFile?: string
       message?: string
     }
   | { type: 'connection_endpoint'; apiUrl: string | null; websocketUrl: string }

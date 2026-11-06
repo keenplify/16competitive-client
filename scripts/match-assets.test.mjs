@@ -414,3 +414,28 @@ test('overlapping early preparation callers both receive completion from the sha
     await h.cleanup()
   }
 })
+
+test('early catalog skips all kit WAVs from older APIs and reports the active file', async () => {
+  const asset = { path: `sprites/16competitive/system/${sha256.slice(0, 16)}/gas.spr`, sha256 }
+  const music = {
+    path: `sound/16competitive/music/${'e'.repeat(32)}/audio.wav`,
+    sha256: 'e'.repeat(64)
+  }
+  const h = await harness([music, asset], sprite)
+  try {
+    await h.api.startSkinAssetSync('https://backend.example.test', (value) =>
+      h.progress.push(value)
+    )
+    assert.equal(h.requests.filter((url) => url.pathname.endsWith('/file')).length, 1)
+    assert.ok(!h.requests.some((url) => url.searchParams.get('path') === music.path))
+    assert.ok(
+      h.progress.some((value) => value.currentFile === asset.path && value.completedFiles === 0)
+    )
+    assert.equal(h.progress.at(-1).status, 'ready')
+    assert.equal(h.progress.at(-1).totalFiles, 1)
+    assert.equal(h.progress.at(-1).currentFile, undefined)
+    await assert.rejects(fs.stat(path.join(h.root, music.path)), { code: 'ENOENT' })
+  } finally {
+    await h.cleanup()
+  }
+})

@@ -20,6 +20,8 @@ pub struct Progress {
     pub status: String,
     pub completed_files: usize,
     pub total_files: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_file: Option<String>,
 }
 #[derive(Deserialize)]
 struct Asset {
@@ -311,6 +313,7 @@ pub fn status() -> Progress {
         status: "idle".into(),
         completed_files: 0,
         total_files: 0,
+        current_file: None,
     })
 }
 pub(crate) fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
@@ -359,6 +362,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
         status: "syncing".into(),
         completed_files: 0,
         total_files: 0,
+        current_file: None,
     });
     let result = (|| {
         let manifest_url = if let Some(id) = match_id {
@@ -366,7 +370,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
         } else {
             format!("{origin}/skins/assets/manifest")
         };
-        let manifest: Manifest =
+        let mut manifest: Manifest =
             serde_json::from_slice(&request(&agent, &manifest_url, token, 4 * 1024 * 1024)?)
                 .map_err(|_| "Invalid asset manifest")?;
         if manifest.assets.len() > 20000 {
@@ -379,6 +383,12 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
             if !seen.insert(asset.path.clone()) {
                 return Err("Duplicate managed asset destination".into());
             }
+        }
+        // Keep full-catalog audio out even when talking to an older regional API.
+        if match_id.is_none() {
+            manifest
+                .assets
+                .retain(|asset| !asset.path.starts_with("sound/16competitive/music/"));
         }
         let cache = config.join("game-assets/cache");
         fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
@@ -405,6 +415,12 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
                         "/skins/assets/file".into()
                     });
                     url.query_pairs_mut().append_pair("path", &asset.path);
+                    write_progress(&Progress {
+                        status: "syncing".into(),
+                        completed_files: index,
+                        total_files: total,
+                        current_file: Some(asset.path.clone()),
+                    });
                     let mut downloaded = None;
                     for attempt in 0..3 {
                         if let Ok(bytes) = request(&agent, url.as_str(), token, limit(&asset.path))
@@ -447,12 +463,14 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
                 status: "syncing".into(),
                 completed_files: index + 1,
                 total_files: total,
+                current_file: None,
             });
         }
         write_progress(&Progress {
             status: "ready".into(),
             completed_files: total,
             total_files: total,
+            current_file: None,
         });
         Ok(())
     })();
@@ -485,6 +503,7 @@ pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Pro
         status: "syncing".into(),
         completed_files: 0,
         total_files: 0,
+        current_file: None,
     });
     std::thread::spawn(move || {
         // Both operations verify every content hash and repair damaged files.
@@ -494,6 +513,7 @@ pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Pro
                 status: "error".into(),
                 completed_files: 0,
                 total_files: 0,
+                current_file: None,
             });
         }
         BUSY.store(false, Ordering::SeqCst);
@@ -504,6 +524,25 @@ pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Pro
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn progress_keeps_old_helpers_compatible_and_reports_active_file() {
+        let old: Progress = serde_json::from_str(
+            r#"{"status":"syncing","completedFiles":0,"totalFiles":2}"#,
+        ).unwrap();
+        assert!(old.current_file.is_none());
+        let current = Progress {
+            current_file: Some("models/16competitive/knife/aaaaaaaaaaaaaaaa/v.mdl".into()),
+            ..old
+        };
+        let json = serde_json::to_value(&current).unwrap();
+        assert_eq!(
+            json["currentFile"],
+            "models/16competitive/knife/aaaaaaaaaaaaaaaa/v.mdl"
+        );
+        let ready = Progress { status: "ready".into(), current_file: None, ..current };
+        assert!(serde_json::to_value(ready).unwrap().get("currentFile").is_none());
+    }
 
     fn test_root() -> PathBuf {
         let root = env::temp_dir().join(format!("16c-shared-assets-{}", uuid::Uuid::new_v4()));

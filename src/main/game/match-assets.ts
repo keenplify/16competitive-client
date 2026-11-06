@@ -301,6 +301,7 @@ export interface SkinAssetSyncProgress {
   status: 'syncing' | 'ready' | 'error'
   completedFiles: number
   totalFiles: number
+  currentFile?: string
   message?: string
 }
 
@@ -415,7 +416,10 @@ const syncSkinAssets = async (
     )
       throw new Error('Invalid sticker asset catalog')
   }
-  const catalog = assets as CatalogAsset[]
+  // Older regional APIs may still return the full music catalog. Match music is on demand.
+  const catalog = (assets as CatalogAsset[]).filter(
+    (asset) => !asset.path.startsWith('sound/16competitive/music/')
+  )
   const totalFiles = catalog.length + stickerAssets.length
   console.info('[MatchAssets] catalog loaded', {
     entries: catalog.length,
@@ -426,7 +430,15 @@ const syncSkinAssets = async (
     completedFiles,
     totalFiles
   })
-  onProgress({ status: 'syncing', completedFiles, totalFiles })
+  const activeDownloads = new Set<string>()
+  const publish = (): void =>
+    onProgress({
+      status: 'syncing',
+      completedFiles,
+      totalFiles,
+      currentFile: activeDownloads.values().next().value
+    })
+  publish()
   await runWithConcurrency(
     catalog.map((asset) => async () => {
       console.info('[MatchAssets] catalog asset started', { path: asset.path })
@@ -434,7 +446,16 @@ const syncSkinAssets = async (
       if (!(await hasExpectedHash(destination, asset.sha256, asset.path))) {
         const fileUrl = new URL('/skins/assets/file', base)
         fileUrl.searchParams.set('path', asset.path)
-        const { response: result, bytes } = await fetchCatalogResource(fileUrl, token, 90_000)
+        activeDownloads.add(asset.path)
+        publish()
+        let downloaded: Awaited<ReturnType<typeof fetchCatalogResource>>
+        try {
+          downloaded = await fetchCatalogResource(fileUrl, token, 90_000)
+        } finally {
+          activeDownloads.delete(asset.path)
+          publish()
+        }
+        const { response: result, bytes } = downloaded
         console.info('[MatchAssets] catalog asset response received', {
           path: asset.path,
           status: result.status,
@@ -478,13 +499,19 @@ const syncSkinAssets = async (
         totalFiles,
         path: asset.path
       })
-      onProgress({ status: 'syncing', completedFiles, totalFiles })
+      publish()
     })
   )
   for (const asset of stickerAssets as CatalogAsset[]) {
-    await cachedStickerImage(asset.path, apiUrl)
+    activeDownloads.add(asset.path)
+    publish()
+    try {
+      await cachedStickerImage(asset.path, apiUrl)
+    } finally {
+      activeDownloads.delete(asset.path)
+    }
     completedFiles += 1
-    onProgress({ status: 'syncing', completedFiles, totalFiles })
+    publish()
   }
   onProgress({ status: 'ready', completedFiles: totalFiles, totalFiles })
   console.info('[MatchAssets] catalog sync ready', { count: totalFiles })

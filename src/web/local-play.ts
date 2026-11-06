@@ -387,7 +387,12 @@ function parseProgress(value: unknown): SkinAssetSyncProgress {
     p.completedFiles < 0 ||
     p.totalFiles < 0 ||
     p.completedFiles > p.totalFiles ||
-    p.totalFiles > 20000
+    p.totalFiles > 20000 ||
+    (p.currentFile !== undefined &&
+      (typeof p.currentFile !== 'string' ||
+        p.currentFile.length > 256 ||
+        p.currentFile.includes('..') ||
+        !/^(?:models|sound|sprites|media)\/16competitive\/[a-zA-Z0-9_/.-]+$/.test(p.currentFile)))
   )
     throw new Error('Invalid native asset progress')
   return p
