@@ -15,6 +15,7 @@ import {
   QueuedPlayer
 } from '../../../../shared/matchmaking'
 import { create } from 'zustand'
+import type { GameLaunchProgress } from '../../../../shared/game-launch-progress'
 import { toast } from 'react-toastify'
 import { readyCheckRemainingMs } from '../../../../shared/matchmaking-ready-time'
 import { readyResponseFromServer } from '../../../../shared/matchmaking-ready-response'
@@ -179,6 +180,7 @@ interface MatchmakingState {
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
   countdown: number | null
   assetPreparation: AssetPreparation
+  launchPreparation: GameLaunchProgress | null
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
   gameExitCount: number
@@ -280,6 +282,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       return
     }
     switch (event.type) {
+      case 'game_launch_progress':
+        set({
+          launchPreparation: { phase: event.phase, completed: event.completed, total: event.total }
+        })
+        break
       case 'clock_sync':
         syncServerClock(event.serverNow)
         break
@@ -830,6 +837,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     readyResponse: 'pending',
     countdown: null,
     assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
+    launchPreparation: null,
     connectionDetails: null,
     gameExited: false,
     gameExitCount: 0,

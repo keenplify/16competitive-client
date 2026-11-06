@@ -199,10 +199,15 @@ fn launch_target(
         }
     });
     let result = (|| -> Result<(), String> {
-        let frame = rx
-            .recv_timeout(Duration::from_secs(300))
-            .map_err(|_| "Windows session preparation failed")?
-            .ok_or("Invalid compatibility readiness")?;
+        let deadline = std::time::Instant::now() + Duration::from_secs(300);
+        let frame = loop {
+            let frame = rx
+                .recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+                .map_err(|_| "Windows session preparation failed")?
+                .ok_or("Invalid compatibility readiness")?;
+            if desktop_session::forward_progress(&frame)? { continue; }
+            break frame;
+        };
         if frame["protocol"] == 1 && frame["event"] == "error" {
             return Err(desktop_session::failure_code(frame["code"].as_str().unwrap_or("")).into());
         }

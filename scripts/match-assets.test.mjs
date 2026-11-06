@@ -18,7 +18,14 @@ const source = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }
 ).outputText
 
-async function harness(assets, bytes, failures = [], stickerAssets = []) {
+async function harness(
+  assets,
+  bytes,
+  failures = [],
+  stickerAssets = [],
+  matchArtwork = [],
+  musicPreload
+) {
   const directory = await fs.mkdtemp(path.join(tmpdir(), '16c-smoke-loader-'))
   const root = path.join(directory, 'cstrike')
   await fs.mkdir(root)
@@ -54,6 +61,12 @@ async function harness(assets, bytes, failures = [], stickerAssets = []) {
     }
   })
   const dependencies = {
+    './match-music-preload': {
+      matchMusicAssets: () =>
+        musicPreload ? [{ path: 'fixture.mp3', sha256: 'a'.repeat(64) }] : [],
+      preloadMatchMusic: musicPreload ?? (async () => {})
+    },
+    './match-sticker-preload': { matchStickerArtwork: async () => matchArtwork },
     'node:crypto': crypto,
     'node:fs/promises': fs,
     'node:path': path,
@@ -111,6 +124,50 @@ sprite.writeUInt16LE(1, 40)
 sprite.writeInt32LE(2, 57)
 sprite.writeInt32LE(2, 61)
 const sha256 = crypto.createHash('sha256').update(sprite).digest('hex')
+
+test(
+  'optional music begins at Match Found without delaying readiness and remains cancellable afterward',
+  { timeout: 5000 },
+  async () => {
+    let musicSignal
+    let settle
+    const h = await harness([], sprite, [], [], [], async (...args) => {
+      musicSignal = args.at(-1)
+      await new Promise((resolve) => {
+        settle = resolve
+      })
+    })
+    try {
+      await h.api.startMatchAssetPreload(matchId, 'https://backend.example.test', (value) =>
+        h.progress.push(value)
+      )
+      assert.ok(musicSignal, 'music starts before required readiness')
+      assert.equal(h.progress.at(-1).status, 'ready')
+      assert.equal(musicSignal.aborted, false)
+      h.api.clearMatchAssetPreload(matchId)
+      assert.equal(musicSignal.aborted, true)
+    } finally {
+      settle?.()
+      await h.cleanup()
+    }
+  }
+)
+
+test('Match Found preload downloads targeted sticker artwork before reporting readiness', async () => {
+  const artwork = `media/16competitive/stickers/${'a'.repeat(64)}/image.png`
+  const h = await harness([], sprite, [], [], [artwork])
+  try {
+    await h.api.startMatchAssetPreload(matchId, 'https://backend.example.test', (progress) =>
+      h.progress.push(progress)
+    )
+    assert.ok(h.requests.some((url) => url.pathname === `/fastdl/${artwork}`))
+    assert.equal(h.progress.at(-1).status, 'ready')
+    assert.equal(h.progress.at(-1).completedFiles, 1)
+    assert.equal(h.progress.at(-1).totalFiles, 1)
+  } finally {
+    await h.cleanup()
+  }
+})
 
 test('Music Kit manifests accept only their versioned audio WAV paths', () => {
   const hash = '47688106b8edd1ba59da8eeb9d5379a8'

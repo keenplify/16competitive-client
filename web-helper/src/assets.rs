@@ -394,6 +394,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
         fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
         let total = manifest.assets.len();
         for (index, asset) in manifest.assets.iter().enumerate() {
+            if match_id.is_some() { crate::desktop_session::report_progress("assets", index, total); }
             let expected = hash_for(asset, match_id.is_none())?;
             let target = game_destination(root, &asset.path)?;
             if !matches(&target, asset, &expected) {
@@ -421,6 +422,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
                         total_files: total,
                         current_file: Some(asset.path.clone()),
                     });
+                    if match_id.is_some() { crate::desktop_session::report_progress("downloading", index, total); }
                     let mut downloaded = None;
                     for attempt in 0..3 {
                         if let Ok(bytes) = request(&agent, url.as_str(), token, limit(&asset.path))

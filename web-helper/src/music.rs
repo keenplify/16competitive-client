@@ -107,7 +107,7 @@ fn sync(
     match_id: &str,
     agent: &ureq::Agent,
     stop: &AtomicBool,
-) -> Result<(), String> {
+) -> Result<(usize, usize, usize), String> {
     let url = format!("{api}/matches/{match_id}/assets");
     let bytes = fetch(agent, &url, token, 1024 * 1024, stop, true)?;
     let manifest: Manifest =
@@ -120,9 +120,12 @@ fn sync(
     crate::native_session::owned_write(&crate::assets::game_destination(root, &silence.path)?, SILENCE)?;
     let mut ready = format!("#16c-music-v1\n{}\n{}\t{:x}\n", root.display(), silence.path, Sha256::digest(SILENCE));
     crate::native_session::owned_write(&session.join("music-assets.tsv"), ready.as_bytes())?;
+    let total = manifest.music_assets.len();
+    let mut completed = 0;
+    let mut failed = 0;
     for asset in manifest.music_assets {
         if stop.load(Ordering::Relaxed) {
-            return Ok(());
+            return Ok((completed, total, failed));
         }
         let destination = crate::assets::game_destination(root, &asset.path)?;
         if !verified(&destination, &asset) {
@@ -137,15 +140,30 @@ fn sync(
             }
         }
         if verified(&destination, &asset) {
+            completed += 1;
             ready.push_str(&format!("{}\t{}\n", asset.path, asset.sha256));
             // Publish each completed file, so one slow download cannot hide ready audio.
             crate::native_session::owned_write(
                 &session.join("music-assets.tsv"),
                 ready.as_bytes(),
             )?;
-        }
+        } else { failed += 1; }
     }
-    crate::native_session::owned_write(&session.join("music-assets.tsv"), ready.as_bytes())
+    crate::native_session::owned_write(&session.join("music-assets.tsv"), ready.as_bytes())?;
+    Ok((completed, total, failed))
+}
+
+// Fixed counters only: no paths, credentials, response bodies or kit ownership.
+fn record_delivery(match_id: &str, result: &Result<(usize, usize, usize), String>) {
+    let (status, completed, total, failed) = match result {
+        Ok((completed, total, failed)) => (if *failed == 0 { "ready" } else { "partial" }, *completed, *total, *failed),
+        Err(_) => ("unavailable", 0, 0, 0),
+    };
+    if let Ok(directory) = crate::user_config_dir() {
+        let bytes = serde_json::json!({ "version": 1, "matchId": match_id,
+            "status": status, "completed": completed, "total": total, "failed": failed }).to_string();
+        let _ = crate::native_session::owned_write(&directory.join("music-diagnostics.json"), bytes.as_bytes());
+    }
 }
 
 pub fn start(
@@ -160,11 +178,15 @@ pub fn start(
         // Slow optional audio never blocks game launch, HUD feeds, or session shutdown.
         let agent = ureq::AgentBuilder::new()
             .redirects(0)
-            .timeout(Duration::from_secs(5))
+            .timeout_connect(Duration::from_secs(5))
+            .timeout_read(Duration::from_secs(5))
+            .timeout(Duration::from_secs(90))
             .build();
         let deadline = Instant::now() + Duration::from_secs(2 * 60 * 60);
         while !stop.load(Ordering::Relaxed) && Instant::now() < deadline {
-            if sync(&root, &session, &api, &token, &match_id, &agent, &stop).is_err() {
+            let result = sync(&root, &session, &api, &token, &match_id, &agent, &stop);
+            record_delivery(&match_id, &result);
+            if result.is_err() {
                 eprintln!("[Music] optional audio unavailable; missing cues remain silent");
             }
             for _ in 0..100 {

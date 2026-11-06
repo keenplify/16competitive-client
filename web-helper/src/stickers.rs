@@ -294,6 +294,28 @@ fn save_recipe(root: &Path,recipe: &Recipe,model_hash: &str,texture_hash: &str) 
     crate::native_session::owned_write(&cache_index(root,recipe)?, &serde_json::to_vec(&saved).map_err(|_|"Sticker cache metadata failed")?)
 }
 
+fn early_artwork(path: &str) -> Option<Vec<u8>> {
+    early_artwork_at(&crate::assets::desktop_config_home().ok()?, path)
+}
+fn early_artwork_at(home: &Path, path: &str) -> Option<Vec<u8>> {
+    let digest = path.strip_prefix("media/16competitive/stickers/")?.strip_suffix("/image.png")?;
+    if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) { return None; }
+    let mut cache = home.to_path_buf();
+    for part in ["16competitive-client", "game-assets", "sticker-images"] {
+        cache.push(part);
+        let metadata = fs::symlink_metadata(&cache).ok()?;
+        if !metadata.is_dir() || metadata.file_type().is_symlink() { return None; }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            if metadata.file_attributes() & 0x400 != 0 { return None; }
+        }
+    }
+    let bytes = read(&cache.join(format!("{digest}.png")), 2_000_000).ok()?;
+    if hash(&bytes) != digest { return None; }
+    Some(bytes)
+}
+
 pub fn prepare(
     root: &Path,
     session: &Path,
@@ -301,6 +323,7 @@ pub fn prepare(
     token: &str,
     match_id: &str,
 ) -> Result<(), String> {
+    crate::desktop_session::report_progress("stickers", 0, 0);
     let agent = crate::assets::api(api, token)?;
     let bytes = crate::assets::request(
         &agent,
@@ -320,7 +343,9 @@ pub fn prepare(
     let mut rows = format!("16c-stickers-v2\n{root_text}\n");
     let mut texture_rows = "16c-sticker-textures-v1\n".to_string();
     let deadline = Instant::now() + Duration::from_secs(120);
-    for recipe in recipes {
+    let total = recipes.len();
+    for (index, recipe) in recipes.into_iter().enumerate() {
+        crate::desktop_session::report_progress("stickers", index, total);
         if Instant::now() >= deadline {
             return Err("STICKER_TIMEOUT".into());
         }
@@ -337,11 +362,17 @@ pub fn prepare(
         } else {
             let mut images = Vec::new();
             for artwork in &recipe.stickers {
-                let bytes = crate::assets::request(&agent,&format!("{api}/fastdl/{}",artwork.image_path),token,2_000_000)
-                    .map_err(|_| "STICKER_ARTWORK_REQUEST_FAILED")?;
+                let bytes = if let Some(bytes) = early_artwork(&artwork.image_path) {
+                    bytes
+                } else {
+                    crate::desktop_session::report_progress("sticker_download", index, total);
+                    crate::assets::request(&agent,&format!("{api}/fastdl/{}",artwork.image_path),token,2_000_000)
+                        .map_err(|_| "STICKER_ARTWORK_REQUEST_FAILED")?
+                };
                 if Some(hash(&bytes).as_str()) != artwork.image_path.split('/').nth(3) { return Err("Sticker artwork hash mismatch".into()); }
                 images.push(pixels(&bytes).map_err(|_| "STICKER_IMAGE_INVALID")?);
             }
+            crate::desktop_session::report_progress("sticker_bake", index, total);
             let (model,textures)=bake(&recipe,source,images)
                 .map_err(|error| crate::desktop_session::preparation_error(&error, "STICKER_BAKE_FAILED"))?;
             let model_hash=immutable(root,&model,"mdl").map_err(|_| "STICKER_CACHE_FAILED")?;
@@ -366,6 +397,23 @@ pub fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn early_artwork_cache_is_verified_and_untrusted_paths_are_rejected() {
+        let home = std::env::temp_dir().join(format!("16c-early-sticker-{}", uuid::Uuid::new_v4()));
+        let cache = home.join("16competitive-client/game-assets/sticker-images");
+        fs::create_dir_all(&cache).unwrap();
+        let bytes = b"test artwork bytes";
+        let digest = hash(bytes);
+        let path = format!("media/16competitive/stickers/{digest}/image.png");
+        let file = cache.join(format!("{digest}.png"));
+        assert!(early_artwork_at(&home, &path).is_none());
+        fs::write(&file, bytes).unwrap();
+        assert_eq!(early_artwork_at(&home, &path).unwrap(), bytes);
+        fs::write(&file, b"modified").unwrap();
+        assert!(early_artwork_at(&home, &path).is_none());
+        assert!(early_artwork_at(&home, "media/16competitive/stickers/../image.png").is_none());
+        fs::remove_dir_all(home).unwrap();
+    }
     #[test]
     fn native_compositor_matches_browser_pixels_for_every_alpha() {
         let (_runtime, context) = engine(Instant::now() + Duration::from_secs(10)).unwrap();

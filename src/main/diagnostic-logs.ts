@@ -10,6 +10,7 @@ import { collectGameConsoleLogs, redactReportLogs } from './game/game-console-lo
 import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 import { postDiagnosticReport } from './diagnostic-report-request'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
+import { musicDeliveryReport } from './game/music-diagnostics'
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -84,7 +85,12 @@ export async function collectDiagnosticIssueLogs(
   const owner = getSessionUsername() ?? ''
   await refreshGamePerformance(owner, matchId)
   const performance = gamePerformanceReport(owner, matchId)
-  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${performance}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
+  const musicDirectory =
+    process.platform === 'win32' && process.env.LOCALAPPDATA
+      ? join(process.env.LOCALAPPDATA, '16competitive')
+      : join(app.getPath('appData'), '16competitive')
+  const music = await musicDeliveryReport(musicDirectory, matchId)
+  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
 }
 
 export function installDiagnosticLogCapture(): void {

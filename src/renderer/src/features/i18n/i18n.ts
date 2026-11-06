@@ -1,3 +1,4 @@
+import { launchProgressTranslations } from './launch-progress-translations'
 import pCashBetTranslations from '../../../../shared/pcash-bet-translations.json'
 import { lobbySceneTranslations } from './lobby-scene-translations'
 import { matchDemoTranslations } from './match-demo-translations'
@@ -76,6 +77,7 @@ const english = {
   ...newsAnnouncementTranslations.en,
   ...readyCheckTranslations.en,
   ...matchAssetTranslations.en,
+  ...launchProgressTranslations.en,
   ...friendlyFireTranslations.en,
   ...anticheatNoticeTranslations.en,
   ...preferHumansTranslations.en,
@@ -264,6 +266,7 @@ const russian: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.ru,
   ...readyCheckTranslations.ru,
   ...matchAssetTranslations.ru,
+  ...launchProgressTranslations.ru,
   ...friendlyFireTranslations.ru,
   ...anticheatNoticeTranslations.ru,
   ...preferHumansTranslations.ru,
@@ -452,6 +455,7 @@ const taglish: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.tl,
   ...readyCheckTranslations.tl,
   ...matchAssetTranslations.tl,
+  ...launchProgressTranslations.tl,
   ...friendlyFireTranslations.tl,
   ...anticheatNoticeTranslations.tl,
   ...preferHumansTranslations.tl,
@@ -642,6 +646,7 @@ const thai: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.th,
   ...readyCheckTranslations.th,
   ...matchAssetTranslations.th,
+  ...launchProgressTranslations.th,
   ...friendlyFireTranslations.th,
   ...anticheatNoticeTranslations.th,
   ...preferHumansTranslations.th,
@@ -828,6 +833,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.id,
   ...readyCheckTranslations.id,
   ...matchAssetTranslations.id,
+  ...launchProgressTranslations.id,
   ...friendlyFireTranslations.id,
   ...anticheatNoticeTranslations.id,
   ...preferHumansTranslations.id,
@@ -1021,6 +1027,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.pt,
   ...readyCheckTranslations.pt,
   ...matchAssetTranslations.pt,
+  ...launchProgressTranslations.pt,
   ...friendlyFireTranslations.pt,
   ...anticheatNoticeTranslations.pt,
   ...preferHumansTranslations.pt,
@@ -1214,6 +1221,7 @@ const japanese: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.ja,
   ...readyCheckTranslations.ja,
   ...matchAssetTranslations.ja,
+  ...launchProgressTranslations.ja,
   ...friendlyFireTranslations.ja,
   ...anticheatNoticeTranslations.ja,
   ...preferHumansTranslations.ja,
@@ -1405,6 +1413,7 @@ const hindi: Record<TranslationKey, string> = {
   ...newsAnnouncementTranslations.hi,
   ...readyCheckTranslations.hi,
   ...matchAssetTranslations.hi,
+  ...launchProgressTranslations.hi,
   ...friendlyFireTranslations.hi,
   ...anticheatNoticeTranslations.hi,
   ...preferHumansTranslations.hi,

@@ -1,4 +1,5 @@
 import type { ChatAnnouncement } from './friends'
+import type { GameLaunchProgress } from './game-launch-progress'
 import type {
   NativeHelperSettings,
   NativeHelperSettingsRequest,
@@ -412,6 +413,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
 
 export type MatchmakingEvent = { whileQueued?: boolean } & (
   | MatchmakingServerMessage
+  | ({ type: 'game_launch_progress' } & GameLaunchProgress)
   | { type: 'clock_sync'; serverNow: string }
   | {
       type: 'match_assets_progress'

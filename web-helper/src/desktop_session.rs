@@ -107,6 +107,30 @@ impl Reopen {
 }
 
 static STOP_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static PROGRESS_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub(crate) fn report_progress(phase: &str, completed: usize, total: usize) {
+    if !PROGRESS_ENABLED.load(std::sync::atomic::Ordering::Acquire) { return; }
+    let mut output = std::io::stdout().lock();
+    let _ = writeln!(output, "{}", serde_json::json!({
+        "protocol": 1, "event": "progress", "phase": phase,
+        "completed": completed, "total": total
+    }));
+    let _ = output.flush();
+}
+
+pub(crate) fn forward_progress(frame: &serde_json::Value) -> Result<bool, String> {
+    if frame["event"] != "progress" { return Ok(false); }
+    let phase = frame["phase"].as_str().ok_or("Invalid compatibility progress")?;
+    let completed = frame["completed"].as_u64().ok_or("Invalid compatibility progress")?;
+    let total = frame["total"].as_u64().ok_or("Invalid compatibility progress")?;
+    if frame["protocol"] != 1 || completed > total || total > 20000 ||
+        !matches!(phase, "checking" | "assets" | "downloading" | "stickers" | "sticker_download" | "sticker_bake" | "starting") {
+        return Err("Invalid compatibility progress".into());
+    }
+    report_progress(phase, completed as usize, total as usize);
+    Ok(true)
+}
 
 // Return only fixed diagnostic codes, never paths, tokens or backend bodies.
 pub(crate) fn failure_code(error: &str) -> &'static str {
@@ -215,6 +239,7 @@ fn accept_handoff(
     writeln!(output, "{{\"event\":\"committed\",\"protocol\":1}}")
         .map_err(|_| "Launcher handoff closed")?;
     output.flush().map_err(|_| "Launcher handoff closed")?;
+    PROGRESS_ENABLED.store(false, std::sync::atomic::Ordering::Release);
     // Closing mode requires parent EOF. Retained UI mode requires an explicit
     // release and keeps the same pipe for bounded session control.
     match rx.recv_timeout(timeout) {
@@ -238,6 +263,7 @@ pub fn run_compatibility() -> Result<(), String> {
     run_inner(true)
 }
 fn run_inner(compatibility: bool) -> Result<(), String> {
+    PROGRESS_ENABLED.store(true, std::sync::atomic::Ordering::Release);
     let (tx, rx) = mpsc::sync_channel(3);
     std::thread::spawn(move || {
         let mut input = BufReader::new(std::io::stdin());
@@ -496,6 +522,14 @@ mod tests {
         let error = preparation_error("C:\\private\\file: secret bearer", "STICKER_SOURCE_FAILED");
         assert_eq!(failure_frame(&error)["code"], "STICKER_SOURCE_FAILED");
         assert!(!failure_frame(&error).to_string().contains("private"));
+    }
+    #[test]
+    fn compatibility_progress_keeps_validation_and_readiness_separate() {
+        assert!(forward_progress(&serde_json::json!({"protocol":1,"event":"progress","phase":"sticker_bake","completed":1,"total":3})).unwrap());
+        assert!(!forward_progress(&serde_json::json!({"protocol":1,"event":"ready"})).unwrap());
+        for (phase, completed, total) in [("ready",0,0), ("assets",2,1), ("secret",0,1), ("assets",0,20001)] {
+            assert!(forward_progress(&serde_json::json!({"protocol":1,"event":"progress","phase":phase,"completed":completed,"total":total})).is_err());
+        }
     }
     #[test]
     fn handoff_needs_commit_and_parent_exit_before_ownership() {

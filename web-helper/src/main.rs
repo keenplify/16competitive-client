@@ -884,12 +884,15 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
+    desktop_session::report_progress("checking", 0, 0);
     let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
         .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
     if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
         return Err("This device cannot join competitive matches".into());
     }
+    desktop_session::report_progress("assets", 0, 0);
     assets::prepare_match(&game_dir, connection, api, token).map_err(|_| "ASSET_PREPARATION_FAILED")?;
+    desktop_session::report_progress("checking", 0, 0);
     let game_startup = if connection.game() == "cs16" {
         owned_game::Startup::prepare_replacing(&exe, &game_dir).map_err(|_| "GAME_CLOSE_FAILED")?
     } else {
@@ -1113,6 +1116,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                 if code == "PREPARATION_FAILED" { "STICKER_PREPARATION_FAILED" } else { code }
             })?;
         }
+        desktop_session::report_progress("starting", 0, 0);
         game_startup.recheck()?;
         command.spawn().map_err(desktop_session::game_spawn_failure)
     })();

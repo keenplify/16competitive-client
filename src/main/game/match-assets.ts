@@ -1,4 +1,6 @@
 import { cachedStickerImage } from './sticker-image-cache'
+import { matchStickerArtwork } from './match-sticker-preload'
+import { matchMusicAssets, preloadMatchMusic } from './match-music-preload'
 import { stickerImagePath } from '../../shared/stickers'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
@@ -35,6 +37,7 @@ interface MatchAsset {
 
 interface MatchAssetsResponse {
   assets: MatchAsset[]
+  musicAssets?: unknown
 }
 
 export interface MatchAssetPreloadProgress {
@@ -47,6 +50,7 @@ class NonRetryableAssetError extends Error {}
 
 const preloads = new Map<string, Promise<void>>()
 const preloadControllers = new Map<string, AbortController>()
+const optionalMusicControllers = new Map<string, AbortController>()
 const fastDlEligibleMatches = new Set<string>()
 const mapPreloadMatches = new Set<string>()
 
@@ -594,7 +598,8 @@ const runWithConcurrency = async (tasks: Array<() => Promise<void>>): Promise<vo
 const loadManifest = async (
   manifestUrl: URL,
   token: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  localMusic = false
 ): Promise<MatchAssetsResponse> => {
   console.info('[MatchAssets] manifest request started', {
     url: manifestUrl.toString(),
@@ -603,7 +608,10 @@ const loadManifest = async (
   for (let attempt = 1; attempt <= MANIFEST_RETRY_COUNT; attempt += 1) {
     try {
       const response = await fetch(manifestUrl, {
-        headers: { authorization: `Bearer ${token}` },
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(localMusic ? { 'X-16C-Local-Music': 'v1' } : {})
+        },
         redirect: 'error',
         signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)])
       })
@@ -669,7 +677,24 @@ const preload = async (
   const manifestUrl = new URL(`/matches/${encodeURIComponent(matchId)}/assets`, apiUrl)
   console.info('[MatchAssets] match preload started', { matchId, assetRoot: storage.contentRoot })
   onProgress?.({ status: 'checking', completedFiles: 0, totalFiles: 0 })
-  const payload = await loadManifest(manifestUrl, token, signal)
+  const payload = await loadManifest(manifestUrl, token, signal, game === 'cs16')
+  let music: ReturnType<typeof matchMusicAssets> = []
+  if (game === 'cs16') {
+    try {
+      music = matchMusicAssets(payload.musicAssets)
+    } catch {
+      console.warn('[MatchAssets] optional music manifest invalid', { matchId })
+    }
+  }
+  // Match Found starts this preload; overlap the recipe request with model work.
+  // Optional artwork failures are retried and reported by the native launch path.
+  const artworkTask =
+    game === 'cs16'
+      ? matchStickerArtwork(apiUrl, matchId, token, signal).catch(() => {
+          console.warn('[MatchAssets] early sticker lookup unavailable', { matchId })
+          return []
+        })
+      : Promise.resolve([])
 
   const uniqueAssets = new Map<string, MatchAsset>()
   for (const asset of payload.assets) {
@@ -700,26 +725,98 @@ const preload = async (
   fastDlEligibleMatches.add(matchId)
   console.info('[MatchAssets] preparing match assets', { matchId, count: uniqueAssets.size })
   let completedFiles = 0
-  const totalFiles = uniqueAssets.size
+  let totalFiles = uniqueAssets.size
+  // Optional MP3s start at Match Found but must not delay required readiness.
+  if (music.length) {
+    const musicController = new AbortController()
+    optionalMusicControllers.set(matchId, musicController)
+    const musicSignal = AbortSignal.any([signal, musicController.signal])
+    let completedMusicFiles = 0
+    console.info('[MatchAssets] optional music download started', {
+      matchId,
+      totalFiles: music.length
+    })
+    void runWithConcurrency(
+      music.map((asset) => async () => {
+        musicSignal.throwIfAborted()
+        await preloadMatchMusic(asset, storage.destination, apiUrl, matchId, token, musicSignal)
+        if (!musicSignal.aborted) {
+          completedMusicFiles += 1
+          console.info('[MatchAssets] optional music progress', {
+            matchId,
+            completedFiles: completedMusicFiles,
+            totalFiles: music.length
+          })
+        }
+      })
+    )
+      .then(
+        () => {
+          if (!musicSignal.aborted)
+            console.info('[MatchAssets] optional music cached', {
+              matchId,
+              totalFiles: music.length
+            })
+        },
+        (error: unknown) => {
+          if (!musicSignal.aborted)
+            console.warn('[MatchAssets] optional music download unavailable', {
+              matchId,
+              code:
+                error instanceof Error && /^MUSIC_[A-Z_]{1,64}$/.test(error.message)
+                  ? error.message
+                  : 'MUSIC_DOWNLOAD_FAILED'
+            })
+        }
+      )
+      .finally(() => {
+        if (optionalMusicControllers.get(matchId) === musicController)
+          optionalMusicControllers.delete(matchId)
+      })
+  }
   console.info('[MatchAssets] match download progress', {
     matchId,
     completedFiles,
     totalFiles
   })
   onProgress?.({ status: 'downloading', completedFiles, totalFiles })
-  await runWithConcurrency(
-    [...uniqueAssets.values()].map((asset) => async () => {
-      await downloadAsset(apiUrl, matchId, asset, token, storage, signal)
-      completedFiles += 1
-      console.info('[MatchAssets] match asset progress', {
-        matchId,
-        path: asset.path,
-        completedFiles,
-        totalFiles
+  await Promise.all([
+    runWithConcurrency(
+      [...uniqueAssets.values()].map((asset) => async () => {
+        await downloadAsset(apiUrl, matchId, asset, token, storage, signal)
+        completedFiles += 1
+        console.info('[MatchAssets] match asset progress', {
+          matchId,
+          path: asset.path,
+          completedFiles,
+          totalFiles
+        })
+        onProgress?.({ status: 'downloading', completedFiles, totalFiles })
       })
+    ),
+    artworkTask.then(async (artwork) => {
+      signal.throwIfAborted()
+      totalFiles += artwork.length
       onProgress?.({ status: 'downloading', completedFiles, totalFiles })
+      await runWithConcurrency(
+        artwork.map((path) => async () => {
+          signal.throwIfAborted()
+          try {
+            await cachedStickerImage(path, apiUrl.origin)
+          } catch {
+            console.warn('[MatchAssets] early sticker download unavailable', { matchId })
+            totalFiles -= 1
+            signal.throwIfAborted()
+            onProgress?.({ status: 'downloading', completedFiles, totalFiles })
+            return
+          }
+          signal.throwIfAborted()
+          completedFiles += 1
+          onProgress?.({ status: 'downloading', completedFiles, totalFiles })
+        })
+      )
     })
-  )
+  ])
   console.info('[MatchAssets] match assets ready', { matchId, count: uniqueAssets.size })
   onProgress?.({ status: 'ready', completedFiles: totalFiles, totalFiles })
 }
@@ -746,6 +843,7 @@ export const startMatchAssetPreload = (
       }
     },
     (error: unknown) => {
+      controller.abort()
       console.error('[MatchAssets] match preload failed', {
         matchId,
         error: error instanceof Error ? error.message : String(error)
@@ -773,5 +871,7 @@ export const clearMatchAssetPreload = (matchId: string): void => {
   mapPreloadMatches.delete(matchId)
   preloadControllers.get(matchId)?.abort()
   preloadControllers.delete(matchId)
+  optionalMusicControllers.get(matchId)?.abort()
+  optionalMusicControllers.delete(matchId)
   preloads.delete(matchId)
 }

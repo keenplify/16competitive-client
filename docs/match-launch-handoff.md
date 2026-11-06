@@ -1,5 +1,28 @@
 # Counter-Strike match launch handoff
 
+Desktop Match Found preparation starts required model downloads and the targeted
+sticker artwork lookup before the ready check finishes. Artwork downloads overlap
+model transfers and use the existing bounded, hash-verified image cache. The native
+helper revalidates artwork before reuse; session authorization and model baking
+remain part of its launch preparation. Early artwork failures are retried there.
+
+The private desktop-session pipe also carries protocol-1 `progress` frames with a
+fixed phase and bounded completed/total counters. The client shows translated
+progress toasts for checking files, downloading, preparing stickers and starting
+the game, then resolves the toast on commit or failure. Progress cannot commit a
+session. Linux/Wine forwards validated preparation frames without extending its
+existing readiness deadline. Preparation progress is also captured in issue logs.
+
+Native local Music Kit downloads allow 90 seconds per transfer with a five-second
+connect/read timeout and cancellation checks between chunks. They never block
+launch. Desktop Match Found also starts a bounded background prefetch of the
+backend-selected MP3s through the regional match asset endpoint. It verifies full
+hashes and publishes atomically; the native helper reuses and revalidates those
+files. The helper retains one bounded `music-diagnostics.json` delivery summary;
+Report an Issue includes it only for the matching match within ten minutes. Counts
+describe verified downloads, not playback, volume, or authoritative kit ownership.
+The updated helper must be rebuilt and packaged for these changes to take effect.
+
 Normal Counter-Strike launches keep engine startup flags on the process command
 line. Steam also needs `-applaunch 10` and `-game cstrike`. The launcher passes
 `+exec 16competitive_match.cfg` after engine startup. Standard clients receive

@@ -1,5 +1,7 @@
 import { parseNativeVoicePreferences, type NativeVoicePreferences } from '../../shared/native-voice'
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
+import { MATCHMAKING_CHANNELS } from '../../shared/matchmaking'
+import { parseGameLaunchProgress, type GameLaunchProgress } from '../../shared/game-launch-progress'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createReadStream, constants } from 'node:fs'
@@ -140,14 +142,29 @@ function sessionPreferences(settings: GameSettings) {
 }
 
 let launchPending = false
+function announceProgress(progress: GameLaunchProgress): void {
+  console.info('[GameLaunch] preparation progress', progress)
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed())
+      window.webContents.send(MATCHMAKING_CHANNELS.event, {
+        type: 'game_launch_progress',
+        ...progress
+      })
+  }
+}
 
 async function launchStandaloneTarget(
   ...args: Parameters<typeof launchStandaloneTargetInner>
 ): Promise<void> {
   if (launchPending) throw new Error('A native game session is being prepared')
   launchPending = true
+  announceProgress({ phase: 'checking', completed: 0, total: 0 })
   try {
     await launchStandaloneTargetInner(...args)
+    announceProgress({ phase: 'ready', completed: 0, total: 0 })
+  } catch (error) {
+    announceProgress({ phase: 'error', completed: 0, total: 0 })
+    throw error
   } finally {
     launchPending = false
   }
@@ -245,9 +262,9 @@ async function launchStandaloneTargetInner(
     child.stdout.on('data', (bytes: Buffer) => {
       if (complete && active?.child !== child) return
       buffer += bytes.toString('utf8')
-      if (buffer.length > 8192) return fail(new Error('Invalid standalone response'))
       let end: number
       while ((end = buffer.indexOf('\n')) >= 0) {
+        if (end > 8192) return fail(new Error('Invalid standalone response'))
         const line = buffer.slice(0, end)
         buffer = buffer.slice(end + 1)
         let event: {
@@ -257,6 +274,9 @@ async function launchStandaloneTargetInner(
           code?: unknown
           osError?: unknown
           errorKind?: unknown
+          phase?: unknown
+          completed?: unknown
+          total?: unknown
         }
         try {
           event = JSON.parse(line)
@@ -264,6 +284,13 @@ async function launchStandaloneTargetInner(
           return fail(new Error('Invalid standalone response'))
         }
         if (event.protocol !== 1) return fail(new Error('Invalid standalone response'))
+        if (event.event === 'progress') {
+          const progress = parseGameLaunchProgress(event)
+          if (!progress || progress.phase === 'ready' || progress.phase === 'error' || committed)
+            return fail(new Error('Invalid standalone progress'))
+          announceProgress(progress)
+          continue
+        }
         if (event.event === 'error') {
           const code =
             typeof event.code === 'string' && /^[A-Z_]{1,64}$/.test(event.code)
@@ -332,6 +359,7 @@ async function launchStandaloneTargetInner(
           }, 150)
         } else return fail(new Error('Invalid standalone handoff state'))
       }
+      if (buffer.length > 8192) return fail(new Error('Invalid standalone response'))
     })
     child.stdin.write(`${JSON.stringify(request)}\n`)
   })

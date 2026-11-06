@@ -26,6 +26,7 @@ await build({
         builder.onLoad({ filter: /.*/, namespace: 'host' }, () => ({
           contents: `
       export const app = globalThis.fixtureApp;
+      export const BrowserWindow = { getAllWindows: () => [] };
       export const getSessionToken = () => 'desktop-token';
       export const API_BASE_URL = 'https://16competitive.papamo.dev';
       export const serializeCrosshairConfig = () => '255 255 255 1 4 1 0 100 0 0\\n';
