@@ -28,6 +28,7 @@ const branding = {
   musicVolumePercent: 50,
   logoUrl: null,
   showPapamoGamesLogo: true,
+  hideNativeHelperSetup: false,
   communityName: null,
   allowOtherCommunities: true,
   customSocialLinksEnabled: false,
@@ -127,6 +128,14 @@ test('validates Papamo Games logo visibility and defaults older responses to vis
       parsePartnerBranding({ branding: { ...branding, showPapamoGamesLogo: bad } }, origin)
     )
   }
+})
+
+test('setup dialog visibility defaults to false and rejects non-boolean flags', () => {
+  const legacy = { ...branding }
+  delete legacy.hideNativeHelperSetup
+  assert.equal(parsePartnerBranding({ branding: legacy }, origin).branding.hideNativeHelperSetup, false)
+  assert.equal(parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: true } }, origin).branding.hideNativeHelperSetup, true)
+  for (const bad of ['true', 1, null, {}]) assert.throws(() => parsePartnerBranding({ branding: { ...branding, hideNativeHelperSetup: bad } }, origin))
 })
 
 test('login backgrounds have an independent kind and approved endpoint', () => {
