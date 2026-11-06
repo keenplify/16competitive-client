@@ -673,7 +673,7 @@ const skins = {
   },
   async musicKits() {
     return musicKitLogoUrls(
-      parseMusicKits(await authenticatedGet('/music-kits')),
+      parseMusicKits(await authenticatedGet('/music-kits?cues=v2')),
       currentApiOrigin()
     )
   },
@@ -700,8 +700,17 @@ const skins = {
       )
     )
   },
-  async musicBuy(id: string, expectedPrice: number, currency: 'POINTS' | 'P_CASH' = 'POINTS'): Promise<{ points: number; pCash?: number }> {
-    return parseMusicPurchase(await jsonPost(`/music-kits/${validateMusicKitId(id)}/buy`, validateMusicBuy(expectedPrice, currency)))
+  async musicBuy(
+    id: string,
+    expectedPrice: number,
+    currency: 'POINTS' | 'P_CASH' = 'POINTS'
+  ): Promise<{ points: number; pCash?: number }> {
+    return parseMusicPurchase(
+      await jsonPost(
+        `/music-kits/${validateMusicKitId(id)}/buy`,
+        validateMusicBuy(expectedPrice, currency)
+      )
+    )
   },
   async musicEquip(
     id: string | null,

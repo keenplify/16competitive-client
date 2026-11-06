@@ -2,7 +2,12 @@ import { usePaymentsStore } from './payments.store'
 import { type JSX } from 'react'
 import { Check, Headphones, LoaderCircle, Play, Square } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
-import { MUSIC_EVENTS, type MusicEvent, type MusicKit } from '../../../../shared/music-kits'
+import {
+  musicKitEvents,
+  musicKitPreviewEvent,
+  type MusicEvent,
+  type MusicKit
+} from '../../../../shared/music-kits'
 import { Button } from '../../components/ui/Button'
 import { SelectField } from '../../components/ui/SelectField'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -12,6 +17,7 @@ import { useAuthStore } from '../auth/auth.store'
 import { useMusicKitsStore } from './music-kits.store'
 import { MusicKitArtwork } from './MusicKitLoadout'
 import { MusicKitCredit } from './MusicKitCredit'
+import { musicCueLabel } from './music-cue-label'
 
 export function MusicKitStoreCard({
   kit,
@@ -60,13 +66,14 @@ export function MusicKitStoreCard({
         <SelectField
           label={t('music.event')}
           aria-label={t('music.event')}
-          value={event}
+          value={musicKitPreviewEvent(kit, event) ?? ''}
+          disabled={musicKitEvents(kit).length === 0}
           onChange={(e) => onEvent(e.target.value as MusicEvent)}
           className="h-8 min-w-0 text-xs"
         >
-          {MUSIC_EVENTS.map((value) => (
+          {musicKitEvents(kit).map((value) => (
             <option key={value} value={value}>
-              {t(`music.${value}`)}
+              {musicCueLabel(t, value)}
             </option>
           ))}
         </SelectField>
@@ -94,6 +101,7 @@ export function MusicKitStoreCard({
           variant="ghost"
           className="h-9 min-w-0 gap-2 px-2 text-xs"
           aria-label={`${t(playing ? 'music.stop' : 'music.preview')}: ${kit.name}`}
+          disabled={musicKitEvents(kit).length === 0}
           onClick={onPreview}
         >
           {playing ? (

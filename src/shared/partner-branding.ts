@@ -16,6 +16,7 @@ export interface PartnerAppIcon {
 }
 export interface PartnerBranding {
   partnerId: string
+  hideNativeHelperSetup?: boolean
   desktopAppEnabled?: boolean
   appName?: string | null
   appIcon?: PartnerAppIcon | null
@@ -143,6 +144,8 @@ export const parsePartnerBranding = (
       throw new Error('Unapproved partner background URL.')
     }
   }
+  if (value.hideNativeHelperSetup !== undefined && typeof value.hideNativeHelperSetup !== 'boolean')
+    throw new Error('Invalid native helper setup visibility.')
   if (value.desktopAppEnabled !== undefined && typeof value.desktopAppEnabled !== 'boolean')
     throw new Error('Invalid desktop download setting.')
   const appName = value.appName
@@ -194,6 +197,7 @@ export const parsePartnerBranding = (
         ? { launcherTheme: value.launcherTheme as 'latest' | 'vgui2' }
         : {}),
       partnerId: value.partnerId,
+      hideNativeHelperSetup: value.hideNativeHelperSetup === true,
       ...(value.desktopAppEnabled !== undefined
         ? { desktopAppEnabled: value.desktopAppEnabled as boolean }
         : {}),

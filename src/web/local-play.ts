@@ -40,6 +40,9 @@ export function isNativeCompetitiveReady(): boolean {
     readiness.value.competitiveReady
   )
 }
+export function isNativeGameReady(game: 'cs13' | 'cs16'): boolean {
+  return isNativeCompetitiveReady() && (readiness?.value.games?.[game] ?? true)
+}
 export function onNativeReadiness(listener: () => void): () => void {
   readinessListeners.add(listener)
   return () => {
@@ -74,6 +77,7 @@ async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperR
     value.protocol !== 1 ||
     typeof value.competitiveReady !== 'boolean' ||
     typeof value.device?.banned !== 'boolean' ||
+    (value.games !== undefined && (!value.games || typeof value.games.cs13 !== 'boolean' || typeof value.games.cs16 !== 'boolean')) ||
     getWebSessionToken() !== token
   )
     throw new Error('Invalid helper readiness')
@@ -88,7 +92,7 @@ async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperR
       ))
   )
     throw new Error('Invalid native device status')
-  const changed = isNativeCompetitiveReady() !== value.competitiveReady
+  const changed = isNativeCompetitiveReady() !== value.competitiveReady || JSON.stringify(readiness?.value.games) !== JSON.stringify(value.games)
   readiness = { token, until: Date.now() + 90_000, value }
   if (changed) for (const listener of readinessListeners) listener()
   return value

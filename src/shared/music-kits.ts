@@ -11,7 +11,45 @@ export const MUSIC_EVENTS = [
   'dominating',
   'unstoppable',
   'godlike',
-  'mvp'
+  'mvp',
+  'bombplanted',
+  'bombtenseccount',
+  'bombtenseccountx',
+  'chooseteam',
+  'deathcam',
+  'endofmatch',
+  'legacy_cs_stinger',
+  'legacy_deathcam_gg_01',
+  'legacy_deathcam_gg_02',
+  'legacy_deathcam_gg_03',
+  'legacy_deathcam_stinger',
+  'legacy_dominating',
+  'legacy_finalfight',
+  'legacy_kill_01',
+  'legacy_kill_02',
+  'legacy_kill_03',
+  'legacy_kill_bonus',
+  'legacy_nemesis',
+  'legacy_point_captured_ct',
+  'legacy_point_captured_t',
+  'legacy_revenge',
+  'legacy_survival_review_victory',
+  'loading',
+  'lostround',
+  'mainmenu',
+  'mainmenu_02',
+  'mainmenu_03',
+  'roundmvpanthem_02',
+  'roundmvpanthem_03',
+  'roundtenseccount',
+  'startaction_01',
+  'startaction_02',
+  'startaction_03',
+  'startofmatch',
+  'startround_01',
+  'startround_02',
+  'startround_03',
+  'wonround'
 ] as const
 export type MusicTeam = 'ct' | 't'
 export type MusicEvent = (typeof MUSIC_EVENTS)[number]
@@ -210,4 +248,17 @@ export function parseMusicPurchase(result: unknown): { points: number; pCash?: n
     points: value.points,
     ...(typeof value.pCash === 'number' ? { pCash: value.pCash } : {})
   }
+}
+
+/** A preview lists only files present in the selected kit. */
+export function musicKitEvents(kit: MusicKit): MusicEvent[] {
+  return MUSIC_EVENTS.filter((event) => Boolean(kit.sounds[event]))
+}
+export function musicKitPreviewEvent(kit: MusicKit, requested: MusicEvent): MusicEvent | undefined {
+  const available = musicKitEvents(kit)
+  return available.includes(requested)
+    ? requested
+    : available.includes('mvp')
+      ? 'mvp'
+      : available[0]
 }

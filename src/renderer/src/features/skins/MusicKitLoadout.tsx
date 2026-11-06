@@ -1,8 +1,10 @@
+import { musicCueLabel } from './music-cue-label'
 import { useEffect, useId, type JSX } from 'react'
 import { Headphones, LoaderCircle, Play, Square, X } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import {
-  MUSIC_EVENTS,
+  musicKitEvents,
+  musicKitPreviewEvent,
   type MusicEvent,
   type MusicKit,
   type MusicTeam
@@ -11,6 +13,7 @@ import { useMusicKitsStore } from './music-kits.store'
 import { useTranslation } from '../i18n/i18n'
 import { Button } from '../../components/ui/Button'
 import { MusicKitCredit } from './MusicKitCredit'
+import { SelectField } from '../../components/ui/SelectField'
 
 export function MusicKitArtwork({
   kit,
@@ -161,20 +164,6 @@ export function MusicKitInventory({
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-neutral-300">{t('music.nextMatch')}</p>
-        <label className="flex items-center gap-2 text-sm">
-          {t('music.event')}
-          <select
-            value={state.event}
-            onChange={(e) => state.setEvent(e.target.value as MusicEvent)}
-            className="h-8 rounded-none border border-white/20 bg-neutral-900 px-2"
-          >
-            {MUSIC_EVENTS.map((e) => (
-              <option key={e} value={e}>
-                {t(`music.${e}`)}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       <div className="flex min-h-52 flex-wrap items-start gap-3">
         {kits.map((kit) => {
@@ -201,9 +190,22 @@ export function MusicKitInventory({
                 </span>
               </button>
               <MusicKitCredit kit={kit} className="w-full text-center" />
+              <SelectField
+                label={t('music.event')}
+                aria-label={`${t('music.event')}: ${kit.name}`}
+                value={musicKitPreviewEvent(kit, state.event) ?? ''}
+                disabled={musicKitEvents(kit).length === 0}
+                onChange={(event) => state.setEvent(event.target.value as MusicEvent)}
+                className="mt-2 h-8 w-full min-w-0 text-xs"
+              >
+                {musicKitEvents(kit).map((event) => (
+                  <option key={event} value={event}>{musicCueLabel(t, event)}</option>
+                ))}
+              </SelectField>
               <Button
                 variant="ghost"
                 className="h-8 gap-2 px-1 text-xs"
+                disabled={musicKitEvents(kit).length === 0}
                 onClick={() => void state.preview(kit.id)}
               >
                 {state.playingId === kit.id ? (

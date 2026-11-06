@@ -4,6 +4,8 @@ type HelperStatus =
   'idle' | 'checking' | 'electron' | 'rust' | 'outdated-electron' | 'outdated-rust' | 'unavailable'
 
 interface WebHelperPromptState {
+  setupPromptsHidden: boolean
+  setSetupPromptsHidden: (hidden: boolean) => void
   awaitingInstall: boolean
   awaitInstall: () => void
   nativeReady: boolean
@@ -89,7 +91,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
       nativeReady: true,
       competitiveReady: false,
       status: 'rust',
-      onboardingOpen: get().onboardingOpen && announce,
+      onboardingOpen: !get().setupPromptsHidden && get().onboardingOpen && announce,
       open: false,
       onContinue: null,
       setupOpen: false,
@@ -108,6 +110,11 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     window.api.matchmaking.cancelNativeHelperSetup?.()
   }
   return {
+    setupPromptsHidden: false,
+    setSetupPromptsHidden: (setupPromptsHidden) => set({
+      setupPromptsHidden,
+      ...(setupPromptsHidden ? { onboardingOpen: false, open: false, setupOpen: false } : {})
+    }),
     awaitingInstall: false,
     awaitInstall: () => set({ awaitingInstall: true }),
     nativeReady: false,
@@ -126,7 +133,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     },
     accountId: null,
     onContinue: null,
-    show: (onContinue) => set({ open: true, onContinue: onContinue ?? null }),
+    show: (onContinue) => set({ open: !get().setupPromptsHidden, onContinue: onContinue ?? null }),
     close: () => {
       cancelSetup()
       set({
@@ -157,7 +164,7 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
         awaitingInstall: false,
         nativeReady: false,
         competitiveReady: false,
-        onboardingOpen: accountId !== null,
+        onboardingOpen: accountId !== null && !get().setupPromptsHidden,
         open: false,
         setupOpen: false,
         setupCommand: null,

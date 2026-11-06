@@ -1,3 +1,4 @@
+import { musicKitPreviewEvent } from '../../../../shared/music-kits'
 import { usePaymentsStore } from './payments.store'
 import type { MusicCurrency } from '../../../../shared/music-kits'
 import { create } from 'zustand'
@@ -72,7 +73,7 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
   error: null,
   filterTeam: null,
   setFilterTeam: (filterTeam) => set({ filterTeam }),
-  event: 'killingspree',
+  event: 'mvp',
   currency: 'POINTS',
   setCurrency: (currency) => set({ currency, error: null }),
   confirm: null,
@@ -192,23 +193,49 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
     stopAudio()
     set({ playingId: null, error: null })
     if (wasPlaying) return
+    const kit = get().snapshot?.kits.find((kit) => kit.id === id)
+    const event = kit ? musicKitPreviewEvent(kit, get().event) : undefined
+    const t = (key: TranslationKey): string => translate(useLanguageStore.getState().language, key)
+    const feedback = toast.loading(t('music.processing'))
     const generation = previewGeneration
     set({ playingId: id })
     try {
-      const bytes = await window.api.skins.musicPreview(id, get().event)
+      if (!event) throw new Error('MUSIC_PREVIEW_UNAVAILABLE')
+      const bytes = await window.api.skins.musicPreview(id, event)
       if (generation !== previewGeneration) return
-      audioUrl = URL.createObjectURL(new Blob([bytes], { type: new Uint8Array(bytes).subarray(0, 4).toString() === '82,73,70,70' ? 'audio/wav' : 'audio/mpeg' }))
+      audioUrl = URL.createObjectURL(
+        new Blob([bytes], {
+          type:
+            new Uint8Array(bytes).subarray(0, 4).toString() === '82,73,70,70'
+              ? 'audio/wav'
+              : 'audio/mpeg'
+        })
+      )
       audio = new Audio(audioUrl)
       audio.onended = () => {
         stopAudio()
         set({ playingId: null })
       }
       await audio.play()
+      toast.update(feedback, {
+        render: t('music.preview'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 2000
+      })
     } catch (e) {
+      toast.update(feedback, {
+        render: t(errorKey(e) ?? 'music.error'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
       if (generation === previewGeneration) {
         stopAudio()
         set({ playingId: null, error: errorKey(e) })
       }
+    } finally {
+      if (generation !== previewGeneration) toast.dismiss(feedback)
     }
   }
 }))

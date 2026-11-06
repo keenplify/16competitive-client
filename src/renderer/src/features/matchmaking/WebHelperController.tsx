@@ -1,3 +1,4 @@
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useEffect, useRef, type JSX } from 'react'
 import { toast } from 'react-toastify'
 import { isWebRuntime } from '../../web-runtime'
@@ -18,6 +19,11 @@ export function WebHelperController(): JSX.Element | null {
   const accountId = useAuthStore((state) => state.session?.player.id ?? null)
   const page = useNavigationStore((state) => state.page)
   const onContinue = useWebHelperPromptStore((state) => state.onContinue)
+  const branding = usePartnerBrandingStore(state => state.branding)
+  const setSetupPromptsHidden = useWebHelperPromptStore(state => state.setSetupPromptsHidden)
+  useEffect(() => {
+    setSetupPromptsHidden(branding?.hideNativeHelperSetup === true)
+  }, [branding?.hideNativeHelperSetup, setSetupPromptsHidden])
   const syncAccount = useWebHelperPromptStore((state) => state.syncAccount)
   const successSequence = useWebHelperPromptStore((state) => state.successSequence)
   const competitiveReady = useWebHelperPromptStore((state) => state.competitiveReady)

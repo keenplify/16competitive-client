@@ -65,6 +65,7 @@ async function harness(requestJson = async () => connection, hosted = false, hel
         const names = [
           'nativeHelperReadiness',
           'isNativeCompetitiveReady',
+          'isNativeGameReady',
           'onNativeReadiness',
           'startNativeVoice',
           'nativeHelperSettings',

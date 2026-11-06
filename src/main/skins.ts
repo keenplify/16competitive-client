@@ -2,7 +2,13 @@ import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { cachedStickerImage } from './game/sticker-image-cache'
 import { parseStickerPurchase } from '../shared/stickers'
 import { stockStickerModel } from '../shared/stock-sticker-models'
-import { parseStickerSnapshot, stickerId, stickerUuid, stickerImagePath, validateStickerBuy } from '../shared/stickers'
+import {
+  parseStickerSnapshot,
+  stickerId,
+  stickerUuid,
+  stickerImagePath,
+  validateStickerBuy
+} from '../shared/stickers'
 import { validateProjection } from '../renderer/src/libs/web-hlmv/lib/sticker-atlas'
 import { isSkinPreviewHiddenTextures } from '../shared/skin-preview-hidden-textures'
 import { isSkinPreviewAudio } from '../shared/skin-preview-audio'
@@ -475,7 +481,10 @@ export const getSkinPreviewExplosionSprite = async (
 ): Promise<ArrayBuffer | null> => {
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
-  const id = typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId) ? skinId : validateSkinId(skinId)
+  const id =
+    typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId)
+      ? skinId
+      : validateSkinId(skinId)
   const response = await fetch(await skinApiUrl(`/skins/${id}/preview-explosion-sprite`), {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000)
@@ -510,7 +519,10 @@ export const getSkinPreviewExplosionSprite = async (
 export const getSkinPreviewActionSound = async (skinId: unknown): Promise<ArrayBuffer | null> => {
   const token = getSessionToken()
   if (!token) throw makeError('Sign in to preview skins.', 'UNAUTHORIZED')
-  const id = typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId) ? skinId : validateSkinId(skinId)
+  const id =
+    typeof skinId === 'string' && /^stock:[a-z0-9]{1,16}$/.test(skinId)
+      ? skinId
+      : validateSkinId(skinId)
   const response = await fetch(await skinApiUrl(`/skins/${id}/preview-action-sound`), {
     headers: { authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(15_000)
@@ -663,7 +675,7 @@ const musicRequest = async (path: string, init?: RequestInit): Promise<unknown> 
   }
 }
 export const listMusicKits = async () =>
-  musicKitLogoUrls(parseMusicKits(await musicRequest('/music-kits')), await getSkinApiUrl())
+  musicKitLogoUrls(parseMusicKits(await musicRequest('/music-kits?cues=v2')), await getSkinApiUrl())
 export const buyMusicKit = async (
   id: unknown,
   expectedPrice: unknown,
@@ -706,15 +718,35 @@ export const previewMusicKit = async (id: unknown, event: unknown): Promise<Arra
 }
 
 export const listStickers = async () => parseStickerSnapshot(await collectionRequest('/stickers'))
-export const buySticker = async (id: unknown, input: unknown): Promise<{id:string}> => {
-  return parseStickerPurchase(await collectionRequest(`/stickers/${stickerId(id)}/buy`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(validateStickerBuy(input)) }))
+export const buySticker = async (id: unknown, input: unknown): Promise<{ id: string }> => {
+  return parseStickerPurchase(
+    await collectionRequest(`/stickers/${stickerId(id)}/buy`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(validateStickerBuy(input))
+    })
+  )
 }
 export const removeSticker = async (id: unknown): Promise<void> => {
   await collectionRequest(`/stickers/items/${stickerUuid(id)}/remove`, { method: 'POST' })
 }
-export const applySticker = async (id: unknown, weaponKey: unknown, projection: unknown): Promise<void> => {
-  if (typeof weaponKey !== 'string' || !(weaponKey.startsWith('stock:') ? stockStickerModel(weaponKey.slice(6)) : /^skin:[a-f0-9-]{36}$/.test(weaponKey))) throw new Error('STICKER_WEAPON_INVALID')
-  await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ weaponKey, projection: validateProjection(projection) }) })
+export const applySticker = async (
+  id: unknown,
+  weaponKey: unknown,
+  projection: unknown
+): Promise<void> => {
+  if (
+    typeof weaponKey !== 'string' ||
+    !(weaponKey.startsWith('stock:')
+      ? stockStickerModel(weaponKey.slice(6))
+      : /^skin:[a-f0-9-]{36}$/.test(weaponKey))
+  )
+    throw new Error('STICKER_WEAPON_INVALID')
+  await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ weaponKey, projection: validateProjection(projection) })
+  })
 }
 export const getStickerImage = async (path: unknown): Promise<ArrayBuffer> => {
   const key = stickerImagePath(path)

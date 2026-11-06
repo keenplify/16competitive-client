@@ -1,3 +1,4 @@
+import { verifyInstalledNativeHelper } from './native-helper-action'
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
 import { usePartnerPresenceStore } from '../partner-branding/partner-presence.store'
 import { PartnerServerSession } from '../partner-branding/PartnerServerSession'
@@ -75,7 +76,6 @@ export function PlayPage({
   const nativeCompetitiveReady = useWebHelperPromptStore((state) => state.competitiveReady)
   const checkingHelper = useWebHelperPromptStore((state) => state.status === 'checking')
   const showHelperPrompt = useWebHelperPromptStore((state) => state.show)
-  const checkNativeHelper = useWebHelperPromptStore((state) => state.checkNative)
   const hideDesktopOnlyFeatures = webRuntime && desktopAppUrl === null
   const { t, language } = useTranslation()
   const communityText = useCommunityText()
@@ -275,14 +275,14 @@ export function PlayPage({
       const accountId = player?.id
       // Keep Continue available while the protocol check or update is pending.
       showHelperPrompt(beginQueue)
-      const launcher = await checkNativeHelper()
+      const helperReady = await verifyInstalledNativeHelper()
       // A completed check must not queue a player who signed out or navigated away.
       if (
         useAuthStore.getState().session?.player.id !== accountId ||
         useNavigationStore.getState().page !== 'play'
       )
         return
-      if (launcher !== 'rust' || useMatchmakingStore.getState().queueStatus !== 'idle') return
+      if (!helperReady || useMatchmakingStore.getState().queueStatus !== 'idle') return
     }
     beginQueue()
   }

@@ -107,6 +107,34 @@ function audioHarness() {
   )
   return { manager: launcherAudio, instances }
 }
+test('kit menus rotate their own tracks, repeat a single track and never substitute bundled music', () => {
+  const { manager, instances } = audioHarness()
+  manager.setKitMusic(['https://api.test/menu-1.mp3', 'https://api.test/menu-2.mp3'])
+  const first = instances.at(-1)
+  first.listeners.get('ended')()
+  assert.equal(instances.at(-1).src, 'https://api.test/menu-2.mp3')
+  const second = instances.at(-1)
+  second.listeners.get('error')()
+  assert.equal(second.paused, true)
+  assert.equal(instances.at(-1), second)
+  manager.setKitMusic(['https://api.test/only-menu.mp3'])
+  const single = instances.at(-1), before = single.played
+  single.listeners.get('ended')()
+  assert.equal(single.played, before + 1)
+  assert.equal(single.currentTime, 0)
+  manager.setKitMusic([])
+  assert.equal(single.paused, true)
+  assert.equal(instances.at(-1), single)
+})
+test('a loading cue plays once and stays within the selected kit', () => {
+  const { manager, instances } = audioHarness()
+  manager.setKitMusic(['https://api.test/loading.mp3'], true)
+  const loading = instances.at(-1)
+  assert.equal(loading.loop, false)
+  assert.equal(loading.listeners.has('ended'), false)
+  loading.listeners.get('error')()
+  assert.equal(instances.at(-1), loading)
+})
 test('partner audio revisions invalidate volume overrides once and survive launcher restarts', () => {
   let stored = null
   const globals = {
@@ -287,7 +315,12 @@ test('equipped kit selection persists and follows activation, clearing and logou
   const { AudioController } = load('AudioController.tsx', {
     react: { useEffect: (effect) => effects.push(effect), useRef: (current) => ({ current }) },
     './community-music': { resolveCommunityMusic },
-    './audio.manager': { launcherAudio: { setBgmTrack: (...args) => tracks.push(args) } },
+    './audio.manager': {
+      launcherAudio: {
+        setBgmTrack: (...args) => tracks.push(args),
+        setKitMusic: (...args) => tracks.push(['kit', ...args])
+      }
+    },
     './audio.store': { useAudioSettingsStore: store(() => ({ selectedBgmId: 'equipped-kit' })) },
     '../auth/auth.store': {
       useAuthStore: store(() => ({ session: playerId ? { player: { id: playerId } } : null }))
@@ -306,13 +339,13 @@ test('equipped kit selection persists and follows activation, clearing and logou
     effects[0]()
   }
   update()
-  assert.deepEqual(tracks.at(-1), ['rock', kits[0].bgmUrl])
+  assert.deepEqual(tracks.at(-1), ['kit', [kits[0].bgmUrl], false])
   active = 'beta'
   update()
-  assert.deepEqual(tracks.at(-1), ['rock', kits[1].bgmUrl])
+  assert.deepEqual(tracks.at(-1), ['kit', [kits[1].bgmUrl], false])
   active = null
   update()
-  assert.deepEqual(tracks.at(-1), ['rock', null])
+  assert.deepEqual(tracks.at(-1), ['kit', [], false])
   active = 'alpha'
   playerId = null
   update()

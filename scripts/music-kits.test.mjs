@@ -74,8 +74,10 @@ test('music pricing accepts legacy catalogs and validates new currencies and bal
   }
   assert.deepEqual(validateMusicBuy(150, 'P_CASH'), { expectedPrice: 150, currency: 'P_CASH' })
   assert.deepEqual(validateMusicBuy(0), { expectedPrice: 0, currency: 'POINTS' })
-  for (const currency of ['cash', 'USD', null, {}]) assert.throws(() => validateMusicBuy(1, currency))
-  for (const price of [-1, 0.1, '100', NaN, 1000001]) assert.throws(() => validateMusicBuy(price, 'P_CASH'))
+  for (const currency of ['cash', 'USD', null, {}])
+    assert.throws(() => validateMusicBuy(1, currency))
+  for (const price of [-1, 0.1, '100', NaN, 1000001])
+    assert.throws(() => validateMusicBuy(price, 'P_CASH'))
   assert.deepEqual(parseMusicPurchase({ points: 12, pCash: 75 }), { points: 12, pCash: 75 })
   assert.deepEqual(parseMusicPurchase({ points: 12 }), { points: 12 })
   assert.throws(() => parseMusicPurchase({ points: -1 }))
@@ -86,4 +88,13 @@ test('content-addressed local MP3 event paths are accepted without remote URLs',
   const value = snapshot()
   value.kits[0].sounds = { mvp: `sound/16competitive/music/${'a'.repeat(32)}/audio.mp3` }
   assert.equal(parseMusicKits(value).kits[0].sounds.mvp, value.kits[0].sounds.mvp)
+})
+
+test('preview choices include only a kit’s own files and preserve CS2 variations', async () => {
+  const { musicKitEvents, musicKitPreviewEvent } = await import('../src/shared/music-kits.ts')
+  const kit = { sounds: { mvp: 'mvp.mp3', bombplanted: 'bomb.mp3', startround_02: 'round.mp3' } }
+  assert.deepEqual(musicKitEvents(kit), ['mvp', 'bombplanted', 'startround_02'])
+  assert.equal(musicKitPreviewEvent(kit, 'headshot'), 'mvp')
+  assert.equal(musicKitPreviewEvent(kit, 'startround_02'), 'startround_02')
+  assert.equal(musicKitPreviewEvent({ sounds: {} }, 'mvp'), undefined)
 })

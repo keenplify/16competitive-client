@@ -15,6 +15,7 @@ import { webSteamLaunchUrl } from './steam-launch'
 import {
   nativeHelperReadiness,
   isNativeCompetitiveReady,
+  isNativeGameReady,
   onNativeReadiness,
   startNativeVoice,
   nativeHelperSettings,
@@ -601,7 +602,12 @@ export const browserMatchmakingApi: MatchmakingApi = {
     const body = await requestJson<unknown>('/matchmaking/maps', {
       authenticated: true
     })
-    return parseMatchmakingMapCatalog(body)
+    const catalog = parseMatchmakingMapCatalog(body)
+    return { ...catalog, maps: catalog.maps.map(map => ({
+      ...map,
+      supportedModes: map.supportedModes.filter(mode => map.webModes.includes(mode) || isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16')),
+      customModes: map.customModes.filter(mode => isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16'))
+    })) }
   },
 
   async respondReady(matchId, accepted) {

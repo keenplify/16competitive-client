@@ -105,7 +105,7 @@ fn sync(
     let bytes = fetch(agent, &url, token, 1024 * 1024, stop, true)?;
     let manifest: Manifest =
         serde_json::from_slice(&bytes).map_err(|_| "Invalid music manifest")?;
-    if manifest.music_assets.len() > 256 || manifest.music_assets.iter().any(|asset| !valid(asset))
+    if manifest.music_assets.len() > 4096 || manifest.music_assets.iter().any(|asset| !valid(asset))
     {
         return Err("Invalid music manifest".into());
     }
@@ -155,7 +155,7 @@ pub fn start(
         let deadline = Instant::now() + Duration::from_secs(2 * 60 * 60);
         while !stop.load(Ordering::Relaxed) && Instant::now() < deadline {
             if sync(&root, &session, &api, &token, &match_id, &agent, &stop).is_err() {
-                eprintln!("[Music] optional audio unavailable; using default cues");
+                eprintln!("[Music] optional audio unavailable; missing cues remain silent");
             }
             for _ in 0..100 {
                 if stop.load(Ordering::Relaxed) {

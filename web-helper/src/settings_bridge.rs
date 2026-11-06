@@ -449,10 +449,15 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             // start an Electron runtime beside an already supervised game.
             let bundle = crate::native_bundle::prepare(&user_config_dir()?)?;
             let device = crate::inspector::check_device(&bundle, api_origin)?;
-            let installation_ready = load().ok().and_then(|prefs| prefs.cs16)
-                .and_then(|folder| validate_installation(&folder, "cs16")).is_some();
+            let prefs = load().ok();
+            let cs16_ready = prefs.as_ref().and_then(|prefs| prefs.cs16.as_ref())
+                .and_then(|folder| validate_installation(folder, "cs16")).is_some();
+            let cs13_ready = prefs.as_ref().and_then(|prefs| prefs.cs13.as_ref())
+                .and_then(|folder| validate_installation(folder, "cs13")).is_some();
+            let installation_ready = cs16_ready || cs13_ready;
             return Ok(serde_json::json!({"ok":true,"protocol":1,
                 "competitiveReady":device["banned"] == false && installation_ready,
+                "games":{"cs13":cs13_ready,"cs16":cs16_ready},
                 "device":device}));
         }
         Request::NextClient {

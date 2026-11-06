@@ -1,3 +1,4 @@
+import { verifyInstalledNativeHelper } from '../matchmaking/native-helper-action'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { CountryFlag } from '../../components/CountryFlag'
@@ -74,7 +75,7 @@ export function PartnerServersPanel({
   const partyMemberCannotStart = Boolean(
     !communityId && party && party.members.length > 1 && party.leaderId !== playerId
   )
-  const launchServer = (server: PartnerServerStatus): void => {
+  const launchServer = async (server: PartnerServerStatus): Promise<void> => {
     if (
       disabled ||
       connecting ||
@@ -87,7 +88,8 @@ export function PartnerServersPanel({
     select(server.id)
     if (isWebRuntime() && server.gameVersion === 'cs13' && !nativeReady) {
       useWebHelperPromptStore.getState().show()
-      return
+      if (!(await verifyInstalledNativeHelper())) return
+      if (disabled || useAuthStore.getState().session?.player.id !== playerId) return
     }
     if (!communityId && party && party.members.length > 1) void startGroup(server.id)
     else void connect()

@@ -94,6 +94,36 @@ async function harness({
   return { store: exports.useWebHelperPromptStore, calls, setup }
 }
 
+test('hiding installer prompts keeps the pending native detection and readiness checks active', async () => {
+  let finish
+  const pending = new Promise((resolve) => { finish = resolve })
+  const {store,calls} = await harness({check:()=>pending,readiness:async()=>({competitiveReady:true,games:{cs13:true,cs16:false}})})
+  store.getState().syncAccount('player')
+  const checking = store.getState().checkNative()
+  store.getState().setSetupPromptsHidden(true)
+  store.getState().show()
+  assert.equal(store.getState().open,false)
+  assert.equal(store.getState().onboardingOpen,false)
+  finish('rust')
+  assert.equal(await checking,'rust')
+  await Promise.resolve()
+  assert.equal(store.getState().nativeReady,true)
+  assert.equal(store.getState().competitiveReady,true)
+  assert.equal(calls.filter(value=>value==='rust').length,1)
+})
+
+test('a missing helper stays unavailable with prompts hidden and can be checked again', async()=>{
+  const {store,calls}=await harness({check:async()=>null})
+  store.getState().setSetupPromptsHidden(true)
+  store.getState().syncAccount('player')
+  assert.equal(await store.getState().checkNative(),'unavailable')
+  assert.equal(store.getState().nativeReady,false)
+  assert.equal(store.getState().competitiveReady,false)
+  assert.equal(store.getState().onboardingOpen,false)
+  await store.getState().checkNative()
+  assert.equal(calls.filter(value=>value==='rust').length,2)
+})
+
 test('login and each later Play check probe native helper without using saved suppression', async () => {
   const { store, calls } = await harness()
   store.getState().syncAccount('player')
@@ -218,6 +248,8 @@ test('login prompt renders across lobby pages and never queues without an explic
         }
       if (name === '../navigation/navigation.store')
         return { useNavigationStore: (select) => select({ page }) }
+      if (name === '../partner-branding/partner-branding.store')
+        return { usePartnerBrandingStore: (select) => select({ branding: null }) }
       if (name === './web-helper-prompt.store')
         return { useWebHelperPromptStore: (select) => select({ onContinue: continuation }) }
       if (name === '../i18n/i18n') return { useTranslation: () => ({ t: (key) => key }) }

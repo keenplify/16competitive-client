@@ -16,6 +16,10 @@ const SFX_VOLUME_FACTOR = 0.5
 
 class LauncherAudioManager {
   private bgm: HTMLAudioElement | null = null
+  private kitPlaylist: readonly string[] = []
+  private kitPlaylistIndex = 0
+  private kitOnce = false
+  private strictKit = false
   private communityMusicUrl: string | null = null
   private bgmTrackId: LauncherBgmId = DEFAULT_BGM_ID
   private audioContext: AudioContext | null = null
@@ -37,16 +41,30 @@ class LauncherAudioManager {
     const bgm = new Audio()
     // Web Audio requires CORS before src is assigned for regional media.
     if (this.communityMusicUrl) bgm.crossOrigin = 'anonymous'
-    bgm.src = this.communityMusicUrl ?? getLauncherBgmTrack(trackId).path
+    if (this.communityMusicUrl) bgm.src = this.communityMusicUrl
+    else if (!this.strictKit) bgm.src = getLauncherBgmTrack(trackId).path
     if (this.communityMusicUrl)
       bgm.addEventListener(
         'error',
         () => {
-          if (this.bgm === bgm) this.setBgmTrack(this.bgmTrackId, null)
+          if (this.bgm === bgm) {
+            if (this.strictKit) bgm.pause()
+            else this.setBgmTrack(this.bgmTrackId, null)
+          }
         },
         { once: true }
       )
-    bgm.loop = true
+    bgm.loop = !this.strictKit
+    if (this.strictKit && !this.kitOnce)
+      bgm.addEventListener('ended', () => {
+        if (this.bgm !== bgm || !this.kitPlaylist.length) return
+        this.kitPlaylistIndex = (this.kitPlaylistIndex + 1) % this.kitPlaylist.length
+        const next = this.kitPlaylist[this.kitPlaylistIndex]
+        if (next === this.communityMusicUrl) {
+          bgm.currentTime = 0
+          if (this.canPlayBgm()) void bgm.play().catch(() => undefined)
+        } else this.setBgmTrack(this.bgmTrackId, next, true)
+      })
     bgm.preload = 'none'
     bgm.volume = this.getEffectiveBgmVolume()
     return bgm
@@ -88,7 +106,9 @@ class LauncherAudioManager {
   }
 
   private getEffectiveBgmVolume(): number {
-    const lobbyFactor = this.bgmLowPass ? 1 - (1 - LOBBY_BGM_VOLUME_FACTOR) * this.bgmMufflePercent / 100 : 1
+    const lobbyFactor = this.bgmLowPass
+      ? 1 - ((1 - LOBBY_BGM_VOLUME_FACTOR) * this.bgmMufflePercent) / 100
+      : 1
     const duckFactor = this.bgmDuckCount > 0 ? MATCH_FOUND_BGM_DUCK_FACTOR : 1
     return this.bgmPlaybackVolume * lobbyFactor * duckFactor
   }
@@ -103,8 +123,29 @@ class LauncherAudioManager {
     if (this.bgm) this.bgm.volume = volume
   }
 
-  setBgmTrack(trackId: LauncherBgmId, communityMusicUrl: string | null = null): void {
-    if (trackId === this.bgmTrackId && communityMusicUrl === this.communityMusicUrl) return
+  setKitMusic(urls: readonly string[], once = false): void {
+    if (this.strictKit && this.kitOnce === once && this.kitPlaylist.join('\n') === urls.join('\n'))
+      return
+    this.kitPlaylist = urls
+    this.kitPlaylistIndex = 0
+    this.kitOnce = once
+    this.setBgmTrack(this.bgmTrackId, urls[0] ?? null, true)
+  }
+
+  setBgmTrack(
+    trackId: LauncherBgmId,
+    communityMusicUrl: string | null = null,
+    strictKit = false
+  ): void {
+    if (
+      trackId === this.bgmTrackId &&
+      communityMusicUrl === this.communityMusicUrl &&
+      this.strictKit === strictKit &&
+      (!strictKit || this.kitPlaylist.length < 2)
+    )
+      return
+    this.strictKit = strictKit
+    if (!strictKit) this.kitPlaylist = []
 
     if (this.fadeFrame !== null) {
       cancelAnimationFrame(this.fadeFrame)
@@ -166,7 +207,10 @@ class LauncherAudioManager {
   }
 
   private muffleFrequency(): number {
-    return NORMAL_FILTER_FREQUENCY * Math.pow(LOBBY_LOWPASS_FREQUENCY / NORMAL_FILTER_FREQUENCY, this.bgmMufflePercent / 100)
+    return (
+      NORMAL_FILTER_FREQUENCY *
+      Math.pow(LOBBY_LOWPASS_FREQUENCY / NORMAL_FILTER_FREQUENCY, this.bgmMufflePercent / 100)
+    )
   }
 
   setBgmLowPass(enabled: boolean, durationMs = 1_000, percent = 100): void {
@@ -238,6 +282,7 @@ class LauncherAudioManager {
   }
 
   private canPlayBgm(): boolean {
+    if (this.strictKit && !this.communityMusicUrl) return false
     return this.playbackUnlocked && !this.bgmSuppressed && this.bgmFocused && this.bgmVolume > 0
   }
 

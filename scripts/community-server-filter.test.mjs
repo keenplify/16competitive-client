@@ -90,6 +90,7 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = fa
   const useServers = (select) => select(state)
   const jsx = (type, props) => ({ type, props })
   const dependencies = {
+    '../matchmaking/native-helper-action': { verifyInstalledNativeHelper: async () => false },
     '../matchmaking/web-helper-prompt.store': { useWebHelperPromptStore: helper },
     react: {
       useEffect() {
@@ -146,7 +147,7 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = fa
   return nodes
 }
 
-test('web partners without desktop downloads still display and filter CS13 servers', () => {
+test('web partners without desktop downloads still display and filter CS13 servers', async () => {
   const all = renderPanel()
   assert.deepEqual(
     all.find((node) => node.type === 'TabList').props.items.map((item) => item.value),
@@ -164,7 +165,7 @@ test('web partners without desktop downloads still display and filter CS13 serve
   // Play opens helper setup when it is unavailable.
   assert.equal(legacy.find((node) => node.type === 'FindMatchButton').props.disabled, false)
   const play = legacy.find((node) => node.type === 'FindMatchButton')
-  play.props.onClick()
+  await play.props.onClick()
   assert.equal(legacy.actions.setup, 1)
   assert.equal(legacy.actions.connect, 0)
   assert.ok(legacy.some((node) => node.props?.children === 'cs13WebUnavailable'))

@@ -53,8 +53,34 @@ export function AudioController({
   const previousCompletedMatchId = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!preserveMusic) launcherAudio.setBgmTrack(trackId, musicUrl)
-  }, [trackId, musicUrl, preserveMusic])
+    if (preserveMusic) return
+    if (selectedBgmId === 'equipped-kit' && playerId) {
+      const cueKeys =
+        match && !gameExited && queueStatus !== 'idle' && queueStatus !== 'queued'
+          ? (['loading'] as const)
+          : (['mainmenu', 'mainmenu_02', 'mainmenu_03'] as const)
+      const urls = cueKeys.flatMap((key) => {
+        const path = equippedKit?.sounds?.[key]
+        return path && equippedKit?.bgmUrl
+          ? [new URL(`/fastdl/${path}`, equippedKit.bgmUrl).toString()]
+          : []
+      })
+      // Custom kits with a dedicated BGM but no segmented menu cue still use their own BGM.
+      if (!urls.length && cueKeys[0] === 'mainmenu' && equippedKit?.bgmUrl)
+        urls.push(equippedKit.bgmUrl)
+      launcherAudio.setKitMusic(urls, cueKeys[0] === 'loading')
+    } else launcherAudio.setBgmTrack(trackId, musicUrl)
+  }, [
+    trackId,
+    musicUrl,
+    preserveMusic,
+    selectedBgmId,
+    equippedKit,
+    match,
+    gameExited,
+    queueStatus,
+    playerId
+  ])
 
   useEffect(() => {
     if (playerId) void useMusicKitsStore.getState().load()

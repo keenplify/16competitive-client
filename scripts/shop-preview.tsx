@@ -86,7 +86,7 @@ const musicSample = {
       enabled: true,
       logoPath: null,
       logoUrl: '/scripts/music-kit-sample-logo.svg',
-      sounds: {}
+      sounds: { mvp: 'sound/16competitive/music/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/audio.wav' }
     },
     {
       id: 'arena-demo',
@@ -95,7 +95,7 @@ const musicSample = {
       enabled: true,
       logoPath: null,
       logoUrl: '/scripts/music-kit-sample-logo.svg',
-      sounds: {}
+      sounds: { mvp: 'sound/16competitive/music/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/audio.mp3', bombplanted: 'sound/16competitive/music/cccccccccccccccccccccccccccccccc/audio.mp3', startround_01: 'sound/16competitive/music/dddddddddddddddddddddddddddddddd/audio.mp3', startround_02: 'sound/16competitive/music/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee/audio.mp3' }
     }
   ],
   ownedIds: ['quake'],

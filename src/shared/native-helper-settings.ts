@@ -3,6 +3,7 @@ import type { DeviceStatus } from './anti-cheat'
 
 export interface NativeHelperReadiness {
   competitiveReady: boolean
+  games?: { cs13: boolean; cs16: boolean }
   device: DeviceStatus
 }
 

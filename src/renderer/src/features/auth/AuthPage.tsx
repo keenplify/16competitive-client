@@ -65,6 +65,8 @@ export function AuthPage(): JSX.Element {
   const setupCompleted = useGameSettingsStore((state) => state.setupCompleted)
   const setupCompletionPhase = useOnboardingStore((state) => state.completionPhase)
   const helperAccountId = useWebHelperPromptStore((state) => state.accountId)
+  const brandingResolved = usePartnerBrandingStore(state => state.resolved)
+  const hideNativeHelperSetup = usePartnerBrandingStore(state => state.branding?.hideNativeHelperSetup === true)
   const helperOnboardingOpen = useWebHelperPromptStore((state) => state.onboardingOpen)
   const resetOnboarding = useOnboardingStore((state) => state.reset)
   const loadGameSettings = useGameSettingsStore((state) => state.load)
@@ -172,7 +174,12 @@ export function AuthPage(): JSX.Element {
     (status === 'authenticated' || status === 'changing_username' || status === 'logging_out') &&
     session
   ) {
-    if (webRuntime && (helperAccountId !== session.player.id || helperOnboardingOpen)) {
+    if (webRuntime && !brandingResolved) return (
+      <main className="fixed inset-0 flex items-center justify-center bg-neutral-950" role="status" aria-label={t('webHelper.checking')}>
+        <LoaderCircle className="size-8 animate-spin text-sky-400" aria-hidden="true" />
+      </main>
+    )
+    if (webRuntime && !hideNativeHelperSetup && (helperAccountId !== session.player.id || helperOnboardingOpen)) {
       return <WebHelperOnboardingPage />
     }
     if (!gameSettingsLoaded) {
