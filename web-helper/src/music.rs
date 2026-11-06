@@ -14,6 +14,18 @@ use std::{
 };
 
 const LIMIT: u64 = 24 * 1024 * 1024;
+const TRANSFER_BUDGET: Duration = Duration::from_secs(90);
+
+fn audio_agent() -> ureq::Agent {
+    // ureq's overall timeout overrides its read timeout. Keep stalled reads
+    // short so joining this owned worker cannot wait on a 90-second socket read.
+    ureq::AgentBuilder::new()
+        .redirects(0)
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(5))
+        .timeout_write(Duration::from_secs(5))
+        .build()
+}
 // One PCM16 zero sample replaces the music channel without affecting game effects.
 const SILENCE: &[u8] = b"RIFF&\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x22\x56\0\0\x44\xac\0\0\x02\0\x10\0data\x02\0\0\0\0\0";
 fn silence_asset() -> Asset {
@@ -65,6 +77,10 @@ fn fetch(
     stop: &AtomicBool,
     manifest: bool,
 ) -> Result<Vec<u8>, String> {
+    let deadline = Instant::now() + TRANSFER_BUDGET;
+    if stop.load(Ordering::Relaxed) {
+        return Err("Music download stopped".into());
+    }
     let mut request = agent
         .get(url)
         .set("Authorization", &format!("Bearer {token}"));
@@ -86,9 +102,15 @@ fn fetch(
         if stop.load(Ordering::Relaxed) {
             return Err("Music download stopped".into());
         }
+        if Instant::now() >= deadline {
+            return Err("Music download timed out".into());
+        }
         let n = reader
             .read(&mut chunk)
             .map_err(|_| "Music download interrupted")?;
+        if Instant::now() >= deadline {
+            return Err("Music download timed out".into());
+        }
         if n == 0 {
             break;
         }
@@ -176,12 +198,7 @@ pub fn start(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // Slow optional audio never blocks game launch, HUD feeds, or session shutdown.
-        let agent = ureq::AgentBuilder::new()
-            .redirects(0)
-            .timeout_connect(Duration::from_secs(5))
-            .timeout_read(Duration::from_secs(5))
-            .timeout(Duration::from_secs(90))
-            .build();
+        let agent = audio_agent();
         let deadline = Instant::now() + Duration::from_secs(2 * 60 * 60);
         while !stop.load(Ordering::Relaxed) && Instant::now() < deadline {
             let result = sync(&root, &session, &api, &token, &match_id, &agent, &stop);
@@ -203,6 +220,55 @@ pub fn start(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{io::Write, net::TcpListener, sync::mpsc};
+
+    fn request_socket(listener: TcpListener) -> std::net::TcpStream {
+        let (mut socket, _) = listener.accept().unwrap();
+        socket.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        let mut request = Vec::new();
+        while !request.ends_with(b"\r\n\r\n") {
+            assert!(request.len() < 8192);
+            let mut byte = [0];
+            assert_eq!(socket.read(&mut byte).unwrap(), 1);
+            request.push(byte[0]);
+        }
+        socket
+    }
+
+    #[test]
+    fn active_audio_transfer_can_exceed_five_seconds() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/audio", listener.local_addr().unwrap());
+        let server = thread::spawn(move || {
+            let mut socket = request_socket(listener);
+            socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 14\r\nConnection: close\r\n\r\n").unwrap();
+            for _ in 0..14 {
+                socket.write_all(b"a").unwrap();
+                thread::sleep(Duration::from_millis(450));
+            }
+        });
+        let bytes = fetch(&audio_agent(), &url, "fixture", 64, &AtomicBool::new(false), false).unwrap();
+        assert_eq!(bytes, b"aaaaaaaaaaaaaa");
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn stalled_audio_keeps_short_reads_instead_of_ninety_second_shutdown_waits() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/audio", listener.local_addr().unwrap());
+        let (done, wait) = mpsc::channel();
+        let server = thread::spawn(move || {
+            let mut socket = request_socket(listener);
+            socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 14\r\nConnection: close\r\n\r\n").unwrap();
+            let _ = wait.recv_timeout(Duration::from_secs(8));
+        });
+        let start = Instant::now();
+        assert!(fetch(&audio_agent(), &url, "fixture", 64, &AtomicBool::new(false), false).is_err());
+        let elapsed = start.elapsed();
+        let _ = done.send(());
+        server.join().unwrap();
+        assert!(elapsed < Duration::from_secs(8), "stalled read took {elapsed:?}");
+    }
     #[test]
     fn generated_stop_cue_is_a_valid_content_addressed_music_asset() {
         let asset = silence_asset();
