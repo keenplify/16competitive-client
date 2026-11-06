@@ -4419,3 +4419,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Unauthorized file-path access attempts are now logged.
+
+## v2026.1106.11 — 2026-11-06
+
+### Asset Downloads
+
+- See active asset downloads and their progress in the launcher.
+- Improved download status updates during asset synchronization.
+
+### Music Kits
+
+- Music kits are now downloaded on demand when needed.
