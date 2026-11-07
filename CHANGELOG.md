@@ -4501,3 +4501,11 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Access
 
 - Match authentication continues to work when native cosmetic compatibility is unavailable.
+
+## v2026.1107.10 — 2026-11-07
+
+### Match access
+
+- Clean Windows installations can authenticate and join even when native cosmetics are unavailable.
+- Added diagnostics for the compatibility authentication path.
+
