@@ -519,7 +519,10 @@ mod tests {
         u16at(&mut b, 0x86, 1); u16at(&mut b, 0x94, 224); u16at(&mut b, 0x96, 0x2000);
         u16at(&mut b, 0x98, 0x10b); u32at(&mut b, 0x98+92, 16);
         u32at(&mut b, 0x98+96, 0x1000); u32at(&mut b, 0x98+100, 0x2000);
+        u32at(&mut b, 0x98+32, 0x1000); u32at(&mut b, 0x98+36, 0x200);
+        u32at(&mut b, 0x98+56, 0x5000); u32at(&mut b, 0x98+60, 0x200);
         let section = 0x98+224;
+        u32at(&mut b, section+8, 0x3e00);
         u32at(&mut b, section+12, 0x1000); u32at(&mut b, section+16, 0x3e00); u32at(&mut b, section+20, 0x200);
         for (offset,value) in [(16,1),(20,1),(24,1),(28,0x1100),(32,0x1300),(36,0x1500)] { u32at(&mut b, 0x200+offset,value); }
         u32at(&mut b, 0x300, 0x4000); u32at(&mut b, 0x500, 0x1700);
