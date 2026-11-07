@@ -1,14 +1,15 @@
+import { matchmakingDiagnostics } from '../matchmaking-diagnostics'
 import { requestAdminRestart } from './admin-restart'
 import { parseNativeVoicePreferences, type NativeVoicePreferences } from '../../shared/native-voice'
 import { app, BrowserWindow } from 'electron'
 import { MATCHMAKING_CHANNELS } from '../../shared/matchmaking'
 import { parseGameLaunchProgress, type GameLaunchProgress } from '../../shared/game-launch-progress'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream, constants } from 'node:fs'
 import { chmod, copyFile, lstat, mkdir, readFile, realpath } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { getSessionToken } from '../auth'
+import { getSessionToken, getSessionUsername } from '../auth'
 import { API_BASE_URL } from '../config'
 import { serializeCrosshairConfig } from '../../shared/crosshair'
 import type { GameSettings } from '../../shared/game-settings'
@@ -143,8 +144,20 @@ function sessionPreferences(settings: GameSettings) {
 }
 
 let launchPending = false
+let diagnosticTarget: string | null = null
+let diagnosticPhase: string | null = null
+let diagnosticAttempt: string | null = null
 function announceProgress(progress: GameLaunchProgress): void {
   console.info('[GameLaunch] preparation progress', progress)
+  if (progress.phase !== diagnosticPhase) {
+    diagnosticPhase = progress.phase
+    matchmakingDiagnostics.record('preparation_progress', {
+      type: 'game_process_preparation',
+      matchId: diagnosticTarget,
+      attemptId: diagnosticAttempt,
+      ...progress
+    })
+  }
   for (const window of BrowserWindow.getAllWindows()) {
     if (!window.isDestroyed())
       window.webContents.send(MATCHMAKING_CHANNELS.event, {
@@ -159,6 +172,16 @@ async function launchStandaloneTarget(
 ): Promise<void> {
   if (launchPending) throw new Error('A native game session is being prepared')
   launchPending = true
+  matchmakingDiagnostics.setOwner(getSessionUsername())
+  diagnosticTarget = 'matchId' in args[0] ? args[0].matchId : args[0].partner.serverId
+  diagnosticPhase = null
+  diagnosticAttempt = randomUUID()
+  matchmakingDiagnostics.record('launch_requested', {
+    type: 'game_process_launch',
+    matchId: diagnosticTarget,
+    attemptId: diagnosticAttempt,
+    installationSelected: Boolean(args[2].cs16FolderPath)
+  })
   announceProgress({ phase: 'checking', completed: 0, total: 0 })
   try {
     await launchStandaloneTargetInner(...args)
@@ -168,6 +191,9 @@ async function launchStandaloneTarget(
     throw error
   } finally {
     launchPending = false
+    diagnosticTarget = null
+    diagnosticAttempt = null
+    diagnosticPhase = null
   }
 }
 
@@ -178,6 +204,10 @@ async function launchStandaloneTargetInner(
   settings: GameSettings,
   onExit?: (event: { code: number | null; signal: string | null }) => void
 ): Promise<void> {
+  const diagnosticContext = {
+    matchId: 'matchId' in target ? target.matchId : target.partner.serverId,
+    attemptId: diagnosticAttempt
+  }
   if (active) throw new Error('A native game session is already running')
   handoffCommitted = false
   const token = getSessionToken()
@@ -252,6 +282,12 @@ async function launchStandaloneTargetInner(
     }
     child.once('error', fail)
     child.once('exit', (code, signal) => {
+      matchmakingDiagnostics.record('helper_process_exited', {
+        type: 'game_process_exit',
+        ...diagnosticContext,
+        code,
+        reason: signal
+      })
       if (active?.child === child) {
         active = null
         handoffCommitted = false
@@ -274,6 +310,7 @@ async function launchStandaloneTargetInner(
           connected?: unknown
           code?: unknown
           osError?: unknown
+          elevated?: unknown
           errorKind?: unknown
           phase?: unknown
           completed?: unknown
@@ -301,6 +338,7 @@ async function launchStandaloneTargetInner(
           const diagnostics =
             code === 'GAME_SPAWN_FAILED'
               ? {
+                  ...(typeof event.elevated === 'boolean' ? { elevated: event.elevated } : {}),
                   ...(typeof event.osError === 'number' &&
                   Number.isInteger(event.osError) &&
                   event.osError >= -2147483648 &&
@@ -314,6 +352,12 @@ async function launchStandaloneTargetInner(
                 }
               : {}
           console.warn('[Standalone] preparation failed', { code, ...diagnostics })
+          matchmakingDiagnostics.record('helper_failed', {
+            type: 'game_process_error',
+            ...diagnosticContext,
+            code,
+            ...diagnostics
+          })
           return fail(
             new Error(
               code === 'GAME_SPAWN_FAILED' && event.osError === 740
@@ -386,7 +430,24 @@ async function launchStandaloneTargetInner(
     } finally {
       if (cleanupTimer) clearTimeout(cleanupTimer)
     }
-    await requestAdminRestart(helper, executable, await hashFile(executable))
+    matchmakingDiagnostics.record('admin_approval_requested', {
+      type: 'game_process_elevation',
+      ...diagnosticContext
+    })
+    await matchmakingDiagnostics.flush()
+    try {
+      await requestAdminRestart(helper, executable, await hashFile(executable), diagnosticContext)
+    } catch (error) {
+      matchmakingDiagnostics.record('admin_approval_failed', {
+        type: 'game_process_elevation',
+        ...diagnosticContext,
+        code:
+          error instanceof Error && error.message === 'match.launch.adminCancelled'
+            ? 'ADMIN_RESTART_CANCELLED'
+            : 'ADMIN_RESTART_FAILED'
+      })
+      throw error
+    }
     // Keep caller failure handling deterministic if quit is delayed by cleanup.
     throw new Error('match.launch.adminRestarting')
   })

@@ -99,7 +99,18 @@ read, write, create, replace, append to, rename, delete, back up, restore, or
 otherwise manipulate it. Match-specific commands use launcher-owned files such
 as `16competitive_match.cfg`, launch arguments, or isolated native mechanisms.
 
-Local diagnostic logs cover connectivity, asset preparation, and game launching.
+Local diagnostic logs cover connectivity, asset preparation, and game launching. A bounded local
+launch history also survives launcher restarts: queue requests, connect events,
+auto-launch decisions, preparation phase changes, helper failures (including OS
+error and Windows helper elevation status when available), and UAC outcomes.
+Entries carry launcher-run and launch-attempt IDs. Up to 256 events remain
+eligible for reporting for six hours; repeated socket updates are deduplicated.
+History uses account-hashed filenames, keeps at most five account files, and
+prunes expired records on access and stale files on the next write. Reports
+include only the currently signed-in account's history, even with no active
+match. No passwords, login/session tokens, raw launch arguments, chat, or game
+configuration are stored in this history. Upload happens only through the
+existing issue-report submission flow.
 Persistent scoreboard or connection failures can submit automatic issue reports
 with relevant launcher/session diagnostics. During the first five minutes of a
 managed CS 1.6 launch, the launcher checks newly appended `qconsole.log` output

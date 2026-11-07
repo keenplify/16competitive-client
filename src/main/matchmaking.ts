@@ -609,6 +609,11 @@ class MatchmakingConnection {
   private handleWarmup(message: MatchmakingServerMessage, socket: WebSocket): void {
     if (message.type === 'match_found' || message.type === 'match_roster') {
       if (this.warmupSuppressed || (this.freshProcess && !this.desiredMode)) {
+        this.traceDiagnostic('auto_launch_skipped', {
+          type: 'game_process_decision',
+          matchId: message.matchId,
+          reason: this.warmupSuppressed ? 'WARMUP_SUPPRESSED' : 'RESTORED_WARMUP_REQUIRES_JOIN'
+        })
         socket.send(JSON.stringify({ type: 'leave_warmup' }))
         return
       }
@@ -650,8 +655,20 @@ class MatchmakingConnection {
         })
       }
     } else if (message.type === 'match_connect') {
-      if (this.warmupMatchId !== message.matchId) return
+      if (this.warmupMatchId !== message.matchId) {
+        this.traceDiagnostic('auto_launch_skipped', {
+          type: 'game_process_decision',
+          matchId: message.matchId,
+          reason: 'WARMUP_NOT_SELECTED'
+        })
+        return
+      }
       if (this.warmupConnectingMatchId === message.matchId) {
+        this.traceDiagnostic('auto_launch_skipped', {
+          type: 'game_process_decision',
+          matchId: message.matchId,
+          reason: 'WARMUP_ALREADY_CONNECTING'
+        })
         this.notify({ ...message, whileQueued: true })
         return
       }
@@ -1728,6 +1745,11 @@ class MatchmakingConnection {
         // standalone helper reopens Electron after exit (including crashes).
         // Keep reconnect available without creating a crash/relaunch loop.
         if (this.freshProcess || this.lastConnection?.matchId === parsed.matchId) {
+          this.traceDiagnostic('auto_launch_skipped', {
+            type: 'game_process_decision',
+            matchId: parsed.matchId,
+            reason: this.freshProcess ? 'RESTORED_MATCH_REQUIRES_RECONNECT' : 'REPEATED_CONNECT'
+          })
           this.recoveryStatusPending = false
           this.lastConnection = parsed
           this.notify(parsed)
@@ -1779,6 +1801,11 @@ class MatchmakingConnection {
         const isRecoveredConnection = this.recoveryStatusPending
         this.recoveryStatusPending = false
         this.lastConnection = parsed
+        this.traceDiagnostic('auto_launch_waiting', {
+          type: 'game_process_decision',
+          matchId: parsed.matchId,
+          reason: 'WAITING_FOR_ASSETS'
+        })
         const assetsReady = isRecoveredConnection
           ? this.prepareMatchAssets(parsed.matchId)
           : waitForMatchAssetPreload(parsed.matchId)

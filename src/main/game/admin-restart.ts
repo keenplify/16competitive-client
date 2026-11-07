@@ -1,3 +1,4 @@
+import { matchmakingDiagnostics } from '../matchmaking-diagnostics'
 import { app } from 'electron'
 import { spawn } from 'node:child_process'
 
@@ -5,7 +6,8 @@ import { spawn } from 'node:child_process'
 export async function requestAdminRestart(
   helper: string,
   executable: string,
-  sha256: string
+  sha256: string,
+  context?: { matchId: string; attemptId: string | null }
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(helper, ['--request-admin-restart'], {
@@ -57,5 +59,10 @@ export async function requestAdminRestart(
       })
     )
   })
+  matchmakingDiagnostics.record('admin_approval_accepted', {
+    type: 'game_process_elevation',
+    ...context
+  })
+  await matchmakingDiagnostics.flush()
   app.quit()
 }

@@ -23,12 +23,13 @@ await build({
     {
       name: 'electron',
       setup(builder) {
-        builder.onResolve({ filter: /^electron$/ }, () => ({
+        builder.onResolve({ filter: /^(electron|\.\.\/matchmaking-diagnostics)$/ }, () => ({
           path: 'electron',
           namespace: 'fixture'
         }))
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({
-          contents: 'export const app = globalThis.adminRestartApp'
+          contents:
+            'export const app = globalThis.adminRestartApp; export const matchmakingDiagnostics = {record:()=>{},flush:async()=>{}};'
         }))
       }
     }

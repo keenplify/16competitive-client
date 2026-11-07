@@ -1,3 +1,4 @@
+import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { PCASH_BET_CHANNELS } from '../shared/pcash-bets'
 import { requestPCashBet } from './pcash-bets'
 import {
@@ -1499,5 +1500,6 @@ app.on('before-quit', (event) => {
     .catch((error: unknown) => {
       console.error('[GameLaunch] managed game cleanup during launcher shutdown failed', error)
     })
+    .then(() => matchmakingDiagnostics.flush())
     .finally(() => app.quit())
 })

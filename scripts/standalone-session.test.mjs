@@ -20,13 +20,18 @@ await build({
       name: 'host',
       setup(builder) {
         builder.onResolve(
-          { filter: /^(electron|\.\.\/auth|\.\.\/config|\.\.\/\.\.\/shared\/crosshair)$/ },
+          {
+            filter:
+              /^(electron|\.\.\/matchmaking-diagnostics|\.\.\/auth|\.\.\/config|\.\.\/\.\.\/shared\/crosshair)$/
+          },
           (args) => ({ path: args.path, namespace: 'host' })
         )
         builder.onLoad({ filter: /.*/, namespace: 'host' }, () => ({
           contents: `
       export const app = globalThis.fixtureApp;
       export const BrowserWindow = { getAllWindows: () => [] };
+      export const matchmakingDiagnostics = { setOwner:()=>{},record:()=>{},flush:async()=>{} };
+      export const getSessionUsername = () => 'fixture-player';
       export const getSessionToken = () => 'desktop-token';
       export const API_BASE_URL = 'https://16competitive.papamo.dev';
       export const serializeCrosshairConfig = () => '255 255 255 1 4 1 0 100 0 0\\n';
@@ -237,8 +242,8 @@ test(
   async () => {
     for (const [details, expected] of [
       [
-        { osError: 740, errorKind: 'PermissionDenied' },
-        { osError: 740, errorKind: 'PermissionDenied' }
+        { osError: 740, errorKind: 'PermissionDenied', elevated: false },
+        { osError: 740, errorKind: 'PermissionDenied', elevated: false }
       ],
       [{ osError: 'private token', errorKind: 'C:\\private\\hl.exe' }, {}],
       [{ osError: 2 ** 40, errorKind: 'x'.repeat(100) }, {}]
@@ -366,8 +371,9 @@ test('sticker failures reach issue-report console logs without raw helper data o
       'child',
       'fail',
       'console',
+      'matchmakingDiagnostics',
       `
-      let complete = false, active = null, buffer = '';
+      let complete = false, active = null, buffer = ''; const diagnosticContext = {matchId:'fixture',attemptId:'attempt'};
       ${code}
     `
     )
@@ -382,7 +388,8 @@ test('sticker failures reach issue-report console logs without raw helper data o
       (error) => {
         failure = error
       },
-      { warn: (...args) => logs.push(args) }
+      { warn: (...args) => logs.push(args) },
+      { record: () => {} }
     )
     const frame =
       JSON.stringify({

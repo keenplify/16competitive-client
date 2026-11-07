@@ -38,6 +38,7 @@ export async function reportDiagnosticIssue(
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
   const logs = await collectDiagnosticIssueLogs(rendererLogs, matchId)
+  if (token !== getSessionToken()) throw new Error('Sign in again before reporting an issue.')
   const response = await postDiagnosticReport(apiUrl, token, {
     description,
     images,
@@ -60,6 +61,7 @@ export async function collectDiagnosticIssueLogs(
 ): Promise<string> {
   matchmakingDiagnostics.setOwner(getSessionUsername())
   const matchmaking = `[Main matchmaking diagnostics]\n${matchmakingDiagnostics.report()}`
+  const launchHistory = `[Saved launch history]\n${await matchmakingDiagnostics.historyReport()}`
   const environment = `[Launcher environment] ${JSON.stringify({
     platform: process.platform,
     arch: process.arch,
@@ -90,7 +92,7 @@ export async function collectDiagnosticIssueLogs(
       ? join(process.env.LOCALAPPDATA, '16competitive')
       : join(app.getPath('appData'), '16competitive')
   const music = await musicDeliveryReport(musicDirectory, matchId)
-  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
+  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${launchHistory}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
 }
 
 export function installDiagnosticLogCapture(): void {

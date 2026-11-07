@@ -198,6 +198,20 @@ pub(crate) fn game_spawn_failure(error: std::io::Error) -> String {
     "GAME_SPAWN_FAILED".into()
 }
 
+#[cfg(windows)]
+fn process_elevated() -> Option<bool> {
+    use windows_sys::Win32::{Foundation::CloseHandle, Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY}, System::Threading::{GetCurrentProcess, OpenProcessToken}};
+    let mut token = std::ptr::null_mut();
+    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 { return None; }
+    let mut elevation: TOKEN_ELEVATION = unsafe { std::mem::zeroed() };
+    let mut bytes = 0;
+    let result = unsafe { GetTokenInformation(token, TokenElevation, (&mut elevation as *mut TOKEN_ELEVATION).cast(), std::mem::size_of::<TOKEN_ELEVATION>() as u32, &mut bytes) };
+    unsafe { CloseHandle(token); }
+    (result != 0).then_some(elevation.TokenIsElevated != 0)
+}
+#[cfg(not(windows))]
+fn process_elevated() -> Option<bool> { None }
+
 fn failure_frame(error: &str) -> serde_json::Value {
     let mut frame = serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)});
     // Consume the context so an unrelated later failure cannot inherit it.
@@ -205,6 +219,7 @@ fn failure_frame(error: &str) -> serde_json::Value {
         if error == "GAME_SPAWN_FAILED" {
             frame["osError"] = serde_json::json!(os_error);
             frame["errorKind"] = serde_json::json!(kind);
+            frame["elevated"] = serde_json::json!(process_elevated());
         }
     }
     frame
@@ -445,6 +460,7 @@ mod tests {
         let frame = failure_frame(&code);
         assert_eq!(frame["code"], "GAME_SPAWN_FAILED");
         assert_eq!(frame["osError"], 740);
+        assert_eq!(frame["elevated"], serde_json::json!(process_elevated()));
         assert!(frame["errorKind"].is_string());
         assert!(failure_frame(&code).get("osError").is_none());
 

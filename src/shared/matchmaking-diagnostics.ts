@@ -35,7 +35,13 @@ const FIELDS = new Set([
   'clockOffsetMs',
   'rendererAvailable',
   'closeCode',
-  'wasClean'
+  'wasClean',
+  'phase',
+  'osError',
+  'errorKind',
+  'elevated',
+  'installationSelected',
+  'attemptId'
 ])
 const ORIGINS = new Set(['activeApiUrl', 'hostApiUrl', 'websocketUrl'])
 const TTL_MS = 30 * 60_000
