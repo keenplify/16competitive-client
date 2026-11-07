@@ -4509,3 +4509,8 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Clean Windows installations can authenticate and join even when native cosmetics are unavailable.
 - Added diagnostics for the compatibility authentication path.
 
+## v2026.1108.1 — 2026-11-07
+
+### Compatibility
+
+- Retained GTProtector compatibility for standalone sessions.
