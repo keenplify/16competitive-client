@@ -31,6 +31,7 @@ class LauncherAudioManager {
   private bgmVolume = 50
   private bgmPlaybackVolume = volumeToUnit(this.bgmVolume)
   private bgmDuckCount = 0
+  private previewMuteCount = 0
   private sfxVolume = 50
   private bgmSuppressed = false
   private bgmFocused = document.hasFocus()
@@ -106,6 +107,7 @@ class LauncherAudioManager {
   }
 
   private getEffectiveBgmVolume(): number {
+    if (this.previewMuteCount > 0) return 0
     const lobbyFactor = this.bgmLowPass
       ? 1 - ((1 - LOBBY_BGM_VOLUME_FACTOR) * this.bgmMufflePercent) / 100
       : 1
@@ -121,6 +123,19 @@ class LauncherAudioManager {
       return
     }
     if (this.bgm) this.bgm.volume = volume
+  }
+
+  /** A temporary, reference-counted mute; never changes the user's saved BGM volume. */
+  muteBgmForPreview(): () => void {
+    this.previewMuteCount++
+    this.applyBgmVolume()
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      this.previewMuteCount = Math.max(0, this.previewMuteCount - 1)
+      this.applyBgmVolume()
+    }
   }
 
   setKitMusic(urls: readonly string[], once = false): void {

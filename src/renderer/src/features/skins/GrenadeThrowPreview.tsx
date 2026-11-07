@@ -1,3 +1,4 @@
+import { launcherAudio } from '../audio/audio.manager'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { Skin } from '../../../../shared/skins'
@@ -46,6 +47,7 @@ export function GrenadeThrowPreview({
   const canvas = useRef<HTMLCanvasElement>(null)
   const context = useRef<AudioContext | null>(null)
   const source = useRef<AudioBufferSourceNode | null>(null)
+  const releasePreviewMute = useRef<(() => void) | null>(null)
   const gain = useRef<GainNode | null>(null)
   const lastSound = useRef(0)
   useEffect(() => {
@@ -101,6 +103,8 @@ export function GrenadeThrowPreview({
     return () => {
       active = false
       window.removeEventListener('pointerdown', unlock, true)
+      releasePreviewMute.current?.()
+      releasePreviewMute.current = null
       source.current?.stop()
       source.current?.disconnect()
       gain.current?.disconnect()
@@ -125,13 +129,29 @@ export function GrenadeThrowPreview({
     )
       return
     lastSound.current = burst
+    releasePreviewMute.current?.()
+    releasePreviewMute.current = null
     source.current?.stop()
     source.current?.disconnect()
     const next = context.current.createBufferSource()
     next.buffer = sound
     next.connect(gain.current)
     source.current = next
-    next.start()
+    const releaseMute = gain.current.gain.value > 0 ? launcherAudio.muteBgmForPreview() : () => {}
+    releasePreviewMute.current = releaseMute
+    next.onended = () => {
+      releaseMute()
+      if (source.current === next) releasePreviewMute.current = null
+    }
+    try {
+      next.start()
+    } catch (error) {
+      releaseMute()
+      releasePreviewMute.current = null
+      source.current = null
+      next.disconnect()
+      throw error
+    }
   }, [action, burst, sound])
   useEffect(() => {
     if (!projectileVisible || !grenade.current || !root.current) return

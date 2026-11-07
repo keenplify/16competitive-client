@@ -1,3 +1,4 @@
+import { launcherAudio } from '../audio/audio.manager'
 import { useEffect, useRef } from 'react'
 import type { MuzzleFlashSource } from '../../libs/web-hlmv/lib/muzzle-flash'
 import { decodeExplosionSprite, type SpriteFrame } from '../operations/explosion-sprite'
@@ -20,9 +21,11 @@ export function GunPreviewEffects({
   const audio = useRef<AudioContext | null>(null)
   const sound = useRef<AudioBuffer | null>(null)
   const voices = useRef<AudioBufferSourceNode[]>([])
+  const previewMutes = useRef(new Map<AudioBufferSourceNode, () => void>())
   const volume = useAudioSettingsStore((state) => state.sfxVolume)
   useEffect(() => {
     let active = true
+    const mutes = previewMutes.current
     const context = new AudioContext()
     audio.current = context
     const unlock = () => {
@@ -54,6 +57,8 @@ export function GunPreviewEffects({
         voice.disconnect()
       }
       voices.current = []
+      for (const release of mutes.values()) release()
+      mutes.clear()
       void context.close().catch(() => undefined)
     }
   }, [skin.id, skin.explosionSpritePath, skin.actionSoundPath])
@@ -63,6 +68,8 @@ export function GunPreviewEffects({
     if (context && sound.current && volume > 0 && context.state === 'running') {
       while (voices.current.length >= 4) {
         const old = voices.current.shift()!
+        previewMutes.current.get(old)?.()
+        previewMutes.current.delete(old)
         old.stop()
         old.disconnect()
       }
@@ -73,12 +80,25 @@ export function GunPreviewEffects({
       voice.connect(gain)
       gain.connect(context.destination)
       voices.current.push(voice)
+      const releaseMute = launcherAudio.muteBgmForPreview()
+      previewMutes.current.set(voice, releaseMute)
       voice.onended = () => {
+        releaseMute()
+        previewMutes.current.delete(voice)
         voice.disconnect()
         gain.disconnect()
         voices.current = voices.current.filter((item) => item !== voice)
       }
-      voice.start()
+      try {
+        voice.start()
+      } catch (error) {
+        releaseMute()
+        previewMutes.current.delete(voice)
+        voices.current = voices.current.filter((item) => item !== voice)
+        voice.disconnect()
+        gain.disconnect()
+        throw error
+      }
     }
     const target = muzzleFlash.canvas,
       ctx = target.getContext('2d')

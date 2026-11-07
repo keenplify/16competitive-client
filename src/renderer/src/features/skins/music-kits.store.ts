@@ -1,3 +1,4 @@
+import { launcherAudio } from '../audio/audio.manager'
 import { musicKitPreviewEvent } from '../../../../shared/music-kits'
 import { usePaymentsStore } from './payments.store'
 import type { MusicCurrency } from '../../../../shared/music-kits'
@@ -41,6 +42,7 @@ type MusicState = {
   preview: (id: string) => Promise<void>
   stopPreview: () => void
 }
+let releasePreviewMute: (() => void) | null = null
 let audio: HTMLAudioElement | null = null
 let audioUrl: string | null = null
 let previewGeneration = 0
@@ -48,6 +50,8 @@ let accountGeneration = 0
 let loadGeneration = 0
 const stopAudio = (): void => {
   previewGeneration++
+  releasePreviewMute?.()
+  releasePreviewMute = null
   audio?.pause()
   audio = null
   if (audioUrl) URL.revokeObjectURL(audioUrl)
@@ -213,10 +217,20 @@ export const useMusicKitsStore = create<MusicState>((set, get) => ({
       )
       audio = new Audio(audioUrl)
       audio.onended = () => {
+        if (generation !== previewGeneration) return
         stopAudio()
         set({ playingId: null })
       }
+      let started = false
+      audio.onerror = () => {
+        if (!started || generation !== previewGeneration) return
+        stopAudio()
+        set({ playingId: null, error: 'music.error' })
+        toast.error(t('music.error'))
+      }
+      releasePreviewMute = launcherAudio.muteBgmForPreview()
       await audio.play()
+      started = true
       toast.update(feedback, {
         render: t('music.preview'),
         type: 'success',

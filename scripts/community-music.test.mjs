@@ -118,7 +118,8 @@ test('kit menus rotate their own tracks, repeat a single track and never substit
   assert.equal(second.paused, true)
   assert.equal(instances.at(-1), second)
   manager.setKitMusic(['https://api.test/only-menu.mp3'])
-  const single = instances.at(-1), before = single.played
+  const single = instances.at(-1),
+    before = single.played
   single.listeners.get('ended')()
   assert.equal(single.played, before + 1)
   assert.equal(single.currentTime, 0)
@@ -350,4 +351,97 @@ test('equipped kit selection persists and follows activation, clearing and logou
   playerId = null
   update()
   assert.deepEqual(tracks.at(-1), ['rock', null])
+})
+
+test('preview mute survives volume and track changes and releases only after the last preview', () => {
+  const { manager, instances } = audioHarness()
+  manager.setBgmVolume(60)
+  manager.startBgm()
+  assert.equal(instances.at(-1).volume, 0.6)
+  const first = manager.muteBgmForPreview()
+  assert.equal(instances.at(-1).volume, 0)
+  const second = manager.muteBgmForPreview()
+  manager.setBgmVolume(35)
+  manager.setKitMusic(['https://api.test/menu.mp3'])
+  assert.equal(instances.at(-1).volume, 0)
+  first()
+  first()
+  assert.equal(
+    instances.at(-1).volume,
+    0,
+    'an old or repeated release cannot unmute another preview'
+  )
+  second()
+  assert.equal(
+    instances.at(-1).volume,
+    0.35,
+    'restore the current user preference, not a stale saved value'
+  )
+  manager.setBgmFocused(false)
+  const third = manager.muteBgmForPreview()
+  third()
+  assert.equal(instances.at(-1).volume, 0, 'releasing a preview must respect focus suppression')
+})
+
+test('kit preview restores BGM on finish, stop, cue change, close, playback errors and account changes', async () => {
+  const { manager, instances } = audioHarness()
+  manager.setBgmVolume(60)
+  manager.startBgm()
+  const bgm = instances.at(-1)
+  const previews = []
+  let rejectPlayback = false
+  class PreviewAudio {
+    constructor() {
+      previews.push(this)
+    }
+    pause() {}
+    play() {
+      assert.equal(bgm.volume, 0, 'BGM is muted before preview playback starts')
+      return rejectPlayback ? Promise.reject(Error('decoder failed')) : Promise.resolve()
+    }
+  }
+  const { create } = require('zustand')
+  const auth = create(() => ({ session: { player: { id: 'one' } } }))
+  const store = load(
+    '../skins/music-kits.store.ts',
+    {
+      zustand: { create },
+      '../audio/audio.manager': { launcherAudio: manager },
+      '../../../../shared/music-kits': { musicKitPreviewEvent: () => 'mvp' },
+      './payments.store': { usePaymentsStore: create(() => ({})) },
+      '../auth/auth.store': { useAuthStore: auth },
+      'react-toastify': { toast: { loading: () => 1, update() {}, dismiss() {}, error() {} } },
+      '../i18n/i18n': {
+        translate: (_, key) => key,
+        useLanguageStore: { getState: () => ({ language: 'en' }) }
+      }
+    },
+    {
+      Audio: PreviewAudio,
+      Blob,
+      URL: { createObjectURL: () => 'blob:preview', revokeObjectURL() {} },
+      window: { api: { skins: { musicPreview: async () => new ArrayBuffer(46) } } }
+    }
+  ).useMusicKitsStore
+  const snapshot = { kits: [{ id: 'kit', sounds: { mvp: 'cue.wav' } }] }
+  store.setState({ snapshot })
+  for (const finish of [
+    () => previews.at(-1).onended(),
+    () => store.getState().stopPreview(),
+    () => store.getState().setEvent('startround_01'),
+    () => store.getState().close(),
+    () => previews.at(-1).onerror(),
+    () => auth.setState({ session: { player: { id: 'two' } } })
+  ]) {
+    await store.getState().preview('kit')
+    assert.equal(bgm.volume, 0)
+    finish()
+    assert.equal(bgm.volume, 0.6)
+    assert.equal(store.getState().playingId, null)
+  }
+  store.setState({ snapshot })
+  rejectPlayback = true
+  await store.getState().preview('kit')
+  assert.equal(bgm.volume, 0.6, 'rejected playback must not leave BGM muted')
+  assert.equal(store.getState().playingId, null)
 })
