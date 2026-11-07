@@ -17,6 +17,15 @@ legacy hyphenated credentials remain intact. It is removed at session end.
 The helper reports COSMETICS_UNAVAILABLE_CONFIG_AUTH, saved in account-scoped
 launch history without paths, binaries, raw arguments or credentials.
 
+The helper also preserves the Electron adapter's standalone Windows GTProtector
+workaround. After stopping the previous game under the installation ownership
+lock, it moves only `GTlib.asi` and `GTProtector.asi` (case insensitive) into a
+unique `16competitive/disabled-gtprotector/backup-*` directory. Original bytes
+and earlier backups are retained. Steam and NextClient installations are skipped;
+links and reparse points are rejected. This prevents the legacy `Find Cl/En/St
+Modules Error` popup observed with WaRzOnE. It does not disable the signed
+competitive inspector or change its checks.
+
 The server additionally recovers a missing token after ten seconds using a
 unique address captured by that match's authenticated ready response. This is
 an explicitly requested availability tradeoff; addresses are weaker than

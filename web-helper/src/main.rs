@@ -12,6 +12,8 @@ mod desktop_session;
 #[cfg(windows)]
 mod admin_restart;
 mod owned_game;
+#[cfg(any(windows, test))]
+mod gtprotector;
 mod match_recovery;
 mod steam_proton;
 #[cfg(target_os = "linux")]
@@ -901,6 +903,13 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     } else {
         owned_game::Startup::prepare(&exe, &game_dir)?
     };
+    // The standalone helper owns launching now, so retain the Electron
+    // adapter's GTProtector workaround here, after the old game has stopped.
+    #[cfg(windows)]
+    if connection.game() == "cs16" {
+        gtprotector::disable_conflicting(&root, cs16_requires_steam(&root, next_client, gold_client), next_client)
+            .map_err(|_| "GTPROTECTOR_COMPATIBILITY_FAILED")?;
+    }
     if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
         start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
     }
