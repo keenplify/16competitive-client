@@ -4489,3 +4489,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Issue Reports
 
 - Issue reports now retain account-scoped launch history across launcher restarts.
+
+## v2026.1107.8 — 2026-11-07
+
+### Diagnostics
+
+- Expanded diagnostic reports now stay within the backend’s log size limit.
