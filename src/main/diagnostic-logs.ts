@@ -92,7 +92,10 @@ export async function collectDiagnosticIssueLogs(
       ? join(process.env.LOCALAPPDATA, '16competitive')
       : join(app.getPath('appData'), '16competitive')
   const music = await musicDeliveryReport(musicDirectory, matchId)
-  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${launchHistory}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`
+  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${launchHistory}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`.slice(
+    0,
+    500_000
+  )
 }
 
 export function installDiagnosticLogCapture(): void {

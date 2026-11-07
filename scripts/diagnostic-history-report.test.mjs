@@ -44,7 +44,7 @@ await build({
    export const matchmakingDiagnostics={
     setOwner:owner=>globalThis.reportOwner=owner,
     report:()=>JSON.stringify({snapshot:{matchId:null},timeline:[]}),
-    historyReport:async()=>JSON.stringify({timeline:[{stage:'helper_failed',data:{code:'GAME_SPAWN_FAILED',osError:740,elevated:false}}]})
+    historyReport:async()=>JSON.stringify({timeline:[{stage:'helper_failed',data:{code:'GAME_SPAWN_FAILED',osError:740,elevated:false}}],padding:'y'.repeat(220000)})
    };
   `
         }))
@@ -57,6 +57,7 @@ after(() => delete globalThis.reportOwner)
 test('issue reports without a match include persisted history near the top even if renderer logs fill the report', async () => {
   const report = await collectDiagnosticIssueLogs(['x'.repeat(350000)])
   assert.equal(globalThis.reportOwner, 'current-account')
+  assert.equal(report.length, 500000)
   assert.ok(report.includes('[Saved launch history]'))
   assert.ok(report.indexOf('GAME_SPAWN_FAILED') < 2000)
   assert.ok(report.includes('"elevated":false'))
