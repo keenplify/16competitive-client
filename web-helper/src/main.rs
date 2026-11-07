@@ -14,6 +14,8 @@ mod admin_restart;
 mod owned_game;
 #[cfg(any(windows, test))]
 mod gtprotector;
+#[cfg(any(windows, test))]
+mod startup_bridge;
 mod match_recovery;
 mod steam_proton;
 #[cfg(target_os = "linux")]
@@ -151,6 +153,8 @@ fn helper_fingerprint() -> String {
         include_bytes!("desktop_session.rs").as_slice(),
         include_bytes!("admin_restart.rs").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
+        include_bytes!("gtprotector.rs").as_slice(),
+        include_bytes!("startup_bridge.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
         include_bytes!("linux_emulation.rs").as_slice(),
         include_bytes!("compatibility.rs").as_slice(),
@@ -910,6 +914,12 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         gtprotector::disable_conflicting(&root, cs16_requires_steam(&root, next_client, gold_client), next_client)
             .map_err(|_| "GTPROTECTOR_COMPATIBILITY_FAILED")?;
     }
+    #[cfg(windows)]
+    let mut startup_bridge = startup_bridge::Bridge::prepare(
+        &game_dir,
+        connection.game() == "cs16" && !next_client
+            && !cs16_requires_steam(&root, next_client, gold_client),
+    ).map_err(|_| "STARTUP_CONFIG_FAILED")?;
     if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
         start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
     }
@@ -1225,6 +1235,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let scanner_result = scanner.stop();
     let auth_cleanup = cleanup_owned_file(auth);
     let startup_cleanup = cleanup_owned_file(startup);
+    #[cfg(windows)]
+    let bridge_cleanup = startup_bridge.restore().map_err(|_| "STARTUP_CONFIG_FAILED");
     if let Some((_, mut session)) = native {
         session.stop();
         #[cfg(windows)]
@@ -1233,6 +1245,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     }
     auth_cleanup?;
     startup_cleanup?;
+    #[cfg(windows)]
+    bridge_cleanup?;
     scanner_result?;
     session_authorization::finish_session(wait_result)
 }

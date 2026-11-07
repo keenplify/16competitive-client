@@ -31,3 +31,31 @@ unique address captured by that match's authenticated ready response. This is
 an explicitly requested availability tradeoff; addresses are weaker than
 credentials. Shared/ambiguous addresses and occupied/revoked slots are rejected.
 See the backend docs/missing-token-recovery.md for admission behavior and tests.
+
+Some standalone repacks ship an empty `cstrike/valve.rc`. GoldSrc then opens
+the menu without processing the helper's `+exec` argument. On Windows, after
+the previous game has stopped, the helper temporarily fills only that empty
+script with its marked `stuffcmds` bridge. The existing launcher-owned session
+file still supplies the backend-issued identity and connection credentials.
+Steam, NextClient, missing scripts, and unknown nonempty scripts are untouched.
+Cleanup uses the retained file handle and restores the original empty content
+only while the bridge bytes still match; player edits and replacement files
+are preserved. An exact bridge left by an interrupted session can be reused
+and cleaned up by the next launch. This never accesses `config.cfg` and does
+not bypass the inspector or any native-module approval checks.
+
+### Windows VM validation (November 8, 2026)
+
+Fresh Cybersports Russian Original and WarzoneCS downloads both shipped empty
+startup scripts. With the patched helper, both connected to live private test
+matches, received team 1 from the server, and visibly spawned. Cleanup returned
+both scripts to zero bytes. Test copies excluded the player-owned configuration;
+original installations were untouched.
+
+Additional OpenGL checks use per-copy Mesa llvmpipe in the Windows 11 VM. Test-only
+startup bindings enable Tab and weapon selection without accessing player config.
+Russian Original displayed the custom crosshair, native Tab board and equipped
+Emberborn Glock. The optimized published helper completed a two-sticker recipe
+and wrote verified model/texture sidecars; the debug helper exceeded the sticker
+bake deadline. These VM checks do not establish hardware performance or identify
+the downloaded distribution as LQS's exact installation.

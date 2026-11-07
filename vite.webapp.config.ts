@@ -38,6 +38,8 @@ for (const source of [
   'web-helper/src/desktop_session.rs',
   'web-helper/src/admin_restart.rs',
   'web-helper/src/owned_game.rs',
+  'web-helper/src/gtprotector.rs',
+  'web-helper/src/startup_bridge.rs',
   'web-helper/src/steam_proton.rs',
   'web-helper/src/linux_emulation.rs',
   'web-helper/src/compatibility.rs',
