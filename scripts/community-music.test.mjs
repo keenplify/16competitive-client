@@ -394,7 +394,9 @@ test('kit preview restores BGM on finish, stop, cue change, close, playback erro
     constructor() {
       previews.push(this)
     }
-    pause() {}
+    pause() {
+      return undefined
+    }
     play() {
       assert.equal(bgm.volume, 0, 'BGM is muted before preview playback starts')
       return rejectPlayback ? Promise.reject(Error('decoder failed')) : Promise.resolve()
@@ -410,7 +412,14 @@ test('kit preview restores BGM on finish, stop, cue change, close, playback erro
       '../../../../shared/music-kits': { musicKitPreviewEvent: () => 'mvp' },
       './payments.store': { usePaymentsStore: create(() => ({})) },
       '../auth/auth.store': { useAuthStore: auth },
-      'react-toastify': { toast: { loading: () => 1, update() {}, dismiss() {}, error() {} } },
+      'react-toastify': {
+        toast: {
+          loading: () => 1,
+          update: () => undefined,
+          dismiss: () => undefined,
+          error: () => undefined
+        }
+      },
       '../i18n/i18n': {
         translate: (_, key) => key,
         useLanguageStore: { getState: () => ({ language: 'en' }) }
@@ -419,7 +428,7 @@ test('kit preview restores BGM on finish, stop, cue change, close, playback erro
     {
       Audio: PreviewAudio,
       Blob,
-      URL: { createObjectURL: () => 'blob:preview', revokeObjectURL() {} },
+      URL: { createObjectURL: () => 'blob:preview', revokeObjectURL: () => undefined },
       window: { api: { skins: { musicPreview: async () => new ArrayBuffer(46) } } }
     }
   ).useMusicKitsStore
