@@ -4514,3 +4514,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Compatibility
 
 - Retained GTProtector compatibility for standalone sessions.
+
+## v2026.1108.2 — 2026-11-07
+
+### Match startup
+
+- Standalone repacks now correctly apply match startup commands.
