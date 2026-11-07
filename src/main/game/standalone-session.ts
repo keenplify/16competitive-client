@@ -1,3 +1,4 @@
+import { requestAdminRestart } from './admin-restart'
 import { parseNativeVoicePreferences, type NativeVoicePreferences } from '../../shared/native-voice'
 import { app, BrowserWindow } from 'electron'
 import { MATCHMAKING_CHANNELS } from '../../shared/matchmaking'
@@ -315,11 +316,13 @@ async function launchStandaloneTargetInner(
           console.warn('[Standalone] preparation failed', { code, ...diagnostics })
           return fail(
             new Error(
-              code === 'GAME_CLOSE_FAILED'
-                ? 'match.launch.closeFailed'
-                : code === 'GAME_ALREADY_RUNNING'
-                  ? 'match.launch.alreadyRunning'
-                  : `Standalone game preparation failed (${code})`
+              code === 'GAME_SPAWN_FAILED' && event.osError === 740
+                ? 'match.launch.adminRequired'
+                : code === 'GAME_CLOSE_FAILED'
+                  ? 'match.launch.closeFailed'
+                  : code === 'GAME_ALREADY_RUNNING'
+                    ? 'match.launch.alreadyRunning'
+                    : `Standalone game preparation failed (${code})`
             )
           )
         }
@@ -362,5 +365,29 @@ async function launchStandaloneTargetInner(
       if (buffer.length > 8192) return fail(new Error('Invalid standalone response'))
     })
     child.stdin.write(`${JSON.stringify(request)}\n`)
+  }).catch(async (error: unknown) => {
+    if (
+      !(error instanceof Error) ||
+      error.message !== 'match.launch.adminRequired' ||
+      process.platform !== 'win32' ||
+      !app.isPackaged ||
+      process.argv.includes('--admin-game-retry')
+    )
+      throw error
+    // Wait for native workers, inspector and temporary credentials to clean up.
+    let cleanupTimer: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        exited,
+        new Promise<never>((_, reject) => {
+          cleanupTimer = setTimeout(() => reject(new Error('match.launch.adminFailed')), 60000)
+        })
+      ])
+    } finally {
+      if (cleanupTimer) clearTimeout(cleanupTimer)
+    }
+    await requestAdminRestart(helper, executable, await hashFile(executable))
+    // Keep caller failure handling deterministic if quit is delayed by cleanup.
+    throw new Error('match.launch.adminRestarting')
   })
 }

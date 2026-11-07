@@ -9,6 +9,8 @@ mod native_voice;
 mod stickers;
 mod session_mode;
 mod desktop_session;
+#[cfg(windows)]
+mod admin_restart;
 mod owned_game;
 mod match_recovery;
 mod steam_proton;
@@ -145,6 +147,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("stickers.rs").as_slice(),
         include_bytes!("session_mode.rs").as_slice(),
         include_bytes!("desktop_session.rs").as_slice(),
+        include_bytes!("admin_restart.rs").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
         include_bytes!("linux_emulation.rs").as_slice(),
@@ -1220,6 +1223,12 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
 
 fn run() -> Result<(), String> {
     let mut args: Vec<String> = env::args().skip(1).collect();
+    #[cfg(windows)]
+    if args.as_slice() == ["--request-admin-restart"] { return admin_restart::request(); }
+    #[cfg(windows)]
+    if args.first().map(String::as_str) == Some("--admin-restart") {
+        return admin_restart::restart(&args[1..]);
+    }
     #[cfg(target_os = "linux")]
     if args.first().map(String::as_str) == Some("--muvm-match") {
         if args.len() != 2 || !linux_emulation::in_guest() {
@@ -1331,7 +1340,7 @@ fn main() {
     if let Err(error) = run() {
         // The local bridge is spawned by a protocol check. Its failures are
         // reported to the web page; a native dialog on every check can spam.
-        if matches!(env::args().nth(1).as_deref(), Some("--desktop-session" | "--compatibility-session")) {
+        if matches!(env::args().nth(1).as_deref(), Some("--desktop-session" | "--compatibility-session" | "--request-admin-restart")) {
             desktop_session::report_failure(&error);
             // The launcher owns handoff feedback. After a committed session it
             // reopens and restores authoritative results/reconnect state.

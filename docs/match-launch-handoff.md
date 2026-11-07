@@ -138,3 +138,31 @@ AMXX requests `16CAuth` recovery only after two seconds of unresolved roster ass
 AMXX accepts only its current roster token, current connection userid and match key within the existing ten-second join grace, rejects a roster slot already occupied by another connection, and acknowledges assignment. Assigned primary connections cannot be reassigned through recovery. Accepted backup identity is retained server-side for this connection and checked against the current roster, then cleared on disconnect. Old/manual tokens cannot authenticate through this command. Session cleanup removes the handoff. Game log export filters this command as credential-bearing.
 
 The compiled Linux x86, Windows x86 proxy and NextClient module paths use the existing public engine message/command API. Live repack/assigned-match recovery still needs an in-game verification; builds and unit tests do not establish that result.
+
+### Windows elevation-required startup (naiverum, November 7)
+
+Client `.4` completed all 149 assets, then `GAME_SPAWN_FAILED` reported Windows
+error 740. Starting Steam succeeded; Windows refused the direct Half-Life
+process creation because it requires elevation. A normal `CreateProcess` call
+returns 740 without displaying UAC.
+
+The installed Windows launcher now requests a one-time UAC restart after that
+specific failure, after the failed native session has exited and cleaned up.
+The verified helper uses `ShellExecuteExW` with `runas` to start its bootstrap;
+the bootstrap verifies the live parent executable and hash, retains its process
+handle, signals readiness, waits for its exit, and starts that same launcher
+with fixed retry flags. Account tokens and game credentials never enter this
+request. The original launcher stays open if approval is cancelled or fails.
+The retry flag prevents another automatic elevation request from that restarted
+launcher. The player presses Join again after restart. Development launchers
+and Linux show the actionable error without attempting a Windows restart.
+
+Alternatively, players can disable an unwanted “Run this program as an
+administrator” compatibility setting on `hl.exe`. No compatibility registry
+settings or player game configuration are modified automatically.
+
+Validated the actual UAC prompt in the Windows 11 VM with a disposable launcher
+fixture: the initial process ran unelevated, approval restarted the same fixture
+as administrator with the exact two fixed flags, and cancellation returned
+`ADMIN_RESTART_CANCELLED` without starting a replacement. This verifies the
+privilege/restart flow; naiverum's real installation still needs his retry.

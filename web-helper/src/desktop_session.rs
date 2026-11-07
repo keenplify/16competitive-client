@@ -24,12 +24,12 @@ struct Request {
     #[serde(default)]
     asset_config_home: Option<PathBuf>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Reopen {
-    executable: PathBuf,
-    sha256: String,
-    args: Vec<String>,
+pub(crate) struct Reopen {
+    pub(crate) executable: PathBuf,
+    pub(crate) sha256: String,
+    pub(crate) args: Vec<String>,
 }
 
 fn executable_hash(path: &Path) -> Result<String, String> {
@@ -63,7 +63,7 @@ fn executable_hash(path: &Path) -> Result<String, String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 impl Reopen {
-    fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), String> {
         if self.args.len() > 3
             || self
                 .args
@@ -75,7 +75,7 @@ impl Reopen {
         }
         Ok(())
     }
-    fn launch(&self) -> Result<(), String> {
+    pub(crate) fn launch(&self) -> Result<(), String> {
         self.validate()?;
         let mut command = Command::new(&self.executable);
         command
@@ -170,6 +170,8 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "INSPECTOR_START_FAILED" => "INSPECTOR_START_FAILED",
         "STEAM_START_FAILED" => "STEAM_START_FAILED",
         "GAME_SPAWN_FAILED" => "GAME_SPAWN_FAILED",
+        "ADMIN_RESTART_FAILED" => "ADMIN_RESTART_FAILED",
+        "ADMIN_RESTART_CANCELLED" => "ADMIN_RESTART_CANCELLED",
         "GAME_STARTUP_FAILED" => "GAME_STARTUP_FAILED",
         "MATCH_RECOVERY_REQUIRED" => "MATCH_RECOVERY_REQUIRED",
         value if value.starts_with("Sticker cache") => "STICKER_CACHE_FAILED",

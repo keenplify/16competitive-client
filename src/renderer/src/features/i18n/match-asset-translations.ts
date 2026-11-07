@@ -1,5 +1,13 @@
 export const matchAssetTranslations = {
   en: {
+    'match.launch.adminRequired':
+      'Windows requires administrator approval to start Half-Life. Retry from the installed launcher and approve the Windows prompt, or turn off “Run this program as an administrator” in hl.exe Properties → Compatibility.',
+    'match.launch.adminCancelled':
+      'Administrator approval was cancelled. The game was not started. Retry and approve the Windows prompt.',
+    'match.launch.adminFailed':
+      'Could not restart the launcher as administrator. Close it, use “Run as administrator”, then retry joining.',
+    'match.launch.adminRestarting':
+      'Restarting the launcher as administrator. Press Join again after it opens.',
     'match.launch.closeFailed':
       'Could not close the existing Counter-Strike process. Close it in Task Manager (or your system monitor), then reconnect.',
     'match.launch.alreadyRunning':
@@ -14,6 +22,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike will download missing skins in game'
   },
   ru: {
+    'match.launch.adminRequired':
+      'Windows требует права администратора для Half-Life. Повторите запуск из установленного лаунчера и подтвердите запрос Windows или отключите запуск от администратора в свойствах hl.exe → Совместимость.',
+    'match.launch.adminCancelled':
+      'Запрос прав администратора отменён. Игра не запущена. Повторите попытку и подтвердите запрос Windows.',
+    'match.launch.adminFailed':
+      'Не удалось перезапустить лаунчер с правами администратора. Закройте его, выберите «Запуск от имени администратора» и повторите подключение.',
+    'match.launch.adminRestarting':
+      'Лаунчер перезапускается с правами администратора. После открытия нажмите «Играть» снова.',
     'match.launch.closeFailed':
       'Не удалось завершить запущенный процесс Counter-Strike. Закройте его в диспетчере задач или системном мониторе и подключитесь снова.',
     'match.launch.alreadyRunning':
@@ -28,6 +44,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike загрузит недостающие скины в игре'
   },
   tl: {
+    'match.launch.adminRequired':
+      'Kailangan ng Windows ang pahintulot ng administrator para simulan ang Half-Life. Subukan ulit sa naka-install na launcher at payagan ang Windows prompt, o i-off ang “Run this program as an administrator” sa hl.exe Properties → Compatibility.',
+    'match.launch.adminCancelled':
+      'Kinansela ang pahintulot ng administrator. Hindi nagsimula ang laro. Subukan ulit at payagan ang Windows prompt.',
+    'match.launch.adminFailed':
+      'Hindi ma-restart ang launcher bilang administrator. Isara ito, piliin ang “Run as administrator”, at subukang sumali ulit.',
+    'match.launch.adminRestarting':
+      'Nire-restart ang launcher bilang administrator. Pindutin ulit ang Join pagkabukas nito.',
     'match.launch.closeFailed':
       'Hindi maisara ang tumatakbong Counter-Strike process. Isara ito sa Task Manager (o system monitor), saka kumonekta ulit.',
     'match.launch.alreadyRunning':
@@ -42,6 +66,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Ida-download ng Counter-Strike ang mga kulang na skin sa laro'
   },
   th: {
+    'match.launch.adminRequired':
+      'Windows ต้องการสิทธิ์ผู้ดูแลระบบเพื่อเริ่ม Half-Life ลองอีกครั้งจากลอนเชอร์ที่ติดตั้งและอนุมัติคำขอ Windows หรือปิด “Run this program as an administrator” ใน hl.exe Properties → Compatibility',
+    'match.launch.adminCancelled':
+      'ยกเลิกการอนุมัติสิทธิ์ผู้ดูแลระบบแล้ว เกมยังไม่เริ่ม ลองอีกครั้งและอนุมัติคำขอ Windows',
+    'match.launch.adminFailed':
+      'ไม่สามารถเริ่มลอนเชอร์ใหม่ด้วยสิทธิ์ผู้ดูแลระบบ ปิดลอนเชอร์ เลือก “Run as administrator” แล้วลองเข้าร่วมอีกครั้ง',
+    'match.launch.adminRestarting':
+      'กำลังเริ่มลอนเชอร์ใหม่ด้วยสิทธิ์ผู้ดูแลระบบ กดเข้าร่วมอีกครั้งหลังเปิด',
     'match.launch.closeFailed':
       'ไม่สามารถปิดโปรเซส Counter-Strike ที่ทำงานอยู่ได้ ปิดใน Task Manager หรือตัวตรวจสอบระบบ แล้วเชื่อมต่อใหม่',
     'match.launch.alreadyRunning':
@@ -56,6 +88,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike จะดาวน์โหลดสกินที่ขาดภายในเกม'
   },
   id: {
+    'match.launch.adminRequired':
+      'Windows memerlukan izin administrator untuk memulai Half-Life. Coba lagi dari launcher terpasang dan setujui permintaan Windows, atau nonaktifkan “Run this program as an administrator” di hl.exe Properties → Compatibility.',
+    'match.launch.adminCancelled':
+      'Izin administrator dibatalkan. Game belum dimulai. Coba lagi dan setujui permintaan Windows.',
+    'match.launch.adminFailed':
+      'Tidak dapat memulai ulang launcher sebagai administrator. Tutup, pilih “Run as administrator”, lalu coba bergabung lagi.',
+    'match.launch.adminRestarting':
+      'Memulai ulang launcher sebagai administrator. Tekan Gabung lagi setelah terbuka.',
     'match.launch.closeFailed':
       'Proses Counter-Strike yang sedang berjalan tidak dapat ditutup. Tutup melalui Task Manager atau monitor sistem, lalu sambungkan kembali.',
     'match.launch.alreadyRunning':
@@ -70,6 +110,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike akan mengunduh skin yang belum tersedia di dalam game'
   },
   hi: {
+    'match.launch.adminRequired':
+      'Half-Life शुरू करने के लिए Windows को व्यवस्थापक अनुमति चाहिए। इंस्टॉल किए गए लॉन्चर से फिर कोशिश करें और Windows अनुरोध स्वीकार करें, या hl.exe Properties → Compatibility में “Run this program as an administrator” बंद करें।',
+    'match.launch.adminCancelled':
+      'व्यवस्थापक अनुमति रद्द की गई। गेम शुरू नहीं हुआ। फिर कोशिश करें और Windows अनुरोध स्वीकार करें।',
+    'match.launch.adminFailed':
+      'लॉन्चर को व्यवस्थापक के रूप में फिर शुरू नहीं कर सके। उसे बंद करें, “Run as administrator” चुनें और फिर जुड़ें।',
+    'match.launch.adminRestarting':
+      'लॉन्चर व्यवस्थापक के रूप में फिर शुरू हो रहा है। खुलने पर फिर जुड़ें दबाएँ।',
     'match.launch.closeFailed':
       'चल रही Counter-Strike प्रक्रिया बंद नहीं हो सकी। उसे Task Manager या सिस्टम मॉनिटर में बंद करें, फिर दोबारा कनेक्ट करें।',
     'match.launch.alreadyRunning':
@@ -84,6 +132,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'Counter-Strike खेल में अनुपलब्ध स्किन डाउनलोड करेगा'
   },
   pt: {
+    'match.launch.adminRequired':
+      'O Windows exige aprovação de administrador para iniciar o Half-Life. Tente novamente pelo launcher instalado e aprove a solicitação do Windows, ou desative “Executar este programa como administrador” em hl.exe Propriedades → Compatibilidade.',
+    'match.launch.adminCancelled':
+      'A aprovação de administrador foi cancelada. O jogo não iniciou. Tente novamente e aprove a solicitação do Windows.',
+    'match.launch.adminFailed':
+      'Não foi possível reiniciar o launcher como administrador. Feche-o, escolha “Executar como administrador” e tente entrar novamente.',
+    'match.launch.adminRestarting':
+      'Reiniciando o launcher como administrador. Clique em Entrar novamente após abrir.',
     'match.launch.closeFailed':
       'Não foi possível encerrar o processo do Counter-Strike. Feche-o no Gerenciador de Tarefas ou monitor do sistema e reconecte.',
     'match.launch.alreadyRunning':
@@ -98,6 +154,14 @@ export const matchAssetTranslations = {
     'match.assets.fastdl': 'O Counter-Strike baixará as skins ausentes no jogo'
   },
   ja: {
+    'match.launch.adminRequired':
+      'Half-Lifeの起動にはWindowsの管理者承認が必要です。インストール済みランチャーで再試行してWindowsの確認を承認するか、hl.exeのプロパティ → 互換性で「管理者としてこのプログラムを実行する」を解除してください。',
+    'match.launch.adminCancelled':
+      '管理者承認がキャンセルされました。ゲームは起動していません。再試行してWindowsの確認を承認してください。',
+    'match.launch.adminFailed':
+      'ランチャーを管理者として再起動できませんでした。閉じて「管理者として実行」を選び、再度参加してください。',
+    'match.launch.adminRestarting':
+      'ランチャーを管理者として再起動しています。開いたら再度参加してください。',
     'match.launch.closeFailed':
       '実行中のCounter-Strikeを終了できませんでした。タスクマネージャーまたはシステムモニターで終了してから再接続してください。',
     'match.launch.alreadyRunning':

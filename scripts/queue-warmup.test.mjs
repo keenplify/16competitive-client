@@ -360,7 +360,14 @@ test('failed preparation leaves warmup once and ignores repeated server launch m
   assert.equal(h.connection.cancelledMatchIds.has(connect.matchId), false)
 })
 
-for (const key of ['match.launch.closeFailed', 'match.launch.alreadyRunning']) {
+for (const key of [
+  'match.launch.closeFailed',
+  'match.launch.alreadyRunning',
+  'match.launch.adminRequired',
+  'match.launch.adminCancelled',
+  'match.launch.adminFailed',
+  'match.launch.adminRestarting'
+]) {
   test(`warmup preserves actionable launch failure ${key}`, async () => {
     const h = await harness({ launchError: new Error(key) })
     await h.connection.joinWarmup('5v5', 'de_dust2')

@@ -266,7 +266,7 @@ process.stdin.on('end',()=>process.exit(1));
       try {
         await assert.rejects(
           launchStandaloneSession('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', undefined, settings),
-          /GAME_SPAWN_FAILED/
+          expected.osError === 740 ? /match\.launch\.adminRequired/ : /GAME_SPAWN_FAILED/
         )
       } finally {
         console.warn = previousWarn

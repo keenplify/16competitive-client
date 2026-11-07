@@ -227,7 +227,11 @@ const readableError = (error: unknown): string => {
     key === 'match.proton.runtimeUnavailable' ||
     key === 'match.proton.gameUnavailable' ||
     key === 'match.launch.closeFailed' ||
-    key === 'match.launch.alreadyRunning'
+    key === 'match.launch.alreadyRunning' ||
+    key === 'match.launch.adminRequired' ||
+    key === 'match.launch.adminCancelled' ||
+    key === 'match.launch.adminFailed' ||
+    key === 'match.launch.adminRestarting'
   )
     return translate(useLanguageStore.getState().language, key)
   const remoteError = error.message.match(/Error: (.+)$/)
@@ -266,7 +270,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       if (
         event.type === 'error' &&
         (event.message === 'match.launch.closeFailed' ||
-          event.message === 'match.launch.alreadyRunning')
+          event.message === 'match.launch.alreadyRunning' ||
+          event.message === 'match.launch.adminRequired' ||
+          event.message === 'match.launch.adminCancelled' ||
+          event.message === 'match.launch.adminFailed' ||
+          event.message === 'match.launch.adminRestarting')
       ) {
         toast.error(translate(useLanguageStore.getState().language, event.message), {
           toastId: event.message
@@ -623,7 +631,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         terminalMatchIds.add(event.matchId)
         if (event.serverCrashed) {
           const language = useLanguageStore.getState().language
-          toast.error(translate(language, event.pCashRefunded ? 'bet.crashRefunded' : 'bet.crashed', { amount: event.pCashRefunded ?? 0 }), { toastId: `server-crash:${event.matchId}` })
+          toast.error(
+            translate(language, event.pCashRefunded ? 'bet.crashRefunded' : 'bet.crashed', {
+              amount: event.pCashRefunded ?? 0
+            }),
+            { toastId: `server-crash:${event.matchId}` }
+          )
           void usePCashBetsStore.getState().load(event.matchId)
         }
         set((state) =>
@@ -653,9 +666,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                 connectionDetails: null,
                 matchReadyAt: null,
                 gameExited: false,
-                error:
-                  event.serverCrashed ? null : (state.match?.mode === 'ffa' || state.match?.mode === 'arena') &&
-                  event.reason === 'PLAYER_DECLINED'
+                error: event.serverCrashed
+                  ? null
+                  : (state.match?.mode === 'ffa' || state.match?.mode === 'arena') &&
+                      event.reason === 'PLAYER_DECLINED'
                     ? null
                     : event.message
               }
@@ -783,6 +797,10 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             event.message === 'match.assets.storageDenied' ||
             event.message === 'match.launch.closeFailed' ||
             event.message === 'match.launch.alreadyRunning' ||
+            event.message === 'match.launch.adminRequired' ||
+            event.message === 'match.launch.adminCancelled' ||
+            event.message === 'match.launch.adminFailed' ||
+            event.message === 'match.launch.adminRestarting' ||
             event.message === 'legacy.error.installationRequired' ||
             event.message === 'legacy.error.invalidInstallation' ||
             event.message === 'legacy.error.settingsFailed' ||
