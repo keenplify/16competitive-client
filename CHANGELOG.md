@@ -4495,3 +4495,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Diagnostics
 
 - Expanded diagnostic reports now stay within the backend’s log size limit.
+
+## v2026.1107.9 — 2026-11-07
+
+### Match Access
+
+- Match authentication continues to work when native cosmetic compatibility is unavailable.
