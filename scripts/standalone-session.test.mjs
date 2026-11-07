@@ -30,7 +30,7 @@ await build({
           contents: `
       export const app = globalThis.fixtureApp;
       export const BrowserWindow = { getAllWindows: () => [] };
-      export const matchmakingDiagnostics = { setOwner:()=>{},record:()=>{},flush:async()=>{} };
+      export const matchmakingDiagnostics = { setOwner:()=>{},record:(...args)=>globalThis.fixtureDiagnostics?.push(args),flush:async()=>{} };
       export const getSessionUsername = () => 'fixture-player';
       export const getSessionToken = () => 'desktop-token';
       export const API_BASE_URL = 'https://16competitive.papamo.dev';
@@ -42,6 +42,7 @@ await build({
   ],
   logLevel: 'silent'
 })
+globalThis.fixtureDiagnostics = []
 let quits = 0
 globalThis.fixtureApp = {
   isPackaged: false,
@@ -56,6 +57,7 @@ globalThis.fetch = async () => ({ ok: true, json: async () => ({ token: 'a'.repe
 after(() => {
   globalThis.fetch = previousFetch
   delete globalThis.fixtureApp
+  delete globalThis.fixtureDiagnostics
 })
 const native = join(root, 'web-helper/target/debug')
 await mkdir(native, { recursive: true })
@@ -92,7 +94,7 @@ const fs=require('fs');const rl=require('readline').createInterface({input:proce
 let request;
 rl.on('line', line=>{
   const value=JSON.parse(line);
-  if(!request){request=value;console.log(JSON.stringify({protocol:1,event:'ready'}));}
+  if(!request){request=value;console.log(JSON.stringify({protocol:1,event:'notice',code:'COSMETICS_UNAVAILABLE_CONFIG_AUTH'}));console.log(JSON.stringify({protocol:1,event:'ready'}));}
   else {
     fs.writeFileSync(${JSON.stringify(marker)},JSON.stringify({commit:value.commit,voice:request.settings.voice,
       dedicated:request.handoff!== 'desktop-token', argv:process.argv.slice(2),
@@ -114,6 +116,13 @@ rl.on('line', line=>{
       lightweightHud: false
     })
     assert.equal(quits, 1, 'quit must follow acknowledgement, not process spawn')
+    assert.ok(
+      globalThis.fixtureDiagnostics.some(
+        ([stage, event]) =>
+          stage === 'helper_compatibility_fallback' &&
+          event.code === 'COSMETICS_UNAVAILABLE_CONFIG_AUTH'
+      )
+    )
     const events = JSON.parse(await readFile(marker, 'utf8'))
     assert.deepEqual(events, {
       commit: true,

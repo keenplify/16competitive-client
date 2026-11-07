@@ -1006,7 +1006,14 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         }
     }
     if connection.game() == "cs16" && native.is_none() {
-        return Err("NATIVE_INSTALL_UNSUPPORTED".into());
+        #[cfg(windows)]
+        let config_auth = !next_client && windows_native::supports_config_authenticated_launch(&root)?;
+        #[cfg(not(windows))]
+        let config_auth = false;
+        if !config_auth { return Err("NATIVE_INSTALL_UNSUPPORTED".into()); }
+        // Retain the verified inspector, match token, owned startup file and
+        // periodic backend authorization. Only optional native visuals stop.
+        desktop_session::report_config_auth_fallback();
     }
     auth = if connection.game() == "cs13" {
         Some(cs13_auth_file(&game_dir, connection)?)
@@ -1374,6 +1381,26 @@ fn main() {
 #[cfg(test)]
 mod launch_tests {
     use super::*;
+    #[test]
+    fn config_auth_startup_contains_current_identity_and_is_cleaned_up() {
+        let root = env::temp_dir().join(format!("16c-config-identity-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let connection = Connection {
+            match_id: uuid::Uuid::new_v4().to_string(), mode: "5v5".into(),
+            host: "127.0.0.1".into(), port: 27015, password: "legacy-password".into(),
+            join_token: "legacy-token-with-hyphens-12345678".into(), player_name: "TestPlayer".into(),
+        };
+        let startup = cs16_startup_file(&root, &connection).unwrap();
+        let expected = format!("setinfo \"_16c_{}\" \"{}\"", &format!("{:x}", Sha256::digest(connection.match_id.as_bytes()))[..16], connection.join_token);
+        assert_eq!(startup.1.matches(&expected).count(), 2);
+        assert!(startup.1.ends_with("connect 127.0.0.1:27015\n"));
+        assert!(startup.1.contains("password \"legacy-password\""));
+        let path = startup.0.clone();
+        cleanup_owned_file(Some(startup)).unwrap();
+        assert!(!path.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn standalone_variants_do_not_require_a_steam_client() {
         let root = env::temp_dir().join(format!("16c-steam-requirement-{}", uuid::Uuid::new_v4()));

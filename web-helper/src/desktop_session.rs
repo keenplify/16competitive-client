@@ -119,7 +119,20 @@ pub(crate) fn report_progress(phase: &str, completed: usize, total: usize) {
     let _ = output.flush();
 }
 
+pub(crate) fn report_config_auth_fallback() {
+    if !PROGRESS_ENABLED.load(std::sync::atomic::Ordering::Acquire) { return; }
+    let mut output = std::io::stdout().lock();
+    let _ = writeln!(output, "{}", serde_json::json!({
+        "protocol": 1, "event": "notice", "code": "COSMETICS_UNAVAILABLE_CONFIG_AUTH"
+    }));
+    let _ = output.flush();
+}
+
 pub(crate) fn forward_progress(frame: &serde_json::Value) -> Result<bool, String> {
+    if frame["protocol"] == 1 && frame["event"] == "notice" && frame["code"] == "COSMETICS_UNAVAILABLE_CONFIG_AUTH" {
+        report_config_auth_fallback();
+        return Ok(true);
+    }
     if frame["event"] != "progress" { return Ok(false); }
     let phase = frame["phase"].as_str().ok_or("Invalid compatibility progress")?;
     let completed = frame["completed"].as_u64().ok_or("Invalid compatibility progress")?;

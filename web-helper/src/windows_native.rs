@@ -143,6 +143,25 @@ fn supported_client(bytes: &[u8]) -> bool {
         .all(|name| exports.contains(name.as_str()))
 }
 
+// Authentication does not require replacing the game's client DLL. Only a
+// clean ordinary x86 GoldSrc client may use the existing startup-config path;
+// partial NextClient layouts and interrupted/managed installs stay fail-closed.
+pub fn supports_config_authenticated_launch(root: &Path) -> Result<bool, String> {
+    for marker in [
+        "cstrike/cl_dlls/client_mini.dll", "nitro_api2.dll",
+        "16competitive/recovery.json", "16competitive/cosmetic-install.json",
+        "16competitive/nextclient-install.json",
+    ] {
+        match fs::symlink_metadata(root.join(marker)) {
+            Ok(_) => return Ok(false),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    let bytes = read_limited(&root.join("cstrike/cl_dlls/client.dll"), 128 * 1024 * 1024)?;
+    Ok(client_exports(&bytes).is_some_and(|exports| exports.contains("Initialize") || exports.contains("F")))
+}
+
 pub fn is_gold_client(root: &Path) -> Result<bool, String> {
     let path = if root.join("16competitive/cosmetic-install.json").exists() {
         root.join("client_original.dll")
@@ -490,6 +509,49 @@ mod tests {
     use super::*;
     use crate::native_session::NativeSession;
     use competitive16_web_helper::Connection;
+
+    fn config_auth_client_fixture() -> Vec<u8> {
+        let mut b = vec![0u8; 16384];
+        fn u16at(b: &mut [u8], offset: usize, value: u16) { b[offset..offset+2].copy_from_slice(&value.to_le_bytes()); }
+        fn u32at(b: &mut [u8], offset: usize, value: u32) { b[offset..offset+4].copy_from_slice(&value.to_le_bytes()); }
+        u16at(&mut b, 0, 0x5a4d); u32at(&mut b, 0x3c, 0x80);
+        u32at(&mut b, 0x80, 0x4550); u16at(&mut b, 0x84, 0x14c);
+        u16at(&mut b, 0x86, 1); u16at(&mut b, 0x94, 224); u16at(&mut b, 0x96, 0x2000);
+        u16at(&mut b, 0x98, 0x10b); u32at(&mut b, 0x98+92, 16);
+        u32at(&mut b, 0x98+96, 0x1000); u32at(&mut b, 0x98+100, 0x2000);
+        let section = 0x98+224;
+        u32at(&mut b, section+12, 0x1000); u32at(&mut b, section+16, 0x3e00); u32at(&mut b, section+20, 0x200);
+        for (offset,value) in [(16,1),(20,1),(24,1),(28,0x1100),(32,0x1300),(36,0x1500)] { u32at(&mut b, 0x200+offset,value); }
+        u32at(&mut b, 0x300, 0x4000); u32at(&mut b, 0x500, 0x1700);
+        b[0x900..0x90b].copy_from_slice(b"Initialize\0");
+        b
+    }
+
+    #[test]
+    fn config_auth_does_not_require_cosmetic_abi_or_modify_dll() {
+        let root = std::env::temp_dir().join(format!("16c-config-auth-{}", Uuid::new_v4()));
+        let dir = root.join("cstrike/cl_dlls");
+        fs::create_dir_all(&dir).unwrap();
+        let bytes = config_auth_client_fixture();
+        fs::write(dir.join("client.dll"), &bytes).unwrap();
+        assert!(!supported_client(&bytes));
+        assert!(supports_config_authenticated_launch(&root).unwrap());
+        assert_eq!(fs::read(dir.join("client.dll")).unwrap(), bytes);
+        for marker in ["cstrike/cl_dlls/client_mini.dll", "nitro_api2.dll",
+            "16competitive/recovery.json", "16competitive/cosmetic-install.json", "16competitive/nextclient-install.json"] {
+            let path = root.join(marker);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, b"partial-or-managed").unwrap();
+            assert!(!supports_config_authenticated_launch(&root).unwrap(), "{marker}");
+            fs::remove_file(path).unwrap();
+        }
+        let mut x64 = bytes.clone(); x64[0x84..0x86].copy_from_slice(&0x8664u16.to_le_bytes());
+        fs::write(dir.join("client.dll"), x64).unwrap();
+        assert!(!supports_config_authenticated_launch(&root).unwrap());
+        fs::write(dir.join("client.dll"), b"invalid DLL").unwrap();
+        assert!(!supports_config_authenticated_launch(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn inspected_client_exports_are_supported() {

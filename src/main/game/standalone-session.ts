@@ -329,6 +329,13 @@ async function launchStandaloneTargetInner(
           announceProgress(progress)
           continue
         }
+        if (event.event === 'notice' && event.code === 'COSMETICS_UNAVAILABLE_CONFIG_AUTH') {
+          matchmakingDiagnostics.record('helper_compatibility_fallback', {
+            ...diagnosticContext,
+            code: event.code
+          })
+          continue
+        }
         if (event.event === 'error') {
           const code =
             typeof event.code === 'string' && /^[A-Z_]{1,64}$/.test(event.code)
