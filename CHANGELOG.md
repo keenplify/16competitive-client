@@ -4477,3 +4477,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Audio
 
 - Launcher background music now pauses while preview audio plays.
+
+## v2026.1107.6 — 2026-11-07
+
+### Game Launch
+
+- Windows now requests administrator approval when required to launch the game.
