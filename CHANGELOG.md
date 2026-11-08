@@ -4534,3 +4534,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Added an optional consent step for sharing compatibility files with reports.
 - Remembered report-file consent choices for future submissions.
 - Added clearer themed prompts when compatibility files are requested.
+
+## v2026.1109.1 — 2026-11-08
+
+### Matchmaking
+
+- Suggests playing with bots after one minute of solo searching.
+- Restores the Play with Bots option when warmup starts with two human players.
+
+### Ranked Warmup
+
+- Shows the ranked warmup flow.
+- Hides betting features from players who are not participating in betting.
