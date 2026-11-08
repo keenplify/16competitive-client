@@ -198,7 +198,7 @@ const parseMatchmakingModes = (value: unknown): { id: MatchmakingMode; displayNa
     const { id, displayName } = entry as { id?: unknown; displayName?: unknown }
     if (
       typeof id !== 'string' ||
-      !(MATCHMAKING_MODES as readonly string[]).includes(id) ||
+      !(MATCHMAKING_MODE_ORDER_CHOICES as readonly string[]).includes(id) ||
       typeof displayName !== 'string' ||
       !displayName.trim() ||
       displayName.length > 40
