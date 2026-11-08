@@ -82,6 +82,11 @@ test(
           assert.equal(await run('Array.from(document.querySelectorAll("button")).some(b=>/play with bots/i.test(b.innerText))'),true);
           assert.equal(await run('(()=>{const b=Array.from(document.querySelectorAll("button")).find(b=>/play with bots/i.test(b.innerText));return b.disabled})()'),queueStatus!=='queued');
         }
+        // After a minute of solo searching the button suggests the half-MMR bot start.
+        await run('queueState.setState('+JSON.stringify({selectedMode:'5v5',queueStatus:'queued',queueStartedAt:Date.now()-61000})+')');await wait();
+        assert.equal(await run('Array.from(document.querySelectorAll("button")).some(b=>/half mmr/i.test(b.innerText))'),true);
+        await run('queueState.setState('+JSON.stringify({selectedMode:'5v5',queueStatus:'queued',queueStartedAt:Date.now()})+')');await wait();
+        assert.equal(await run('Array.from(document.querySelectorAll("button")).some(b=>/half mmr/i.test(b.innerText))'),false);
         fs.writeFileSync(${JSON.stringify(resolve('out/ranked-warmup-ui.png'))},(await w.webContents.capturePage()).toPNG());
         w.destroy();app.exit(0);
       }catch(e){console.error(e);w.destroy();app.exit(1)}});

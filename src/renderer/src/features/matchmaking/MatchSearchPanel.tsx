@@ -58,6 +58,13 @@ export function MatchSearchPanel({
   const elapsedSeconds = queueStartedAt
     ? Math.max(0, Math.floor((now - queueStartedAt) / 1_000))
     : 0
+  // After a minute of solo searching the panel suggests the bot opt-in so a
+  // lone player does not wait on the queue screen for a second human.
+  const suggestPlayWithBots = canPlayWithBots && elapsedSeconds >= 60
+  const playWithBotsLabel =
+    suggestPlayWithBots && selectedMode === '5v5'
+      ? t('rankedWarmup.botMmr')
+      : t('activity.playBots')
   const selectedMapNames = selectedMapIds.map(
     (mapId) => maps.find((map) => map.id === mapId)?.displayName ?? mapId
   )
@@ -123,11 +130,14 @@ export function MatchSearchPanel({
         </div>
         <div className="relative border-t border-white/10 px-2.5 py-2">
           <Button
-            className="h-7 min-w-0 w-full text-[10px]"
+            className={twMerge(
+              'h-7 min-w-0 w-full text-[10px]',
+              suggestPlayWithBots && 'border-amber-300/60 bg-amber-300/10 text-amber-100'
+            )}
             disabled={!canPlayWithBots}
             onClick={() => void playWithBots()}
           >
-            {t('activity.playBots')}
+            {playWithBotsLabel}
           </Button>
         </div>
       </aside>
@@ -177,11 +187,14 @@ export function MatchSearchPanel({
         </p>
         <div className="mt-3 flex h-8 gap-2">
           <Button
-            className="h-8 min-w-0 flex-1 px-2 text-[10px]"
+            className={twMerge(
+              'h-8 min-w-0 flex-1 px-2 text-[10px]',
+              suggestPlayWithBots && 'border-amber-300/60 bg-amber-300/10 text-amber-100'
+            )}
             disabled={!canPlayWithBots}
             onClick={() => void playWithBots()}
           >
-            {t('activity.playBots')}
+            {playWithBotsLabel}
           </Button>
           <Button
             className={twMerge(
