@@ -399,7 +399,7 @@ const operations: OperationsApi = {
 }
 
 const diagnosticLogs: DiagnosticLogsApi = {
-  compatibility: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.compatibility),
+  compatibility: (game) => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.compatibility, game),
   get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
   report: (description, rendererLogs, matchId, images, compatibilityId) =>
     ipcRenderer.invoke(

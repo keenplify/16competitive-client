@@ -1,5 +1,6 @@
 import type { ReportImage } from '../shared/diagnostic-logs'
 import { app } from 'electron'
+import { LegacyGameService } from './game/legacy-game-service'
 import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
 import { getSessionToken, getSessionUsername } from './auth'
@@ -17,12 +18,29 @@ import {
   uploadCompatibilityFiles
 } from './compatibility-files'
 
-export async function previewCompatibilityFiles() {
+export async function previewCompatibilityFiles(game: 'cs16' | 'cs13' = 'cs16') {
   const owner = getSessionToken()
   if (!owner) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
-  const executable = await getSavedCs16Executable()
-  if (!executable) throw new Error('COMPATIBILITY_FILES_UNAVAILABLE')
-  const result = await prepareCompatibilityFiles(dirname(executable), owner)
+  let root: string
+  let platform: string = process.platform
+  if (game === 'cs13') {
+    const profile = await new LegacyGameService({
+      settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+      platform: process.platform,
+      chooseFolder: async () => null,
+      isBusy: () => false,
+      launch: async () => undefined
+    }).get()
+    if (!profile.ok || !profile.value.installation)
+      throw new Error('COMPATIBILITY_FILES_UNAVAILABLE')
+    root = profile.value.installation.folderPath
+    if (profile.value.installation.runtime === 'wine') platform = 'win32'
+  } else {
+    const executable = await getSavedCs16Executable()
+    if (!executable) throw new Error('COMPATIBILITY_FILES_UNAVAILABLE')
+    root = dirname(executable)
+  }
+  const result = await prepareCompatibilityFiles(root, owner, game, platform)
   if (owner !== getSessionToken()) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
   return result
 }

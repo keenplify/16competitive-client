@@ -6,6 +6,14 @@ remembers Include for this account; `Not now` does not save a refusal. The promp
 no attachment control on the main report form. Browser and automatic reports never
 collect files.
 
+CS 1.3 reports use the saved, adapter-validated Legacy 1.3 installation; CS 1.6
+reports use the saved CS 1.6 executable. The active match, then completed match,
+then selected matchmaking mode determines the game. The renderer sends only a
+validated game ID, never a filesystem path. CS 1.3 includes both `cstrike` and
+`cstrk13` client libraries plus its legacy renderer libraries, within the same
+seven-file/64 MiB limit. Wine installations collect DLLs, native Linux collects
+SO files. Missing or invalid CS 1.3 installations never fall back to CS 1.6 files.
+
 The main process owns the path allowlist, bounded snapshot, SHA-256 hashing and
 upload. The renderer receives only preview metadata and an opaque ID. Approved
 snapshots expire after ten minutes and cannot cross account sessions. The backend

@@ -91,7 +91,10 @@ export const useIssueReport = create<State>((set, get) => ({
     set({ busy: true })
     const id = toast.loading(text('filesPreparing'))
     try {
-      const compatibility = await window.api.diagnosticLogs.compatibility?.()
+      const match = useMatchmakingStore.getState()
+      const mode = match.match?.mode ?? match.completedMatch?.mode ?? match.selectedMode
+      const game = mode === 'cs13_3v3' || mode === 'cs13_1v1' ? 'cs13' : 'cs16'
+      const compatibility = await window.api.diagnosticLogs.compatibility?.(game)
       if (!compatibility) throw new Error('unavailable')
       if (current !== generation) {
         toast.dismiss(id)

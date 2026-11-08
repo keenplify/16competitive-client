@@ -13,6 +13,21 @@ const windowsPaths = [
   'steam.dll'
 ]
 const linuxPaths = ['cstrike/cl_dlls/client.so', 'hw.so', 'valve/cl_dlls/GameUI.so', 'vgui2.so']
+const legacyWindowsPaths = [
+  'cstrike/cl_dlls/client.dll',
+  'cstrk13/cl_dlls/client.dll',
+  'client_original.dll',
+  'hw.dll',
+  'sw.dll',
+  'vgui.dll',
+  'filesystem_stdio.dll'
+]
+const legacyLinuxPaths = [
+  'cstrike/cl_dlls/client.so',
+  'cstrk13/cl_dlls/client.so',
+  'hw.so',
+  'sw.so'
+]
 const LIMIT = 16 * 1024 * 1024
 type Captured = {
   preview: CompatibilityPreview
@@ -23,12 +38,18 @@ type Captured = {
 let captured: Captured | undefined
 let preparing = false
 
-export async function collectCompatibilityFiles(root: string, platform: string) {
+export async function collectCompatibilityFiles(
+  root: string,
+  platform: string,
+  game: 'cs16' | 'cs13' = 'cs16'
+) {
   const base = await realpath(root)
   const files: CompatibilityPreview['files'] = []
   const bytes = new Map<string, Buffer>()
   let totalBytes = 0
-  for (const path of platform === 'win32' ? windowsPaths : platform === 'linux' ? linuxPaths : []) {
+  const windows = game === 'cs13' ? legacyWindowsPaths : windowsPaths
+  const linux = game === 'cs13' ? legacyLinuxPaths : linuxPaths
+  for (const path of platform === 'win32' ? windows : platform === 'linux' ? linux : []) {
     const candidate = join(base, path)
     try {
       const info = await lstat(candidate)
@@ -74,13 +95,15 @@ export async function collectCompatibilityFiles(root: string, platform: string) 
 
 export async function prepareCompatibilityFiles(
   root: string,
-  owner: string
+  owner: string,
+  game: 'cs16' | 'cs13' = 'cs16',
+  platform: string = process.platform
 ): Promise<CompatibilityPreview> {
   if (preparing) throw new Error('COMPATIBILITY_BUSY')
   preparing = true
   captured = undefined
   try {
-    const { files, bytes, totalBytes } = await collectCompatibilityFiles(root, process.platform)
+    const { files, bytes, totalBytes } = await collectCompatibilityFiles(root, platform, game)
     if (!files.length) throw new Error('COMPATIBILITY_FILES_UNAVAILABLE')
     const preview = { id: randomUUID(), files, totalBytes }
     captured = { preview, bytes, owner, expires: Date.now() + 10 * 60_000 }

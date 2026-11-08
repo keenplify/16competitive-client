@@ -9,6 +9,38 @@ import {
   uploadCompatibilityFiles
 } from '../src/main/compatibility-files.ts'
 
+test('CS 1.3 collects both mod layouts and legacy renderer libraries only', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'compat-cs13-'))
+  try {
+    for (const mod of ['cstrike', 'cstrk13']) {
+      await mkdir(join(root, mod, 'cl_dlls'), { recursive: true })
+      await writeFile(join(root, mod, 'cl_dlls', 'client.dll'), Buffer.alloc(128, 1))
+      await writeFile(join(root, mod, 'cl_dlls', 'client.so'), Buffer.alloc(128, 2))
+    }
+    for (const name of ['sw.dll', 'vgui.dll', 'steam.dll', 'sw.so'])
+      await writeFile(join(root, name), Buffer.alloc(128, 3))
+    const windows = await collectCompatibilityFiles(root, 'win32', 'cs13')
+    assert.deepEqual(
+      windows.files.map((f) => f.path),
+      ['cstrike/cl_dlls/client.dll', 'cstrk13/cl_dlls/client.dll', 'sw.dll', 'vgui.dll']
+    )
+    assert.equal(windows.bytes.size, 2)
+    const linux = await collectCompatibilityFiles(root, 'linux', 'cs13')
+    assert.deepEqual(
+      linux.files.map((f) => f.path),
+      ['cstrike/cl_dlls/client.so', 'cstrk13/cl_dlls/client.so', 'sw.so']
+    )
+    assert.equal(
+      (await collectCompatibilityFiles(root, 'win32')).files.some((f) =>
+        f.path.startsWith('cstrk13/')
+      ),
+      false
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('collection is bounded to fixed paths and rejects a directory junction escape', async () => {
   const root = await mkdtemp(join(tmpdir(), 'compat-files-'))
   const outside = await mkdtemp(join(tmpdir(), 'compat-outside-'))

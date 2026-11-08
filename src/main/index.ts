@@ -912,7 +912,11 @@ app.whenReady().then(async () => {
     return status
   })
   ipcMain.handle(AUTH_CHANNELS.icafeBranchUnlink, () => unlinkIcafeBranch(getSessionToken()))
-  ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.compatibility, () => previewCompatibilityFiles())
+  ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.compatibility, (_event, game: unknown) => {
+    if (game !== undefined && game !== 'cs16' && game !== 'cs13')
+      throw new Error('INVALID_COMPATIBILITY_GAME')
+    return previewCompatibilityFiles(game ?? 'cs16')
+  })
   ipcMain.handle(DIAGNOSTIC_LOG_CHANNELS.get, () => getDiagnosticLogs())
   ipcMain.handle(
     DIAGNOSTIC_LOG_CHANNELS.report,

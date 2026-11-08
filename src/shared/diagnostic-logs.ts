@@ -24,7 +24,7 @@ export const DIAGNOSTIC_LOG_CHANNELS = {
 } as const
 
 export interface DiagnosticLogsApi {
-  compatibility?: () => Promise<CompatibilityPreview>
+  compatibility?: (game?: 'cs16' | 'cs13') => Promise<CompatibilityPreview>
   get: () => Promise<string[]>
   report: (
     description: string,

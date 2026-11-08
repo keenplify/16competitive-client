@@ -6,10 +6,11 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
 
-async function fixture() {
+async function fixture(matchState = {}) {
   const auth = create(() => ({ session: { player: { id: 'account-a' } } }))
   const saved = new Map(),
-    sent = []
+    sent = [],
+    requestedGames = []
   const labels = JSON.parse(
     await readFile(new URL('../src/shared/issue-report-translations.json', import.meta.url))
   )
@@ -30,7 +31,10 @@ async function fixture() {
       api: {
         gameSettings: { getAssetSyncStatus: async () => null },
         diagnosticLogs: {
-          compatibility: async () => preview,
+          compatibility: async (game) => {
+            requestedGames.push(game)
+            return preview
+          },
           report: async (...args) => sent.push(args)
         }
       }
@@ -71,7 +75,7 @@ async function fixture() {
                 : name.includes('custom-games.store')
                   ? { useCustomGamesStore: { getState: () => ({}) } }
                   : name.includes('matchmaking.store')
-                    ? { useMatchmakingStore: { getState: () => ({}) } }
+                    ? { useMatchmakingStore: { getState: () => matchState } }
                     : name.includes('i18n')
                       ? { useLanguageStore: { getState: () => ({ language: 'en' }) } }
                       : { getRendererDiagnosticLogs: () => [] }
@@ -84,9 +88,27 @@ async function fixture() {
     )
   })
   await module.evaluate()
-  return { store: module.namespace.useIssueReport, auth, saved, sent }
+  return { store: module.namespace.useIssueReport, auth, saved, sent, requestedGames }
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve))
+
+test('compatibility preview selects the reported game before sending', async () => {
+  for (const [matchState, expected] of [
+    [{ selectedMode: 'cs13_3v3' }, 'cs13'],
+    [{ selectedMode: 'cs13_1v1' }, 'cs13'],
+    [{ selectedMode: '5v5', match: { mode: 'cs13_3v3' } }, 'cs13'],
+    [{ selectedMode: '5v5', completedMatch: { mode: 'cs13_1v1' } }, 'cs13'],
+    [{ selectedMode: 'cs13_3v3', match: { mode: '5v5' } }, 'cs16'],
+    [{ selectedMode: 'legacy' }, 'cs16']
+  ]) {
+    const { store, requestedGames, sent } = await fixture(matchState)
+    store.setState({ open: true, description: 'test' })
+    await store.getState().submit()
+    await settle()
+    assert.deepEqual(requestedGames, [expected])
+    assert.equal(sent.length, 0)
+  }
+})
 
 test('Submit asks before sending; Not now sends logs without remembering refusal', async () => {
   const { store, saved, sent } = await fixture()
