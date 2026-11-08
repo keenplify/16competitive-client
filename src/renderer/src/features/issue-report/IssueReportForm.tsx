@@ -83,7 +83,10 @@ export function IssueReportForm() {
           busy={state.busy}
           disabled={!state.compatibilityPreview}
           error={state.consentError ? t.filesError : undefined}
-          onClose={() => state.decideCompatibility(false)}
+          onClose={() =>
+            useIssueReport.setState({ consentOpen: false, compatibilityPreview: null })
+          }
+          onDecline={() => state.decideCompatibility(false)}
           onConfirm={() => state.decideCompatibility(true)}
         >
           <div className="h-48 overflow-auto text-xs">

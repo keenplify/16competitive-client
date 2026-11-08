@@ -12,6 +12,7 @@ interface ConfirmationDialogProps {
   confirmLabel: string
   closeLabel: string
   onClose: () => void
+  onDecline?: () => void
   onConfirm: () => void
   busy?: boolean
   disabled?: boolean
@@ -27,6 +28,7 @@ export function ConfirmationDialog({
   confirmLabel,
   closeLabel,
   onClose,
+  onDecline,
   onConfirm,
   busy = false,
   disabled = false,
@@ -71,7 +73,7 @@ export function ConfirmationDialog({
             variant="secondary"
             className="min-w-24"
             disabled={busy}
-            onClick={close}
+            onClick={onDecline ?? close}
           >
             {cancelLabel}
           </Button>

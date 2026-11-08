@@ -32,6 +32,7 @@ type State = {
   compatibility: CompatibilityPreview | null
   compatibilityPreview: CompatibilityPreview | null
   consentOpen: boolean
+  consentDecided: boolean
   rememberConsent: boolean
   savedConsent: boolean | null
   consentError: boolean
@@ -49,6 +50,7 @@ export const useIssueReport = create<State>((set, get) => ({
   compatibility: null,
   compatibilityPreview: null,
   consentOpen: false,
+  consentDecided: false,
   rememberConsent: false,
   savedConsent: null,
   consentError: false,
@@ -78,8 +80,10 @@ export const useIssueReport = create<State>((set, get) => ({
       compatibility: include ? preview : null,
       compatibilityPreview: null,
       consentOpen: false,
-      savedConsent: rememberedConsent()
+      savedConsent: rememberedConsent(),
+      consentDecided: true
     })
+    void get().submit()
   },
   prepareCompatibility: async (automatic = false) => {
     if (get().busy) return
@@ -174,12 +178,27 @@ export const useIssueReport = create<State>((set, get) => ({
     }
   },
   submit: async () => {
-    if (get().busy) return
+    if (get().busy || get().consentOpen) return
     if (!get().description.trim()) {
       toast.error(text('empty'))
       return
     }
     const current = generation
+    if (window.api.diagnosticLogs.compatibility && !get().consentDecided) {
+      if (rememberedConsent() !== true) {
+        get().openCompatibility()
+        return
+      }
+      await get().prepareCompatibility(true)
+      if (current !== generation) return
+      if (!get().compatibility) {
+        set({ consentOpen: true, rememberConsent: true, compatibilityPreview: null })
+        return
+      }
+      set({ consentDecided: true })
+      await get().submit()
+      return
+    }
     set({ busy: true })
     const id = toast.loading(text('sending'))
     try {
@@ -240,6 +259,7 @@ useAuthStore.subscribe((state, previous) => {
       compatibilityPreview: null,
       consentOpen: false,
       savedConsent: null,
+      consentDecided: false,
       rememberConsent: false,
       consentError: false,
       busy: false
@@ -250,10 +270,6 @@ useAuthStore.subscribe((state, previous) => {
 useIssueReport.subscribe((state, previous) => {
   if (state.open && !previous.open) {
     const savedConsent = rememberedConsent()
-    useIssueReport.setState({ savedConsent, compatibility: null })
-    if (window.api.diagnosticLogs.compatibility) {
-      if (savedConsent === true) void state.prepareCompatibility(true)
-      else state.openCompatibility()
-    }
+    useIssueReport.setState({ savedConsent, compatibility: null, consentDecided: false })
   }
 })

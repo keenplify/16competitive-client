@@ -2,7 +2,7 @@
 
 Issue reporting uses a consent modal with a fixed file preview. `Include files`
 enables attachments only for the submitted report. `Remember my preference`
-remembers Include for this account; `Not now` does not save a refusal. The prompt appears when opening a report unless Include was remembered. There is
+remembers Include for this account; `Not now` does not save a refusal. The prompt appears after Submit, before sending, unless Include was remembered. There is
 no attachment control on the main report form. Browser and automatic reports never
 collect files.
 
