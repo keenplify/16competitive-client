@@ -4546,3 +4546,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Shows the ranked warmup flow.
 - Hides betting features from players who are not participating in betting.
+
+## v2026.1109.2 — 2026-11-08
+
+### Play
+
+- CS 1.3 now has its own dedicated Play tab.
+- Partner communities now use their configured mode order.
+
+### Community Settings
+
+- Improved community settings and mode selection.
+- Added translated text for community and queue-related options.
