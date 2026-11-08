@@ -6,11 +6,42 @@ inspector, backend session authorization checks, two-hour session limit, owned
 process lifecycle, and launcher-owned startup file. Native cosmetics, HUD,
 voice and session music are unavailable in this compatibility path.
 
+The inspected legacy GoldClient family can use its own built-in crosshair.
+The helper maps validated launcher RGB, opacity, size, gap, thickness, dot,
+outline, T-style and supported dynamic settings to that client's crosshair
+commands in the launcher-owned startup file. No native workers or proxy are
+needed. CS2 styles above 5 fall back to static style 4; colored outlines,
+follow-recoil, screen-height scaling and CS2 scope-dot features have no exact
+equivalent here. Disabled enhancements leave the player's crosshair alone.
+
 This does not expand the native proxy ABI. A malformed client DLL, wrong
 architecture, missing Initialize/F entry point, partial NextClient layout, or
 existing managed/recovery journal still fails closed. Unknown player files are
 never replaced to force compatibility. CS 1.3 and native Linux keep their
 existing paths.
+
+Legacy GoldClient-derived clients (including LQS's supplied client, reported as
+TurboClient) are classified separately for launch behavior. Their full legacy
+export surface enables `-noupdate` even on the authenticated fallback path;
+it does not permit installing the cosmetic proxy. The modern proxy contract
+still requires every modern extension callback. LQS's November 7 report from
+2026.1107.8 records successful asset preparation followed by
+`NATIVE_INSTALL_UNSUPPORTED` on automatic launch and two reconnect attempts.
+That report predates the authenticated fallback; it is not evidence of a
+game-process crash or a failed automatic-launch trigger.
+
+Static Ghidra inspection of the supplied DLL (SHA-256
+`7c9b6e10b0d896d5c99bb0175fff4e8a13834f3e3ae9948e5ccbbf3c1bfdba9d`)
+also confirms a nonstandard initialization ABI: at RVA `0x30df0`, argument two
+is dereferenced as an interface object and argument three is compared with
+version 7. Valve's SDK uses two arguments, with the version in argument two.
+Both the supplied engine and client contain `VGUI_Surface026`, `GameUI007`
+and `GameConsole004` interface names. This is not evidence that VGUI2 is
+absent; nor does it prove compatibility with a newer native scoreboard.
+Keeping the original engine/client pair avoids routing this initialization
+through a standard SDK proxy. Full runtime validation still needs a matching
+installation and an authenticated match; a mixed-resource crash is separate
+from the recorded preparation rejection.
 
 The startup file repeats the current token and password before connecting;
 legacy hyphenated credentials remain intact. It is removed at session end.

@@ -29,6 +29,20 @@ export function supportsWindowsCosmeticClient(
   bytes: Uint8Array,
   family: 'cs16' | 'won13' | 'goldclient' = 'cs16'
 ): boolean {
+  return supportsClientExports(bytes, family)
+}
+
+/** Launch classification only: legacy engine callbacks are not proxy-compatible. */
+export function supportsWindowsGoldClientLaunch(bytes: Uint8Array): boolean {
+  return (
+    supportsClientExports(bytes, 'goldclient') || supportsClientExports(bytes, 'legacyGoldclient')
+  )
+}
+
+function supportsClientExports(
+  bytes: Uint8Array,
+  family: 'cs16' | 'won13' | 'goldclient' | 'legacyGoldclient'
+): boolean {
   const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const fits = (offset: number, size: number): boolean =>
     Number.isSafeInteger(offset) && offset >= 0 && size >= 0 && offset + size <= data.length
@@ -83,7 +97,14 @@ export function supportsWindowsCosmeticClient(
         ]
       : family === 'goldclient'
         ? GOLDCLIENT_EXPORTS
-        : WINDOWS_CLIENT_EXPORTS
+        : family === 'legacyGoldclient'
+          ? [
+              ...WINDOWS_CLIENT_EXPORTS.filter(
+                (name) => !GOLDCLIENT_OMITTED_EXPORTS.includes(name)
+              ),
+              ...goldClientExports.legacyExtension
+            ]
+          : WINDOWS_CLIENT_EXPORTS
   // WON exports data in the zero-filled tail of .data as well as functions.
   // It has no file offset, but is valid readable memory in the loaded PE image.
   const isVirtualData = (rva: number): boolean => {
@@ -172,7 +193,7 @@ export async function isGoldClientInstallation(gameRoot: string): Promise<boolea
   try {
     const info = await stat(client)
     if (!info.isFile() || info.size > 128 * 1024 * 1024) return false
-    return supportsWindowsCosmeticClient(await readFile(client), 'goldclient')
+    return supportsWindowsGoldClientLaunch(await readFile(client))
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false
     throw error

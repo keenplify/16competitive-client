@@ -5,6 +5,20 @@
     "?Materialize@CBasePlayerAmmo@@QAEXXZ",
     "?PlayerDeathThink@CBasePlayer@@QAEXXZ"
   ],
+  "legacyExtension": [
+    "HUD_GetFOV",
+    "HUD_GetWeapon",
+    "HUD_GetWeaponAnim",
+    "HUD_PlaySound",
+    "HUD_PlaybackEvent",
+    "HUD_SendWeaponAnim",
+    "HUD_SetMaxSpeed",
+    "HUD_WeaponsPostThink",
+    "HUD_ConnectedToGameServer",
+    "HUD_ConnectionToGameServer",
+    "HUD_DisconnectedFromGameServer",
+    "HUD_UserInfoChanged"
+  ],
   "extension": [
     "HUD_GetFOV",
     "HUD_GetWeapon",

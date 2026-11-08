@@ -1324,6 +1324,13 @@ Avoid managing complex flows with many unrelated booleans.
 
 ## Agent Instructions
 
+### Native binary analysis skill
+
+For DLL/engine ABI, exported callback, or updater reverse engineering, use the
+local [Ghidra skill](C:/Users/keenp/.codex/skills/ghidra/SKILL.md). It records the
+working Windows tool setup and evidence workflow. Verify exact binary hashes
+before and after runtime tests; self-updaters can replace the files being tested.
+
 When working in this repository:
 
 1. Treat this repository as the Electron launcher/client for 1.6 Competitive.

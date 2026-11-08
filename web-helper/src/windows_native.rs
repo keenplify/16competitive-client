@@ -47,6 +47,8 @@ struct NextJournal {
 struct GoldClientExports {
     omitted: Vec<String>,
     extension: Vec<String>,
+    #[serde(rename = "legacyExtension")]
+    legacy_extension: Vec<String>,
 }
 
 fn digest(bytes: &[u8]) -> String {
@@ -172,15 +174,37 @@ pub fn is_gold_client(root: &Path) -> Result<bool, String> {
     let Some(exports) = client_exports(&bytes) else {
         return Ok(false);
     };
+    gold_client_launch_exports(&exports)
+}
+
+fn gold_client_launch_exports(exports: &HashSet<&str>) -> Result<bool, String> {
     let gold: GoldClientExports = serde_json::from_str(include_str!(
         "../../src/shared/windows-goldclient-exports.json"
     ))
     .map_err(|_| "Invalid GoldClient launch contract")?;
-    Ok(gold
-        .extension
+    let required: Vec<String> = serde_json::from_str(include_str!(
+        "../../src/shared/windows-client-exports.json"
+    )).map_err(|_| "Invalid Windows client launch contract")?;
+    // Legacy callbacks identify the updater behavior only. They must never
+    // widen supported_client: the cosmetic proxy cannot forward this ABI.
+    Ok(required.len() >= 80 && required
         .iter()
+        .filter(|name| !gold.omitted.contains(name))
         .all(|name| exports.contains(name.as_str()))
-        && supported_client(&bytes))
+        && [gold.extension, gold.legacy_extension].iter().any(|extension|
+            !extension.is_empty() && extension.iter().all(|name| exports.contains(name.as_str()))))
+}
+
+/// Older GoldClient/TurboClient uses a different Initialize ABI. Select the
+/// original-DLL path before starting any optional native session workers.
+/// Interrupted installs and partial NextClient layouts must not use this route.
+pub fn requires_legacy_original_client(root: &Path) -> Result<bool, String> {
+    if !supports_config_authenticated_launch(root)? {
+        return Ok(false);
+    }
+    let bytes = read_limited(&root.join("cstrike/cl_dlls/client.dll"), 128 * 1024 * 1024)?;
+    let Some(exports) = client_exports(&bytes) else { return Ok(false); };
+    Ok(gold_client_launch_exports(&exports)? && !supported_client(&bytes))
 }
 
 fn recovery_path(root: &Path) -> PathBuf {
@@ -510,7 +534,33 @@ mod tests {
     use crate::native_session::NativeSession;
     use competitive16_web_helper::Connection;
 
+    #[test]
+    fn legacy_launch_contract_requires_every_callback() {
+        let gold: GoldClientExports = serde_json::from_str(include_str!(
+            "../../src/shared/windows-goldclient-exports.json"
+        )).unwrap();
+        let required: Vec<String> = serde_json::from_str(include_str!(
+            "../../src/shared/windows-client-exports.json"
+        )).unwrap();
+        for extension in [&gold.extension, &gold.legacy_extension] {
+            let exports: HashSet<&str> = required.iter()
+                .filter(|name| !gold.omitted.contains(name))
+                .chain(extension.iter()).map(String::as_str).collect();
+            assert!(gold_client_launch_exports(&exports).unwrap());
+            for name in &exports {
+                let mut missing = exports.clone();
+                missing.remove(name);
+                assert!(!gold_client_launch_exports(&missing).unwrap(), "{name}");
+            }
+        }
+        assert!(!gold_client_launch_exports(&required.iter().map(String::as_str).collect()).unwrap());
+    }
+
     fn config_auth_client_fixture() -> Vec<u8> {
+        client_fixture(&["Initialize".to_owned()])
+    }
+
+    fn client_fixture(names: &[String]) -> Vec<u8> {
         let mut b = vec![0u8; 16384];
         fn u16at(b: &mut [u8], offset: usize, value: u16) { b[offset..offset+2].copy_from_slice(&value.to_le_bytes()); }
         fn u32at(b: &mut [u8], offset: usize, value: u32) { b[offset..offset+4].copy_from_slice(&value.to_le_bytes()); }
@@ -524,10 +574,42 @@ mod tests {
         let section = 0x98+224;
         u32at(&mut b, section+8, 0x3e00);
         u32at(&mut b, section+12, 0x1000); u32at(&mut b, section+16, 0x3e00); u32at(&mut b, section+20, 0x200);
-        for (offset,value) in [(16,1),(20,1),(24,1),(28,0x1100),(32,0x1300),(36,0x1500)] { u32at(&mut b, 0x200+offset,value); }
-        u32at(&mut b, 0x300, 0x4000); u32at(&mut b, 0x500, 0x1700);
-        b[0x900..0x90b].copy_from_slice(b"Initialize\0");
+        for (offset,value) in [(16,1),(20,names.len() as u32),(24,names.len() as u32),(28,0x1100),(32,0x1300),(36,0x1500)] { u32at(&mut b, 0x200+offset,value); }
+        let mut cursor = 0x900;
+        for (index, name) in names.iter().enumerate() {
+            u32at(&mut b, 0x300 + index * 4, 0x4000 + index as u32);
+            u32at(&mut b, 0x500 + index * 4, cursor as u32 + 0xe00);
+            u16at(&mut b, 0x700 + index * 2, index as u16);
+            b[cursor..cursor+name.len()].copy_from_slice(name.as_bytes());
+            cursor += name.len() + 1;
+        }
         b
+    }
+
+    #[test]
+    fn legacy_client_selects_original_dll_and_preserves_recovery_gates() {
+        let gold: GoldClientExports = serde_json::from_str(include_str!(
+            "../../src/shared/windows-goldclient-exports.json"
+        )).unwrap();
+        let required: Vec<String> = serde_json::from_str(include_str!(
+            "../../src/shared/windows-client-exports.json"
+        )).unwrap();
+        let root = std::env::temp_dir().join(format!("16c-legacy-client-{}", Uuid::new_v4()));
+        let dir = root.join("cstrike/cl_dlls");
+        fs::create_dir_all(&dir).unwrap();
+        let names: Vec<String> = required.into_iter().filter(|name| !gold.omitted.contains(name))
+            .chain(gold.legacy_extension).collect();
+        let bytes = if let Ok(path) = std::env::var("C16_TEST_LEGACY_CLIENT_DLL") {
+            fs::read(path).unwrap()
+        } else { client_fixture(&names) };
+        fs::write(dir.join("client.dll"), &bytes).unwrap();
+        assert!(requires_legacy_original_client(&root).unwrap());
+        assert!(!supported_client(&bytes));
+        assert_eq!(fs::read(dir.join("client.dll")).unwrap(), bytes);
+        fs::create_dir(root.join("16competitive")).unwrap();
+        fs::write(root.join("16competitive/recovery.json"), b"interrupted").unwrap();
+        assert!(!requires_legacy_original_client(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

@@ -26,6 +26,7 @@ mod native_session;
 mod music;
 mod persistent_native;
 mod native_preferences;
+mod legacy_crosshair;
 mod session_authorization;
 mod notice_throttle;
 mod presence;
@@ -732,6 +733,7 @@ fn cs13_auth_file(game_dir: &Path, connection: &Connection) -> Result<(PathBuf, 
 fn cs16_startup_file(
     game_dir: &Path,
     connection: &Connection,
+    crosshair_commands: &str,
 ) -> Result<(PathBuf, String), String> {
     let pattern = launch_pattern();
     let id = format!("{:x}", Sha256::digest(connection.match_id.as_bytes()));
@@ -759,7 +761,7 @@ fn cs16_startup_file(
             .ok_or("Missing CS 1.6 startup wait")?,
     );
     let contents = format!(
-        "{identity}{waits}{identity}connect {}:{}\n",
+        "{identity}{waits}{identity}{crosshair_commands}connect {}:{}\n",
         connection.host, connection.port
     );
     if path.exists() {
@@ -960,6 +962,10 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                 let bundle = scanner_bundle.clone();
                 windows_native::validate_root(&root)?;
                 windows_native::prepare_existing(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
+                // This version's engine passes a third Initialize argument and
+                // invokes legacy connection callbacks. Keep its original DLL;
+                // do not initialize cosmetic/voice workers just to tear them down.
+                if !windows_native::requires_legacy_original_client(&root)? {
                 let session = native_session::NativeSession::start_at(
                     root.join("16competitive/live-session"),
                     connection,
@@ -987,6 +993,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                         }
                         return Err(desktop_session::preparation_error(&error, "NATIVE_INSTALL_FAILED"));
                     }
+                }
                 }
             }
             Err(error) => {
@@ -1039,8 +1046,11 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     } else {
         None
     };
+    let crosshair_commands = if cfg!(windows) && native.is_none() && gold_client {
+        legacy_crosshair::commands(&preferences)?
+    } else { String::new() };
     startup = if connection.game() == "cs16" && !next_client {
-        Some(cs16_startup_file(&game_dir, connection).map_err(|_| "STARTUP_CONFIG_FAILED")?)
+        Some(cs16_startup_file(&game_dir, connection, &crosshair_commands).map_err(|_| "STARTUP_CONFIG_FAILED")?)
     } else {
         None
     };
@@ -1103,6 +1113,11 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                 .ok_or("Missing managed native flag")?,
         );
         command.env("PAPAMO_SKIN_PROBE_SESSION", &session.directory);
+    }
+    // The game updater also runs on authenticated launches without cosmetics.
+    // Keep it from replacing files or consuming the match startup handoff.
+    #[cfg(windows)]
+    if connection.game() == "cs16" {
         if next_client {
             command.arg(
                 game_pattern
@@ -1413,7 +1428,7 @@ mod launch_tests {
             host: "127.0.0.1".into(), port: 27015, password: "legacy-password".into(),
             join_token: "legacy-token-with-hyphens-12345678".into(), player_name: "TestPlayer".into(),
         };
-        let startup = cs16_startup_file(&root, &connection).unwrap();
+        let startup = cs16_startup_file(&root, &connection, "").unwrap();
         let expected = format!("setinfo \"_16c_{}\" \"{}\"", &format!("{:x}", Sha256::digest(connection.match_id.as_bytes()))[..16], connection.join_token);
         assert_eq!(startup.1.matches(&expected).count(), 2);
         assert!(startup.1.ends_with("connect 127.0.0.1:27015\n"));

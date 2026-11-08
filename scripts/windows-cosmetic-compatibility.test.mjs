@@ -3,12 +3,14 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import goldClientContract from '../src/shared/windows-goldclient-exports.json' with { type: 'json' }
 import {
   isNextClientExecutable,
   isGoldClientInstallation,
   goldClientManagedLaunchArgs,
   isNextClientInstallation,
   supportsWindowsCosmeticClient,
+  supportsWindowsGoldClientLaunch,
   WINDOWS_CLIENT_EXPORTS,
   GOLDCLIENT_EXPORTS,
   GOLDCLIENT_EXTENSION_EXPORTS,
@@ -169,4 +171,29 @@ test('only recognized GoldClient managed launches disable its DLL updater', asyn
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('legacy GoldClient-derived clients are launchable without granting cosmetic compatibility', () => {
+  const exports = [
+    ...WINDOWS_CLIENT_EXPORTS.filter((name) => !goldClientContract.omitted.includes(name)),
+    ...goldClientContract.legacyExtension
+  ]
+  const legacy = clientFixture(exports)
+  assert.equal(supportsWindowsGoldClientLaunch(legacy), true)
+  assert.equal(supportsWindowsCosmeticClient(legacy), false)
+  assert.equal(supportsWindowsCosmeticClient(legacy, 'goldclient'), false)
+  for (const missing of ['Initialize', 'HUD_Redraw', ...goldClientContract.legacyExtension]) {
+    assert.equal(
+      supportsWindowsGoldClientLaunch(clientFixture(exports.filter((name) => name !== missing))),
+      false,
+      missing
+    )
+  }
+  assert.equal(supportsWindowsGoldClientLaunch(clientFixture()), false)
+  const x64 = Buffer.from(legacy)
+  x64.writeUInt16LE(0x8664, 0x84)
+  assert.equal(supportsWindowsGoldClientLaunch(x64), false)
+  const forwarder = Buffer.from(legacy)
+  forwarder.writeUInt32LE(0x1700, 0x300)
+  assert.equal(supportsWindowsGoldClientLaunch(forwarder), false)
 })
