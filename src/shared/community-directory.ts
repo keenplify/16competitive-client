@@ -1,5 +1,20 @@
 import type { PartnerServer } from './partner-community'
-import { MATCHMAKING_MODES, type MatchmakingMode } from './matchmaking'
+import type { MatchmakingMode } from './matchmaking'
+
+// Kept local: value imports between shared modules break Node's
+// type-stripping ESM resolver, which requires explicit extensions.
+const MATCHMAKING_MODE_ORDER_CHOICES: readonly MatchmakingMode[] = [
+  '3v3',
+  '5v5',
+  'unrated',
+  'legacy',
+  'legacy_3v3',
+  'cs13_3v3',
+  'cs13_1v1',
+  'casual',
+  'ffa',
+  'arena'
+]
 
 export const SERVER_CATEGORIES = [
   'pub',
@@ -170,7 +185,7 @@ function parseCommunityServers(input: unknown): PartnerServer[] {
 }
 const parseMatchmakingModeOrder = (value: unknown): MatchmakingMode[] => {
   if (!Array.isArray(value) || value.length > 9) throw new Error('INVALID_COMMUNITY_SETTINGS')
-  if (value.some((mode) => !(MATCHMAKING_MODES as readonly string[]).includes(mode as string)))
+  if (value.some((mode) => !(MATCHMAKING_MODE_ORDER_CHOICES as readonly string[]).includes(mode as string)))
     throw new Error('INVALID_COMMUNITY_SETTINGS')
   if (new Set(value).size !== value.length) throw new Error('INVALID_COMMUNITY_SETTINGS')
   return value
