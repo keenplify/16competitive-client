@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process'
 import electron from 'electron'
 
 test(
-  'warmup notice keeps its geometry and the queue has no manual bot button',
+  'warmup notice keeps its geometry and the queue offers play with bots while searching',
   { timeout: 30000 },
   async () => {
     const dir = await mkdtemp(join(tmpdir(), '16c-ranked-ui-'))
@@ -36,17 +36,24 @@ test(
             name: 'fixture',
             setup(b) {
               b.onResolve(
-                { filter: /^\.\/matchmaking.store$|^\.\/PlayerActivity$|^\.\.\/i18n\/i18n$/ },
+                {
+                  filter:
+                    /^\.\/matchmaking.store$|^\.\/PlayerActivity$|^\.\.\/i18n\/i18n$|^\.\.\/party\/party.store$|^\.\.\/auth\/auth.store$/
+                },
                 (a) => ({ path: a.path, namespace: 'fixture' })
               )
               b.onLoad({ filter: /.*/, namespace: 'fixture' }, (a) => ({
                 loader: 'js',
                 resolveDir: process.cwd(),
                 contents: a.path.includes('matchmaking.store')
-                  ? `import {create} from 'zustand';export const useMatchmakingStore=create(()=>({queueStatus:'queued',queueStartedAt:Date.now(),selectedMode:'5v5',selectedMapIds:['de_dust2'],activeRegion:'eu',maps:[],leaveQueue:async()=>{}}));window.queueState=useMatchmakingStore;`
+                  ? `import {create} from 'zustand';export const useMatchmakingStore=create(()=>({queueStatus:'queued',queueStartedAt:Date.now(),selectedMode:'5v5',selectedMapIds:['de_dust2'],activeRegion:'eu',maps:[],botFillOptIn:false,playWithBots:async()=>{},leaveQueue:async()=>{}}));window.queueState=useMatchmakingStore;`
                   : a.path.includes('PlayerActivity')
                     ? `export const PlayerActivity=()=>null;`
-                    : `import {matchNotificationTranslations as texts} from './src/renderer/src/features/i18n/match-notification-translations';export const useTranslation=()=>({t:key=>texts.en[key]??key});`
+                    : a.path.includes('party.store')
+                      ? `import {create} from 'zustand';export const usePartyStore=create(()=>({party:null}));`
+                      : a.path.includes('auth.store')
+                        ? `import {create} from 'zustand';export const useAuthStore=create(()=>({session:null}));`
+                        : `import {matchNotificationTranslations as texts} from './src/renderer/src/features/i18n/match-notification-translations';export const useTranslation=()=>({t:key=>texts.en[key]??key});`
               }))
             }
           }
@@ -72,7 +79,8 @@ test(
         }
         for(const mode of ['5v5','3v3','ffa'])for(const queueStatus of ['joining','queued','leaving']){
           await run('queueState.setState('+JSON.stringify({selectedMode:mode,queueStatus})+')');await wait();
-          assert.equal(await run('Array.from(document.querySelectorAll("button")).some(b=>/play with bots/i.test(b.innerText))'),false);
+          assert.equal(await run('Array.from(document.querySelectorAll("button")).some(b=>/play with bots/i.test(b.innerText))'),true);
+          assert.equal(await run('(()=>{const b=Array.from(document.querySelectorAll("button")).find(b=>/play with bots/i.test(b.innerText));return b.disabled})()'),queueStatus!=='queued');
         }
         fs.writeFileSync(${JSON.stringify(resolve('out/ranked-warmup-ui.png'))},(await w.webContents.capturePage()).toPNG());
         w.destroy();app.exit(0);

@@ -1053,15 +1053,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     playWithBots: async () => {
-      const ranked = get().selectedMode === '5v5'
-      const warmup = useQueueWarmupStore.getState()
-      if (ranked && (warmup.matchId || warmup.status === 'starting')) return
-      if (ranked) useQueueWarmupStore.setState({ status: 'starting' })
+      // Every mode opts into bot fill. For 5v5 the backend relaxes the
+      // two-human warmup start minimum so a solo player can start playing.
       try {
         await window.api.matchmaking.playWithBots()
         set({ error: null })
       } catch (error) {
-        if (ranked) useQueueWarmupStore.setState({ status: 'error' })
         set({ error: readableError(error) })
       }
     },
