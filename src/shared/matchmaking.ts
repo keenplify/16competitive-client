@@ -69,7 +69,7 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
 }
 
 export const isRankedMatchmakingMode = (mode: string): boolean =>
-  ['5v5', '3v3', 'cs13_3v3'].includes(mode)
+  ['5v5', '3v3', 'cs13_3v3', 'cs13_1v1'].includes(mode)
 
 export const getMatchmakingModeLabel = (mode: string): string =>
   isMatchmakingMode(mode) ? MATCHMAKING_MODE_LABELS[mode] : mode
