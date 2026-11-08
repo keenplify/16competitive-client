@@ -39,9 +39,12 @@ Both the supplied engine and client contain `VGUI_Surface026`, `GameUI007`
 and `GameConsole004` interface names. This is not evidence that VGUI2 is
 absent; nor does it prove compatibility with a newer native scoreboard.
 Keeping the original engine/client pair avoids routing this initialization
-through a standard SDK proxy. Full runtime validation still needs a matching
-installation and an authenticated match; a mixed-resource crash is separate
-from the recorded preparation rejection.
+through a standard SDK proxy. A later private-helper adapter was verified in a
+matching isolated Windows probe, including the custom scoreboard, crosshair and
+shutdown fix. This does not enable production native installation or establish
+authenticated-match compatibility. See the [November 8 diagnosis record](https://www.papamo.dev/docs/papamovgui2/legacy-goldclient)
+for the exact hashes, ABI differences, opacity bug, crash causes and retest steps.
+A mixed-resource crash remains separate from the recorded preparation rejection.
 
 The startup file repeats the current token and password before connecting;
 legacy hyphenated credentials remain intact. It is removed at session end.
