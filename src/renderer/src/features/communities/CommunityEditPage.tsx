@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { CheckboxSetting } from '../../components/CheckboxSetting'
-import { LoaderCircle, Plus, Save } from 'lucide-react'
+import { ArrowDown, ArrowUp, LoaderCircle, Plus, Save, X } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
 import { COUNTRY_OPTIONS, CountryFlag } from '../../components/CountryFlag'
@@ -85,6 +85,110 @@ export function CommunityEditPage({
                 onChange={(event) => state.updateDraft({ description: event.target.value })}
               />
             </label>
+          </div>
+        </section>
+
+        <section
+          className="border border-white/15 bg-neutral-950/80 p-5 sm:p-7"
+          aria-labelledby="community-edit-mode-order"
+        >
+          <h2 id="community-edit-mode-order" className="text-xl font-semibold">
+            {t('directory.modeOrder')}
+          </h2>
+          <p className="mt-1 text-sm text-neutral-400">{t('directory.modeOrderHint')}</p>
+          <div className="mt-4 space-y-2" aria-busy={state.editLoading}>
+            {(state.editDraft.matchmakingModeOrder ?? []).map((mode, index) => {
+              const label =
+                state.editDraft.matchmakingModes?.find((entry) => entry.id === mode)?.displayName ??
+                mode
+              const disabled = state.saving || state.editLoading || state.editLoadError
+              const order = state.editDraft.matchmakingModeOrder ?? []
+              return (
+                <div key={mode} className="flex items-center gap-2">
+                  <span className="w-6 shrink-0 text-right text-xs text-neutral-500">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
+                  <button
+                    type="button"
+                    title={t('directory.modeOrderMoveUp')}
+                    aria-label={t('directory.modeOrderMoveUp')}
+                    className="grid size-8 shrink-0 place-items-center border border-white/15 text-neutral-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={disabled || index === 0}
+                    onClick={() =>
+                      state.updateDraft({
+                        matchmakingModeOrder: [
+                          ...order.slice(0, index - 1),
+                          order[index],
+                          order[index - 1],
+                          ...order.slice(index + 1)
+                        ]
+                      })
+                    }
+                  >
+                    <ArrowUp className="size-3.5" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    title={t('directory.modeOrderMoveDown')}
+                    aria-label={t('directory.modeOrderMoveDown')}
+                    className="grid size-8 shrink-0 place-items-center border border-white/15 text-neutral-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={disabled || index === order.length - 1}
+                    onClick={() =>
+                      state.updateDraft({
+                        matchmakingModeOrder: [
+                          ...order.slice(0, index),
+                          order[index + 1],
+                          order[index],
+                          ...order.slice(index + 2)
+                        ]
+                      })
+                    }
+                  >
+                    <ArrowDown className="size-3.5" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    title={t('directory.modeOrderRemove')}
+                    aria-label={t('directory.modeOrderRemove')}
+                    className="grid size-8 shrink-0 place-items-center border border-white/15 text-neutral-300 hover:bg-red-500/15 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={disabled}
+                    onClick={() =>
+                      state.updateDraft({
+                        matchmakingModeOrder: order.filter((entry) => entry !== mode)
+                      })
+                    }
+                  >
+                    <X className="size-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              )
+            })}
+            {(() => {
+              const order = state.editDraft.matchmakingModeOrder ?? []
+              const addable = (state.editDraft.matchmakingModes ?? []).filter(
+                (mode) => !order.includes(mode.id)
+              )
+              if (addable.length === 0) return null
+              return (
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+                  <span className="text-xs text-neutral-400">{t('directory.modeOrderAdd')}</span>
+                  {addable.map((mode) => (
+                    <button
+                      type="button"
+                      key={mode.id}
+                      disabled={state.saving || state.editLoading || state.editLoadError}
+                      className="border border-white/15 px-2 py-1 text-xs text-neutral-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() =>
+                        state.updateDraft({ matchmakingModeOrder: [...order, mode.id] })
+                      }
+                    >
+                      + {mode.displayName}
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         </section>
 

@@ -1,4 +1,5 @@
 import type { PartnerServer } from './partner-community'
+import { MATCHMAKING_MODES, type MatchmakingMode } from './matchmaking'
 
 export const SERVER_CATEGORIES = [
   'pub',
@@ -60,6 +61,8 @@ export interface CommunityDirectoryApi {
 }
 export interface CommunityUpdate {
   hideCommunityChat?: boolean
+  matchmakingModeOrder?: MatchmakingMode[]
+  matchmakingModes?: { id: MatchmakingMode; displayName: string }[]
   name: string
   communityCountryCode: string | null
   description: string
@@ -73,6 +76,9 @@ export function communityUpdateBody(input: CommunityUpdate) {
       : {}),
     communityCountryCode: input.communityCountryCode,
     description: input.description,
+    ...(input.matchmakingModeOrder !== undefined
+      ? { matchmakingModeOrder: input.matchmakingModeOrder }
+      : {}),
     servers: input.servers.map(({ id, name, host, port, category, countryCode, gameVersion }) => ({
       id,
       name,
@@ -162,9 +168,35 @@ function parseCommunityServers(input: unknown): PartnerServer[] {
     } as PartnerServer
   })
 }
+const parseMatchmakingModeOrder = (value: unknown): MatchmakingMode[] => {
+  if (!Array.isArray(value) || value.length > 9) throw new Error('INVALID_COMMUNITY_SETTINGS')
+  if (value.some((mode) => !(MATCHMAKING_MODES as readonly string[]).includes(mode as string)))
+    throw new Error('INVALID_COMMUNITY_SETTINGS')
+  if (new Set(value).size !== value.length) throw new Error('INVALID_COMMUNITY_SETTINGS')
+  return value
+}
+
+const parseMatchmakingModes = (value: unknown): { id: MatchmakingMode; displayName: string }[] => {
+  if (!Array.isArray(value) || value.length > 9) throw new Error('INVALID_COMMUNITY_SETTINGS')
+  return value.map((entry) => {
+    if (!entry || typeof entry !== 'object') throw new Error('INVALID_COMMUNITY_SETTINGS')
+    const { id, displayName } = entry as { id?: unknown; displayName?: unknown }
+    if (
+      typeof id !== 'string' ||
+      !(MATCHMAKING_MODES as readonly string[]).includes(id) ||
+      typeof displayName !== 'string' ||
+      !displayName.trim() ||
+      displayName.length > 40
+    )
+      throw new Error('INVALID_COMMUNITY_SETTINGS')
+    return { id: id as MatchmakingMode, displayName }
+  })
+}
+
 export function parseCommunityOwnerSettings(input: unknown): CommunityUpdate {
   if (!input || typeof input !== 'object') throw new Error('INVALID_COMMUNITY_SETTINGS')
-  const branding = (input as { branding?: unknown }).branding
+  const response = input as { branding?: unknown; matchmakingModes?: unknown }
+  const branding = response.branding
   if (!branding || typeof branding !== 'object') throw new Error('INVALID_COMMUNITY_SETTINGS')
   const value = branding as Record<string, unknown>
   if (typeof value.description !== 'string') throw new Error('INVALID_COMMUNITY_SETTINGS')
@@ -178,6 +210,12 @@ export function parseCommunityOwnerSettings(input: unknown): CommunityUpdate {
     name: value.communityName,
     ...(value.hideCommunityChat !== undefined
       ? { hideCommunityChat: value.hideCommunityChat }
+      : {}),
+    ...(response.matchmakingModes !== undefined
+      ? { matchmakingModes: parseMatchmakingModes(response.matchmakingModes) }
+      : {}),
+    ...(value.matchmakingModeOrder !== undefined
+      ? { matchmakingModeOrder: parseMatchmakingModeOrder(value.matchmakingModeOrder) }
       : {}),
     communityCountryCode: value.communityCountryCode ?? null,
     description: value.description,
@@ -202,10 +240,15 @@ export function validateCommunityUpdate(input: unknown): asserts input is Commun
       const code = char.charCodeAt(0)
       return code < 32 && code !== 9 && code !== 10 && code !== 13
     }) ||
-    !Array.isArray(value.servers)
+    !Array.isArray(value.servers) ||
+    (value.matchmakingModeOrder !== undefined && !Array.isArray(value.matchmakingModeOrder)) ||
+    (value.matchmakingModes !== undefined && !Array.isArray(value.matchmakingModes))
   )
     throw new Error('INVALID_COMMUNITY_UPDATE')
   parseCommunityServers(value.servers)
+  if (value.matchmakingModeOrder !== undefined)
+    parseMatchmakingModeOrder(value.matchmakingModeOrder)
+  if (value.matchmakingModes !== undefined) parseMatchmakingModes(value.matchmakingModes)
 }
 const uuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v)

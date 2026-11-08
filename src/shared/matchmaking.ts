@@ -157,6 +157,7 @@ export interface MatchmakingMap {
 export interface MatchmakingMapCatalog {
   maps: MatchmakingMap[]
   customModes: ServerCustomGameMode[]
+  modeOrder: MatchmakingMode[]
 }
 
 export interface MatchmakingNode {

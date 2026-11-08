@@ -98,6 +98,7 @@ export function PlayPage({
   const checkingForUpdates = useUpdaterStore((state) => state.status.state === 'checking')
   const selectedMode = useMatchmakingStore((state) => state.selectedMode)
   const maps = useMatchmakingStore((state) => state.maps)
+  const modeOrder = useMatchmakingStore((state) => state.modeOrder)
   const mapsStatus = useMatchmakingStore((state) => state.mapsStatus)
   const selectedMapIds = useMatchmakingStore((state) => state.selectedMapIds)
   const nodes = useMatchmakingStore((state) => state.nodes)
@@ -281,16 +282,26 @@ export function PlayPage({
   const modeAllowsWeb = maps.some((map) => map.webModes.includes(selectedMode))
   const desktopOnlyMode = partyRequiresWeb && !modeAllowsWeb
   const isConnected = connectionStatus === 'ready'
+  // The partner community decides the mode order; unlisted modes keep the
+  // default catalog order behind the chosen ones.
+  const orderedQueueModes = [...queueModes].sort((left, right) => {
+    const leftIndex = modeOrder.indexOf(left)
+    const rightIndex = modeOrder.indexOf(right)
+    if (leftIndex >= 0 && rightIndex >= 0) return leftIndex - rightIndex
+    if (leftIndex >= 0) return -1
+    if (rightIndex >= 0) return 1
+    return queueModes.indexOf(left) - queueModes.indexOf(right)
+  })
   const visibleQueueModes =
     mapsStatus === 'ready'
-      ? queueModes.filter((mode) =>
+      ? orderedQueueModes.filter((mode) =>
           maps.some((map) =>
             partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
           )
         )
       : hideDesktopOnlyFeatures
         ? []
-        : queueModes.filter((mode) => mode !== 'cs13_3v3' && mode !== 'cs13_1v1')
+        : orderedQueueModes.filter((mode) => mode !== 'cs13_3v3' && mode !== 'cs13_1v1')
   const showCompetitive =
     mapsStatus === 'ready'
       ? visibleQueueModes.includes('5v5')
@@ -312,6 +323,17 @@ export function PlayPage({
   const noncompetitiveModes = visibleQueueModes.filter(
     (mode) =>
       mode !== '5v5' &&
+      mode !== 'arena' &&
+      mode !== 'cs13_3v3' &&
+      mode !== 'cs13_1v1' &&
+      maps.some(
+        (map) =>
+          map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
+      )
+  )
+  const cs13Modes = visibleQueueModes.filter(
+    (mode) =>
+      (mode === 'cs13_3v3' || mode === 'cs13_1v1') &&
       maps.some(
         (map) =>
           map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
@@ -324,7 +346,9 @@ export function PlayPage({
       : selectedMode !== '5v5'
         ? selectedMode === 'arena'
           ? 'arena'
-          : 'noncompetitive'
+          : selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1'
+            ? 'cs13'
+            : 'noncompetitive'
         : 'competitive'
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
@@ -657,6 +681,16 @@ export function PlayPage({
                   }
                 ]
               : []),
+            ...(cs13Modes.length > 0
+              ? [
+                  {
+                    value: 'cs13',
+                    label: t('play.cs13'),
+                    disabled:
+                      (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
+                  }
+                ]
+              : []),
             ...(noncompetitiveModes.includes('arena')
               ? [
                   {
@@ -678,7 +712,9 @@ export function PlayPage({
             if (!isSearching) {
               if (view === 'competitive') selectMode('5v5')
               else if (view === 'arena') selectMode('arena')
-              else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+              else if (view === 'cs13') {
+                if (cs13Modes[0]) selectMode(cs13Modes[0])
+              } else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
                 selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
             }
           }}
@@ -692,25 +728,49 @@ export function PlayPage({
           />
         ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
-            {selectedMode !== '5v5' && selectedMode !== 'arena' && ffaTabModes.length > 1 && (
-              <div className="w-64 max-w-full shrink-0">
-                <SelectField
-                  label={t('warmup.mode')}
-                  value={selectedMode}
-                  disabled={isSearching || !isLeader}
-                  onChange={(event) => {
-                    const mode = ffaTabModes.find((mode) => mode === event.target.value)
-                    if (mode) selectMode(mode)
-                  }}
-                >
-                  {ffaTabModes.map((mode) => (
-                    <option key={mode} value={mode}>
-                      {getMatchmakingModeLabel(mode)}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
-            )}
+            {selectedMode !== '5v5' &&
+              selectedMode !== 'arena' &&
+              selectedMode !== 'cs13_3v3' &&
+              selectedMode !== 'cs13_1v1' &&
+              ffaTabModes.length > 1 && (
+                <div className="w-64 max-w-full shrink-0">
+                  <SelectField
+                    label={t('warmup.mode')}
+                    value={selectedMode}
+                    disabled={isSearching || !isLeader}
+                    onChange={(event) => {
+                      const mode = ffaTabModes.find((mode) => mode === event.target.value)
+                      if (mode) selectMode(mode)
+                    }}
+                  >
+                    {ffaTabModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {getMatchmakingModeLabel(mode)}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+              )}
+            {cs13Modes.length > 1 &&
+              (selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1') && (
+                <div className="w-64 max-w-full shrink-0">
+                  <SelectField
+                    label={t('warmup.mode')}
+                    value={selectedMode}
+                    disabled={isSearching || !isLeader}
+                    onChange={(event) => {
+                      const mode = cs13Modes.find((mode) => mode === event.target.value)
+                      if (mode) selectMode(mode)
+                    }}
+                  >
+                    {cs13Modes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {getMatchmakingModeLabel(mode)}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+              )}
             <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
               <div
                 className={twMerge(

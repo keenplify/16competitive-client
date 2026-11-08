@@ -152,6 +152,7 @@ interface MatchmakingState {
   queueStatus: QueueStatus
   selectedMode: MatchmakingMode
   customModes: ServerCustomGameMode[]
+  modeOrder: MatchmakingMode[]
   maps: MatchmakingMap[]
   mapsStatus: 'idle' | 'loading' | 'ready' | 'error'
   selectedMapIds: string[]
@@ -830,6 +831,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     queueStatus: 'idle',
     selectedMode: isWebRuntime() ? 'unrated' : '5v5',
     customModes: [],
+    modeOrder: [],
     maps: [],
     mapsStatus: 'idle',
     selectedMapIds: [],
@@ -934,7 +936,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         error: null
       })
       try {
-        const { maps, customModes } = await window.api.matchmaking.getMaps()
+        const { maps, customModes, modeOrder } = await window.api.matchmaking.getMaps()
         const availableModesFor = (map: MatchmakingMap): MatchmakingMode[] =>
           isWebRuntime() && !useWebHelperPromptStore.getState().competitiveReady
             ? map.webModes
@@ -952,6 +954,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({
           maps,
           customModes,
+          modeOrder,
           mapsStatus: 'ready',
           selectedMode,
           selectedMapIds:
@@ -961,7 +964,14 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         })
       } catch (error) {
         const message = readableError(error)
-        set({ mapsStatus: 'error', maps: [], customModes: [], selectedMapIds: [], error: message })
+        set({
+          mapsStatus: 'error',
+          maps: [],
+          customModes: [],
+          modeOrder: [],
+          selectedMapIds: [],
+          error: message
+        })
         if (message.includes('MATCHMAKING_MAPS_UNAUTHORIZED')) {
           void useAuthStore.getState().logout()
         }

@@ -1,6 +1,13 @@
 export const communityDirectoryTranslations = {
   en: {
     'directory.hideChat': 'Hide community chat',
+    'directory.modeOrder': 'Mode order',
+    'directory.modeOrderHint':
+      'Decides the order matchmaking modes appear in the launcher. Unlisted modes keep their default position.',
+    'directory.modeOrderMoveUp': 'Move up',
+    'directory.modeOrderMoveDown': 'Move down',
+    'directory.modeOrderRemove': 'Remove from order',
+    'directory.modeOrderAdd': 'Add to order',
     'directory.hideChatHint':
       'Hide the community chat tab and stop sending or reading messages. Members and message history are kept.',
     'directory.savingSettings': 'Saving community settings…',
@@ -97,6 +104,13 @@ export const communityDirectoryTranslations = {
   },
   ru: {
     'directory.hideChat': 'Скрыть чат сообщества',
+    'directory.modeOrder': 'Порядок режимов',
+    'directory.modeOrderHint':
+      'Определяет порядок режимов матчмейкинга в лаунчере. Режимы не из списка сохраняют позицию по умолчанию.',
+    'directory.modeOrderMoveUp': 'Вверх',
+    'directory.modeOrderMoveDown': 'Вниз',
+    'directory.modeOrderRemove': 'Убрать из порядка',
+    'directory.modeOrderAdd': 'Добавить в порядок',
     'directory.hideChatHint':
       'Скрывает вкладку чата и запрещает чтение и отправку сообщений. Участники и история сохраняются.',
     'directory.savingSettings': 'Сохранение настроек сообщества…',
@@ -195,6 +209,13 @@ export const communityDirectoryTranslations = {
   },
   tl: {
     'directory.hideChat': 'Itago ang community chat',
+    'directory.modeOrder': 'Pagkakasunod ng mga mode',
+    'directory.modeOrderHint':
+      'Tinutukoy ang pagkakasunod ng mga mode sa launcher. Ang mga hindi nakalista ay mananatili sa default na posisyon.',
+    'directory.modeOrderMoveUp': 'Itaas',
+    'directory.modeOrderMoveDown': 'Ibaba',
+    'directory.modeOrderRemove': 'Alisin sa pagkakasunod',
+    'directory.modeOrderAdd': 'Idagdag sa pagkakasunod',
     'directory.hideChatHint':
       'Itago ang chat tab at ihinto ang pagbabasa at pagpapadala ng mensahe. Mananatili ang mga miyembro at kasaysayan ng chat.',
     'directory.savingSettings': 'Sine-save ang community settings…',
@@ -292,6 +313,13 @@ export const communityDirectoryTranslations = {
   },
   th: {
     'directory.hideChat': 'ซ่อนแชทชุมชน',
+    'directory.modeOrder': 'ลำดับโหมด',
+    'directory.modeOrderHint':
+      'กำหนดลำดับโหมดแมตช์เมกกิ้งในลาuncher โหมดที่ไม่อยู่ในรายการจะอยู่ในตำแหน่งเดิม',
+    'directory.modeOrderMoveUp': 'เลื่อนขึ้น',
+    'directory.modeOrderMoveDown': 'เลื่อนลง',
+    'directory.modeOrderRemove': 'นำออกจากลำดับ',
+    'directory.modeOrderAdd': 'เพิ่มในลำดับ',
     'directory.hideChatHint':
       'ซ่อนแท็บแชทและหยุดการอ่านหรือส่งข้อความ โดยเก็บสมาชิกและประวัติข้อความไว้',
     'directory.savingSettings': 'กำลังบันทึกการตั้งค่าชุมชน…',
@@ -386,6 +414,13 @@ export const communityDirectoryTranslations = {
   },
   id: {
     'directory.hideChat': 'Sembunyikan chat komunitas',
+    'directory.modeOrder': 'Urutan mode',
+    'directory.modeOrderHint':
+      'Menentukan urutan mode matchmaking di launcher. Mode yang tidak terdaftar tetap di posisi default.',
+    'directory.modeOrderMoveUp': 'Naik',
+    'directory.modeOrderMoveDown': 'Turun',
+    'directory.modeOrderRemove': 'Hapus dari urutan',
+    'directory.modeOrderAdd': 'Tambahkan ke urutan',
     'directory.hideChatHint':
       'Sembunyikan tab chat dan hentikan pembacaan serta pengiriman pesan. Anggota dan riwayat pesan tetap disimpan.',
     'directory.savingSettings': 'Menyimpan pengaturan komunitas…',
@@ -482,6 +517,13 @@ export const communityDirectoryTranslations = {
   },
   hi: {
     'directory.hideChat': 'समुदाय चैट छिपाएँ',
+    'directory.modeOrder': 'मोड का क्रम',
+    'directory.modeOrderHint':
+      'लॉन्चर में मैचमेकिंग मोड का क्रम तय करता है। सूची से बाहर के मोड डिफ़ॉल्ट स्थान पर रहते हैं।',
+    'directory.modeOrderMoveUp': 'ऊपर करें',
+    'directory.modeOrderMoveDown': 'नीचे करें',
+    'directory.modeOrderRemove': 'क्रम से हटाएँ',
+    'directory.modeOrderAdd': 'क्रम में जोड़ें',
     'directory.hideChatHint':
       'चैट टैब छिपाएँ और संदेश पढ़ना व भेजना बंद करें। सदस्य और संदेश इतिहास सुरक्षित रहेंगे।',
     'directory.savingSettings': 'समुदाय सेटिंग सहेजी जा रही हैं…',
@@ -576,6 +618,13 @@ export const communityDirectoryTranslations = {
   },
   pt: {
     'directory.hideChat': 'Ocultar chat da comunidade',
+    'directory.modeOrder': 'Ordem dos modos',
+    'directory.modeOrderHint':
+      'Define a ordem dos modos de matchmaking no launcher. Modos fora da lista mantêm a posição padrão.',
+    'directory.modeOrderMoveUp': 'Subir',
+    'directory.modeOrderMoveDown': 'Descer',
+    'directory.modeOrderRemove': 'Remover da ordem',
+    'directory.modeOrderAdd': 'Adicionar à ordem',
     'directory.hideChatHint':
       'Oculta a aba de chat e impede a leitura e o envio de mensagens. Os membros e o histórico são mantidos.',
     'directory.savingSettings': 'Salvando configurações da comunidade…',
@@ -676,6 +725,13 @@ export const communityDirectoryTranslations = {
   },
   ja: {
     'directory.hideChat': 'コミュニティチャットを非表示',
+    'directory.modeOrder': 'モードの順序',
+    'directory.modeOrderHint':
+      'ランチャーでのマッチメイキングモードの表示順を決めます。リストにないモードはデフォルトの位置のままです。',
+    'directory.modeOrderMoveUp': '上へ',
+    'directory.modeOrderMoveDown': '下へ',
+    'directory.modeOrderRemove': '順序から外す',
+    'directory.modeOrderAdd': '順序に追加',
     'directory.hideChatHint':
       'チャットタブを非表示にし、メッセージの閲覧と送信を停止します。メンバーと履歴は保持されます。',
     'directory.savingSettings': 'コミュニティ設定を保存中…',

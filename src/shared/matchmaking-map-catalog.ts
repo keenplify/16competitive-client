@@ -43,7 +43,13 @@ const isMap = (value: unknown): value is CatalogMap =>
   isStringArray(value.customModes)
 
 export function parseMatchmakingMapCatalog(body: unknown): MatchmakingMapCatalog {
-  if (!isObject(body) || !Array.isArray(body.maps) || !body.maps.every(isMap)) {
+  if (
+    !isObject(body) ||
+    !Array.isArray(body.maps) ||
+    !body.maps.every(isMap) ||
+    (body.modeOrder !== undefined &&
+      (!Array.isArray(body.modeOrder) || body.modeOrder.some((mode) => !isMatchmakingMode(mode))))
+  ) {
     throw new Error('The matchmaking server returned invalid maps')
   }
   // Older APIs advertise enabled custom modes only through their map pools.
@@ -64,5 +70,9 @@ export function parseMatchmakingMapCatalog(body: unknown): MatchmakingMapCatalog
     webModes: map.webModes.filter(isMatchmakingMode),
     customModes: map.customModes.filter(isServerCustomGameMode)
   }))
-  return { maps, customModes: [...new Set(customModes.filter(isServerCustomGameMode))] }
+  return {
+    maps,
+    customModes: [...new Set(customModes.filter(isServerCustomGameMode))],
+    modeOrder: body.modeOrder === undefined ? [] : body.modeOrder.filter(isMatchmakingMode)
+  }
 }
