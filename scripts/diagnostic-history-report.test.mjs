@@ -32,6 +32,9 @@ await build({
    export const getSessionToken=()=> 'private-token';
    export const getSessionUsername=()=> 'current-account';
    export const getSavedCs16Executable=async()=>null;
+   export class LegacyGameService {
+    constructor(){throw Error('legacy installation should not be read for diagnostic history')}
+   }
    export const gamePerformanceReport=()=>'';
    export const refreshGamePerformance=async()=>{};
    export const API_BASE_URL='https://example.test';
