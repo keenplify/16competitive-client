@@ -4520,3 +4520,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match startup
 
 - Standalone repacks now correctly apply match startup commands.
+
+## v2026.1108.3 — 2026-11-08
+
+### Compatibility
+
+- Added support for including Counter-Strike 1.3 installations in compatibility reports.
+- Improved legacy GoldClient launch handling without replacing unsupported installations.
+- Improved compatibility diagnostics for legacy installations.
+
+### Issue Reports
+
+- Added an optional consent step for sharing compatibility files with reports.
+- Remembered report-file consent choices for future submissions.
+- Added clearer themed prompts when compatibility files are requested.
