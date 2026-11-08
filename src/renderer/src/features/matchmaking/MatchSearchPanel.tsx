@@ -1,7 +1,4 @@
-import { useQueueWarmupStore } from './queue-warmup.store'
 import { PlayerActivity } from './PlayerActivity'
-import { useTranslation } from '../i18n/i18n'
-import { QueueWarmupButton } from './QueueWarmupPanel'
 import { LoaderCircle, Search, X } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -9,8 +6,6 @@ import { Button } from '../../components/ui/Button'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { serverClockNow } from '../../../../shared/server-clock'
 import { useMatchmakingStore } from './matchmaking.store'
-import { usePartyStore } from '../party/party.store'
-import { useAuthStore } from '../auth/auth.store'
 
 interface MatchSearchPanelProps {
   className?: string
@@ -27,14 +22,7 @@ export function MatchSearchPanel({
   className,
   variant = 'full'
 }: MatchSearchPanelProps): JSX.Element | null {
-  const { t } = useTranslation()
-  const party = usePartyStore((state) => state.party)
-  const playerId = useAuthStore((state) => state.session?.player.id)
-  const warmupBusy = useQueueWarmupStore(
-    (state) => state.matchId !== null || state.status === 'starting' || state.status === 'leaving'
-  )
   const botFillOptIn = useMatchmakingStore((state) => state.botFillOptIn)
-  const playWithBots = useMatchmakingStore((state) => state.playWithBots)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
   const searchStage = useMatchmakingStore((state) => state.searchStage)
@@ -82,12 +70,6 @@ export function MatchSearchPanel({
       ? 'Cancelling search'
       : 'Searching for a match'
   const queueDuration = queueStartedAt ? formatQueueDuration(elapsedSeconds) : '--:--'
-  const canPlayWithBots =
-    queueStatus === 'queued' &&
-    !botFillOptIn &&
-    !warmupBusy &&
-    (!party || party.leaderId === playerId)
-
   if (variant === 'compact') {
     return (
       <aside
@@ -130,20 +112,6 @@ export function MatchSearchPanel({
             <X className="size-3.5" aria-hidden="true" />
           </button>
         </div>
-        <QueueWarmupButton className="mx-2.5 mb-2.5 w-[calc(100%-1.25rem)]" />
-        {selectedMode !== '5v5' && (
-          <div className="relative border-t border-white/10 px-2.5 pb-2.5 pt-2">
-            <div className="flex items-center gap-1">
-              <Button
-                className="h-7 min-w-0 flex-1 text-[10px]"
-                disabled={!canPlayWithBots}
-                onClick={() => void playWithBots()}
-              >
-                {t('activity.playBots')}
-              </Button>
-            </div>
-          </div>
-        )}
       </aside>
     )
   }
@@ -189,17 +157,7 @@ export function MatchSearchPanel({
         <p className="mt-1 text-[11px] text-neutral-300">
           <PlayerActivity />
         </p>
-        <QueueWarmupButton className="mt-3" />
         <div className="mt-3 flex h-8 gap-2">
-          {selectedMode !== '5v5' && (
-            <Button
-              className="h-8 min-w-0 flex-1 px-2 text-[10px]"
-              disabled={!canPlayWithBots}
-              onClick={() => void playWithBots()}
-            >
-              {t('activity.playBots')}
-            </Button>
-          )}
           <Button
             className={twMerge(
               'h-8 rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white',

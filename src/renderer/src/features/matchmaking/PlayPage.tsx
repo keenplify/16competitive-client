@@ -1,13 +1,12 @@
+import { RankedWarmupNotice } from './RankedWarmupNotice'
 import { verifyInstalledNativeHelper } from './native-helper-action'
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
 import { usePartnerPresenceStore } from '../partner-branding/partner-presence.store'
 import { PartnerServerSession } from '../partner-branding/PartnerServerSession'
 import { PlayerActivity } from './PlayerActivity'
 import { MatchmakingMapPool } from './MatchmakingMapPool'
-import { QueueWarmupPanel } from './QueueWarmupPanel'
 import { FindMatchButton, PlayQueueActions } from './FindMatchButton'
 import { SelectField } from '../../components/ui/SelectField'
-import { useQueueWarmupStore } from './queue-warmup.store'
 import { PartnerServersPanel } from '../partner-branding/PartnerServersPanel'
 import { useCommunityText } from '../partner-branding/community-copy'
 import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
@@ -152,17 +151,6 @@ export function PlayPage({
     (webRuntime && !nativeCompetitiveReady) ||
     Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
-  const warmupBrowsing = useQueueWarmupStore((state) => state.browsing)
-  const warmupMode = useQueueWarmupStore((state) => state.mode)
-  const warmupActive = useQueueWarmupStore((state) => state.matchId !== null)
-  const warmupBusy = useQueueWarmupStore(
-    (state) => state.status === 'starting' || state.status === 'leaving'
-  )
-  const selectWarmup = useQueueWarmupStore((state) => state.select)
-  const openWarmup = useQueueWarmupStore((state) => state.open)
-  const closeWarmup = useQueueWarmupStore((state) => state.dismiss)
-  const warmupEligible = queueStatus === 'queued' && selectedMode === '5v5'
-  const showWarmup = warmupEligible
 
   useEffect(() => {
     if (mapsStatus !== 'ready' || queueStatus !== 'idle') return
@@ -302,7 +290,7 @@ export function PlayPage({
         )
       : hideDesktopOnlyFeatures
         ? []
-        : queueModes.filter((mode) => (mode !== 'cs13_3v3' && mode !== 'cs13_1v1'))
+        : queueModes.filter((mode) => mode !== 'cs13_3v3' && mode !== 'cs13_1v1')
   const showCompetitive =
     mapsStatus === 'ready'
       ? visibleQueueModes.includes('5v5')
@@ -333,17 +321,11 @@ export function PlayPage({
   const activePlayTab =
     visiblePlayView !== 'matchmaking'
       ? visiblePlayView
-      : showWarmup
-        ? (warmupBrowsing || warmupActive) && warmupMode !== '5v5'
-          ? warmupMode === 'arena'
-            ? 'arena'
-            : 'noncompetitive'
-          : 'competitive'
-        : selectedMode !== '5v5'
-          ? selectedMode === 'arena'
-            ? 'arena'
-            : 'noncompetitive'
-          : 'competitive'
+      : selectedMode !== '5v5'
+        ? selectedMode === 'arena'
+          ? 'arena'
+          : 'noncompetitive'
+        : 'competitive'
   const matchMapPreview = match
     ? maps.find((map) => map.id === match.mapId)?.previewUrl || localMapPreviews[match.mapId]
     : null
@@ -383,17 +365,26 @@ export function PlayPage({
         >
           <div className={twMerge('text-center', queueStatus !== 'server_ready' && 'min-h-56')}>
             <p className="text-xs font-bold tracking-[0.22em] text-amber-400 uppercase">
-              {queueStatus === 'countdown'
-                ? 'All players ready'
-                : queueStatus === 'starting_server'
-                  ? 'Preparing server'
-                  : 'In game'}
+              {match?.warmupPhase === 'WARMUP'
+                ? t('rankedWarmup.title')
+                : match?.ratingMultiplier === 0.5
+                  ? t('rankedWarmup.botMmr')
+                  : queueStatus === 'countdown'
+                    ? 'All players ready'
+                    : queueStatus === 'starting_server'
+                      ? 'Preparing server'
+                      : 'In game'}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">
               {match
                 ? `${maps.find((map) => map.id === match.mapId)?.displayName ?? match.mapId} · ${getMatchmakingModeLabel(match.mode)}`
                 : 'Match in progress'}
             </h1>
+            <RankedWarmupNotice
+              className="mt-2"
+              phase={match?.warmupPhase}
+              ratingMultiplier={match?.ratingMultiplier}
+            />
             {queueStatus === 'countdown' && (
               <>
                 <p className="mt-4 text-7xl font-black tabular-nums text-sky-300">{countdown}</p>
@@ -649,16 +640,9 @@ export function PlayPage({
               ? [
                   {
                     value: 'competitive',
-                    label: t(warmupEligible ? 'warmup.rankedMode' : 'play.competitive'),
-                    helpText: t(
-                      warmupEligible ? 'warmup.rankedBotsHelp' : 'matchmaking.modeHelp5v5'
-                    ),
-                    disabled:
-                      (warmupEligible &&
-                        (warmupActive || warmupBusy) &&
-                        activePlayTab !== 'competitive') ||
-                      (isSearching && selectedMode !== '5v5') ||
-                      (!isSearching && !isLeader)
+                    label: t('play.competitive'),
+                    helpText: t('matchmaking.modeHelp5v5'),
+                    disabled: (isSearching && selectedMode !== '5v5') || (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -668,10 +652,7 @@ export function PlayPage({
                     value: 'noncompetitive',
                     label: t('warmup.tab'),
                     disabled:
-                      (warmupEligible &&
-                        (((warmupActive || warmupBusy) && activePlayTab !== 'noncompetitive') ||
-                          ffaTabModes.length === 0)) ||
-                      (isSearching && !warmupEligible && activePlayTab !== 'noncompetitive') ||
+                      (isSearching && activePlayTab !== 'noncompetitive') ||
                       (!isSearching && (!isLeader || ffaTabModes.length === 0))
                   }
                 ]
@@ -682,11 +663,7 @@ export function PlayPage({
                     value: 'arena',
                     label: t('customRoom.mode.arena'),
                     disabled:
-                      (warmupEligible &&
-                        (warmupActive || warmupBusy) &&
-                        activePlayTab !== 'arena') ||
-                      (isSearching && !warmupEligible && selectedMode !== 'arena') ||
-                      (!isSearching && !isLeader)
+                      (isSearching && selectedMode !== 'arena') || (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -698,27 +675,11 @@ export function PlayPage({
               return
             }
             setPlayView('matchmaking')
-            if (warmupEligible) {
-              if (!warmupActive && !warmupBusy) {
-                const next =
-                  view === 'competitive'
-                    ? '5v5'
-                    : view === 'arena'
-                      ? 'arena'
-                      : ffaTabModes.includes('ffa')
-                        ? 'ffa'
-                        : ffaTabModes[0]
-                if (next && next !== warmupMode) selectWarmup(next, [])
-              }
-              openWarmup()
-            } else {
-              closeWarmup()
-              if (!isSearching) {
-                if (view === 'competitive') selectMode('5v5')
-                else if (view === 'arena') selectMode('arena')
-                else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
-                  selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
-              }
+            if (!isSearching) {
+              if (view === 'competitive') selectMode('5v5')
+              else if (view === 'arena') selectMode('arena')
+              else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+                selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
             }
           }}
         />
@@ -731,162 +692,148 @@ export function PlayPage({
           />
         ) : visiblePlayView === 'matchmaking' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 pt-3">
-            {showWarmup ? (
-              <QueueWarmupPanel
-                friendsCollapsed={friendsCollapsed}
-                competitive={activePlayTab === 'competitive'}
-              />
-            ) : (
-              <>
-                {selectedMode !== '5v5' && selectedMode !== 'arena' && ffaTabModes.length > 1 && (
-                  <div className="w-64 max-w-full shrink-0">
-                    <SelectField
-                      label={t('warmup.mode')}
-                      value={selectedMode}
-                      disabled={isSearching || !isLeader}
-                      onChange={(event) => {
-                        const mode = ffaTabModes.find((mode) => mode === event.target.value)
-                        if (mode) selectMode(mode)
-                      }}
-                    >
-                      {ffaTabModes.map((mode) => (
-                        <option key={mode} value={mode}>
-                          {getMatchmakingModeLabel(mode)}
-                        </option>
-                      ))}
-                    </SelectField>
-                  </div>
-                )}
-                <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
-                  <div
-                    className={twMerge(
-                      'mb-2 flex shrink-0 items-center justify-between gap-3',
-                      mapsStatus === 'ready' &&
-                        !desktopOnlyMode &&
-                        availableMaps.length > 0 &&
-                        'hidden'
-                    )}
-                  >
-                    <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
-                      Map pool
-                    </p>
-                    <p className="text-xs text-neutral-200">
-                      {desktopOnlyMode && !hideDesktopOnlyFeatures
-                        ? 'Desktop only'
-                        : `${selectedMapIds.length} / ${availableMaps.length} selected`}
-                    </p>
-                  </div>
-                  {mapsStatus === 'ready' && desktopOnlyMode && !hideDesktopOnlyFeatures ? (
-                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
-                      <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
-                        Desktop client required
-                      </p>
-                      <h2 className="mt-2 text-xl font-semibold text-white">
-                        {getMatchmakingModeLabel(selectedMode)}
-                      </h2>
-                      <p className="mt-2 max-w-lg text-sm text-neutral-300">
-                        1.6 Competitive by Papamo reserves this mode for desktop players. Everyone
-                        in your party must use the desktop client before the leader can queue.
-                      </p>
-                      {desktopAppUrl && (
-                        <a
-                          href={desktopAppUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                        >
-                          Get the desktop client
-                        </a>
-                      )}
-                    </div>
-                  ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
-                    <MatchmakingMapPool
-                      maps={availableMaps}
-                      selectedMapIds={selectedMapIds}
-                      disabled={isSearching || !isLeader}
-                      onSelect={selectMap}
-                    />
-                  ) : (
-                    <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
-                      {mapsStatus === 'loading'
-                        ? 'Loading maps…'
-                        : mapsStatus === 'error'
-                          ? 'Maps could not be loaded.'
-                          : partyRequiresWeb && !modeAllowsWeb
-                            ? 'This mode is unavailable for Web Play or mixed parties.'
-                            : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
-                    </div>
-                  )}
-                </section>
-
-                <PlayWindowStatus
-                  playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
-                  visible
-                  className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
-                />
-
-                <PlayQueueActions friendsCollapsed={friendsCollapsed}>
-                  <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
-                    <span>
-                      {isLeader
-                        ? `${selectedMapIds.length} maps selected`
-                        : 'Waiting for party leader'}
-                    </span>
-                    <span aria-hidden="true">•</span>
-                    <PlayerActivity />
-                  </div>
-                  <FindMatchButton
-                    data-audio-sfx="findMatch"
-                    data-idle-hint-target="find-match"
-                    disabled={
-                      !isLeader ||
-                      isSearching ||
-                      queueStatus === 'joining' ||
-                      checkingForUpdates ||
-                      checkingDiscord ||
-                      (partyRequiresWeb && !modeAllowsWeb)
-                    }
-                    aria-busy={
-                      checkingForUpdates ||
-                      queueStatus === 'joining' ||
-                      checkingDiscord ||
-                      (webRuntime && checkingHelper)
-                    }
-                    aria-label={
-                      checkingForUpdates
-                        ? guardUpdateTranslations[language].checking
-                        : queueStatus === 'joining'
-                          ? t('play.joining')
-                          : checkingDiscord
-                            ? t('queue.discord.checking')
-                            : webRuntime && checkingHelper
-                              ? t('webHelper.checking')
-                              : undefined
-                    }
-                    onClick={() => void handleFindMatch()}
-                  >
-                    {(checkingForUpdates ||
-                      queueStatus === 'joining' ||
-                      checkingDiscord ||
-                      (webRuntime && checkingHelper)) && (
-                      <LoaderCircle
-                        className="absolute left-2 size-4 animate-spin text-lime-400"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <span className="relative z-10">
-                      {isSearching
-                        ? t('play.searching')
-                        : queueStatus === 'joining' && !checkingForUpdates
-                          ? t('play.joining')
-                          : isLeader
-                            ? t('warmup.join')
-                            : t('play.waitingForLeader')}
-                    </span>
-                  </FindMatchButton>
-                </PlayQueueActions>
-              </>
+            {selectedMode !== '5v5' && selectedMode !== 'arena' && ffaTabModes.length > 1 && (
+              <div className="w-64 max-w-full shrink-0">
+                <SelectField
+                  label={t('warmup.mode')}
+                  value={selectedMode}
+                  disabled={isSearching || !isLeader}
+                  onChange={(event) => {
+                    const mode = ffaTabModes.find((mode) => mode === event.target.value)
+                    if (mode) selectMode(mode)
+                  }}
+                >
+                  {ffaTabModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {getMatchmakingModeLabel(mode)}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
             )}
+            <section className="flex min-h-0 flex-1 flex-col" aria-label="Map selection">
+              <div
+                className={twMerge(
+                  'mb-2 flex shrink-0 items-center justify-between gap-3',
+                  mapsStatus === 'ready' && !desktopOnlyMode && availableMaps.length > 0 && 'hidden'
+                )}
+              >
+                <p className="text-[10px] font-bold tracking-[0.18em] text-sky-300 uppercase">
+                  Map pool
+                </p>
+                <p className="text-xs text-neutral-200">
+                  {desktopOnlyMode && !hideDesktopOnlyFeatures
+                    ? 'Desktop only'
+                    : `${selectedMapIds.length} / ${availableMaps.length} selected`}
+                </p>
+              </div>
+              {mapsStatus === 'ready' && desktopOnlyMode && !hideDesktopOnlyFeatures ? (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center border border-amber-400/25 bg-neutral-950/70 px-5 py-8 text-center">
+                  <p className="text-xs font-bold tracking-[0.18em] text-amber-300 uppercase">
+                    Desktop client required
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    {getMatchmakingModeLabel(selectedMode)}
+                  </h2>
+                  <p className="mt-2 max-w-lg text-sm text-neutral-300">
+                    1.6 Competitive by Papamo reserves this mode for desktop players. Everyone in
+                    your party must use the desktop client before the leader can queue.
+                  </p>
+                  {desktopAppUrl && (
+                    <a
+                      href={desktopAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex h-10 items-center justify-center border border-sky-300/40 px-5 text-sm font-semibold text-sky-200 transition hover:bg-sky-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                    >
+                      Get the desktop client
+                    </a>
+                  )}
+                </div>
+              ) : mapsStatus === 'ready' && availableMaps.length > 0 ? (
+                <MatchmakingMapPool
+                  maps={availableMaps}
+                  selectedMapIds={selectedMapIds}
+                  disabled={isSearching || !isLeader}
+                  onSelect={selectMap}
+                />
+              ) : (
+                <div className="flex min-h-0 flex-1 items-center justify-center border border-white/10 bg-neutral-950/70 px-4 text-center text-sm text-neutral-300">
+                  {mapsStatus === 'loading'
+                    ? 'Loading maps…'
+                    : mapsStatus === 'error'
+                      ? 'Maps could not be loaded.'
+                      : partyRequiresWeb && !modeAllowsWeb
+                        ? 'This mode is unavailable for Web Play or mixed parties.'
+                        : `${getMatchmakingModeLabel(selectedMode)} maps are temporarily unavailable.`}
+                </div>
+              )}
+            </section>
+
+            <PlayWindowStatus
+              playWindow={displayedPlayWindowNode(nodes, selectedNodeId)?.playWindow}
+              visible
+              className="w-full max-w-2xl shrink-0 bg-neutral-950/80 px-2 py-1 shadow-lg backdrop-blur-sm max-sm:mb-14"
+            />
+
+            <PlayQueueActions friendsCollapsed={friendsCollapsed}>
+              <div className="hidden shrink-0 items-center gap-2 text-right text-xs text-neutral-200 drop-shadow-[0_2px_3px_black] sm:flex">
+                <span>
+                  {isLeader ? `${selectedMapIds.length} maps selected` : 'Waiting for party leader'}
+                </span>
+                <span aria-hidden="true">•</span>
+                <PlayerActivity />
+              </div>
+              <FindMatchButton
+                data-audio-sfx="findMatch"
+                data-idle-hint-target="find-match"
+                disabled={
+                  !isLeader ||
+                  isSearching ||
+                  queueStatus === 'joining' ||
+                  checkingForUpdates ||
+                  checkingDiscord ||
+                  (partyRequiresWeb && !modeAllowsWeb)
+                }
+                aria-busy={
+                  checkingForUpdates ||
+                  queueStatus === 'joining' ||
+                  checkingDiscord ||
+                  (webRuntime && checkingHelper)
+                }
+                aria-label={
+                  checkingForUpdates
+                    ? guardUpdateTranslations[language].checking
+                    : queueStatus === 'joining'
+                      ? t('play.joining')
+                      : checkingDiscord
+                        ? t('queue.discord.checking')
+                        : webRuntime && checkingHelper
+                          ? t('webHelper.checking')
+                          : undefined
+                }
+                onClick={() => void handleFindMatch()}
+              >
+                {(checkingForUpdates ||
+                  queueStatus === 'joining' ||
+                  checkingDiscord ||
+                  (webRuntime && checkingHelper)) && (
+                  <LoaderCircle
+                    className="absolute left-2 size-4 animate-spin text-lime-400"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-10">
+                  {isSearching
+                    ? t('play.searching')
+                    : queueStatus === 'joining' && !checkingForUpdates
+                      ? t('play.joining')
+                      : isLeader
+                        ? t('warmup.join')
+                        : t('play.waitingForLeader')}
+                </span>
+              </FindMatchButton>
+            </PlayQueueActions>
           </div>
         ) : (
           <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">

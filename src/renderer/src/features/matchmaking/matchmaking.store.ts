@@ -110,6 +110,8 @@ type QueueStatus =
   | 'server_ready'
 
 interface FoundMatch {
+  warmupPhase?: 'WARMUP' | 'STARTING' | 'LIVE'
+  ratingMultiplier?: 0.5 | 1
   matchId: string
   mode: MatchmakingMode
   mapId: string
@@ -456,6 +458,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         set({
           match: {
             matchId: event.matchId,
+            warmupPhase: event.warmupPhase,
+            ratingMultiplier: event.ratingMultiplier,
             mode: event.mode,
             mapId: event.mapId,
             region: event.region,

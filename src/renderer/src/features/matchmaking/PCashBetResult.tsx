@@ -126,10 +126,15 @@ export function PCashBetResult({
   }, [eligible, matchId, ownerId, state.load])
   if (!eligible) return null
   const same = state.matchId === matchId && state.ownerId === ownerId
+  const snapshot = same ? state.snapshot : null
+  // Default players and members of betting-disabled communities must never
+  // see any betting UI, so the card stays hidden until a loaded snapshot
+  // proves the player can bet or already placed a stake for this match.
+  if (!snapshot || (!snapshot.enabled && !snapshot.bet)) return null
   // A queued stake is never presented as winnings before the server settles it.
   return (
     <PCashBetResultView
-      snapshot={same ? state.snapshot : null}
+      snapshot={snapshot}
       error={same && state.error}
       onRetry={() => void state.load(matchId, true)}
       className={className}

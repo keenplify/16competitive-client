@@ -1,5 +1,9 @@
 export const matchNotificationTranslations = {
   en: {
+    'rankedWarmup.title': 'Warmup',
+    'rankedWarmup.botMmr': 'Play with bots · Half MMR',
+    'rankedWarmup.earlyHint': 'Everyone in warmup can type /startearly to start now.',
+
     'activity.nearbyHint': 'Searches {{region}} below 300 ms.',
     'activity.nearbyCounts': 'In game: {{inGame}} · Queued nearby: {{queued}}',
     'activity.searchNearby': 'Search nearby regions (<300 ms)',
@@ -29,6 +33,10 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   ru: {
+    'rankedWarmup.title': 'Разминка',
+    'rankedWarmup.botMmr': 'Игра с ботами · Половина MMR',
+    'rankedWarmup.earlyHint': 'Для раннего старта все игроки должны написать /startearly.',
+
     'activity.nearbyHint': 'Поиск в {{region}} с пингом ниже 300 мс.',
     'activity.nearbyCounts': 'В игре: {{inGame}} · В очереди рядом: {{queued}}',
     'activity.searchNearby': 'Искать в ближайших регионах (<300 мс)',
@@ -58,6 +66,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Настройки уведомлений'
   },
   tl: {
+    'rankedWarmup.title': 'Warmup',
+    'rankedWarmup.botMmr': 'Laro sa bots · Kalahating MMR',
+    'rankedWarmup.earlyHint':
+      'Maaaring mag-type ang lahat sa warmup ng /startearly para magsimula.',
+
     'activity.nearbyHint': 'Naghahanap sa {{region}} na mas mababa sa 300 ms.',
     'activity.nearbyCounts': 'Naglalaro: {{inGame}} · Nakapila sa malapit: {{queued}}',
     'activity.searchNearby': 'Maghanap sa malalapit na rehiyon (<300 ms)',
@@ -88,6 +101,10 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   th: {
+    'rankedWarmup.title': 'วอร์มอัป',
+    'rankedWarmup.botMmr': 'เล่นกับบอท · MMR ครึ่งหนึ่ง',
+    'rankedWarmup.earlyHint': 'ทุกคนในวอร์มอัปพิมพ์ /startearly เพื่อเริ่มทันที',
+
     'activity.nearbyHint': 'ค้นหาใน {{region}} ที่ปิงต่ำกว่า 300 ms',
     'activity.nearbyCounts': 'ในเกม: {{inGame}} · คิวใกล้เคียง: {{queued}}',
     'activity.searchNearby': 'ค้นหาในภูมิภาคใกล้เคียง (<300 ms)',
@@ -115,6 +132,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'ตั้งค่าการแจ้งเตือน'
   },
   id: {
+    'rankedWarmup.title': 'Pemanasan',
+    'rankedWarmup.botMmr': 'Main dengan bot · Setengah MMR',
+    'rankedWarmup.earlyHint':
+      'Semua pemain pemanasan dapat mengetik /startearly untuk mulai sekarang.',
+
     'activity.nearbyHint': 'Mencari di {{region}} dengan ping di bawah 300 ms.',
     'activity.nearbyCounts': 'Dalam game: {{inGame}} · Antrean terdekat: {{queued}}',
     'activity.searchNearby': 'Cari region terdekat (<300 ms)',
@@ -142,6 +164,10 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Pengaturan notifikasi'
   },
   hi: {
+    'rankedWarmup.title': 'वार्मअप',
+    'rankedWarmup.botMmr': 'बॉट्स के साथ खेलें · आधा MMR',
+    'rankedWarmup.earlyHint': 'अभी शुरू करने के लिए वार्मअप में सभी /startearly लिखें।',
+
     'activity.nearbyHint': '300 ms से कम पिंग वाले {{region}} में खोजता है।',
     'activity.nearbyCounts': 'गेम में: {{inGame}} · आस-पास कतार में: {{queued}}',
     'activity.searchNearby': 'आस-पास के क्षेत्रों में खोजें (<300 ms)',
@@ -171,6 +197,10 @@ export const matchNotificationTranslations = {
     'notify.settings': 'सूचना सेटिंग्स'
   },
   pt: {
+    'rankedWarmup.title': 'Aquecimento',
+    'rankedWarmup.botMmr': 'Jogar com bots · Metade do MMR',
+    'rankedWarmup.earlyHint': 'Todos no aquecimento podem digitar /startearly para começar agora.',
+
     'activity.nearbyHint': 'Busca em {{region}} com ping abaixo de 300 ms.',
     'activity.nearbyCounts': 'Em jogo: {{inGame}} · Na fila por perto: {{queued}}',
     'activity.searchNearby': 'Buscar regiões próximas (<300 ms)',
@@ -202,6 +232,10 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Configurações de notificações'
   },
   ja: {
+    'rankedWarmup.title': 'ウォームアップ',
+    'rankedWarmup.botMmr': 'ボットとプレイ · MMR半分',
+    'rankedWarmup.earlyHint': '全員が /startearly を入力するとすぐに開始できます。',
+
     'activity.nearbyHint': 'ping が300 ms未満の {{region}} で検索します。',
     'activity.nearbyCounts': 'プレイ中: {{inGame}} · 近隣で検索中: {{queued}}',
     'activity.searchNearby': '近隣の地域で検索（300 ms未満）',

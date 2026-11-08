@@ -329,6 +329,8 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
     }
   | {
       type: 'match_roster'
+      warmupPhase?: 'WARMUP' | 'STARTING' | 'LIVE'
+      ratingMultiplier?: 0.5 | 1
       matchId: string
       mode: MatchmakingMode
       mapId: string

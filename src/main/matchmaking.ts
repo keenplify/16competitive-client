@@ -428,6 +428,11 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
     case 'match_found':
     case 'match_roster': {
       if (
+        (message.warmupPhase !== undefined &&
+          !['WARMUP', 'STARTING', 'LIVE'].includes(String(message.warmupPhase))) ||
+        (message.ratingMultiplier !== undefined &&
+          message.ratingMultiplier !== 0.5 &&
+          message.ratingMultiplier !== 1) ||
         typeof message.matchId !== 'string' ||
         !isMatchmakingMode(message.mode) ||
         !isMapId(message.mapId) ||
