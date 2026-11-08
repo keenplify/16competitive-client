@@ -25,6 +25,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { CustomGamesPanel } from './CustomGamesPanel'
 import { useCustomGamesStore } from './custom-games.store'
+import { readMatchmakingPreferences } from './matchmaking-preferences'
 import { usePartyStore } from '../party/party.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useNavigationStore } from '../navigation/navigation.store'
@@ -133,6 +134,12 @@ export function PlayPage({
   const clearUnavailableCommunityServers = useCustomGamesStore(
     (state) => state.clearUnavailableCommunityServers
   )
+  useEffect(() => {
+    // The play tab, selected mode and selected maps persist across reloads.
+    const savedView = readMatchmakingPreferences(player?.id).playView
+    if (savedView && !playViewManuallySelected) setPlayView(savedView)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player?.id])
   useEffect(() => {
     if (playView === 'partner' && !hasCommunityServers) clearUnavailableCommunityServers()
   }, [playView, hasCommunityServers, clearUnavailableCommunityServers])
@@ -347,7 +354,7 @@ export function PlayPage({
         ? selectedMode === 'arena'
           ? 'arena'
           : selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1'
-            ? 'cs13'
+            ? selectedMode
             : 'noncompetitive'
         : 'competitive'
   const matchMapPreview = match
@@ -660,6 +667,11 @@ export function PlayPage({
                   }
                 ]
               : []),
+            ...cs13Modes.map((mode) => ({
+              value: mode,
+              label: getMatchmakingModeLabel(mode),
+              disabled: (isSearching && selectedMode !== mode) || (!isSearching && !isLeader)
+            })),
             ...(showCompetitive
               ? [
                   {
@@ -678,16 +690,6 @@ export function PlayPage({
                     disabled:
                       (isSearching && activePlayTab !== 'noncompetitive') ||
                       (!isSearching && (!isLeader || ffaTabModes.length === 0))
-                  }
-                ]
-              : []),
-            ...(cs13Modes.length > 0
-              ? [
-                  {
-                    value: 'cs13',
-                    label: t('play.cs13'),
-                    disabled:
-                      (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
                   }
                 ]
               : []),
@@ -712,9 +714,8 @@ export function PlayPage({
             if (!isSearching) {
               if (view === 'competitive') selectMode('5v5')
               else if (view === 'arena') selectMode('arena')
-              else if (view === 'cs13') {
-                if (cs13Modes[0]) selectMode(cs13Modes[0])
-              } else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+              else if (view === 'cs13_3v3' || view === 'cs13_1v1') selectMode(view)
+              else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
                 selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
             }
           }}
@@ -744,26 +745,6 @@ export function PlayPage({
                     }}
                   >
                     {ffaTabModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {getMatchmakingModeLabel(mode)}
-                      </option>
-                    ))}
-                  </SelectField>
-                </div>
-              )}
-            {cs13Modes.length > 1 &&
-              (selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1') && (
-                <div className="w-64 max-w-full shrink-0">
-                  <SelectField
-                    label={t('warmup.mode')}
-                    value={selectedMode}
-                    disabled={isSearching || !isLeader}
-                    onChange={(event) => {
-                      const mode = cs13Modes.find((mode) => mode === event.target.value)
-                      if (mode) selectMode(mode)
-                    }}
-                  >
-                    {cs13Modes.map((mode) => (
                       <option key={mode} value={mode}>
                         {getMatchmakingModeLabel(mode)}
                       </option>

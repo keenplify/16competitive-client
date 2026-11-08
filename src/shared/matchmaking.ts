@@ -62,7 +62,7 @@ export const MATCHMAKING_MODE_LABELS: Record<MatchmakingMode, string> = {
   legacy: 'Legacy',
   legacy_3v3: 'Legacy 3v3',
   cs13_3v3: 'Legacy 1.3',
-  cs13_1v1: 'CS 1.3 1v1',
+  cs13_1v1: '1.3 1v1',
   casual: 'Casual',
   ffa: 'FFA',
   arena: 'Arena'

@@ -1,6 +1,8 @@
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { friendlyFireMessage } from './friendly-fire-message'
 import { create } from 'zustand'
+import { saveMatchmakingPreferences } from './matchmaking-preferences'
+import { useAuthStore } from '../auth/auth.store'
 import type {
   CustomGameRoom,
   CustomGameChatMessage,
@@ -153,7 +155,10 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       if (get().currentRoom?.id === room.id) set({ chatSending: false })
     }
   },
-  setPlayView: (playView) => set({ playView, playViewManuallySelected: true }),
+  setPlayView: (playView) => {
+    saveMatchmakingPreferences(useAuthStore.getState().session?.player.id, { playView })
+    set({ playView, playViewManuallySelected: true })
+  },
   preferCommunityServers: () =>
     set((state) =>
       state.playViewManuallySelected || state.playView !== 'matchmaking'

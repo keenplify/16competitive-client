@@ -1,7 +1,10 @@
 import { isMatchmakingMode, type MatchmakingMode } from '../../../../shared/matchmaking'
 
+export type PersistedPlayView = 'matchmaking' | 'custom' | 'partner'
+
 interface MatchmakingPreferences {
   lastMode?: MatchmakingMode
+  playView?: PersistedPlayView
   mapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
   // Remember every offered map so new maps default on only once per mode.
   seenMapIdsByMode?: Partial<Record<MatchmakingMode, string[]>>
@@ -29,6 +32,12 @@ export function readMatchmakingPreferences(playerId: string | undefined): Matchm
     }
     return {
       lastMode: isMatchmakingMode(saved.lastMode) ? saved.lastMode : undefined,
+      playView:
+        saved.playView === 'matchmaking' ||
+        saved.playView === 'custom' ||
+        saved.playView === 'partner'
+          ? saved.playView
+          : undefined,
       mapIdsByMode: readMapIds(saved.mapIdsByMode),
       seenMapIdsByMode: readMapIds(saved.seenMapIdsByMode),
       seenReviewMapIdsByMode: readMapIds(saved.seenReviewMapIdsByMode)
@@ -42,6 +51,7 @@ export function saveMatchmakingPreferences(
   playerId: string | undefined,
   changes: {
     lastMode?: MatchmakingMode
+    playView?: PersistedPlayView
     mode?: MatchmakingMode
     mapIds?: string[]
     seenReviewMapIds?: string[]
@@ -53,6 +63,7 @@ export function saveMatchmakingPreferences(
     const saved = readMatchmakingPreferences(playerId)
     const next: MatchmakingPreferences = {
       lastMode: changes.lastMode ?? saved.lastMode,
+      playView: changes.playView ?? saved.playView,
       mapIdsByMode: { ...saved.mapIdsByMode },
       seenMapIdsByMode: { ...saved.seenMapIdsByMode },
       seenReviewMapIdsByMode: { ...saved.seenReviewMapIdsByMode }
