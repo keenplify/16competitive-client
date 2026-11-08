@@ -18,16 +18,25 @@ export function validateReportImages(value: unknown): ReportImage[] {
 }
 
 export const DIAGNOSTIC_LOG_CHANNELS = {
+  compatibility: 'diagnostic-logs:compatibility',
   get: 'diagnostic-logs:get',
   report: 'diagnostic-logs:report'
 } as const
 
 export interface DiagnosticLogsApi {
+  compatibility?: () => Promise<CompatibilityPreview>
   get: () => Promise<string[]>
   report: (
     description: string,
     rendererLogs: string[],
     matchId?: string,
-    images?: ReportImage[]
+    images?: ReportImage[],
+    compatibilityId?: string
   ) => Promise<{ id: string; createdAt: string }>
+}
+
+export type CompatibilityPreview = {
+  id: string
+  files: { path: string; sha256: string; size: number }[]
+  totalBytes: number
 }

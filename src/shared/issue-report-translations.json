@@ -14,7 +14,15 @@
     "invalid": "Choose up to 3 PNG, JPEG or WebP images, 2 MB each.",
     "preparing": "Preparing screenshots…",
     "ready": "Screenshots attached.",
-    "empty": "Please describe what went wrong."
+    "empty": "Please describe what went wrong.",
+    "filesInclude": "Include game compatibility files",
+    "filesPreparing": "Checking game files…",
+    "filesReady": "Game files ready for review.",
+    "filesError": "Could not attach game files. Choose Not now to send logs only, or try again.",
+    "filesConfirm": "Include files",
+    "filesDecline": "Not now",
+    "filesRemember": "Remember my preference",
+    "filesExcluded": "Game files will not be included."
   },
   "ru": {
     "title": "Сообщить о проблеме",
@@ -31,7 +39,15 @@
     "invalid": "Выберите до 3 изображений PNG, JPEG или WebP, по 2 МБ.",
     "preparing": "Подготовка скриншотов…",
     "ready": "Скриншоты прикреплены.",
-    "empty": "Опишите проблему."
+    "empty": "Опишите проблему.",
+    "filesInclude": "Приложить файлы совместимости игры",
+    "filesPreparing": "Проверка файлов игры…",
+    "filesReady": "Файлы игры готовы к проверке.",
+    "filesError": "Не удалось приложить файлы. Выберите «Не сейчас» для отправки только журналов или повторите попытку.",
+    "filesConfirm": "Приложить файлы",
+    "filesDecline": "Не сейчас",
+    "filesRemember": "Запомнить мой выбор",
+    "filesExcluded": "Файлы игры не будут приложены."
   },
   "tl": {
     "title": "Mag-report ng Issue",
@@ -48,7 +64,15 @@
     "invalid": "Pumili ng hanggang 3 PNG, JPEG o WebP, 2 MB bawat isa.",
     "preparing": "Inihahanda ang screenshots…",
     "ready": "Nakalakip na ang screenshots.",
-    "empty": "Pakilarawan kung ano ang nangyari."
+    "empty": "Pakilarawan kung ano ang nangyari.",
+    "filesInclude": "Isama ang mga file para sa compatibility ng laro",
+    "filesPreparing": "Sinusuri ang mga file ng laro…",
+    "filesReady": "Handa nang suriin ang mga file.",
+    "filesError": "Hindi mailakip ang mga file. Piliin ang Huwag muna para logs lang, o subukan muli.",
+    "filesConfirm": "Isama ang mga file",
+    "filesDecline": "Huwag muna",
+    "filesRemember": "Tandaan ang aking pinili",
+    "filesExcluded": "Hindi isasama ang mga file ng laro."
   },
   "th": {
     "title": "รายงานปัญหา",
@@ -65,7 +89,15 @@
     "invalid": "เลือก PNG, JPEG หรือ WebP สูงสุด 3 ภาพ ภาพละ 2 MB",
     "preparing": "กำลังเตรียมภาพหน้าจอ…",
     "ready": "แนบภาพหน้าจอแล้ว",
-    "empty": "กรุณาอธิบายปัญหาที่เกิดขึ้น"
+    "empty": "กรุณาอธิบายปัญหาที่เกิดขึ้น",
+    "filesInclude": "แนบไฟล์ความเข้ากันได้ของเกม",
+    "filesPreparing": "กำลังตรวจสอบไฟล์เกม…",
+    "filesReady": "ไฟล์เกมพร้อมให้ตรวจสอบแล้ว",
+    "filesError": "แนบไฟล์ไม่ได้ เลือกยังไม่ใช่ตอนนี้เพื่อส่งเฉพาะบันทึก หรือลองอีกครั้ง",
+    "filesConfirm": "แนบไฟล์",
+    "filesDecline": "ยังไม่ใช่ตอนนี้",
+    "filesRemember": "จำตัวเลือกของฉัน",
+    "filesExcluded": "จะไม่แนบไฟล์เกม"
   },
   "id": {
     "title": "Laporkan Masalah",
@@ -82,7 +114,15 @@
     "invalid": "Pilih maksimal 3 gambar PNG, JPEG atau WebP, masing-masing 2 MB.",
     "preparing": "Menyiapkan tangkapan layar…",
     "ready": "Tangkapan layar dilampirkan.",
-    "empty": "Jelaskan masalah yang terjadi."
+    "empty": "Jelaskan masalah yang terjadi.",
+    "filesInclude": "Sertakan berkas kompatibilitas game",
+    "filesPreparing": "Memeriksa berkas game…",
+    "filesReady": "Berkas game siap ditinjau.",
+    "filesError": "Berkas tidak dapat dilampirkan. Pilih Tidak sekarang untuk mengirim log saja, atau coba lagi.",
+    "filesConfirm": "Sertakan berkas",
+    "filesDecline": "Tidak sekarang",
+    "filesRemember": "Ingat pilihan saya",
+    "filesExcluded": "Berkas game tidak akan disertakan."
   },
   "hi": {
     "title": "समस्या की रिपोर्ट करें",
@@ -99,7 +139,15 @@
     "invalid": "अधिकतम 3 PNG, JPEG या WebP चित्र चुनें, प्रत्येक 2 MB।",
     "preparing": "स्क्रीनशॉट तैयार कर रहे हैं…",
     "ready": "स्क्रीनशॉट संलग्न किए गए।",
-    "empty": "कृपया समस्या का वर्णन करें।"
+    "empty": "कृपया समस्या का वर्णन करें।",
+    "filesInclude": "गेम संगतता फ़ाइलें संलग्न करें",
+    "filesPreparing": "गेम फ़ाइलों की जाँच हो रही है…",
+    "filesReady": "गेम फ़ाइलें समीक्षा के लिए तैयार हैं।",
+    "filesError": "फ़ाइलें संलग्न नहीं हो सकीं। केवल लॉग भेजने के लिए अभी नहीं चुनें या फिर प्रयास करें।",
+    "filesConfirm": "फ़ाइलें शामिल करें",
+    "filesDecline": "अभी नहीं",
+    "filesRemember": "मेरी पसंद याद रखें",
+    "filesExcluded": "गेम फ़ाइलें शामिल नहीं की जाएँगी।"
   },
   "pt": {
     "title": "Reportar um Problema",
@@ -116,7 +164,15 @@
     "invalid": "Selecione até 3 imagens PNG, JPEG ou WebP, de 2 MB cada.",
     "preparing": "Preparando capturas de tela…",
     "ready": "Capturas de tela anexadas.",
-    "empty": "Descreva o que deu errado."
+    "empty": "Descreva o que deu errado.",
+    "filesInclude": "Incluir arquivos de compatibilidade do jogo",
+    "filesPreparing": "Verificando arquivos do jogo…",
+    "filesReady": "Arquivos do jogo prontos para revisão.",
+    "filesError": "Não foi possível anexar os arquivos. Escolha Agora não para enviar só os logs ou tente novamente.",
+    "filesConfirm": "Incluir arquivos",
+    "filesDecline": "Agora não",
+    "filesRemember": "Lembrar minha preferência",
+    "filesExcluded": "Os arquivos do jogo não serão incluídos."
   },
   "ja": {
     "title": "問題を報告",
@@ -133,6 +189,14 @@
     "invalid": "PNG・JPEG・WebPを最大3枚、各2 MBまで選択してください。",
     "preparing": "スクリーンショットを準備中…",
     "ready": "スクリーンショットを添付しました。",
-    "empty": "問題を説明してください。"
+    "empty": "問題を説明してください。",
+    "filesInclude": "ゲーム互換性ファイルを添付",
+    "filesPreparing": "ゲームファイルを確認中…",
+    "filesReady": "ゲームファイルの確認準備ができました。",
+    "filesError": "添付できませんでした。「今はしない」でログのみ送信するか、再試行してください。",
+    "filesConfirm": "ファイルを含める",
+    "filesDecline": "今はしない",
+    "filesRemember": "選択を記憶する",
+    "filesExcluded": "ゲームファイルは含まれません。"
   }
 }

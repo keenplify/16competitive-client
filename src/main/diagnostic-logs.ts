@@ -11,6 +11,21 @@ import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 import { postDiagnosticReport } from './diagnostic-report-request'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { musicDeliveryReport } from './game/music-diagnostics'
+import {
+  prepareCompatibilityFiles,
+  getCompatibilityFiles,
+  uploadCompatibilityFiles
+} from './compatibility-files'
+
+export async function previewCompatibilityFiles() {
+  const owner = getSessionToken()
+  if (!owner) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
+  const executable = await getSavedCs16Executable()
+  if (!executable) throw new Error('COMPATIBILITY_FILES_UNAVAILABLE')
+  const result = await prepareCompatibilityFiles(dirname(executable), owner)
+  if (owner !== getSessionToken()) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
+  return result
+}
 
 const MAX_LOG_ENTRIES = 2000
 const entries: string[] = []
@@ -33,10 +48,13 @@ export async function reportDiagnosticIssue(
   deduplicationKey?: string,
   matchId?: string,
   apiUrl = API_BASE_URL,
-  images?: ReportImage[]
+  images?: ReportImage[],
+  compatibilityId?: string
 ) {
   const token = getSessionToken()
   if (!token) throw new Error('Sign in again before reporting an issue.')
+  const compatibility = compatibilityId ? getCompatibilityFiles(compatibilityId, token) : undefined
+  if (compatibilityId) deduplicationKey = `compatibility:${compatibilityId}`
   const logs = await collectDiagnosticIssueLogs(rendererLogs, matchId)
   if (token !== getSessionToken()) throw new Error('Sign in again before reporting an issue.')
   const response = await postDiagnosticReport(apiUrl, token, {
@@ -52,7 +70,18 @@ export async function reportDiagnosticIssue(
     if (failure?.error === 'INVALID_REPORT_IMAGES') throw new Error('INVALID_REPORT_IMAGES')
     throw new Error(`Could not report issue (${response.status}).`)
   }
-  return (await response.json()) as { id: string; createdAt: string }
+  const report = (await response.json()) as { id: string; createdAt: string }
+  if (compatibility) {
+    if (!/^[a-f0-9-]{36}$/i.test(report.id)) throw new Error('INVALID_REPORT_RESPONSE')
+    await uploadCompatibilityFiles(
+      apiUrl,
+      token,
+      report.id,
+      compatibility,
+      () => token === getSessionToken()
+    )
+  }
+  return report
 }
 
 export async function collectDiagnosticIssueLogs(

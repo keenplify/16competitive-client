@@ -399,9 +399,17 @@ const operations: OperationsApi = {
 }
 
 const diagnosticLogs: DiagnosticLogsApi = {
+  compatibility: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.compatibility),
   get: () => ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.get),
-  report: (description, rendererLogs, matchId, images) =>
-    ipcRenderer.invoke(DIAGNOSTIC_LOG_CHANNELS.report, description, rendererLogs, matchId, images)
+  report: (description, rendererLogs, matchId, images, compatibilityId) =>
+    ipcRenderer.invoke(
+      DIAGNOSTIC_LOG_CHANNELS.report,
+      description,
+      rendererLogs,
+      matchId,
+      images,
+      compatibilityId
+    )
 }
 
 const adminDemos: AdminDemosApi = {

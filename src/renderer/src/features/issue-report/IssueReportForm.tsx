@@ -1,5 +1,6 @@
+import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog'
 import { useRef } from 'react'
-import { LoaderCircle, X } from 'lucide-react'
+import { FileCode2, LoaderCircle, X } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { useLanguageStore } from '../i18n/i18n'
 import labels from '../../../../shared/issue-report-translations.json'
@@ -71,6 +72,59 @@ export function IssueReportForm() {
           </div>
         ))}
       </div>
+      {state.consentOpen && (
+        <ConfirmationDialog
+          className="max-w-xl"
+          title={t.filesInclude}
+          description=""
+          cancelLabel={t.filesDecline}
+          confirmLabel={t.filesConfirm}
+          closeLabel={t.cancel}
+          busy={state.busy}
+          disabled={!state.compatibilityPreview}
+          error={state.consentError ? t.filesError : undefined}
+          onClose={() => state.decideCompatibility(false)}
+          onConfirm={() => state.decideCompatibility(true)}
+        >
+          <div className="h-48 overflow-auto text-xs">
+            {state.compatibilityPreview ? (
+              <>
+                <p>{(state.compatibilityPreview.totalBytes / 1024 / 1024).toFixed(2)} MiB</p>
+                <ul>
+                  {state.compatibilityPreview.files.map((file) => (
+                    <li
+                      key={file.path}
+                      className="mt-2 flex items-center gap-3 border border-white/10 bg-white/5 px-3 py-2"
+                    >
+                      <FileCode2 className="size-5 shrink-0 text-slate-400" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-white">{file.path.split('/').at(-1)}</p>
+                        <p className="break-all text-slate-400">{file.path}</p>
+                      </div>
+                      <span className="shrink-0 tabular-nums text-slate-300">
+                        {(file.size / 1024 / 1024).toFixed(2)} MiB
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p>{state.busy ? t.filesPreparing : t.filesError}</p>
+            )}
+          </div>
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={state.rememberConsent}
+              disabled={state.busy}
+              onChange={(event) =>
+                useIssueReport.setState({ rememberConsent: event.target.checked })
+              }
+            />
+            {t.filesRemember}
+          </label>
+        </ConfirmationDialog>
+      )}
       <div className="mt-3 flex justify-end gap-2">
         <Button
           variant="ghost"
