@@ -80,9 +80,6 @@ publish:
   provider: github
   owner: keenplify
   repo: 16competitive-client
-electronDownload:
-  mirror: https://github.com/electron/electron/releases/download/
-
 protocols:
   - name: Competitive demo playback
     schemes:
