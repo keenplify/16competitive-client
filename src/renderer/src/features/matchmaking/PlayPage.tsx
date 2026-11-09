@@ -354,7 +354,7 @@ export function PlayPage({
         ? selectedMode === 'arena'
           ? 'arena'
           : selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1'
-            ? selectedMode
+            ? 'cs13'
             : 'noncompetitive'
         : 'competitive'
   const matchMapPreview = match
@@ -667,11 +667,16 @@ export function PlayPage({
                   }
                 ]
               : []),
-            ...cs13Modes.map((mode) => ({
-              value: mode,
-              label: getMatchmakingModeLabel(mode),
-              disabled: (isSearching && selectedMode !== mode) || (!isSearching && !isLeader)
-            })),
+            ...(cs13Modes.length > 0
+              ? [
+                  {
+                    value: 'cs13',
+                    label: getMatchmakingModeLabel('cs13_3v3'),
+                    disabled:
+                      (isSearching && activePlayTab !== 'cs13') || (!isSearching && !isLeader)
+                  }
+                ]
+              : []),
             ...(showCompetitive
               ? [
                   {
@@ -714,8 +719,9 @@ export function PlayPage({
             if (!isSearching) {
               if (view === 'competitive') selectMode('5v5')
               else if (view === 'arena') selectMode('arena')
-              else if (view === 'cs13_3v3' || view === 'cs13_1v1') selectMode(view)
-              else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
+              else if (view === 'cs13') {
+                if (cs13Modes[0]) selectMode(cs13Modes[0])
+              } else if ((selectedMode === '5v5' || selectedMode === 'arena') && ffaTabModes[0])
                 selectMode(ffaTabModes.includes('ffa') ? 'ffa' : ffaTabModes[0])
             }
           }}
@@ -745,6 +751,26 @@ export function PlayPage({
                     }}
                   >
                     {ffaTabModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {getMatchmakingModeLabel(mode)}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+              )}
+            {cs13Modes.length > 1 &&
+              (selectedMode === 'cs13_3v3' || selectedMode === 'cs13_1v1') && (
+                <div className="w-64 max-w-full shrink-0">
+                  <SelectField
+                    label={t('warmup.mode')}
+                    value={selectedMode}
+                    disabled={isSearching || !isLeader}
+                    onChange={(event) => {
+                      const mode = cs13Modes.find((mode) => mode === event.target.value)
+                      if (mode) selectMode(mode)
+                    }}
+                  >
+                    {cs13Modes.map((mode) => (
                       <option key={mode} value={mode}>
                         {getMatchmakingModeLabel(mode)}
                       </option>
