@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
@@ -66,9 +67,7 @@ test('setup defaults to closing the launcher and preserves explicit preferences'
         let saved
         const context = vm.createContext({
           LegacyGameService: class {
-            async get() {
-              return { ok: true, value: { installation: null } }
-            }
+            get = async () => ({ ok: true, value: { installation: null } })
           },
           join: (...parts) => parts.join('/'),
           app: { getPath: () => '/test/user' },
