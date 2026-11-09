@@ -661,3 +661,32 @@ test('hiding chat clears stale content, blocks sending and cannot be undone by a
   assert.equal(feedback.at(-1).render, 'directory.chatHidden')
   assert.equal(feedback.at(-1).isLoading, false)
 })
+
+test('partner chat defaults once when available and preserves deliberate tab choices', () => {
+  const { usePartyStore: store } = rendererStore(
+    '../src/renderer/src/features/party/party.store.ts',
+    { '../community/links': { communityLinks: [] } }
+  )
+  assert.equal(store.getState().chatTab, 'language')
+  store.getState().preferCommunityChat()
+  assert.equal(store.getState().chatTab, 'community')
+  store.getState().setChatTab('language')
+  store.getState().preferCommunityChat()
+  assert.equal(store.getState().chatTab, 'language')
+
+  store.getState().reset()
+  store.getState().setChatTab('global')
+  store.getState().preferCommunityChat()
+  assert.equal(store.getState().chatTab, 'global')
+
+  for (const chatTab of ['party', 'room']) {
+    store.getState().reset()
+    store.setState({ chatTab })
+    store.getState().preferCommunityChat()
+    assert.equal(store.getState().chatTab, chatTab)
+  }
+
+  store.getState().reset()
+  store.getState().preferCommunityChat()
+  assert.equal(store.getState().chatTab, 'community')
+})

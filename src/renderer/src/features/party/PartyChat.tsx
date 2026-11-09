@@ -92,6 +92,11 @@ export function PartyChat(): JSX.Element {
   const communityLabel = communityName || communityText(language, 'community')
   const communityTab = hasCommunity ? [{ id: 'community' as const, label: communityLabel }] : []
   const communityFirst = hasCommunity && communityId !== PLATFORM_COMMUNITY_ID
+  const preferCommunityChat = usePartyStore((state) => state.preferCommunityChat)
+
+  useEffect(() => {
+    if (communityFirst) preferCommunityChat()
+  }, [communityFirst, preferCommunityChat])
 
   const room = useCustomGamesStore((state) => state.currentRoom)
   const roomId = room?.id

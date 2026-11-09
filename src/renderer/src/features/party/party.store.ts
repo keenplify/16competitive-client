@@ -36,6 +36,8 @@ interface PartyState {
   chatSending: boolean
   chatError: string | null
   chatTab: ChatTab
+  chatTabChosen: boolean
+  communityChatDefaultApplied: boolean
   globalChatEntries: GlobalChatMessage[]
   communityAnnouncement: CommunityChatAnnouncement | null
   languageChatEntries: GlobalChatMessage[]
@@ -58,6 +60,7 @@ interface PartyState {
   sendChat: () => Promise<void>
   clearChat: () => void
   setChatTab: (tab: ChatTab) => void
+  preferCommunityChat: () => void
   setGlobalChatDraft: (message: string) => void
   setLanguageChatDraft: (message: string) => void
   setGlobalChatLanguage: (language: string) => Promise<void>
@@ -160,6 +163,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
   chatSending: false,
   chatError: null,
   chatTab: 'language',
+  chatTabChosen: false,
+  communityChatDefaultApplied: false,
   globalChatEntries: [],
   communityAnnouncement: null,
   languageChatEntries: [],
@@ -601,7 +606,15 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   clearChat: () => set({ chatEntries: [], chatDraft: '', chatError: null }),
 
-  setChatTab: (chatTab) => set({ chatTab }),
+  setChatTab: (chatTab) => set({ chatTab, chatTabChosen: true }),
+  preferCommunityChat: () => {
+    const state = get()
+    if (state.communityChatDefaultApplied) return
+    set({
+      communityChatDefaultApplied: true,
+      ...(!state.chatTabChosen && state.chatTab === 'language' ? { chatTab: 'community' } : {})
+    })
+  },
 
   setGlobalChatDraft: (globalChatDraft) =>
     set({ globalChatDraft: globalChatDraft.slice(0, 300), globalChatError: null }),
@@ -693,6 +706,8 @@ export const usePartyStore = create<PartyState>((set, get) => ({
       chatSending: false,
       chatError: null,
       chatTab: 'language',
+      chatTabChosen: false,
+      communityChatDefaultApplied: false,
       globalChatEntries: [],
       communityAnnouncement: null,
       languageChatEntries: [],

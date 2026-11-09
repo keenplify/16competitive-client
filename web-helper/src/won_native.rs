@@ -43,6 +43,8 @@ impl WonInstall {
         let module = read_limited(&bundle.module, 32*1024*1024)?;
         let marker = b"papamo_won_native_board_v1";
         if !module.windows(marker.len()).any(|w| w == marker) { return Err("Approved native bundle needs WON scoreboard support".into()); }
+        let music = b"papamo_won_local_music_v1";
+        if !module.windows(music.len()).any(|w| w == music) { return Err("Approved native bundle needs WON local music support".into()); }
         let destination = root.join(game).join("cl_dlls/16cmod.dll");
         let temporary = root.join(game).join("cl_dlls/16cmod.dll.16competitive.tmp");
         if destination.exists() || temporary.exists() { return Err("Existing WON module needs inspection".into()); }
