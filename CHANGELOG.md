@@ -4563,14 +4563,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 ### Legacy 1.3
 
-- Consolidated Legacy 1.3 and 1v1 play into one tab.
-- The CS 1.3 duel queue is now shown as ranked.
-- Play tabs are flatter, with your selection preserved.
+- One actual CS 1.3 queue with warmup, `/startearly`, dynamic teams and MR8/MR12 rules.
+- Retired the separate duel and discontinued CS 1.6 legacy emulation queues.
+- Added server-baked CS 1.3 sticker support and fixed custom-game startup with bot music kits.
 
 ### Custom Rooms
 
-- Fixed custom room settings and round-time behavior.
+- Fixed disabled settings saves when the matchmaking connection or catalog is unavailable.
+- Added a default-off Legacy Mode toggle with translated help and save feedback.
 
-### Community
+### Partner Accounts
 
-- Partner community chat now appears first.
+- Hide username and password changers for partner-login sessions.
+
+### Validation
+
+- Verified CS 1.3 sticker rendering and WAV music playback in a Windows VM.
+- Fixed missing HUD and scoreboard resources in the test fixture; custom native HUD support remains limited to approved hosts.
+- Findings: https://papamo.dev/docs/cosmetics/legacy-cs13
