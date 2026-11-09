@@ -4599,3 +4599,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Refined matchmaking recovery and queue-again behavior.
+
+## v2026.1109.5 — 2026-11-09
+
+### Reliability
+
+- Improved release integrity checks for official Electron downloads.
+
+### Stickers
+
+- Updated sticker support for game-specific sticker contracts.
