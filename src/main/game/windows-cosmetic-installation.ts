@@ -48,6 +48,7 @@ type Journal = {
 /** CS 1.6 keeps its verified proxy installed; legacy WON retains its separate adapter. */
 export class WindowsCosmeticInstallation {
   private static pendingRestore: Promise<void> = Promise.resolve()
+  nativeBoardSupported = false
   readonly sessionDirectory: string
   private readonly clientPath: string
   private readonly originalPath: string
@@ -139,6 +140,8 @@ export class WindowsCosmeticInstallation {
       throw new Error('Wrong cosmetic module target')
     const module = await readFile(join(native, 'papamo-cosmetic-module-win-x86.dll'))
     verifyCosmeticModule(module, manifest)
+    installation.nativeBoardSupported =
+      family === 'won13' && module.includes(Buffer.from('papamo_won_native_board_v1'))
     if (family === 'won13' && !module.includes(Buffer.from('papamo_won_loader_v1\0'))) {
       console.info(
         '[Scoreboard] Signed cosmetic bundle predates WON compatibility; using stock HUD'
@@ -254,7 +257,7 @@ export class WindowsCosmeticInstallation {
         gameDirectory,
         authFile,
         proton,
-        gameDirectory !== 'cstrike'
+        family === 'won13' || gameDirectory !== 'cstrike'
       )
       recoveryArmed = true
       await writeFile(temporary, module, { flag: 'wx' })
@@ -279,8 +282,19 @@ export class WindowsCosmeticInstallation {
     }
   }
 
+  private async isWonInstallation(): Promise<boolean> {
+    const bytes = await readFile(this.journalPath).catch((error: unknown) => {
+      missingOnly(error)
+      return null
+    })
+    if (!bytes) return false
+    const journal: unknown = JSON.parse(bytes.toString('utf8'))
+    if (!journal || typeof journal !== 'object') throw new Error('Invalid cosmetic journal')
+    return 'wonLoader' in journal && journal.wonLoader === true
+  }
+
   private async recover(): Promise<void> {
-    if (this.gameDirectory === 'cstrike') {
+    if (this.gameDirectory === 'cstrike' && !(await this.isWonInstallation())) {
       await rm(this.sessionDirectory, { recursive: true, force: true })
       return
     }
@@ -289,7 +303,7 @@ export class WindowsCosmeticInstallation {
   }
 
   async restore(): Promise<void> {
-    if (this.gameDirectory === 'cstrike') {
+    if (this.gameDirectory === 'cstrike' && !(await this.isWonInstallation())) {
       await this.recover()
       return
     }

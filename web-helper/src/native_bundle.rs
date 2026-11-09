@@ -90,6 +90,11 @@ pub(crate) fn supports_papamovgui2() -> bool {
 }
 
 /// Feature selection only; signature/hash/registry approval remains mandatory.
+pub(crate) fn supports_won_scoreboard() -> bool {
+    const MARKER: &[u8] = b"papamo_won_native_board_v1";
+    MODULE.windows(MARKER.len()).any(|bytes| bytes == MARKER)
+}
+
 pub(crate) fn supports_vgui_scoreboard() -> bool {
     const MARKER: &[u8] = b"papamo_vgui_scoreboard_v1";
     MODULE.windows(MARKER.len()).any(|bytes| bytes == MARKER)

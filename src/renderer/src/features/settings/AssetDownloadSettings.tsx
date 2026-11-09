@@ -1,13 +1,15 @@
+import { LoadoutGameSwitch } from '../skins/LoadoutGameSwitch'
+import { useLoadoutGameStore } from '../skins/loadout-game.store'
+import { useTranslation } from '../i18n/i18n'
+import { toast } from 'react-toastify'
 import { CheckCircle2, Download, LoaderCircle, RefreshCcw, TriangleAlert } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import type { SkinAssetSyncMode, SkinAssetSyncProgress } from '../../../../shared/game-settings'
 import { Button } from '../../components/ui/Button'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { clearCachedSkinModels } from '../skins/skin-model-cache'
-import { useGameSettingsStore } from './game-settings.store'
 import { isWebRuntime } from '../../web-runtime'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
-import { useNativeHelperSettingsStore } from './native-helper-settings.store'
 import { requestNativeHelperSettings } from './native-helper-request'
 
 const initialProgress: SkinAssetSyncProgress = {
@@ -24,9 +26,9 @@ const readableError = (error: unknown): string =>
 export function AssetDownloadSettings(): JSX.Element {
   const nativeReady = useWebHelperPromptStore((state) => state.nativeReady)
   const webRuntime = isWebRuntime() && !nativeReady
-  const savedPath = useGameSettingsStore((state) => state.savedPath)
-  const helperPath = useNativeHelperSettingsStore((state) => state.settings?.cs16FolderPath)
-  const installationPath = nativeReady && isWebRuntime() ? (helperPath ?? savedPath) : savedPath
+  const { t } = useTranslation()
+  const { game, available } = useLoadoutGameStore()
+  const installationPath = available.includes(game)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const [progress, setProgress] = useState<SkinAssetSyncProgress>(initialProgress)
   const [requestedMode, setRequestedMode] = useState<SkinAssetSyncMode | null>(null)
@@ -80,6 +82,7 @@ export function AssetDownloadSettings(): JSX.Element {
 
   const syncAssets = async (mode: SkinAssetSyncMode): Promise<void> => {
     if (!installationPath || syncing || maintenanceLocked) return
+    const toastId = toast.loading(t('assets.sync.checking'))
     setRequestedMode(mode)
     setProgress((current) => ({
       status: 'syncing',
@@ -96,9 +99,21 @@ export function AssetDownloadSettings(): JSX.Element {
         )
       }
       if (mode === 'repair') clearCachedSkinModels()
-      await window.api.gameSettings.syncAssets(mode)
+      await window.api.gameSettings.syncAssets(mode, game)
+      toast.update(toastId, {
+        render: t('gameSetup.assetsReady'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
       if (mode === 'repair') clearCachedSkinModels()
     } catch (error) {
+      toast.update(toastId, {
+        render: readableError(error),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
       setProgress((current) =>
         current.status === 'error'
           ? current
@@ -157,6 +172,7 @@ export function AssetDownloadSettings(): JSX.Element {
 
   return (
     <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+      <LoadoutGameSwitch disabled={syncing || maintenanceLocked} className="mb-4" />
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.18em] text-neutral-500 uppercase">

@@ -1,3 +1,4 @@
+import { useLoadoutGameStore } from './loadout-game.store'
 import { StickerViewport } from '../sticker-editor/StickerViewport'
 import { previewAppliedStickers, useInventoryStore } from '../inventory/inventory.store'
 import { stockWeaponPreview } from './stock-weapon-preview'
@@ -288,11 +289,12 @@ function SkinModelThumbnailContent({
 // Bump this namespace whenever the rendered weapon presentation changes.
 const WEAPON_PREVIEW_VERSION = 'viewmodel-inspection-v7'
 function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
+  const game = useLoadoutGameStore((s) => s.game)
   const target = props.skinId ? `skin:${props.skinId}` : `stock:${props.weaponKey}`
   const stickers = useInventoryStore((s) =>
     JSON.stringify(
       props.showAppliedStickers
-        ? (s.snapshot?.items.filter((i) => i.weaponKey === target) ?? [])
+        ? (s.snapshot?.items.filter((i) => i.weaponKey === target && i.gameVersion === game) ?? [])
         : []
     )
   )
@@ -303,15 +305,22 @@ function WeaponThumbnail(props: SkinModelThumbnailProps): JSX.Element {
     props.previewHiddenTextures
   ]))
     revision = Math.imul(revision ^ character.charCodeAt(0), 16777619)
-  const key = `${WEAPON_PREVIEW_VERSION}:${props.cacheKey}:${props.sourceRevision ?? ''}:${revision >>> 0}`
-  return <WeaponThumbnailContent key={key} {...props} thumbnailKey={key} target={target} />
+  const key = `${WEAPON_PREVIEW_VERSION}:${game}:${props.cacheKey}:${props.sourceRevision ?? ''}:${revision >>> 0}`
+  return (
+    <WeaponThumbnailContent key={key} {...props} thumbnailKey={key} target={target} game={game} />
+  )
 }
 function WeaponThumbnailContent({
   thumbnailKey,
   target,
+  game,
   onSettled,
   ...props
-}: SkinModelThumbnailProps & { thumbnailKey: string; target: string }): JSX.Element {
+}: SkinModelThumbnailProps & {
+  thumbnailKey: string
+  target: string
+  game: 'cs16' | 'cs13'
+}): JSX.Element {
   const [buffer, setBuffer] = useState<ArrayBuffer>()
   const [image, setImage] = useState<string>()
   const [failed, setFailed] = useState(false)
@@ -343,7 +352,7 @@ function WeaponThumbnailContent({
           : await window.api.models.read(stockWeaponPreview(props.weaponKey, '').viewModelPath!)
         const decorated =
           props.showAppliedStickers && useInventoryStore.getState().snapshot
-            ? await previewAppliedStickers(bytes, target)
+            ? await previewAppliedStickers(bytes, target, game)
             : bytes
         if (!cancelled) setBuffer(decorated)
       } catch {
@@ -363,6 +372,7 @@ function WeaponThumbnailContent({
   }, [
     thumbnailKey,
     target,
+    game,
     props.skinId,
     props.sourceRevision,
     props.weaponKey,

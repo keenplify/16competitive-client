@@ -1,3 +1,4 @@
+import { LegacyGameService } from './legacy-game-service'
 import {
   DEFAULT_PLAYER_PING_KEY,
   parsePlayerPingKey,
@@ -478,8 +479,18 @@ export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSet
   }
   const storedSettings = await readStoredSettings()
   const cs16ExecutablePath = await validateStoredPath(storedSettings)
-  if (!cs16ExecutablePath || !(await isGoldSrcInstallation(cs16ExecutablePath))) {
-    throw new Error('Choose a valid Counter-Strike 1.6 installation before finishing setup.')
+  const legacy = await new LegacyGameService({
+    settingsPath: join(app.getPath('userData'), 'cs13-installation.json'),
+    platform: process.platform,
+    chooseFolder: async () => null,
+    isBusy: () => false,
+    launch: async () => {}
+  }).get()
+  if (
+    !(cs16ExecutablePath && (await isGoldSrcInstallation(cs16ExecutablePath))) &&
+    !(legacy.ok && legacy.value.installation)
+  ) {
+    throw new Error('gameSetup.required')
   }
   const updated: StoredGameSettings = {
     ...storedSettings,

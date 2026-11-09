@@ -1,3 +1,5 @@
+import { configuredGames } from '../settings/game-availability'
+import { gameForMode } from '../../../../shared/game-version'
 import { usePCashBetsStore } from './pcash-bets.store'
 import { matchmakingRegionSelection } from '../../../../shared/matchmaking-region-selection'
 import type { MatchmakingActivity } from '../../../../shared/matchmaking-activity'
@@ -1141,9 +1143,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         void Notification.requestPermission().catch(() => undefined)
       }
       const settings = await window.api.gameSettings.get().catch(() => null)
-      if (!settings?.cs16ExecutablePath) {
+      const game = gameForMode(selectedMode)
+      const ready =
+        game === 'cs13' ? (await configuredGames()).includes(game) : !!settings?.cs16ExecutablePath
+      if (!ready) {
         set({
-          error: 'Choose and save your Counter-Strike folder in Settings before matchmaking.'
+          error: translate(useLanguageStore.getState().language, 'gameSetup.required')
         })
         return
       }

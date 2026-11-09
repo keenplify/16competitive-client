@@ -1,3 +1,4 @@
+import { parseGameVersion, type GameVersion } from './game-version'
 import { stockStickerModel } from './stock-sticker-models'
 export type StickerProjection = {
   center: [number, number, number]
@@ -20,6 +21,7 @@ export type OwnedSticker = {
   stickerId: string
   name: string
   imagePath: string
+  gameVersion: GameVersion
   weaponKey: string | null
   projection: StickerProjection | null
   appliedAt: string | null
@@ -92,6 +94,7 @@ export function parseStickerSnapshot(value: unknown): StickerSnapshot {
   }
   for (const i of s.items) {
     if (!i || typeof i !== 'object') throw new Error('STICKER_RESPONSE_INVALID')
+    i.gameVersion = parseGameVersion(i.gameVersion)
     stickerUuid(i.id)
     stickerId(i.stickerId)
     stickerImagePath(i.imagePath)

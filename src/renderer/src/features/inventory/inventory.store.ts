@@ -1,3 +1,5 @@
+import { useLoadoutGameStore } from '../skins/loadout-game.store'
+import type { GameVersion } from '../../../../shared/game-version'
 import { createElement } from 'react'
 import { PurchaseSuccess } from './PurchaseSuccess'
 import type { PurchasedItem } from '../navigation/navigation.store'
@@ -26,7 +28,7 @@ import {
 } from '../../libs/web-hlmv/lib/sticker-atlas'
 import { inventoryText as t, type InventoryText } from './inventory-i18n'
 
-export type WeaponTarget = { key: string; name: string; skinId?: string }
+export type WeaponTarget = { gameVersion?: GameVersion; key: string; name: string; skinId?: string }
 type InventoryState = {
   snapshot: StickerSnapshot | null
   weapons: OwnedSkin[]
@@ -161,7 +163,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     try {
       const [snapshot, weapons] = await Promise.all([
         window.api.skins.stickers(),
-        window.api.skins.mine()
+        window.api.skins.mine(useLoadoutGameStore.getState().game)
       ])
       if (current !== generation) return
       set({ snapshot, weapons, loading: false })
@@ -217,7 +219,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
   selectWeapon: (target) => {
     if (get().pending) return
-    set({ notice: null, target })
+    set({ notice: null, target: { ...target, gameVersion: useLoadoutGameStore.getState().game } })
     if (!get().snapshot) void get().reload()
     if (get().selectedSticker) void get().openEditor()
   },
@@ -230,7 +232,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       await feedback(async () => {
         const attached =
           snapshot?.items
-            .filter((i) => i.weaponKey === target.key)
+            .filter((i) => i.weaponKey === target.key && i.gameVersion === target.gameVersion)
             .sort(
               (a, b) =>
                 (a.appliedAt ?? '').localeCompare(b.appliedAt ?? '') || a.id.localeCompare(b.id)
@@ -371,7 +373,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     useStickerEditor.setState({ busy: true })
     try {
       await feedback(async () => {
-        await window.api.skins.stickerApply(selectedSticker.id, target.key, projection)
+        await window.api.skins.stickerApply(
+          selectedSticker.id,
+          target.key,
+          projection,
+          target.gameVersion
+        )
         if (current !== generation) return
         set({ editing: false, selectedSticker: null, target: null })
         await get().load()
@@ -432,13 +439,20 @@ function trimPreviewCache(): void {
 /** Display-only preview; authoritative ownership and application remain on the backend. */
 export async function previewAppliedStickers(
   bytes: ArrayBuffer,
-  weaponKey: string
+  weaponKey: string,
+  gameVersion: GameVersion = useLoadoutGameStore.getState().game
 ): Promise<ArrayBuffer> {
   if (!useInventoryStore.getState().snapshot) await useInventoryStore.getState().load()
   const snapshot = useInventoryStore.getState().snapshot
   if (!snapshot) throw new Error('STICKER_RESPONSE_INVALID')
   const applied = snapshot.items
-    .filter((item) => item.weaponKey === weaponKey && item.projection && item.appliedAt)
+    .filter(
+      (item) =>
+        item.gameVersion === gameVersion &&
+        item.weaponKey === weaponKey &&
+        item.projection &&
+        item.appliedAt
+    )
     .sort((a, b) => a.appliedAt!.localeCompare(b.appliedAt!) || a.id.localeCompare(b.id))
   if (!applied.length) return bytes
   if (weaponKey.startsWith('stock:'))
@@ -451,7 +465,7 @@ export async function previewAppliedStickers(
     !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
   )
     throw new Error('MODEL_UNSUPPORTED')
-  const cacheKey = JSON.stringify([STICKER_TEXTURE_SCALE, hash, weaponKey, applied])
+  const cacheKey = JSON.stringify([STICKER_TEXTURE_SCALE, gameVersion, hash, weaponKey, applied])
   const cached = previewCache.get(cacheKey)
   if (cached) {
     previewCache.delete(cacheKey)
@@ -490,3 +504,10 @@ export async function ensureStickerArtwork(path: string): Promise<void> {
   if (current === generation)
     useInventoryStore.setState((state) => ({ images: { ...state.images, [path]: image.url } }))
 }
+
+useLoadoutGameStore.subscribe((state, previous) => {
+  if (state.game === previous.game) return
+  generation++
+  useInventoryStore.getState().close()
+  void useInventoryStore.getState().load()
+})

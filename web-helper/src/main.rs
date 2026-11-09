@@ -40,6 +40,7 @@ mod branding;
 mod uninstall;
 #[cfg(windows)]
 mod windows_native;
+mod won_native;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -163,6 +164,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("../assets/sticker-baker.js").as_slice(),
         include_bytes!("notice_throttle.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
+        include_bytes!("won_native.rs").as_slice(),
         include_bytes!("../Cargo.toml").as_slice(),
         include_bytes!("../Cargo.lock").as_slice(),
         include_bytes!("../../src/shared/web-game-launch-pattern.json").as_slice(),
@@ -861,7 +863,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     // Windows and Wine 1.3 need the same approved WON cosmetic adapter,
     // ownership lease and recovery lifecycle as the desktop launcher. The
     // direct legacy path below is retained for native Linux 1.3.
-    if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe") {
+    if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")
+        && (!cfg!(windows) || mod_dir != "cstrk13" || !native_bundle::supports_won_scoreboard()) {
         runtime::launch(connection, api, token)?;
         return Ok(());
     }
@@ -939,6 +942,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let mut native: Option<(native_bundle::NativeBundle, native_session::NativeSession)> = None;
     #[cfg(windows)]
     let mut windows_install: Option<windows_native::WindowsInstall> = None;
+    #[cfg(windows)]
+    let mut won_install: Option<won_native::WonInstall> = None;
     let mut auth = None;
     let mut startup = None;
     // Every preparation failure follows the same restoration path, including
@@ -1015,6 +1020,14 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         }
     }
     #[cfg(windows)]
+    if connection.game() == "cs13" {
+        auth = Some(cs13_auth_file(&game_dir, connection)?);
+        let installation = won_native::WonInstall::install(&root, &mod_dir, &scanner_bundle, auth.as_ref().unwrap())?;
+        won_install = Some(installation);
+        let session = native_session::NativeSession::start_at(root.join("16competitive/live-session"), connection, api, token, &preferences)?;
+        native = Some((scanner_bundle.clone(), session));
+    }
+    #[cfg(windows)]
     if next_client {
         let session = native
             .as_ref()
@@ -1041,11 +1054,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         // periodic backend authorization. Only optional native visuals stop.
         desktop_session::report_config_auth_fallback();
     }
-    auth = if connection.game() == "cs13" {
-        Some(cs13_auth_file(&game_dir, connection)?)
-    } else {
-        None
-    };
+    if connection.game() == "cs13" && auth.is_none() {
+        auth = Some(cs13_auth_file(&game_dir, connection)?);
+    }
     let crosshair_commands = if cfg!(windows) && native.is_none() && gold_client {
         legacy_crosshair::commands(&preferences)?
     } else { String::new() };
@@ -1106,12 +1117,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     if let Some((_, session)) = &native {
         // Native HUD and cosmetics require the OpenGL renderer.
         command.arg("-gl");
-        command.arg(
-            game_pattern
-                .managed_native_flag
-                .as_deref()
-                .ok_or("Missing managed native flag")?,
-        );
+        if connection.game() == "cs16" { command.arg(game_pattern.managed_native_flag.as_deref().ok_or("Missing managed native flag")?); }
         command.env("PAPAMO_SKIN_PROBE_SESSION", &session.directory);
     }
     // The game updater also runs on authenticated launches without cosmetics.
@@ -1252,12 +1258,15 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let startup_cleanup = cleanup_owned_file(startup);
     #[cfg(windows)]
     let bridge_cleanup = startup_bridge.restore().map_err(|_| "STARTUP_CONFIG_FAILED");
-    if let Some((_, mut session)) = native {
+    let native_cleanup = if let Some((_, mut session)) = native {
         session.stop();
         #[cfg(windows)]
         let _installation = windows_install; // DLLs persist; only session state is removed.
-        session.cleanup()?;
-    }
+        session.cleanup()
+    } else { Ok(()) };
+    #[cfg(windows)]
+    if let Some(mut installation) = won_install { installation.restore()?; }
+    native_cleanup?;
     auth_cleanup?;
     startup_cleanup?;
     #[cfg(windows)]
@@ -1268,6 +1277,10 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
 
 fn run() -> Result<(), String> {
     let mut args: Vec<String> = env::args().skip(1).collect();
+    if args.as_slice() == ["--supports-native-cs13"] {
+        println!("{}", cfg!(windows) && native_bundle::supports_won_scoreboard());
+        return Ok(());
+    }
     #[cfg(windows)]
     if args.as_slice() == ["--request-admin-restart"] { return admin_restart::request(); }
     #[cfg(windows)]

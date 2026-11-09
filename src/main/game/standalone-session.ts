@@ -107,14 +107,54 @@ async function helperExecutable(): Promise<string> {
   return destination
 }
 
+/** Feature gate for rolling releases; normal helper verification still applies. */
+export async function standaloneSupportsCs13(): Promise<boolean> {
+  try {
+    const executable = await helperExecutable()
+    const info = await lstat(executable)
+    if (!info.isFile() || info.size > 128 * 1024 * 1024) return false
+    if (!(await readFile(executable)).includes(Buffer.from('--supports-native-cs13'))) return false
+    return await new Promise<boolean>((resolve) => {
+      const child = spawn(executable, ['--supports-native-cs13'], {
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
+      let output = ''
+      const timer = setTimeout(() => {
+        child.kill()
+        resolve(false)
+      }, 5000)
+      child.stdout.on('data', (bytes) => {
+        output += String(bytes)
+        if (output.length > 32) {
+          child.kill()
+          clearTimeout(timer)
+          resolve(false)
+        }
+      })
+      child.once('error', () => {
+        clearTimeout(timer)
+        resolve(false)
+      })
+      child.once('exit', (code) => {
+        clearTimeout(timer)
+        resolve(code === 0 && output.trim() === 'true')
+      })
+    })
+  } catch {
+    return false
+  }
+}
+
 /** Transfer a dedicated short-lived login, never the desktop account token. */
 export async function launchStandaloneSession(
   matchId: string,
   apiOrigin: string | undefined,
   settings: GameSettings,
-  onExit?: (event: { code: number | null; signal: string | null }) => void
+  onExit?: (event: { code: number | null; signal: string | null }) => void,
+  legacy?: { folderPath: string; modDirectory: 'cstrike' | 'cstrk13' }
 ): Promise<void> {
-  return launchStandaloneTarget({ matchId }, apiOrigin, settings, onExit)
+  return launchStandaloneTarget({ matchId }, apiOrigin, settings, onExit, legacy)
 }
 
 export async function launchStandalonePartner(
@@ -202,7 +242,8 @@ async function launchStandaloneTargetInner(
     { matchId: string } | { partner: { serverId: string; groupId?: string; communityId?: string } },
   apiOrigin: string | undefined,
   settings: GameSettings,
-  onExit?: (event: { code: number | null; signal: string | null }) => void
+  onExit?: (event: { code: number | null; signal: string | null }) => void,
+  legacy?: { folderPath: string; modDirectory: 'cstrike' | 'cstrk13' }
 ): Promise<void> {
   const diagnosticContext = {
     matchId: 'matchId' in target ? target.matchId : target.partner.serverId,
@@ -211,7 +252,7 @@ async function launchStandaloneTargetInner(
   if (active) throw new Error('A native game session is already running')
   handoffCommitted = false
   const token = getSessionToken()
-  if (!token || !settings.cs16FolderPath)
+  if (!token || !(legacy?.folderPath ?? settings.cs16FolderPath))
     throw new Error('Standalone session requires a signed-in account and game installation')
   const helper = await helperExecutable()
   const api = apiOrigin ?? API_BASE_URL
@@ -237,7 +278,8 @@ async function launchStandaloneTargetInner(
     apiOrigin: api,
     handoff: handoff.token,
     ...target,
-    installation: settings.cs16FolderPath,
+    installation: legacy ? join(legacy.folderPath, legacy.modDirectory) : settings.cs16FolderPath,
+    ...(legacy ? { game: 'cs13' } : {}),
     settings: sessionPreferences(settings),
     keepLauncherOpen,
     reopen: keepLauncherOpen ? null : { executable, sha256: await hashFile(executable), args }

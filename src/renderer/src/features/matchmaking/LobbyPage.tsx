@@ -1,3 +1,4 @@
+import { configuredGames } from '../settings/game-availability'
 import { Button } from '../../components/ui/Button'
 import { InventoryDialogs } from '../inventory/InventoryPage'
 import { isWebRuntime } from '../../web-runtime'
@@ -399,10 +400,12 @@ export function LobbyPage(): JSX.Element {
     let active = true
     if (isWebRuntime()) return undefined
     const check = () => {
-      void window.api.gameSettings
-        .get()
-        .then((settings) => {
-          if (active) setInstallationReady(Boolean(settings.cs16ExecutablePath))
+      void configuredGames()
+        .then((games) => {
+          if (active) {
+            setInstallationReady(games.length > 0)
+            useGameSettingsStore.setState({ requiresGameSetup: games.length === 0 })
+          }
         })
         .catch(() => {
           if (active) setInstallationReady(false)

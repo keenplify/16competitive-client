@@ -1,3 +1,4 @@
+import { gameVersionTranslations } from './game-version-translations'
 import { launchProgressTranslations } from './launch-progress-translations'
 import pCashBetTranslations from '../../../../shared/pcash-bet-translations.json'
 import { lobbySceneTranslations } from './lobby-scene-translations'
@@ -67,6 +68,7 @@ const english = {
   ...queueWarmupTranslations.en,
   ...webGameDownloadTranslations.en,
   ...legacyGameTranslations.en,
+  ...gameVersionTranslations.en,
   ...webHelperTranslations.en,
   ...steamTranslations.en,
   ...communityMembershipTranslations.en,
@@ -235,7 +237,7 @@ const english = {
   'matchmaking.modeHelpLegacy3v3': 'Unrated 3v3 with CS 1.3 movement. First team to 9 rounds wins.',
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. First player to 50 kills wins.',
   'matchmaking.modeHelpArena': 'Arena on fy_ and aim_ maps. First team to win 9 rounds wins.',
-  'matchmaking.modeHelp3v3': "Ranked 3v3 · MR8: 8 rounds per half, first to 9.",
+  'matchmaking.modeHelp3v3': 'Ranked 3v3 · MR8: 8 rounds per half, first to 9.',
   'matchmaking.preferHumansTooltip':
     'Prioritizes human players and delays automatic bot fill. Bots can still join if another player opts in or the mode allows them.',
   'matchmaking.playWindowTooltip':
@@ -256,6 +258,7 @@ const russian: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.ru,
   ...webGameDownloadTranslations.ru,
   ...legacyGameTranslations.ru,
+  ...gameVersionTranslations.ru,
   ...webHelperTranslations.ru,
   ...steamTranslations.ru,
   ...communityMembershipTranslations.ru,
@@ -427,7 +430,7 @@ const russian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpFfa': 'Бой каждый за себя. Побеждает первый игрок с 50 убийствами.',
   'matchmaking.modeHelpArena':
     'Арена на картах fy_ и aim_. Побеждает команда, первой выигравшая 9 раундов.',
-  'matchmaking.modeHelp3v3': "Рейтинговый 3 на 3 · MR8: 8 раундов за половину, победа при 9.",
+  'matchmaking.modeHelp3v3': 'Рейтинговый 3 на 3 · MR8: 8 раундов за половину, победа при 9.',
   'matchmaking.preferHumansTooltip':
     'Приоритет живым игрокам и более позднее автоматическое добавление ботов. Боты всё же возможны, если другой игрок согласится или режим их допускает.',
   'matchmaking.playWindowTooltip':
@@ -445,6 +448,7 @@ const taglish: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.tl,
   ...webGameDownloadTranslations.tl,
   ...legacyGameTranslations.tl,
+  ...gameVersionTranslations.tl,
   ...webHelperTranslations.tl,
   ...steamTranslations.tl,
   ...communityMembershipTranslations.tl,
@@ -618,7 +622,7 @@ const taglish: Record<TranslationKey, string> = {
   'matchmaking.modeHelpFfa': 'Free-for-all deathmatch. Unang player sa 50 kills ang panalo.',
   'matchmaking.modeHelpArena':
     'Arena sa fy_ at aim_ maps. Unang team na manalo ng 9 rounds ang panalo.',
-  'matchmaking.modeHelp3v3': "Ranked 3v3 · MR8: 8 rounds kada half, unang maka-9.",
+  'matchmaking.modeHelp3v3': 'Ranked 3v3 · MR8: 8 rounds kada half, unang maka-9.',
   'matchmaking.preferHumansTooltip':
     'Mas inuuna ang mga taong player at pinapahuli ang automatic bot fill. Posible pa rin ang bots kung may ibang player na mag-opt in o pinapayagan ng mode.',
   'matchmaking.playWindowTooltip':
@@ -636,6 +640,7 @@ const thai: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.th,
   ...webGameDownloadTranslations.th,
   ...legacyGameTranslations.th,
+  ...gameVersionTranslations.th,
   ...webHelperTranslations.th,
   ...steamTranslations.th,
   ...communityMembershipTranslations.th,
@@ -805,7 +810,7 @@ const thai: Record<TranslationKey, string> = {
     '3v3 ไม่จัดอันดับพร้อมการเคลื่อนไหวแบบ CS 1.3 ทีมที่ชนะ 9 รอบก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpFfa': 'เดธแมตช์ทุกคนสู้กันเอง ผู้เล่นที่ได้ 50 คิลก่อนเป็นผู้ชนะ',
   'matchmaking.modeHelpArena': 'Arena บนแผนที่ fy_ และ aim_ ทีมที่ชนะครบ 9 รอบก่อนเป็นผู้ชนะ',
-  'matchmaking.modeHelp3v3': "จัดอันดับ 3v3 · MR8: ครึ่งละ 8 รอบ ชนะเมื่อถึง 9 รอบ",
+  'matchmaking.modeHelp3v3': 'จัดอันดับ 3v3 · MR8: ครึ่งละ 8 รอบ ชนะเมื่อถึง 9 รอบ',
   'matchmaking.preferHumansTooltip':
     'ให้ความสำคัญกับผู้เล่นจริงและชะลอการเติมบอทอัตโนมัติ บอทอาจเข้าร่วมได้หากผู้เล่นอื่นยินยอมหรือโหมดอนุญาต',
   'matchmaking.playWindowTooltip':
@@ -823,6 +828,7 @@ const indonesian: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.id,
   ...webGameDownloadTranslations.id,
   ...legacyGameTranslations.id,
+  ...gameVersionTranslations.id,
   ...webHelperTranslations.id,
   ...steamTranslations.id,
   ...communityMembershipTranslations.id,
@@ -998,8 +1004,7 @@ const indonesian: Record<TranslationKey, string> = {
   'matchmaking.modeHelpFfa': 'Deathmatch semua lawan semua. Pemain pertama dengan 50 kill menang.',
   'matchmaking.modeHelpArena':
     'Arena di peta fy_ dan aim_. Tim pertama yang memenangkan 9 ronde menang.',
-  'matchmaking.modeHelp3v3':
-    "Ranked 3v3 · MR8: 8 ronde per babak, pertama mencapai 9.",
+  'matchmaking.modeHelp3v3': 'Ranked 3v3 · MR8: 8 ronde per babak, pertama mencapai 9.',
   'matchmaking.preferHumansTooltip':
     'Mengutamakan pemain manusia dan menunda pengisian bot otomatis. Bot tetap bisa bergabung jika pemain lain setuju atau mode mengizinkannya.',
   'matchmaking.playWindowTooltip':
@@ -1017,6 +1022,7 @@ const portuguese: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.pt,
   ...webGameDownloadTranslations.pt,
   ...legacyGameTranslations.pt,
+  ...gameVersionTranslations.pt,
   ...webHelperTranslations.pt,
   ...steamTranslations.pt,
   ...communityMembershipTranslations.pt,
@@ -1193,7 +1199,7 @@ const portuguese: Record<TranslationKey, string> = {
     'Mata-mata todos contra todos. Vence o primeiro jogador a conseguir 50 abates.',
   'matchmaking.modeHelpArena':
     'Arena em mapas fy_ e aim_. Vence a primeira equipe a ganhar 9 rodadas.',
-  'matchmaking.modeHelp3v3': "3v3 ranqueado · MR8: 8 rounds por metade, primeiro a 9.",
+  'matchmaking.modeHelp3v3': '3v3 ranqueado · MR8: 8 rounds por metade, primeiro a 9.',
   'matchmaking.preferHumansTooltip':
     'Prioriza jogadores humanos e atrasa o preenchimento automático com bots. Bots ainda podem entrar se outro jogador aceitar ou o modo permitir.',
   'matchmaking.playWindowTooltip':
@@ -1211,6 +1217,7 @@ const japanese: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.ja,
   ...webGameDownloadTranslations.ja,
   ...legacyGameTranslations.ja,
+  ...gameVersionTranslations.ja,
   ...webHelperTranslations.ja,
   ...steamTranslations.ja,
   ...communityMembershipTranslations.ja,
@@ -1385,7 +1392,7 @@ const japanese: Record<TranslationKey, string> = {
   'matchmaking.modeHelpFfa': '全員敵のデスマッチ。先に50キルしたプレイヤーが勝利。',
   'matchmaking.modeHelpArena':
     'fy_ と aim_ マップのアリーナ。先に9ラウンドを獲得したチームが勝利。',
-  'matchmaking.modeHelp3v3': "ランク3v3 · MR8：前後半各8ラウンド、先に9勝で勝利。",
+  'matchmaking.modeHelp3v3': 'ランク3v3 · MR8：前後半各8ラウンド、先に9勝で勝利。',
   'matchmaking.preferHumansTooltip':
     '人間のプレイヤーを優先し、自動のボット補充を遅らせます。他のプレイヤーが同意するか、モードが許可する場合はボットが参加することもあります。',
   'matchmaking.playWindowTooltip':
@@ -1403,6 +1410,7 @@ const hindi: Record<TranslationKey, string> = {
   ...queueWarmupTranslations.hi,
   ...webGameDownloadTranslations.hi,
   ...legacyGameTranslations.hi,
+  ...gameVersionTranslations.hi,
   ...webHelperTranslations.hi,
   ...steamTranslations.hi,
   ...communityMembershipTranslations.hi,
@@ -1575,7 +1583,7 @@ const hindi: Record<TranslationKey, string> = {
     'CS 1.3 मूवमेंट के साथ बिना रैंक वाला 3v3। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
   'matchmaking.modeHelpFfa': 'हर खिलाड़ी अपने लिए डेथमैच। पहले 50 किल करने वाला खिलाड़ी जीतेगा।',
   'matchmaking.modeHelpArena': 'fy_ और aim_ मैप पर एरीना। पहले 9 राउंड जीतने वाली टीम विजेता होगी।',
-  'matchmaking.modeHelp3v3': "रैंक्ड 3v3 · MR8: हर हाफ में 8 राउंड, पहले 9 जीतने वाली टीम विजेता।",
+  'matchmaking.modeHelp3v3': 'रैंक्ड 3v3 · MR8: हर हाफ में 8 राउंड, पहले 9 जीतने वाली टीम विजेता।',
   'matchmaking.preferHumansTooltip':
     'मानव खिलाड़ियों को प्राथमिकता देता है और अपने आप बॉट जोड़ने में देरी करता है। कोई दूसरा खिलाड़ी सहमति दे या मोड अनुमति दे तो बॉट फिर भी आ सकते हैं।',
   'matchmaking.playWindowTooltip':

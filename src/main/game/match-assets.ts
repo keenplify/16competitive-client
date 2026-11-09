@@ -523,10 +523,11 @@ const syncSkinAssets = async (
 
 export const startSkinAssetSync = async (
   apiUrl: string,
-  onProgress: (progress: SkinAssetSyncProgress) => void
+  onProgress: (progress: SkinAssetSyncProgress) => void,
+  game: 'cs16' | 'cs13' = 'cs16'
 ): Promise<void> => {
   try {
-    const storage = await prepareSkinStorage()
+    const storage = await prepareSkinStorage(game)
     const token = getSessionToken()
     const key = JSON.stringify([storage.contentRoot, apiUrl, token])
     while (skinSyncTask && skinSyncTask.key !== key) {

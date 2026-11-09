@@ -319,6 +319,37 @@ process.stdin.on('end',()=>process.exit(1));
   }
 )
 
+test(
+  'CS 1.3 handoff works without a CS 1.6 installation',
+  { skip: process.platform === 'win32' },
+  async () => {
+    await writeFile(
+      helper,
+      `#!/usr/bin/env node
+const fs=require('fs');const rl=require('readline').createInterface({input:process.stdin});
+let request;
+rl.on('line',line=>{
+  if(!request){request=JSON.parse(line);console.log(JSON.stringify({protocol:1,event:'ready'}));}
+  else {fs.writeFileSync(${JSON.stringify(marker)},JSON.stringify(request));console.log(JSON.stringify({protocol:1,event:'committed'}));setTimeout(()=>process.exit(0),300);}
+});
+`,
+      { mode: 0o755 }
+    )
+    await launchStandaloneSession(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      undefined,
+      { ...settings, cs16FolderPath: null },
+      undefined,
+      { folderPath: root, modDirectory: 'cstrk13' }
+    )
+    const request = JSON.parse(await readFile(marker, 'utf8'))
+    assert.equal(request.game, 'cs13')
+    assert.equal(request.installation, join(root, 'cstrk13'))
+    assert.equal(request.keepLauncherOpen, false)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+)
+
 test('returning from a game skips the startup network check and splash delay only', async () => {
   const { transform } = await import('esbuild')
   const index = await readFile('src/main/index.ts', 'utf8')
@@ -355,7 +386,10 @@ test('sticker failures reach issue-report console logs without raw helper data o
   const { transform } = await import('esbuild')
   const source = await readFile('src/main/game/standalone-session.ts', 'utf8')
   const callback = source.slice(
-    source.indexOf("    child.stdout.on('data',"),
+    source.indexOf(
+      "    child.stdout.on('data',",
+      source.indexOf('async function launchStandaloneTargetInner')
+    ),
     source.indexOf('    child.stdin.write(`${JSON.stringify(request)}')
   )
   const { code } = await transform(callback, { loader: 'ts' })

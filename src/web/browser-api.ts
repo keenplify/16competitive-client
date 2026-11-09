@@ -1,3 +1,4 @@
+import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { parsePCashBetSnapshot, validateBetInput, validateBetMatchId } from '../shared/pcash-bets'
 import { parseNativeVoicePreferences } from '../shared/native-voice'
@@ -651,9 +652,14 @@ const skins = {
   async stickerApply(
     id: string,
     weaponKey: string,
-    projection: import('../shared/stickers').StickerProjection
+    projection: import('../shared/stickers').StickerProjection,
+    gameVersion: GameVersion = 'cs16'
   ): Promise<void> {
-    await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, { weaponKey, projection })
+    await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, {
+      weaponKey,
+      projection,
+      gameVersion: parseGameVersion(gameVersion)
+    })
   },
   async stickerImage(path: string): Promise<ArrayBuffer> {
     const key = stickerImagePath(path)
@@ -746,8 +752,10 @@ const skins = {
     rememberPreviewPaths(data)
     return weaponKey ? data.filter((skin) => skin.weaponKey === weaponKey) : data
   },
-  async mine(): Promise<OwnedSkin[]> {
-    const items = await authenticatedGet<OwnedSkin[]>('/skins/mine')
+  async mine(gameVersion: GameVersion = 'cs16'): Promise<OwnedSkin[]> {
+    const items = await authenticatedGet<OwnedSkin[]>(
+      `/skins/mine?gameVersion=${parseGameVersion(gameVersion)}`
+    )
     if (
       items.some(
         ({ skin }) =>
@@ -781,11 +789,11 @@ const skins = {
     const body = await jsonPost<Record<string, unknown>>(path)
     return { ...body, currency } as unknown as UnlockResult
   },
-  async equip(skinId: string): Promise<void> {
-    await jsonPost(`/skins/${skinId}/equip`)
+  async equip(skinId: string, gameVersion: GameVersion = 'cs16'): Promise<void> {
+    await jsonPost(`/skins/${skinId}/equip?gameVersion=${parseGameVersion(gameVersion)}`)
   },
-  async unequip(skinId: string): Promise<void> {
-    await jsonPost(`/skins/${skinId}/unequip`)
+  async unequip(skinId: string, gameVersion: GameVersion = 'cs16'): Promise<void> {
+    await jsonPost(`/skins/${skinId}/unequip?gameVersion=${parseGameVersion(gameVersion)}`)
   },
   async previewModel(skinId: string, kind: 'player' | 'view' = 'player'): Promise<ArrayBuffer> {
     const path =

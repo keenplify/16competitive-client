@@ -47,7 +47,7 @@ export function LegacyGameSettings({
         </h3>
       )}
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-400">
-        {t(embedded ? 'legacy.queueUnavailable' : 'legacy.description')}
+        {t('gameSetup.legacyHelp')}
       </p>
       <div className="mt-5">
         <TextField

@@ -28,10 +28,9 @@ a normal game-menu launch, and the requested canonical
 The page distributes a mod for Half-Life Retail; the UI explains the base-game
 requirement rather than implying it is a standalone engine installer.
 
-Onboarding asks whether the player wants to set up 1.3 after selecting 1.6.
-“Yes” shows the same folder controls and download link. “Not now” and “Skip 1.3
-setup for now” continue without requiring a 1.3 installation. A player who chooses
-“Yes” must select a valid folder before continuing, or explicitly skip.
+Onboarding first offers CS 1.6, CS 1.3, or both. Only the selected installation
+steps are shown, and each selected game must have a valid installation before
+continuing. CS 1.3-only players do not need a CS 1.6 installation.
 
 The selected real path and mod directory are saved separately in `cs13-installation.json` under
 Electron user data. It never replaces the selected 1.6 path. The renderer uses
@@ -441,3 +440,39 @@ player on its scoreboard. No stock-sprite replacement is needed with this policy
 The test used software rendering because this VM cannot create the game's
 OpenGL mode. Remote regional deployment and full Electron matchmaking were not
 part of this isolated connection test.
+
+
+### Native scoreboard and independent loadouts (2026-11-09)
+
+WON renders the worker-prepared scoreboard atlas and geometry through OpenGL 1.1;
+it does not call VGUI2. The same authenticated feed, fixed session lease, assigned
+endpoint, freshness and audience checks gate custom scoreboard suppression and
+painting. A stale feed returns to the stock scoreboard. Image decoding, shaping
+and rasterization remain on the owned worker.
+
+The original executable/client pair was visually checked in an isolated Windows
+VM: custom Tab scoreboard and magenta crosshair appeared with no Electron process.
+The latest helper launch/restore integration has compile coverage; final interactive
+verification is left to the owner. The AGC executable differs from the original in
+PE headers/resources; code/data sections and imports match. It is admitted only by
+its exact SHA-256 (`b5f34ed4726d93a9c3d4b3d3eb60df5680f5ae888710f5461e54a462e1efd487`)
+paired with the existing exact client hash. This is not a generic WON allowlist.
+
+Windows standalone sessions select the native WON path only with a supporting
+helper/module. The temporary WON installer arms the verified recovery worker
+before activating the existing exact engine adaptation, restores after worker/game
+shutdown, and fails closed on interrupted or unknown installations. CS 1.6 remains
+persistent. Wine retains its existing adapter and can select the native board with
+a supporting signed module. No claim of VAC compatibility or measured FPS gains.
+
+Backend migration `0179_game_loadouts` keeps existing sticker applications and skin
+selections in CS 1.6. CS 1.3 selections start empty. Each applied sticker belongs to
+one game, consumes one purchased copy, and is included only in that game's frozen
+match recipes. Ownership and the five-sticker limit remain transactionally enforced.
+Missing API game parameters retain CS 1.6 behavior for older clients.
+
+Onboarding offers 1.6, 1.3 or both; either valid installation unlocks the launcher.
+Queue and reconnect validate the assigned game. Loadouts expose only configured
+versions, and unsupported 1.6-only weapons are hidden for CS 1.3. The release must
+include the database migration and the approved signed native bundle; changing
+source alone does not update installed production helpers.

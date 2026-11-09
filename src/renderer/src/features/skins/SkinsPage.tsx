@@ -1,3 +1,6 @@
+import { LoadoutGameSwitch } from './LoadoutGameSwitch'
+import { useLoadoutGameStore } from './loadout-game.store'
+import { supportsWeapon } from '../../../../shared/game-version'
 import refundTranslations from './refund-translations.json'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { stockStickerModel } from '../../../../shared/stock-sticker-models'
@@ -113,7 +116,12 @@ const defaultPlayerModelPath = (weaponKey: string): string =>
 const errorText = (reason: unknown): string =>
   reason instanceof Error ? reason.message : 'Could not update your loadout.'
 
-export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }): JSX.Element {
+export function SkinsPage(props: { toolbarTarget?: HTMLElement | null }): JSX.Element {
+  const game = useLoadoutGameStore((s) => s.game)
+  return <GameSkinsPage key={game} {...props} />
+}
+function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }): JSX.Element {
+  const game = useLoadoutGameStore((s) => s.game)
   const musicFilter = useMusicKitsStore((s) => s.filterTeam !== null)
   const setMusicFilter = useMusicKitsStore((s) => s.setFilterTeam)
   const musicSnapshot = useMusicKitsStore((s) => s.snapshot)
@@ -181,7 +189,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     if (showLoading) setStatus('loading')
     const getLobbyLoadout = window.api.skins.getLobbyLoadout
     void Promise.all([
-      window.api.skins.mine(),
+      window.api.skins.mine(game),
       getLobbyLoadout?.() ??
         Promise.resolve({
           ctCharacter: 'gign',
@@ -219,16 +227,16 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerId])
+  }, [playerId, game])
 
   const equippedByWeapon = new Map(
     skins.filter((owned) => owned.equippedAt).map((owned) => [owned.skin.weaponKey, owned])
   )
-  const teamWeaponKeys = new Set([
-    ...Object.values(loadoutGroups[team]).flat(),
-    ...GRENADE_WEAPON_KEYS,
-    KNIFE_WEAPON_KEY
-  ])
+  const teamWeaponKeys = new Set(
+    [...Object.values(loadoutGroups[team]).flat(), ...GRENADE_WEAPON_KEYS, KNIFE_WEAPON_KEY].filter(
+      (key) => supportsWeapon(game, key)
+    )
+  )
   const stockWeapons = [...teamWeaponKeys].filter(
     (key) =>
       (category === 'all' || weaponCategory(key) === category) &&
@@ -267,7 +275,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     setLobbyWeaponId(owned.skin.id)
     void window.api.skins
       .setLobbyWeapon(owned.skin.id)
-      .then(() => Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()]))
+      .then(() => Promise.all([window.api.skins.mine(game), window.api.skins.getLobbyLoadout()]))
       .then(([inventory, lobbyLoadout]) => {
         setSkins(inventory)
         setLobbyWeaponKey(lobbyLoadout.weaponKey)
@@ -302,11 +310,11 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
     if (loadoutLocked) return
     setChangingId(owned.skin.id)
     const request = owned.equippedAt
-      ? window.api.skins.unequip(owned.skin.id)
-      : window.api.skins.equip(owned.skin.id)
+      ? window.api.skins.unequip(owned.skin.id, game)
+      : window.api.skins.equip(owned.skin.id, game)
     const feedback = toast.loading(inventoryText('pending'))
     void request
-      .then(() => window.api.skins.mine())
+      .then(() => window.api.skins.mine(game))
       .then((inventory) => {
         setSkins(inventory)
         setStatus('ready')
@@ -338,10 +346,10 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
       return
     setUnequippingTeam(true)
     void Promise.all([
-      ...equippedForTeam.map((owned) => window.api.skins.unequip(owned.skin.id)),
+      ...equippedForTeam.map((owned) => window.api.skins.unequip(owned.skin.id, game)),
       window.api.skins.musicEquip(null, team).then(() => useMusicKitsStore.getState().load())
     ])
-      .then(() => window.api.skins.mine())
+      .then(() => window.api.skins.mine(game))
       .then((inventory) => setSkins(inventory))
       .catch((reason: unknown) => toast.error(errorText(reason)))
       .finally(() => setUnequippingTeam(false))
@@ -390,7 +398,7 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
           isLoading: false,
           autoClose: 4000
         })
-        void Promise.all([window.api.skins.mine(), window.api.skins.getLobbyLoadout()])
+        void Promise.all([window.api.skins.mine(game), window.api.skins.getLobbyLoadout()])
           .then(([inventory, lobbyLoadout]) => {
             setSkins(inventory)
             setLobbyWeaponKey(lobbyLoadout.weaponKey)
@@ -513,6 +521,8 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
   )
   return (
     <section className="loadout-page mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
+      <LoadoutGameSwitch disabled={!!changingId || unequippingTeam} className="px-4 mb-3" />
+      <p className="px-4 pb-3 text-xs text-neutral-400">{t('gameSetup.separate')}</p>
       <section className="loadout-equipped min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
         {toolbarTarget ? (
           createPortal(loadoutActions, toolbarTarget)
@@ -522,34 +532,36 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
         <div className="loadout-stage mt-4 grid grid-cols-[minmax(140px,0.8fr)_minmax(0,4.8fr)] items-stretch gap-2 lg:gap-4">
           <div className="order-1 min-w-0 self-start">
             <div className="mb-2">{teamTabs}</div>
-            <CharacterPanel
-              key={team}
-              team={team}
-              partyPending={partyPending}
-              partySelected={
-                partyModel ===
-                (equippedByWeapon.get(`player_${team}`)
-                  ? `skin:${equippedByWeapon.get(`player_${team}`)!.skin.id}`
-                  : `player/${stockCharacters[team]}/${stockCharacters[team]}.mdl`)
-              }
-              onShowInParty={() => showCharacterInParty(team)}
-              model={stockCharacters[team]}
-              skin={equippedByWeapon.get(`player_${team}`)?.skin}
-              selected
-              disabled={loadoutLocked}
-              onSelect={() => selectTeam(team, true)}
-              footer={
-                <MusicKitSlot
-                  team={team}
-                  className="mt-0"
-                  disabled={loadoutLocked || unequippingTeam}
-                  onSelect={() => {
-                    selectTeam(team)
-                    setMusicFilter(team)
-                  }}
-                />
-              }
-            />
+            {game === 'cs16' && (
+              <CharacterPanel
+                key={team}
+                team={team}
+                partyPending={partyPending}
+                partySelected={
+                  partyModel ===
+                  (equippedByWeapon.get(`player_${team}`)
+                    ? `skin:${equippedByWeapon.get(`player_${team}`)!.skin.id}`
+                    : `player/${stockCharacters[team]}/${stockCharacters[team]}.mdl`)
+                }
+                onShowInParty={() => showCharacterInParty(team)}
+                model={stockCharacters[team]}
+                skin={equippedByWeapon.get(`player_${team}`)?.skin}
+                selected
+                disabled={loadoutLocked}
+                onSelect={() => selectTeam(team, true)}
+                footer={
+                  <MusicKitSlot
+                    team={team}
+                    className="mt-0"
+                    disabled={loadoutLocked || unequippingTeam}
+                    onSelect={() => {
+                      selectTeam(team)
+                      setMusicFilter(team)
+                    }}
+                  />
+                }
+              />
+            )}
           </div>
           <div className="order-2 min-w-0">
             {' '}
@@ -561,7 +573,9 @@ export function SkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | nul
                       {loadoutGroupLabels[group]}
                     </h3>
                     <div className="space-y-1.5">
-                      {loadoutGroups[team][group].map((weaponKey) => renderLoadoutCard(weaponKey))}
+                      {loadoutGroups[team][group]
+                        .filter((key) => supportsWeapon(game, key))
+                        .map((weaponKey) => renderLoadoutCard(weaponKey))}
                     </div>
                   </section>
                 ))}

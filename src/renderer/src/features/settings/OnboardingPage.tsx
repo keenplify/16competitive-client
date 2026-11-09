@@ -38,8 +38,9 @@ export function OnboardingPage(): JSX.Element {
   const transferAccount = useCommunityMembershipStore((state) => state.accountId)
   const transferLoading = useCommunityMembershipStore((state) => state.loading)
   const transferBusy = useCommunityMembershipStore((state) => state.deciding)
+  const games = useOnboardingStore((s) => s.games)
+  const setGames = useOnboardingStore((s) => s.setGames)
   const wantsCs13 = useOnboardingStore((state) => state.wantsCs13)
-  const setWantsCs13 = useOnboardingStore((state) => state.setWantsCs13)
   const legacyProfile = useLegacyGameStore((state) => state.profile)
   const legacyStatus = useLegacyGameStore((state) => state.status)
   const step = useOnboardingStore((state) => state.step)
@@ -105,9 +106,14 @@ export function OnboardingPage(): JSX.Element {
     if (step === 'referral' && referralAlreadyUsed) setStep('review')
   }, [referralAlreadyUsed, setStep, step])
 
+  const installationReady =
+    !!games &&
+    (games === 'cs13' || !!savedPath) &&
+    (games === 'cs16' || !!legacyProfile.installation)
   const titles = {
+    games: t('gameSetup.title'),
     installation: 'Set up Counter-Strike',
-    legacy: t('legacy.onboardingTitle'),
+    legacy: t('legacy.title'),
     appearance: t('theme.title'),
     preferences: 'Make it yours',
     referral: 'Have a referral code?',
@@ -115,8 +121,9 @@ export function OnboardingPage(): JSX.Element {
     review: 'Ready to play'
   }
   const descriptions = {
-    installation: 'Choose the Counter-Strike 1.6 installation this launcher will use for matches.',
-    legacy: t('legacy.onboardingDescription'),
+    games: t('gameSetup.description'),
+    installation: t('gameSetup.installation16'),
+    legacy: t('gameSetup.installation13'),
     appearance: t('theme.description'),
     preferences:
       'Choose how much of the 1.6 Competitive experience to enable. You can change features later in Settings.',
@@ -145,12 +152,13 @@ export function OnboardingPage(): JSX.Element {
 
   const hasTransfer = !!transfer && transferAccount === playerId
   const steps = [
-    'installation',
-    'legacy',
+    'games',
+    ...(games !== 'cs13' ? ['installation' as const] : []),
+    ...(games !== 'cs16' ? ['legacy' as const] : []),
     'appearance',
     'preferences',
     ...(hasTransfer || step === 'community' ? ['community' as const] : []),
-    'referral',
+    ...(referralAlreadyUsed ? [] : ['referral' as const]),
     'review'
   ] as const
   const stepNumber = steps.indexOf(step) + 1
@@ -366,27 +374,25 @@ export function OnboardingPage(): JSX.Element {
               </div>
             )}
 
-            {step === 'legacy' && (
-              <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
+            {step === 'games' && (
+              <div className="space-y-3">
+                {(['cs16', 'cs13', 'both'] as const).map((game) => (
                   <ChoiceCard
-                    title={t('legacy.yes')}
-                    description={t('legacy.yesHelp')}
-                    icon={<Gamepad2 className="size-5" aria-hidden="true" />}
-                    selected={wantsCs13 === true}
-                    onClick={() => setWantsCs13(true)}
+                    key={game}
+                    title={
+                      game === 'both'
+                        ? t('gameSetup.both')
+                        : `Counter-Strike ${game === 'cs13' ? '1.3' : '1.6'}`
+                    }
+                    description={t('gameSetup.later')}
+                    icon={<Gamepad2 className="size-5" aria-hidden />}
+                    selected={games === game}
+                    onClick={() => setGames(game)}
                   />
-                  <ChoiceCard
-                    title={t('legacy.no')}
-                    description={t('legacy.noHelp')}
-                    icon={<Settings2 className="size-5" aria-hidden="true" />}
-                    selected={wantsCs13 === false}
-                    onClick={() => setWantsCs13(false)}
-                  />
-                </div>
-                {wantsCs13 && <LegacyGameSettings embedded showLaunch={false} />}
+                ))}
               </div>
             )}
+            {step === 'legacy' && <LegacyGameSettings embedded showLaunch={false} />}
             {step === 'appearance' && <LauncherThemeSetting onboarding />}
             {step === 'preferences' && (
               <div className="space-y-3">
@@ -448,7 +454,13 @@ export function OnboardingPage(): JSX.Element {
                 <div className="flex items-center justify-between gap-3 border border-white/10 bg-white/3 p-4">
                   <span className="text-sm text-neutral-400">Game client</span>
                   <span className="text-right text-sm font-semibold">
-                    {clientType ? clientLabel[clientType] : 'No installation'}
+                    {games === 'cs13'
+                      ? 'Counter-Strike 1.3'
+                      : games === 'both'
+                        ? t('gameSetup.both')
+                        : clientType
+                          ? clientLabel[clientType]
+                          : 'Counter-Strike 1.6'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 border border-white/10 bg-white/3 p-4">
@@ -502,43 +514,31 @@ export function OnboardingPage(): JSX.Element {
           </div>
 
           <div className="mt-3 flex gap-3">
-            {step !== 'installation' && (
+            {step !== 'games' && (
               <Button
                 variant="ghost"
                 className="w-28 border border-white/10"
                 disabled={busy || referralBusy || transferBusy}
-                onClick={() =>
-                  setStep(
-                    step === 'review'
-                      ? referralAlreadyUsed
-                        ? hasTransfer
-                          ? 'community'
-                          : 'preferences'
-                        : 'referral'
-                      : step === 'referral'
-                        ? hasTransfer
-                          ? 'community'
-                          : 'preferences'
-                        : step === 'community'
-                          ? 'preferences'
-                          : step === 'preferences'
-                            ? 'appearance'
-                            : step === 'appearance'
-                              ? 'legacy'
-                              : 'installation'
-                  )
-                }
+                onClick={() => setStep(steps[Math.max(0, steps.indexOf(step) - 1)])}
               >
-                Back
+                {t('gameSetup.back')}
               </Button>
             )}
-            {step === 'installation' ? (
+            {step === 'games' ? (
+              <Button
+                className="flex-1"
+                disabled={!games}
+                onClick={() => setStep(games === 'cs13' ? 'legacy' : 'installation')}
+              >
+                {t('legacy.continue')}
+              </Button>
+            ) : step === 'installation' ? (
               <Button
                 className="w-full bg-sky-400 hover:bg-sky-300"
                 disabled={
                   !savedPath || busy || nextClientBusy || nextClientInstallStatus === 'waiting'
                 }
-                onClick={() => setStep('legacy')}
+                onClick={() => setStep(games === 'both' ? 'legacy' : 'appearance')}
               >
                 Continue
               </Button>
@@ -598,7 +598,7 @@ export function OnboardingPage(): JSX.Element {
             ) : (
               <Button
                 className="flex-1 gap-2 bg-sky-400 hover:bg-sky-300"
-                disabled={busy || !savedPath || transferLoading || hasTransfer}
+                disabled={busy || !installationReady || transferLoading || hasTransfer}
                 onClick={() => void finish()}
               >
                 {busy ? (
@@ -606,23 +606,10 @@ export function OnboardingPage(): JSX.Element {
                 ) : (
                   <span className="size-4" aria-hidden="true" />
                 )}
-                Enter 1.6 Competitive
+                {t('gameSetup.enter')}
               </Button>
             )}
           </div>
-          {step === 'legacy' && (
-            <Button
-              variant="ghost"
-              className="mt-3 w-full"
-              disabled={legacyStatus === 'choosing' || legacyStatus === 'launching'}
-              onClick={() => {
-                setWantsCs13(false)
-                setStep('appearance')
-              }}
-            >
-              {t('legacy.skip')}
-            </Button>
-          )}
           {step === 'installation' && !savedPath && (
             <Button
               variant="ghost"

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { create } from 'zustand'
 
-function harness(web, api) {
+function harness(web, api, games = []) {
   const exports = {}
   const source = ts.transpileModule(
     readFileSync(
@@ -16,6 +16,7 @@ function harness(web, api) {
   ).outputText
   new Function('require', 'exports', 'window', 'performance', 'console', source)(
     (name) => {
+      if (name.endsWith('game-availability')) return { configuredGames: async () => games }
       if (name === 'zustand') return { create }
       if (name.endsWith('web-runtime')) return { isWebRuntime: () => web }
       return { DEFAULT_CROSSHAIR: {}, DEFAULT_PLAYER_PING_KEY: 'G' }
@@ -82,4 +83,11 @@ test('focus refresh cannot start another read during a picker or save', async ()
     await store.getState().load()
   }
   assert.equal(reads, 0)
+})
+
+test('a CS 1.3-only installation unlocks desktop setup', async () => {
+  const store = harness(false, { get: async () => settings() }, ['cs13'])
+  await store.getState().load()
+  assert.equal(store.getState().requiresGameSetup, false)
+  assert.equal(store.getState().savedPath, null)
 })

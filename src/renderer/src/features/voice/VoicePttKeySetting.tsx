@@ -1,3 +1,6 @@
+import { toast } from 'react-toastify'
+import { useTranslation } from '../i18n/i18n'
+import { configuredGames } from '../settings/game-availability'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { Mic2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
@@ -71,6 +74,7 @@ export function VoicePttKeySetting(): JSX.Element {
   const automaticKeysAvailable = enhancementsEnabled || (isWebRuntime() && nativeHelperReady)
   const isFfaMatch = useMatchmakingStore((state) => state.match?.mode === 'ffa')
   const matchChannelLabel = isFfaMatch ? 'All' : 'Team'
+  const { t } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const [teamPttKey, setTeamPttKey] = useState('K')
   const [partyPttKey, setPartyPttKey] = useState('V')
@@ -84,11 +88,11 @@ export function VoicePttKeySetting(): JSX.Element {
     let cancelled = false
     void window.api.gameSettings
       .get()
-      .then((settings) => {
+      .then(async (settings) => {
         if (cancelled) return
         setTeamPttKey(settings.voicePttKeys[0] ?? settings.voicePttKey)
         setPartyPttKey(settings.voicePttKeys[1] ?? 'V')
-        setHasGame(Boolean(settings.cs16ExecutablePath))
+        setHasGame((await configuredGames(settings)).length > 0)
       })
       .catch((loadError: unknown) => {
         if (!cancelled) setError(readableError(loadError))
@@ -102,6 +106,7 @@ export function VoicePttKeySetting(): JSX.Element {
     if (!capturing || !automaticKeysAvailable) return
 
     const saveKey = (key: string): void => {
+      const toastId = toast.loading(t('gameSetup.pending'))
       const channel = capturing
       setCapturing(null)
       setSaving(true)
@@ -118,12 +123,18 @@ export function VoicePttKeySetting(): JSX.Element {
         }
         return window.api.gameSettings.setVoicePttKey(value)
       })()
-        .then((settings) => {
+        .then(async (settings) => {
+          toast.update(toastId, {
+            render: t('gameSetup.done'),
+            type: 'success',
+            isLoading: false,
+            autoClose: 4000
+          })
           const nextTeamKey = settings.voicePttKeys[0] ?? settings.voicePttKey
           const nextPartyKey = settings.voicePttKeys[1] ?? 'V'
           setTeamPttKey(nextTeamKey)
           setPartyPttKey(nextPartyKey)
-          setHasGame(Boolean(settings.cs16ExecutablePath))
+          setHasGame((await configuredGames(settings)).length > 0)
           window.dispatchEvent(
             new CustomEvent(VOICE_PTT_KEY_CHANGED_EVENT, {
               detail: {
@@ -138,7 +149,15 @@ export function VoicePttKeySetting(): JSX.Element {
             }.`
           )
         })
-        .catch((saveError: unknown) => setError(readableError(saveError)))
+        .catch((saveError: unknown) => {
+          setError(readableError(saveError))
+          toast.update(toastId, {
+            render: t('gameSetup.failed'),
+            type: 'error',
+            isLoading: false,
+            autoClose: 5000
+          })
+        })
         .finally(() => setSaving(false))
     }
 
@@ -169,7 +188,7 @@ export function VoicePttKeySetting(): JSX.Element {
       window.removeEventListener('keydown', keyDown, true)
       window.removeEventListener('mousedown', mouseDown, true)
     }
-  }, [capturing, automaticKeysAvailable, matchChannelLabel, nativeHelperReady])
+  }, [capturing, automaticKeysAvailable, matchChannelLabel, nativeHelperReady, t])
 
   /* eslint-disable react-hooks/set-state-in-effect -- Turning off enhancements must end an active key capture. */
   useEffect(() => {

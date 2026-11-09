@@ -1,3 +1,5 @@
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
 import type { LegacyGameError, LegacyGameProfile } from '../../../../shared/legacy-game'
 
@@ -45,14 +47,36 @@ export const useLegacyGameStore = create<LegacyGameState>((set, get) => ({
   },
   choose: async () => {
     if (get().status !== 'idle') return
+    const language = useLanguageStore.getState().language
+    const id = toast.loading(translate(language, 'gameSetup.pending'))
     set({ status: 'choosing', error: null, launched: false })
     try {
       const result = await window.api.legacyGame.choose()
       if (result.ok) {
         if (result.value) set({ profile: result.value })
-      } else set({ error: result.error })
+        toast.update(id, {
+          render: translate(language, result.value ? 'gameSetup.done' : 'gameSetup.cancelled'),
+          type: result.value ? 'success' : 'info',
+          isLoading: false,
+          autoClose: 4000
+        })
+      } else {
+        set({ error: result.error })
+        toast.update(id, {
+          render: translate(language, `legacy.error.${result.error}`),
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000
+        })
+      }
     } catch {
       set({ error: 'settingsFailed' })
+      toast.update(id, {
+        render: translate(language, 'legacy.error.settingsFailed'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
     } finally {
       set({ status: 'idle' })
     }

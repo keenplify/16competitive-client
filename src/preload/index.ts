@@ -282,7 +282,7 @@ const gameSettings: GameSettingsApi = {
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setLightweightHud, enabled),
   setKillCards: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setKillCards, enabled),
   getAssetSyncStatus: () => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.getAssetSyncStatus),
-  syncAssets: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode),
+  syncAssets: (mode, game) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.syncAssets, mode, game),
   onAssetSyncProgress: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, progress: SkinAssetSyncProgress): void =>
       listener(progress)
@@ -313,8 +313,8 @@ const skins: SkinsApi = {
   stickers: () => ipcRenderer.invoke(STICKER_CHANNELS.snapshot),
   stickerBuy: (id, input) => ipcRenderer.invoke(STICKER_CHANNELS.buy, id, input),
   stickerRemove: (id) => ipcRenderer.invoke(STICKER_CHANNELS.remove, id),
-  stickerApply: (id, weaponKey, projection) =>
-    ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection),
+  stickerApply: (id, weaponKey, projection, gameVersion) =>
+    ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection, gameVersion),
   stickerImage: (path) => ipcRenderer.invoke(STICKER_CHANNELS.image, path),
   collections: () => ipcRenderer.invoke(SKIN_CHANNELS.collections),
   collection: (id) => ipcRenderer.invoke(SKIN_CHANNELS.collection, id),
@@ -322,7 +322,8 @@ const skins: SkinsApi = {
     ipcRenderer.invoke(SKIN_CHANNELS.collectionQuote, id, currency),
   collectionBuy: (id, input) => ipcRenderer.invoke(SKIN_CHANNELS.collectionBuy, id, input),
   musicKits: () => ipcRenderer.invoke(SKIN_CHANNELS.musicKits),
-  musicBuy: (id, price, currency) => ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price, currency),
+  musicBuy: (id, price, currency) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.musicBuy, id, price, currency),
   musicEquip: (id, team) => ipcRenderer.invoke(SKIN_CHANNELS.musicEquip, id, team),
   musicPreview: (id, event) => ipcRenderer.invoke(SKIN_CHANNELS.musicPreview, id, event),
   payments: () => ipcRenderer.invoke(SKIN_CHANNELS.payments),
@@ -338,14 +339,14 @@ const skins: SkinsApi = {
     ipcRenderer.invoke(SKIN_CHANNELS.createPayment, requestId, amount),
   refreshPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.refreshPayment, id),
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
-  mine: () => ipcRenderer.invoke(SKIN_CHANNELS.mine),
+  mine: (gameVersion) => ipcRenderer.invoke(SKIN_CHANNELS.mine, gameVersion),
   resaleQuote: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.resaleQuote, skinId),
   sell: (skinId, quote) => ipcRenderer.invoke(SKIN_CHANNELS.sell, skinId, quote),
   setCharacter: (team, model) => ipcRenderer.invoke(SKIN_CHANNELS.setCharacter, team, model),
   getLobbyLoadout: () => ipcRenderer.invoke(SKIN_CHANNELS.getLobbyLoadout),
   unlock: (skinId, currency) => ipcRenderer.invoke(SKIN_CHANNELS.unlock, skinId, currency),
-  equip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId),
-  unequip: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId),
+  equip: (skinId, gameVersion) => ipcRenderer.invoke(SKIN_CHANNELS.equip, skinId, gameVersion),
+  unequip: (skinId, gameVersion) => ipcRenderer.invoke(SKIN_CHANNELS.unequip, skinId, gameVersion),
   previewModel: (skinId, kind) => ipcRenderer.invoke(SKIN_CHANNELS.previewModel, skinId, kind),
   previewActionSound: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.previewActionSound, skinId),
   previewExplosionSprite: (skinId) =>

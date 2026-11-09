@@ -1,3 +1,4 @@
+import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { previewCompatibilityFiles } from './diagnostic-logs'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { PCASH_BET_CHANNELS } from '../shared/pcash-bets'
@@ -422,7 +423,11 @@ function publishSkinAssetSyncProgress(sender: WebContents, progress: SkinAssetSy
 
 const earlyAssetSync = createEarlyAssetSync()
 
-async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): Promise<void> {
+async function runSkinAssetSync(
+  sender: WebContents,
+  mode: SkinAssetSyncMode,
+  game: GameVersion = 'cs16'
+): Promise<void> {
   const startedAt = performance.now()
   let stage = 'requested'
   let lastProgressAt = startedAt
@@ -474,9 +479,9 @@ async function runSkinAssetSync(sender: WebContents, mode: SkinAssetSyncMode): P
       publishSkinAssetSyncProgress(sender, progress)
     }
     if (mode === 'repair') {
-      await repairSkinAssets(apiUrl, onProgress)
+      await repairSkinAssets(apiUrl, onProgress, game)
     } else {
-      await startSkinAssetSync(apiUrl, onProgress)
+      await startSkinAssetSync(apiUrl, onProgress, game)
     }
     console.info('[ResourceLoading] finished', {
       mode,
@@ -588,9 +593,17 @@ async function processPendingWebPlayLink(): Promise<void> {
       typeof details !== 'object' ||
       details === null ||
       (details as Record<string, unknown>).matchId !== joinLink.matchId ||
-      !['cs13_3v3', 'cs13_1v1', '5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'ffa', 'arena'].includes(
-        String((details as Record<string, unknown>).mode)
-      )
+      ![
+        'cs13_3v3',
+        'cs13_1v1',
+        '5v5',
+        '3v3',
+        'unrated',
+        'legacy',
+        'legacy_3v3',
+        'ffa',
+        'arena'
+      ].includes(String((details as Record<string, unknown>).mode))
     )
       throw new Error('Invalid match connection')
     await acceptWebPlayHandoff(session)
@@ -897,7 +910,9 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.handle(PCASH_BET_CHANNELS.get, (_, id: unknown) => requestPCashBet(id))
-  ipcMain.handle(PCASH_BET_CHANNELS.place, (_, id: unknown, input: unknown) => requestPCashBet(id, input))
+  ipcMain.handle(PCASH_BET_CHANNELS.place, (_, id: unknown, input: unknown) =>
+    requestPCashBet(id, input)
+  )
   ipcMain.handle(ADMIN_DEMO_CHANNELS.list, (_, page: unknown) => listAdminDemos(page))
   ipcMain.handle(ADMIN_DEMO_CHANNELS.watch, (_, id: unknown) => watchAdminDemo(id))
   ipcMain.handle(AUTH_CHANNELS.login, (_, credentials: unknown) =>
@@ -1198,8 +1213,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(STICKER_CHANNELS.snapshot, () => listStickers())
   ipcMain.handle(STICKER_CHANNELS.buy, (_event, id, input) => buySticker(id, input))
   ipcMain.handle(STICKER_CHANNELS.remove, (_event, id) => removeSticker(id))
-  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection) =>
-    applySticker(id, weaponKey, projection)
+  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection, gameVersion) =>
+    applySticker(id, weaponKey, projection, gameVersion)
   )
   ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
@@ -1211,7 +1226,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.collectionBuy, (_, id: unknown, input: unknown) =>
     buyCollection(id, input)
   )
-  ipcMain.handle(SKIN_CHANNELS.musicBuy, (_, id: unknown, price: unknown, currency: unknown) => buyMusicKit(id, price, currency))
+  ipcMain.handle(SKIN_CHANNELS.musicBuy, (_, id: unknown, price: unknown, currency: unknown) =>
+    buyMusicKit(id, price, currency)
+  )
   ipcMain.handle(SKIN_CHANNELS.musicEquip, (_, id: unknown, team: unknown) =>
     equipMusicKit(id, team)
   )
@@ -1222,9 +1239,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.payments, () => getPayments())
   ipcMain.handle(SKIN_CHANNELS.withdrawalOptions, () => getWithdrawalOptions())
   ipcMain.handle(SKIN_CHANNELS.withdrawalHistory, () => getWithdrawalHistory())
-  ipcMain.handle(SKIN_CHANNELS.createWithdrawal, (_, input: unknown) =>
-    createWithdrawal(input)
-  )
+  ipcMain.handle(SKIN_CHANNELS.createWithdrawal, (_, input: unknown) => createWithdrawal(input))
   ipcMain.handle(
     SKIN_CHANNELS.createManualPayment,
     (_, requestId: unknown, methodId: unknown, amount: unknown) =>
@@ -1240,7 +1255,7 @@ app.whenReady().then(async () => {
     createPayment(requestId, amount)
   )
   ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown) => refreshPayment(id))
-  ipcMain.handle(SKIN_CHANNELS.mine, () => getOwnedSkins())
+  ipcMain.handle(SKIN_CHANNELS.mine, (_, gameVersion: unknown) => getOwnedSkins(gameVersion))
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
   ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>
     sellSkin(skinId, quote)
@@ -1252,8 +1267,12 @@ app.whenReady().then(async () => {
   ipcMain.handle(SKIN_CHANNELS.unlock, (_, skinId: unknown, currency: unknown) =>
     unlockSkin(skinId, currency)
   )
-  ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown) => equipSkin(skinId))
-  ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown) => unequipSkin(skinId))
+  ipcMain.handle(SKIN_CHANNELS.equip, (_, skinId: unknown, gameVersion: unknown) =>
+    equipSkin(skinId, gameVersion)
+  )
+  ipcMain.handle(SKIN_CHANNELS.unequip, (_, skinId: unknown, gameVersion: unknown) =>
+    unequipSkin(skinId, gameVersion)
+  )
   ipcMain.handle(SKIN_CHANNELS.previewModel, (_, skinId: unknown, kind: unknown) =>
     getSkinPreviewModel(skinId, kind)
   )
@@ -1415,9 +1434,9 @@ app.whenReady().then(async () => {
     return settings
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.getAssetSyncStatus, () => skinAssetSyncProgress)
-  ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown) => {
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.syncAssets, (event, mode: unknown, game: unknown) => {
     if (mode !== 'download' && mode !== 'repair') throw new Error('Invalid asset sync mode.')
-    return runSkinAssetSync(event.sender, mode)
+    return runSkinAssetSync(event.sender, mode, parseGameVersion(game))
   })
   ipcMain.handle(GAME_SETTINGS_CHANNELS.save, async (event, folderPath: unknown) => {
     const settings = await saveGameSettings(folderPath)

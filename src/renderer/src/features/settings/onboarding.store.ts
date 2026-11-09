@@ -2,9 +2,18 @@ import { create } from 'zustand'
 import type { SetupMode } from '../../../../shared/game-settings'
 
 type OnboardingStep =
-  'installation' | 'legacy' | 'appearance' | 'preferences' | 'community' | 'referral' | 'review'
+  | 'games'
+  | 'installation'
+  | 'legacy'
+  | 'appearance'
+  | 'preferences'
+  | 'community'
+  | 'referral'
+  | 'review'
 
 interface OnboardingState {
+  games: 'cs16' | 'cs13' | 'both' | null
+  setGames: (games: 'cs16' | 'cs13' | 'both') => void
   wantsCs13: boolean | null
   setWantsCs13: (value: boolean) => void
   step: OnboardingStep
@@ -19,9 +28,11 @@ interface OnboardingState {
 }
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
+  games: null,
+  setGames: (games) => set({ games, wantsCs13: games !== 'cs16' }),
   wantsCs13: null,
   setWantsCs13: (value) => set({ wantsCs13: value }),
-  step: 'installation',
+  step: 'games',
   mode: 'recommended',
   completionPhase: 'idle',
   setStep: (step) => set({ step }),
@@ -34,5 +45,11 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     window.setTimeout(() => set({ completionPhase: 'done' }), reduceMotion ? 150 : 950)
   },
   reset: () =>
-    set({ wantsCs13: null, step: 'installation', mode: 'recommended', completionPhase: 'idle' })
+    set({
+      games: null,
+      wantsCs13: null,
+      step: 'games',
+      mode: 'recommended',
+      completionPhase: 'idle'
+    })
 }))

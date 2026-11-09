@@ -15,6 +15,8 @@ export const WON13_CLIENT_SHA256 =
   '71fdbe140df3598a74738537b924141f4fb4b0b828737bd99a7223d9e4549460'
 export const WON13_ENGINE_SHA256 =
   '525c1a32a520bbde8857e8dc3ed1e5bbc8b2ef5620bc6cdbcdbc72c34542bace'
+export const WON13_AGC_ENGINE_SHA256 =
+  'b5f34ed4726d93a9c3d4b3d3eb60df5680f5ae888710f5461e54a462e1efd487'
 export const WON13_OPENGL_SHA256 =
   'c047cd0f87f379fe3d24d7f2e07241eb11d590211157be5a527bc9d9f295e922'
 
@@ -24,8 +26,15 @@ export function classifyGoldSrcClient(
   engineHash: string
 ): GoldSrcClientFamily | null {
   if (version === '1.3')
-    return clientHash === WON13_CLIENT_SHA256 && engineHash === WON13_ENGINE_SHA256 ? 'won13' : null
-  if (clientHash === WON13_CLIENT_SHA256 || engineHash === WON13_ENGINE_SHA256) return null
+    return clientHash === WON13_CLIENT_SHA256 &&
+      [WON13_ENGINE_SHA256, WON13_AGC_ENGINE_SHA256].includes(engineHash)
+      ? 'won13'
+      : null
+  if (
+    clientHash === WON13_CLIENT_SHA256 ||
+    [WON13_ENGINE_SHA256, WON13_AGC_ENGINE_SHA256].includes(engineHash)
+  )
+    return null
   // The caller separately checks the modern PE/SDK export contract.
   return version === '1.6' || version === '' ? 'cs16' : null
 }

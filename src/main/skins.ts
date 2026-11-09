@@ -1,3 +1,4 @@
+import { parseGameVersion } from '../shared/game-version'
 import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { cachedStickerImage } from './game/sticker-image-cache'
 import { parseStickerPurchase } from '../shared/stickers'
@@ -266,8 +267,8 @@ export const refreshPayment = async (id: unknown) =>
     })
   )
 
-export const getOwnedSkins = async (): Promise<OwnedSkin[]> => {
-  const data = await playerRequest('/skins/mine')
+export const getOwnedSkins = async (gameVersion: unknown = 'cs16'): Promise<OwnedSkin[]> => {
+  const data = await playerRequest(`/skins/mine?gameVersion=${parseGameVersion(gameVersion)}`)
   if (!Array.isArray(data) || !data.every(isOwnedSkin))
     throw new Error('The server returned an invalid inventory.')
   for (const { skin } of data) {
@@ -385,12 +386,21 @@ export const unlockSkin = async (skinId: unknown, currency: unknown): Promise<Un
   throw makeError('This skin does not have an available purchase method.', 'SKIN_UNAVAILABLE')
 }
 
-export const equipSkin = async (skinId: unknown): Promise<void> => {
-  await playerRequest(`/skins/${validateSkinId(skinId)}/equip`, { method: 'POST' })
+export const equipSkin = async (skinId: unknown, gameVersion: unknown = 'cs16'): Promise<void> => {
+  await playerRequest(
+    `/skins/${validateSkinId(skinId)}/equip?gameVersion=${parseGameVersion(gameVersion)}`,
+    { method: 'POST' }
+  )
 }
 
-export const unequipSkin = async (skinId: unknown): Promise<void> => {
-  await playerRequest(`/skins/${validateSkinId(skinId)}/unequip`, { method: 'POST' })
+export const unequipSkin = async (
+  skinId: unknown,
+  gameVersion: unknown = 'cs16'
+): Promise<void> => {
+  await playerRequest(
+    `/skins/${validateSkinId(skinId)}/unequip?gameVersion=${parseGameVersion(gameVersion)}`,
+    { method: 'POST' }
+  )
 }
 
 export const setLobbyWeapon = async (skinId: unknown): Promise<void> => {
@@ -733,7 +743,8 @@ export const removeSticker = async (id: unknown): Promise<void> => {
 export const applySticker = async (
   id: unknown,
   weaponKey: unknown,
-  projection: unknown
+  projection: unknown,
+  gameVersion: unknown = 'cs16'
 ): Promise<void> => {
   if (
     typeof weaponKey !== 'string' ||
@@ -745,7 +756,11 @@ export const applySticker = async (
   await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ weaponKey, projection: validateProjection(projection) })
+    body: JSON.stringify({
+      weaponKey,
+      gameVersion: parseGameVersion(gameVersion),
+      projection: validateProjection(projection)
+    })
   })
 }
 export const getStickerImage = async (path: unknown): Promise<ArrayBuffer> => {

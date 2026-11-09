@@ -1,3 +1,5 @@
+import { configuredGames } from '../settings/game-availability'
+import { gameForMode } from '../../../../shared/game-version'
 import { RankedWarmupNotice } from './RankedWarmupNotice'
 import { verifyInstalledNativeHelper } from './native-helper-action'
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
@@ -207,9 +209,9 @@ export function PlayPage({
   const handleReconnect = async (): Promise<void> => {
     // Revalidate through the main process: a saved path can become stale if the
     // player deletes or moves their Counter-Strike installation while the app is open.
-    const settings = await window.api.gameSettings.get().catch(() => null)
-    if (!webRuntime && !settings?.cs16ExecutablePath) {
-      useGameSettingsStore.getState().promptToConfigureForMatch()
+    const game = gameForMode(match?.mode)
+    if (!webRuntime && !(await configuredGames()).includes(game)) {
+      toast.error(t('gameSetup.required'))
       navigate('settings')
       return
     }

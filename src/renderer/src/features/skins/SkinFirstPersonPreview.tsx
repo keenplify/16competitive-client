@@ -1,3 +1,4 @@
+import { useLoadoutGameStore } from './loadout-game.store'
 import { GunPreviewEffects } from './GunPreviewEffects'
 import { StickerViewport } from '../sticker-editor/StickerViewport'
 import { previewAppliedStickers, useInventoryStore } from '../inventory/inventory.store'
@@ -36,8 +37,12 @@ export function SkinFirstPersonPreview({
   stickerTargetKey?: string
   inspection?: boolean
 }): JSX.Element {
+  const game = useLoadoutGameStore((s) => s.game)
   const stickerRevision = useInventoryStore((s) =>
-    JSON.stringify(s.snapshot?.items.filter((i) => i.weaponKey === stickerTargetKey) ?? [])
+    JSON.stringify(
+      s.snapshot?.items.filter((i) => i.weaponKey === stickerTargetKey && i.gameVersion === game) ??
+        []
+    )
   )
   const { language } = useTranslation()
   const text = translations[language]
@@ -65,7 +70,9 @@ export function SkinFirstPersonPreview({
       ? window.api.models.read(skin.viewModelPath!)
       : getCachedSkinModel(skin.id, skin.viewModelPath ?? '', 'view')
     void source
-      .then((bytes) => (stickerTargetKey ? previewAppliedStickers(bytes, stickerTargetKey) : bytes))
+      .then((bytes) =>
+        stickerTargetKey ? previewAppliedStickers(bytes, stickerTargetKey, game) : bytes
+      )
       .then(
         (bytes) => {
           if (active) setBuffer(bytes)
@@ -77,7 +84,7 @@ export function SkinFirstPersonPreview({
     return () => {
       active = false
     }
-  }, [skin.id, skin.viewModelPath, stock, stickerTargetKey, stickerRevision])
+  }, [skin.id, skin.viewModelPath, stock, stickerTargetKey, stickerRevision, game])
   const sequences = useMemo(() => {
     if (!buffer) return null
     try {

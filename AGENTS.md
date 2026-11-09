@@ -1327,7 +1327,8 @@ Avoid managing complex flows with many unrelated booleans.
 ### Native binary analysis skill
 
 For DLL/engine ABI, exported callback, or updater reverse engineering, use the
-local [Ghidra skill](C:/Users/keenp/.codex/skills/ghidra/SKILL.md). It records the
+local [Ghidra skill](/home/keenplify-fedora/.codex/skills/ghidra/SKILL.md)
+(on Windows: `C:/Users/keenp/.codex/skills/ghidra/SKILL.md`). It records the
 working Windows tool setup and evidence workflow. Verify exact binary hashes
 before and after runtime tests; self-updaters can replace the files being tested.
 

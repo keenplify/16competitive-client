@@ -1,3 +1,4 @@
+import type { GameVersion } from './game-version'
 import { skinHiddenTexturesRevision } from './skin-preview-hidden-textures.ts'
 import { skinPreviewRotation, type SkinPreviewRotation } from './skin-preview-rotation.ts'
 import type { PaymentOrder, PaymentSnapshot } from './payments'
@@ -159,9 +160,14 @@ export interface SkinGift {
 
 export interface SkinsApi {
   stickers(): Promise<import('./stickers').StickerSnapshot>
-  stickerBuy(id: string, input: import('./stickers').StickerBuy): Promise<{id:string}>
+  stickerBuy(id: string, input: import('./stickers').StickerBuy): Promise<{ id: string }>
   stickerRemove(id: string): Promise<void>
-  stickerApply(id: string, weaponKey: string, projection: import('./stickers').StickerProjection): Promise<void>
+  stickerApply(
+    id: string,
+    weaponKey: string,
+    projection: import('./stickers').StickerProjection,
+    gameVersion?: GameVersion
+  ): Promise<void>
   stickerImage(path: string): Promise<ArrayBuffer>
   collections(): Promise<import('./skin-collections').SkinCollection[]>
   collection(id: string): Promise<import('./skin-collections').CollectionDetail>
@@ -174,7 +180,11 @@ export interface SkinsApi {
     input: import('./skin-collections').CollectionBuyInput
   ): Promise<import('./skin-collections').CollectionPurchase>
   musicKits(): Promise<import('./music-kits').MusicKitSnapshot>
-  musicBuy(id: string, expectedPrice: number, currency?: 'POINTS' | 'P_CASH'): Promise<{ points: number; pCash?: number }>
+  musicBuy(
+    id: string,
+    expectedPrice: number,
+    currency?: 'POINTS' | 'P_CASH'
+  ): Promise<{ points: number; pCash?: number }>
   musicEquip(id: string | null, team: import('./music-kits').MusicTeam): Promise<void>
   musicPreview(id: string, event: import('./music-kits').MusicEvent): Promise<ArrayBuffer>
   payments(): Promise<PaymentSnapshot>
@@ -197,14 +207,14 @@ export interface SkinsApi {
   createPayment(requestId: string, amount: number): Promise<PaymentOrder>
   refreshPayment(id: string): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>
-  mine(): Promise<OwnedSkin[]>
+  mine(gameVersion?: GameVersion): Promise<OwnedSkin[]>
   resaleQuote(skinId: string): Promise<SkinResaleQuote>
   sell(skinId: string, quote: SkinResaleQuote): Promise<SkinResaleResult>
   setCharacter(team: CharacterTeam, model: string): Promise<void>
   getLobbyLoadout(): Promise<LobbyLoadout>
   unlock(skinId: string, currency: SkinCurrency): Promise<UnlockResult>
-  equip(skinId: string): Promise<void>
-  unequip(skinId: string): Promise<void>
+  equip(skinId: string, gameVersion?: GameVersion): Promise<void>
+  unequip(skinId: string, gameVersion?: GameVersion): Promise<void>
   previewModel(skinId: string, kind?: 'player' | 'view'): Promise<ArrayBuffer>
   previewExplosionSprite(skinId: string): Promise<ArrayBuffer | null>
   previewActionSound(skinId: string): Promise<ArrayBuffer | null>

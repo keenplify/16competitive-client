@@ -1,3 +1,6 @@
+import { LoadoutGameSwitch } from '../skins/LoadoutGameSwitch'
+import { useLoadoutGameStore } from '../skins/loadout-game.store'
+import { supportsWeapon } from '../../../../shared/game-version'
 import { stockStickerModel } from '../../../../shared/stock-sticker-models'
 import {
   PISTOL_WEAPON_KEYS,
@@ -84,11 +87,12 @@ export function InventoryTile({
   )
 }
 export function InventoryPage() {
+  const game = useLoadoutGameStore((s) => s.game)
   const state = useInventoryStore()
   const t = useInventoryText()
   useEffect(() => {
     void useInventoryStore.getState().load()
-  }, [])
+  }, [game])
   const items = state.snapshot?.items.filter((i) => !i.appliedAt) ?? []
   const focus = useNavigationStore((s) => s.purchasedItem)
   useEffect(() => {
@@ -97,6 +101,7 @@ export function InventoryPage() {
   const showStickers = ['all', 'stickers'].includes(state.filter)
   return (
     <section className="min-h-[560px] py-6" aria-label={t('inventory')}>
+      <LoadoutGameSwitch disabled={state.pending || state.editing} className="mb-4" />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2" role="group" aria-label={t('inventory')}>
           {(['all', 'stickers', 'consumables'] as const).map((filter) => (
@@ -216,6 +221,7 @@ const stickerPickerWeapons = [
 ]
 
 export function InventoryDialogs() {
+  const game = useLoadoutGameStore((s) => s.game)
   const s = useInventoryStore()
   const t = useInventoryText()
   const unused = s.snapshot?.items.filter((i) => !i.appliedAt) ?? []
@@ -238,7 +244,11 @@ export function InventoryDialogs() {
                 ? s.weapons.find((weapon) => weapon.skin.id === s.target?.skinId)?.skin.weaponKey
                 : s.target?.key.slice(6)
             }
-            count={s.snapshot?.items.filter((i) => i.weaponKey === s.target?.key).length ?? 0}
+            count={
+              s.snapshot?.items.filter(
+                (i) => i.weaponKey === s.target?.key && i.gameVersion === s.target?.gameVersion
+              ).length ?? 0
+            }
             onApply={() => void s.apply()}
             onClose={s.close}
           />
@@ -302,19 +312,21 @@ export function InventoryDialogs() {
                     target={{ key: `skin:${w.skin.id}`, name: w.skin.name, skinId: w.skin.id }}
                   />
                 ))}
-              {stickerPickerWeapons.map((weaponKey) => (
-                <WeaponTile
-                  key={`stock:${weaponKey}`}
-                  weaponKey={weaponKey}
-                  target={{
-                    key: `stock:${weaponKey}`,
-                    name: t('stockWeapon').replace(
-                      '{{weapon}}',
-                      weaponKey === 'ak47' ? 'AK-47' : weaponKey.toUpperCase()
-                    )
-                  }}
-                />
-              ))}
+              {stickerPickerWeapons
+                .filter((key) => supportsWeapon(game, key))
+                .map((weaponKey) => (
+                  <WeaponTile
+                    key={`stock:${weaponKey}`}
+                    weaponKey={weaponKey}
+                    target={{
+                      key: `stock:${weaponKey}`,
+                      name: t('stockWeapon').replace(
+                        '{{weapon}}',
+                        weaponKey === 'ak47' ? 'AK-47' : weaponKey.toUpperCase()
+                      )
+                    }}
+                  />
+                ))}
             </>
           )}
           {s.target && !unused.length && (

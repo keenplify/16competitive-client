@@ -9,6 +9,7 @@ import {
   detectGoldSrcCosmeticFamily,
   WON13_CLIENT_SHA256,
   WON13_ENGINE_SHA256,
+  WON13_AGC_ENGINE_SHA256,
   toWinePath,
   fromWinePath
 } from '../src/main/game/goldsrc-client-capabilities.ts'
@@ -58,4 +59,10 @@ test('Wine recovery paths round trip spaces without shell syntax or other drives
     assert.throws(() => fromWinePath(invalid))
   assert.throws(() => toWinePath('relative'))
   assert.throws(() => toWinePath('/bad\0file'))
+})
+
+test('AGC resource variant still requires the exact client and executable', () => {
+  assert.equal(classifyGoldSrcClient('1.3', WON13_CLIENT_SHA256, WON13_AGC_ENGINE_SHA256), 'won13')
+  assert.equal(classifyGoldSrcClient('1.3', 'unknown', WON13_AGC_ENGINE_SHA256), null)
+  assert.equal(classifyGoldSrcClient('1.6', 'modern', WON13_AGC_ENGINE_SHA256), null)
 })

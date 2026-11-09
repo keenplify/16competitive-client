@@ -51,7 +51,7 @@ struct GoldClientExports {
     legacy_extension: Vec<String>,
 }
 
-fn digest(bytes: &[u8]) -> String {
+pub(crate) fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
@@ -66,7 +66,7 @@ fn ordinary_file(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn ordinary_directory(path: &Path) -> Result<(), String> {
+pub(crate) fn ordinary_directory(path: &Path) -> Result<(), String> {
     let meta = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
     if !meta.is_dir() || meta.file_type().is_symlink() || meta.file_attributes() & 0x400 != 0 {
         return Err(format!(
@@ -77,7 +77,7 @@ fn ordinary_directory(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn read_limited(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
+pub(crate) fn read_limited(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
     ordinary_file(path)?;
     let mut data = Vec::new();
     fs::File::open(path)
@@ -91,7 +91,7 @@ fn read_limited(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
     Ok(data)
 }
 
-fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)

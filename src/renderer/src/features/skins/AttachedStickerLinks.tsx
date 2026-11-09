@@ -1,3 +1,4 @@
+import { useLoadoutGameStore } from './loadout-game.store'
 import { useState } from 'react'
 import { X, LoaderCircle, Plus } from 'lucide-react'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -31,12 +32,19 @@ export function AttachedStickerLinks({
   const closeRemoval = () => {
     if (!useInventoryStore.getState().pending) setRemoving(null)
   }
+  const game = useLoadoutGameStore((s) => s.game)
   const snapshot = useInventoryStore((s) => s.snapshot)
   const images = useInventoryStore((s) => s.images)
   const { language } = useTranslation()
   const text = translations[language]
   const stickers = (snapshot?.items ?? [])
-    .filter((item) => item.weaponKey === targetKey && item.appliedAt && item.projection)
+    .filter(
+      (item) =>
+        item.gameVersion === game &&
+        item.weaponKey === targetKey &&
+        item.appliedAt &&
+        item.projection
+    )
     .sort((a, b) => a.appliedAt!.localeCompare(b.appliedAt!) || a.id.localeCompare(b.id))
 
   // Reserve the footer while inventory and artwork arrive, avoiding modal movement.

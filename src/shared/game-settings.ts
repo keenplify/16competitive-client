@@ -88,6 +88,6 @@ export interface GameSettingsApi {
   setKillCards(enabled: boolean): Promise<GameSettings>
   completeSetup(mode: SetupMode): Promise<GameSettings>
   getAssetSyncStatus(): Promise<SkinAssetSyncProgress>
-  syncAssets(mode: SkinAssetSyncMode): Promise<void>
+  syncAssets(mode: SkinAssetSyncMode, game?: import('./game-version').GameVersion): Promise<void>
   onAssetSyncProgress(listener: (progress: SkinAssetSyncProgress) => void): () => void
 }

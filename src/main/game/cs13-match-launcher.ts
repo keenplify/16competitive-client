@@ -1,3 +1,4 @@
+import { launchStandaloneSession, standaloneSupportsCs13 } from './standalone-session'
 import { createCs13AuthFile, cs13AuthContents } from './cs13-auth-file'
 import { createHash } from 'node:crypto'
 import { app, screen } from 'electron'
@@ -110,6 +111,21 @@ export async function launchCs13Match(
       installation.runtime
     )
     installation = await prepareCs13MatchInstallation(installation, process.platform)
+    if (
+      process.platform === 'win32' &&
+      !process.argv.includes('--native-helper-runtime') &&
+      (await standaloneSupportsCs13())
+    ) {
+      if (!isCurrent()) return
+      await launchStandaloneSession(
+        connection.matchId,
+        apiUrl,
+        await getGameSettings(),
+        (event) => onExit(event.code, event.signal),
+        installation
+      )
+      return
+    }
     await ensureSharedModelDirectory(installation.gameDirectory, sharedModelDirectory())
     await WindowsCosmeticInstallation.restorePreviousInstall(
       installation.folderPath,

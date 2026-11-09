@@ -1,3 +1,4 @@
+import { configuredGames } from './game-availability'
 import { toast } from 'react-toastify'
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { DEFAULT_PLAYER_PING_KEY, type PlayerPingKey } from '../../../../shared/player-ping'
@@ -230,6 +231,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     set({ status: 'loading', error: null })
     try {
       const settings = await window.api.gameSettings.get()
+      const available = await configuredGames(settings)
       if (revision !== settingsRevision) return
       console.info('[GameSetup] settings loaded', {
         installationSelected: Boolean(settings.cs16ExecutablePath),
@@ -244,7 +246,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         configFilePath: settings.configFilePath,
         status: 'idle',
         loaded: true,
-        requiresGameSetup: !isWebRuntime() && !settings.cs16ExecutablePath,
+        requiresGameSetup: !isWebRuntime() && available.length === 0,
         crosshair: settings.crosshair,
         nextClientDetected: settings.nextClientDetected,
         nextClientIntegrationEnabled: settings.nextClientIntegrationEnabled,
@@ -319,11 +321,14 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   },
 
   completeSetup: async (mode) => {
+    const language = useLanguageStore.getState().language
+    const toastId = toast.loading(translate(language, 'gameSetup.pending'))
     set({ status: 'saving', error: null })
     try {
       const settings = await window.api.gameSettings.completeSetup(mode)
       set({
         status: 'idle',
+        requiresGameSetup: false,
         setupCompleted: settings.setupCompleted,
         setupMode: settings.setupMode,
         clientType: settings.clientType,
@@ -335,9 +340,21 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         killCardsEnabled: settings.killCardsEnabled,
         error: null
       })
+      toast.update(toastId, {
+        render: translate(language, 'gameSetup.done'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
       return true
     } catch (error) {
       set({ status: 'idle', error: message(error) })
+      toast.update(toastId, {
+        render: translate(language, 'gameSetup.failed'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      })
       return false
     }
   },

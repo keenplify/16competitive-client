@@ -15,6 +15,8 @@ struct Request {
     #[serde(default)]
     partner: Option<partner::Launch>,
     installation: PathBuf,
+    #[serde(default)]
+    game: Option<String>,
     settings: settings_bridge::NativePreferences,
     reopen: Option<Reopen>,
     #[serde(default)]
@@ -357,10 +359,13 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
         }
         native_preferences::set_live_source(source.clone())?;
     }
-    let (root, _, _) =
-        validate_installation(&request.installation, "cs16").ok_or("Invalid game installation")?;
+    let game = request.game.as_deref().unwrap_or("cs16");
+    if !matches!(game, "cs16" | "cs13") { return Err("Invalid game installation".into()); }
+    let (root, _, mod_dir) =
+        validate_installation(&request.installation, game).ok_or("Invalid game installation")?;
     let mut preferences = settings_bridge::load()?;
-    preferences.cs16 = Some(root);
+    if game == "cs13" { preferences.cs13 = Some(root.join(mod_dir)); }
+    else { preferences.cs16 = Some(root); }
     preferences.settings = request.settings;
     preferences.settings.lightweight_hud = true;
     settings_bridge::save(&preferences)?;
@@ -449,6 +454,7 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
             &token,
             request.match_id.as_deref().ok_or("Missing match")?,
         )?;
+        if connection.game() != game { return Err("Game installation does not match assigned game".into()); }
         launch_native_match(&connection, &request.api_origin, &token, &mut accept)
     };
     status_stop.store(true, std::sync::atomic::Ordering::Release);

@@ -473,6 +473,12 @@ export class ScoreboardOverlaySession {
       await writeFile(join(directory, 'server.endpoint'), `${serverEndpoint}\n`, { mode: 0o600 })
       await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
       await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
+      if (
+        windowsInstallation instanceof WindowsCosmeticInstallation &&
+        windowsInstallation.nativeBoardSupported
+      ) {
+        await writeFile(join(directory, 'overlay.mode'), 'vgui-scoreboard\n', { mode: 0o600 })
+      }
       await writeFile(join(directory, 'round-accolade.support'), '1\n', { mode: 0o600 })
       await writeFile(join(directory, 'scoreboard.visible'), '0\n', { mode: 0o600 })
       const gameSettings = await getGameSettings(true)
@@ -733,6 +739,12 @@ export class ScoreboardOverlaySession {
           try {
             await writeFile(join(directory, 'overlay.mode'), 'scoreboard\n', { mode: 0o600 })
             await writeFile(join(directory, 'overlay.enabled'), '1\n', { mode: 0o600 })
+            if (
+              windowsInstallation instanceof WindowsCosmeticInstallation &&
+              windowsInstallation.nativeBoardSupported
+            ) {
+              await writeFile(join(directory, 'overlay.mode'), 'vgui-scoreboard\n', { mode: 0o600 })
+            }
             if (createdSession.stopped) return
             if (reason !== 'session markers missing') {
               await createdSession.window.loadFile(join(assets, 'index.html'))
