@@ -4631,3 +4631,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### WON Support
 
 - Local music support is now required for WON.
+
+## v2026.1109.9 — 2026-11-09
+
+### CS 1.3
+
+- Fixed native game startup.
+
+### Crosshair
+
+- Crosshair changes now update live.
+
+### Stickers and Skins
+
+- Updated stock sticker sources.
+- Improved stock sticker and weapon previews.
+- Improved switching between game versions in loadouts.
