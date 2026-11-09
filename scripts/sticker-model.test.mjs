@@ -501,6 +501,9 @@ test('hand texture filtering keeps the weapon grip visible and paintable', () =>
     'view_skin.BMP',
     'view_finger.bmp',
     'hand.bmp',
+    'newhand.bmp',
+    'NEWHAND.BMP',
+    'thumb.bmp',
     'v_hands.bmp',
     'gloves.bmp',
     'fingers.bmp',
@@ -508,7 +511,14 @@ test('hand texture filtering keeps the weapon grip visible and paintable', () =>
     'sleeve_01.bmp'
   ])
     assert.equal(isHandTexture(name), true, name)
-  for (const name of ['handle.bmp', 'forearm.bmp', 'handguard.bmp', 'lower_body.bmp'])
+  for (const name of [
+    'handle.bmp',
+    'handles.bmp',
+    'newhandle.bmp',
+    'forearm.bmp',
+    'handguard.bmp',
+    'lower_body.bmp'
+  ])
     assert.equal(isHandTexture(name), false, name)
 })
 

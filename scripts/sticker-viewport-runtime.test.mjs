@@ -27,6 +27,13 @@ import {modelTextures} from './src/shared/sticker-model'
 import {prepareStickerAtlas} from './src/renderer/src/libs/web-hlmv/lib/sticker-atlas'
 let root
 let disposals=0, picks=0
+let textureNames=[],visibleTextures=[]
+const originalRender=THREE.Scene.prototype.onBeforeRender
+THREE.Scene.prototype.onBeforeRender=function(renderer,scene,...args){
+ visibleTextures=[]
+ scene.traverseVisible(object=>{if(object.isMesh&&Number.isInteger(object.userData.texture))visibleTextures.push(textureNames[object.userData.texture])})
+ return originalRender.call(this,renderer,scene,...args)
+}
 const originalDispose=THREE.Texture.prototype.dispose
 THREE.Texture.prototype.dispose=function(){disposals++;return originalDispose.call(this)}
 useStickerEditor.subscribe((state,previous)=>{if(state.projection!==previous.projection)picks++})
@@ -43,6 +50,7 @@ window.dragProbe=async()=>{
 }
 window.mount = (bytes, weaponKey = 'ak47', rotation) => {
   const atlas=prepareStickerAtlas(new Uint8Array(bytes))
+  textureNames=modelTextures(atlas.model).map(texture=>texture.name)
   useStickerEditor.setState({model:atlas.model,atlas,sticker:{width:8,height:8,rgba:new Uint8Array(256).fill(255)},applied:[],placed:false,projection:undefined})
   root=createRoot(document.getElementById('root'))
   root.render(<StrictMode><StickerViewport label={weaponKey} weaponKey={weaponKey} /></StrictMode>)
@@ -64,7 +72,7 @@ window.mountPreview = (bytes, shared = false, weaponKey = 'ak47', rotation) => {
   root.render(<StrictMode><StickerViewport label="preview" previewModel={buffer} presentationRotation={rotation} weaponKey={weaponKey} onFirstFrame={()=>window.previewResult.frames++} onError={()=>window.previewResult.failures++}/></StrictMode>)
 }
 window.unmount = () => {root.unmount();root=undefined}
-window.state = () => ({placed:useStickerEditor.getState().placed,projection:useStickerEditor.getState().projection,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),canvases:document.querySelectorAll('canvas').length})
+window.state = () => ({visibleTextures,placed:useStickerEditor.getState().placed,projection:useStickerEditor.getState().projection,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.textContent),canvases:document.querySelectorAll('canvas').length})
 `
         },
         outfile: join(dir, 'renderer.js'),
@@ -152,6 +160,18 @@ await new Promise(r=>setTimeout(r,200))
 writeFileSync('/tmp/16c-knife-sticker-verified.png',(await w.webContents.capturePage()).toPNG())
 assert.ok(projection.normal[1]<-0.5,'knife starts on the opposite authored blade face from the old firearm camera: '+JSON.stringify(projection))
 await w.webContents.executeJavaScript('unmount()')
+const cs13KnifePath=${JSON.stringify(process.env.CS13_TEST_KNIFE || null)}
+if(cs13KnifePath){
+ const cs13Knife=[...readFileSync(cs13KnifePath)]
+ await w.webContents.executeJavaScript('mount('+JSON.stringify(cs13Knife)+',"knife")')
+ await new Promise(r=>setTimeout(r,700))
+ const state=await w.webContents.executeJavaScript('state()')
+ assert.equal(state.placed,true,'CS13 knife starts with a weapon placement')
+ assert.ok(state.visibleTextures.length>0,'CS13 knife geometry is visible')
+ assert.ok(!state.visibleTextures.some(name=>/newhand|thumb/i.test(name)),'CS13 hands are hidden')
+ writeFileSync('/tmp/16c-cs13-knife-sticker-verified.png',(await w.webContents.capturePage()).toPNG())
+ await w.webContents.executeJavaScript('unmount()')
+}
 await w.webContents.executeJavaScript('mountPreview('+JSON.stringify(bytes)+',true)')
 await new Promise(r=>setTimeout(r,700))
 assert.deepEqual(await w.webContents.executeJavaScript('state().alerts'),[])
