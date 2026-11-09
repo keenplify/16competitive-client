@@ -1,4 +1,5 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
+mod cs13_installation;
 
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod assets;
@@ -155,6 +156,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("desktop_session.rs").as_slice(),
         include_bytes!("admin_restart.rs").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
+        include_bytes!("cs13_installation.rs").as_slice(),
         include_bytes!("gtprotector.rs").as_slice(),
         include_bytes!("startup_bridge.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
@@ -859,7 +861,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     } else {
         &pattern.cs16
     };
-    let (root, exe, mod_dir) = choose_installation(connection.game())?;
+    let (root, exe, mut mod_dir) = choose_installation(connection.game())?;
     // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
     // Wine and older bundles still need the compatibility runtime.
     if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")
@@ -874,6 +876,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         if proton.is_some() || exe.extension().is_some_and(|extension| extension == "exe") {
             return compatibility::launch(connection, api, token, &root, proton.as_ref(), ready);
         }
+    }
+    if cfg!(windows) && connection.game() == "cs13" {
+        mod_dir = cs13_installation::prepare(&root, &mod_dir)?;
     }
     let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id)?;
     let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?)?;
