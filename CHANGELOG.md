@@ -4609,3 +4609,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Stickers
 
 - Updated sticker support for game-specific sticker contracts.
+
+## v2026.1109.6 — 2026-11-09
+
+### Other
+
+- No player-facing changes.
