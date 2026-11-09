@@ -4581,3 +4581,21 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Verified CS 1.3 sticker rendering and WAV music playback in a Windows VM.
 - Fixed missing HUD and scoreboard resources in the test fixture; custom native HUD support remains limited to approved hosts.
 - Findings: https://papamo.dev/docs/cosmetics/legacy-cs13
+
+## v2026.1109.4 — 2026-11-09
+
+### Counter-Strike 1.3
+
+- Added independent setup and installation support.
+- Added separate CS 1.3 loadouts.
+- Added support for native CS 1.3 sessions.
+- Updated Legacy 1.3 release notes and validation guidance.
+
+### Compatibility
+
+- Added browser helper compatibility for WON installations.
+- Improved support for optional legacy installations during setup.
+
+### Matchmaking
+
+- Refined matchmaking recovery and queue-again behavior.
