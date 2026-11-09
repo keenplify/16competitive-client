@@ -4615,3 +4615,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Other
 
 - No player-facing changes.
+
+## v2026.1109.7 — 2026-11-09
+
+### Improvements
+
+- Improved setup reliability and configuration consistency.
