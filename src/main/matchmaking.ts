@@ -33,6 +33,7 @@ import { activateIcafeBranch } from './icafe-branch'
 import { MATCHMAKING_WS_URL, LOCAL_DEVELOPMENT } from './config'
 import { allowsVoiceTransport, isLoopbackBackend } from './backend-policy'
 import { createAutomaticMatchReporter } from './automatic-match-report'
+import { createAutomaticStorageReporter } from './automatic-storage-report'
 import { reportDiagnosticIssue } from './diagnostic-logs'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { resolvePreferredMatchmakingApiUrl, toMatchmakingWsUrl } from './matchmaking-regions'
@@ -538,6 +539,10 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
 
 class MatchmakingConnection {
   private readonly reportConnectionFailure = createAutomaticMatchReporter(reportDiagnosticIssue)
+  private readonly reportStorageFailure = createAutomaticStorageReporter(
+    reportDiagnosticIssue,
+    getSessionToken
+  )
   private socket: WebSocket | null = null
   private warmupSuppressed = false
   private warmupSocket: WebSocket | null = null
@@ -709,6 +714,7 @@ class MatchmakingConnection {
             return
           if (this.warmupAssetFailureMatchId === message.matchId) return
           console.warn('[QueueWarmup] launch failed', error)
+          void this.reportStorageFailure({ matchId: message.matchId, error, apiUrl })
           this.notify({
             type: 'error',
             code: 'WARMUP_FAILED',
@@ -1139,6 +1145,21 @@ class MatchmakingConnection {
   }
 
   async reconnectGame(): Promise<void> {
+    const matchId = this.lastConnection?.matchId
+    try {
+      await this.reconnectGameUnchecked()
+    } catch (error) {
+      if (matchId)
+        void this.reportStorageFailure({
+          matchId,
+          error,
+          apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL
+        })
+      throw error
+    }
+  }
+
+  private async reconnectGameUnchecked(): Promise<void> {
     if (!this.lastConnection) throw new Error('No previous match connection is available')
     const connection = this.lastConnection
     if (this.cs13Matches.has(connection.matchId)) {
@@ -1793,13 +1814,18 @@ class MatchmakingConnection {
               this.yieldLauncherToGame()
               discordPresence.setInGame(true)
             })
-            .catch((error: unknown) =>
+            .catch((error: unknown) => {
+              void this.reportStorageFailure({
+                matchId: parsed.matchId,
+                error,
+                apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL
+              })
               this.notify({
                 type: 'error',
                 code: 'MATCH_PREPARATION_FAILED',
                 message: error instanceof Error ? error.message : 'CS13_LAUNCH_FAILED'
               })
-            )
+            })
           this.notify(parsed)
           return
         }
@@ -1854,6 +1880,11 @@ class MatchmakingConnection {
                 error instanceof Error
                   ? error.message
                   : 'Could not prepare match assets or launch Counter-Strike.'
+            })
+            void this.reportStorageFailure({
+              matchId: parsed.matchId,
+              error,
+              apiUrl: this.activeApiUrl ?? this.hostApiUrl ?? API_BASE_URL
             })
           })
       } else if (parsed.type === 'match_cancelled') {
