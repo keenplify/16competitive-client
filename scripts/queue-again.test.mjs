@@ -1,3 +1,4 @@
+import { gameForMode } from '../src/shared/game-version.ts'
 import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
@@ -74,6 +75,8 @@ async function harness({
   ).outputText
   const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../settings/game-availability': { configuredGames: async () => [] },
+    '../../../../shared/game-version': { gameForMode },
     './pcash-bets.store': {
       usePCashBetsStore: { getState: () => ({ load: async () => {} }) }
     },

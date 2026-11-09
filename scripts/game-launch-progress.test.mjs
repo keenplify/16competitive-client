@@ -32,7 +32,10 @@ test('helper progress advances without committing launch and rejects invalid fra
   const source = await readFile('src/main/game/standalone-session.ts', 'utf8')
   const { code } = await transform(
     source.slice(
-      source.indexOf("    child.stdout.on('data',"),
+      source.indexOf(
+        "    child.stdout.on('data',",
+        source.indexOf('async function launchStandaloneTargetInner')
+      ),
       source.indexOf('    child.stdin.write(`${JSON.stringify(request)}')
     ),
     { loader: 'ts' }
