@@ -445,7 +445,8 @@ function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }
             equipped?.skin ??
               stockWeaponPreview(
                 weaponKey,
-                inventoryText('stockWeapon').replace('{{weapon}}', displayWeapon(weaponKey))
+                inventoryText('stockWeapon').replace('{{weapon}}', displayWeapon(weaponKey)),
+                game
               )
           )
         }
@@ -489,6 +490,7 @@ function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }
         </span>
         {t(unequippingTeam ? 'music.unequipping' : 'music.unequipAll')}
       </Button>
+      <LoadoutGameSwitch disabled={!!changingId || unequippingTeam || loadoutLocked} />
     </div>
   )
   const teamTabs = (
@@ -521,8 +523,6 @@ function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }
   )
   return (
     <section className="loadout-page mt-6 flex min-h-[calc(100vh-15rem)] flex-col bg-[#080a0e]">
-      <LoadoutGameSwitch disabled={!!changingId || unequippingTeam} className="px-4 mb-3" />
-      <p className="px-4 pb-3 text-xs text-neutral-400">{t('gameSetup.separate')}</p>
       <section className="loadout-equipped min-h-[26rem] flex-[3] border border-white/10 bg-[radial-gradient(circle_at_48%_0%,rgba(56,189,248,0.12),transparent_45%),linear-gradient(125deg,#111722,#080a0e)] p-4 sm:p-5">
         {toolbarTarget ? (
           createPortal(loadoutActions, toolbarTarget)
@@ -734,7 +734,8 @@ function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }
                             inventoryText('stockWeapon').replace(
                               '{{weapon}}',
                               displayWeapon(weaponKey)
-                            )
+                            ),
+                            game
                           )
                         )
                       }

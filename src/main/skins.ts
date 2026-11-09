@@ -744,7 +744,8 @@ export const applySticker = async (
   id: unknown,
   weaponKey: unknown,
   projection: unknown,
-  gameVersion: unknown = 'cs16'
+  gameVersion: unknown = 'cs16',
+  sourceSha256?: unknown
 ): Promise<void> => {
   if (
     typeof weaponKey !== 'string' ||
@@ -753,13 +754,19 @@ export const applySticker = async (
       : /^skin:[a-f0-9-]{36}$/.test(weaponKey))
   )
     throw new Error('STICKER_WEAPON_INVALID')
+  if (
+    sourceSha256 !== undefined &&
+    (typeof sourceSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(sourceSha256))
+  )
+    throw new Error('STICKER_MODEL_UNSUPPORTED')
   await collectionRequest(`/stickers/items/${stickerUuid(id)}/apply`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       weaponKey,
       gameVersion: parseGameVersion(gameVersion),
-      projection: validateProjection(projection)
+      projection: validateProjection(projection),
+      sourceSha256
     })
   })
 }

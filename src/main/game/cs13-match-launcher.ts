@@ -1,3 +1,4 @@
+import type { CrosshairProfile } from '../../shared/crosshair'
 import { launchStandaloneSession, standaloneSupportsCs13 } from './standalone-session'
 import { createCs13AuthFile, cs13AuthContents } from './cs13-auth-file'
 import { createHash } from 'node:crypto'
@@ -41,6 +42,10 @@ let cleanup: Promise<void> = Promise.resolve()
 
 export const getActiveCs13ScoreboardDirectory = (): string | null =>
   running?.overlay?.directory ?? null
+
+export async function updateCs13Crosshair(profile: CrosshairProfile): Promise<void> {
+  await running?.overlay?.updateCrosshair(profile)
+}
 
 export async function shutdownCs13Game(matchId?: string): Promise<void> {
   const active = running

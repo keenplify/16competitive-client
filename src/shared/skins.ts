@@ -166,7 +166,8 @@ export interface SkinsApi {
     id: string,
     weaponKey: string,
     projection: import('./stickers').StickerProjection,
-    gameVersion?: GameVersion
+    gameVersion?: GameVersion,
+    sourceSha256?: string
   ): Promise<void>
   stickerImage(path: string): Promise<ArrayBuffer>
   collections(): Promise<import('./skin-collections').SkinCollection[]>

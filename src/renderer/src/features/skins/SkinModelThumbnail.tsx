@@ -349,7 +349,9 @@ function WeaponThumbnailContent({
         release.current = done
         const bytes = props.skinId
           ? await getCachedSkinModel(props.skinId, String(props.sourceRevision ?? ''), 'view')
-          : await window.api.models.read(stockWeaponPreview(props.weaponKey, '').viewModelPath!)
+          : await window.api.models.read(
+              stockWeaponPreview(props.weaponKey, '', game).viewModelPath!
+            )
         const decorated =
           props.showAppliedStickers && useInventoryStore.getState().snapshot
             ? await previewAppliedStickers(bytes, target, game)

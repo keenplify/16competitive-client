@@ -1,4 +1,4 @@
-import { STOCK_STICKER_MODELS } from '../../shared/stock-sticker-models'
+import { ALL_STOCK_STICKER_MODELS } from '../../shared/stock-sticker-models'
 import { createHash } from 'node:crypto'
 import type { StickerPixels } from '../../shared/sticker-model'
 import { parseStickerRecipes, type StickerRecipe } from '../../shared/sticker-recipes'
@@ -52,7 +52,7 @@ export async function bakeStickerRecipe(
   }
   const atlas = prepareStickerAtlas(
     source,
-    !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === recipe.sourceSha256)
+    !ALL_STOCK_STICKER_MODELS.some((entry) => entry.sha256 === recipe.sourceSha256)
   )
   const bytes = bakeProjectedStickers(atlas, placements)
   const textures = fullColorStickerTextures(atlas, placements, STICKER_TEXTURE_SCALE)

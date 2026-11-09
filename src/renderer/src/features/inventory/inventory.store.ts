@@ -3,10 +3,7 @@ import type { GameVersion } from '../../../../shared/game-version'
 import { createElement } from 'react'
 import { PurchaseSuccess } from './PurchaseSuccess'
 import type { PurchasedItem } from '../navigation/navigation.store'
-import {
-  STOCK_STICKER_MODELS,
-  stockStickerModelPath
-} from '../../../../shared/stock-sticker-models'
+import { stockStickerModel, stockStickerModelPath } from '../../../../shared/stock-sticker-models'
 import { create } from 'zustand'
 import { toast } from 'react-toastify'
 import type { OwnedSkin } from '../../../../shared/skins'
@@ -240,7 +237,9 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         if (attached.length >= 5) throw new Error('STICKER_LIMIT')
         const bytes = target.skinId
           ? await window.api.skins.previewModel(target.skinId, 'view')
-          : await window.api.models.read(stockStickerModelPath(target.key.slice(6)))
+          : await window.api.models.read(
+              stockStickerModelPath(target.key.slice(6), target.gameVersion)
+            )
         if (bytes.byteLength > 16 * 1024 * 1024) throw new Error('MODEL_UNSUPPORTED')
         const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
           .map((b) => b.toString(16).padStart(2, '0'))
@@ -248,7 +247,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         // Stock sources retain exact pins; custom previews come from the authenticated catalog.
         if (
           !target.skinId &&
-          !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
+          stockStickerModel(target.key.slice(6), target.gameVersion)?.sha256 !== hash
         )
           throw new Error('MODEL_UNSUPPORTED')
         const atlas = prepareStickerAtlas(new Uint8Array(bytes), !!target.skinId)
@@ -377,7 +376,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
           selectedSticker.id,
           target.key,
           projection,
-          target.gameVersion
+          target.gameVersion,
+          target.skinId
+            ? undefined
+            : stockStickerModel(target.key.slice(6), target.gameVersion)?.sha256
         )
         if (current !== generation) return
         set({ editing: false, selectedSticker: null, target: null })
@@ -456,13 +458,13 @@ export async function previewAppliedStickers(
     .sort((a, b) => a.appliedAt!.localeCompare(b.appliedAt!) || a.id.localeCompare(b.id))
   if (!applied.length) return bytes
   if (weaponKey.startsWith('stock:'))
-    bytes = await window.api.models.read(stockStickerModelPath(weaponKey.slice(6)))
+    bytes = await window.api.models.read(stockStickerModelPath(weaponKey.slice(6), gameVersion))
   const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
   if (
     weaponKey.startsWith('stock:') &&
-    !Object.values(STOCK_STICKER_MODELS).some((entry) => entry.sha256 === hash)
+    stockStickerModel(weaponKey.slice(6), gameVersion)?.sha256 !== hash
   )
     throw new Error('MODEL_UNSUPPORTED')
   const cacheKey = JSON.stringify([STICKER_TEXTURE_SCALE, gameVersion, hash, weaponKey, applied])

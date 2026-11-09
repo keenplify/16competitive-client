@@ -653,11 +653,13 @@ const skins = {
     id: string,
     weaponKey: string,
     projection: import('../shared/stickers').StickerProjection,
-    gameVersion: GameVersion = 'cs16'
+    gameVersion: GameVersion = 'cs16',
+    sourceSha256?: string
   ): Promise<void> {
     await jsonPost(`/stickers/items/${stickerUuid(id)}/apply`, {
       weaponKey,
       projection,
+      sourceSha256,
       gameVersion: parseGameVersion(gameVersion)
     })
   },

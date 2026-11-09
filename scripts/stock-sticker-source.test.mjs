@@ -5,7 +5,11 @@ import { mkdtemp, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
-import { STOCK_STICKER_MODELS, stockStickerModelPath } from '../src/shared/stock-sticker-models.ts'
+import {
+  STOCK_STICKER_MODELS,
+  CS13_STOCK_STICKER_MODELS,
+  stockStickerModelPath
+} from '../src/shared/stock-sticker-models.ts'
 
 test('canonical stock sources fit existing native paths and retain all 28 source pins', () => {
   for (const [key, model] of Object.entries(STOCK_STICKER_MODELS)) {
@@ -82,4 +86,16 @@ test('stock preview only fetches pinned sources and rejects corrupt downloads', 
     globalThis.fetch = originalFetch
     await rm(dir, { recursive: true, force: true })
   }
+})
+
+test('CS13 canonical sources use separate meshes and cannot include CS16-only weapons', () => {
+  for (const [key, model] of Object.entries(CS13_STOCK_STICKER_MODELS)) {
+    assert.notEqual(model.sha256, STOCK_STICKER_MODELS[key].sha256, key)
+    assert.match(
+      stockStickerModelPath(key, 'cs13'),
+      /^models\/16competitive\/stock13\/[a-f0-9]{16}\/v.mdl$/
+    )
+  }
+  assert.throws(() => stockStickerModelPath('galil', 'cs13'))
+  assert.throws(() => stockStickerModelPath('famas', 'cs13'))
 })

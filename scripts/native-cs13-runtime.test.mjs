@@ -149,6 +149,7 @@ test('device, membership and asset failures cannot launch either adapter', async
 
 test('CS13 preferences use the saved 1.3 folder without requiring a 1.6 installation', async () => {
   const selected = []
+  const crosshairs = []
   const preferences = JSON.stringify({
     cs13: '/games/cs13',
     settings: { enhancementsEnabled: true }
@@ -174,7 +175,8 @@ test('CS13 preferences use the saved 1.3 folder without requiring a 1.6 installa
     saveGameSettings: async () => {
       throw new Error('must not configure CS16')
     },
-    getGameSettings: async () => ({}),
+    getGameSettings: async () => ({ crosshair: { fixture: true } }),
+    updateCs13Crosshair: async (profile) => crosshairs.push(profile),
     saveNextClientIntegration: async () => undefined,
     saveFastSwitch: async () => undefined,
     savePlayerPingKey: async () => undefined,
@@ -188,4 +190,5 @@ test('CS13 preferences use the saved 1.3 folder without requiring a 1.6 installa
   vm.runInContext(functionCode('syncPreferences') + '\nglobalThis.sync = syncPreferences', context)
   await context.sync(true)
   assert.deepEqual(selected, ['/games/cs13'])
+  assert.deepEqual(crosshairs, [{ fixture: true }])
 })

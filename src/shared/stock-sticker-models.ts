@@ -114,15 +114,142 @@ export const STOCK_STICKER_MODELS: Record<string, { model: string; sha256: strin
   }
 }
 
-export function stockStickerModel(key: string): { model: string; sha256: string } | undefined {
-  return Object.prototype.hasOwnProperty.call(STOCK_STICKER_MODELS, key)
-    ? STOCK_STICKER_MODELS[key]
-    : undefined
+// Canonical CS 1.3 retail viewmodels from the verified HLDS 3.1.0.9 template.
+export const CS13_STOCK_STICKER_MODELS: Record<string, { model: string; sha256: string }> = {
+  glock18: {
+    model: 'glock18',
+    sha256: '4e28b79dad3dc4f879e792f3cc135db300d4f449ad9104240d8ac70ae5dc38c3'
+  },
+  usp: {
+    model: 'usp',
+    sha256: '636031ed84643bfc8448cbc5f9a7b2a710676fa14455027126cf11aae2610bb4'
+  },
+  p228: {
+    model: 'p228',
+    sha256: '8e6b83d472059633379c41667cf261c1ad681a49f9a6930ab4729b6b790781b2'
+  },
+  deagle: {
+    model: 'deagle',
+    sha256: '49703a71a7af743c031437349fbf05725542ff528623e18b235b5ed3adb16386'
+  },
+  elite: {
+    model: 'elite',
+    sha256: '96159a3adbac225f0a2a22fe11a964399bdba6f133b8a50729a672d21eb3f5b3'
+  },
+  fiveseven: {
+    model: 'fiveseven',
+    sha256: '304911e702f3995475a7ce38997172c09a3162048ed7236f0a7c7e3f77f5cac6'
+  },
+  m3: {
+    model: 'm3',
+    sha256: 'a54ab646e37d7e7107989b46d5c5fe652d677a0bb1c9675e6373d7c2f9d9d743'
+  },
+  xm1014: {
+    model: 'xm1014',
+    sha256: '5b1a34bdfe0b2f3189eb400510de089d3d0919b7be2ee53ac560afb9a967aebf'
+  },
+  tmp: {
+    model: 'tmp',
+    sha256: 'af8af52634a5d06f8ded156a6601995540de5610f7bcfd0f16f97e993f7a2255'
+  },
+  mac10: {
+    model: 'mac10',
+    sha256: '20a2b887948c1d7d6e949667970f79fd62bb7ee77ac1098dc56aaa16b81786b5'
+  },
+  mp5navy: {
+    model: 'mp5',
+    sha256: 'b5f625b91bc4db509edc8818afd7f13ea0faa0ca85ee653453f54e5d979228ec'
+  },
+  ump45: {
+    model: 'ump45',
+    sha256: '512f17673049c88dcf1b1657b9fbb2e13043ede2a16724adc43cd523724c3576'
+  },
+  p90: {
+    model: 'p90',
+    sha256: 'db2dd752c6dbbab174468f722aa02255e61facd7ea3fa108e57da94c398aee30'
+  },
+  ak47: {
+    model: 'ak47',
+    sha256: 'd579a47d34227f7cfc2fdb2f5a1a89a9286ab0a27c1f747f1197a77740bb32ee'
+  },
+  m4a1: {
+    model: 'm4a1',
+    sha256: '73735bdf6b1db90b047f48c17f18f279137469cb02ab90eb1e9e9b114d0f3cce'
+  },
+  aug: {
+    model: 'aug',
+    sha256: 'd60232b964153239dd8a385fc878f09ca6d178e6010bf4ef011bf7c7a1f168bc'
+  },
+  sg552: {
+    model: 'sg552',
+    sha256: '7808cd6e61636b4ec193effbe3c1d8c0738f1feda56f91deee441a608e4a6a58'
+  },
+  scout: {
+    model: 'scout',
+    sha256: '1308cdfffca6d02f4caccb816745dc6f1cedf4b4e035556a0cbb82ce7b27a565'
+  },
+  awp: {
+    model: 'awp',
+    sha256: '4bca932c1f9fd9914a92402ab19494efdc5875f416bb618f7e1ddbf27b547382'
+  },
+  sg550: {
+    model: 'sg550',
+    sha256: 'd73b36b86085e21b4acacdc52484e7f7f2b51e5320c089d4d01725a9c869c969'
+  },
+  g3sg1: {
+    model: 'g3sg1',
+    sha256: '60a7730238de23596bb7b6434f0e348ea9199e49800beacafea16cfa0be0cdda'
+  },
+  m249: {
+    model: 'm249',
+    sha256: 'f9b7698cd3277289acb609606c6f215310fcb36ba1a2c73dcb023dcb1c236003'
+  },
+  hegrenade: {
+    model: 'hegrenade',
+    sha256: '872ed43a0a532fad1e65260b55e28ee157203776d65b96d0d45a4a6251742e07'
+  },
+  flashbang: {
+    model: 'flashbang',
+    sha256: 'f7a9ae51a00a8f796a87363512ba6c40c1dd111d114e90624e6b610d2c3f71f0'
+  },
+  smokegrenade: {
+    model: 'smokegrenade',
+    sha256: 'c5a1263c9f84e56d21e6d36a744aba963551234dc83670567677aede7e6f9bcd'
+  },
+  knife: {
+    model: 'knife',
+    sha256: '6af1e9517583922c8599d03386f7124b9408760c65359cf3ca8fbf671cb857fb'
+  }
+}
+
+export function stockStickerModels(
+  game: 'cs16' | 'cs13' = 'cs16'
+): Record<string, { model: string; sha256: string }> {
+  return game === 'cs13' ? CS13_STOCK_STICKER_MODELS : STOCK_STICKER_MODELS
+}
+export const ALL_STOCK_STICKER_MODELS = [
+  ...Object.values(STOCK_STICKER_MODELS),
+  ...Object.values(CS13_STOCK_STICKER_MODELS)
+]
+export function stockStickerModel(
+  key: string,
+  game: 'cs16' | 'cs13' = 'cs16'
+): { model: string; sha256: string } | undefined {
+  const models = stockStickerModels(game)
+  return Object.prototype.hasOwnProperty.call(models, key) ? models[key] : undefined
 }
 
 /** Canonical source shared by the editor, match server and native module. */
-export function stockStickerModelPath(key: string): string {
-  const model = stockStickerModel(key)
+export function stockStickerModelPath(key: string, game: 'cs16' | 'cs13' = 'cs16'): string {
+  const model = stockStickerModel(key, game)
   if (!model) throw new Error('STICKER_WEAPON_INVALID')
-  return `models/16competitive/stock/${model.sha256.slice(0, 16)}/v.mdl`
+  return `models/16competitive/${game === 'cs13' ? 'stock13' : 'stock'}/${model.sha256.slice(0, 16)}/v.mdl`
 }
+export const STOCK_STICKER_SOURCES = Object.fromEntries(
+  (['cs16', 'cs13'] as const).flatMap((game) =>
+    Object.entries(stockStickerModels(game)).map(([key, model]) => [
+      stockStickerModelPath(key, game),
+      model.sha256
+    ])
+  )
+)

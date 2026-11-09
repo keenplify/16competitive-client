@@ -313,8 +313,15 @@ const skins: SkinsApi = {
   stickers: () => ipcRenderer.invoke(STICKER_CHANNELS.snapshot),
   stickerBuy: (id, input) => ipcRenderer.invoke(STICKER_CHANNELS.buy, id, input),
   stickerRemove: (id) => ipcRenderer.invoke(STICKER_CHANNELS.remove, id),
-  stickerApply: (id, weaponKey, projection, gameVersion) =>
-    ipcRenderer.invoke(STICKER_CHANNELS.apply, id, weaponKey, projection, gameVersion),
+  stickerApply: (id, weaponKey, projection, gameVersion, sourceSha256) =>
+    ipcRenderer.invoke(
+      STICKER_CHANNELS.apply,
+      id,
+      weaponKey,
+      projection,
+      gameVersion,
+      sourceSha256
+    ),
   stickerImage: (path) => ipcRenderer.invoke(STICKER_CHANNELS.image, path),
   collections: () => ipcRenderer.invoke(SKIN_CHANNELS.collections),
   collection: (id) => ipcRenderer.invoke(SKIN_CHANNELS.collection, id),

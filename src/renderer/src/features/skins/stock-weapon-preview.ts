@@ -1,12 +1,17 @@
+import { stockStickerModelPath } from '../../../../shared/stock-sticker-models'
 import type { Skin } from '../../../../shared/skins'
 
-export function stockWeaponPreview(weaponKey: string, name: string): Skin {
+export function stockWeaponPreview(
+  weaponKey: string,
+  name: string,
+  gameVersion: 'cs16' | 'cs13' = 'cs16'
+): Skin {
   const model = weaponKey === 'mp5navy' ? 'mp5' : weaponKey
   return {
     id: `stock:${weaponKey}`,
     weaponKey,
     name,
-    gameVersion: 'cs16',
+    gameVersion,
     status: 'ACTIVE',
     description: null,
     pricePoints: 0,
@@ -21,7 +26,8 @@ export function stockWeaponPreview(weaponKey: string, name: string): Skin {
     licenseName: '',
     licenseUrl: null,
     attributionText: '',
-    viewModelPath: `v_${model}.mdl`,
+    viewModelPath:
+      gameVersion === 'cs13' ? stockStickerModelPath(weaponKey, gameVersion) : `v_${model}.mdl`,
     playerModelPath: `p_${model}.mdl`,
     worldModelPath: `w_${model}.mdl`,
     actionSoundPath: null,

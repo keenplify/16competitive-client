@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '../../components/ui/Button'
+import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { useTranslation } from '../i18n/i18n'
 import { useLoadoutGameStore } from './loadout-game.store'
 
@@ -18,7 +18,7 @@ export function LoadoutGameSwitch({
   }, [load])
   return (
     <div
-      className={twMerge('flex min-h-10 items-center gap-2', className)}
+      className={twMerge('inline-flex h-9 shrink-0 items-center gap-2', className)}
       role="group"
       aria-label={t('gameSetup.loadout')}
     >
@@ -29,18 +29,25 @@ export function LoadoutGameSwitch({
           Counter-Strike {game === 'cs13' ? '1.3' : '1.6'}
         </span>
       ) : (
-        available.map((version) => (
-          <Button
-            key={version}
-            disabled={disabled}
-            aria-pressed={game === version}
-            variant={game === version ? 'primary' : 'ghost'}
-            onClick={() => select(version)}
-          >
-            Counter-Strike {version === 'cs13' ? '1.3' : '1.6'}
-          </Button>
-        ))
+        <div className="grid grid-cols-2 border border-white/15 bg-black/25 p-1">
+          {available.map((version) => (
+            <button
+              key={version}
+              type="button"
+              disabled={disabled}
+              aria-pressed={game === version}
+              className={twMerge(
+                'min-w-20 rounded-none px-3 py-1.5 text-xs font-bold tracking-wide focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-40',
+                game === version ? 'bg-sky-400 text-sky-950' : 'text-neutral-400 hover:text-white'
+              )}
+              onClick={() => select(version)}
+            >
+              CS {version === 'cs13' ? '1.3' : '1.6'}
+            </button>
+          ))}
+        </div>
       )}
+      <HelpTooltip text={t('gameSetup.separate')} />
     </div>
   )
 }

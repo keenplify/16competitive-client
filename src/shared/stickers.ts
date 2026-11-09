@@ -104,7 +104,7 @@ export function parseStickerSnapshot(value: unknown): StickerSnapshot {
       typeof i.acquiredAt !== 'string' ||
       (i.weaponKey !== null &&
         !(i.weaponKey.startsWith('stock:')
-          ? stockStickerModel(i.weaponKey.slice(6))
+          ? stockStickerModel(i.weaponKey.slice(6), i.gameVersion)
           : /^skin:[a-f0-9-]{36}$/.test(i.weaponKey))) ||
       (i.appliedAt !== null && typeof i.appliedAt !== 'string')
     )

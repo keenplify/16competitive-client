@@ -12,6 +12,8 @@ mod windows {
         System::{Diagnostics::ToolHelp::*, Threading::*},
     };
 
+    use super::{same_path, LoadedClient};
+
     struct Handle(HANDLE);
     impl Drop for Handle {
         fn drop(&mut self) {
@@ -31,15 +33,6 @@ mod windows {
         Some(PathBuf::from(std::ffi::OsString::from_wide(
             &buffer[..size as usize],
         )))
-    }
-    fn same_path(left: &Path, right: &Path) -> bool {
-        let normalize = |path: &Path| {
-            path.to_string_lossy()
-                .trim_start_matches(r"\\?\")
-                .replace('/', "\\")
-                .to_lowercase()
-        };
-        normalize(left) == normalize(right)
     }
     fn matching(executable: &Path) -> Result<Vec<(u32, Handle)>, String> {
         let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
@@ -93,6 +86,7 @@ mod windows {
         entry.dwSize = size_of::<MODULEENTRY32W>() as u32;
         let mut available = unsafe { Module32FirstW(snapshot.0, &mut entry) } != 0;
         let mut count = 0;
+        let mut loaded = LoadedClient::default();
         while available && count < 1024 {
             count += 1;
             let length = entry
@@ -101,12 +95,7 @@ mod windows {
                 .position(|c| *c == 0)
                 .unwrap_or(entry.szExePath.len());
             let path = PathBuf::from(std::ffi::OsString::from_wide(&entry.szExePath[..length]));
-            if ["client.dll", "client_mini.dll"]
-                .iter()
-                .any(|name| same_path(&path, &game.join("cl_dlls").join(name)))
-            {
-                return true;
-            }
+            if loaded.observe(&path, game) { return true; }
             available = unsafe { Module32NextW(snapshot.0, &mut entry) } != 0;
         }
         false
@@ -549,5 +538,57 @@ mod replacement_tests {
             assert!(late_process.0.try_wait().unwrap().is_none());
         }
         fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(any(windows, test))]
+use std::path::Path;
+#[cfg(any(windows, test))]
+fn same_path(left: &Path, right: &Path) -> bool {
+        let normalize = |path: &Path| {
+            path.to_string_lossy()
+                .trim_start_matches(r"\\?\")
+                .replace('/', "\\")
+                .to_lowercase()
+        };
+        normalize(left) == normalize(right)
+    }
+#[cfg(any(windows, test))]
+#[derive(Default)]
+struct LoadedClient { won_module: bool, won_original: bool }
+#[cfg(any(windows, test))]
+impl LoadedClient {
+    fn observe(&mut self, path: &Path, game: &Path) -> bool {
+        if ["client.dll", "client_mini.dll"].iter().any(|name| same_path(path, &game.join("cl_dlls").join(name))) { return true; }
+        self.won_module |= same_path(path, &game.join("cl_dlls/16cmod.dll"));
+        self.won_original |= game.parent().is_some_and(|root| same_path(path, &root.join("client_original.dll")));
+        self.won_module && self.won_original
+    }
+}
+#[cfg(test)]
+mod client_tests {
+    use super::*;
+    #[test]
+    fn recognizes_both_won_mod_directories_and_module_orders() {
+        for directory in ["cstrike", "cstrk13"] {
+            let game = std::path::PathBuf::from("C:/game").join(directory);
+            let paths = [game.join("cl_dlls/16cmod.dll"), std::path::PathBuf::from("C:/game/client_original.dll")];
+            for order in [[0, 1], [1, 0]] {
+                let mut loaded = LoadedClient::default();
+                assert!(!loaded.observe(&paths[order[0]], &game));
+                assert!(loaded.observe(&paths[order[1]], &game));
+            }
+        }
+    }
+    #[test]
+    fn rejects_other_installations_and_incomplete_won_pairs() {
+        let game = Path::new("C:/game/cstrike");
+        let mut loaded = LoadedClient::default();
+        assert!(!loaded.observe(Path::new("C:/other/cstrike/cl_dlls/client.dll"), game));
+        assert!(!loaded.observe(Path::new("C:/game/cstrike/cl_dlls/16cmod.dll"), game));
+        assert!(!loaded.observe(Path::new("C:/other/client_original.dll"), game));
+        for name in ["client.dll", "client_mini.dll"] {
+            assert!(LoadedClient::default().observe(&game.join("cl_dlls").join(name), game));
+        }
     }
 }

@@ -1,14 +1,9 @@
 import { createHash } from 'node:crypto'
-import { STOCK_STICKER_MODELS, stockStickerModelPath } from '../shared/stock-sticker-models'
+import { STOCK_STICKER_SOURCES } from '../shared/stock-sticker-models'
 import { getSessionToken } from './auth'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 
-const sources = new Map(
-  Object.entries(STOCK_STICKER_MODELS).map(([key, model]) => [
-    stockStickerModelPath(key),
-    model.sha256
-  ])
-)
+const sources = new Map(Object.entries(STOCK_STICKER_SOURCES))
 const cache = new Map<string, ArrayBuffer>()
 
 /** Only exact pinned stock source keys are accepted; never fetch arbitrary renderer paths. */

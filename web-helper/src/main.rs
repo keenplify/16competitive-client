@@ -860,11 +860,10 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         &pattern.cs16
     };
     let (root, exe, mod_dir) = choose_installation(connection.game())?;
-    // Windows and Wine 1.3 need the same approved WON cosmetic adapter,
-    // ownership lease and recovery lifecycle as the desktop launcher. The
-    // direct legacy path below is retained for native Linux 1.3.
+    // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
+    // Wine and older bundles still need the compatibility runtime.
     if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")
-        && (!cfg!(windows) || mod_dir != "cstrk13" || !native_bundle::supports_won_scoreboard()) {
+        && (!cfg!(windows) || !native_bundle::supports_won_scoreboard()) {
         runtime::launch(connection, api, token)?;
         return Ok(());
     }

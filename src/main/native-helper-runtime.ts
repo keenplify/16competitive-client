@@ -26,7 +26,11 @@ import { repairSkinAssets } from './game/skin-asset-maintenance'
 import { writeLiveSessionFile } from './game/live-session-file'
 import { configureNativeHelperSharedAssets } from './game/shared-skin-storage'
 import { LegacyGameService } from './game/legacy-game-service'
-import { launchCs13Match, getActiveCs13ScoreboardDirectory } from './game/cs13-match-launcher'
+import {
+  launchCs13Match,
+  getActiveCs13ScoreboardDirectory,
+  updateCs13Crosshair
+} from './game/cs13-match-launcher'
 import {
   detectNextClientFolder,
   launchNextClientInstaller,
@@ -180,7 +184,8 @@ async function syncPreferences(initial = false): Promise<void> {
   }
   // Account restoration uses the existing parser and sync, including account
   // switching. A previous player's local profile cannot replace this account.
-  await getGameSettings(true)
+  const synced = await getGameSettings(true)
+  await updateCs13Crosshair(synced.crosshair)
   await writeLiveSessionFile(
     appliedPath,
     JSON.stringify({ enhancementsEnabled: s.enhancementsEnabled })
@@ -336,9 +341,17 @@ async function run(input: unknown): Promise<void> {
   const c = connection as Record<string, unknown>
   if (
     c.matchId !== request.matchId ||
-    !['5v5', '3v3', 'unrated', 'legacy', 'legacy_3v3', 'cs13_3v3', 'cs13_1v1', 'ffa', 'arena'].includes(
-      String(c.mode)
-    ) ||
+    ![
+      '5v5',
+      '3v3',
+      'unrated',
+      'legacy',
+      'legacy_3v3',
+      'cs13_3v3',
+      'cs13_1v1',
+      'ffa',
+      'arena'
+    ].includes(String(c.mode)) ||
     typeof c.host !== 'string' ||
     typeof c.port !== 'number' ||
     typeof c.password !== 'string' ||
@@ -346,7 +359,7 @@ async function run(input: unknown): Promise<void> {
   )
     throw new Error('Invalid match connection')
   // The authenticated backend selects the adapter, never a browser argument.
-  activeGame = (c.mode === 'cs13_3v3' || c.mode === 'cs13_1v1') ? 'cs13' : 'cs16'
+  activeGame = c.mode === 'cs13_3v3' || c.mode === 'cs13_1v1' ? 'cs13' : 'cs16'
   stage = 'preferences'
   await syncPreferences(true)
   stage = 'assets'

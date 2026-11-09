@@ -1,3 +1,4 @@
+import { updateCs13Crosshair } from './game/cs13-match-launcher'
 import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { previewCompatibilityFiles } from './diagnostic-logs'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
@@ -1213,8 +1214,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(STICKER_CHANNELS.snapshot, () => listStickers())
   ipcMain.handle(STICKER_CHANNELS.buy, (_event, id, input) => buySticker(id, input))
   ipcMain.handle(STICKER_CHANNELS.remove, (_event, id) => removeSticker(id))
-  ipcMain.handle(STICKER_CHANNELS.apply, (_event, id, weaponKey, projection, gameVersion) =>
-    applySticker(id, weaponKey, projection, gameVersion)
+  ipcMain.handle(
+    STICKER_CHANNELS.apply,
+    (_event, id, weaponKey, projection, gameVersion, sourceSha256) =>
+      applySticker(id, weaponKey, projection, gameVersion, sourceSha256)
   )
   ipcMain.handle(STICKER_CHANNELS.image, (_event, path) => getStickerImage(path))
   ipcMain.handle(SKIN_CHANNELS.musicKits, () => listMusicKits())
@@ -1410,6 +1413,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setVoicePttKey, (_, key: unknown) => saveVoicePttKey(key))
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setCrosshair, async (_, profile: unknown) => {
     const settings = await saveCrosshair(profile)
+    await updateCs13Crosshair(settings.crosshair)
     updateStandaloneSettings(settings)
     return settings
   })
