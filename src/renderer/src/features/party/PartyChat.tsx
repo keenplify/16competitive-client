@@ -26,6 +26,9 @@ import { useNavigationStore } from '../navigation/navigation.store'
 import { useWindowFocusStore } from '../navigation/window-focus.store'
 import { usePartyStore, type ChatTab } from './party.store'
 
+// Matches the backend's contributors/default-community.ts platform fallback.
+const PLATFORM_COMMUNITY_ID = '57653b74-0b2d-48a3-b3ae-83f3780f94a3'
+
 interface ChatSender {
   id: string
   username: string
@@ -87,6 +90,8 @@ export function PartyChat(): JSX.Element {
   const communityChatHidden = useCommunityChatStore((state) => state.chatHidden)
   const hasCommunity = Boolean(communityId && communityName?.trim() && !communityChatHidden)
   const communityLabel = communityName || communityText(language, 'community')
+  const communityTab = hasCommunity ? [{ id: 'community' as const, label: communityLabel }] : []
+  const communityFirst = hasCommunity && communityId !== PLATFORM_COMMUNITY_ID
 
   const room = useCustomGamesStore((state) => state.currentRoom)
   const roomId = room?.id
@@ -590,6 +595,7 @@ export function PartyChat(): JSX.Element {
                 }
               >
                 {[
+                  ...(communityFirst ? communityTab : []),
                   ...(room
                     ? [{ id: 'room' as const, label: translate(language, 'chat.roomTab') }]
                     : []),
@@ -598,7 +604,7 @@ export function PartyChat(): JSX.Element {
                     : []),
                   { id: 'language' as const, label: globalLanguageLabel },
                   { id: 'global' as const, label: communityText(language, 'global') },
-                  ...(hasCommunity ? [{ id: 'community' as const, label: communityLabel }] : [])
+                  ...(!communityFirst ? communityTab : [])
                 ].map((tab) => (
                   <button
                     key={tab.id}
