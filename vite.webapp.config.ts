@@ -47,6 +47,7 @@ for (const source of [
   'web-helper/assets/sticker-baker.js',
   'web-helper/src/notice_throttle.rs',
   'web-helper/src/windows_native.rs',
+    'web-helper/src/won_native.rs',
   'web-helper/Cargo.toml',
   'web-helper/Cargo.lock',
   'src/shared/web-game-launch-pattern.json',
