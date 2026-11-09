@@ -4654,3 +4654,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved preparation for Counter-Strike 1.3 support.
 - The browser helper now prepares the required CS 1.3 server support.
+
+## v2026.1109.11 — 2026-11-09
+
+### Stickers
+
+- Improved sticker generation reliability.
+- Added release checks to help ensure sticker bundles are complete.
