@@ -65,6 +65,14 @@ test('setup defaults to closing the launcher and preserves explicit preferences'
       for (const enabled of [undefined, false, true]) {
         let saved
         const context = vm.createContext({
+          LegacyGameService: class {
+            async get() {
+              return { ok: true, value: { installation: null } }
+            }
+          },
+          join: (...parts) => parts.join('/'),
+          app: { getPath: () => '/test/user' },
+          process: { platform: 'linux' },
           readStoredSettings: async () => ({ lightweightHud: enabled }),
           validateStoredPath: async () => '/test/hl_linux',
           isGoldSrcInstallation: async () => true,
