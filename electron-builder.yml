@@ -1,5 +1,15 @@
 appId: com.keenplify.16competitive
 productName: 1.6 Competitive
+# Official Electron v39.8.10 SHASUMS256.txt. Keep in sync with the Electron pin.
+# Validate cached/downloaded archives without re-fetching checksums for each target.
+electronDownload:
+  force: false
+  checksums:
+    electron-v39.8.10-darwin-arm64.zip: f7e3ed2cc34dd2eba3f2a95234b576fe8082d35fb133e482102c08105f298572
+    electron-v39.8.10-darwin-x64.zip: de5389b3a1a8803fa50e2a2c2a9a8816f1fd5d996ac66a217c04396109d42e6b
+    electron-v39.8.10-linux-arm64.zip: 8d01f0063ce2cc83a68b5c723db813c2bb8621ff63ba2ddec786a589baef7247
+    electron-v39.8.10-linux-x64.zip: 92e8b031fa5327c78a972279fd75fc8503fcd1773401809f4557e4de583eabd1
+    electron-v39.8.10-win32-x64.zip: 4478410a35a8399b7745085096695a37877f176755182a71e27eddc245cd98d5
 directories:
   buildResources: build
 files:
