@@ -14,7 +14,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "verify": "npm run lint && npm run typecheck",
+    "verify": "node scripts/build-native-sticker-baker.mjs --check && npm run lint && npm run typecheck",
     "verify:web": "npm run test:web && npm run build:web",
     "build:helper": "node scripts/build-game-inspector.mjs",
     "build:session-helper": "node scripts/build-native-sticker-baker.mjs --check && cargo build --locked --manifest-path web-helper/Cargo.toml",
