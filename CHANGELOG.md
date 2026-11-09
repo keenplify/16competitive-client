@@ -4621,3 +4621,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Improvements
 
 - Improved setup reliability and configuration consistency.
+
+## v2026.1109.8 — 2026-11-09
+
+### Chat
+
+- Partner chat is now selected by default.
+
+### WON Support
+
+- Local music support is now required for WON.
