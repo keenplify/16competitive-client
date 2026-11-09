@@ -4661,3 +4661,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved sticker generation reliability.
 - Added release checks to help ensure sticker bundles are complete.
+
+## v2026.1109.12 — 2026-11-09
+
+### Sticker Editing
+
+- CS 1.3 hand materials are now hidden when editing stickers.
+
+### Sticker Previews
+
+- CS 1.3 hand materials are now hidden in sticker previews.
