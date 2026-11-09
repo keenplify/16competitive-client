@@ -4558,3 +4558,19 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Improved community settings and mode selection.
 - Added translated text for community and queue-related options.
+
+## v2026.1109.3 — 2026-11-09
+
+### Legacy 1.3
+
+- Consolidated Legacy 1.3 and 1v1 play into one tab.
+- The CS 1.3 duel queue is now shown as ranked.
+- Play tabs are flatter, with your selection preserved.
+
+### Custom Rooms
+
+- Fixed custom room settings and round-time behavior.
+
+### Community
+
+- Partner community chat now appears first.
