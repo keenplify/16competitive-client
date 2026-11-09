@@ -52,6 +52,9 @@ async function harness(overrides = {}) {
   const module = new vm.SourceTextModule(source, { context })
   const mocks = {
     zustand: { create },
+    './matchmaking-preferences': { saveMatchmakingPreferences: async () => {} },
+    '../auth/auth.store': { useAuthStore: { getState: () => ({ player: null }) } },
+    'react-toastify': { toast: { loading: () => 'save', update: () => {} } },
     '../i18n/i18n': {
       translate: (_language, key) => 'translated:' + key,
       useLanguageStore: { getState: () => ({ language: 'en' }) }
@@ -104,12 +107,15 @@ test('switching mode then saving starts the newly persisted mode', async () => {
   const h = await harness()
   h.state().openRoomSettings()
   assert.equal(
-    await h.state().updateRoom({ name: 'Legacy room', mode: 'legacy_3v3', mapId: 'de_inferno' }),
+    await h
+      .state()
+      .updateRoom({ name: 'Legacy room', mode: 'unrated', legacyMode: true, mapId: 'de_inferno' }),
     true
   )
   await h.state().startRoom()
   assert.equal(h.starts(), 1)
-  assert.equal(h.state().currentRoom.mode, 'legacy_3v3')
+  assert.equal(h.state().currentRoom.mode, 'unrated')
+  assert.equal(h.state().currentRoom.legacyMode, true)
   assert.equal(h.state().currentRoom.mapId, 'de_inferno')
   assert.equal(h.state().currentRoom.state, 'READY_CHECK')
 })

@@ -1,6 +1,11 @@
 import type { SupportedLanguageCode } from './i18n'
 
 const english = {
+  'customRoom.saving': 'Saving room settings…',
+  'customRoom.saved': 'Room settings saved.',
+  'customRoom.legacyMode': 'Legacy Mode',
+  'customRoom.legacyModeHint':
+    'CS 1.6 custom games only: enables the former Legacy rules, including unrestricted manual bunny hopping, legacy weapon behavior and MR8. Off by default. Real CS 1.3 keeps its native rules.',
   'customRoom.friendlyFire': 'Friendly fire',
   'customRoom.friendlyFireHint': 'Allow teammates to damage each other. Has no effect in FFA.',
   'customRoom.customMoney': 'Custom starting money',
@@ -27,7 +32,7 @@ const english = {
   'customRoom.mode.legacy': 'Legacy',
   'customRoom.mode.legacy_3v3': 'Legacy 3v3',
   'customRoom.mode.cs13_3v3': 'Legacy 1.3',
-    'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
+  'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
   'customRoom.mode.ffa': 'FFA',
   'customRoom.mode.arena': 'Arena'
 } as const
@@ -37,6 +42,11 @@ type RoomSettingsTranslations = Record<keyof typeof english, string>
 export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSettingsTranslations> = {
   en: english,
   ru: {
+    'customRoom.saving': 'Сохранение настроек…',
+    'customRoom.saved': 'Настройки комнаты сохранены.',
+    'customRoom.legacyMode': 'Режим Legacy',
+    'customRoom.legacyModeHint':
+      'Только для своих игр CS 1.6: прежние правила Legacy, ручной баннихоп без ограничения скорости, поведение оружия Legacy и MR8. По умолчанию выключен. Настоящая CS 1.3 сохраняет родные правила.',
     'customRoom.friendlyFire': 'Огонь по своим',
     'customRoom.friendlyFireHint': 'Разрешить урон союзникам. Не влияет на FFA.',
     'customRoom.customMoney': 'Свои стартовые деньги',
@@ -69,6 +79,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'Арена'
   },
   tl: {
+    'customRoom.saving': 'Sine-save ang room settings…',
+    'customRoom.saved': 'Na-save ang room settings.',
+    'customRoom.legacyMode': 'Legacy Mode',
+    'customRoom.legacyModeHint':
+      'Para lang sa CS 1.6 custom games: dating Legacy rules, manual bunny hopping na walang speed limit, Legacy weapon behavior at MR8. Naka-off bilang default. Native rules pa rin ang tunay na CS 1.3.',
     'customRoom.friendlyFire': 'Friendly fire',
     'customRoom.friendlyFireHint': 'Payagang masaktan ang kakampi. Walang epekto sa FFA.',
     'customRoom.customMoney': 'Custom na panimulang pera',
@@ -101,6 +116,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'Arena'
   },
   th: {
+    'customRoom.saving': 'กำลังบันทึกการตั้งค่าห้อง…',
+    'customRoom.saved': 'บันทึกการตั้งค่าห้องแล้ว',
+    'customRoom.legacyMode': 'โหมด Legacy',
+    'customRoom.legacyModeHint':
+      'สำหรับเกมกำหนดเอง CS 1.6 เท่านั้น: ใช้กฎ Legacy เดิม รวมถึงบันนีฮอปแบบกดเองไม่จำกัดความเร็ว พฤติกรรมอาวุธเดิม และ MR8 ปิดเป็นค่าเริ่มต้น CS 1.3 จริงยังใช้กฎดั้งเดิม',
     'customRoom.friendlyFire': 'ยิงพวกเดียวกัน',
     'customRoom.friendlyFireHint': 'อนุญาตให้ทำความเสียหายแก่เพื่อนร่วมทีม ไม่มีผลใน FFA',
     'customRoom.customMoney': 'กำหนดเงินเริ่มต้น',
@@ -132,6 +152,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'อารีนา'
   },
   id: {
+    'customRoom.saving': 'Menyimpan pengaturan ruang…',
+    'customRoom.saved': 'Pengaturan ruang disimpan.',
+    'customRoom.legacyMode': 'Mode Legacy',
+    'customRoom.legacyModeHint':
+      'Hanya untuk game kustom CS 1.6: aturan Legacy lama, bunny hop manual tanpa batas kecepatan, perilaku senjata Legacy dan MR8. Nonaktif secara default. CS 1.3 asli tetap memakai aturan bawaannya.',
     'customRoom.friendlyFire': 'Tembakan teman',
     'customRoom.friendlyFireHint':
       'Izinkan kerusakan pada rekan satu tim. Tidak berpengaruh di FFA.',
@@ -164,6 +189,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'Arena'
   },
   hi: {
+    'customRoom.saving': 'रूम सेटिंग सहेजी जा रही हैं…',
+    'customRoom.saved': 'रूम सेटिंग सहेजी गईं।',
+    'customRoom.legacyMode': 'Legacy मोड',
+    'customRoom.legacyModeHint':
+      'केवल CS 1.6 कस्टम गेम: पुराने Legacy नियम, बिना गति सीमा के मैनुअल बनी हॉप, Legacy हथियार व्यवहार और MR8। डिफ़ॉल्ट रूप से बंद। असली CS 1.3 के मूल नियम नहीं बदलते।',
     'customRoom.friendlyFire': 'साथियों को नुकसान',
     'customRoom.friendlyFireHint':
       'टीम के साथियों को नुकसान पहुँचाने दें। FFA में कोई प्रभाव नहीं।',
@@ -196,6 +226,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'एरीना'
   },
   pt: {
+    'customRoom.saving': 'Salvando configurações da sala…',
+    'customRoom.saved': 'Configurações da sala salvas.',
+    'customRoom.legacyMode': 'Modo Legacy',
+    'customRoom.legacyModeHint':
+      'Apenas em jogos personalizados de CS 1.6: regras antigas de Legacy, bunny hop manual sem limite de velocidade, comportamento de armas Legacy e MR8. Desativado por padrão. O CS 1.3 real mantém suas regras nativas.',
     'customRoom.friendlyFire': 'Fogo amigo',
     'customRoom.friendlyFireHint': 'Permitir dano aos companheiros de equipe. Sem efeito no FFA.',
     'customRoom.customMoney': 'Dinheiro inicial personalizado',
@@ -227,6 +262,11 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.arena': 'Arena'
   },
   ja: {
+    'customRoom.saving': 'ルーム設定を保存中…',
+    'customRoom.saved': 'ルーム設定を保存しました。',
+    'customRoom.legacyMode': 'Legacyモード',
+    'customRoom.legacyModeHint':
+      'CS 1.6のカスタムゲーム専用です。速度制限なしの手動バニーホップ、Legacyの武器挙動、MR8など旧Legacyルールを有効にします。初期設定はオフです。本物のCS 1.3のルールは変更しません。',
     'customRoom.friendlyFire': 'フレンドリーファイア',
     'customRoom.friendlyFireHint': '味方へのダメージを許可します。FFAでは効果がありません。',
     'customRoom.customMoney': '開始資金を指定',

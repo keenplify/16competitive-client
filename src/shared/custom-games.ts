@@ -31,7 +31,7 @@ export type ServerCustomGameMode = (typeof SERVER_CUSTOM_GAME_MODES)[number]
 export const isServerCustomGameMode = (value: unknown): value is ServerCustomGameMode =>
   SERVER_CUSTOM_GAME_MODES.some((mode) => mode === value)
 
-export const CUSTOM_GAME_MODES = [
+export const HISTORICAL_CUSTOM_GAME_MODES = [
   'unrated',
   'legacy',
   'legacy_3v3',
@@ -40,7 +40,10 @@ export const CUSTOM_GAME_MODES = [
   'ffa',
   'arena'
 ] as const
-export type CustomGameMode = (typeof CUSTOM_GAME_MODES)[number]
+export type CustomGameMode = (typeof HISTORICAL_CUSTOM_GAME_MODES)[number]
+export const CUSTOM_GAME_MODES = HISTORICAL_CUSTOM_GAME_MODES.filter(
+  (mode) => !['legacy', 'legacy_3v3', 'cs13_1v1'].includes(mode)
+)
 
 export const CUSTOM_GAME_MODE_LABELS: Record<CustomGameMode, string> = {
   unrated: 'Unranked',
@@ -73,6 +76,7 @@ export interface CustomGameRoom {
   startingMoney?: number
   roundTimeMinutes?: number | null
   friendlyFire?: boolean
+  legacyMode?: boolean
   state: CustomGameState
   maxPlayers: 18
   teamOneCapacity: number
@@ -124,6 +128,7 @@ export interface CustomGameSettings {
   startingMoney?: number
   roundTimeMinutes?: number | null
   friendlyFire?: boolean
+  legacyMode?: boolean
   name: string
   mode: CustomGameMode
   mapId: string

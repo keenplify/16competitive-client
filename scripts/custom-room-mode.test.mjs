@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
 
-const modes = ['unrated', 'legacy', 'legacy_3v3', 'cs13_3v3', 'ffa', 'arena']
+const modes = ['unrated', 'cs13_3v3', 'ffa', 'arena']
 const noop = () => undefined
 const maps = [
   { id: 'de_mirage', displayName: 'Mirage', customModes: ['unrated'] },
@@ -13,7 +13,12 @@ const maps = [
   { id: 'fy_ankara', displayName: 'Ankara', customModes: ['arena'] }
 ]
 
-async function formHarness(component, selectedMode = 'arena') {
+async function formHarness(
+  component,
+  selectedMode = 'arena',
+  roomMode = 'unrated',
+  hideDesktop = false
+) {
   const source = ts.transpileModule(
     await readFile(
       new URL(`../src/renderer/src/features/matchmaking/${component}.tsx`, import.meta.url),
@@ -29,7 +34,7 @@ async function formHarness(component, selectedMode = 'arena') {
   ).outputText
   const state = { selectedMode, customModes: [...modes] }
   const submitted = []
-  const room = { id: 'room', name: 'Existing room', mode: 'unrated', mapId: 'de_mirage' }
+  const room = { id: 'room', name: 'Existing room', mode: roomMode, mapId: 'de_mirage' }
   const roomState = {
     closeCreateModal: noop,
     closeRoomSettings: noop,
@@ -76,7 +81,7 @@ async function formHarness(component, selectedMode = 'arena') {
                 : specifier.includes('i18n')
                   ? { useTranslation: () => ({ t: (key) => key }) }
                   : specifier.includes('community/links')
-                    ? { useHideDesktopOnlyFeatures: () => false }
+                    ? { useHideDesktopOnlyFeatures: () => hideDesktop }
                     : specifier === 'tailwind-merge'
                       ? { twMerge: (...values) => values.filter(Boolean).join(' ') }
                       : Object.fromEntries(
@@ -158,3 +163,15 @@ for (const component of ['CreateCustomGameModal', 'RoomSettingsModal']) {
     assert.equal(h.submitted[0].mapId, 'fy_iceworld2k')
   })
 }
+
+test('existing actual CS 1.3 room remains saveable while its catalog is unavailable', async () => {
+  const h = await formHarness('RoomSettingsModal', 'cs13_3v3', 'cs13_3v3', true)
+  h.state.customModes = []
+  const tree = h.render([])
+  const save = find(tree, (node) => node.props?.type === 'submit')
+  assert.equal(save.props.disabled, false)
+  find(tree, (node) => node.type === 'form').props.onSubmit({ preventDefault: noop })
+  assert.equal(h.submitted[0].mode, 'cs13_3v3')
+  assert.equal(h.submitted[0].mapId, 'de_mirage')
+  assert.equal(h.submitted[0].legacyMode, false)
+})

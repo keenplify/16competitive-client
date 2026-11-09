@@ -51,6 +51,7 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
       Number(value.startingMoney) <= 16000)) &&
   (value.roundTimeMinutes === undefined || isRoundTime(value.roundTimeMinutes)) &&
   (value.friendlyFire === undefined || typeof value.friendlyFire === 'boolean') &&
+  (value.legacyMode === undefined || typeof value.legacyMode === 'boolean') &&
   value.maxPlayers === 18 &&
   Number.isInteger(value.teamOneCapacity) &&
   Number(value.teamOneCapacity) >= 1 &&
@@ -87,6 +88,9 @@ const validateSettings = (value: unknown): CustomGameSettings => {
   if (!isCustomGameMode(mode)) throw new Error('Invalid custom game mode')
   if (typeof mapId !== 'string' || !MAP_PATTERN.test(mapId)) throw new Error('Invalid map')
   const password = validatePassword(value.password) as string | undefined
+  const legacyMode = value.legacyMode
+  if (legacyMode !== undefined && typeof legacyMode !== 'boolean')
+    throw new Error('Invalid Legacy Mode setting')
   const friendlyFire = value.friendlyFire
   if (friendlyFire !== undefined && typeof friendlyFire !== 'boolean')
     throw new Error('Invalid friendly fire setting')
@@ -104,6 +108,7 @@ const validateSettings = (value: unknown): CustomGameSettings => {
   return {
     ...(roundTimeMinutes === undefined ? {} : { roundTimeMinutes }),
     ...(friendlyFire === undefined ? {} : { friendlyFire }),
+    ...(legacyMode === undefined ? {} : { legacyMode }),
     name,
     mode,
     mapId,
@@ -115,6 +120,10 @@ const validateSettings = (value: unknown): CustomGameSettings => {
 const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
   if (!isObject(value)) throw new Error('Invalid custom game settings')
   const update: CustomGameSettingsUpdate = {}
+  if (value.legacyMode !== undefined) {
+    if (typeof value.legacyMode !== 'boolean') throw new Error('Invalid Legacy Mode setting')
+    update.legacyMode = value.legacyMode
+  }
   if (value.roundTimeMinutes !== undefined) {
     if (!isRoundTime(value.roundTimeMinutes)) throw new Error('Invalid round time')
     update.roundTimeMinutes = value.roundTimeMinutes

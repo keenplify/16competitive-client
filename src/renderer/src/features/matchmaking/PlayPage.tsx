@@ -54,17 +54,7 @@ const connectionLabels = {
   ready: 'Connected'
 } as const
 
-const queueModes = [
-  '5v5',
-  'unrated',
-  'legacy',
-  'legacy_3v3',
-  'cs13_3v3',
-  'cs13_1v1',
-  'ffa',
-  'arena',
-  '3v3'
-] as const
+const queueModes = ['5v5', 'unrated', 'cs13_3v3', 'ffa', 'arena', '3v3'] as const
 
 export function PlayPage({
   friendsCollapsed = false
@@ -308,7 +298,7 @@ export function PlayPage({
         )
       : hideDesktopOnlyFeatures
         ? []
-        : orderedQueueModes.filter((mode) => mode !== 'cs13_3v3' && mode !== 'cs13_1v1')
+        : orderedQueueModes.filter((mode) => mode !== 'cs13_3v3')
   const showCompetitive =
     mapsStatus === 'ready'
       ? visibleQueueModes.includes('5v5')
@@ -332,7 +322,6 @@ export function PlayPage({
       mode !== '5v5' &&
       mode !== 'arena' &&
       mode !== 'cs13_3v3' &&
-      mode !== 'cs13_1v1' &&
       maps.some(
         (map) =>
           map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
@@ -340,7 +329,7 @@ export function PlayPage({
   )
   const cs13Modes = visibleQueueModes.filter(
     (mode) =>
-      (mode === 'cs13_3v3' || mode === 'cs13_1v1') &&
+      mode === 'cs13_3v3' &&
       maps.some(
         (map) =>
           map.supportedModes.includes(mode) && (!partyRequiresWeb || map.webModes.includes(mode))
@@ -909,7 +898,7 @@ export function PlayPage({
               maps={maps}
               nodes={nodes}
               selectedNodeId={selectedNodeId}
-              disabled={isSearching || !isConnected}
+              disabled={isSearching}
             />
           </div>
         )}

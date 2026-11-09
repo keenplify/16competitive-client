@@ -309,12 +309,17 @@ test('prepares the server mod directory from local stock files without overwriti
   fixture(async ({ folder }) => {
     await mkdir(join(folder, 'cstrike', 'models'))
     await writeFile(join(folder, 'cstrike', 'models', 'v_ak47.mdl'), 'local stock model')
+    await mkdir(join(folder, 'cstrike', 'sprites'))
+    await writeFile(join(folder, 'cstrike', 'sprites', 'hud.txt'), 'native HUD definitions')
+    await writeFile(join(folder, 'cstrike', 'sprites', 'weapon_ak47.txt'), 'native ammo definitions')
     await writeFile(join(folder, 'cstrike', 'userconfig.cfg'), 'user-owned')
     await mkdir(join(folder, 'cstrk13', 'models'), { recursive: true })
     await writeFile(join(folder, 'cstrk13', 'models', 'existing.mdl'), 'preserved')
     const selected = await cs13Adapter.validateInstallation(join(folder, 'cstrike'), 'win32')
     const ready = await prepareCs13MatchInstallation(selected, 'win32')
     assert.equal(ready.modDirectory, 'cstrk13')
+    assert.equal(await readFile(join(ready.gameDirectory, 'sprites', 'hud.txt'), 'utf8'), 'native HUD definitions')
+    assert.equal(await readFile(join(ready.gameDirectory, 'sprites', 'weapon_ak47.txt'), 'utf8'), 'native ammo definitions')
     assert.equal(
       await readFile(join(ready.gameDirectory, 'models', 'v_ak47.mdl'), 'utf8'),
       'local stock model'

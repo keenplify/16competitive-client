@@ -127,6 +127,7 @@ export function SettingsPage(): JSX.Element {
   const logout = useAuthStore((state) => state.logout)
   const currentVersion = useUpdaterStore((state) => state.currentVersion)
   const webRuntime = isWebRuntime()
+  const canChangeCredentials = !!session && !session.partnerLogin
   const partnerLogin = webRuntime ? session?.partnerLogin : undefined
   const partnerReturnLabel =
     partnerLogin && approvedPartnerReturnUrl(partnerLogin.partnerId)
@@ -262,7 +263,12 @@ export function SettingsPage(): JSX.Element {
 
   const handleUsernameSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (displayedAvailability !== 'available' || authStatus === 'changing_username') return
+    if (
+      !canChangeCredentials ||
+      displayedAvailability !== 'available' ||
+      authStatus === 'changing_username'
+    )
+      return
     void changeUsername(newUsername).then((changed) => {
       if (changed) {
         setUsernameNotice('Username changed. You can change it again in 7 days.')
@@ -284,6 +290,7 @@ export function SettingsPage(): JSX.Element {
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
+    if (!canChangeCredentials) return
     setPasswordError(null)
     setPasswordNotice(null)
 
@@ -887,82 +894,84 @@ export function SettingsPage(): JSX.Element {
 
               <ReferralSettings />
 
-              <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                <h3 className="text-lg font-semibold">Username</h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Visible to other players. You can change it once every 7 days.
-                </p>
-
-                <div className="mt-6 grid gap-2">
-                  <span className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                    Current username
-                  </span>
-                  <span className="font-mono text-base text-neutral-100">
-                    {session?.player.username ?? '—'}
-                  </span>
-                </div>
-
-                <form className="mt-5" onSubmit={handleUsernameSubmit}>
-                  <label
-                    htmlFor="settings-username"
-                    className="block text-xs font-semibold tracking-wide text-neutral-400 uppercase"
-                  >
-                    New username
-                  </label>
-                  <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                    <input
-                      id="settings-username"
-                      className="h-11 min-w-0 flex-1 border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
-                      value={newUsername}
-                      minLength={3}
-                      maxLength={32}
-                      pattern="[A-Za-z0-9_]+"
-                      disabled={usernameCooldownActive || authStatus === 'changing_username'}
-                      placeholder="player_name"
-                      autoComplete="off"
-                      onChange={(event) => handleUsernameChange(event.target.value)}
-                    />
-                    <Button
-                      type="submit"
-                      disabled={
-                        usernameCooldownActive ||
-                        authStatus === 'changing_username' ||
-                        displayedAvailability !== 'available'
-                      }
-                    >
-                      {authStatus === 'changing_username' ? 'Saving…' : 'Change username'}
-                    </Button>
-                  </div>
-                  <p className="mt-2 text-xs text-neutral-400">
-                    3–32 characters: letters, numbers, and underscores.
+              {canChangeCredentials && (
+                <div className="border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <h3 className="text-lg font-semibold">Username</h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Visible to other players. You can change it once every 7 days.
                   </p>
 
-                  <div className="mt-3 min-h-6 text-sm" aria-live="polite">
-                    {cooldownLabel && (
-                      <p className="text-amber-300">
-                        {t('settings.usernameCooldown', { date: cooldownLabel })}
-                      </p>
-                    )}
-                    {!usernameCooldownActive && displayedAvailability === 'checking' && (
-                      <p className="flex items-center gap-2 text-neutral-400">
-                        <LoaderCircle className="size-4 animate-spin" /> Checking availability…
-                      </p>
-                    )}
-                    {!usernameCooldownActive && displayedAvailability === 'available' && (
-                      <p className="flex items-center gap-2 text-emerald-300">
-                        <CheckCircle2 className="size-4" /> Username is available
-                      </p>
-                    )}
-                    {!usernameCooldownActive && displayedAvailability === 'taken' && (
-                      <p className="flex items-center gap-2 text-red-400">
-                        <XCircle className="size-4" /> Username is already taken
-                      </p>
-                    )}
-                    {usernameNotice && <p className="text-emerald-300">{usernameNotice}</p>}
-                    {authError && <p className="text-red-400">{authError}</p>}
+                  <div className="mt-6 grid gap-2">
+                    <span className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
+                      Current username
+                    </span>
+                    <span className="font-mono text-base text-neutral-100">
+                      {session?.player.username ?? '—'}
+                    </span>
                   </div>
-                </form>
-              </div>
+
+                  <form className="mt-5" onSubmit={handleUsernameSubmit}>
+                    <label
+                      htmlFor="settings-username"
+                      className="block text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                    >
+                      New username
+                    </label>
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                      <input
+                        id="settings-username"
+                        className="h-11 min-w-0 flex-1 border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={newUsername}
+                        minLength={3}
+                        maxLength={32}
+                        pattern="[A-Za-z0-9_]+"
+                        disabled={usernameCooldownActive || authStatus === 'changing_username'}
+                        placeholder="player_name"
+                        autoComplete="off"
+                        onChange={(event) => handleUsernameChange(event.target.value)}
+                      />
+                      <Button
+                        type="submit"
+                        disabled={
+                          usernameCooldownActive ||
+                          authStatus === 'changing_username' ||
+                          displayedAvailability !== 'available'
+                        }
+                      >
+                        {authStatus === 'changing_username' ? 'Saving…' : 'Change username'}
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-xs text-neutral-400">
+                      3–32 characters: letters, numbers, and underscores.
+                    </p>
+
+                    <div className="mt-3 min-h-6 text-sm" aria-live="polite">
+                      {cooldownLabel && (
+                        <p className="text-amber-300">
+                          {t('settings.usernameCooldown', { date: cooldownLabel })}
+                        </p>
+                      )}
+                      {!usernameCooldownActive && displayedAvailability === 'checking' && (
+                        <p className="flex items-center gap-2 text-neutral-400">
+                          <LoaderCircle className="size-4 animate-spin" /> Checking availability…
+                        </p>
+                      )}
+                      {!usernameCooldownActive && displayedAvailability === 'available' && (
+                        <p className="flex items-center gap-2 text-emerald-300">
+                          <CheckCircle2 className="size-4" /> Username is available
+                        </p>
+                      )}
+                      {!usernameCooldownActive && displayedAvailability === 'taken' && (
+                        <p className="flex items-center gap-2 text-red-400">
+                          <XCircle className="size-4" /> Username is already taken
+                        </p>
+                      )}
+                      {usernameNotice && <p className="text-emerald-300">{usernameNotice}</p>}
+                      {authError && <p className="text-red-400">{authError}</p>}
+                    </div>
+                  </form>
+                </div>
+              )}
 
               <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
                 <h3 className="text-lg font-semibold">Connected accounts</h3>
@@ -993,101 +1002,103 @@ export function SettingsPage(): JSX.Element {
                 />
               </div>
 
-              <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="mt-0.5 size-5 text-sky-400" aria-hidden="true" />
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {session?.player.hasPassword ? 'Change password' : 'Create password'}
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-400">
-                      {session?.player.hasPassword
-                        ? 'Verify your password before replacing it.'
-                        : 'Add a password to enable username/password login for this account.'}
-                    </p>
+              {canChangeCredentials && (
+                <div className="mt-5 border border-white/10 bg-neutral-900/90 p-5 sm:p-7">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 size-5 text-sky-400" aria-hidden="true" />
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {session?.player.hasPassword ? 'Change password' : 'Create password'}
+                      </h3>
+                      <p className="mt-1 text-sm text-neutral-400">
+                        {session?.player.hasPassword
+                          ? 'Verify your password before replacing it.'
+                          : 'Add a password to enable username/password login for this account.'}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <form
-                  className="mt-6 grid max-w-xl gap-4"
-                  onSubmit={(event) => void handlePasswordSubmit(event)}
-                >
-                  {session?.player.hasPassword && (
+                  <form
+                    className="mt-6 grid max-w-xl gap-4"
+                    onSubmit={(event) => void handlePasswordSubmit(event)}
+                  >
+                    {session?.player.hasPassword && (
+                      <div>
+                        <label
+                          htmlFor="verify-password"
+                          className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                        >
+                          Verify password
+                        </label>
+                        <input
+                          id="verify-password"
+                          type="password"
+                          autoComplete="current-password"
+                          value={currentPassword}
+                          disabled={passwordSaving}
+                          onChange={(event) => setCurrentPassword(event.target.value)}
+                          className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
+                        />
+                      </div>
+                    )}
+
                     <div>
                       <label
-                        htmlFor="verify-password"
+                        htmlFor="new-password"
                         className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
                       >
-                        Verify password
+                        New password
                       </label>
                       <input
-                        id="verify-password"
+                        id="new-password"
                         type="password"
-                        autoComplete="current-password"
-                        value={currentPassword}
+                        minLength={8}
+                        maxLength={128}
+                        autoComplete="new-password"
+                        value={newPassword}
                         disabled={passwordSaving}
-                        onChange={(event) => setCurrentPassword(event.target.value)}
+                        onChange={(event) => setNewPassword(event.target.value)}
                         className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
                       />
                     </div>
-                  )}
 
-                  <div>
-                    <label
-                      htmlFor="new-password"
-                      className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
-                    >
-                      New password
-                    </label>
-                    <input
-                      id="new-password"
-                      type="password"
-                      minLength={8}
-                      maxLength={128}
-                      autoComplete="new-password"
-                      value={newPassword}
-                      disabled={passwordSaving}
-                      onChange={(event) => setNewPassword(event.target.value)}
-                      className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
-                    />
-                  </div>
+                    <div>
+                      <label
+                        htmlFor="confirm-password"
+                        className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
+                      >
+                        Confirm new password
+                      </label>
+                      <input
+                        id="confirm-password"
+                        type="password"
+                        minLength={8}
+                        maxLength={128}
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        disabled={passwordSaving}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
+                      />
+                    </div>
 
-                  <div>
-                    <label
-                      htmlFor="confirm-password"
-                      className="text-xs font-semibold tracking-wide text-neutral-400 uppercase"
-                    >
-                      Confirm new password
-                    </label>
-                    <input
-                      id="confirm-password"
-                      type="password"
-                      minLength={8}
-                      maxLength={128}
-                      autoComplete="new-password"
-                      value={confirmPassword}
-                      disabled={passwordSaving}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      className="mt-2 h-11 w-full border border-white/15 bg-black/40 px-3 text-sm text-neutral-200 outline-none focus:border-sky-400 disabled:opacity-50"
-                    />
-                  </div>
+                    <div className="min-h-6 text-sm" aria-live="polite">
+                      {passwordError && <p className="text-red-400">{passwordError}</p>}
+                      {passwordNotice && <p className="text-emerald-300">{passwordNotice}</p>}
+                    </div>
 
-                  <div className="min-h-6 text-sm" aria-live="polite">
-                    {passwordError && <p className="text-red-400">{passwordError}</p>}
-                    {passwordNotice && <p className="text-emerald-300">{passwordNotice}</p>}
-                  </div>
-
-                  <div>
-                    <Button type="submit" disabled={passwordSaving}>
-                      {passwordSaving
-                        ? 'Saving…'
-                        : session?.player.hasPassword
-                          ? 'Change password'
-                          : 'Create password'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
+                    <div>
+                      <Button type="submit" disabled={passwordSaving}>
+                        {passwordSaving
+                          ? 'Saving…'
+                          : session?.player.hasPassword
+                            ? 'Change password'
+                            : 'Create password'}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </section>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { ModalHeader } from '../../components/ui/ModalHeader'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useRef, useState, type JSX, type ReactNode } from 'react'
@@ -57,6 +58,7 @@ export function RoomSettingsModal({
   const [mode, setMode] = useState<CustomGameMode>(room.mode)
   const [mapId, setMapId] = useState(room.mapId)
   const [password, setPassword] = useState('')
+  const [legacyMode, setLegacyMode] = useState(room.legacyMode === true)
   const [friendlyFire, setFriendlyFire] = useState(room.friendlyFire ?? room.mode !== 'arena')
   const [customMoney, setCustomMoney] = useState((room.startingMoney ?? 800) !== 800)
   const [startingMoney, setStartingMoney] = useState(String(room.startingMoney ?? 800))
@@ -65,11 +67,12 @@ export function RoomSettingsModal({
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = CUSTOM_GAME_MODES.filter(
     (candidate) =>
-      (candidate === room.mode || enabledModes.includes(candidate)) &&
-      (!hideDesktopOnlyFeatures || (candidate !== 'cs13_3v3' && candidate !== 'cs13_1v1'))
+      candidate === room.mode ||
+      (enabledModes.includes(candidate) && (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
   )
   const selectedMode = mode
   const modeAvailable = modes.includes(mode)
+  const allowsLegacyMode = mode !== 'cs13_3v3' && mode !== 'cs13_1v1'
   const allowsMoney = selectedMode !== 'ffa' && selectedMode !== 'arena'
   const allowsRoundTime = selectedMode !== 'ffa'
   const roundTimeValid =
@@ -92,7 +95,9 @@ export function RoomSettingsModal({
       (selectedMode === room.mode && map.id === room.mapId)
   )
   const selectedMapId = mapId
-  const mapAvailable = availableMaps.some((map) => map.id === selectedMapId)
+  const mapAvailable =
+    (mode === room.mode && selectedMapId === room.mapId) ||
+    availableMaps.some((map) => map.id === selectedMapId)
 
   return (
     <>
@@ -101,7 +106,7 @@ export function RoomSettingsModal({
         vguiTitlebar={false}
         onClose={close}
         tabIndex={-1}
-        className="custom-room-dialog max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-none border border-white/20 bg-neutral-950 outline-none"
+        className="custom-room-dialog my-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-none border border-white/20 bg-neutral-950 outline-none"
         labelledBy="room-settings-title"
         describedBy="room-settings-description"
       >
@@ -132,6 +137,7 @@ export function RoomSettingsModal({
                 mode: selectedMode,
                 mapId: selectedMapId,
                 friendlyFire,
+                legacyMode: allowsLegacyMode && legacyMode,
                 startingMoney: allowsMoney && customMoney ? Number(startingMoney) : 800,
                 roundTimeMinutes: allowsRoundTime && customRoundTime ? Number(roundTime) : null,
                 ...(password ? { password } : {})
@@ -183,10 +189,8 @@ export function RoomSettingsModal({
                 onChange={(event) => setMapId(event.target.value)}
               >
                 {!availableMaps.length && <option value="">{t('legacy.customNoMaps')}</option>}
-                {selectedMapId && !mapAvailable && (
-                  <option value={selectedMapId} disabled>
-                    {selectedMapId}
-                  </option>
+                {selectedMapId && !availableMaps.some((map) => map.id === selectedMapId) && (
+                  <option value={selectedMapId}>{selectedMapId}</option>
                 )}
                 {availableMaps.map((map) => (
                   <option key={map.id} value={map.id}>
@@ -195,6 +199,19 @@ export function RoomSettingsModal({
                 ))}
               </select>
             </Field>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-neutral-200">
+              <input
+                type="checkbox"
+                className="size-4 shrink-0 rounded-none accent-sky-400"
+                checked={allowsLegacyMode && legacyMode}
+                disabled={saving || disabled || !allowsLegacyMode}
+                onChange={(event) => setLegacyMode(event.target.checked)}
+              />
+              {t('customRoom.legacyMode')}
+            </label>
+            <HelpTooltip text={t('customRoom.legacyModeHint')} />
           </div>
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm text-neutral-200">

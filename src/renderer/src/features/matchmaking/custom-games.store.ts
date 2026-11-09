@@ -1,3 +1,4 @@
+import { toast } from 'react-toastify'
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { friendlyFireMessage } from './friendly-fire-message'
 import { create } from 'zustand'
@@ -255,6 +256,10 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   updateRoom: async (settings) => {
     const room = get().currentRoom
     if (!room || room.state !== 'WAITING' || get().savingSettings) return false
+    const t = (key: Parameters<typeof translate>[1]): string =>
+      translate(useLanguageStore.getState().language, key)
+    const feedback = toast.loading(t('customRoom.saving'))
+    let saved = false
     set({ error: null, savingSettings: true })
     try {
       const currentRoom = await window.api.customGames.update(room.id, settings, room.hostApiUrl)
@@ -265,12 +270,20 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
         rooms: state.rooms.map((candidate) => (candidate.id === room.id ? currentRoom : candidate)),
         settingsModalOpen: false
       }))
+      saved = true
       return true
     } catch (error) {
       if (get().currentRoom?.id === room.id) set({ error: message(error) })
       return false
     } finally {
       set({ savingSettings: false })
+      toast.update(feedback, {
+        render: t(saved ? 'customRoom.saved' : 'customRoom.saveFailed'),
+        type: saved ? 'success' : 'error',
+        isLoading: false,
+        autoClose: 5000,
+        closeButton: true
+      })
     }
   },
   joinRoom: async (roomId, password, hostApiUrl) => {

@@ -48,3 +48,18 @@ test('IPC rejects invalid round timers rather than forwarding or silently droppi
     assert.equal(exports.isRoundTime(roundTimeMinutes), false)
   }
 })
+
+test('IPC preserves the Legacy Mode boolean and rejects coercible values', () => {
+  for (const legacyMode of [true, false]) {
+    assert.equal(exports.validateSettings({ ...settings, legacyMode }).legacyMode, legacyMode)
+    assert.equal(exports.validateSettingsUpdate({ legacyMode }).legacyMode, legacyMode)
+  }
+  assert.equal('legacyMode' in exports.validateSettings(settings), false)
+  for (const legacyMode of ['true', 1, 0, null, {}]) {
+    assert.throws(
+      () => exports.validateSettings({ ...settings, legacyMode }),
+      /Invalid Legacy Mode/
+    )
+    assert.throws(() => exports.validateSettingsUpdate({ legacyMode }), /Invalid Legacy Mode/)
+  }
+})

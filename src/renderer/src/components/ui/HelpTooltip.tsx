@@ -23,6 +23,7 @@ export function HelpTooltip({
     anchorTop: number
     anchorBottom: number
     ready: boolean
+    portal: HTMLElement
   } | null>(null)
   useLayoutEffect(() => {
     if (!position || position.ready || !tooltipRef.current) return
@@ -48,14 +49,15 @@ export function HelpTooltip({
       top: 0,
       anchorTop: rect.top,
       anchorBottom: rect.bottom,
-      ready: false
+      ready: false,
+      portal: element.closest('dialog') ?? document.body
     })
   }
   return (
     <span className={twMerge('inline-flex shrink-0', className)}>
       <button
         type="button"
-        className="inline-flex size-5 items-center justify-center text-current/70 hover:text-current focus-visible:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+        className="inline-flex size-5 items-center justify-center text-current/70 hover:text-current focus-visible:rounded-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
         aria-label={text}
         aria-describedby={position ? tooltipId : undefined}
         onMouseEnter={(event) => show(event.currentTarget)}
@@ -80,7 +82,7 @@ export function HelpTooltip({
           >
             {text}
           </span>,
-          document.body
+          position.portal
         )}
     </span>
   )
