@@ -4647,3 +4647,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Updated stock sticker sources.
 - Improved stock sticker and weapon previews.
 - Improved switching between game versions in loadouts.
+
+## v2026.1109.10 — 2026-11-09
+
+### Compatibility
+
+- Improved preparation for Counter-Strike 1.3 support.
+- The browser helper now prepares the required CS 1.3 server support.
