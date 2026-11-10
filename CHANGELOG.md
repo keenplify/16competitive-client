@@ -4696,3 +4696,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Improved preference handling and coverage.
+
+## v2026.1110.4 — 2026-11-10
+
+### Payments
+
+- Philippine players now default to PayMongo at checkout.
+- Added PayMongo P-Cash checkout.
+- Added payment history for top-ups.
+
+### Checkout
+
+- Philippine payment preferences are now selected automatically.
