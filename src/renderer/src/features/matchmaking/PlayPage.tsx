@@ -113,6 +113,7 @@ export function PlayPage({
   const requestOfflineQueue = useOfflineQueuePromptStore((state) => state.requestQueue)
   const checkingDiscord = useOfflineQueuePromptStore((state) => state.checking)
   const reconnectGame = useMatchmakingStore((state) => state.reconnectGame)
+  const reconnectingGame = useMatchmakingStore((state) => state.reconnectingGame)
   const copyConnection = useMatchmakingStore((state) => state.copyConnection)
   const copyConnectionStatus = useMatchmakingStore((state) => state.copyConnectionStatus)
   const matchReadyAt = useMatchmakingStore((state) => state.matchReadyAt)
@@ -467,12 +468,20 @@ export function PlayPage({
                 <FindMatchButton
                   className="h-11 w-full min-w-0 px-4 text-sm font-semibold tracking-normal normal-case"
                   disabled={
-                    webRuntime
+                    reconnectingGame ||
+                    (webRuntime
                       ? !manualConnectionAllowed || !retryWindowOpen
-                      : !gameExited || !retryWindowOpen
+                      : !gameExited || !retryWindowOpen)
                   }
+                  aria-busy={reconnectingGame}
                   onClick={() => void handleReconnect()}
                 >
+                  {reconnectingGame && (
+                    <LoaderCircle
+                      className="absolute left-2 size-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  )}
                   <span className="relative z-10">
                     {webRuntime
                       ? manualConnectionAllowed

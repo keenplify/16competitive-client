@@ -476,3 +476,15 @@ Queue and reconnect validate the assigned game. Loadouts expose only configured
 versions, and unsupported 1.6-only weapons are hidden for CS 1.3. The release must
 include the database migration and the approved signed native bundle; changing
 source alone does not update installed production helpers.
+
+### Protected Windows installation folders
+
+An asset-preparation permission failure remains visible during background preload.
+An explicit Reconnect from the installed desktop launcher can request the existing
+verified UAC restart before retrying a protected installation. The helper and
+launcher hashes are checked, temporary sessions are stopped before handoff, and
+no session credentials enter the restart arguments. After approval, the elevated
+launcher reopens; the player reconnects again to retry preparation. Cancellation
+leaves the current launcher open. The retry flag prevents elevation loops.
+This changes no folder ACLs and does not change the CS 1.3 restoration lifecycle.
+Linux and background helper runtimes retain the writable-installation requirement.

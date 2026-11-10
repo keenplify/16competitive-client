@@ -141,7 +141,8 @@ export async function ensureSharedModelDirectory(
   }
 }
 
-/** Do not retry denied filesystem operations with elevation or relaxed permissions. */
+/** Preserve denial details. Explicit desktop launch retries can request the
+ * verified administrator restart; this filesystem layer never changes permissions. */
 export function gameStorageError(error: unknown): unknown {
   if (
     typeof error === 'object' &&

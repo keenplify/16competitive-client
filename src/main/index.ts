@@ -7,6 +7,7 @@ import { requestPCashBet } from './pcash-bets'
 import {
   setStandaloneVoice,
   standaloneSessionStatus,
+  withGameStorageApproval,
   updateStandaloneSettings
 } from './game/standalone-session'
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
@@ -1299,7 +1300,9 @@ app.whenReady().then(async () => {
   ipcMain.handle(MATCHMAKING_CHANNELS.respondReady, (_, matchId: unknown, accepted: unknown) =>
     matchmakingConnection.respondReady(matchId, accepted)
   )
-  ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () => matchmakingConnection.reconnectGame())
+  ipcMain.handle(MATCHMAKING_CHANNELS.reconnectGame, () =>
+    withGameStorageApproval(() => matchmakingConnection.reconnectGame())
+  )
   ipcMain.handle(MATCHMAKING_CHANNELS.copyConnection, (_, matchId: unknown) =>
     matchmakingConnection.copyConnection(matchId)
   )

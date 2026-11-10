@@ -16,10 +16,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} files',
     'assets.sync.checking': 'Checking cached files…',
     'match.assets.storageDenied':
-      'The launcher cannot write required game files or create the skins link. Use a writable Counter-Strike installation outside protected folders such as Program Files, select it in Settings, then reconnect. On Linux, also check that the drive is mounted read-write.',
+      'Cannot write required game files. On Windows, click Reconnect in the installed launcher to request administrator approval, or choose a writable installation in Settings. On Linux, check folder permissions and that the drive is mounted read-write.',
     'match.assets.checking': 'Checking required skins…',
     'match.assets.downloading': 'Downloading required skins · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Counter-Strike will download missing skins in game'
+    'match.assets.fastdl': 'Counter-Strike will download missing skins in game',
+    'match.launch.processing': 'Preparing Counter-Strike…',
+    'match.launch.requested': 'Counter-Strike launch requested.'
   },
   ru: {
     'match.launch.adminRequired':
@@ -38,10 +40,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} файлов',
     'assets.sync.checking': 'Проверка файлов в кэше…',
     'match.assets.storageDenied':
-      'Лаунчер не может записать необходимые файлы игры или создать ссылку на скины. Используйте доступную для записи установку Counter-Strike вне защищённых папок, например Program Files, выберите её в настройках и подключитесь снова. В Linux также проверьте, что диск подключён для чтения и записи.',
+      'Невозможно записать необходимые файлы игры. В Windows нажмите «Переподключиться» в установленном лаунчере, чтобы запросить права администратора, или выберите доступную для записи установку в настройках. В Linux проверьте права папки и режим чтения и записи диска.',
     'match.assets.checking': 'Проверка необходимых скинов…',
     'match.assets.downloading': 'Загрузка необходимых скинов · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Counter-Strike загрузит недостающие скины в игре'
+    'match.assets.fastdl': 'Counter-Strike загрузит недостающие скины в игре',
+    'match.launch.processing': 'Подготовка Counter-Strike…',
+    'match.launch.requested': 'Запуск Counter-Strike запрошен.'
   },
   tl: {
     'match.launch.adminRequired':
@@ -60,10 +64,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} file',
     'assets.sync.checking': 'Tinitingnan ang mga naka-cache na file…',
     'match.assets.storageDenied':
-      'Hindi maisulat ng launcher ang mga kailangang game file o magawa ang link ng mga skin. Gumamit ng Counter-Strike installation na puwedeng sulatan sa labas ng protektadong folder tulad ng Program Files, piliin ito sa Settings, at kumonekta muli. Sa Linux, tiyaking naka-mount ang drive para sa pagbasa at pagsulat.',
+      'Hindi maisulat ang mga kailangang game file. Sa Windows, pindutin ang Reconnect sa naka-install na launcher para humingi ng pahintulot ng administrator, o pumili ng writable na instalasyon sa Settings. Sa Linux, tingnan ang folder permissions at kung read-write ang drive.',
     'match.assets.checking': 'Tinitingnan ang mga kailangang skin…',
     'match.assets.downloading': 'Dina-download ang mga kailangang skin · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Ida-download ng Counter-Strike ang mga kulang na skin sa laro'
+    'match.assets.fastdl': 'Ida-download ng Counter-Strike ang mga kulang na skin sa laro',
+    'match.launch.processing': 'Inihahanda ang Counter-Strike…',
+    'match.launch.requested': 'Hiniling ang pagbukas ng Counter-Strike.'
   },
   th: {
     'match.launch.adminRequired':
@@ -82,10 +88,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} ไฟล์',
     'assets.sync.checking': 'กำลังตรวจสอบไฟล์ในแคช…',
     'match.assets.storageDenied':
-      'ลอนเชอร์ไม่สามารถเขียนไฟล์เกมที่จำเป็นหรือสร้างลิงก์สกินได้ ใช้โฟลเดอร์ Counter-Strike ที่เขียนได้และอยู่นอกโฟลเดอร์ที่มีการป้องกัน เช่น Program Files เลือกในการตั้งค่าแล้วเชื่อมต่อใหม่ บน Linux ให้ตรวจสอบด้วยว่าไดรฟ์เมานต์แบบอ่านและเขียนได้',
+      'ไม่สามารถเขียนไฟล์เกมที่จำเป็นได้ บน Windows ให้กดเชื่อมต่อใหม่ในตัวเปิดเกมที่ติดตั้งเพื่อขอสิทธิ์ผู้ดูแลระบบ หรือเลือกโฟลเดอร์เกมที่เขียนได้ในการตั้งค่า บน Linux ให้ตรวจสอบสิทธิ์โฟลเดอร์และการเมานต์ไดรฟ์แบบอ่านและเขียน',
     'match.assets.checking': 'กำลังตรวจสอบสกินที่จำเป็น…',
     'match.assets.downloading': 'กำลังดาวน์โหลดสกินที่จำเป็น · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Counter-Strike จะดาวน์โหลดสกินที่ขาดภายในเกม'
+    'match.assets.fastdl': 'Counter-Strike จะดาวน์โหลดสกินที่ขาดภายในเกม',
+    'match.launch.processing': 'กำลังเตรียม Counter-Strike…',
+    'match.launch.requested': 'ส่งคำขอเปิด Counter-Strike แล้ว'
   },
   id: {
     'match.launch.adminRequired':
@@ -104,10 +112,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} file',
     'assets.sync.checking': 'Memeriksa file dalam cache…',
     'match.assets.storageDenied':
-      'Launcher tidak dapat menulis file game yang diperlukan atau membuat tautan skin. Gunakan instalasi Counter-Strike yang dapat ditulis di luar folder terlindungi seperti Program Files, pilih di Pengaturan, lalu sambungkan kembali. Di Linux, pastikan drive dipasang dengan akses baca-tulis.',
+      'Tidak dapat menulis file game yang diperlukan. Di Windows, klik Sambungkan kembali di launcher terpasang untuk meminta izin administrator, atau pilih instalasi yang dapat ditulis di Pengaturan. Di Linux, periksa izin folder dan pastikan drive dipasang dengan akses baca-tulis.',
     'match.assets.checking': 'Memeriksa skin yang diperlukan…',
     'match.assets.downloading': 'Mengunduh skin yang diperlukan · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Counter-Strike akan mengunduh skin yang belum tersedia di dalam game'
+    'match.assets.fastdl': 'Counter-Strike akan mengunduh skin yang belum tersedia di dalam game',
+    'match.launch.processing': 'Menyiapkan Counter-Strike…',
+    'match.launch.requested': 'Peluncuran Counter-Strike telah diminta.'
   },
   hi: {
     'match.launch.adminRequired':
@@ -126,10 +136,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} फ़ाइलें',
     'assets.sync.checking': 'कैश की गई फ़ाइलें जाँची जा रही हैं…',
     'match.assets.storageDenied':
-      'लॉन्चर ज़रूरी गेम फ़ाइलें लिख नहीं सकता या स्किन लिंक नहीं बना सकता। Program Files जैसे सुरक्षित फ़ोल्डरों के बाहर लिखने योग्य Counter-Strike इंस्टॉलेशन इस्तेमाल करें, उसे सेटिंग्स में चुनें और फिर से कनेक्ट करें। Linux पर यह भी जाँचें कि ड्राइव पढ़ने और लिखने के लिए माउंट है।',
+      'ज़रूरी गेम फ़ाइलें नहीं लिखी जा सकीं। Windows पर प्रशासक की अनुमति माँगने के लिए इंस्टॉल किए गए लॉन्चर में फिर से कनेक्ट करें दबाएँ, या सेटिंग्स में लिखने योग्य इंस्टॉलेशन चुनें। Linux पर फ़ोल्डर की अनुमतियाँ और ड्राइव का पढ़ने-लिखने वाला माउंट जाँचें।',
     'match.assets.checking': 'ज़रूरी स्किन जाँची जा रही हैं…',
     'match.assets.downloading': 'ज़रूरी स्किन डाउनलोड हो रही हैं · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'Counter-Strike खेल में अनुपलब्ध स्किन डाउनलोड करेगा'
+    'match.assets.fastdl': 'Counter-Strike खेल में अनुपलब्ध स्किन डाउनलोड करेगा',
+    'match.launch.processing': 'Counter-Strike तैयार हो रहा है…',
+    'match.launch.requested': 'Counter-Strike शुरू करने का अनुरोध भेजा गया।'
   },
   pt: {
     'match.launch.adminRequired':
@@ -148,10 +160,12 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} arquivos',
     'assets.sync.checking': 'Verificando arquivos em cache…',
     'match.assets.storageDenied':
-      'O launcher não consegue gravar os arquivos necessários do jogo ou criar o link das skins. Use uma instalação gravável do Counter-Strike fora de pastas protegidas como Program Files, selecione-a nas Configurações e reconecte. No Linux, verifique também se a unidade está montada para leitura e escrita.',
+      'Não foi possível gravar os arquivos necessários. No Windows, clique em Reconectar no launcher instalado para solicitar aprovação de administrador ou escolha uma instalação gravável nas Configurações. No Linux, verifique as permissões da pasta e se a unidade está montada para leitura e escrita.',
     'match.assets.checking': 'Verificando skins necessárias…',
     'match.assets.downloading': 'Baixando skins necessárias · {{completed}} / {{total}}',
-    'match.assets.fastdl': 'O Counter-Strike baixará as skins ausentes no jogo'
+    'match.assets.fastdl': 'O Counter-Strike baixará as skins ausentes no jogo',
+    'match.launch.processing': 'Preparando Counter-Strike…',
+    'match.launch.requested': 'Inicialização do Counter-Strike solicitada.'
   },
   ja: {
     'match.launch.adminRequired':
@@ -170,9 +184,11 @@ export const matchAssetTranslations = {
     'assets.sync.files': '{{completed}} / {{total}} ファイル',
     'assets.sync.checking': 'キャッシュ済みファイルを確認中…',
     'match.assets.storageDenied':
-      '必要なゲームファイルの書き込み、またはスキンのリンク作成ができません。Program Filesなどの保護フォルダー以外にある書き込み可能なCounter-Strikeを設定で選び、再接続してください。Linuxではドライブが読み書き可能でマウントされているかも確認してください。',
+      '必要なゲームファイルを書き込めません。Windowsではインストール済みランチャーで再接続を押して管理者承認を要求するか、設定で書き込み可能なインストール先を選んでください。Linuxではフォルダーの権限とドライブの読み書き可能なマウント状態を確認してください。',
     'match.assets.checking': '必要なスキンを確認中…',
     'match.assets.downloading': '必要なスキンをダウンロード中 · {{completed}} / {{total}}',
-    'match.assets.fastdl': '不足しているスキンはCounter-Strikeがゲーム内でダウンロードします'
+    'match.assets.fastdl': '不足しているスキンはCounter-Strikeがゲーム内でダウンロードします',
+    'match.launch.processing': 'Counter-Strikeを準備中…',
+    'match.launch.requested': 'Counter-Strikeの起動を要求しました。'
   }
 } as const

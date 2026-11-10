@@ -49,6 +49,49 @@ export function updateStandaloneSettings(settings: GameSettings): void {
   active.child.stdin?.write(`${JSON.stringify({ settings: sessionPreferences(settings) })}\n`)
 }
 let handoffCommitted = false
+let storageAdminRestart: Promise<never> | null = null
+
+/** An explicit desktop launch retry may request UAC for a protected game folder.
+ * Only the verified launcher is elevated; no ACLs or session credentials change.
+ */
+export async function withGameStorageApproval<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation()
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      error.message !== 'match.assets.storageDenied' ||
+      process.platform !== 'win32' ||
+      !app.isPackaged ||
+      process.argv.includes('--admin-game-retry') ||
+      process.argv.includes('--native-helper-runtime')
+    )
+      throw error
+    if (!storageAdminRestart) {
+      storageAdminRestart = (async (): Promise<never> => {
+        try {
+          const helper = await helperExecutable()
+          await stopStandaloneSession()
+          await requestAdminRestart(helper, process.execPath, await hashFile(process.execPath))
+        } catch (failure) {
+          if (
+            failure instanceof Error &&
+            (failure.message === 'match.launch.adminCancelled' ||
+              failure.message === 'match.launch.adminFailed')
+          )
+            throw failure
+          throw new Error('match.launch.adminFailed', { cause: failure })
+        }
+        throw new Error('match.launch.adminRestarting')
+      })()
+    }
+    try {
+      return await storageAdminRestart
+    } finally {
+      storageAdminRestart = null
+    }
+  }
+}
 export function isStandaloneHandoffCommitted(): boolean {
   return handoffCommitted
 }

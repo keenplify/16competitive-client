@@ -188,6 +188,7 @@ interface MatchmakingState {
   launchPreparation: GameLaunchProgress | null
   connectionDetails: { matchId: string; host: string; port: number; password: string } | null
   gameExited: boolean
+  reconnectingGame: boolean
   gameExitCount: number
   matchReadyAt: number | null
   copyConnectionStatus: 'idle' | 'copying' | 'copied'
@@ -866,6 +867,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     launchPreparation: null,
     connectionDetails: null,
     gameExited: false,
+    reconnectingGame: false,
     gameExitCount: 0,
     matchReadyAt: null,
     copyConnectionStatus: 'idle',
@@ -1236,18 +1238,36 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     reconnectGame: async () => {
-      set({ error: null })
+      if (get().reconnectingGame) return
+      const language = useLanguageStore.getState().language
+      const feedback = toast.loading(translate(language, 'match.launch.processing'))
+      set({ error: null, reconnectingGame: true })
       try {
         await window.api.matchmaking.reconnectGame()
         set({ gameExited: false })
+        toast.update(feedback, {
+          render: translate(language, 'match.launch.requested'),
+          type: 'success',
+          isLoading: false,
+          autoClose: 4000
+        })
       } catch (error) {
         const message = readableError(error)
+        const friendly = message.includes('match.assets.storageDenied')
+          ? translate(language, 'match.assets.storageDenied')
+          : message
         set({
           assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
-          error: message.includes('match.assets.storageDenied')
-            ? translate(useLanguageStore.getState().language, 'match.assets.storageDenied')
-            : message
+          error: friendly
         })
+        toast.update(feedback, {
+          render: friendly,
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
+      } finally {
+        set({ reconnectingGame: false })
       }
     },
 
