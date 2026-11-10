@@ -23,7 +23,7 @@ test(
             "import {PCashTopUpModal} from './src/renderer/src/features/skins/PCashTopUp';import {usePaymentsStore} from './src/renderer/src/features/skins/payments.store';",
             "window.store=usePaymentsStore;window.fixture={enabled:true,pCash:0,orders:[],manual:{methods:[],orders:[]},paymongo:{enabled:true,currency:'PHP',minorPerUsd:5800,orders:[]}};",
             "window.api={skins:{payments:async()=>fixture,createPayment:async(id,amount,provider)=>{window.called={id,amount,provider};return new Promise((resolve,reject)=>{window.settle=()=>resolve({id});window.fail=()=>reject(new Error('Declined'))})}}};",
-            "createRoot(document.getElementById('root')).render(<><PCashTopUpModal/><ToastContainer className='launcher-toast-container'/></>);setTimeout(()=>store.setState({ownerId:'test',open:true,methodId:'paymongo',snapshot:fixture}),0);"
+            "createRoot(document.getElementById('root')).render(<><PCashTopUpModal/><ToastContainer className='launcher-toast-container'/></>);setTimeout(()=>store.setState({ownerId:'test',open:true,preferredProvider:'paymongo',methodId:'paymento',methodResolved:false,snapshot:fixture}),0);"
           ].join('\n')
         },
         bundle: true,
