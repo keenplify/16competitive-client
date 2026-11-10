@@ -12,3 +12,15 @@ export function gameForMode(mode: string | null | undefined): GameVersion {
 export function supportsWeapon(game: GameVersion, weapon: string): boolean {
   return game === 'cs16' || !['famas', 'galil', 'shield', 'player_ct', 'player_t'].includes(weapon)
 }
+
+/** Keep an explicit game selected while its maps/helper are unavailable. */
+export function gameModeFallback<T extends string>(
+  modes: readonly T[],
+  available: readonly T[],
+  preferred: GameVersion | null
+): T | undefined {
+  return (
+    available.find((mode) => !preferred || gameForMode(mode) === preferred) ??
+    (preferred ? modes.find((mode) => gameForMode(mode) === preferred) : undefined)
+  )
+}

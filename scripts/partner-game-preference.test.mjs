@@ -1,3 +1,4 @@
+import { gameModeFallback } from '../src/shared/game-version.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -44,4 +45,13 @@ test('a handoff without a game clears the earlier preference; malformed storage 
   a.storage.set('16c.partner-game-preference.v1', '{broken')
   a.restorePartnerGamePreference('a')
   assert.equal(a.usePartnerGamePreferenceStore.getState().game, null)
+})
+
+test('missing helper or maps never falls back from a partner CS13 session to CS16', () => {
+  const modes = ['5v5', 'unrated', 'cs13_3v3', 'ffa']
+  assert.equal(gameModeFallback(modes, ['5v5', 'unrated'], 'cs13'), 'cs13_3v3')
+  assert.equal(gameModeFallback(modes, [], 'cs13'), 'cs13_3v3')
+  assert.equal(gameModeFallback(modes, ['cs13_3v3'], 'cs16'), '5v5')
+  assert.equal(gameModeFallback(modes, ['unrated'], null), 'unrated')
+  assert.equal(gameModeFallback(modes, [], null), undefined)
 })

@@ -1,6 +1,6 @@
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { configuredGames } from '../settings/game-availability'
-import { gameForMode } from '../../../../shared/game-version'
+import { gameForMode, gameModeFallback } from '../../../../shared/game-version'
 import { RankedWarmupNotice } from './RankedWarmupNotice'
 import { verifyInstalledNativeHelper } from './native-helper-action'
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
@@ -163,8 +163,8 @@ export function PlayPage({
         partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
       )
     if (queueModes.some((mode) => mode === selectedMode && modeAvailable(mode))) return
-    const fallback = queueModes.find(modeAvailable)
-    if (fallback) selectMode(fallback)
+    const fallback = gameModeFallback(queueModes, queueModes.filter(modeAvailable), preferredGame)
+    if (fallback && fallback !== selectedMode) selectMode(fallback)
   }, [maps, mapsStatus, partyRequiresWeb, preferredGame, queueStatus, selectedMode, selectMode])
 
   useEffect(() => {
@@ -234,7 +234,10 @@ export function PlayPage({
   }
 
   const beginQueue = (): void => {
-    if (selectedMode === '5v5' && player) void requestOfflineQueue(player.id)
+    const currentMode = useMatchmakingStore.getState().selectedMode
+    const game = usePartnerGamePreferenceStore.getState().game
+    if (game && gameForMode(currentMode) !== game) return
+    if (currentMode === '5v5' && player) void requestOfflineQueue(player.id)
     else void joinQueue()
   }
 
