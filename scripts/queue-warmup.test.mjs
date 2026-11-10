@@ -102,6 +102,7 @@ async function harness({
     activateIcafeBranch: async () => {},
     toMatchmakingWsUrl: (url) => url.replace('https:', 'wss:') + '/matchmaking',
     createAutomaticMatchReporter: () => async () => {},
+    createAutomaticStorageReporter: () => async () => {},
     startMatchAssetPreload: (matchId) => {
       assetStarts.push(matchId)
       return assets
