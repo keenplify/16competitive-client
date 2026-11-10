@@ -1,4 +1,4 @@
-import { gameModeFallback } from '../src/shared/game-mode-preference.ts'
+import { gameForMode } from '../src/shared/game-version.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -15,6 +15,16 @@ const source = ts.transpile(
   ),
   { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 )
+const modeExports = {}
+new Function(
+  'require',
+  'exports',
+  ts.transpile(
+    readFileSync(new URL('../src/shared/game-mode-preference.ts', import.meta.url), 'utf8'),
+    { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+  )
+)(() => ({ gameForMode }), modeExports)
+const { gameModeFallback } = modeExports
 function harness(storage = new Map()) {
   const exports = {}
   new Function('require', 'exports', 'sessionStorage', source)(() => ({ create }), exports, {
