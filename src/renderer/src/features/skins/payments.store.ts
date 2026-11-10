@@ -1,3 +1,4 @@
+import { preferredPaymentProvider } from '../../../../shared/payment-preference'
 import { toast } from 'react-toastify'
 import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
@@ -12,6 +13,8 @@ interface PaymentsState {
   showHistory: () => void
   hideHistory: () => void
   methodId: string
+  preferredProvider: 'paymento' | 'paymongo'
+  methodResolved: boolean
   closeDetails: () => void
   activeManualId: string | null
   senderName: string
@@ -45,12 +48,21 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   },
   hideHistory: () => set({ historyOpen: false }),
   methodId: 'paymento',
+  preferredProvider: 'paymento',
+  methodResolved: false,
   closeDetails: () => set({ activeManualId: null }),
   activeManualId: null,
   senderName: '',
   reference: '',
   selectMethod: (methodId) =>
-    set({ methodId, activeManualId: null, senderName: '', reference: '', error: false }),
+    set({
+      methodId,
+      methodResolved: true,
+      activeManualId: null,
+      senderName: '',
+      reference: '',
+      error: false
+    }),
   resumeManual: (id) => {
     const order = get().snapshot?.manual?.orders.find((o) => o.id === id)
     if (order)
@@ -120,6 +132,12 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       customOpen: false,
       historyOpen: false,
       methodId: 'paymento',
+      preferredProvider: preferredPaymentProvider(
+        useAuthStore.getState().session?.player.flagCountryCode,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        navigator.languages
+      ),
+      methodResolved: false,
       activeManualId: null,
       senderName: '',
       reference: '',
@@ -147,7 +165,19 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
       const snapshot = orderId
         ? await window.api.skins.refreshPayment(orderId, provider)
         : await window.api.skins.payments()
-      if (current()) set({ snapshot })
+      if (current())
+        set((state) => ({
+          snapshot,
+          ...(state.methodResolved
+            ? {}
+            : {
+                methodId:
+                  state.preferredProvider === 'paymongo' && snapshot.paymongo?.enabled
+                    ? 'paymongo'
+                    : 'paymento',
+                methodResolved: true
+              })
+        }))
       if (notification !== null)
         toast.update(notification, {
           render: translate(useLanguageStore.getState().language, 'payments.updated'),

@@ -66,6 +66,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
     create,
     close,
     methodId,
+    preferredProvider,
     activeManualId,
     selectMethod,
     manualAction,
@@ -159,10 +160,18 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 disabled={busy}
                 onChange={(e) => selectMethod(e.target.value)}
               >
-                <option value="paymento">Paymento · USDT</option>
-                <option value="paymongo" disabled={!snapshot?.paymongo?.enabled}>
-                  PayMongo · PHP
-                </option>
+                {(preferredProvider === 'paymongo'
+                  ? ['paymongo', 'paymento']
+                  : ['paymento', 'paymongo']
+                ).map((provider) => (
+                  <option
+                    key={provider}
+                    value={provider}
+                    disabled={provider === 'paymongo' && !snapshot?.paymongo?.enabled}
+                  >
+                    {provider === 'paymongo' ? 'PayMongo · PHP' : 'Paymento · USDT'}
+                  </option>
+                ))}
                 {snapshot?.manual?.methods.map((method) => (
                   <option key={method.id} value={method.id}>
                     {method.name} · {method.currency}
