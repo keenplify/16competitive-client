@@ -4685,3 +4685,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - The launcher now respects your preferred game when signing in.
 - Partner game installations are now recognized by the launcher.
+
+## v2026.1110.3 — 2026-11-10
+
+### Preferences
+
+- Fixed game mode preferences being affected by unrelated sticker bundle settings.
+- Preserved partner game selection when game setup is temporarily unavailable.
+
+### Reliability
+
+- Improved preference handling and coverage.
