@@ -4671,3 +4671,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Sticker Previews
 
 - CS 1.3 hand materials are now hidden in sticker previews.
+
+## v2026.1110.1 — 2026-11-10
+
+### Game Launching
+
+- Storage permission failures during game launch can now be reported automatically.
+- Retrying access to protected game folders can request administrator approval.
