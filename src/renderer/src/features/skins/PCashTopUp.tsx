@@ -92,10 +92,18 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
   if (!open) return null
   const activeManual = snapshot?.manual?.orders.find((order) => order.id === activeManualId)
   const manualMethod = snapshot?.manual?.methods.find((method) => method.id === methodId)
-  const manual = methodId !== 'paymento'
+  const paymongo = methodId === 'paymongo'
+  const manual = methodId !== 'paymento' && !paymongo
+  const priceMethod = paymongo
+    ? snapshot?.paymongo?.minorPerUsd
+      ? { currency: 'PHP', minorPerUsd: snapshot.paymongo.minorPerUsd }
+      : undefined
+    : manualMethod
   const usd = usdFromPCash(amount)
   const price =
-    usd !== null && (!manual || manualMethod) ? topUpPrice(usd, manualMethod, language) : '—'
+    usd !== null && (paymongo ? priceMethod : !manual || manualMethod)
+      ? topUpPrice(usd, priceMethod, language)
+      : '—'
   const onClose = close
   return (
     <>
@@ -115,7 +123,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                   {t('payments.title')}
                 </h2>
                 <p id="p-cash-top-up-rate" className="mt-1 text-sm text-amber-200">
-                  {t(manual ? 'payments.usdRate' : 'payments.rate')}
+                  {t(manual || paymongo ? 'payments.usdRate' : 'payments.rate')}
                 </p>
               </div>
             </div>
@@ -152,6 +160,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 onChange={(e) => selectMethod(e.target.value)}
               >
                 <option value="paymento">Paymento · USDT</option>
+                <option value="paymongo" disabled={!snapshot?.paymongo?.enabled}>
+                  PayMongo · PHP
+                </option>
                 {snapshot?.manual?.methods.map((method) => (
                   <option key={method.id} value={method.id}>
                     {method.name} · {method.currency}
@@ -172,8 +183,9 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[5, 10, 50, 100, 200, 300, 400, 500].map((value) => {
                     const pCash = value * PCASH_PER_USDT
-                    const cost =
-                      manual && !manualMethod ? '—' : topUpPrice(value, manualMethod, language)
+                    const cost = (paymongo ? !priceMethod : manual && !manualMethod)
+                      ? '—'
+                      : topUpPrice(value, priceMethod, language)
                     return (
                       <TopUpAmountTile
                         key={value}
@@ -238,7 +250,15 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
               <Button
                 type="submit"
                 className="h-12 w-full text-base"
-                disabled={busy || usd === null || (manual ? !manualMethod : !snapshot?.enabled)}
+                disabled={
+                  busy ||
+                  usd === null ||
+                  (manual
+                    ? !manualMethod
+                    : paymongo
+                      ? !snapshot?.paymongo?.enabled
+                      : !snapshot?.enabled)
+                }
               >
                 {busy ? (
                   <LoaderCircle
@@ -251,14 +271,22 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
                 {t(manual ? 'payments.transfer' : 'payments.create')}
               </Button>
               <p className="text-sm leading-5 text-neutral-400">
-                {t(manual ? 'payments.manualHelp' : 'payments.help')}
+                {t(
+                  manual
+                    ? 'payments.manualHelp'
+                    : paymongo
+                      ? 'payments.paymongoHelp'
+                      : 'payments.help'
+                )}
               </p>
               <div className="h-16 overflow-y-auto text-sm" role="status" aria-live="polite">
                 {error ? (
                   <p className="text-rose-300">
                     {t(manual ? 'payments.manualError' : 'payments.error')}
                   </p>
-                ) : snapshot && !snapshot.enabled && !manual ? (
+                ) : snapshot &&
+                  !(paymongo ? snapshot.paymongo?.enabled : snapshot.enabled) &&
+                  !manual ? (
                   <p className="text-neutral-300">{t('payments.unavailable')}</p>
                 ) : busy ? (
                   <p className="text-neutral-300">{t('payments.loading')}</p>

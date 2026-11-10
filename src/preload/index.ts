@@ -342,9 +342,9 @@ const skins: SkinsApi = {
   submitManualPayment: (id, senderName, reference) =>
     ipcRenderer.invoke(SKIN_CHANNELS.submitManualPayment, id, senderName, reference),
   cancelManualPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.cancelManualPayment, id),
-  createPayment: (requestId, amount) =>
-    ipcRenderer.invoke(SKIN_CHANNELS.createPayment, requestId, amount),
-  refreshPayment: (id) => ipcRenderer.invoke(SKIN_CHANNELS.refreshPayment, id),
+  createPayment: (requestId, amount, provider) =>
+    ipcRenderer.invoke(SKIN_CHANNELS.createPayment, requestId, amount, provider),
+  refreshPayment: (id, provider) => ipcRenderer.invoke(SKIN_CHANNELS.refreshPayment, id, provider),
   list: (weaponKey) => ipcRenderer.invoke(SKIN_CHANNELS.list, weaponKey),
   mine: (gameVersion) => ipcRenderer.invoke(SKIN_CHANNELS.mine, gameVersion),
   resaleQuote: (skinId) => ipcRenderer.invoke(SKIN_CHANNELS.resaleQuote, skinId),

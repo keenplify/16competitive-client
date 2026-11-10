@@ -599,13 +599,13 @@ const skins = {
       })
     )
   },
-  async createPayment(requestId: string, amount: number) {
+  async createPayment(requestId: string, amount: number, provider?: 'paymento' | 'paymongo') {
     // Reserve the tab during the user's click, before awaiting the API (popup blockers).
     const checkout = window.open('about:blank', '_blank')
     if (checkout) checkout.opener = null
     try {
       const order = parsePaymentOrder(
-        await requestJson('/payments/p-cash', {
+        await requestJson(provider === 'paymongo' ? '/payments/paymongo' : '/payments/p-cash', {
           authenticated: true,
           timeoutMs: 25_000,
           init: {
@@ -626,13 +626,16 @@ const skins = {
       throw error
     }
   },
-  async refreshPayment(id: string) {
+  async refreshPayment(id: string, provider?: 'paymento' | 'paymongo') {
     return parsePaymentSnapshot(
-      await requestJson(`/payments/p-cash/${validatePaymentId(id)}/refresh`, {
-        authenticated: true,
-        timeoutMs: 25_000,
-        init: { method: 'POST' }
-      })
+      await requestJson(
+        `/payments/${provider === 'paymongo' ? 'paymongo' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
+        {
+          authenticated: true,
+          timeoutMs: 25_000,
+          init: { method: 'POST' }
+        }
+      )
     )
   },
   async stickers() {

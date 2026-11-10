@@ -205,8 +205,8 @@ export interface SkinsApi {
     reference: string
   ): Promise<import('./payments').ManualOrder>
   cancelManualPayment(id: string): Promise<import('./payments').ManualOrder>
-  createPayment(requestId: string, amount: number): Promise<PaymentOrder>
-  refreshPayment(id: string): Promise<PaymentSnapshot>
+  createPayment(requestId: string, amount: number, provider?: 'paymento' | 'paymongo'): Promise<PaymentOrder>
+  refreshPayment(id: string, provider?: 'paymento' | 'paymongo'): Promise<PaymentSnapshot>
   list(weaponKey?: string): Promise<Skin[]>
   mine(gameVersion?: GameVersion): Promise<OwnedSkin[]>
   resaleQuote(skinId: string): Promise<SkinResaleQuote>

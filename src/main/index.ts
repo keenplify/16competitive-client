@@ -1255,10 +1255,10 @@ app.whenReady().then(async () => {
       submitManualPayment(id, senderName, reference)
   )
   ipcMain.handle(SKIN_CHANNELS.cancelManualPayment, (_, id: unknown) => cancelManualPayment(id))
-  ipcMain.handle(SKIN_CHANNELS.createPayment, (_, requestId: unknown, amount: unknown) =>
-    createPayment(requestId, amount)
+  ipcMain.handle(SKIN_CHANNELS.createPayment, (_, requestId: unknown, amount: unknown, provider: unknown) =>
+    createPayment(requestId, amount, provider)
   )
-  ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown) => refreshPayment(id))
+  ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown, provider: unknown) => refreshPayment(id, provider))
   ipcMain.handle(SKIN_CHANNELS.mine, (_, gameVersion: unknown) => getOwnedSkins(gameVersion))
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
   ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>

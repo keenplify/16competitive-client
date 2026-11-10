@@ -1,3 +1,5 @@
+import { toast } from 'react-toastify'
+import { translate, useLanguageStore } from '../i18n/i18n'
 import { create } from 'zustand'
 import { usdFromPCash, type PaymentSnapshot } from '../../../../shared/payments'
 import { useAuthStore } from '../auth/auth.store'
@@ -28,7 +30,7 @@ interface PaymentsState {
   toggle: () => void
   close: () => void
   setAmount: (amount: string) => void
-  load: (orderId?: string) => Promise<void>
+  load: (orderId?: string, provider?: 'paymento' | 'paymongo', feedback?: boolean) => Promise<void>
   create: () => Promise<void>
 }
 
@@ -39,7 +41,7 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   historyOpen: false,
   showHistory: () => {
     set({ historyOpen: true })
-    void get().load()
+    void get().load(undefined, undefined, true)
   },
   hideHistory: () => set({ historyOpen: false }),
   methodId: 'paymento',
@@ -132,36 +134,72 @@ export const usePaymentsStore = create<PaymentsState>((set, get) => ({
   toggle: () => set((state) => ({ open: !state.open, historyOpen: false, activeManualId: null })),
   close: () => set({ open: false, historyOpen: false, activeManualId: null }),
   setAmount: (amount) => set({ amount }),
-  async load(orderId) {
+  async load(orderId, provider, feedback = false) {
     const ownerId = get().ownerId
     if (!ownerId || get().busy) return
+    const notification = feedback
+      ? toast.loading(translate(useLanguageStore.getState().language, 'payments.loading'))
+      : null
     set({ busy: true, error: false })
     const current = () =>
       get().ownerId === ownerId && useAuthStore.getState().session?.player.id === ownerId
     try {
       const snapshot = orderId
-        ? await window.api.skins.refreshPayment(orderId)
+        ? await window.api.skins.refreshPayment(orderId, provider)
         : await window.api.skins.payments()
       if (current()) set({ snapshot })
+      if (notification !== null)
+        toast.update(notification, {
+          render: translate(useLanguageStore.getState().language, 'payments.updated'),
+          isLoading: false,
+          type: 'success',
+          autoClose: 3000
+        })
     } catch {
+      if (notification !== null)
+        toast.update(notification, {
+          render: translate(useLanguageStore.getState().language, 'payments.error'),
+          isLoading: false,
+          type: 'error',
+          autoClose: 7000
+        })
       if (current()) set({ error: true })
     } finally {
       if (current()) set({ busy: false })
     }
   },
   async create() {
-    const { ownerId, amount, busy } = get()
+    const { ownerId, amount, busy, methodId } = get()
     const usd = usdFromPCash(amount)
     if (!ownerId || busy || usd === null) return
+    const notification = toast.loading(
+      translate(useLanguageStore.getState().language, 'payments.status.CREATING')
+    )
     set({ busy: true, error: false })
     const current = () =>
       get().ownerId === ownerId && useAuthStore.getState().session?.player.id === ownerId
     try {
       // The persisted order appears in history even if the client loses this response.
-      await window.api.skins.createPayment(crypto.randomUUID(), usd)
+      await window.api.skins.createPayment(
+        crypto.randomUUID(),
+        usd,
+        methodId === 'paymongo' ? 'paymongo' : 'paymento'
+      )
+      toast.update(notification, {
+        render: translate(useLanguageStore.getState().language, 'payments.checkoutReady'),
+        isLoading: false,
+        type: 'success',
+        autoClose: 4000
+      })
       const snapshot = await window.api.skins.payments()
       if (current()) set({ snapshot })
     } catch {
+      toast.update(notification, {
+        render: translate(useLanguageStore.getState().language, 'payments.error'),
+        isLoading: false,
+        type: 'error',
+        autoClose: 7000
+      })
       if (current()) {
         set({ error: true })
         try {

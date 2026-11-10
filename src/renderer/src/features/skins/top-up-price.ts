@@ -2,7 +2,7 @@ import type { ManualMethod } from '../../../../shared/payments'
 
 export function topUpPrice(
   usd: number,
-  method: ManualMethod | undefined,
+  method: Pick<ManualMethod, 'currency' | 'minorPerUsd'> | undefined,
   language: string
 ): string {
   return method

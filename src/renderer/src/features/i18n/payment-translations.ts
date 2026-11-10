@@ -1,5 +1,11 @@
 export const paymentTranslations = {
   en: {
+    'payments.paymongoHelp':
+      'Pay in PHP through PayMongo. Prices follow the current USD exchange rate. P-Cash is added after payment verification.',
+    'payments.paymongoCheckout': 'Pay with PayMongo',
+    'payments.updated': 'Top-ups updated.',
+    'payments.checkoutReady': 'Checkout created. Open top-up history to continue payment.',
+
     'payments.history': 'Top-up history',
     'payments.closeHistory': 'Close top-up history',
     'payments.closeDetails': 'Close payment details',
@@ -64,6 +70,12 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — check payment if you already paid'
   },
   ru: {
+    'payments.paymongoHelp':
+      'Оплатите в PHP через PayMongo по текущему курсу USD. P-Cash зачисляется после проверки платежа.',
+    'payments.paymongoCheckout': 'Оплатить через PayMongo',
+    'payments.updated': 'Пополнения обновлены.',
+    'payments.checkoutReady': 'Платёж создан. Откройте историю пополнений для оплаты.',
+
     'payments.history': 'История пополнений',
     'payments.closeHistory': 'Закрыть историю пополнений',
     'payments.closeDetails': 'Закрыть детали платежа',
@@ -128,6 +140,13 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Отменён — проверьте платёж, если уже оплатили'
   },
   tl: {
+    'payments.paymongoHelp':
+      'Magbayad ng PHP gamit ang PayMongo sa kasalukuyang USD exchange rate. Idadagdag ang P-Cash pagkatapos maberipika ang bayad.',
+    'payments.paymongoCheckout': 'Magbayad gamit ang PayMongo',
+    'payments.updated': 'Na-update ang mga top-up.',
+    'payments.checkoutReady':
+      'Nagawa ang checkout. Buksan ang kasaysayan ng top-up upang magbayad.',
+
     'payments.history': 'Kasaysayan ng top-up',
     'payments.closeHistory': 'Isara ang kasaysayan ng top-up',
     'payments.closeDetails': 'Isara ang detalye ng bayad',
@@ -193,6 +212,12 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelled — tingnan ang bayad kung nakapagbayad na'
   },
   th: {
+    'payments.paymongoHelp':
+      'ชำระเป็น PHP ผ่าน PayMongo ตามอัตราแลกเปลี่ยน USD ปัจจุบัน เพิ่ม P-Cash หลังตรวจสอบการชำระเงิน',
+    'payments.paymongoCheckout': 'ชำระด้วย PayMongo',
+    'payments.updated': 'อัปเดตการเติมเงินแล้ว',
+    'payments.checkoutReady': 'สร้างการชำระเงินแล้ว เปิดประวัติการเติมเงินเพื่อชำระต่อ',
+
     'payments.history': 'ประวัติการเติมเงิน',
     'payments.closeHistory': 'ปิดประวัติการเติมเงิน',
     'payments.closeDetails': 'ปิดรายละเอียดการชำระเงิน',
@@ -257,6 +282,13 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'ยกเลิกแล้ว — ตรวจสอบการชำระเงินหากชำระแล้ว'
   },
   id: {
+    'payments.paymongoHelp':
+      'Bayar dalam PHP melalui PayMongo dengan kurs USD saat ini. P-Cash ditambahkan setelah verifikasi pembayaran.',
+    'payments.paymongoCheckout': 'Bayar dengan PayMongo',
+    'payments.updated': 'Isi ulang diperbarui.',
+    'payments.checkoutReady':
+      'Checkout dibuat. Buka riwayat isi ulang untuk melanjutkan pembayaran.',
+
     'payments.history': 'Riwayat isi saldo',
     'payments.closeHistory': 'Tutup riwayat isi saldo',
     'payments.closeDetails': 'Tutup detail pembayaran',
@@ -321,6 +353,12 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Dibatalkan — periksa pembayaran jika sudah membayar'
   },
   hi: {
+    'payments.paymongoHelp':
+      'PayMongo से वर्तमान USD विनिमय दर पर PHP में भुगतान करें। भुगतान सत्यापित होने के बाद P-Cash जोड़ा जाता है।',
+    'payments.paymongoCheckout': 'PayMongo से भुगतान करें',
+    'payments.updated': 'टॉप-अप अपडेट किए गए।',
+    'payments.checkoutReady': 'चेकआउट बन गया। भुगतान जारी रखने के लिए टॉप-अप इतिहास खोलें।',
+
     'payments.history': 'टॉप-अप इतिहास',
     'payments.closeHistory': 'टॉप-अप इतिहास बंद करें',
     'payments.closeDetails': 'भुगतान विवरण बंद करें',
@@ -385,6 +423,13 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'रद्द — भुगतान कर चुके हैं तो जाँचें'
   },
   pt: {
+    'payments.paymongoHelp':
+      'Pague em PHP pelo PayMongo com a taxa de câmbio USD atual. P-Cash é adicionado após a verificação do pagamento.',
+    'payments.paymongoCheckout': 'Pagar com PayMongo',
+    'payments.updated': 'Recargas atualizadas.',
+    'payments.checkoutReady':
+      'Checkout criado. Abra o histórico de recargas para continuar o pagamento.',
+
     'payments.history': 'Histórico de recargas',
     'payments.closeHistory': 'Fechar histórico de recargas',
     'payments.closeDetails': 'Fechar detalhes do pagamento',
@@ -449,6 +494,12 @@ export const paymentTranslations = {
     'payments.status.CANCELLED': 'Cancelado — verifique se já pagou'
   },
   ja: {
+    'payments.paymongoHelp':
+      'PayMongoで現在のUSD為替レートに基づくPHPで支払います。支払いを確認するとP-Cashが追加されます。',
+    'payments.paymongoCheckout': 'PayMongoで支払う',
+    'payments.updated': 'チャージを更新しました。',
+    'payments.checkoutReady': '支払いを作成しました。チャージ履歴から支払いを続けてください。',
+
     'payments.history': 'チャージ履歴',
     'payments.closeHistory': 'チャージ履歴を閉じる',
     'payments.closeDetails': '支払い詳細を閉じる',

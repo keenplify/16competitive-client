@@ -16,6 +16,44 @@ const order = {
   createdAt: new Date().toISOString(),
   checkoutUrl: 'https://app.paymento.io/gateway?token=0123456789abcdef0123456789abcdef'
 }
+test('PayMongo orders and history validate amounts, mode-independent URL restrictions and provider identity', () => {
+  const paymongo = {
+    ...order,
+    provider: 'paymongo',
+    currency: 'PHP',
+    chargeMinor: 58000,
+    checkoutUrl: 'https://pm.link/merchant/abc123'
+  }
+  assert.equal(parsePaymentOrder(paymongo).checkoutUrl, paymongo.checkoutUrl)
+  assert.equal(
+    parsePaymentSnapshot({
+      enabled: false,
+      pCash: 0,
+      orders: [],
+      paymongo: { enabled: true, currency: 'PHP', minorPerUsd: 5800, orders: [paymongo] }
+    }).paymongo.orders[0].chargeMinor,
+    58000
+  )
+  for (const patch of [
+    { provider: 'unknown' },
+    { currency: 'USD' },
+    { chargeMinor: 0 },
+    { chargeMinor: 1.1 },
+    { pCashAmount: 1001 },
+    { checkoutUrl: 'https://pm.link.evil.test/merchant/abc' },
+    { checkoutUrl: 'https://user@pm.link/merchant/abc' },
+    { checkoutUrl: 'https://pm.link/merchant/abc?next=evil' }
+  ])
+    assert.throws(() => parsePaymentOrder({ ...paymongo, ...patch }))
+  assert.throws(() =>
+    parsePaymentSnapshot({
+      enabled: false,
+      pCash: 0,
+      orders: [],
+      paymongo: { enabled: true, currency: 'PHP', minorPerUsd: 5800, orders: [order] }
+    })
+  )
+})
 test('whole USDT minimum and 100 P-Cash per USDT', () => {
   assert.equal(PCASH_PER_USDT, 100)
   for (const amount of [1, 5, 10, 50, 100, 200, 300, 400, 500, 10000])

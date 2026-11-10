@@ -14,7 +14,17 @@ export const usdFromPCash = (value: string): number | null => {
 
 export type PaymentStatus = 'CREATING' | 'PENDING' | 'CREDITED' | 'FAILED' | 'EXPIRED' | 'CANCELLED'
 
+export type PaymentProvider = 'paymento' | 'paymongo'
+export const validatePaymentProvider = (value: unknown): PaymentProvider => {
+  if (value === undefined || value === 'paymento') return 'paymento'
+  if (value === 'paymongo') return value
+  throw new Error('INVALID_PAYMENT_REQUEST')
+}
 export interface PaymentOrder {
+  provider?: PaymentProvider
+  chargeMinor?: number
+  currency?: 'PHP'
+  minorPerUsd?: number
   id: string
   amount: number
   pCashAmount: number
@@ -30,6 +40,12 @@ export interface PaymentSnapshot {
   pCash: number
   orders: PaymentOrder[]
   manual?: ManualSnapshot
+  paymongo?: {
+    enabled: boolean
+    currency: 'PHP'
+    minorPerUsd: number | null
+    orders: PaymentOrder[]
+  }
 }
 
 const object = (value: unknown): Record<string, unknown> => {
@@ -59,8 +75,20 @@ export const validatePaymentAmount = (amount: unknown): number => {
 
 export const parsePaymentOrder = (value: unknown): PaymentOrder => {
   const data = object(value)
+  const provider = validatePaymentProvider(data.provider)
+  if (
+    provider === 'paymongo' &&
+    (data.currency !== 'PHP' ||
+      typeof data.chargeMinor !== 'number' ||
+      !Number.isSafeInteger(data.chargeMinor) ||
+      data.chargeMinor < 100 ||
+      data.chargeMinor > 999999999)
+  )
+    throw new Error('INVALID_PAYMENT_RESPONSE')
   const id = validatePaymentId(data.id)
   const amount = validatePaymentAmount(data.amount)
+  if (provider === 'paymongo' && data.pCashAmount !== amount * PCASH_PER_USDT)
+    throw new Error('INVALID_PAYMENT_RESPONSE')
   if (
     typeof data.pCashAmount !== 'number' ||
     !Number.isSafeInteger(data.pCashAmount) ||
@@ -79,7 +107,19 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
   ) {
     throw new Error('INVALID_PAYMENT_RESPONSE')
   }
-  if (data.checkoutUrl !== null) {
+  if (provider === 'paymongo' && data.checkoutUrl !== null) {
+    if (typeof data.checkoutUrl !== 'string') throw new Error('INVALID_PAYMENT_RESPONSE')
+    const url = new URL(data.checkoutUrl)
+    if (
+      url.origin !== 'https://pm.link' ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      url.search ||
+      !/^\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(url.pathname)
+    )
+      throw new Error('INVALID_PAYMENT_RESPONSE')
+  } else if (data.checkoutUrl !== null) {
     if (typeof data.checkoutUrl !== 'string') throw new Error('INVALID_PAYMENT_RESPONSE')
     const url = new URL(data.checkoutUrl)
     if (
@@ -104,6 +144,10 @@ export const parsePaymentOrder = (value: unknown): PaymentOrder => {
   }
   return {
     id,
+    ...(data.provider === undefined ? {} : { provider }),
+    ...(provider === 'paymongo'
+      ? { chargeMinor: data.chargeMinor as number, currency: 'PHP' as const }
+      : {}),
     amount,
     pCashAmount: data.pCashAmount,
     status: data.status as PaymentStatus,
@@ -136,6 +180,7 @@ export const parsePaymentSnapshot = (value: unknown): PaymentSnapshot => {
     enabled: data.enabled,
     pCash: data.pCash,
     orders: data.orders.map(parsePaymentOrder),
+    ...(data.paymongo === undefined ? {} : { paymongo: parsePaymongoSnapshot(data.paymongo) }),
     ...(data.manual === undefined ? {} : { manual: parseManualSnapshot(data.manual) })
   }
 }
@@ -247,4 +292,30 @@ export const validateTransferDetails = (senderName: unknown, reference: unknown)
     ref = text(reference, 120).trim()
   if (!sender || ref.length < 3) throw new Error('INVALID_PAYMENT_DETAILS')
   return { senderName: sender, reference: ref }
+}
+
+const parsePaymongoSnapshot = (value: unknown): NonNullable<PaymentSnapshot['paymongo']> => {
+  const data = object(value)
+  if (
+    typeof data.enabled !== 'boolean' ||
+    data.currency !== 'PHP' ||
+    !Array.isArray(data.orders) ||
+    data.orders.length > 10 ||
+    !(
+      data.minorPerUsd === null ||
+      (typeof data.minorPerUsd === 'number' &&
+        Number.isSafeInteger(data.minorPerUsd) &&
+        data.minorPerUsd >= 1 &&
+        data.minorPerUsd <= 100000)
+    )
+  )
+    throw new Error('INVALID_PAYMENT_RESPONSE')
+  const orders = data.orders.map(parsePaymentOrder)
+  if (orders.some((o) => o.provider !== 'paymongo')) throw new Error('INVALID_PAYMENT_RESPONSE')
+  return {
+    enabled: data.enabled,
+    currency: 'PHP',
+    minorPerUsd: data.minorPerUsd as number | null,
+    orders
+  }
 }

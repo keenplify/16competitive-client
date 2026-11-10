@@ -11,6 +11,7 @@ export function TopUpHistory(): JSX.Element {
   const { t, language } = useTranslation()
   const { snapshot, busy, error, hideHistory, load, resumeManual } = usePaymentsStore()
   const entries = [
+    ...(snapshot?.paymongo?.orders ?? []).map((order) => ({ kind: 'paymongo' as const, order })),
     ...(snapshot?.orders ?? []).map((order) => ({ kind: 'paymento' as const, order })),
     ...(snapshot?.manual?.orders ?? []).map((order) => ({ kind: 'manual' as const, order }))
   ].sort((a, b) => Date.parse(b.order.createdAt) - Date.parse(a.order.createdAt))
@@ -28,7 +29,7 @@ export function TopUpHistory(): JSX.Element {
             variant="ghost"
             className="size-11 px-0"
             disabled={busy}
-            onClick={() => void load()}
+            onClick={() => void load(undefined, undefined, true)}
             aria-label={t('payments.reload')}
             title={t('payments.reload')}
           >
@@ -75,7 +76,9 @@ export function TopUpHistory(): JSX.Element {
                       <p className="text-sm text-neutral-300">
                         {entry.kind === 'paymento'
                           ? `${entry.order.amount.toLocaleString(language)} USDT · Paymento`
-                          : `${new Intl.NumberFormat(language, { style: 'currency', currency: entry.order.method.currency }).format(entry.order.transferMinor / 100)} · ${entry.order.method.name}`}
+                          : entry.kind === 'paymongo'
+                            ? `${new Intl.NumberFormat(language, { style: 'currency', currency: 'PHP' }).format((entry.order.chargeMinor ?? 0) / 100)} · PayMongo`
+                            : `${new Intl.NumberFormat(language, { style: 'currency', currency: entry.order.method.currency }).format(entry.order.transferMinor / 100)} · ${entry.order.method.name}`}
                       </p>
                       <p className="text-xs text-neutral-400">
                         {new Date(entry.order.createdAt).toLocaleString(language)}
@@ -88,7 +91,7 @@ export function TopUpHistory(): JSX.Element {
                             'text-emerald-300'
                         )}
                       >
-                        {entry.kind === 'paymento'
+                        {entry.kind !== 'manual'
                           ? t(`payments.status.${entry.order.status}`)
                           : t(`payments.manual.${entry.order.status}`)}
                       </p>
@@ -111,7 +114,11 @@ export function TopUpHistory(): JSX.Element {
                               rel="noopener noreferrer"
                               className="inline-flex min-h-11 items-center gap-2 border border-amber-300/40 px-3 text-sm font-medium text-amber-200 hover:bg-amber-300/10 focus-visible:outline-2 focus-visible:outline-amber-300"
                             >
-                              {t('payments.checkout')}
+                              {t(
+                                entry.kind === 'paymongo'
+                                  ? 'payments.paymongoCheckout'
+                                  : 'payments.checkout'
+                              )}
                               <ExternalLink className="size-4" aria-hidden="true" />
                             </a>
                           )}
@@ -119,7 +126,7 @@ export function TopUpHistory(): JSX.Element {
                             <Button
                               variant="secondary"
                               disabled={busy}
-                              onClick={() => void load(entry.order.id)}
+                              onClick={() => void load(entry.order.id, entry.kind, true)}
                             >
                               {t('payments.check')}
                             </Button>

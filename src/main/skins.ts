@@ -56,6 +56,7 @@ import {
   validatePaymentAmount,
   validatePaymentId
 } from '../shared/payments'
+import { validatePaymentProvider } from '../shared/payments'
 import {
   parseWithdrawalHistory,
   parseWithdrawalOptions,
@@ -238,16 +239,20 @@ export const createWithdrawal = async (input: unknown) =>
     })
   )
 
-export const createPayment = async (requestId: unknown, amount: unknown) => {
-  const data = await playerRequest('/payments/p-cash', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      requestId: validatePaymentId(requestId),
-      amount: validatePaymentAmount(amount)
-    }),
-    signal: AbortSignal.timeout(25_000)
-  })
+export const createPayment = async (requestId: unknown, amount: unknown, provider?: unknown) => {
+  const selected = validatePaymentProvider(provider)
+  const data = await playerRequest(
+    selected === 'paymongo' ? '/payments/paymongo' : '/payments/p-cash',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        requestId: validatePaymentId(requestId),
+        amount: validatePaymentAmount(amount)
+      }),
+      signal: AbortSignal.timeout(25_000)
+    }
+  )
   const order = parsePaymentOrder(data)
   if (order.checkoutUrl) {
     try {
@@ -259,12 +264,15 @@ export const createPayment = async (requestId: unknown, amount: unknown) => {
   return order
 }
 
-export const refreshPayment = async (id: unknown) =>
+export const refreshPayment = async (id: unknown, provider?: unknown) =>
   parsePaymentSnapshot(
-    await playerRequest(`/payments/p-cash/${validatePaymentId(id)}/refresh`, {
-      method: 'POST',
-      signal: AbortSignal.timeout(25_000)
-    })
+    await playerRequest(
+      `/payments/${validatePaymentProvider(provider) === 'paymongo' ? 'paymongo' : 'p-cash'}/${validatePaymentId(id)}/refresh`,
+      {
+        method: 'POST',
+        signal: AbortSignal.timeout(25_000)
+      }
+    )
   )
 
 export const getOwnedSkins = async (gameVersion: unknown = 'cs16'): Promise<OwnedSkin[]> => {
