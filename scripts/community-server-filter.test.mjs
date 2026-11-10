@@ -60,7 +60,12 @@ test('invalid saved filters fall back to All', () => {
   assert.equal(createStore('one').getState().gameFilter, 'all')
 })
 
-function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = false) {
+function renderPanel(
+  gameFilter = 'all',
+  selectedId = 'legacy',
+  nativeReady = false,
+  preferredGame = null
+) {
   const actions = { setup: 0, connect: 0 }
   const helper = (select) => select({ nativeReady })
   helper.getState = () => ({
@@ -90,6 +95,9 @@ function renderPanel(gameFilter = 'all', selectedId = 'legacy', nativeReady = fa
   const useServers = (select) => select(state)
   const jsx = (type, props) => ({ type, props })
   const dependencies = {
+    '../settings/partner-game-preference.store': {
+      usePartnerGamePreferenceStore: (select) => select({ game: preferredGame })
+    },
     '../matchmaking/native-helper-action': { verifyInstalledNativeHelper: async () => false },
     '../matchmaking/web-helper-prompt.store': { useWebHelperPromptStore: helper },
     react: {
@@ -182,4 +190,18 @@ test('a ready web helper enables CS13 community connection without launcher-only
     nodes.some((node) => node.props?.children === 'cs13WebUnavailable'),
     false
   )
+})
+
+test('partner game preference removes the other version and the redundant version tabs', () => {
+  for (const game of ['cs13', 'cs16']) {
+    const nodes = renderPanel('all', game === 'cs13' ? 'legacy' : 'modern', true, game)
+    assert.equal(
+      nodes.filter((node) => node.props?.className?.includes('community-server-card')).length,
+      1
+    )
+    assert.equal(
+      nodes.some((node) => node.type === 'TabList'),
+      false
+    )
+  }
 })

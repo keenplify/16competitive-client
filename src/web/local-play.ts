@@ -1,3 +1,4 @@
+import { usePartnerGamePreferenceStore } from '../renderer/src/features/settings/partner-game-preference.store'
 import type {
   NativeHelperReadiness,
   NativeHelperSettings,
@@ -71,13 +72,17 @@ async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperR
   }
   const value = (await localRequest({
     action: 'runtimeCheck',
+    token: getWebSessionToken() ?? undefined,
     apiOrigin: currentApiOrigin()
   })) as NativeHelperReadiness & { protocol: number }
   if (
     value.protocol !== 1 ||
     typeof value.competitiveReady !== 'boolean' ||
     typeof value.device?.banned !== 'boolean' ||
-    (value.games !== undefined && (!value.games || typeof value.games.cs13 !== 'boolean' || typeof value.games.cs16 !== 'boolean')) ||
+    (value.games !== undefined &&
+      (!value.games ||
+        typeof value.games.cs13 !== 'boolean' ||
+        typeof value.games.cs16 !== 'boolean')) ||
     getWebSessionToken() !== token
   )
     throw new Error('Invalid helper readiness')
@@ -92,7 +97,9 @@ async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperR
       ))
   )
     throw new Error('Invalid native device status')
-  const changed = isNativeCompetitiveReady() !== value.competitiveReady || JSON.stringify(readiness?.value.games) !== JSON.stringify(value.games)
+  const changed =
+    isNativeCompetitiveReady() !== value.competitiveReady ||
+    JSON.stringify(readiness?.value.games) !== JSON.stringify(value.games)
   readiness = { token, until: Date.now() + 90_000, value }
   if (changed) for (const listener of readinessListeners) listener()
   return value
@@ -408,7 +415,8 @@ export async function syncNativeAssets(mode: 'download' | 'repair' = 'download')
       action: 'assetSync',
       apiOrigin: currentApiOrigin(),
       token,
-      repair: mode === 'repair'
+      repair: mode === 'repair',
+      game: usePartnerGamePreferenceStore.getState().game ?? undefined
     })
   )
   const deadline = Date.now() + 60 * 60 * 1000
@@ -815,8 +823,14 @@ async function localRequest(
     | { action: 'modelRead'; path: string }
     | { action: 'assetStatus' }
     | { action: 'voiceStatus'; matchId: string }
-    | { action: 'assetSync'; apiOrigin: string; token: string; repair: boolean }
-    | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string }
+    | {
+        action: 'assetSync'
+        apiOrigin: string
+        token: string
+        repair: boolean
+        game?: 'cs13' | 'cs16'
+      }
+    | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string; token?: string }
     | { action: 'diagnostics'; apiOrigin: string; token: string; matchId?: string }
     | { action: 'nextClient'; apiOrigin: string; install: boolean }
     | { action: 'nextClientStatus' | 'nextClientCancel' }
@@ -827,7 +841,17 @@ async function localRequest(
   const response = await localBridge.request(`http://127.0.0.1:${channel.port}/settings`, {
     method: 'POST',
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },
-    body: JSON.stringify(request),
+    body: JSON.stringify(
+      ['get', 'choose', 'select', 'save', 'modelRead'].includes(request.action) &&
+        getWebSessionToken()
+        ? {
+            action: 'partnerSettings',
+            apiOrigin: currentApiOrigin(),
+            token: getWebSessionToken(),
+            request
+          }
+        : request
+    ),
     signal: AbortSignal.timeout(
       [
         'get',

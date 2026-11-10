@@ -1,3 +1,4 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { verifyInstalledNativeHelper } from '../matchmaking/native-helper-action'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
@@ -41,7 +42,10 @@ export function PartnerServersPanel({
     connecting = useServers((s) => s.connecting)
   const party = usePartyStore((s) => s.party)
   // Server discovery is independent of whether this browser can launch the game.
-  const availableRows = rows
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
+  const availableRows = rows.filter(
+    (server) => !preferredGame || (server.gameVersion ?? 'cs16') === preferredGame
+  )
   const showVersionTabs =
     new Set(availableRows.map((server) => server.gameVersion ?? 'cs16')).size > 1
   // A saved filter must not hide the only available version when its tabs are hidden.

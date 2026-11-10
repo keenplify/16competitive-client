@@ -55,6 +55,9 @@ export function NativeHelperSettingsPanel({
       {!foldersOnly && (
         <p className="text-sm leading-6 text-neutral-300">{t('webHelper.localSettings')}</p>
       )}
+      <p className="min-h-10 text-sm text-neutral-300" role="status">
+        {settings?.managedInstallations ? t('webHelper.managedInstallations') : ''}
+      </p>
       {(['cs16', 'cs13'] as const).map((game) => (
         <div key={game} className="space-y-2">
           <h3 className="text-base font-semibold">
@@ -71,7 +74,10 @@ export function NativeHelperSettingsPanel({
             <Button
               variant="secondary"
               className="w-full gap-2 sm:w-auto"
-              disabled={busy}
+              disabled={busy || settings?.managedInstallations === true}
+              title={
+                settings?.managedInstallations ? t('webHelper.managedInstallations') : undefined
+              }
               onClick={() => void choose(game)}
             >
               {status === `choosing-${game}` ? (

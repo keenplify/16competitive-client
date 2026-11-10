@@ -265,6 +265,7 @@ pub fn save(value: &Preferences) -> Result<(), String> {
     deny_unknown_fields
 )]
 enum Request {
+    PartnerSettings { api_origin: String, token: String, request: Box<Request> },
     Get,
     Choose {
         game: String,
@@ -287,10 +288,12 @@ enum Request {
         token: String,
         #[serde(default)]
         repair: bool,
+        game: Option<String>,
     },
     PartnerLaunch { api_origin: String, token: String, server_id: String, group_id: Option<String>, community_id: Option<String> },
     RuntimeCheck {
         api_origin: String,
+        token: Option<String>,
     },
     NextClient {
         api_origin: String,
@@ -393,10 +396,11 @@ fn read_model_under(root: &Path, path: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-fn read_model_preview(path: &str) -> Result<serde_json::Value, String> {
+fn read_model_preview(path: &str, policy: Option<&crate::managed_installations::Policy>) -> Result<serde_json::Value, String> {
     use base64::Engine;
     preview_relative_path(path)?;
-    let prefs = load()?;
+    let mut prefs = load()?;
+    if let Some(policy) = policy { policy.folders(&mut prefs); }
     for (folder, game) in [(prefs.cs16, "cs16"), (prefs.cs13, "cs13")] {
         if let Some(root) = folder.and_then(|p| validate_installation(&p, game).map(|v| v.0)) {
             if let Ok(bytes) = read_model_under(&root, path) {
@@ -408,6 +412,16 @@ fn read_model_preview(path: &str) -> Result<serde_json::Value, String> {
 }
 
 fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
+    if let Request::PartnerSettings { api_origin, token, request } = request {
+        if !matches!(*request, Request::Get | Request::Choose {..} | Request::Select {..} | Request::Save {..} | Request::ModelRead {..}) {
+            return Err("Invalid partner settings request".into());
+        }
+        let policy = crate::managed_installations::fetch(&api_origin, &token)?;
+        return apply_with_policy(*request, source, policy.as_ref());
+    }
+    apply_with_policy(request, source, None)
+}
+fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::managed_installations::Policy>) -> Result<serde_json::Value, String> {
     match &request {
         Request::Logout { account_id } => {
             uuid::Uuid::parse_str(account_id).map_err(|_| "Invalid helper account")?;
@@ -444,12 +458,17 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
                 });
             }
         }
-        Request::RuntimeCheck { api_origin } => {
+        Request::RuntimeCheck { api_origin, token } => {
             // Setup checks use the signed Rust inspector directly. They must not
             // start an Electron runtime beside an already supervised game.
             let bundle = crate::native_bundle::prepare(&user_config_dir()?)?;
             let device = crate::inspector::check_device(&bundle, api_origin)?;
-            let prefs = load().ok();
+            let mut prefs = load().ok();
+            if let Some(token) = token {
+                if let Some(policy) = crate::managed_installations::fetch(api_origin, token)? {
+                    if let Some(prefs) = prefs.as_mut() { policy.folders(prefs); }
+                }
+            }
             let cs16_ready = prefs.as_ref().and_then(|prefs| prefs.cs16.as_ref())
                 .and_then(|folder| validate_installation(folder, "cs16")).is_some();
             let cs13_ready = prefs.as_ref().and_then(|prefs| prefs.cs13.as_ref())
@@ -479,7 +498,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             return Ok(serde_json::json!({"ok":true}));
         }
         Request::ProbeNodes { nodes } => return probe_nodes(nodes.clone()),
-        Request::ModelRead { path } => return read_model_preview(path),
+        Request::ModelRead { path } => return read_model_preview(path, policy),
         Request::VoiceStatus { match_id } => {
             if uuid::Uuid::parse_str(match_id).is_err() { return Err("Invalid voice session".into()); }
             return Ok(crate::session_mode::voice_status(&user_config_dir()?, match_id));
@@ -491,11 +510,13 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             api_origin,
             token,
             repair,
+            game,
         } => {
             return serde_json::to_value(crate::assets::start_catalog(
                 api_origin.clone(),
                 token.clone(),
                 *repair,
+                game.as_deref(),
             )?)
             .map_err(|e| e.to_string())
         }
@@ -507,6 +528,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     }
     let mut prefs = load()?;
     match request {
+        Request::Get if policy.is_some() => {}
         Request::Get => {
             // Populate the web settings with a validated local installation on
             // first use. This only saves the helper's preference; it does not
@@ -547,6 +569,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             }
         }
         Request::Choose { game } => {
+            if policy.is_some() { return Err("Partner manages game installations".into()); }
             if !matches!(game.as_str(), "cs13" | "cs16") {
                 return Err("Invalid game".into());
             }
@@ -563,6 +586,7 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
             }
         }
         Request::Select { game, folder_path } => {
+            if policy.is_some() { return Err("Partner manages game installations".into()); }
             if !matches!(game.as_str(), "cs13" | "cs16") || folder_path.len() > 4096 {
                 return Err("Invalid installation folder".into());
             }
@@ -586,9 +610,11 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
         Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => unreachable!(),
         Request::ProbeNodes { .. } => unreachable!(),
-        Request::Logout { .. } => unreachable!(),
+        Request::Logout { .. } | Request::PartnerSettings { .. } => unreachable!(),
     }
+    if let Some(policy) = policy { policy.folders(&mut prefs); }
     let mut value = serde_json::to_value(&prefs.settings).map_err(|e| e.to_string())?;
+    value["managedInstallations"] = serde_json::json!(policy.is_some());
     value["nextClientDetected"] = serde_json::json!(
         cfg!(windows)
             && prefs

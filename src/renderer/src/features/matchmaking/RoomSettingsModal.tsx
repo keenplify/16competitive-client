@@ -1,3 +1,5 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
+import { gameForMode } from '../../../../shared/game-version'
 import { HelpTooltip } from '../../components/ui/HelpTooltip'
 import { ModalHeader } from '../../components/ui/ModalHeader'
 import { ModalDialog } from '../../components/ui/ModalDialog'
@@ -48,6 +50,7 @@ export function RoomSettingsModal({
   disabled?: boolean
 }): JSX.Element {
   const { t } = useTranslation()
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const close = useCustomGamesStore((state) => state.closeRoomSettings)
   const save = useCustomGamesStore((state) => state.updateRoom)
@@ -68,7 +71,9 @@ export function RoomSettingsModal({
   const modes = CUSTOM_GAME_MODES.filter(
     (candidate) =>
       candidate === room.mode ||
-      (enabledModes.includes(candidate) && (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
+      (enabledModes.includes(candidate) &&
+        (!preferredGame || gameForMode(candidate) === preferredGame) &&
+        (!hideDesktopOnlyFeatures || candidate !== 'cs13_3v3'))
   )
   const selectedMode = mode
   const modeAvailable = modes.includes(mode)

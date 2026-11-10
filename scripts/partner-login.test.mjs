@@ -97,6 +97,9 @@ function harness({
     }
   }
   const deps = {
+    '../renderer/src/features/settings/partner-game-preference.store': {
+      usePartnerGamePreferenceStore: { getState: () => ({ apply: () => {} }) }
+    },
     zustand: { create },
     '../shared/partner-login': { parsePartnerLoginPreview },
     './partner-login-capture': { takePartnerLogin: () => ({ partnerId: id, token: raw }) },
@@ -142,6 +145,7 @@ function harness({
     },
     '../renderer/src/features/auth/auth.store': {
       useAuthStore: {
+        subscribe: () => {},
         getState: () => auth,
         setState: (patch) => {
           auth = { ...auth, ...patch }
@@ -371,4 +375,14 @@ test('partner sign-in errors retain deliberate dismissal and recovery', () => {
   const modal = runControllerEffects(store)
   modal.props.onClose()
   assert.equal(cancelled, 1)
+})
+
+test('partner game hint is bounded and consumed with the handoff', () => {
+  for (const game of ['cs13', 'cs16']) {
+    const h = capture(`partnerId=${id}&token=${raw}&game=${game}`)
+    assert.equal(h.take().game, game)
+    assert.equal(h.changes[0], `/pwa/?partnerId=${id}`)
+  }
+  for (const suffix of ['game=other', 'game=cs13&game=cs16'])
+    assert.equal(capture(`partnerId=${id}&token=${raw}&${suffix}`).take().game, undefined)
 })

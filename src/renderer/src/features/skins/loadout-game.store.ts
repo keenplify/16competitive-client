@@ -1,3 +1,4 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { create } from 'zustand'
 import type { GameVersion } from '../../../../shared/game-version'
 import { configuredGames } from '../settings/game-availability'
@@ -20,7 +21,16 @@ export const useLoadoutGameStore = create<{
     set((state) => ({
       available,
       loading: false,
-      game: available.includes(state.game) ? state.game : (available[0] ?? 'cs16')
+      game:
+        usePartnerGamePreferenceStore.getState().game ??
+        (available.includes(state.game) ? state.game : (available[0] ?? 'cs16'))
     }))
   }
 }))
+
+usePartnerGamePreferenceStore.subscribe((state, previous) => {
+  if (state.game !== previous.game || state.accountId !== previous.accountId) {
+    useLoadoutGameStore.setState({ game: state.game ?? 'cs16', available: [], loading: true })
+    void useLoadoutGameStore.getState().load()
+  }
+})

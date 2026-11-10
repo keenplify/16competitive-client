@@ -29,3 +29,31 @@ Failed companion-runtime actions retain a bounded `runtime-error.json` in the he
 Web voice uses the connected helper runtime for microphone capture, delivering an audio-only local WebRTC stream to the browser through an Origin- and capability-checked loopback offer. Capture is sandboxed, limited to audio, and stops after disconnect or the fixed two-hour session lifetime. Players without a connected helper keep browser microphone capture and the normal browser permission prompt. Microphone access remains subject to OS privacy settings.
 
 Submitted web issue reports request bounded, redacted game console tails and saved match launch context from the helper through the existing authenticated bridge. Diagnostics are collected only when reporting. A separate diagnostics runtime cannot recover the game process’s in-memory FPS samples; those are explicitly unavailable. If the helper cannot be reached, the report still submits browser logs with the missing helper diagnostics marked.
+
+## Optional partner installations and game preference
+
+Partners can opt in under the dashboard's installer settings. The authenticated
+`/partners/branding/me` response supplies `managedInstallations` with separate
+`cs13` and `cs16` entries. Each entry names a drive-relative root, for example
+`OlagueR.GeyminG/cs13`, and an allowlisted executable. The helper checks local
+Windows volumes C: through Z: in that order. It rejects traversal, reserved Windows
+names, linked roots, unrecognized versions and unsupported executable choices.
+`cstrike.exe` requires the existing NextClient markers; CS 1.3 uses `hl.exe`.
+No remote command strings or launch arguments are accepted. Missing managed
+installations never fall back to the folder picker. Linux retains normal selection.
+Disabling the policy restores normal helper selection. Deploy database migration
+0181 and the backend before enabling the dashboard option and releasing the helper.
+
+The web settings envelope fetches this policy using the current account; launches
+and catalog sync fetch it independently. The policy is a convenience for partner
+installers, not an entitlement or anti-cheat boundary. The desktop remains untrusted.
+No credentials or policies are stored in browser localStorage.
+
+An optional `game=cs13` or `game=cs16` on a partner token sign-in URL selects that
+version after successful authentication. The preference is stored only for the
+account in that tab's sessionStorage, cleared on logout, and replaced by the next
+partner sign-in. Omitting it restores normal game selection. It scopes loadouts,
+stickers, available installations, community/custom-room lists, matchmaking modes,
+and elective catalog sync. It never rewrites an active match's backend-assigned
+mode or launch credentials. Without a preference, catalog sync now installs into
+both valid saved game roots, sharing the hash-verified download cache.

@@ -1,3 +1,4 @@
+import { usePartnerGamePreferenceStore } from './partner-game-preference.store'
 import type { GameSettings } from '../../../../shared/game-settings'
 import type { GameVersion } from '../../../../shared/game-version'
 import { isWebRuntime } from '../../web-runtime'
@@ -10,10 +11,12 @@ export async function configuredGames(
     const helper = await window.api.matchmaking
       .nativeHelperSettings?.({ action: 'get' })
       .catch(() => null)
-    return [
+    const games: GameVersion[] = [
       ...(helper?.cs16FolderPath ? ['cs16' as const] : []),
       ...(helper?.cs13FolderPath ? ['cs13' as const] : [])
     ]
+    const preferred = usePartnerGamePreferenceStore.getState().game
+    return preferred ? games.filter((game) => game === preferred) : games
   }
   const [modern, legacy] = await Promise.allSettled([
     settings ? Promise.resolve(settings) : window.api.gameSettings.get(),

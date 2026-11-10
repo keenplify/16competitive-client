@@ -1,3 +1,5 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
+import { gameForMode } from '../../../../shared/game-version'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { useState, type FormEvent, type JSX } from 'react'
 import { LoaderCircle } from 'lucide-react'
@@ -29,6 +31,7 @@ export function CreateCustomGameModal({
   disabled = false
 }: CreateCustomGameModalProps): JSX.Element {
   const { t } = useTranslation()
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
   const close = useCustomGamesStore((state) => state.closeCreateModal)
   const createRoom = useCustomGamesStore((state) => state.createRoom)
@@ -36,13 +39,23 @@ export function CreateCustomGameModal({
   const [name, setName] = useState(t('customGames.defaultName'))
   const [mode, setMode] = useState<CustomGameMode>(() => {
     const selected = useMatchmakingStore.getState().selectedMode
+    if (preferredGame && gameForMode(selected) !== preferredGame)
+      return (
+        CUSTOM_GAME_MODES.find(
+          (mode) => enabledModes.includes(mode) && gameForMode(mode) === preferredGame
+        ) ?? (preferredGame === 'cs13' ? 'cs13_3v3' : 'unrated')
+      )
     return isCustomGameMode(selected) ? selected : 'unrated'
   })
   const [mapId, setMapId] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const availableModes = CUSTOM_GAME_MODES.filter((candidate) => enabledModes.includes(candidate))
+  const availableModes = CUSTOM_GAME_MODES.filter(
+    (candidate) =>
+      enabledModes.includes(candidate) &&
+      (!preferredGame || gameForMode(candidate) === preferredGame)
+  )
   // Catalog refreshes must never substitute a different mode for the draft.
   const selectedMode = mode
   const modeAvailable = availableModes.includes(mode)

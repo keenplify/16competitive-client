@@ -45,6 +45,7 @@ for (const source of [
   'web-helper/src/linux_emulation.rs',
   'web-helper/src/compatibility.rs',
   'web-helper/src/partner.rs',
+  'web-helper/src/managed_installations.rs',
   'web-helper/assets/sticker-baker.js',
   'web-helper/src/notice_throttle.rs',
   'web-helper/src/windows_native.rs',

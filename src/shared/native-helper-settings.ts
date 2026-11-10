@@ -8,6 +8,7 @@ export interface NativeHelperReadiness {
 }
 
 export interface NativeHelperSettings {
+  managedInstallations?: boolean
   helperVersion?: string
   cs13FolderPath: string | null
   cs16FolderPath: string | null
@@ -37,6 +38,10 @@ export type NativeHelperSettingsRequest =
       action: 'save'
       settings: Omit<
         NativeHelperSettings,
-        'cs13FolderPath' | 'cs16FolderPath' | 'nextClientDetected' | 'platform'
+        | 'cs13FolderPath'
+        | 'cs16FolderPath'
+        | 'nextClientDetected'
+        | 'platform'
+        | 'managedInstallations'
       >
     }

@@ -23,6 +23,7 @@ mod steam_proton;
 mod linux_emulation;
 mod compatibility;
 mod partner;
+mod managed_installations;
 mod native_session;
 mod music;
 mod persistent_native;
@@ -163,6 +164,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("linux_emulation.rs").as_slice(),
         include_bytes!("compatibility.rs").as_slice(),
         include_bytes!("partner.rs").as_slice(),
+        include_bytes!("managed_installations.rs").as_slice(),
         include_bytes!("../assets/sticker-baker.js").as_slice(),
         include_bytes!("notice_throttle.rs").as_slice(),
         include_bytes!("windows_native.rs").as_slice(),
@@ -861,7 +863,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     } else {
         &pattern.cs16
     };
-    let (root, exe, mut mod_dir) = choose_installation(connection.game())?;
+    let (root, exe, mut mod_dir) = managed_installations::choose(api, token, connection.game())?;
     // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
     // Wine and older bundles still need the compatibility runtime.
     if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")

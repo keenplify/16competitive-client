@@ -1,3 +1,8 @@
+import {
+  restorePartnerGamePreference,
+  usePartnerGamePreferenceStore
+} from '../renderer/src/features/settings/partner-game-preference.store'
+import type { GameVersion } from '../shared/game-version'
 import { create } from 'zustand'
 import { parsePartnerLoginPreview, type PartnerLoginPreview } from '../shared/partner-login'
 import type { AuthSession } from '../shared/auth'
@@ -5,6 +10,11 @@ import { takePartnerLogin } from './partner-login-capture'
 import { requestJson, getWebSessionToken } from './browser-session'
 import { acceptAuth } from './browser-auth'
 import { useAuthStore } from '../renderer/src/features/auth/auth.store'
+
+useAuthStore.subscribe((state, previous) => {
+  const accountId = state.session?.player.id ?? null
+  if (accountId !== (previous.session?.player.id ?? null)) restorePartnerGamePreference(accountId)
+})
 
 type Phase =
   | 'idle'
@@ -33,6 +43,7 @@ interface State {
   cancel: () => void
   resume: () => void
 }
+let incomingGame: GameVersion | null = null
 type PartnerAuthResponse = { token: string; expiresAt: string; player: AuthSession['player'] }
 const acceptPartnerSession = async (
   response: PartnerAuthResponse,
@@ -69,6 +80,7 @@ const acceptPartnerSession = async (
     error: null,
     registeredThisSession: session.player.requiresUsernameSetup
   })
+  usePartnerGamePreferenceStore.getState().apply(session.player.id, incomingGame)
 }
 const verificationMessage = (code?: string): string => {
   switch (code) {
@@ -131,12 +143,16 @@ export const usePartnerLoginStore = create<State>((set, get) => ({
       set({ phase: 'failed', error: 'failed' })
       return
     }
+    incomingGame = incoming.game ?? null
     set({ phase: 'loading', error: null })
     try {
       const response = await requestJson('/auth/partner-login/begin', {
         clearOnUnauthorized: false,
         timeoutMs: 15_000,
-        init: { method: 'POST', body: JSON.stringify(incoming) }
+        init: {
+          method: 'POST',
+          body: JSON.stringify({ partnerId: incoming.partnerId, token: incoming.token })
+        }
       })
       if (get().phase === 'loading')
         set({ phase: 'ready', preview: parsePartnerLoginPreview(response, incoming.partnerId) })

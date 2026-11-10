@@ -1,3 +1,4 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { configuredGames } from '../settings/game-availability'
 import { gameForMode } from '../../../../shared/game-version'
 import { RankedWarmupNotice } from './RankedWarmupNotice'
@@ -151,18 +152,20 @@ export function PlayPage({
   const partyRequiresWeb =
     (webRuntime && !nativeCompetitiveReady) ||
     Boolean(party?.members.some(({ clientMode }) => clientMode !== 'desktop'))
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const isSearching = queueStatus === 'queued' || queueStatus === 'leaving'
 
   useEffect(() => {
     if (mapsStatus !== 'ready' || queueStatus !== 'idle') return
     const modeAvailable = (mode: (typeof queueModes)[number]): boolean =>
+      (!preferredGame || gameForMode(mode) === preferredGame) &&
       maps.some((map) =>
         partyRequiresWeb ? map.webModes.includes(mode) : map.supportedModes.includes(mode)
       )
     if (queueModes.some((mode) => mode === selectedMode && modeAvailable(mode))) return
     const fallback = queueModes.find(modeAvailable)
     if (fallback) selectMode(fallback)
-  }, [maps, mapsStatus, partyRequiresWeb, queueStatus, selectedMode, selectMode])
+  }, [maps, mapsStatus, partyRequiresWeb, preferredGame, queueStatus, selectedMode, selectMode])
 
   useEffect(() => {
     if (!match?.hostApiUrl) return
@@ -284,14 +287,16 @@ export function PlayPage({
   const isConnected = connectionStatus === 'ready'
   // The partner community decides the mode order; unlisted modes keep the
   // default catalog order behind the chosen ones.
-  const orderedQueueModes = [...queueModes].sort((left, right) => {
-    const leftIndex = modeOrder.indexOf(left)
-    const rightIndex = modeOrder.indexOf(right)
-    if (leftIndex >= 0 && rightIndex >= 0) return leftIndex - rightIndex
-    if (leftIndex >= 0) return -1
-    if (rightIndex >= 0) return 1
-    return queueModes.indexOf(left) - queueModes.indexOf(right)
-  })
+  const orderedQueueModes = [...queueModes]
+    .filter((mode) => !preferredGame || gameForMode(mode) === preferredGame)
+    .sort((left, right) => {
+      const leftIndex = modeOrder.indexOf(left)
+      const rightIndex = modeOrder.indexOf(right)
+      if (leftIndex >= 0 && rightIndex >= 0) return leftIndex - rightIndex
+      if (leftIndex >= 0) return -1
+      if (rightIndex >= 0) return 1
+      return queueModes.indexOf(left) - queueModes.indexOf(right)
+    })
   const visibleQueueModes =
     mapsStatus === 'ready'
       ? orderedQueueModes.filter((mode) =>
@@ -305,7 +310,7 @@ export function PlayPage({
   const showCompetitive =
     mapsStatus === 'ready'
       ? visibleQueueModes.includes('5v5')
-      : !hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5')
+      : preferredGame !== 'cs13' && (!hideDesktopOnlyFeatures || visibleQueueModes.includes('5v5'))
   const copyWaitSeconds = matchReadyAt
     ? Math.max(0, Math.ceil((matchReadyAt + 10_000 - clockNow) / 1_000))
     : 10
@@ -687,7 +692,7 @@ export function PlayPage({
                   }
                 ]
               : []),
-            ...(!hideDesktopOnlyFeatures || ffaTabModes.length > 0
+            ...((!preferredGame && !hideDesktopOnlyFeatures) || ffaTabModes.length > 0
               ? [
                   {
                     value: 'noncompetitive',

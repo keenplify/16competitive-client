@@ -67,29 +67,32 @@ async function formHarness(
   const context = vm.createContext({ console })
   const module = new vm.SourceTextModule(source, { context })
   await module.link((specifier) => {
-    const exports =
-      specifier === 'react/jsx-runtime'
-        ? { jsx, jsxs: jsx, Fragment: 'fragment' }
-        : specifier === 'react'
-          ? { useState, useRef: () => ({ current: null }) }
-          : specifier.includes('custom-games.store')
-            ? { useCustomGamesStore: (select) => select(roomState) }
-            : specifier.includes('matchmaking.store')
-              ? { useMatchmakingStore: matchmaking }
-              : specifier.includes('shared/custom-games')
-                ? { CUSTOM_GAME_MODES: modes, isCustomGameMode: (value) => modes.includes(value) }
-                : specifier.includes('i18n')
-                  ? { useTranslation: () => ({ t: (key) => key }) }
-                  : specifier.includes('community/links')
-                    ? { useHideDesktopOnlyFeatures: () => hideDesktop }
-                    : specifier === 'tailwind-merge'
-                      ? { twMerge: (...values) => values.filter(Boolean).join(' ') }
-                      : Object.fromEntries(
-                          [...source.matchAll(/import \{ ([\w]+) \} from/g)].map((match) => [
-                            match[1],
-                            match[1]
-                          ])
-                        )
+    const exports = specifier.includes('partner-game-preference.store')
+      ? { usePartnerGamePreferenceStore: (select) => select({ game: null }) }
+      : specifier.includes('shared/game-version')
+        ? { gameForMode: (mode) => (mode.startsWith('cs13_') ? 'cs13' : 'cs16') }
+        : specifier === 'react/jsx-runtime'
+          ? { jsx, jsxs: jsx, Fragment: 'fragment' }
+          : specifier === 'react'
+            ? { useState, useRef: () => ({ current: null }) }
+            : specifier.includes('custom-games.store')
+              ? { useCustomGamesStore: (select) => select(roomState) }
+              : specifier.includes('matchmaking.store')
+                ? { useMatchmakingStore: matchmaking }
+                : specifier.includes('shared/custom-games')
+                  ? { CUSTOM_GAME_MODES: modes, isCustomGameMode: (value) => modes.includes(value) }
+                  : specifier.includes('i18n')
+                    ? { useTranslation: () => ({ t: (key) => key }) }
+                    : specifier.includes('community/links')
+                      ? { useHideDesktopOnlyFeatures: () => hideDesktop }
+                      : specifier === 'tailwind-merge'
+                        ? { twMerge: (...values) => values.filter(Boolean).join(' ') }
+                        : Object.fromEntries(
+                            [...source.matchAll(/import \{ ([\w]+) \} from/g)].map((match) => [
+                              match[1],
+                              match[1]
+                            ])
+                          )
     return new vm.SyntheticModule(
       Object.keys(exports),
       function () {

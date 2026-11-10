@@ -7,6 +7,8 @@ const en = {
   'webHelper.perkSettings': 'Choose game folders and display settings on this device.',
   'webHelper.perkEnhancements': 'Use supported in-game enhancements in Counter-Strike 1.6.',
   'webHelper.perkUpdates': 'Keep the native helper up to date automatically.',
+  'webHelper.managedInstallations':
+    'Your partner manages these folders. Reinstall their game package if a game is missing.',
   'webHelper.localSettings':
     'Saved by the native helper on this computer. Installation paths stay on your device.',
   'webHelper.folder16': 'Counter-Strike 1.6 installation folder',
@@ -75,6 +77,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkSettings': 'Выбирайте папки игры и параметры экрана на этом устройстве.',
     'webHelper.perkEnhancements': 'Используйте поддерживаемые улучшения в Counter-Strike 1.6.',
     'webHelper.perkUpdates': 'Помощник обновляется автоматически.',
+    'webHelper.managedInstallations':
+      'Партнёр управляет этими папками. Если игры нет, переустановите его игровой пакет.',
     'webHelper.localSettings':
       'Помощник сохраняет настройки на этом компьютере. Пути установки остаются на устройстве.',
     'webHelper.folder16': 'Папка установки Counter-Strike 1.6',
@@ -137,6 +141,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkEnhancements':
       'Gamitin ang suportadong in-game enhancements sa Counter-Strike 1.6.',
     'webHelper.perkUpdates': 'Awtomatikong panatilihing updated ang native helper.',
+    'webHelper.managedInstallations':
+      'Partner ang namamahala sa mga folder. I-install muli ang game package nila kung wala ang laro.',
     'webHelper.localSettings':
       'Sine-save ng native helper sa computer na ito. Nananatili sa device mo ang mga installation path.',
     'webHelper.folder16': 'Folder ng Counter-Strike 1.6',
@@ -199,6 +205,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkSettings': 'เลือกโฟลเดอร์เกมและการตั้งค่าจอแสดงผลบนอุปกรณ์นี้',
     'webHelper.perkEnhancements': 'ใช้การปรับปรุงภายในเกมที่รองรับใน Counter-Strike 1.6',
     'webHelper.perkUpdates': 'อัปเดตตัวช่วยเนทีฟโดยอัตโนมัติ',
+    'webHelper.managedInstallations':
+      'พาร์ทเนอร์จัดการโฟลเดอร์เหล่านี้ หากไม่มีเกมให้ติดตั้งแพ็กเกจเกมของพาร์ทเนอร์ใหม่',
     'webHelper.localSettings':
       'ตัวช่วยเนทีฟบันทึกบนคอมพิวเตอร์นี้ เส้นทางการติดตั้งจะอยู่บนอุปกรณ์ของคุณ',
     'webHelper.folder16': 'โฟลเดอร์ติดตั้ง Counter-Strike 1.6',
@@ -260,6 +268,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkEnhancements':
       'Gunakan peningkatan dalam game yang didukung di Counter-Strike 1.6.',
     'webHelper.perkUpdates': 'Perbarui helper native secara otomatis.',
+    'webHelper.managedInstallations':
+      'Mitra mengelola folder ini. Instal ulang paket game mereka jika game tidak ditemukan.',
     'webHelper.localSettings':
       'Disimpan helper native di komputer ini. Jalur instalasi tetap berada di perangkat Anda.',
     'webHelper.folder16': 'Folder instalasi Counter-Strike 1.6',
@@ -322,6 +332,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkSettings': 'Escolha pastas do jogo e configurações de vídeo neste dispositivo.',
     'webHelper.perkEnhancements': 'Use melhorias compatíveis dentro do Counter-Strike 1.6.',
     'webHelper.perkUpdates': 'Mantenha o helper nativo atualizado automaticamente.',
+    'webHelper.managedInstallations':
+      'Seu parceiro gerencia estas pastas. Reinstale o pacote dele se um jogo estiver ausente.',
     'webHelper.localSettings':
       'Salvo pelo helper nativo neste computador. Os caminhos de instalação ficam no seu dispositivo.',
     'webHelper.folder16': 'Pasta de instalação do Counter-Strike 1.6',
@@ -384,6 +396,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkSettings': 'この端末でゲームフォルダーと画面設定を選択。',
     'webHelper.perkEnhancements': 'Counter-Strike 1.6で対応するゲーム内拡張機能を利用。',
     'webHelper.perkUpdates': 'ネイティブヘルパーを自動更新。',
+    'webHelper.managedInstallations':
+      'これらのフォルダーはパートナーが管理します。ゲームがない場合はゲームパッケージを再インストールしてください。',
     'webHelper.localSettings':
       'ネイティブヘルパーがこのPCに保存します。インストール先のパスは端末内に保持されます。',
     'webHelper.folder16': 'Counter-Strike 1.6のインストールフォルダー',
@@ -446,6 +460,8 @@ export const webHelperTranslations: Record<
     'webHelper.perkSettings': 'इस डिवाइस पर गेम फ़ोल्डर और डिस्प्ले सेटिंग चुनें।',
     'webHelper.perkEnhancements': 'Counter-Strike 1.6 में समर्थित गेम सुधारों का उपयोग करें।',
     'webHelper.perkUpdates': 'नेटिव हेल्पर को अपने आप अपडेट रखें।',
+    'webHelper.managedInstallations':
+      'ये फ़ोल्डर पार्टनर प्रबंधित करता है। गेम न होने पर उनका गेम पैकेज फिर इंस्टॉल करें।',
     'webHelper.localSettings':
       'नेटिव हेल्पर इस कंप्यूटर पर सेटिंग सहेजता है। इंस्टॉलेशन पथ आपके डिवाइस पर रहते हैं।',
     'webHelper.folder16': 'Counter-Strike 1.6 इंस्टॉलेशन फ़ोल्डर',

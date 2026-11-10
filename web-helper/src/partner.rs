@@ -28,7 +28,7 @@ pub struct Server {
     pub ticket: Option<String>,
     pub connection_id: Option<String>,
 }
-fn request(api: &str, token: &str, path: &str, post: bool) -> Result<Value, String> {
+pub(crate) fn request(api: &str, token: &str, path: &str, post: bool) -> Result<Value, String> {
     let agent = ureq::AgentBuilder::new()
         .redirects(0)
         .timeout(Duration::from_secs(10))
@@ -279,7 +279,7 @@ pub fn launch(
     ready: &mut dyn FnMut() -> Result<(), String>,
 ) -> Result<(), String> {
     launch.validate()?;
-    let (root, executable, mod_dir) = choose_installation("cs16")?;
+    let (root, executable, mod_dir) = managed_installations::choose(api, token, "cs16")?;
     #[cfg(target_os = "linux")]
     {
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);

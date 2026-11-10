@@ -347,7 +347,7 @@ pub(crate) fn request(agent: &ureq::Agent, url: &str, token: &str, max: u64) -> 
     }
     Ok(bytes)
 }
-fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Result<(), String> {
+fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_destination: bool) -> Result<(), String> {
     let agent = api(origin, token)?;
     let config = user_config_dir()?;
     fs::create_dir_all(&config).map_err(|e| e.to_string())?;
@@ -469,7 +469,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>) -> Resul
             });
         }
         write_progress(&Progress {
-            status: "ready".into(),
+            status: if final_destination { "ready" } else { "syncing" }.into(),
             completed_files: total,
             total_files: total,
             current_file: None,
@@ -491,15 +491,31 @@ pub fn prepare_match(
     origin: &str,
     token: &str,
 ) -> Result<(), String> {
-    sync(root, origin, token, Some(&connection.match_id))
+    sync(root, origin, token, Some(&connection.match_id), true)
 }
-pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Progress, String> {
+fn catalog_destinations(prefs: &crate::Preferences, game: Option<&str>) -> Result<Vec<PathBuf>, String> {
+    if game.is_some_and(|game| !matches!(game, "cs13" | "cs16")) { return Err("Invalid game".into()); }
+    let preferred_game = game;
+    let mut destinations = Vec::new();
+    for (game, folder) in [("cs13", prefs.cs13.as_ref()), ("cs16", prefs.cs16.as_ref())] {
+        if preferred_game.is_some_and(|preferred| preferred != game) { continue; }
+        if let Some((root, _, mod_dir)) = folder.and_then(|folder| validate_installation(folder, game)) {
+            let destination = root.join(mod_dir);
+            if !destinations.contains(&destination) { destinations.push(destination); }
+        }
+    }
+    if destinations.is_empty() { return Err("No configured Counter-Strike installation was found".into()); }
+    Ok(destinations)
+}
+pub fn start_catalog(origin: String, token: String, _repair: bool, game: Option<&str>) -> Result<Progress, String> {
     api(&origin, &token)?;
-    let prefs = settings_bridge::load()?;
-    let folder = prefs.cs16.ok_or("Choose a Counter-Strike folder first")?;
-    let (root, _, mod_dir) = validate_installation(&folder, "cs16").ok_or("Counter-Strike folder is invalid")?;
+    let mut prefs = settings_bridge::load()?;
+    if let Some(policy) = crate::managed_installations::fetch(&origin, &token)? {
+        policy.folders(&mut prefs);
+    }
+    let destinations = catalog_destinations(&prefs, game)?;
     if BUSY.swap(true, Ordering::SeqCst) {
-        return Ok(status());
+        return Err("An asset download is already running. Wait for it to finish, then retry.".into());
     }
     write_progress(&Progress {
         status: "syncing".into(),
@@ -508,9 +524,10 @@ pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Pro
         current_file: None,
     });
     std::thread::spawn(move || {
-        // Both operations verify every content hash and repair damaged files.
-        if sync(&root.join(mod_dir), &origin, &token, None).is_err()
-        {
+        // Reuse verified cache content, but install it into every configured adapter.
+        let failed = destinations.iter().enumerate().any(|(index, root)|
+            sync(root, &origin, &token, None, index + 1 == destinations.len()).is_err());
+        if failed {
             write_progress(&Progress {
                 status: "error".into(),
                 completed_files: 0,
@@ -526,6 +543,28 @@ pub fn start_catalog(origin: String, token: String, _repair: bool) -> Result<Pro
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn catalog_uses_both_versions_or_only_the_explicit_game_without_fallback() {
+        let folder = test_root();
+        let mut prefs = crate::Preferences::default();
+        for (game, version) in [("cs13", "1.3"), ("cs16", "1.6")] {
+            let root = folder.join(game);
+            fs::create_dir_all(root.join("cstrike/cl_dlls")).unwrap();
+            fs::write(root.join("hl.exe"), b"fixture").unwrap();
+            fs::write(root.join("cstrike/cl_dlls/client.dll"), b"fixture").unwrap();
+            fs::write(root.join("cstrike/liblist.gam"), format!("version \"{version}\"" )).unwrap();
+            if game == "cs13" { prefs.cs13 = Some(root); } else { prefs.cs16 = Some(root); }
+        }
+        assert_eq!(catalog_destinations(&prefs, None).unwrap().len(), 2);
+        let legacy = catalog_destinations(&prefs, Some("cs13")).unwrap();
+        assert_eq!(legacy, vec![fs::canonicalize(folder.join("cs13/cstrike")).unwrap()]);
+        prefs.cs13 = None;
+        assert!(catalog_destinations(&prefs, Some("cs13")).is_err());
+        assert_eq!(catalog_destinations(&prefs, None).unwrap().len(), 1);
+        assert!(catalog_destinations(&prefs, Some("other")).is_err());
+        fs::remove_dir_all(folder).unwrap();
+    }
 
     #[test]
     fn progress_keeps_old_helpers_compatible_and_reports_active_file() {

@@ -1,3 +1,5 @@
+import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
+import { gameForMode } from '../../../../shared/game-version'
 import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import {
   Bot,
@@ -66,7 +68,10 @@ export function CustomGamesPanel({
   disabled = false
 }: CustomGamesPanelProps): JSX.Element {
   const rooms = useCustomGamesStore((state) => state.rooms)
-  const visibleRooms = rooms
+  const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
+  const visibleRooms = rooms.filter(
+    (room) => !preferredGame || gameForMode(room.mode) === preferredGame
+  )
   const room = useCustomGamesStore((state) => state.currentRoom)
   const status = useCustomGamesStore((state) => state.status)
   const refresh = useCustomGamesStore((state) => state.refresh)

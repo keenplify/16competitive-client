@@ -111,6 +111,12 @@ test('partner web custom creation includes backend-enabled CS13 and excludes dis
   for (const enabled of [['unrated', 'ffa', 'cs13_3v3'], ['unrated']]) {
     const jsx = (type, props) => ({ type, props })
     const dependencies = {
+      '../settings/partner-game-preference.store': {
+        usePartnerGamePreferenceStore: (select) => select({ game: null })
+      },
+      '../../../../shared/game-version': {
+        gameForMode: (mode) => (mode.startsWith('cs13_') ? 'cs13' : 'cs16')
+      },
       react: {
         useState: (initial) => [
           typeof initial === 'function' ? initial() : initial,

@@ -1,6 +1,6 @@
 import { isPartnerId } from '../shared/partner-attribution'
 
-type Incoming = { partnerId: string; token: string } | 'invalid' | null
+type Incoming = { partnerId: string; token: string; game?: 'cs13' | 'cs16' } | 'invalid' | null
 let incoming: Incoming = null
 const url = new URL(window.location.href)
 const receivedPartnerLogin = url.searchParams.has('token')
@@ -14,8 +14,16 @@ if (url.searchParams.has('token')) {
     isPartnerId(partnerId) &&
     token !== null &&
     /^[A-Za-z0-9_-]{43}$/.test(token)
-      ? { partnerId, token }
+      ? {
+          partnerId,
+          token,
+          ...(url.searchParams.getAll('game').length === 1 &&
+          ['cs13', 'cs16'].includes(url.searchParams.get('game') ?? '')
+            ? { game: url.searchParams.get('game') as 'cs13' | 'cs16' }
+            : {})
+        }
       : 'invalid'
+  url.searchParams.delete('game')
   url.searchParams.delete('token')
   url.searchParams.delete('handoff')
   url.searchParams.delete('validate-url')
