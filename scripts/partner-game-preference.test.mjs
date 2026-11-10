@@ -1,4 +1,4 @@
-import { gameModeFallback } from '../src/shared/game-version.ts'
+import { gameModeFallback } from '../src/shared/game-mode-preference.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import assert from 'node:assert/strict'
 import test from 'node:test'

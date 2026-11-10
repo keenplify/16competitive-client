@@ -1,6 +1,7 @@
+import { gameModeFallback } from '../../../../shared/game-mode-preference'
 import { usePartnerGamePreferenceStore } from '../settings/partner-game-preference.store'
 import { configuredGames } from '../settings/game-availability'
-import { gameForMode, gameModeFallback } from '../../../../shared/game-version'
+import { gameForMode } from '../../../../shared/game-version'
 import { RankedWarmupNotice } from './RankedWarmupNotice'
 import { verifyInstalledNativeHelper } from './native-helper-action'
 import { usePartnerServersStore } from '../partner-branding/partner-servers.store'
