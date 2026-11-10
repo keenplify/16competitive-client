@@ -4678,3 +4678,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Storage permission failures during game launch can now be reported automatically.
 - Retrying access to protected game folders can request administrator approval.
+
+## v2026.1110.2 — 2026-11-10
+
+### Game Selection
+
+- The launcher now respects your preferred game when signing in.
+- Partner game installations are now recognized by the launcher.
