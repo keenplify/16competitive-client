@@ -4745,3 +4745,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Added custom scoreboard preferences.
 - Added settings controls for scoreboard customization.
+
+## v2026.1111.4 — 2026-11-11
+
+### Launching
+
+- Native game launch failures are now preserved for clearer troubleshooting.
+- Issue reports now include relevant launch and matchmaking diagnostics.
+
+### Web Matchmaking
+
+- Custom-room maps from the backend now remain available in the web client without the helper.
