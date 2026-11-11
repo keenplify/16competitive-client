@@ -4718,3 +4718,18 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Settings
 
 - Game resolution remains under your control through the game’s own settings.
+
+
+## v2026.1111.2 — 2026-11-11
+
+### Counter-Strike 1.3
+
+- Stickered stock weapons now support left- and right-hand model variants.
+- Uploaded maps are prepared on 1.3 match servers.
+- Custom games show the correct result label and unranked MMR.
+- Added padding to player-name buttons in match results.
+
+### Settings
+
+- Choose your resolution through the game's own settings; the launcher no longer overrides it.
+- Removed the hardcoded ModDB download link for 1.3.
