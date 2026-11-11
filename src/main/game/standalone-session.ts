@@ -394,6 +394,8 @@ async function launchStandaloneTargetInner(
           event?: unknown
           connected?: unknown
           code?: unknown
+          cleanupCodes?: unknown
+          originalCode?: unknown
           osError?: unknown
           elevated?: unknown
           errorKind?: unknown
@@ -443,12 +445,28 @@ async function launchStandaloneTargetInner(
                     : {})
                 }
               : {}
-          console.warn('[Standalone] preparation failed', { code, ...diagnostics })
+          const cleanupDiagnostics = {
+            ...(typeof event.cleanupCodes === 'string' &&
+            /^(?:(?:NATIVE|AUTH|STARTUP)_CLEANUP_FAILED|INSPECTOR_STOP_FAILED)(?: (?:(?:NATIVE|AUTH|STARTUP)_CLEANUP_FAILED|INSPECTOR_STOP_FAILED)){0,5}$/.test(
+              event.cleanupCodes
+            )
+              ? { cleanupCodes: event.cleanupCodes }
+              : {}),
+            ...(typeof event.originalCode === 'string' && /^[A-Z_]{1,64}$/.test(event.originalCode)
+              ? { originalCode: event.originalCode }
+              : {})
+          }
+          console.warn('[Standalone] preparation failed', {
+            code,
+            ...diagnostics,
+            ...cleanupDiagnostics
+          })
           matchmakingDiagnostics.record('helper_failed', {
             type: 'game_process_error',
             ...diagnosticContext,
             code,
-            ...diagnostics
+            ...diagnostics,
+            ...cleanupDiagnostics
           })
           return fail(
             new Error(

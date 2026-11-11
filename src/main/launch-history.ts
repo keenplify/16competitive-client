@@ -22,6 +22,8 @@ const HISTORY_FIELDS = new Set([
   'phase',
   'osError',
   'errorKind',
+  'cleanupCodes',
+  'originalCode',
   'elevated',
   'installationSelected',
   'activeApiUrl',

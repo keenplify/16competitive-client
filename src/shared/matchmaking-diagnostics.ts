@@ -39,6 +39,7 @@ const FIELDS = new Set([
   'phase',
   'osError',
   'errorKind',
+  'originalCode',
   'elevated',
   'installationSelected',
   'attemptId'
@@ -57,6 +58,14 @@ export function projectMatchDiagnostics(value: unknown): Record<string, unknown>
       } catch {
         /* Invalid endpoints are not copied into reports. */
       }
+    } else if (
+      key === 'cleanupCodes' &&
+      typeof field === 'string' &&
+      /^(?:(?:NATIVE|AUTH|STARTUP)_CLEANUP_FAILED|INSPECTOR_STOP_FAILED)(?: (?:(?:NATIVE|AUTH|STARTUP)_CLEANUP_FAILED|INSPECTOR_STOP_FAILED)){0,5}$/.test(
+        field
+      )
+    ) {
+      output[key] = field
     } else if (FIELDS.has(key)) {
       if (
         field === null ||

@@ -77,3 +77,20 @@ test('history is bounded, expires, and is cleared when the reporting account cha
   })
   assert.ok(!trace.report().includes('old-account'))
 })
+
+test('cleanup failures survive report projection while arbitrary cleanup details are rejected', () => {
+  const cleanupCodes =
+    'NATIVE_CLEANUP_FAILED AUTH_CLEANUP_FAILED STARTUP_CLEANUP_FAILED STARTUP_CLEANUP_FAILED NATIVE_CLEANUP_FAILED INSPECTOR_STOP_FAILED'
+  assert.deepEqual(projectMatchDiagnostics({ code: 'NATIVE_INSTALL_FAILED', cleanupCodes }), {
+    code: 'NATIVE_INSTALL_FAILED',
+    cleanupCodes
+  })
+  for (const cleanupCodes of [
+    'private file',
+    'C:/private/session',
+    'INSPECTOR_STOP_FAILED secret',
+    Array(7).fill('NATIVE_CLEANUP_FAILED').join(' ')
+  ]) {
+    assert.deepEqual(projectMatchDiagnostics({ cleanupCodes }), {})
+  }
+})

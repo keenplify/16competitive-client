@@ -382,7 +382,7 @@ test('returning from a game skips the startup network check and splash delay onl
   }
 })
 
-test('sticker failures reach issue-report console logs without raw helper data on every platform', async () => {
+test('preparation failures reach issue-report logs and history without raw helper data on every platform', async () => {
   const { transform } = await import('esbuild')
   const source = await readFile('src/main/game/standalone-session.ts', 'utf8')
   const callback = source.slice(
@@ -394,6 +394,18 @@ test('sticker failures reach issue-report console logs without raw helper data o
   )
   const { code } = await transform(callback, { loader: 'ts' })
   for (const failureCode of [
+    'NATIVE_ROOT_INVALID',
+    'NATIVE_CLIENT_CHECK_FAILED',
+    'NATIVE_INTEGRITY_FAILED',
+    'NATIVE_CLEANUP_FAILED',
+    'NATIVE_HANDOFF_FAILED',
+    'GTPROTECTOR_COMPATIBILITY_FAILED',
+    'VOICE_OWNERSHIP_FAILED',
+    'NATIVE_LEASE_FAILED',
+    'SETTINGS_READ_FAILED',
+    'SETTINGS_WRITE_FAILED',
+    'INSTALLATION_SELECTION_FAILED',
+    'LAUNCH_ARGUMENTS_FAILED',
     'STICKER_RECIPE_INVALID',
     'STICKER_RECIPE_HASH_MISMATCH',
     'STICKER_SOURCE_FAILED',
@@ -410,6 +422,7 @@ test('sticker failures reach issue-report console logs without raw helper data o
     let receive
     let failure
     const logs = []
+    const history = []
     const register = new Function(
       'child',
       'fail',
@@ -432,7 +445,7 @@ test('sticker failures reach issue-report console logs without raw helper data o
         failure = error
       },
       { warn: (...args) => logs.push(args) },
-      { record: () => {} }
+      { record: (...args) => history.push(args) }
     )
     const frame =
       JSON.stringify({
@@ -441,13 +454,37 @@ test('sticker failures reach issue-report console logs without raw helper data o
         code: failureCode,
         message: 'private backend response',
         token: 'secret',
-        path: 'private file'
+        path: 'private file',
+        cleanupCodes: 'INSPECTOR_STOP_FAILED NATIVE_CLEANUP_FAILED',
+        originalCode: failureCode
       }) + '\n'
     // Exercise the actual pipe parser, including fragmented frames.
     receive(Buffer.from(frame.slice(0, 15)))
     assert.equal(logs.length, 0)
     receive(Buffer.from(frame.slice(15)))
-    assert.deepEqual(logs, [['[Standalone] preparation failed', { code: failureCode }]])
+    assert.deepEqual(logs, [
+      [
+        '[Standalone] preparation failed',
+        {
+          code: failureCode,
+          cleanupCodes: 'INSPECTOR_STOP_FAILED NATIVE_CLEANUP_FAILED',
+          originalCode: failureCode
+        }
+      ]
+    ])
+    assert.deepEqual(history, [
+      [
+        'helper_failed',
+        {
+          type: 'game_process_error',
+          matchId: 'fixture',
+          attemptId: 'attempt',
+          code: failureCode,
+          cleanupCodes: 'INSPECTOR_STOP_FAILED NATIVE_CLEANUP_FAILED',
+          originalCode: failureCode
+        }
+      ]
+    ])
     assert.match(failure.message, new RegExp(failureCode))
     assert.ok(!JSON.stringify(logs).includes('private'))
     assert.ok(!JSON.stringify(logs).includes('secret'))

@@ -110,7 +110,9 @@ pub fn parse_check_link(value: &str, development: bool) -> Option<CheckLink> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SessionResponse { pub token: String }
+pub struct SessionResponse { pub token: String, #[serde(default)] pub player: Option<SessionPlayer> }
+#[derive(Debug, Deserialize)]
+pub struct SessionPlayer { pub id: String }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

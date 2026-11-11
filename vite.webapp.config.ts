@@ -29,6 +29,8 @@ for (const source of [
   'web-helper/src/music.rs',
   'web-helper/src/native_preferences.rs',
   'web-helper/src/session_authorization.rs',
+  'web-helper/src/session_cleanup.rs',
+  'web-helper/src/launch_diagnostics.rs',
   'web-helper/src/inspector.rs',
   'web-helper/src/native_voice/mod.rs',
   'web-helper/src/native_voice/audio.rs',

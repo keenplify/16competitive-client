@@ -55,6 +55,8 @@ test('restart preserves queue, connect, preparation and helper failure across la
     matchId: 'match-one',
     code: 'GAME_SPAWN_FAILED',
     osError: 740,
+    cleanupCodes: 'INSPECTOR_STOP_FAILED',
+    originalCode: 'GAME_SPAWN_FAILED',
     elevated: false
   })
   await first.flush()
@@ -79,6 +81,8 @@ test('restart preserves queue, connect, preparation and helper failure across la
   assert.equal(report.timeline.at(-1).clientVersion, '2026.1107.7')
   assert.equal(report.timeline[4].data.elevated, false)
   assert.equal(report.timeline[4].data.osError, 740)
+  assert.equal(report.timeline[4].data.cleanupCodes, 'INSPECTOR_STOP_FAILED')
+  assert.equal(report.timeline[4].data.originalCode, 'GAME_SPAWN_FAILED')
   assert.equal(report.timeline[1].data.hostApiUrl, 'https://node.example.test')
   await second.flush()
   const bytes = await readFile(join(dir, fileName('player-one')), 'utf8')

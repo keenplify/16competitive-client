@@ -161,9 +161,23 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "NATIVE_RECOVERY_FAILED" => "NATIVE_RECOVERY_FAILED",
         "Wine path conversion timed out" | "Wine output timed out" => "COMPATIBILITY_PATH_FAILED",
         "Could not obtain the signed Windows session helper" | "Could not download Windows session helper" | "WINDOWS_HELPER_DOWNLOAD_FAILED" => "WINDOWS_HELPER_DOWNLOAD_FAILED",
-        "Native inspector integrity check failed" | "NATIVE_INTEGRITY_FAILED" => "NATIVE_INTEGRITY_FAILED",
+        "Native inspector integrity check failed" | "Native module integrity check failed" | "NATIVE_INTEGRITY_FAILED" => "NATIVE_INTEGRITY_FAILED",
         "Invalid compatibility cache root" | "COMPATIBILITY_CACHE_FAILED" => "COMPATIBILITY_CACHE_FAILED",
         "NATIVE_INSTALL_FAILED" => "NATIVE_INSTALL_FAILED",
+        "INSTALLATION_SELECTION_FAILED" => "INSTALLATION_SELECTION_FAILED",
+        "NATIVE_ROOT_INVALID" => "NATIVE_ROOT_INVALID",
+        "NATIVE_CLIENT_CHECK_FAILED" => "NATIVE_CLIENT_CHECK_FAILED",
+        "NATIVE_CLEANUP_FAILED" => "NATIVE_CLEANUP_FAILED",
+        "AUTH_CLEANUP_FAILED" => "AUTH_CLEANUP_FAILED",
+        "STARTUP_CLEANUP_FAILED" => "STARTUP_CLEANUP_FAILED",
+        "INSPECTOR_STOP_FAILED" => "INSPECTOR_STOP_FAILED",
+        "VOICE_OWNERSHIP_FAILED" => "VOICE_OWNERSHIP_FAILED",
+        "NATIVE_LEASE_FAILED" => "NATIVE_LEASE_FAILED",
+        "SETTINGS_READ_FAILED" => "SETTINGS_READ_FAILED",
+        "SETTINGS_WRITE_FAILED" => "SETTINGS_WRITE_FAILED",
+        "LAUNCH_ARGUMENTS_FAILED" => "LAUNCH_ARGUMENTS_FAILED",
+        "NATIVE_HANDOFF_FAILED" => "NATIVE_HANDOFF_FAILED",
+        "GTPROTECTOR_COMPATIBILITY_FAILED" => "GTPROTECTOR_COMPATIBILITY_FAILED",
         "STICKER_REQUEST_FAILED" => "STICKER_REQUEST_FAILED",
         "STICKER_PREPARATION_FAILED" => "STICKER_PREPARATION_FAILED",
         "Sticker preparation timed out" | "STICKER_TIMEOUT" => "STICKER_TIMEOUT",
@@ -202,6 +216,7 @@ pub(crate) fn preparation_error(error: &str, step: &str) -> String {
 }
 
 thread_local! {
+    static CLEANUP_FAILURE: std::cell::RefCell<Option<(String, Option<String>)>> = const { std::cell::RefCell::new(None) };
     static SPAWN_FAILURE: std::cell::RefCell<Option<(Option<i32>, String)>> = const { std::cell::RefCell::new(None) };
 }
 
@@ -227,16 +242,35 @@ fn process_elevated() -> Option<bool> {
 #[cfg(not(windows))]
 fn process_elevated() -> Option<bool> { None }
 
-fn failure_frame(error: &str) -> serde_json::Value {
+pub(crate) fn record_cleanup_failures(primary: &Result<(), String>, cleanup: &[(&str, Result<(), String>)]) {
+    let codes: Vec<_> = cleanup.iter().filter(|(_, result)| result.is_err())
+        .map(|(code, _)| failure_code(code)).collect();
+    CLEANUP_FAILURE.with(|slot| *slot.borrow_mut() = if codes.is_empty() { None } else {
+        Some((codes.join(" "), primary.as_ref().err().map(|error| failure_code(error).to_owned())))
+    });
+}
+
+pub(crate) fn failure_snapshot(error: &str) -> serde_json::Value {
     let mut frame = serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)});
-    // Consume the context so an unrelated later failure cannot inherit it.
-    if let Some((os_error, kind)) = SPAWN_FAILURE.with(|slot| slot.borrow_mut().take()) {
+    if let Some((codes, primary)) = CLEANUP_FAILURE.with(|slot| slot.borrow().clone()) {
+        frame["cleanupCodes"] = serde_json::json!(codes);
+        if let Some(code) = primary { frame["originalCode"] = serde_json::json!(code); }
+    }
+    // A report snapshot must not consume the context needed by the launcher.
+    if let Some((os_error, kind)) = SPAWN_FAILURE.with(|slot| slot.borrow().clone()) {
         if error == "GAME_SPAWN_FAILED" {
             frame["osError"] = serde_json::json!(os_error);
             frame["errorKind"] = serde_json::json!(kind);
             frame["elevated"] = serde_json::json!(process_elevated());
         }
     }
+    frame
+}
+
+fn failure_frame(error: &str) -> serde_json::Value {
+    let frame = failure_snapshot(error);
+    CLEANUP_FAILURE.with(|slot| slot.borrow_mut().take());
+    SPAWN_FAILURE.with(|slot| slot.borrow_mut().take());
     frame
 }
 
@@ -363,12 +397,12 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
     if !matches!(game, "cs16" | "cs13") { return Err("Invalid game installation".into()); }
     let (root, _, mod_dir) =
         validate_installation(&request.installation, game).ok_or("Invalid game installation")?;
-    let mut preferences = settings_bridge::load()?;
+    let mut preferences = settings_bridge::load().map_err(|e| preparation_error(&e, "SETTINGS_READ_FAILED"))?;
     if game == "cs13" { preferences.cs13 = Some(root.join(mod_dir)); }
     else { preferences.cs16 = Some(root); }
     preferences.settings = request.settings;
     preferences.settings.lightweight_hud = true;
-    settings_bridge::save(&preferences)?;
+    settings_bridge::save(&preferences).map_err(|e| preparation_error(&e, "SETTINGS_WRITE_FAILED"))?;
     let token = session(&request.api_origin, &request.handoff)?;
     // Use the same resident UI and OS lock as browser sessions. Do not delay
     // game preparation for tray startup or community image downloads.
@@ -533,6 +567,31 @@ mod tests {
         assert_eq!(preparation_error("private path and token", "NATIVE_BUNDLE_FAILED"), "NATIVE_BUNDLE_FAILED");
         assert_eq!(preparation_error("NATIVE_RECOVERY_FAILED", "NATIVE_SESSION_FAILED"), "NATIVE_RECOVERY_FAILED");
         assert_eq!(preparation_error("private token", "private step"), "PREPARATION_FAILED");
+    }
+    #[test]
+    fn cleanup_diagnostics_preserve_both_failures_and_are_consumed() {
+        record_cleanup_failures(&Err("NATIVE_INSTALL_FAILED".into()), &[
+            ("NATIVE_CLEANUP_FAILED", Err("C:\\private\\session".into())),
+            ("INSPECTOR_STOP_FAILED", Err("secret backend body".into())),
+        ]);
+        let frame = failure_frame("NATIVE_INSTALL_FAILED");
+        assert_eq!(frame["code"], "NATIVE_INSTALL_FAILED");
+        assert_eq!(frame["originalCode"], "NATIVE_INSTALL_FAILED");
+        assert_eq!(frame["cleanupCodes"], "NATIVE_CLEANUP_FAILED INSPECTOR_STOP_FAILED");
+        assert!(!frame.to_string().contains("private"));
+        assert!(!frame.to_string().contains("secret"));
+        assert!(failure_frame("DEVICE_CHECK_FAILED").get("cleanupCodes").is_none());
+    }
+    #[test]
+    fn preparation_checks_reach_reports_without_private_error_details() {
+        for code in ["INSTALLATION_SELECTION_FAILED", "NATIVE_ROOT_INVALID", "NATIVE_CLIENT_CHECK_FAILED", "NATIVE_CLEANUP_FAILED", "VOICE_OWNERSHIP_FAILED", "NATIVE_LEASE_FAILED", "SETTINGS_READ_FAILED", "SETTINGS_WRITE_FAILED", "LAUNCH_ARGUMENTS_FAILED", "NATIVE_HANDOFF_FAILED", "GTPROTECTOR_COMPATIBILITY_FAILED"] {
+            let error = preparation_error("C:\\private\\game: secret token", code);
+            let frame = failure_frame(&error);
+            assert_eq!(frame["code"], code);
+            assert!(!frame.to_string().contains("private"));
+            assert!(!frame.to_string().contains("secret"));
+        }
+        assert_eq!(failure_code("Native module integrity check failed"), "NATIVE_INTEGRITY_FAILED");
     }
     #[test]
     fn sticker_failures_keep_the_specific_reason_across_handoffs() {

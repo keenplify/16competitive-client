@@ -700,6 +700,43 @@ mod tests {
     }
 
     #[test]
+    fn existing_nextclient_prepares_twice_and_preserves_locked_file_failure() {
+        let Ok(source) = std::env::var("C16_TEST_NEXTCLIENT_MANAGED_ROOT") else { return; };
+        let source = PathBuf::from(source);
+        let root = std::env::temp_dir().join(format!("16c-next-repeat-{}", Uuid::new_v4()));
+        for name in [
+            "cstrike/cl_dlls/client.dll", "cstrike/cl_dlls/client_mini.dll",
+            "nitro_api2.dll", "papamo_cosmetic_module.dll",
+            "16competitive/nextclient-client-mini.original.dll",
+            "16competitive/nextclient-install.json", "16competitive/recovery.json",
+        ] {
+            let target = root.join(name);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::copy(source.join(name), target).unwrap();
+        }
+        let cache = std::env::temp_dir().join(format!("16c-next-bundle-{}", Uuid::new_v4()));
+        let bundle = crate::native_bundle::prepare(&cache).unwrap();
+        for _ in 0..2 {
+            validate_root(&root).unwrap();
+            prepare_existing(&root, &bundle).unwrap();
+            assert!(WindowsInstall::install(&root, &bundle).unwrap().is_some());
+        }
+        use std::os::windows::fs::OpenOptionsExt;
+        let locked = OpenOptions::new().read(true).share_mode(1)
+            .open(root.join("cstrike/cl_dlls/client_mini.dll")).unwrap();
+        let failure = WindowsInstall::install(&root, &bundle).err().expect("locked DLL must fail closed");
+        let primary = crate::desktop_session::preparation_error(&failure, "NATIVE_INSTALL_FAILED");
+        let result = crate::session_cleanup::finish(Err(primary), &[
+            ("INSPECTOR_STOP_FAILED", Err("Inspector shutdown timed out".into()))
+        ]);
+        assert_eq!(result, Err("NATIVE_INSTALL_FAILED".into()));
+        drop(locked);
+        assert!(WindowsInstall::install(&root, &bundle).unwrap().is_some());
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(cache).unwrap();
+    }
+
+    #[test]
     fn managed_nextclient_retains_host_after_session_cleanup() {
         let Ok(source) = std::env::var("C16_TEST_NEXTCLIENT_ROOT") else {
             return;

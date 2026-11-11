@@ -30,6 +30,8 @@ mod persistent_native;
 mod native_preferences;
 mod legacy_crosshair;
 mod session_authorization;
+mod session_cleanup;
+mod launch_diagnostics;
 mod notice_throttle;
 mod presence;
 mod runtime;
@@ -148,6 +150,8 @@ fn helper_fingerprint() -> String {
         include_bytes!("music.rs").as_slice(),
         include_bytes!("native_preferences.rs").as_slice(),
         include_bytes!("session_authorization.rs").as_slice(),
+        include_bytes!("session_cleanup.rs").as_slice(),
+        include_bytes!("launch_diagnostics.rs").as_slice(),
         include_bytes!("inspector.rs").as_slice(),
         include_bytes!("native_voice/mod.rs").as_slice(),
         include_bytes!("native_voice/audio.rs").as_slice(),
@@ -658,6 +662,7 @@ fn session(api: &str, handoff: &str) -> Result<session_authorization::HelperToke
     if response.token.len() < 20 || response.token.len() > 2048 {
         return Err("Invalid authentication response".into());
     }
+    launch_diagnostics::set_owner(response.player.as_ref().map(|player| player.id.as_str()));
     session_authorization::HelperToken::new(api, response.token)
 }
 
@@ -805,7 +810,15 @@ fn cleanup_owned_file(file: Option<(PathBuf, String)>) -> Result<(), String> {
 }
 
 fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
-    launch_native_match(connection, api, token, &mut || Ok(()))
+    let result = launch_native_match(connection, api, token, &mut || Ok(()));
+    if let Err(error) = &result {
+        if let Ok(directory) = user_config_dir() {
+            if launch_diagnostics::record(&directory, connection, &desktop_session::failure_snapshot(error)).is_err() {
+                eprintln!("Native launch diagnostic could not be saved");
+            }
+        }
+    }
+    result
 }
 
 fn cs16_requires_steam(root: &Path, next_client: bool, gold_client: bool) -> bool {
@@ -863,7 +876,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     } else {
         &pattern.cs16
     };
-    let (root, exe, mut mod_dir) = managed_installations::choose(api, token, connection.game())?;
+    let (root, exe, mut mod_dir) = managed_installations::choose(api, token, connection.game()).map_err(|e| desktop_session::preparation_error(&e, "INSTALLATION_SELECTION_FAILED"))?;
+    launch_diagnostics::set_executable(exe.file_name().and_then(|name| name.to_str()));
     // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
     // Wine and older bundles still need the compatibility runtime.
     if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")
@@ -882,11 +896,11 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     if cfg!(windows) && connection.game() == "cs13" {
         mod_dir = cs13_installation::prepare(&root, &mod_dir)?;
     }
-    let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id)?;
-    let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?)?;
-    let preferences = settings_bridge::load()?.settings;
+    let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id).map_err(|e| desktop_session::preparation_error(&e, "VOICE_OWNERSHIP_FAILED"))?;
+    let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_LEASE_FAILED"))?;
+    let preferences = settings_bridge::load().map_err(|e| desktop_session::preparation_error(&e, "SETTINGS_READ_FAILED"))?.settings;
     let windows_cs16_args = if cfg!(windows) && connection.game() == "cs16" {
-        Some(cs16_standalone_windows_args(&root, game_pattern)?)
+        Some(cs16_standalone_windows_args(&root, game_pattern).map_err(|e| desktop_session::preparation_error(&e, "LAUNCH_ARGUMENTS_FAILED"))?)
     } else {
         None
     };
@@ -894,7 +908,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         && connection.game() == "cs16"
         && exe.file_name().is_some_and(|name| name == "cstrike.exe");
     #[cfg(windows)]
-    let gold_client = connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root)?;
+    let gold_client = connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))?;
     #[cfg(not(windows))]
     let gold_client = false;
     let game_dir = root.join(&mod_dir);
@@ -971,12 +985,12 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         match scanner_bundle.verify_modules() {
             Ok(()) => {
                 let bundle = scanner_bundle.clone();
-                windows_native::validate_root(&root)?;
+                windows_native::validate_root(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_ROOT_INVALID"))?;
                 windows_native::prepare_existing(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
                 // This version's engine passes a third Initialize argument and
                 // invokes legacy connection callbacks. Keep its original DLL;
                 // do not initialize cosmetic/voice workers just to tear them down.
-                if !windows_native::requires_legacy_original_client(&root)? {
+                if !windows_native::requires_legacy_original_client(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))? {
                 let session = native_session::NativeSession::start_at(
                     root.join("16competitive/live-session"),
                     connection,
@@ -992,7 +1006,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                     Ok(None) => {
                         let mut session = session;
                         session.stop();
-                        session.cleanup()?;
+                        session.cleanup().map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLEANUP_FAILED"))?;
                     }
                     Err(error) => {
                         let mut session = session;
@@ -1000,7 +1014,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                         if !root.join("16competitive/recovery.json").exists()
                             && !root.join("16competitive/cosmetic-install.json").exists()
                         {
-                            session.cleanup()?;
+                            session.cleanup().map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLEANUP_FAILED"))?;
                         }
                         return Err(desktop_session::preparation_error(&error, "NATIVE_INSTALL_FAILED"));
                     }
@@ -1008,20 +1022,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                 }
             }
             Err(error) => {
-                if root.join("16competitive/recovery.json").exists()
-                    || root.join("16competitive/cosmetic-install.json").exists()
-                    || root.join("16competitive/nextclient-install.json").exists()
-                {
-                    return Err(format!(
-                        "Native recovery requires the approved helper: {error}"
-                    ));
-                }
-                if next_client {
-                    return Err(format!(
-                        "NextClient requires the approved native helper: {error}"
-                    ));
-                }
-                return Err(format!("Native session preparation failed: {error}"));
+                return Err(desktop_session::preparation_error(&error, "NATIVE_INTEGRITY_FAILED"));
             }
         }
     }
@@ -1047,12 +1048,12 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             &format!("{:x}", Sha256::digest(connection.match_id.as_bytes()))[..16]
         );
         if let Err(error) = session.1.write_nextclient_handoff(connection, &key) {
-            return Err(error);
+            return Err(desktop_session::preparation_error(&error, "NATIVE_HANDOFF_FAILED"));
         }
     }
     if connection.game() == "cs16" && native.is_none() {
         #[cfg(windows)]
-        let config_auth = !next_client && windows_native::supports_config_authenticated_launch(&root)?;
+        let config_auth = !next_client && windows_native::supports_config_authenticated_launch(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))?;
         #[cfg(not(windows))]
         let config_auth = false;
         if !config_auth { return Err("NATIVE_INSTALL_UNSUPPORTED".into()); }
@@ -1064,7 +1065,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         auth = Some(cs13_auth_file(&game_dir, connection)?);
     }
     let crosshair_commands = if cfg!(windows) && native.is_none() && gold_client {
-        legacy_crosshair::commands(&preferences)?
+        legacy_crosshair::commands(&preferences).map_err(|e| desktop_session::preparation_error(&e, "STARTUP_CONFIG_FAILED"))?
     } else { String::new() };
     startup = if connection.game() == "cs16" && !next_client {
         Some(cs16_startup_file(&game_dir, connection, &crosshair_commands).map_err(|_| "STARTUP_CONFIG_FAILED")?)
@@ -1169,7 +1170,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             })?;
         }
         desktop_session::report_progress("starting", 0, 0);
-        game_startup.recheck()?;
+        game_startup.recheck().map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?;
         command.spawn().map_err(desktop_session::game_spawn_failure)
     })();
     let mut child = prepared_child?;
@@ -1267,14 +1268,21 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         session.cleanup()
     } else { Ok(()) };
     #[cfg(windows)]
-    if let Some(mut installation) = won_install { installation.restore()?; }
-    native_cleanup?;
-    auth_cleanup?;
-    startup_cleanup?;
-    #[cfg(windows)]
-    bridge_cleanup?;
-    scanner_result?;
-    session_authorization::finish_session(wait_result)
+    let won_cleanup = if let Some(mut installation) = won_install { installation.restore() } else { Ok(()) };
+    let cleanup = [
+        ("NATIVE_CLEANUP_FAILED", native_cleanup),
+        ("AUTH_CLEANUP_FAILED", auth_cleanup),
+        ("STARTUP_CLEANUP_FAILED", startup_cleanup),
+        #[cfg(windows)]
+        ("STARTUP_CLEANUP_FAILED", bridge_cleanup.map_err(str::to_owned)),
+        #[cfg(windows)]
+        ("NATIVE_CLEANUP_FAILED", won_cleanup),
+        ("INSPECTOR_STOP_FAILED", scanner_result),
+    ];
+    desktop_session::record_cleanup_failures(&wait_result, &cleanup);
+    // Normalize an ordinary authorization end before combining cleanup results,
+    // so failed cleanup can never be converted into success or a retry.
+    session_cleanup::finish(session_authorization::finish_session(wait_result), &cleanup)
 }
 
 fn run() -> Result<(), String> {
@@ -1425,7 +1433,11 @@ fn main() {
                 notice(&error);
             }
         } else {
-            notice(&error);
+            if error == "GAME_SPAWN_FAILED" {
+                notice(&desktop_session::failure_snapshot(&error).to_string());
+            } else {
+                notice(&error);
+            }
         }
         std::process::exit(1);
     }

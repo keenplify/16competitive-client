@@ -3,7 +3,7 @@ import { app } from 'electron'
 import { LegacyGameService } from './game/legacy-game-service'
 import { dirname, join } from 'node:path'
 import { getSavedCs16Executable } from './game/game-settings'
-import { getSessionToken, getSessionUsername } from './auth'
+import { getSessionPlayerId, getSessionToken, getSessionUsername } from './auth'
 import { gamePerformanceReport, refreshGamePerformance } from './game/game-performance'
 import { API_BASE_URL } from './config'
 import { serverClockNow } from '../shared/server-clock'
@@ -12,6 +12,7 @@ import { readMatchLaunchDiagnostics } from './game/match-launch-diagnostics'
 import { postDiagnosticReport } from './diagnostic-report-request'
 import { matchmakingDiagnostics } from './matchmaking-diagnostics'
 import { musicDeliveryReport } from './game/music-diagnostics'
+import { nativeLaunchReport } from './game/native-launch-diagnostics'
 import {
   prepareCompatibilityFiles,
   getCompatibilityFiles,
@@ -139,7 +140,8 @@ export async function collectDiagnosticIssueLogs(
       ? join(process.env.LOCALAPPDATA, '16competitive')
       : join(app.getPath('appData'), '16competitive')
   const music = await musicDeliveryReport(musicDirectory, matchId)
-  return `${redactReportLogs(environment)}\n\n${matchmaking}\n\n${launchHistory}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`.slice(
+  const nativeLaunch = await nativeLaunchReport(musicDirectory, getSessionPlayerId(), matchId)
+  return `${redactReportLogs(environment)}\n\n${nativeLaunch}\n\n${matchmaking}\n\n${launchHistory}\n\n${performance}\n\n${music}\n\n${launchContext}\n\n${launcherLogs}\n\n${gameLogs}`.slice(
     0,
     500_000
   )
