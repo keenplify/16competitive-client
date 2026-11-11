@@ -24,6 +24,8 @@ pub struct NativePreferences {
     pub current_display_resolution: Resolution,
     pub fast_switch_enabled: bool,
     pub enhancements_enabled: bool,
+    #[serde(default = "default_scoreboard")]
+    pub custom_scoreboard_enabled: bool,
     pub lightweight_hud: bool,
     pub kill_cards_enabled: bool,
     #[serde(default)]
@@ -34,6 +36,9 @@ pub struct NativePreferences {
     pub voice_ptt_keys: Vec<String>,
     #[serde(default)]
     pub voice: crate::native_voice::Preferences,
+}
+fn default_scoreboard() -> bool {
+    true
 }
 fn default_voice() -> Vec<String> {
     vec!["K".into(), "V".into()]
@@ -106,6 +111,7 @@ impl Default for NativePreferences {
             },
             fast_switch_enabled: true,
             enhancements_enabled: true,
+            custom_scoreboard_enabled: true,
             lightweight_hud: true,
             kill_cards_enabled: false,
             crosshair_config: None,
@@ -182,7 +188,9 @@ impl NativePreferences {
     }
     pub(crate) fn validate(&self) -> Result<(), String> {
         self.voice.validate()?;
-        let codes: Vec<_> = self.voice_ptt_keys.iter()
+        let codes: Vec<_> = self
+            .voice_ptt_keys
+            .iter()
             .map(|key| crate::native_preferences::goldsrc_key(key))
             .collect();
         if codes.len() != 2 || codes.iter().any(Option::is_none) || codes[0] == codes[1] {
@@ -265,7 +273,11 @@ pub fn save(value: &Preferences) -> Result<(), String> {
     deny_unknown_fields
 )]
 enum Request {
-    PartnerSettings { api_origin: String, token: String, request: Box<Request> },
+    PartnerSettings {
+        api_origin: String,
+        token: String,
+        request: Box<Request>,
+    },
     Get,
     Choose {
         game: String,
@@ -280,9 +292,13 @@ enum Request {
     Presence {
         activity: Option<crate::presence::Activity>,
     },
-    ModelRead { path: String },
+    ModelRead {
+        path: String,
+    },
     AssetStatus,
-    VoiceStatus { match_id: String },
+    VoiceStatus {
+        match_id: String,
+    },
     AssetSync {
         api_origin: String,
         token: String,
@@ -290,7 +306,13 @@ enum Request {
         repair: bool,
         game: Option<String>,
     },
-    PartnerLaunch { api_origin: String, token: String, server_id: String, group_id: Option<String>, community_id: Option<String> },
+    PartnerLaunch {
+        api_origin: String,
+        token: String,
+        server_id: String,
+        group_id: Option<String>,
+        community_id: Option<String>,
+    },
     RuntimeCheck {
         api_origin: String,
         token: Option<String>,
@@ -302,8 +324,14 @@ enum Request {
     NextClientStatus,
     NextClientCancel,
     VoiceStream,
-    Microphone { api_origin: String },
-    Diagnostics { api_origin: String, token: String, match_id: Option<String> },
+    Microphone {
+        api_origin: String,
+    },
+    Diagnostics {
+        api_origin: String,
+        token: String,
+        match_id: Option<String>,
+    },
     ProbeNodes {
         nodes: Vec<ProbeNode>,
     },
@@ -323,10 +351,16 @@ struct ProbeNode {
 fn probe_udp_latency(host: &str, port: u16) -> Option<u32> {
     use std::net::{ToSocketAddrs, UdpSocket};
     let address = (host, port).to_socket_addrs().ok()?.next()?;
-    let bind = if address.is_ipv4() { "0.0.0.0:0" } else { "[::]:0" };
+    let bind = if address.is_ipv4() {
+        "0.0.0.0:0"
+    } else {
+        "[::]:0"
+    };
     let socket = UdpSocket::bind(bind).ok()?;
     socket.connect(address).ok()?;
-    socket.set_read_timeout(Some(Duration::from_millis(1500))).ok()?;
+    socket
+        .set_read_timeout(Some(Duration::from_millis(1500)))
+        .ok()?;
     let nonce = *uuid::Uuid::new_v4().as_bytes();
     let started = Instant::now();
     socket.send(&nonce).ok()?;
@@ -344,13 +378,21 @@ fn probe_nodes(nodes: Vec<ProbeNode>) -> Result<serde_json::Value, String> {
     let mut checked = Vec::with_capacity(nodes.len());
     let mut ids = std::collections::HashSet::new();
     for node in nodes {
-        if node.id.is_empty() || node.id.len() > 80 || !ids.insert(node.id.clone()) || node.port == 0 {
+        if node.id.is_empty()
+            || node.id.len() > 80
+            || !ids.insert(node.id.clone())
+            || node.port == 0
+        {
             return Err("Invalid latency probe".into());
         }
-        let origin = competitive16_web_helper::allowed_api_origin(&node.api_origin, cfg!(debug_assertions))
-            .ok_or("Invalid latency probe origin")?;
-        let host = url::Url::parse(&origin).map_err(|_| "Invalid latency probe origin")?
-            .host_str().ok_or("Invalid latency probe host")?.to_owned();
+        let origin =
+            competitive16_web_helper::allowed_api_origin(&node.api_origin, cfg!(debug_assertions))
+                .ok_or("Invalid latency probe origin")?;
+        let host = url::Url::parse(&origin)
+            .map_err(|_| "Invalid latency probe origin")?
+            .host_str()
+            .ok_or("Invalid latency probe host")?
+            .to_owned();
         checked.push((node.id, host, node.port));
     }
     let measured = std::thread::scope(|scope| {
@@ -364,13 +406,28 @@ const MAX_PREVIEW_MODEL: u64 = 32 * 1024 * 1024;
 
 fn preview_relative_path(path: &str) -> Result<String, String> {
     let path = path.strip_prefix("models/").unwrap_or(path);
-    if path.len() > 240 || !path.ends_with(".mdl") ||
-        path.split('/').any(|part| part.is_empty() || part == "." || part == ".." ||
-            !part.bytes().all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))) {
+    if path.len() > 240
+        || !path.ends_with(".mdl")
+        || path.split('/').any(|part| {
+            part.is_empty()
+                || part == "."
+                || part == ".."
+                || !part
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+        })
+    {
         return Err("Invalid model path".into());
     }
-    if let Some(model) = path.strip_prefix("lobby/").and_then(|p| p.strip_suffix("_lobby.mdl")) {
-        if ["arctic", "gign", "gsg9", "guerilla", "leet", "sas", "terror", "urban"].contains(&model) {
+    if let Some(model) = path
+        .strip_prefix("lobby/")
+        .and_then(|p| p.strip_suffix("_lobby.mdl"))
+    {
+        if [
+            "arctic", "gign", "gsg9", "guerilla", "leet", "sas", "terror", "urban",
+        ]
+        .contains(&model)
+        {
             return Ok(format!("player/{model}/{model}.mdl"));
         }
         return Err("Invalid model path".into());
@@ -380,31 +437,54 @@ fn preview_relative_path(path: &str) -> Result<String, String> {
 
 fn read_model_under(root: &Path, path: &str) -> Result<Vec<u8>, String> {
     let relative = preview_relative_path(path)?;
-    let models = root.join("cstrike/models").canonicalize().map_err(|_| "Model unavailable")?;
-    let file = models.join(relative).canonicalize().map_err(|_| "Model unavailable")?;
-    if !file.starts_with(&models) { return Err("Invalid model path".into()); }
+    let models = root
+        .join("cstrike/models")
+        .canonicalize()
+        .map_err(|_| "Model unavailable")?;
+    let file = models
+        .join(relative)
+        .canonicalize()
+        .map_err(|_| "Model unavailable")?;
+    if !file.starts_with(&models) {
+        return Err("Invalid model path".into());
+    }
     let handle = fs::File::open(file).map_err(|_| "Model unavailable")?;
     let meta = handle.metadata().map_err(|_| "Model unavailable")?;
-    if !meta.is_file() || !(244..=MAX_PREVIEW_MODEL).contains(&meta.len()) { return Err("Invalid model".into()); }
+    if !meta.is_file() || !(244..=MAX_PREVIEW_MODEL).contains(&meta.len()) {
+        return Err("Invalid model".into());
+    }
     let mut bytes = Vec::new();
-    handle.take(MAX_PREVIEW_MODEL + 1).read_to_end(&mut bytes).map_err(|_| "Model unavailable")?;
-    if bytes.len() < 244 || bytes.len() as u64 > MAX_PREVIEW_MODEL || &bytes[..4] != b"IDST" ||
-        i32::from_le_bytes(bytes[4..8].try_into().unwrap()) != 10 ||
-        i32::from_le_bytes(bytes[72..76].try_into().unwrap()) != bytes.len() as i32 {
+    handle
+        .take(MAX_PREVIEW_MODEL + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "Model unavailable")?;
+    if bytes.len() < 244
+        || bytes.len() as u64 > MAX_PREVIEW_MODEL
+        || &bytes[..4] != b"IDST"
+        || i32::from_le_bytes(bytes[4..8].try_into().unwrap()) != 10
+        || i32::from_le_bytes(bytes[72..76].try_into().unwrap()) != bytes.len() as i32
+    {
         return Err("Invalid model".into());
     }
     Ok(bytes)
 }
 
-fn read_model_preview(path: &str, policy: Option<&crate::managed_installations::Policy>) -> Result<serde_json::Value, String> {
+fn read_model_preview(
+    path: &str,
+    policy: Option<&crate::managed_installations::Policy>,
+) -> Result<serde_json::Value, String> {
     use base64::Engine;
     preview_relative_path(path)?;
     let mut prefs = load()?;
-    if let Some(policy) = policy { policy.folders(&mut prefs); }
+    if let Some(policy) = policy {
+        policy.folders(&mut prefs);
+    }
     for (folder, game) in [(prefs.cs16, "cs16"), (prefs.cs13, "cs13")] {
         if let Some(root) = folder.and_then(|p| validate_installation(&p, game).map(|v| v.0)) {
             if let Ok(bytes) = read_model_under(&root, path) {
-                return Ok(serde_json::json!({"data":base64::engine::general_purpose::STANDARD.encode(bytes)}));
+                return Ok(
+                    serde_json::json!({"data":base64::engine::general_purpose::STANDARD.encode(bytes)}),
+                );
             }
         }
     }
@@ -412,8 +492,20 @@ fn read_model_preview(path: &str, policy: Option<&crate::managed_installations::
 }
 
 fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
-    if let Request::PartnerSettings { api_origin, token, request } = request {
-        if !matches!(*request, Request::Get | Request::Choose {..} | Request::Select {..} | Request::Save {..} | Request::ModelRead {..}) {
+    if let Request::PartnerSettings {
+        api_origin,
+        token,
+        request,
+    } = request
+    {
+        if !matches!(
+            *request,
+            Request::Get
+                | Request::Choose { .. }
+                | Request::Select { .. }
+                | Request::Save { .. }
+                | Request::ModelRead { .. }
+        ) {
             return Err("Invalid partner settings request".into());
         }
         let policy = crate::managed_installations::fetch(&api_origin, &token)?;
@@ -421,7 +513,11 @@ fn apply(request: Request, source: &str) -> Result<serde_json::Value, String> {
     }
     apply_with_policy(request, source, None)
 }
-fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::managed_installations::Policy>) -> Result<serde_json::Value, String> {
+fn apply_with_policy(
+    request: Request,
+    source: &str,
+    policy: Option<&crate::managed_installations::Policy>,
+) -> Result<serde_json::Value, String> {
     match &request {
         Request::Logout { account_id } => {
             uuid::Uuid::parse_str(account_id).map_err(|_| "Invalid helper account")?;
@@ -440,22 +536,51 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
         Request::Microphone { api_origin } => {
             return crate::runtime::microphone(api_origin.clone());
         }
-        Request::Diagnostics { api_origin, token, match_id } => {
-            if token.len() > 4096 || match_id.as_ref().is_some_and(|id| uuid::Uuid::parse_str(id).is_err()) {
+        Request::Diagnostics {
+            api_origin,
+            token,
+            match_id,
+        } => {
+            if token.len() > 4096
+                || match_id
+                    .as_ref()
+                    .is_some_and(|id| uuid::Uuid::parse_str(id).is_err())
+            {
                 return Err("Invalid diagnostic request".into());
             }
-            return crate::runtime::invoke("diagnostics", api_origin, Some(token), match_id.as_deref());
+            return crate::runtime::invoke(
+                "diagnostics",
+                api_origin,
+                Some(token),
+                match_id.as_deref(),
+            );
         }
-        Request::PartnerLaunch { api_origin, token, server_id, group_id, community_id } => {
-            if token.is_empty() || token.len() > 4096 ||
-                std::iter::once(server_id).chain(group_id.iter()).chain(community_id.iter())
-                    .any(|id| uuid::Uuid::parse_str(id).is_err()) {
+        Request::PartnerLaunch {
+            api_origin,
+            token,
+            server_id,
+            group_id,
+            community_id,
+        } => {
+            if token.is_empty()
+                || token.len() > 4096
+                || std::iter::once(server_id)
+                    .chain(group_id.iter())
+                    .chain(community_id.iter())
+                    .any(|id| uuid::Uuid::parse_str(id).is_err())
+            {
                 return Err("Invalid partner launch request".into());
             }
             {
-                return crate::partner::start_background(api_origin, token, crate::partner::Launch {
-                    server_id: server_id.clone(), group_id: group_id.clone(), community_id: community_id.clone()
-                });
+                return crate::partner::start_background(
+                    api_origin,
+                    token,
+                    crate::partner::Launch {
+                        server_id: server_id.clone(),
+                        group_id: group_id.clone(),
+                        community_id: community_id.clone(),
+                    },
+                );
             }
         }
         Request::RuntimeCheck { api_origin, token } => {
@@ -466,13 +591,21 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
             let mut prefs = load().ok();
             if let Some(token) = token {
                 if let Some(policy) = crate::managed_installations::fetch(api_origin, token)? {
-                    if let Some(prefs) = prefs.as_mut() { policy.folders(prefs); }
+                    if let Some(prefs) = prefs.as_mut() {
+                        policy.folders(prefs);
+                    }
                 }
             }
-            let cs16_ready = prefs.as_ref().and_then(|prefs| prefs.cs16.as_ref())
-                .and_then(|folder| validate_installation(folder, "cs16")).is_some();
-            let cs13_ready = prefs.as_ref().and_then(|prefs| prefs.cs13.as_ref())
-                .and_then(|folder| validate_installation(folder, "cs13")).is_some();
+            let cs16_ready = prefs
+                .as_ref()
+                .and_then(|prefs| prefs.cs16.as_ref())
+                .and_then(|folder| validate_installation(folder, "cs16"))
+                .is_some();
+            let cs13_ready = prefs
+                .as_ref()
+                .and_then(|prefs| prefs.cs13.as_ref())
+                .and_then(|folder| validate_installation(folder, "cs13"))
+                .is_some();
             let installation_ready = cs16_ready || cs13_ready;
             return Ok(serde_json::json!({"ok":true,"protocol":1,
                 "competitiveReady":device["banned"] == false && installation_ready,
@@ -500,8 +633,13 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
         Request::ProbeNodes { nodes } => return probe_nodes(nodes.clone()),
         Request::ModelRead { path } => return read_model_preview(path, policy),
         Request::VoiceStatus { match_id } => {
-            if uuid::Uuid::parse_str(match_id).is_err() { return Err("Invalid voice session".into()); }
-            return Ok(crate::session_mode::voice_status(&user_config_dir()?, match_id));
+            if uuid::Uuid::parse_str(match_id).is_err() {
+                return Err("Invalid voice session".into());
+            }
+            return Ok(crate::session_mode::voice_status(
+                &user_config_dir()?,
+                match_id,
+            ));
         }
         Request::AssetStatus => {
             return serde_json::to_value(crate::assets::status()).map_err(|e| e.to_string())
@@ -569,14 +707,17 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
             }
         }
         Request::Choose { game } => {
-            if policy.is_some() { return Err("Partner manages game installations".into()); }
+            if policy.is_some() {
+                return Err("Partner manages game installations".into());
+            }
             if !matches!(game.as_str(), "cs13" | "cs16") {
                 return Err("Invalid game".into());
             }
             if let Some(folder) = browse_folder() {
-                let (root, _, _) =
-                    installation_search::find(&folder, |candidate| validate_installation(candidate, &game))
-                        .ok_or("Invalid game installation")?;
+                let (root, _, _) = installation_search::find(&folder, |candidate| {
+                    validate_installation(candidate, &game)
+                })
+                .ok_or("Invalid game installation")?;
                 if game == "cs13" {
                     prefs.cs13 = Some(root);
                 } else {
@@ -586,12 +727,16 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
             }
         }
         Request::Select { game, folder_path } => {
-            if policy.is_some() { return Err("Partner manages game installations".into()); }
+            if policy.is_some() {
+                return Err("Partner manages game installations".into());
+            }
             if !matches!(game.as_str(), "cs13" | "cs16") || folder_path.len() > 4096 {
                 return Err("Invalid installation folder".into());
             }
-            let (root, _, _) = installation_search::find(Path::new(&folder_path), |candidate| validate_installation(candidate, &game))
-                .ok_or("Invalid game installation")?;
+            let (root, _, _) = installation_search::find(Path::new(&folder_path), |candidate| {
+                validate_installation(candidate, &game)
+            })
+            .ok_or("Invalid game installation")?;
             if game == "cs13" {
                 prefs.cs13 = Some(root);
             } else {
@@ -605,14 +750,22 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
             save(&prefs)?;
         }
         Request::Presence { .. } | Request::VoiceStatus { .. } => unreachable!(),
-        Request::ModelRead { .. } | Request::AssetStatus | Request::AssetSync { .. } => unreachable!(),
-        Request::RuntimeCheck { .. } | Request::PartnerLaunch { .. } | Request::NextClient { .. } => unreachable!(),
+        Request::ModelRead { .. } | Request::AssetStatus | Request::AssetSync { .. } => {
+            unreachable!()
+        }
+        Request::RuntimeCheck { .. }
+        | Request::PartnerLaunch { .. }
+        | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
-        Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => unreachable!(),
+        Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => {
+            unreachable!()
+        }
         Request::ProbeNodes { .. } => unreachable!(),
         Request::Logout { .. } | Request::PartnerSettings { .. } => unreachable!(),
     }
-    if let Some(policy) = policy { policy.folders(&mut prefs); }
+    if let Some(policy) = policy {
+        policy.folders(&mut prefs);
+    }
     let mut value = serde_json::to_value(&prefs.settings).map_err(|e| e.to_string())?;
     value["managedInstallations"] = serde_json::json!(policy.is_some());
     value["nextClientDetected"] = serde_json::json!(
@@ -624,14 +777,18 @@ fn apply_with_policy(request: Request, source: &str, policy: Option<&crate::mana
                     && root.join("cstrike/cl_dlls/client_mini.dll").is_file())
     );
     value["platform"] = serde_json::json!(if cfg!(windows) { "win32" } else { "linux" });
-    value["helperVersion"] = serde_json::json!(
-        serde_json::from_str::<serde_json::Value>(include_str!("../../package.json"))
-            .ok()
-            .and_then(|package| package["version"].as_str().map(str::to_owned))
-            .ok_or("Invalid helper version")?
-    );
-    value["cs13FolderPath"] = serde_json::to_value(prefs.cs13.as_deref().map(installation_display_path)).map_err(|e| e.to_string())?;
-    value["cs16FolderPath"] = serde_json::to_value(prefs.cs16.as_deref().map(installation_display_path)).map_err(|e| e.to_string())?;
+    value["helperVersion"] = serde_json::json!(serde_json::from_str::<serde_json::Value>(
+        include_str!("../../package.json")
+    )
+    .ok()
+    .and_then(|package| package["version"].as_str().map(str::to_owned))
+    .ok_or("Invalid helper version")?);
+    value["cs13FolderPath"] =
+        serde_json::to_value(prefs.cs13.as_deref().map(installation_display_path))
+            .map_err(|e| e.to_string())?;
+    value["cs16FolderPath"] =
+        serde_json::to_value(prefs.cs16.as_deref().map(installation_display_path))
+            .map_err(|e| e.to_string())?;
     Ok(value)
 }
 fn respond_settings_error(stream: &mut TcpStream, origin: &str, error: &str) {
@@ -641,7 +798,12 @@ fn respond_settings_error(stream: &mut TcpStream, origin: &str, error: &str) {
     } else {
         "SETTINGS_FAILED"
     };
-    respond(stream, "400 Bad Request", Some(origin), &serde_json::json!({"code": code}).to_string());
+    respond(
+        stream,
+        "400 Bad Request",
+        Some(origin),
+        &serde_json::json!({"code": code}).to_string(),
+    );
 }
 fn respond(stream: &mut TcpStream, status: &str, origin: Option<&str>, body: &str) {
     let cors = origin.map(|o| format!("Access-Control-Allow-Origin: {o}\r\nAccess-Control-Allow-Methods: POST, OPTIONS\r\nAccess-Control-Allow-Headers: authorization, content-type\r\nAccess-Control-Allow-Private-Network: true\r\nVary: Origin\r\n")).unwrap_or_default();
@@ -695,7 +857,9 @@ fn voice_stream(mut stream: TcpStream, origin: String) {
     }
 }
 fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
-    if stream.set_nonblocking(false).is_err(){return false;}
+    if stream.set_nonblocking(false).is_err() {
+        return false;
+    }
     let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
     let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
     let mut bytes = Vec::new();
@@ -781,7 +945,12 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
                 move || voice_stream(stream, origin)
             });
         }
-        Ok(request @ (Request::PartnerLaunch { .. } | Request::RuntimeCheck { .. } | Request::Microphone { .. } | Request::Diagnostics { .. })) => {
+        Ok(
+            request @ (Request::PartnerLaunch { .. }
+            | Request::RuntimeCheck { .. }
+            | Request::Microphone { .. }
+            | Request::Diagnostics { .. }),
+        ) => {
             if RUNTIME_CHECKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 1 {
                 RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                 respond(&mut stream, "429 Too Many Requests", Some(origin), "{}");
@@ -859,8 +1028,12 @@ pub fn serve(port: u16, token: &str, origin: &str) -> Result<(), String> {
 pub(super) fn wait_until_ready(port: u16, token: &str, origin: &str) -> Result<(), String> {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
-        if existing_bridge_matches(port, token, origin) { return Ok(()); }
-        if Instant::now() >= deadline { return Err("Native helper settings bridge did not become ready".into()); }
+        if existing_bridge_matches(port, token, origin) {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err("Native helper settings bridge did not become ready".into());
+        }
         std::thread::sleep(Duration::from_millis(100));
     }
 }
@@ -887,7 +1060,9 @@ fn existing_bridge_matches(port: u16, token: &str, origin: &str) -> bool {
         return false;
     };
     headers.starts_with("HTTP/1.1 200 OK\r\n")
-        && headers.lines().any(|line| line == format!("Access-Control-Allow-Origin: {origin}"))
+        && headers
+            .lines()
+            .any(|line| line == format!("Access-Control-Allow-Origin: {origin}"))
         && serde_json::from_str::<serde_json::Value>(body).is_ok_and(|value| {
             value["platform"].as_str() == Some(if cfg!(windows) { "win32" } else { "linux" })
                 && (value["cs16FolderPath"].is_null() || value["cs16FolderPath"].is_string())
@@ -925,7 +1100,9 @@ mod tests {
             let worker = std::thread::spawn(move || {
                 let mut nonce = [0u8; 16];
                 let (_, peer) = server.recv_from(&mut nonce).unwrap();
-                if !echo { nonce[0] ^= 1; }
+                if !echo {
+                    nonce[0] ^= 1;
+                }
                 server.send_to(&nonce, peer).unwrap();
             });
             assert_eq!(probe_udp_latency("127.0.0.1", port).is_some(), echo);
@@ -1016,26 +1193,48 @@ mod model_preview_tests {
     use super::*;
     #[test]
     fn preview_paths_stay_in_models() {
-        for path in ["../secret.mdl", "/p_ak47.mdl", "player//x.mdl", "a/../../x.mdl", "C:/x.mdl", "x\\y.mdl", "config.cfg", "lobby/unknown_lobby.mdl"] {
+        for path in [
+            "../secret.mdl",
+            "/p_ak47.mdl",
+            "player//x.mdl",
+            "a/../../x.mdl",
+            "C:/x.mdl",
+            "x\\y.mdl",
+            "config.cfg",
+            "lobby/unknown_lobby.mdl",
+        ] {
             assert!(preview_relative_path(path).is_err(), "{path}");
         }
-        assert_eq!(preview_relative_path("lobby/gsg9_lobby.mdl").unwrap(), "player/gsg9/gsg9.mdl");
-        assert_eq!(preview_relative_path("models/p_m4a1.mdl").unwrap(), "p_m4a1.mdl");
+        assert_eq!(
+            preview_relative_path("lobby/gsg9_lobby.mdl").unwrap(),
+            "player/gsg9/gsg9.mdl"
+        );
+        assert_eq!(
+            preview_relative_path("models/p_m4a1.mdl").unwrap(),
+            "p_m4a1.mdl"
+        );
     }
     #[test]
     fn reads_only_valid_models_and_rejects_escape() {
         let root = std::env::temp_dir().join(format!("model-preview-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(root.join("cstrike/models")).unwrap();
-        let mut bytes = vec![0u8;244]; bytes[..4].copy_from_slice(b"IDST");
-        bytes[4..8].copy_from_slice(&10i32.to_le_bytes()); bytes[72..76].copy_from_slice(&244i32.to_le_bytes());
+        let mut bytes = vec![0u8; 244];
+        bytes[..4].copy_from_slice(b"IDST");
+        bytes[4..8].copy_from_slice(&10i32.to_le_bytes());
+        bytes[72..76].copy_from_slice(&244i32.to_le_bytes());
         fs::write(root.join("cstrike/models/p_test.mdl"), &bytes).unwrap();
         assert_eq!(read_model_under(&root, "p_test.mdl").unwrap(), bytes);
         fs::write(root.join("cstrike/models/bad.mdl"), b"not a model").unwrap();
-        assert!(read_model_under(&root,"bad.mdl").is_err());
-        #[cfg(unix)] {
+        assert!(read_model_under(&root, "bad.mdl").is_err());
+        #[cfg(unix)]
+        {
             fs::write(root.join("outside.mdl"), &bytes).unwrap();
-            std::os::unix::fs::symlink(root.join("outside.mdl"),root.join("cstrike/models/link.mdl")).unwrap();
-            assert!(read_model_under(&root,"link.mdl").is_err());
+            std::os::unix::fs::symlink(
+                root.join("outside.mdl"),
+                root.join("cstrike/models/link.mdl"),
+            )
+            .unwrap();
+            assert!(read_model_under(&root, "link.mdl").is_err());
         }
         fs::remove_dir_all(root).unwrap();
     }
@@ -1057,8 +1256,17 @@ mod partner_launch_tests {
     }
     #[test]
     fn partner_launch_rejects_invalid_ids_and_empty_credentials_before_starting_runtime() {
-        for (token, id) in [("", "583704ab-6fc5-4b58-8fc2-d91cf1d7c051"), ("fixture", "bad-id")] {
-            let request = Request::PartnerLaunch { api_origin: "https://16competitive.papamo.dev".into(), token: token.into(), server_id: id.into(), group_id: None, community_id: None };
+        for (token, id) in [
+            ("", "583704ab-6fc5-4b58-8fc2-d91cf1d7c051"),
+            ("fixture", "bad-id"),
+        ] {
+            let request = Request::PartnerLaunch {
+                api_origin: "https://16competitive.papamo.dev".into(),
+                token: token.into(),
+                server_id: id.into(),
+                group_id: None,
+                community_id: None,
+            };
             assert!(apply(request, "fixture-capability").is_err());
         }
     }

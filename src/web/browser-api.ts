@@ -209,6 +209,7 @@ const browserSettings = (): GameSettings => {
     nextClientIntegrationDisabledReason: null,
     fastSwitchEnabled: true,
     fastSwitchManaged: false,
+    customScoreboardEnabled: true,
     lightweightHud: true,
     killCardsEnabled: false,
     setupCompleted: true,
@@ -248,6 +249,7 @@ function helperGameSettings(settings: NativeHelperSettings): GameSettings {
     nextClientDetected: settings.nextClientDetected,
     fastSwitchEnabled: settings.fastSwitchEnabled,
     fastSwitchManaged: true,
+    customScoreboardEnabled: settings.customScoreboardEnabled !== false,
     lightweightHud: settings.lightweightHud,
     killCardsEnabled: settings.killCardsEnabled
   }
@@ -263,6 +265,7 @@ async function saveHelperPreferences(update: Partial<NativeHelperSettings>): Pro
     currentDisplayResolution: values.currentDisplayResolution,
     fastSwitchEnabled: values.fastSwitchEnabled,
     enhancementsEnabled: values.enhancementsEnabled,
+    customScoreboardEnabled: values.customScoreboardEnabled,
     lightweightHud: values.lightweightHud,
     killCardsEnabled: values.killCardsEnabled,
     crosshairConfig: values.crosshairConfig,
@@ -1192,6 +1195,9 @@ const api: Window['api'] = {
     },
     async setFastSwitch(enabled) {
       return saveHelperPreferences({ fastSwitchEnabled: enabled })
+    },
+    async setCustomScoreboard(enabled) {
+      return saveHelperPreferences({ customScoreboardEnabled: enabled })
     },
     async setLightweightHud(enabled) {
       return saveHelperPreferences({ lightweightHud: enabled })

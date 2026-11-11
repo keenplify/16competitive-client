@@ -29,6 +29,7 @@ const branding = {
   logoUrl: null,
   showPapamoGamesLogo: true,
   hideNativeHelperSetup: false,
+  customScoreboardEnabled: true,
   communityName: null,
   allowOtherCommunities: true,
   customSocialLinksEnabled: false,
@@ -265,5 +266,23 @@ test('community chat visibility is validated and retained', () => {
   for (const hideCommunityChat of ['true', 1, null])
     assert.throws(() =>
       parsePartnerBranding({ branding: { ...branding, hideCommunityChat } }, origin)
+    )
+})
+
+test('scoreboard preference accepts booleans and keeps old communities enabled', () => {
+  const legacy = { ...branding }
+  delete legacy.customScoreboardEnabled
+  assert.equal(
+    parsePartnerBranding({ branding: legacy }, origin).branding.customScoreboardEnabled,
+    true
+  )
+  assert.equal(
+    parsePartnerBranding({ branding: { ...branding, customScoreboardEnabled: false } }, origin)
+      .branding.customScoreboardEnabled,
+    false
+  )
+  for (const value of ['false', null, 0])
+    assert.throws(() =>
+      parsePartnerBranding({ branding: { ...branding, customScoreboardEnabled: value } }, origin)
     )
 })

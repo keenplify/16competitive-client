@@ -296,7 +296,8 @@ pub fn launch(
         }
     }
     #[cfg(windows)]
-    let gold_client = !root.join("nitro_api2.dll").is_file() && windows_native::is_gold_client(&root)?;
+    let gold_client =
+        !root.join("nitro_api2.dll").is_file() && windows_native::is_gold_client(&root)?;
     #[cfg(not(windows))]
     let gold_client = false;
     #[cfg(target_os = "linux")]
@@ -400,7 +401,9 @@ pub fn launch(
                 .env("SteamGameId", "10");
             command.env(
                 "LD_LIBRARY_PATH",
-                library_paths.join().map_err(|_| "Steam runtime initialization failed")??,
+                library_paths
+                    .join()
+                    .map_err(|_| "Steam runtime initialization failed")??,
             );
         }
         startup.recheck()?;
@@ -536,4 +539,15 @@ mod tests {
         value["gameVersion"] = json!("cs13");
         assert!(parse_server(&value, "server").is_err());
     }
+}
+
+pub(crate) fn custom_scoreboard_allowed(api: &str, token: &str, server_id: &str) -> Option<bool> {
+    request(
+        api,
+        token,
+        &format!("/partners/branding/server/{server_id}/scoreboard-policy"),
+        false,
+    )
+    .ok()
+    .and_then(|v| v["customScoreboardEnabled"].as_bool())
 }

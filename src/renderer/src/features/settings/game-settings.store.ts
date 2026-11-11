@@ -49,6 +49,9 @@ interface GameSettingsState {
   setPlayerPingKey: (key: PlayerPingKey) => Promise<void>
   fastSwitchEnabled: boolean
   fastSwitchManaged: boolean
+  customScoreboardEnabled: boolean
+  customScoreboardStatus: 'idle' | 'saving' | 'error'
+  setCustomScoreboard: (enabled: boolean) => Promise<void>
   lightweightHud: boolean
   lightweightHudStatus: 'idle' | 'saving' | 'error'
   killCardsSaving: boolean
@@ -115,6 +118,8 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
   pingSaveFailed: false,
   fastSwitchEnabled: true,
   fastSwitchManaged: true,
+  customScoreboardEnabled: true,
+  customScoreboardStatus: 'idle',
   lightweightHud: true,
   lightweightHudStatus: 'idle',
   killCardsSaving: false,
@@ -173,6 +178,32 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
     }
   },
 
+  setCustomScoreboard: async (enabled) => {
+    const language = useLanguageStore.getState().language
+    const feedback = toast.loading(translate(language, 'settings.scoreboardSaving'))
+    set({ customScoreboardStatus: 'saving' })
+    try {
+      const settings = await window.api.gameSettings.setCustomScoreboard(enabled)
+      set({
+        customScoreboardEnabled: settings.customScoreboardEnabled !== false,
+        customScoreboardStatus: 'idle'
+      })
+      toast.update(feedback, {
+        render: translate(language, 'settings.scoreboardNextMatch'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000
+      })
+    } catch {
+      set({ customScoreboardStatus: 'error' })
+      toast.update(feedback, {
+        render: translate(language, 'settings.scoreboardError'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 6000
+      })
+    }
+  },
   setLightweightHud: async (enabled) => {
     const language = useLanguageStore.getState().language
     const feedback = toast.loading(translate(language, 'settings.lightweightHudSaving'))
@@ -254,6 +285,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        customScoreboardEnabled: settings.customScoreboardEnabled !== false,
         lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         setupCompleted: settings.setupCompleted,
@@ -305,6 +337,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        customScoreboardEnabled: settings.customScoreboardEnabled !== false,
         lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         setupCompleted: settings.setupCompleted,
@@ -336,6 +369,7 @@ export const useGameSettingsStore = create<GameSettingsState>((set, get) => ({
         playerPingKey: settings.playerPingKey,
         fastSwitchEnabled: settings.fastSwitchEnabled,
         fastSwitchManaged: settings.fastSwitchManaged,
+        customScoreboardEnabled: settings.customScoreboardEnabled !== false,
         lightweightHud: settings.lightweightHud,
         killCardsEnabled: settings.killCardsEnabled,
         error: null

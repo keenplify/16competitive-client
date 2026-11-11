@@ -19,6 +19,7 @@ export const GAME_SETTINGS_CHANNELS = {
   setPlayerPingKey: 'game-settings:set-player-ping-key',
   setKillCards: 'game-settings:set-kill-cards',
   setLightweightHud: 'game-settings:set-lightweight-hud',
+  setCustomScoreboard: 'game-settings:set-custom-scoreboard',
   setDisplay: 'game-settings:set-display',
   completeSetup: 'game-settings:complete-setup',
   getAssetSyncStatus: 'game-settings:get-asset-sync-status',
@@ -44,6 +45,7 @@ export interface GameSettings {
   nextClientIntegrationDisabledReason: string | null
   fastSwitchEnabled: boolean
   fastSwitchManaged: boolean
+  customScoreboardEnabled?: boolean
   lightweightHud: boolean
   killCardsEnabled: boolean
   setupCompleted: boolean
@@ -84,6 +86,7 @@ export interface GameSettingsApi {
   setNextClientIntegration(enabled: boolean): Promise<GameSettings>
   setFastSwitch(enabled: boolean): Promise<GameSettings>
   setPlayerPingKey(key: PlayerPingKey): Promise<GameSettings>
+  setCustomScoreboard(enabled: boolean): Promise<GameSettings>
   setLightweightHud(enabled: boolean): Promise<GameSettings>
   setKillCards(enabled: boolean): Promise<GameSettings>
   completeSetup(mode: SetupMode): Promise<GameSettings>

@@ -69,7 +69,12 @@ pub(crate) fn refresh(directory: &Path, settings: &NativePreferences) -> Result<
     settings.validate()?;
     for (name, enabled) in [
         ("overlay.enabled", settings.enhancements_enabled),
-        ("kill-cards.enabled", settings.enhancements_enabled && settings.kill_cards_enabled && crate::native_bundle::supports_papamovgui2()),
+        (
+            "kill-cards.enabled",
+            settings.enhancements_enabled
+                && settings.kill_cards_enabled
+                && crate::native_bundle::supports_papamovgui2(),
+        ),
         // Native sessions always own the HUD; launcher visibility is independent.
         ("hud-lightweight.enabled", true),
     ] {
@@ -80,6 +85,16 @@ pub(crate) fn refresh(directory: &Path, settings: &NativePreferences) -> Result<
             remove(&path)?;
         }
     }
+    let partner_disabled = directory.join("scoreboard.partner-disabled");
+    let permitted = !partner_disabled.is_file();
+    owned_write(
+        &directory.join("scoreboard.disabled"),
+        if settings.custom_scoreboard_enabled && permitted {
+            b"0\n"
+        } else {
+            b"1\n"
+        },
+    )?;
     let crosshair = directory.join("crosshair.conf");
     match settings
         .crosshair_config
@@ -174,6 +189,34 @@ mod tests {
         fs::remove_dir_all(directory).unwrap();
     }
 
+    #[test]
+    fn custom_scoreboard_is_independent_and_community_cannot_override_player_opt_out() {
+        let directory =
+            std::env::temp_dir().join(format!("16c-board-pref-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&directory).unwrap();
+        let mut settings = NativePreferences::default();
+        settings.custom_scoreboard_enabled = false;
+        initialize(&directory, &settings).unwrap();
+        assert_eq!(fs::read(directory.join("overlay.enabled")).unwrap(), b"1\n");
+        assert_eq!(
+            fs::read(directory.join("scoreboard.disabled")).unwrap(),
+            b"1\n"
+        );
+        settings.custom_scoreboard_enabled = true;
+        owned_write(&directory.join("scoreboard.partner-disabled"), b"1\n").unwrap();
+        refresh(&directory, &settings).unwrap();
+        assert_eq!(
+            fs::read(directory.join("scoreboard.disabled")).unwrap(),
+            b"1\n"
+        );
+        fs::remove_file(directory.join("scoreboard.partner-disabled")).unwrap();
+        refresh(&directory, &settings).unwrap();
+        assert_eq!(
+            fs::read(directory.join("scoreboard.disabled")).unwrap(),
+            b"0\n"
+        );
+        fs::remove_dir_all(directory).unwrap();
+    }
     #[test]
     fn input_codes_match_goldsrc() {
         for (key, code) in [

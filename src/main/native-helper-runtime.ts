@@ -140,6 +140,7 @@ async function syncPreferences(initial = false): Promise<void> {
       enhancementsEnabled: unknown
       fastSwitchEnabled: unknown
       playerPingKey: unknown
+      customScoreboardEnabled?: unknown
       lightweightHud: unknown
       killCardsEnabled: unknown
       display: unknown
@@ -175,6 +176,10 @@ async function syncPreferences(initial = false): Promise<void> {
     await saveNextClientIntegration(s.enhancementsEnabled)
   await saveFastSwitch(s.fastSwitchEnabled)
   await savePlayerPingKey(s.playerPingKey)
+  if (s.customScoreboardEnabled !== undefined) {
+    const { saveCustomScoreboard } = await import('./game/game-settings')
+    await saveCustomScoreboard(s.customScoreboardEnabled)
+  }
   await saveLightweightHud(s.lightweightHud)
   await saveKillCards(s.killCardsEnabled)
   await saveGameDisplay(s.display)

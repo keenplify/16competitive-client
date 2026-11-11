@@ -130,6 +130,7 @@ export class ScoreboardOverlaySession {
   private readonly killCardPrediction = new KillCardPrediction()
   private boardVisible = false
   private frameRequestedAt: number | null = null
+  private customScoreboardEnabled = true
   private lightweightHud = false
   private cardPaintTimer: ReturnType<typeof setTimeout> | null = null
   private killCardsEnabled = false
@@ -551,6 +552,35 @@ export class ScoreboardOverlaySession {
       )
       startupLease = createdSession.lease
       createdSession.killCardsEnabled = false
+      let partnerScoreboardAllowed = true
+      if (partnerUi) {
+        const token = getSessionToken()
+        if (token) {
+          const policyResponse = await fetch(
+            new URL(
+              `/partners/branding/server/${encodeURIComponent(partnerUi.serverId)}/scoreboard-policy`,
+              backend
+            ),
+            {
+              headers: { authorization: `Bearer ${token}` },
+              redirect: 'error',
+              signal: AbortSignal.timeout(3000)
+            }
+          ).catch(() => null)
+          if (policyResponse?.ok) {
+            const policy: unknown = await policyResponse.json().catch(() => null)
+            if (policy && typeof policy === 'object' && 'customScoreboardEnabled' in policy)
+              partnerScoreboardAllowed = policy.customScoreboardEnabled !== false
+          }
+        }
+      }
+      createdSession.customScoreboardEnabled =
+        gameSettings.customScoreboardEnabled !== false && partnerScoreboardAllowed
+      await writeFile(
+        join(directory, 'scoreboard.disabled'),
+        createdSession.customScoreboardEnabled ? '0\n' : '1\n',
+        { mode: 0o600 }
+      )
       createdSession.lightweightHud = gameSettings.lightweightHud
       await writeLiveSessionFile(
         join(directory, 'hud-lightweight.enabled'),
@@ -904,6 +934,16 @@ export class ScoreboardOverlaySession {
           signal: AbortSignal.any([this.requests.signal, AbortSignal.timeout(3000)])
         }
       )
+      if ((response.ok && response.status !== 204) || response.status === 304) {
+        const boardPolicy = response.headers.get('x-custom-scoreboard')
+        if (boardPolicy !== null && boardPolicy !== '0' && boardPolicy !== '1')
+          throw new Error('Invalid custom scoreboard policy')
+        const permitted = boardPolicy !== '0'
+        await writeLiveSessionFile(
+          join(this.directory, 'scoreboard.disabled'),
+          this.customScoreboardEnabled && permitted ? '0\n' : '1\n'
+        )
+      }
       // Only an authenticated match member receives 410 for a terminal match.
       // Revoke live data immediately, but keep the fixed session lease until
       // game exit. Revoking ownership here makes the native module restart CS

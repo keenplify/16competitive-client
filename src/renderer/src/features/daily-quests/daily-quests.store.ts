@@ -18,6 +18,8 @@ interface DailyQuestState {
   refresh: () => Promise<void>
 }
 
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+let lifecycle = 0
 let removeMatchmakingListener: (() => void) | null = null
 
 const loadSnapshot = async (): Promise<DailyQuestSnapshot> => window.api.dailyQuests.get()
@@ -30,6 +32,8 @@ const toDailyQuest = (quest: DailyQuestMatchProgress): DailyQuest => ({
   target: quest.target,
   progress: quest.progress,
   rewardPoints: quest.rewardPoints,
+  reward: quest.reward,
+  endsAt: quest.endsAt,
   completed: quest.completed
 })
 
@@ -41,7 +45,11 @@ export const useDailyQuestStore = create<DailyQuestState>((set, get) => ({
   lastMatchRewards: null,
   start: () => {
     if (removeMatchmakingListener) return
+    lifecycle += 1
     void get().load()
+    refreshTimer = setInterval(() => {
+      if (get().status !== 'loading') void get().refresh()
+    }, 60_000)
     removeMatchmakingListener = window.api.matchmaking.onEvent((event) => {
       if (event.type !== 'match_finished' || !event.rewards) return
       const rewards = event.rewards
@@ -60,16 +68,22 @@ export const useDailyQuestStore = create<DailyQuestState>((set, get) => ({
     })
   },
   stop: () => {
+    lifecycle += 1
+    if (refreshTimer) clearInterval(refreshTimer)
+    refreshTimer = null
     removeMatchmakingListener?.()
     removeMatchmakingListener = null
     set({ status: 'idle' })
   },
   load: async () => {
     if (get().status === 'loading' || get().status === 'ready') return
+    const currentLifecycle = lifecycle
     set({ status: 'loading', error: null })
     try {
-      set({ status: 'ready', snapshot: await loadSnapshot(), error: null })
+      const snapshot = await loadSnapshot()
+      if (currentLifecycle === lifecycle) set({ status: 'ready', snapshot, error: null })
     } catch (error) {
+      if (currentLifecycle !== lifecycle) return
       set({
         status: 'error',
         error: error instanceof Error ? error.message : 'Could not load daily quests.'
@@ -77,10 +91,13 @@ export const useDailyQuestStore = create<DailyQuestState>((set, get) => ({
     }
   },
   refresh: async () => {
+    const currentLifecycle = lifecycle
     set({ status: 'loading', error: null })
     try {
-      set({ status: 'ready', snapshot: await loadSnapshot(), error: null })
+      const snapshot = await loadSnapshot()
+      if (currentLifecycle === lifecycle) set({ status: 'ready', snapshot, error: null })
     } catch (error) {
+      if (currentLifecycle !== lifecycle) return
       set({
         status: 'error',
         error: error instanceof Error ? error.message : 'Could not refresh daily quests.'

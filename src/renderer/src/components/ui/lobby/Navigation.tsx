@@ -124,7 +124,7 @@ export function LobbyNavigation({
             type="button"
             data-audio-sfx="forward"
             data-idle-hint-target="missions"
-            aria-label={`Daily missions${activeMissions ? `, ${activeMissions} active` : ''}`}
+            aria-label={`${t('mission.title')}${activeMissions ? `, ${t('mission.activeCount', { count: activeMissions })}` : ''}`}
             aria-expanded={missionsOpen}
             aria-controls="nav-daily-missions"
             onClick={onToggleMissions}
@@ -146,13 +146,14 @@ export function LobbyNavigation({
               id="nav-daily-missions"
               className="absolute top-full left-0 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-white/15 bg-neutral-950/95 p-2 shadow-2xl backdrop-blur-md"
             >
-              <h2 className="px-2 pb-2 text-sm font-semibold text-white">Daily missions</h2>
+              <h2 className="px-2 pb-2 text-sm font-semibold text-white">{t('mission.title')}</h2>
               <PlayWindowStatus
                 playWindow={playWindowNode?.playWindow}
                 visible={missionsOpen}
                 className="mx-2 mb-2"
               />
               <DailyQuestsPanel
+                onRewardOpen={onToggleMissions}
                 snapshot={missionSnapshot}
                 loading={missionLoading}
                 error={missionError}

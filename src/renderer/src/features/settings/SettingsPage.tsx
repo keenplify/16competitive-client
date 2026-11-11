@@ -1,3 +1,4 @@
+import { CustomScoreboardSetting } from './CustomScoreboardSetting'
 import { approvedPartnerReturnUrl } from '../../../../shared/partner-return'
 import { NativeHelperSettingsPanel } from './NativeHelperSettingsPanel'
 import { useWebHelperPromptStore } from '../matchmaking/web-helper-prompt.store'
@@ -738,6 +739,7 @@ export function SettingsPage(): JSX.Element {
                   </div>
                   <KillCardsSetting className="mt-5" />
                   <LightweightHudSetting className="mt-5 mb-0" />
+                  <CustomScoreboardSetting className="mt-5 mb-0" />
                 </div>
               )}
             </section>

@@ -43,6 +43,7 @@ interface StoredGameSettings {
   nextClientIntegrationEnabled?: boolean
   fastSwitchEnabled?: boolean
   fastSwitchManaged?: boolean
+  customScoreboardEnabled?: boolean
   lightweightHud?: boolean
   killCardsEnabled?: boolean
   nextClientIntegrationDisabledReason?: string
@@ -284,6 +285,9 @@ const readStoredSettings = async (): Promise<StoredGameSettings> => {
       ...(typeof settings.fastSwitchManaged === 'boolean'
         ? { fastSwitchManaged: settings.fastSwitchManaged }
         : {}),
+      ...(typeof settings.customScoreboardEnabled === 'boolean'
+        ? { customScoreboardEnabled: settings.customScoreboardEnabled }
+        : {}),
       ...(typeof settings.lightweightHud === 'boolean'
         ? { lightweightHud: settings.lightweightHud }
         : {}),
@@ -386,6 +390,7 @@ const buildSettings = async (
   fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
   fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
   killCardsEnabled: storedSettings.killCardsEnabled === true,
+  customScoreboardEnabled: storedSettings.customScoreboardEnabled !== false,
   lightweightHud: storedSettings.lightweightHud !== false,
   setupCompleted: storedSettings.setupCompleted === true,
   setupMode: storedSettings.setupMode ?? null,
@@ -424,6 +429,7 @@ const persistResolvedSettings = async (
     fastSwitchEnabled: storedSettings.fastSwitchEnabled !== false,
     fastSwitchManaged: storedSettings.fastSwitchManaged !== false,
     killCardsEnabled: storedSettings.killCardsEnabled === true,
+    customScoreboardEnabled: storedSettings.customScoreboardEnabled !== false,
     lightweightHud: storedSettings.lightweightHud !== false,
     ...(storedSettings.nextClientIntegrationDisabledReason
       ? { nextClientIntegrationDisabledReason: storedSettings.nextClientIntegrationDisabledReason }
@@ -505,6 +511,7 @@ export const completeGameSetup = async (untrustedMode: unknown): Promise<GameSet
           fastSwitchEnabled: true,
           fastSwitchManaged: true,
           killCardsEnabled: false,
+          customScoreboardEnabled: storedSettings.customScoreboardEnabled !== false,
           lightweightHud: storedSettings.lightweightHud !== false
         }
       : {
@@ -708,6 +715,31 @@ export const saveGameDisplay = async (value: unknown): Promise<GameSettings> => 
   const storedSettings = await readStoredSettings()
   await writeStoredSettings({ ...storedSettings, display })
   return getGameSettings()
+}
+
+export const saveCustomScoreboard = async (untrustedEnabled: unknown): Promise<GameSettings> => {
+  if (typeof untrustedEnabled !== 'boolean') throw new Error('Invalid custom scoreboard setting')
+  const storedSettings = await readStoredSettings()
+  const updated: StoredGameSettings = {
+    ...storedSettings,
+    customScoreboardEnabled: untrustedEnabled
+  }
+  const cs16ExecutablePath = await validateStoredPath(updated)
+  const keys = await resolveVoicePttKeys(updated)
+  await persistResolvedSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair,
+    updated
+  )
+  return buildSettings(
+    cs16ExecutablePath,
+    keys.team,
+    keys.party,
+    updated.crosshair ?? DEFAULT_CROSSHAIR,
+    updated
+  )
 }
 
 export const saveLightweightHud = async (untrustedEnabled: unknown): Promise<GameSettings> => {

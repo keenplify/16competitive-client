@@ -17,6 +17,7 @@ export interface PartnerAppIcon {
 export interface PartnerBranding {
   hideCommunityChat?: boolean
   partnerId: string
+  customScoreboardEnabled?: boolean
   hideNativeHelperSetup?: boolean
   desktopAppEnabled?: boolean
   appName?: string | null
@@ -153,6 +154,11 @@ export const parsePartnerBranding = (
       throw new Error('Unapproved partner background URL.')
     }
   }
+  if (
+    value.customScoreboardEnabled !== undefined &&
+    typeof value.customScoreboardEnabled !== 'boolean'
+  )
+    throw new Error('Invalid scoreboard setting.')
   if (value.hideNativeHelperSetup !== undefined && typeof value.hideNativeHelperSetup !== 'boolean')
     throw new Error('Invalid native helper setup visibility.')
   if (value.desktopAppEnabled !== undefined && typeof value.desktopAppEnabled !== 'boolean')
@@ -208,6 +214,7 @@ export const parsePartnerBranding = (
         ? { launcherTheme: value.launcherTheme as 'latest' | 'vgui2' }
         : {}),
       partnerId: value.partnerId,
+      customScoreboardEnabled: value.customScoreboardEnabled !== false,
       hideNativeHelperSetup: value.hideNativeHelperSetup === true,
       ...(value.hideCommunityChat !== undefined
         ? { hideCommunityChat: value.hideCommunityChat as boolean }

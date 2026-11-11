@@ -16,6 +16,7 @@ export interface NativeHelperSettings {
   currentDisplayResolution: GameResolution
   fastSwitchEnabled: boolean
   enhancementsEnabled: boolean
+  customScoreboardEnabled?: boolean
   lightweightHud: boolean
   killCardsEnabled: boolean
   crosshairConfig: string | null

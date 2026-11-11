@@ -2,6 +2,7 @@ import { clearSessionToken, getSessionToken } from './auth'
 import { matchmakingConnection } from './matchmaking'
 import { resolvePreferredMatchmakingApiUrl } from './matchmaking-regions'
 import type { DailyQuest, DailyQuestSnapshot } from '../shared/daily-quests'
+import { isDailyQuestReward } from '../shared/daily-quests'
 
 const isQuest = (value: unknown): value is DailyQuest => {
   if (typeof value !== 'object' || value === null) return false
@@ -14,6 +15,9 @@ const isQuest = (value: unknown): value is DailyQuest => {
     typeof quest.target === 'number' &&
     typeof quest.progress === 'number' &&
     typeof quest.rewardPoints === 'number' &&
+    (quest.reward === undefined || isDailyQuestReward(quest.reward)) &&
+    (quest.endsAt === undefined ||
+      (typeof quest.endsAt === 'string' && Number.isFinite(Date.parse(quest.endsAt)))) &&
     typeof quest.completed === 'boolean'
   )
 }
@@ -27,7 +31,7 @@ const isSnapshot = (value: unknown): value is DailyQuestSnapshot => {
     !Number.isNaN(Date.parse(snapshot.resetsAt)) &&
     typeof snapshot.points === 'number' &&
     Array.isArray(snapshot.quests) &&
-    snapshot.quests.length <= 3 &&
+    snapshot.quests.length <= 1000 &&
     snapshot.quests.every(isQuest)
   )
 }

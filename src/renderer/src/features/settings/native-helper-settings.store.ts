@@ -94,6 +94,7 @@ export const useNativeHelperSettingsStore = create<NativeSettingsState>((set, ge
           currentDisplayResolution: values.currentDisplayResolution,
           fastSwitchEnabled: values.fastSwitchEnabled,
           enhancementsEnabled: values.enhancementsEnabled,
+          customScoreboardEnabled: values.customScoreboardEnabled,
           lightweightHud: values.lightweightHud,
           killCardsEnabled: values.killCardsEnabled,
           crosshairConfig: values.crosshairConfig,

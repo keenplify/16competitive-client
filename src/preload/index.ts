@@ -278,6 +278,8 @@ const gameSettings: GameSettingsApi = {
   completeSetup: (mode) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.completeSetup, mode),
   setPlayerPingKey: (key) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setPlayerPingKey, key),
   setFastSwitch: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setFastSwitch, enabled),
+  setCustomScoreboard: (enabled) =>
+    ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setCustomScoreboard, enabled),
   setLightweightHud: (enabled) =>
     ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setLightweightHud, enabled),
   setKillCards: (enabled) => ipcRenderer.invoke(GAME_SETTINGS_CHANNELS.setKillCards, enabled),

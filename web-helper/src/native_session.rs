@@ -51,6 +51,7 @@ pub(crate) fn owned_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
 struct Feed {
     bytes: Vec<u8>,
     policy: String,
+    custom_scoreboard: bool,
 }
 fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Feed> {
     let agent = ureq::AgentBuilder::new()
@@ -62,9 +63,21 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Feed> {
         .set("Authorization", &format!("Bearer {token}"))
         .set("X-Scoreboard-Utilities", "v1")
         .set("X-Scoreboard-VIP", "v1")
-        .set("X-Scoreboard-Substitutes", if crate::native_bundle::supports_substitutes() { "v1" } else { "none" })
+        .set(
+            "X-Scoreboard-Substitutes",
+            if crate::native_bundle::supports_substitutes() {
+                "v1"
+            } else {
+                "none"
+            },
+        )
         .call()
         .ok()?;
+    let custom_scoreboard = match reply.header("x-custom-scoreboard") {
+        None | Some("1") => true,
+        Some("0") => false,
+        _ => return None,
+    };
     let bots = match reply.header("x-scoreboard-bot-tags") {
         None | Some("0") => false,
         Some("1") => true,
@@ -91,7 +104,11 @@ fn fetch_feed(api: &str, token: &str, match_id: &str) -> Option<Feed> {
         u8::from(bots),
         u8::from(straight)
     );
-    Some(Feed { bytes, policy })
+    Some(Feed {
+        bytes,
+        policy,
+        custom_scoreboard,
+    })
 }
 
 pub struct NativeSession {
@@ -216,9 +233,14 @@ impl NativeSession {
             if partner_connection.is_none() {
                 owned_write(&directory.join("match-recovery.policy"), b"v1\n")?;
             }
+            if partner_connection.is_some()
+                && crate::partner::custom_scoreboard_allowed(api, token, source_id) == Some(false)
+            {
+                owned_write(&directory.join("scoreboard.partner-disabled"), b"1\n")?;
+            }
             crate::native_preferences::initialize(&directory, preferences)?;
             if partner_connection.is_some() && crate::native_bundle::supports_papamovgui2() {
-                owned_write(&directory.join("papamovgui2-server.enabled"),b"1\n")?;
+                owned_write(&directory.join("papamovgui2-server.enabled"), b"1\n")?;
             }
             owned_write(&directory.join("scoreboard.visible"), b"0\n")?;
             owned_write(
@@ -296,6 +318,25 @@ impl NativeSession {
                 }
                 if Instant::now() >= next_authorization_check {
                     next_authorization_check = Instant::now() + Duration::from_secs(15);
+                    if partner_connection.is_some() {
+                        match crate::partner::custom_scoreboard_allowed(&api, &token, &match_id) {
+                            Some(true) => {
+                                let _ = fs::remove_file(
+                                    feed_path_root.join("scoreboard.partner-disabled"),
+                                );
+                            }
+                            Some(false) => {
+                                let _ = owned_write(
+                                    &feed_path_root.join("scoreboard.partner-disabled"),
+                                    b"1\n",
+                                );
+                            }
+                            None => {} // Keep the last known partner preference during network failures.
+                        }
+                        if let Ok(settings) = crate::native_preferences::live_settings() {
+                            let _ = crate::native_preferences::refresh(&feed_path_root, &settings);
+                        }
+                    }
                     let revoked = if let Some(connection) = &partner_connection {
                         !crate::partner::authorized(
                             &api,
@@ -318,6 +359,24 @@ impl NativeSession {
                 } else {
                     None
                 } {
+                    if snapshot.custom_scoreboard {
+                        let _ = fs::remove_file(feed_path_root.join("scoreboard.partner-disabled"));
+                    } else {
+                        let _ = owned_write(
+                            &feed_path_root.join("scoreboard.partner-disabled"),
+                            b"1\n",
+                        );
+                    }
+                    if let Ok(settings) = crate::native_preferences::live_settings() {
+                        let _ = owned_write(
+                            &feed_path_root.join("scoreboard.disabled"),
+                            if snapshot.custom_scoreboard && settings.custom_scoreboard_enabled {
+                                b"0\n"
+                            } else {
+                                b"1\n"
+                            },
+                        );
+                    }
                     // Bind policy and feed so asynchronous readers never apply
                     // one match revision's visibility/layout to another.
                     if owned_write(
@@ -350,16 +409,26 @@ impl NativeSession {
     }
 
     pub fn start_music(&mut self, root: &Path, api: &str, token: &str, match_id: &str) {
-        self.workers.push(crate::music::start(root.to_path_buf(), self.directory.clone(), api.into(), token.into(), match_id.into(), self.stop.clone()));
+        self.workers.push(crate::music::start(
+            root.to_path_buf(),
+            self.directory.clone(),
+            api.into(),
+            token.into(),
+            match_id.into(),
+            self.stop.clone(),
+        ));
     }
 
     pub fn recovery_requested(&self) -> bool {
-        self.is_active() && fs::File::open(self.directory.join("match-recovery.requested"))
-            .ok().and_then(|file| {
-                let mut bytes = Vec::new();
-                file.take(4).read_to_end(&mut bytes).ok()?;
-                Some(bytes == b"v1\n")
-            }).unwrap_or(false)
+        self.is_active()
+            && fs::File::open(self.directory.join("match-recovery.requested"))
+                .ok()
+                .and_then(|file| {
+                    let mut bytes = Vec::new();
+                    file.take(4).read_to_end(&mut bytes).ok()?;
+                    Some(bytes == b"v1\n")
+                })
+                .unwrap_or(false)
     }
 
     pub fn is_active(&self) -> bool {

@@ -179,6 +179,7 @@ import {
   savePlayerPingKey,
   saveKillCards,
   saveLightweightHud,
+  saveCustomScoreboard,
   saveGameDisplay
 } from './game/game-settings'
 import { removeStaleMatchUserConfigHandoff } from './game/match-userconfig-handoff'
@@ -1255,10 +1256,14 @@ app.whenReady().then(async () => {
       submitManualPayment(id, senderName, reference)
   )
   ipcMain.handle(SKIN_CHANNELS.cancelManualPayment, (_, id: unknown) => cancelManualPayment(id))
-  ipcMain.handle(SKIN_CHANNELS.createPayment, (_, requestId: unknown, amount: unknown, provider: unknown) =>
-    createPayment(requestId, amount, provider)
+  ipcMain.handle(
+    SKIN_CHANNELS.createPayment,
+    (_, requestId: unknown, amount: unknown, provider: unknown) =>
+      createPayment(requestId, amount, provider)
   )
-  ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown, provider: unknown) => refreshPayment(id, provider))
+  ipcMain.handle(SKIN_CHANNELS.refreshPayment, (_, id: unknown, provider: unknown) =>
+    refreshPayment(id, provider)
+  )
   ipcMain.handle(SKIN_CHANNELS.mine, (_, gameVersion: unknown) => getOwnedSkins(gameVersion))
   ipcMain.handle(SKIN_CHANNELS.resaleQuote, (_, skinId: unknown) => getSkinResaleQuote(skinId))
   ipcMain.handle(SKIN_CHANNELS.sell, (_, skinId: unknown, quote: unknown) =>
@@ -1431,6 +1436,9 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setFastSwitch, (_, enabled: unknown) =>
     saveFastSwitch(enabled)
+  )
+  ipcMain.handle(GAME_SETTINGS_CHANNELS.setCustomScoreboard, (_, enabled: unknown) =>
+    saveCustomScoreboard(enabled)
   )
   ipcMain.handle(GAME_SETTINGS_CHANNELS.setLightweightHud, (_, enabled: unknown) =>
     saveLightweightHud(enabled)

@@ -741,6 +741,7 @@ export async function nativeHelperSettings(
   if (settings.crosshairConfig !== null) parseNativeCrosshairConfig(settings.crosshairConfig)
   if (
     ![
+      ...(settings.customScoreboardEnabled === undefined ? [] : [settings.customScoreboardEnabled]),
       settings.fastSwitchEnabled,
       settings.enhancementsEnabled,
       settings.lightweightHud,
