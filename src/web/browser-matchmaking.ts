@@ -603,10 +603,11 @@ export const browserMatchmakingApi: MatchmakingApi = {
       authenticated: true
     })
     const catalog = parseMatchmakingMapCatalog(body)
+    // Queue modes outside webModes need the native helper. Custom-room modes
+    // are decided by the backend (customEnabled) and stay usable without it.
     return { ...catalog, maps: catalog.maps.map(map => ({
       ...map,
-      supportedModes: map.supportedModes.filter(mode => map.webModes.includes(mode) || isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16')),
-      customModes: map.customModes.filter(mode => isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16'))
+      supportedModes: map.supportedModes.filter(mode => map.webModes.includes(mode) || isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16'))
     })) }
   },
 
