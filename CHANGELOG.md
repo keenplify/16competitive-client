@@ -4733,3 +4733,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Choose your resolution through the game's own settings; the launcher no longer overrides it.
 - Removed the hardcoded ModDB download link for 1.3.
+
+## v2026.1111.3 — 2026-11-11
+
+### Missions
+
+- Added scheduled mission rewards.
+- Improved daily mission reward display and tracking.
+
+### Scoreboard
+
+- Added custom scoreboard preferences.
+- Added settings controls for scoreboard customization.
