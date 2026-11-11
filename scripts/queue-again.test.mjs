@@ -522,3 +522,10 @@ for (const mode of ['ffa', 'arena'])
     await h.store.getState().leaveFfa()
     assert.equal(h.requests.length, 2)
   })
+
+test('custom room context survives match completion for 1.3 results', async () => {
+  const h = await harness()
+  h.emit({ type: 'match_finished', ...h.completed, mode: 'cs13_3v3', isCustomRoom: true })
+  assert.equal(h.store.getState().completedMatch.isCustomRoom, true)
+  assert.equal(h.store.getState().completedMatch.mode, 'cs13_3v3')
+})

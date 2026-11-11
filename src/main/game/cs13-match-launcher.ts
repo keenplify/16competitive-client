@@ -2,10 +2,9 @@ import type { CrosshairProfile } from '../../shared/crosshair'
 import { launchStandaloneSession, standaloneSupportsCs13 } from './standalone-session'
 import { createCs13AuthFile, cs13AuthContents } from './cs13-auth-file'
 import { createHash } from 'node:crypto'
-import { app, screen } from 'electron'
+import { app } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { access, writeFile } from 'node:fs/promises'
-import { constants } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MatchmakingServerMessage } from '../../shared/matchmaking'
 import { cs13Adapter, cs13ConnectionArgs } from './adapters/cs13'
@@ -26,7 +25,6 @@ import { prepareCs13MatchInstallation } from './cs13-match-installation'
 import { setGameConsoleDirectory } from './game-console-logs'
 import { ensureSharedModelDirectory, gameStorageError } from './shared-model-directory'
 import { sharedModelDirectory } from './shared-skin-storage'
-import { resolveGameResolution } from '../../shared/game-display'
 import { prepareCs13Controls } from './cs13-controls'
 
 let running: {
@@ -137,24 +135,8 @@ export async function launchCs13Match(
       installation.modDirectory,
       installation.runtime
     )
-    const gamescope =
-      process.platform === 'linux' &&
-      installation.runtime === 'wine' &&
-      (await access('/usr/bin/gamescope', constants.X_OK)
-        .then(() => true)
-        .catch(() => false))
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
     const settings = await getGameSettings(true)
-    const plan = cs13Adapter.buildMenuLaunchPlan(installation, {
-      resolution: resolveGameResolution(
-        settings.display,
-        settings.currentDisplayResolution,
-        'cs13'
-      ),
-      ...(gamescope
-        ? { wineDisplay: { gamescopeExecutable: '/usr/bin/gamescope', ...display.size } }
-        : {})
-    })
+    const plan = cs13Adapter.buildMenuLaunchPlan(installation)
     if (!isCurrent()) return
     const { address } = await lookup(connection.host, { family: 4 })
     const connectionArgs = cs13ConnectionArgs({ ...connection, host: address })

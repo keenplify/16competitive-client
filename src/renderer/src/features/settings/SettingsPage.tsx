@@ -9,7 +9,6 @@ import { CommunitySettings } from '../partner-branding/CommunitySettings'
 import { KillCardsSetting } from './KillCardsSetting'
 import { LightweightHudSetting } from './LightweightHudSetting'
 import { LegacyGameSettings } from './LegacyGameSettings'
-import { GameDisplaySettings } from './GameDisplaySettings'
 import { PlayerPingSetting } from './PlayerPingSetting'
 import {
   BookOpen,
@@ -574,7 +573,6 @@ export function SettingsPage(): JSX.Element {
               <CommunitySettings />
               <ChatTranslationSettings />
               {!webRuntime && <LegacyGameSettings />}
-              {!webRuntime && <GameDisplaySettings />}
 
               {webRuntime ? (
                 <>

@@ -25,6 +25,7 @@ import { useMatchmakingStore, type CompletedMatch } from './matchmaking.store'
 export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JSX.Element {
   const { t } = useTranslation()
   const voiceText = useVoiceDockText()
+  const ratedMatch = !match.isCustomRoom && isRankedMatchmakingMode(match.mode)
   const currentPlayerId = useAuthStore((state) => state.session?.player.id)
   const party = usePartyStore((state) => state.party)
   const visibleMmrPlayerIds = new Set([
@@ -298,7 +299,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
                     ) : (
                       <button
                         type="button"
-                        className="truncate text-left font-medium text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                        className="truncate px-2 py-1 text-left font-medium text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
                         onClick={() => openPlayerProfile(player.id)}
                       >
                         {player.username}
@@ -347,7 +348,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
           </p>
           <p className="mt-3 text-sm font-semibold tracking-[0.16em] text-neutral-300 uppercase">
             {getMatchmakingModeLabel(match.mode)} ·{' '}
-            {t(isRankedMatchmakingMode(match.mode) ? 'bet.ranked' : 'bet.unranked')}
+            {t(match.isCustomRoom ? 'play.customGame' : ratedMatch ? 'bet.ranked' : 'bet.unranked')}
           </p>
           <PCashBetResult
             matchId={match.matchId}
@@ -359,7 +360,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               label={match.winner === 1 ? 'Team 1 · Winners' : 'Team 1'}
               players={match.teams.teamA}
               stats={match.players}
-              ratedMatch={isRankedMatchmakingMode(match.mode)}
+              ratedMatch={ratedMatch}
               compact={match.mode !== '5v5' && match.mode !== 'unrated'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
@@ -368,7 +369,7 @@ export function MatchResultsPage({ match }: { match: CompletedMatch }): React.JS
               label={match.winner === 2 ? 'Team 2 · Winners' : 'Team 2'}
               players={match.teams.teamB}
               stats={match.players}
-              ratedMatch={isRankedMatchmakingMode(match.mode)}
+              ratedMatch={ratedMatch}
               compact={match.mode !== '5v5' && match.mode !== 'unrated'}
               visibleMmrPlayerIds={visibleMmrPlayerIds}
               onPlayerContextMenu={showPlayerMenu}
@@ -444,6 +445,7 @@ function Team({
   visibleMmrPlayerIds: Set<string>
   onPlayerContextMenu: (event: MouseEvent<HTMLElement>, playerId: string) => void
 }): React.JSX.Element {
+  const { t } = useTranslation()
   return (
     <div className={twMerge('mx-auto mt-8 max-w-6xl', compact && 'max-w-[43rem]', className)}>
       <h2 className="mb-3 text-left text-xs font-bold tracking-[.2em] text-neutral-300 uppercase">
@@ -464,7 +466,7 @@ function Team({
             >
               <button
                 type="button"
-                className="max-w-full truncate text-left text-lg font-bold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
+                className="max-w-full truncate px-2 py-1 text-left text-lg font-bold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300"
                 onClick={() => useProfileStore.getState().open(p.id)}
               >
                 {p.username}
@@ -492,7 +494,7 @@ function Team({
                     ? canViewMmrChange
                       ? `${playerStats.mmrChange >= 0 ? '+' : ''}${playerStats.mmrChange}`
                       : '—'
-                    : 'Unranked'
+                    : t('bet.unranked')
                   : '—'}
               </p>
               <p className="mt-3 text-xs font-medium text-neutral-400">

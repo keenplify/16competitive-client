@@ -1,4 +1,4 @@
-import { Download, FolderOpen, LoaderCircle, Play } from 'lucide-react'
+import { FolderOpen, LoaderCircle, Play } from 'lucide-react'
 import { useEffect, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
@@ -23,7 +23,6 @@ export function LegacyGameSettings({
   const load = useLegacyGameStore((state) => state.load)
   const choose = useLegacyGameStore((state) => state.choose)
   const launch = useLegacyGameStore((state) => state.launch)
-  const openDownload = useLegacyGameStore((state) => state.openDownload)
   useEffect(() => {
     void load()
   }, [load])
@@ -83,16 +82,6 @@ export function LegacyGameSettings({
           </Button>
         )}
       </div>
-      <Button
-        variant="ghost"
-        className="mt-3 gap-2 text-sky-300"
-        disabled={busy}
-        onClick={() => void openDownload()}
-      >
-        <Download className="size-4 shrink-0" aria-hidden="true" />
-        {t('legacy.download')}
-      </Button>
-      <p className="mt-1 text-xs leading-5 text-neutral-400">{t('legacy.downloadHelp')}</p>
       <div className="mt-3 h-20 overflow-auto text-sm leading-5" role="status" aria-live="polite">
         {error ? (
           <p className="text-red-400">{t(`legacy.error.${error}`)}</p>

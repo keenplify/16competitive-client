@@ -127,6 +127,7 @@ export interface MatchAbandonNotice {
   message: string
 }
 export interface CompletedMatch extends Omit<FoundMatch, 'region' | 'hostApiUrl'> {
+  isCustomRoom?: boolean
   winner: 1 | 2
   winnerPlayerId?: string
   teamAScore: number
@@ -609,6 +610,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             mode: event.mode,
             mapId: event.mapId,
             teams: event.teams,
+            isCustomRoom: event.isCustomRoom,
             winner: event.winner,
             winnerPlayerId: event.winnerPlayerId,
             teamAScore: event.teamAScore,

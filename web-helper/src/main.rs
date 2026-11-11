@@ -1089,11 +1089,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             steam_proton::configure_native_display(&mut command);
         }
     }
-    let (width, height) = preferences.resolution(connection.game())?;
-    if connection.game() == "cs13" {
-        command.args(["-width", &width.to_string(), "-height", &height.to_string()]);
-    } else {
-        command.args(["-w", &width.to_string(), "-h", &height.to_string()]);
+    if connection.game() != "cs13" {
         command.args([
             "+hud_fastswitch",
             if preferences.fast_switch_enabled {

@@ -377,8 +377,6 @@ pub fn launch(
                     .ok_or("Missing GoldClient managed flag")?,
             );
         }
-        let (width, height) = preferences.resolution("cs16")?;
-        command.args(["-w", &width.to_string(), "-h", &height.to_string()]);
         for _ in 0..20 {
             command.arg("+wait");
         }

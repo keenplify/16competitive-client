@@ -509,6 +509,7 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
       )
     case 'match_finished':
       return (
+        (message.isCustomRoom === undefined || typeof message.isCustomRoom === 'boolean') &&
         typeof message.matchId === 'string' &&
         isMatchmakingMode(message.mode) &&
         isMapId(message.mapId) &&

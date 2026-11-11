@@ -488,3 +488,13 @@ launcher reopens; the player reconnects again to retry preparation. Cancellation
 leaves the current launcher open. The retry flag prevents elevation loops.
 This changes no folder ACLs and does not change the CS 1.3 restoration lifecycle.
 Linux and background helper runtimes retain the writable-installation requirement.
+
+
+### Player-owned resolution (November 11, 2026)
+
+The launcher no longer offers resolution/aspect controls or applies its saved
+resolution preferences when launching CS 1.3. Ordinary and match launches use
+the game's display settings directly, including Wine launches. The native helper
+also no longer adds resolution arguments for CS 1.3, CS 1.6 or community-server
+launches. Legacy preference fields remain readable for compatibility but do not
+override the player's game settings. No player configuration files are edited.

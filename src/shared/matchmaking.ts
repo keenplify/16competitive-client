@@ -382,6 +382,7 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
     }
   | {
       type: 'match_finished'
+      isCustomRoom?: boolean
       publicFfa?: boolean
       matchId: string
       mode: MatchmakingMode

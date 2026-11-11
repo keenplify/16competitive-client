@@ -11,7 +11,6 @@ interface LegacyGameState {
   load: () => Promise<void>
   choose: () => Promise<void>
   launch: () => Promise<void>
-  openDownload: () => Promise<void>
 }
 
 export const useLegacyGameStore = create<LegacyGameState>((set, get) => ({
@@ -19,14 +18,6 @@ export const useLegacyGameStore = create<LegacyGameState>((set, get) => ({
   status: 'loading',
   error: null,
   launched: false,
-  openDownload: async () => {
-    try {
-      const result = await window.api.legacyGame.openDownload()
-      if (!result.ok) set({ error: result.error })
-    } catch {
-      set({ error: 'downloadFailed' })
-    }
-  },
   load: async () => {
     if (get().status === 'choosing' || get().status === 'launching') return
     set({ status: 'loading', error: null, launched: false })

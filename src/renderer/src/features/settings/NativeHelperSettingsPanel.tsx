@@ -2,10 +2,8 @@ import { useEffect, type JSX } from 'react'
 import { FolderOpen, LoaderCircle } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { twMerge } from 'tailwind-merge'
-import { GAME_RESOLUTION_PRESETS, isWidescreen } from '../../../../shared/game-display'
 import { Button } from '../../components/ui/Button'
 import { TextField } from '../../components/ui/TextField'
-import { SelectField } from '../../components/ui/SelectField'
 import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
 import { useNativeHelperSettingsStore } from './native-helper-settings.store'
@@ -43,7 +41,6 @@ export function NativeHelperSettingsPanel({
   }, [status, errorCode, t])
   const busy = !['idle', 'error'].includes(status)
   const disabled = !settings || busy
-  const display = settings?.display ?? { resolution: 'current', widescreen: true }
   return (
     <section
       className={twMerge(
@@ -90,58 +87,6 @@ export function NativeHelperSettingsPanel({
           </div>
         </div>
       ))}
-      {!foldersOnly && (
-        <div className="border-t border-white/10 pt-5">
-          <h3 className="text-base font-semibold">{t('settings.gameDisplay')}</h3>
-          <p className="mt-1 text-sm leading-5 text-neutral-300">
-            {t('settings.gameDisplayDescription')}
-          </p>
-          <div className="mt-4 space-y-3">
-            <SelectField
-              label={t('settings.gameResolution')}
-              value={display.resolution}
-              disabled={disabled}
-              onChange={(event) =>
-                void save({
-                  display: { ...display, resolution: event.target.value },
-                  currentDisplayResolution: {
-                    width: Math.round(screen.width * devicePixelRatio),
-                    height: Math.round(screen.height * devicePixelRatio)
-                  }
-                })
-              }
-            >
-              <option value="current">
-                {t('settings.gameResolutionAuto', {
-                  width: Math.round(screen.width * devicePixelRatio),
-                  height: Math.round(screen.height * devicePixelRatio)
-                })}
-              </option>
-              {GAME_RESOLUTION_PRESETS.filter(
-                ([width, height]) => isWidescreen({ width, height }) === display.widescreen
-              ).map(([width, height]) => (
-                <option key={`${width}x${height}`} value={`${width}x${height}`}>
-                  {width} × {height}
-                </option>
-              ))}
-            </SelectField>
-            <HelperCheckbox
-              label={t('settings.gameWidescreen')}
-              checked={display.widescreen}
-              disabled={disabled}
-              onChange={(widescreen) =>
-                void save({
-                  display: { resolution: 'current', widescreen },
-                  currentDisplayResolution: {
-                    width: Math.round(screen.width * devicePixelRatio),
-                    height: Math.round(screen.height * devicePixelRatio)
-                  }
-                })
-              }
-            />
-          </div>
-        </div>
-      )}
       {!foldersOnly && (
         <div className="border-t border-white/10 pt-3">
           <div className="divide-y divide-white/10">
