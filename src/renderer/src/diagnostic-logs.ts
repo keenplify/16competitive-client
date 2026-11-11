@@ -6,7 +6,11 @@ export const rendererMatchmakingDiagnostics = new MatchmakingDiagnostics()
 
 const formatValue = (value: unknown): string => {
   if (typeof value === 'string') return value
-  if (value instanceof Error) return value.stack ?? `${value.name}: ${value.message}`
+  if (value instanceof Error) {
+    // Firefox stacks can contain frames without the exception message.
+    const summary = `${value.name}: ${value.message}`
+    return value.stack?.includes(summary) ? value.stack : `${summary}\n${value.stack ?? ''}`.trim()
+  }
   try {
     return JSON.stringify(value) ?? String(value)
   } catch {

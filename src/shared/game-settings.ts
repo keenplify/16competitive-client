@@ -67,6 +67,7 @@ export interface SkinAssetSyncProgress {
   completedFiles: number
   totalFiles: number
   currentFile?: string
+  errorCode?: string
   message?: string
 }
 

@@ -395,6 +395,8 @@ function parseProgress(value: unknown): SkinAssetSyncProgress {
     p.totalFiles < 0 ||
     p.completedFiles > p.totalFiles ||
     p.totalFiles > 20000 ||
+    (p.errorCode !== undefined &&
+      (typeof p.errorCode !== 'string' || !/^ASSET_[A-Z_]{1,48}$/.test(p.errorCode))) ||
     (p.currentFile !== undefined &&
       (typeof p.currentFile !== 'string' ||
         p.currentFile.length > 256 ||
@@ -423,8 +425,17 @@ export async function syncNativeAssets(mode: 'download' | 'repair' = 'download')
   while (true) {
     for (const listener of assetSyncListeners) listener(progress)
     if (progress.status === 'ready') return
-    if (progress.status === 'error' || Date.now() >= deadline || getWebSessionToken() !== token)
-      throw new Error('Native asset sync failed')
+    if (progress.status === 'error' || Date.now() >= deadline || getWebSessionToken() !== token) {
+      console.warn('[NativeAssets] Asset synchronization failed', {
+        errorCode: progress.errorCode ?? 'ASSET_SYNC_FAILED',
+        completedFiles: progress.completedFiles,
+        totalFiles: progress.totalFiles,
+        currentFile: progress.currentFile
+      })
+      throw Object.assign(new Error('Could not download skin assets.'), {
+        code: progress.errorCode ?? 'ASSET_SYNC_FAILED'
+      })
+    }
     await sleep(1000)
     progress = await nativeAssetStatus()
   }

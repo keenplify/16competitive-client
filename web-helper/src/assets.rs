@@ -22,6 +22,8 @@ pub struct Progress {
     pub total_files: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_file: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
 }
 #[derive(Deserialize)]
 struct Asset {
@@ -314,6 +316,7 @@ pub fn status() -> Progress {
         completed_files: 0,
         total_files: 0,
         current_file: None,
+        error_code: None,
     })
 }
 pub(crate) fn api(origin: &str, token: &str) -> Result<ureq::Agent, String> {
@@ -335,18 +338,64 @@ pub(crate) fn request(agent: &ureq::Agent, url: &str, token: &str, max: u64) -> 
         .get(url)
         .set("Authorization", &format!("Bearer {token}"))
         .call()
-        .map_err(|_| "Managed asset service is unavailable")?;
+        .map_err(|error| match error {
+            ureq::Error::Status(401 | 403, _) => "ASSET_AUTH_FAILED",
+            ureq::Error::Status(404, _) => "ASSET_NOT_FOUND",
+            ureq::Error::Status(_, _) => "ASSET_SERVICE_UNAVAILABLE",
+            ureq::Error::Transport(_) => "ASSET_NETWORK_FAILED",
+        })?;
     let mut bytes = Vec::new();
     reply
         .into_reader()
         .take(max + 1)
         .read_to_end(&mut bytes)
-        .map_err(|_| "Managed asset download failed")?;
+        .map_err(|_| "ASSET_NETWORK_FAILED")?;
     if bytes.len() as u64 > max {
         return Err("Managed asset exceeds its size limit".into());
     }
     Ok(bytes)
 }
+fn request_manifest(agent: &ureq::Agent, url: &str, token: &str) -> Result<Vec<u8>, String> {
+    for attempt in 0..3 {
+        match request(agent, url, token, 4 * 1024 * 1024) {
+            Err(error) if matches!(error.as_str(), "ASSET_NETWORK_FAILED" | "ASSET_SERVICE_UNAVAILABLE") && attempt < 2 => {
+                std::thread::sleep(Duration::from_millis(500 * (attempt + 1)));
+            }
+            result => return result,
+        }
+    }
+    unreachable!()
+}
+
+// Return only bounded, credential-free codes over the browser bridge.
+fn failed_progress(old: Progress, error: &str) -> Progress {
+    let code = if matches!(error, "ASSET_AUTH_FAILED" | "ASSET_NOT_FOUND" | "ASSET_SERVICE_UNAVAILABLE" | "ASSET_NETWORK_FAILED" | "ASSET_VERIFICATION_FAILED") {
+        error
+    } else if matches!(error, "Managed asset exceeds its size limit" | "Asset changed during installation") {
+        "ASSET_VERIFICATION_FAILED"
+    } else if error.contains("manifest") || error.contains("hash") || error.contains("asset path") || error.contains("asset destination") {
+        "ASSET_MANIFEST_INVALID"
+    } else {
+        "ASSET_STORAGE_FAILED"
+    };
+    Progress { status: "error".into(), error_code: Some(code.into()), ..old }
+}
+
+fn download_verified(agent: &ureq::Agent, url: &str, token: &str, asset: &Asset, expected: &str) -> Result<Vec<u8>, String> {
+    let mut last_error = "ASSET_VERIFICATION_FAILED".to_string();
+    for attempt in 0..3 {
+        match request(agent, url, token, limit(&asset.path)) {
+            Ok(bytes) if valid_header(&asset.path, &bytes)
+                && format!("{:x}", Sha256::digest(&bytes)).starts_with(expected) => return Ok(bytes),
+            Ok(_) => last_error = "ASSET_VERIFICATION_FAILED".into(),
+            Err(error) => last_error = error,
+        }
+        if matches!(last_error.as_str(), "ASSET_AUTH_FAILED" | "ASSET_NOT_FOUND") { break; }
+        if attempt < 2 { std::thread::sleep(Duration::from_millis(500 * (attempt + 1))); }
+    }
+    Err(last_error)
+}
+
 fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_destination: bool) -> Result<(), String> {
     let agent = api(origin, token)?;
     let config = user_config_dir()?;
@@ -363,15 +412,16 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_de
         completed_files: 0,
         total_files: 0,
         current_file: None,
+        error_code: None,
     });
-    let result = (|| {
+    let result: Result<(), String> = (|| {
         let manifest_url = if let Some(id) = match_id {
             format!("{origin}/matches/{id}/assets")
         } else {
             format!("{origin}/skins/assets/manifest")
         };
         let mut manifest: Manifest =
-            serde_json::from_slice(&request(&agent, &manifest_url, token, 4 * 1024 * 1024)?)
+            serde_json::from_slice(&request_manifest(&agent, &manifest_url, token)?)
                 .map_err(|_| "Invalid asset manifest")?;
         if manifest.assets.len() > 20000 {
             return Err("Asset manifest is too large".into());
@@ -396,6 +446,10 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_de
         for (index, asset) in manifest.assets.iter().enumerate() {
             if match_id.is_some() { crate::desktop_session::report_progress("assets", index, total); }
             let expected = hash_for(asset, match_id.is_none())?;
+            write_progress(&Progress {
+                status: "syncing".into(), completed_files: index, total_files: total,
+                current_file: Some(asset.path.clone()), error_code: None,
+            });
             let target = game_destination(root, &asset.path)?;
             if !matches(&target, asset, &expected) {
                 let cached = destination(
@@ -416,29 +470,8 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_de
                         "/skins/assets/file".into()
                     });
                     url.query_pairs_mut().append_pair("path", &asset.path);
-                    write_progress(&Progress {
-                        status: "syncing".into(),
-                        completed_files: index,
-                        total_files: total,
-                        current_file: Some(asset.path.clone()),
-                    });
                     if match_id.is_some() { crate::desktop_session::report_progress("downloading", index, total); }
-                    let mut downloaded = None;
-                    for attempt in 0..3 {
-                        if let Ok(bytes) = request(&agent, url.as_str(), token, limit(&asset.path))
-                        {
-                            if valid_header(&asset.path, &bytes)
-                                && format!("{:x}", Sha256::digest(&bytes)).starts_with(&expected)
-                            {
-                                downloaded = Some(bytes);
-                                break;
-                            }
-                        }
-                        if attempt < 2 {
-                            std::thread::sleep(Duration::from_millis(500 * (attempt + 1)));
-                        }
-                    }
-                    let bytes = downloaded.ok_or("Could not verify required managed assets")?;
+                    let bytes = download_verified(&agent, url.as_str(), token, asset, &expected)?;
                     let temp = cached.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
                     let mut options = OpenOptions::new();
                     options.create_new(true).write(true);
@@ -466,6 +499,7 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_de
                 completed_files: index + 1,
                 total_files: total,
                 current_file: None,
+                error_code: None,
             });
         }
         write_progress(&Progress {
@@ -473,15 +507,12 @@ fn sync(root: &Path, origin: &str, token: &str, match_id: Option<&str>, final_de
             completed_files: total,
             total_files: total,
             current_file: None,
+            error_code: None,
         });
         Ok(())
     })();
-    if result.is_err() {
-        let old = status();
-        write_progress(&Progress {
-            status: "error".into(),
-            ..old
-        });
+    if let Err(error) = &result {
+        write_progress(&failed_progress(status(), error));
     }
     result
 }
@@ -520,18 +551,15 @@ pub fn start_catalog(origin: String, token: String, _repair: bool, game: Option<
         completed_files: 0,
         total_files: 0,
         current_file: None,
+        error_code: None,
     });
     std::thread::spawn(move || {
         // Reuse verified cache content, but install it into every configured adapter.
-        let failed = destinations.iter().enumerate().any(|(index, root)|
-            sync(root, &origin, &token, None, index + 1 == destinations.len()).is_err());
-        if failed {
-            write_progress(&Progress {
-                status: "error".into(),
-                completed_files: 0,
-                total_files: 0,
-                current_file: None,
-            });
+        for (index, root) in destinations.iter().enumerate() {
+            if let Err(error) = sync(root, &origin, &token, None, index + 1 == destinations.len()) {
+                write_progress(&failed_progress(status(), &error));
+                break;
+            }
         }
         BUSY.store(false, Ordering::SeqCst);
     });
@@ -541,6 +569,42 @@ pub fn start_catalog(origin: String, token: String, _repair: bool, game: Option<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn failed_download_keeps_filename_counts_and_only_a_safe_error_code() {
+        let progress = Progress { status: "syncing".into(), completed_files: 7, total_files: 223,
+            current_file: Some("models/16competitive/knife/aaaaaaaaaaaaaaaa/v.mdl".into()), error_code: None };
+        let failed = failed_progress(progress.clone(), "Permission denied (os error 13)");
+        assert_eq!(failed.status, "error");
+        assert_eq!(failed.completed_files, 7);
+        assert_eq!(failed.total_files, 223);
+        assert_eq!(failed.current_file, progress.current_file);
+        assert_eq!(failed.error_code.as_deref(), Some("ASSET_STORAGE_FAILED"));
+        let failed = failed_progress(progress, "ASSET_AUTH_FAILED");
+        assert_eq!(failed.error_code.as_deref(), Some("ASSET_AUTH_FAILED"));
+        assert!(!serde_json::to_string(&failed).unwrap().contains("Permission denied"));
+    }
+
+    #[test]
+    fn manifest_retries_transient_server_failure_but_preserves_auth_failure() {
+        use std::net::TcpListener;
+        for (statuses, expected) in [(vec![503, 200], None), (vec![401], Some("ASSET_AUTH_FAILED"))] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let url = format!("http://{}/manifest", listener.local_addr().unwrap());
+            let server = std::thread::spawn(move || {
+                for status in statuses {
+                    let (mut socket, _) = listener.accept().unwrap();
+                    let mut buffer = [0; 4096];
+                    let _ = socket.read(&mut buffer).unwrap();
+                    write!(socket, "HTTP/1.1 {status} Test\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}").unwrap();
+                }
+            });
+            let result = request_manifest(&ureq::AgentBuilder::new().build(), &url, "fixture");
+            if let Some(error) = expected { assert_eq!(result.unwrap_err(), error); }
+            else { assert_eq!(result.unwrap(), b"{}"); }
+            server.join().unwrap();
+        }
+    }
 
     #[test]
     fn catalog_uses_both_versions_or_only_the_explicit_game_without_fallback() {

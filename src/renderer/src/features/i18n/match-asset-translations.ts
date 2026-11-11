@@ -1,5 +1,11 @@
 export const matchAssetTranslations = {
   en: {
+    'assets.sync.authFailed': 'Sign in again, then retry downloading game assets.',
+    'assets.sync.networkFailed':
+      'Could not reach the asset server. Check your connection and retry.',
+    'assets.sync.serviceFailed':
+      'Could not download or verify game assets. Retry, or submit an issue report with the failed filename.',
+
     'match.launch.adminRequired':
       'Windows requires administrator approval to start Half-Life. Retry from the installed launcher and approve the Windows prompt, or turn off “Run this program as an administrator” in hl.exe Properties → Compatibility.',
     'match.launch.adminCancelled':
@@ -24,6 +30,12 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Counter-Strike launch requested.'
   },
   ru: {
+    'assets.sync.authFailed': 'Войдите снова и повторите загрузку файлов игры.',
+    'assets.sync.networkFailed':
+      'Сервер ресурсов недоступен. Проверьте подключение и повторите попытку.',
+    'assets.sync.serviceFailed':
+      'Не удалось загрузить или проверить файлы игры. Повторите попытку или отправьте отчёт с именем файла.',
+
     'match.launch.adminRequired':
       'Windows требует права администратора для Half-Life. Повторите запуск из установленного лаунчера и подтвердите запрос Windows или отключите запуск от администратора в свойствах hl.exe → Совместимость.',
     'match.launch.adminCancelled':
@@ -48,6 +60,12 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Запуск Counter-Strike запрошен.'
   },
   tl: {
+    'assets.sync.authFailed': 'Mag-sign in muli, saka subukang i-download ulit ang game assets.',
+    'assets.sync.networkFailed':
+      'Hindi makakonekta sa asset server. Tingnan ang koneksyon at subukan muli.',
+    'assets.sync.serviceFailed':
+      'Hindi ma-download o ma-verify ang game assets. Subukan muli o magsumite ng ulat kasama ang pangalan ng file.',
+
     'match.launch.adminRequired':
       'Kailangan ng Windows ang pahintulot ng administrator para simulan ang Half-Life. Subukan ulit sa naka-install na launcher at payagan ang Windows prompt, o i-off ang “Run this program as an administrator” sa hl.exe Properties → Compatibility.',
     'match.launch.adminCancelled':
@@ -72,6 +90,11 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Hiniling ang pagbukas ng Counter-Strike.'
   },
   th: {
+    'assets.sync.authFailed': 'เข้าสู่ระบบอีกครั้งแล้วลองดาวน์โหลดไฟล์เกมใหม่',
+    'assets.sync.networkFailed': 'เชื่อมต่อเซิร์ฟเวอร์ไฟล์ไม่ได้ ตรวจสอบการเชื่อมต่อแล้วลองใหม่',
+    'assets.sync.serviceFailed':
+      'ดาวน์โหลดหรือตรวจสอบไฟล์เกมไม่สำเร็จ ลองใหม่หรือส่งรายงานพร้อมชื่อไฟล์ที่มีปัญหา',
+
     'match.launch.adminRequired':
       'Windows ต้องการสิทธิ์ผู้ดูแลระบบเพื่อเริ่ม Half-Life ลองอีกครั้งจากลอนเชอร์ที่ติดตั้งและอนุมัติคำขอ Windows หรือปิด “Run this program as an administrator” ใน hl.exe Properties → Compatibility',
     'match.launch.adminCancelled':
@@ -96,6 +119,12 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'ส่งคำขอเปิด Counter-Strike แล้ว'
   },
   id: {
+    'assets.sync.authFailed': 'Masuk kembali, lalu coba unduh aset game lagi.',
+    'assets.sync.networkFailed':
+      'Tidak dapat menghubungi server aset. Periksa koneksi dan coba lagi.',
+    'assets.sync.serviceFailed':
+      'Tidak dapat mengunduh atau memverifikasi aset game. Coba lagi atau kirim laporan dengan nama file yang gagal.',
+
     'match.launch.adminRequired':
       'Windows memerlukan izin administrator untuk memulai Half-Life. Coba lagi dari launcher terpasang dan setujui permintaan Windows, atau nonaktifkan “Run this program as an administrator” di hl.exe Properties → Compatibility.',
     'match.launch.adminCancelled':
@@ -120,6 +149,12 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Peluncuran Counter-Strike telah diminta.'
   },
   hi: {
+    'assets.sync.authFailed': 'फिर से साइन इन करें और गेम फ़ाइलें दोबारा डाउनलोड करें।',
+    'assets.sync.networkFailed':
+      'फ़ाइल सर्वर से संपर्क नहीं हो सका। कनेक्शन जाँचें और फिर कोशिश करें।',
+    'assets.sync.serviceFailed':
+      'गेम फ़ाइलें डाउनलोड या सत्यापित नहीं हो सकीं। फिर कोशिश करें या विफल फ़ाइल के नाम के साथ रिपोर्ट भेजें।',
+
     'match.launch.adminRequired':
       'Half-Life शुरू करने के लिए Windows को व्यवस्थापक अनुमति चाहिए। इंस्टॉल किए गए लॉन्चर से फिर कोशिश करें और Windows अनुरोध स्वीकार करें, या hl.exe Properties → Compatibility में “Run this program as an administrator” बंद करें।',
     'match.launch.adminCancelled':
@@ -144,6 +179,12 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Counter-Strike शुरू करने का अनुरोध भेजा गया।'
   },
   pt: {
+    'assets.sync.authFailed': 'Entre novamente e tente baixar os arquivos do jogo.',
+    'assets.sync.networkFailed':
+      'Não foi possível acessar o servidor de arquivos. Verifique a conexão e tente novamente.',
+    'assets.sync.serviceFailed':
+      'Não foi possível baixar ou verificar os arquivos do jogo. Tente novamente ou envie um relatório com o nome do arquivo.',
+
     'match.launch.adminRequired':
       'O Windows exige aprovação de administrador para iniciar o Half-Life. Tente novamente pelo launcher instalado e aprove a solicitação do Windows, ou desative “Executar este programa como administrador” em hl.exe Propriedades → Compatibilidade.',
     'match.launch.adminCancelled':
@@ -168,6 +209,13 @@ export const matchAssetTranslations = {
     'match.launch.requested': 'Inicialização do Counter-Strike solicitada.'
   },
   ja: {
+    'assets.sync.authFailed':
+      '再度ログインしてからゲームファイルのダウンロードを再試行してください。',
+    'assets.sync.networkFailed':
+      'ファイルサーバーに接続できません。接続を確認して再試行してください。',
+    'assets.sync.serviceFailed':
+      'ゲームファイルをダウンロードまたは検証できませんでした。再試行するか、失敗したファイル名を添えて問題を報告してください。',
+
     'match.launch.adminRequired':
       'Half-Lifeの起動にはWindowsの管理者承認が必要です。インストール済みランチャーで再試行してWindowsの確認を承認するか、hl.exeのプロパティ → 互換性で「管理者としてこのプログラムを実行する」を解除してください。',
     'match.launch.adminCancelled':

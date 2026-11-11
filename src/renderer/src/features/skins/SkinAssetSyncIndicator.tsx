@@ -15,6 +15,19 @@ import { useCustomGamesStore } from '../matchmaking/custom-games.store'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
+function assetErrorKey(
+  code: string
+):
+  | 'assets.sync.authFailed'
+  | 'match.assets.storageDenied'
+  | 'assets.sync.networkFailed'
+  | 'assets.sync.serviceFailed' {
+  if (code === 'ASSET_AUTH_FAILED') return 'assets.sync.authFailed'
+  if (code === 'ASSET_STORAGE_FAILED') return 'match.assets.storageDenied'
+  if (code === 'ASSET_NETWORK_FAILED') return 'assets.sync.networkFailed'
+  return 'assets.sync.serviceFailed'
+}
+
 export function SkinAssetSyncIndicator(): React.JSX.Element | null {
   const { t } = useTranslation()
   const theme = useEffectiveLauncherTheme()
@@ -149,7 +162,9 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
                 <div className="flex h-5 items-center justify-between gap-2">
                   <span className="truncate">
                     {failed
-                      ? (progress.message ?? 'Could not download skin assets.')
+                      ? progress.errorCode
+                        ? t(assetErrorKey(progress.errorCode))
+                        : (progress.message ?? 'Could not download skin assets.')
                       : t('assets.sync.downloading', { percent: percentage })}
                   </span>
                   <span className="shrink-0 tabular-nums">

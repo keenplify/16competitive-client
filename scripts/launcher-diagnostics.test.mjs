@@ -275,3 +275,43 @@ test('launch reports reject traversal, oversized files, wrong matches and symlin
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('Firefox-style exception stacks keep the message in submitted renderer logs', async () => {
+  const ts = await import('typescript')
+  const source = (
+    await readFile(new URL('../src/renderer/src/diagnostic-logs.ts', import.meta.url), 'utf8')
+  ).replace(/^import .*$/gm, '')
+  const js = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS }
+  }).outputText
+  const exports = {}
+  const capturedConsole = Object.fromEntries(
+    ['log', 'info', 'warn', 'error', 'debug'].map((level) => [level, () => {}])
+  )
+  new Function(
+    'exports',
+    'console',
+    'serverClockNow',
+    'MatchmakingDiagnostics',
+    'window',
+    'document',
+    js
+  )(
+    exports,
+    capturedConsole,
+    () => 0,
+    class {
+      /* eslint-disable-next-line @typescript-eslint/explicit-function-return-type */
+      report() {
+        return '{}'
+      }
+    },
+    { location: { protocol: 'https:', pathname: '/pwa/' } },
+    { visibilityState: 'visible' }
+  )
+  exports.installDiagnosticLogCapture()
+  const error = new Error('Native asset sync failed')
+  error.stack = 'syncNativeAssets@https://example.test/app.js:1:2'
+  capturedConsole.warn('[GameSettings] early helper asset sync failed', error)
+  assert.match(exports.getRendererDiagnosticLogs().join('\n'), /Error: Native asset sync failed/)
+})
