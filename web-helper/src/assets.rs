@@ -276,7 +276,10 @@ fn game_destination_under(
         }
         Err(error) => return Err(error.to_string()),
     }
-    let mut approved = fs::canonicalize(config_home()?).map_err(|e| e.to_string())?;
+    let home = fs::canonicalize(config_home()?).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    relink_stale_launcher_namespace(&namespace, &home)?;
+    let mut approved = home;
     for part in ["16competitive-client", "game-assets", "models", "16competitive"] {
         approved.push(part);
         let metadata = fs::symlink_metadata(&approved).map_err(|e| e.to_string())?;
@@ -292,6 +295,55 @@ fn game_destination_under(
         return Err("Managed asset directory contains a symbolic link".into());
     }
     destination(&approved, suffix)
+}
+/// A game library can outlive the account that linked it: after a reinstall or
+/// a renamed home directory, the launcher's link still names the previous
+/// user's storage and resolves to nothing. Only that exact case is repaired: a
+/// dangling link whose literal target has the launcher's own layout is pointed
+/// at the current user's approved storage. A dangling link owns no player
+/// bytes, so nothing is merged or overwritten. Links that resolve anywhere, and
+/// dangling links of any other shape, are left for the checks in the caller.
+#[cfg(unix)]
+fn relink_stale_launcher_namespace(namespace: &Path, home: &Path) -> Result<(), String> {
+    const LAYOUT: [&str; 4] = ["16competitive-client", "game-assets", "models", "16competitive"];
+    match fs::metadata(namespace) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        _ => return Ok(()),
+    }
+    let Ok(stale) = fs::read_link(namespace) else { return Ok(()) };
+    if !stale.is_absolute()
+        || !stale.ends_with(LAYOUT.iter().collect::<PathBuf>())
+        || stale.components().any(|part| !matches!(part, std::path::Component::RootDir | std::path::Component::Normal(_)))
+    {
+        return Ok(());
+    }
+    let mut approved = home.to_path_buf();
+    for part in LAYOUT {
+        approved.push(part);
+        match fs::symlink_metadata(&approved) {
+            Ok(meta) if linked(&meta) => {
+                return Err("Managed asset directory contains a symbolic link".into())
+            }
+            Ok(meta) if !meta.is_dir() => {
+                return Err("Managed asset parent is not a directory".into())
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                fs::create_dir(&approved).map_err(|e| e.to_string())?;
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    if stale == approved {
+        return Ok(());
+    }
+    // Rename a fresh link over the stale one, so the path is never absent.
+    let fresh = namespace.with_file_name(format!("16competitive.relink-{}", uuid::Uuid::new_v4()));
+    std::os::unix::fs::symlink(&approved, &fresh).map_err(|e| e.to_string())?;
+    fs::rename(&fresh, namespace).map_err(|e| {
+        let _ = fs::remove_file(&fresh);
+        e.to_string()
+    })
 }
 fn write_progress(value: &Progress) {
     if let Ok(dir) = user_config_dir() {
@@ -749,6 +801,53 @@ mod tests {
         assert!(!shared.join("knife").exists());
         #[cfg(windows)] fs::remove_dir(game.join("models/16competitive")).unwrap();
         #[cfg(unix)] fs::remove_file(game.join("models/16competitive")).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stale_launcher_links_from_a_previous_home_are_relinked_to_approved_storage() {
+        let root = test_root();
+        let game = root.join("game");
+        fs::create_dir_all(game.join("models")).unwrap();
+        let link = game.join("models/16competitive");
+        let path = "models/16competitive/knife/v.mdl";
+        fs::create_dir(root.join("config")).unwrap();
+        let home = || Ok(root.join("config"));
+        let approved = root.canonicalize().unwrap()
+            .join("config/16competitive-client/game-assets/models/16competitive");
+        // The reported layout: the library survived a reinstall under another user.
+        link_directory(
+            &root.join("previous-home/.config/16competitive-client/game-assets/models/16competitive"),
+            &link,
+        );
+        let target = game_destination_under(&game, path, &home).unwrap();
+        assert_eq!(target, approved.join("knife/v.mdl"));
+        assert_eq!(fs::read_link(&link).unwrap(), approved);
+        assert_eq!(fs::read_dir(game.join("models")).unwrap().count(), 1);
+        // The repaired link is an ordinary approved link afterwards.
+        assert_eq!(game_destination_under(&game, path, &home).unwrap(), target);
+        // The current user's own link with deleted storage only regains its storage.
+        fs::remove_dir_all(root.join("config/16competitive-client")).unwrap();
+        assert_eq!(game_destination_under(&game, path, &home).unwrap(), target);
+        assert_eq!(fs::read_link(&link).unwrap(), approved);
+        // Dangling links of any other shape stay rejected and untouched.
+        for other in [root.join("gone"), root.join("gone/game-assets/models/16competitive")] {
+            fs::remove_file(&link).unwrap();
+            link_directory(&other, &link);
+            assert!(game_destination_under(&game, path, &home).is_err());
+            assert_eq!(fs::read_link(&link).unwrap(), other);
+        }
+        // A redirected storage ancestor is never created through or replaced.
+        fs::remove_file(&link).unwrap();
+        fs::remove_dir_all(root.join("config/16competitive-client")).unwrap();
+        fs::create_dir(root.join("outside")).unwrap();
+        link_directory(&root.join("outside"), &root.join("config/16competitive-client"));
+        let stale = root.join("previous-home/16competitive-client/game-assets/models/16competitive");
+        link_directory(&stale, &link);
+        assert!(game_destination_under(&game, path, &home).is_err());
+        assert_eq!(fs::read_link(&link).unwrap(), stale);
+        assert_eq!(fs::read_dir(root.join("outside")).unwrap().count(), 0);
         fs::remove_dir_all(root).unwrap();
     }
 
