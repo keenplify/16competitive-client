@@ -4708,3 +4708,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Checkout
 
 - Philippine payment preferences are now selected automatically.
+
+## v2026.1111.1 — 2026-11-11
+
+### Match Results
+
+- Fixed custom result labels so match outcomes display correctly.
+
+### Game Settings
+
+- Game resolution remains under your control through the game’s own settings.
