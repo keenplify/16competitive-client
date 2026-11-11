@@ -39,6 +39,7 @@ for (const source of [
   'web-helper/src/session_mode.rs',
   'web-helper/src/desktop_session.rs',
   'web-helper/src/admin_restart.rs',
+  'web-helper/src/launch-notices.json',
   'web-helper/src/owned_game.rs',
   'web-helper/src/cs13_installation.rs',
   'web-helper/src/gtprotector.rs',
