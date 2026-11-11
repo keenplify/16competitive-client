@@ -4768,3 +4768,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Gifts
 
 - See skin gifts through the updated reward reveal experience.
+
+## v2026.1111.6 — 2026-11-11
+
+### Game Launching
+
+- Added support for partner-provided custom game executables.
+- Updated launch guidance translations and web helper compatibility.
+
+### Voice Chat
+
+- Improved recovery from temporary voice ownership locks.
