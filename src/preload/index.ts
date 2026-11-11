@@ -1,3 +1,4 @@
+import { REWARD_CHANNELS, type RewardInboxApi } from '../shared/reward-inbox'
 import { PCASH_BET_CHANNELS, type PCashBetsApi } from '../shared/pcash-bets'
 import { STICKER_CHANNELS } from '../shared/stickers'
 import {
@@ -119,6 +120,11 @@ const auth: AuthApi = {
 
 const antiCheat: AntiCheatApi = {
   getDeviceStatus: () => ipcRenderer.invoke(ANTICHEAT_CHANNELS.deviceStatus)
+}
+
+const rewards: RewardInboxApi = {
+  pending: () => ipcRenderer.invoke(REWARD_CHANNELS.pending),
+  consume: ids => ipcRenderer.invoke(REWARD_CHANNELS.consume, ids)
 }
 
 const dailyQuests: DailyQuestsApi = {
@@ -469,6 +475,7 @@ const api = {
   communityMembership,
   communityDirectory,
   antiCheat,
+  rewards,
   dailyQuests,
   customGames,
   friends,

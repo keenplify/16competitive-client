@@ -1,3 +1,4 @@
+import { RewardInboxController } from './features/rewards/RewardInboxController'
 import { ReadyCheckWarning } from './features/matchmaking/ReadyCheckWarning'
 import './features/settings/launcher-theme.store'
 import { MatchDetailsOverlay } from './features/profile/MatchDetailsOverlay'
@@ -56,6 +57,7 @@ function App({ preserveMusic = false }: { preserveMusic?: boolean }): React.JSX.
         <WebHelperController />
         <AlphaReleaseWatermark />
         <SkinGiftOverlay />
+        <RewardInboxController />
         <VoiceChatDock />
         <AuthLanguageOverlay />
         <ToastContainer

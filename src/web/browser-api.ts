@@ -1,3 +1,4 @@
+import { parseRewardInbox, validRewardIds } from '../shared/reward-inbox'
 import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
 import { parsePCashBetSnapshot, validateBetInput, validateBetMatchId } from '../shared/pcash-bets'
@@ -1070,6 +1071,14 @@ const api: Window['api'] = {
     }
   },
 
+  rewards: {
+    pending: async () => parseRewardInbox(await authenticatedGet('/rewards/pending')),
+    consume: async (ids: string[]): Promise<void> => {
+      if (!validRewardIds(ids)) throw new Error('Invalid reward receipts')
+      const body = await requestJson<{ ok: boolean }>('/rewards/consume', { authenticated: true, init: { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids }) } })
+      if (body.ok !== true) throw new Error('Reward acknowledgment failed')
+    }
+  },
   dailyQuests: {
     get(): Promise<DailyQuestSnapshot> {
       return authenticatedGet('/daily-quests')

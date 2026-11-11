@@ -34,6 +34,14 @@ export const getLauncherBgmTrack = (id: LauncherBgmId) => {
 
 export const AUDIO_PATHS = {
   sfx: {
+    rewardFIELD: 'audio/sfx/reward-field.wav',
+    rewardFORGE: 'audio/sfx/reward-forge.wav',
+    rewardSTRIKE: 'audio/sfx/reward-strike.wav',
+    rewardVANGUARD: 'audio/sfx/reward-vanguard.wav',
+    rewardNEON: 'audio/sfx/reward-neon.wav',
+    rewardCRIMSON: 'audio/sfx/reward-crimson.wav',
+    rewardRELIC: 'audio/sfx/reward-relic.wav',
+    rewardVAULT: 'audio/sfx/reward-vault.wav',
     tab: 'audio/sfx/tab.mp3',
     findMatch: 'audio/sfx/find-match.mp3',
     forward: 'audio/sfx/forward.mp3',

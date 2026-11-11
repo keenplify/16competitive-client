@@ -1,3 +1,4 @@
+import { useRewardInbox } from '../rewards/reward-inbox.store'
 import { ModalDialog } from '../../components/ui/ModalDialog'
 import { LoaderCircle, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
@@ -50,6 +51,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
   const setPoints = useAuthStore((state) => state.setPoints)
+  const rewardRevealPending = useRewardInbox(state => state.receipts.length > 0)
   const page = useNavigationStore((state) => state.page)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
@@ -65,6 +67,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const accountId = status === 'authenticated' && session ? session.player.id : null
 
   const baseSafeToShow =
+    !rewardRevealPending &&
     accountId !== null &&
     !session?.player.requiresUsernameSetup &&
     isGiftSafePage(page) &&

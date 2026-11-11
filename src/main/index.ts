@@ -1,3 +1,5 @@
+import { REWARD_CHANNELS } from '../shared/reward-inbox'
+import { pendingRewards, consumeRewards } from './reward-inbox'
 import { updateCs13Crosshair } from './game/cs13-match-launcher'
 import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { previewCompatibilityFiles } from './diagnostic-logs'
@@ -1028,6 +1030,8 @@ app.whenReady().then(async () => {
     disconnectMatchmakingIntentionally(true)
     clearSessionToken()
   })
+  ipcMain.handle(REWARD_CHANNELS.pending, () => pendingRewards())
+  ipcMain.handle(REWARD_CHANNELS.consume, (_event, ids: unknown) => consumeRewards(ids))
   ipcMain.handle(DAILY_QUEST_CHANNELS.get, () => getDailyQuests())
   ipcMain.handle(MATCHMAKING_CHANNELS.connect, (event) =>
     matchmakingConnection.connect(event.sender)

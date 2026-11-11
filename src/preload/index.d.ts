@@ -1,3 +1,4 @@
+import type { RewardInboxApi } from '../shared/reward-inbox'
 import type { PCashBetsApi } from '../shared/pcash-bets'
 import type { CommunityDirectoryApi } from '../shared/community-directory'
 import type { CommunityMembershipApi } from '../shared/community-membership'
@@ -36,6 +37,7 @@ declare global {
       communityMembership: CommunityMembershipApi
       auth: AuthApi
       antiCheat: AntiCheatApi
+      rewards: RewardInboxApi
       dailyQuests: DailyQuestsApi
       customGames: CustomGamesApi
       friends: FriendsApi
