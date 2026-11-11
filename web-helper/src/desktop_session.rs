@@ -34,7 +34,7 @@ pub(crate) struct Reopen {
     pub(crate) args: Vec<String>,
 }
 
-fn executable_hash(path: &Path) -> Result<String, String> {
+pub(crate) fn executable_hash(path: &Path) -> Result<String, String> {
     if !path.is_absolute() {
         return Err("Invalid launcher executable".into());
     }
@@ -229,7 +229,7 @@ pub(crate) fn game_spawn_failure(error: std::io::Error) -> String {
 }
 
 #[cfg(windows)]
-fn process_elevated() -> Option<bool> {
+pub(crate) fn process_elevated() -> Option<bool> {
     use windows_sys::Win32::{Foundation::CloseHandle, Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY}, System::Threading::{GetCurrentProcess, OpenProcessToken}};
     let mut token = std::ptr::null_mut();
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 { return None; }
@@ -240,7 +240,7 @@ fn process_elevated() -> Option<bool> {
     (result != 0).then_some(elevation.TokenIsElevated != 0)
 }
 #[cfg(not(windows))]
-fn process_elevated() -> Option<bool> { None }
+pub(crate) fn process_elevated() -> Option<bool> { None }
 
 pub(crate) fn record_cleanup_failures(primary: &Result<(), String>, cleanup: &[(&str, Result<(), String>)]) {
     let codes: Vec<_> = cleanup.iter().filter(|(_, result)| result.is_err())
@@ -270,6 +270,8 @@ pub(crate) fn failure_snapshot(error: &str) -> serde_json::Value {
 pub(crate) fn failure_notice(error: &str, locale: &str) -> String {
     let frame = failure_snapshot(error);
     let key = if error == "GAME_SPAWN_FAILED" && frame["osError"] == 740 { "elevation" }
+        else if error == "ADMIN_RESTART_CANCELLED" { "cancelled" }
+        else if error == "ADMIN_RESTART_FAILED" { "adminFailed" }
         else if error == "VOICE_OWNERSHIP_FAILED" { "voice" }
         else { return frame.to_string(); };
     let language = locale.split(['-', '_']).next().unwrap_or("en").to_ascii_lowercase();
@@ -526,7 +528,16 @@ mod tests {
             let message = failure_notice(&error, locale);
             assert!(message.contains("740"));
             assert!(message.len() > failure_snapshot(&error).to_string().len());
-            assert!(failure_notice("VOICE_OWNERSHIP_FAILED", locale).contains("VOICE_OWNERSHIP_FAILED"));
+            for code in ["VOICE_OWNERSHIP_FAILED", "ADMIN_RESTART_CANCELLED", "ADMIN_RESTART_FAILED"] {
+                let notice = failure_notice(code, locale);
+                assert!(notice.contains(code));
+                assert!(notice.len() > failure_snapshot(code).to_string().len());
+            }
+            let language = if locale == "fil-PH" { "tl" } else { locale };
+            let catalog: serde_json::Value = serde_json::from_str(include_str!("launch-notices.json")).unwrap();
+            for key in ["elevation", "voice", "cancelled", "adminFailed"] {
+                assert!(!catalog[language][key].as_str().unwrap().is_empty());
+            }
         }
         SPAWN_FAILURE.with(|slot| slot.borrow_mut().take());
     }

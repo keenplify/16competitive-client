@@ -1303,6 +1303,10 @@ fn run() -> Result<(), String> {
     if args.first().map(String::as_str) == Some("--admin-restart") {
         return admin_restart::restart(&args[1..]);
     }
+    #[cfg(windows)]
+    if args.first().map(String::as_str) == Some("--admin-web-join") {
+        return admin_restart::web_join(&args[1..]);
+    }
     #[cfg(target_os = "linux")]
     if args.first().map(String::as_str) == Some("--muvm-match") {
         if args.len() != 2 || !linux_emulation::in_guest() {
@@ -1407,7 +1411,14 @@ fn run() -> Result<(), String> {
     if linux_emulation::dispatch_web_match(&exe, &link)? { return Ok(()); }
     let token = session(&launch.api_origin, &launch.handoff)?;
     let connection = connection(&launch.api_origin, &token, &launch.match_id)?;
-    launch_match(&connection, &launch.api_origin, &token)
+    let result = launch_match(&connection, &launch.api_origin, &token);
+    #[cfg(windows)]
+    if let Err(error) = &result {
+        if admin_restart::web_retry_allowed(&desktop_session::failure_snapshot(error)) {
+            return admin_restart::request_web_join(&launch.api_origin, &token, &launch.match_id);
+        }
+    }
+    result
 }
 
 fn main() {
@@ -1441,7 +1452,7 @@ fn main() {
         } else {
             if error == "GAME_SPAWN_FAILED" {
                 notice(&desktop_session::failure_notice(&error, &sys_locale::get_locale().unwrap_or_default()));
-            } else if error == "VOICE_OWNERSHIP_FAILED" {
+            } else if matches!(error.as_str(), "VOICE_OWNERSHIP_FAILED" | "ADMIN_RESTART_CANCELLED" | "ADMIN_RESTART_FAILED") {
                 notice(&desktop_session::failure_notice(&error, &sys_locale::get_locale().unwrap_or_default()));
             } else {
                 notice(&error);

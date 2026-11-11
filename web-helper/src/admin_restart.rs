@@ -1,5 +1,6 @@
 //! One-time Windows UAC restart after ERROR_ELEVATION_REQUIRED. No login,
-//! match credentials or arbitrary commands cross the elevation boundary.
+//! match credentials or arbitrary commands cross the desktop elevation boundary.
+//! Web retries pass only a fresh, short-lived, single-use web handoff.
 use crate::{desktop_session::Reopen, *};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use std::{
@@ -229,5 +230,98 @@ mod tests {
         }
         assert!(restart(&[]).is_err());
         assert!(restart(&["bad!".into()]).is_err());
+    }
+}
+
+
+pub(crate) fn web_retry_allowed(frame: &serde_json::Value) -> bool {
+    frame["code"] == "GAME_SPAWN_FAILED" && frame["osError"] == 740
+        && frame["elevated"] == false && frame.get("cleanupCodes").is_none()
+}
+
+pub(crate) fn request_web_join(api: &str, token: &str, match_id: &str) -> Result<(), String> {
+    // The failed attempt has returned: its workers and ownership guards are gone.
+    // Never put the helper login token or game credentials in process arguments.
+    let response: serde_json::Value = ureq::AgentBuilder::new().redirects(0)
+        .timeout(Duration::from_secs(10)).build()
+        .post(&format!("{api}/auth/web-handoff"))
+        .set("Authorization", &format!("Bearer {token}"))
+        .call().map_err(|_| "ADMIN_RESTART_FAILED")?
+        .into_json().map_err(|_| "ADMIN_RESTART_FAILED")?;
+    let handoff = response["token"].as_str().ok_or("ADMIN_RESTART_FAILED")?;
+    let mut link = url::Url::parse(&format!("competitive16-helper://join/{match_id}"))
+        .map_err(|_| "ADMIN_RESTART_FAILED")?;
+    link.query_pairs_mut().append_pair("api", api).append_pair("handoff", handoff);
+    parse_launch_link(link.as_str(), cfg!(debug_assertions)).ok_or("ADMIN_RESTART_FAILED")?;
+    let path = env::current_exe().map_err(|_| "ADMIN_RESTART_FAILED")?;
+    let hash = desktop_session::executable_hash(&path).map_err(|_| "ADMIN_RESTART_FAILED")?;
+    let executable = wide(path.as_os_str())?;
+    let verb = wide(std::ffi::OsStr::new("runas"))?;
+    let parameters = wide(std::ffi::OsStr::new(&format!("--admin-web-join {} {}",
+        URL_SAFE_NO_PAD.encode(link.as_str()), hash)))?;
+    let mut info: SHELLEXECUTEINFOW = unsafe { zeroed() };
+    info.cbSize = size_of::<SHELLEXECUTEINFOW>() as u32;
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+    info.lpVerb = verb.as_ptr();
+    info.lpFile = executable.as_ptr();
+    info.lpParameters = parameters.as_ptr();
+    info.nShow = 1;
+    approval_result(if unsafe { ShellExecuteExW(&mut info) } == 0 {
+        Err(std::io::Error::last_os_error())
+    } else { Ok(()) })?;
+    if info.hProcess.is_null() { return Err("ADMIN_RESTART_FAILED".into()); }
+    let _child = Handle(info.hProcess);
+    Ok(())
+}
+
+fn web_link(args: &[String]) -> Result<competitive16_web_helper::LaunchLink, String> {
+    if args.len() != 2 || args[0].len() > 4096 {
+        return Err("ADMIN_RESTART_FAILED".into());
+    }
+    let path = env::current_exe().map_err(|_| "ADMIN_RESTART_FAILED")?;
+    if desktop_session::executable_hash(&path).map_err(|_| "ADMIN_RESTART_FAILED")? != args[1] {
+        return Err("ADMIN_RESTART_FAILED".into());
+    }
+    let bytes = URL_SAFE_NO_PAD.decode(&args[0]).map_err(|_| "ADMIN_RESTART_FAILED")?;
+    let link = std::str::from_utf8(&bytes).map_err(|_| "ADMIN_RESTART_FAILED")?;
+    parse_launch_link(link, cfg!(debug_assertions)).ok_or("ADMIN_RESTART_FAILED".into())
+}
+
+pub(crate) fn web_join(args: &[String]) -> Result<(), String> {
+    let launch = web_link(args)?;
+    if desktop_session::process_elevated() != Some(true) { return Err("ADMIN_RESTART_FAILED".into()); }
+    // No updater, elevated tray, cached credentials, or second UAC retry.
+    let token = session(&launch.api_origin, &launch.handoff)?;
+    let connection = connection(&launch.api_origin, &token, &launch.match_id)?;
+    launch_match(&connection, &launch.api_origin, &token)
+}
+
+#[cfg(test)]
+mod web_tests {
+    use super::*;
+    #[test]
+    fn retry_requires_740_unelevated_and_successful_cleanup() {
+        let frame = serde_json::json!({"code":"GAME_SPAWN_FAILED", "osError":740, "elevated":false});
+        assert!(web_retry_allowed(&frame));
+        for (key, value) in [("osError", serde_json::json!(5)), ("elevated", serde_json::json!(true)),
+            ("elevated", serde_json::Value::Null), ("cleanupCodes", serde_json::json!("RESTORE_FAILED")),
+            ("code", serde_json::json!("VOICE_OWNERSHIP_FAILED"))] {
+            let mut rejected = frame.clone(); rejected[key] = value;
+            assert!(!web_retry_allowed(&rejected));
+        }
+    }
+    #[test]
+    fn elevated_worker_accepts_only_valid_link_and_same_image() {
+        let hash = desktop_session::executable_hash(&env::current_exe().unwrap()).unwrap();
+        let link = format!("competitive16-helper://join/12345678-1234-4234-8234-123456789abc?api=https%3A%2F%2Feuw.16competitive.papamo.dev&handoff={}", "a".repeat(43));
+        let args = vec![URL_SAFE_NO_PAD.encode(&link), hash];
+        assert!(web_link(&args).is_ok());
+        assert!(web_link(&[]).is_err());
+        let mut invalid = args.clone(); invalid.push("--command".into());
+        assert!(web_link(&invalid).is_err());
+        invalid = args.clone(); invalid[1] = "0".repeat(64);
+        assert!(web_link(&invalid).is_err());
+        invalid = args; invalid[0] = URL_SAFE_NO_PAD.encode(format!("{link}&command=calc.exe"));
+        assert!(web_link(&invalid).is_err());
     }
 }
