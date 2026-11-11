@@ -71,7 +71,7 @@ export function VguiScrollbar({
   const scroll = (amount: number): void =>
     viewport.current?.scrollBy({ top: amount, behavior: 'instant' })
   return (
-    <div className="vgui-scrollbar" style={{ visibility: range > 0 ? 'visible' : 'hidden' }}>
+    <div className="vgui-scrollbar" style={{ display: range > 0 ? undefined : 'none' }}>
       <button type="button" aria-label={t('theme.scrollUp')} onClick={() => scroll(-48)}>
         <ChevronUp size={12} aria-hidden="true" />
       </button>

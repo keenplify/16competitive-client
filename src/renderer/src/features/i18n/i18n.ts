@@ -1,3 +1,4 @@
+import { settingsSearchTranslations } from './settings-search-translations'
 import { scoreboardPreferenceTranslations } from './scoreboard-preference-translations'
 import { dailyMissionTranslations } from './daily-mission-translations'
 import { gameVersionTranslations } from './game-version-translations'
@@ -60,6 +61,7 @@ export type LanguageCode = 'en' | 'ru' | 'tl'
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 const english = {
+  ...settingsSearchTranslations.en,
   ...roomSettingsTranslations.en,
   ...queueAgainTranslations.en,
   ...pCashBetTranslations.en,
@@ -252,6 +254,7 @@ export type TranslationKey = keyof typeof english
 export type TranslationParams = Record<string, string | number>
 
 const russian: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.ru,
   ...roomSettingsTranslations.ru,
   ...queueAgainTranslations.ru,
   ...pCashBetTranslations.ru,
@@ -444,6 +447,7 @@ const russian: Record<TranslationKey, string> = {
 }
 
 const taglish: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.tl,
   ...roomSettingsTranslations.tl,
   ...queueAgainTranslations.tl,
   ...pCashBetTranslations.tl,
@@ -638,6 +642,7 @@ const taglish: Record<TranslationKey, string> = {
 }
 
 const thai: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.th,
   ...roomSettingsTranslations.th,
   ...queueAgainTranslations.th,
   ...pCashBetTranslations.th,
@@ -828,6 +833,7 @@ const thai: Record<TranslationKey, string> = {
 }
 
 const indonesian: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.id,
   ...roomSettingsTranslations.id,
   ...queueAgainTranslations.id,
   ...pCashBetTranslations.id,
@@ -1024,6 +1030,7 @@ const indonesian: Record<TranslationKey, string> = {
 }
 
 const portuguese: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.pt,
   ...roomSettingsTranslations.pt,
   ...queueAgainTranslations.pt,
   ...pCashBetTranslations.pt,
@@ -1221,6 +1228,7 @@ const portuguese: Record<TranslationKey, string> = {
 }
 
 const japanese: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.ja,
   ...roomSettingsTranslations.ja,
   ...queueAgainTranslations.ja,
   ...pCashBetTranslations.ja,
@@ -1416,6 +1424,7 @@ const japanese: Record<TranslationKey, string> = {
 }
 
 const hindi: Record<TranslationKey, string> = {
+  ...settingsSearchTranslations.hi,
   ...roomSettingsTranslations.hi,
   ...queueAgainTranslations.hi,
   ...pCashBetTranslations.hi,

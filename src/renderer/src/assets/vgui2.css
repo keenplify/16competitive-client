@@ -1578,3 +1578,9 @@
 :root[data-launcher-theme='vgui2'] .profile-toolbar {
   background: var(--vgui-face);
 }
+
+/* Keep the command well visible against dark community palettes. */
+:root[data-launcher-theme='vgui2'] .web-helper-command textarea {
+  border-color: color-mix(in srgb, var(--vgui-light) 55%, var(--vgui-inset));
+  box-shadow: var(--vgui-sunken);
+}

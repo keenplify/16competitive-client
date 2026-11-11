@@ -1,3 +1,4 @@
+import { SettingsSearch } from './SettingsSearch'
 import { CustomScoreboardSetting } from './CustomScoreboardSetting'
 import { approvedPartnerReturnUrl } from '../../../../shared/partner-return'
 import { NativeHelperSettingsPanel } from './NativeHelperSettingsPanel'
@@ -77,6 +78,7 @@ export function SettingsPage(): JSX.Element {
   const desktopAppUrl = useDesktopAppUrl()
   const { language, t } = useTranslation()
   const nativeHelperReady = useWebHelperPromptStore((state) => state.nativeReady)
+  const searchContentRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLElement>(null)
   const generalRef = useRef<HTMLElement>(null)
   const crosshairRef = useRef<HTMLElement>(null)
@@ -467,6 +469,8 @@ export function SettingsPage(): JSX.Element {
           </p>
         </div>
 
+        <SettingsSearch contentRef={searchContentRef} className="relative z-30 mb-6 max-w-xl" />
+
         <div className="settings-layout grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
           <aside className="settings-navigation sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <nav className="grid grid-cols-2 gap-1  border border-white/10 bg-neutral-900/85 p-1.5 lg:grid-cols-1">
@@ -557,7 +561,7 @@ export function SettingsPage(): JSX.Element {
             </div>
           </aside>
 
-          <div className="min-w-0">
+          <div ref={searchContentRef} className="min-w-0">
             <section
               ref={generalRef}
               className="min-h-[50vh] scroll-mt-20 pb-16 lg:scroll-mt-8 lg:pb-24"

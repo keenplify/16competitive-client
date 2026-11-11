@@ -74,14 +74,17 @@ export function WebHelperSetup({
       {!instructionsOnly && (
         <p className="text-sm leading-6 text-neutral-300">{t('webHelper.linuxDescription')}</p>
       )}
-      <div className="relative">
+      <div className="web-helper-command relative">
         <textarea
           readOnly
           spellCheck={false}
           aria-label={t('webHelper.copyCommand')}
           value={command ?? ''}
-          onFocus={(event) => event.currentTarget.select()}
-          className="h-56 w-full resize-none select-text overflow-auto border border-neutral-700 bg-black p-4 pr-14 font-mono text-sm leading-6 text-sky-200 selection:bg-sky-400/40 focus-visible:outline-2 focus-visible:outline-sky-300"
+          onFocus={(event) => {
+            event.currentTarget.select()
+            event.currentTarget.scrollTop = 0
+          }}
+          className="block h-56 w-full resize-none select-text overflow-auto border border-neutral-700 bg-black p-4 pr-14 font-mono text-sm leading-6 text-sky-200 selection:bg-sky-400/40 focus-visible:outline-2 focus-visible:outline-sky-300"
         />
         <Button
           variant="ghost"
