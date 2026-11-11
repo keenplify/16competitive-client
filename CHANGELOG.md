@@ -4779,3 +4779,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Voice Chat
 
 - Improved recovery from temporary voice ownership locks.
+
+## v2026.1111.7 — 2026-11-11
+
+### Game Launches
+
+- Browser-launched games now retry with Windows administrator approval when needed.
