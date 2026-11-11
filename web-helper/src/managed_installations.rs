@@ -37,13 +37,43 @@ fn valid_path(path: &str) -> bool {
                     .all(|c| c.is_ascii_alphanumeric() || b"_. -".contains(&c))
         })
 }
+pub(crate) fn valid_executable(value: &str, allow_auto: bool) -> bool {
+    if allow_auto && value == "auto" { return true; }
+    let lower = value.to_ascii_lowercase();
+    let base = lower.split('.').next().unwrap_or("");
+    let reserved = ["con", "prn", "aux", "nul"].contains(&base)
+        || (base.len() == 4 && (base.starts_with("com") || base.starts_with("lpt"))
+            && matches!(base.as_bytes()[3], b'1'..=b'9'));
+    value.len() <= 128 && lower.ends_with(".exe") && !reserved
+        && value.as_bytes().first().is_some_and(|c| c.is_ascii_alphanumeric() || *c == b'_')
+        && value.bytes().all(|c| c.is_ascii_alphanumeric() || b"_. -".contains(&c))
+        && !["cmd.exe", "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe", "mshta.exe", "rundll32.exe", "regsvr32.exe"].contains(&lower.as_str())
+}
+
+// Kept separate from drive discovery so renamed-only installations can be tested.
+fn resolve_folder(path: &Path, game: &str, executable: &str) -> Option<(PathBuf, PathBuf, String)> {
+    let override_name = (executable != "auto").then_some(executable);
+    let (root, exe, mod_dir) = validate_installation_executable(path, game, override_name)?;
+    if fs::canonicalize(path).ok().as_ref() != Some(&root) || !plain_file(&exe) { return None; }
+    if executable.eq_ignore_ascii_case("cstrike.exe")
+        && (!root.join("nitro_api2.dll").is_file() || !root.join("cstrike/cl_dlls/client_mini.dll").is_file()) { return None; }
+    Some((root, exe, mod_dir))
+}
+
+/// Use the authenticated policy consistently for setup, previews, sync and launch.
+pub fn selected(policy: Option<&Policy>, folder: Option<&PathBuf>, game: &str) -> Option<(PathBuf, PathBuf, String)> {
+    match policy {
+        Some(policy) => policy.resolve(game).ok(),
+        None => folder.and_then(|folder| validate_installation(folder, game)),
+    }
+}
 impl Policy {
     fn validate(&self) -> Result<(), String> {
         if !valid_path(&self.cs13.path)
             || !valid_path(&self.cs16.path)
             || self.cs13.path.eq_ignore_ascii_case(&self.cs16.path)
-            || self.cs13.executable != "hl.exe"
-            || !["auto", "hl.exe", "cstrike.exe"].contains(&self.cs16.executable.as_str())
+            || !valid_executable(&self.cs13.executable, false)
+            || !valid_executable(&self.cs16.executable, true)
         {
             return Err("Invalid partner installation policy".into());
         }
@@ -84,29 +114,9 @@ impl Policy {
             if !safe {
                 continue;
             }
-            let Some((root, detected, mod_dir)) = validate_installation(&path, game) else {
-                continue;
-            };
-            // Policy paths name the root, not a mod directory or a linked destination.
-            if fs::canonicalize(&path).ok().as_ref() != Some(&root) {
-                continue;
+            if let Some(found) = resolve_folder(&path, game, &entry.executable) {
+                return Ok(found);
             }
-            let exe = if entry.executable == "auto" {
-                detected
-            } else {
-                root.join(&entry.executable)
-            };
-            if !plain_file(&exe) {
-                continue;
-            }
-            // cstrike.exe is supported only for a recognized NextClient install.
-            if entry.executable == "cstrike.exe"
-                && (!root.join("nitro_api2.dll").is_file()
-                    || !root.join("cstrike/cl_dlls/client_mini.dll").is_file())
-            {
-                continue;
-            }
-            return Ok((root, exe, mod_dir));
         }
         Err("Partner game installation was not found. Reinstall the partner game package, then retry.".into())
     }
@@ -174,6 +184,39 @@ pub fn choose(api: &str, token: &str, game: &str) -> Result<(PathBuf, PathBuf, S
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn custom_executable_policy_accepts_filenames_not_commands() {
+        for name in ["hl.exe", "OlagueRCS13.exe", "OlagueR CS16.EXE"] { assert!(valid_executable(name, false), "{name}"); }
+        for name in ["auto", "../hl.exe", "sub/hl.exe", "C:\\hl.exe", "hl.exe -game cstrike", "hl.exe:stream", "CON.exe", "cmd.exe", "powershell.exe", "hl.exe ", "hl.bat"] { assert!(!valid_executable(name, false), "{name}"); }
+        assert!(valid_executable("auto", true));
+    }
+
+    #[test]
+    fn renamed_only_game_validates_without_default_executable() {
+        let folder = std::env::temp_dir().join(format!("managed-custom-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(folder.join("cstrike/cl_dlls")).unwrap();
+        let root = folder.canonicalize().unwrap();
+        fs::write(root.join("cstrike/liblist.gam"), "version \"1.3\"").unwrap();
+        fs::write(root.join("cstrike/cl_dlls/client.dll"), b"fixture").unwrap();
+        fs::write(root.join("OlagueRCS13.exe"), b"fixture").unwrap();
+        assert!(validate_installation(&root, "cs13").is_none());
+        let found = resolve_folder(&root, "cs13", "OlagueRCS13.exe").unwrap();
+        assert_eq!(found.1, root.join("OlagueRCS13.exe"));
+        assert_eq!(found.2, "cstrike");
+        assert!(resolve_folder(&root, "cs16", "OlagueRCS13.exe").is_none());
+        assert!(resolve_folder(&root, "cs13", "Missing.exe").is_none());
+        assert!(resolve_folder(&root, "cs13", "../OlagueRCS13.exe").is_none());
+        fs::write(root.join("cstrike/liblist.gam"), "version \"1.6\"").unwrap();
+        assert!(resolve_folder(&root, "cs16", "OlagueRCS13.exe").is_some());
+        #[cfg(unix)] {
+            fs::remove_file(root.join("OlagueRCS13.exe")).unwrap();
+            fs::write(root.join("outside.exe"), b"fixture").unwrap();
+            std::os::unix::fs::symlink(root.join("outside.exe"), root.join("OlagueRCS13.exe")).unwrap();
+            assert!(resolve_folder(&root, "cs16", "OlagueRCS13.exe").is_none());
+        }
+        fs::remove_dir_all(folder).unwrap();
+    }
+
     #[test]
     fn rejects_windows_path_escapes() {
         assert!(valid_path("OlagueR.GeyminG/cs13"));

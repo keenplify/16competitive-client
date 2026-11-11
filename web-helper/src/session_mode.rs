@@ -68,7 +68,14 @@ impl Lease {
         } else {
             fs2::FileExt::try_lock_shared(&file)
         };
-        lock.map_err(|_| "A native helper action is already running")?;
+        lock.map_err(|error| {
+            if error.kind() == std::io::ErrorKind::WouldBlock
+                || error.raw_os_error() == fs2::lock_contended_error().raw_os_error() {
+                "A native helper action is already running"
+            } else {
+                "Helper session lock unavailable"
+            }
+        })?;
         Ok(Self { _file: file })
     }
 }
@@ -81,7 +88,18 @@ pub struct VoiceOwnership {
 }
 impl VoiceOwnership {
     pub fn start(directory: &Path, match_id: &str) -> Result<Self, String> {
-        let lease = Lease::acquire_named(directory, "native-voice-owner.lock", true)?;
+        // Browser status probes briefly take a shared lock. Retry contention;
+        // never steal ownership from a live native session or retry IO failures.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let lease = loop {
+            match Lease::acquire_named(directory, "native-voice-owner.lock", true) {
+                Err(error) if error == "A native helper action is already running"
+                    && std::time::Instant::now() < deadline => {
+                        std::thread::sleep(std::time::Duration::from_millis(25));
+                    }
+                result => break result?,
+            }
+        };
         let status = directory.join("native-voice-owner.json");
         crate::native_session::owned_write(
             &status,
@@ -188,6 +206,22 @@ mod tests {
         drop(replacement);
         fs::remove_dir_all(root).unwrap();
     }
+    #[test]
+    fn voice_start_waits_for_a_short_status_probe() {
+        let root = std::env::temp_dir().join(format!("16c-voice-probe-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let probe = Lease::acquire_named(&root, "native-voice-owner.lock", false).unwrap();
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            drop(probe);
+        });
+        let owner = VoiceOwnership::start(&root, "match-a").unwrap();
+        release.join().unwrap();
+        assert_eq!(voice_status(&root, "match-a")["owned"], true);
+        drop(owner);
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn voice_ownership_is_match_scoped_and_stale_files_do_not_claim_audio() {
         let root = std::env::temp_dir().join(format!("16c-voice-owner-{}", uuid::Uuid::new_v4()));

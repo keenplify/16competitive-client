@@ -35,10 +35,10 @@ Submitted web issue reports request bounded, redacted game console tails and sav
 Partners can opt in under the dashboard's installer settings. The authenticated
 `/partners/branding/me` response supplies `managedInstallations` with separate
 `cs13` and `cs16` entries. Each entry names a drive-relative root, for example
-`OlagueR.GeyminG/cs13`, and an allowlisted executable. The helper checks local
+`OlagueR.GeyminG/cs13`, and a game executable filename. The helper checks local
 Windows volumes C: through Z: in that order. It rejects traversal, reserved Windows
 names, linked roots, unrecognized versions and unsupported executable choices.
-`cstrike.exe` requires the existing NextClient markers; CS 1.3 uses `hl.exe`.
+Both games accept a custom filename such as `OlagueRCS13.exe`, including packages without `hl.exe`. CS 1.6 also supports `auto`; `cstrike.exe` still requires the existing NextClient markers. Custom filenames are limited to 128 ASCII letters, numbers, spaces, dots, underscores and hyphens with an `.exe` suffix; paths, arguments, reserved names and script hosts are rejected. The selected executable must be a regular file directly inside the validated game root. Setup readiness, model previews and catalog synchronization use the same authenticated policy. Players cannot override it. An updated native helper is required.
 No remote command strings or launch arguments are accepted. Missing managed
 installations never fall back to the folder picker. Linux retains normal selection.
 Disabling the policy restores normal helper selection. Deploy database migration

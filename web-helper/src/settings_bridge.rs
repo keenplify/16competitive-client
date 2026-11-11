@@ -480,7 +480,7 @@ fn read_model_preview(
         policy.folders(&mut prefs);
     }
     for (folder, game) in [(prefs.cs16, "cs16"), (prefs.cs13, "cs13")] {
-        if let Some(root) = folder.and_then(|p| validate_installation(&p, game).map(|v| v.0)) {
+        if let Some(root) = crate::managed_installations::selected(policy, folder.as_ref(), game).map(|v| v.0) {
             if let Ok(bytes) = read_model_under(&root, path) {
                 return Ok(
                     serde_json::json!({"data":base64::engine::general_purpose::STANDARD.encode(bytes)}),
@@ -588,24 +588,10 @@ fn apply_with_policy(
             // start an Electron runtime beside an already supervised game.
             let bundle = crate::native_bundle::prepare(&user_config_dir()?)?;
             let device = crate::inspector::check_device(&bundle, api_origin)?;
-            let mut prefs = load().ok();
-            if let Some(token) = token {
-                if let Some(policy) = crate::managed_installations::fetch(api_origin, token)? {
-                    if let Some(prefs) = prefs.as_mut() {
-                        policy.folders(prefs);
-                    }
-                }
-            }
-            let cs16_ready = prefs
-                .as_ref()
-                .and_then(|prefs| prefs.cs16.as_ref())
-                .and_then(|folder| validate_installation(folder, "cs16"))
-                .is_some();
-            let cs13_ready = prefs
-                .as_ref()
-                .and_then(|prefs| prefs.cs13.as_ref())
-                .and_then(|folder| validate_installation(folder, "cs13"))
-                .is_some();
+            let prefs = load().ok();
+            let policy = token.as_ref().map(|token| crate::managed_installations::fetch(api_origin, token)).transpose()?.flatten();
+            let cs16_ready = crate::managed_installations::selected(policy.as_ref(), prefs.as_ref().and_then(|prefs| prefs.cs16.as_ref()), "cs16").is_some();
+            let cs13_ready = crate::managed_installations::selected(policy.as_ref(), prefs.as_ref().and_then(|prefs| prefs.cs13.as_ref()), "cs13").is_some();
             let installation_ready = cs16_ready || cs13_ready;
             return Ok(serde_json::json!({"ok":true,"protocol":1,
                 "competitiveReady":device["banned"] == false && installation_ready,

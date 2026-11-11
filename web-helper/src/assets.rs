@@ -493,13 +493,13 @@ pub fn prepare_match(
 ) -> Result<(), String> {
     sync(root, origin, token, Some(&connection.match_id), true)
 }
-fn catalog_destinations(prefs: &crate::Preferences, game: Option<&str>) -> Result<Vec<PathBuf>, String> {
+fn catalog_destinations(prefs: &crate::Preferences, game: Option<&str>, policy: Option<&crate::managed_installations::Policy>) -> Result<Vec<PathBuf>, String> {
     if game.is_some_and(|game| !matches!(game, "cs13" | "cs16")) { return Err("Invalid game".into()); }
     let preferred_game = game;
     let mut destinations = Vec::new();
     for (game, folder) in [("cs13", prefs.cs13.as_ref()), ("cs16", prefs.cs16.as_ref())] {
         if preferred_game.is_some_and(|preferred| preferred != game) { continue; }
-        if let Some((root, _, mod_dir)) = folder.and_then(|folder| validate_installation(folder, game)) {
+        if let Some((root, _, mod_dir)) = crate::managed_installations::selected(policy, folder, game) {
             let destination = root.join(mod_dir);
             if !destinations.contains(&destination) { destinations.push(destination); }
         }
@@ -509,11 +509,9 @@ fn catalog_destinations(prefs: &crate::Preferences, game: Option<&str>) -> Resul
 }
 pub fn start_catalog(origin: String, token: String, _repair: bool, game: Option<&str>) -> Result<Progress, String> {
     api(&origin, &token)?;
-    let mut prefs = settings_bridge::load()?;
-    if let Some(policy) = crate::managed_installations::fetch(&origin, &token)? {
-        policy.folders(&mut prefs);
-    }
-    let destinations = catalog_destinations(&prefs, game)?;
+    let prefs = settings_bridge::load()?;
+    let policy = crate::managed_installations::fetch(&origin, &token)?;
+    let destinations = catalog_destinations(&prefs, game, policy.as_ref())?;
     if BUSY.swap(true, Ordering::SeqCst) {
         return Err("An asset download is already running. Wait for it to finish, then retry.".into());
     }
@@ -556,13 +554,13 @@ mod tests {
             fs::write(root.join("cstrike/liblist.gam"), format!("version \"{version}\"" )).unwrap();
             if game == "cs13" { prefs.cs13 = Some(root); } else { prefs.cs16 = Some(root); }
         }
-        assert_eq!(catalog_destinations(&prefs, None).unwrap().len(), 2);
-        let legacy = catalog_destinations(&prefs, Some("cs13")).unwrap();
+        assert_eq!(catalog_destinations(&prefs, None, None).unwrap().len(), 2);
+        let legacy = catalog_destinations(&prefs, Some("cs13"), None).unwrap();
         assert_eq!(legacy, vec![fs::canonicalize(folder.join("cs13/cstrike")).unwrap()]);
         prefs.cs13 = None;
-        assert!(catalog_destinations(&prefs, Some("cs13")).is_err());
-        assert_eq!(catalog_destinations(&prefs, None).unwrap().len(), 1);
-        assert!(catalog_destinations(&prefs, Some("other")).is_err());
+        assert!(catalog_destinations(&prefs, Some("cs13"), None).is_err());
+        assert_eq!(catalog_destinations(&prefs, None, None).unwrap().len(), 1);
+        assert!(catalog_destinations(&prefs, Some("other"), None).is_err());
         fs::remove_dir_all(folder).unwrap();
     }
 

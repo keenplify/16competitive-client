@@ -360,7 +360,7 @@ pub fn launch(
         #[cfg(windows)]
         if executable
             .file_name()
-            .is_some_and(|name| name == "cstrike.exe")
+            .is_some_and(|name| name.eq_ignore_ascii_case("cstrike.exe"))
         {
             command.arg(
                 pattern

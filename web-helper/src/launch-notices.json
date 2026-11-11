@@ -1,0 +1,34 @@
+{
+  "en": {
+    "elevation": "Windows requires administrator permission to start this game (error 740). Check the game executable’s Properties → Compatibility. If “Run this program as an administrator” is enabled unnecessarily, turn it off and retry. If the game requires administrator access, contact your community administrator.",
+    "voice": "Could not take ownership of game voice. Another game or helper action may still be running. Close it, wait a moment, then retry. If this continues, restart the helper and submit an issue report."
+  },
+  "tl": {
+    "elevation": "Kailangan ng Windows ng administrator permission para simulan ang laro (error 740). Tingnan ang Properties → Compatibility ng game executable. Kung hindi kailangan ang “Run this program as an administrator”, i-off ito at subukan muli. Kung kailangan talaga ng laro ang admin access, kontakin ang community administrator.",
+    "voice": "Hindi makuha ang kontrol sa game voice. Maaaring may ibang laro o helper action na tumatakbo pa. Isara ito, maghintay sandali, at subukan muli. Kung nagpapatuloy, i-restart ang helper at magsumite ng issue report."
+  },
+  "ru": {
+    "elevation": "Windows требует права администратора для запуска игры (ошибка 740). Откройте свойства файла игры → Совместимость. Если запуск от имени администратора включён без необходимости, отключите его и повторите. Если игре нужны права администратора, обратитесь к администратору сообщества.",
+    "voice": "Не удалось получить управление голосовой связью игры. Возможно, ещё работает другая игра или задача помощника. Закройте её, немного подождите и повторите. Если ошибка остаётся, перезапустите помощник и отправьте отчёт."
+  },
+  "th": {
+    "elevation": "Windows ต้องการสิทธิ์ผู้ดูแลระบบเพื่อเริ่มเกม (ข้อผิดพลาด 740) ตรวจสอบ Properties → Compatibility ของไฟล์เกม หากเปิด Run this program as an administrator โดยไม่จำเป็น ให้ปิดแล้วลองใหม่ หากเกมจำเป็นต้องใช้สิทธิ์นี้ ให้ติดต่อผู้ดูแลชุมชน",
+    "voice": "ไม่สามารถควบคุมเสียงสนทนาในเกมได้ อาจมีเกมหรืองานของตัวช่วยอื่นทำงานอยู่ ให้ปิด รอสักครู่ แล้วลองใหม่ หากยังเกิดปัญหา ให้เริ่มตัวช่วยใหม่และส่งรายงานปัญหา"
+  },
+  "id": {
+    "elevation": "Windows memerlukan izin administrator untuk menjalankan game (galat 740). Periksa Properties → Compatibility pada berkas game. Jika Run this program as an administrator aktif tanpa diperlukan, matikan dan coba lagi. Jika game memerlukan akses administrator, hubungi admin komunitas.",
+    "voice": "Tidak dapat mengambil kendali suara game. Game atau tugas helper lain mungkin masih berjalan. Tutup, tunggu sebentar, lalu coba lagi. Jika berlanjut, mulai ulang helper dan kirim laporan masalah."
+  },
+  "pt": {
+    "elevation": "O Windows exige permissão de administrador para iniciar o jogo (erro 740). Verifique Propriedades → Compatibilidade do executável. Se Executar este programa como administrador estiver ativado sem necessidade, desative e tente novamente. Se o jogo exigir esse acesso, contate o administrador da comunidade.",
+    "voice": "Não foi possível assumir o controle da voz do jogo. Outro jogo ou tarefa do assistente pode estar em execução. Feche, aguarde e tente novamente. Se persistir, reinicie o assistente e envie um relatório."
+  },
+  "ja": {
+    "elevation": "Windows がゲームの起動に管理者権限を要求しています（エラー740）。ゲーム実行ファイルのプロパティ → 互換性を確認してください。「管理者としてこのプログラムを実行する」が不要なのに有効な場合は無効にして再試行してください。ゲームに管理者権限が必要な場合はコミュニティ管理者に連絡してください。",
+    "voice": "ゲーム音声の制御を取得できませんでした。別のゲームやヘルパー処理が実行中の可能性があります。終了して少し待ち、再試行してください。続く場合はヘルパーを再起動し、問題を報告してください。"
+  },
+  "hi": {
+    "elevation": "गेम शुरू करने के लिए Windows को प्रशासक अनुमति चाहिए (त्रुटि 740)। गेम की निष्पादन फ़ाइल में Properties → Compatibility देखें। यदि Run this program as an administrator अनावश्यक रूप से चालू है, तो बंद करके फिर कोशिश करें। यदि गेम को प्रशासक पहुँच चाहिए, तो समुदाय प्रशासक से संपर्क करें।",
+    "voice": "गेम वॉइस का नियंत्रण नहीं मिल सका। कोई दूसरा गेम या हेल्पर कार्य चल रहा हो सकता है। उसे बंद करें, थोड़ी देर रुकें और फिर कोशिश करें। समस्या जारी रहे तो हेल्पर पुनः शुरू करें और समस्या रिपोर्ट भेजें।"
+  }
+}

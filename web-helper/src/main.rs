@@ -160,6 +160,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("session_mode.rs").as_slice(),
         include_bytes!("desktop_session.rs").as_slice(),
         include_bytes!("admin_restart.rs").as_slice(),
+        include_bytes!("launch-notices.json").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
         include_bytes!("cs13_installation.rs").as_slice(),
         include_bytes!("gtprotector.rs").as_slice(),
@@ -481,6 +482,11 @@ fn installation_display_path(path: &Path) -> String {
 }
 
 fn validate_installation(folder: &Path, game: &str) -> Option<(PathBuf, PathBuf, String)> {
+    validate_installation_executable(folder, game, None)
+}
+
+fn validate_installation_executable(folder: &Path, game: &str, executable_override: Option<&str>) -> Option<(PathBuf, PathBuf, String)> {
+    if executable_override.is_some_and(|name| !managed_installations::valid_executable(name, false)) { return None; }
     let pattern = launch_pattern();
     let game_pattern = if game == "cs13" {
         &pattern.cs13
@@ -501,7 +507,7 @@ fn validate_installation(folder: &Path, game: &str) -> Option<(PathBuf, PathBuf,
         if !installation_version::matches(&root, mod_dir, game) {
             continue;
         }
-        let native_linux = cfg!(target_os = "linux") && root.join("hl_linux").is_file();
+        let native_linux = executable_override.is_none() && cfg!(target_os = "linux") && root.join("hl_linux").is_file();
         let next_client = cfg!(windows)
             && game == "cs16"
             && root.join("cstrike/cl_dlls/client_mini.dll").is_file()
@@ -517,7 +523,7 @@ fn validate_installation(folder: &Path, game: &str) -> Option<(PathBuf, PathBuf,
         } else {
             &game_pattern.windows_executable
         };
-        let exe = root.join(executable);
+        let exe = root.join(executable_override.unwrap_or(executable));
         let client = root.join(mod_dir).join("cl_dlls").join(if native_linux {
             "client.so"
         } else {
@@ -880,7 +886,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     launch_diagnostics::set_executable(exe.file_name().and_then(|name| name.to_str()));
     // Windows uses the approved WON adapter directly for both cstrike and cstrk13.
     // Wine and older bundles still need the compatibility runtime.
-    if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext == "exe")
+    if connection.game() == "cs13" && exe.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
         && (!cfg!(windows) || !native_bundle::supports_won_scoreboard()) {
         runtime::launch(connection, api, token)?;
         return Ok(());
@@ -906,7 +912,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     };
     let next_client = cfg!(windows)
         && connection.game() == "cs16"
-        && exe.file_name().is_some_and(|name| name == "cstrike.exe");
+        && exe.file_name().is_some_and(|name| name.eq_ignore_ascii_case("cstrike.exe"));
     #[cfg(windows)]
     let gold_client = connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))?;
     #[cfg(not(windows))]
@@ -1073,7 +1079,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         None
     };
     let mut command =
-        if cfg!(target_os = "linux") && exe.extension().is_some_and(|ext| ext == "exe") {
+        if cfg!(target_os = "linux") && exe.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe")) {
             let mut wine = Command::new("wine");
             wine.arg(&exe);
             wine
@@ -1434,7 +1440,9 @@ fn main() {
             }
         } else {
             if error == "GAME_SPAWN_FAILED" {
-                notice(&desktop_session::failure_snapshot(&error).to_string());
+                notice(&desktop_session::failure_notice(&error, &sys_locale::get_locale().unwrap_or_default()));
+            } else if error == "VOICE_OWNERSHIP_FAILED" {
+                notice(&desktop_session::failure_notice(&error, &sys_locale::get_locale().unwrap_or_default()));
             } else {
                 notice(&error);
             }

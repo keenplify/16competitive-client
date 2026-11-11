@@ -267,6 +267,18 @@ pub(crate) fn failure_snapshot(error: &str) -> serde_json::Value {
     frame
 }
 
+pub(crate) fn failure_notice(error: &str, locale: &str) -> String {
+    let frame = failure_snapshot(error);
+    let key = if error == "GAME_SPAWN_FAILED" && frame["osError"] == 740 { "elevation" }
+        else if error == "VOICE_OWNERSHIP_FAILED" { "voice" }
+        else { return frame.to_string(); };
+    let language = locale.split(['-', '_']).next().unwrap_or("en").to_ascii_lowercase();
+    let language = if language == "fil" { "tl" } else { &language };
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("launch-notices.json")).expect("static launch notices");
+    let message = catalog[language][key].as_str().unwrap_or_else(|| catalog["en"][key].as_str().unwrap());
+    format!("{message}\n\n{}", frame)
+}
+
 fn failure_frame(error: &str) -> serde_json::Value {
     let frame = failure_snapshot(error);
     CLEANUP_FAILURE.with(|slot| slot.borrow_mut().take());
@@ -507,6 +519,18 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn actionable_launch_notices_cover_every_supported_language() {
+        for locale in ["en", "tl", "fil-PH", "ru", "th", "id", "pt", "ja", "hi"] {
+            let error = game_spawn_failure(std::io::Error::from_raw_os_error(740));
+            let message = failure_notice(&error, locale);
+            assert!(message.contains("740"));
+            assert!(message.len() > failure_snapshot(&error).to_string().len());
+            assert!(failure_notice("VOICE_OWNERSHIP_FAILED", locale).contains("VOICE_OWNERSHIP_FAILED"));
+        }
+        SPAWN_FAILURE.with(|slot| slot.borrow_mut().take());
+    }
+
     #[test]
     fn spawn_failure_retains_os_code_without_private_error_text() {
         let code = game_spawn_failure(std::io::Error::from_raw_os_error(740));
