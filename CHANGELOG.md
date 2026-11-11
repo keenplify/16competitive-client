@@ -4756,3 +4756,15 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Web Matchmaking
 
 - Custom-room maps from the backend now remain available in the web client without the helper.
+
+## v2026.1111.5 — 2026-11-11
+
+### Rewards
+
+- View newly received rewards together in a consolidated inbox.
+- Reveal rewards with rarity-specific sound effects.
+- Enjoy a refreshed VGUI2-inspired reward reveal presentation.
+
+### Gifts
+
+- See skin gifts through the updated reward reveal experience.
