@@ -4785,3 +4785,17 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Launches
 
 - Browser-launched games now retry with Windows administrator approval when needed.
+
+## v2026.1112.1 — 2026-11-11
+
+### Settings
+
+- Added keyword search and type-to-search navigation for Settings.
+
+### Match Assets
+
+- Asset sync failures now show more detailed error information.
+
+### Game Helper
+
+- Fixed an issue affecting the helper setup screen.
