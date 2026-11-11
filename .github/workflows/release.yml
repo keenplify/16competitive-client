@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   verify-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,10 +40,10 @@ jobs:
           - os: windows-latest
             command: npm run build:win
             artifact: windows-release
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             command: npm run build:linux
             artifact: linux-appimage-release
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             command: npm run build:linux:arm64
             artifact: linux-arm64-appimage-release
     runs-on: ${{ matrix.os }}
@@ -99,9 +99,9 @@ jobs:
         include:
           - os: windows-latest
             asset: competitive16-web-helper.exe
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             asset: competitive16-web-helper-linux
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             asset: competitive16-web-helper-linux-arm64
     runs-on: ${{ matrix.os }}
     steps:
@@ -203,7 +203,7 @@ jobs:
 
   publish:
     needs: [package, web-helper]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
