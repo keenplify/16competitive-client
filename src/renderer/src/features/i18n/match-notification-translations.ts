@@ -3,7 +3,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'Fill empty slots with bots so you can play even when alone. Solo bot matches use half the normal MMR gain or loss.',
     'activity.playBotsPending': 'Requesting a bot match…',
-    'activity.playBotsRequested': 'Bot match requested. Filling empty slots.',
+    'activity.playBotsRequested': 'Bot match found. Accept to join.',
     'activity.playBotsError':
       'Could not request a bot match. Check your connection and retry from the queue.',
     'rankedWarmup.title': 'Warmup',
@@ -42,7 +42,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'Боты заполнят свободные места, чтобы можно было играть даже одному. В одиночных матчах с ботами начисляется или снимается половина обычного MMR.',
     'activity.playBotsPending': 'Запрашиваем матч с ботами…',
-    'activity.playBotsRequested': 'Матч с ботами запрошен. Заполняем свободные места.',
+    'activity.playBotsRequested': 'Матч с ботами найден. Подтвердите участие.',
     'activity.playBotsError':
       'Не удалось запросить матч с ботами. Проверьте подключение и повторите из очереди.',
     'rankedWarmup.title': 'Разминка',
@@ -81,7 +81,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'Pupunan ng bots ang bakanteng slots para makalaro ka kahit mag-isa. Kalahati ng normal na MMR ang makukuha o mawawala sa solo bot matches.',
     'activity.playBotsPending': 'Humihiling ng bot match…',
-    'activity.playBotsRequested': 'Na-request ang bot match. Pinupunan ang bakanteng slots.',
+    'activity.playBotsRequested': 'May nahanap na bot match. Tanggapin para sumali.',
     'activity.playBotsError':
       'Hindi ma-request ang bot match. Tingnan ang koneksyon at subukan muli habang nakapila.',
     'rankedWarmup.title': 'Warmup',
@@ -122,7 +122,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'เติมช่องว่างด้วยบอตเพื่อให้เล่นได้แม้อยู่คนเดียว แมตช์บอตแบบเล่นคนเดียวจะเพิ่มหรือลด MMR ครึ่งหนึ่งของปกติ',
     'activity.playBotsPending': 'กำลังขอแมตช์บอต…',
-    'activity.playBotsRequested': 'ขอแมตช์บอตแล้ว กำลังเติมช่องว่าง',
+    'activity.playBotsRequested': 'พบแมตช์บอตแล้ว กดยอมรับเพื่อเข้าร่วม',
     'activity.playBotsError': 'ขอแมตช์บอตไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งจากคิว',
     'rankedWarmup.title': 'วอร์มอัป',
     'rankedWarmup.botMmr': 'เล่นกับบอท · MMR ครึ่งหนึ่ง',
@@ -158,7 +158,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'Isi slot kosong dengan bot agar bisa bermain meski sendirian. Pertandingan bot solo memberi kenaikan atau penurunan MMR setengah dari biasanya.',
     'activity.playBotsPending': 'Meminta pertandingan bot…',
-    'activity.playBotsRequested': 'Pertandingan bot diminta. Mengisi slot kosong.',
+    'activity.playBotsRequested': 'Pertandingan bot ditemukan. Terima untuk bergabung.',
     'activity.playBotsError':
       'Gagal meminta pertandingan bot. Periksa koneksi dan coba lagi dari antrean.',
     'rankedWarmup.title': 'Pemanasan',
@@ -196,7 +196,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'खाली जगहें बॉट्स से भरें ताकि अकेले भी खेल सकें। अकेले बॉट मैच में सामान्य MMR लाभ या नुकसान का आधा लागू होता है।',
     'activity.playBotsPending': 'बॉट मैच का अनुरोध किया जा रहा है…',
-    'activity.playBotsRequested': 'बॉट मैच का अनुरोध भेज दिया। खाली जगहें भरी जा रही हैं।',
+    'activity.playBotsRequested': 'बॉट मैच मिल गया। जुड़ने के लिए स्वीकार करें।',
     'activity.playBotsError':
       'बॉट मैच का अनुरोध नहीं हो सका। कनेक्शन जाँचें और कतार से फिर कोशिश करें।',
     'rankedWarmup.title': 'वार्मअप',
@@ -235,7 +235,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       'Preencha vagas com bots para jogar mesmo sozinho. Partidas solo com bots aplicam metade do ganho ou perda normal de MMR.',
     'activity.playBotsPending': 'Solicitando partida com bots…',
-    'activity.playBotsRequested': 'Partida com bots solicitada. Preenchendo vagas.',
+    'activity.playBotsRequested': 'Partida com bots encontrada. Aceite para entrar.',
     'activity.playBotsError':
       'Não foi possível solicitar a partida com bots. Verifique a conexão e tente novamente na fila.',
     'rankedWarmup.title': 'Aquecimento',
@@ -276,7 +276,7 @@ export const matchNotificationTranslations = {
     'activity.playBotsHint':
       '空き枠をボットで埋めて、一人でもプレイできます。ソロのボット戦では通常の半分のMMRが増減します。',
     'activity.playBotsPending': 'ボット戦をリクエスト中…',
-    'activity.playBotsRequested': 'ボット戦をリクエストしました。空き枠を補充中です。',
+    'activity.playBotsRequested': 'ボット戦が見つかりました。参加するには承認してください。',
     'activity.playBotsError':
       'ボット戦をリクエストできませんでした。接続を確認し、検索中に再試行してください。',
     'rankedWarmup.title': 'ウォームアップ',

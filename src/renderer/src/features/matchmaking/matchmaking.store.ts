@@ -1,4 +1,5 @@
 import { configuredGames } from '../settings/game-availability'
+import { requestBotMatch } from '../../../../shared/bot-match-request'
 import { gameForMode } from '../../../../shared/game-version'
 import { usePCashBetsStore } from './pcash-bets.store'
 import { matchmakingRegionSelection } from '../../../../shared/matchmaking-region-selection'
@@ -166,6 +167,7 @@ interface MatchmakingState {
   websocketUrl: string | null
   allowRegionExpansion: boolean
   botFillOptIn: boolean
+  botMatchPending: boolean
   playWithBots: () => Promise<void>
   queuedPlayers: number
   activity: MatchmakingActivity | null
@@ -847,6 +849,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     websocketUrl: null,
     allowRegionExpansion: true,
     botFillOptIn: false,
+    botMatchPending: false,
     queuedPlayers: 0,
     activity: null,
     onlinePlayers: null,
@@ -1069,10 +1072,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     playWithBots: async () => {
+      if (get().botMatchPending) return
+      set({ botMatchPending: true })
       const language = useLanguageStore.getState().language
       const feedback = toast.loading(translate(language, 'activity.playBotsPending'))
       try {
-        await window.api.matchmaking.playWithBots()
+        await requestBotMatch(window.api.matchmaking)
         set({ error: null })
         toast.update(feedback, {
           render: translate(language, 'activity.playBotsRequested'),
@@ -1081,13 +1086,16 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           autoClose: 3000
         })
       } catch (error) {
-        set({ error: readableError(error) })
+        console.warn('[Matchmaking] bot match request failed', error)
+        set({ error: translate(language, 'activity.playBotsError') })
         toast.update(feedback, {
           render: translate(language, 'activity.playBotsError'),
           type: 'error',
           isLoading: false,
           autoClose: 6000
         })
+      } finally {
+        set({ botMatchPending: false })
       }
     },
 

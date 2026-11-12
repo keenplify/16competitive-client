@@ -99,15 +99,18 @@ assert.equal(await run('sent[0][4]===sent[1][4]'),true,'retry reuses snapshot');
 for(const theme of ['modern','vgui2']){
  await run('document.documentElement.dataset.launcherTheme='+JSON.stringify(theme));
  const geometry=()=>run('JSON.stringify(document.querySelector("#bot-control").getBoundingClientRect().toJSON())');const before=await geometry();
- await run('document.querySelector("#bot-control button[aria-label]").focus()');await pause();
+ await run('document.querySelector("#bot-control button").dispatchEvent(new MouseEvent("mouseover",{bubbles:true}))');await pause();
+ assert.equal(await run('document.querySelector("[role=tooltip]")!==null'),true,'hover anywhere on the action shows help');
+ await run('document.querySelector("#bot-control button").focus()');await pause();
  assert.match(await run('document.querySelector("[role=tooltip]").textContent'),/half the normal MMR/);
- await run('document.querySelector("#bot-control button[aria-label]").click()');await pause();
- assert.equal(await run('botClicks'),0,'help never requests a bot match');
+ await run('document.querySelector("#bot-control button").click()');await pause();
+ assert.equal(await run('document.querySelectorAll("#bot-control button").length'),1,'one button only');
+ assert.equal(await run('botClicks'),theme==='modern'?1:2,'icon and label share the same action');
  assert.equal(await geometry(),before,'tooltip preserves layout');
  assert.equal(await run('getComputedStyle(document.querySelector("[role=tooltip]")).visibility'),'visible');
  await pause();
  fs.writeFileSync(${JSON.stringify(join(tmpdir(), '16c-bot-tooltip-'))}+theme+'.png',(await w.webContents.capturePage()).toPNG());
- await run('document.querySelector("#bot-control button[aria-label]").blur()');
+ await run('document.querySelector("#bot-control button").blur()');
 }
 await run('report.setState({open:true,description:"retry report"});report.setState({consentOpen:true,compatibilityPreview:fixture})');await pause();
 await run('[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Not now").click()');await pause();assert.equal(await run('document.querySelector("dialog")===null'),true);assert.equal(await run('report.getState().compatibility'),null);

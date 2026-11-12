@@ -27,6 +27,7 @@ export function MatchSearchPanel({
   variant = 'full'
 }: MatchSearchPanelProps): JSX.Element | null {
   const botFillOptIn = useMatchmakingStore((state) => state.botFillOptIn)
+  const botMatchPending = useMatchmakingStore((state) => state.botMatchPending)
   const playWithBots = useMatchmakingStore((state) => state.playWithBots)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const queueStartedAt = useMatchmakingStore((state) => state.queueStartedAt)
@@ -46,7 +47,10 @@ export function MatchSearchPanel({
   const isLeaving = queueStatus === 'leaving'
   const isSearching = isJoining || queueStatus === 'queued' || isLeaving
   const canPlayWithBots =
-    queueStatus === 'queued' && !botFillOptIn && (!party || party.leaderId === playerId)
+    queueStatus === 'queued' &&
+    !botFillOptIn &&
+    !botMatchPending &&
+    (!party || party.leaderId === playerId)
 
   useEffect(() => {
     if (!isSearching) return
