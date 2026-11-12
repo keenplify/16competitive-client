@@ -4820,3 +4820,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Compatibility
 
 - Original game clients can now be used when native enhancement checks are inconclusive.
+
+## v2026.1112.4 — 2026-11-12
+
+### Diagnostics
+
+- Fallback launches now include automatic client DLL diagnostics.
+- Compatibility reports provide improved information when fallback launching is used.
