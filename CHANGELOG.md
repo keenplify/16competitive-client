@@ -4869,3 +4869,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Recover match popups after they expire.
 - Keep ready checks actionable when player action is required.
+
+## v2026.1113.3 — 2026-11-12
+
+### Match Recovery
+
+- Improved game-exit recovery to prevent duplicate cleanup.
+- Active Legacy sessions are now recognized correctly.
+
+### Notifications
+
+- Added translations for the updated match notifications.
