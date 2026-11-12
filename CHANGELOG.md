@@ -4827,3 +4827,16 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Fallback launches now include automatic client DLL diagnostics.
 - Compatibility reports provide improved information when fallback launching is used.
+
+## v2026.1112.5 — 2026-11-12
+
+### Matchmaking
+
+- Matchmaking sessions are now isolated between accounts.
+- Rejoining the queue works more reliably after switching accounts or sessions.
+
+### Game Launching
+
+- Legacy partner launches now route to the correct game session.
+- Steam launches from the web client are more reliable.
+- Native helper setup and partner session switching are more robust.
