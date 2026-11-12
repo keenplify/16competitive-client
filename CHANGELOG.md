@@ -4851,3 +4851,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Matchmaking
 
 - Added an explanation of how solo bot matches affect MMR.
+
+## v2026.1113.1 — 2026-11-12
+
+### Matchmaking
+
+- Bot match requests are now handled correctly during matchmaking.
+- Matchmaking waits for a real match invitation before proceeding.
+
+### Help
+
+- Added help guidance to matchmaking actions.
