@@ -4799,3 +4799,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game Helper
 
 - Fixed an issue affecting the helper setup screen.
+
+## v2026.1112.2 — 2026-11-12
+
+### Compatibility
+
+- Unsupported native installations now automatically report compatibility diagnostics.
+
+### Settings
+
+- Improved alignment for settings search and VGUI selection controls.
