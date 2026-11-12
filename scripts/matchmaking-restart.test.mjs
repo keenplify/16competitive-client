@@ -1,3 +1,4 @@
+import { requestBotMatch } from '../src/shared/bot-match-request.ts'
 import { gameForMode } from '../src/shared/game-version.ts'
 import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
@@ -59,6 +60,7 @@ async function harness() {
   ).outputText
   const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../../../../shared/bot-match-request': { requestBotMatch },
     '../settings/game-availability': { configuredGames: async () => [] },
     '../../../../shared/game-version': { gameForMode },
     './pcash-bets.store': {

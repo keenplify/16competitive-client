@@ -1,3 +1,4 @@
+import { requestBotMatch } from '../src/shared/bot-match-request.ts'
 import { gameForMode } from '../src/shared/game-version.ts'
 import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
@@ -10,6 +11,39 @@ import ts from 'typescript'
 import { create } from 'zustand'
 import { readyResponseFromServer } from '../src/shared/matchmaking-ready-response.ts'
 
+test('Play with Bots waits for an invitation, ignores repeated clicks, and shows server refusals', async () => {
+  const h = await harness()
+  h.store.setState({ queueStatus: 'queued', match: null, botFillOptIn: false })
+  const pending = h.store.getState().playWithBots()
+  await h.store.getState().playWithBots()
+  assert.equal(h.requests.filter((r) => r[0] === 'play_with_bots').length, 1)
+  assert.equal(h.store.getState().botMatchPending, true)
+  assert.equal(h.feedback.filter((f) => f.type === 'success').length, 0)
+  h.emit({
+    type: 'match_found',
+    matchId: 'fresh-bot-match',
+    mode: 'cs13_3v3',
+    mapId: 'de_dust2',
+    teams: { teamA: [], teamB: [] }
+  })
+  await pending
+  assert.equal(h.store.getState().queueStatus, 'match_found')
+  assert.equal(h.store.getState().botMatchPending, false)
+  assert.equal(h.feedback.filter((f) => f.type === 'success').length, 1)
+  h.store.setState({ queueStatus: 'queued', match: null, botFillOptIn: false })
+  const rejected = h.store.getState().playWithBots()
+  h.emit({
+    type: 'error',
+    code: 'BOT_FILL_NOT_AVAILABLE',
+    message: 'Not queued',
+    whileQueued: true
+  })
+  await rejected
+  assert.equal(h.store.getState().botMatchPending, false)
+  assert.equal(h.feedback.at(-1).type, 'error')
+  assert.equal(h.feedback.at(-1).isLoading, false)
+})
+
 async function harness({
   party = null,
   fail = false,
@@ -21,7 +55,10 @@ async function harness({
   const requests = []
   const feedback = []
   const mmrUpdates = []
-  let emit
+  const listeners = new Set()
+  const emit = (event) => {
+    for (const listener of listeners) listener(event)
+  }
   const completed = {
     matchId: 'finished-fy',
     mode: 'arena',
@@ -44,13 +81,16 @@ async function harness({
       api: {
         gameSettings: { get: settings ?? (async () => ({ cs16ExecutablePath: '/games/hl' })) },
         matchmaking: {
+          async playWithBots() {
+            requests.push(['play_with_bots'])
+          },
           async leaveFfa(matchId) {
             requests.push(['leave_ffa', matchId])
             if (failLeave) throw new Error('offline')
           },
           onEvent(listener) {
-            emit = listener
-            return () => {}
+            listeners.add(listener)
+            return () => listeners.delete(listener)
           },
           async connect() {
             return undefined
@@ -75,6 +115,7 @@ async function harness({
   ).outputText
   const diagnostics = new MatchmakingDiagnostics()
   const dependencies = {
+    '../../../../shared/bot-match-request': { requestBotMatch },
     '../settings/game-availability': { configuredGames: async () => [] },
     '../../../../shared/game-version': { gameForMode },
     './pcash-bets.store': {
