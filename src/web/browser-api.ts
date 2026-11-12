@@ -1,3 +1,4 @@
+import { createWebDiagnosticReports } from './diagnostic-reports'
 import { parseRewardInbox, validRewardIds } from '../shared/reward-inbox'
 import { parseGameVersion, type GameVersion } from '../shared/game-version'
 import { validateMusicBuy, parseMusicPurchase } from '../shared/music-kits'
@@ -6,7 +7,6 @@ import { parseNativeVoicePreferences } from '../shared/native-voice'
 import { validRedeemRewardDetails } from '../shared/redeem-codes'
 import { createEarlyAssetSync } from '../shared/early-asset-sync'
 import { parseStickerPurchase } from '../shared/stickers'
-import { validateReportImages, type ReportImage } from '../shared/diagnostic-logs'
 import {
   parseStickerSnapshot,
   stickerId,
@@ -73,6 +73,8 @@ import {
   nativeAssetStatus,
   syncNativeAssets,
   nativeDiagnosticLogs,
+  nativeCompatibilityPreview,
+  nativeCompatibilityUpload,
   launchPartnerWithNativeHelper
 } from './local-play'
 import type { NativeHelperSettings } from '../shared/native-helper-settings'
@@ -1075,7 +1077,14 @@ const api: Window['api'] = {
     pending: async () => parseRewardInbox(await authenticatedGet('/rewards/pending')),
     consume: async (ids: string[]): Promise<void> => {
       if (!validRewardIds(ids)) throw new Error('Invalid reward receipts')
-      const body = await requestJson<{ ok: boolean }>('/rewards/consume', { authenticated: true, init: { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids }) } })
+      const body = await requestJson<{ ok: boolean }>('/rewards/consume', {
+        authenticated: true,
+        init: {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ids })
+        }
+      })
       if (body.ok !== true) throw new Error('Reward acknowledgment failed')
     }
   },
@@ -1469,28 +1478,13 @@ const api: Window['api'] = {
     }
   },
 
-  diagnosticLogs: {
-    async get() {
-      return []
-    },
-    async report(
-      description: string,
-      rendererLogs: string[],
-      matchId?: string,
-      images?: ReportImage[]
-    ) {
-      const helperLogs = await nativeDiagnosticLogs(matchId).catch(
-        () => '[Native helper diagnostics] Unavailable; reconnect the helper to include game logs.'
-      )
-      return jsonPost('/auth/issue-reports', {
-        images: validateReportImages(images),
-        description,
-        ...(matchId ? { matchId } : {}),
-        logs: `${rendererLogs.join('\n').slice(-300_000) || '[no renderer logs]'}\n\n${helperLogs}`,
-        clientVersion: 'web'
-      })
-    }
-  }
+  diagnosticLogs: createWebDiagnosticReports({
+    session: getWebSessionToken,
+    post: (body) => jsonPost('/auth/issue-reports', body),
+    logs: nativeDiagnosticLogs,
+    prepare: nativeCompatibilityPreview,
+    upload: nativeCompatibilityUpload
+  })
 }
 
 window.api = api

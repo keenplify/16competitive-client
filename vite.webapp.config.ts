@@ -16,6 +16,7 @@ for (const source of [
   'web-helper/src/main.rs',
   'web-helper/src/lib.rs',
   'web-helper/src/settings_bridge.rs',
+  'web-helper/src/compatibility_report.rs',
   'web-helper/src/self_update.rs',
   'web-helper/src/tray.rs',
   'web-helper/src/branding.rs',

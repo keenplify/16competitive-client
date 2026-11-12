@@ -301,7 +301,9 @@ const isResaleQuote = (value: unknown): value is SkinResaleQuote => {
 
 export const getSkinResaleQuote = async (skinId: unknown): Promise<SkinResaleQuote> => {
   const id = validateSkinId(skinId)
-  const data = await playerRequest(`/skins/${id}/resale-quote`)
+  const data = await playerRequest(`/skins/${id}/resale-quote`).catch((error: unknown) => {
+    throw new Error((error as ApiError).code ?? 'REFUND_ELIGIBILITY_UNAVAILABLE')
+  })
   if (!isResaleQuote(data) || data.skinId !== id)
     throw new Error('The server returned an invalid sale price.')
   return data

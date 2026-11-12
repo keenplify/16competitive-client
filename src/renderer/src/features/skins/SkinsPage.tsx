@@ -1,3 +1,5 @@
+import { RefundAction } from './RefundAction'
+import { useRefundEligibilityStore, refundKey } from './refund-eligibility.store'
 import { LoadoutGameSwitch } from './LoadoutGameSwitch'
 import { useLoadoutGameStore } from './loadout-game.store'
 import { supportsWeapon } from '../../../../shared/game-version'
@@ -15,16 +17,7 @@ import { STOCK_CHARACTERS } from '../../../../shared/skins'
 import { CharacterPanel } from './CharacterPanel'
 import { useCharacterLoadoutStore } from './character-loadout.store'
 import { useTranslation } from '../i18n/i18n'
-import {
-  Check,
-  Crosshair,
-  LoaderCircle,
-  Eye,
-  EyeOff,
-  Paintbrush,
-  TicketSlash,
-  Users
-} from 'lucide-react'
+import { Check, Crosshair, LoaderCircle, Eye, EyeOff, Paintbrush, Users } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { OwnedSkin, SkinResaleQuote } from '../../../../shared/skins'
@@ -132,6 +125,9 @@ function GameSkinsPage({ toolbarTarget }: { toolbarTarget?: HTMLElement | null }
   }, [])
   const webMode = isWebRuntime()
   const [skins, setSkins] = useState<OwnedSkin[]>([])
+  useEffect(() => {
+    void useRefundEligibilityStore.getState().load(skins)
+  }, [skins])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [changingId, setChangingId] = useState<string | null>(null)
   const [previewSkin, setPreviewSkin] = useState<OwnedSkin['skin'] | null>(null)
@@ -810,6 +806,10 @@ function InventoryCard({
     ],
     Eye
   )
+  const eligibility = useRefundEligibilityStore(
+    (state) => state.entries[refundKey(owned)] ?? 'checking'
+  )
+  const refundReason = eligibility === 'eligible' ? null : refundText[eligibility]
   const equipped = owned.equippedAt !== null
   return (
     <article
@@ -829,19 +829,13 @@ function InventoryCard({
       <h3 className="mt-1 text-sm font-semibold">{owned.skin.name}</h3>
       <div className="mt-auto flex justify-end gap-2 border-t border-white/10 pt-3">
         {!owned.reviewOnly && owned.skin.status !== 'DRAFT' && (
-          <Button
-            className="h-8 px-3 text-xs"
-            variant="ghost"
+          <RefundAction
+            label={refundText.refund}
+            reason={refundReason}
+            pending={selling}
             disabled={changing || selling}
             onClick={onSell}
-          >
-            {selling ? (
-              <LoaderCircle className="mr-1 size-3.5 animate-spin" aria-hidden="true" />
-            ) : (
-              <TicketSlash className="mr-1 size-3.5" aria-hidden="true" />
-            )}
-            {refundText.refund}
-          </Button>
+          />
         )}
         <Button
           className="h-8 min-w-28 px-3 text-xs"

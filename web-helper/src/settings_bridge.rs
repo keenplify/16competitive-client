@@ -332,6 +332,8 @@ enum Request {
         token: String,
         match_id: Option<String>,
     },
+    CompatibilityPrepare { api_origin: String, token: String, game: String },
+    CompatibilityUpload { api_origin: String, token: String, report_id: String, preview_id: String },
     ProbeNodes {
         nodes: Vec<ProbeNode>,
     },
@@ -519,6 +521,8 @@ fn apply_with_policy(
     policy: Option<&crate::managed_installations::Policy>,
 ) -> Result<serde_json::Value, String> {
     match &request {
+        Request::CompatibilityPrepare {api_origin,token,game} => return crate::compatibility_report::prepare(api_origin,token,game),
+        Request::CompatibilityUpload {api_origin,token,report_id,preview_id} => return crate::compatibility_report::upload(api_origin,token,report_id,preview_id),
         Request::Logout { account_id } => {
             uuid::Uuid::parse_str(account_id).map_err(|_| "Invalid helper account")?;
             let at = std::time::SystemTime::now()
@@ -743,7 +747,7 @@ fn apply_with_policy(
         | Request::PartnerLaunch { .. }
         | Request::NextClient { .. } => unreachable!(),
         Request::NextClientStatus | Request::NextClientCancel => unreachable!(),
-        Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => {
+        Request::CompatibilityPrepare { .. } | Request::CompatibilityUpload { .. } | Request::VoiceStream | Request::Microphone { .. } | Request::Diagnostics { .. } => {
             unreachable!()
         }
         Request::ProbeNodes { .. } => unreachable!(),
@@ -935,7 +939,8 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
             request @ (Request::PartnerLaunch { .. }
             | Request::RuntimeCheck { .. }
             | Request::Microphone { .. }
-            | Request::Diagnostics { .. }),
+            | Request::Diagnostics { .. }
+            | Request::CompatibilityPrepare { .. } | Request::CompatibilityUpload { .. }),
         ) => {
             if RUNTIME_CHECKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 1 {
                 RUNTIME_CHECKS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);

@@ -1,10 +1,11 @@
-import { useId, useLayoutEffect, useRef, useState, type JSX } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { CircleHelp } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 
 interface HelpTooltipProps {
   text: string
+  children?: ReactNode
   className?: string
   placement?: 'top' | 'bottom'
 }
@@ -12,6 +13,7 @@ interface HelpTooltipProps {
 /** A focusable question mark that reveals help on hover or keyboard focus. */
 export function HelpTooltip({
   text,
+  children,
   className,
   placement = 'bottom'
 }: HelpTooltipProps): JSX.Element {
@@ -41,7 +43,7 @@ export function HelpTooltip({
       ready: true
     })
   }, [placement, position])
-  const show = (element: HTMLButtonElement): void => {
+  const show = (element: HTMLElement): void => {
     const rect = element.getBoundingClientRect()
     const width = Math.min(288, window.innerWidth - 32)
     setPosition({
@@ -55,18 +57,36 @@ export function HelpTooltip({
   }
   return (
     <span className={twMerge('inline-flex shrink-0', className)}>
-      <button
-        type="button"
-        className="inline-flex size-5 items-center justify-center text-current/70 hover:text-current focus-visible:rounded-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-        aria-label={text}
-        aria-describedby={position ? tooltipId : undefined}
-        onMouseEnter={(event) => show(event.currentTarget)}
-        onMouseLeave={() => setPosition(null)}
-        onFocus={(event) => show(event.currentTarget)}
-        onBlur={() => setPosition(null)}
-      >
-        <CircleHelp className="size-4" aria-hidden="true" />
-      </button>
+      {children ? (
+        <span
+          tabIndex={0}
+          className="inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+          aria-label={text}
+          aria-describedby={position ? tooltipId : undefined}
+          onMouseEnter={(event) => show(event.currentTarget)}
+          onMouseLeave={() => setPosition(null)}
+          onFocus={(event) => show(event.currentTarget)}
+          onBlur={() => setPosition(null)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setPosition(null)
+          }}
+        >
+          {children}
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="inline-flex size-5 items-center justify-center text-current/70 hover:text-current focus-visible:rounded-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+          aria-label={text}
+          aria-describedby={position ? tooltipId : undefined}
+          onMouseEnter={(event) => show(event.currentTarget)}
+          onMouseLeave={() => setPosition(null)}
+          onFocus={(event) => show(event.currentTarget)}
+          onBlur={() => setPosition(null)}
+        >
+          <CircleHelp className="size-4" aria-hidden="true" />
+        </button>
+      )}
       {position &&
         createPortal(
           <span

@@ -37,6 +37,7 @@ mod presence;
 mod runtime;
 mod self_update;
 mod settings_bridge;
+mod compatibility_report;
 mod installation_version;
 mod installation_search;
 mod tray;
@@ -137,6 +138,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("main.rs").as_slice(),
         include_bytes!("lib.rs").as_slice(),
         include_bytes!("settings_bridge.rs").as_slice(),
+        include_bytes!("compatibility_report.rs").as_slice(),
         include_bytes!("self_update.rs").as_slice(),
         include_bytes!("tray.rs").as_slice(),
         include_bytes!("branding.rs").as_slice(),

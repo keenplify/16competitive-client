@@ -10,7 +10,12 @@
     "close": "Close refund confirmation",
     "pending": "Processing refund…",
     "success": "Refund completed.",
-    "failed": "Could not complete the refund. Please try again."
+    "failed": "Could not complete the refund. Please try again.",
+    "checking": "Checking refund eligibility…",
+    "notPurchased": "This skin cannot be refunded because it was not purchased. Gifts and rewards are not refundable.",
+    "notResellable": "This skin has no eligible refund value.",
+    "notOwned": "This skin is no longer in your inventory.",
+    "unavailable": "Refund eligibility could not be checked. Reload your inventory to try again."
   },
   "ru": {
     "refund": "Возврат",
@@ -23,7 +28,12 @@
     "close": "Закрыть подтверждение возврата",
     "pending": "Обработка возврата…",
     "success": "Возврат выполнен.",
-    "failed": "Не удалось выполнить возврат. Повторите попытку."
+    "failed": "Не удалось выполнить возврат. Повторите попытку.",
+    "checking": "Проверка возможности возврата…",
+    "notPurchased": "Этот скин не был куплен. Подарки и награды нельзя вернуть.",
+    "notResellable": "У этого скина нет суммы, доступной для возврата.",
+    "notOwned": "Этого скина больше нет в вашем инвентаре.",
+    "unavailable": "Не удалось проверить возможность возврата. Обновите инвентарь и повторите."
   },
   "tl": {
     "refund": "I-refund",
@@ -36,7 +46,12 @@
     "close": "Isara ang kumpirmasyon",
     "pending": "Pinoproseso ang refund…",
     "success": "Nakumpleto ang refund.",
-    "failed": "Hindi makumpleto ang refund. Subukan muli."
+    "failed": "Hindi makumpleto ang refund. Subukan muli.",
+    "checking": "Sinusuri kung puwedeng i-refund…",
+    "notPurchased": "Hindi binili ang skin na ito. Hindi puwedeng i-refund ang mga regalo at reward.",
+    "notResellable": "Walang halagang puwedeng i-refund para sa skin na ito.",
+    "notOwned": "Wala na ang skin na ito sa iyong imbentaryo.",
+    "unavailable": "Hindi masuri kung puwedeng i-refund. I-reload ang imbentaryo at subukan muli."
   },
   "th": {
     "refund": "คืนเงิน",
@@ -49,7 +64,12 @@
     "close": "ปิดการยืนยันคืนเงิน",
     "pending": "กำลังดำเนินการคืนเงิน…",
     "success": "คืนเงินเรียบร้อยแล้ว",
-    "failed": "คืนเงินไม่สำเร็จ โปรดลองอีกครั้ง"
+    "failed": "คืนเงินไม่สำเร็จ โปรดลองอีกครั้ง",
+    "checking": "กำลังตรวจสอบสิทธิ์คืนเงิน…",
+    "notPurchased": "สกินนี้ไม่ได้มาจากการซื้อ จึงคืนเงินไม่ได้ ของขวัญและรางวัลไม่สามารถคืนเงินได้",
+    "notResellable": "สกินนี้ไม่มีมูลค่าที่สามารถคืนเงินได้",
+    "notOwned": "สกินนี้ไม่อยู่ในคลังของคุณแล้ว",
+    "unavailable": "ตรวจสอบสิทธิ์คืนเงินไม่ได้ โหลดคลังใหม่เพื่อลองอีกครั้ง"
   },
   "id": {
     "refund": "Pengembalian",
@@ -62,7 +82,12 @@
     "close": "Tutup konfirmasi pengembalian",
     "pending": "Memproses pengembalian…",
     "success": "Pengembalian selesai.",
-    "failed": "Pengembalian gagal. Coba lagi."
+    "failed": "Pengembalian gagal. Coba lagi.",
+    "checking": "Memeriksa kelayakan pengembalian…",
+    "notPurchased": "Skin ini tidak dibeli. Hadiah dan imbalan tidak dapat dikembalikan.",
+    "notResellable": "Skin ini tidak memiliki nilai yang memenuhi syarat pengembalian.",
+    "notOwned": "Skin ini tidak lagi ada di inventaris Anda.",
+    "unavailable": "Kelayakan pengembalian tidak dapat diperiksa. Muat ulang inventaris untuk mencoba lagi."
   },
   "hi": {
     "refund": "रिफंड",
@@ -75,7 +100,12 @@
     "close": "रिफंड पुष्टि बंद करें",
     "pending": "रिफंड जारी है…",
     "success": "रिफंड पूरा हुआ।",
-    "failed": "रिफंड नहीं हो सका। फिर कोशिश करें।"
+    "failed": "रिफंड नहीं हो सका। फिर कोशिश करें।",
+    "checking": "रिफंड की पात्रता जाँची जा रही है…",
+    "notPurchased": "यह स्किन खरीदी नहीं गई थी। उपहार और पुरस्कार का रिफंड नहीं हो सकता।",
+    "notResellable": "इस स्किन का कोई पात्र रिफंड मूल्य नहीं है।",
+    "notOwned": "यह स्किन अब आपकी इन्वेंटरी में नहीं है।",
+    "unavailable": "रिफंड की पात्रता जाँच नहीं सके। फिर कोशिश करने के लिए इन्वेंटरी दोबारा लोड करें।"
   },
   "pt": {
     "refund": "Reembolso",
@@ -88,7 +118,12 @@
     "close": "Fechar confirmação de reembolso",
     "pending": "Processando reembolso…",
     "success": "Reembolso concluído.",
-    "failed": "Não foi possível concluir o reembolso. Tente novamente."
+    "failed": "Não foi possível concluir o reembolso. Tente novamente.",
+    "checking": "Verificando elegibilidade para reembolso…",
+    "notPurchased": "Esta skin não foi comprada. Presentes e recompensas não são reembolsáveis.",
+    "notResellable": "Esta skin não tem valor elegível para reembolso.",
+    "notOwned": "Esta skin não está mais no seu inventário.",
+    "unavailable": "Não foi possível verificar o reembolso. Recarregue o inventário para tentar novamente."
   },
   "ja": {
     "refund": "払い戻し",
@@ -101,6 +136,11 @@
     "close": "払い戻しの確認を閉じる",
     "pending": "払い戻し処理中…",
     "success": "払い戻しが完了しました。",
-    "failed": "払い戻しできませんでした。再試行してください。"
+    "failed": "払い戻しできませんでした。再試行してください。",
+    "checking": "払い戻しの可否を確認中…",
+    "notPurchased": "このスキンは購入品ではありません。ギフトや報酬は払い戻しできません。",
+    "notResellable": "このスキンには払い戻し可能な金額がありません。",
+    "notOwned": "このスキンはインベントリにありません。",
+    "unavailable": "払い戻しの可否を確認できませんでした。インベントリを再読み込みしてください。"
   }
 }

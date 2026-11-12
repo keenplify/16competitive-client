@@ -1,3 +1,4 @@
+import type { CompatibilityPreview } from '../shared/diagnostic-logs'
 import { usePartnerGamePreferenceStore } from '../renderer/src/features/settings/partner-game-preference.store'
 import type {
   NativeHelperReadiness,
@@ -251,6 +252,62 @@ export async function nativeDiagnosticLogs(matchId?: string): Promise<string> {
   if (value.ok !== true || typeof value.logs !== 'string' || value.logs.length > 180_000)
     throw new Error('Invalid native helper diagnostics')
   return value.logs
+}
+
+export async function nativeCompatibilityPreview(
+  game: 'cs16' | 'cs13' = 'cs16'
+): Promise<CompatibilityPreview> {
+  const token = getWebSessionToken()
+  if (!token) throw new Error('COMPATIBILITY_AUTH_REQUIRED')
+  const value = (await localRequest({
+    action: 'compatibilityPrepare',
+    apiOrigin: currentApiOrigin(),
+    token,
+    game
+  })) as CompatibilityPreview
+  if (
+    !value ||
+    typeof value.id !== 'string' ||
+    !/^[a-f0-9-]{36}$/i.test(value.id) ||
+    !Array.isArray(value.files) ||
+    value.files.length < 1 ||
+    value.files.length > 7 ||
+    !Number.isSafeInteger(value.totalBytes) ||
+    value.totalBytes > 64 * 1024 * 1024 ||
+    value.files.some(
+      (file) =>
+        typeof file.path !== 'string' ||
+        file.path.length > 64 ||
+        !/^[a-f0-9]{64}$/.test(file.sha256) ||
+        !Number.isSafeInteger(file.size) ||
+        file.size < 64 ||
+        file.size > 16 * 1024 * 1024
+    ) ||
+    value.files.reduce((sum, file) => sum + file.size, 0) !== value.totalBytes ||
+    getWebSessionToken() !== token
+  )
+    throw new Error('COMPATIBILITY_PREVIEW_INVALID')
+  return value
+}
+
+export async function nativeCompatibilityUpload(
+  reportId: string,
+  previewId: string
+): Promise<void> {
+  const token = getWebSessionToken()
+  if (!token) throw new Error('COMPATIBILITY_AUTH_REQUIRED')
+  try {
+    const result = (await localRequest({
+      action: 'compatibilityUpload',
+      apiOrigin: currentApiOrigin(),
+      token,
+      reportId,
+      previewId
+    })) as { ok?: boolean }
+    if (result?.ok !== true || getWebSessionToken() !== token) throw new Error('upload failed')
+  } catch {
+    throw new Error('COMPATIBILITY_UPLOAD_FAILED')
+  }
 }
 
 /** The existing voice dock receives native key transitions while the game has focus. */
@@ -843,6 +900,14 @@ async function localRequest(
         game?: 'cs13' | 'cs16'
       }
     | { action: 'runtimeCheck' | 'microphone'; apiOrigin: string; token?: string }
+    | { action: 'compatibilityPrepare'; apiOrigin: string; token: string; game: 'cs16' | 'cs13' }
+    | {
+        action: 'compatibilityUpload'
+        apiOrigin: string
+        token: string
+        reportId: string
+        previewId: string
+      }
     | { action: 'diagnostics'; apiOrigin: string; token: string; matchId?: string }
     | { action: 'nextClient'; apiOrigin: string; install: boolean }
     | { action: 'nextClientStatus' | 'nextClientCancel' }
@@ -872,6 +937,8 @@ async function localRequest(
         'nextClient',
         'microphone',
         'diagnostics',
+        'compatibilityPrepare',
+        'compatibilityUpload',
         'partnerLaunch'
       ].includes(request.action)
         ? 300_000

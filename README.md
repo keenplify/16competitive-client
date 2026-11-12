@@ -192,3 +192,11 @@ USP uses its animated idle pose and stock M3 reload-shell geometry is hidden onl
 in inspection views, leaving first-person animations and source files intact.
 
 Admin rotation preview is exported with `node scripts/export-admin-weapon-preview.mjs` to the sibling admin repository. Inspection and static first-person `v_` views share the launcher renderer. A bounded 512×512 depth pass marks the inspection-visible triangles yellow in both views; this is an orientation guide, not game lighting. Unsaved angles change inspection presentation and the mask, never the first-person pose.
+
+Browser/PWA issue reports use the native settings bridge to preview compatibility files and
+request consent before uploading them. The helper keeps one fixed-allowlist snapshot (up to
+16 MiB per file, 64 MiB total) for ten minutes, scoped to the API origin and authenticated
+session. Only approved snapshots are sent directly to the authenticated report attachment
+endpoint; DLL contents are never exposed to browser JavaScript. Failed uploads remain errors
+and retry against the same report key. An unavailable helper shows a preparation error and
+allows submitting logs without files.
