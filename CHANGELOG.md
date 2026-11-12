@@ -4862,3 +4862,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Help
 
 - Added help guidance to matchmaking actions.
+
+## v2026.1113.2 — 2026-11-12
+
+### Matchmaking
+
+- Recover match popups after they expire.
+- Keep ready checks actionable when player action is required.
