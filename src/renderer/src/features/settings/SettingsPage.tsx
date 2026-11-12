@@ -457,19 +457,23 @@ export function SettingsPage(): JSX.Element {
       data-page-scroll="settings"
     >
       <div className="settings-content mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
-        <div className="settings-heading mb-8">
-          <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
-          <h1 className="mt-2 text-3xl font-semibold">
-            {webRuntime ? '1.6 Competitive settings' : 'Launcher settings'}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-            {webRuntime
-              ? 'Configure browser audio, voice, language, and account credentials.'
-              : 'Configure the game client, manage downloaded assets, and update your account credentials.'}
-          </p>
+        <div className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+          <div className="settings-heading min-w-0 flex-1">
+            <p className="text-xs font-bold tracking-[0.2em] text-sky-400 uppercase">Settings</p>
+            <h1 className="mt-2 text-3xl font-semibold">
+              {webRuntime ? '1.6 Competitive settings' : 'Launcher settings'}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+              {webRuntime
+                ? 'Configure browser audio, voice, language, and account credentials.'
+                : 'Configure the game client, manage downloaded assets, and update your account credentials.'}
+            </p>
+          </div>
+          <SettingsSearch
+            contentRef={searchContentRef}
+            className="relative z-30 w-full lg:ml-auto lg:w-80 lg:shrink-0"
+          />
         </div>
-
-        <SettingsSearch contentRef={searchContentRef} className="relative z-30 mb-6 max-w-xl" />
 
         <div className="settings-layout grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
           <aside className="settings-navigation sticky top-0 z-20 -mx-5 bg-neutral-950/95 px-5 py-3 backdrop-blur lg:top-6 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">

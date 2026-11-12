@@ -25,7 +25,7 @@ import {useSettingsSearchStore} from './src/renderer/src/features/settings/setti
 import {LauncherWindow} from './src/renderer/src/components/ui/LauncherWindow';
 import {WebHelperSetup} from './src/renderer/src/features/matchmaking/WebHelperSetup';
 window.theme='vgui2';window.searchStore=useSettingsSearchStore;
-function Fixture(){const content=useRef(null);return <><div style={{height:400,overflow:'auto',padding:24}}><SettingsSearch contentRef={content}/><div ref={content}><section><h3>Language</h3><p>Choose your preferred language.</p></section><section><h3>Voice & Audio</h3><p>Microphone volume and push to talk.</p></section><section><h3>Assets</h3><p>Repair downloaded skins.</p><input value="private-value" readOnly/></section></div></div><LauncherWindow title="Run the helper on Linux"><WebHelperSetup instructionsOnly/></LauncherWindow></>}
+function Fixture(){const content=useRef(null);return <><div style={{height:400,overflow:'auto',padding:24}}><SettingsSearch contentRef={content}/><div ref={content}><section><label><input type="checkbox" className="peer sr-only" defaultChecked/><span id="switch-box" className="h-6 w-11 after:absolute after:top-1 after:left-1 after:size-4 peer-checked:after:translate-x-5"/></label><h3>Language</h3><p>Choose your preferred language.</p></section><section><h3>Voice & Audio</h3><p>Microphone volume and push to talk.</p></section><section><h3>Assets</h3><p>Repair downloaded skins.</p><input value="private-value" readOnly/></section></div></div><LauncherWindow title="Run the helper on Linux"><WebHelperSetup instructionsOnly/></LauncherWindow></>}
 createRoot(document.getElementById('root')).render(<Fixture/>);
 `
         },
@@ -79,6 +79,7 @@ const {app,BrowserWindow}=require('electron');const assert=require('node:assert/
 app.whenReady().then(async()=>{const w=new BrowserWindow({show:false,width:1000,height:800,webPreferences:{contextIsolation:true,sandbox:true,backgroundThrottling:false}});const run=s=>w.webContents.executeJavaScript(s);const pause=()=>new Promise(r=>setTimeout(r,350));try{
 await w.loadFile(${JSON.stringify(join(dir, 'index.html'))});w.showInactive();await pause();
 await run("document.documentElement.dataset.launcherTheme='vgui2'");await pause();
+assert.ok(['none','0px','0px 0px'].includes(await run("getComputedStyle(document.querySelector('#switch-box'),'::after').translate")));
 await run("document.activeElement.blur();document.dispatchEvent(new KeyboardEvent('keydown',{key:'m',bubbles:true,cancelable:true}))");await pause();
 assert.equal(await run("document.activeElement.id"),'settings-search');
 assert.equal(await run("searchStore.getState().query"),'m');

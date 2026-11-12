@@ -16,6 +16,7 @@
   --color-black: #22291e;
   --vgui-face: #4c5844;
   --vgui-inset: #343e2d;
+  --vgui-selected: color-mix(in srgb, var(--vgui-inset) 60%, #000);
   --vgui-light: #8c9980;
   --vgui-dark: #252e20;
   --vgui-text: #e4e7dc;
@@ -191,7 +192,7 @@
     [aria-selected='true'],
     [aria-current='page']
   ) {
-  background-color: var(--vgui-inset);
+  background-color: var(--vgui-selected);
   color: var(--vgui-accent);
   box-shadow: var(--vgui-sunken);
 }
@@ -268,6 +269,11 @@
 :root[data-launcher-theme='vgui2'] input[type='checkbox']:checked::after,
 :root[data-launcher-theme='vgui2'] input[type='checkbox'].peer:checked + span::after {
   opacity: 1;
+  /* Reset Tailwind offsets too: CSS lowering can fold translate into transform. */
+  --tw-translate-x: 0px !important;
+  --tw-translate-y: 0px !important;
+  transform: none !important;
+  translate: none !important;
 }
 
 :root[data-launcher-theme='vgui2'] input[type='checkbox']:indeterminate::after {
