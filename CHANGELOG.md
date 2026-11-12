@@ -4840,3 +4840,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 - Legacy partner launches now route to the correct game session.
 - Steam launches from the web client are more reliable.
 - Native helper setup and partner session switching are more robust.
+
+## v2026.1112.6 — 2026-11-12
+
+### Issue Reports
+
+- Improved recovery for issue-report attachments.
+- Added clearer guidance when attachments need attention.
+
+### Matchmaking
+
+- Added an explanation of how solo bot matches affect MMR.
