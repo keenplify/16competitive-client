@@ -146,7 +146,7 @@ fn supported_client(bytes: &[u8]) -> bool {
 }
 
 // Authentication does not require replacing the game's client DLL. Only a
-// clean ordinary x86 GoldSrc client may use the existing startup-config path;
+// clean unmanaged installation may use the existing startup-config path;
 // partial NextClient layouts and interrupted/managed installs stay fail-closed.
 pub fn supports_config_authenticated_launch(root: &Path) -> Result<bool, String> {
     for marker in [
@@ -166,7 +166,10 @@ pub fn supports_config_authenticated_launch(root: &Path) -> Result<bool, String>
     let bytes = read_limited(&root.join("cstrike/cl_dlls/client.dll"), 128 * 1024 * 1024)?;
     let supported = client_exports(&bytes).is_some_and(|exports| exports.contains("Initialize") || exports.contains("F"));
     crate::launch_diagnostics::install_check(if supported { "config_auth_supported" } else { "unrecognized_client_exports" }, Some(&bytes));
-    Ok(supported)
+    // This is an authentication-only launch, not approval to install our DLL.
+    // Custom/protected game clients may not expose a standard PE export table.
+    // Let the game's own loader decide whether its original DLL can run.
+    Ok(true)
 }
 
 pub fn is_gold_client(root: &Path) -> Result<bool, String> {
@@ -636,10 +639,14 @@ mod tests {
             fs::remove_file(path).unwrap();
         }
         let mut x64 = bytes.clone(); x64[0x84..0x86].copy_from_slice(&0x8664u16.to_le_bytes());
-        fs::write(dir.join("client.dll"), x64).unwrap();
-        assert!(!supports_config_authenticated_launch(&root).unwrap());
-        fs::write(dir.join("client.dll"), b"invalid DLL").unwrap();
-        assert!(!supports_config_authenticated_launch(&root).unwrap());
+        for original in [x64, b"custom client not recognized by our PE parser".to_vec()] {
+            fs::write(dir.join("client.dll"), &original).unwrap();
+            assert!(!supported_client(&original));
+            assert!(supports_config_authenticated_launch(&root).unwrap());
+            assert_eq!(fs::read(dir.join("client.dll")).unwrap(), original);
+        }
+        fs::remove_file(dir.join("client.dll")).unwrap();
+        assert!(supports_config_authenticated_launch(&root).is_err());
         fs::remove_dir_all(root).unwrap();
     }
 
