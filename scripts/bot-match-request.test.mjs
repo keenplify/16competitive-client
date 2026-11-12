@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { requestBotMatch } from '../src/shared/bot-match-request.ts'
