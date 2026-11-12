@@ -10,6 +10,16 @@ import { getRendererDiagnosticLogs } from '../../diagnostic-logs'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 const text = (key: keyof typeof labels.en): string =>
   labels[useLanguageStore.getState().language][key]
+const attachmentErrorText = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : ''
+  return text(
+    message.includes('COMPATIBILITY_UPLOAD_LIMIT')
+      ? 'filesLimit'
+      : message.includes('INVALID_COMPATIBILITY_FILE')
+        ? 'filesInvalid'
+        : 'filesError'
+  )
+}
 let generation = 0
 const consentKey = () => {
   const id = useAuthStore.getState().session?.player.id
@@ -36,6 +46,7 @@ type State = {
   rememberConsent: boolean
   savedConsent: boolean | null
   consentError: boolean
+  consentErrorMessage: string | null
   openCompatibility: () => void
   decideCompatibility: (include: boolean) => void
   prepareCompatibility: (automatic?: boolean) => Promise<void>
@@ -54,16 +65,25 @@ export const useIssueReport = create<State>((set, get) => ({
   rememberConsent: false,
   savedConsent: null,
   consentError: false,
+  consentErrorMessage: null,
   openCompatibility: () => {
+    if (get().busy) return
+    // A failed upload can reuse the captured bytes and report id on retry.
+    if (get().consentError && get().compatibilityPreview) {
+      set({ consentOpen: true })
+      return
+    }
     set({
       consentOpen: true,
       consentError: false,
+      consentErrorMessage: null,
       compatibilityPreview: null,
       rememberConsent: rememberedConsent() !== null
     })
     void get().prepareCompatibility()
   },
   decideCompatibility: (include) => {
+    if (get().busy) return
     const preview = get().compatibilityPreview
     if (include && !preview) return
     const key = consentKey()
@@ -88,7 +108,7 @@ export const useIssueReport = create<State>((set, get) => ({
   prepareCompatibility: async (automatic = false) => {
     if (get().busy) return
     const current = generation
-    set({ busy: true })
+    set({ busy: true, consentError: false, consentErrorMessage: null })
     const id = toast.loading(text('filesPreparing'))
     try {
       const match = useMatchmakingStore.getState()
@@ -107,11 +127,17 @@ export const useIssueReport = create<State>((set, get) => ({
         isLoading: false,
         autoClose: 3000
       })
-    } catch {
-      if (current === generation) set({ consentError: true, compatibility: null })
+    } catch (error) {
+      if (current === generation)
+        set({
+          consentError: true,
+          consentErrorMessage: attachmentErrorText(error),
+          compatibility: null,
+          compatibilityPreview: null
+        })
       if (current === generation)
         toast.update(id, {
-          render: text('filesError'),
+          render: attachmentErrorText(error),
           type: 'error',
           isLoading: false,
           autoClose: 6000
@@ -188,7 +214,7 @@ export const useIssueReport = create<State>((set, get) => ({
     }
     const current = generation
     if (window.api.diagnosticLogs.compatibility && !get().consentDecided) {
-      if (rememberedConsent() !== true) {
+      if (get().consentError || rememberedConsent() !== true) {
         get().openCompatibility()
         return
       }
@@ -226,21 +252,43 @@ export const useIssueReport = create<State>((set, get) => ({
         toast.dismiss(id)
         return
       }
-      set({ description: '', images: [], compatibility: null, open: false })
+      set({
+        description: '',
+        images: [],
+        compatibility: null,
+        compatibilityPreview: null,
+        consentError: false,
+        consentErrorMessage: null,
+        consentDecided: false,
+        open: false
+      })
       toast.update(id, { render: text('sent'), type: 'success', isLoading: false, autoClose: 4000 })
     } catch (error) {
       if (current !== generation) {
         toast.dismiss(id)
         return
       }
+      const attachmentFailed = error instanceof Error && error.message.includes('COMPATIBILITY')
+      if (attachmentFailed) {
+        set({
+          consentOpen: true,
+          consentDecided: false,
+          consentError: true,
+          consentErrorMessage: attachmentErrorText(error),
+          compatibilityPreview: error.message.includes('PREVIEW_EXPIRED')
+            ? null
+            : get().compatibility,
+          compatibility: null
+        })
+      }
       toast.update(id, {
-        render: text(
-          error instanceof Error && error.message.includes('COMPATIBILITY')
-            ? 'filesError'
-            : error instanceof Error && error.message.includes('INVALID_REPORT_IMAGES')
-              ? 'invalid'
-              : 'error'
-        ),
+        render: attachmentFailed
+          ? attachmentErrorText(error)
+          : text(
+              error instanceof Error && error.message.includes('INVALID_REPORT_IMAGES')
+                ? 'invalid'
+                : 'error'
+            ),
         type: 'error',
         isLoading: false,
         autoClose: 6000
@@ -265,6 +313,7 @@ useAuthStore.subscribe((state, previous) => {
       consentDecided: false,
       rememberConsent: false,
       consentError: false,
+      consentErrorMessage: null,
       busy: false
     })
   }
@@ -273,6 +322,15 @@ useAuthStore.subscribe((state, previous) => {
 useIssueReport.subscribe((state, previous) => {
   if (state.open && !previous.open) {
     const savedConsent = rememberedConsent()
-    useIssueReport.setState({ savedConsent, compatibility: null, consentDecided: false })
+    useIssueReport.setState({
+      savedConsent,
+      rememberConsent: savedConsent === true,
+      compatibility: null,
+      compatibilityPreview: null,
+      consentDecided: false,
+      consentOpen: false,
+      consentError: false,
+      consentErrorMessage: null
+    })
   }
 })

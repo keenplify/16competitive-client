@@ -129,6 +129,30 @@ export function getCompatibilityFiles(id: string, owner: string): Captured {
   return captured
 }
 
+// Keep backend refusal codes actionable without exposing arbitrary response bodies.
+async function compatibilityRequest(
+  request: typeof fetch,
+  url: string,
+  init: RequestInit
+): Promise<Response> {
+  let response: Response
+  try {
+    response = await request(url, init)
+  } catch (error) {
+    throw new Error('COMPATIBILITY_UPLOAD_FAILED', { cause: error })
+  }
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null)
+    const code = body && typeof body === 'object' && 'error' in body ? body.error : null
+    const reason =
+      code === 'COMPATIBILITY_UPLOAD_LIMIT' || code === 'INVALID_COMPATIBILITY_FILE'
+        ? code
+        : 'COMPATIBILITY_UPLOAD_FAILED'
+    throw new Error(`${reason} (HTTP ${response.status})`)
+  }
+  return response
+}
+
 export async function uploadCompatibilityFiles(
   api: string,
   token: string,
@@ -139,15 +163,16 @@ export async function uploadCompatibilityFiles(
 ): Promise<void> {
   const base = `${api}/auth/issue-reports/${encodeURIComponent(reportId)}/compatibility`
   if (!stillOwner()) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
-  const response = await request(base, {
+  const response = await compatibilityRequest(request, base, {
     method: 'POST',
     redirect: 'error',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({ files: value.preview.files }),
     signal: AbortSignal.timeout(45_000)
   })
-  if (!response.ok) throw new Error('COMPATIBILITY_UPLOAD_FAILED')
-  const result: unknown = await response.json()
+  const result: unknown = await response.json().catch(() => {
+    throw new Error('INVALID_COMPATIBILITY_RESPONSE')
+  })
   if (
     !result ||
     typeof result !== 'object' ||
@@ -162,13 +187,12 @@ export async function uploadCompatibilityFiles(
     if (!stillOwner()) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
     const form = new FormData()
     form.set('file', new Blob([new Uint8Array(value.bytes.get(hash)!)]), `${hash}.bin`)
-    const uploaded = await request(`${base}/${hash}`, {
+    await compatibilityRequest(request, `${base}/${hash}`, {
       method: 'POST',
       redirect: 'error',
       headers: { authorization: `Bearer ${token}` },
       body: form,
       signal: AbortSignal.timeout(120_000)
     })
-    if (!uploaded.ok) throw new Error('COMPATIBILITY_UPLOAD_FAILED')
   }
 }

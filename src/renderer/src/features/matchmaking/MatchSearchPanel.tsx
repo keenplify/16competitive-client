@@ -3,6 +3,7 @@ import { LoaderCircle, Search, X } from 'lucide-react'
 import { useEffect, useState, type JSX } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '../../components/ui/Button'
+import { ButtonWithHelp } from '../../components/ui/ButtonWithHelp'
 import { getMatchmakingModeLabel } from '../../../../shared/matchmaking'
 import { serverClockNow } from '../../../../shared/server-clock'
 import { useMatchmakingStore } from './matchmaking.store'
@@ -129,16 +130,18 @@ export function MatchSearchPanel({
           </button>
         </div>
         <div className="relative border-t border-white/10 px-2.5 py-2">
-          <Button
-            className={twMerge(
-              'h-7 min-w-0 w-full text-[10px]',
+          <ButtonWithHelp
+            className="h-7 w-full"
+            buttonClassName={twMerge(
+              'text-[10px]',
               suggestPlayWithBots && 'border-amber-300/60 bg-amber-300/10 text-amber-100'
             )}
+            helpText={t('activity.playBotsHint')}
             disabled={!canPlayWithBots}
             onClick={() => void playWithBots()}
           >
             {playWithBotsLabel}
-          </Button>
+          </ButtonWithHelp>
         </div>
       </aside>
     )
@@ -186,16 +189,18 @@ export function MatchSearchPanel({
           <PlayerActivity />
         </p>
         <div className="mt-3 flex h-8 gap-2">
-          <Button
-            className={twMerge(
-              'h-8 min-w-0 flex-1 px-2 text-[10px]',
+          <ButtonWithHelp
+            className="h-8 flex-1"
+            buttonClassName={twMerge(
+              'text-[10px]',
               suggestPlayWithBots && 'border-amber-300/60 bg-amber-300/10 text-amber-100'
             )}
+            helpText={t('activity.playBotsHint')}
             disabled={!canPlayWithBots}
             onClick={() => void playWithBots()}
           >
             {playWithBotsLabel}
-          </Button>
+          </ButtonWithHelp>
           <Button
             className={twMerge(
               'h-8 rounded-none border border-white/10 bg-white/5 text-[11px] tracking-[0.14em] text-neutral-300 uppercase hover:bg-white/10 hover:text-white',

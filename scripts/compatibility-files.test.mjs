@@ -113,3 +113,52 @@ test('hash negotiation sends only missing content once and blocks unrequested ha
     uploadCompatibilityFiles('https://example.test', 'token', 'report', value, () => false, request)
   )
 })
+
+test('upload errors preserve known refusal reasons and classify transport failures', async () => {
+  const hash = 'a'.repeat(64)
+  const value = {
+    preview: { files: [{ path: 'hw.dll', size: 128, sha256: hash }] },
+    bytes: new Map([[hash, Buffer.alloc(128)]])
+  }
+  for (const [status, code] of [
+    [429, 'COMPATIBILITY_UPLOAD_LIMIT'],
+    [400, 'INVALID_COMPATIBILITY_FILE'],
+    [500, 'COMPATIBILITY_UPLOAD_FAILED']
+  ]) {
+    await assert.rejects(
+      uploadCompatibilityFiles(
+        'https://example.test',
+        'token',
+        'report',
+        value,
+        () => true,
+        async () => Response.json({ error: code }, { status })
+      ),
+      new RegExp(code)
+    )
+  }
+  await assert.rejects(
+    uploadCompatibilityFiles(
+      'https://example.test',
+      'token',
+      'report',
+      value,
+      () => true,
+      async () => {
+        throw new TypeError('fetch failed')
+      }
+    ),
+    /COMPATIBILITY_UPLOAD_FAILED/
+  )
+  await assert.rejects(
+    uploadCompatibilityFiles(
+      'https://example.test',
+      'token',
+      'report',
+      value,
+      () => true,
+      async () => new Response('broken json')
+    ),
+    /INVALID_COMPATIBILITY_RESPONSE/
+  )
+})

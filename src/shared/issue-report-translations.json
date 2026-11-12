@@ -22,7 +22,10 @@
     "filesConfirm": "Include files",
     "filesDecline": "Not now",
     "filesRemember": "Remember my preference",
-    "filesExcluded": "Game files will not be included."
+    "filesExcluded": "Game files will not be included.",
+    "filesRetry": "Retry game files",
+    "filesLimit": "Game-file upload limit reached. Choose Not now to send logs only, or try again tomorrow.",
+    "filesInvalid": "A game file could not be verified. Choose Not now to send logs only, or retry the game files."
   },
   "ru": {
     "title": "Сообщить о проблеме",
@@ -47,7 +50,10 @@
     "filesConfirm": "Приложить файлы",
     "filesDecline": "Не сейчас",
     "filesRemember": "Запомнить мой выбор",
-    "filesExcluded": "Файлы игры не будут приложены."
+    "filesExcluded": "Файлы игры не будут приложены.",
+    "filesRetry": "Повторить сбор файлов",
+    "filesLimit": "Достигнут лимит загрузки файлов игры. Выберите «Не сейчас», чтобы отправить только логи, или повторите завтра.",
+    "filesInvalid": "Не удалось проверить файл игры. Выберите «Не сейчас», чтобы отправить только логи, или повторите сбор файлов."
   },
   "tl": {
     "title": "Mag-report ng Issue",
@@ -72,7 +78,10 @@
     "filesConfirm": "Isama ang mga file",
     "filesDecline": "Huwag muna",
     "filesRemember": "Tandaan ang aking pinili",
-    "filesExcluded": "Hindi isasama ang mga file ng laro."
+    "filesExcluded": "Hindi isasama ang mga file ng laro.",
+    "filesRetry": "Subukan muli ang game files",
+    "filesLimit": "Naabot ang limit sa pag-upload ng game files. Piliin ang Hindi ngayon para logs lang, o subukan bukas.",
+    "filesInvalid": "Hindi ma-verify ang isang game file. Piliin ang Hindi ngayon para logs lang, o subukan muli ang game files."
   },
   "th": {
     "title": "รายงานปัญหา",
@@ -97,7 +106,10 @@
     "filesConfirm": "แนบไฟล์",
     "filesDecline": "ยังไม่ใช่ตอนนี้",
     "filesRemember": "จำตัวเลือกของฉัน",
-    "filesExcluded": "จะไม่แนบไฟล์เกม"
+    "filesExcluded": "จะไม่แนบไฟล์เกม",
+    "filesRetry": "ลองไฟล์เกมอีกครั้ง",
+    "filesLimit": "ถึงขีดจำกัดการอัปโหลดไฟล์เกมแล้ว เลือกไม่ใช่ตอนนี้เพื่อส่งเฉพาะบันทึก หรือลองอีกครั้งพรุ่งนี้",
+    "filesInvalid": "ตรวจสอบไฟล์เกมไม่สำเร็จ เลือกไม่ใช่ตอนนี้เพื่อส่งเฉพาะบันทึก หรือลองไฟล์เกมอีกครั้ง"
   },
   "id": {
     "title": "Laporkan Masalah",
@@ -122,7 +134,10 @@
     "filesConfirm": "Sertakan berkas",
     "filesDecline": "Tidak sekarang",
     "filesRemember": "Ingat pilihan saya",
-    "filesExcluded": "Berkas game tidak akan disertakan."
+    "filesExcluded": "Berkas game tidak akan disertakan.",
+    "filesRetry": "Coba lagi file game",
+    "filesLimit": "Batas unggahan file game tercapai. Pilih Nanti untuk mengirim log saja, atau coba lagi besok.",
+    "filesInvalid": "File game tidak dapat diverifikasi. Pilih Nanti untuk mengirim log saja, atau coba lagi file game."
   },
   "hi": {
     "title": "समस्या की रिपोर्ट करें",
@@ -147,7 +162,10 @@
     "filesConfirm": "फ़ाइलें शामिल करें",
     "filesDecline": "अभी नहीं",
     "filesRemember": "मेरी पसंद याद रखें",
-    "filesExcluded": "गेम फ़ाइलें शामिल नहीं की जाएँगी।"
+    "filesExcluded": "गेम फ़ाइलें शामिल नहीं की जाएँगी।",
+    "filesRetry": "गेम फ़ाइलें फिर आज़माएँ",
+    "filesLimit": "गेम फ़ाइल अपलोड सीमा पूरी हो गई। केवल लॉग भेजने के लिए अभी नहीं चुनें, या कल फिर कोशिश करें।",
+    "filesInvalid": "गेम फ़ाइल सत्यापित नहीं हो सकी। केवल लॉग भेजने के लिए अभी नहीं चुनें, या गेम फ़ाइलें फिर आज़माएँ।"
   },
   "pt": {
     "title": "Reportar um Problema",
@@ -172,7 +190,10 @@
     "filesConfirm": "Incluir arquivos",
     "filesDecline": "Agora não",
     "filesRemember": "Lembrar minha preferência",
-    "filesExcluded": "Os arquivos do jogo não serão incluídos."
+    "filesExcluded": "Os arquivos do jogo não serão incluídos.",
+    "filesRetry": "Tentar arquivos novamente",
+    "filesLimit": "Limite de envio de arquivos do jogo atingido. Escolha Agora não para enviar só os logs ou tente amanhã.",
+    "filesInvalid": "Não foi possível verificar um arquivo do jogo. Escolha Agora não para enviar só os logs ou tente os arquivos novamente."
   },
   "ja": {
     "title": "問題を報告",
@@ -197,6 +218,9 @@
     "filesConfirm": "ファイルを含める",
     "filesDecline": "今はしない",
     "filesRemember": "選択を記憶する",
-    "filesExcluded": "ゲームファイルは含まれません。"
+    "filesExcluded": "ゲームファイルは含まれません。",
+    "filesRetry": "ゲームファイルを再試行",
+    "filesLimit": "ゲームファイルのアップロード上限に達しました。「今はしない」でログのみを送信するか、明日再試行してください。",
+    "filesInvalid": "ゲームファイルを検証できませんでした。「今はしない」でログのみを送信するか、ゲームファイルを再試行してください。"
   }
 }

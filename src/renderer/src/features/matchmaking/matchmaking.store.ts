@@ -1069,13 +1069,25 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     },
 
     playWithBots: async () => {
-      // Every mode opts into bot fill. For 5v5 the backend relaxes the
-      // two-human warmup start minimum so a solo player can start playing.
+      const language = useLanguageStore.getState().language
+      const feedback = toast.loading(translate(language, 'activity.playBotsPending'))
       try {
         await window.api.matchmaking.playWithBots()
         set({ error: null })
+        toast.update(feedback, {
+          render: translate(language, 'activity.playBotsRequested'),
+          type: 'success',
+          isLoading: false,
+          autoClose: 3000
+        })
       } catch (error) {
         set({ error: readableError(error) })
+        toast.update(feedback, {
+          render: translate(language, 'activity.playBotsError'),
+          type: 'error',
+          isLoading: false,
+          autoClose: 6000
+        })
       }
     },
 

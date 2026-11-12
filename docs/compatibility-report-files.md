@@ -32,3 +32,14 @@ Tests: `scripts/compatibility-files.test.mjs`,
 `scripts/compatibility-modal-runtime.test.mjs` (requires the built web CSS and
 Electron). The runtime test captures both themes and checks stable loading/error
 geometry, square corners and Not now behavior.
+
+Attachment upload failures reopen consent even when Include was remembered. The
+draft and screenshots remain intact; retrying a valid snapshot reuses its report
+key. An expired or unavailable snapshot can be prepared again within the dialog.
+Quota and file-verification refusals have translated, actionable messages.
+
+The backend raw-SQL manifest insert must explicitly JSON-encode descriptors:
+Drizzle changes the shared postgres.js JSON serializers to pass-through functions.
+Using `tx.json(array)` on that client fails before any binary upload. The backend
+real-PostgreSQL regression test covers manifest creation, deduplicated retries,
+binary upload and admin download with isolated temporary tables.

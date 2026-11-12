@@ -82,10 +82,8 @@ export function IssueReportForm() {
           closeLabel={t.cancel}
           busy={state.busy}
           disabled={!state.compatibilityPreview}
-          error={state.consentError ? t.filesError : undefined}
-          onClose={() =>
-            useIssueReport.setState({ consentOpen: false, compatibilityPreview: null })
-          }
+          error={state.consentError ? (state.consentErrorMessage ?? t.filesError) : undefined}
+          onClose={() => useIssueReport.setState({ consentOpen: false })}
           onDecline={() => state.decideCompatibility(false)}
           onConfirm={() => state.decideCompatibility(true)}
         >
@@ -112,7 +110,17 @@ export function IssueReportForm() {
                 </ul>
               </>
             ) : (
-              <p>{state.busy ? t.filesPreparing : t.filesError}</p>
+              <div>
+                <p>{state.busy ? t.filesPreparing : (state.consentErrorMessage ?? t.filesError)}</p>
+                <Button
+                  variant="ghost"
+                  className="mt-3"
+                  disabled={state.busy}
+                  onClick={() => void state.prepareCompatibility()}
+                >
+                  {t.filesRetry}
+                </Button>
+              </div>
             )}
           </div>
           <label className="mt-3 flex items-start gap-2 text-sm">

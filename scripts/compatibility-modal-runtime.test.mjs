@@ -22,10 +22,12 @@ test(
 import React from 'react';import {createRoot} from 'react-dom/client';
 import {IssueReportForm} from './src/renderer/src/features/issue-report/IssueReportForm';
 import {useIssueReport} from './src/renderer/src/features/issue-report/issue-report.store';
-window.theme='modern';window.api={diagnosticLogs:{compatibility:async()=>null}};window.report=useIssueReport;
+import {ButtonWithHelp} from './src/renderer/src/components/ui/ButtonWithHelp';
+window.theme='modern';window.report=useIssueReport;window.rejectUpload=true;window.sent=[];window.botClicks=0;
 window.fixture={id:'fixture',totalBytes:7400000,files:['cstrike/cl_dlls/client.dll','hw.dll','valve/cl_dlls/GameUI.dll','vgui2.dll'].map(path=>({path,size:1850000,sha256:'a'.repeat(64)}))};
-useIssueReport.setState({consentOpen:true,compatibilityPreview:window.fixture});
-createRoot(document.getElementById('root')).render(<IssueReportForm/>);
+window.api={gameSettings:{getAssetSyncStatus:async()=>null},diagnosticLogs:{compatibility:async()=>window.fixture,report:async(...args)=>{window.sent.push(args);if(window.rejectUpload && args[4])throw Error('COMPATIBILITY_UPLOAD_FAILED');return {id:'report'}}}};
+useIssueReport.setState({open:true,description:'Solo legacy queue is stuck'});useIssueReport.setState({consentOpen:true,compatibilityPreview:window.fixture});
+createRoot(document.getElementById('root')).render(<><IssueReportForm/><div id='bot-control' style={{width:180,height:32,marginTop:16}}><ButtonWithHelp className='h-8 w-full' buttonClassName='text-[10px]' helpText='Fill empty slots with bots so you can play even when alone. Solo bot matches use half the normal MMR gain or loss.' onClick={()=>window.botClicks++}>Play with Bots</ButtonWithHelp></div></>);
 `
         },
         bundle: true,
@@ -85,6 +87,29 @@ for(const theme of ['modern','vgui2']){
  await run('report.setState({compatibilityPreview:fixture,consentError:false})');await pause();
  assert.equal(await run('getComputedStyle(document.querySelector("dialog")).borderRadius'),'0px');
 }
+await run('report.setState({rememberConsent:true});[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Include files").click()');await pause();
+assert.equal(await run('report.getState().consentOpen'),true,'failed upload reopens choice');
+assert.equal(await run('report.getState().description'),'Solo legacy queue is stuck');
+assert.equal(await run('report.getState().busy'),false);
+assert.equal(await run('localStorage.getItem("compatibility-report-consent-v1:test")'),'yes');
+await run('window.rejectUpload=false;[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Include files").click()');await pause();
+assert.equal(await run('report.getState().open'),false);
+assert.equal(await run('sent.length'),2);
+assert.equal(await run('sent[0][4]===sent[1][4]'),true,'retry reuses snapshot');
+for(const theme of ['modern','vgui2']){
+ await run('document.documentElement.dataset.launcherTheme='+JSON.stringify(theme));
+ const geometry=()=>run('JSON.stringify(document.querySelector("#bot-control").getBoundingClientRect().toJSON())');const before=await geometry();
+ await run('document.querySelector("#bot-control button[aria-label]").focus()');await pause();
+ assert.match(await run('document.querySelector("[role=tooltip]").textContent'),/half the normal MMR/);
+ await run('document.querySelector("#bot-control button[aria-label]").click()');await pause();
+ assert.equal(await run('botClicks'),0,'help never requests a bot match');
+ assert.equal(await geometry(),before,'tooltip preserves layout');
+ assert.equal(await run('getComputedStyle(document.querySelector("[role=tooltip]")).visibility'),'visible');
+ await pause();
+ fs.writeFileSync(${JSON.stringify(join(tmpdir(), '16c-bot-tooltip-'))}+theme+'.png',(await w.webContents.capturePage()).toPNG());
+ await run('document.querySelector("#bot-control button[aria-label]").blur()');
+}
+await run('report.setState({open:true,description:"retry report"});report.setState({consentOpen:true,compatibilityPreview:fixture})');await pause();
 await run('[...document.querySelectorAll("dialog button")].find(b=>b.textContent==="Not now").click()');await pause();assert.equal(await run('document.querySelector("dialog")===null'),true);assert.equal(await run('report.getState().compatibility'),null);
 w.destroy();app.exit(0);
 }catch(e){console.error(e);w.destroy();app.exit(1)}});

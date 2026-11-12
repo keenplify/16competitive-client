@@ -6,7 +6,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
 
-async function fixture(matchState = {}) {
+async function fixture(matchState = {}, failures = {}) {
   const auth = create(() => ({ session: { player: { id: 'account-a' } } }))
   const saved = new Map(),
     sent = [],
@@ -33,9 +33,13 @@ async function fixture(matchState = {}) {
         diagnosticLogs: {
           compatibility: async (game) => {
             requestedGames.push(game)
+            if (failures.prepare) throw new Error(failures.prepare)
             return preview
           },
-          report: async (...args) => sent.push(args)
+          report: async (...args) => {
+            sent.push(args)
+            if (failures.report && args[4]) throw new Error(failures.report)
+          }
         }
       }
     }
@@ -170,4 +174,84 @@ test('closing the consent modal does not send the report', async () => {
   await settle()
   assert.equal(store.getState().consentOpen, true)
   assert.equal(sent.length, 0)
+})
+
+test('failed remembered attachment reopens consent, retains draft, and retries the same snapshot', async () => {
+  const failures = { report: 'COMPATIBILITY_UPLOAD_FAILED' }
+  const { store, saved, sent, requestedGames } = await fixture({}, failures)
+  saved.set('compatibility-report-consent-v1:account-a', 'yes')
+  store.setState({
+    open: true,
+    description: 'Legacy bots never start',
+    images: [{ id: 'image', mime: 'image/png', data: 'data' }]
+  })
+  await store.getState().submit()
+  assert.equal(store.getState().consentOpen, true)
+  assert.equal(store.getState().busy, false)
+  assert.equal(store.getState().consentDecided, false)
+  assert.equal(store.getState().rememberConsent, true)
+  assert.equal(store.getState().description, 'Legacy bots never start')
+  assert.equal(store.getState().images.length, 1)
+  // Closing and clicking Submit must not silently reuse a failed decision.
+  store.setState({ consentOpen: false })
+  await store.getState().submit()
+  assert.equal(store.getState().consentOpen, true)
+  assert.equal(sent.length, 1)
+  failures.report = null
+  store.getState().decideCompatibility(true)
+  await settle()
+  assert.equal(store.getState().open, false)
+  assert.equal(sent.length, 2)
+  assert.equal(sent[0][4], sent[1][4])
+  assert.equal(requestedGames.length, 1)
+})
+
+test('attachment rejection allows logs-only submission despite remembered Include', async () => {
+  const { store, saved, sent } = await fixture(
+    {},
+    { report: 'COMPATIBILITY_UPLOAD_LIMIT (HTTP 429)' }
+  )
+  saved.set('compatibility-report-consent-v1:account-a', 'yes')
+  store.setState({ open: true, description: 'test' })
+  await store.getState().submit()
+  assert.match(store.getState().consentErrorMessage, /limit reached/)
+  store.getState().decideCompatibility(false)
+  await settle()
+  assert.equal(sent.length, 2)
+  assert.equal(sent[1][4], undefined)
+  assert.equal(store.getState().open, false)
+  assert.equal(store.getState().busy, false)
+})
+
+test('expired capture can be prepared again without discarding the report', async () => {
+  const failures = { report: 'COMPATIBILITY_PREVIEW_EXPIRED' }
+  const { store, saved, sent, requestedGames } = await fixture({}, failures)
+  saved.set('compatibility-report-consent-v1:account-a', 'yes')
+  store.setState({ open: true, description: 'test' })
+  await store.getState().submit()
+  assert.equal(store.getState().compatibilityPreview, null)
+  assert.equal(store.getState().consentOpen, true)
+  await store.getState().prepareCompatibility()
+  failures.report = null
+  store.getState().decideCompatibility(true)
+  await settle()
+  assert.equal(requestedGames.length, 2)
+  assert.equal(sent.length, 2)
+  assert.equal(store.getState().open, false)
+})
+
+test('failed preparation can be retried within the consent dialog', async () => {
+  const failures = { prepare: 'COMPATIBILITY_FILES_UNAVAILABLE' }
+  const { store, saved } = await fixture({}, failures)
+  saved.set('compatibility-report-consent-v1:account-a', 'yes')
+  store.setState({ open: true, description: 'test' })
+  await store.getState().submit()
+  assert.equal(store.getState().consentOpen, true)
+  assert.equal(store.getState().consentError, true)
+  failures.prepare = null
+  await store.getState().prepareCompatibility()
+  assert.equal(store.getState().consentError, false)
+  store.getState().decideCompatibility(true)
+  await settle()
+  assert.equal(store.getState().open, false)
 })

@@ -53,7 +53,7 @@ window.attach=async(type='image/png')=>{const canvas=document.createElement('can
                 resolveDir: process.cwd(),
                 contents: args.path.endsWith('/diagnostic-logs')
                   ? 'export const getRendererDiagnosticLogs=()=>["test logs"]'
-                  : `import {create} from 'zustand';export const ${args.path.includes('auth.store') ? 'useAuthStore' : args.path.includes('custom-games') ? 'useCustomGamesStore' : args.path.includes('matchmaking.store') ? 'useMatchmakingStore' : 'useLanguageStore'}=create(()=>(${args.path.includes('i18n') ? '{language:"en"}' : args.path.includes('auth.store') ? '{session:{player:{id:"test"}}}' : '{}'}));`
+                  : `import {create} from 'zustand';export const useTranslation=()=>({t:k=>k});export const ${args.path.includes('auth.store') ? 'useAuthStore' : args.path.includes('custom-games') ? 'useCustomGamesStore' : args.path.includes('matchmaking.store') ? 'useMatchmakingStore' : 'useLanguageStore'}=create(()=>(${args.path.includes('i18n') ? '{language:"en"}' : args.path.includes('auth.store') ? '{session:{player:{id:"test"}}}' : '{}'}));`
               }))
             }
           }

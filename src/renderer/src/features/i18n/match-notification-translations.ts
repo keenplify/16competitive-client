@@ -1,5 +1,11 @@
 export const matchNotificationTranslations = {
   en: {
+    'activity.playBotsHint':
+      'Fill empty slots with bots so you can play even when alone. Solo bot matches use half the normal MMR gain or loss.',
+    'activity.playBotsPending': 'Requesting a bot match…',
+    'activity.playBotsRequested': 'Bot match requested. Filling empty slots.',
+    'activity.playBotsError':
+      'Could not request a bot match. Check your connection and retry from the queue.',
     'rankedWarmup.title': 'Warmup',
     'rankedWarmup.botMmr': 'Play with bots · Half MMR',
     'rankedWarmup.earlyHint': 'Everyone in warmup can type /startearly to start now.',
@@ -33,6 +39,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   ru: {
+    'activity.playBotsHint':
+      'Боты заполнят свободные места, чтобы можно было играть даже одному. В одиночных матчах с ботами начисляется или снимается половина обычного MMR.',
+    'activity.playBotsPending': 'Запрашиваем матч с ботами…',
+    'activity.playBotsRequested': 'Матч с ботами запрошен. Заполняем свободные места.',
+    'activity.playBotsError':
+      'Не удалось запросить матч с ботами. Проверьте подключение и повторите из очереди.',
     'rankedWarmup.title': 'Разминка',
     'rankedWarmup.botMmr': 'Игра с ботами · Половина MMR',
     'rankedWarmup.earlyHint': 'Для раннего старта все игроки должны написать /startearly.',
@@ -66,6 +78,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Настройки уведомлений'
   },
   tl: {
+    'activity.playBotsHint':
+      'Pupunan ng bots ang bakanteng slots para makalaro ka kahit mag-isa. Kalahati ng normal na MMR ang makukuha o mawawala sa solo bot matches.',
+    'activity.playBotsPending': 'Humihiling ng bot match…',
+    'activity.playBotsRequested': 'Na-request ang bot match. Pinupunan ang bakanteng slots.',
+    'activity.playBotsError':
+      'Hindi ma-request ang bot match. Tingnan ang koneksyon at subukan muli habang nakapila.',
     'rankedWarmup.title': 'Warmup',
     'rankedWarmup.botMmr': 'Laro sa bots · Kalahating MMR',
     'rankedWarmup.earlyHint':
@@ -101,6 +119,11 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   th: {
+    'activity.playBotsHint':
+      'เติมช่องว่างด้วยบอตเพื่อให้เล่นได้แม้อยู่คนเดียว แมตช์บอตแบบเล่นคนเดียวจะเพิ่มหรือลด MMR ครึ่งหนึ่งของปกติ',
+    'activity.playBotsPending': 'กำลังขอแมตช์บอต…',
+    'activity.playBotsRequested': 'ขอแมตช์บอตแล้ว กำลังเติมช่องว่าง',
+    'activity.playBotsError': 'ขอแมตช์บอตไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้งจากคิว',
     'rankedWarmup.title': 'วอร์มอัป',
     'rankedWarmup.botMmr': 'เล่นกับบอท · MMR ครึ่งหนึ่ง',
     'rankedWarmup.earlyHint': 'ทุกคนในวอร์มอัปพิมพ์ /startearly เพื่อเริ่มทันที',
@@ -132,6 +155,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'ตั้งค่าการแจ้งเตือน'
   },
   id: {
+    'activity.playBotsHint':
+      'Isi slot kosong dengan bot agar bisa bermain meski sendirian. Pertandingan bot solo memberi kenaikan atau penurunan MMR setengah dari biasanya.',
+    'activity.playBotsPending': 'Meminta pertandingan bot…',
+    'activity.playBotsRequested': 'Pertandingan bot diminta. Mengisi slot kosong.',
+    'activity.playBotsError':
+      'Gagal meminta pertandingan bot. Periksa koneksi dan coba lagi dari antrean.',
     'rankedWarmup.title': 'Pemanasan',
     'rankedWarmup.botMmr': 'Main dengan bot · Setengah MMR',
     'rankedWarmup.earlyHint':
@@ -164,6 +193,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Pengaturan notifikasi'
   },
   hi: {
+    'activity.playBotsHint':
+      'खाली जगहें बॉट्स से भरें ताकि अकेले भी खेल सकें। अकेले बॉट मैच में सामान्य MMR लाभ या नुकसान का आधा लागू होता है।',
+    'activity.playBotsPending': 'बॉट मैच का अनुरोध किया जा रहा है…',
+    'activity.playBotsRequested': 'बॉट मैच का अनुरोध भेज दिया। खाली जगहें भरी जा रही हैं।',
+    'activity.playBotsError':
+      'बॉट मैच का अनुरोध नहीं हो सका। कनेक्शन जाँचें और कतार से फिर कोशिश करें।',
     'rankedWarmup.title': 'वार्मअप',
     'rankedWarmup.botMmr': 'बॉट्स के साथ खेलें · आधा MMR',
     'rankedWarmup.earlyHint': 'अभी शुरू करने के लिए वार्मअप में सभी /startearly लिखें।',
@@ -197,6 +232,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'सूचना सेटिंग्स'
   },
   pt: {
+    'activity.playBotsHint':
+      'Preencha vagas com bots para jogar mesmo sozinho. Partidas solo com bots aplicam metade do ganho ou perda normal de MMR.',
+    'activity.playBotsPending': 'Solicitando partida com bots…',
+    'activity.playBotsRequested': 'Partida com bots solicitada. Preenchendo vagas.',
+    'activity.playBotsError':
+      'Não foi possível solicitar a partida com bots. Verifique a conexão e tente novamente na fila.',
     'rankedWarmup.title': 'Aquecimento',
     'rankedWarmup.botMmr': 'Jogar com bots · Metade do MMR',
     'rankedWarmup.earlyHint': 'Todos no aquecimento podem digitar /startearly para começar agora.',
@@ -232,6 +273,12 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Configurações de notificações'
   },
   ja: {
+    'activity.playBotsHint':
+      '空き枠をボットで埋めて、一人でもプレイできます。ソロのボット戦では通常の半分のMMRが増減します。',
+    'activity.playBotsPending': 'ボット戦をリクエスト中…',
+    'activity.playBotsRequested': 'ボット戦をリクエストしました。空き枠を補充中です。',
+    'activity.playBotsError':
+      'ボット戦をリクエストできませんでした。接続を確認し、検索中に再試行してください。',
     'rankedWarmup.title': 'ウォームアップ',
     'rankedWarmup.botMmr': 'ボットとプレイ · MMR半分',
     'rankedWarmup.earlyHint': '全員が /startearly を入力するとすぐに開始できます。',
