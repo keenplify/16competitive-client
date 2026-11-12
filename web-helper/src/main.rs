@@ -868,10 +868,16 @@ fn launch_native_match(initial: &Connection, api: &str, token: &str,
         if !announced { ready()?; announced = true; }
         Ok(())
     };
-    match_recovery::run(initial,
+    let result = match_recovery::run(initial,
         |current| launch_native_match_attempt(current, api, token, &mut ready_once),
         || connection(api, token, &initial.match_id),
-        desktop_session::stop_requested)
+        desktop_session::stop_requested);
+    if let Err(error) = &result {
+        // Both browser and desktop sessions reach this point after attempt cleanup,
+        // while their authenticated helper session is still valid.
+        launch_diagnostics::report_automatically(api, token, initial, &desktop_session::failure_snapshot(error));
+    }
+    result
 }
 
 fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
@@ -1062,7 +1068,13 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         let config_auth = !next_client && windows_native::supports_config_authenticated_launch(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))?;
         #[cfg(not(windows))]
         let config_auth = false;
-        if !config_auth { return Err("NATIVE_INSTALL_UNSUPPORTED".into()); }
+        if !config_auth {
+            #[cfg(windows)]
+            if next_client { launch_diagnostics::install_check("nextclient_without_native_session", None); }
+            #[cfg(not(windows))]
+            launch_diagnostics::install_check("native_session_unavailable", None);
+            return Err("NATIVE_INSTALL_UNSUPPORTED".into());
+        }
         // Retain the verified inspector, match token, owned startup file and
         // periodic backend authorization. Only optional native visuals stop.
         desktop_session::report_config_auth_fallback();

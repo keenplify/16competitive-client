@@ -111,6 +111,14 @@ include only the currently signed-in account's history, even with no active
 match. No passwords, login/session tokens, raw launch arguments, chat, or game
 configuration are stored in this history. Upload happens only through the
 existing issue-report submission flow.
+Native `NATIVE_INSTALL_UNSUPPORTED` launch failures automatically submit a bounded issue report
+after cleanup, using the active helper session. Reports include the match, game, helper version,
+platform, helper/Windows architecture and emulation status, fixed compatibility-check reason,
+and inspected client DLL SHA-256 when available.
+They never upload DLL contents, arbitrary files, installation paths, or connection credentials.
+Repeated attempts are deduplicated per account, match, and helper version; submission uses two
+bounded attempts and never changes the launch result if reporting fails.
+
 Persistent scoreboard or connection failures can submit automatic issue reports
 with relevant launcher/session diagnostics. During the first five minutes of a
 managed CS 1.6 launch, the launcher checks newly appended `qconsole.log` output

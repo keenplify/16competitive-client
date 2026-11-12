@@ -155,13 +155,18 @@ pub fn supports_config_authenticated_launch(root: &Path) -> Result<bool, String>
         "16competitive/nextclient-install.json",
     ] {
         match fs::symlink_metadata(root.join(marker)) {
-            Ok(_) => return Ok(false),
+            Ok(_) => {
+                crate::launch_diagnostics::install_check(marker, None);
+                return Ok(false);
+            },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
             Err(error) => return Err(error.to_string()),
         }
     }
     let bytes = read_limited(&root.join("cstrike/cl_dlls/client.dll"), 128 * 1024 * 1024)?;
-    Ok(client_exports(&bytes).is_some_and(|exports| exports.contains("Initialize") || exports.contains("F")))
+    let supported = client_exports(&bytes).is_some_and(|exports| exports.contains("Initialize") || exports.contains("F"));
+    crate::launch_diagnostics::install_check(if supported { "config_auth_supported" } else { "unrecognized_client_exports" }, Some(&bytes));
+    Ok(supported)
 }
 
 pub fn is_gold_client(root: &Path) -> Result<bool, String> {
