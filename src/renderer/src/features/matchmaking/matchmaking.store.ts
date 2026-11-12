@@ -1402,6 +1402,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
 })
 import { useWebHelperPromptStore } from './web-helper-prompt.store'
 
+useAuthStore.subscribe((state, previous) => {
+  if (state.session?.player.id !== previous.session?.player.id) {
+    useMatchmakingStore.getState().reset()
+  }
+})
+
 rendererMatchmakingDiagnostics.setSnapshot(() => {
   rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
   const state = useMatchmakingStore.getState()

@@ -167,6 +167,8 @@ test('later session refresh does not discard the newly accepted partner session'
 
 function sessionHarness(cache = new Map(), incoming = false) {
   const exports = {}
+  const handlers = {}
+  let reloads = 0
   const storage = {
     getItem: (key) => cache.get(key) ?? null,
     setItem: (key, value) => cache.set(key, value),
@@ -186,10 +188,18 @@ function sessionHarness(cache = new Map(), incoming = false) {
     exports,
     storage,
     {
-      location: { href: 'https://example.com/pwa?partnerId=583704ab-6fc5-4b58-8fc2-d91cf1d7c051' }
+      addEventListener: (name, fn) => {
+        handlers[name] = fn
+      },
+      location: {
+        reload: () => {
+          reloads++
+        },
+        href: 'https://example.com/pwa?partnerId=583704ab-6fc5-4b58-8fc2-d91cf1d7c051'
+      }
     }
   )
-  return { api: exports, cache }
+  return { api: exports, cache, handlers, reloads: () => reloads }
 }
 test('partner return context survives reload but clears on normal login and logout', () => {
   const { api, cache } = sessionHarness()
@@ -245,4 +255,22 @@ test('blocked top navigation retains the approved destination for the manual ret
   assert.equal(h.token(), null)
   assert.equal(h.returnState().returnUrl, returnUrl)
   assert.equal(h.redirecting(), true)
+})
+
+test('login changes notify consumers and another tab cannot retain old identity', () => {
+  const h = sessionHarness()
+  let changes = 0
+  h.api.onWebSessionChange(() => {
+    changes++
+  })
+  h.api.setWebSessionToken('first')
+  h.api.setWebSessionToken('first')
+  assert.equal(changes, 1)
+  h.cache.set('16competitive.web.session', 'second')
+  h.handlers.storage({ key: '16competitive.web.session' })
+  assert.equal(h.api.getWebSessionToken(), 'second')
+  assert.equal(changes, 2)
+  assert.equal(h.reloads(), 1)
+  h.api.clearWebSessionToken()
+  assert.equal(changes, 3)
 })

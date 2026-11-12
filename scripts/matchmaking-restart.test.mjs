@@ -102,7 +102,7 @@ async function harness() {
     zustand: { create },
     '../../../../shared/anti-cheat': { ANTI_CHEAT_CANCELLED_MESSAGE: 'fixture' },
     '../../../../shared/matchmaking': { allowsManualMatchConnection: () => false },
-    '../auth/auth.store': { useAuthStore: { getState: () => ({}) } },
+    '../auth/auth.store': { useAuthStore: { getState: () => ({}), subscribe: () => () => {} } },
     '../../web-runtime': { isWebRuntime: () => false }
   }
   const module = new vm.SourceTextModule(source, { context })

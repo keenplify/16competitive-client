@@ -22,6 +22,7 @@ impl Launch {
 }
 #[derive(Clone)]
 pub struct Server {
+    pub game: String,
     pub id: String,
     pub host: String,
     pub port: u16,
@@ -97,8 +98,8 @@ fn address(host: &str, port: u16) -> Result<String, String> {
     Ok(addresses[0].to_string())
 }
 fn parse_server(value: &Value, id: &str) -> Result<Server, String> {
-    if value["id"] != id || value["gameVersion"] != "cs16" {
-        return Err("Lightweight partner launch requires CS1.6".into());
+    if value["id"] != id || !matches!(value["gameVersion"].as_str(), Some("cs16" | "cs13")) {
+        return Err("Unsupported partner game version".into());
     }
     let host = value["host"]
         .as_str()
@@ -114,6 +115,7 @@ fn parse_server(value: &Value, id: &str) -> Result<Server, String> {
         .filter(|p| *p > 0 && *p <= 65535)
         .ok_or("Invalid partner server port")? as u16;
     Ok(Server {
+        game: value["gameVersion"].as_str().unwrap().into(),
         id: id.into(),
         host: host.into(),
         port,
@@ -272,6 +274,55 @@ pub fn start_background(api: &str, token: &str, launch: Launch) -> Result<Value,
     Ok(json!({"ok":true,"event":"launched"}))
 }
 
+fn legacy_partner_args(server: &Server, mod_dir: &str) -> Vec<String> {
+    let mut args = vec!["-game".into(), mod_dir.into()];
+    args.extend(launch_pattern().cs13.windows_flags.iter().flatten().cloned());
+    for _ in 0..20 { args.push("+wait".into()); }
+    if let Some(ticket) = &server.ticket { args.extend(["+setinfo".into(), "_16p".into(), ticket.clone()]); }
+    args.extend(["+connect".into(), format!("{}:{}",server.host,server.port)]);
+    args
+}
+// Ordinary partner CS 1.3 servers use their selected legacy executable and mod,
+// without installing the CS 1.6 cosmetic module or changing game configuration.
+fn launch_legacy_partner(api: &str, token: &str, launch: &Launch, server: &Server,
+    root: &Path, executable: &Path, mod_dir: &str, ready: &mut dyn FnMut() -> Result<(),String>) -> Result<(),String> {
+    let _mode = session_mode::Lease::native_wait(&user_config_dir()?)?;
+    let startup = owned_game::Startup::prepare_replacing(executable, &root.join(mod_dir)).map_err(|_| "GAME_CLOSE_FAILED")?;
+    let mut command = if cfg!(target_os="linux") && executable.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe")) {
+        let mut command = Command::new("wine"); command.arg(executable); command
+    } else { Command::new(executable) };
+    command.args(legacy_partner_args(server, mod_dir)).current_dir(root)
+        .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    startup.recheck().map_err(|_| "GAME_STARTUP_FAILED")?;
+    let mut child = command.spawn().map_err(desktop_session::game_spawn_failure)?;
+    let owned = match startup.wait() {
+        Ok(owned) => owned,
+        Err(_) => { let _ = child.kill(); let _ = child.wait(); return Err("GAME_STARTUP_FAILED".into()); }
+    };
+    let result = (|| {
+        mark_launched(api, token, launch)?;
+        ready()?;
+        let started = std::time::Instant::now();
+        let mut checked = started;
+        while !owned.exited()? {
+            if desktop_session::stop_requested() || started.elapsed() >= Duration::from_secs(7200) {
+                owned.stop()?; break;
+            }
+            if checked.elapsed() >= Duration::from_secs(15) {
+                if !authorized(api, token, &server.id, server.connection_id.as_deref(), started.elapsed() < Duration::from_secs(90)) {
+                    owned.stop()?; break;
+                }
+                checked = std::time::Instant::now();
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        Ok(())
+    })();
+    if result.is_err() { let _ = owned.stop(); let _ = child.kill(); }
+    let _ = child.wait();
+    result
+}
+
 pub fn launch(
     api: &str,
     token: &str,
@@ -279,7 +330,11 @@ pub fn launch(
     ready: &mut dyn FnMut() -> Result<(), String>,
 ) -> Result<(), String> {
     launch.validate()?;
-    let (root, executable, mod_dir) = managed_installations::choose(api, token, "cs16")?;
+    let server = resolve(api, token, launch)?;
+    let (root, executable, mod_dir) = managed_installations::choose(api, token, &server.game)?;
+    if server.game == "cs13" {
+        return launch_legacy_partner(api, token, launch, &server, &root, &executable, &mod_dir, ready);
+    }
     #[cfg(target_os = "linux")]
     {
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
@@ -306,7 +361,6 @@ pub fn launch(
         let home = PathBuf::from(env::var_os("HOME").ok_or("Home directory unavailable")?);
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
-    let server = resolve(api, token, launch)?;
     let config = user_config_dir()?;
     let ownership = session_mode::VoiceOwnership::start(&config, &server.id)?;
     let _mode = session_mode::Lease::native_wait(&config)?;
@@ -537,6 +591,14 @@ mod tests {
         assert!(parse_server(&value, "server").is_err());
         value["host"] = json!("127.0.0.1");
         value["gameVersion"] = json!("cs13");
+        let mut server = parse_server(&value, "server").unwrap();
+        assert_eq!(server.game, "cs13");
+        server.ticket = Some("a".repeat(32));
+        let args = legacy_partner_args(&server, "cstrk13");
+        assert_eq!(&args[..2], &["-game", "cstrk13"]);
+        assert_eq!(&args[args.len()-2..], &["+connect", "127.0.0.1:27015"]);
+        assert!(!args.iter().any(|arg| arg == "-insecure" || arg == "-steam"));
+        value["gameVersion"] = json!("cs15");
         assert!(parse_server(&value, "server").is_err());
     }
 }

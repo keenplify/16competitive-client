@@ -71,11 +71,20 @@ async function checkNativeHelperReadiness(force: boolean): Promise<NativeHelperR
       await sleep(100)
     }
   }
-  const value = (await localRequest({
-    action: 'runtimeCheck',
-    token: getWebSessionToken() ?? undefined,
-    apiOrigin: currentApiOrigin()
-  })) as NativeHelperReadiness & { protocol: number }
+  let response: unknown
+  try {
+    response = await localRequest({ action: 'runtimeCheck', token, apiOrigin: currentApiOrigin() })
+  } catch (error) {
+    if (
+      (error as { code?: string }).code === 'busy' &&
+      readiness?.token === token &&
+      getWebSessionToken() === token &&
+      readiness.until > Date.now()
+    )
+      return readiness.value
+    throw error
+  }
+  const value = response as NativeHelperReadiness & { protocol: number }
   if (
     value.protocol !== 1 ||
     typeof value.competitiveReady !== 'boolean' ||
@@ -700,10 +709,15 @@ export async function launchWithLocalLauncher(
   matchId: string,
   launcher: LocalLauncher
 ): Promise<void> {
-  const handoff = await challenge()
+  const launchToken = getWebSessionToken()
+  const apiOrigin = currentApiOrigin()
+  if (!launchToken) throw new Error('SESSION_CHANGED')
+  const handoff = await challenge(apiOrigin)
+  if (getWebSessionToken() !== launchToken || currentApiOrigin() !== apiOrigin)
+    throw new Error('SESSION_CHANGED')
   const protocol = launcher === 'electron' ? WEB_HELPER_PROTOCOL : WEB_NATIVE_HELPER_PROTOCOL
   window.location.href = webHelperLaunchUrl(
-    { apiOrigin: currentApiOrigin(), matchId, handoff },
+    { apiOrigin, matchId, handoff },
     import.meta.env.DEV,
     protocol
   )
@@ -955,13 +969,24 @@ async function localRequest(
       typeof body === 'object' &&
       'code' in body &&
       body.code === 'INVALID_GAME_INSTALLATION'
+    const diagnosticCode =
+      body &&
+      typeof body === 'object' &&
+      'code' in body &&
+      typeof body.code === 'string' &&
+      /^[A-Z_]{3,64}$/.test(body.code)
+        ? body.code
+        : 'unavailable'
+    const code =
+      response.status === 429 ? 'busy' : invalidInstallation ? 'invalidInstallation' : 'unavailable'
     console.warn('[NativeHelper] Settings request rejected', {
       action: request.action,
       status: response.status,
-      code: invalidInstallation ? 'invalidInstallation' : 'unavailable'
+      code: response.status === 429 ? 'busy' : diagnosticCode
     })
     throw Object.assign(new Error('Native helper settings unavailable'), {
-      code: invalidInstallation ? 'invalidInstallation' : 'unavailable'
+      code,
+      diagnosticCode
     })
   }
   return await response.json()

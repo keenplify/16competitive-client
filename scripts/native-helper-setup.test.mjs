@@ -535,3 +535,21 @@ test('Linux download instructions survive a failed setup handshake and can still
   assert.equal(await store.getState().renewSetupCommand(), command)
   store.getState().closeSetup()
 })
+
+
+test('a busy readiness probe preserves the verified games instead of hiding legacy play', async () => {
+  let busy = false
+  const { store } = await harness({ readiness: async () => {
+    if (busy) throw Object.assign(new Error('busy'), { code: 'busy' })
+    return { competitiveReady: true, games: { cs13: true, cs16: false } }
+  } })
+  store.getState().syncAccount('player')
+  await store.getState().checkNative()
+  assert.equal(store.getState().competitiveReady, true)
+  busy = true
+  assert.equal(await store.getState().checkNative(), 'rust')
+  assert.equal(store.getState().competitiveReady, true)
+  store.getState().syncAccount('other-player')
+  await store.getState().checkNative()
+  assert.equal(store.getState().competitiveReady, false)
+})

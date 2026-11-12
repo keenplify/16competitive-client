@@ -119,13 +119,11 @@ async function harness({
       }
     },
     '../auth/auth.store': {
-      useAuthStore: {
-        getState: () => ({
-          session: { player: { id: 'me' } },
-          setMmr: (mmr) => mmrUpdates.push(mmr),
-          refreshSession: async () => {}
-        })
-      }
+      useAuthStore: create(() => ({
+        session: { player: { id: 'me' } },
+        setMmr: (mmr) => mmrUpdates.push(mmr),
+        refreshSession: async () => {}
+      }))
     },
     '../party/party.store': { usePartyStore: { getState: () => ({ party }) } },
     '../i18n/i18n': {
@@ -173,7 +171,15 @@ async function harness({
     selectedNodeId: 'node',
     allowRegionExpansion: false
   })
-  return { store, completed, requests, mmrUpdates, feedback, emit: (message) => emit(message) }
+  return {
+    store,
+    auth: dependencies['../auth/auth.store'].useAuthStore,
+    completed,
+    requests,
+    mmrUpdates,
+    feedback,
+    emit: (message) => emit(message)
+  }
 }
 
 for (const mode of ['ffa', 'arena'])
@@ -528,4 +534,18 @@ test('custom room context survives match completion for 1.3 results', async () =
   h.emit({ type: 'match_finished', ...h.completed, mode: 'cs13_3v3', isCustomRoom: true })
   assert.equal(h.store.getState().completedMatch.isCustomRoom, true)
   assert.equal(h.store.getState().completedMatch.mode, 'cs13_3v3')
+})
+
+test('switching accounts clears the old match, connection and completed match', async () => {
+  const h = await harness()
+  h.store.setState({
+    match: { matchId: 'old-account-match' },
+    connectionDetails: { host: 'old-host' },
+    queueStatus: 'in_match'
+  })
+  h.auth.setState({ session: { player: { id: 'different-player' } } })
+  assert.equal(h.store.getState().match, null)
+  assert.equal(h.store.getState().connectionDetails, null)
+  assert.equal(h.store.getState().completedMatch, null)
+  assert.equal(h.store.getState().queueStatus, 'idle')
 })

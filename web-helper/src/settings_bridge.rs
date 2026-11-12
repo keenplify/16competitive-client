@@ -785,9 +785,12 @@ fn respond_settings_error(stream: &mut TcpStream, origin: &str, error: &str) {
     // Send stable codes, never raw filesystem errors or local paths.
     let code = if error == "Invalid game installation" {
         "INVALID_GAME_INSTALLATION"
-    } else {
-        "SETTINGS_FAILED"
-    };
+    } else if error.starts_with("GAME_SPAWN_FAILED") { "GAME_SPAWN_FAILED"
+    } else if matches!(error, "GAME_STARTUP_FAILED" | "GAME_CLOSE_FAILED") { error
+    } else if error == "Unsupported partner game version" { "UNSUPPORTED_GAME_VERSION"
+    } else if error == "Partner server unavailable" { "PARTNER_SERVER_UNAVAILABLE"
+    } else if error == "Partner request failed" { "PARTNER_REQUEST_FAILED"
+    } else { "SETTINGS_FAILED" };
     respond(
         stream,
         "400 Bad Request",
@@ -959,7 +962,7 @@ fn handle(mut stream: TcpStream, port: u16, token: &str, origin: &str) -> bool {
                 let _lease = Lease;
                 match apply(request, &token) {
                     Ok(value) => respond(&mut stream, "200 OK", Some(&origin), &value.to_string()),
-                    Err(_) => respond(&mut stream, "400 Bad Request", Some(&origin), "{}"),
+                    Err(error) => respond_settings_error(&mut stream, &origin, &error),
                 }
             });
         }

@@ -10,7 +10,12 @@ import type {
   MatchmakingServerMessage
 } from '../shared/matchmaking'
 import { manualConnectionCommand } from '../shared/matchmaking'
-import { currentApiOrigin, getWebSessionToken, requestJson } from './browser-session'
+import {
+  currentApiOrigin,
+  getWebSessionToken,
+  onWebSessionChange,
+  requestJson
+} from './browser-session'
 import { webSteamLaunchUrl } from './steam-launch'
 import {
   nativeHelperReadiness,
@@ -37,6 +42,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 const listeners = new Set<(event: MatchmakingEvent) => void>()
 let socket: WebSocket | null = null
+let socketToken: string | null = null
 let connectPromise: Promise<void> | null = null
 let resolveConnect: (() => void) | null = null
 let rejectConnect: ((error: Error) => void) | null = null
@@ -220,6 +226,32 @@ export const navigateToNode = async (
 let manualConnectionMatchId: string | null = null
 let manualConnectionMode: string | null = null
 
+const resetSessionConnection = (): void => {
+  const previous = socket
+  socket = null
+  socketToken = null
+  authenticated = false
+  clearTimers()
+  clearReadyAlert()
+  rejectConnect?.(new Error('SESSION_CHANGED'))
+  connectPromise = null
+  resolveConnect = null
+  rejectConnect = null
+  capabilityAuthentication = null
+  capabilityAuthenticated = null
+  stopNativeVoice?.()
+  stopNativeVoice = null
+  lastConnection = null
+  warmupConnection = null
+  warmupMatchId = null
+  manualConnectionMatchId = null
+  manualConnectionMode = null
+  sessionStorage.removeItem(AUTO_LAUNCH_KEY)
+  previous?.close()
+  emit({ type: 'connection_state', state: 'disconnected' })
+}
+onWebSessionChange(resetSessionConnection)
+
 const getManualConnection = async (matchId: string): Promise<unknown> =>
   requestJson<unknown>(`/matchmaking/matches/${encodeURIComponent(matchId)}/manual-connection`, {
     authenticated: true,
@@ -228,6 +260,8 @@ const getManualConnection = async (matchId: string): Promise<unknown> =>
   })
 
 const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => {
+  const launchToken = getWebSessionToken()
+  if (!launchToken) throw new Error('SESSION_CHANGED')
   const target =
     requestedMatchId && requestedMatchId === warmupMatchId ? warmupConnection : lastConnection
   if (!target || (requestedMatchId && target.matchId !== requestedMatchId))
@@ -243,9 +277,10 @@ const launchCounterStrike = async (requestedMatchId?: string): Promise<void> => 
     await launchWithLocalLauncher(matchId, launcher)
     return
   }
-  if ((manualConnectionMode === 'cs13_3v3' || manualConnectionMode === 'cs13_1v1'))
+  if (manualConnectionMode === 'cs13_3v3' || manualConnectionMode === 'cs13_1v1')
     throw new Error('Install and check a local launcher before opening a Counter-Strike 1.3 match.')
   const connection = await getManualConnection(matchId)
+  if (getWebSessionToken() !== launchToken) throw new Error('SESSION_CHANGED')
   if (
     (target.whileQueued ? warmupConnection : lastConnection)?.matchId !== matchId ||
     (target.whileQueued ? warmupMatchId : manualConnectionMatchId) !== matchId
@@ -395,6 +430,9 @@ document.addEventListener('visibilitychange', () => {
 })
 
 const openSocket = (): Promise<void> => {
+  const token = getWebSessionToken()
+  if (!token) return Promise.reject(new Error('SESSION_CHANGED'))
+  if (socketToken !== token) resetSessionConnection()
   if (socket?.readyState === WebSocket.OPEN && authenticated) return Promise.resolve()
   if (connectPromise) return connectPromise
 
@@ -402,6 +440,9 @@ const openSocket = (): Promise<void> => {
   authenticated = false
   socket?.close()
   socket = new WebSocket(websocketUrl())
+  const openedSocket = socket
+  socketToken = token
+  const isCurrent = (): boolean => socket === openedSocket && getWebSessionToken() === token
 
   connectPromise = new Promise<void>((resolve, reject) => {
     resolveConnect = resolve
@@ -409,6 +450,7 @@ const openSocket = (): Promise<void> => {
   })
 
   socket.addEventListener('message', (event) => {
+    if (!isCurrent()) return
     try {
       const message = JSON.parse(String(event.data)) as MatchmakingServerMessage
       void handleMessage(message).catch((error) => {
@@ -420,10 +462,12 @@ const openSocket = (): Promise<void> => {
   })
 
   socket.addEventListener('error', () => {
+    if (!isCurrent()) return
     rejectConnect?.(new Error('Could not connect to matchmaking.'))
   })
 
   socket.addEventListener('close', () => {
+    if (!isCurrent()) return
     const pendingReject = rejectConnect
     authenticated = false
     capabilityAuthentication = null
@@ -605,10 +649,17 @@ export const browserMatchmakingApi: MatchmakingApi = {
     const catalog = parseMatchmakingMapCatalog(body)
     // Queue modes outside webModes need the native helper. Custom-room modes
     // are decided by the backend (customEnabled) and stay usable without it.
-    return { ...catalog, maps: catalog.maps.map(map => ({
-      ...map,
-      supportedModes: map.supportedModes.filter(mode => map.webModes.includes(mode) || isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16'))
-    })) }
+    return {
+      ...catalog,
+      maps: catalog.maps.map((map) => ({
+        ...map,
+        supportedModes: map.supportedModes.filter(
+          (mode) =>
+            map.webModes.includes(mode) ||
+            isNativeGameReady(mode.startsWith('cs13_') ? 'cs13' : 'cs16')
+        )
+      }))
+    }
   },
 
   async respondReady(matchId, accepted) {

@@ -13,6 +13,15 @@ if (hasIncomingPartnerLogin()) {
 }
 let sessionToken = localStorage.getItem(TOKEN_KEY)
 
+const sessionListeners = new Set<() => void>()
+export const onWebSessionChange = (listener: () => void): (() => void) => {
+  sessionListeners.add(listener)
+  return () => sessionListeners.delete(listener)
+}
+const notifySessionChange = (): void => {
+  for (const listener of sessionListeners) listener()
+}
+
 export const currentApiOrigin = (): string => partnerApiOrigin()
 export const getWebSessionToken = (): string | null => sessionToken
 
@@ -40,15 +49,30 @@ export const getWebPartnerLogin = (): PartnerLoginContext | undefined => {
 export const setWebSessionToken = (token: string, partnerLogin?: PartnerLoginContext): void => {
   localStorage.removeItem(PARTNER_LOGIN_KEY)
   if (partnerLogin) localStorage.setItem(PARTNER_LOGIN_KEY, JSON.stringify(partnerLogin))
+  const changed = sessionToken !== token
   sessionToken = token
   localStorage.setItem(TOKEN_KEY, token)
+  if (changed) notifySessionChange()
 }
 
 export const clearWebSessionToken = (): void => {
+  const changed = sessionToken !== null
   sessionToken = null
   localStorage.removeItem(PARTNER_LOGIN_KEY)
   localStorage.removeItem(TOKEN_KEY)
+  if (changed) notifySessionChange()
 }
+
+// Another partner tab can replace the shared login. Stop the old connection
+// immediately and reload its account-scoped renderer state.
+window.addEventListener?.('storage', (event: StorageEvent) => {
+  if (event.key !== TOKEN_KEY && event.key !== null) return
+  const next = localStorage.getItem(TOKEN_KEY)
+  if (next === sessionToken) return
+  sessionToken = next
+  notifySessionChange()
+  window.location.reload()
+})
 
 const consumeHandoff = async (): Promise<void> => {
   const url = new URL(window.location.href)

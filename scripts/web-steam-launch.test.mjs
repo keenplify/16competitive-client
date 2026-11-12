@@ -14,6 +14,30 @@ const connection = {
 const matchId = '426aaf31-e665-4cee-8bd5-56475ea5db38'
 
 async function harness(requestJson = async () => connection, hosted = false, helper = false) {
+  let token = 'test-session'
+  const sessionListeners = new Set()
+  const sockets = []
+  class FakeSocket {
+    static OPEN = 1
+    readyState = 1
+    handlers = {}
+    sent = []
+    constructor() {
+      sockets.push(this)
+    }
+    addEventListener(name, fn) {
+      this.handlers[name] = fn
+    }
+    send(value) {
+      this.sent.push(JSON.parse(value))
+    }
+    close() {
+      this.readyState = 3
+    }
+    message(value) {
+      this.handlers.message?.({ data: JSON.stringify(value) })
+    }
+  }
   const stored = new Map()
   const launches = []
   let reloads = 0
@@ -25,7 +49,15 @@ async function harness(requestJson = async () => connection, hosted = false, hel
     }
   }
   const context = vm.createContext({
-    window: { location },
+    window: {
+      location,
+      setTimeout: () => 1,
+      clearTimeout: () => {},
+      setInterval: () => 1,
+      clearInterval: () => {}
+    },
+    WebSocket: FakeSocket,
+    navigator: { language: 'en' },
     document: {
       querySelector: (selector) =>
         hosted && selector.includes('16c-api-origin')
@@ -103,11 +135,15 @@ async function harness(requestJson = async () => connection, hosted = false, hel
       }
       if (name === './browser-session') {
         return new vm.SyntheticModule(
-          ['requestJson', 'getWebSessionToken', 'currentApiOrigin'],
+          ['requestJson', 'getWebSessionToken', 'currentApiOrigin', 'onWebSessionChange'],
           function () {
             this.setExport('requestJson', requestJson)
             this.setExport('currentApiOrigin', () => location.origin)
-            this.setExport('getWebSessionToken', () => 'test-session')
+            this.setExport('getWebSessionToken', () => token)
+            this.setExport('onWebSessionChange', (fn) => {
+              sessionListeners.add(fn)
+              return () => sessionListeners.delete(fn)
+            })
           },
           { context }
         )
@@ -133,7 +169,18 @@ async function harness(requestJson = async () => connection, hosted = false, hel
   await module.evaluate()
   await module.namespace.handleMessage({ type: 'match_found', matchId })
   await module.namespace.handleMessage({ type: 'match_connect', matchId, ...connection })
-  return { api: module.namespace, location, stored, launches, reloads: () => reloads }
+  return {
+    api: module.namespace,
+    location,
+    stored,
+    launches,
+    sockets,
+    changeSession: (next) => {
+      token = next
+      for (const fn of sessionListeners) fn()
+    },
+    reloads: () => reloads
+  }
 }
 
 function commands(uri) {
@@ -320,4 +367,42 @@ test('warmup without a verified helper waits for the player to connect', async (
   assert.deepEqual(h.launches, [])
   await h.api.browserMatchmakingApi.reconnectGame(warmupId)
   assert.ok(h.location.href.startsWith('steam://run/10//'))
+})
+
+test('account change drops old match admission and rejects late socket messages', async () => {
+  const h = await harness(async () => connection, false, true)
+  const connect = h.api.browserMatchmakingApi.connect()
+  const oldSocket = h.sockets.at(-1)
+  oldSocket.message({ type: 'connected' })
+  oldSocket.message({ type: 'authenticated' })
+  await connect
+  h.changeSession('new-account-session')
+  assert.equal(oldSocket.readyState, 3)
+  await assert.rejects(h.api.launchBrowserMatch(matchId), /not ready|no longer/)
+  const nextConnect = h.api.browserMatchmakingApi.connect()
+  const nextSocket = h.sockets.at(-1)
+  nextSocket.message({ type: 'connected' })
+  assert.equal(nextSocket.sent.at(-1).token, 'new-account-session')
+  oldSocket.message({ type: 'match_found', matchId })
+  oldSocket.message({ type: 'match_connect', matchId, ...connection })
+  oldSocket.handlers.close()
+  nextSocket.message({ type: 'authenticated' })
+  await nextConnect
+  assert.deepEqual(h.launches, [matchId])
+  await assert.rejects(h.api.launchBrowserMatch(matchId), /not ready|no longer/)
+})
+
+test('account switch during manual connection fetch cannot open Steam', async () => {
+  let finish
+  const h = await harness(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  const launching = h.api.launchBrowserMatch(matchId)
+  h.changeSession('new-account-session')
+  finish(connection)
+  await assert.rejects(launching, /SESSION_CHANGED/)
+  assert.equal(h.location.href, '')
 })

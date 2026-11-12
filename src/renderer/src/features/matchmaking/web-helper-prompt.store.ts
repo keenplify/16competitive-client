@@ -89,7 +89,6 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
     set({
       awaitingInstall: false,
       nativeReady: true,
-      competitiveReady: false,
       status: 'rust',
       onboardingOpen: !get().setupPromptsHidden && get().onboardingOpen && announce,
       open: false,
@@ -111,10 +110,11 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
   }
   return {
     setupPromptsHidden: false,
-    setSetupPromptsHidden: (setupPromptsHidden) => set({
-      setupPromptsHidden,
-      ...(setupPromptsHidden ? { onboardingOpen: false, open: false, setupOpen: false } : {})
-    }),
+    setSetupPromptsHidden: (setupPromptsHidden) =>
+      set({
+        setupPromptsHidden,
+        ...(setupPromptsHidden ? { onboardingOpen: false, open: false, setupOpen: false } : {})
+      }),
     awaitingInstall: false,
     awaitInstall: () => set({ awaitingInstall: true }),
     nativeReady: false,
@@ -192,9 +192,13 @@ export const useWebHelperPromptStore = create<WebHelperPromptState>((set, get) =
           if (status === 'rust') {
             try {
               await ready()
-            } catch {
-              status = 'unavailable'
-              if (current === generation) set({ status, competitiveReady: false })
+            } catch (error) {
+              if ((error as { code?: string }).code === 'busy') {
+                if (current === generation) set({ status })
+              } else {
+                status = 'unavailable'
+                if (current === generation) set({ status, competitiveReady: false })
+              }
             }
           } else set({ status, competitiveReady: false })
         }
