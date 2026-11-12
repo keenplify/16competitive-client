@@ -17,6 +17,7 @@ function harness() {
   ).outputText
   new Function('require', 'exports', 'window', 'localStorage', source)(
     (name) => {
+      if (name === './diagnostic-reports') return { createWebDiagnosticReports: () => ({}) }
       if (name === '../shared/early-asset-sync') return { createEarlyAssetSync }
       if (name === './local-play')
         return {

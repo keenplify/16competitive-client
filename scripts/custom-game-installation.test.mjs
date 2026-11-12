@@ -33,6 +33,7 @@ test('browser create, join, update and polling send fresh installation readiness
   ).outputText
   new Function('require', 'exports', 'window', 'localStorage', source)(
     (name) => {
+      if (name === './diagnostic-reports') return { createWebDiagnosticReports: () => ({}) }
       if (name === '../shared/early-asset-sync') return { createEarlyAssetSync }
       if (name === './custom-game-installation') return { customGameInstallationHeaders }
       if (name === './local-play')
