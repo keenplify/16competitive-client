@@ -920,6 +920,7 @@ class MatchmakingConnection {
         player: this.authenticatedPlayer,
         serverNow: new Date(serverClockNow()).toISOString()
       })
+      this.send({ type: 'get_queue_status' })
       return
     }
 

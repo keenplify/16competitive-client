@@ -1,5 +1,7 @@
 import { requestBotMatch } from '../src/shared/bot-match-request.ts'
 import { gameForMode } from '../src/shared/game-version.ts'
+import { readyCheckRemainingMs } from '../src/shared/matchmaking-ready-time.ts'
+import { readyResponseFromServer } from '../src/shared/matchmaking-ready-response.ts'
 import { MatchmakingDiagnostics } from '../src/shared/matchmaking-diagnostics.ts'
 import { matchmakingRegionSelection } from '../src/shared/matchmaking-region-selection.ts'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
@@ -9,6 +11,99 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { create } from 'zustand'
+
+const found = {
+  type: 'match_found',
+  matchId: 'recovering',
+  mode: 'cs13_3v3',
+  mapId: 'de_dust',
+  region: 'sea',
+  hostApiUrl: 'https://example.test',
+  teams: { teamA: [], teamB: [] }
+}
+
+test('a preparing popup can close locally and reopens when an actionable ready check arrives', async () => {
+  const h = await harness()
+  h.emit(found)
+  h.store.getState().dismissPreparingReadyCheck()
+  assert.equal(h.store.getState().dismissedReadyMatchId, found.matchId)
+  assert.equal(h.store.getState().match.matchId, found.matchId)
+  assert.equal(h.readyResponses().length, 0)
+  h.emit({
+    type: 'match_ready_check',
+    matchId: found.matchId,
+    deadline: new Date(Date.now() + 120000).toISOString(),
+    serverNow: new Date().toISOString(),
+    acceptedPlayerIds: [],
+    playersRequired: 10
+  })
+  assert.equal(h.store.getState().dismissedReadyMatchId, null)
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  h.store.getState().dismissPreparingReadyCheck()
+  assert.equal(h.store.getState().dismissedReadyMatchId, null)
+})
+
+test('a late or duplicate Match Found preserves the recovered deadline and accepted response', async () => {
+  const h = await harness()
+  h.emit({ ...found, type: 'match_roster', warmupPhase: 'WARMUP' })
+  h.emit({
+    type: 'match_ready_check',
+    matchId: found.matchId,
+    deadline: new Date(Date.now() + 120000).toISOString(),
+    serverNow: new Date().toISOString(),
+    acceptedPlayerIds: [],
+    playersRequired: 10
+  })
+  const deadline = h.store.getState().readyDeadline
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  h.emit(found)
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  assert.equal(h.store.getState().readyDeadline, deadline)
+  assert.equal(h.store.getState().match.warmupPhase, 'WARMUP')
+  await h.store.getState().respondReady(true)
+  assert.equal(h.readyResponses().length, 1)
+  h.emit(found)
+  assert.equal(h.store.getState().readyResponse, 'accepted')
+  assert.equal(h.store.getState().readyDeadline, deadline)
+})
+
+test('missing readiness polls the server and closes the modal after an authoritative NOT_QUEUED', async () => {
+  const h = await harness()
+  h.store.setState({ connectionStatus: 'ready' })
+  h.emit(found)
+  h.emit({ type: 'error', code: 'NOT_QUEUED', message: 'old status request' })
+  assert.equal(h.store.getState().queueStatus, 'match_found')
+  h.poll()
+  assert.equal(h.statusRequests(), 1)
+  h.emit({ type: 'error', code: 'NOT_QUEUED', message: 'Player is not currently queued' })
+  assert.equal(h.store.getState().queueStatus, 'idle')
+  assert.equal(h.store.getState().match, null)
+  assert.equal(h.store.getState().error, 'match.ready.expired')
+  h.emit(found)
+  assert.equal(h.store.getState().match, null, 'a stale replay cannot reopen the modal')
+})
+
+test('a pending recovery response cannot dismiss a newer match or a recovered ready check', async () => {
+  const h = await harness()
+  h.store.setState({ connectionStatus: 'ready' })
+  h.emit(found)
+  h.poll()
+  h.emit({ ...found, matchId: 'newer' })
+  h.emit({ type: 'error', code: 'NOT_QUEUED', message: 'old response' })
+  assert.equal(h.store.getState().match.matchId, 'newer')
+  h.poll()
+  h.emit({
+    type: 'match_ready_check',
+    matchId: 'newer',
+    deadline: new Date(Date.now() + 120000).toISOString(),
+    serverNow: new Date().toISOString(),
+    acceptedPlayerIds: [],
+    playersRequired: 10
+  })
+  h.emit({ type: 'error', code: 'NOT_QUEUED', message: 'old response' })
+  assert.equal(h.store.getState().queueStatus, 'ready_check')
+  assert.equal(h.store.getState().match.matchId, 'newer')
+})
 
 async function harness() {
   let emit
@@ -81,8 +176,8 @@ async function harness() {
       }
     },
     './friendly-fire-message': { friendlyFireMessage: (text) => text },
-    '../../../../shared/matchmaking-ready-time': { readyCheckRemainingMs: () => 0 },
-    '../../../../shared/matchmaking-ready-response': { readyResponseFromServer: () => null },
+    '../../../../shared/matchmaking-ready-time': { readyCheckRemainingMs },
+    '../../../../shared/matchmaking-ready-response': { readyResponseFromServer },
     '../../../../shared/server-clock': {
       serverClockNow: () => Date.now(),
       syncServerClock() {

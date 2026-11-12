@@ -186,6 +186,8 @@ interface MatchmakingState {
   acceptedPlayerIds: string[]
   readyPlayersRequired: number
   readyResponse: 'pending' | 'sending' | 'accepted' | 'declined'
+  dismissedReadyMatchId: string | null
+  dismissPreparingReadyCheck: () => void
   countdown: number | null
   assetPreparation: AssetPreparation
   launchPreparation: GameLaunchProgress | null
@@ -270,6 +272,7 @@ async function loadActivity(
 
 export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
   const terminalMatchIds = new Set<string>()
+  let recoveringReadyMatchId: string | null = null
 
   const handleEvent = (event: MatchmakingEvent): void => {
     rendererMatchmakingDiagnostics.setOwner(useAuthStore.getState().session?.player.id ?? null)
@@ -431,34 +434,42 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         if ((event.mode === 'ffa' || event.mode === 'arena') && get().queueStatus === 'joining')
           terminalMatchIds.delete(event.matchId)
         if (terminalMatchIds.has(event.matchId)) break
-        set({
-          queueStatus: 'match_found',
-          selectedMode: event.mode,
-          selectedMapIds: [event.mapId],
-          match: {
-            matchId: event.matchId,
-            mode: event.mode,
-            mapId: event.mapId,
-            region: event.region,
-            hostApiUrl: event.hostApiUrl,
-            teams: event.teams
-          },
-          assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
-          activeRegion: event.region,
-          queuedAt: null,
-          autoFillAt: null,
-          searchStage: null,
-          queueStartedAt: null,
-          readyDeadline: null,
-          readyDeclineAvailableAt: null,
-          acceptedPlayerIds: [],
-          readyPlayersRequired: 0,
-          readyResponse: 'pending',
-          countdown: null,
-          connectionDetails: null,
-          gameExited: false,
-          error: null
-        })
+        set((state) =>
+          state.match?.matchId === event.matchId && isMatchLifecycleStatus(state.queueStatus)
+            ? {
+                // Status recovery can deliver roster/deadline before the durable
+                // Match Found event. A replay must never erase actionable readiness.
+                match: { ...state.match, ...event }
+              }
+            : {
+                queueStatus: 'match_found',
+                selectedMode: event.mode,
+                selectedMapIds: [event.mapId],
+                match: {
+                  matchId: event.matchId,
+                  mode: event.mode,
+                  mapId: event.mapId,
+                  region: event.region,
+                  hostApiUrl: event.hostApiUrl,
+                  teams: event.teams
+                },
+                assetPreparation: { status: 'checking', completedFiles: 0, totalFiles: 0 },
+                activeRegion: event.region,
+                queuedAt: null,
+                autoFillAt: null,
+                searchStage: null,
+                queueStartedAt: null,
+                readyDeadline: null,
+                readyDeclineAvailableAt: null,
+                acceptedPlayerIds: [],
+                readyPlayersRequired: 0,
+                readyResponse: 'pending',
+                countdown: null,
+                connectionDetails: null,
+                gameExited: false,
+                error: null
+              }
+        )
         break
       case 'match_roster':
         if (terminalMatchIds.has(event.matchId)) break
@@ -493,6 +504,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'match_ready_check':
+        recoveringReadyMatchId = null
         set((state) => {
           const remainingMs = readyCheckRemainingMs(
             event.deadline,
@@ -512,6 +524,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
           }
           return {
             queueStatus: 'ready_check',
+            dismissedReadyMatchId: null,
             readyDeadline: new Date(Date.now() + remainingMs).toISOString(),
             readyDeclineAvailableAt:
               declineRemainingMs === null
@@ -691,12 +704,18 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
       case 'error':
         if (event.code === 'NOT_QUEUED') {
           const state = get()
-          if (state.queueStatus === 'ready_check') {
+          if (state.queueStatus === 'ready_check' || state.queueStatus === 'match_found') {
             const deadline = state.readyDeadline ? timestampMs(state.readyDeadline) : null
             // A status request may have been sent just before a match was found.
             // Only an expired ready check can use this response to clear the match.
-            if (deadline !== null && deadline <= Date.now() && state.match) {
+            if (
+              state.match &&
+              ((deadline !== null && deadline <= Date.now()) ||
+                (state.queueStatus === 'match_found' &&
+                  recoveringReadyMatchId === state.match.matchId))
+            ) {
               terminalMatchIds.add(state.match.matchId)
+              recoveringReadyMatchId = null
               set({
                 queueStatus: 'idle',
                 queuedAt: null,
@@ -867,6 +886,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     acceptedPlayerIds: [],
     readyPlayersRequired: 0,
     readyResponse: 'pending',
+    dismissedReadyMatchId: null,
+    dismissPreparingReadyCheck: () => {
+      if (get().queueStatus === 'match_found')
+        set({ dismissedReadyMatchId: get().match?.matchId ?? null })
+    },
     countdown: null,
     assetPreparation: { status: 'idle', completedFiles: 0, totalFiles: 0 },
     launchPreparation: null,
@@ -914,8 +938,12 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
             (timestampMs(state.readyDeadline) ?? Infinity) + 2_000 <= Date.now()
           if (
             state.connectionStatus === 'ready' &&
-            (state.queueStatus === 'queued' || expiredReadyCheck)
+            (state.queueStatus === 'queued' ||
+              state.queueStatus === 'match_found' ||
+              expiredReadyCheck)
           ) {
+            recoveringReadyMatchId =
+              state.queueStatus === 'match_found' ? (state.match?.matchId ?? null) : null
             void window.api.matchmaking.getQueueStatus().catch(() => undefined)
           }
         }, 10_000)
@@ -1373,6 +1401,8 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     dismissMatchAbandonNotice: () => set({ matchAbandonNotice: null }),
 
     reset: () => {
+      recoveringReadyMatchId = null
+      set({ dismissedReadyMatchId: null })
       set({ readyWarningOpen: false })
       useQueueWarmupStore.getState().reset()
       set({

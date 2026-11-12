@@ -61,6 +61,7 @@
     "test:stickers:runtime": "node --test scripts/sticker-viewport-runtime.test.mjs scripts/loadout-sticker-preview-runtime.test.mjs scripts/muzzle-preview-runtime.test.mjs",
     "test:reports:runtime": "npm run build:web && node --test scripts/issue-report-runtime.test.mjs",
     "test:launch-progress:runtime": "node --test scripts/launch-progress-runtime.test.mjs",
+    "test:ready-recovery:runtime": "npm run build:web && node --test scripts/match-ready-recovery-runtime.test.mjs",
     "test:compatibility:runtime": "npm run build:web && node --test scripts/compatibility-modal-runtime.test.mjs"
   },
   "dependencies": {
