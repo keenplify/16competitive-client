@@ -1,5 +1,6 @@
 export const matchNotificationTranslations = {
   en: {
+    'match.gameClosed': 'Counter-Strike closed. Reconnect to continue the match.',
     'activity.playBotsHint':
       'Fill empty slots with bots so you can play even when alone. Solo bot matches use half the normal MMR gain or loss.',
     'activity.playBotsPending': 'Requesting a bot match…',
@@ -39,6 +40,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   ru: {
+    'match.gameClosed': 'Counter-Strike закрыт. Подключитесь снова, чтобы продолжить матч.',
     'activity.playBotsHint':
       'Боты заполнят свободные места, чтобы можно было играть даже одному. В одиночных матчах с ботами начисляется или снимается половина обычного MMR.',
     'activity.playBotsPending': 'Запрашиваем матч с ботами…',
@@ -78,6 +80,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Настройки уведомлений'
   },
   tl: {
+    'match.gameClosed': 'Nagsara ang Counter-Strike. Kumonekta muli para ipagpatuloy ang match.',
     'activity.playBotsHint':
       'Pupunan ng bots ang bakanteng slots para makalaro ka kahit mag-isa. Kalahati ng normal na MMR ang makukuha o mawawala sa solo bot matches.',
     'activity.playBotsPending': 'Humihiling ng bot match…',
@@ -119,6 +122,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Notification settings'
   },
   th: {
+    'match.gameClosed': 'Counter-Strike ปิดแล้ว เชื่อมต่อใหม่เพื่อเล่นแมตช์ต่อ',
     'activity.playBotsHint':
       'เติมช่องว่างด้วยบอตเพื่อให้เล่นได้แม้อยู่คนเดียว แมตช์บอตแบบเล่นคนเดียวจะเพิ่มหรือลด MMR ครึ่งหนึ่งของปกติ',
     'activity.playBotsPending': 'กำลังขอแมตช์บอต…',
@@ -155,6 +159,8 @@ export const matchNotificationTranslations = {
     'notify.settings': 'ตั้งค่าการแจ้งเตือน'
   },
   id: {
+    'match.gameClosed':
+      'Counter-Strike ditutup. Sambungkan kembali untuk melanjutkan pertandingan.',
     'activity.playBotsHint':
       'Isi slot kosong dengan bot agar bisa bermain meski sendirian. Pertandingan bot solo memberi kenaikan atau penurunan MMR setengah dari biasanya.',
     'activity.playBotsPending': 'Meminta pertandingan bot…',
@@ -193,6 +199,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Pengaturan notifikasi'
   },
   hi: {
+    'match.gameClosed': 'Counter-Strike बंद हो गया। मैच जारी रखने के लिए फिर से जुड़ें।',
     'activity.playBotsHint':
       'खाली जगहें बॉट्स से भरें ताकि अकेले भी खेल सकें। अकेले बॉट मैच में सामान्य MMR लाभ या नुकसान का आधा लागू होता है।',
     'activity.playBotsPending': 'बॉट मैच का अनुरोध किया जा रहा है…',
@@ -232,6 +239,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'सूचना सेटिंग्स'
   },
   pt: {
+    'match.gameClosed': 'O Counter-Strike foi fechado. Reconecte para continuar a partida.',
     'activity.playBotsHint':
       'Preencha vagas com bots para jogar mesmo sozinho. Partidas solo com bots aplicam metade do ganho ou perda normal de MMR.',
     'activity.playBotsPending': 'Solicitando partida com bots…',
@@ -273,6 +281,7 @@ export const matchNotificationTranslations = {
     'notify.settings': 'Configurações de notificações'
   },
   ja: {
+    'match.gameClosed': 'Counter-Strikeが終了しました。再接続して試合を続けてください。',
     'activity.playBotsHint':
       '空き枠をボットで埋めて、一人でもプレイできます。ソロのボット戦では通常の半分のMMRが増減します。',
     'activity.playBotsPending': 'ボット戦をリクエスト中…',

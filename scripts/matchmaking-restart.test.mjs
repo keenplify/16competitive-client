@@ -22,6 +22,31 @@ const found = {
   teams: { teamA: [], teamB: [] }
 }
 
+test('replayed connection and exit snapshots produce one exit transition until explicit reconnect', async () => {
+  const h = await harness()
+  const connection = {
+    type: 'match_connect',
+    matchId: found.matchId,
+    host: 'localhost',
+    port: 27015,
+    password: 'test'
+  }
+  const exited = { type: 'game_process_exited', matchId: found.matchId, code: null, signal: null }
+  h.emit(found)
+  h.emit(connection)
+  h.emit(exited)
+  for (let i = 0; i < 100; i++) {
+    h.emit({ type: 'authenticated', player: { id: 'me' } })
+    h.emit(connection)
+    h.emit(exited)
+  }
+  assert.equal(h.store.getState().gameExitCount, 1)
+  assert.equal(h.store.getState().gameExited, true)
+  h.store.setState({ gameExited: false }) // a successful explicit reconnect
+  h.emit(exited)
+  assert.equal(h.store.getState().gameExitCount, 2)
+})
+
 test('a preparing popup can close locally and reopens when an actionable ready check arrives', async () => {
   const h = await harness()
   h.emit(found)

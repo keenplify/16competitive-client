@@ -13,7 +13,8 @@ async function harness({
   platform = 'linux',
   window = null,
   timers = null,
-  launchError = null
+  launchError = null,
+  activeCs13Match = null
 } = {}) {
   const calls = [],
     events = [],
@@ -115,6 +116,7 @@ async function harness({
       activeMatch = input.matchId
     },
     isCounterStrikeActiveForMatch: (id) => activeMatch === id,
+    isCs13ActiveForMatch: (id) => activeCs13Match === id,
     shutdownManagedGame: async () => {
       calls.push(['shutdown', activeMatch])
       activeMatch = null
@@ -267,6 +269,21 @@ for (const freshProcess of [true, false]) {
     }
   })
 }
+
+test('a restored connection does not report an active Legacy game as closed', async () => {
+  const h = await harness({ activeCs13Match: connect.matchId })
+  try {
+    h.connection.lastConnection = connect
+    await h.connection.createSocket('test-token', 'https://eu.invalid')
+    const emit = (message) =>
+      h.sockets[0].listeners.get('message')({ data: JSON.stringify(message) })
+    emit({ type: 'authenticated', player: { id: 'me', username: 'Me', mmr: 1000 } })
+    emit({ ...connect, whileQueued: false, joinToken: 'a'.repeat(32) })
+    assert.equal(h.events.filter((event) => event.type === 'game_process_exited').length, 0)
+  } finally {
+    h.connection.shutdown()
+  }
+})
 
 test('a newly accepted match launches once, including duplicate connection events', async () => {
   const h = await harness()

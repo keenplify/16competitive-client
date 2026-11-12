@@ -38,6 +38,11 @@ let running: {
 } | null = null
 let cleanup: Promise<void> = Promise.resolve()
 
+export const isCs13ActiveForMatch = (matchId: string): boolean =>
+  running?.matchId === matchId &&
+  running.process.exitCode === null &&
+  running.process.signalCode === null
+
 export const getActiveCs13ScoreboardDirectory = (): string | null =>
   running?.overlay?.directory ?? null
 

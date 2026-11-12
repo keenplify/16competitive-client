@@ -2,7 +2,7 @@ import { isStandaloneHandoffCommitted } from './game/standalone-session'
 import { isChatAnnouncement } from '../shared/friends'
 import { matchNotificationCopy } from '../shared/match-notification-copy'
 import { Notification } from 'electron'
-import { launchCs13Match, shutdownCs13Game } from './game/cs13-match-launcher'
+import { isCs13ActiveForMatch, launchCs13Match, shutdownCs13Game } from './game/cs13-match-launcher'
 import { noteHelperServerUpdate } from './anticheat/helper-verification-retry'
 import { ANTI_CHEAT_CANCELLED_MESSAGE, ANTI_CHEAT_NOTICE_GRACE_MS } from '../shared/anti-cheat'
 import { readyCheckRemainingMs } from '../shared/matchmaking-ready-time'
@@ -1781,7 +1781,10 @@ class MatchmakingConnection {
           this.recoveryStatusPending = false
           this.lastConnection = parsed
           this.notify(parsed)
-          if (!isCounterStrikeActiveForMatch(parsed.matchId)) {
+          if (
+            !isCounterStrikeActiveForMatch(parsed.matchId) &&
+            !isCs13ActiveForMatch(parsed.matchId)
+          ) {
             this.notify({
               type: 'game_process_exited',
               matchId: parsed.matchId,

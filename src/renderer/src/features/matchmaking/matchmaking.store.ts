@@ -583,25 +583,29 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
                   port: event.port,
                   password: event.password
                 },
-                gameExited: false,
+                // A connection snapshot is not a new local game launch.
+                gameExited:
+                  state.connectionDetails?.matchId === event.matchId ? state.gameExited : false,
                 matchReadyAt:
                   state.connectionDetails?.matchId === event.matchId && state.matchReadyAt
                     ? state.matchReadyAt
                     : Date.now(),
                 copyConnectionStatus: 'idle',
-                error: null
+                error: state.connectionDetails?.matchId === event.matchId ? state.error : null
               }
         )
         break
       case 'game_process_exited':
         set((state) =>
           state.connectionDetails?.matchId === event.matchId
-            ? {
-                queueStatus: 'server_ready',
-                gameExited: true,
-                gameExitCount: state.gameExitCount + 1,
-                error: 'Counter-Strike closed. Reconnect to continue the match.'
-              }
+            ? state.gameExited
+              ? state
+              : {
+                  queueStatus: 'server_ready',
+                  gameExited: true,
+                  gameExitCount: state.gameExitCount + 1,
+                  error: translate(useLanguageStore.getState().language, 'match.gameClosed')
+                }
             : { gameExitCount: state.gameExitCount + 1 }
         )
         break
