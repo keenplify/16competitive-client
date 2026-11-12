@@ -4809,3 +4809,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Settings
 
 - Improved alignment for settings search and VGUI selection controls.
+
+## v2026.1112.3 — 2026-11-12
+
+### Browser
+
+- Attach browser compatibility reports when reporting issues.
+- See clearer explanations when refunds are unavailable.
+
+### Game Compatibility
+
+- Original game clients can now be used when native enhancement checks are inconclusive.
