@@ -29,8 +29,13 @@ fn read_file(root: &Path, relative: &str) -> Result<Option<Vec<u8>>, String> {
     }
     let resolved = fs::canonicalize(&candidate).map_err(|_| "COMPATIBILITY_READ_FAILED")?;
     if !resolved.starts_with(root) { return Err("COMPATIBILITY_LINK_REJECTED".into()); }
-    let file = fs::File::open(&resolved).map_err(|_| "COMPATIBILITY_READ_FAILED")?;
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)] { use std::os::unix::fs::OpenOptionsExt; options.custom_flags(libc::O_NOFOLLOW); }
+    #[cfg(windows)] { use std::os::windows::fs::OpenOptionsExt; options.custom_flags(0x00200000); }
+    let file = options.open(&resolved).map_err(|_| "COMPATIBILITY_READ_FAILED")?;
     let meta = file.metadata().map_err(|_| "COMPATIBILITY_READ_FAILED")?;
+    #[cfg(windows)] { use std::os::windows::fs::MetadataExt; if meta.file_attributes() & 0x400 != 0 { return Err("COMPATIBILITY_LINK_REJECTED".into()); } }
     if !meta.is_file() || meta.len() < 64 || meta.len() > LIMIT as u64 { return Ok(None); }
     let mut bytes = Vec::new();
     file.take(LIMIT as u64 + 1).read_to_end(&mut bytes).map_err(|_| "COMPATIBILITY_READ_FAILED")?;
@@ -80,7 +85,10 @@ pub fn upload(api: &str, token: &str, report: &str, id: &str) -> Result<Value,St
     uuid::Uuid::parse_str(report).map_err(|_| "COMPATIBILITY_REPORT_INVALID")?;
     let slot = SNAPSHOT.lock().map_err(|_| "COMPATIBILITY_BUSY")?;
     let snapshot = slot.as_ref().filter(|s| s.id==id && s.owner==account && s.expires>Instant::now()).ok_or("COMPATIBILITY_PREVIEW_EXPIRED")?;
-    let agent = ureq::AgentBuilder::new().redirects(0).timeout(Duration::from_secs(120)).build();
+    upload_snapshot(api, token, report, snapshot)
+}
+fn upload_snapshot(api: &str, token: &str, report: &str, snapshot: &Snapshot) -> Result<Value,String> {
+    let agent = ureq::AgentBuilder::new().redirects(0).timeout(Duration::from_secs(30)).build();
     let base = format!("{api}/auth/issue-reports/{report}/compatibility");
     let auth = format!("Bearer {token}");
     let response: Value = agent.post(&base).set("Authorization",&auth).send_json(json!({"files":snapshot.files}))
@@ -99,9 +107,65 @@ pub fn upload(api: &str, token: &str, report: &str, id: &str) -> Result<Value,St
     }
     Ok(json!({"ok":true}))
 }
+// Automatic compatibility diagnostics are limited to native libraries directly in cl_dlls.
+pub(crate) fn upload_client_libraries(api: &str, token: &str, report: &str, root: &Path, game: &str) -> Result<Value,String> {
+    owner(api, token)?;
+    uuid::Uuid::parse_str(report).map_err(|_| "COMPATIBILITY_REPORT_INVALID")?;
+    let snapshot = capture_client_libraries(root, game)?;
+    upload_snapshot(api, token, report, &snapshot)
+}
+fn capture_client_libraries(root: &Path, game: &str) -> Result<Snapshot,String> {
+    let root = fs::canonicalize(root).map_err(|_| "COMPATIBILITY_ROOT_UNAVAILABLE")?;
+    let dirs: &[&str] = if game == "cs13" { &["cstrk13", "cstrike"] } else { &["cstrike"] };
+    let mut paths = Vec::new();
+    for dir in dirs {
+        let folder = root.join(dir).join("cl_dlls");
+        let Ok(meta) = fs::symlink_metadata(&folder) else { continue; };
+        if meta.file_type().is_symlink() { continue; }
+        #[cfg(windows)] { use std::os::windows::fs::MetadataExt; if meta.file_attributes() & 0x400 != 0 { continue; } }
+        let Ok(entries) = fs::read_dir(&folder) else { continue; };
+        for entry in entries.take(128).flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.len() > 96 || !name.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b,b'_'|b'-'|b'.')) { continue; }
+            if !(name.to_ascii_lowercase().ends_with(".dll") || name.ends_with(".so")) { continue; }
+            let path = format!("{dir}/cl_dlls/{name}");
+            if path.len() <= 64 { paths.push(path); }
+        }
+    }
+    paths.sort_by_key(|p| (!p.ends_with("/client.dll") && !p.ends_with("/client.so"), p.clone()));
+    let mut files = Vec::new(); let mut bytes_by_hash = HashMap::new(); let mut total = 0;
+    for path in paths {
+        if files.len() == 7 { break; }
+        let Ok(Some(bytes)) = read_file(&root, &path) else { continue; };
+        if total + bytes.len() > 64 * 1024 * 1024 { continue; }
+        // Ignore files that merely use a library extension.
+        if !(bytes.starts_with(b"MZ") || bytes.starts_with(b"\x7fELF")) { continue; }
+        total += bytes.len();
+        let hash = format!("{:x}",Sha256::digest(&bytes));
+        files.push(json!({"path":path,"size":bytes.len(),"sha256":hash}));
+        bytes_by_hash.insert(hash,bytes);
+    }
+    if files.is_empty() { return Err("COMPATIBILITY_FILES_UNAVAILABLE".into()); }
+    Ok(Snapshot{id:uuid::Uuid::new_v4().to_string(),owner:String::new(),expires:Instant::now()+Duration::from_secs(600),files:json!(files),bytes:bytes_by_hash,total})
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn automatic_capture_is_only_direct_client_libraries_and_prioritizes_client() {
+        let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        let folder=root.join("cstrike/cl_dlls");fs::create_dir_all(folder.join("nested")).unwrap();
+        let mut bytes=vec![0u8;128];bytes[..2].copy_from_slice(b"MZ");
+        for name in ["client.dll","companion.dll","nested/private.dll","ignored.txt"] { fs::write(folder.join(name),&bytes).unwrap(); }
+        fs::write(root.join("hw.dll"),&bytes).unwrap();
+        #[cfg(unix)] std::os::unix::fs::symlink(root.join("hw.dll"),folder.join("linked.dll")).unwrap();
+        let snapshot=capture_client_libraries(&root,"cs16").unwrap();
+        assert_eq!(snapshot.files.as_array().unwrap().len(),2);
+        assert_eq!(snapshot.files[0]["path"],"cstrike/cl_dlls/client.dll");
+        assert_eq!(snapshot.files[1]["path"],"cstrike/cl_dlls/companion.dll");
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn snapshot_is_bounded_and_never_reads_unlisted_files() {
         let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());

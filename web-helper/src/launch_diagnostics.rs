@@ -1,19 +1,22 @@
 //! Bounded, account-scoped failure evidence for browser-launched native games.
-use std::{cell::RefCell, fs, path::Path, time::{SystemTime, UNIX_EPOCH}};
+use std::{cell::RefCell, fs, path::{Path, PathBuf}, time::{SystemTime, UNIX_EPOCH}};
 use sha2::{Digest, Sha256};
 use serde_json::{json, Value};
 use competitive16_web_helper::Connection;
 thread_local! {
     static OWNER: RefCell<Option<String>> = const { RefCell::new(None) };
     static INSTALL_CHECK: RefCell<Option<Value>> = const { RefCell::new(None) };
+    static INSTALL_ROOT: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
     static EXECUTABLE: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 pub fn set_owner(id: Option<&str>) {
     OWNER.with(|slot| *slot.borrow_mut() = id.filter(|id| uuid::Uuid::parse_str(id).is_ok())
         .map(|id| format!("{:x}", Sha256::digest(id.as_bytes()))));
     EXECUTABLE.with(|slot| *slot.borrow_mut() = None);
+    INSTALL_ROOT.with(|slot| *slot.borrow_mut() = None);
     INSTALL_CHECK.with(|slot| *slot.borrow_mut() = None);
 }
+pub fn set_install_root(root: &Path) { INSTALL_ROOT.with(|slot| *slot.borrow_mut() = Some(root.to_owned())); }
 pub fn set_executable(name: Option<&str>) {
     EXECUTABLE.with(|slot| *slot.borrow_mut() = name.filter(|name| matches!(*name, "hl.exe" | "cstrike.exe" | "hl_linux")).map(str::to_owned));
 }
@@ -64,7 +67,7 @@ mod tests {
 
 
 // Fixed compatibility reasons and a hash of the already inspected DLL only.
-// Never upload game files, absolute paths, or connection credentials.
+// No absolute paths or connection credentials enter report text.
 pub(crate) fn install_check(reason: &'static str, client_bytes: Option<&[u8]>) {
     INSTALL_CHECK.with(|slot| *slot.borrow_mut() = Some(json!({
         "reason": reason,
@@ -96,7 +99,9 @@ fn automatic_payload(connection: &Connection, failure: &Value) -> Option<Value> 
     Some(json!({
         "matchId":connection.match_id,
         "deduplicationKey":format!("native-install-unsupported:{}:{}",connection.match_id,crate::helper_fingerprint()),
-        "description":"Automatic bug report: native game installation compatibility check blocked launch (NATIVE_INSTALL_UNSUPPORTED).",
+        "description":if failure["launchOutcome"] == "launched_with_fallback" {
+            "Automatic compatibility report: game launched without native enhancements (NATIVE_INSTALL_UNSUPPORTED)."
+        } else { "Automatic bug report: native game installation compatibility check blocked launch (NATIVE_INSTALL_UNSUPPORTED)." },
         "logs":details.to_string(),
         "clientVersion":crate::helper_fingerprint()
     }))
@@ -104,6 +109,17 @@ fn automatic_payload(connection: &Connection, failure: &Value) -> Option<Value> 
 
 pub(crate) fn report_automatically(api: &str, token: &str, connection: &Connection, failure: &Value) {
     let Some(payload) = automatic_payload(connection, failure) else { return; };
+    let root = INSTALL_ROOT.with(|slot| slot.borrow().clone());
+    submit_report(api, token, connection.game(), payload, root);
+}
+pub(crate) fn report_fallback(api: &str, token: &str, connection: &Connection) {
+    if !INSTALL_CHECK.with(|slot| slot.borrow().as_ref().is_some_and(|v| v["reason"] == "unrecognized_client_exports")) { return; }
+    let Some(payload) = automatic_payload(connection, &json!({"code":"NATIVE_INSTALL_UNSUPPORTED","launchOutcome":"launched_with_fallback","blocking":false})) else { return; };
+    let root = INSTALL_ROOT.with(|slot| slot.borrow().clone());
+    let (api, token, game) = (api.to_owned(), token.to_owned(), connection.game().to_owned());
+    std::thread::spawn(move || submit_report(&api, &token, &game, payload, root));
+}
+fn submit_report(api: &str, token: &str, game: &str, payload: Value, root: Option<PathBuf>) {
     if competitive16_web_helper::allowed_api_origin(api, cfg!(debug_assertions)).as_deref() != Some(api) { return; }
     let agent = ureq::AgentBuilder::new().redirects(0).timeout(std::time::Duration::from_secs(5)).build();
     // Same stable key across repeated clicks; backend deduplicates per account.
@@ -111,7 +127,18 @@ pub(crate) fn report_automatically(api: &str, token: &str, connection: &Connecti
         match agent.post(&format!("{api}/auth/issue-reports"))
             .set("Authorization", &format!("Bearer {token}"))
             .send_json(payload.clone()) {
-            Ok(_) => { eprintln!("Automatic native installation issue report submitted"); return; },
+            Ok(response) => {
+                eprintln!("Automatic native installation issue report submitted");
+                if let Some(root) = &root {
+                    let report: Value = response.into_json().unwrap_or(Value::Null);
+                    if let Some(id) = report["id"].as_str() {
+                        if crate::compatibility_report::upload_client_libraries(api, token, id, root, game).is_err() {
+                            eprintln!("Automatic client library attachment unavailable");
+                        }
+                    }
+                }
+                return;
+            },
             Err(ureq::Error::Status(status, _)) if status < 500 && status != 429 => break,
             Err(_) => {},
         }
@@ -132,6 +159,10 @@ mod automatic_tests {
         let failure = json!({"code":"NATIVE_INSTALL_UNSUPPORTED"});
         let payload = automatic_payload(&connection, &failure).unwrap();
         assert_eq!(payload, automatic_payload(&connection, &failure).unwrap());
+        let fallback = automatic_payload(&connection, &json!({"code":"NATIVE_INSTALL_UNSUPPORTED","launchOutcome":"launched_with_fallback","blocking":false})).unwrap();
+        assert!(fallback["description"].as_str().unwrap().contains("game launched"));
+        assert!(!fallback["description"].as_str().unwrap().contains("blocked launch"));
+        assert!(fallback["logs"].as_str().unwrap().contains("launched_with_fallback"));
         assert!(payload["deduplicationKey"].as_str().unwrap().len() <= 128);
         for secret in ["private-host", "secret-password", "secret-token", "private-name", "client fixture"] {
             assert!(!payload.to_string().contains(secret));

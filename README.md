@@ -200,3 +200,13 @@ session. Only approved snapshots are sent directly to the authenticated report a
 endpoint; DLL contents are never exposed to browser JavaScript. Failed uploads remain errors
 and retry against the same report key. An unavailable helper shows a preparation error and
 allows submitting logs without files.
+
+Automatic native installation compatibility reports also run after a successful
+fallback launch, marked `NATIVE_INSTALL_UNSUPPORTED` with
+`launchOutcome: launched_with_fallback` and `blocking: false`. These reports
+attach native libraries directly inside the selected game's `cl_dlls` folder
+without a consent dialog (owner-requested diagnostic policy). Collection excludes
+subdirectories, symlinks, configs and non-library files, prioritizes `client.dll`,
+and retains the existing limits of seven files, 16 MiB per file and 64 MiB total.
+The private report storage deduplicates hashes and retains files for 30 days.
+Network/upload failures do not interrupt a running game.

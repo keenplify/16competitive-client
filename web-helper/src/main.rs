@@ -925,6 +925,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let gold_client = connection.game() == "cs16" && !next_client && windows_native::is_gold_client(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_CLIENT_CHECK_FAILED"))?;
     #[cfg(not(windows))]
     let gold_client = false;
+    launch_diagnostics::set_install_root(&root);
     let game_dir = root.join(&mod_dir);
     #[cfg(target_os = "linux")]
     let library_paths = {
@@ -1209,6 +1210,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         scanner.attach(owned_game.as_ref().unwrap().pid)?;
         scanner.await_attachment(Duration::from_secs(20))?;
         ready()?;
+        launch_diagnostics::report_fallback(api, token, connection);
         if let Some((_, session)) = &native {
             voice_ownership.ready(&connection.match_id, &session.directory)?;
         }
