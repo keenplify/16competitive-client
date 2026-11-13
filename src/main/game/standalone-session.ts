@@ -286,7 +286,8 @@ async function launchStandaloneTargetInner(
   apiOrigin: string | undefined,
   settings: GameSettings,
   onExit?: (event: { code: number | null; signal: string | null }) => void,
-  legacy?: { folderPath: string; modDirectory: 'cstrike' | 'cstrk13' }
+  legacy?: { folderPath: string; modDirectory: 'cstrike' | 'cstrk13' },
+  retriedHandoff = false
 ): Promise<void> {
   const diagnosticContext = {
     matchId: 'matchId' in target ? target.matchId : target.partner.serverId,
@@ -520,6 +521,32 @@ async function launchStandaloneTargetInner(
     })
     child.stdin.write(`${JSON.stringify(request)}\n`)
   }).catch(async (error: unknown) => {
+    if (
+      process.platform === 'linux' &&
+      !retriedHandoff &&
+      error instanceof Error &&
+      error.message === 'Standalone game preparation failed (HANDOFF_REQUEST_FAILED)'
+    ) {
+      // Consumption may have succeeded before its response was lost. Never
+      // replay that one-use credential; wait for cleanup, then issue a new one.
+      let cleanupTimer: ReturnType<typeof setTimeout> | undefined
+      try {
+        await Promise.race([
+          exited,
+          new Promise<never>((_, reject) => {
+            cleanupTimer = setTimeout(() => reject(error), 10000)
+          })
+        ])
+      } finally {
+        if (cleanupTimer) clearTimeout(cleanupTimer)
+      }
+      if (getSessionToken() !== token) throw error
+      matchmakingDiagnostics.record('helper_handoff_retry', {
+        ...diagnosticContext,
+        code: 'HANDOFF_REQUEST_FAILED'
+      })
+      return launchStandaloneTargetInner(target, apiOrigin, settings, onExit, legacy, true)
+    }
     if (
       !(error instanceof Error) ||
       error.message !== 'match.launch.adminRequired' ||

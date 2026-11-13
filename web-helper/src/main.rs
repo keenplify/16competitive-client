@@ -668,13 +668,29 @@ fn session(api: &str, handoff: &str) -> Result<session_authorization::HelperToke
         .build();
     let response: SessionResponse = agent.post(&format!("{api}/auth/web-handoff/consume"))
         .send_json(serde_json::json!({ "token": handoff, "clientKind": "rust", "clientVersion": helper_fingerprint() }))
-        .map_err(|_| "Setup or match handoff expired; try again from the web page".to_owned())?
+        .map_err(session_request_error)?
         .into_json().map_err(|_| "Invalid authentication response".to_owned())?;
     if response.token.len() < 20 || response.token.len() > 2048 {
         return Err("Invalid authentication response".into());
     }
     launch_diagnostics::set_owner(response.player.as_ref().map(|player| player.id.as_str()));
     session_authorization::HelperToken::new(api, response.token)
+}
+
+fn session_request_error(error: ureq::Error) -> String {
+    #[cfg(target_os = "linux")]
+    {
+        match error {
+            ureq::Error::Transport(_) => "HANDOFF_REQUEST_FAILED",
+            ureq::Error::Status(status, _) if status == 429 || status >= 500 => "HANDOFF_REQUEST_FAILED",
+            _ => "HANDOFF_EXPIRED",
+        }.into()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = error;
+        "Setup or match handoff expired; try again from the web page".into()
+    }
 }
 
 fn connection(api: &str, token: &str, match_id: &str) -> Result<Connection, String> {
@@ -1536,6 +1552,18 @@ mod launch_tests {
             if let Some(expected) = expected { assert_eq!(result.unwrap_err(), expected); }
             else { assert_eq!(result.unwrap().mode, "ffa"); }
             worker.join().unwrap();
+        }
+    }
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn linux_handoff_retry_never_treats_authentication_rejection_as_transient() {
+        for status in [429, 500, 503] {
+            let error = ureq::Error::Status(status, ureq::Response::new(status, "Refused", "{}").unwrap());
+            assert_eq!(super::session_request_error(error), "HANDOFF_REQUEST_FAILED");
+        }
+        for status in [400, 401, 403, 404, 410] {
+            let error = ureq::Error::Status(status, ureq::Response::new(status, "Refused", "{}").unwrap());
+            assert_eq!(super::session_request_error(error), "HANDOFF_EXPIRED");
         }
     }
     use super::*;

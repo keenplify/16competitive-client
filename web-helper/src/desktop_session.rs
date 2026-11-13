@@ -152,6 +152,8 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
     match error {
         "Device authorization check failed" | "DEVICE_CHECK_FAILED" => "DEVICE_CHECK_FAILED",
         "MATCH_AUTH_FAILED" => "MATCH_AUTH_FAILED",
+        "HANDOFF_REQUEST_FAILED" => "HANDOFF_REQUEST_FAILED",
+        "HANDOFF_EXPIRED" => "HANDOFF_EXPIRED",
         "MATCH_CONNECTION_REQUEST_FAILED" => "MATCH_CONNECTION_REQUEST_FAILED",
         "MATCH_CONNECTION_RESPONSE_INVALID" => "MATCH_CONNECTION_RESPONSE_INVALID",
         "Match connection is no longer available" | "MATCH_UNAVAILABLE" => "MATCH_UNAVAILABLE",

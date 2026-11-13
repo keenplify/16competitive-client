@@ -140,6 +140,58 @@ rl.on('line', line=>{
 )
 
 test(
+  'Linux renews a timed-out one-use handoff once and never retries rejection',
+  { skip: process.platform !== 'linux' },
+  async () => {
+    const fixtureFetch = globalThis.fetch
+    try {
+      for (const [code, recover, expected] of [
+        ['HANDOFF_REQUEST_FAILED', true, 2],
+        ['HANDOFF_REQUEST_FAILED', false, 2],
+        ['HANDOFF_EXPIRED', false, 1]
+      ]) {
+        quits = 0
+        const requests = []
+        globalThis.fetch = async () => {
+          const token = String.fromCharCode(97 + requests.length).repeat(43)
+          requests.push(token)
+          return { ok: true, json: async () => ({ token }) }
+        }
+        const attempts = join(root, 'handoff-retries.json')
+        await writeFile(attempts, '[]')
+        await writeFile(
+          helper,
+          `#!/usr/bin/env node
+const fs=require('fs');const rl=require('readline').createInterface({input:process.stdin});let request;
+rl.on('line',line=>{const value=JSON.parse(line);if(!request){request=value;
+ const attempts=JSON.parse(fs.readFileSync(${JSON.stringify(attempts)},'utf8'));attempts.push(value.handoff);fs.writeFileSync(${JSON.stringify(attempts)},JSON.stringify(attempts));
+ if(${recover} && attempts.length===2) console.log('{"protocol":1,"event":"ready"}');
+ else console.log(JSON.stringify({protocol:1,event:'error',code:${JSON.stringify(code)}}));
+}else if(value.commit){console.log('{"protocol":1,"event":"committed"}');setTimeout(()=>process.exit(0),300);}});
+process.stdin.on('end',()=>process.exit(1));
+`,
+          { mode: 0o755 }
+        )
+        const launch = launchStandaloneSession(
+          'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          undefined,
+          settings
+        )
+        if (recover) await launch
+        else await assert.rejects(launch, new RegExp(code))
+        assert.equal(requests.length, expected)
+        assert.deepEqual(JSON.parse(await readFile(attempts, 'utf8')), requests)
+        assert.equal(new Set(requests).size, expected, 'each attempt gets a fresh credential')
+        assert.equal(quits, recover ? 1 : 0)
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      }
+    } finally {
+      globalThis.fetch = fixtureFetch
+    }
+  }
+)
+
+test(
   'invalid readiness keeps the launcher open and closes the control pipe',
   { skip: process.platform === 'win32' },
   async () => {
