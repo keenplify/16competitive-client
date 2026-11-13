@@ -91,8 +91,10 @@ fn upload_snapshot(api: &str, token: &str, report: &str, snapshot: &Snapshot) ->
     let agent = ureq::AgentBuilder::new().redirects(0).timeout(Duration::from_secs(30)).build();
     let base = format!("{api}/auth/issue-reports/{report}/compatibility");
     let auth = format!("Bearer {token}");
-    let response: Value = agent.post(&base).set("Authorization",&auth).send_json(json!({"files":snapshot.files}))
-        .map_err(|_| "COMPATIBILITY_UPLOAD_FAILED")?.into_json().map_err(|_| "COMPATIBILITY_UPLOAD_FAILED")?;
+    let Some(response) = upload_response(agent.post(&base).set("Authorization",&auth).send_json(json!({"files":snapshot.files})))? else {
+        return Ok(json!({"ok":true})); // The existing issue retains its logs.
+    };
+    let response: Value = response.into_json().map_err(|_| "COMPATIBILITY_UPLOAD_FAILED")?;
     let missing = response["missing"].as_array().filter(|v|v.len()<=7).ok_or("COMPATIBILITY_RESPONSE_INVALID")?;
     for hash in missing {
         let hash = hash.as_str().ok_or("COMPATIBILITY_RESPONSE_INVALID")?;
@@ -101,11 +103,25 @@ fn upload_snapshot(api: &str, token: &str, report: &str, snapshot: &Snapshot) ->
         let mut body = format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{hash}.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n").into_bytes();
         body.extend_from_slice(bytes);
         body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
-        agent.post(&format!("{base}/{hash}")).set("Authorization",&auth)
+        if upload_response(agent.post(&format!("{base}/{hash}")).set("Authorization",&auth)
             .set("Content-Type",&format!("multipart/form-data; boundary={boundary}"))
-            .send_bytes(&body).map_err(|_| "COMPATIBILITY_UPLOAD_FAILED")?;
+            .send_bytes(&body))?.is_none() { break; }
     }
     Ok(json!({"ok":true}))
+}
+fn upload_response(result: Result<ureq::Response, ureq::Error>) -> Result<Option<ureq::Response>, String> {
+    match result {
+        Ok(response) => Ok(Some(response)),
+        Err(ureq::Error::Status(429, response)) => {
+            let mut bytes = Vec::new();
+            response.into_reader().take(4097).read_to_end(&mut bytes).map_err(|_| "COMPATIBILITY_UPLOAD_FAILED")?;
+            if bytes.len() <= 4096 && serde_json::from_slice::<Value>(&bytes).ok()
+                .is_some_and(|body| body["error"] == "COMPATIBILITY_UPLOAD_LIMIT") {
+                Ok(None)
+            } else { Err("COMPATIBILITY_UPLOAD_FAILED".into()) }
+        }
+        Err(_) => Err("COMPATIBILITY_UPLOAD_FAILED".into()),
+    }
 }
 // Automatic compatibility diagnostics are limited to native libraries directly in cl_dlls.
 pub(crate) fn upload_client_libraries(api: &str, token: &str, report: &str, root: &Path, game: &str) -> Result<Value,String> {
@@ -213,5 +229,12 @@ mod tests {
     fn unauthenticated_upload_and_unknown_snapshot_fail_closed() {
         assert!(owner("https://evil.example","token").is_err());
         assert!(upload("https://16competitive.papamo.dev","token",&uuid::Uuid::new_v4().to_string(),"missing").is_err());
+    }
+    #[test]
+    fn only_the_game_file_quota_is_a_logs_only_success() {
+        let response = |status, body| ureq::Error::Status(status, ureq::Response::new(status, "Refused", body).unwrap());
+        assert!(upload_response(Err(response(429, r#"{"error":"COMPATIBILITY_UPLOAD_LIMIT"}"#))).unwrap().is_none());
+        assert!(upload_response(Err(response(429, r#"{"error":"OTHER_LIMIT"}"#))).is_err());
+        assert!(upload_response(Err(response(500, r#"{"error":"COMPATIBILITY_UPLOAD_LIMIT"}"#))).is_err());
     }
 }

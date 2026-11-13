@@ -108,7 +108,12 @@ fn native_runtime(game: &Path, home: &Path) -> Option<std::path::PathBuf> {
             }
         }
     }
-    libraries.into_iter().map(|root| root.join("steamapps/common/LegacySteamRuntime/run.sh"))
+    libraries.into_iter().flat_map(|root| [
+        root.join("steamapps/common/LegacySteamRuntime/run.sh"),
+        // Steam's Scout tool also ships the legacy runtime here. The old
+        // ubuntu12_32 entry may now be only a SteamRT3 passthrough stub.
+        root.join("steamapps/common/SteamLinuxRuntime/steam-runtime/run.sh"),
+    ])
         .chain(roots.into_iter().map(|root| root.join("ubuntu12_32/steam-runtime/run.sh")))
         .find(|path| {
             // SteamRT3 replaces the old run.sh symlink with a command passthrough.
@@ -433,8 +438,15 @@ mod tests {
         fs::create_dir_all(relocated.parent().unwrap()).unwrap();
         fs::write(&relocated, b"#!/bin/sh\n[ \"$1\" = --print-steam-runtime-library-paths ] || exit 2\nprintf '/new-pinned:/host:/new-fallback\\n'\n").unwrap();
         fs::set_permissions(&relocated, fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(native_runtime(Path::new("/game"), &home), Some(relocated));
+        assert_eq!(native_runtime(Path::new("/game"), &home), Some(relocated.clone()));
         assert_eq!(native_library_path(Path::new("/game"), &home).unwrap(), "/new-pinned:/host:/new-fallback");
+        fs::remove_file(&relocated).unwrap();
+        let scout = library.join("steamapps/common/SteamLinuxRuntime/steam-runtime/run.sh");
+        fs::create_dir_all(scout.parent().unwrap()).unwrap();
+        fs::write(&scout, b"#!/bin/sh\n[ \"$1\" = --print-steam-runtime-library-paths ] || exit 2\nprintf '/scout-pinned:/host:/scout-fallback\\n'\n").unwrap();
+        fs::set_permissions(&scout, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(native_runtime(Path::new("/game"), &home), Some(scout));
+        assert_eq!(native_library_path(Path::new("/game"), &home).unwrap(), "/scout-pinned:/host:/scout-fallback");
         fs::remove_dir_all(home).unwrap();
     }
 

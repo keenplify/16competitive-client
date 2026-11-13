@@ -121,7 +121,6 @@ test('upload errors preserve known refusal reasons and classify transport failur
     bytes: new Map([[hash, Buffer.alloc(128)]])
   }
   for (const [status, code] of [
-    [429, 'COMPATIBILITY_UPLOAD_LIMIT'],
     [400, 'INVALID_COMPATIBILITY_FILE'],
     [500, 'COMPATIBILITY_UPLOAD_FAILED']
   ]) {
@@ -161,4 +160,27 @@ test('upload errors preserve known refusal reasons and classify transport failur
     ),
     /INVALID_COMPATIBILITY_RESPONSE/
   )
+})
+
+test('game-file quota quietly keeps the existing logs-only report at either upload step', async () => {
+  const hash = 'a'.repeat(64)
+  const value = {
+    preview: { files: [{ path: 'hw.dll', size: 128, sha256: hash }] },
+    bytes: new Map([[hash, Buffer.alloc(128)]])
+  }
+  for (const quotaStep of [1, 2]) {
+    let calls = 0
+    await uploadCompatibilityFiles(
+      'https://example.test',
+      'token',
+      'report',
+      value,
+      () => true,
+      async () =>
+        ++calls === quotaStep
+          ? Response.json({ error: 'COMPATIBILITY_UPLOAD_LIMIT' }, { status: 429 })
+          : Response.json({ missing: [hash] })
+    )
+    assert.equal(calls, quotaStep)
+  }
 })

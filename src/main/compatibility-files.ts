@@ -161,6 +161,27 @@ export async function uploadCompatibilityFiles(
   stillOwner: () => boolean,
   request: typeof fetch = fetch
 ): Promise<void> {
+  try {
+    await uploadCapturedFiles(api, token, reportId, value, stillOwner, request)
+  } catch (error) {
+    // The issue report already exists. Exhausting the optional binary quota
+    // must not reject it or ask the player to submit the same logs again.
+    if (error instanceof Error && error.message === 'COMPATIBILITY_UPLOAD_LIMIT (HTTP 429)') {
+      console.info('[IssueReport] Game-file quota reached; keeping the logs-only report')
+      return
+    }
+    throw error
+  }
+}
+
+async function uploadCapturedFiles(
+  api: string,
+  token: string,
+  reportId: string,
+  value: Captured,
+  stillOwner: () => boolean,
+  request: typeof fetch
+): Promise<void> {
   const base = `${api}/auth/issue-reports/${encodeURIComponent(reportId)}/compatibility`
   if (!stillOwner()) throw new Error('COMPATIBILITY_ACCOUNT_CHANGED')
   const response = await compatibilityRequest(request, base, {
