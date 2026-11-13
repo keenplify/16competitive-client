@@ -1,5 +1,7 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 mod cs13_installation;
+#[cfg(any(windows, test))]
+mod cs13_video;
 
 use competitive16_web_helper::{parse_check_link, parse_launch_link, Connection, SessionResponse};
 mod assets;
@@ -169,6 +171,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("launch-notices.json").as_slice(),
         include_bytes!("owned_game.rs").as_slice(),
         include_bytes!("cs13_installation.rs").as_slice(),
+        include_bytes!("cs13_video.rs").as_slice(),
         include_bytes!("gtprotector.rs").as_slice(),
         include_bytes!("startup_bridge.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
@@ -1229,6 +1232,10 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             })?;
         }
         desktop_session::report_progress("starting", 0, 0);
+        #[cfg(windows)]
+        if connection.game() == "cs13" {
+            cs13_video::prepare(&exe, preferences.current_display_resolution.width, preferences.current_display_resolution.height);
+        }
         game_startup.recheck().map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?;
         command.spawn().map_err(desktop_session::game_spawn_failure)
     })();

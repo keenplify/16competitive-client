@@ -43,6 +43,7 @@ for (const source of [
   'web-helper/src/launch-notices.json',
   'web-helper/src/owned_game.rs',
   'web-helper/src/cs13_installation.rs',
+  'web-helper/src/cs13_video.rs',
   'web-helper/src/gtprotector.rs',
   'web-helper/src/startup_bridge.rs',
   'web-helper/src/steam_proton.rs',
