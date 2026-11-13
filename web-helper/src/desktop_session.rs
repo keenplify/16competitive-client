@@ -198,10 +198,13 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "NATIVE_INSTALL_UNSUPPORTED" => "NATIVE_INSTALL_UNSUPPORTED",
         "INSPECTOR_START_FAILED" => "INSPECTOR_START_FAILED",
         "STEAM_START_FAILED" => "STEAM_START_FAILED",
+        "STEAM_RUNTIME_FAILED" => "STEAM_RUNTIME_FAILED",
         "GAME_SPAWN_FAILED" => "GAME_SPAWN_FAILED",
         "ADMIN_RESTART_FAILED" => "ADMIN_RESTART_FAILED",
         "ADMIN_RESTART_CANCELLED" => "ADMIN_RESTART_CANCELLED",
         "GAME_STARTUP_FAILED" => "GAME_STARTUP_FAILED",
+        "GAME_PROCESS_NOT_FOUND" => "GAME_PROCESS_NOT_FOUND",
+        "GAME_CLIENT_NOT_LOADED" => "GAME_CLIENT_NOT_LOADED",
         "MATCH_RECOVERY_REQUIRED" => "MATCH_RECOVERY_REQUIRED",
         value if value.starts_with("Sticker cache") => "STICKER_CACHE_FAILED",
         "STICKER_CACHE_FAILED" => "STICKER_CACHE_FAILED",
@@ -594,7 +597,7 @@ mod tests {
     fn failure_codes_survive_compatibility_handoff_without_echoing_details() {
         assert_eq!(failure_code("Device authorization check failed"), "DEVICE_CHECK_FAILED");
         assert_eq!(failure_code("DEVICE_CHECK_FAILED"), "DEVICE_CHECK_FAILED");
-        for code in ["STICKER_REQUEST_FAILED", "STICKER_PREPARATION_FAILED", "ASSET_PREPARATION_FAILED", "NATIVE_RECOVERY_FAILED", "WINDOWS_HELPER_DOWNLOAD_FAILED", "COMPATIBILITY_CACHE_FAILED"] {
+        for code in ["STICKER_REQUEST_FAILED", "STICKER_PREPARATION_FAILED", "ASSET_PREPARATION_FAILED", "NATIVE_RECOVERY_FAILED", "WINDOWS_HELPER_DOWNLOAD_FAILED", "COMPATIBILITY_CACHE_FAILED", "STEAM_RUNTIME_FAILED", "GAME_PROCESS_NOT_FOUND", "GAME_CLIENT_NOT_LOADED"] {
             assert_eq!(failure_code(code), code);
         }
         assert_eq!(failure_code("Close the existing Counter-Strike game before starting a managed session"), "GAME_ALREADY_RUNNING");

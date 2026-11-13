@@ -818,15 +818,7 @@ fn cleanup_owned_file(file: Option<(PathBuf, String)>) -> Result<(), String> {
 }
 
 fn launch_match(connection: &Connection, api: &str, token: &str) -> Result<(), String> {
-    let result = launch_native_match(connection, api, token, &mut || Ok(()));
-    if let Err(error) = &result {
-        if let Ok(directory) = user_config_dir() {
-            if launch_diagnostics::record(&directory, connection, &desktop_session::failure_snapshot(error)).is_err() {
-                eprintln!("Native launch diagnostic could not be saved");
-            }
-        }
-    }
-    result
+    launch_native_match(connection, api, token, &mut || Ok(()))
 }
 
 fn cs16_requires_steam(root: &Path, next_client: bool, gold_client: bool) -> bool {
@@ -877,6 +869,11 @@ fn launch_native_match(initial: &Connection, api: &str, token: &str,
     if let Err(error) = &result {
         // Both browser and desktop sessions reach this point after attempt cleanup,
         // while their authenticated helper session is still valid.
+        if let Ok(directory) = user_config_dir() {
+            if launch_diagnostics::record(&directory, initial, &desktop_session::failure_snapshot(error)).is_err() {
+                eprintln!("Native launch diagnostic could not be saved");
+            }
+        }
         launch_diagnostics::report_automatically(api, token, initial, &desktop_session::failure_snapshot(error));
     }
     result
@@ -1106,7 +1103,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     {
         command.env("SteamAppId", "10").env("SteamGameId", "10");
         command.env("LD_LIBRARY_PATH", library_paths.join()
-            .map_err(|_| "Steam runtime initialization failed")??);
+            .map_err(|_| "STEAM_RUNTIME_FAILED")?
+            .map_err(|_| "STEAM_RUNTIME_FAILED")?);
         if connection.game() == "cs16" {
             steam_proton::configure_native_display(&mut command);
         }

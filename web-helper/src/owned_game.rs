@@ -375,9 +375,11 @@ mod linux {
                     }
                 }
                 if Instant::now() >= deadline {
-                    return Err(
-                        "Counter-Strike did not finish startup; check Steam authentication".into(),
-                    );
+                    return Err(if candidates.is_empty() {
+                        "GAME_PROCESS_NOT_FOUND"
+                    } else {
+                        "GAME_CLIENT_NOT_LOADED"
+                    }.into());
                 }
                 std::thread::sleep(Duration::from_millis(100));
             }

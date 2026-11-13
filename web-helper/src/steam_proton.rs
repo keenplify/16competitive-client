@@ -29,10 +29,7 @@ pub fn native_library_path(game: &Path, home: &Path) -> Result<std::ffi::OsStrin
         paths.extend(std::env::split_paths(&existing));
     }
     let fallback = std::env::join_paths(paths).map_err(|_| "Invalid game library path")?;
-    let runtime = [home.join(".steam/steam"), home.join(".local/share/Steam")]
-        .into_iter()
-        .map(|root| root.join("ubuntu12_32/steam-runtime/run.sh"))
-        .find(|path| path.is_file());
+    let runtime = native_runtime(game, home);
     let Some(runtime) = runtime else {
         return Ok(fallback);
     };
@@ -89,6 +86,38 @@ pub fn native_library_path(game: &Path, home: &Path) -> Result<std::ffi::OsStrin
         return Err("Invalid Steam runtime paths".into());
     }
     Ok(value.into())
+}
+
+#[cfg(target_os = "linux")]
+fn native_runtime(game: &Path, home: &Path) -> Option<std::path::PathBuf> {
+    let roots = [home.join(".steam/steam"), home.join(".local/share/Steam")];
+    let mut libraries = roots.to_vec();
+    if let Some(library) = game.ancestors().take(8)
+        .find(|p| p.file_name().is_some_and(|name| name == "steamapps"))
+        .and_then(Path::parent) {
+        libraries.push(library.to_owned());
+    }
+    for root in &roots {
+        if let Value::Object(folders) = metadata(&root.join("steamapps/libraryfolders.vdf")).get("libraryfolders") {
+            for value in folders.values() {
+                if let Some(path) = value.text().or_else(|| value.get("path").text()) {
+                    if Path::new(path).is_absolute() && !path.contains(['\0', '\r', '\n']) {
+                        libraries.push(path.into());
+                    }
+                }
+            }
+        }
+    }
+    libraries.into_iter().map(|root| root.join("steamapps/common/LegacySteamRuntime/run.sh"))
+        .chain(roots.into_iter().map(|root| root.join("ubuntu12_32/steam-runtime/run.sh")))
+        .find(|path| {
+            // SteamRT3 replaces the old run.sh symlink with a command passthrough.
+            // It cannot answer --print-steam-runtime-library-paths. Treat it as
+            // an absent runtime, retaining the existing host-library fallback.
+            path.is_file() && fs::canonicalize(path).is_ok_and(|target| {
+                target.file_name().is_none_or(|name| name != "legacy-run-stub.sh")
+            })
+        })
 }
 #[derive(Debug, Clone)]
 pub struct Runtime {
@@ -378,6 +407,34 @@ mod tests {
         );
         fs::write(&script, b"#!/bin/sh\nprintf '/safe:relative\\n'\n").unwrap();
         assert!(native_library_path(Path::new("/game"), &home).is_err());
+        fs::remove_dir_all(home).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn native_runtime_skips_steamrt3_stub_and_finds_relocated_runtime() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let home = std::env::temp_dir().join(format!("16c-runtime-{}", uuid::Uuid::new_v4()));
+        let root = home.join(".local/share/Steam");
+        let old = root.join("ubuntu12_32/steam-runtime/run.sh");
+        let stub = root.join("ubuntu12_32/legacy-run-stub.sh");
+        fs::create_dir_all(old.parent().unwrap()).unwrap();
+        fs::write(&stub, b"#!/bin/sh\nexit 99\n").unwrap();
+        fs::set_permissions(&stub, fs::Permissions::from_mode(0o700)).unwrap();
+        symlink(&stub, &old).unwrap();
+        assert!(native_runtime(Path::new("/game"), &home).is_none());
+        assert!(native_library_path(Path::new("/game"), &home).is_ok());
+
+        let library = home.join("external-library");
+        fs::create_dir_all(root.join("steamapps")).unwrap();
+        fs::write(root.join("steamapps/libraryfolders.vdf"), format!(
+            "\"libraryfolders\" {{ \"1\" {{ \"path\" \"{}\" }} }}", library.display())).unwrap();
+        let relocated = library.join("steamapps/common/LegacySteamRuntime/run.sh");
+        fs::create_dir_all(relocated.parent().unwrap()).unwrap();
+        fs::write(&relocated, b"#!/bin/sh\n[ \"$1\" = --print-steam-runtime-library-paths ] || exit 2\nprintf '/new-pinned:/host:/new-fallback\\n'\n").unwrap();
+        fs::set_permissions(&relocated, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(native_runtime(Path::new("/game"), &home), Some(relocated));
+        assert_eq!(native_library_path(Path::new("/game"), &home).unwrap(), "/new-pinned:/host:/new-fallback");
         fs::remove_dir_all(home).unwrap();
     }
 
