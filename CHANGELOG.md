@@ -4880,3 +4880,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Notifications
 
 - Added translations for the updated match notifications.
+
+## v2026.1113.4 — 2026-11-13
+
+### Updates
+
+- No player-facing changes were provided.
