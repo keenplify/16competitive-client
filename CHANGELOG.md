@@ -4913,3 +4913,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Chat
 
 - Simplified the public chat tabs for a cleaner experience.
+
+## v2026.1113.8 — 2026-11-13
+
+### Launching
+
+- Native launch requests now retry after temporary failures.
+
+### Reports
+
+- Report button clicks work again.
