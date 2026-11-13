@@ -47,6 +47,7 @@ for (const source of [
   'web-helper/src/startup_bridge.rs',
   'web-helper/src/steam_proton.rs',
   'web-helper/src/steam_ready.rs',
+  'web-helper/src/linux_startup_notice.rs',
   'web-helper/src/linux_emulation.rs',
   'web-helper/src/compatibility.rs',
   'web-helper/src/partner.rs',

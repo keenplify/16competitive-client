@@ -23,6 +23,8 @@ mod steam_proton;
 mod linux_emulation;
 #[cfg(target_os = "linux")]
 mod steam_ready;
+#[cfg(target_os = "linux")]
+mod linux_startup_notice;
 mod compatibility;
 mod partner;
 mod managed_installations;
@@ -171,6 +173,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("startup_bridge.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
         include_bytes!("steam_ready.rs").as_slice(),
+        include_bytes!("linux_startup_notice.rs").as_slice(),
         include_bytes!("linux_emulation.rs").as_slice(),
         include_bytes!("compatibility.rs").as_slice(),
         include_bytes!("partner.rs").as_slice(),
@@ -1242,6 +1245,11 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
     let mut owned_game = None;
     let wait_result = (|| -> Result<(), String> {
         owned_game = Some(game_startup.wait().map_err(|e| desktop_session::preparation_error(&e, "GAME_STARTUP_FAILED"))?);
+        #[cfg(target_os = "linux")]
+        let mut startup_notice = linux_startup_notice::Watch::new();
+        #[cfg(target_os = "linux")]
+        startup_notice.poll(owned_game.as_ref().unwrap().pid,
+            || owned_game.as_ref().unwrap().exited().is_ok_and(|exited| !exited));
         scanner.attach(owned_game.as_ref().unwrap().pid)?;
         scanner.await_attachment(Duration::from_secs(20))?;
         ready()?;
@@ -1261,6 +1269,9 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
                     Err(match_recovery::REQUIRED.into())
                 } else { Ok(()) };
             }
+            #[cfg(target_os = "linux")]
+            startup_notice.poll(owned_game.as_ref().unwrap().pid,
+                || owned_game.as_ref().unwrap().exited().is_ok_and(|exited| !exited));
             if desktop_session::stop_requested() {
                 owned_game.as_ref().unwrap().stop()?;
                 return Ok(());
