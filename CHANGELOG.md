@@ -4902,3 +4902,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Top-ups
 
 - Fixed top-up window controls and framing.
+
+## v2026.1113.7 — 2026-11-13
+
+### Matchmaking
+
+- See a notice when an admin removes you from the queue.
+- Re-queue more easily after being removed.
+
+### Chat
+
+- Simplified the public chat tabs for a cleaner experience.
