@@ -1319,7 +1319,7 @@
 
 /* Reports and download status use a separate portal above desktop windows. */
 :root[data-launcher-theme='vgui2'] .launcher-desktop-notices {
-  z-index: 24;
+  z-index: 40;
 }
 
 :root[data-launcher-theme='vgui2'] .community-title-link,

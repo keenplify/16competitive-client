@@ -151,6 +151,9 @@ pub(crate) fn forward_progress(frame: &serde_json::Value) -> Result<bool, String
 pub(crate) fn failure_code(error: &str) -> &'static str {
     match error {
         "Device authorization check failed" | "DEVICE_CHECK_FAILED" => "DEVICE_CHECK_FAILED",
+        "MATCH_AUTH_FAILED" => "MATCH_AUTH_FAILED",
+        "MATCH_CONNECTION_REQUEST_FAILED" => "MATCH_CONNECTION_REQUEST_FAILED",
+        "MATCH_CONNECTION_RESPONSE_INVALID" => "MATCH_CONNECTION_RESPONSE_INVALID",
         "Match connection is no longer available" | "MATCH_UNAVAILABLE" => "MATCH_UNAVAILABLE",
         "Invalid game installation" | "INSTALLATION_INVALID" => "INSTALLATION_INVALID",
         "Invalid Wine path" | "Wine path conversion failed" | "COMPATIBILITY_PATH_FAILED" => "COMPATIBILITY_PATH_FAILED",

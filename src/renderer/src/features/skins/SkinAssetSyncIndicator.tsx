@@ -12,6 +12,7 @@ import { translateRuntimeSea } from '../i18n/ui-translations-sea'
 import { translateRuntimeText } from '../i18n/ui-translations'
 import { useNavigationStore } from '../navigation/navigation.store'
 import { useCustomGamesStore } from '../matchmaking/custom-games.store'
+import reportLabels from '../../../../shared/issue-report-translations.json'
 
 type RailMode = 'expanded' | 'collapsed' | 'absent'
 
@@ -142,7 +143,7 @@ export function SkinAssetSyncIndicator(): React.JSX.Element | null {
         className="flex items-center gap-2  border border-cyan-300/30 bg-slate-950/90 px-3 py-2 text-cyan-100 shadow-xl backdrop-blur transition hover:bg-slate-800"
       >
         <Clipboard className="size-4" aria-hidden="true" />
-        Report an Issue
+        {reportLabels[language].title}
       </button>
       {renderPanels(
         <>

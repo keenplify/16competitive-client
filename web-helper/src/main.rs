@@ -679,17 +679,32 @@ fn connection(api: &str, token: &str, match_id: &str) -> Result<Connection, Stri
         .redirects(0)
         .timeout(Duration::from_secs(10))
         .build();
-    let result: Connection = agent
+    let request = || agent
         .get(&format!(
             "{api}/matchmaking/matches/{match_id}/helper-connection"
         ))
         .set("Authorization", &format!("Bearer {token}"))
-        .call()
-        .map_err(|_| "Match connection is no longer available".to_owned())?
+        .call();
+    let response = match request() {
+        Err(error) if retryable_connection_error(&error) => request(),
+        result => result,
+    }.map_err(|error| match error {
+        ureq::Error::Status(404, _) => "MATCH_UNAVAILABLE",
+        ureq::Error::Status(401 | 403, _) => "MATCH_AUTH_FAILED",
+        _ => "MATCH_CONNECTION_REQUEST_FAILED",
+    }.to_owned())?;
+    let result: Connection = response
         .into_json()
-        .map_err(|_| "Invalid match connection response".to_owned())?;
+        .map_err(|_| "MATCH_CONNECTION_RESPONSE_INVALID".to_owned())?;
     result.validate(match_id).map_err(str::to_owned)?;
     Ok(result)
+}
+
+fn retryable_connection_error(error: &ureq::Error) -> bool {
+    match error {
+        ureq::Error::Transport(_) => true,
+        ureq::Error::Status(status, _) => *status == 429 || *status >= 500,
+    }
 }
 
 fn cs13_auth_file(game_dir: &Path, connection: &Connection) -> Result<(PathBuf, String), String> {
@@ -1478,6 +1493,41 @@ fn main() {
 
 #[cfg(test)]
 mod launch_tests {
+    #[test]
+    fn match_connection_retries_transient_http_failures_but_preserves_terminal_reasons() {
+        use std::{io::{Read, Write}, net::TcpListener};
+        for (statuses, expected) in [
+            (vec![503, 200], None),
+            (vec![503, 503], Some("MATCH_CONNECTION_REQUEST_FAILED")),
+            (vec![401], Some("MATCH_AUTH_FAILED")),
+            (vec![403], Some("MATCH_AUTH_FAILED")),
+            (vec![404], Some("MATCH_UNAVAILABLE")),
+        ] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let origin = format!("http://{}", listener.local_addr().unwrap());
+            let id = uuid::Uuid::new_v4().to_string();
+            let body = serde_json::json!({"matchId":id,"mode":"ffa","host":"127.0.0.1","port":27015,
+                "password":"","joinToken":"a".repeat(43),"playerName":"test_player"}).to_string();
+            let worker = std::thread::spawn(move || {
+                for status in statuses {
+                    let (mut stream, _) = listener.accept().unwrap();
+                    stream.set_read_timeout(Some(std::time::Duration::from_secs(3))).unwrap();
+                    let mut request = Vec::new();
+                    while !request.windows(4).any(|b| b == b"\r\n\r\n") {
+                        let mut bytes = [0; 1024];
+                        let n = stream.read(&mut bytes).unwrap();
+                        assert!(n > 0 && request.len() < 8192);
+                        request.extend_from_slice(&bytes[..n]);
+                    }
+                    write!(stream, "HTTP/1.1 {status} Response\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+                }
+            });
+            let result = super::connection(&origin, "test-only-token", &id);
+            if let Some(expected) = expected { assert_eq!(result.unwrap_err(), expected); }
+            else { assert_eq!(result.unwrap().mode, "ffa"); }
+            worker.join().unwrap();
+        }
+    }
     use super::*;
     #[test]
     fn config_auth_startup_contains_current_identity_and_is_cleaned_up() {

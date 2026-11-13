@@ -231,7 +231,20 @@ fn device_status(value: Value) -> Result<Value, String> {
 }
 
 pub(crate) fn check_device(bundle: &NativeBundle, api: &str) -> Result<Value, String> {
-    check_device_inner(bundle, api).map_err(|_| "Device authorization check failed".into())
+    // Verification errors are deterministic and must never be retried into an
+    // approval. A transient inspector/network failure gets one fresh process;
+    // a valid ban response returns immediately and remains authoritative.
+    api_origin(api)?;
+    bundle.verify_inspector()?;
+    retry_device_check(|| check_device_inner(bundle, api))
+        .map_err(|_| "Device authorization check failed".into())
+}
+
+fn retry_device_check(mut check: impl FnMut() -> Result<Value, String>) -> Result<Value, String> {
+    match check() {
+        Ok(status) => Ok(status),
+        Err(_) => check(),
+    }
 }
 
 fn check_device_inner(bundle: &NativeBundle, api: &str) -> Result<Value, String> {
@@ -482,6 +495,25 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn device_lookup_retries_once_but_never_bypasses_a_ban_or_repeated_failure() {
+        let mut attempts = 0;
+        let result = retry_device_check(|| {
+            attempts += 1;
+            if attempts == 1 { Err("temporary transport failure".into()) }
+            else { Ok(json!({"banned":false})) }
+        }).unwrap();
+        assert_eq!(attempts, 2);
+        assert_eq!(result["banned"], false);
+        attempts = 0;
+        let result = retry_device_check(|| { attempts += 1; Ok(json!({"banned":true})) }).unwrap();
+        assert_eq!(attempts, 1);
+        assert_eq!(result["banned"], true);
+        attempts = 0;
+        assert!(retry_device_check(|| { attempts += 1; Err("offline".into()) }).is_err());
+        assert_eq!(attempts, 2);
+    }
 
     #[test]
     fn bounded_protocol_rejects_truncation_and_oversized_records() {
