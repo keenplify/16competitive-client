@@ -4957,3 +4957,10 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux startup
 
 - Linux locale notices are now handled normally during startup.
+
+## v2026.1114.1 — 2026-11-13
+
+### Legacy Video Settings
+
+- Preserves your saved video settings.
+- Initializes the resolution setting on first launch.
