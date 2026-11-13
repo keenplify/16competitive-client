@@ -4886,3 +4886,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Updates
 
 - No player-facing changes were provided.
+
+## v2026.1113.5 — 2026-11-13
+
+### Linux
+
+- Fixed native Linux game launches after the SteamRT3 runtime migration.
