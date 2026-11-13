@@ -4892,3 +4892,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux
 
 - Fixed native Linux game launches after the SteamRT3 runtime migration.
+
+## v2026.1113.6 — 2026-11-13
+
+### Sign-in
+
+- Reopened partner clients now return to community sign-in.
+
+### Top-ups
+
+- Fixed top-up window controls and framing.
