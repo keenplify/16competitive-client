@@ -4945,3 +4945,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux sessions
 
 - Improved recovery for transient native handoff interruptions without requiring credentials to be replayed.
+
+## v2026.1113.12 — 2026-11-13
+
+### Linux startup
+
+- Handles the GoldSrc locale notice during startup.
