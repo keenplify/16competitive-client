@@ -39,6 +39,25 @@ const SOCIAL_POLL_MS = 1250
 const SESSION_CACHE_KEY = '16competitive.web.auth-session'
 let discardSavedPartnerSession = hasIncomingPartnerLogin()
 
+// A tray-opened tab may not share the embedded partner page's storage.
+// Keep valid sessions, but send missing/expired sessions through partner sign-in.
+const returnToPartnerLogin = (): void => {
+  if (hasIncomingPartnerLogin()) return
+  const returnUrl = partnerReturnUrl()
+  if (!returnUrl) return
+  usePartnerReturnStore.setState({
+    ready: true,
+    redirecting: true,
+    returnUrl,
+    partnerName: getWebPartnerLogin()?.partnerName ?? new URL(returnUrl).hostname
+  })
+  try {
+    ;(window.top ?? window).location.replace(returnUrl)
+  } catch {
+    // The return screen supplies a link when frame navigation is blocked.
+  }
+}
+
 const readCachedSession = (): AuthSession | null => {
   try {
     const raw = localStorage.getItem(SESSION_CACHE_KEY)
@@ -506,6 +525,7 @@ export const browserAuthApi: AuthApi = {
     const token = getWebSessionToken()
     if (!token) {
       clearCachedSession()
+      returnToPartnerLogin()
       return null
     }
 
@@ -548,12 +568,15 @@ export const browserAuthApi: AuthApi = {
     } catch (error) {
       if (getWebSessionToken() !== token) throw new Error('SESSION_CHANGED')
       if ((error as Error & { status?: number }).status === 401) {
+        returnToPartnerLogin()
         clearWebSessionToken()
         clearCachedSession()
         return null
       }
 
-      return cached ? { ...cached, partnerLogin: getWebPartnerLogin() } : null
+      if (cached) return { ...cached, partnerLogin: getWebPartnerLogin() }
+      returnToPartnerLogin()
+      return null
     }
   },
 

@@ -14,6 +14,7 @@ function harness({
   incoming = false,
   returnUrl = null,
   failure = false,
+  unauthorized = false,
   embedded = false,
   blocked = false
 } = {}) {
@@ -52,6 +53,7 @@ function harness({
       },
       requestJson: async (path) => {
         calls.push(path)
+        if (unauthorized) throw Object.assign(new Error('expired'), { status: 401 })
         if (failure) throw new Error('offline')
         return previous
       }
@@ -144,13 +146,51 @@ test('return destinations are restricted to the approved partner', () => {
       (name) =>
         name === '../shared/partner-return'
           ? shared
-          : {
-              getWebPartnerLogin: () => (id ? { partnerId: id, partnerName: 'Partner' } : undefined)
-            },
+          : name === './partner-runtime'
+            ? { hostedPartnerId: () => null }
+            : {
+                getWebPartnerLogin: () =>
+                  id ? { partnerId: id, partnerName: 'Partner' } : undefined
+              },
       exports
     )
     assert.equal(exports.partnerReturnUrl(), expected)
   }
+})
+
+test('tray reopen restores a valid partner session without redirecting', async () => {
+  const h = harness({ returnUrl: 'https://www.olaguergeyming.com/gamehub/' })
+  assert.equal((await h.api.restore()).player.id, 'previous-player')
+  assert.deepEqual(h.redirects, [])
+})
+
+test('missing and expired partner sessions return to partner sign-in before showing login', async () => {
+  const returnUrl = 'https://www.olaguergeyming.com/gamehub/'
+  for (const unauthorized of [false, true]) {
+    const h = harness({ returnUrl, unauthorized, embedded: true, blocked: true })
+    if (!unauthorized) h.setToken(null)
+    assert.equal(await h.api.restore(), null)
+    assert.equal(h.redirecting(), true)
+    assert.equal(h.returnState().returnUrl, returnUrl)
+    assert.equal(h.returnState().ready, true)
+    assert.equal(h.cache.has(cacheKey), false)
+  }
+})
+
+test('hosted partner branding supplies the approved return when browser storage is empty', () => {
+  const exports = {},
+    shared = {}
+  new Function('exports', compile('../src/shared/partner-return.ts'))(shared)
+  new Function('require', 'exports', compile('../src/web/partner-return.ts'))(
+    (name) =>
+      name === '../shared/partner-return'
+        ? shared
+        : name === './partner-runtime'
+          ? { hostedPartnerId: () => '583704ab-6fc5-4b58-8fc2-d91cf1d7c051' }
+          : { getWebPartnerLogin: () => undefined },
+    exports
+  )
+  assert.equal(exports.partnerReturnUrl(), 'https://www.olaguergeyming.com/gamehub/')
 })
 
 test('later session refresh does not discard the newly accepted partner session', async () => {

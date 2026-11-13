@@ -110,6 +110,7 @@ export function PCashTopUpModal({ className }: { className?: string }): JSX.Elem
     <>
       <ModalDialog
         open
+        vguiTitlebar={false}
         onClose={onClose}
         labelledBy="p-cash-top-up-title"
         describedBy="p-cash-top-up-rate"

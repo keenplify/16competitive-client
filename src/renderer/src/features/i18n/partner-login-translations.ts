@@ -1,7 +1,7 @@
 export const partnerLoginTranslations = {
   en: {
-    'partnerLogin.returnPending': 'Signing out…',
-    'partnerLogin.returnReady': 'Signed out. Use the return link if this page stays open.',
+    'partnerLogin.returnPending': 'Returning to your community…',
+    'partnerLogin.returnReady': 'Use the return link if this page stays open.',
     'partnerLogin.returnToPartner': 'Back to {{partner}}',
     'partnerLogin.title': 'Partner sign-in',
     'partnerLogin.description': 'Continue from {{partner}} as {{username}}?',
@@ -23,8 +23,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Finish partner sign-in'
   },
   ru: {
-    'partnerLogin.returnPending': 'Выход…',
-    'partnerLogin.returnReady': 'Вы вышли. Если страница не закрылась, нажмите ссылку возврата.',
+    'partnerLogin.returnPending': 'Возвращаемся в ваше сообщество…',
+    'partnerLogin.returnReady': 'Если страница остаётся открытой, нажмите ссылку возврата.',
     'partnerLogin.returnToPartner': 'Вернуться в {{partner}}',
     'partnerLogin.title': 'Вход через партнёра',
     'partnerLogin.description': 'Продолжить из {{partner}} как {{username}}?',
@@ -47,9 +47,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Завершить вход партнёра'
   },
   tl: {
-    'partnerLogin.returnPending': 'Nagsa-sign out…',
-    'partnerLogin.returnReady':
-      'Naka-sign out na. Gamitin ang link pabalik kung bukas pa ang pahinang ito.',
+    'partnerLogin.returnPending': 'Bumabalik sa iyong community…',
+    'partnerLogin.returnReady': 'Gamitin ang link pabalik kung bukas pa ang pahinang ito.',
     'partnerLogin.returnToPartner': 'Bumalik sa {{partner}}',
     'partnerLogin.title': 'Partner sign-in',
     'partnerLogin.description': 'Magpatuloy mula sa {{partner}} bilang {{username}}?',
@@ -72,8 +71,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Tapusin ang partner sign-in'
   },
   th: {
-    'partnerLogin.returnPending': 'กำลังออกจากระบบ…',
-    'partnerLogin.returnReady': 'ออกจากระบบแล้ว หากหน้านี้ยังเปิดอยู่ ให้กดลิงก์กลับ',
+    'partnerLogin.returnPending': 'กำลังกลับไปยังชุมชนของคุณ…',
+    'partnerLogin.returnReady': 'หากหน้านี้ยังเปิดอยู่ ให้กดลิงก์กลับ',
     'partnerLogin.returnToPartner': 'กลับไปที่ {{partner}}',
     'partnerLogin.title': 'เข้าสู่ระบบผ่านพาร์ทเนอร์',
     'partnerLogin.description': 'ดำเนินการจาก {{partner}} ในชื่อ {{username}} หรือไม่?',
@@ -93,9 +92,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'ดำเนินการเข้าสู่ระบบต่อ'
   },
   id: {
-    'partnerLogin.returnPending': 'Sedang keluar…',
-    'partnerLogin.returnReady':
-      'Sudah keluar. Gunakan tautan kembali jika halaman ini tetap terbuka.',
+    'partnerLogin.returnPending': 'Kembali ke komunitas Anda…',
+    'partnerLogin.returnReady': 'Gunakan tautan kembali jika halaman ini tetap terbuka.',
     'partnerLogin.returnToPartner': 'Kembali ke {{partner}}',
     'partnerLogin.title': 'Login mitra',
     'partnerLogin.description': 'Lanjutkan dari {{partner}} sebagai {{username}}?',
@@ -116,9 +114,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Selesaikan login mitra'
   },
   hi: {
-    'partnerLogin.returnPending': 'साइन आउट हो रहा है…',
-    'partnerLogin.returnReady':
-      'साइन आउट हो गया। पेज खुला रहे तो वापस जाने वाले लिंक पर क्लिक करें।',
+    'partnerLogin.returnPending': 'आपकी कम्युनिटी पर वापस जा रहे हैं…',
+    'partnerLogin.returnReady': 'पेज खुला रहे तो वापस जाने वाले लिंक पर क्लिक करें।',
     'partnerLogin.returnToPartner': '{{partner}} पर वापस जाएँ',
     'partnerLogin.title': 'पार्टनर साइन-इन',
     'partnerLogin.description': '{{partner}} से {{username}} के रूप में जारी रखें?',
@@ -139,9 +136,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'पार्टनर साइन-इन पूरा करें'
   },
   pt: {
-    'partnerLogin.returnPending': 'Saindo…',
-    'partnerLogin.returnReady':
-      'Sessão encerrada. Use o link de retorno se esta página continuar aberta.',
+    'partnerLogin.returnPending': 'Voltando para sua comunidade…',
+    'partnerLogin.returnReady': 'Use o link de retorno se esta página continuar aberta.',
     'partnerLogin.returnToPartner': 'Voltar para {{partner}}',
     'partnerLogin.title': 'Login do parceiro',
     'partnerLogin.description': 'Continuar de {{partner}} como {{username}}?',
@@ -164,9 +160,8 @@ export const partnerLoginTranslations = {
     'partnerLogin.resume': 'Concluir login do parceiro'
   },
   ja: {
-    'partnerLogin.returnPending': 'ログアウト中…',
-    'partnerLogin.returnReady':
-      'ログアウトしました。このページが開いたままの場合は戻るリンクを押してください。',
+    'partnerLogin.returnPending': 'コミュニティに戻っています…',
+    'partnerLogin.returnReady': 'このページが開いたままの場合は戻るリンクを押してください。',
     'partnerLogin.returnToPartner': '{{partner}} に戻る',
     'partnerLogin.title': 'パートナーログイン',
     'partnerLogin.description': '{{partner}}から{{username}}として続行しますか？',
