@@ -4933,3 +4933,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Issue Reports
 
 - Issue reports are now retained quietly within a limited quota.
+
+## v2026.1113.10 — 2026-11-13
+
+### Game launching
+
+- On Linux, managed games now wait for Steam authentication before starting.
