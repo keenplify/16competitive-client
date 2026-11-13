@@ -1359,6 +1359,12 @@ fn run() -> Result<(), String> {
     if args.as_slice() == ["--steam-readiness-probe"] {
         std::process::exit(if steam_ready::probe() { 0 } else { 1 });
     }
+    #[cfg(target_os = "linux")]
+    if args.len() == 3 && args[0] == "--linux-locale-notice" {
+        let ready = args[1].parse().ok().zip(args[2].parse().ok())
+            .is_some_and(|(game, child)| linux_startup_notice::acknowledge(game, child));
+        std::process::exit(if ready { 0 } else { 1 });
+    }
     if args.as_slice() == ["--supports-native-cs13"] {
         println!("{}", cfg!(windows) && native_bundle::supports_won_scoreboard());
         return Ok(());
