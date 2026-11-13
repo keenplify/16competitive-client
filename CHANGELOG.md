@@ -4939,3 +4939,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Game launching
 
 - On Linux, managed games now wait for Steam authentication before starting.
+
+## v2026.1113.11 — 2026-11-13
+
+### Linux sessions
+
+- Improved recovery for transient native handoff interruptions without requiring credentials to be replayed.
