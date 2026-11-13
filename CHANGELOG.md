@@ -4923,3 +4923,13 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reports
 
 - Report button clicks work again.
+
+## v2026.1113.9 — 2026-11-13
+
+### Linux Compatibility
+
+- Improved detection of relocated Linux Scout installations.
+
+### Issue Reports
+
+- Issue reports are now retained quietly within a limited quota.
