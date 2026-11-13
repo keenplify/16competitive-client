@@ -21,6 +21,8 @@ mod match_recovery;
 mod steam_proton;
 #[cfg(target_os = "linux")]
 mod linux_emulation;
+#[cfg(target_os = "linux")]
+mod steam_ready;
 mod compatibility;
 mod partner;
 mod managed_installations;
@@ -168,6 +170,7 @@ fn helper_fingerprint() -> String {
         include_bytes!("gtprotector.rs").as_slice(),
         include_bytes!("startup_bridge.rs").as_slice(),
         include_bytes!("steam_proton.rs").as_slice(),
+        include_bytes!("steam_ready.rs").as_slice(),
         include_bytes!("linux_emulation.rs").as_slice(),
         include_bytes!("compatibility.rs").as_slice(),
         include_bytes!("partner.rs").as_slice(),
@@ -857,6 +860,7 @@ fn start_steam_client() -> Result<(), String> {
             linux_emulation::steam_command()?.arg("-silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
                 .spawn().map_err(|_|"Start Steam and sign in before launching Counter-Strike")?;
         }
+        steam_ready::wait(desktop_session::stop_requested)?;
     }
     #[cfg(windows)]
     {
@@ -973,6 +977,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             && !cs16_requires_steam(&root, next_client, gold_client),
     ).map_err(|_| "STARTUP_CONFIG_FAILED")?;
     if connection.game() == "cs16" && cs16_requires_steam(&root, next_client, gold_client) {
+        #[cfg(target_os = "linux")]
+        desktop_session::report_progress("starting", 0, 0);
         start_steam_client().map_err(|e| desktop_session::preparation_error(&e, "STEAM_START_FAILED"))?;
     }
     let mut scanner = inspector::Session::start(&scanner_bundle, inspector::SessionOptions {
@@ -1322,6 +1328,10 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
 
 fn run() -> Result<(), String> {
     let mut args: Vec<String> = env::args().skip(1).collect();
+    #[cfg(target_os = "linux")]
+    if args.as_slice() == ["--steam-readiness-probe"] {
+        std::process::exit(if steam_ready::probe() { 0 } else { 1 });
+    }
     if args.as_slice() == ["--supports-native-cs13"] {
         println!("{}", cfg!(windows) && native_bundle::supports_won_scoreboard());
         return Ok(());
