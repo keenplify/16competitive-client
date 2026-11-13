@@ -4951,3 +4951,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Linux startup
 
 - Handles the GoldSrc locale notice during startup.
+
+## v2026.1113.13 — 2026-11-13
+
+### Linux startup
+
+- Linux locale notices are now handled normally during startup.
