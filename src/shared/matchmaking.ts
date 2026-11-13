@@ -305,7 +305,13 @@ export type MatchmakingServerMessage = { whileQueued?: boolean } & (
       botFillOptIn?: boolean
       searchStage?: MatchmakingSearchStage
     }
-  | { type: 'queue_left'; mode: MatchmakingMode; mapIds: string[] }
+  | {
+      type: 'queue_left'
+      mode: MatchmakingMode
+      mapIds: string[]
+      reason?: 'ADMIN_REMOVED'
+      queueEntryId?: string
+    }
   | { type: 'party_invitation_received' }
   | { type: 'party_updated' }
   | { type: 'party_disbanded' }

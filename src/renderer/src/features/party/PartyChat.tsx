@@ -608,7 +608,6 @@ export function PartyChat(): JSX.Element {
                     ? [{ id: 'party' as const, label: communityText(language, 'party') }]
                     : []),
                   { id: 'language' as const, label: globalLanguageLabel },
-                  { id: 'global' as const, label: communityText(language, 'global') },
                   ...(!communityFirst ? communityTab : [])
                 ].map((tab) => (
                   <button

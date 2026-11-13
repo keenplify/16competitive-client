@@ -140,6 +140,7 @@ async function harness({
     },
     'react-toastify': {
       toast: {
+        info: (message, options) => feedback.push({ type: 'info', message, ...options }),
         loading: (message) => {
           feedback.push({ pending: message })
           return 1
@@ -589,4 +590,50 @@ test('switching accounts clears the old match, connection and completed match', 
   assert.equal(h.store.getState().connectionDetails, null)
   assert.equal(h.store.getState().completedMatch, null)
   assert.equal(h.store.getState().queueStatus, 'idle')
+})
+
+test('admin queue removal clears the queued state and explains the action', async () => {
+  const h = await harness()
+  h.store.setState({
+    queueStatus: 'queued',
+    queuedPlayers: 3,
+    position: 2,
+    queuedAt: new Date().toISOString()
+  })
+  h.emit({
+    type: 'queue_left',
+    mode: '5v5',
+    mapIds: ['de_dust2'],
+    reason: 'ADMIN_REMOVED',
+    queueEntryId: 'old-entry'
+  })
+  assert.equal(h.store.getState().queueStatus, 'idle')
+  assert.equal(h.store.getState().queuedPlayers, 0)
+  assert.equal(h.store.getState().queuedAt, null)
+  assert.equal(h.feedback.at(-1).type, 'info')
+  assert.equal(h.feedback.at(-1).message, 'matchmaking.adminRemoved')
+})
+
+test('a delayed admin removal notice leaves a newer queue or match intact', async () => {
+  const h = await harness()
+  for (const queueStatus of ['queued', 'in_match']) {
+    h.store.setState({ queueStatus, queuedPlayers: 4 })
+    h.emit({
+      type: 'error',
+      code: 'ADMIN_QUEUE_REMOVED',
+      message: 'matchmaking.adminRemoved',
+      whileQueued: true
+    })
+    assert.equal(h.store.getState().queueStatus, queueStatus)
+    assert.equal(h.store.getState().queuedPlayers, 4)
+    assert.equal(h.feedback.at(-1).message, 'matchmaking.adminRemoved')
+  }
+})
+
+test('ordinary queue departures do not show an admin removal notice', async () => {
+  const h = await harness()
+  h.store.setState({ queueStatus: 'queued' })
+  h.emit({ type: 'queue_left', mode: '5v5', mapIds: ['de_dust2'] })
+  assert.equal(h.store.getState().queueStatus, 'idle')
+  assert.equal(h.feedback.length, 0)
 })

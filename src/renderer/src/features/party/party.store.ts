@@ -606,7 +606,10 @@ export const usePartyStore = create<PartyState>((set, get) => ({
 
   clearChat: () => set({ chatEntries: [], chatDraft: '', chatError: null }),
 
-  setChatTab: (chatTab) => set({ chatTab, chatTabChosen: true }),
+  // Older surfaces may still request the retired public tab. Keep them in the
+  // regional/language room; community chat is the shared public channel.
+  setChatTab: (chatTab) =>
+    set({ chatTab: chatTab === 'global' ? 'language' : chatTab, chatTabChosen: true }),
   preferCommunityChat: () => {
     const state = get()
     if (state.communityChatDefaultApplied) return

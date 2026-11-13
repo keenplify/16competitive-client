@@ -352,7 +352,16 @@ const isServerMessage = (value: unknown, endpoint: string): value is Matchmaking
         isOptionalSearchStage(message.searchStage)
       )
     case 'queue_left':
-      return isMatchmakingMode(message.mode) && isMapIds(message.mapIds)
+      return (
+        isMatchmakingMode(message.mode) &&
+        isMapIds(message.mapIds) &&
+        (message.reason === undefined || message.reason === 'ADMIN_REMOVED') &&
+        (message.queueEntryId === undefined ||
+          (typeof message.queueEntryId === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              message.queueEntryId
+            )))
+      )
     case 'queue_status':
       return (
         isMatchmakingMode(message.mode) &&

@@ -279,6 +279,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
     rendererMatchmakingDiagnostics.record('renderer_received', event)
     useQueueWarmupStore.getState().handleEvent(event)
     if (event.whileQueued) {
+      if (event.type === 'error' && event.code === 'ADMIN_QUEUE_REMOVED') {
+        toast.info(translate(useLanguageStore.getState().language, 'matchmaking.adminRemoved'), {
+          toastId: 'admin-queue-removed'
+        })
+      }
       if (
         event.type === 'error' &&
         (event.message === 'match.launch.closeFailed' ||
@@ -406,6 +411,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => {
         )
         break
       case 'queue_left':
+        if (event.reason === 'ADMIN_REMOVED') {
+          toast.info(translate(useLanguageStore.getState().language, 'matchmaking.adminRemoved'), {
+            toastId: `admin-queue-removed:${event.queueEntryId ?? 'queue'}`
+          })
+        }
         set({
           queueStatus: 'idle',
           selectedMode: event.mode,

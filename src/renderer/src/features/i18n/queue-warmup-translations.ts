@@ -1,5 +1,7 @@
 export const queueWarmupTranslations = {
   en: {
+    'matchmaking.adminRemoved':
+      'An administrator removed your previous search from the queue. You can join again.',
     'warmup.startMatch': 'Start match',
     'warmup.rankedMode': 'Competitive · MR8',
     'warmup.rankedBotsHelp':
@@ -42,6 +44,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Empty slots are filled with bots. Your queue position stays the same.'
   },
   ru: {
+    'matchmaking.adminRemoved':
+      'Администратор удалил ваш предыдущий поиск из очереди. Вы можете встать в очередь снова.',
     'warmup.startMatch': 'Начать матч',
     'warmup.rankedMode': 'Соревновательный · MR8',
     'warmup.rankedBotsHelp':
@@ -84,6 +88,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Пустые места займут боты. Ваше место в очереди сохранится.'
   },
   tl: {
+    'matchmaking.adminRemoved':
+      'Inalis ng administrator ang dati mong search sa queue. Puwede kang sumali ulit.',
     'warmup.startMatch': 'Simulan ang match',
     'warmup.rankedMode': 'Kompetitibo · MR8',
     'warmup.rankedBotsHelp':
@@ -126,6 +132,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots ang pupuno sa bakanteng slots. Hindi magbabago ang puwesto mo sa queue.'
   },
   th: {
+    'matchmaking.adminRemoved':
+      'ผู้ดูแลนำการค้นหาก่อนหน้าของคุณออกจากคิวแล้ว คุณสามารถเข้าคิวได้อีกครั้ง',
     'warmup.startMatch': 'เริ่มแมตช์',
     'warmup.rankedMode': 'แข่งขัน · MR8',
     'warmup.rankedBotsHelp':
@@ -167,6 +175,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'บอตจะเติมช่องว่าง ลำดับคิวของคุณจะคงเดิม'
   },
   id: {
+    'matchmaking.adminRemoved':
+      'Administrator menghapus pencarian sebelumnya dari antrean. Anda dapat bergabung lagi.',
     'warmup.startMatch': 'Mulai pertandingan',
     'warmup.rankedMode': 'Kompetitif · MR8',
     'warmup.rankedBotsHelp':
@@ -209,6 +219,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Slot kosong diisi bot. Posisi antreanmu tetap sama.'
   },
   pt: {
+    'matchmaking.adminRemoved':
+      'Um administrador removeu sua busca anterior da fila. Você pode entrar novamente.',
     'warmup.startMatch': 'Iniciar partida',
     'warmup.rankedMode': 'Competitivo · MR8',
     'warmup.rankedBotsHelp':
@@ -251,6 +263,7 @@ export const queueWarmupTranslations = {
     'warmup.bots': 'Bots preenchem as vagas. Sua posição na fila não muda.'
   },
   ja: {
+    'matchmaking.adminRemoved': '管理者が以前の検索をキューから削除しました。再度参加できます。',
     'warmup.startMatch': 'マッチを開始',
     'warmup.rankedMode': '対戦 · MR8',
     'warmup.rankedBotsHelp':
@@ -292,6 +305,8 @@ export const queueWarmupTranslations = {
     'warmup.bots': '空き枠はボットが埋めます。キューの順番は変わりません。'
   },
   hi: {
+    'matchmaking.adminRemoved':
+      'व्यवस्थापक ने आपकी पिछली खोज को कतार से हटा दिया है। आप फिर से जुड़ सकते हैं।',
     'warmup.startMatch': 'मैच शुरू करें',
     'warmup.rankedMode': 'प्रतिस्पर्धी · MR8',
     'warmup.rankedBotsHelp':
