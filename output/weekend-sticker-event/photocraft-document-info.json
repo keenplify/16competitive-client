@@ -1,0 +1,1910 @@
+{
+  "activeLayer": 255,
+  "canRedo": false,
+  "canUndo": true,
+  "channels": {
+    "alpha": [],
+    "colors": [
+      {
+        "name": "Red",
+        "visible": true
+      },
+      {
+        "name": "Green",
+        "visible": true
+      },
+      {
+        "name": "Blue",
+        "visible": true
+      }
+    ],
+    "composite": "RGB",
+    "compositeVisible": true,
+    "layerMaskView": null,
+    "quickMask": null,
+    "selectedColors": null,
+    "target": {
+      "kind": "composite"
+    }
+  },
+  "depth": 8,
+  "hasSelection": false,
+  "height": 1024,
+  "history": [
+    "New Type Layer",
+    "New Shape Layer",
+    "New Shape Layer",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform",
+    "Place Embedded",
+    "Rename Layer",
+    "Free Transform"
+  ],
+  "historySource": {
+    "label": "New Type Layer",
+    "state": 0
+  },
+  "isolatedLayers": [],
+  "lastAppliedComp": null,
+  "layerComps": [],
+  "layerMaskView": null,
+  "layers": [
+    {
+      "blend": "Normal",
+      "bounds": [
+        937,
+        943,
+        60,
+        71
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 255,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-44",
+      "opacity": 1.0,
+      "selected": true,
+      "smartContents": {
+        "id": 254,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-44-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        861,
+        918,
+        92,
+        90
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 249,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-41",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 248,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-41-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        801,
+        923,
+        92,
+        92
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 243,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-36",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 242,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-36-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        751,
+        943,
+        71,
+        71
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 237,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-33",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 236,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-33-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        685,
+        936,
+        78,
+        76
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 231,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-29",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 230,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-29-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        620,
+        920,
+        90,
+        92
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 225,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-26",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 224,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-26-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        570,
+        953,
+        67,
+        62
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 219,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-21",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 218,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-21-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        498,
+        926,
+        91,
+        83
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 213,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-18",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 212,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-18-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        439,
+        938,
+        87,
+        71
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 207,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-16",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 206,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-16-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        390,
+        922,
+        58,
+        92
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 201,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-13",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 200,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-13-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        327,
+        948,
+        62,
+        66
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 195,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-11",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 194,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-11-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        259,
+        919,
+        85,
+        92
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 189,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-09",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 188,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-09-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        194,
+        929,
+        88,
+        84
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 183,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-07",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 182,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-07-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        140,
+        956,
+        74,
+        54
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 177,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-05",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 176,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-05-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        71,
+        925,
+        90,
+        89
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 171,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-03",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 170,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-03-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        14,
+        937,
+        80,
+        76
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 165,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail \u2014 rail-sticker-01",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 164,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-01-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        56,
+        915,
+        912,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 161,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Footer rule",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        915,
+        1024,
+        109
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 160,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker rail background",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        835,
+        869,
+        38,
+        9
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 159,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "M4 label",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "DejaVu Sans",
+        "sizePt": 12.0,
+        "text": "M4A1"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        874,
+        740,
+        41,
+        10
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 158,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "AK label",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "DejaVu Sans",
+        "sizePt": 12.0,
+        "text": "AK-47"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        62,
+        551,
+        31,
+        10
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 157,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "AWP label",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "DejaVu Sans",
+        "sizePt": 12.0,
+        "text": "AWP"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        209,
+        719,
+        657,
+        191
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 154,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "M4A1 \u2014 white finish with applied stickers",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 153,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "m4a1-skin-2-preview.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        168,
+        543,
+        787,
+        226
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 148,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "AK-47 \u2014 neon finish with applied stickers",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 147,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "ak47-skin-2-preview.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        72,
+        370,
+        887,
+        223
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 142,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "AWP \u2014 gold finish with applied stickers",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 141,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "awp-skin-1-preview.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        56,
+        255,
+        567,
+        97
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 138,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Sticker reward",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "Bebas Neue",
+        "sizePt": 132.0,
+        "text": "GET A STICKER"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        53,
+        144,
+        544,
+        97
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 137,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Win requirement",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "Bebas Neue",
+        "sizePt": 132.0,
+        "text": "WIN 3 GAMES."
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        55,
+        113,
+        109,
+        16
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 136,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Weekly recurrence",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "DejaVu Sans",
+        "sizePt": 20.0,
+        "text": "WEEKLY"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        657,
+        32,
+        77,
+        73
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 133,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-25",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 132,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-25-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        589,
+        57,
+        85,
+        55
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 127,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-23",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 126,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-23-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        526,
+        27,
+        78,
+        79
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 121,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-20",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 120,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-20-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        467,
+        47,
+        63,
+        61
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 115,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-17",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 114,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-17-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        395,
+        16,
+        79,
+        92
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 109,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-14",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 108,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-14-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        343,
+        47,
+        58,
+        64
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 103,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-10",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 102,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-10-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        267,
+        28,
+        78,
+        77
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 97,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-06",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 96,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-06-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        220,
+        59,
+        44,
+        53
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 91,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Top sticker rail \u2014 rail-sticker-02",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 90,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "rail-sticker-02-trimmed.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        707,
+        368,
+        199,
+        12
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 87,
+      "kind": "Type",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Exclusive platform",
+      "opacity": 1.0,
+      "selected": false,
+      "text": {
+        "font": "DejaVu Sans",
+        "sizePt": 13.0,
+        "text": "ONLY AT 1.6 COMPETITIVE"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        706,
+        132,
+        239,
+        223
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 86,
+      "kind": "Smart Object",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "1.6 Competitive \u2014 official logo",
+      "opacity": 1.0,
+      "selected": false,
+      "smartContents": {
+        "id": 85,
+        "instances": 1
+      },
+      "smartFilters": [],
+      "smartFiltersEnabled": true,
+      "smartSource": {
+        "fileName": "16competitive-logo.png",
+        "kind": "embedded"
+      },
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        576,
+        1024,
+        258
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 82,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Muted lower stage accent",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        399,
+        1024,
+        260
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 81,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Orange stage accent",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        401,
+        1024,
+        432
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 80,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Diagonal display stage",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        821,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 79,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 822",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        757,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 78,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 758",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        693,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 77,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 694",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        629,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 76,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 630",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        565,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 75,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 566",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        501,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 74,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 502",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        40,
+        437,
+        944,
+        2
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 73,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid horizontal 438",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        959,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 72,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 960",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        895,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 71,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 896",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        831,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 70,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 832",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        767,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 69,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 768",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        703,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 68,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 704",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        639,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 67,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 640",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        575,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 66,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 576",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        511,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 65,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 512",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        447,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 64,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 448",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        383,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 63,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 384",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        319,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 62,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 320",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        255,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 61,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 256",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        191,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 60,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 192",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        127,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 59,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 128",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        63,
+        406,
+        2,
+        434
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 58,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Grid vertical 64",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        0,
+        1024,
+        1024
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 57,
+      "kind": "Shape",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Slate studio background",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    },
+    {
+      "blend": "Normal",
+      "bounds": [
+        0,
+        0,
+        1024,
+        1024
+      ],
+      "clipped": false,
+      "fill": 1.0,
+      "hasMask": false,
+      "hasVectorMask": false,
+      "hasXmp": false,
+      "id": 56,
+      "kind": "Pixel",
+      "labelColor": "none",
+      "linkGroup": null,
+      "name": "Background",
+      "opacity": 1.0,
+      "selected": false,
+      "vectorMaskEnabled": null,
+      "visible": true
+    }
+  ],
+  "measurement": {
+    "count": 0,
+    "countGroups": 0,
+    "ruler": null,
+    "scale": "1 pixels = 1.0000 pixels"
+  },
+  "mode": "Rgb",
+  "name": "1.6 Competitive \u2014 Weekend Sticker Drop",
+  "notes": [],
+  "path": null,
+  "quickMask": false,
+  "resolution": 72.0,
+  "revision": 119,
+  "selectedLayers": [
+    255
+  ],
+  "selectionBounds": null,
+  "snapshots": [
+    {
+      "id": 0,
+      "name": "1.6 Competitive \u2014 Weekend Sticker Drop"
+    }
+  ],
+  "symmetry": null,
+  "timeline": null,
+  "variables": null,
+  "width": 1024
+}

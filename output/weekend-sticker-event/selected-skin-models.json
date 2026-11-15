@@ -1,0 +1,37 @@
+[
+  {
+    "name": "awp-skin-1",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/592b0d9dff62c8c2/v.mdl"
+  },
+  {
+    "name": "ak47-skin-2",
+    "weapon": "ak47",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/ak47/43e4ad662ef31c4c/v.mdl",
+    "stickers": [
+      "4db8f4def784d6eb6f5f7ad922827fca29d53f445e46854cc51ca7b3b7c45f39",
+      "5514a697d48b3a7f7feecf61ea5da89b287ac9d676377ba8702177f9ef73e223",
+      "9716ecf8ec7fb3a3259efdc05bd08ed7a9d6093cad81312939c4e123a6ddc225"
+    ],
+    "sizes": [
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  {
+    "name": "m4a1-skin-2",
+    "weapon": "m4a1",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/m4a1/9a43fd0389d41660/v.mdl",
+    "stickers": [
+      "5514a697d48b3a7f7feecf61ea5da89b287ac9d676377ba8702177f9ef73e223",
+      "36c44ad7f48f1fc8331cda56c295daf78c76559a58b8df8c8e247e9c0f7c449a",
+      "4db8f4def784d6eb6f5f7ad922827fca29d53f445e46854cc51ca7b3b7c45f39"
+    ],
+    "sizes": [
+      0.1,
+      0.1,
+      0.1
+    ]
+  }
+]

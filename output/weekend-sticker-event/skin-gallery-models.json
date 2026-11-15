@@ -1,0 +1,57 @@
+[
+  {
+    "name": "awp-skin-1",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/592b0d9dff62c8c2/v.mdl"
+  },
+  {
+    "name": "awp-skin-2",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/daa4ca1f0675968e/v.mdl"
+  },
+  {
+    "name": "awp-skin-3",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/af2e909502c2c35b/v.mdl"
+  },
+  {
+    "name": "awp-skin-4",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/57dd0a77ee5f02f4/v.mdl"
+  },
+  {
+    "name": "awp-skin-5",
+    "weapon": "awp",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/awp/0ff23aa63bb9ef1e/v.mdl"
+  },
+  {
+    "name": "ak47-skin-1",
+    "weapon": "ak47",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/ak47/0e4d67c369bf2fd6/v.mdl"
+  },
+  {
+    "name": "ak47-skin-2",
+    "weapon": "ak47",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/ak47/43e4ad662ef31c4c/v.mdl"
+  },
+  {
+    "name": "ak47-skin-3",
+    "weapon": "ak47",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/ak47/755172257cb5b3c5/v.mdl"
+  },
+  {
+    "name": "m4a1-skin-1",
+    "weapon": "m4a1",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/m4a1/27c099636e7664fc/v.mdl"
+  },
+  {
+    "name": "m4a1-skin-2",
+    "weapon": "m4a1",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/m4a1/9a43fd0389d41660/v.mdl"
+  },
+  {
+    "name": "m4a1-skin-3",
+    "weapon": "m4a1",
+    "path": "/home/keenplify-fedora/.config/16competitive-client/game-assets/models/16competitive/m4a1/a56596ff975f035e/v.mdl"
+  }
+]

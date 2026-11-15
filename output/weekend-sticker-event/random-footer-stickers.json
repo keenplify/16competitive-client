@@ -1,0 +1,42 @@
+[
+  {
+    "name": "random-sticker-1",
+    "hash": "e7f756af39a5470167eb1139f38a27ed8e04226d13574ed3ee2c5a913c5d6942",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/e7f756af39a5470167eb1139f38a27ed8e04226d13574ed3ee2c5a913c5d6942.png"
+  },
+  {
+    "name": "random-sticker-2",
+    "hash": "d5533ec2635ad746a89f15373293570d8d96daa0ef670d7660ccdcb3b04b33b2",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/d5533ec2635ad746a89f15373293570d8d96daa0ef670d7660ccdcb3b04b33b2.png"
+  },
+  {
+    "name": "random-sticker-3",
+    "hash": "915d34773ebda8c900d56ec31e6843cd6d779823622bbe647ef42b9cf30b40a1",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/915d34773ebda8c900d56ec31e6843cd6d779823622bbe647ef42b9cf30b40a1.png"
+  },
+  {
+    "name": "random-sticker-4",
+    "hash": "4e3e15a484184acd6d28dbe453bbd0ba89486ba0e96b5a01e60138a83ec0d2fc",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/4e3e15a484184acd6d28dbe453bbd0ba89486ba0e96b5a01e60138a83ec0d2fc.png"
+  },
+  {
+    "name": "random-sticker-5",
+    "hash": "6e89593c011d9b0cf96c9488cb7c39669dfc41d537f4d56a7b7ac722cfe1f564",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/6e89593c011d9b0cf96c9488cb7c39669dfc41d537f4d56a7b7ac722cfe1f564.png"
+  },
+  {
+    "name": "random-sticker-6",
+    "hash": "fcbbfcaccbcf5f3175ea077cd2cb2c6dfac72c18112274332b97236c52ca9226",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/fcbbfcaccbcf5f3175ea077cd2cb2c6dfac72c18112274332b97236c52ca9226.png"
+  },
+  {
+    "name": "random-sticker-7",
+    "hash": "ac5bccaf4ec999b2b21ceb0c32acb48e8ea8a9230558f2b206f3d2453c394ef4",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/ac5bccaf4ec999b2b21ceb0c32acb48e8ea8a9230558f2b206f3d2453c394ef4.png"
+  },
+  {
+    "name": "random-sticker-8",
+    "hash": "ddd9565bfb4650a9908d1bd24c7c602a685bd6b7fbc76f276cd14d467610705b",
+    "source": "/home/keenplify-fedora/.config/16competitive-client/game-assets/sticker-images/ddd9565bfb4650a9908d1bd24c7c602a685bd6b7fbc76f276cd14d467610705b.png"
+  }
+]
