@@ -261,7 +261,7 @@ for (const freshProcess of [true, false]) {
       await new Promise((resolve) => setImmediate(resolve))
       assert.equal(h.calls.filter(([type]) => type === 'launch').length, 0)
       assert.equal(h.connection.lastConnection.matchId, connection.matchId)
-      assert.ok(h.events.some((event) => event.type === 'game_process_exited'))
+      assert.equal(h.events.some((event) => event.type === 'game_process_exited'), freshProcess)
       await h.connection.reconnectGame()
       assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
     } finally {
@@ -295,9 +295,16 @@ test('a newly accepted match launches once, including duplicate connection event
     const connection = { ...connect, whileQueued: false, joinToken: 'a'.repeat(32) }
     emit(connection)
     emit(connection)
+    // A repeated server snapshot can arrive while the first launch still waits
+    // for assets. No game has exited, and reconnect must stay unavailable.
+    assert.equal(h.events.filter((event) => event.type === 'game_process_exited').length, 0)
     h.finishAssets()
     await new Promise((resolve) => setImmediate(resolve))
     assert.equal(h.calls.filter(([type]) => type === 'launch').length, 1)
+    emit(connection)
+    assert.equal(h.events.filter((event) => event.type === 'game_process_exited').length, 0)
+    h.connection.handleGameProcessExit(connection.matchId, 0, null)
+    assert.equal(h.events.filter((event) => event.type === 'game_process_exited').length, 1)
   } finally {
     h.connection.shutdown()
   }

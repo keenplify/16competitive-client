@@ -1791,6 +1791,7 @@ class MatchmakingConnection {
           this.lastConnection = parsed
           this.notify(parsed)
           if (
+            this.freshProcess &&
             !isCounterStrikeActiveForMatch(parsed.matchId) &&
             !isCs13ActiveForMatch(parsed.matchId)
           ) {
