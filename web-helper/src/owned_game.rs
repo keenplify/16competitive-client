@@ -188,6 +188,37 @@ mod windows {
     mod tests {
         use super::*;
         #[test]
+        fn replacement_process_fixture() {
+            if std::env::var_os("SIXTEEN_REPLACEMENT_FIXTURE").is_some() {
+                std::thread::sleep(Duration::from_secs(15));
+            }
+        }
+        #[test]
+        #[ignore = "runs isolated Windows process replacement fixtures"]
+        fn replacement_stops_only_the_exact_selected_installation() {
+            let root = std::env::temp_dir().join(format!("16c-replace-{}", uuid::Uuid::new_v4()));
+            let other = root.join("unrelated");
+            std::fs::create_dir_all(&other).unwrap();
+            let selected_exe = root.join("hl.exe");
+            let other_exe = other.join("hl.exe");
+            for target in [&selected_exe, &other_exe] {
+                std::fs::copy(std::env::current_exe().unwrap(), target).unwrap();
+            }
+            let spawn = |path: &Path| std::process::Command::new(path)
+                .args(["--exact", "owned_game::windows::tests::replacement_process_fixture"])
+                .env("SIXTEEN_REPLACEMENT_FIXTURE", "1")
+                .stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null())
+                .spawn().unwrap();
+            let mut selected = spawn(&selected_exe);
+            let mut unrelated = spawn(&other_exe);
+            Startup::prepare_replacing(&selected_exe, &root.join("cstrike")).unwrap();
+            assert!(selected.wait().is_ok());
+            let unrelated_alive = unrelated.try_wait().unwrap().is_none();
+            let _ = unrelated.kill();
+            let _ = unrelated.wait();
+            assert!(unrelated_alive, "another installation must never be terminated");
+        }
+        #[test]
         #[ignore = "requires the controlled Windows bootstrap fixture"]
         fn bootstrap_handoff_tracks_game_after_launcher_exits() {
             let root =

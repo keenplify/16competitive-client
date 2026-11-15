@@ -945,8 +945,19 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             return compatibility::launch(connection, api, token, &root, proton.as_ref(), ready);
         }
     }
-    if cfg!(windows) && connection.game() == "cs13" {
-        mod_dir = cs13_installation::prepare(&root, &mod_dir)?;
+    let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
+        .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
+    if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
+        return Err("This device cannot join competitive matches".into());
+    }
+    #[cfg(windows)]
+    if connection.game() == "cs13" {
+        won_native::prepare_launch(&root, &mod_dir)?;
+        mod_dir = cs13_installation::prepare(&root, &mod_dir).map_err(|error| {
+            if error.contains("(os error 5)") { "WON_REPAIR_ELEVATION_REQUIRED".into() } else { error }
+        })?;
+        // Preparation can select/create the server's cstrk13 directory.
+        won_native::prepare_launch(&root, &mod_dir)?;
     }
     let voice_ownership = session_mode::VoiceOwnership::start(&user_config_dir()?, &connection.match_id).map_err(|e| desktop_session::preparation_error(&e, "VOICE_OWNERSHIP_FAILED"))?;
     let _native_mode = session_mode::Lease::native_wait(&user_config_dir()?).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_LEASE_FAILED"))?;
@@ -972,11 +983,6 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         std::thread::spawn(move || steam_proton::native_library_path(&root, &home))
     };
     desktop_session::report_progress("checking", 0, 0);
-    let scanner_bundle = native_bundle::prepare(&user_config_dir()?)
-        .map_err(|e| desktop_session::preparation_error(&e, "NATIVE_BUNDLE_FAILED"))?;
-    if inspector::check_device(&scanner_bundle, api).map_err(|e| desktop_session::preparation_error(&e, "DEVICE_CHECK_FAILED"))?["banned"] == true {
-        return Err("This device cannot join competitive matches".into());
-    }
     desktop_session::report_progress("assets", 0, 0);
     assets::prepare_match(&game_dir, connection, api, token).map_err(|_| "ASSET_PREPARATION_FAILED")?;
     desktop_session::report_progress("checking", 0, 0);

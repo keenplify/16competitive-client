@@ -6,6 +6,57 @@ use std::os::windows::process::CommandExt;
 use serde_json::json;
 const CLIENT: &str = "71fdbe140df3598a74738537b924141f4fb4b0b828737bd99a7223d9e4549460";
 const ENGINES: [&str; 2] = ["525c1a32a520bbde8857e8dc3ed1e5bbc8b2ef5620bc6cdbcdbc72c34542bace", "b5f34ed4726d93a9c3d4b3d3eb60df5680f5ae888710f5461e54a462e1efd487"];
+const OPENGL: &str = "c047cd0f87f379fe3d24d7f2e07241eb11d590211157be5a527bc9d9f295e922";
+fn repair_error(error: std::io::Error) -> String {
+    if matches!(error.raw_os_error(), Some(5 | 32 | 33 | 740)) {
+        "WON_REPAIR_ELEVATION_REQUIRED".into()
+    } else { format!("WON installation could not be prepared: {error}") }
+}
+
+/// Explicit match launch authorizes replacement of this exact supported game.
+/// No recursive attribute changes, ACL rewriting, or arbitrary game-file repair.
+pub(crate) fn prepare_launch(root: &Path, game: &str) -> Result<(), String> {
+    use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
+    if !matches!(game, "cstrike" | "cstrk13") { return Err("Invalid WON mod directory".into()); }
+    for directory in [root.to_path_buf(), root.join(game), root.join(game).join("cl_dlls")] {
+        for ancestor in directory.ancestors() { ordinary_directory(ancestor)?; }
+    }
+    if digest(&read_limited(&root.join(game).join("cl_dlls/client.dll"), 32*1024*1024)?) != CLIENT
+        || !ENGINES.contains(&digest(&read_limited(&root.join("hl.exe"), 32*1024*1024)?).as_str())
+        || digest(&read_limited(&root.join("hw.dll"), 32*1024*1024)?) != OPENGL {
+        return Err("Unsupported WON installation; automatic repair refused".into());
+    }
+    crate::owned_game::Startup::prepare_replacing(&root.join("hl.exe"), &root.join(game))?;
+    let engine = root.join("hw.dll");
+    if fs::metadata(&engine).map_err(repair_error)?.permissions().readonly() {
+        // Retain and validate the opened file: never follow a replacement reparse
+        // point or clear attributes on a file that changed since inspection.
+        let mut file = fs::OpenOptions::new().read(true).access_mode(0x80000000 | 0x100)
+            .custom_flags(0x00200000).open(&engine).map_err(repair_error)?;
+        let metadata = file.metadata().map_err(repair_error)?;
+        if !metadata.is_file() || metadata.file_attributes() & 0x400 != 0 || metadata.len() > 32*1024*1024 {
+            return Err("Invalid WON engine for automatic repair".into());
+        }
+        let mut bytes = Vec::new();
+        (&mut file).take(32*1024*1024 + 1).read_to_end(&mut bytes).map_err(repair_error)?;
+        if digest(&bytes) != OPENGL { return Err("WON engine changed before automatic repair".into()); }
+        let mut permissions = metadata.permissions();
+        permissions.set_readonly(false);
+        file.set_permissions(permissions).map_err(repair_error)?;
+    }
+    // Request replacement rights without deleting/renaming anything. A process
+    // outside the selected game may still hold the engine; never kill that process.
+    let probe = fs::OpenOptions::new().access_mode(0x10000).share_mode(7)
+        .custom_flags(0x00200000).open(&engine).map_err(repair_error)?;
+    drop(probe);
+    for directory in [root.to_path_buf(), root.join(game), root.join(game).join("cl_dlls")] {
+        let path = directory.join(format!(".16competitive-won-{}.tmp", uuid::Uuid::new_v4()));
+        let file = fs::OpenOptions::new().write(true).create_new(true).open(&path).map_err(repair_error)?;
+        drop(file);
+        fs::remove_file(path).map_err(repair_error)?;
+    }
+    Ok(())
+}
 pub struct WonInstall { root: PathBuf, helper: PathBuf, id: String, guard: Option<Child> }
 fn recovery_failure(mode: &str, code: Option<i32>, stderr: &[u8]) -> String {
     // Report fixed categories only. Never forward paths, auth data or arbitrary
@@ -132,7 +183,7 @@ mod tests {
         bundle.verify_inspector().unwrap();
         assert!(bundle.verify_approval().is_ok(), "signed native bundle requires backend approval");
         for game in ["cstrike", "cstrk13"] {
-          for condition in ["normal", "locked-engine", "readonly-folders", "readonly-engine"] {
+          for condition in ["normal", "locked-engine", "readonly-folders", "readonly-engine", "unknown-readonly-engine"] {
             let root = std::env::temp_dir().join(format!("16c-won-full-{}", uuid::Uuid::new_v4())).join("Game Files");
             let dlls = root.join(game).join("cl_dlls");
             fs::create_dir_all(&dlls).unwrap();
@@ -152,27 +203,36 @@ mod tests {
                     fs::set_permissions(directory, permissions).unwrap();
                 }
             }
-            if condition == "readonly-engine" {
+            if condition == "unknown-readonly-engine" {
+                fs::write(root.join("hw.dll"), b"unknown player engine").unwrap();
+            }
+            if matches!(condition, "readonly-engine" | "unknown-readonly-engine") {
                 let mut permissions = fs::metadata(root.join("hw.dll")).unwrap().permissions();
                 permissions.set_readonly(true);
                 fs::set_permissions(root.join("hw.dll"), permissions).unwrap();
+            }
+            if condition == "unknown-readonly-engine" {
+                assert!(prepare_launch(&root, game).unwrap_err().contains("automatic repair refused"));
+                assert!(fs::metadata(root.join("hw.dll")).unwrap().permissions().readonly());
+                assert_eq!(fs::read(root.join("hw.dll")).unwrap(), b"unknown player engine");
+                continue;
             }
             use std::os::windows::fs::OpenOptionsExt;
             let engine_handle = if condition == "locked-engine" {
                 Some(fs::OpenOptions::new().read(true).share_mode(1).open(root.join("hw.dll")).unwrap())
             } else { None };
-            if matches!(condition, "locked-engine" | "readonly-engine") {
-                let error = match WonInstall::install(&root, game, &bundle, &(auth_path.clone(), auth_contents)) {
-                    Ok(mut install) => { let _ = install.restore(); panic!("protected engine unexpectedly installed: {condition}"); }
-                    Err(error) => error,
-                };
-                assert!(error.starts_with("WON recovery failed (prepare-won,"), "{error}");
-                assert!(error.contains("game file access denied") || error.contains("game file is in use"), "{error}");
+            if condition == "locked-engine" {
+                // This handle belongs to the test, not the exact game process.
+                // Automatic repair must not kill arbitrary file-lock owners.
+                assert_eq!(prepare_launch(&root, game).unwrap_err(), "WON_REPAIR_ELEVATION_REQUIRED");
                 assert_eq!(fs::read(root.join("hw.dll")).unwrap(), original);
-                println!("REPRODUCED {condition} ({game}): {error}; fixture {}", root.display());
+                assert!(!root.join("16competitive/recovery.json").exists());
+                println!("PASSED foreign-lock refusal before installation ({game}); fixture {}", root.display());
                 drop(engine_handle);
                 continue;
             }
+            prepare_launch(&root, game).unwrap();
+            assert!(!fs::metadata(root.join("hw.dll")).unwrap().permissions().readonly());
             let mut install = WonInstall::install(&root, game, &bundle, &(auth_path.clone(), auth_contents))
                 .unwrap_or_else(|error| panic!("WON install failed for {game}: {error}; evidence {}", root.display()));
             assert!(dlls.join("16cmod.dll").exists());

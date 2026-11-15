@@ -251,7 +251,6 @@ adapters generate the corresponding `mp_startmoney`. Normal overtime rules still
 apply. Migration `0100_custom_starting_money.sql` was applied locally. Restart
 the backend/client and create a fresh match to use these changes.
 
-
 ## Shared helper and AMXX feature architecture
 
 Match manifests for both game versions include the two shared ping models and
@@ -441,7 +440,6 @@ The test used software rendering because this VM cannot create the game's
 OpenGL mode. Remote regional deployment and full Electron matchmaking were not
 part of this isolated connection test.
 
-
 ### Native scoreboard and independent loadouts (2026-11-09)
 
 WON renders the worker-prepared scoreboard atlas and geometry through OpenGL 1.1;
@@ -464,6 +462,18 @@ before activating the existing exact engine adaptation, restores after worker/ga
 shutdown, and fails closed on interrupted or unknown installations. CS 1.6 remains
 persistent. Wine retains its existing adapter and can select the native board with
 a supporting signed module. No claim of VAC compatibility or measured FPS gains.
+
+Before a Windows WON match, the standalone helper verifies the exact executable,
+client and stock OpenGL engine hashes, closes only the selected installation's
+existing game process, and clears the read-only attribute on that verified engine
+when necessary. It checks replacement and directory-write access before creating
+the installation journal or starting native workers. Unknown engines and reparse
+points are refused; attributes are never changed recursively and player config
+files are never inspected. A lock held by an unrelated process is not forcibly
+removed. Permission failures can request the existing one-time Windows UAC retry
+with fresh match authorization; cancellation, failed cleanup and an already
+elevated attempt never cause another elevation loop. The same retry is supported
+by browser sessions and the packaged Electron standalone handoff.
 
 Backend migration `0179_game_loadouts` keeps existing sticker applications and skin
 selections in CS 1.6. CS 1.3 selections start empty. Each applied sticker belongs to
@@ -488,7 +498,6 @@ launcher reopens; the player reconnects again to retry preparation. Cancellation
 leaves the current launcher open. The retry flag prevents elevation loops.
 This changes no folder ACLs and does not change the CS 1.3 restoration lifecycle.
 Linux and background helper runtimes retain the writable-installation requirement.
-
 
 ### Player-owned resolution (November 11, 2026)
 
