@@ -4981,3 +4981,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Reliability
 
 - Platform-specific checks and Linux release preflight validation have been strengthened.
+
+## v2026.1115.2 — 2026-11-15
+
+### Storage
+
+- Native assets are now stored in the desktop profile.
