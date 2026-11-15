@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, writeFile, rm, utimes } from 'node:fs/promises'
+import { mkdtemp, writeFile, rm, utimes, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { musicDeliveryReport, parseMusicDiagnostics } from '../src/main/game/music-diagnostics.ts'
@@ -47,6 +47,9 @@ test('reports include only recent, matching music delivery diagnostics and never
       })
     )
     assert.match(await musicDeliveryReport(directory, 'match'), /verified 3\/3/)
+    const writtenAt = Math.floor((await stat(path)).mtimeMs)
+    assert.match(await musicDeliveryReport(directory, 'match', writtenAt), /verified 3\/3/)
+    assert.match(await musicDeliveryReport(directory, 'match', writtenAt - 1), /Unavailable/)
     assert.match(await musicDeliveryReport(directory, 'other'), /Unavailable/)
     await writeFile(path, 'x'.repeat(2049))
     assert.match(await musicDeliveryReport(directory, 'match'), /Unavailable/)

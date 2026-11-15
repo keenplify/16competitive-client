@@ -20,7 +20,11 @@ export function parseMusicDiagnostics(value: unknown, matchId: string): string |
   return `Delivery: ${data.status}; verified ${completed}/${total}; failed ${failed}.\nThis describes optional local audio delivery, not in-game playback or volume.`
 }
 
-export async function musicDeliveryReport(directory: string, matchId?: string): Promise<string> {
+export async function musicDeliveryReport(
+  directory: string,
+  matchId?: string,
+  now = Date.now()
+): Promise<string> {
   const heading = '[Music Kit delivery]'
   const missing = `${heading}\nUnavailable (no recent delivery diagnostics for this match).`
   if (!matchId) return missing
@@ -31,7 +35,9 @@ export async function musicDeliveryReport(directory: string, matchId?: string): 
     if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 2048) return missing
     file = await open(path, 'r')
     const actual = await file.stat()
-    const age = Date.now() - actual.mtimeMs
+    // NTFS retains fractions of a millisecond; Date.now() does not. Compare
+    // at the same precision so a just-written report is not "in the future".
+    const age = now - Math.floor(actual.mtimeMs)
     if (!actual.isFile() || actual.size > 2048 || age < 0 || age > 10 * 60_000) return missing
     const buffer = Buffer.alloc(2049)
     const { bytesRead } = await file.read(buffer, 0, buffer.length, 0)
