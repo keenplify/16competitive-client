@@ -52,3 +52,11 @@ adapter changes folder ACLs or recursive attributes, and neither accesses
 `config.cfg`. Only the selected installation's process can be closed. Permission
 failures use one existing UAC retry after successful cleanup; cancellation and an
 already elevated attempt cannot start another elevation loop.
+
+Some Windows standalone 1.6 repacks omit `valve.rc`, which prevents GoldSrc
+from processing the launcher's connection commands. The launcher temporarily
+supplies only `stuffcmds` when no physical fallback startup script or PAK archive
+could provide startup. It removes its own exact script through the original file
+handle after the session, preserves later edits and replacements, and recovers
+its own interrupted bridge on the next launch. Existing nonempty startup scripts
+and player profiles remain untouched.

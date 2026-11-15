@@ -1,4 +1,4 @@
-//! Some standalone repacks ship an empty valve.rc, so GoldSrc never runs
+//! Some standalone repacks ship an empty or missing valve.rc, so GoldSrc never runs
 //! command-line +commands. Temporarily supply only stuffcmds. Never touch
 //! player profiles or replace a nonempty, unrecognized startup script.
 use std::{
@@ -8,9 +8,48 @@ use std::{
 };
 
 const CONTENTS: &[u8] = b"// 16competitive temporary empty-startup bridge v1\nstuffcmds\n";
+#[cfg(windows)]
+const MISSING_CONTENTS: &[u8] =
+    b"// 16competitive temporary missing-startup bridge v1\nstuffcmds\n";
 
 #[derive(Default)]
-pub struct Bridge(Option<File>);
+pub struct Bridge(Option<File>, bool);
+
+// A physical script can be absent while GoldSrc finds one in its fallback
+// directory or a PAK. Do not shadow those installations. This repair is for
+// the Windows standalone layout reproduced without either source of startup.
+#[cfg(windows)]
+fn missing_startup_is_unambiguous(game: &Path) -> Result<bool, String> {
+    let Some(root) = game.parent() else {
+        return Ok(false);
+    };
+    for directory in [game.to_path_buf(), root.to_path_buf(), root.join("valve")] {
+        if directory != game
+            && directory
+                .join("valve.rc")
+                .try_exists()
+                .map_err(|e| e.to_string())?
+        {
+            return Ok(false);
+        }
+        let entries = match fs::read_dir(&directory) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(e.to_string()),
+        };
+        for entry in entries {
+            let entry = entry.map_err(|e| e.to_string())?;
+            if entry
+                .path()
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("pak"))
+            {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
+}
 
 fn ordinary(path: &Path, directory: bool) -> Result<fs::Metadata, String> {
     let metadata = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
@@ -40,21 +79,43 @@ impl Bridge {
         }
         ordinary(game, true)?;
         let path = game.join("valve.rc");
-        match fs::symlink_metadata(&path) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self::default()),
+        let missing = match fs::symlink_metadata(&path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                #[cfg(windows)]
+                {
+                    if !missing_startup_is_unambiguous(game)? {
+                        return Ok(Self::default());
+                    }
+                    true
+                }
+                #[cfg(not(windows))]
+                {
+                    return Ok(Self::default());
+                }
+            }
             Err(e) => return Err(e.to_string()),
-            Ok(_) => {}
-        }
-        let metadata = ordinary(&path, false)?;
-        if metadata.len() != 0 && metadata.len() != CONTENTS.len() as u64 {
-            return Ok(Self::default());
+            Ok(_) => false,
+        };
+        #[cfg(windows)]
+        let remove_created = missing
+            || fs::symlink_metadata(&path).is_ok_and(|m| m.len() == MISSING_CONTENTS.len() as u64);
+        #[cfg(not(windows))]
+        let remove_created = false;
+        if !missing {
+            let metadata = ordinary(&path, false)?;
+            if metadata.len() != 0 && metadata.len() != CONTENTS.len() as u64 && !remove_created {
+                return Ok(Self::default());
+            }
         }
         let mut options = OpenOptions::new();
-        options.read(true).write(true);
+        options.read(true).write(true).create_new(missing);
         #[cfg(windows)]
         {
             use std::os::windows::fs::OpenOptionsExt;
             options.custom_flags(0x00200000); // FILE_FLAG_OPEN_REPARSE_POINT
+            if remove_created {
+                options.access_mode(0xC0010000); // GENERIC_READ | GENERIC_WRITE | DELETE
+            }
         }
         #[cfg(unix)]
         {
@@ -73,22 +134,30 @@ impl Bridge {
         if !metadata.is_file() {
             return Err("Startup script is not a file".into());
         }
+        #[cfg(windows)]
+        let contents = if remove_created {
+            MISSING_CONTENTS
+        } else {
+            CONTENTS
+        };
+        #[cfg(not(windows))]
+        let contents = CONTENTS;
         if metadata.len() != 0 {
             // Recognize only our exact interrupted bridge, with bounded reads.
-            if metadata.len() != CONTENTS.len() as u64 {
+            if metadata.len() != contents.len() as u64 {
                 return Ok(Self::default());
             }
-            let mut current = vec![0; CONTENTS.len()];
+            let mut current = vec![0; contents.len()];
             file.read_exact(&mut current).map_err(|e| e.to_string())?;
-            if current != CONTENTS {
+            if current != contents {
                 return Ok(Self::default());
             }
         } else {
-            file.write_all(CONTENTS).map_err(|e| e.to_string())?;
+            file.write_all(contents).map_err(|e| e.to_string())?;
             file.sync_all().map_err(|e| e.to_string())?;
         }
-        eprintln!("Standalone startup: temporary empty-script command bridge active");
-        Ok(Self(Some(file)))
+        eprintln!("Standalone startup: temporary command bridge active");
+        Ok(Self(Some(file), remove_created))
     }
 
     pub fn restore(&mut self) -> Result<(), String> {
@@ -97,13 +166,43 @@ impl Bridge {
         };
         // Keep the original handle: replacing or renaming the path must never
         // make cleanup truncate a different player-owned file.
-        if file.metadata().map_err(|e| e.to_string())?.len() == CONTENTS.len() as u64 {
+        #[cfg(windows)]
+        let contents = if self.1 { MISSING_CONTENTS } else { CONTENTS };
+        #[cfg(not(windows))]
+        let contents = CONTENTS;
+        if file.metadata().map_err(|e| e.to_string())?.len() == contents.len() as u64 {
             file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
-            let mut current = vec![0; CONTENTS.len()];
+            let mut current = vec![0; contents.len()];
             file.read_exact(&mut current).map_err(|e| e.to_string())?;
-            if current == CONTENTS {
-                file.set_len(0).map_err(|e| e.to_string())?;
-                file.sync_all().map_err(|e| e.to_string())?;
+            if current == contents {
+                #[cfg(windows)]
+                if self.1 {
+                    use std::os::windows::io::AsRawHandle;
+                    use windows_sys::Win32::Storage::FileSystem::{
+                        FileDispositionInfo, SetFileInformationByHandle, FILE_DISPOSITION_INFO,
+                    };
+                    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+                    // Delete the held file, never whichever file now occupies its path.
+                    if unsafe {
+                        SetFileInformationByHandle(
+                            file.as_raw_handle(),
+                            FileDispositionInfo,
+                            &disposition as *const _ as *const _,
+                            std::mem::size_of_val(&disposition) as u32,
+                        )
+                    } == 0
+                    {
+                        return Err(std::io::Error::last_os_error().to_string());
+                    }
+                } else {
+                    file.set_len(0).map_err(|e| e.to_string())?;
+                    file.sync_all().map_err(|e| e.to_string())?;
+                }
+                #[cfg(not(windows))]
+                {
+                    file.set_len(0).map_err(|e| e.to_string())?;
+                    file.sync_all().map_err(|e| e.to_string())?;
+                }
             }
         }
         self.0 = None;
@@ -197,6 +296,53 @@ mod tests {
         drop(bridge);
         assert_eq!(fs::read(f.script()).unwrap(), b"replacement");
         assert_eq!(fs::metadata(moved).unwrap().len(), 0);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn missing_script_is_temporary_and_interrupted_creation_recovers() {
+        let f = Fixture::new();
+        let mut bridge = Bridge::prepare(&f.0, true).unwrap();
+        assert_eq!(fs::read(f.script()).unwrap(), MISSING_CONTENTS);
+        bridge.restore().unwrap();
+        assert!(!f.script().exists());
+        fs::write(f.script(), MISSING_CONTENTS).unwrap();
+        drop(Bridge::prepare(&f.0, true).unwrap());
+        assert!(!f.script().exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn missing_script_cleanup_never_deletes_a_replacement_or_edit() {
+        let f = Fixture::new();
+        let bridge = Bridge::prepare(&f.0, true).unwrap();
+        let moved = f.0.join("moved.rc");
+        fs::rename(f.script(), &moved).unwrap();
+        fs::write(f.script(), b"replacement").unwrap();
+        drop(bridge);
+        assert_eq!(fs::read(f.script()).unwrap(), b"replacement");
+        assert!(!moved.exists());
+        fs::remove_file(f.script()).unwrap();
+        let bridge = Bridge::prepare(&f.0, true).unwrap();
+        fs::write(f.script(), b"player edit").unwrap();
+        drop(bridge);
+        assert_eq!(fs::read(f.script()).unwrap(), b"player edit");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn missing_script_does_not_shadow_archive_or_fallback_startup() {
+        let f = Fixture::new();
+        let game = f.0.join("cstrike");
+        fs::create_dir(&game).unwrap();
+        fs::write(f.0.join("pak0.pak"), b"archive").unwrap();
+        drop(Bridge::prepare(&game, true).unwrap());
+        assert!(!game.join("valve.rc").exists());
+        fs::remove_file(f.0.join("pak0.pak")).unwrap();
+        fs::create_dir(f.0.join("valve")).unwrap();
+        fs::write(f.0.join("valve/valve.rc"), b"fallback startup").unwrap();
+        drop(Bridge::prepare(&game, true).unwrap());
+        assert!(!game.join("valve.rc").exists());
     }
 
     #[cfg(unix)]
