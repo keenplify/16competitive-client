@@ -203,6 +203,7 @@ jobs:
 
   publish:
     needs: [package, web-helper]
+    environment: Prod
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
