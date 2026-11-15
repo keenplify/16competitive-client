@@ -32,5 +32,10 @@ if (-not $vs) { throw 'Visual Studio C++ Build Tools are required' }
 & (Join-Path $vs 'Common7\Tools\Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 Set-Location -LiteralPath $root
 New-Item -ItemType Directory -Path (Join-Path $root 'dist') -Force | Out-Null
+# Windows PowerShell 5 turns redirected native stderr warnings into ErrorRecords.
+# The child exit code, rather than a Node warning, determines build success.
+$ErrorActionPreference = 'Continue'
 & node.exe scripts/build-windows.mjs $Credentials *> (Join-Path $root 'dist\native-windows-build.log')
-exit $LASTEXITCODE
+$buildExit = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+exit $buildExit
