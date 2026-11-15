@@ -7,6 +7,20 @@ use serde_json::json;
 const CLIENT: &str = "71fdbe140df3598a74738537b924141f4fb4b0b828737bd99a7223d9e4549460";
 const ENGINES: [&str; 2] = ["525c1a32a520bbde8857e8dc3ed1e5bbc8b2ef5620bc6cdbcdbc72c34542bace", "b5f34ed4726d93a9c3d4b3d3eb60df5680f5ae888710f5461e54a462e1efd487"];
 pub struct WonInstall { root: PathBuf, helper: PathBuf, id: String, guard: Option<Child> }
+fn recovery_failure(mode: &str, code: Option<i32>, stderr: &[u8]) -> String {
+    // Report fixed categories only. Never forward paths, auth data or arbitrary
+    // subprocess output into the UI or submitted diagnostics.
+    let text = String::from_utf8_lossy(stderr);
+    let reason = if text.contains("unsupported WON OpenGL engine") { "unsupported engine" }
+        else if text.contains("invalid recovery descriptor schema") { "invalid descriptor" }
+        else if text.contains("invalid cosmetic recovery mod directory") { "invalid mod directory" }
+        else if text.contains("invalid recovery authentication metadata") { "invalid authentication metadata" }
+        else if text.contains("cosmetic recovery helper identity changed") { "helper identity changed" }
+        else if text.contains("cosmetic recovery session changed") { "session changed" }
+        else if text.contains("invalid cosmetic recovery state") { "invalid recovery state" }
+        else { "helper failed" };
+    format!("WON recovery failed ({mode}, exit {code:?}: {reason}); installation retained for inspection")
+}
 impl WonInstall {
     fn command(&self, mode: &str) -> Command {
         let mut c = Command::new(&self.helper);
@@ -16,11 +30,21 @@ impl WonInstall {
         c
     }
     fn run(&self, mode: &str) -> Result<(), String> {
-        let mut child = self.command(mode).stdout(Stdio::null()).spawn().map_err(|e| e.to_string())?;
+        let mut child = self.command(mode).stdout(Stdio::null()).stderr(Stdio::piped()).spawn().map_err(|e| e.to_string())?;
+        let stderr = child.stderr.take().ok_or("WON recovery error stream unavailable")?;
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let _ = stderr.take(4096).read_to_end(&mut bytes);
+            let _ = tx.send(bytes);
+        });
         let start = std::time::Instant::now();
         loop {
             if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
-                return if status.success() { Ok(()) } else { Err("WON recovery failed; installation retained for inspection".into()) };
+                return if status.success() { Ok(()) } else {
+                    let bytes = rx.recv_timeout(Duration::from_millis(100)).unwrap_or_default();
+                    Err(recovery_failure(mode, status.code(), &bytes))
+                };
             }
             if start.elapsed() > Duration::from_secs(30) { let _ = child.kill(); let _ = child.wait(); return Err("WON recovery timed out".into()); }
             std::thread::sleep(Duration::from_millis(50));
@@ -84,5 +108,23 @@ impl WonInstall {
         self.run("restore")?;
         if let Some(mut guard) = self.guard.take() { let _ = guard.kill(); let _ = guard.wait(); }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::recovery_failure;
+    #[test]
+    fn recovery_failure_identifies_the_rejected_contract_without_raw_output() {
+        let message = recovery_failure("prepare-won", Some(1), b"cosmetic recovery failed: invalid recovery authentication metadata; private-token");
+        assert!(message.contains("prepare-won, exit Some(1): invalid authentication metadata"));
+        assert!(message.contains("installation retained for inspection"));
+        assert!(!message.contains("private-token"));
+    }
+    #[test]
+    fn unknown_recovery_output_is_never_forwarded() {
+        let message = recovery_failure("restore", None, b"private-path private-password private-token");
+        assert!(message.contains("restore, exit None: helper failed"));
+        assert!(!message.contains("private-"));
     }
 }
