@@ -6,6 +6,7 @@ import { useTranslation } from '../i18n/i18n'
 import { useAuthStore } from '../auth/auth.store'
 import { Button } from '../../components/ui/Button'
 import { usePCashBetsStore } from './pcash-bets.store'
+import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
 
 export function PCashBetResultView({
   snapshot,
@@ -19,8 +20,9 @@ export function PCashBetResultView({
   className?: string
 }): React.JSX.Element {
   const { t, language } = useTranslation()
+  const communityCurrency = useCommunityCurrency()
   const bet = snapshot?.bet
-  const money = (amount: number): string => amount.toLocaleString(language)
+  const money = (amount: number): string => formatPCashText(amount, communityCurrency, language)
   const partner = bet ? Math.floor((bet.stake * 2 * snapshot!.partnerBps) / 10000) : 0
   const platform = bet ? Math.floor((bet.stake * 2 * snapshot!.platformBps) / 10000) : 0
   return (

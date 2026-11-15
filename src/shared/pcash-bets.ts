@@ -1,3 +1,5 @@
+import { parsePCashBetCurrency } from './community-currency.ts'
+
 export const PCASH_BET_CHANNELS = { get: 'pcash-bets:get', place: 'pcash-bets:place' } as const
 export const PCASH_BET_STAKES = [30, 60, 90, 120, 150] as const
 export const PCASH_BET_MODES = ['5v5', '3v3', 'cs13_3v3'] as const
@@ -13,6 +15,8 @@ export interface PCashBetSnapshot {
   open: boolean
   partnerBps: number
   platformBps: number
+  /** Community currency peg; presets carry the local amount and its PCash stake. */
+  currency: import('./community-currency.ts').PCashBetCurrency | null
   bet: {
     stake: number
     status: 'PENDING' | 'WON' | 'LOST' | 'REFUNDED'
@@ -35,7 +39,8 @@ export function validateBetMatchId(value: unknown): asserts value is string {
 export function validateBetInput(value: unknown): asserts value is PCashBetInput {
   if (
     !object(value) ||
-    !(PCASH_BET_STAKES as readonly unknown[]).includes(value.stake) ||
+    !integer(value.stake, 1_000_000) ||
+    value.stake < 1 ||
     !integer(value.partnerBps, 10000) ||
     !integer(value.platformBps, 10000) ||
     value.partnerBps + value.platformBps > 10000
@@ -86,5 +91,7 @@ export function parsePCashBetSnapshot(value: unknown, matchId: string): PCashBet
     )
       throw new Error('BET_INVALID_RESPONSE')
   }
-  return value as unknown as PCashBetSnapshot
+  // The community currency peg drives local-first display and preset stakes.
+  const currency = value.currency === undefined ? null : parsePCashBetCurrency(value.currency)
+  return { ...(value as unknown as Omit<PCashBetSnapshot, 'currency'>), currency }
 }

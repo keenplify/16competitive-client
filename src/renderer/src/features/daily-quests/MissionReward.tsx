@@ -9,6 +9,7 @@ import { CurrencyIcon } from '../../components/CurrencyIcon'
 import { SkinModelThumbnail } from '../skins/SkinModelThumbnail'
 import { ensureStickerArtwork, useInventoryStore } from '../inventory/inventory.store'
 import { useTranslation } from '../i18n/i18n'
+import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
 
 export function MissionReward({
   quest,
@@ -21,7 +22,8 @@ export function MissionReward({
   onOpen?: () => void
   className?: string
 }) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const communityCurrency = useCommunityCurrency()
   const reward = isDailyQuestReward(quest.reward)
     ? quest.reward
     : { type: 'POINTS' as const, amount: quest.rewardPoints }
@@ -39,7 +41,9 @@ export function MissionReward({
   const label =
     reward.type === 'SKIN' || reward.type === 'STICKER'
       ? `${reward.amount} × ${reward.name}`
-      : `${reward.amount.toLocaleString()} ${t(reward.type === 'POINTS' ? 'mission.points' : 'mission.pcash')}`
+      : reward.type === 'P_CASH'
+        ? `${formatPCashText(reward.amount, communityCurrency, language)} ${t('mission.pcash')}`
+        : `${reward.amount.toLocaleString()} ${t('mission.points')}`
   const displayLabel =
     compact && (reward.type === 'SKIN' || reward.type === 'STICKER') ? `×${reward.amount}` : label
   return (

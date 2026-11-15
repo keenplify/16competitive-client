@@ -43,7 +43,12 @@
     "bet.crashed": "Game server crashed.",
     "bet.stakeLabel": "Stake:",
     "bet.grossLabel": "Gross",
-    "bet.feeLabel": "Fee"
+    "bet.feeLabel": "Fee",
+    "bet.customAmount": "Custom amount",
+    "bet.customPlaceholder": "e.g. 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "Balance: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "Win return: {{local}} ({{pcash}} PCash)"
   },
   "ru": {
     "bet.title": "Ставка PCash",
@@ -89,7 +94,12 @@
     "bet.crashed": "Игровой сервер аварийно завершился.",
     "bet.stakeLabel": "Ставка:",
     "bet.grossLabel": "До комиссии",
-    "bet.feeLabel": "Комиссия"
+    "bet.feeLabel": "Комиссия",
+    "bet.customAmount": "Своя сумма",
+    "bet.customPlaceholder": "напр. 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "Баланс: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "Выплата при победе: {{local}} ({{pcash}} PCash)"
   },
   "tl": {
     "bet.title": "Taya sa PCash",
@@ -135,7 +145,12 @@
     "bet.crashed": "Nag-crash ang game server.",
     "bet.stakeLabel": "Taya:",
     "bet.grossLabel": "Kabuuan",
-    "bet.feeLabel": "Bayad"
+    "bet.feeLabel": "Bayad",
+    "bet.customAmount": "Custom na halaga",
+    "bet.customPlaceholder": "hal. 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "Balanse: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "Matatanggap sa panalo: {{local}} ({{pcash}} PCash)"
   },
   "th": {
     "bet.title": "เดิมพัน PCash",
@@ -181,7 +196,12 @@
     "bet.crashed": "เซิร์ฟเวอร์เกมขัดข้อง",
     "bet.stakeLabel": "เดิมพัน:",
     "bet.grossLabel": "ยอดรวม",
-    "bet.feeLabel": "ค่าธรรมเนียม"
+    "bet.feeLabel": "ค่าธรรมเนียม",
+    "bet.customAmount": "จำนวนกำหนดเอง",
+    "bet.customPlaceholder": "เช่น 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "ยอดคงเหลือ: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "รับเมื่อชนะ: {{local}} ({{pcash}} PCash)"
   },
   "id": {
     "bet.title": "Taruhan PCash",
@@ -227,7 +247,12 @@
     "bet.crashed": "Server game berhenti mendadak.",
     "bet.stakeLabel": "Taruhan:",
     "bet.grossLabel": "Kotor",
-    "bet.feeLabel": "Biaya"
+    "bet.feeLabel": "Biaya",
+    "bet.customAmount": "Jumlah kustom",
+    "bet.customPlaceholder": "mis. 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "Saldo: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "Diterima jika menang: {{local}} ({{pcash}} PCash)"
   },
   "pt": {
     "bet.title": "Aposta em PCash",
@@ -273,7 +298,12 @@
     "bet.crashed": "O servidor do jogo caiu.",
     "bet.stakeLabel": "Aposta:",
     "bet.grossLabel": "Bruto",
-    "bet.feeLabel": "Taxa"
+    "bet.feeLabel": "Taxa",
+    "bet.customAmount": "Valor personalizado",
+    "bet.customPlaceholder": "ex.: 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "Saldo: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "Retorno na vitória: {{local}} ({{pcash}} PCash)"
   },
   "ja": {
     "bet.title": "PCashベット",
@@ -319,7 +349,12 @@
     "bet.crashed": "ゲームサーバーが停止しました。",
     "bet.stakeLabel": "ベット：",
     "bet.grossLabel": "総額",
-    "bet.feeLabel": "手数料"
+    "bet.feeLabel": "手数料",
+    "bet.customAmount": "任意の金額",
+    "bet.customPlaceholder": "例: 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "残高：{{local}}（{{pcash}} PCash）",
+    "bet.payoutLocal": "勝利時の受取額：{{local}}（{{pcash}} PCash）"
   },
   "hi": {
     "bet.title": "PCash दाँव",
@@ -365,6 +400,11 @@
     "bet.crashed": "गेम सर्वर क्रैश हुआ।",
     "bet.stakeLabel": "दाँव:",
     "bet.grossLabel": "कुल",
-    "bet.feeLabel": "शुल्क"
+    "bet.feeLabel": "शुल्क",
+    "bet.customAmount": "मनचाही राशि",
+    "bet.customPlaceholder": "जैसे 20",
+    "bet.pcashValue": "{{amount}} PCash",
+    "bet.balanceLocal": "शेष: {{local}} ({{pcash}} PCash)",
+    "bet.payoutLocal": "जीतने पर वापसी: {{local}} ({{pcash}} PCash)"
   }
 }

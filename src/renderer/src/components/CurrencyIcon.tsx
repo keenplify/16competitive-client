@@ -3,6 +3,8 @@ import { useId, useRef, useState, type JSX, type ReactNode } from 'react'
 import { AnchoredTooltip } from './ui/AnchoredTooltip'
 import pointsCoin from '../assets/currency-points.svg'
 import papaCashCoin from '../assets/currency-pcash.svg'
+import { formatPCashPair } from '../../../shared/community-currency'
+import { usePartnerBrandingStore } from '../features/partner-branding/partner-branding.store'
 
 export type CurrencyKind = 'POINTS' | 'P_CASH'
 
@@ -102,18 +104,28 @@ export function CurrencyAmount({
   animated?: boolean
 }): JSX.Element {
   const presentation = currencyPresentation[currency]
+  // A prioritized community peg shows the local amount first, e.g.
+  // ₱1,400.00 (350 PCash), everywhere PCash is displayed.
+  const communityCurrency = usePartnerBrandingStore((state) => state.currency)
+  const localPair =
+    currency === 'P_CASH' && communityCurrency?.prioritizeLocal
+      ? formatPCashPair(amount, communityCurrency, locale)
+      : null
 
   const anchorRef = useRef<HTMLSpanElement>(null)
   const tooltipId = useId()
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const tooltipVisible = showTooltip && (hovered || focused)
+  const accessibleAmount = localPair
+    ? `${localPair.primary} (${localPair.secondary})`
+    : `${amount.toLocaleString(locale)}`
 
   return (
     <span
       ref={anchorRef}
       className={twMerge('relative inline-flex items-center gap-1.5 tabular-nums', className)}
-      aria-label={`${amount.toLocaleString(locale)} ${presentation.label}`}
+      aria-label={`${accessibleAmount} ${presentation.label}`}
       aria-describedby={tooltipVisible ? tooltipId : undefined}
       tabIndex={showTooltip ? 0 : undefined}
       onMouseEnter={() => setHovered(true)}
@@ -132,7 +144,16 @@ export function CurrencyAmount({
         animated={animated}
         className={twMerge('size-5', iconClassName)}
       />
-      <span className={amountClassName}>{amount.toLocaleString(locale)}</span>
+      {localPair ? (
+        <span className="inline-flex items-baseline gap-1.5">
+          <span className={amountClassName}>{localPair.primary}</span>
+          <span className="text-[0.72em] font-normal text-neutral-400">
+            ({localPair.secondary})
+          </span>
+        </span>
+      ) : (
+        <span className={amountClassName}>{amount.toLocaleString(locale)}</span>
+      )}
       {tooltipVisible && (
         <AnchoredTooltip id={tooltipId} anchorRef={anchorRef}>
           <strong className="block font-semibold text-white">{presentation.label}</strong>

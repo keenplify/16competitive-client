@@ -13,7 +13,7 @@ export const getPartnerBranding = async (
   const partnerId =
     communityId ??
     (token ? null : ((await getVerifiedBranchPartnerId()) ?? (await detectDownloadPartner())))
-  if (!token && !partnerId) return { branding: null }
+  if (!token && !partnerId) return { branding: null, currency: null }
   const path =
     token && !communityId ? '/partners/branding/me' : `/partners/branding/public/${partnerId}`
   const response = await fetch(new URL(path, API_BASE_URL), {

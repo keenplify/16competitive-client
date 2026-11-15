@@ -9,6 +9,8 @@ import { useAuthStore } from '../auth/auth.store'
 import { useTranslation } from '../i18n/i18n'
 import { useMatchmakingStore } from '../matchmaking/matchmaking.store'
 import { useNavigationStore, type LobbyPageId } from '../navigation/navigation.store'
+import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
+import { formatPCashPair } from '../../../../shared/community-currency'
 import { SkinModelThumbnail } from './SkinModelThumbnail'
 
 type RevealStage = 'intro' | 'choices' | 'claiming' | 'claimed'
@@ -51,12 +53,13 @@ export function SkinGiftOverlay(): JSX.Element | null {
   const session = useAuthStore((state) => state.session)
   const status = useAuthStore((state) => state.status)
   const setPoints = useAuthStore((state) => state.setPoints)
-  const rewardRevealPending = useRewardInbox(state => state.receipts.length > 0)
+  const rewardRevealPending = useRewardInbox((state) => state.receipts.length > 0)
   const page = useNavigationStore((state) => state.page)
   const queueStatus = useMatchmakingStore((state) => state.queueStatus)
   const connectionStatus = useMatchmakingStore((state) => state.connectionStatus)
   const completedMatch = useMatchmakingStore((state) => state.completedMatch)
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const communityCurrency = useCommunityCurrency()
   const [loadedGift, setLoadedGift] = useState<SkinGift | null>(null)
   const [stage, setStage] = useState<RevealStage>('intro')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -385,11 +388,23 @@ export function SkinGiftOverlay(): JSX.Element | null {
                             className="size-28 drop-shadow-[0_0_30px_rgba(255,255,255,0.18)]"
                           />
                           <span className="mt-1 text-4xl font-black tabular-nums text-white">
-                            {(choice.type === 'POINTS'
-                              ? choice.points
-                              : choice.pCoins
-                            ).toLocaleString()}
+                            {choice.type === 'POINTS'
+                              ? choice.points.toLocaleString()
+                              : choice.type === 'P_COINS' && communityCurrency?.prioritizeLocal
+                                ? formatPCashPair(choice.pCoins, communityCurrency, language)
+                                    .primary
+                                : choice.pCoins.toLocaleString()}
                           </span>
+                          {choice.type === 'P_COINS' && communityCurrency?.prioritizeLocal && (
+                            <span className="mt-1 text-sm tabular-nums text-neutral-300">
+                              (
+                              {
+                                formatPCashPair(choice.pCoins, communityCurrency, language)
+                                  .secondary
+                              }
+                              )
+                            </span>
+                          )}
                           <span className="mt-1 text-xs font-black tracking-[0.18em] text-neutral-300 uppercase">
                             {choice.type === 'POINTS' ? 'Points' : 'Papa Cash'}
                           </span>
@@ -401,7 +416,7 @@ export function SkinGiftOverlay(): JSX.Element | null {
                       {choice.type === 'POINTS'
                         ? `${choice.points.toLocaleString()} Points`
                         : choice.type === 'P_COINS'
-                          ? `${choice.pCoins.toLocaleString()} Papa Cash`
+                          ? `${formatPCashText(choice.pCoins, communityCurrency, language)} Papa Cash`
                           : choice.name}
                     </h3>
                     <p className="mt-2 min-h-10 text-sm leading-5 text-neutral-400">

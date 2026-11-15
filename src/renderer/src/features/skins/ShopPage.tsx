@@ -70,6 +70,7 @@ import {
 import { PCashTopUpButton, PCashTopUpModal } from './PCashTopUp'
 import { WithdrawButton, WithdrawModal } from './Withdraw'
 import { usePaymentsStore } from './payments.store'
+import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
 
 type SkinTypeFilter = 'all' | SkinRarity
 
@@ -155,6 +156,7 @@ const safeExternalUrl = (value: string | null): string | null => {
 }
 
 export function ShopPage(): JSX.Element {
+  const communityCurrency = useCommunityCurrency()
   const inventoryText = useInventoryText()
   const inventory = useInventoryStore()
   useEffect(() => {
@@ -307,8 +309,16 @@ export function ShopPage(): JSX.Element {
     const parts: string[] = []
     const points = priceRange(stats.points)
     const pCashRange = priceRange(stats.pCash)
+    let pCashText = pCashRange
+    if (stats.pCash.length > 0 && communityCurrency?.prioritizeLocal) {
+      const min = Math.min(...stats.pCash)
+      const max = Math.max(...stats.pCash)
+      pCashText =
+        formatPCashText(min, communityCurrency, language) +
+        (min === max ? '' : `–${formatPCashText(max, communityCurrency, language)}`)
+    }
     if (points) parts.push(`around ${points} Points`)
-    if (pCashRange) parts.push(`around ${pCashRange} Papa Cash`)
+    if (pCashText) parts.push(`around ${pCashText} Papa Cash`)
     return parts.length > 0
       ? `Current catalog: ${parts.join(' or ')}.`
       : 'No purchasable skins of this type are currently listed.'

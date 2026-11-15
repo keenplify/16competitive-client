@@ -14,6 +14,8 @@ import { presentationModelPath } from '../party/party-models'
 import { useLobbyLoadoutStore } from '../party/lobby-loadout.store'
 import { useGameSettingsStore } from '../settings/game-settings.store'
 import { useOperationStore } from './operation.store'
+import { useCommunityCurrency, formatPCashText } from '../partner-branding/use-community-currency'
+import { useTranslation } from '../i18n/i18n'
 
 const safeImageUrl = (value: string | null): string | null => {
   if (!value) return null
@@ -28,16 +30,23 @@ const safeImageUrl = (value: string | null): string | null => {
 const TIER_CARD_WIDTH = 160
 const TIER_GAP = 12
 
-const rewardName = (tier: OperationTier): string => {
-  if (tier.rewardType === 'STICKER') return `${tier.amount ?? 1} × ${tier.sticker?.name ?? inventoryText('stickers')}`
+const rewardName = (
+  tier: OperationTier,
+  communityCurrency: ReturnType<typeof useCommunityCurrency>,
+  language?: string
+): string => {
+  if (tier.rewardType === 'STICKER')
+    return `${tier.amount ?? 1} × ${tier.sticker?.name ?? inventoryText('stickers')}`
   if (tier.rewardType === 'SKIN') return tier.skin?.name ?? 'Weapon skin'
   if (tier.rewardType === 'POINTS') return `${(tier.amount ?? 0).toLocaleString()} Points`
-  if (tier.rewardType === 'P_CASH') return `${(tier.amount ?? 0).toLocaleString()} Papa Cash`
+  if (tier.rewardType === 'P_CASH')
+    return `${formatPCashText(tier.amount ?? 0, communityCurrency, language)} Papa Cash`
   return tier.showcaseName ?? 'Showcase'
 }
 
 function RewardPreview({ tier }: { tier: OperationTier }): JSX.Element {
-  if (tier.rewardType === 'STICKER') return <OperationStickerPreview tier={tier} className="absolute inset-0" />
+  if (tier.rewardType === 'STICKER')
+    return <OperationStickerPreview tier={tier} className="absolute inset-0" />
   if (tier.rewardType === 'SKIN' && tier.skinId && tier.skin?.weaponKey) {
     return (
       <SkinModelThumbnail
@@ -94,6 +103,8 @@ function TierCard({
   focused: boolean
   onFocus: (tier: OperationTier) => void
 }): JSX.Element {
+  const communityCurrency = useCommunityCurrency()
+  const { language } = useTranslation()
   const unlocked = displayedPoints >= tier.requiredPoints
   const newlyUnlocked =
     tier.requiredPoints > lastViewedPoints && tier.requiredPoints <= currentPoints && unlocked
@@ -114,7 +125,7 @@ function TierCard({
         <button
           type="button"
           className="operation-tier-focus absolute inset-0 z-10 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-300"
-          aria-label={`Focus ${rewardName(tier)}`}
+          aria-label={`Focus ${rewardName(tier, communityCurrency, language)}`}
           aria-pressed={focused}
           onClick={() => onFocus(tier)}
         />
@@ -141,7 +152,7 @@ function TierCard({
               tier.isMajor ? 'text-sm' : 'text-xs'
             )}
           >
-            {rewardName(tier)}
+            {rewardName(tier, communityCurrency, language)}
           </p>
         </div>
       </article>
@@ -153,6 +164,8 @@ function TierCard({
 }
 
 export function OperationPage(): JSX.Element {
+  const communityCurrency = useCommunityCurrency()
+  const { language } = useTranslation()
   const snapshot = useOperationStore((state) => state.snapshot)
   const status = useOperationStore((state) => state.mineStatus)
   const error = useOperationStore((state) => state.error)
@@ -523,7 +536,7 @@ export function OperationPage(): JSX.Element {
                       type="button"
                       className="absolute top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
                       style={{ left: `${dotLeft}%` }}
-                      aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier)}`}
+                      aria-label={`Focus Tier ${tier.tier}: ${rewardName(tier, communityCurrency, language)}`}
                       aria-pressed={focusedTier?.id === tier.id}
                       onClick={() => focusTier(tier)}
                     >

@@ -3,6 +3,7 @@ import {
   type PartnerServer,
   type PartnerSocialLinks
 } from './partner-community'
+import { parseCommunityCurrency, type CommunityCurrency } from './community-currency'
 export const PARTNER_BRANDING_CHANNEL = 'partner-branding:get'
 export const JOINED_BRANDING_CHANNEL = 'partner-branding:joined'
 
@@ -45,6 +46,8 @@ export interface PartnerBranding {
 
 export interface PartnerBrandingResponse {
   branding: PartnerBranding | null
+  /** Member-only community currency peg; absent from public branding. */
+  currency?: CommunityCurrency | null
 }
 
 export interface PartnerBrandingApi {
@@ -62,8 +65,9 @@ export const parsePartnerBranding = (
   if (!input || typeof input !== 'object' || !('branding' in input)) {
     throw new Error('Invalid partner branding response.')
   }
+  const currency = 'currency' in input ? parseCommunityCurrency(input.currency) : null
   const branding = input.branding
-  if (branding === null) return { branding: null }
+  if (branding === null) return { branding: null, currency }
   if (!branding || typeof branding !== 'object') {
     throw new Error('Invalid partner branding response.')
   }
@@ -237,6 +241,7 @@ export const parsePartnerBranding = (
       loginBackgroundKind: loginBackgroundKind as 'image' | 'video' | null,
       logoUrl: logoUrl as string | null,
       showPapamoGamesLogo: (value.showPapamoGamesLogo as boolean | undefined) ?? true
-    }
+    },
+    currency
   }
 }

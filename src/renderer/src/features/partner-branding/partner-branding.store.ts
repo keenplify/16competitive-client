@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { PartnerBranding } from '../../../../shared/partner-branding'
+import type { CommunityCurrency } from '../../../../shared/community-currency'
 
 const preferenceKey = '16competitive.partner-theme-enabled'
 
@@ -15,6 +16,8 @@ interface PartnerBrandingState {
   accountId: string | null
   branding: PartnerBranding | null
   joinedBranding: PartnerBranding | null
+  /** Community currency peg for the signed-in account (member-only). */
+  currency: CommunityCurrency | null
   resolved: boolean
   enabled: boolean
   refresh: (accountId: string | null) => Promise<void>
@@ -28,6 +31,7 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   accountId: null,
   branding: null,
   joinedBranding: null,
+  currency: null,
   resolved: false,
   enabled: readPreference(),
   refresh: async (accountId) => {
@@ -35,19 +39,20 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
     set((state) =>
       state.accountId === accountId
         ? state
-        : { accountId, branding: null, joinedBranding: null, resolved: false }
+        : { accountId, branding: null, joinedBranding: null, currency: null, resolved: false }
     )
     try {
       const joinedRequest =
         accountId && window.api.partnerBranding.getJoined
           ? window.api.partnerBranding.getJoined().catch(() => null)
-          : Promise.resolve({ branding: null })
+          : Promise.resolve({ branding: null, currency: null })
       const result = await window.api.partnerBranding.get()
       const joined = await joinedRequest
       if (serial === requestSerial)
         set({
           accountId,
           branding: result.branding,
+          currency: result.currency ?? null,
           ...(joined ? { joinedBranding: joined.branding } : {}),
           resolved: true
         })
@@ -59,7 +64,7 @@ export const usePartnerBrandingStore = create<PartnerBrandingState>((set) => ({
   },
   clear: () => {
     requestSerial++
-    set({ accountId: null, branding: null, joinedBranding: null, resolved: false })
+    set({ accountId: null, branding: null, joinedBranding: null, currency: null, resolved: false })
   },
   setEnabled: (enabled) => {
     try {
