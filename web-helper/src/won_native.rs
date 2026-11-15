@@ -18,6 +18,9 @@ fn recovery_failure(mode: &str, code: Option<i32>, stderr: &[u8]) -> String {
         else if text.contains("cosmetic recovery helper identity changed") { "helper identity changed" }
         else if text.contains("cosmetic recovery session changed") { "session changed" }
         else if text.contains("invalid cosmetic recovery state") { "invalid recovery state" }
+        else if text.contains("os error 32)") { "game file is in use" }
+        else if text.contains("os error 33)") { "game file is locked" }
+        else if text.contains("os error 5)") { "game file access denied" }
         else { "helper failed" };
     format!("WON recovery failed ({mode}, exit {code:?}: {reason}); installation retained for inspection")
 }
@@ -115,6 +118,74 @@ impl WonInstall {
 mod tests {
     use super::recovery_failure;
     #[test]
+    #[ignore = "requires an explicitly selected, supported WON fixture"]
+    fn supported_won_install_with_authentication_and_live_guard() {
+        use super::*;
+        let source = PathBuf::from(std::env::var_os("SIXTEEN_WON_TEST_ROOT").expect("explicit fixture root"));
+        let bundle_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/native/win-x64");
+        let bundle = NativeBundle {
+            inspector: bundle_root.join("game-inspector.exe"),
+            module: bundle_root.join("papamo-cosmetic-module-win-x86.dll"),
+            next_client: Some(bundle_root.join("papamo-nextclient-client-mini-win-x86.dll")),
+        };
+        bundle.verify_modules().unwrap();
+        bundle.verify_inspector().unwrap();
+        assert!(bundle.verify_approval().is_ok(), "signed native bundle requires backend approval");
+        for game in ["cstrike", "cstrk13"] {
+          for condition in ["normal", "locked-engine", "readonly-folders", "readonly-engine"] {
+            let root = std::env::temp_dir().join(format!("16c-won-full-{}", uuid::Uuid::new_v4())).join("Game Files");
+            let dlls = root.join(game).join("cl_dlls");
+            fs::create_dir_all(&dlls).unwrap();
+            // Exact selected binaries only; no player configuration is accessed.
+            for name in ["hl.exe", "hw.dll"] {
+                fs::copy(source.join(name), root.join(name)).unwrap();
+            }
+            fs::copy(source.join("cstrk13/cl_dlls/client.dll"), dlls.join("client.dll")).unwrap();
+            let auth_path = root.join(game).join("16c13_0123456789abcdef.cfg");
+            let auth_contents = "// isolated recovery fixture; no live credentials\n".to_owned();
+            fs::write(&auth_path, &auth_contents).unwrap();
+            let original = fs::read(root.join("hw.dll")).unwrap();
+            if condition == "readonly-folders" {
+                for directory in [&root, &root.join(game), &dlls] {
+                    let mut permissions = fs::metadata(directory).unwrap().permissions();
+                    permissions.set_readonly(true);
+                    fs::set_permissions(directory, permissions).unwrap();
+                }
+            }
+            if condition == "readonly-engine" {
+                let mut permissions = fs::metadata(root.join("hw.dll")).unwrap().permissions();
+                permissions.set_readonly(true);
+                fs::set_permissions(root.join("hw.dll"), permissions).unwrap();
+            }
+            use std::os::windows::fs::OpenOptionsExt;
+            let engine_handle = if condition == "locked-engine" {
+                Some(fs::OpenOptions::new().read(true).share_mode(1).open(root.join("hw.dll")).unwrap())
+            } else { None };
+            if matches!(condition, "locked-engine" | "readonly-engine") {
+                let error = match WonInstall::install(&root, game, &bundle, &(auth_path.clone(), auth_contents)) {
+                    Ok(mut install) => { let _ = install.restore(); panic!("protected engine unexpectedly installed: {condition}"); }
+                    Err(error) => error,
+                };
+                assert!(error.starts_with("WON recovery failed (prepare-won,"), "{error}");
+                assert!(error.contains("game file access denied") || error.contains("game file is in use"), "{error}");
+                assert_eq!(fs::read(root.join("hw.dll")).unwrap(), original);
+                println!("REPRODUCED {condition} ({game}): {error}; fixture {}", root.display());
+                drop(engine_handle);
+                continue;
+            }
+            let mut install = WonInstall::install(&root, game, &bundle, &(auth_path.clone(), auth_contents))
+                .unwrap_or_else(|error| panic!("WON install failed for {game}: {error}; evidence {}", root.display()));
+            assert!(dlls.join("16cmod.dll").exists());
+            assert_ne!(fs::read(root.join("hw.dll")).unwrap(), original);
+            install.restore().unwrap();
+            assert_eq!(fs::read(root.join("hw.dll")).unwrap(), original);
+            assert!(!auth_path.exists());
+            assert!(!dlls.join("16cmod.dll").exists());
+            println!("PASSED {condition} ({game}); retained fixture: {}", root.display());
+          }
+        }
+    }
+    #[test]
     fn recovery_failure_identifies_the_rejected_contract_without_raw_output() {
         let message = recovery_failure("prepare-won", Some(1), b"cosmetic recovery failed: invalid recovery authentication metadata; private-token");
         assert!(message.contains("prepare-won, exit Some(1): invalid authentication metadata"));
@@ -126,5 +197,12 @@ mod tests {
         let message = recovery_failure("restore", None, b"private-path private-password private-token");
         assert!(message.contains("restore, exit None: helper failed"));
         assert!(!message.contains("private-"));
+    }
+    #[test]
+    fn windows_file_errors_are_classified_without_leaking_paths() {
+        let message = recovery_failure("prepare-won", Some(2), b"private-path: Access is denied. (os error 5)");
+        assert!(message.contains("game file access denied"));
+        assert!(!message.contains("private-path"));
+        assert!(recovery_failure("prepare-won", Some(2), b"unrelated error (os error 50)").contains("helper failed"));
     }
 }
