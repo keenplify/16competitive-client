@@ -69,7 +69,7 @@ test('a newly installed community overrides stale desktop attribution, with acco
       writeFile: async (p, data) => files.set(p, data),
       mkdir: async () => {}
     },
-    'node:path': path,
+    'node:path': path.posix,
     './config': { API_BASE_URL: 'https://example.test' },
     '../shared/partner-attribution': { isPartnerId, partnerIdFromDownloadName }
   })

@@ -9,9 +9,22 @@ export const helperRuntimeAssets = [
   'helper-runtime-linux-x64.tar.gz',
   'helper-runtime-linux-arm64.tar.gz'
 ]
-export async function signHelperRuntimes(directory, output, version, privateKeyPem, publicKeyPem) {
+export async function signHelperRuntimes(
+  directory,
+  output,
+  version,
+  privateKeyPem,
+  publicKeyPem,
+  assets = helperRuntimeAssets
+) {
+  if (
+    !assets.length ||
+    new Set(assets).size !== assets.length ||
+    assets.some((name) => !helperRuntimeAssets.includes(name))
+  )
+    throw new Error('Invalid runtime signing targets')
   const paths = []
-  for (const name of helperRuntimeAssets) {
+  for (const name of assets) {
     const manifest = (await readFile(join(directory, `${name}.unsigned.json`), 'utf8')).trim()
     const m = JSON.parse(manifest),
       bytes = await readFile(join(directory, name))

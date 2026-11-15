@@ -10,11 +10,18 @@ export async function signWebHelperUpdates(
   output,
   version,
   privateKeyPem,
-  publicKeyPem
+  publicKeyPem,
+  assets = webHelperAssets
 ) {
+  if (
+    !assets.length ||
+    new Set(assets).size !== assets.length ||
+    assets.some((name) => !webHelperAssets.includes(name))
+  )
+    throw new Error('Invalid web helper signing targets')
   if (!/^\d{4}\.\d{3,4}\.\d+$/.test(version)) throw new Error('Invalid helper update version')
   const paths = []
-  for (const fileName of webHelperAssets) {
+  for (const fileName of assets) {
     const bytes = await readFile(join(directory, fileName))
     if (!bytes.length || bytes.length > 256 * 1024 * 1024)
       throw new Error('Invalid helper asset size')

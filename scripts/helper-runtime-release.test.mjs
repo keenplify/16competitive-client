@@ -9,7 +9,38 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { packageHelperRuntime } from './package-helper-runtime.mjs'
 import { signHelperRuntimes, helperRuntimeAssets } from './sign-helper-runtime.mjs'
+import { signWebHelperUpdates } from './sign-web-helper-update.mjs'
 const asar = createRequire(import.meta.url)('@electron/asar')
+
+test('Windows-only helper signing binds exact bytes and rejects arbitrary targets', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'windows-helper-signing-'))
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519')
+  try {
+    await writeFile(join(root, 'competitive16-web-helper.exe'), 'Windows fixture')
+    const paths = await signWebHelperUpdates(root, root, '2026.1115.1', privateKey, publicKey, [
+      'competitive16-web-helper.exe'
+    ])
+    assert.equal(paths.length, 1)
+    const envelope = JSON.parse(await readFile(paths[0], 'utf8'))
+    const manifest = JSON.parse(envelope.manifest)
+    assert.equal(manifest.platform, 'win')
+    assert.equal(manifest.sizeBytes, Buffer.byteLength('Windows fixture'))
+    assert.ok(
+      verify(
+        null,
+        Buffer.from('16competitive.web-helper.update.v1\n' + envelope.manifest),
+        publicKey,
+        Buffer.from(envelope.signature, 'base64')
+      )
+    )
+    await assert.rejects(
+      signWebHelperUpdates(root, root, '2026.1115.1', privateKey, publicKey, ['../private.pem']),
+      /Invalid web helper signing targets/
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 test('runtime releases bind the exact archive and file inventory to the pinned signature context', async () => {
   const root = await mkdtemp(join(tmpdir(), 'helper-runtime-release-'))
@@ -67,6 +98,18 @@ test('runtime releases bind the exact archive and file inventory to the pinned s
       )
     }
     const paths = await signHelperRuntimes(root, root, version, privateKey, publicKey)
+    assert.equal(
+      (
+        await signHelperRuntimes(root, root, version, privateKey, publicKey, [
+          'helper-runtime-win-x64.tar.gz'
+        ])
+      ).length,
+      1
+    )
+    await assert.rejects(
+      signHelperRuntimes(root, root, version, privateKey, publicKey, ['unknown.tar.gz']),
+      /Invalid runtime signing targets/
+    )
     for (const path of paths) {
       const envelope = JSON.parse(await readFile(path, 'utf8'))
       assert.ok(
