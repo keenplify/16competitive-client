@@ -431,7 +431,9 @@ async function launchStandaloneTargetInner(
               : 'PREPARATION_FAILED'
           // Never log raw helper frames, OS messages, paths or launch arguments.
           const diagnostics =
-            code === 'GAME_SPAWN_FAILED' || code === 'WON_REPAIR_ELEVATION_REQUIRED'
+            code === 'GAME_SPAWN_FAILED' ||
+            code === 'WON_REPAIR_ELEVATION_REQUIRED' ||
+            code === 'NATIVE_REPAIR_ELEVATION_REQUIRED'
               ? {
                   ...(typeof event.elevated === 'boolean' ? { elevated: event.elevated } : {}),
                   ...(typeof event.osError === 'number' &&
@@ -472,7 +474,8 @@ async function launchStandaloneTargetInner(
           return fail(
             new Error(
               (code === 'GAME_SPAWN_FAILED' && event.osError === 740) ||
-                (code === 'WON_REPAIR_ELEVATION_REQUIRED' &&
+                ((code === 'WON_REPAIR_ELEVATION_REQUIRED' ||
+                  code === 'NATIVE_REPAIR_ELEVATION_REQUIRED') &&
                   event.elevated === false &&
                   event.cleanupCodes === undefined)
                 ? 'match.launch.adminRequired'

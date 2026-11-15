@@ -236,7 +236,7 @@ mod tests {
 
 pub(crate) fn web_retry_allowed(frame: &serde_json::Value) -> bool {
     ((frame["code"] == "GAME_SPAWN_FAILED" && frame["osError"] == 740)
-        || frame["code"] == "WON_REPAIR_ELEVATION_REQUIRED")
+        || frame["code"] == "WON_REPAIR_ELEVATION_REQUIRED" || frame["code"] == "NATIVE_REPAIR_ELEVATION_REQUIRED")
         && frame["elevated"] == false && frame.get("cleanupCodes").is_none()
 }
 
@@ -304,6 +304,10 @@ mod web_tests {
     fn won_repair_gets_one_permission_retry_only_after_clean_shutdown() {
         let frame = serde_json::json!({"code":"WON_REPAIR_ELEVATION_REQUIRED", "elevated":false});
         assert!(web_retry_allowed(&frame));
+        let native = serde_json::json!({"code":"NATIVE_REPAIR_ELEVATION_REQUIRED", "elevated":false});
+        assert!(web_retry_allowed(&native));
+        let mut elevated = native.clone(); elevated["elevated"] = serde_json::json!(true);
+        assert!(!web_retry_allowed(&elevated));
         for (key, value) in [("elevated", serde_json::json!(true)),
             ("cleanupCodes", serde_json::json!("NATIVE_CLEANUP_FAILED")),
             ("code", serde_json::json!("NATIVE_INSTALL_UNSUPPORTED"))] {

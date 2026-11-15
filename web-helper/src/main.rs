@@ -951,6 +951,8 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
         return Err("This device cannot join competitive matches".into());
     }
     #[cfg(windows)]
+    if connection.game() == "cs16" { windows_native::prepare_permissions(&root)?; }
+    #[cfg(windows)]
     if connection.game() == "cs13" {
         won_native::prepare_launch(&root, &mod_dir)?;
         mod_dir = cs13_installation::prepare(&root, &mod_dir).map_err(|error| {
@@ -1047,7 +1049,7 @@ fn launch_native_match_attempt(connection: &Connection, api: &str, token: &str,
             Ok(()) => {
                 let bundle = scanner_bundle.clone();
                 windows_native::validate_root(&root).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_ROOT_INVALID"))?;
-                windows_native::prepare_existing(&root, &bundle).map_err(|_| "NATIVE_RECOVERY_FAILED")?;
+                windows_native::prepare_existing(&root, &bundle).map_err(|e| desktop_session::preparation_error(&e, "NATIVE_RECOVERY_FAILED"))?;
                 // This version's engine passes a third Initialize argument and
                 // invokes legacy connection callbacks. Keep its original DLL;
                 // do not initialize cosmetic/voice workers just to tear them down.

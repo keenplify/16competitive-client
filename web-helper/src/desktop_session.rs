@@ -206,6 +206,7 @@ pub(crate) fn failure_code(error: &str) -> &'static str {
         "STEAM_RUNTIME_FAILED" => "STEAM_RUNTIME_FAILED",
         "GAME_SPAWN_FAILED" => "GAME_SPAWN_FAILED",
         "WON_REPAIR_ELEVATION_REQUIRED" => "WON_REPAIR_ELEVATION_REQUIRED",
+        "NATIVE_REPAIR_ELEVATION_REQUIRED" => "NATIVE_REPAIR_ELEVATION_REQUIRED",
         "ADMIN_RESTART_FAILED" => "ADMIN_RESTART_FAILED",
         "ADMIN_RESTART_CANCELLED" => "ADMIN_RESTART_CANCELLED",
         "GAME_STARTUP_FAILED" => "GAME_STARTUP_FAILED",
@@ -261,7 +262,7 @@ pub(crate) fn record_cleanup_failures(primary: &Result<(), String>, cleanup: &[(
 
 pub(crate) fn failure_snapshot(error: &str) -> serde_json::Value {
     let mut frame = serde_json::json!({"protocol":1,"event":"error","code":failure_code(error)});
-    if error == "WON_REPAIR_ELEVATION_REQUIRED" {
+    if matches!(error, "WON_REPAIR_ELEVATION_REQUIRED" | "NATIVE_REPAIR_ELEVATION_REQUIRED") {
         frame["elevated"] = serde_json::json!(process_elevated());
     }
     if let Some((codes, primary)) = CLEANUP_FAILURE.with(|slot| slot.borrow().clone()) {
@@ -281,7 +282,7 @@ pub(crate) fn failure_snapshot(error: &str) -> serde_json::Value {
 
 pub(crate) fn failure_notice(error: &str, locale: &str) -> String {
     let frame = failure_snapshot(error);
-    let key = if (error == "GAME_SPAWN_FAILED" && frame["osError"] == 740) || error == "WON_REPAIR_ELEVATION_REQUIRED" { "elevation" }
+    let key = if (error == "GAME_SPAWN_FAILED" && frame["osError"] == 740) || matches!(error, "WON_REPAIR_ELEVATION_REQUIRED" | "NATIVE_REPAIR_ELEVATION_REQUIRED") { "elevation" }
         else if error == "ADMIN_RESTART_CANCELLED" { "cancelled" }
         else if error == "ADMIN_RESTART_FAILED" { "adminFailed" }
         else if error == "VOICE_OWNERSHIP_FAILED" { "voice" }

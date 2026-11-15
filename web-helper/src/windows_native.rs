@@ -1,7 +1,7 @@
 #![cfg(windows)]
 
 use crate::native_bundle::NativeBundle;
-use crate::persistent_native::{replace_metadata, replace_owned, verify_owned};
+use crate::persistent_native::{clear_verified_readonly, repair_io_error, replace_metadata, replace_owned, verify_owned};
 use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -53,6 +53,19 @@ struct GoldClientExports {
 
 pub(crate) fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+
+pub(crate) fn prepare_permissions(root: &Path) -> Result<(), String> {
+    let mut directories = vec![root.to_path_buf(), root.join("cstrike"), root.join("cstrike/cl_dlls")];
+    if root.join("16competitive").exists() { directories.push(root.join("16competitive")); }
+    for directory in directories {
+        for ancestor in directory.ancestors() { ordinary_directory(ancestor)?; }
+        let probe = directory.join(format!(".16competitive-permission-{}.tmp", Uuid::new_v4()));
+        let file = OpenOptions::new().write(true).create_new(true).open(&probe).map_err(repair_io_error)?;
+        drop(file);
+        fs::remove_file(probe).map_err(repair_io_error)?;
+    }
+    Ok(())
 }
 
 fn ordinary_file(path: &Path) -> Result<(), String> {
@@ -272,7 +285,8 @@ pub fn prepare_existing(root: &Path, bundle: &NativeBundle) -> Result<(), String
         let _ = fs::remove_file(&pending);
         return Err("Native recovery session changed during helper update".into());
     }
-    fs::rename(&pending, &descriptor).map_err(|e| e.to_string())?;
+    clear_verified_readonly(&descriptor, &digest(&bytes))?;
+    fs::rename(&pending, &descriptor).map_err(repair_io_error)?;
     Ok(())
 }
 
@@ -309,6 +323,7 @@ impl WindowsInstall {
         if !supported_client(&original) {
             return Ok(None);
         }
+        clear_verified_readonly(&client, &digest(&original))?;
         let managed = root.join("16competitive");
         if managed.exists() {
             ordinary_directory(&managed)?;
@@ -374,7 +389,8 @@ impl WindowsInstall {
         if digest(&read_limited(&backup, 128 * 1024 * 1024)?) != record.original_sha256 {
             return Err("Counter-Strike client backup changed during installation".into());
         }
-        fs::rename(&pending, &client).map_err(|e| e.to_string())?;
+        clear_verified_readonly(&client, &record.original_sha256)?;
+        fs::rename(&pending, &client).map_err(repair_io_error)?;
         Ok(Some(Self))
     }
 
@@ -408,6 +424,7 @@ impl WindowsInstall {
         } else {
             true
         };
+        clear_verified_readonly(&mini, &digest(&original))?;
         write_new(&backup, &original)?;
         let record = NextJournal {
             original_mini_sha256: digest(&original),
@@ -442,7 +459,8 @@ impl WindowsInstall {
             return Err(error);
         }
         write_new(&mini_temp, &custom)?;
-        fs::rename(&mini_temp, &mini).map_err(|e| e.to_string())?;
+        clear_verified_readonly(&mini, &record.original_mini_sha256)?;
+        fs::rename(&mini_temp, &mini).map_err(repair_io_error)?;
         if owns_cosmetic {
             write_new(&cosmetic_temp, &module)?;
             fs::rename(&cosmetic_temp, &cosmetic).map_err(|e| e.to_string())?;
