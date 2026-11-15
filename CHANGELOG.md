@@ -4993,3 +4993,14 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Match Status
 
 - Duplicate connection updates no longer incorrectly mark a game as exited.
+
+## v2026.1115.4 — 2026-11-15
+
+### Windows startup
+
+- Standalone CS 1.6 installations with a missing startup script can now connect automatically.
+- Temporary startup repair preserves existing scripts and cleans up after the game exits.
+
+### Diagnostics
+
+- Fresh music and FPS diagnostics remain available when Windows file timestamps slightly lead the system clock.
