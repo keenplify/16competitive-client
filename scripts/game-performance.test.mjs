@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, writeFile, rm, utimes } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -23,6 +23,26 @@ test('native FPS samples reject malformed, impossible, future and stale input', 
     assert.equal(parseGameFps(bad, now, now), null)
   assert.equal(parseGameFps(good, now + 1, now), null)
   assert.equal(parseGameFps(good, now - 16000, now), null)
+})
+
+test('filesystem FPS capture tolerates bounded clock skew but rejects future files', async () => {
+  const directory = await mkdtemp(join(tmpdir(), '16c-fps-clock-'))
+  const path = join(directory, 'game-fps.state')
+  try {
+    await writeFile(path, '#16c-fps-v1\n500 5000000 10000\n')
+    const slightlyAhead = new Date(Date.now() + 500)
+    await utimes(path, slightlyAhead, slightlyAhead)
+    beginGamePerformance(directory, 'clock-small', 'clock-player', false)
+    await captureGamePerformance(directory, true)
+    assert.match(gamePerformanceReport('clock-player', 'clock-small'), /Average FPS: 100.0/)
+    const future = new Date(Date.now() + 60_000)
+    await utimes(path, future, future)
+    beginGamePerformance(directory, 'clock-future', 'clock-player', false)
+    await captureGamePerformance(directory, true)
+    assert.match(gamePerformanceReport('clock-player', 'clock-future'), /FPS: unavailable/)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })
 
 test('reports retain the final FPS sample after cleanup but isolate account, match and age', async () => {

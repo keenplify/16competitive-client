@@ -66,7 +66,16 @@ export async function captureGamePerformance(directory: string, end = false): Pr
     if (!stat.isFile() || stat.size > 128) return
     const bytes = Buffer.alloc(129)
     const { bytesRead } = await file.read(bytes, 0, bytes.length, 0)
-    const sample = parseGameFps(bytes.subarray(0, bytesRead).toString('utf8'), stat.mtimeMs)
+    const readAt = Date.now()
+    const modifiedAt = Math.floor(stat.mtimeMs)
+    // NTFS timestamps can lead the JS clock slightly after a fresh write.
+    // Normalize only bounded filesystem skew; the sample parser stays strict.
+    if (modifiedAt > readAt + 1000) return
+    const sample = parseGameFps(
+      bytes.subarray(0, bytesRead).toString('utf8'),
+      Math.min(modifiedAt, readAt),
+      readAt
+    )
     if (sample && (!session.sample || sample.recordedAt > session.sample.recordedAt))
       session.sample = sample
   } catch (error) {
