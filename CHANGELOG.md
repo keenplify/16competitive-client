@@ -4964,3 +4964,20 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 
 - Preserves your saved video settings.
 - Initializes the resolution setting on first launch.
+
+## v2026.1115.1 — 2026-11-15
+
+### Windows
+
+- Native Windows components are now signed in release builds.
+- Read-only CS 1.6 native files can be repaired automatically with protected elevation.
+- Windows PowerShell build warnings are handled more cleanly.
+
+### WON Installations
+
+- Verified WON installations can be prepared automatically with one-time elevation.
+- Recovery failures now report bounded, actionable categories.
+
+### Reliability
+
+- Platform-specific checks and Linux release preflight validation have been strengthened.
