@@ -4987,3 +4987,9 @@ All notable changes to 1.6 Competitive Launcher are documented here.
 ### Storage
 
 - Native assets are now stored in the desktop profile.
+
+## v2026.1115.3 — 2026-11-15
+
+### Match Status
+
+- Duplicate connection updates no longer incorrectly mark a game as exited.
