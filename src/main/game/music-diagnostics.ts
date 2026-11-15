@@ -35,10 +35,10 @@ export async function musicDeliveryReport(
     if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 2048) return missing
     file = await open(path, 'r')
     const actual = await file.stat()
-    // NTFS retains fractions of a millisecond; Date.now() does not. Compare
-    // at the same precision so a just-written report is not "in the future".
+    // NTFS and the JS wall clock can differ slightly even just after a write.
+    // Permit bounded clock skew, while rejecting genuinely future/stale data.
     const age = now - Math.floor(actual.mtimeMs)
-    if (!actual.isFile() || actual.size > 2048 || age < 0 || age > 10 * 60_000) return missing
+    if (!actual.isFile() || actual.size > 2048 || age < -1000 || age > 10 * 60_000) return missing
     const buffer = Buffer.alloc(2049)
     const { bytesRead } = await file.read(buffer, 0, buffer.length, 0)
     if (bytesRead > 2048) return missing
