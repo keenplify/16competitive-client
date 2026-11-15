@@ -65,6 +65,10 @@ export interface CustomGameMember {
   mmr: number
   isBot: boolean
   team: 0 | 1 | 2
+  /** Server-computed per-player bet share in PCash, or null without betting. */
+  betSharePCash?: number | null
+  /** Server verdict: the player's wallet covers their share. */
+  betCovered?: boolean
 }
 
 export interface CustomGameRoom {
@@ -82,6 +86,10 @@ export interface CustomGameRoom {
   teamOneCapacity: number
   teamTwoCapacity: number
   hasPassword: boolean
+  /** Host-set per-team bet stake in local minor units, or null. */
+  betTeamStakeLocalMinor: number | null
+  /** Server verdict: the viewer cannot join this room. Opaque; never names the reason. */
+  joinRestricted?: boolean
   matchId: string | null
   createdAt: string
   hostNodeId: string
@@ -137,10 +145,15 @@ export interface CustomGameSettings {
 
 export type CustomGameSettingsUpdate = Partial<Omit<CustomGameSettings, 'password'>> & {
   password?: string | null
+  /** Local minor units of the per-team bet stake; null removes the bet. */
+  betTeamStakeLocalMinor?: number | null
 }
 
 export interface CustomGamesApi {
-  list(selectedNodeId?: string | null): Promise<CustomGameRoom[]>
+  list(selectedNodeId?: string | null): Promise<{
+    rooms: CustomGameRoom[]
+    betting: import('./custom-game-bets').CustomGameBetting | null
+  }>
   mine(hostApiUrl?: string): Promise<CustomGameRoom | null>
   create(settings: CustomGameSettings): Promise<CustomGameRoom>
   update(

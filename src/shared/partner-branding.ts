@@ -48,6 +48,29 @@ export interface PartnerBrandingResponse {
   branding: PartnerBranding | null
   /** Member-only community currency peg; absent from public branding. */
   currency?: CommunityCurrency | null
+  /** Member-only VIP membership; null when the community has no VIP grant. */
+  vip?: PartnerVipView | null
+}
+
+export interface PartnerVipView {
+  active: boolean
+  expiresAt: string | null
+  /** The partner gates custom game creation behind active VIP. */
+  customGamesVipOnly: boolean
+}
+
+export const parsePartnerVipView = (value: unknown): PartnerVipView | null => {
+  if (value === null) return null
+  if (
+    !value || typeof value !== 'object' ||
+    typeof (value as Record<string, unknown>).active !== 'boolean' ||
+    !(typeof (value as Record<string, unknown>).customGamesVipOnly === 'boolean') ||
+    ((value as Record<string, unknown>).expiresAt !== null &&
+      (typeof (value as Record<string, unknown>).expiresAt !== 'string' ||
+        !Number.isFinite(Date.parse((value as Record<string, unknown>).expiresAt as string))))
+  )
+    throw new Error('Invalid partner VIP payload.')
+  return value as PartnerVipView
 }
 
 export interface PartnerBrandingApi {
@@ -66,8 +89,9 @@ export const parsePartnerBranding = (
     throw new Error('Invalid partner branding response.')
   }
   const currency = 'currency' in input ? parseCommunityCurrency(input.currency) : null
+  const vip = 'vip' in input ? parsePartnerVipView(input.vip) : null
   const branding = input.branding
-  if (branding === null) return { branding: null, currency }
+  if (branding === null) return { branding: null, currency, vip }
   if (!branding || typeof branding !== 'object') {
     throw new Error('Invalid partner branding response.')
   }
@@ -242,6 +266,7 @@ export const parsePartnerBranding = (
       logoUrl: logoUrl as string | null,
       showPapamoGamesLogo: (value.showPapamoGamesLogo as boolean | undefined) ?? true
     },
-    currency
+    currency,
+    vip
   }
 }

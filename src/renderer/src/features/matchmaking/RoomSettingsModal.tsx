@@ -11,6 +11,11 @@ import {
   type CustomGameMode,
   type CustomGameRoom
 } from '../../../../shared/custom-games'
+import {
+  formatLocalMinor,
+  formatPCash,
+  localMinorToPcash
+} from '../../../../shared/community-currency'
 import type { MatchmakingMap } from '../../../../shared/matchmaking'
 import { Button } from '../../components/ui/Button'
 import { useTranslation } from '../i18n/i18n'
@@ -49,13 +54,14 @@ export function RoomSettingsModal({
   maps: MatchmakingMap[]
   disabled?: boolean
 }): JSX.Element {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const hideDesktopOnlyFeatures = useHideDesktopOnlyFeatures()
   const close = useCustomGamesStore((state) => state.closeRoomSettings)
   const save = useCustomGamesStore((state) => state.updateRoom)
   const saving = useCustomGamesStore((state) => state.savingSettings)
   const error = useCustomGamesStore((state) => state.error)
+  const betting = useCustomGamesStore((state) => state.betting)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
   const [name, setName] = useState(room.name)
   const [mode, setMode] = useState<CustomGameMode>(room.mode)
@@ -67,6 +73,8 @@ export function RoomSettingsModal({
   const [startingMoney, setStartingMoney] = useState(String(room.startingMoney ?? 800))
   const [customRoundTime, setCustomRoundTime] = useState(room.roundTimeMinutes != null)
   const [roundTime, setRoundTime] = useState(String(room.roundTimeMinutes ?? 2))
+  const [betMinor, setBetMinor] = useState<number | null>(room.betTeamStakeLocalMinor ?? null)
+  const [customBetText, setCustomBetText] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
   const modes = CUSTOM_GAME_MODES.filter(
     (candidate) =>
@@ -145,6 +153,7 @@ export function RoomSettingsModal({
                 legacyMode: allowsLegacyMode && legacyMode,
                 startingMoney: allowsMoney && customMoney ? Number(startingMoney) : 800,
                 roundTimeMinutes: allowsRoundTime && customRoundTime ? Number(roundTime) : null,
+                betTeamStakeLocalMinor: betting ? betMinor : null,
                 ...(password ? { password } : {})
               })
           }}
@@ -316,6 +325,105 @@ export function RoomSettingsModal({
               {room.hasPassword ? t('customRoom.passwordHint') : ''}
             </p>
           </div>
+          {betting && (
+            <div className="grid gap-2 border border-white/15 bg-black/25 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+                {t('customRoom.betTitle')}
+              </div>
+              <p id="room-bet-hint" className="min-h-10 text-xs text-neutral-400">
+                {t('customRoom.betHint')}
+              </p>
+              <div
+                className="grid grid-cols-3 gap-1.5 sm:grid-cols-6"
+                role="group"
+                aria-label={t('customRoom.betPerTeam')}
+                aria-describedby="room-bet-hint"
+              >
+                <button
+                  type="button"
+                  className={twMerge(
+                    'flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-none border border-white/30 px-1 text-xs text-neutral-200',
+                    betMinor === null && 'border-amber-200 bg-amber-200/15 text-amber-100'
+                  )}
+                  aria-pressed={betMinor === null}
+                  disabled={saving}
+                  onClick={() => {
+                    setBetMinor(null)
+                    setCustomBetText('')
+                  }}
+                >
+                  {t('customRoom.betNoBet')}
+                </button>
+                {betting.presets.map((preset) => (
+                  <button
+                    key={preset.localMinor}
+                    type="button"
+                    className={twMerge(
+                      'flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-none border border-white/30 px-1 tabular-nums',
+                      betMinor === preset.localMinor &&
+                        'border-amber-200 bg-amber-200/15 text-amber-100'
+                    )}
+                    aria-pressed={betMinor === preset.localMinor}
+                    disabled={saving}
+                    onClick={() => {
+                      setBetMinor(preset.localMinor)
+                      setCustomBetText('')
+                    }}
+                  >
+                    <span className="text-sm font-semibold leading-none">
+                      {formatLocalMinor(preset.localMinor, betting.currency.symbol, language)}
+                    </span>
+                    <span className="text-[10px] text-neutral-300">
+                      {t('customRoom.betPcashValue', {
+                        amount: formatPCash(preset.pcash, language)
+                      })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {betting.custom.enabled && (
+                <label className="flex flex-wrap items-center gap-2 text-xs text-neutral-200">
+                  <span className="shrink-0">{t('customRoom.betCustom')}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="text-sm">{betting.currency.symbol}</span>
+                    <input
+                      type="number"
+                      min={0.01}
+                      step={0.01}
+                      inputMode="decimal"
+                      value={customBetText}
+                      disabled={saving}
+                      placeholder={t('customRoom.betCustomPlaceholder')}
+                      onChange={(event) => {
+                        const next = event.target.value
+                        setCustomBetText(next)
+                        const minor = Math.round(Number(next) * 100)
+                        const pcash =
+                          Number.isFinite(minor) && minor >= 1
+                            ? localMinorToPcash(minor, betting.currency.localPerPcashMicros)
+                            : 0
+                        setBetMinor(pcash >= 1 && pcash <= 1_000_000 ? minor : null)
+                      }}
+                      className="h-8 w-28 rounded-none border border-white/30 bg-black/40 px-2 text-sm tabular-nums text-white outline-none focus:border-amber-200"
+                      aria-label={t('customRoom.betCustom')}
+                    />
+                  </span>
+                  {customBetText && betMinor !== null ? (
+                    <span className="tabular-nums text-neutral-300">
+                      {t('customRoom.betPcashValue', {
+                        amount: formatPCash(
+                          localMinorToPcash(betMinor, betting.currency.localPerPcashMicros),
+                          language
+                        )
+                      })}
+                    </span>
+                  ) : (
+                    <span className="tabular-nums text-neutral-400">—</span>
+                  )}
+                </label>
+              )}
+            </div>
+          )}
           <p className="h-12 overflow-y-auto text-sm text-red-400" role="status">
             {error ? t('customRoom.saveFailed') : ''}
           </p>

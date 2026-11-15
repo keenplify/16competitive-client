@@ -1,14 +1,21 @@
 import type { CustomGameRoom } from './custom-games'
+import type { CustomGameBetting } from './custom-game-bets'
 import type { MatchmakingNode } from './matchmaking'
 
 export const CUSTOM_GAME_LIST_UNAVAILABLE = 'customGames.listUnavailable'
+
+export interface CustomGameListResponse {
+  rooms: CustomGameRoom[]
+  /** The player's community betting config; identical across nodes. */
+  betting: CustomGameBetting | null
+}
 
 /** Browse the selected region, recovering to the nearest responding region if it disappears. */
 export async function loadCustomGameList(
   nodes: MatchmakingNode[],
   selectedNodeId: string | null | undefined,
-  load: (node: MatchmakingNode) => Promise<CustomGameRoom[]>
-): Promise<CustomGameRoom[]> {
+  load: (node: MatchmakingNode) => Promise<CustomGameListResponse>
+): Promise<CustomGameListResponse> {
   if (selectedNodeId) {
     const latency = (node: MatchmakingNode): number =>
       typeof node.latencyMs === 'number' && Number.isFinite(node.latencyMs)
@@ -38,12 +45,18 @@ export async function loadCustomGameList(
         })
     })
     const successful = results.filter(
-      (result): result is PromiseFulfilledResult<CustomGameRoom[]> => result.status === 'fulfilled'
+      (result): result is PromiseFulfilledResult<CustomGameListResponse> =>
+        result.status === 'fulfilled'
     )
     if (successful.length > 0) {
-      return [
-        ...new Map(successful.flatMap(({ value }) => value).map((room) => [room.id, room])).values()
-      ]
+      return {
+        rooms: [
+          ...new Map(
+            successful.flatMap(({ value }) => value.rooms).map((room) => [room.id, room])
+          ).values()
+        ],
+        betting: successful.find(({ value }) => value.betting !== null)?.value.betting ?? null
+      }
     }
   }
   throw new Error(CUSTOM_GAME_LIST_UNAVAILABLE)

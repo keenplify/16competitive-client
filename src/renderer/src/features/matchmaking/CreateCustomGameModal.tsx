@@ -14,7 +14,9 @@ import { Button } from '../../components/ui/Button'
 import { FindMatchButton } from './FindMatchButton'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
+import { usePartnerBrandingStore } from '../partner-branding/partner-branding.store'
 import { useTranslation } from '../i18n/i18n'
+import { LockKeyhole } from 'lucide-react'
 
 interface CreateCustomGameModalProps {
   maps: MatchmakingMap[]
@@ -33,6 +35,8 @@ export function CreateCustomGameModal({
   const { t } = useTranslation()
   const preferredGame = usePartnerGamePreferenceStore((state) => state.game)
   const enabledModes = useMatchmakingStore((state) => state.customModes)
+  const vip = usePartnerBrandingStore((state) => state.vip)
+  const vipLocked = vip?.customGamesVipOnly === true && !vip.active
   const close = useCustomGamesStore((state) => state.closeCreateModal)
   const createRoom = useCustomGamesStore((state) => state.createRoom)
   const error = useCustomGamesStore((state) => state.error)
@@ -103,6 +107,22 @@ export function CreateCustomGameModal({
         />
 
         <form className="grid gap-4 p-6" onSubmit={submit}>
+          {vipLocked && (
+            <p className="flex items-start gap-3 border border-amber-200/60 bg-amber-200/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+              <LockKeyhole className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>
+                <strong>{t('customRoom.vipGateTitle')}</strong> — {t('customRoom.vipGateHint')}
+                {vip?.expiresAt ? (
+                  <>
+                    {' '}
+                    {t('customRoom.vipExpired', {
+                      date: new Date(vip.expiresAt).toLocaleDateString()
+                    })}
+                  </>
+                ) : null}
+              </span>
+            </p>
+          )}
           <label className="grid gap-2 text-xs font-semibold tracking-wide text-neutral-300 uppercase">
             {t('customRoom.title')}
             <input
@@ -191,7 +211,7 @@ export function CreateCustomGameModal({
               className="h-11 min-w-36 px-4 text-sm font-semibold tracking-normal normal-case"
               aria-busy={submitting}
               type="submit"
-              disabled={disabled || submitting || !modeAvailable || !mapAvailable}
+              disabled={disabled || submitting || vipLocked || !modeAvailable || !mapAvailable}
             >
               <span className="absolute left-2 flex size-4 shrink-0 items-center justify-center">
                 {submitting && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}

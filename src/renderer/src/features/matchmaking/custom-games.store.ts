@@ -10,6 +10,7 @@ import type {
   CustomGameSettings,
   CustomGameSettingsUpdate
 } from '../../../../shared/custom-games'
+import type { CustomGameBetting } from '../../../../shared/custom-game-bets'
 import { useMatchmakingStore } from './matchmaking.store'
 import { usePartyStore } from '../party/party.store'
 
@@ -22,6 +23,8 @@ interface CustomGamesState {
   closeRoomSettings: () => void
   createModalOpen: boolean
   rooms: CustomGameRoom[]
+  /** The player's community betting config; null without betting enabled. */
+  betting: CustomGameBetting | null
   currentRoom: CustomGameRoom | null
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
@@ -61,7 +64,13 @@ const message = (error: unknown): string =>
   error instanceof Error
     ? error.message.includes('legacy.error.installationRequired')
       ? translate(useLanguageStore.getState().language, 'legacy.error.installationRequired')
-      : friendlyFireMessage(error.message)
+      : error.message.includes('Some players lack the PCash')
+        ? translate(useLanguageStore.getState().language, 'customRoom.betInsufficient')
+        : error.message.includes('VIP feature in your community')
+          ? translate(useLanguageStore.getState().language, 'customRoom.vipRequired')
+          : error.message.includes('cannot join this room')
+            ? translate(useLanguageStore.getState().language, 'customRoom.joinUnavailable')
+            : friendlyFireMessage(error.message)
     : 'Custom game request failed'
 
 const mergeChat = (existing: CustomGameChatMessage[], incoming: CustomGameChatMessage[]) =>
@@ -82,6 +91,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   createModalOpen: false,
   rooms: [],
+  betting: null,
   currentRoom: null,
   status: 'idle',
   error: null,
@@ -217,7 +227,9 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       if (currentRoom.status === 'rejected')
         console.warn('[CustomGames] room restore failed', currentRoom.reason)
       set({
-        ...(rooms.status === 'fulfilled' ? { rooms: rooms.value } : {}),
+        ...(rooms.status === 'fulfilled'
+          ? { rooms: rooms.value.rooms, betting: rooms.value.betting }
+          : {}),
         currentRoom:
           currentRoom.status === 'rejected' ||
           get().addingBot ||
@@ -242,14 +254,31 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
   },
   createRoom: async (settings) => {
     set({ error: null })
+    const feedback = toast.loading(
+      translate(useLanguageStore.getState().language, 'customRoom.saving')
+    )
     try {
       const currentRoom = await window.api.customGames.create(settings)
       set({ currentRoom, status: 'ready' })
+      toast.update(feedback, {
+        render: translate(useLanguageStore.getState().language, 'customGames.create'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000,
+        closeButton: true
+      })
       void usePartyStore.getState().refresh()
       await get().refresh()
       return true
     } catch (error) {
       set({ error: message(error) })
+      toast.update(feedback, {
+        render: message(error),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000,
+        closeButton: true
+      })
       return false
     }
   },
@@ -318,7 +347,9 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
     try {
       set({ currentRoom: await window.api.customGames.start(room.id, room.hostApiUrl) })
     } catch (error) {
-      set({ error: message(error) })
+      const text = message(error)
+      set({ error: text })
+      toast.error(text)
     }
   },
   addBot: async (team) => {
@@ -412,6 +443,7 @@ export const useCustomGamesStore = create<CustomGamesState>((set, get) => ({
       playView: 'matchmaking',
       playViewManuallySelected: false,
       rooms: [],
+      betting: null,
       currentRoom: null,
       settingsModalOpen: false,
       savingSettings: false,

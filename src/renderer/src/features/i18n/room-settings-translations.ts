@@ -34,7 +34,28 @@ const english = {
   'customRoom.mode.cs13_3v3': 'Legacy 1.3',
   'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
   'customRoom.mode.ffa': 'FFA',
-  'customRoom.mode.arena': 'Arena'
+  'customRoom.mode.arena': 'Arena',
+  'customRoom.betTitle': 'Custom game betting',
+  'customRoom.betPerTeam': 'Stake per team',
+  'customRoom.betHint':
+    'Everyone on a team pays an equal share. Losers forfeit their share; the winning team splits the pot after the 20% platform cut.',
+  'customRoom.betNoBet': 'No bet',
+  'customRoom.betCustom': 'Custom per team',
+  'customRoom.betCustomPlaceholder': 'e.g. 150',
+  'customRoom.betPcashValue': '{{amount}} PCash',
+  'customRoom.betInsufficient': 'Some players lack the Papa Cash for their share.',
+  'customRoom.vipRequired': 'Custom games are a VIP feature in your community.',
+  'customRoom.betShare': 'BET: {{amount}}',
+  'customRoom.joinUnavailable': 'Unavailable',
+  'customRoom.betCommunityRequired':
+    "Only members of the host's community can join a room with a bet.",
+  'customRoom.betShortTooltip':
+    'Needs {{amount}} to play in this room. The game cannot start while a player is short.',
+  'customRoom.vipGateTitle': 'Extra VIP features',
+  'customRoom.vipGateHint': 'Only active VIP members can create custom games in this community.',
+  'customRoom.vipExpired': 'Your membership expired on {{date}}.',
+  'customRoom.betShortTooltipSelf':
+    'You need {{amount}} to play in this room. Balance: {{balance}}.'
 } as const
 
 type RoomSettingsTranslations = Record<keyof typeof english, string>
@@ -76,7 +97,28 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Каждый за себя',
-    'customRoom.mode.arena': 'Арена'
+    'customRoom.mode.arena': 'Арена',
+    'customRoom.betTitle': 'Ставки в своих играх',
+    'customRoom.betPerTeam': 'Ставка за команду',
+    'customRoom.betHint':
+      'Каждый игрок команды платит равную долю. Проигравшие теряют долю; победившая команда делит банк за вычетом 20% платформы.',
+    'customRoom.betNoBet': 'Без ставки',
+    'customRoom.betCustom': 'Своя сумма за команду',
+    'customRoom.betCustomPlaceholder': 'напр. 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': 'У некоторых игроков не хватает Papa Cash на свою долю.',
+    'customRoom.vipRequired': 'Свои игры — VIP-функция вашего сообщества.',
+    'customRoom.betShare': 'СТАВКА: {{amount}}',
+    'customRoom.joinUnavailable': 'Недоступно',
+    'customRoom.betCommunityRequired':
+      'В комнату со ставкой могут входить только участники сообщества хоста.',
+    'customRoom.betShortTooltip':
+      'Нужно {{amount}} для игры в этой комнате. Игра не начнётся, пока у игрока не хватает средств.',
+    'customRoom.vipGateTitle': 'Дополнительные VIP-функции',
+    'customRoom.vipGateHint': 'Создавать свои игры могут только активные VIP-участники.',
+    'customRoom.vipExpired': 'Ваша подписка истекла {{date}}.',
+    'customRoom.betShortTooltipSelf':
+      'Вам нужно {{amount}} для игры в этой комнате. Баланс: {{balance}}.'
   },
   tl: {
     'customRoom.saving': 'Sine-save ang room settings…',
@@ -113,7 +155,29 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Lahat magkakalaban',
-    'customRoom.mode.arena': 'Arena'
+    'customRoom.mode.arena': 'Arena',
+    'customRoom.betTitle': 'Taya sa custom game',
+    'customRoom.betPerTeam': 'Taya bawat team',
+    'customRoom.betHint':
+      'Pantay na hati ang bayad ng bawat miyembro ng team. Matatalo ang taya ng natalo; hahatiin ng panalong team ang pot pagkatapos ng 20% na kaltas ng platform.',
+    'customRoom.betNoBet': 'Walang taya',
+    'customRoom.betCustom': 'Custom bawat team',
+    'customRoom.betCustomPlaceholder': 'hal. 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': 'May mga player na kulang ang Papa Cash para sa bahagi nila.',
+    'customRoom.vipRequired': 'VIP feature ng community ninyo ang custom games.',
+    'customRoom.betShare': 'TAYA: {{amount}}',
+    'customRoom.joinUnavailable': 'Hindi available',
+    'customRoom.betCommunityRequired':
+      'Mga miyembro lang ng community ng host ang puwedeng sumali sa room na may taya.',
+    'customRoom.betShortTooltip':
+      "Kailangan ng {{amount}} para makalaro sa room na ito. Hindi magsisimula ang laro hangga't may kulang.",
+    'customRoom.vipGateTitle': 'Extra VIP features',
+    'customRoom.vipGateHint':
+      'Mga aktibong VIP member lang ang makakagawa ng custom games sa community na ito.',
+    'customRoom.vipExpired': 'Nag-expire ang membership mo noong {{date}}.',
+    'customRoom.betShortTooltipSelf':
+      'Kailangan mo ng {{amount}} para makalaro sa room na ito. Balanse: {{balance}}.'
   },
   th: {
     'customRoom.saving': 'กำลังบันทึกการตั้งค่าห้อง…',
@@ -149,7 +213,28 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'ทุกคนเป็นศัตรู',
-    'customRoom.mode.arena': 'อารีนา'
+    'customRoom.mode.arena': 'อารีนา',
+    'customRoom.betTitle': 'เดิมพันในเกมกำหนดเอง',
+    'customRoom.betPerTeam': 'เงินเดิมพันต่อทีม',
+    'customRoom.betHint':
+      'ทุกคนในทีมจ่ายส่วนแบ่งเท่ากัน ผู้แพ้เสียส่วนแบ่ง ทีมชนะแบ่งเงินกองกลางหลังหักค่าธรรมเนียมแพลตฟอร์ม 20%',
+    'customRoom.betNoBet': 'ไม่เดิมพัน',
+    'customRoom.betCustom': 'กำหนดเองต่อทีม',
+    'customRoom.betCustomPlaceholder': 'เช่น 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': 'ผู้เล่นบางคนมี Papa Cash ไม่พอสำหรับส่วนแบ่ง',
+    'customRoom.vipRequired': 'เกมกำหนดเองเป็นฟีเจอร์ VIP ของชุมชนคุณ',
+    'customRoom.betShare': 'เดิมพัน: {{amount}}',
+    'customRoom.joinUnavailable': 'ไม่ว่าง',
+    'customRoom.betCommunityRequired':
+      'เฉพาะสมาชิกของชุมชนโฮสต์เท่านั้นที่เข้าร่วมห้องที่มีเดิมพันได้',
+    'customRoom.betShortTooltip':
+      'ต้องมี {{amount}} จึงจะเล่นในห้องนี้ เกมจะเริ่มไม่ได้ถ้ายังมีคนขาดเงิน',
+    'customRoom.vipGateTitle': 'ฟีเจอร์ VIP พิเศษ',
+    'customRoom.vipGateHint': 'เฉพาะสมาชิก VIP ที่ยังใช้งานอยู่เท่านั้นที่สร้างเกมกำหนดเองได้',
+    'customRoom.vipExpired': 'สมาชิกของคุณหมดอายุเมื่อ {{date}}',
+    'customRoom.betShortTooltipSelf':
+      'คุณต้องมี {{amount}} จึงจะเล่นในห้องนี้ ยอดคงเหลือ: {{balance}}'
   },
   id: {
     'customRoom.saving': 'Menyimpan pengaturan ruang…',
@@ -186,7 +271,29 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Semua lawan semua',
-    'customRoom.mode.arena': 'Arena'
+    'customRoom.mode.arena': 'Arena',
+    'customRoom.betTitle': 'Taruhan game kustom',
+    'customRoom.betPerTeam': 'Taruhan per tim',
+    'customRoom.betHint':
+      'Semua anggota tim membayar bagian yang sama. Yang kalah kehilangan bagiannya; tim pemenang membagi pot setelah potongan platform 20%.',
+    'customRoom.betNoBet': 'Tanpa taruhan',
+    'customRoom.betCustom': 'Kustom per tim',
+    'customRoom.betCustomPlaceholder': 'mis. 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': 'Beberapa pemain kekurangan Papa Cash untuk bagian mereka.',
+    'customRoom.vipRequired': 'Game kustom adalah fitur VIP di komunitas Anda.',
+    'customRoom.betShare': 'TARUHAN: {{amount}}',
+    'customRoom.joinUnavailable': 'Tidak tersedia',
+    'customRoom.betCommunityRequired':
+      'Hanya anggota komunitas host yang bisa bergabung ke room dengan taruhan.',
+    'customRoom.betShortTooltip':
+      'Butuh {{amount}} untuk bermain di room ini. Game tidak bisa dimulai selama ada pemain yang kekurangan.',
+    'customRoom.vipGateTitle': 'Fitur VIP ekstra',
+    'customRoom.vipGateHint':
+      'Hanya anggota VIP aktif yang dapat membuat game kustom di komunitas ini.',
+    'customRoom.vipExpired': 'Keanggotaan Anda berakhir pada {{date}}.',
+    'customRoom.betShortTooltipSelf':
+      'Anda butuh {{amount}} untuk bermain di room ini. Saldo: {{balance}}.'
   },
   hi: {
     'customRoom.saving': 'रूम सेटिंग सहेजी जा रही हैं…',
@@ -223,7 +330,28 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'सबके विरुद्ध सब',
-    'customRoom.mode.arena': 'एरीना'
+    'customRoom.mode.arena': 'एरीना',
+    'customRoom.betTitle': 'कस्टम गेम दाँव',
+    'customRoom.betPerTeam': 'प्रति टीम दाँव',
+    'customRoom.betHint':
+      'टीम के सभी सदस्य बराबर हिस्सा चुकाते हैं। हारने वाले अपना हिस्सा खो देते हैं; जीतने वाली टीम 20% प्लेटफ़ॉर्म कटौती के बाद पॉट बाँटती है।',
+    'customRoom.betNoBet': 'कोई दाँव नहीं',
+    'customRoom.betCustom': 'प्रति टीम मनचाहा',
+    'customRoom.betCustomPlaceholder': 'जैसे 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': 'कुछ खिलाड़ियों के पास अपने हिस्से के लिए Papa Cash कम है।',
+    'customRoom.vipRequired': 'कस्टम गेम आपकी कम्युनिटी का VIP फीचर है।',
+    'customRoom.betShare': 'दाँव: {{amount}}',
+    'customRoom.joinUnavailable': 'अनुपलब्ध',
+    'customRoom.betCommunityRequired':
+      'दाँव वाले रूम में सिर्फ होस्ट की कम्युनिटी के सदस्य शामिल हो सकते हैं।',
+    'customRoom.betShortTooltip':
+      'इस रूम में खेलने के लिए {{amount}} चाहिए। जब तक कोई खिलाड़ी कम है, खेल शुरू नहीं हो सकता।',
+    'customRoom.vipGateTitle': 'अतिरिक्त VIP फीचर',
+    'customRoom.vipGateHint': 'इस कम्युनिटी में सिर्फ सक्रिय VIP सदस्य ही कस्टम गेम बना सकते हैं।',
+    'customRoom.vipExpired': 'आपकी सदस्यता {{date}} को समाप्त हुई।',
+    'customRoom.betShortTooltipSelf':
+      'इस रूम में खेलने के लिए आपको {{amount}} चाहिए। शेष: {{balance}}।'
   },
   pt: {
     'customRoom.saving': 'Salvando configurações da sala…',
@@ -259,7 +387,29 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': 'Todos contra todos',
-    'customRoom.mode.arena': 'Arena'
+    'customRoom.mode.arena': 'Arena',
+    'customRoom.betTitle': 'Apostas em jogos próprios',
+    'customRoom.betPerTeam': 'Aposta por equipe',
+    'customRoom.betHint':
+      'Todos da equipe pagam uma parte igual. Quem perde perde a parte; a equipe vencedora divide o pote após o corte de 20% da plataforma.',
+    'customRoom.betNoBet': 'Sem aposta',
+    'customRoom.betCustom': 'Valor por equipe',
+    'customRoom.betCustomPlaceholder': 'ex.: 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient':
+      'Alguns jogadores não têm Papa Cash suficiente para a parte deles.',
+    'customRoom.vipRequired': 'Jogos próprios são um recurso VIP da sua comunidade.',
+    'customRoom.betShare': 'APOSTA: {{amount}}',
+    'customRoom.joinUnavailable': 'Indisponível',
+    'customRoom.betCommunityRequired':
+      'Somente membros da comunidade do anfitrião podem entrar em uma sala com aposta.',
+    'customRoom.betShortTooltip':
+      'É preciso {{amount}} para jogar nesta sala. A partida não começa enquanto houver alguém sem saldo.',
+    'customRoom.vipGateTitle': 'Recursos VIP extras',
+    'customRoom.vipGateHint': 'Somente VIPs ativos podem criar jogos próprios nesta comunidade.',
+    'customRoom.vipExpired': 'Sua assinatura expirou em {{date}}.',
+    'customRoom.betShortTooltipSelf':
+      'Você precisa de {{amount}} para jogar nesta sala. Saldo: {{balance}}.'
   },
   ja: {
     'customRoom.saving': 'ルーム設定を保存中…',
@@ -295,6 +445,28 @@ export const roomSettingsTranslations: Record<SupportedLanguageCode, RoomSetting
     'customRoom.mode.cs13_3v3': 'Legacy 1.3',
     'customRoom.mode.cs13_1v1': 'CS 1.3 1v1',
     'customRoom.mode.ffa': '全員が敵',
-    'customRoom.mode.arena': 'アリーナ'
+    'customRoom.mode.arena': 'アリーナ',
+    'customRoom.betTitle': 'カスタムゲームベット',
+    'customRoom.betPerTeam': 'チームごとの賭け金',
+    'customRoom.betHint':
+      'チーム全員が均等に支払います。負けた側は賭け金を失い、勝った側がプラットフォーム手数料20%を差し引いたポットを分け合います。',
+    'customRoom.betNoBet': 'ベットなし',
+    'customRoom.betCustom': 'チームごとに指定',
+    'customRoom.betCustomPlaceholder': '例: 150',
+    'customRoom.betPcashValue': '{{amount}} PCash',
+    'customRoom.betInsufficient': '一部のプレイヤーのPapa Cashが自分の分に足りません。',
+    'customRoom.vipRequired': 'カスタムゲームはこのコミュニティのVIP機能です。',
+    'customRoom.betShare': 'BET: {{amount}}',
+    'customRoom.joinUnavailable': '参加不可',
+    'customRoom.betCommunityRequired':
+      'ベットのある部屋にはホストのコミュニティのメンバーしか参加できません。',
+    'customRoom.betShortTooltip':
+      'この部屋でプレイするには{{amount}}必要です。足りないプレイヤーがいる間は開始できません。',
+    'customRoom.vipGateTitle': '追加VIP機能',
+    'customRoom.vipGateHint':
+      'このコミュニティではアクティブなVIPメンバーだけがカスタムゲームを作成できます。',
+    'customRoom.vipExpired': 'メンバーシップは{{date}}に期限切れです。',
+    'customRoom.betShortTooltipSelf':
+      'この部屋でプレイするには{{amount}}必要です。残高: {{balance}}。'
   }
 }

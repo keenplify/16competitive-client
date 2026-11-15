@@ -29,6 +29,7 @@ import { partnerAssetPath } from './partner-runtime'
 import { loadBrowserCommunityDirectory } from './partner-community-context'
 import { saveBrowserCrosshair } from './crosshair-settings'
 import { loadCustomGameList } from '../shared/custom-game-list'
+import { parseCustomGameBetting } from '../shared/custom-game-bets'
 import {
   parseCommunityJoin,
   parseCommunityLeave,
@@ -306,12 +307,21 @@ const customGames: CustomGamesApi = {
   async list(selectedNodeId) {
     const nodes = await browserMatchmakingApi.getNodes()
     return loadCustomGameList(nodes, selectedNodeId, async (node) => {
-      const result = await customGameRequest<{ rooms: CustomGameRoom[] }>('/custom-games', {
-        authenticated: true,
-        baseUrl: node.publicApiUrl,
-        clearOnUnauthorized: false
-      })
-      return result.rooms
+      const result = await customGameRequest<{ rooms: CustomGameRoom[]; betting?: unknown }>(
+        '/custom-games',
+        {
+          authenticated: true,
+          baseUrl: node.publicApiUrl,
+          clearOnUnauthorized: false
+        }
+      )
+      if (!Array.isArray(result.rooms)) {
+        throw new Error('The custom game server returned an invalid room list')
+      }
+      return {
+        rooms: result.rooms,
+        betting: parseCustomGameBetting(result.betting === undefined ? null : result.betting)
+      }
     })
   },
   async mine(host) {

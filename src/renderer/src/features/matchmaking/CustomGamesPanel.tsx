@@ -12,6 +12,7 @@ import {
   UserX
 } from 'lucide-react'
 import { toast } from 'react-toastify'
+import { twMerge } from 'tailwind-merge'
 import {
   CUSTOM_GAME_MODE_LABELS,
   type CustomGameMember,
@@ -24,12 +25,19 @@ import { FindMatchButton } from './FindMatchButton'
 import { useDismissibleMenu } from '../../components/ui/use-dismissible-menu'
 import { CustomGamePlayerRank } from './CustomGamePlayerRank'
 import { RoomSettingsModal } from './RoomSettingsModal'
+import { WarningMarker } from '../../components/ui/WarningMarker'
+import {
+  formatLocalMinor,
+  formatPCash,
+  pcashToLocalMinor
+} from '../../../../shared/community-currency'
 import { useTranslation } from '../i18n/i18n'
 import { CreateCustomGameModal } from './CreateCustomGameModal'
 import { JoinCustomGameModal } from './JoinCustomGameModal'
 import { useCustomGamesStore } from './custom-games.store'
 import { useMatchmakingStore } from './matchmaking.store'
 import { useFriendsStore } from '../friends/friends.store'
+import { usePaymentsStore } from '../skins/payments.store'
 
 interface CustomGamesPanelProps {
   currentPlayerId: string
@@ -58,6 +66,54 @@ const serverTextClass = (latencyMs: number | null, available: boolean): string =
   if (latencyMs <= 100) return 'text-emerald-400'
   if (latencyMs < 300) return 'text-orange-400'
   return 'text-red-400'
+}
+
+/** Per-player bet share label plus the reusable short-balance marker. */
+function MemberBetMarkers({
+  member,
+  currentPlayerId
+}: {
+  member: CustomGameMember
+  currentPlayerId: string
+}): JSX.Element | null {
+  const betting = useCustomGamesStore((state) => state.betting)
+  const ownBalance = usePaymentsStore((state) => state.snapshot?.pCash)
+  const { t, language } = useTranslation()
+  const share = member.betSharePCash ?? null
+  if (share === null) return null
+  const local = betting?.currency
+    ? formatLocalMinor(
+        pcashToLocalMinor(share, betting.currency.localPerPcashMicros),
+        betting.currency.symbol,
+        language
+      )
+    : null
+  const amount = local ?? `${formatPCash(share, language)} PCash`
+  const self = member.id === currentPlayerId
+  const ownBalanceText =
+    self && ownBalance !== undefined && betting?.currency
+      ? formatLocalMinor(
+          pcashToLocalMinor(ownBalance, betting.currency.localPerPcashMicros),
+          betting.currency.symbol,
+          language
+        )
+      : null
+  return (
+    <span className="ml-auto flex shrink-0 items-center gap-2">
+      <span className="text-[11px] tabular-nums text-neutral-400">
+        {t('customRoom.betShare', { amount })}
+      </span>
+      {member.betCovered === false && (
+        <WarningMarker label={t('customRoom.betInsufficient')}>
+          <span className="block max-w-64 text-xs leading-relaxed">
+            {self && ownBalanceText
+              ? t('customRoom.betShortTooltipSelf', { amount, balance: ownBalanceText })
+              : t('customRoom.betShortTooltip', { amount })}
+          </span>
+        </WarningMarker>
+      )}
+    </span>
+  )
 }
 
 export function CustomGamesPanel({
@@ -301,6 +357,9 @@ export function CustomGamesPanel({
                           {blocked ? 'Blocked' : 'Open player slot'}
                         </span>
                       )}
+                      {member && (
+                        <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
+                      )}
                       {blocked && (
                         <span className="pointer-events-none absolute inset-0" aria-hidden="true">
                           <span className="absolute top-1/2 left-1/2 h-px w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-[4deg] bg-neutral-500/45" />
@@ -403,6 +462,9 @@ export function CustomGamesPanel({
                             <span className="text-neutral-600">
                               {blocked ? 'Blocked' : 'Open slot'}
                             </span>
+                          )}
+                          {member && (
+                            <MemberBetMarkers member={member} currentPlayerId={currentPlayerId} />
                           )}
                           {blocked && (
                             <span
@@ -561,7 +623,8 @@ export function CustomGamesPanel({
                 const full =
                   candidate.members.length >=
                   candidate.teamOneCapacity + candidate.teamTwoCapacity + 2
-                const unavailable = candidate.state === 'READY_CHECK' || full
+                const locked = candidate.joinRestricted === true
+                const unavailable = candidate.state === 'READY_CHECK' || full || locked
                 const mapName =
                   maps.find((map) => map.id === candidate.mapId)?.displayName ?? candidate.mapId
                 const serverNode = nodes.find((node) => node.id === candidate.hostNodeId)
@@ -577,9 +640,12 @@ export function CustomGamesPanel({
                     </span>
                     <div className="min-w-0">
                       <p className="flex items-center gap-2 truncate text-sm font-semibold text-white">
-                        {candidate.hasPassword && (
+                        {(candidate.hasPassword || locked) && (
                           <LockKeyhole
-                            className="size-3.5 shrink-0 text-amber-300"
+                            className={twMerge(
+                              'size-3.5 shrink-0',
+                              locked ? 'text-neutral-400' : 'text-amber-300'
+                            )}
                             aria-hidden="true"
                           />
                         )}
@@ -631,12 +697,20 @@ export function CustomGamesPanel({
                       className="h-8 px-3 text-xs"
                       variant="secondary"
                       disabled={unavailable}
+                      title={locked ? t('customRoom.joinUnavailable') : undefined}
                       onClick={() => {
+                        if (locked) return
                         if (candidate.hasPassword) setPasswordRoom(candidate)
                         else void joinRoom(candidate.id, undefined, candidate.hostApiUrl)
                       }}
                     >
-                      {full ? 'Full' : candidate.state === 'LIVE' ? 'Join game' : 'Join'}
+                      {locked
+                        ? t('customRoom.joinUnavailable')
+                        : full
+                          ? 'Full'
+                          : candidate.state === 'LIVE'
+                            ? 'Join game'
+                            : 'Join'}
                     </Button>
                   </div>
                 )

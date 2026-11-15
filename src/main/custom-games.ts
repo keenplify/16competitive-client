@@ -12,6 +12,8 @@ import type {
   CustomGameSettingsUpdate
 } from '../shared/custom-games'
 import { isCustomGameChatMessage, isCustomGameMode } from '../shared/custom-games'
+import { parseCustomGameBetting } from '../shared/custom-game-bets'
+import type { CustomGameListResponse } from '../shared/custom-game-list'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MAP_PATTERN = /^[a-z0-9_]{1,64}$/
@@ -25,7 +27,13 @@ const isMember = (value: unknown): value is CustomGameMember =>
   typeof value.username === 'string' &&
   typeof value.mmr === 'number' &&
   typeof value.isBot === 'boolean' &&
-  (value.team === 0 || value.team === 1 || value.team === 2)
+  (value.team === 0 || value.team === 1 || value.team === 2) &&
+  (value.betSharePCash === undefined ||
+    value.betSharePCash === null ||
+    (Number.isSafeInteger(value.betSharePCash) &&
+      Number(value.betSharePCash) >= 1 &&
+      Number(value.betSharePCash) <= 1_000_000)) &&
+  (value.betCovered === undefined || typeof value.betCovered === 'boolean')
 
 const isRoundTime = (value: unknown): value is number | null =>
   value === null ||
@@ -60,6 +68,12 @@ const isRoom = (value: unknown): value is CustomGameRoom =>
   Number(value.teamTwoCapacity) >= 1 &&
   Number(value.teamTwoCapacity) <= 8 &&
   typeof value.hasPassword === 'boolean' &&
+  (value.joinRestricted === undefined || typeof value.joinRestricted === 'boolean') &&
+  (value.betTeamStakeLocalMinor === undefined ||
+    value.betTeamStakeLocalMinor === null ||
+    (Number.isSafeInteger(value.betTeamStakeLocalMinor) &&
+      Number(value.betTeamStakeLocalMinor) >= 1 &&
+      Number(value.betTeamStakeLocalMinor) <= 100_000_000)) &&
   (value.matchId === null || typeof value.matchId === 'string') &&
   typeof value.createdAt === 'string' &&
   typeof value.hostNodeId === 'string' &&
@@ -158,6 +172,15 @@ const validateSettingsUpdate = (value: unknown): CustomGameSettingsUpdate => {
   }
   const password = validatePassword(value.password, true)
   if (password !== undefined) update.password = password
+  const betStake = value.betTeamStakeLocalMinor
+  if (betStake !== undefined) {
+    if (
+      betStake !== null &&
+      (!Number.isSafeInteger(betStake) || Number(betStake) < 1 || Number(betStake) > 100_000_000)
+    )
+      throw new Error('Invalid per-team bet')
+    update.betTeamStakeLocalMinor = betStake === null ? null : Number(betStake)
+  }
   return update
 }
 
@@ -229,14 +252,22 @@ const roomFrom = (body: unknown, nullable = false): CustomGameRoom | null => {
   return body.room as CustomGameRoom | null
 }
 
-const roomsFrom = (body: unknown): CustomGameRoom[] => {
+const roomsFrom = (body: unknown): CustomGameListResponse => {
   if (!isObject(body) || !Array.isArray(body.rooms) || !body.rooms.every(isRoom)) {
     throw new Error('The custom game server returned an invalid room list')
   }
-  return body.rooms
+  return {
+    rooms: body.rooms.map((room) => ({
+      ...room,
+      betTeamStakeLocalMinor: room.betTeamStakeLocalMinor ?? null
+    })),
+    betting: parseCustomGameBetting(body.betting === undefined ? null : body.betting)
+  }
 }
 
-export const listCustomGames = async (selectedNodeId?: unknown): Promise<CustomGameRoom[]> => {
+export const listCustomGames = async (
+  selectedNodeId?: unknown
+): Promise<CustomGameListResponse> => {
   if (
     selectedNodeId !== undefined &&
     selectedNodeId !== null &&
