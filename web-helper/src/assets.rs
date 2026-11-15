@@ -213,6 +213,25 @@ fn linked(metadata: &fs::Metadata) -> bool {
 /// Electron's default userData location, shared by the desktop and companion
 /// runtime. Never derive an approved storage root from the game link itself.
 static COMPATIBILITY_CONFIG_HOME: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+static DESKTOP_USER_DATA: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+// This root comes from Electron over its private inherited pipe, never from
+// the game junction or a server manifest. Reject reparse points in its ancestry.
+pub(crate) fn set_desktop_user_data(path: PathBuf) -> Result<(), String> {
+    validate_desktop_user_data(&path)?;
+    DESKTOP_USER_DATA.set(path).map_err(|_| "Desktop asset storage already set".into())
+}
+
+fn validate_desktop_user_data(path: &Path) -> Result<(), String> {
+    if !path.is_absolute() || path.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
+        return Err("Invalid desktop asset storage".into());
+    }
+    for parent in path.ancestors() {
+        let metadata = fs::symlink_metadata(parent).map_err(|_| "Invalid desktop asset storage")?;
+        if linked(&metadata) || !metadata.is_dir() { return Err("Invalid desktop asset storage".into()); }
+    }
+    Ok(())
+}
 
 // Supplied only through the private compatibility handoff, independently of
 // the game symlink. Keep the same ancestor and destination validation below.
@@ -240,13 +259,23 @@ pub(crate) fn desktop_config_home() -> Result<PathBuf, String> {
 /// writes against the independently approved physical cache, never through the
 /// game link. Ordinary installations continue to use their existing directory.
 pub(crate) fn game_destination(root: &Path, path: &str) -> Result<PathBuf, String> {
-    game_destination_under(root, path, &desktop_config_home)
+    game_destination_in_profile(root, path, &desktop_config_home, DESKTOP_USER_DATA.get().map(PathBuf::as_path))
 }
 
+#[cfg(test)]
 fn game_destination_under(
     root: &Path,
     path: &str,
     config_home: &impl Fn() -> Result<PathBuf, String>,
+) -> Result<PathBuf, String> {
+    game_destination_in_profile(root, path, config_home, None)
+}
+
+fn game_destination_in_profile(
+    root: &Path,
+    path: &str,
+    config_home: &impl Fn() -> Result<PathBuf, String>,
+    profile: Option<&Path>,
 ) -> Result<PathBuf, String> {
     let Some(suffix) = path.strip_prefix("models/16competitive/") else {
         return destination(root, path);
@@ -276,11 +305,18 @@ fn game_destination_under(
         }
         Err(error) => return Err(error.to_string()),
     }
-    let home = fs::canonicalize(config_home()?).map_err(|e| e.to_string())?;
+    let mut approved = if let Some(profile) = profile {
+        validate_desktop_user_data(profile)?;
+        fs::canonicalize(profile).map_err(|e| e.to_string())?
+    } else {
+        let home = fs::canonicalize(config_home()?).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     relink_stale_launcher_namespace(&namespace, &home)?;
-    let mut approved = home;
-    for part in ["16competitive-client", "game-assets", "models", "16competitive"] {
+        let profile = home.join("16competitive-client");
+        validate_desktop_user_data(&profile)?;
+        profile
+    };
+    for part in ["game-assets", "models", "16competitive"] {
         approved.push(part);
         let metadata = fs::symlink_metadata(&approved).map_err(|e| e.to_string())?;
         if linked(&metadata) {
@@ -783,6 +819,36 @@ mod tests {
             #[cfg(windows)] fs::remove_dir(game.join("models/16competitive")).unwrap();
             #[cfg(unix)] fs::remove_file(game.join("models/16competitive")).unwrap();
         }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn desktop_handoff_uses_its_exact_profile_for_both_game_versions() {
+        let root = test_root();
+        let profile = root.join("isolated-profile");
+        let shared = profile.join("game-assets/models/16competitive");
+        fs::create_dir_all(&shared).unwrap();
+        for version in ["cstrike", "cstrk13"] {
+            let game = root.join(version);
+            fs::create_dir_all(game.join("models")).unwrap();
+            let link = game.join("models/16competitive");
+            link_directory(&shared, &link);
+            let path = "models/16competitive/ping/v2/ef_gundrop.mdl";
+            assert!(game_destination_under(&game, path, &|| Ok(root.clone())).is_err());
+            let target = game_destination_in_profile(&game, path, &|| panic!("must use the desktop profile"), Some(&profile)).unwrap();
+            assert_eq!(target, shared.canonicalize().unwrap().join("ping/v2/ef_gundrop.mdl"));
+            let other = root.join("other-profile");
+            fs::create_dir_all(&other).unwrap();
+            assert!(game_destination_in_profile(&game, path, &|| panic!(), Some(&other)).is_err());
+            #[cfg(windows)] fs::remove_dir(&link).unwrap();
+            #[cfg(unix)] fs::remove_file(&link).unwrap();
+        }
+        let alias = root.join("profile-alias");
+        link_directory(&profile, &alias);
+        assert!(validate_desktop_user_data(&alias).is_err());
+        assert!(validate_desktop_user_data(&alias.join("game-assets")).is_err());
+        #[cfg(windows)] fs::remove_dir(&alias).unwrap();
+        #[cfg(unix)] fs::remove_file(&alias).unwrap();
         fs::remove_dir_all(root).unwrap();
     }
 

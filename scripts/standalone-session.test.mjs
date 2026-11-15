@@ -98,7 +98,7 @@ rl.on('line', line=>{
   else {
     fs.writeFileSync(${JSON.stringify(marker)},JSON.stringify({commit:value.commit,voice:request.settings.voice,
       dedicated:request.handoff!== 'desktop-token', argv:process.argv.slice(2),
-      keep:request.keepLauncherOpen,reopen:!!request.reopen,resume:request.reopen?.args.includes('--return-from-game'),cards:request.settings.killCardsEnabled}));
+      keep:request.keepLauncherOpen,reopen:!!request.reopen,resume:request.reopen?.args.includes('--return-from-game'),cards:request.settings.killCardsEnabled,assetProfile:request.assetUserData}));
     console.log(JSON.stringify({protocol:1,event:'committed'}));
     setTimeout(()=>process.exit(0),300);
   }
@@ -132,7 +132,8 @@ rl.on('line', line=>{
       keep: false,
       reopen: true,
       resume: true,
-      cards: true
+      cards: true,
+      assetProfile: join(root, 'user')
     })
     await new Promise((resolve) => setTimeout(resolve, 200))
     assert.equal(quits, 1)

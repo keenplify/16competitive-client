@@ -25,6 +25,8 @@ struct Request {
     preferences_source: Option<PathBuf>,
     #[serde(default)]
     asset_config_home: Option<PathBuf>,
+    #[serde(default)]
+    asset_user_data: Option<PathBuf>,
 }
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -66,7 +68,7 @@ pub(crate) fn executable_hash(path: &Path) -> Result<String, String> {
 }
 impl Reopen {
     pub(crate) fn validate(&self) -> Result<(), String> {
-        if self.args.len() > 3
+        if self.args.len() > 4
             || self
                 .args
                 .iter()
@@ -400,6 +402,10 @@ fn run_inner(compatibility: bool) -> Result<(), String> {
         return Err("Invalid launcher handoff".into());
     }
     request.settings.validate()?;
+    if let Some(path) = &request.asset_user_data {
+        if compatibility { return Err("Invalid desktop asset storage".into()); }
+        assets::set_desktop_user_data(path.clone())?;
+    }
     if let Some(path) = &request.asset_config_home {
         if !compatibility { return Err("Invalid compatibility cache root".into()); }
         assets::set_compatibility_config_home(path.clone())?;

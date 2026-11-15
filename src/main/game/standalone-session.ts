@@ -313,6 +313,8 @@ async function launchStandaloneTargetInner(
   const executable = await realpath(process.env.APPIMAGE || process.execPath)
   const args = app.isPackaged ? [] : [app.getAppPath()]
   if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox')
+  if (process.argv.some((arg) => arg === '--user-data-dir' || arg.startsWith('--user-data-dir=')))
+    args.push(`--user-data-dir=${await realpath(app.getPath('userData'))}`)
   args.push('--return-from-game')
   // Competitive HUD now lives in VGUI2. An old offscreen-HUD preference
   // must not keep Electron alive for a platform match.
@@ -325,6 +327,7 @@ async function launchStandaloneTargetInner(
     installation: legacy ? join(legacy.folderPath, legacy.modDirectory) : settings.cs16FolderPath,
     ...(legacy ? { game: 'cs13' } : {}),
     settings: sessionPreferences(settings),
+    assetUserData: await realpath(app.getPath('userData')),
     keepLauncherOpen,
     reopen: keepLauncherOpen ? null : { executable, sha256: await hashFile(executable), args }
   }
